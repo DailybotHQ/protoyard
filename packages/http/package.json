@@ -1,0 +1,20 @@
+{
+  "name": "@protoyard/http",
+  "version": "0.1.0",
+  "description": "Optional mock HTTP layer for Protoyard prototypes: a fetch-compatible API routed to prototype services through the simulated environment — no server, no service worker.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@protoyard/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@protoyard/runtime": "workspace:*"
+  }
+}
