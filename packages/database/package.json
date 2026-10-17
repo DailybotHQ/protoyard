@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@protoyard/core": "workspace:*",
-    "dexie": "^4.4.0"
+    "dexie": "^4.4.0",
+    "fake-indexeddb": "~6.2.0"
   }
 }
