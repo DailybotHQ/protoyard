@@ -104,11 +104,22 @@ export function validateSnapshot(
   return { ok: true, snapshot, warnings };
 }
 
+/**
+ * UTF-8 size check. `text.length` counts UTF-16 code units, so a file full of
+ * emoji can be ~2x larger in bytes than its length suggests. A cheap length
+ * check runs first; bytes are only measured when the string could exceed.
+ */
+export function utf8ByteLengthExceeds(text: string, maxBytes: number): boolean {
+  if (text.length > maxBytes) return true;
+  if (text.length * 3 <= maxBytes) return false;
+  return new TextEncoder().encode(text).byteLength > maxBytes;
+}
+
 export function parseSnapshotText(
   text: string,
   target: { prototypeId: string; schemaVersion: number; tables: readonly string[] }
 ): SnapshotValidation {
-  if (text.length > SNAPSHOT_MAX_BYTES) {
+  if (utf8ByteLengthExceeds(text, SNAPSHOT_MAX_BYTES)) {
     return { ok: false, error: 'Snapshot file is larger than 25 MB and was not imported.' };
   }
   let json: unknown;

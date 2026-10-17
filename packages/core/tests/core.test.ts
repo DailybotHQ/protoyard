@@ -10,6 +10,7 @@ import {
   resolveEffective,
   safeParseManifest,
   slugify,
+  utf8ByteLengthExceeds,
   validateSnapshot,
 } from '../src/index.ts';
 
@@ -170,5 +171,15 @@ describe('environment patches', () => {
     expect(OverridesSchema.parse({ environment: { latencyMs: 250 } })).toEqual({
       environment: { latencyMs: 250 },
     });
+  });
+});
+
+describe('snapshot size limit', () => {
+  it('measures UTF-8 bytes, not UTF-16 code units', () => {
+    expect(utf8ByteLengthExceeds('a'.repeat(10), 10)).toBe(false);
+    expect(utf8ByteLengthExceeds('a'.repeat(11), 10)).toBe(true);
+    // 4 emoji = 8 UTF-16 code units but 16 UTF-8 bytes.
+    expect(utf8ByteLengthExceeds('😀😀😀😀', 10)).toBe(true);
+    expect(utf8ByteLengthExceeds('😀😀', 10)).toBe(false);
   });
 });
