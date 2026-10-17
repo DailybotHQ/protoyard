@@ -53,8 +53,8 @@ components, call services through `runService()` for consistent toasts.
 
 Create `src/screens/Thing.svelte` (it receives `params`), register
 `{ path: '/things/:id', component: Thing }` in `src/App.svelte`, and link with
-`<a href="#/things/1">`. Read data reactively with
-`liveQuery(() => runtime.db.things.toArray())`.
+`<a href="#/things/1">`. Read data reactively with `liveQuery`, listing every reactive input in
+`deps`: `liveQuery(() => runtime.db.things.get(params.id), { deps: () => params.id })`.
 
 ## Add a scenario
 

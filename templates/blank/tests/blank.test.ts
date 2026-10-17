@@ -68,6 +68,9 @@ describe('note services', () => {
     expect(note.createdAt).toBe(runtime.clock.now().toISOString());
     await notes.update(note.id, { title: 'First idea (edited)', body: 'Ship it soon' });
     await notes.togglePin({ ...note });
+    // A stale copy (still pinned: false) must not flip it back.
+    await notes.togglePin({ ...note });
+    await notes.togglePin({ ...note });
     const stored = await runtime.db.notes.get(note.id);
     expect(stored).toMatchObject({ title: 'First idea (edited)', pinned: true });
     await notes.remove(note.id);

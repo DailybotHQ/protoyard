@@ -71,10 +71,15 @@ export function createNoteServices(runtime: PrototypeRuntime<BlankDatabase>) {
       });
     },
 
-    async togglePin(note: Note): Promise<void> {
+    /** Flips the STORED pin state (the caller's copy may be stale, e.g. another tab). */
+    async togglePin(note: Pick<Note, 'id'>): Promise<void> {
       session.assert(CAPABILITIES.update);
       await environment.run('notes.update', () =>
-        db.notes.update(note.id, { pinned: !note.pinned, updatedAt: now() })
+        db.transaction('rw', db.notes, async () => {
+          const current = await db.notes.get(note.id);
+          if (!current) throw new Error('This note no longer exists.');
+          await db.notes.update(note.id, { pinned: !current.pinned, updatedAt: now() });
+        })
       );
     },
 
