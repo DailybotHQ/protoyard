@@ -24,6 +24,7 @@ protoyard/
 │   ├── ui/               Svelte 5 components (Bits UI + Tailwind 4 + Lucide)
 │   ├── devtools/         the in-browser control center
 │   ├── renderer-svelte/  Vite config factory, mountPrototype(), reactive bindings, hash router
+│   ├── http/             optional fetch-compatible mock API over prototype services (no server, no service worker)
 │   └── cli/              the `protoyard` command (index, new, dev, validate, build, export, publish…)
 ├── apps/gallery/         Astro static site — reads the metadata registry only
 ├── templates/<name>/     functional starting points (same layout as a prototype)
@@ -124,6 +125,21 @@ Components never write to the database directly; they call services.
 `runService()` from the renderer turns permission and simulated-network
 errors into toasts, and returns validation errors to the form for inline
 display.
+
+## Optional mock HTTP layer
+
+`@protoyard/http` turns a prototype's services into a fetch-compatible mock
+API. `createMockApi(runtime, { baseUrl, routes })` returns real `Response`
+objects, with no server, no service worker and no MSW. Each request runs
+through `environment.run('http.<METHOD> <route>')`, so DevTools' latency,
+offline and failure toggles (including `failureScope: ['http.']`) apply to
+HTTP exactly as they do to services.
+
+Errors map to HTTP semantics: 403, 422 with issues, 404, 405, 429 with
+`Retry-After`, 500 and 504. Offline requests reject with
+`TypeError('Failed to fetch')`. `installGlobalFetch(api)` intercepts only the
+API prefix. APIs register per runtime, so DevTools shows a Network log of the
+last 200 requests. See [packages/http/README.md](../packages/http/README.md).
 
 ## Isolation model
 

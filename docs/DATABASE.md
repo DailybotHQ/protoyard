@@ -349,3 +349,12 @@ it('transfers atomically between own accounts and the ledger stays balanced afte
 ```
 
 Run them with `pnpm vitest run prototypes/<slug>`.
+
+## HTTP-style access (optional)
+
+The mock HTTP layer ([`@protoyard/http`](../packages/http/README.md)) never
+writes to IndexedDB on its own. Route handlers call the same domain services
+(`session.assert` → validation → `environment.run` → `db.transaction`), so
+HTTP and direct calls share one source of truth and the same atomicity. The
+network log lives in memory only: it is not persisted and is never part of a
+snapshot.
