@@ -42,7 +42,7 @@ const PEOPLE = [
   { id: 'user_0003', name: 'Sam Rivera', role: 'viewer', title: 'Dependent', color: '#d97706' },
 ] as const;
 
-const MERCHANTS: Record<Exclude<Category, 'salary' | 'transfer' | 'rent'>, string[]> = {
+export const MERCHANTS: Record<Exclude<Category, 'salary' | 'transfer' | 'rent'>, string[]> = {
   groceries: ['Greenleaf Market', 'Corner Pantry', 'FreshFold Grocers'],
   dining: ['Ember & Oak', 'Noodle Theory', 'Café Lumière', 'Taco Atlas'],
   transport: ['MetroLine Transit', 'Pedal Share', 'QuickRide'],

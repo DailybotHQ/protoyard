@@ -2,13 +2,14 @@ import { definePrototype, parseManifest } from '@protoyard/core';
 import manifestJson from '../protoyard.json';
 import { database } from './database/schema.ts';
 import { policy } from './domain/policy.ts';
+import { applyBankEvent, bankTimeline } from './domain/timeline.ts';
 import { BANK_GENERATOR_VERSION, generateBankWorld } from './scenarios/generators.ts';
 import { scenarios } from './scenarios/index.ts';
 
 /**
- * Lumen Bank wiring: schema → policy → scenarios → generator. There is no
- * timeline here on purpose: time travel is preview-only for this prototype
- * (the DevTools say so), which shows that `timeline` is optional.
+ * Lumen Bank wiring: schema → policy → scenarios → generator → timeline.
+ * Advancing time commits payroll, rent, auto-save and card purchases through
+ * `applyBankEvent` (idempotent: see domain/timeline.ts).
  */
 export const definition = definePrototype({
   manifest: parseManifest(manifestJson),
@@ -31,4 +32,6 @@ export const definition = definePrototype({
   },
   generate: generateBankWorld,
   generatorVersion: BANK_GENERATOR_VERSION,
+  timeline: bankTimeline,
+  applyEvent: applyBankEvent,
 });

@@ -2,6 +2,7 @@ import { createRuntimeId, type PrototypeRuntime } from '@protoyard/core';
 import type { BankDatabase, Transaction } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { TransferError } from '../domain/services.ts';
+import { PAYROLL_CENTS } from '../domain/timeline.ts';
 
 /**
  * Demo-only money sources. A fictional bank has no real income, so a brand-new
@@ -10,7 +11,7 @@ import { TransferError } from '../domain/services.ts';
  * `balance == sum(posted transactions)` keeps holding.
  */
 
-export const PAYROLL_CENTS = 285_000;
+export { PAYROLL_CENTS } from '../domain/timeline.ts';
 
 export function createBankSimulations(runtime: PrototypeRuntime<BankDatabase>) {
   const { db, session, environment, clock } = runtime;

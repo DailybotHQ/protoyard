@@ -46,6 +46,23 @@ Every failure is explained in plain words (`src/lib/errors.ts`): insufficient fu
 dormant accounts, over-limit, the member cap, view-only access, and simulated offline/server
 errors. Each is shown inline in the review step plus a toast, along with "No money moved".
 
+## Time travel
+
+Advancing time from DevTools commits what the household would see (`src/domain/timeline.ts`):
+payroll on the 1st and 15th, rent on the 3rd, a $400 auto-save to savings on the 5th, and
+1–3 card purchases a day.
+
+- **Events** depend only on the scenario, the day and stable account ids, never on balances
+  or the window. Advancing 7 days at once and 1 day seven times commit identical events with
+  ids like `evt:<scenario>:<day>:<n>`. Re-running a window applies nothing.
+- **`applyBankEvent`** decides what happens to each event, inside one transaction. Locked or
+  dormant accounts don't move, and a debit never overdraws checking or savings (cards are
+  capped at their credit line). Multi-leg events such as the auto-save land completely or
+  not at all. Skipped events are still stored, with `payload.outcome = { status: 'skipped',
+  reason }`, so DevTools shows why.
+- After any advance, each balance still equals the sum of its posted rows.
+- Previewing time (without committing) still changes nothing.
+
 ## Scenarios
 
 | Scenario | Try this |
@@ -67,6 +84,9 @@ permissions on the same data.
   deterministic generation.
 - `tests/ui-logic.test.ts`: read models (spending, month groups, filters, amount parsing),
   error descriptions, and payroll simulation on the real runtime.
+- `tests/timeline.test.ts`: 7×1 = 1×7 days, replays apply nothing, payroll/rent/auto-save
+  land on their days, locked accounts never move, no overdrafts, all-or-nothing multi-leg
+  events.
 - `tests/transfer-flow.test.ts`: component flow with `@testing-library/svelte` on the real
   runtime, covering the happy path with receipt and balanced ledger, inline insufficient
   funds, the member cap, and the viewer explanation.
