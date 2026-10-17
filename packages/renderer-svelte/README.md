@@ -23,6 +23,7 @@ the no-flash appearance script. The CLI drives it through env vars:
 | `PROTOYARD_DEMO_BADGE` | `__PROTOYARD_DEMO_BADGE__` in builds | manifest `build.demoBadge`; off in dev |
 | `PROTOYARD_PORT` | dev/preview port (`strictPort: false`) | Vite default |
 | `PROTOYARD_BUILT_AT` | `__PROTOYARD_BUILD__.builtAt` | build time |
+| `PROTOYARD_OFFLINE` | ship the `@protoyard/offline` service worker (`1/0`; builds only) | manifest `build.offline` (false) |
 
 The dev server's `/@fs` access (`server.fs.allow`) is limited to the prototype folder, the
 workspace `packages/` and `node_modules` (`devFsAllow(root)`), so `protoyard dev --host` never
@@ -57,6 +58,8 @@ scenario" prompt when a link disagrees with stored data (never automatic),
 a thin top progress bar (+ screen-reader status) while any caller loads a
 scenario (`scenarios.subscribeProgress`), the optional "Prototype · simulated data" badge, and a recovery screen
 (reload / reset only this prototype's databases) when boot fails.
+In offline-enabled builds a waiting new version shows an "Update available · Reload" toast
+(`protoyard:offline-update`); nothing reloads on its own.
 `<html data-py-ready="true|error">` and `window.__protoyard` help E2E tests,
 thumbnails and benchmarks. `window.__protoyard` is exposed in production builds on purpose: it
 grants nothing same-origin code couldn't already do (IndexedDB is readable and writable by any

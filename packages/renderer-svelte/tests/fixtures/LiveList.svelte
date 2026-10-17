@@ -10,10 +10,12 @@ let {
   onQuery,
 }: { db: Db; min: number; mode?: 'auto' | 'deps' | 'after-await'; onQuery?: () => void } = $props();
 
+// svelte-ignore state_referenced_locally -- each test renders one fixed mode.
 const items =
   mode === 'deps'
     ? liveQuery(() => db.items.where('n').aboveOrEqual(min).toArray(), { deps: () => min })
-    : mode === 'after-await'
+    : // svelte-ignore state_referenced_locally
+      mode === 'after-await'
       ? liveQuery(async () => {
           await Promise.resolve();
           // Read after an await: invisible to Svelte without `deps`.

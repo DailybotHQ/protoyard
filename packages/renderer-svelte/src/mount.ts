@@ -8,6 +8,7 @@ import {
 } from '@protoyard/core';
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import { BUILTIN_THEMES, mergeThemes } from '@protoyard/themes';
+import { toast } from '@protoyard/ui';
 import { type Component, mount, unmount } from 'svelte';
 import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
@@ -47,6 +48,8 @@ declare global {
   interface Window {
     /** Debug/E2E handle: the running prototype runtime (simulation only). */
     __protoyard?: PrototypeRuntime;
+    /** Set by the @protoyard/offline register script in offline-enabled builds. */
+    __protoyardOffline?: { updateAvailable: boolean; applyUpdate(): void };
   }
 }
 
@@ -117,6 +120,7 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   }
 
   void requestPersistentStorage(rt);
+  cleanups.push(watchOfflineUpdates());
   root.dataset.pyReady = 'true';
   return {
     runtime: rt,
@@ -146,4 +150,23 @@ async function requestPersistentStorage(runtime: PrototypeRuntime): Promise<bool
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Offline-enabled builds never swap versions on their own: when a new
+ * version is waiting, offer a reload (the user decides; edits live in
+ * IndexedDB and survive it).
+ */
+function watchOfflineUpdates(): () => void {
+  const show = () => {
+    toast.info('Update available', {
+      id: 'protoyard-offline-update',
+      description: 'A newer version of this prototype is ready. Your data is kept.',
+      duration: 0,
+      action: { label: 'Reload', onClick: () => window.__protoyardOffline?.applyUpdate() },
+    });
+  };
+  if (window.__protoyardOffline?.updateAvailable) show();
+  window.addEventListener('protoyard:offline-update', show);
+  return () => window.removeEventListener('protoyard:offline-update', show);
 }

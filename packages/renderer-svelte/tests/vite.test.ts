@@ -56,7 +56,14 @@ describe('resolveProtoyardSettings', () => {
       namespace: 'crm-demo',
       builtAt: '2026-10-17T00:00:00.000Z',
       mode: 'build',
+      offline: false,
     });
+    expect(
+      resolveProtoyardSettings(manifest, 'build', { PROTOYARD_OFFLINE: '1' }, '/proj').offline
+    ).toBe(true);
+    expect(
+      resolveProtoyardSettings(manifest, 'serve', { PROTOYARD_OFFLINE: '1' }, '/proj').offline
+    ).toBe(false);
     expect(envFlag('maybe')).toBeUndefined();
   });
 });

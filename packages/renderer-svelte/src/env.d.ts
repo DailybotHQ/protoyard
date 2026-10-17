@@ -11,4 +11,5 @@ declare const __PROTOYARD_BUILD__: {
   namespace: string;
   builtAt: string;
   mode: 'dev' | 'build';
+  offline: boolean;
 };

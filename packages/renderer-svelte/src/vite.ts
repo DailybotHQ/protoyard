@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { MANIFEST_FILENAME, type PrototypeManifest, parseManifest } from '@protoyard/core/manifest';
 // Subpath imports keep the config graph erasable-only TS (Node strip-types can load it).
+import { protoyardOffline } from '@protoyard/offline';
 import { noFlashScript } from '@protoyard/themes/no-flash';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
@@ -41,6 +42,8 @@ export interface ProtoyardBuildInfo {
   namespace: string;
   builtAt: string;
   mode: 'dev' | 'build';
+  /** True when the build ships the offline service worker. */
+  offline: boolean;
 }
 
 type Env = Record<string, string | undefined>;
@@ -86,6 +89,8 @@ export interface ResolvedProtoyardSettings {
   outDir: string;
   includeDevtools: boolean;
   demoBadge: boolean;
+  /** Opt-in offline service worker (builds only; never in dev). */
+  offline: boolean;
   port: number | undefined;
   build: ProtoyardBuildInfo;
 }
@@ -98,6 +103,7 @@ export function resolveProtoyardSettings(
   root: string
 ): ResolvedProtoyardSettings {
   const isBuild = command === 'build';
+  const offline = isBuild ? (envFlag(env.PROTOYARD_OFFLINE) ?? manifest.build.offline) : false;
   const port = env.PROTOYARD_PORT ? Number.parseInt(env.PROTOYARD_PORT, 10) : undefined;
   return {
     base: env.PROTOYARD_BASE || manifest.build.base || './',
@@ -106,6 +112,7 @@ export function resolveProtoyardSettings(
       ? (envFlag(env.PROTOYARD_INCLUDE_DEVTOOLS) ?? manifest.build.includeDevtools)
       : true,
     demoBadge: isBuild ? (envFlag(env.PROTOYARD_DEMO_BADGE) ?? manifest.build.demoBadge) : false,
+    offline,
     port: port !== undefined && Number.isFinite(port) && port > 0 ? port : undefined,
     build: {
       id: manifest.id,
@@ -115,6 +122,7 @@ export function resolveProtoyardSettings(
       // Build metadata only — never used for seeded data.
       builtAt: env.PROTOYARD_BUILT_AT || new Date().toISOString(),
       mode: isBuild ? 'build' : 'dev',
+      offline,
     },
   };
 }
@@ -151,7 +159,13 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
     const base: UserConfig = {
       root,
       base: settings.base,
-      plugins: [svelte(), tailwindcss(), protoyardHtml(manifest)],
+      plugins: [
+        svelte(),
+        tailwindcss(),
+        protoyardHtml(manifest),
+        // Structurally typed Vite plugin (the offline package has no vite dependency).
+        ...(settings.offline ? (protoyardOffline({ enabled: true }) as unknown as Plugin[]) : []),
+      ],
       resolve: {
         // Workspace packages are linked; one copy of each runtime library.
         dedupe: ['svelte', 'dexie', 'bits-ui'],
