@@ -152,6 +152,12 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+      '@protoyard/database':
+        specifier: workspace:*
+        version: link:../database
+      '@protoyard/http':
+        specifier: workspace:*
+        version: link:../http
       '@protoyard/ui':
         specifier: workspace:*
         version: link:../ui
@@ -159,6 +165,16 @@ importers:
       svelte:
         specifier: ^5.57.0
         version: 5.57.2
+
+  packages/http:
+    dependencies:
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@protoyard/runtime':
+        specifier: workspace:*
+        version: link:../runtime
 
   packages/renderer-svelte:
     dependencies:

@@ -22,6 +22,7 @@
     "@lucide/svelte": "^1.50.0",
     "@protoyard/core": "workspace:*",
     "@protoyard/database": "workspace:*",
+    "@protoyard/http": "workspace:*",
     "@protoyard/ui": "workspace:*"
   },
   "devDependencies": {
