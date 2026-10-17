@@ -34,10 +34,28 @@ parsing; route-level code splitting inside large prototypes.
 
 ## Metadata index and gallery at 1,000 prototypes
 
-*Pending.* Measured by `pnpm bench:index` (`scripts/bench-index.ts`):
-1,000 synthetic manifests in a temporary workspace, with cold and warm
-(incremental) indexing, plus list and search timings. Results are copied here
-verbatim when the benchmark runs. Do not quote numbers before then.
+Method: `pnpm bench:index --runs 5 --gallery` (`scripts/bench-index.ts`)
+generates 1,000 synthetic `protoyard.json` manifests in a temporary
+workspace, which is never committed. It then times indexing (cold, warm, and
+incremental after touching 10 manifests), in-memory search and sort,
+`protoyard list --json` end to end, and a full static gallery build over the
+synthetic registry. These are medians of 5 runs on 2026-10-17.
+
+| Operation | Median | Notes |
+| --- | --- | --- |
+| Cold index, 1,000 manifests | **40.6 ms** (min 40.0, max 52.4) | Reads and validates JSON only. No prototype code runs. |
+| Warm index (cache hit) | **13.7 ms** | 1,001 of 1,001 entries served from the path + mtime + size cache |
+| Incremental index (10 changed) | **13.5 ms** | Only the 10 touched manifests are re-parsed |
+| Search + sort in memory | **0.65 ms** | Over all 1,001 registry entries |
+| `pnpm protoyard list --json` end to end | 434 ms | Mostly Node + tsx startup, then an incremental re-index |
+| Gallery static build | 2.4 s | 1,003 pages (home + one detail page per entry) |
+
+Lane C measured the gallery home page with 1,000 entries at 377 KB HTML
+(38 KB gzip), with the search box interactive about 97 ms after load and a
+search update in about 17 ms (headless Chromium).
+
+Nothing is compiled for listing: the gallery imports only the registry.
+Scaling past 1,000 prototypes was not measured.
 
 ## Large worlds (scenario loads)
 
