@@ -418,6 +418,13 @@ describe('final review regressions (W1, W2, I3, I4, I6, I7)', () => {
         const res = await get(server.port, path);
         expect(res.body, path).not.toContain('FAKE-PAGE-SECRET');
       }
+      // Regular directory indexes and extension lookups still work.
+      mkdirSync(join(dist, 'guide'), { recursive: true });
+      writeFileSync(join(dist, 'guide', 'index.html'), '<p>guide</p>');
+      writeFileSync(join(dist, 'faq.html'), '<p>faq</p>');
+      expect((await get(server.port, '/')).body).toContain('root');
+      expect((await get(server.port, '/guide/')).body).toContain('guide');
+      expect((await get(server.port, '/faq')).body).toContain('faq');
     } finally {
       await server.close();
     }

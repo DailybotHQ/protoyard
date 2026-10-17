@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, realpathSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, realpathSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { join } from 'node:path';
 import sirv from 'sirv';
@@ -27,9 +27,9 @@ export async function serveStatic(options: {
 }): Promise<StaticServer> {
   const prefix = options.base === './' ? '/' : options.base;
   const spa = options.spa ?? true;
-  // No extension guessing (`/about` → `about.html`): every file sirv can serve is
-  // exactly a path checked for containment below.
-  const handler = sirv(options.dir, { single: spa, dev: true, etag: true, extensions: [] });
+  // sirv's default lookups (`/about` → about.html, `/docs/` → docs/index.html)
+  // stay on; each one is checked for containment below.
+  const handler = sirv(options.dir, { single: spa, dev: true, etag: true });
   const notFoundPage = join(options.dir, '404.html');
   const realRoot = realpathSync.native(options.dir);
   const server = createServer((req, res) => {
@@ -48,17 +48,21 @@ export async function serveStatic(options: {
     const relativePath = (
       prefix !== '/' && pathname.startsWith(prefix) ? pathname.slice(prefix.length) : pathname
     ).replace(/^\/+/, '');
-    const candidate = join(options.dir, relativePath);
-    if (relativePath && existsSync(candidate)) {
-      let real: string;
+    // Every file sirv might answer with (the path, its .html/.htm sibling, or a
+    // directory's index) must really live inside the served folder.
+    const base = join(options.dir, relativePath);
+    const candidates = [
+      base,
+      `${base}.html`,
+      `${base}.htm`,
+      join(base, 'index.html'),
+      join(base, 'index.htm'),
+    ];
+    for (const candidate of candidates) {
+      if (!existsSync(candidate)) continue;
+      let real = '';
       try {
         real = realpathSync.native(candidate);
-        // A directory request serves its index.html: check that file too.
-        const index = join(candidate, 'index.html');
-        if (statSync(real).isDirectory() && existsSync(index)) {
-          const realIndex = realpathSync.native(index);
-          if (!isInside(realRoot, realIndex)) real = '';
-        }
       } catch {
         real = '';
       }

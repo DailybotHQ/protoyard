@@ -92,6 +92,8 @@ function buildGallery(
         PROTOYARD_REGISTRY: registryPath,
         GALLERY_BASE: base,
         PROTOYARD_SHOWCASE: '1',
+        // Own caches: a concurrent regular gallery build must not share them.
+        PROTOYARD_GALLERY_CACHE_DIR: join(ctx.paths.artifacts, 'showcase-builds', '.cache'),
       },
       shell: false,
       stdio: quiet ? ['ignore', 'pipe', 'pipe'] : 'inherit',
