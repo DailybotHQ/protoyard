@@ -62,6 +62,17 @@ See [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md). In short: run
 `pnpm protoyard new <slug> --template <name>`, implement real services, add
 scenarios, then `validate` and `build`.
 
+## Releases
+
+1. Bump `version` in the root `package.json`.
+2. Add a `## [x.y.z] - YYYY-MM-DD` section to [CHANGELOG.md](CHANGELOG.md).
+3. Commit, then run `git tag vX.Y.Z && git push origin vX.Y.Z`.
+
+[`release.yml`](.github/workflows/release.yml) checks that the tag matches the
+version and that the changelog section exists, runs the full gate and
+`protoyard build --all`, then creates the GitHub Release from that section.
+Nothing is published to npm.
+
 ## Code of conduct and security
 
 This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). Report

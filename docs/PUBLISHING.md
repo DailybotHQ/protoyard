@@ -296,6 +296,32 @@ pnpm preview                            # preview the built gallery
 there is no control server, so it shows the CLI commands instead of starting
 dev servers (ADR-013).
 
+## The showcase: gallery + live demos as one site
+
+`pnpm build:showcase` (that is, `pnpm protoyard showcase`) builds **one static
+site**: the gallery plus each prototype's own static build at
+`<base>p/<slug>/app/`, written to `artifacts/showcase/`. Live preview iframes,
+**Open** links and `?scenario=<id>` links work with no local control server.
+Every prototype still passes its own isolation check. DevTools are included,
+because a showcase is a demo site. Preview it with
+`pnpm protoyard showcase --base /protoyard/ --serve`, then open
+`http://127.0.0.1:4500/protoyard/`.
+
+### Hosting the showcase on GitHub Pages
+
+1. One time: **Settings → Pages → Source: GitHub Actions**.
+2. **Actions → pages → Run workflow.** `base` defaults to `/protoyard/`, the
+   project path. Use `/` for a user or organization site, or a custom domain.
+3. The workflow ([.github/workflows/pages.yml](../.github/workflows/pages.yml))
+   runs `pnpm protoyard showcase --base <base>` and deploys with
+   `actions/deploy-pages`. **It never runs on push.** Publishing a public site
+   is an explicit, manual decision.
+
+The build fails if any prototype fails to build or fails the isolation
+check, so a broken demo is never deployed silently. Every visitor's data
+lives in their own browser (IndexedDB per origin, one database set per
+prototype namespace), and nothing is shared between visitors.
+
 ## Snapshots and published builds
 
 A published build is a different origin from your dev server, so it starts
