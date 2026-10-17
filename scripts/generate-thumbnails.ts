@@ -19,7 +19,15 @@
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -72,18 +80,31 @@ function discover(only: readonly string[]): Target[] {
 
 /** Static server for one dist folder; never serves outside it. */
 function serve(dist: string): Promise<Server> {
+  const root = realpathSync(dist);
+  const inside = (path: string) => path === root || path.startsWith(root + sep);
   const server = createServer((req, res) => {
-    const url = new URL(req.url ?? '/', 'http://localhost');
-    const relative = normalize(decodeURIComponent(url.pathname)).replace(/^([/\\])+/, '');
-    let file = join(dist, relative);
-    if (!file.startsWith(dist + sep) && file !== dist) {
+    let pathname: string;
+    try {
+      pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+    } catch {
+      res.writeHead(400).end();
+      return;
+    }
+    let file = join(root, normalize(pathname).replace(/^([/\\])+/, ''));
+    if (!inside(file)) {
       res.writeHead(403).end();
       return;
     }
-    if (!existsSync(file) || statSync(file).isDirectory()) file = join(dist, 'index.html');
+    if (!existsSync(file) || statSync(file).isDirectory()) file = join(root, 'index.html');
+    // Resolve symlinks too: a link inside dist must not serve files from elsewhere.
+    if (!inside(realpathSync(file))) {
+      res.writeHead(403).end();
+      return;
+    }
     res.writeHead(200, {
       'content-type': MIME[extname(file)] ?? 'application/octet-stream',
       'cache-control': 'no-store',
+      'x-content-type-options': 'nosniff',
     });
     res.end(readFileSync(file));
   });
