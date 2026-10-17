@@ -208,6 +208,7 @@ function presentationMode() {
             {runtime.manifest.name} <span class="font-normal text-muted-foreground">· DevTools</span>
           </h2>
           <p class="truncate text-[11px] text-muted-foreground">
+            {#if runtime.sandbox}<span class="mr-1 rounded bg-warning px-1 font-medium text-warning-foreground">Sandbox: {runtime.sandbox}</span>{/if}
             {dt.active?.scenario.name ?? 'No scenario'} · {dt.principal?.persona.name ?? 'nobody'}
             ({dt.principal?.role ?? '—'})
           </p>

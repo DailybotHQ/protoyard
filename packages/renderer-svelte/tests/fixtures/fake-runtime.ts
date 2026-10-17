@@ -37,7 +37,7 @@ const persona = (id: string, name: string): Persona => ({
 });
 
 export function createFakeRuntime(
-  options: { db?: unknown; persistent?: boolean } = {}
+  options: { db?: unknown; persistent?: boolean; sandbox?: string; onDiscard?: () => void } = {}
 ): PrototypeRuntime {
   const manifest = parseManifest({
     id: 'test.fake',
@@ -345,5 +345,13 @@ export function createFakeRuntime(
     environmentState: () => ({ ...environment.get(), ...overrides.environment }),
     destroy: async () => {},
     close: () => {},
+    ...(options.sandbox
+      ? {
+          sandbox: options.sandbox,
+          discardSandbox: async () => {
+            options.onDiscard?.();
+          },
+        }
+      : {}),
   };
 }

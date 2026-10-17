@@ -1,5 +1,10 @@
 <script lang="ts">
 import { RefreshCw } from '@lucide/svelte';
+import {
+  deleteProtoyardDatabases,
+  listProtoyardDatabases,
+  sandboxNamespace,
+} from '@protoyard/database';
 import { formatCell } from '../format.ts';
 import Btn from '../primitives/Btn.svelte';
 import Confirm from '../primitives/Confirm.svelte';
@@ -81,6 +86,52 @@ function mb(bytes?: number) {
   return bytes === undefined ? '—' : `${(bytes / 1_048_576).toFixed(1)} MB`;
 }
 
+// Sandboxed worlds (`?sandbox=<name>`) live in their own database pair.
+const sandbox = $derived(runtime.sandbox);
+const dbName = $derived((runtime.db as { name?: unknown } | null)?.name);
+let sandboxes = $state<string[]>([]);
+let listingSupported = $state(false);
+
+async function readSandboxes() {
+  try {
+    const listing = await listProtoyardDatabases(runtime.manifest.storage.namespace);
+    listingSupported = listing.supported;
+    sandboxes = listing.sandboxes.filter((name) => name !== sandbox);
+  } catch {
+    listingSupported = false;
+  }
+}
+$effect(() => {
+  dt.worldVersion;
+  void readSandboxes();
+});
+
+async function discardSandbox() {
+  await dt.run('data:discard', async () => {
+    if (!runtime.discardSandbox) throw new Error('This runtime cannot discard sandboxes.');
+    await runtime.discardSandbox();
+    // The runtime is closed now: reload into the default world.
+    const url = new URL(location.href);
+    url.searchParams.delete('sandbox');
+    location.assign(url.toString());
+  });
+}
+
+async function clearSandboxes() {
+  const names = [...sandboxes];
+  await dt.run(
+    'data:clear-sandboxes',
+    async () => {
+      // Never the namespace of the open runtime: only other sandboxes are listed.
+      for (const name of names) {
+        await deleteProtoyardDatabases(sandboxNamespace(runtime.manifest.storage.namespace, name));
+      }
+    },
+    `Deleted ${names.length} sandbox${names.length === 1 ? '' : 'es'}.`
+  );
+  await readSandboxes();
+}
+
 // Edits made in the app are picked up while the tab is open.
 $effect(() => {
   const timer = setInterval(() => void refresh(), 5000);
@@ -156,6 +207,12 @@ function pick(name: string) {
 
 <Section title="Storage">
   <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+    <dt class="text-muted-foreground">World</dt>
+    <dd>{sandbox ? `sandbox “${sandbox}”` : 'default'}</dd>
+    {#if typeof dbName === 'string'}
+      <dt class="text-muted-foreground">Database</dt>
+      <dd class="truncate font-mono" title={dbName}>{dbName}</dd>
+    {/if}
     <dt class="text-muted-foreground">Backend</dt>
     <dd class="font-mono">{storage.backend}{storage.persistent ? '' : ' (not saved across reloads)'}</dd>
     <dt class="text-muted-foreground">Eviction-protected</dt>
@@ -166,6 +223,31 @@ function pick(name: string) {
   {#if storage.warning}<p class="mt-1.5 text-[11px] text-destructive">{storage.warning}</p>{/if}
   {#if supported && persisted === false && storage.backend === 'indexeddb'}
     <div class="mt-2"><Btn busy={dt.isBusy('data:persist')} onclick={askPersistence}>Request persistent storage</Btn></div>
+  {/if}
+</Section>
+
+<Section title="Sandboxes" description="Disposable worlds opened with ?sandbox=<name>; each has its own databases.">
+  {#if sandbox}
+    <Confirm
+      label="Discard sandbox"
+      confirmLabel="Delete sandbox"
+      message={`Deletes the “${sandbox}” sandbox's data only, then reloads the default world.`}
+      busy={dt.isBusy('data:discard')}
+      onconfirm={discardSandbox}
+    />
+  {:else if !listingSupported}
+    <p class="text-[11px] text-muted-foreground">This browser can't list databases, so other sandboxes can't be shown here.</p>
+  {:else if sandboxes.length === 0}
+    <p class="text-[11px] text-muted-foreground">No sandboxes for this prototype.</p>
+  {:else}
+    <p class="mb-2 text-[11px] text-muted-foreground">{sandboxes.map((n) => `“${n}”`).join(', ')}</p>
+    <Confirm
+      label={`Clear ${sandboxes.length} sandbox${sandboxes.length === 1 ? '' : 'es'}`}
+      confirmLabel="Delete sandboxes"
+      message="Deletes every other sandbox of this prototype. The default world is untouched."
+      busy={dt.isBusy('data:clear-sandboxes')}
+      onconfirm={clearSandboxes}
+    />
   {/if}
 </Section>
 

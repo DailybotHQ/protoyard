@@ -27,6 +27,11 @@ const commands = $derived([
     command: `pnpm protoyard publish ${slug} --provider cloudflare --dry-run`,
   },
 ]);
+const sandboxLink = $derived.by(() => {
+  const url = new URL(link);
+  url.searchParams.set('sandbox', 'try');
+  return url.toString();
+});
 let copiedKey = $state<string | null>(null);
 
 async function copy(key: string, text: string) {
@@ -63,6 +68,7 @@ async function copy(key: string, text: string) {
   <div class="space-y-2.5">
     {@render copyRow('link', 'Open this scenario', link)}
     {@render copyRow('presentation', 'Presentation mode (no DevTools)', presentationLink)}
+    {@render copyRow('sandbox', 'Fresh sandbox (separate data; your world stays intact)', sandboxLink)}
   </div>
 </Section>
 

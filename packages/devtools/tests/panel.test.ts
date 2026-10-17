@@ -20,8 +20,7 @@ describe('DevTools panel', () => {
     document.body.replaceChildren();
   });
 
-  async function open() {
-    const runtime = createFakeRuntime();
+  async function open(runtime = createFakeRuntime()) {
     await runtime.scenarios.ensureSeeded();
     handle = mountDevtools({ runtime, themes: BUILTIN_THEMES });
     flushSync();
@@ -138,6 +137,45 @@ describe('DevTools panel', () => {
     await settle();
     expect(text).not.toHaveBeenCalled();
     expect(within(panel).getByRole('alert').textContent).toMatch(/larger than 25 MB/);
+  });
+
+  it('shows the sandbox and discards only it after confirmation', async () => {
+    const onDiscard = vi.fn();
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...location, href: 'http://x.test/?sandbox=a#/', assign });
+    const { panel } = await open(createFakeRuntime({ sandbox: 'a', onDiscard }));
+    expect(within(panel).getByText('Sandbox: a')).toBeTruthy();
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Data' }));
+    await settle();
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Discard sandbox' }));
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Delete sandbox' }));
+    await settle();
+    expect(onDiscard).toHaveBeenCalledTimes(1);
+    expect(assign).toHaveBeenCalledWith('http://x.test/#/');
+    vi.unstubAllGlobals();
+  });
+
+  it('clears other sandboxes from the default world', async () => {
+    const make = (name: string) =>
+      new Promise<void>((resolve, reject) => {
+        const req = indexedDB.open(name);
+        req.onsuccess = () => {
+          req.result.close();
+          resolve();
+        };
+        req.onerror = () => reject(req.error);
+      });
+    await make('protoyard.fake~a.data');
+    await make('protoyard.fake~a.control');
+    await make('protoyard.fake~b.data');
+    const { panel } = await open();
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Data' }));
+    await settle();
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Clear 2 sandboxes' }));
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Delete sandboxes' }));
+    await settle();
+    const left = (await indexedDB.databases()).map((d) => d.name).filter((n) => n?.includes('~'));
+    expect(left).toEqual([]);
   });
 
   it('builds reproducible links with only scenario coordinates', async () => {
