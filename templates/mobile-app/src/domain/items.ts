@@ -73,9 +73,13 @@ export function createItemServices(runtime: PrototypeRuntime<AppDatabase>) {
 
     async setStatus(id: string, status: ItemStatus): Promise<void> {
       session.assert(CAPABILITIES.update);
-      await environment.run('items.update', () =>
-        db.items.update(id, { status, updatedAt: now() })
-      );
+      if (!ITEM_STATUSES.includes(status)) {
+        throw new ItemValidationError({ status: 'Choose a status.' });
+      }
+      await environment.run('items.update', async () => {
+        const changed = await db.items.update(id, { status, updatedAt: now() });
+        if (changed === 0) throw new Error('This item no longer exists.');
+      });
     },
 
     async remove(id: string): Promise<void> {

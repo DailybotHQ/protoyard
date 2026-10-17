@@ -53,6 +53,10 @@ describe('item services on the real runtime', () => {
     });
 
     const again = createItemServices(runtime);
+    await expect(again.setStatus(item.id, 'archived' as never)).rejects.toBeInstanceOf(
+      ItemValidationError
+    );
+    await expect(again.setStatus('item_missing', 'done')).rejects.toThrow(/no longer exists/);
     await again.setStatus(item.id, 'done');
     expect((await runtime.db.items.get(item.id))?.status).toBe('done');
     await again.remove(item.id);

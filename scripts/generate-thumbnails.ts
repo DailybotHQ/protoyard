@@ -21,6 +21,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -228,6 +229,12 @@ async function main() {
           }
           mkdirSync(join(target.dir, 'public'), { recursive: true });
           const out = join(target.dir, 'public', 'thumbnail.png');
+          // Never write THROUGH a symlink (a committed public/thumbnail.png -> ~/.zshrc).
+          for (const path of [join(target.dir, 'public'), out]) {
+            if (existsSync(path) && lstatSync(path).isSymbolicLink()) {
+              throw new Error(`refusing to write through the symlink ${path}`);
+            }
+          }
           writeFileSync(out, png);
           const kb = (png.length / 1024).toFixed(1);
           const note =
