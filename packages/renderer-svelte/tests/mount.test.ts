@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { cleanup, render, screen } from '@testing-library/svelte';
 import { Dexie, type EntityTable } from 'dexie';
 import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -85,7 +85,9 @@ describe('mountPrototype', () => {
 });
 
 describe('liveQuery', () => {
-  it('follows table writes and props read inside the querier', async () => {
+  afterEach(() => cleanup());
+
+  async function seed() {
     const db = new Dexie(`live-${Math.random()}`) as Dexie & {
       items: EntityTable<{ id: string; n: number }, 'id'>;
     };
@@ -94,14 +96,43 @@ describe('liveQuery', () => {
       { id: 'a', n: 1 },
       { id: 'b', n: 5 },
     ]);
-    const view = render(LiveList, { db, min: 0 });
+    return db;
+  }
+
+  it('re-subscribes on prop changes WITHOUT deps (route params, filters)', async () => {
+    const db = await seed();
+    let queries = 0;
+    const view = render(LiveList, { db, min: 0, onQuery: () => queries++ });
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('2');
     await db.items.add({ id: 'c', n: 9 });
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('3');
-    await view.rerender({ db, min: 5 });
+    await view.rerender({ db, min: 5, onQuery: () => queries++ });
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('2');
+    // 2 subscriptions × (Dexie run + at most one tracking probe) + 1 table change.
+    expect(queries).toBeLessThanOrEqual(5);
     view.unmount();
     await tick();
+    db.close();
+  });
+
+  it('keeps explicit deps working', async () => {
+    const db = await seed();
+    const view = render(LiveList, { db, min: 0, mode: 'deps' });
+    await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('2');
+    await view.rerender({ db, min: 5, mode: 'deps' });
+    await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('1');
+    view.unmount();
+    db.close();
+  });
+
+  it('documents the limit: reads after an await are not tracked without deps', async () => {
+    const db = await seed();
+    const view = render(LiveList, { db, min: 0, mode: 'after-await' });
+    await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('2');
+    await view.rerender({ db, min: 5, mode: 'after-await' });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByTestId('count')?.textContent).toBe('2');
+    view.unmount();
     db.close();
   });
 });
