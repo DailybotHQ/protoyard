@@ -215,7 +215,16 @@ export function liveQuery<T>(
     // Svelte see every reactive value the querier reads before its first
     // `await`. It always runs (deps or not), so a forgotten input can never
     // go stale; cost: one extra query per (re)subscription, never per change.
-    const probe = querier();
+    let probe: T | Promise<T>;
+    try {
+      probe = querier();
+    } catch (err) {
+      // A querier that throws synchronously (e.g. reading a not-yet-loaded
+      // record) is reported like any query error instead of escaping the effect.
+      error = err;
+      loading = false;
+      return;
+    }
     if (probe instanceof Promise) probe.catch(() => {});
     loading = true;
     const subscription = dexieLiveQuery(querier).subscribe({

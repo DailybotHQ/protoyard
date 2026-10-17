@@ -41,16 +41,26 @@ export interface CompiledPattern {
   pattern: string;
   /** Static segments weigh more, so `/deals/new` beats `/deals/:id`. */
   score: number;
+  /** Optional params (`:id?`); fewer wins a tie. */
+  optionals: number;
   match(path: string): RouteParams | null;
 }
 
 export function compilePattern(pattern: string): CompiledPattern {
   const segments = normalizePath(pattern).split('/').filter(Boolean);
+  // Static 3 > param 2 > optional param / wildcard 0, so `/notes` beats
+  // `/notes/:id?` for the path `/notes`; ties prefer fewer optional segments.
   let score = 0;
-  for (const segment of segments) score += segment === '*' ? 0 : segment.startsWith(':') ? 2 : 3;
+  let optionals = 0;
+  for (const segment of segments) {
+    if (segment === '*') continue;
+    if (segment.startsWith(':') && segment.endsWith('?')) optionals++;
+    else score += segment.startsWith(':') ? 2 : 3;
+  }
   return {
     pattern,
     score,
+    optionals,
     match(path) {
       const parts = normalizePath(path).split('/').filter(Boolean);
       const params: RouteParams = {};

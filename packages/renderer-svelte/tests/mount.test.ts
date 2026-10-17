@@ -1,12 +1,13 @@
-import { cleanup, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { Dexie, type EntityTable } from 'dexie';
 import { flushSync } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mountPrototype } from '../src/index.ts';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import LiveList from './fixtures/LiveList.svelte';
 import ProbeApp from './fixtures/ProbeApp.svelte';
 import ThrowingApp from './fixtures/ThrowingApp.svelte';
+import ThrowingQuery from './fixtures/ThrowingQuery.svelte';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const root = document.documentElement;
@@ -68,6 +69,32 @@ describe('mountPrototype', () => {
     expect(root.style.getPropertyValue('--py-density')).toBe('1.125');
     const cached = JSON.parse(localStorage.getItem('protoyard.fake.appearance') ?? '{}');
     expect(cached.themeId).toBe('ocean');
+  });
+
+  it('offers a reload when an offline build has a new version waiting', async () => {
+    const applyUpdate = vi.fn();
+    window.__protoyardOffline = { updateAvailable: false, applyUpdate };
+    await boot();
+    expect(screen.queryByText('Update available')).toBeNull();
+    window.__protoyardOffline.updateAvailable = true;
+    window.dispatchEvent(new CustomEvent('protoyard:offline-update'));
+    await expect.poll(() => screen.queryByText('Update available')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Reload' }));
+    expect(applyUpdate).toHaveBeenCalledTimes(1);
+    delete window.__protoyardOffline;
+  });
+
+  it('removes the offline-update listener on destroy', async () => {
+    const add = vi.spyOn(window, 'addEventListener');
+    const remove = vi.spyOn(window, 'removeEventListener');
+    const { mounted } = await boot();
+    const listener = add.mock.calls.find(([type]) => type === 'protoyard:offline-update')?.[1];
+    expect(listener).toBeTypeOf('function');
+    await mounted.destroy();
+    destroy = undefined;
+    expect(remove).toHaveBeenCalledWith('protoyard:offline-update', listener);
+    add.mockRestore();
+    remove.mockRestore();
   });
 
   it('shows a storage warning banner when persistence is degraded', async () => {
@@ -156,6 +183,16 @@ describe('liveQuery', () => {
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('2');
     await view.rerender({ db, min: 5, mode: 'partial-deps', other: 1 });
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('1');
+    view.unmount();
+    db.close();
+  });
+
+  it('reports a querier that throws synchronously as error, then recovers', async () => {
+    const db = await seed();
+    const view = render(ThrowingQuery, { db, selected: undefined });
+    await expect.poll(() => screen.queryByTestId('state')?.textContent).toBe('error');
+    await view.rerender({ db, selected: { id: 'b' } });
+    await expect.poll(() => screen.queryByTestId('state')?.textContent).toBe('5');
     view.unmount();
     db.close();
   });

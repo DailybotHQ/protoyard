@@ -48,6 +48,17 @@ describe('createRouter', () => {
     expect(router.href('/deals/:id', { id: '7' })).toBe('#/deals/7');
     router.destroy();
   });
+
+  it('prefers a static route over an optional param for the same path', () => {
+    const Dummy = (() => {}) as never;
+    const router = createRouter([
+      { path: '/notes/:id?', component: Dummy, title: 'optional' },
+      { path: '/notes', component: Dummy, title: 'static' },
+    ]);
+    expect(router.match('#/notes').route?.title).toBe('static');
+    expect(router.match('#/notes/n1').route?.title).toBe('optional');
+    router.destroy();
+  });
 });
 
 describe('lazy routes', () => {

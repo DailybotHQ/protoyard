@@ -93,7 +93,7 @@ export function createRouter(
   }
   const compiled: { route: RouteDefinition; pattern: CompiledPattern }[] = routes
     .map((route) => ({ route, pattern: compilePattern(route.path) }))
-    .sort((a, b) => b.pattern.score - a.pattern.score);
+    .sort((a, b) => b.pattern.score - a.pattern.score || a.pattern.optionals - b.pattern.optionals);
   const baseTitle = options.titleSuffix ?? (typeof document !== 'undefined' ? document.title : '');
 
   const match = (hashOrPath: string): RouteMatch => {
