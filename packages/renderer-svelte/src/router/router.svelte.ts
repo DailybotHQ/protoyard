@@ -13,11 +13,19 @@ export interface RouteProps {
   query: URLSearchParams;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: route components accept arbitrary extra props.
+type AnyComponent = Component<any>;
+
 export interface RouteDefinition {
   /** `/`, `/deals`, `/deals/:id`, `/settings/*`. */
   path: string;
-  // biome-ignore lint/suspicious/noExplicitAny: route components accept arbitrary extra props.
-  component: Component<any>;
+  /** The screen, imported eagerly… */
+  component?: AnyComponent;
+  /**
+   * …or lazily, so the screen becomes its own chunk:
+   * `load: () => import('./screens/Reports.svelte')`.
+   */
+  load?: () => Promise<{ default: AnyComponent }>;
   /** Used for `document.title` as `<title> · <prototype name>`. */
   title?: string;
 }
@@ -47,6 +55,8 @@ export interface Router {
   /** Builds a `#/…` href, filling `:params`. */
   href(path: string, params?: RouteParams): string;
   match(path: string): RouteMatch;
+  /** Resolves a route's component, loading (and caching) lazy routes. */
+  resolve(route: RouteDefinition): AnyComponent | Promise<AnyComponent>;
   destroy(): void;
 }
 
@@ -76,6 +86,11 @@ export function createRouter(
   routes: readonly RouteDefinition[],
   options: RouterOptions = {}
 ): Router {
+  for (const route of routes) {
+    if (!route.component && !route.load) {
+      throw new Error(`[protoyard] Route "${route.path}" needs a component or a load() function.`);
+    }
+  }
   const compiled: { route: RouteDefinition; pattern: CompiledPattern }[] = routes
     .map((route) => ({ route, pattern: compilePattern(route.path) }))
     .sort((a, b) => b.pattern.score - a.pattern.score);
@@ -108,6 +123,7 @@ export function createRouter(
     }
   };
 
+  const loaded = new Map<RouteDefinition, Promise<AnyComponent>>();
   const off = typeof window !== 'undefined' ? on(window, 'hashchange', update) : () => {};
 
   return {
@@ -123,6 +139,17 @@ export function createRouter(
     },
     href: (path, params) => toHref(fillParams(path, params)),
     match,
+    resolve(route) {
+      if (route.component) return route.component;
+      let pending = loaded.get(route);
+      if (!pending) {
+        pending = (route.load as NonNullable<RouteDefinition['load']>)().then((m) => m.default);
+        // A failed chunk (offline, redeploy) may be retried on the next visit.
+        pending.catch(() => loaded.delete(route));
+        loaded.set(route, pending);
+      }
+      return pending;
+    },
     destroy: off,
   };
 }

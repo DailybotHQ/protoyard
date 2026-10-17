@@ -46,3 +46,27 @@ describe('createRouter', () => {
     router.destroy();
   });
 });
+
+describe('lazy routes', () => {
+  it('loads a route component once and caches it', async () => {
+    const Dummy = (() => {}) as never;
+    let calls = 0;
+    const router = createRouter([
+      { path: '/', component: Dummy },
+      {
+        path: '/reports',
+        load: async () => {
+          calls++;
+          return { default: Dummy };
+        },
+      },
+    ]);
+    const route = router.routes[1] as (typeof router.routes)[number];
+    await expect(router.resolve(route)).resolves.toBe(Dummy);
+    await router.resolve(route);
+    expect(calls).toBe(1);
+    expect(router.resolve(router.routes[0] as never)).toBe(Dummy);
+    expect(() => createRouter([{ path: '/x' }])).toThrow(/needs a component/);
+    router.destroy();
+  });
+});
