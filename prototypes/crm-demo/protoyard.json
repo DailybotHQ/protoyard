@@ -1,0 +1,33 @@
+{
+  "id": "example.crm",
+  "slug": "crm-demo",
+  "kind": "prototype",
+  "name": "Pipeline CRM",
+  "description": "A lightweight sales CRM: companies, contacts, an editable deal pipeline and activity history — with owner, admin, sales-rep and viewer personas.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "sales",
+  "tags": ["crm", "sales", "pipeline", "dashboard", "saas"],
+  "template": "dashboard",
+  "status": "ready",
+  "icon": "📈",
+  "defaultScenario": "growing-team",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "crm-demo", "schemaVersion": 2 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": [
+    "new-company",
+    "growing-team",
+    "mature-company",
+    "rep-view",
+    "viewer-view",
+    "admin-view",
+    "trial-expired",
+    "offline-mode"
+  ],
+  "createdAt": "2026-10-17T00:00:00.000Z",
+  "updatedAt": "2026-10-17T00:00:00.000Z"
+}
