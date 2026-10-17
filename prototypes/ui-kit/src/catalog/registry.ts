@@ -1,63 +1,20 @@
-import AccordionDemo from '../demos/AccordionDemo.svelte';
-import AlertDialogDemo from '../demos/AlertDialogDemo.svelte';
-import AppShellDemo from '../demos/AppShellDemo.svelte';
-import AvatarDemo from '../demos/AvatarDemo.svelte';
-import BadgeDemo from '../demos/BadgeDemo.svelte';
-import BottomNavDemo from '../demos/BottomNavDemo.svelte';
-import BottomSheetDemo from '../demos/BottomSheetDemo.svelte';
-import BreadcrumbDemo from '../demos/BreadcrumbDemo.svelte';
-import ButtonDemo from '../demos/ButtonDemo.svelte';
-import CardDemo from '../demos/CardDemo.svelte';
-import CardGridDemo from '../demos/CardGridDemo.svelte';
-import ChatThreadDemo from '../demos/ChatThreadDemo.svelte';
-import CheckboxDemo from '../demos/CheckboxDemo.svelte';
-import ComboboxDemo from '../demos/ComboboxDemo.svelte';
-import ComposerDemo from '../demos/ComposerDemo.svelte';
-import DataTableDemo from '../demos/DataTableDemo.svelte';
-import DetailPanelDemo from '../demos/DetailPanelDemo.svelte';
-import DialogDemo from '../demos/DialogDemo.svelte';
-import DropdownMenuDemo from '../demos/DropdownMenuDemo.svelte';
-import EmptyStateDemo from '../demos/EmptyStateDemo.svelte';
-import ErrorStateDemo from '../demos/ErrorStateDemo.svelte';
-import FormFieldDemo from '../demos/FormFieldDemo.svelte';
-import HeaderDemo from '../demos/HeaderDemo.svelte';
-import InputDemo from '../demos/InputDemo.svelte';
-import KanbanDemo from '../demos/KanbanDemo.svelte';
-import KbdDemo from '../demos/KbdDemo.svelte';
-import LabelDemo from '../demos/LabelDemo.svelte';
-import LoadingStateDemo from '../demos/LoadingStateDemo.svelte';
-import MessageListDemo from '../demos/MessageListDemo.svelte';
-import MobileHeaderDemo from '../demos/MobileHeaderDemo.svelte';
-import PaginationDemo from '../demos/PaginationDemo.svelte';
-import PatternChatDemo from '../demos/PatternChatDemo.svelte';
-import PatternDashboardDemo from '../demos/PatternDashboardDemo.svelte';
-import PatternKanbanDemo from '../demos/PatternKanbanDemo.svelte';
-import PatternMobileDemo from '../demos/PatternMobileDemo.svelte';
-import PopoverDemo from '../demos/PopoverDemo.svelte';
-import ProgressDemo from '../demos/ProgressDemo.svelte';
-import RadioGroupDemo from '../demos/RadioGroupDemo.svelte';
-import SafeAreaDemo from '../demos/SafeAreaDemo.svelte';
-import SelectDemo from '../demos/SelectDemo.svelte';
-import SeparatorDemo from '../demos/SeparatorDemo.svelte';
-import SidebarDemo from '../demos/SidebarDemo.svelte';
-import SkeletonDemo from '../demos/SkeletonDemo.svelte';
-import SpinnerDemo from '../demos/SpinnerDemo.svelte';
-import StatCardDemo from '../demos/StatCardDemo.svelte';
-import StepperDemo from '../demos/StepperDemo.svelte';
-import SwitchDemo from '../demos/SwitchDemo.svelte';
-import TabsDemo from '../demos/TabsDemo.svelte';
-import TextareaDemo from '../demos/TextareaDemo.svelte';
-import ToastDemo from '../demos/ToastDemo.svelte';
-import TooltipDemo from '../demos/TooltipDemo.svelte';
-import TypingIndicatorDemo from '../demos/TypingIndicatorDemo.svelte';
-import UserPickerDemo from '../demos/UserPickerDemo.svelte';
-import WizardDemo from '../demos/WizardDemo.svelte';
+import type { Component } from 'svelte';
 import type { CatalogDemo } from './types.ts';
+
+// Every demo is its own lazily loaded chunk: the shell (and the snippets
+// below) stay small, and a group page fetches only the demos it shows.
+const modules = import.meta.glob<{ default: Component }>('../demos/*Demo.svelte');
+
+function demo(name: string): CatalogDemo['load'] {
+  const loader = modules[`../demos/${name}.svelte`];
+  if (!loader) throw new Error(`Missing demo module ${name}.svelte`);
+  return async () => (await loader()).default;
+}
 
 /** Live demo, copyable usage and accessibility notes for every catalog id. */
 export const DEMOS: Record<string, CatalogDemo> = {
   button: {
-    component: ButtonDemo,
+    load: demo('ButtonDemo'),
     snippet: `<script lang="ts">
   import { Plus, Settings } from '@lucide/svelte';
   import { Button } from '@protoyard/ui';
@@ -75,7 +32,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   input: {
-    component: InputDemo,
+    load: demo('InputDemo'),
     snippet: `<script lang="ts">
   import { Input, Label } from '@protoyard/ui';
   let email = $state('');
@@ -92,7 +49,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   textarea: {
-    component: TextareaDemo,
+    load: demo('TextareaDemo'),
     snippet: `<script lang="ts">
   import { Label, Textarea } from '@protoyard/ui';
   let bio = $state('');
@@ -107,7 +64,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   label: {
-    component: LabelDemo,
+    load: demo('LabelDemo'),
     snippet: `<script lang="ts">
   import { Input, Label } from '@protoyard/ui';
 </script>
@@ -120,7 +77,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'form-field': {
-    component: FormFieldDemo,
+    load: demo('FormFieldDemo'),
     snippet: `<script lang="ts">
   import { FormField, Input } from '@protoyard/ui';
   let name = $state('');
@@ -139,7 +96,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   checkbox: {
-    component: CheckboxDemo,
+    load: demo('CheckboxDemo'),
     snippet: `<script lang="ts">
   import { Checkbox } from '@protoyard/ui';
   let accepted = $state(false);
@@ -156,7 +113,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'radio-group': {
-    component: RadioGroupDemo,
+    load: demo('RadioGroupDemo'),
     snippet: `<script lang="ts">
   import { RadioGroup } from '@protoyard/ui';
   let plan = $state('team');
@@ -177,7 +134,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   switch: {
-    component: SwitchDemo,
+    load: demo('SwitchDemo'),
     snippet: `<script lang="ts">
   import { Switch } from '@protoyard/ui';
   let digest = $state(true);
@@ -191,7 +148,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   select: {
-    component: SelectDemo,
+    load: demo('SelectDemo'),
     snippet: `<script lang="ts">
   import { Label, Select } from '@protoyard/ui';
   let stage = $state('');
@@ -211,7 +168,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   combobox: {
-    component: ComboboxDemo,
+    load: demo('ComboboxDemo'),
     snippet: `<script lang="ts">
   import { Combobox, FormField } from '@protoyard/ui';
   let timezone = $state('');
@@ -229,7 +186,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   dialog: {
-    component: DialogDemo,
+    load: demo('DialogDemo'),
     snippet: `<script lang="ts">
   import { Button, Dialog } from '@protoyard/ui';
   let open = $state(false);
@@ -247,7 +204,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'alert-dialog': {
-    component: AlertDialogDemo,
+    load: demo('AlertDialogDemo'),
     snippet: `<script lang="ts">
   import { AlertDialog, Button } from '@protoyard/ui';
 </script>
@@ -267,7 +224,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'dropdown-menu': {
-    component: DropdownMenuDemo,
+    load: demo('DropdownMenuDemo'),
     snippet: `<script lang="ts">
   import { Pencil, Trash2 } from '@lucide/svelte';
   import { Button, DropdownMenu } from '@protoyard/ui';
@@ -290,7 +247,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   popover: {
-    component: PopoverDemo,
+    load: demo('PopoverDemo'),
     snippet: `<script lang="ts">
   import { Button, Popover } from '@protoyard/ui';
   let open = $state(false);
@@ -306,7 +263,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   tooltip: {
-    component: TooltipDemo,
+    load: demo('TooltipDemo'),
     snippet: `<script lang="ts">
   import { Bold } from '@lucide/svelte';
   import { Button, Tooltip } from '@protoyard/ui';
@@ -324,7 +281,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'detail-panel': {
-    component: DetailPanelDemo,
+    load: demo('DetailPanelDemo'),
     snippet: `<script lang="ts">
   import { Badge, Button, DetailPanel } from '@protoyard/ui';
   let open = $state(false);
@@ -341,7 +298,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'bottom-sheet': {
-    component: BottomSheetDemo,
+    load: demo('BottomSheetDemo'),
     snippet: `<script lang="ts">
   import { BottomSheet, Button } from '@protoyard/ui';
   let open = $state(false);
@@ -359,7 +316,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   tabs: {
-    component: TabsDemo,
+    load: demo('TabsDemo'),
     snippet: `<script lang="ts">
   import { Tabs } from '@protoyard/ui';
   let tab = $state('overview');
@@ -378,7 +335,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   accordion: {
-    component: AccordionDemo,
+    load: demo('AccordionDemo'),
     snippet: `<script lang="ts">
   import { Accordion } from '@protoyard/ui';
   let open = $state<string | string[] | undefined>('trial');
@@ -398,7 +355,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   breadcrumb: {
-    component: BreadcrumbDemo,
+    load: demo('BreadcrumbDemo'),
     snippet: `<script lang="ts">
   import { Breadcrumb } from '@protoyard/ui';
 </script>
@@ -416,7 +373,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   pagination: {
-    component: PaginationDemo,
+    load: demo('PaginationDemo'),
     snippet: `<script lang="ts">
   import { Pagination } from '@protoyard/ui';
   let page = $state(1);
@@ -430,7 +387,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   toast: {
-    component: ToastDemo,
+    load: demo('ToastDemo'),
     snippet: `<script lang="ts">
   import { Button, toast } from '@protoyard/ui';
   // Render <Toaster /> once near the app root.
@@ -446,7 +403,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   progress: {
-    component: ProgressDemo,
+    load: demo('ProgressDemo'),
     snippet: `<script lang="ts">
   import { Progress } from '@protoyard/ui';
   let value = $state(40);
@@ -461,7 +418,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   skeleton: {
-    component: SkeletonDemo,
+    load: demo('SkeletonDemo'),
     snippet: `<script lang="ts">
   import { Skeleton } from '@protoyard/ui';
 </script>
@@ -476,7 +433,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   spinner: {
-    component: SpinnerDemo,
+    load: demo('SpinnerDemo'),
     snippet: `<script lang="ts">
   import { Spinner } from '@protoyard/ui';
 </script>
@@ -489,7 +446,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'empty-state': {
-    component: EmptyStateDemo,
+    load: demo('EmptyStateDemo'),
     snippet: `<script lang="ts">
   import { FolderPlus } from '@lucide/svelte';
   import { Button, EmptyState } from '@protoyard/ui';
@@ -503,7 +460,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'error-state': {
-    component: ErrorStateDemo,
+    load: demo('ErrorStateDemo'),
     snippet: `<script lang="ts">
   import { ErrorState } from '@protoyard/ui';
 </script>
@@ -519,7 +476,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'loading-state': {
-    component: LoadingStateDemo,
+    load: demo('LoadingStateDemo'),
     snippet: `<script lang="ts">
   import { LoadingState } from '@protoyard/ui';
 </script>
@@ -531,7 +488,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   badge: {
-    component: BadgeDemo,
+    load: demo('BadgeDemo'),
     snippet: `<script lang="ts">
   import { Badge } from '@protoyard/ui';
 </script>
@@ -546,7 +503,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   avatar: {
-    component: AvatarDemo,
+    load: demo('AvatarDemo'),
     snippet: `<script lang="ts">
   import { Avatar } from '@protoyard/ui';
 </script>
@@ -560,7 +517,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   card: {
-    component: CardDemo,
+    load: demo('CardDemo'),
     snippet: `<script lang="ts">
   import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@protoyard/ui';
 </script>
@@ -576,7 +533,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     a11y: ['CardTitle renders a real heading; set level so it fits the page outline (default h3).'],
   },
   separator: {
-    component: SeparatorDemo,
+    load: demo('SeparatorDemo'),
     snippet: `<script lang="ts">
   import { Separator } from '@protoyard/ui';
 </script>
@@ -590,7 +547,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   kbd: {
-    component: KbdDemo,
+    load: demo('KbdDemo'),
     snippet: `<script lang="ts">
   import { Kbd } from '@protoyard/ui';
 </script>
@@ -601,7 +558,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'stat-card': {
-    component: StatCardDemo,
+    load: demo('StatCardDemo'),
     snippet: `<script lang="ts">
   import { DollarSign } from '@lucide/svelte';
   import { StatCard } from '@protoyard/ui';
@@ -615,7 +572,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'card-grid': {
-    component: CardGridDemo,
+    load: demo('CardGridDemo'),
     snippet: `<script lang="ts">
   import { Card, CardGrid } from '@protoyard/ui';
 </script>
@@ -631,7 +588,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'data-table': {
-    component: DataTableDemo,
+    load: demo('DataTableDemo'),
     snippet: `<script lang="ts">
   import { DataTable, type DataTableColumn } from '@protoyard/ui';
   const columns: DataTableColumn<Member>[] = [
@@ -656,7 +613,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   kanban: {
-    component: KanbanDemo,
+    load: demo('KanbanDemo'),
     snippet: `<script lang="ts">
   import { Kanban } from '@protoyard/ui';
   let tasks = $state(initialTasks);
@@ -678,7 +635,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'app-shell': {
-    component: AppShellDemo,
+    load: demo('AppShellDemo'),
     snippet: `<script lang="ts">
   import { AppShell, Header, Sidebar } from '@protoyard/ui';
   let sidebarOpen = $state(false);
@@ -695,7 +652,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   sidebar: {
-    component: SidebarDemo,
+    load: demo('SidebarDemo'),
     snippet: `<script lang="ts">
   import { House, Inbox } from '@lucide/svelte';
   import { Sidebar } from '@protoyard/ui';
@@ -715,7 +672,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   header: {
-    component: HeaderDemo,
+    load: demo('HeaderDemo'),
     snippet: `<script lang="ts">
   import { Button, Header } from '@protoyard/ui';
 </script>
@@ -729,7 +686,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'chat-thread': {
-    component: ChatThreadDemo,
+    load: demo('ChatThreadDemo'),
     snippet: `<script lang="ts">
   import { ChatThread, type ChatMessage } from '@protoyard/ui';
   const me = { id: 'me', name: 'You' };
@@ -750,7 +707,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'message-list': {
-    component: MessageListDemo,
+    load: demo('MessageListDemo'),
     snippet: `<script lang="ts">
   import { MessageList } from '@protoyard/ui';
 </script>
@@ -765,7 +722,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   composer: {
-    component: ComposerDemo,
+    load: demo('ComposerDemo'),
     snippet: `<script lang="ts">
   import { Composer } from '@protoyard/ui';
   let value = $state('');
@@ -783,7 +740,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'typing-indicator': {
-    component: TypingIndicatorDemo,
+    load: demo('TypingIndicatorDemo'),
     snippet: `<script lang="ts">
   import { TypingIndicator } from '@protoyard/ui';
 </script>
@@ -795,7 +752,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'user-picker': {
-    component: UserPickerDemo,
+    load: demo('UserPickerDemo'),
     snippet: `<script lang="ts">
   import { UserPicker } from '@protoyard/ui';
   let assignee = $state('');
@@ -813,7 +770,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   stepper: {
-    component: StepperDemo,
+    load: demo('StepperDemo'),
     snippet: `<script lang="ts">
   import { Stepper } from '@protoyard/ui';
   let current = $state(1);
@@ -830,7 +787,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   wizard: {
-    component: WizardDemo,
+    load: demo('WizardDemo'),
     snippet: `<script lang="ts">
   import { Wizard } from '@protoyard/ui';
   let current = $state(0);
@@ -850,7 +807,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'bottom-nav': {
-    component: BottomNavDemo,
+    load: demo('BottomNavDemo'),
     snippet: `<script lang="ts">
   import { House, Search } from '@lucide/svelte';
   import { BottomNav } from '@protoyard/ui';
@@ -868,7 +825,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'mobile-header': {
-    component: MobileHeaderDemo,
+    load: demo('MobileHeaderDemo'),
     snippet: `<script lang="ts">
   import { MobileHeader } from '@protoyard/ui';
 </script>
@@ -882,7 +839,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'safe-area': {
-    component: SafeAreaDemo,
+    load: demo('SafeAreaDemo'),
     snippet: `<script lang="ts">
   import { SafeArea } from '@protoyard/ui';
 </script>
@@ -896,7 +853,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'pattern-dashboard': {
-    component: PatternDashboardDemo,
+    load: demo('PatternDashboardDemo'),
     snippet: `<script lang="ts">
   import { AppShell, CardGrid, DataTable, DetailPanel, Header, Sidebar, StatCard } from '@protoyard/ui';
 </script>
@@ -916,7 +873,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'pattern-kanban': {
-    component: PatternKanbanDemo,
+    load: demo('PatternKanbanDemo'),
     snippet: `<script lang="ts">
   import { DetailPanel, FormField, Kanban, Select } from '@protoyard/ui';
 </script>
@@ -938,7 +895,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'pattern-chat': {
-    component: PatternChatDemo,
+    load: demo('PatternChatDemo'),
     snippet: `<script lang="ts">
   import { ChatThread } from '@protoyard/ui';
 </script>
@@ -957,7 +914,7 @@ export const DEMOS: Record<string, CatalogDemo> = {
     ],
   },
   'pattern-mobile': {
-    component: PatternMobileDemo,
+    load: demo('PatternMobileDemo'),
     snippet: `<script lang="ts">
   import { BottomNav, BottomSheet, MobileHeader } from '@protoyard/ui';
 </script>

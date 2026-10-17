@@ -19,15 +19,15 @@ describe('catalog registry', () => {
 });
 
 describe('demos', () => {
-  it.each(Object.entries(DEMOS))('%s renders without throwing', (_id, demo) => {
-    const { container } = render(demo.component, {});
+  it.each(Object.entries(DEMOS))('%s renders without throwing', async (_id, demo) => {
+    const { container } = render(await demo.load(), {});
     expect(container.textContent?.trim().length).toBeGreaterThan(0);
   });
 
   it('chat thread sends a message and receives a scripted reply', async () => {
     const demo = DEMOS['chat-thread'];
     if (!demo) throw new Error('missing chat-thread demo');
-    render(demo.component, {});
+    render(await demo.load(), {});
     const box = screen.getByRole('textbox', { name: 'Message' });
     await fireEvent.input(box, { target: { value: 'Ship it?' } });
     await fireEvent.keyDown(box, { key: 'Enter' });

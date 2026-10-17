@@ -12,7 +12,8 @@ let {
   headingLevel = 2,
 }: { entry: CatalogEntryMeta; starred: boolean; headingLevel?: 1 | 2 } = $props();
 const demo = $derived(DEMOS[entry.id]);
-const Demo = $derived(demo?.component);
+// Started once per entry; Svelte re-runs it only if the entry changes.
+const loading = $derived(demo?.load());
 </script>
 
 <section id={`entry-${entry.id}`} class="scroll-mt-24 rounded-xl border border-border bg-surface shadow-soft" aria-labelledby={`entry-${entry.id}-title`}>
@@ -31,8 +32,14 @@ const Demo = $derived(demo?.component);
     <FavoriteButton entryId={entry.id} name={entry.name} {starred} />
   </header>
   <div class="px-5 py-5">
-    {#if Demo}
-      <Demo />
+    {#if loading}
+      {#await loading}
+        <div class="h-24 animate-pulse rounded-lg bg-muted motion-reduce:animate-none" aria-label={`Loading ${entry.name} demo`} role="status"></div>
+      {:then Demo}
+        <Demo />
+      {:catch error}
+        <p class="text-sm text-destructive" role="alert">Could not load the demo: {String(error)}</p>
+      {/await}
     {:else}
       <p class="text-sm text-muted-foreground">No demo registered for “{entry.id}”.</p>
     {/if}

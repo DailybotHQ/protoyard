@@ -12,23 +12,25 @@ import { createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { AppShell, Avatar, Badge, Header, Sidebar, type SidebarSection } from '@protoyard/ui';
 import { CATALOG, CATALOG_GROUPS } from './catalog/entries.ts';
 import { useFavorites } from './lib/favorites.svelte.ts';
-import A11yPage from './screens/A11yPage.svelte';
-import EntryPage from './screens/EntryPage.svelte';
-import FavoritesPage from './screens/FavoritesPage.svelte';
-import FormsPage from './screens/FormsPage.svelte';
-import GroupPage from './screens/GroupPage.svelte';
 import OverviewPage from './screens/OverviewPage.svelte';
-import ThemeLabPage from './screens/ThemeLabPage.svelte';
 
 const router = createRouter(
   [
     { path: '/', component: OverviewPage, title: 'Overview' },
-    { path: '/components/:group', component: GroupPage, title: 'Components' },
-    { path: '/c/:id', component: EntryPage, title: 'Component' },
-    { path: '/themes', component: ThemeLabPage, title: 'Theme lab' },
-    { path: '/forms', component: FormsPage, title: 'Forms' },
-    { path: '/a11y', component: A11yPage, title: 'Accessibility' },
-    { path: '/favorites', component: FavoritesPage, title: 'Favorites' },
+    {
+      path: '/components/:group',
+      load: () => import('./screens/GroupPage.svelte'),
+      title: 'Components',
+    },
+    { path: '/c/:id', load: () => import('./screens/EntryPage.svelte'), title: 'Component' },
+    { path: '/themes', load: () => import('./screens/ThemeLabPage.svelte'), title: 'Theme lab' },
+    { path: '/forms', load: () => import('./screens/FormsPage.svelte'), title: 'Forms' },
+    { path: '/a11y', load: () => import('./screens/A11yPage.svelte'), title: 'Accessibility' },
+    {
+      path: '/favorites',
+      load: () => import('./screens/FavoritesPage.svelte'),
+      title: 'Favorites',
+    },
   ],
   { titleSuffix: 'Protoyard UI Kit' }
 );
