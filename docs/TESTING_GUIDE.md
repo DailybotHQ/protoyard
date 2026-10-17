@@ -38,6 +38,9 @@ All commands run from the repository root. Labels: **full** runs everything;
 | One prototype end to end | `pnpm protoyard validate crm-demo --build` | scoped |
 
 Run `pnpm test:e2e:install` once on a new machine to install Chromium.
+Run **one E2E session per machine at a time**: the Playwright web servers use
+fixed ports (gallery 4329, prototypes from 4401), so two concurrent runs
+collide with "port already used" or connection-refused errors.
 
 ### Verified scoped runs (evidence, 2026-10-17)
 
