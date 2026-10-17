@@ -80,12 +80,25 @@ export interface EventApplyContext {
   remove(table: string, id: string): Promise<void>;
 }
 
+/**
+ * Referential-integrity rules checked after every generation (scenario load).
+ * `relations`: table → column → referenced table (`py_personas` allowed);
+ * null/undefined values are allowed. `timestamps`: ISO columns that must lie
+ * between the organization's creation and the scenario reference time.
+ */
+export interface IntegrityRules {
+  relations?: Record<string, Record<string, string>>;
+  timestamps?: Record<string, readonly string[]>;
+}
+
 export interface PrototypeDefinition {
   manifest: PrototypeManifest;
   database: DatabaseDefinition;
   scenarios: readonly ScenarioInput[];
   generate(ctx: GenerateContext): WorldSeed | Promise<WorldSeed>;
   policy?: PolicyDefinition;
+  /** Validated on every scenario load; violations fail loudly. */
+  integrity?: IntegrityRules;
   /** Prototype-specific themes in addition to the built-in presets. */
   themes?: readonly Theme[];
   /** Deterministic events for `scenarios.advance()`. Omit for preview-only time. */
