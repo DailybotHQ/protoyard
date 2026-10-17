@@ -1,0 +1,32 @@
+{
+  "id": "example.mobile-banking",
+  "slug": "mobile-banking-demo",
+  "kind": "prototype",
+  "name": "Lumen Bank (fictional)",
+  "description": "A mobile-first banking app with fictional accounts, a transaction ledger, beneficiaries and atomic simulated transfers. Demo only — no real money, no real banks.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "mobile",
+  "category": "fintech",
+  "tags": ["fintech", "banking", "mobile", "ledger", "transfers"],
+  "template": "mobile-app",
+  "status": "ready",
+  "icon": "🏦",
+  "defaultScenario": "active-customer",
+  "defaultTheme": "emerald",
+  "defaultMode": "system",
+  "preview": { "viewport": "iphone" },
+  "storage": { "namespace": "mobile-banking-demo", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": [
+    "new-account",
+    "active-customer",
+    "dormant-account",
+    "locked-account",
+    "low-balance",
+    "dependent-view",
+    "offline-mode"
+  ],
+  "createdAt": "2026-10-17T00:00:00.000Z",
+  "updatedAt": "2026-10-17T00:00:00.000Z"
+}

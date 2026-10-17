@@ -47,6 +47,8 @@
     "tsx": "^4.23.0",
     "typescript": "6.0.3",
     "vite": "^8.3.4",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "@faker-js/faker": "^10.6.0",
+    "@protoyard/core": "workspace:*"
   }
 }

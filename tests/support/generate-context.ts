@@ -1,0 +1,36 @@
+import { base, en, Faker } from '@faker-js/faker';
+import {
+  createIdFactory,
+  createRng,
+  createTimeHelpers,
+  type GenerateContext,
+  parseScenario,
+  type ScenarioInput,
+} from '@protoyard/core';
+
+/**
+ * Test helper that builds a GenerateContext straight from core primitives, so
+ * prototype generator tests do not depend on the runtime. Mirrors
+ * `createGenerateContext` in @protoyard/scenarios.
+ */
+export function contextFor(
+  scenarios: readonly ScenarioInput[],
+  id: string,
+  seedOverride?: number
+): GenerateContext {
+  const input = scenarios.find((s) => s.id === id);
+  if (!input) throw new Error(`unknown scenario ${id}`);
+  const scenario = parseScenario({ ...input, ...(seedOverride ? { seed: seedOverride } : {}) });
+  const faker = new Faker({ locale: [en, base] });
+  faker.seed(scenario.seed);
+  faker.setDefaultRefDate(scenario.referenceTime);
+  const factor = { empty: 0, sparse: 0.25, normal: 1, dense: 4, massive: 25 }[scenario.density];
+  return {
+    scenario,
+    rng: createRng(scenario.seed),
+    faker,
+    ids: createIdFactory(),
+    time: createTimeHelpers(scenario.referenceTime),
+    scale: (n) => (factor === 0 ? 0 : Math.max(1, Math.round(n * factor))),
+  };
+}

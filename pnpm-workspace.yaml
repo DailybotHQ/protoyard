@@ -16,3 +16,7 @@ allowBuilds:
   '@parcel/watcher': true
   sharp: true
   unrs-resolver: true
+
+# Several agents may run scripts concurrently; never let `pnpm run` trigger an
+# implicit install (that rewrites the shared lockfile). Install explicitly.
+verifyDepsBeforeRun: false

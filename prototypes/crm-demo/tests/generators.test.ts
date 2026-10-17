@@ -1,35 +1,11 @@
-import { base, en, Faker } from '@faker-js/faker';
-import {
-  createIdFactory,
-  createRng,
-  createTimeHelpers,
-  type GenerateContext,
-  parseScenario,
-  type WorldSeed,
-} from '@protoyard/core';
+import type { WorldSeed } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
+import { contextFor as buildContext } from '../../../tests/support/generate-context.ts';
 import type { Activity, Company, Contact, Deal } from '../src/database/schema.ts';
 import { definition } from '../src/prototype.ts';
 import { generateCrmWorld } from '../src/scenarios/generators.ts';
 
-/** Minimal context builder (mirrors @protoyard/scenarios' createGenerateContext). */
-function contextFor(id: string, seedOverride?: number): GenerateContext {
-  const input = definition.scenarios.find((s) => s.id === id);
-  if (!input) throw new Error(`unknown scenario ${id}`);
-  const scenario = parseScenario({ ...input, ...(seedOverride ? { seed: seedOverride } : {}) });
-  const faker = new Faker({ locale: [en, base] });
-  faker.seed(scenario.seed);
-  faker.setDefaultRefDate(scenario.referenceTime);
-  const factor = { empty: 0, sparse: 0.25, normal: 1, dense: 4, massive: 25 }[scenario.density];
-  return {
-    scenario,
-    rng: createRng(scenario.seed),
-    faker,
-    ids: createIdFactory(),
-    time: createTimeHelpers(scenario.referenceTime),
-    scale: (n) => (factor === 0 ? 0 : Math.max(1, Math.round(n * factor))),
-  };
-}
+const contextFor = (id: string, seed?: number) => buildContext(definition.scenarios, id, seed);
 
 const rows = <T>(world: WorldSeed, table: string) => (world.tables[table] ?? []) as unknown as T[];
 
