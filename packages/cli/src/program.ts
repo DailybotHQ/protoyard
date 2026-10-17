@@ -1,0 +1,245 @@
+import { Command, CommanderError, Option } from 'commander';
+import { buildCommand } from './commands/build.ts';
+import { devCommand } from './commands/dev.ts';
+import { doctorCommand } from './commands/doctor.ts';
+import { exportCommand } from './commands/export.ts';
+import { indexCommand } from './commands/index-cmd.ts';
+import { listCommand } from './commands/list.ts';
+import { newCommand } from './commands/new.ts';
+import { previewCommand } from './commands/preview.ts';
+import { publishCommand } from './commands/publish.ts';
+import { scenarioListCommand, scenarioValidateCommand } from './commands/scenario.ts';
+import { controlServerCommand, galleryCommand } from './commands/serve.ts';
+import { snapshotListCommand } from './commands/snapshot.ts';
+import { validateCommand } from './commands/validate.ts';
+import { action, type RunnerEnv } from './lib/command.ts';
+import { CliError, ExitCode, errorEnvelope, processStreams } from './lib/output.ts';
+import { CLI_VERSION } from './lib/workspace.ts';
+import { PROVIDER_IDS } from './publish/index.ts';
+
+const EXAMPLES = `
+Examples:
+  $ pnpm protoyard list --kind template
+  $ pnpm protoyard new my-crm --template blank --name "My CRM"
+  $ pnpm protoyard dev my-crm --host
+  $ pnpm protoyard validate my-crm --build
+  $ pnpm protoyard export my-crm --base ./
+  $ pnpm protoyard publish my-crm --provider cloudflare --dry-run
+  $ pnpm protoyard list --json | jq '.data.entries[].slug'
+
+Every command accepts --json and returns { ok, command, data?, error? }.
+Exit codes: 0 ok · 1 failure · 2 usage · 3 not found · 4 validation · 5 provider/auth.`;
+
+export function createProgram(env: RunnerEnv): Command {
+  const streams = env.streams ?? processStreams;
+  const program = new Command('protoyard')
+    .description('Build prototypes that feel real. Real behavior. Fake infrastructure.')
+    .version(CLI_VERSION, '-v, --version')
+    .option('--json', 'machine-readable output: one JSON envelope on stdout')
+    .option('-y, --yes', 'never prompt; accept documented defaults (implied by CI=1)')
+    .option('--cwd <dir>', 'run as if started in <dir>')
+    .option(
+      '--root <dir>',
+      'workspace root (default: nearest pnpm-workspace.yaml; env PROTOYARD_ROOT)'
+    )
+    .option('-q, --quiet', 'only print essential output')
+    .option('--no-color', 'disable colors (also NO_COLOR=1)')
+    .showHelpAfterError('(run with --help for usage)')
+    .configureOutput({
+      writeOut: (s) => streams.stdout(s),
+      writeErr: (s) => streams.stderr(s),
+    })
+    .addHelpText('after', EXAMPLES);
+
+  const def = (name: string, handler: Parameters<typeof action>[1]) => action(name, handler, env);
+
+  program
+    .command('doctor')
+    .description(
+      'check Node, pnpm, dependencies, layout, templates, git, Playwright and provider CLIs'
+    )
+    .option('--offline', 'skip provider authentication checks (no network)')
+    .action(def('doctor', doctorCommand));
+
+  program
+    .command('list')
+    .description('list prototypes and templates from the registry')
+    .addOption(
+      new Option('--kind <kind>', 'prototype, template or all')
+        .choices(['prototype', 'template', 'all'])
+        .default('all')
+    )
+    .option('--tag <tag>', 'only entries with this tag')
+    .option('--category <category>', 'only this category')
+    .option('--platform <platform>', 'desktop, mobile or responsive')
+    .option('--search <text>', 'match name, slug, description, tags…')
+    .addOption(
+      new Option('--sort <field>', 'name or modified').choices(['name', 'modified']).default('name')
+    )
+    .action(def('list', listCommand));
+
+  program
+    .command('index')
+    .description('scan protoyard.json manifests (no code runs) and write .protoyard/registry.json')
+    .option('--force', 'ignore the incremental cache')
+    .action(def('index', indexCommand));
+
+  program
+    .command('new')
+    .description('create prototypes/<slug> from a template')
+    .argument('<slug>', 'lowercase kebab-case folder name')
+    .requiredOption('-t, --template <name>', 'template to copy (see `list --kind template`)')
+    .option('--name <name>', 'display name (default: from the slug)')
+    .option('--description <text>', 'one-line description')
+    .option('--force', 'reuse an EXISTING EMPTY folder (never overwrites files)')
+    .option('--no-install', 'skip `pnpm install` (link the package later)')
+    .action(def('new', newCommand));
+
+  program
+    .command('dev')
+    .description("start ONLY that prototype's Vite dev server")
+    .argument('<slug>')
+    .option('-p, --port <port>', 'preferred port (the next free one is used if busy)', '5173')
+    .option('--host', 'listen on the LAN and print a URL for phones')
+    .action(def('dev', devCommand));
+
+  program
+    .command('validate')
+    .description('check manifest, folder contract, package, scenarios, schema version and types')
+    .argument('<slug>')
+    .option('--skip-typecheck', 'skip svelte-check')
+    .option('--build', 'also run a production build')
+    .action(def('validate', validateCommand));
+
+  const buildOptions = (cmd: Command) =>
+    cmd
+      .option('--base <path>', 'public base: ./ (relocatable, default) or /sub/path/')
+      .option('--include-devtools', 'ship the DevTools panel in the build');
+
+  buildOptions(
+    program
+      .command('build')
+      .description('production build of one prototype (or --all) into artifacts/<slug>/dist')
+      .argument('[slug]')
+      .option('--all', 'build every prototype sequentially')
+      .option('--out <dir>', 'custom output folder (never a source folder)')
+  ).action(def('build', buildCommand));
+
+  buildOptions(
+    program
+      .command('export')
+      .description('build and zip a prototype into artifacts/<slug>/<slug>.zip')
+      .argument('<slug>')
+      .option('--skip-build', 'zip the existing build (verified against build-manifest.json)')
+  ).action(def('export', exportCommand));
+
+  program
+    .command('preview')
+    .description('serve artifacts/<slug>/dist like a static host (SPA fallback)')
+    .argument('<slug>')
+    .option('-p, --port <port>', 'preferred port', '4173')
+    .option('--strict-port', 'fail instead of picking another port')
+    .option('--host', 'listen on the LAN')
+    .action(def('preview', previewCommand));
+
+  buildOptions(
+    program
+      .command('publish')
+      .description('build, verify and deploy a prototype to a static host')
+      .argument('<slug>')
+      .addOption(
+        new Option('--provider <id>', 'hosting provider')
+          .choices([...PROVIDER_IDS])
+          .makeOptionMandatory()
+      )
+      .option('--project <name>', 'provider project/site name (default protoyard-<slug>)')
+      .option('--preview', 'preview deployment (default)')
+      .option('--production', 'production deployment (requires --yes)')
+      .option('--dry-run', 'build and verify, print the exact command, contact no provider')
+  ).action(def('publish', publishCommand));
+
+  const scenario = program.command('scenario').description("inspect a prototype's scenarios");
+  scenario
+    .command('list')
+    .argument('<slug>')
+    .option('--details', 'load names/groups/seeds from src/prototype.ts (runs local code)')
+    .action(def('scenario list', scenarioListCommand));
+  scenario
+    .command('validate')
+    .description(
+      'run the generator for every scenario and check referential integrity (runs local code)'
+    )
+    .argument('<slug>')
+    .option('-s, --scenario <id>', 'only this scenario')
+    .action(def('scenario validate', scenarioValidateCommand));
+
+  const snapshot = program
+    .command('snapshot')
+    .description('snapshot files committed with a prototype');
+  snapshot.command('list').argument('<slug>').action(def('snapshot list', snapshotListCommand));
+
+  program
+    .command('gallery')
+    .description('index, start the control server and run the gallery (what `pnpm dev` runs)')
+    .option('-p, --port <port>', 'gallery port', '4321')
+    .option('--control-port <port>', 'control server port', '4300')
+    .option('--allow-origin <origins>', 'extra comma-separated origins for the control API')
+    .action(def('gallery', galleryCommand));
+
+  program
+    .command('control-server')
+    .description('only the local control API (127.0.0.1) the gallery uses to start dev servers')
+    .option('-p, --port <port>', 'port', '4300')
+    .option('--gallery-port <port>', 'gallery port allowed as Origin', '4321')
+    .option('--allow-origin <origins>', 'extra comma-separated allowed origins')
+    .action(def('control-server', controlServerCommand));
+
+  return program;
+}
+
+/**
+ * Parses argv and runs. Commander's own usage errors (unknown option, missing
+ * argument) become exit code 2 and, with --json, an error envelope.
+ */
+export async function runCli(argv: readonly string[], env: RunnerEnv): Promise<void> {
+  const streams = env.streams ?? processStreams;
+  const program = createProgram(env);
+  const wantsJson = argv.includes('--json');
+  program.exitOverride();
+  for (const cmd of allCommands(program)) cmd.exitOverride();
+  if (wantsJson) {
+    program.configureOutput({ writeOut: (s) => streams.stdout(s), writeErr: () => {} });
+    for (const cmd of allCommands(program))
+      cmd.configureOutput({ writeOut: (s) => streams.stdout(s), writeErr: () => {} });
+  }
+  try {
+    await program.parseAsync([...argv], { from: 'user' });
+  } catch (error) {
+    if (error instanceof CommanderError) {
+      // help / version are "errors" in commander's exitOverride model.
+      if (
+        error.code === 'commander.helpDisplayed' ||
+        error.code === 'commander.version' ||
+        error.code === 'commander.help'
+      ) {
+        env.setExitCode(ExitCode.Ok);
+        return;
+      }
+      if (wantsJson) {
+        const command = argv.find((a) => !a.startsWith('-')) ?? 'protoyard';
+        const envelope = errorEnvelope(
+          command,
+          new CliError('usage', error.message.replace(/^error: /, ''))
+        );
+        streams.stdout(`${JSON.stringify(envelope, null, 2)}\n`);
+      }
+      env.setExitCode(ExitCode.Usage);
+      return;
+    }
+    throw error;
+  }
+}
+
+function allCommands(command: Command): Command[] {
+  return command.commands.flatMap((c) => [c, ...allCommands(c)]);
+}
