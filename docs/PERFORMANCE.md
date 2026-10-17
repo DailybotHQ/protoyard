@@ -2,7 +2,7 @@
 
 All numbers on this page were **measured in this repository**, with the
 method stated. Nothing is extrapolated. Machine for every measurement below:
-Apple Silicon MacBook Pro (darwin arm64), Node 26.11.1, pnpm 11.23.0,
+Apple M1 Max MacBook Pro (64 GB, macOS 27.0), Node 26.11.1, pnpm 11.23.0,
 2026-10-17.
 
 ## Prototype bundles (production builds)
@@ -39,11 +39,41 @@ parsing; route-level code splitting inside large prototypes.
 (incremental) indexing, plus list and search timings. Results are copied here
 verbatim when the benchmark runs. Do not quote numbers before then.
 
-## Large worlds
+## Large worlds (scenario loads)
 
-*Pending.* The `enterprise-scale` CRM scenario (thousands of deals, over
-8,000 activities) is used to measure generate, validate and write times with
-chunked writes and progress reporting.
+Measured with the `crm-demo` **`enterprise-scale`** scenario: **16,075 rows**
+(300 companies, about 900 contacts, about 3,000 deals, more than 8,000
+activities, plus identities), with zero integrity violations. Machine:
+Apple M1 Max (64 GB, macOS 27.0), Node 26.11.1, Dexie 4.4.6. Medians of
+3 runs, with ranges.
+
+**Strategy.** The world is written in a **single read-write transaction**, so
+a load is atomic: a failure in a later chunk leaves the previous world
+byte-identical, and this is tested. Inside it, rows go in through
+**chunked `bulkAdd`** (default 1,000 rows per chunk). Phases
+(generate → validate → write) yield to the event loop between them, and
+progress is reported per chunk (`onProgress`, `scenarios.subscribeProgress()`).
+DevTools and the app shell show a progress bar.
+
+| Environment | Generate | Validate | Write | Total `load()` | Long tasks |
+| --- | --- | --- | --- | --- | --- |
+| Headless Chromium 156, production build, chunk 1,000 | 26 ms | 10 ms | 477 ms (470–478) | **628 ms** (626–628) | **0** |
+| Headless Chromium, single `bulkAdd` per table | 26 ms | 10 ms | 478 ms | 633 ms | 1 (85 ms) |
+| Node + fake-indexeddb, chunk 1,000 | 21 ms | 9 ms | 417 ms (414–433) | — | — |
+
+- Chunking doesn't change throughput (about 34 rows/ms in Chromium). It does
+  remove main-thread stalls: zero long tasks at every chunk size from 250 to
+  2,000, compared with an 85 ms long task and 67–83 ms frame gaps for a single
+  `bulkAdd`.
+- Generation and validation are cheap. Writing dominates.
+- **Not measured:** real mobile devices, and worlds larger than about 16k rows.
+  No scaling claim is made beyond what is in this table.
+
+Reproduce:
+
+```bash
+PROTOYARD_BENCH=1 PROTOYARD_BENCH_RUNS=3 pnpm vitest run prototypes/crm-demo/tests/enterprise-scale.test.ts --silent=false
+```
 
 ## Runtime behavior worth knowing
 
