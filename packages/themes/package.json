@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./presets": "./src/presets.ts",
+    "./no-flash": "./src/no-flash.ts",
     "./base.css": "./src/base.css"
   },
   "scripts": {

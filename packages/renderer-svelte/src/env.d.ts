@@ -1,0 +1,14 @@
+/**
+ * Compile-time globals injected by `defineProtoyardConfig` (Vite `define`).
+ * Prototypes get these types by referencing `@protoyard/renderer-svelte/env`.
+ */
+declare const __PROTOYARD_DEVTOOLS__: boolean;
+declare const __PROTOYARD_DEMO_BADGE__: boolean;
+declare const __PROTOYARD_BUILD__: {
+  id: string;
+  slug: string;
+  version: string;
+  namespace: string;
+  builtAt: string;
+  mode: 'dev' | 'build';
+};

@@ -1,0 +1,131 @@
+/// <reference path="./env.d.ts" />
+import {
+  type PrototypeDefinition,
+  type PrototypeRuntime,
+  parseScenarioLink,
+  type ScenarioLinkParams,
+  type Theme,
+} from '@protoyard/core';
+import { createPrototypeRuntime } from '@protoyard/runtime';
+import { BUILTIN_THEMES, mergeThemes } from '@protoyard/themes';
+import { type Component, mount, unmount } from 'svelte';
+import { bindAppearance } from './appearance.ts';
+import { setMountedRuntime } from './context.ts';
+import { DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
+import BootError from './shell/BootError.svelte';
+import Root from './shell/Root.svelte';
+
+export interface RuntimeFactoryOptions {
+  themes: Theme[];
+  link: ScenarioLinkParams;
+}
+
+export interface MountPrototypeOptions {
+  definition: PrototypeDefinition;
+  // biome-ignore lint/suspicious/noExplicitAny: prototype apps may declare optional props.
+  App: Component<any>;
+  target: HTMLElement;
+  /** Overrides `location.search` (tests, embedding). */
+  search?: string;
+  /** Injected for tests; defaults to `@protoyard/runtime`. */
+  createRuntime?: (
+    definition: PrototypeDefinition,
+    options: RuntimeFactoryOptions
+  ) => PrototypeRuntime | Promise<PrototypeRuntime>;
+  /** Force DevTools on/off (defaults to the build flag + `?devtools=0`). */
+  devtools?: boolean;
+  demoBadge?: boolean;
+}
+
+export interface MountedPrototype {
+  runtime: PrototypeRuntime | null;
+  error: unknown;
+  destroy(): Promise<void>;
+}
+
+declare global {
+  interface Window {
+    /** Debug/E2E handle: the running prototype runtime (simulation only). */
+    __protoyard?: PrototypeRuntime;
+  }
+}
+
+/**
+ * Boots a prototype: runtime → first-run seed → appearance → app → DevTools.
+ * Any boot failure renders a recovery screen instead of a blank page.
+ */
+export async function mountPrototype(options: MountPrototypeOptions): Promise<MountedPrototype> {
+  const { definition, App, target } = options;
+  const link = parseScenarioLink(options.search ?? location.search);
+  const themes = mergeThemes(BUILTIN_THEMES, definition.themes);
+  const root = document.documentElement;
+  const cleanups: (() => void | Promise<void>)[] = [];
+
+  let runtime: PrototypeRuntime | null = null;
+  try {
+    const create = options.createRuntime ?? createPrototypeRuntime;
+    runtime = await create(definition, { themes, link });
+    await runtime.scenarios.ensureSeeded();
+  } catch (error) {
+    console.error('[protoyard] boot failed', error);
+    runtime?.close();
+    target.replaceChildren();
+    const screen = mount(BootError, {
+      target,
+      props: {
+        error,
+        namespace: definition.manifest.storage.namespace,
+        name: definition.manifest.name,
+      },
+    });
+    root.dataset.pyReady = 'error';
+    return {
+      runtime: null,
+      error,
+      destroy: async () => {
+        await unmount(screen);
+      },
+    };
+  }
+
+  const rt = runtime;
+  setMountedRuntime(rt);
+  window.__protoyard = rt;
+  cleanups.push(bindAppearance(rt, themes, root));
+
+  target.replaceChildren();
+  const app = mount(Root, {
+    target,
+    props: { runtime: rt, App, demoBadge: options.demoBadge ?? DEMO_BADGE_ENABLED },
+  });
+  cleanups.push(() => unmount(app));
+
+  // The define is read inline (not via flags.ts) so the minifier can fold it
+  // and drop the DevTools chunk entirely from builds without DevTools.
+  // Undeclared (tests, foreign bundlers) means "allowed when asked".
+  const devtoolsBuilt =
+    typeof __PROTOYARD_DEVTOOLS__ !== 'undefined' ? __PROTOYARD_DEVTOOLS__ : true;
+  // Presentation mode (`?devtools=0`) hides the panel even in dev.
+  if (devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false))) {
+    try {
+      const { mountDevtools } = await import('@protoyard/devtools');
+      const panel = mountDevtools({ runtime: rt, themes });
+      cleanups.push(() => panel.destroy());
+    } catch (error) {
+      console.error('[protoyard] DevTools failed to load', error);
+    }
+  }
+
+  root.dataset.pyReady = 'true';
+  return {
+    runtime: rt,
+    error: null,
+    async destroy() {
+      for (const cleanup of cleanups.reverse()) await cleanup();
+      setMountedRuntime(null);
+      if (window.__protoyard === rt) delete window.__protoyard;
+      delete root.dataset.pyReady;
+      rt.close();
+    },
+  };
+}

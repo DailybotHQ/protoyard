@@ -1,0 +1,36 @@
+/*
+ * Prototype stylesheet entry. In a prototype's src/app.css:
+ *
+ *   @import '@protoyard/renderer-svelte/app.css';
+ *   @source './';
+ */
+@import "tailwindcss";
+@import "@protoyard/themes/base.css";
+@import "@protoyard/ui/styles.css";
+
+/* Shared components live in workspace packages, outside the prototype root. */
+@source "../../ui/src";
+@source "../../devtools/src";
+@source "./";
+
+/* Viewport presets narrow the app column (media queries still follow the real window). */
+html[data-py-viewport="iphone"] #app,
+html[data-py-viewport="android"] #app,
+html[data-py-viewport="tablet"] #app {
+  margin-inline: auto;
+  min-height: 100dvh;
+  box-shadow:
+    0 0 0 1px var(--color-border),
+    0 20px 60px -20px var(--color-shadow);
+  overflow-x: hidden;
+  transform: translateZ(0);
+}
+html[data-py-viewport="iphone"] #app {
+  max-width: 390px;
+}
+html[data-py-viewport="android"] #app {
+  max-width: 412px;
+}
+html[data-py-viewport="tablet"] #app {
+  max-width: 820px;
+}
