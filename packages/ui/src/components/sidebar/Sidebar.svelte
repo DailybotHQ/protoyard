@@ -40,7 +40,9 @@ const linkBase = cn(
   'group relative flex h-9 min-h-touch items-center gap-3 rounded-md px-3 text-sm font-medium lg:min-h-0',
   'text-sidebar-foreground/80 transition-colors hover:bg-foreground/5 hover:text-sidebar-foreground',
   'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-  'aria-[current=page]:bg-primary/10 aria-[current=page]:text-primary',
+  // Active: tinted fill + primary icon; the label keeps sidebar text color, since
+  // primary text on a primary tint can drop below 4.5:1 in some themes.
+  'aria-[current=page]:bg-primary/10 aria-[current=page]:font-semibold aria-[current=page]:text-sidebar-foreground aria-[current=page]:[&_svg]:text-primary',
   '[&_svg]:size-4 [&_svg]:shrink-0'
 );
 </script>

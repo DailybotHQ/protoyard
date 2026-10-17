@@ -167,7 +167,7 @@ async function copyLink() {
               <span class="min-w-0 flex-1">
                 <span class="flex items-center gap-1.5 text-xs font-medium">
                   {scenario.name}
-                  {#if isActive}<span class="rounded bg-success/15 px-1 text-[10px] text-success">active</span>{/if}
+                  {#if isActive}<span class="rounded bg-success px-1 text-[10px] font-medium text-success-foreground">active</span>{/if}
                 </span>
                 {#if scenario.description}
                   <span class="mt-0.5 block text-[11px] leading-snug text-muted-foreground">{scenario.description}</span>

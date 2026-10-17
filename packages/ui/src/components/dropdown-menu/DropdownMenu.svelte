@@ -52,7 +52,7 @@ const sections = $derived.by(() => {
         class={cn(
           floatingItem,
           entry.destructive &&
-            'text-destructive data-highlighted:bg-destructive/10 data-highlighted:text-destructive'
+            'text-destructive data-highlighted:bg-destructive data-highlighted:text-destructive-foreground'
         )}
       >
         {#if entry.icon}

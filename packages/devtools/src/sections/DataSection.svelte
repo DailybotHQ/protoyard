@@ -173,7 +173,8 @@ function pick(name: string) {
 
 {#if table}
   <Section title={`Inspector · ${table}`} description="Read-only. Edit data through the app so services and permissions apply.">
-    <div class="overflow-x-auto rounded-md border border-border">
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -- focusable so keyboard users can scroll wide rows (WCAG 2.1.1). -->
+  <div class="overflow-x-auto rounded-md border border-border" tabindex="0" role="region" aria-label={`${table} rows`}>
       <table class="w-full text-left text-[11px]">
         <thead class="bg-muted text-muted-foreground">
           <tr>

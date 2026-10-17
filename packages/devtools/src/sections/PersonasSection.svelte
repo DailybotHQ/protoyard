@@ -88,7 +88,7 @@ async function setOrganization(event: Event) {
         {#each capabilities as capability (capability)}
           <code
             class="rounded px-1 font-mono text-[10px] {capability.startsWith('-')
-              ? 'bg-destructive/10 text-destructive line-through'
+              ? 'bg-muted text-muted-foreground line-through'
               : 'bg-muted'}">{capability}</code
           >
         {:else}

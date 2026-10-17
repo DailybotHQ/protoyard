@@ -89,7 +89,15 @@ function closeOnNavigate(event: MouseEvent): void {
   </a>
 
   {#if sidebar}
-    <div class={cn('sticky top-0 hidden h-dvh shrink-0 lg:flex', sidebarClass)}>{@render sidebar()}</div>
+    <!-- A landmark, so brand/footer content beside the <nav> is not orphaned —
+         except when nested in another page's <main> (landmarks must be top level). -->
+    <svelte:element
+      this={mainElement === 'main' ? 'aside' : 'div'}
+      aria-label={mainElement === 'main' ? sidebarLabel : undefined}
+      class={cn('sticky top-0 hidden h-dvh shrink-0 lg:flex', sidebarClass)}
+    >
+      {@render sidebar()}
+    </svelte:element>
 
     <DialogPrimitive.Root bind:open={sidebarOpen}>
       <DialogPrimitive.Portal>

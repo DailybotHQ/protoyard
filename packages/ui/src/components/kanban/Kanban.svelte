@@ -21,6 +21,8 @@ interface Props {
   emptyColumnText?: string;
   columnFooter?: Snippet<[KanbanColumn]>;
   label?: string;
+  /** Column heading level; pick the one that follows your page outline (default 3). */
+  headingLevel?: 2 | 3 | 4;
   class?: string;
 }
 
@@ -36,6 +38,7 @@ let {
   emptyColumnText = 'No items',
   columnFooter,
   label = 'Board',
+  headingLevel = 3,
   class: className,
 }: Props = $props();
 
@@ -136,7 +139,7 @@ function resetDrag(): void {
       >
         <header class="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
           <div class="min-w-0">
-            <h3 id={headingId} class="truncate text-sm font-semibold">{column.title}</h3>
+            <svelte:element this={`h${headingLevel}`} id={headingId} class="truncate text-sm font-semibold">{column.title}</svelte:element>
             {#if column.description}
               <p class="truncate text-xs text-muted-foreground">{column.description}</p>
             {/if}

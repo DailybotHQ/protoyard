@@ -4,8 +4,8 @@ import type { ValueSource } from '@protoyard/core';
 let { source }: { source: ValueSource } = $props();
 
 const styles: Record<ValueSource, string> = {
-  override: 'bg-primary/15 text-primary ring-primary/30',
-  preference: 'bg-info/15 text-info ring-info/30',
+  override: 'bg-primary text-primary-foreground ring-primary',
+  preference: 'bg-info text-info-foreground ring-info',
   scenario: 'bg-secondary text-secondary-foreground ring-border',
   default: 'bg-transparent text-muted-foreground ring-border',
 };

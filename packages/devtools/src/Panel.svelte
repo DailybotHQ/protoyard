@@ -216,7 +216,7 @@ function presentationMode() {
         {#if overrideCount > 0}
           <button
             type="button"
-            class="inline-flex min-h-touch items-center gap-1 rounded-md px-2 text-[11px] font-medium text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-7"
+            class="inline-flex min-h-touch items-center gap-1 rounded-md px-2 text-[11px] font-medium text-primary hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring sm:min-h-7"
             title="Clear every temporary override (actor, role, environment, appearance)"
             disabled={dt.isBusy('overrides:clear')}
             onclick={resetOverrides}
@@ -261,7 +261,7 @@ function presentationMode() {
             aria-controls="py-dt-tabpanel"
             tabindex={selected ? 0 : -1}
             class="flex min-h-touch min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 py-1 text-[10px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring {selected
-              ? 'bg-primary/10 text-primary'
+              ? 'bg-primary/10 font-semibold text-foreground [&_svg]:text-primary'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
             onclick={() => (tab = t.id)}
           >
@@ -282,7 +282,7 @@ function presentationMode() {
         {/key}
       </div>
 
-      <footer class="min-h-8 border-t border-border px-3 py-1.5 pb-safe text-[11px]" aria-live="polite" role="status">
+      <div class="min-h-8 border-t border-border px-3 py-1.5 pb-safe text-[11px]" aria-live="polite" role="status">
         {#if dt.status}
           <span
             class={dt.status.kind === 'error'
@@ -294,7 +294,7 @@ function presentationMode() {
         {:else}
           <span class="text-muted-foreground">Simulation only — nothing here is real security or real infrastructure.</span>
         {/if}
-      </footer>
+      </div>
     </aside>
   {/if}
 </div>

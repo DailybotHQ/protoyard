@@ -33,6 +33,9 @@ let {
   contentClass,
   onValueChange,
   ref = $bindable(null),
+  // The trigger is a button, where aria-required is not allowed; `required`
+  // is enforced through the hidden form input instead (FormField passes both).
+  'aria-required': _ariaRequired,
   ...rest
 }: Props = $props();
 
