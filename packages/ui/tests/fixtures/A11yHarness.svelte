@@ -16,6 +16,7 @@ let stage = $state('');
   items={[{ id: 'a', title: 'A', status: 'todo' }]}
   getColumn={(t) => t.status}
   getItemId={(t) => t.id}
+  onMove={() => {}}
   headingLevel={2}
 >
   {#snippet card(t)}<span>{t.title}</span>{/snippet}
