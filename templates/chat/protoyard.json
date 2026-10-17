@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.chat",
+  "slug": "chat",
+  "kind": "template",
+  "name": "Chat",
+  "description": "A chat starter: persisted conversations and messages, one scripted assistant whose replies stream in (with stop, retry and simulated outages), unread badges, a two-pane layout, owner/member/viewer personas and four scenarios.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "chat", "assistant", "streaming", "messaging"],
+  "status": "ready",
+  "icon": "💬",
+  "defaultScenario": "active",
+  "defaultTheme": "ocean",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-chat", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "viewer", "assistant-outage"]
+}
