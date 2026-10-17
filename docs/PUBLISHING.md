@@ -322,6 +322,23 @@ check, so a broken demo is never deployed silently. Every visitor's data
 lives in their own browser (IndexedDB per origin, one database set per
 prototype namespace), and nothing is shared between visitors.
 
+## Offline (optional)
+
+Set `"build": { "offline": true }` in `protoyard.json`, or build with
+`--offline`, to add a small service worker
+([`@protoyard/offline`](../packages/offline/README.md)) to the export. After
+one online visit, the app shell (HTML, JS, CSS, images) loads with no
+network. Prototype data was already local in IndexedDB.
+
+- HTML is network-first. Content-hashed assets are cache-first.
+- Each deploy gets a new version, which waits until every tab is closed (or
+  until `window.__protoyardOffline.applyUpdate()` is called).
+- `?offline=0` unregisters the service worker for that scope only.
+
+It requires HTTPS or localhost, and the first visit must be online. Browsers
+(especially Safari) may still evict caches and storage, so export snapshots
+of anything worth keeping.
+
 ## Snapshots and published builds
 
 A published build is a different origin from your dev server, so it starts
