@@ -1,0 +1,117 @@
+import { expect, type Page, test } from '@playwright/test';
+import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+
+/**
+ * Domain flows of Lumen Bank against its STATIC production build (DevTools
+ * excluded): CRUD with reload persistence, a transfer, persona permissions,
+ * scenarios, theme and snapshots. Each test gets a fresh browser context, so
+ * a fresh IndexedDB. Persona switching uses the runtime handle the renderer
+ * exposes (`window.__protoyard`) because the standalone build has no DevTools.
+ */
+const SLUG = 'mobile-banking-demo';
+test.skip(!PROTOTYPE_TARGETS.includes(SLUG), `set PROTOYARD_E2E_PROTOTYPES to include ${SLUG}`);
+
+type Runtime = {
+  session: { switchActor(id: string): Promise<void> };
+  snapshots: {
+    save(i: { name: string }): Promise<{ id: string }>;
+    restore(id: string): Promise<void>;
+  };
+  data: { counts(): Promise<Record<string, number>> };
+  storage(): { backend: string };
+};
+declare global {
+  interface Window {
+    __protoyard?: Runtime;
+  }
+}
+
+async function openApp(page: Page, hash = '', scenario = 'active-customer') {
+  await page.goto(`${prototypeUrl(SLUG)}?scenario=${scenario}${hash}`);
+  await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 15_000 });
+}
+const counts = (page: Page) => page.evaluate(() => window.__protoyard?.data.counts());
+
+test.describe('Lumen Bank (static build)', () => {
+  test('creates and removes a payee, persisting across reloads', async ({ page }) => {
+    await openApp(page, '#/payees');
+    await page.getByRole('button', { name: 'Add payee' }).click();
+    await page.getByLabel(/Full name/).fill('Robin Vale');
+    await page.getByLabel(/Bank/).fill('Seabright Mutual');
+    await page.getByLabel(/Last 4/).fill('4242');
+    await page.getByRole('button', { name: 'Save payee' }).click();
+    await expect(page.getByText('Robin', { exact: true })).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByText('Robin', { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Remove Robin' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Remove payee' }).click();
+    await expect(page.getByText('Robin', { exact: true })).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Payees' })).toBeVisible();
+    await expect(page.getByText('Robin', { exact: true })).toHaveCount(0);
+  });
+
+  test('a transfer moves money and survives a reload', async ({ page }) => {
+    await openApp(page, '#/transfer');
+    await page.getByRole('button', { name: /Everyday Checking/ }).click();
+    await page.getByRole('button', { name: /Rainy-day Savings/ }).click();
+    await page.getByLabel(/Amount/).fill('125.50');
+    await page.getByRole('button', { name: 'Review transfer' }).click();
+    await page.getByRole('button', { name: /Send \$125\.50/ }).click();
+    await expect(page.getByTestId('transfer-reference')).toHaveText(/^transfer_u/);
+
+    await page.goto(`${prototypeUrl(SLUG)}#/accounts/acct_savings`);
+    await page.reload();
+    await expect(page.getByText('Transfer from Everyday Checking').first()).toBeVisible();
+  });
+
+  test('a view-only persona is blocked without wiping data', async ({ page }) => {
+    await openApp(page, '#/transfer');
+    const before = await counts(page);
+    await page.evaluate(() => window.__protoyard?.session.switchActor('user_0003'));
+    await expect(page.getByText("Transfers aren't available for your access")).toBeVisible();
+    await page.goto(`${prototypeUrl(SLUG)}#/payees`);
+    await expect(page.getByText('Read-only list')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Add payee' })).toHaveCount(0);
+    expect(await counts(page)).toEqual(before);
+  });
+
+  test('a brand-new account shows empty states and a real first deposit', async ({ page }) => {
+    await openApp(page, '', 'new-account');
+    await expect(page.getByText('Welcome to Lumen Bank')).toBeVisible();
+    await expect(page.getByTestId('total-balance')).toHaveText('$0.00');
+    await page.getByRole('button', { name: /Simulate payroll deposit/ }).click();
+    await expect(page.getByTestId('total-balance')).toHaveText('$2,850.00');
+    await page.reload();
+    await expect(page.getByTestId('total-balance')).toHaveText('$2,850.00');
+  });
+
+  test('dark mode is saved per persona and never touches records', async ({ page }) => {
+    await openApp(page, '#/profile');
+    const before = await counts(page);
+    await page.getByText('Dark', { exact: true }).click();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    await page.reload();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    expect(await counts(page)).toEqual(before);
+  });
+
+  test('a snapshot brings back a deleted payee', async ({ page }) => {
+    await openApp(page, '#/payees');
+    const saved = await page.evaluate(() => window.__protoyard?.snapshots.save({ name: 'e2e' }));
+    await page.getByRole('button', { name: /^Remove Casey/ }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Remove payee' }).click();
+    await expect(page.getByText('Casey', { exact: true })).toHaveCount(0);
+    await page.evaluate((id) => window.__protoyard?.snapshots.restore(id), saved?.id ?? '');
+    await expect(page.getByText('Casey', { exact: true })).toBeVisible();
+  });
+
+  test('the standalone build ships without DevTools and uses IndexedDB', async ({ page }) => {
+    await openApp(page);
+    await expect(page.getByTestId('total-balance')).toBeVisible();
+    await expect(page.getByRole('button', { name: /devtools/i })).toHaveCount(0);
+    expect(await page.evaluate(() => window.__protoyard?.storage().backend)).toBe('indexeddb');
+  });
+});
