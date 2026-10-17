@@ -70,17 +70,15 @@ describe('AppShell + Sidebar + Header', () => {
   });
 
   it('closes the drawer on hash navigation triggered from code', async () => {
-    const narrow = vi
-      .spyOn(window, 'matchMedia')
-      .mockImplementation(
-        (query: string) =>
-          ({
-            matches: false,
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-          }) as never
-      );
+    const narrow = vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) =>
+        ({
+          matches: false,
+          media: query,
+          addEventListener() {},
+          removeEventListener() {},
+        }) as never
+    );
     render(ShellHarness, {});
     await fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
     expect(screen.getByTestId('drawer').textContent).toBe('open');
