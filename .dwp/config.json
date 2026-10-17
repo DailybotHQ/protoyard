@@ -1,0 +1,9 @@
+{
+  "addons": {
+    "herdr": {
+      "enabled": true,
+      "note": "herdr-peers v1.0.0 on this machine; the developer asked the lead (wH:p5) to orchestrate the build with the three Claude lanes in this Herdr tab (wH:p6, wH:p8, wH:p9)",
+      "version": "v1.0.0"
+    }
+  }
+}
