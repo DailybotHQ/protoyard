@@ -41,14 +41,18 @@ incremental after touching 10 manifests), in-memory search and sort,
 `protoyard list --json` end to end, and a full static gallery build over the
 synthetic registry. These are medians of 5 runs on 2026-10-17.
 
+Three independent runs were made the same day: by the lead, by Lane C, and
+by the plan's gate. The table shows the lead's 5-run medians, with the range
+of medians across all three runs in brackets.
+
 | Operation | Median | Notes |
 | --- | --- | --- |
-| Cold index, 1,000 manifests | **40.6 ms** (min 40.0, max 52.4) | Reads and validates JSON only. No prototype code runs. |
-| Warm index (cache hit) | **13.7 ms** | 1,001 of 1,001 entries served from the path + mtime + size cache |
-| Incremental index (10 changed) | **13.5 ms** | Only the 10 touched manifests are re-parsed |
-| Search + sort in memory | **0.65 ms** | Over all 1,001 registry entries |
-| `pnpm protoyard list --json` end to end | 434 ms | Mostly Node + tsx startup, then an incremental re-index |
-| Gallery static build | 2.4 s | 1,003 pages (home + one detail page per entry) |
+| Cold index, 1,000 manifests | **40.6 ms** [40.6–48.9] | Reads and validates JSON only. No prototype code runs. |
+| Warm index (cache hit) | **13.7 ms** [13.7–16.8] | 1,001 of 1,001 entries served from the path + mtime + size cache |
+| Incremental index (10 changed) | **13.5 ms** [13.5–15.5] | Only the 10 touched manifests are re-parsed |
+| Search + sort in memory | **0.65 ms** [0.65–0.68] | Over all 1,001 registry entries |
+| `pnpm protoyard list --json` end to end | 434 ms [434–477] | Mostly Node + tsx startup, then an incremental re-index |
+| Gallery static build | 2.4 s [2.4–2.8] | 1,003 pages (home + one detail page per entry) |
 
 Lane C measured the gallery home page with 1,000 entries at 377 KB HTML
 (38 KB gzip), with the search box interactive about 97 ms after load and a
