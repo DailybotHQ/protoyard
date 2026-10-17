@@ -1,0 +1,29 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.ecommerce",
+  "slug": "ecommerce",
+  "kind": "template",
+  "name": "Storefront",
+  "description": "A storefront with admin-lite: catalog with categories, search and filters, product pages, a persisted cart, a demo-only checkout that places orders atomically against inventory, order history and price/stock editing for admins.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "commerce",
+  "tags": ["ecommerce", "storefront", "cart", "checkout", "inventory"],
+  "status": "ready",
+  "icon": "🛍️",
+  "defaultScenario": "returning-customer",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-ecommerce", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": [
+    "new-shopper",
+    "returning-customer",
+    "low-stock",
+    "offline-checkout",
+    "store-admin",
+    "guest-browsing"
+  ]
+}
