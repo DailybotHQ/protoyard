@@ -46,6 +46,10 @@
   --color-chart-4: var(--py-chart4);
   --color-chart-5: var(--py-chart5);
   --color-shadow: var(--py-shadow);
+  /* Hover fills move TOWARD the foreground, so text contrast only increases
+     (darker in light mode, lighter in dark mode). `/90` opacity did the opposite. */
+  --color-primary-hover: color-mix(in oklab, var(--py-primary) 85%, var(--py-foreground));
+  --color-destructive-hover: color-mix(in oklab, var(--py-destructive) 85%, var(--py-foreground));
 
   --radius-xs: calc(var(--py-radius) - 6px);
   --radius-sm: calc(var(--py-radius) - 4px);
@@ -83,7 +87,7 @@
     --py-secondary-foreground: #18181b;
     --py-accent: #f5f3ff;
     --py-accent-foreground: #4c1d95;
-    --py-destructive: #dc2626;
+    --py-destructive: #b91c1c;
     --py-destructive-foreground: #ffffff;
     --py-success: #15803d;
     --py-success-foreground: #ffffff;

@@ -36,7 +36,8 @@ interface Accent {
 }
 
 const semanticLight = {
-  destructive: red[600],
+  // red-700: red-600 drops to 4.4:1 as text on muted surfaces.
+  destructive: red[700],
   destructiveForeground: '#ffffff',
   success: green[700],
   successForeground: '#ffffff',

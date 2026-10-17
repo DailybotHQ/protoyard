@@ -52,6 +52,8 @@ export const TEXT_CONTRAST_PAIRS = [
   ['destructive', 'surface'],
   ['success', 'surface'],
   ['info', 'surface'],
+  ['destructive', 'muted'],
+  ['primary', 'muted'],
 ] as const;
 
 /** Non-text UI pairs (WCAG 1.4.11): 3:1 so focus rings and controls stay visible. */
