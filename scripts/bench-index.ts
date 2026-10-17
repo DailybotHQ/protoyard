@@ -18,9 +18,9 @@ import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:
 import { cpus, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createRng } from '../packages/core/src/index.ts';
 import { buildIndex, filterEntries } from '../packages/cli/src/index.ts';
 import { workspacePaths } from '../packages/cli/src/lib/paths.ts';
+import { createRng } from '../packages/core/src/index.ts';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
