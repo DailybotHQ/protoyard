@@ -196,7 +196,7 @@ async function openManual(event: SubmitEvent) {
         </button>
       {:else}
         <span class="text-muted">Local control server connected.</span>
-        <button type="button" class="ml-auto inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 font-medium text-white hover:bg-accent-hover disabled:opacity-60" disabled={busy === 'starting'} onclick={start} data-testid="start">
+        <button type="button" class="ml-auto inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 font-medium text-on-accent hover:bg-accent-hover disabled:opacity-60" disabled={busy === 'starting'} onclick={start} data-testid="start">
           {#if busy === 'starting'}<LoaderCircle size={14} class="animate-spin" aria-hidden="true" /> Starting…{:else}<Play size={14} aria-hidden="true" /> Start {name}{/if}
         </button>
       {/if}

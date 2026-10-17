@@ -31,7 +31,11 @@ async function copy() {
 <div class="rounded-lg border border-line bg-surface-2">
   {#if label}<p class="border-b border-line px-3 py-1.5 text-xs text-muted">{label}</p>{/if}
   <div class="flex items-start gap-2 p-2 pl-3">
+    <!-- Scrollable for long commands: focusable so keyboard users can scroll it. -->
     <pre
+      tabindex="0"
+      role="region"
+      aria-label={label ?? 'Command'}
       class={['min-w-0 flex-1 overflow-x-auto py-1 font-mono text-[13px] leading-relaxed', multiline ? 'whitespace-pre-wrap' : 'whitespace-pre']}><code>{command}</code></pre>
     <button
       type="button"

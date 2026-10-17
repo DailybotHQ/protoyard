@@ -20,7 +20,7 @@ env:
   NODE_VERSION: '24.20.0'
   # Prototypes smoke-tested in E2E (comma-separated). Override with the
   # repository variable PROTOYARD_E2E_PROTOTYPES.
-  E2E_PROTOTYPES: ${{ vars.PROTOYARD_E2E_PROTOTYPES || 'crm-demo' }}
+  E2E_PROTOTYPES: ${{ vars.PROTOYARD_E2E_PROTOTYPES || 'crm-demo,mobile-banking-demo,ai-chat-demo' }}
 
 jobs:
   hygiene:

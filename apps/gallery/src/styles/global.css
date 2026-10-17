@@ -19,6 +19,8 @@
   --py-accent-hover: #4338ca;
   --py-accent-soft: #eef2ff;
   --py-accent-text: #3730a3;
+  /* Text on solid accent fills (buttons): AA on both themes. */
+  --py-on-accent: #ffffff;
   --py-success: #15803d;
   --py-warning: #a16207;
   --py-danger: #b91c1c;
@@ -37,6 +39,7 @@
   --py-accent-hover: #a5b4fc;
   --py-accent-soft: #1e1b4b;
   --py-accent-text: #c7d2fe;
+  --py-on-accent: #0f0d2e;
   --py-success: #4ade80;
   --py-warning: #facc15;
   --py-danger: #f87171;
@@ -55,6 +58,7 @@
   --color-accent-hover: var(--py-accent-hover);
   --color-accent-soft: var(--py-accent-soft);
   --color-accent-fg: var(--py-accent-text);
+  --color-on-accent: var(--py-on-accent);
   --color-success: var(--py-success);
   --color-warning: var(--py-warning);
   --color-danger: var(--py-danger);
