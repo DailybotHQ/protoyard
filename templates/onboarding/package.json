@@ -1,0 +1,28 @@
+{
+  "name": "@protoyard-template/onboarding",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Protoyard onboarding wizard template: multi-step setup with per-step validation and resumable progress.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/scenarios": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "dexie": "^4.4.0",
+    "svelte": "^5.57.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "@protoyard/runtime": "workspace:*"
+  }
+}
