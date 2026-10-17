@@ -45,6 +45,26 @@ Global options: `--json`, `-y/--yes` (implied by `CI=1`), `--cwd <dir>`, `--root
 decision has a flag with a documented default, so it behaves the same with or without a TTY and
 for humans and agents alike.
 
+## Hosting the showcase on GitHub Pages
+
+`.github/workflows/pages.yml` builds `pnpm protoyard showcase --base /protoyard/` (the gallery plus
+every prototype's own build, one static site) and deploys it with `actions/deploy-pages`.
+
+- **Manual only (`workflow_dispatch`).** Publishing a public site is the owner's decision, so
+  there is no push trigger. Run it from Actions → pages → Run workflow. You can change the base or
+  include templates there.
+- **One-time setup:** Settings → Pages → Source: **GitHub Actions**.
+- **Permissions:** the build job has `contents: read`. Only the deploy job gets `pages: write` and
+  `id-token: write`.
+- **All or nothing:** the build fails if any prototype fails to build, so a deploy never silently
+  ships missing demos.
+- **Check it locally first:**
+  `pnpm protoyard showcase --base /protoyard/ --serve` → `http://127.0.0.1:4500/protoyard/`, or
+  `PROTOYARD_E2E_SHOWCASE=1 PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/ pnpm test:e2e tests/e2e/showcase.spec.ts`.
+- **Data stays in the browser:** each visitor's data lives in their own browser (IndexedDB, per
+  origin). All prototypes share the `github.io` origin, but each uses its own
+  `protoyard.<namespace>.*` databases.
+
 ## JSON output and exit codes
 
 With `--json`, stdout holds exactly one envelope:

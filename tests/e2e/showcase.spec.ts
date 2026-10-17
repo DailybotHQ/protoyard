@@ -4,18 +4,24 @@ import { expect, test } from '@playwright/test';
  * The hosted showcase (`protoyard showcase`): the gallery's live preview
  * frames the bundled crm-demo build with no local control server, and data
  * created inside the iframe persists (IndexedDB) across a reload.
+ *
+ * PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/ runs the same checks under a
+ * GitHub Pages-style sub-path.
  */
-const SHOWCASE = 'http://127.0.0.1:4501';
+const ORIGIN = 'http://127.0.0.1:4501';
+const BASE = process.env.PROTOYARD_E2E_SHOWCASE_BASE ?? '/';
+const SITE = `${ORIGIN}${BASE}`;
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 test.describe('showcase site', () => {
   test.skip(process.env.PROTOYARD_E2E_SHOWCASE !== '1', 'set PROTOYARD_E2E_SHOWCASE=1');
 
   test('opens a card, previews the bundled CRM and keeps data after reload', async ({ page }) => {
-    await page.goto(`${SHOWCASE}/`);
+    await page.goto(SITE);
     await expect(page.locator('#browse[data-hydrated="true"]')).toHaveCount(1);
     await page.getByTestId('search').fill('crm-demo');
     await page.locator('[data-testid="results"] [data-slug="crm-demo"] h3 a').click();
-    await expect(page).toHaveURL(/\/p\/crm-demo\/?$/);
+    await expect(page).toHaveURL(new RegExp(`${escapeRe(BASE)}p/crm-demo/?$`));
     await expect(page.getByTestId('control-status')).toContainText('Live demo');
 
     const app = page.frameLocator('iframe[title^="Pipeline CRM preview"]');
@@ -46,12 +52,26 @@ test.describe('showcase site', () => {
   });
 
   test('scenario links open the bundled build with ?scenario=', async ({ page }) => {
-    await page.goto(`${SHOWCASE}/p/crm-demo/`);
+    await page.goto(`${SITE}p/crm-demo/`);
     const link = page.getByTestId('scenarios').getByRole('link').first();
-    await expect(link).toHaveAttribute('href', /\/p\/crm-demo\/app\/\?scenario=/);
+    await expect(link).toHaveAttribute(
+      'href',
+      new RegExp(`^${escapeRe(BASE)}p/crm-demo/app/\\?scenario=`)
+    );
     const response = await page.request.get(
-      new URL((await link.getAttribute('href')) ?? '', SHOWCASE).toString()
+      new URL((await link.getAttribute('href')) ?? '', ORIGIN).toString()
     );
     expect(response.ok()).toBe(true);
+  });
+
+  test('thumbnails and assets resolve under the base path', async ({ page }) => {
+    const failed: string[] = [];
+    page.on('response', (r) => {
+      if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`);
+    });
+    await page.goto(SITE);
+    await expect(page.locator('#browse[data-hydrated="true"]')).toHaveCount(1);
+    await page.waitForLoadState('networkidle');
+    expect(failed).toEqual([]);
   });
 });

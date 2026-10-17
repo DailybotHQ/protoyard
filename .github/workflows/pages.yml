@@ -1,0 +1,80 @@
+name: pages
+
+# Builds the Protoyard SHOWCASE — the gallery plus every prototype's own
+# static build, one site — and deploys it to GitHub Pages under the project
+# path /protoyard/. Manual only: publishing a public site needs the owner's
+# explicit go-ahead, so there is deliberately no push trigger.
+#
+# One-time repository setting: Settings → Pages → Source: "GitHub Actions".
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Public base path (project Pages site is /<repo>/)
+        required: true
+        default: /protoyard/
+      include_templates:
+        description: Also bundle templates at <base>t/<name>/app/
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build showcase
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24.20.0'
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Build the showcase
+        env:
+          SHOWCASE_BASE: ${{ inputs.base }}
+          INCLUDE_TEMPLATES: ${{ inputs.include_templates }}
+        run: |
+          case "$SHOWCASE_BASE" in
+            /*/) ;;
+            *) echo "base must start and end with '/' (got '$SHOWCASE_BASE')" >&2; exit 2 ;;
+          esac
+          extra=""
+          if [ "$INCLUDE_TEMPLATES" = "true" ]; then extra="--include-templates"; fi
+          # Fails (exit 1) if any prototype does not build: never deploy a
+          # showcase with silently missing demos.
+          pnpm protoyard showcase --base "$SHOWCASE_BASE" $extra
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: artifacts/showcase
+
+  deploy:
+    name: deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

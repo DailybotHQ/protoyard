@@ -22,6 +22,8 @@ const prototypes = (process.env.PROTOYARD_E2E_PROTOTYPES ?? '')
 const ci = Boolean(process.env.CI);
 /** PROTOYARD_E2E_SHOWCASE=1 builds `protoyard showcase` and runs tests/e2e/showcase.spec.ts. */
 const showcase = process.env.PROTOYARD_E2E_SHOWCASE === '1';
+/** Public base of the showcase site, e.g. `/protoyard/` for a GitHub Pages project path. */
+const showcaseBase = process.env.PROTOYARD_E2E_SHOWCASE_BASE ?? '/';
 export const SHOWCASE_PORT = 4501;
 
 export default defineConfig({
@@ -53,8 +55,8 @@ export default defineConfig({
     ...(showcase
       ? [
           {
-            command: `pnpm protoyard showcase --serve --port ${SHOWCASE_PORT} --strict-port`,
-            url: `http://127.0.0.1:${SHOWCASE_PORT}/`,
+            command: `pnpm protoyard showcase --base ${showcaseBase} --serve --port ${SHOWCASE_PORT} --strict-port`,
+            url: `http://127.0.0.1:${SHOWCASE_PORT}${showcaseBase}`,
             reuseExistingServer: !ci,
             timeout: 600_000,
           },
