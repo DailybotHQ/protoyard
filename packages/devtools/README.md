@@ -25,7 +25,7 @@ await panel.destroy();
 | Time | UI time vs committed vs reference; preview ±1/7/30 days or at an instant; clear preview; advance 1/7 days with applied/skipped counts; reset clock |
 | Data | Row counts per table, paginated read-only inspector, reset scenario data |
 | Env | Network online/slow/offline, latency, failure mode + rate + scope prefixes, subscription, feature flags |
-| Look | Theme swatches, light/dark/system, reduced motion, viewport preset — as a temporary override or saved persona preference |
+| Look | Theme swatches, light/dark/system, reduced motion, density slider (0.75–1.25, override only), viewport preset — as a temporary override or saved persona preference |
 | Snaps | Save (name + notes), list, restore, download, delete; import a file with preview + warnings, then import or import & restore |
 | Share | Reproducible + presentation links, CLI commands (`pnpm protoyard dev/build/export/publish --dry-run`) — the browser never deploys |
 

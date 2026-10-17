@@ -98,6 +98,12 @@ describe('DevTools panel', () => {
     await fireEvent.click(within(panel).getByRole('radio', { name: 'Dark' }));
     await settle();
     expect(runtime.theme.appearance().mode).toEqual({ value: 'dark', source: 'preference' });
+
+    await fireEvent.change(within(panel).getByRole('slider', { name: 'Density' }), {
+      target: { value: '0.875' },
+    });
+    await settle();
+    expect(runtime.theme.appearance().density).toEqual({ value: 0.875, source: 'override' });
   });
 
   it('saves and deletes snapshots and shows table counts', async () => {

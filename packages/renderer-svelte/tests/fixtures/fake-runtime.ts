@@ -137,6 +137,7 @@ export function createFakeRuntime(
         false
       ),
       viewport: resolveEffective({ override: overrides.viewport }, manifest.preview.viewport),
+      density: resolveEffective({ override: overrides.density }, 1),
     };
   };
   const emit = () => {
@@ -261,18 +262,26 @@ export function createFakeRuntime(
         emit();
       },
       setOverride: async (patch) => {
-        const { themeId, mode, reducedMotion, viewport } = patch;
+        const { themeId, mode, reducedMotion, viewport, density } = patch;
         overrides = {
           ...overrides,
           ...(themeId !== undefined ? { themeId } : {}),
           ...(mode !== undefined ? { mode } : {}),
           ...(reducedMotion !== undefined ? { reducedMotion } : {}),
           ...(viewport !== undefined ? { viewport } : {}),
+          ...(density !== undefined ? { density } : {}),
         };
         emit();
       },
       clearOverride: async () => {
-        const { themeId: _t, mode: _m, reducedMotion: _r, viewport: _v, ...rest } = overrides;
+        const {
+          themeId: _t,
+          mode: _m,
+          reducedMotion: _r,
+          viewport: _v,
+          density: _d,
+          ...rest
+        } = overrides;
         overrides = rest;
         emit();
       },

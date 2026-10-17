@@ -22,6 +22,8 @@ export function bindAppearance(
       theme: getTheme(state.theme.value, themes),
       resolvedMode: state.resolvedMode,
       reducedMotion: state.reducedMotion.value,
+      // Older runtimes (before the density override) fall back to the theme's own density.
+      ...(state.density ? { density: state.density.value } : {}),
     });
     const viewport = state.viewport.value;
     if (viewport === 'desktop' || viewport === 'custom') delete target.dataset.pyViewport;
