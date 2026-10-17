@@ -491,6 +491,22 @@ from the scenario's defaults. Share → presentation link adds `devtools=0`.
 
 Edits are never in a URL. To share a world with edits, share a snapshot.
 
+### Sandboxed worlds
+
+Add `?sandbox=<name>` to any prototype URL to run it in a disposable world
+with its own databases (`protoyard.<namespace>~<name>.{data,control}`). The
+default world and other sandboxes are never touched. That means two iframes,
+for example `?sandbox=a&scenario=new-company` and
+`?sandbox=b&scenario=enterprise-scale`, can compare scenarios side by side on
+one origin.
+
+A sandbox follows its link's scenario directly, without the "replace your
+edits?" prompt, and keeps your edits across plain reloads. Discard it from
+DevTools or with `runtime.discardSandbox()`. `listProtoyardDatabases(namespace)`
+in `@protoyard/database` lists the sandboxes left over for cleanup. Sandbox
+names must match `[a-z0-9][a-z0-9-]{0,23}`; anything else is ignored and the
+default world opens.
+
 ## Snapshots
 
 A snapshot is the actual current world: every domain and reserved table,
