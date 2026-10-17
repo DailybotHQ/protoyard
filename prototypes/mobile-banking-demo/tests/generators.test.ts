@@ -32,7 +32,9 @@ describe('mobile-banking-demo generator', () => {
       for (const t of txns) {
         expect(accountIds.has(t.accountId)).toBe(true);
         expect(Number.isInteger(t.amountCents)).toBe(true);
-        expect(Date.parse(t.at)).toBeLessThanOrEqual(Date.parse(scenario.referenceTime));
+        expect(Date.parse(t.at)).toBeLessThanOrEqual(
+          Date.parse(ctx(scenario.id).scenario.referenceTime)
+        );
       }
       expect(world.personas.some((p) => p.id === world.memberships[0]?.personaId)).toBe(true);
     }
