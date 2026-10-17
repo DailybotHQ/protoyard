@@ -8,9 +8,10 @@ import {
   Settings,
   Users,
 } from '@lucide/svelte';
-import { createRouter, Link, Router, usePrincipal } from '@protoyard/renderer-svelte';
-import { AppShell, Avatar, Badge } from '@protoyard/ui';
+import { createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
+import { AppShell, Avatar, Badge, Header } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
+import SidebarNav from './components/SidebarNav.svelte';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideCrm } from './lib/context.ts';
 import ActivityFeed from './screens/ActivityFeed.svelte';
@@ -57,6 +58,16 @@ const plan = $derived(org?.billingStatus === 'expired' ? 'expired' : (org?.plan 
 </script>
 
 <AppShell sidebarLabel="Main navigation">
+  {#snippet header()}
+    <!-- Phones and tablets: the menu button opens the sidebar drawer. -->
+    <Header title={org?.name ?? 'Pipeline'} titleAs="p" class="lg:hidden">
+      {#snippet actions()}
+        {#if principal.current}
+          <Avatar name={principal.current.persona.name} size="sm" />
+        {/if}
+      {/snippet}
+    </Header>
+  {/snippet}
   {#snippet sidebar()}
     <div class="flex h-full flex-col gap-6 p-4">
       <a href="#/" class="flex items-center gap-2.5 px-2 pt-1">
@@ -72,24 +83,7 @@ const plan = $derived(org?.billingStatus === 'expired' ? 'expired' : (org?.plan 
         </span>
       </a>
 
-      <nav aria-label="Sections">
-        <ul class="flex flex-col gap-0.5">
-          {#each nav as item (item.href)}
-            <li>
-              <Link
-                href={item.href}
-                {router}
-                exact={item.exact}
-                class="group flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                activeClass="bg-primary/10 font-semibold !text-foreground"
-              >
-                <item.icon class="size-4 shrink-0" aria-hidden="true" />
-                {item.label}
-              </Link>
-            </li>
-          {/each}
-        </ul>
-      </nav>
+      <SidebarNav {router} items={nav} />
 
       {#if principal.current}
         <div class="mt-auto rounded-lg border border-sidebar-border bg-surface p-3">
