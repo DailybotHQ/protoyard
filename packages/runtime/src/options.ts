@@ -28,6 +28,8 @@ export interface RuntimeOptions {
    * `definition.integrity` when present.
    */
   integrity?: IntegrityRules;
+  /** Rows per bulkAdd when writing a world (default DEFAULT_WRITE_CHUNK). */
+  writeChunkSize?: number;
   /** What to do when a generator breaks integrity: `throw` (default), `warn`, `off`. */
   validation?: 'throw' | 'warn' | 'off';
   /** Receives background failures (persisting the clock, listener errors). */

@@ -7,7 +7,10 @@ export type { MatchMedia, RuntimeOptions } from './options.ts';
 export { InvalidOverrideError } from './overrides.ts';
 export {
   checkWorld,
+  DEFAULT_WRITE_CHUNK,
+  type LoadTimings,
   type PendingLink,
+  type RuntimeLoadOptions,
   type ScenarioControllerExtras,
   UnknownScenarioError,
 } from './scenarios.ts';

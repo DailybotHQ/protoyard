@@ -34,6 +34,27 @@ warning.
 | B | `overrides.set()`, `session.switchActor()`, `theme.*`, `environment.set()` | Non-destructive and persisted in the control DB; domain rows are never written |
 | C | `snapshots.save / restore / exportJson / importJson` | Captures and restores the actual world, records and session together |
 
+## Large worlds and progress
+
+Loads run in phases: **generate → validate → write → done**. The runtime yields to the event
+loop between phases, then writes the whole world in **one transaction** with chunked
+`bulkAdd` calls (`DEFAULT_WRITE_CHUNK = 1000`, overridable via `RuntimeOptions.writeChunkSize`
+or per load). Atomicity is kept: if any chunk fails, the previous world is untouched. Chunk
+completions are separate tasks, so the browser can paint and progress can be reported.
+
+```ts
+await runtime.scenarios.load('enterprise-scale', {
+  onProgress: ({ phase, done, total }) => bar.update(phase, done / total),
+});
+runtime.scenarios.subscribeProgress((p) => /* LoadProgress | null (null = settled) */);
+runtime.scenarios.progress(); // current load, or null
+runtime.scenarios.lastLoadTimings(); // { generateMs, validateMs, writeMs, rows }
+```
+
+With `crm-demo` → `enterprise-scale` (16,075 rows), on an M1 Max in headless Chromium, a load
+takes about 630 ms with 0 long tasks. A single `bulkAdd` produced an 85 ms long task. Method
+and full numbers are in `docs/PERFORMANCE.md`.
+
 ## Controllers
 
 - **scenarios**: `list/get/active/ensureSeeded/load/reset/advance/subscribe`, plus

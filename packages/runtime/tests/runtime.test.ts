@@ -494,3 +494,69 @@ describe('scenario composition through the runtime', () => {
     await expect(runtime.data.rows('nope')).rejects.toThrow(/Unknown table/);
   });
 });
+
+describe('large-world loads', () => {
+  it('reports generate → validate → write (chunked) → done, then null', async () => {
+    const runtime = await start(createTasksDefinition(), backend(), { writeChunkSize: 7 });
+    const seen: (string | null)[] = [];
+    const direct: string[] = [];
+    runtime.scenarios.subscribeProgress((p) =>
+      seen.push(p ? `${p.phase}:${p.done}/${p.total}` : null)
+    );
+    await runtime.scenarios.load('active-month', {
+      onProgress: (p) => direct.push(`${p.phase}:${p.done}/${p.total}`),
+    });
+    const counts = await runtime.data.counts();
+    const rows = Object.values(counts).reduce((a, b) => a + b, 0);
+    expect(seen.at(-1)).toBeNull();
+    expect(direct).toEqual(seen.slice(0, -1));
+    expect(direct.slice(0, 4)).toEqual([
+      'generate:0/1',
+      'generate:1/1',
+      'validate:0/1',
+      'validate:1/1',
+    ]);
+    expect(direct.at(-1)).toBe(`done:${rows}/${rows}`);
+    const writes = direct
+      .filter((s) => s.startsWith('write:'))
+      .map((s) => Number(s.split(/[:/]/)[1]));
+    expect(writes[0]).toBe(0);
+    expect(writes.length).toBeGreaterThan(rows / 7);
+    expect(writes).toEqual([...writes].sort((a, b) => a - b));
+    expect(writes.at(-1)).toBe(rows);
+    expect(runtime.scenarios.progress()).toBeNull();
+    expect(runtime.scenarios.lastLoadTimings()).toMatchObject({ scenarioId: 'active-month', rows });
+  });
+
+  it('stays atomic when a later chunk fails: the previous world survives', async () => {
+    const base = createTasksDefinition({ namespace: 'chunk-fail' });
+    let poison = false;
+    const definition: PrototypeDefinition = {
+      ...base,
+      async generate(ctx) {
+        const world = await base.generate(ctx);
+        // A duplicate primary key in the LAST rows makes the final bulkAdd fail.
+        const tasks = world.tables.tasks as Task[];
+        if (poison && tasks[0]) tasks.push({ ...tasks[0] });
+        return world;
+      },
+    };
+    const runtime = await start(definition, backend(), { writeChunkSize: 3, validation: 'off' });
+    await runtime.scenarios.load('active-month');
+    await runtime.db
+      .rows('tasks')
+      .put({ id: 'task_edit', projectId: 'project_0001', title: 'Mine' });
+    const before = await dumpTables(runtime.db);
+    const progress: (string | null)[] = [];
+    runtime.scenarios.subscribeProgress((p) => progress.push(p?.phase ?? null));
+
+    poison = true;
+    await expect(runtime.scenarios.load('new-member')).rejects.toThrow();
+    expect(await dumpTables(runtime.db)).toEqual(before);
+    expect(runtime.scenarios.active()?.scenario.id).toBe('active-month');
+    expect(progress).toContain('write');
+    expect(progress).not.toContain('done');
+    expect(progress.at(-1)).toBeNull();
+    expect(runtime.scenarios.progress()).toBeNull();
+  });
+});

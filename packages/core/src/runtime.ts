@@ -43,10 +43,25 @@ export interface ActiveScenarioInfo {
   prototypeGeneratorVersion?: number;
 }
 
+/**
+ * Phases of building a world. `write` reports rows written so far; the other
+ * phases report 0/1 → 1/1. `done` is emitted once, after the world is live.
+ */
+export type LoadPhase = 'generate' | 'validate' | 'write' | 'done';
+
+export interface LoadProgress {
+  scenarioId: string;
+  phase: LoadPhase;
+  done: number;
+  total: number;
+}
+
 export interface LoadScenarioOptions {
   seed?: number;
   /** Save a safety snapshot of the current world before replacing it. */
   snapshotFirst?: boolean;
+  /** Called as the load advances (also broadcast via `scenarios.subscribeProgress`). */
+  onProgress?: (progress: LoadProgress) => void;
 }
 
 export interface ScenarioController {
@@ -58,10 +73,14 @@ export interface ScenarioController {
   /** A. Destructive, scoped to this prototype's DB. */
   load(id: string, options?: LoadScenarioOptions): Promise<void>;
   /** Reloads the active scenario from its seed. */
-  reset(options?: Pick<LoadScenarioOptions, 'snapshotFirst'>): Promise<void>;
+  reset(options?: Pick<LoadScenarioOptions, 'snapshotFirst' | 'onProgress'>): Promise<void>;
   /** Commits deterministic timeline events up to now + duration. Idempotent. */
   advance(duration: Duration): Promise<{ applied: number; skipped: number }>;
   subscribe(listener: (info: ActiveScenarioInfo | null) => void): Unsubscribe;
+  /** The load in flight (any caller), or null when idle. */
+  progress(): LoadProgress | null;
+  /** Fires on every progress step, then once with `null` when the load settles. */
+  subscribeProgress(listener: (progress: LoadProgress | null) => void): Unsubscribe;
 }
 
 export interface SessionController {

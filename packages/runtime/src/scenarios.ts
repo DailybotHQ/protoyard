@@ -4,6 +4,9 @@ import {
   type DomainEvent,
   durationToMs,
   type EventApplyContext,
+  type LoadPhase,
+  type LoadProgress,
+  type LoadScenarioOptions,
   type Row,
   type Scenario,
   type ScenarioController,
@@ -17,6 +20,7 @@ import {
   validateWorld,
   WorldIntegrityError,
 } from '@protoyard/scenarios';
+import { createEmitter } from './emitter.ts';
 import type { Kernel } from './kernel.ts';
 import { applyOverrides } from './overrides.ts';
 
@@ -37,10 +41,42 @@ export interface PendingLink {
   reason: string;
 }
 
+/** Wall-clock cost of the last scenario load, for DevTools and benchmarks. */
+export interface LoadTimings {
+  scenarioId: string;
+  generateMs: number;
+  validateMs: number;
+  writeMs: number;
+  rows: number;
+}
+
+/** Core load options plus runtime-only tuning. */
+export interface RuntimeLoadOptions extends LoadScenarioOptions {
+  /** Rows per bulkAdd for this load only (benchmarks; default from RuntimeOptions). */
+  writeChunkSize?: number;
+}
+
 export interface ScenarioControllerExtras {
+  load(id: string, options?: RuntimeLoadOptions): Promise<void>;
+  reset(
+    options?: Pick<RuntimeLoadOptions, 'snapshotFirst' | 'onProgress' | 'writeChunkSize'>
+  ): Promise<void>;
   /** A link asked for a different world than the one stored; never auto-applied. */
   pendingLink(): PendingLink | null;
+  /** Timings of the most recent successful load or reset in this session. */
+  lastLoadTimings(): LoadTimings | null;
 }
+
+/**
+ * Rows per `bulkAdd` while writing a world. Chosen from measurements (see
+ * tmp/lane-a/scale-results.md → docs/PERFORMANCE.md): large enough that
+ * per-request overhead is negligible, small enough that progress updates and
+ * paints happen several times per second on big worlds.
+ */
+export const DEFAULT_WRITE_CHUNK = 1000;
+
+/** Lets the event loop run (paint a progress bar) between blocking phases. */
+const yieldToBrowser = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 type SafetySnapshot = (name: string) => Promise<unknown>;
 
@@ -81,35 +117,107 @@ export function createScenarioController(
   saveSafetySnapshot: SafetySnapshot
 ): ScenarioController & ScenarioControllerExtras {
   let pending: PendingLink | null = null;
+  let lastTimings: LoadTimings | null = null;
   const byId = (id: string) => k.scenarios.find((s) => s.id === id);
 
-  async function loadScenario(scenario: Scenario, seed: number): Promise<void> {
+  let progress: LoadProgress | null = null;
+  const progressEvents = createEmitter<LoadProgress | null>(k.report);
+
+  function report(next: LoadProgress | null, onProgress?: (p: LoadProgress) => void) {
+    progress = next;
+    if (next && onProgress) {
+      try {
+        onProgress(next);
+      } catch (error) {
+        k.report(error);
+      }
+    }
+    progressEvents.emit(next);
+  }
+
+  async function loadScenario(
+    scenario: Scenario,
+    seed: number,
+    options: RuntimeLoadOptions = {}
+  ): Promise<void> {
+    const step = (phase: LoadPhase, done: number, total: number) =>
+      report({ scenarioId: scenario.id, phase, done, total }, options.onProgress);
+    try {
+      await buildWorld(scenario, seed, step, options.writeChunkSize);
+    } finally {
+      report(null);
+    }
+  }
+
+  async function buildWorld(
+    scenario: Scenario,
+    seed: number,
+    step: (phase: LoadPhase, done: number, total: number) => void,
+    writeChunkSize?: number
+  ): Promise<void> {
     const effective = withSeed(scenario, seed);
+    const timings = { generateMs: 0, validateMs: 0, writeMs: 0, rows: 0 };
+    step('generate', 0, 1);
+    // Yield between phases so a progress UI can paint before each blocking step.
+    await yieldToBrowser();
+    let started = performance.now();
     const world = await k.definition.generate(await createGenerateContextAsync(effective));
+    timings.generateMs = performance.now() - started;
+    step('generate', 1, 1);
+
+    step('validate', 0, 1);
+    await yieldToBrowser();
+    started = performance.now();
     const violations = checkWorld(k, world, effective);
+    timings.validateMs = performance.now() - started;
     const mode = k.options.validation ?? 'throw';
     if (violations.length && mode !== 'off') {
       const error = new WorldIntegrityError(scenario.id, violations);
       if (mode === 'throw') throw error;
       console.warn(error.message);
     }
+    step('validate', 1, 1);
 
     const db = k.db;
-    // One transaction: either the whole new world lands or the old one stays.
+    const batches: [string, readonly unknown[]][] = [
+      ['py_organizations', world.organizations],
+      ['py_personas', world.personas],
+      ['py_memberships', world.memberships],
+      [
+        'py_events',
+        (world.events ?? []).map((event) => ({ ...event, source: event.source ?? 'seed' })),
+      ],
+      ...Object.entries(world.tables).filter(([name]) => db.domainTables.includes(name)),
+    ];
+    const total = batches.reduce((sum, [, rows]) => sum + rows.length, 0);
+    const chunkSize = Math.max(
+      1,
+      writeChunkSize ?? k.options.writeChunkSize ?? DEFAULT_WRITE_CHUNK
+    );
+    timings.rows = total;
+    step('write', 0, total);
+    await yieldToBrowser();
+    started = performance.now();
+    // ONE transaction keeps loads atomic (a failure leaves the old world). IndexedDB
+    // commits a transaction as soon as it has no pending request at the end of a
+    // task, so we can't await timers in here — but chunked bulkAdd calls are separate
+    // requests whose completions are separate tasks, which lets the browser paint
+    // and lets us report progress between chunks.
     await db.transaction('rw', [...db.allTables], async () => {
       for (const name of db.allTables) await db.table(name).clear();
-      await db.table('py_organizations').bulkAdd(world.organizations);
-      await db.table('py_personas').bulkAdd(world.personas);
-      await db.table('py_memberships').bulkAdd(world.memberships);
-      if (world.events?.length) {
-        await db
-          .table('py_events')
-          .bulkAdd(world.events.map((event) => ({ ...event, source: event.source ?? 'seed' })));
-      }
-      for (const [name, rows] of Object.entries(world.tables)) {
-        if (rows.length && db.domainTables.includes(name)) await db.table(name).bulkAdd(rows);
+      let written = 0;
+      for (const [name, rows] of batches) {
+        for (let i = 0; i < rows.length; i += chunkSize) {
+          const chunk = rows.slice(i, i + chunkSize);
+          await db.table(name).bulkAdd(chunk);
+          written += chunk.length;
+          step('write', written, total);
+        }
       }
     });
+    timings.writeMs = performance.now() - started;
+    lastTimings = { scenarioId: scenario.id, ...timings };
+    step('done', total, total);
 
     const info: ActiveScenarioInfo = {
       scenario,
@@ -146,13 +254,13 @@ export function createScenarioController(
     k.events.scenario.emit(info);
   }
 
-  async function load(id: string, options: { seed?: number; snapshotFirst?: boolean } = {}) {
+  async function load(id: string, options: RuntimeLoadOptions = {}) {
     const scenario = byId(id);
     if (!scenario) throw new UnknownScenarioError(id);
     if (options.snapshotFirst && k.active) {
       await saveSafetySnapshot(`Before loading ${scenario.name}`);
     }
-    await loadScenario(scenario, options.seed ?? scenario.seed);
+    await loadScenario(scenario, options.seed ?? scenario.seed, options);
     pending = null;
   }
 
@@ -242,7 +350,7 @@ export function createScenarioController(
         }
         // The stored scenario is used even if the code no longer lists it.
         const scenario = byId(active.scenario.id) ?? active.scenario;
-        await loadScenario(scenario, active.seed);
+        await loadScenario(scenario, active.seed, options);
       }),
 
     advance: (duration) =>
@@ -312,5 +420,8 @@ export function createScenarioController(
       }),
 
     subscribe: (listener) => k.events.scenario.subscribe(listener),
+    progress: () => progress,
+    subscribeProgress: (listener) => progressEvents.subscribe(listener),
+    lastLoadTimings: () => lastTimings,
   };
 }
