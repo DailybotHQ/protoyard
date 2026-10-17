@@ -151,6 +151,49 @@ describe('task-manager services on the real runtime', () => {
     expect(await runtime.db.tasks.orderBy('id').toArray()).toEqual(before);
   });
 
+  it('moving a task to another project renumbers it and takes its history along', async () => {
+    fresh();
+    const runtime = await harness.boot('active-team');
+    const services = createTaskServices(runtime);
+    const projects = await runtime.db.projects.toArray();
+    const from = projects.find((p) => p.key === 'WEB');
+    const to = projects.find((p) => p.key !== 'WEB');
+    if (!from || !to) throw new Error('two projects');
+    const task = (await runtime.db.tasks.where('projectId').equals(from.id).toArray())[0];
+    if (!task) throw new Error('a WEB task');
+    const toNumbers = (await runtime.db.tasks.where('projectId').equals(to.id).toArray()).map(
+      (t) => t.number
+    );
+    expect(await runtime.db.activity.where('taskId').equals(task.id).count()).toBeGreaterThan(0);
+
+    await services.tasks.update(task.id, {
+      projectId: to.id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      assigneeId: task.assigneeId,
+      dueDate: task.dueDate,
+      labels: task.labels,
+    });
+    const moved = await runtime.db.tasks.get(task.id);
+    expect(moved?.projectId).toBe(to.id);
+    expect(moved?.number).toBe(Math.max(0, ...toNumbers) + 1);
+    const numbers = (await runtime.db.tasks.where('projectId').equals(to.id).toArray()).map(
+      (t) => t.number
+    );
+    expect(new Set(numbers).size).toBe(numbers.length);
+    const history = await runtime.db.activity.where('taskId').equals(task.id).toArray();
+    expect(history.every((a) => a.projectId === to.id)).toBe(true);
+    expect(
+      history.some((a) => a.body === `Moved to ${to.name} as ${to.key}-${moved?.number}`)
+    ).toBe(true);
+
+    // Deleting the old project must not erase the moved task's history.
+    await services.projects.remove(from.id);
+    expect(await runtime.db.activity.where('taskId').equals(task.id).count()).toBe(history.length);
+  });
+
   it('owners manage projects; deleting one cascades atomically', async () => {
     fresh();
     const runtime = await harness.boot('active-team');

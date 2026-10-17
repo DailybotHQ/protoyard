@@ -248,12 +248,27 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
             if (!current) throw new NotFoundError('This task');
             const moved = data.status !== current.status;
             const changedProject = data.projectId !== current.projectId;
-            if (changedProject && !(await db.projects.get(data.projectId))) {
+            const targetProject = changedProject
+              ? await db.projects.get(data.projectId)
+              : undefined;
+            if (changedProject && !targetProject) {
               throw new ValidationError({ projectId: 'That project no longer exists' });
+            }
+            // Numbers are per project (KEY-n): a moved task takes the next number in
+            // its new project, so two tasks never share a key.
+            let number = current.number;
+            if (changedProject) {
+              const siblings = await db.tasks.where('projectId').equals(data.projectId).toArray();
+              number =
+                siblings.reduce((max, t) => (t.id === id ? max : Math.max(max, t.number)), 0) + 1;
+              // History moves with the task; otherwise deleting the old project
+              // (which deletes its activity) would erase this task's history.
+              await db.activity.where('taskId').equals(id).modify({ projectId: data.projectId });
             }
             const at = now();
             await db.tasks.update(id, {
               projectId: data.projectId,
+              number,
               title: data.title,
               description: data.description,
               status: data.status,
@@ -269,6 +284,15 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
               updatedAt: at,
             });
             const target = { id, projectId: data.projectId };
+            if (changedProject && targetProject) {
+              await db.activity.add(
+                entry(
+                  target,
+                  'edited',
+                  `Moved to ${targetProject.name} as ${targetProject.key}-${number}`
+                )
+              );
+            }
             if (moved) {
               await db.activity.add(
                 entry(
