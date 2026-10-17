@@ -52,7 +52,7 @@ const itemClass = cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'tabula
         class={cn(buttonVariants({ variant: 'ghost', size: 'md' }), 'gap-1 px-2.5')}
         disabled={page <= 1}
         onclick={() => go(page - 1)}
-        aria-label="Go to previous page"
+        aria-label="Previous page"
       >
         <ChevronLeft aria-hidden="true" />
         <span class="hidden sm:inline">Previous</span>
@@ -87,7 +87,7 @@ const itemClass = cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'tabula
         class={cn(buttonVariants({ variant: 'ghost', size: 'md' }), 'gap-1 px-2.5')}
         disabled={page >= count}
         onclick={() => go(page + 1)}
-        aria-label="Go to next page"
+        aria-label="Next page"
       >
         <span class="hidden sm:inline">Next</span>
         <ChevronRight aria-hidden="true" />

@@ -41,6 +41,8 @@ let {
 
 const DRAG_TYPE = 'application/x-protoyard-kanban';
 
+// Unique per board, so two boards with the same column ids never share heading ids.
+const uid = $props.id();
 let draggingId = $state<string | null>(null);
 let overColumn = $state<string | null>(null);
 let announcement = $state('');
@@ -115,7 +117,7 @@ function resetDrag(): void {
   >
     {#each columns as column (column.id)}
       {@const columnItems = grouped.get(column.id) ?? []}
-      {@const headingId = `kanban-${column.id}-heading`}
+      {@const headingId = `kanban-${uid}-${column.id}-heading`}
       <section
         aria-labelledby={headingId}
         class={cn(

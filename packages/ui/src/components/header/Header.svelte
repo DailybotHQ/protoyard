@@ -6,6 +6,8 @@ import { getAppShellContext } from '../app-shell/context.ts';
 
 interface Props {
   title?: string;
+  /** Element for the title; use `p`/`div` when the page renders its own `<h1>`. */
+  titleAs?: 'h1' | 'h2' | 'p' | 'div';
   description?: string;
   /** Content before the title (breadcrumbs, logo…). */
   leading?: Snippet;
@@ -19,6 +21,7 @@ interface Props {
 
 let {
   title,
+  titleAs = 'h1',
   description,
   leading,
   actions,
@@ -53,7 +56,7 @@ const menuHandler = $derived(onMenuClick ?? shell?.openSidebar);
   {#if leading}<div class="flex min-w-0 items-center gap-2">{@render leading()}</div>{/if}
   <div class="min-w-0 flex-1 py-2">
     {#if title}
-      <h1 class="truncate font-heading text-base leading-tight font-semibold sm:text-lg">{title}</h1>
+      <svelte:element this={titleAs} class="truncate font-heading text-base leading-tight font-semibold sm:text-lg">{title}</svelte:element>
     {/if}
     {#if description}<p class="truncate text-xs text-muted-foreground sm:text-sm">{description}</p>{/if}
   </div>

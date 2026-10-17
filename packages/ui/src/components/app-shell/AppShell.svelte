@@ -21,6 +21,10 @@ interface Props {
   class?: string;
   mainClass?: string;
   mainId?: string;
+  /** Classes for the desktop sidebar column (default height is the viewport). */
+  sidebarClass?: string;
+  /** Use `div` for a shell nested inside another page's `<main>` (demos, previews). */
+  mainElement?: 'main' | 'div';
 }
 
 let {
@@ -33,7 +37,22 @@ let {
   class: className,
   mainClass,
   mainId = 'main-content',
+  sidebarClass,
+  mainElement = 'main',
 }: Props = $props();
+
+// The drawer only exists below `lg`; opening it on a wide screen would trap
+// focus in an invisible modal, so it closes as soon as the layout is wide.
+$effect(() => {
+  if (!sidebarOpen || typeof matchMedia !== 'function') return;
+  const wide = matchMedia('(min-width: 64rem)');
+  const sync = () => {
+    if (wide.matches) sidebarOpen = false;
+  };
+  sync();
+  wide.addEventListener?.('change', sync);
+  return () => wide.removeEventListener?.('change', sync);
+});
 
 setAppShellContext({
   get sidebarOpen() {
@@ -70,7 +89,7 @@ function closeOnNavigate(event: MouseEvent): void {
   </a>
 
   {#if sidebar}
-    <div class="sticky top-0 hidden h-dvh shrink-0 lg:flex">{@render sidebar()}</div>
+    <div class={cn('sticky top-0 hidden h-dvh shrink-0 lg:flex', sidebarClass)}>{@render sidebar()}</div>
 
     <DialogPrimitive.Root bind:open={sidebarOpen}>
       <DialogPrimitive.Portal>
@@ -96,9 +115,14 @@ function closeOnNavigate(event: MouseEvent): void {
 
   <div class="flex min-w-0 flex-1 flex-col">
     {@render header?.()}
-    <main id={mainId} tabindex="-1" class={cn('flex-1 outline-none', bottomNav && 'pb-20 lg:pb-0', mainClass)}>
+    <svelte:element
+      this={mainElement}
+      id={mainId}
+      tabindex="-1"
+      class={cn('flex-1 outline-none', bottomNav && 'pb-20 lg:pb-0', mainClass)}
+    >
       {@render children()}
-    </main>
+    </svelte:element>
     {#if bottomNav}<div class="lg:hidden">{@render bottomNav()}</div>{/if}
   </div>
 </div>

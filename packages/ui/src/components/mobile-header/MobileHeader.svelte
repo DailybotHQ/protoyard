@@ -6,6 +6,8 @@ import { cn } from '../../lib/cn.ts';
 interface Props {
   title: string;
   subtitle?: string;
+  /** Element for the title; use `p`/`div` when the page renders its own `<h1>`. */
+  titleAs?: 'h1' | 'h2' | 'p' | 'div';
   /** Back as a link (hash route) … */
   backHref?: string;
   /** … or as a callback. */
@@ -18,6 +20,7 @@ interface Props {
 
 let {
   title,
+  titleAs = 'h1',
   subtitle,
   backHref,
   onBack,
@@ -48,7 +51,7 @@ const backClass =
     </button>
   {/if}
   <div class={cn('min-w-0 flex-1 py-2', !backHref && !onBack && 'pl-1')}>
-    <h1 class="truncate font-heading text-base leading-tight font-semibold">{title}</h1>
+    <svelte:element this={titleAs} class="truncate font-heading text-base leading-tight font-semibold">{title}</svelte:element>
     {#if subtitle}<p class="truncate text-xs text-muted-foreground">{subtitle}</p>{/if}
   </div>
   {#if actions}<div class="flex shrink-0 items-center gap-1">{@render actions()}</div>{/if}

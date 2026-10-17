@@ -45,6 +45,16 @@ describe('FormField', () => {
 
 describe('AppShell + Sidebar + Header', () => {
   it('renders navigation and opens the mobile drawer from the header menu button', async () => {
+    // Phone width: the drawer only exists below the `lg` breakpoint.
+    const wide = vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) =>
+        ({
+          matches: false,
+          media: query,
+          addEventListener() {},
+          removeEventListener() {},
+        }) as never
+    );
     render(ShellHarness, {});
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeTruthy();
     const home = screen.getByRole('link', { name: /Home/ });
@@ -56,6 +66,23 @@ describe('AppShell + Sidebar + Header', () => {
     expect(within(dialog).queryByRole('button', { name: /Collapse/ })).toBeNull();
     await fireEvent.click(within(dialog).getByRole('link', { name: /Settings/ }));
     expect(screen.getByTestId('drawer').textContent).toBe('closed');
+    wide.mockRestore();
+  });
+
+  it('never keeps an invisible drawer open on wide screens', async () => {
+    const wide = vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) =>
+        ({
+          matches: true,
+          media: query,
+          addEventListener() {},
+          removeEventListener() {},
+        }) as never
+    );
+    render(ShellHarness, {});
+    await fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    await waitFor(() => expect(screen.getByTestId('drawer').textContent).toBe('closed'));
+    wide.mockRestore();
   });
 
   it('collapsed sidebar keeps accessible link names', async () => {

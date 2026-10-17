@@ -95,14 +95,14 @@ describe('DataTable', () => {
     expect(bodyNames()).toEqual(['Charlie', 'alice']);
     expect(screen.getByText('Showing 1–2 of 5')).toBeTruthy();
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     expect(bodyNames()).toEqual(['Bob', 'Dana']);
 
     await fireEvent.click(screen.getByRole('button', { name: 'Page 3' }));
     expect(bodyNames()).toEqual(['Eve']);
-    expect(
-      (screen.getByRole('button', { name: 'Go to next page' }) as HTMLButtonElement).disabled
-    ).toBe(true);
+    expect((screen.getByRole('button', { name: 'Next page' }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
     expect(screen.getByRole('button', { name: 'Page 3' }).getAttribute('aria-current')).toBe(
       'page'
     );
