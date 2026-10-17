@@ -42,6 +42,17 @@ let {
 
 let query = $state('');
 const selected = $derived(items.find((item) => item.value === value));
+// Bits treats `inputValue` as the initial text only. When `value` changes from
+// outside (a reset, a scenario load) mirror the label into the input — but
+// never while the list is open, so an in-progress search isn't clobbered.
+$effect(() => {
+  const label = selected?.label ?? '';
+  const input = ref;
+  if (!(input instanceof HTMLInputElement) || open) return;
+  if (input.value !== label) input.value = label;
+  query = '';
+});
+
 const filtered = $derived(
   query.trim() === '' ? items : items.filter((item) => filter(item, query.trim()))
 );

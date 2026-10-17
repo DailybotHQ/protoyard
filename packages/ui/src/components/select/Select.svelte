@@ -37,6 +37,13 @@ let {
 }: Props = $props();
 
 const selected = $derived(items.find((item) => item.value === value));
+const uid = $props.id();
+const valueId = `select-value-${uid}`;
+// The accessible name stays the field label (aria-label / <label for>); the
+// current value is announced as the description, so SRs read "Stage, combobox, Won".
+const describedBy = $derived(
+  [rest['aria-describedby'], selected ? valueId : null].filter(Boolean).join(' ') || undefined
+);
 </script>
 
 <SelectPrimitive.Root
@@ -58,8 +65,9 @@ const selected = $derived(items.find((item) => item.value === value));
       className
     )}
     {...rest}
+    aria-describedby={describedBy}
   >
-    <span class={cn('truncate', !selected && 'text-muted-foreground')}>
+    <span id={valueId} class={cn('truncate', !selected && 'text-muted-foreground')}>
       {selected?.label ?? placeholder}
     </span>
     <ChevronDown class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
