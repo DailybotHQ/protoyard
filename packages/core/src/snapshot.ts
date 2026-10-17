@@ -98,7 +98,7 @@ export function validateSnapshot(
   }
   if (snapshot.schemaVersion < target.schemaVersion) {
     warnings.push(
-      `Snapshot schema v${snapshot.schemaVersion} is older than v${target.schemaVersion}; migrations will run on import.`
+      `Snapshot schema v${snapshot.schemaVersion} is older than v${target.schemaVersion}: rows are restored as-is (database migrations do not replay on snapshot data). Check fields added since v${snapshot.schemaVersion}.`
     );
   }
   return { ok: true, snapshot, warnings };

@@ -95,8 +95,21 @@ export const ScenarioSchema = z.object({
 export type Scenario = z.infer<typeof ScenarioSchema>;
 export type ScenarioInput = z.input<typeof ScenarioSchema>;
 
+/**
+ * A scenario that inherits from another scenario or a preset: everything but
+ * `id` and `extends` is optional and deep-merged over the parent by the
+ * runtime (`resolveScenarios` in @protoyard/scenarios).
+ */
+export type ScenarioExtension = Partial<Omit<ScenarioInput, 'id' | 'extends'>> & {
+  id: string;
+  extends: string;
+};
+
+/** What prototypes declare: a full scenario or an extension of another one. */
+export type ScenarioDefinition = ScenarioInput | ScenarioExtension;
+
 /** Identity helper with good inference for authoring scenarios in TS. */
-export function defineScenario<const T extends ScenarioInput>(scenario: T): T {
+export function defineScenario<const T extends ScenarioDefinition>(scenario: T): T {
   return scenario;
 }
 

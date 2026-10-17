@@ -3,7 +3,7 @@ import type { TimeHelpers } from './clock.ts';
 import type { DomainEvent } from './events.ts';
 import type { PrototypeManifest } from './manifest.ts';
 import type { IdFactory, Rng } from './random.ts';
-import type { Scenario, ScenarioInput } from './scenario.ts';
+import type { Scenario, ScenarioDefinition } from './scenario.ts';
 import type { Membership, Organization, Persona, PolicyDefinition } from './session.ts';
 import type { Theme } from './theme.ts';
 
@@ -94,7 +94,8 @@ export interface IntegrityRules {
 export interface PrototypeDefinition {
   manifest: PrototypeManifest;
   database: DatabaseDefinition;
-  scenarios: readonly ScenarioInput[];
+  /** Full scenarios or `extends` extensions (resolved against presets by the runtime). */
+  scenarios: readonly ScenarioDefinition[];
   generate(ctx: GenerateContext): WorldSeed | Promise<WorldSeed>;
   /**
    * Version of THIS prototype's generator. Bump it whenever the same seed can

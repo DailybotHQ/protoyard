@@ -39,6 +39,7 @@
     "@playwright/test": "^1.64.0",
     "@protoyard/core": "workspace:*",
     "@protoyard/runtime": "workspace:*",
+    "@protoyard/scenarios": "workspace:*",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@testing-library/svelte": "^5.4.2",
     "@types/node": "^24.0.0",
