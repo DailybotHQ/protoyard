@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.mobile-app",
+  "slug": "mobile-app",
+  "kind": "template",
+  "name": "Mobile app",
+  "description": "A mobile-first starter: bottom navigation, sticky header and a persisted Items list → detail → create/edit flow with owner and viewer personas and three scenarios.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "mobile",
+  "category": "starter",
+  "tags": ["starter", "mobile", "list-detail", "forms"],
+  "status": "ready",
+  "icon": "📱",
+  "defaultScenario": "active",
+  "defaultTheme": "emerald",
+  "defaultMode": "system",
+  "preview": { "viewport": "iphone" },
+  "storage": { "namespace": "template-mobile-app", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "viewer"]
+}
