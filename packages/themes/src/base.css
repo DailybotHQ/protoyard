@@ -1,0 +1,247 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: reduced motion must beat every component transition. */
+/*
+ * Protoyard base styles. Import AFTER `tailwindcss`:
+ *
+ *   @import 'tailwindcss';
+ *   @import '@protoyard/themes/base.css';
+ *
+ * Tokens are `--py-*` custom properties written by `applyAppearance()`. The
+ * defaults below (Violet) make the first paint correct even before the
+ * runtime boots; `noFlashScript()` replays the last real appearance.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--py-background);
+  --color-foreground: var(--py-foreground);
+  --color-surface: var(--py-surface);
+  --color-surface-foreground: var(--py-surface-foreground);
+  --color-elevated: var(--py-elevated);
+  --color-muted: var(--py-muted);
+  --color-muted-foreground: var(--py-muted-foreground);
+  --color-border: var(--py-border);
+  --color-input: var(--py-input);
+  --color-ring: var(--py-ring);
+  --color-primary: var(--py-primary);
+  --color-primary-foreground: var(--py-primary-foreground);
+  --color-secondary: var(--py-secondary);
+  --color-secondary-foreground: var(--py-secondary-foreground);
+  --color-accent: var(--py-accent);
+  --color-accent-foreground: var(--py-accent-foreground);
+  --color-destructive: var(--py-destructive);
+  --color-destructive-foreground: var(--py-destructive-foreground);
+  --color-success: var(--py-success);
+  --color-success-foreground: var(--py-success-foreground);
+  --color-warning: var(--py-warning);
+  --color-warning-foreground: var(--py-warning-foreground);
+  --color-info: var(--py-info);
+  --color-info-foreground: var(--py-info-foreground);
+  --color-sidebar: var(--py-sidebar);
+  --color-sidebar-foreground: var(--py-sidebar-foreground);
+  --color-sidebar-border: var(--py-sidebar-border);
+  --color-chart-1: var(--py-chart1);
+  --color-chart-2: var(--py-chart2);
+  --color-chart-3: var(--py-chart3);
+  --color-chart-4: var(--py-chart4);
+  --color-chart-5: var(--py-chart5);
+  --color-shadow: var(--py-shadow);
+
+  --radius-xs: calc(var(--py-radius) - 6px);
+  --radius-sm: calc(var(--py-radius) - 4px);
+  --radius-md: calc(var(--py-radius) - 2px);
+  --radius-lg: var(--py-radius);
+  --radius-xl: calc(var(--py-radius) + 4px);
+  --radius-2xl: calc(var(--py-radius) + 8px);
+
+  --font-sans: var(--py-font-sans);
+  --font-heading: var(--py-font-heading);
+  --font-mono: var(--py-font-mono);
+
+  /* Density scales the whole spacing system (compact 0.875 … comfortable 1.125). */
+  --spacing: calc(0.25rem * var(--py-density));
+
+  --shadow-soft: 0 1px 2px 0 var(--py-shadow), 0 1px 3px 0 var(--py-shadow);
+  --shadow-float: 0 10px 30px -8px var(--py-shadow), 0 4px 10px -4px var(--py-shadow);
+}
+
+@layer base {
+  :root {
+    --py-background: #fafafa;
+    --py-foreground: #09090b;
+    --py-surface: #ffffff;
+    --py-surface-foreground: #09090b;
+    --py-elevated: #ffffff;
+    --py-muted: #f4f4f5;
+    --py-muted-foreground: #52525b;
+    --py-border: #e4e4e7;
+    --py-input: #d4d4d8;
+    --py-ring: #8b5cf6;
+    --py-primary: #7c3aed;
+    --py-primary-foreground: #ffffff;
+    --py-secondary: #f4f4f5;
+    --py-secondary-foreground: #18181b;
+    --py-accent: #f5f3ff;
+    --py-accent-foreground: #4c1d95;
+    --py-destructive: #dc2626;
+    --py-destructive-foreground: #ffffff;
+    --py-success: #15803d;
+    --py-success-foreground: #ffffff;
+    --py-warning: #fbbf24;
+    --py-warning-foreground: #451a03;
+    --py-info: #0369a1;
+    --py-info-foreground: #ffffff;
+    --py-sidebar: #f4f4f5;
+    --py-sidebar-foreground: #27272a;
+    --py-sidebar-border: #e4e4e7;
+    --py-chart1: #7c3aed;
+    --py-chart2: #0284c7;
+    --py-chart3: #0d9488;
+    --py-chart4: #f59e0b;
+    --py-chart5: #f43f5e;
+    --py-shadow: rgb(15 23 42 / 0.08);
+    --py-radius: 0.625rem;
+    --py-font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    --py-font-heading: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    --py-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --py-density: 1;
+    --py-motion: 1;
+  }
+  :root.dark,
+  .dark {
+    --py-background: #09090b;
+    --py-foreground: #fafafa;
+    --py-surface: #18181b;
+    --py-surface-foreground: #fafafa;
+    --py-elevated: #27272a;
+    --py-muted: #27272a;
+    --py-muted-foreground: #a1a1aa;
+    --py-border: rgb(255 255 255 / 0.1);
+    --py-input: rgb(255 255 255 / 0.16);
+    --py-ring: #a78bfa;
+    --py-primary: #a78bfa;
+    --py-primary-foreground: #2e1065;
+    --py-secondary: #27272a;
+    --py-secondary-foreground: #fafafa;
+    --py-accent: #2e1065;
+    --py-accent-foreground: #ede9fe;
+    --py-destructive: #f87171;
+    --py-destructive-foreground: #450a0a;
+    --py-success: #4ade80;
+    --py-success-foreground: #052e16;
+    --py-warning: #fbbf24;
+    --py-warning-foreground: #451a03;
+    --py-info: #38bdf8;
+    --py-info-foreground: #082f49;
+    --py-sidebar: #18181b;
+    --py-sidebar-foreground: #e4e4e7;
+    --py-sidebar-border: rgb(255 255 255 / 0.08);
+    --py-chart1: #a78bfa;
+    --py-chart2: #38bdf8;
+    --py-chart3: #2dd4bf;
+    --py-chart4: #fbbf24;
+    --py-chart5: #fb7185;
+    --py-shadow: rgb(0 0 0 / 0.45);
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+    text-wrap: balance;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-primary) 28%, transparent);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-muted-foreground) 35%, transparent) transparent;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+/* Reduced motion: the OS setting, or the prototype's own toggle. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[data-py-motion="reduce"] *,
+[data-py-motion="reduce"] ::before,
+[data-py-motion="reduce"] ::after,
+[data-py-motion="reduce"] {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Safe-area helpers for notched phones (pair with viewport-fit=cover). */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@utility pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+@utility pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+@utility px-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+@utility min-h-touch {
+  min-height: 44px;
+}
