@@ -92,7 +92,11 @@ test.describe('gallery', () => {
     await expect(page.getByText('393×852')).toBeVisible();
   });
 
-  for (const path of ['/', '/new/']) {
+  const detailPaths = [
+    ...prototypes.slice(0, 1).map((p) => `/p/${p.slug}/`),
+    ...templates.slice(0, 1).map((t) => `/t/${t.slug}/`),
+  ];
+  for (const path of ['/', '/new/', ...detailPaths]) {
     test(`has no horizontal overflow on ${path}`, async ({ page }) => {
       await page.goto(path);
       const overflow = await page.evaluate(

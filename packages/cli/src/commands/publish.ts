@@ -96,12 +96,14 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
       .isAvailable()
       .catch(() => ({ available: false, hint: undefined }));
     const command = provider.command(input);
+    const setup = provider.setupCommands?.(input) ?? [];
     return {
       data: {
         ...common,
         dryRun: true,
+        setup,
         command,
-        commandLine: formatCommand(command),
+        commandLine: [...setup, command].map(formatCommand).join(' && '),
         toolAvailable: availability.available,
       },
       render(out) {
@@ -115,7 +117,9 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
               `! The ${provider.label} adapter is experimental and untested against the live service.`
             )
           );
-        out.always(`Would run:\n  ${c.cyan(formatCommand(command))}`);
+        out.always(
+          `Would run:\n${[...setup, command].map((argv) => `  ${c.cyan(formatCommand(argv))}`).join('\n')}`
+        );
         if (!availability.available)
           out.always(
             c.yellow(`! ${provider.label} CLI not found locally. ${availability.hint ?? ''}`)

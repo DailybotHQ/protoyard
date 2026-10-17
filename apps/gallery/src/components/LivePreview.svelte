@@ -22,8 +22,30 @@ interface Props {
   name: string;
   defaultViewport: DeviceId;
   devCommand: string;
+  /** Bundled static build in a showcase site (already base-prefixed). */
+  embeddedUrl?: string | null;
+  scenarios?: string[];
+  defaultScenario?: string | null;
+  /** Shown while nothing is previewed (already base-prefixed). */
+  thumbnail?: string | null;
 }
-let { slug, name, defaultViewport, devCommand }: Props = $props();
+let {
+  slug,
+  name,
+  defaultViewport,
+  devCommand,
+  embeddedUrl = null,
+  scenarios = [],
+  defaultScenario = null,
+  thumbnail = null,
+}: Props = $props();
+let scenario = $state('');
+
+/** Scenario links use the runtime's `?scenario=<id>` contract (core parseScenarioLink). */
+function embeddedHref(id: string) {
+  if (!embeddedUrl) return '';
+  return id ? `${embeddedUrl}?scenario=${encodeURIComponent(id)}` : embeddedUrl;
+}
 
 let device = $state<DeviceId>(defaultViewport);
 let customWidth = $state(1024);
@@ -53,6 +75,10 @@ let hydrated = $state(false);
 onMount(() => {
   hydrated = true;
   library.visit(slug);
+  if (embeddedUrl) {
+    show(embeddedUrl);
+    return;
+  }
   control.detect().then(() => {
     if (running) show(running.url);
   });
@@ -132,7 +158,30 @@ async function openManual(event: SubmitEvent) {
   </div>
 
   <div class="flex flex-wrap items-center gap-2 border-b border-line p-3 text-sm" data-testid="control-status">
-    {#if control.status === 'available'}
+    {#if embeddedUrl}
+      <span class="inline-flex items-center gap-1.5 text-success"><span class="size-2 rounded-full bg-current"></span>Live demo</span>
+      <span class="text-muted">bundled static build</span>
+      {#if scenarios.length > 0}
+        <label class="ml-auto flex items-center gap-1.5 text-muted">
+          <span>Scenario</span>
+          <select
+            class="h-8 max-w-48 rounded-lg border border-line bg-bg px-2 text-sm text-fg sm:max-w-none"
+            bind:value={scenario}
+            onchange={() => show(embeddedHref(scenario))}
+            data-testid="scenario-select"
+          >
+            <option value="">Saved state{defaultScenario ? ` (first run: ${defaultScenario})` : ''}</option>
+            {#each scenarios as id (id)}<option value={id}>{id}</option>{/each}
+          </select>
+        </label>
+      {/if}
+      <a class={['inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2', scenarios.length === 0 && 'ml-auto']} href={embeddedHref(scenario)} target="_blank" rel="noopener">
+        <ExternalLink size={14} aria-hidden="true" /> Open
+      </a>
+      <button type="button" class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 hover:bg-surface-2" onclick={() => (reloadKey += 1)}>
+        <RotateCw size={14} aria-hidden="true" /> Reload
+      </button>
+    {:else if control.status === 'available'}
       {#if running}
         <span class="inline-flex items-center gap-1.5 text-success"><span class="size-2 rounded-full bg-current"></span>Running at</span>
         <a class="font-mono text-xs underline underline-offset-2" href={running.url} target="_blank" rel="noopener">{running.url}</a>
@@ -200,8 +249,11 @@ async function openManual(event: SubmitEvent) {
         </div>
       </div>
     {:else}
-      <div class="grid h-64 place-items-center text-center text-sm text-muted">
-        <p>{control.status === 'available' ? `Start ${name} to see it here.` : 'No preview yet.'}</p>
+      <div class="grid min-h-64 place-items-center gap-3 text-center text-sm text-muted">
+        {#if thumbnail}
+          <img src={thumbnail} alt={`Screenshot of ${name}`} class="max-h-[28rem] w-auto max-w-full rounded-lg border border-line shadow-sm" />
+        {/if}
+        <p>{control.status === 'available' ? `Start ${name} to see it here.` : 'No live preview yet.'}</p>
       </div>
     {/if}
   </div>

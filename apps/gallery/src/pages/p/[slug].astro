@@ -7,7 +7,7 @@ import ProjectIcon from '@/components/ProjectIcon.svelte';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { commandsFor, devCommand } from '@/lib/commands';
 import { withBase } from '@/lib/format';
-import { prototypes } from '@/lib/registry';
+import { prototypes, thumbnailUrl } from '@/lib/registry';
 import type { RegistryEntry } from '@/lib/types';
 
 export function getStaticPaths() {
@@ -16,6 +16,8 @@ export function getStaticPaths() {
 
 const { entry } = Astro.props as { entry: RegistryEntry };
 const commands = commandsFor(entry.slug);
+const embeddedUrl = entry.embedded ? withBase(`/${entry.embedded.url}`) : null;
+const thumbnail = thumbnailUrl(entry);
 ---
 
 <BaseLayout title={entry.name} description={entry.description}>
@@ -43,7 +45,7 @@ const commands = commandsFor(entry.slug);
     <FavoriteButton client:load slug={entry.slug} name={entry.name} withLabel />
   </header>
 
-  <div class="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+  <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
     <div class="min-w-0 space-y-6">
       <LivePreview
         client:load
@@ -51,6 +53,10 @@ const commands = commandsFor(entry.slug);
         name={entry.name}
         defaultViewport={entry.viewport}
         devCommand={devCommand(entry.slug)}
+        embeddedUrl={embeddedUrl}
+        scenarios={entry.scenarios}
+        defaultScenario={entry.defaultScenario}
+        thumbnail={thumbnail ? withBase(`/${thumbnail}`) : null}
       />
 
       <section aria-labelledby="scenarios-title">
@@ -65,10 +71,26 @@ const commands = commandsFor(entry.slug);
           entry.scenarios.length > 0 ? (
             <ul class="mt-3 flex flex-wrap gap-2" data-testid="scenarios">
               {entry.scenarios.map((id) => (
-                <li class="rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs">
-                  {id}
-                  {id === entry.defaultScenario && (
-                    <span class="ml-1.5 rounded bg-accent-soft px-1 text-accent-fg">default</span>
+                <li class="rounded-lg border border-line bg-surface font-mono text-xs">
+                  {embeddedUrl ? (
+                    <a
+                      class="block px-3 py-1.5 hover:bg-surface-2"
+                      href={`${embeddedUrl}?scenario=${encodeURIComponent(id)}`}
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {id}
+                      {id === entry.defaultScenario && (
+                        <span class="ml-1.5 rounded bg-accent-soft px-1 text-accent-fg">default</span>
+                      )}
+                    </a>
+                  ) : (
+                    <span class="block px-3 py-1.5">
+                      {id}
+                      {id === entry.defaultScenario && (
+                        <span class="ml-1.5 rounded bg-accent-soft px-1 text-accent-fg">default</span>
+                      )}
+                    </span>
                   )}
                 </li>
               ))}

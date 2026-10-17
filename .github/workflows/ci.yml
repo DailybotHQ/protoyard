@@ -118,8 +118,10 @@ jobs:
           done
           echo "PROTOYARD_E2E_PROTOTYPES=$targets" >> "$GITHUB_ENV"
           echo "E2E prototype targets: ${targets:-none}"
-      - name: Playwright
+      - name: Playwright (gallery, prototype builds and the showcase site)
         run: pnpm test:e2e
+        env:
+          PROTOYARD_E2E_SHOWCASE: '1'
       - name: Upload the Playwright report
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -33,6 +33,11 @@ export interface RegistryEntry {
   modifiedAt: string;
   createdAt: string | null;
   updatedAt: string | null;
+  /**
+   * Set by `protoyard showcase`: the prototype's static build ships inside
+   * this site, so previews work without a local control server.
+   */
+  embedded?: { url: string; scenarioLinks: boolean } | null;
 }
 
 export interface Registry {
@@ -58,4 +63,8 @@ export interface CompactEntry {
   i: string | null;
   sc: number;
   m: string;
+  /** Thumbnail URL (base-relative), when the manifest declares one. */
+  th: string | null;
+  /** Base-relative URL of a bundled build (showcase sites), else null. */
+  e: string | null;
 }

@@ -16,6 +16,11 @@ pnpm protoyard publish my-crm --provider cloudflare --dry-run
 
 ## Commands
 
+Target commands (`dev`, `validate`, `build`, `export`, `preview`, `publish`, `scenario`,
+`snapshot`) accept prototypes **and templates**. A slug resolves in `prototypes/` first, then
+`templates/`. Template artifacts go to `artifacts/template-<name>/`, so they never collide with a
+prototype of the same name. `build --all` builds prototypes only.
+
 | Command | What it does |
 | --- | --- |
 | `doctor [--offline]` | Node ≥ 24.20, pnpm, installed deps, workspace layout, templates, git, Playwright browsers, provider CLIs and their auth (never prints tokens). |
@@ -27,11 +32,12 @@ pnpm protoyard publish my-crm --provider cloudflare --dry-run
 | `build <slug> \| --all [--base] [--include-devtools] [--out]` | Production build to `artifacts/<slug>/dist`, plus `build-manifest.json` (files with sizes and sha256, base, devtools, SDK versions). Checks that `index.html` and its assets exist. `--all` builds one after another and prints a summary. |
 | `export <slug> [--base] [--include-devtools] [--skip-build]` | Builds, checks that the bundle holds no other registered prototype's manifest or storage name, and zips it with stable ordering and timestamps. |
 | `preview <slug> [--port] [--host] [--strict-port]` | Serves the built `dist/` like a static host (SPA fallback, sub-path `base` aware). |
-| `publish <slug> --provider cloudflare\|netlify\|vercel\|static [--project] [--preview\|--production] [--dry-run]` | Builds and verifies first. `--dry-run` prints the exact command and contacts no provider. Cloudflare runs `wrangler pages deploy` and reports only the URL wrangler printed. **Netlify and Vercel adapters are experimental and untested against the live services.** `static` produces the ZIP plus upload instructions. `--production` requires `--yes`. |
+| `publish <slug> --provider cloudflare\|netlify\|vercel\|static [--project] [--preview\|--production] [--dry-run]` | Builds and verifies first. `--dry-run` prints the exact command and contacts no provider. Cloudflare runs `wrangler pages deploy` and reports only the URL wrangler printed. **Netlify and Vercel adapters are experimental and untested against the live services.** Vercel has no project flag on `deploy`, so the adapter first runs `vercel link --yes --project <name> --cwd <dist>`, then `vercel deploy --cwd <dist>`. The dry run prints both. `static` produces the ZIP plus upload instructions. `--production` requires `--yes`. |
+| `showcase [--out] [--base /] [--no-devtools] [--include-templates] [--serve] [--skip-build] [--port]` | ONE static site: the gallery plus each prototype's own build at `<base>p/<slug>/app/`. Each is built in its own Vite process with DevTools included (a demo site), and each must pass the export isolation check. Failed builds are listed without a live demo. The gallery is built from `.protoyard/showcase-registry.json`, which marks bundled builds as `embedded`. Hosted previews, **Open** links and `?scenario=<id>` links then work with no control server. Output: `artifacts/showcase/` (summary in `artifacts/showcase-builds/showcase.json`). |
 | `scenario list <slug> [--details]` | Scenario ids from the manifest (static), or names, groups and seeds with `--details`. |
 | `scenario validate <slug> [-s id]` | Runs the generator for every scenario and checks referential integrity (`validateWorld`). |
 | `snapshot list <slug>` | Validates committed `snapshots/*.protoyard.json` files as data. Snapshots saved in DevTools stay in the browser. |
-| `gallery [--port] [--control-port]` | What `pnpm dev` runs: index, the local control server and the Astro gallery. |
+| `gallery [--port] [--control-port]` | What `pnpm dev` runs: index, the local control server and the Astro gallery. Astro is kept in the foreground (`--ignore-lock`), so stopping the command also stops the gallery, even when Astro detects an AI agent. |
 | `control-server [--port] [--gallery-port] [--allow-origin]` | Just the local API: `GET /api/status`, `POST /api/dev/:slug`, `POST /api/stop/:slug`. |
 
 Global options: `--json`, `-y/--yes` (implied by `CI=1`), `--cwd <dir>`, `--root <dir>` (or
@@ -58,7 +64,7 @@ With `--json`, stdout holds exactly one envelope:
 | 5 | provider / auth | `provider`, `auth` |
 
 Commands that complete with failing checks (`validate`, `scenario validate`, `build --all`,
-`snapshot list`) return `ok: false` and keep the full `data`.
+`snapshot list`, `showcase`) return `ok: false` and keep the full `data`.
 
 ## Trust model
 

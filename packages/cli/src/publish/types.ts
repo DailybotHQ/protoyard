@@ -51,6 +51,8 @@ export interface PublishProvider {
   isAuthenticated(): Promise<AuthStatus>;
   /** The exact command `publish` would run (for --dry-run and logs). */
   command(input: PublishInput): string[];
+  /** Commands run before `command` (e.g. linking a project), shown by --dry-run too. */
+  setupCommands?(input: PublishInput): string[][];
   publish(input: PublishInput): Promise<PublishResult>;
 }
 

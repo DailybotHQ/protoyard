@@ -74,7 +74,9 @@ export const galleryCommand: Handler = async (ctx, _args, options): Promise<Comm
   });
   const child = spawn(
     process.execPath,
-    [astro, 'dev', '--port', String(galleryPort), '--host', '127.0.0.1'],
+    // --ignore-lock keeps Astro in the foreground even when it detects an AI
+    // agent (Astro 7 would otherwise background it and outlive `pnpm dev`).
+    [astro, 'dev', '--ignore-lock', '--port', String(galleryPort), '--host', '127.0.0.1'],
     {
       cwd: galleryDir,
       env: { ...process.env, PUBLIC_PROTOYARD_CONTROL_URL: control.url },

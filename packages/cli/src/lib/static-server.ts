@@ -1,4 +1,6 @@
+import { createReadStream, existsSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
+import { join } from 'node:path';
 import sirv from 'sirv';
 import { findFreePort } from './ports.ts';
 
@@ -19,9 +21,13 @@ export async function serveStatic(options: {
   port: number;
   host: string;
   strictPort?: boolean;
+  /** SPA fallback to index.html (default). Multi-page sites use 404.html instead. */
+  spa?: boolean;
 }): Promise<StaticServer> {
   const prefix = options.base === './' ? '/' : options.base;
-  const handler = sirv(options.dir, { single: true, dev: true, etag: true });
+  const spa = options.spa ?? true;
+  const handler = sirv(options.dir, { single: spa, dev: true, etag: true });
+  const notFoundPage = join(options.dir, '404.html');
   const server = createServer((req, res) => {
     const url = req.url ?? '/';
     if (prefix !== '/') {
@@ -38,6 +44,11 @@ export async function serveStatic(options: {
       req.url = url.slice(prefix.length - 1);
     }
     handler(req, res, () => {
+      if (!spa && existsSync(notFoundPage)) {
+        res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+        createReadStream(notFoundPage).pipe(res);
+        return;
+      }
       res.writeHead(404);
       res.end();
     });

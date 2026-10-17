@@ -71,7 +71,7 @@ export const scenarioValidateCommand: Handler = async (
     render(out) {
       const { c } = out;
       out.always(
-        `Generating every scenario of ${c.bold(entry.slug)} ${c.dim(`(integrity: ${inspection.validator})`)}`
+        `${only ? `Generating scenario ${c.bold(only)} of` : 'Generating every scenario of'} ${c.bold(entry.slug)} ${c.dim(`(integrity: ${inspection.validator})`)}`
       );
       for (const r of runs) {
         const rows = Object.values(r.counts ?? {}).reduce((a, b) => a + b, 0);
@@ -84,8 +84,15 @@ export const scenarioValidateCommand: Handler = async (
           );
         }
       }
-      if (failed.length === 0)
-        out.always(c.green(`\nAll ${runs.length} scenarios generate consistent worlds.`));
+      if (failed.length === 0) {
+        out.always(
+          c.green(
+            runs.length === 1
+              ? `\n${runs[0]?.id} generates a consistent world.`
+              : `\nAll ${runs.length} scenarios generate consistent worlds.`
+          )
+        );
+      }
     },
   };
 };

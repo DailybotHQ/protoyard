@@ -14,6 +14,18 @@ const href = $derived(withBase(entry.k === 'template' ? `/t/${entry.s}/` : `/p/$
   data-testid="project-card"
   data-slug={entry.s}
 >
+  {#if entry.th}
+    <!-- Decorative: the name below is the accessible label. -->
+    <img
+      src={withBase(`/${entry.th}`)}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      width="640"
+      height="400"
+      class="-mx-4 -mt-4 mb-4 aspect-[16/10] w-[calc(100%+2rem)] max-w-none rounded-t-xl border-b border-line bg-surface-2 object-cover object-top"
+    />
+  {/if}
   <div class="flex items-start gap-3">
     <ProjectIcon icon={entry.i} name={entry.n} />
     <div class="min-w-0 flex-1">
@@ -39,6 +51,9 @@ const href = $derived(withBase(entry.k === 'template' ? `/t/${entry.s}/` : `/p/$
       <dt class="sr-only">Scenarios</dt>
       <dd class="inline-flex items-center gap-1"><Layers size={12} aria-hidden="true" />{entry.sc} scenario{entry.sc === 1 ? '' : 's'}</dd>
     </div>
+    {#if entry.e}
+      <div class="flex gap-1"><dt class="sr-only">Live demo</dt><dd class="text-success">Live demo</dd></div>
+    {/if}
     {#if entry.tp}
       <div class="flex gap-1"><dt class="sr-only">Template</dt><dd>from {entry.tp}</dd></div>
     {/if}

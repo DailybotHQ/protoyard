@@ -1,4 +1,4 @@
-import { registry, registryError } from 'virtual:protoyard-registry';
+import { registry, registryError, thumbnails } from 'virtual:protoyard-registry';
 import type { CompactEntry, Registry, RegistryEntry } from './types';
 
 export { registry, registryError };
@@ -15,6 +15,11 @@ export function templates(): RegistryEntry[] {
   return entries().filter((e) => e.kind === 'template');
 }
 
+/** Base-relative thumbnail URL (prefix with withBase), or null. */
+export function thumbnailUrl(entry: RegistryEntry): string | null {
+  return thumbnails[`${entry.kind}:${entry.slug}`] ?? null;
+}
+
 export function compact(entry: RegistryEntry): CompactEntry {
   return {
     k: entry.kind,
@@ -29,6 +34,8 @@ export function compact(entry: RegistryEntry): CompactEntry {
     i: entry.icon,
     sc: entry.scenarioCount,
     m: entry.modifiedAt,
+    th: thumbnailUrl(entry),
+    e: entry.embedded?.url ?? null,
   };
 }
 

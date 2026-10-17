@@ -33,7 +33,7 @@ const usedBy = prototypes().filter((p) => p.template === entry.slug);
       Use this template
     </a>
   </header>
-  <div class="mt-8 grid gap-6 lg:grid-cols-2">
+  <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
     <section class="space-y-3" aria-labelledby="start-title">
       <h2 id="start-title" class="text-lg font-semibold">Start from it</h2>
       <CommandBlock

@@ -7,7 +7,7 @@ import {
   validateCloudflareProject,
 } from '../src/publish/cloudflare.ts';
 import { netlifyArgs, parseNetlifyOutput } from '../src/publish/netlify.ts';
-import { parseVercelOutput, vercelArgs } from '../src/publish/vercel.ts';
+import { parseVercelOutput, vercelArgs, vercelLinkArgs } from '../src/publish/vercel.ts';
 import { addBuildablePrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 const input = {
@@ -39,7 +39,21 @@ describe('publish adapters', () => {
       '--prod',
       '--json',
     ]);
-    expect(vercelArgs(input)).toEqual(['deploy', '/w/artifacts/crm/dist', '--yes']);
+    expect(vercelLinkArgs(input)).toEqual([
+      'link',
+      '--yes',
+      '--project',
+      'protoyard-crm',
+      '--cwd',
+      '/w/artifacts/crm/dist',
+    ]);
+    expect(vercelArgs({ ...input, target: 'production' })).toEqual([
+      'deploy',
+      '--cwd',
+      '/w/artifacts/crm/dist',
+      '--yes',
+      '--prod',
+    ]);
     expect(formatCommand(['wrangler', 'pages', 'deploy', '/a b/dist'])).toBe(
       "wrangler pages deploy '/a b/dist'"
     );

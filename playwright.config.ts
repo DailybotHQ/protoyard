@@ -6,6 +6,9 @@ import { defineConfig, devices } from '@playwright/test';
  * (artifacts/<slug>/dist). Each test gets a fresh browser context, so
  * IndexedDB and localStorage never leak between tests.
  *
+ * Showcase: PROTOYARD_E2E_SHOWCASE=1 also builds and serves the one-site
+ * showcase on port 4501 (gallery + bundled prototype builds).
+ *
  * Prototype targets: PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo
  * (each gets its own port from 4401 and is reachable in specs through
  * `prototypeUrl(slug)` in tests/e2e/targets.ts).
@@ -17,6 +20,9 @@ const prototypes = (process.env.PROTOYARD_E2E_PROTOTYPES ?? '')
   .map((s) => s.trim())
   .filter(Boolean);
 const ci = Boolean(process.env.CI);
+/** PROTOYARD_E2E_SHOWCASE=1 builds `protoyard showcase` and runs tests/e2e/showcase.spec.ts. */
+const showcase = process.env.PROTOYARD_E2E_SHOWCASE === '1';
+export const SHOWCASE_PORT = 4501;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -44,6 +50,16 @@ export default defineConfig({
       reuseExistingServer: !ci,
       timeout: 180_000,
     },
+    ...(showcase
+      ? [
+          {
+            command: `pnpm protoyard showcase --serve --port ${SHOWCASE_PORT} --strict-port`,
+            url: `http://127.0.0.1:${SHOWCASE_PORT}/`,
+            reuseExistingServer: !ci,
+            timeout: 600_000,
+          },
+        ]
+      : []),
     ...prototypes.map((slug, i) => ({
       command: `pnpm protoyard build ${slug} && pnpm protoyard preview ${slug} --port ${4401 + i} --strict-port`,
       url: `http://127.0.0.1:${4401 + i}/`,

@@ -10,6 +10,7 @@ import { previewCommand } from './commands/preview.ts';
 import { publishCommand } from './commands/publish.ts';
 import { scenarioListCommand, scenarioValidateCommand } from './commands/scenario.ts';
 import { controlServerCommand, galleryCommand } from './commands/serve.ts';
+import { showcaseCommand } from './commands/showcase.ts';
 import { snapshotListCommand } from './commands/snapshot.ts';
 import { validateCommand } from './commands/validate.ts';
 import { action, type RunnerEnv } from './lib/command.ts';
@@ -177,6 +178,20 @@ export function createProgram(env: RunnerEnv): Command {
     .command('snapshot')
     .description('snapshot files committed with a prototype');
   snapshot.command('list').argument('<slug>').action(def('snapshot list', snapshotListCommand));
+
+  program
+    .command('showcase')
+    .description('ONE static site: the gallery + every prototype build at <base>p/<slug>/app/')
+    .option('--out <dir>', 'output folder', 'artifacts/showcase')
+    .option('--base <path>', 'absolute public base of the site', '/')
+    .option('--no-devtools', 'leave the DevTools panel out of the bundled prototypes')
+    .option('--include-templates', 'also bundle templates at <base>t/<name>/app/')
+    .option('--serve', 'serve the site after building (multi-page, 404.html fallback)')
+    .option('--skip-build', 'with --serve: serve the existing showcase')
+    .option('-p, --port <port>', 'port for --serve', '4500')
+    .option('--strict-port', 'fail instead of picking another port')
+    .option('--host', 'listen on the LAN')
+    .action(def('showcase', showcaseCommand));
 
   program
     .command('gallery')
