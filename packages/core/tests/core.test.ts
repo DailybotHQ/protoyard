@@ -126,6 +126,8 @@ describe('links, overrides and snapshots', () => {
       mode: 'dark',
     });
     expect(parseScenarioLink('?scenario=<script>&seed=-1')).toEqual({});
+    expect(parseScenarioLink('?sandbox=compare-a').sandbox).toBe('compare-a');
+    expect(parseScenarioLink('?sandbox=../x').sandbox).toBeUndefined();
   });
 
   it('resolves effective values by precedence', () => {

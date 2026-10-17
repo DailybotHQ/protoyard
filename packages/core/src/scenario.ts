@@ -129,7 +129,15 @@ export interface ScenarioLinkParams {
   theme?: string;
   mode?: 'light' | 'dark' | 'system';
   devtools?: boolean;
+  /**
+   * Isolated, disposable world: the runtime suffixes the storage namespace
+   * (`<namespace>~<sandbox>`) so two views of the same prototype on one
+   * origin (e.g. a side-by-side scenario comparison) never share data.
+   */
+  sandbox?: string;
 }
+
+export const SANDBOX_PATTERN = /^[a-z0-9][a-z0-9-]{0,23}$/;
 
 export function parseScenarioLink(search: string): ScenarioLinkParams {
   const params = new URLSearchParams(search);
@@ -144,6 +152,8 @@ export function parseScenarioLink(search: string): ScenarioLinkParams {
   if (theme && /^[a-z][a-z0-9-]*$/.test(theme)) out.theme = theme;
   const mode = params.get('mode');
   if (mode === 'light' || mode === 'dark' || mode === 'system') out.mode = mode;
+  const sandbox = params.get('sandbox');
+  if (sandbox && SANDBOX_PATTERN.test(sandbox)) out.sandbox = sandbox;
   const devtools = params.get('devtools');
   if (devtools === '0' || devtools === '1') out.devtools = devtools === '1';
   return out;
