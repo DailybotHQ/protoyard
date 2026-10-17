@@ -121,6 +121,7 @@ export function createTasksDefinition(
     database: { versions },
     scenarios: fixtureScenarios,
     policy: fixturePolicy,
+    generatorVersion: 3,
     integrity: {
       relations: {
         projects: { ownerId: 'py_personas', organizationId: 'py_organizations' },

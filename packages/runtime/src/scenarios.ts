@@ -44,6 +44,15 @@ export interface ScenarioControllerExtras {
 
 type SafetySnapshot = (name: string) => Promise<unknown>;
 
+/** SDK + prototype generator versions recorded with every loaded world. */
+export function generatorVersions(k: Kernel) {
+  const own = k.definition.generatorVersion;
+  return {
+    generatorVersion: GENERATOR_SDK_VERSION,
+    ...(own !== undefined ? { prototypeGeneratorVersion: own } : {}),
+  };
+}
+
 function withSeed(scenario: Scenario, seed: number): Scenario {
   return seed === scenario.seed ? scenario : { ...scenario, seed };
 }
@@ -105,7 +114,7 @@ export function createScenarioController(
     const info: ActiveScenarioInfo = {
       scenario,
       seed,
-      generatorVersion: GENERATOR_SDK_VERSION,
+      ...generatorVersions(k),
       loadedAt: new Date(k.now()).toISOString(),
     };
     const clock: ClockState = {
@@ -175,7 +184,7 @@ export function createScenarioController(
             const info: ActiveScenarioInfo = {
               scenario: fallback,
               seed: fallback.seed,
-              generatorVersion: GENERATOR_SDK_VERSION,
+              ...generatorVersions(k),
               loadedAt: new Date(k.now()).toISOString(),
             };
             await k.writeControl({ activeScenario: info });

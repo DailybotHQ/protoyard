@@ -12,9 +12,9 @@ import {
   slugify,
 } from '@protoyard/core';
 import { countTables, dumpTables, restoreTables } from '@protoyard/database';
-import { GENERATOR_SDK_VERSION } from '@protoyard/scenarios';
 import type { Kernel } from './kernel.ts';
 import { normalizeOverrides } from './overrides.ts';
+import { generatorVersions } from './scenarios.ts';
 
 export class SnapshotImportError extends Error {
   constructor(message: string) {
@@ -102,7 +102,7 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
       ? {
           scenario,
           seed: snapshot.seed ?? scenario.seed,
-          generatorVersion: GENERATOR_SDK_VERSION,
+          ...generatorVersions(k),
           loadedAt: snapshot.createdAt,
         }
       : null;

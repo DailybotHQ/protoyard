@@ -102,7 +102,11 @@ describe('1. deterministic generation', () => {
     await r1.scenarios.ensureSeeded();
     await r2.scenarios.ensureSeeded();
     expect(await dumpTables(r1.db)).toEqual(await dumpTables(r2.db));
-    expect(r1.scenarios.active()).toMatchObject({ seed: 42, generatorVersion: 1 });
+    expect(r1.scenarios.active()).toMatchObject({
+      seed: 42,
+      generatorVersion: 1,
+      prototypeGeneratorVersion: 3,
+    });
   });
 });
 
