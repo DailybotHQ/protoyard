@@ -1,0 +1,17 @@
+{
+  "name": "@protoyard/offline",
+  "version": "0.1.0",
+  "description": "Optional offline support for exported Protoyard prototypes: a build-time precache manifest and a small, safe service worker (opt-in).",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@protoyard/core": "workspace:*"
+  }
+}

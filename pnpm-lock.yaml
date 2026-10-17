@@ -176,6 +176,12 @@ importers:
         specifier: workspace:*
         version: link:../runtime
 
+  packages/offline:
+    dependencies:
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/renderer-svelte:
     dependencies:
       '@protoyard/core':
