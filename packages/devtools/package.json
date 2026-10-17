@@ -1,0 +1,33 @@
+{
+  "name": "@protoyard/devtools",
+  "version": "0.1.0",
+  "description": "The Protoyard DevTools panel: scenarios, personas, lifecycle, data, environment, appearance and snapshots \u2014 in the browser.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.svelte"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@protoyard/core": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "@lucide/svelte": "^1.50.0"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "svelte": "./src/index.ts"
+}

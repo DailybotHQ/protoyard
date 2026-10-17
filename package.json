@@ -1,0 +1,48 @@
+{
+  "name": "protoyard-workspace",
+  "private": true,
+  "description": "Protoyard — an open-source playground for building, simulating, testing, and publishing realistic interactive prototypes in the browser.",
+  "author": "Dailybot, Inc.",
+  "license": "MIT",
+  "homepage": "https://github.com/DailybotHQ/protoyard",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard"
+  },
+  "type": "module",
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.23.0",
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "scripts": {
+    "dev": "pnpm protoyard index --quiet && pnpm --filter @protoyard/gallery dev",
+    "build": "pnpm protoyard index --quiet && pnpm --filter @protoyard/gallery build",
+    "preview": "pnpm --filter @protoyard/gallery preview",
+    "protoyard": "tsx packages/cli/src/bin.ts",
+    "biome:check": "biome check",
+    "biome:fix": "biome check --write",
+    "lint": "biome check",
+    "format": "biome format --write",
+    "typecheck": "pnpm -r --parallel --if-present typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "bench:index": "tsx scripts/bench-index.ts",
+    "check": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^5.0.3",
+    "fake-indexeddb": "~6.2.0",
+    "happy-dom": "^20.14.5",
+    "svelte-check": "^4.7.0",
+    "tsx": "^4.23.0",
+    "typescript": "6.0.3",
+    "vitest": "^5.0.3"
+  }
+}

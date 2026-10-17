@@ -1,0 +1,41 @@
+{
+  "name": "@protoyard/renderer-svelte",
+  "version": "0.1.0",
+  "description": "Svelte 5 + Vite renderer for Protoyard: Vite config factory, app mounting, reactive runtime bindings and live queries.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.svelte"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./vite": "./src/vite.ts"
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@protoyard/core": "workspace:*",
+    "@protoyard/runtime": "workspace:*",
+    "@protoyard/devtools": "workspace:*",
+    "@protoyard/themes": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "dexie": "^4.4.0",
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "tailwindcss": "^4.3.0",
+    "vite": "^8.3.0"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "svelte": "./src/index.ts"
+}

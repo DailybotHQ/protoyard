@@ -1,0 +1,23 @@
+{
+  "name": "@protoyard/gallery",
+  "version": "0.1.0",
+  "description": "The Protoyard gallery: a static Astro site that lists prototypes and templates from the generated metadata registry.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/svelte": "^9.0.1",
+    "@protoyard/core": "workspace:*",
+    "@tailwindcss/vite": "^4.3.0",
+    "astro": "^7.3.6",
+    "svelte": "^5.57.0",
+    "tailwindcss": "^4.3.0",
+    "@lucide/svelte": "^1.50.0"
+  }
+}

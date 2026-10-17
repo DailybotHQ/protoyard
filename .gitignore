@@ -1,0 +1,51 @@
+# build output (no trailing slash so a symlinked output is ignored too)
+dist
+.astro
+artifacts
+
+# dependencies
+node_modules/
+.pnpm-store/
+
+# logs
+npm-debug.log*
+pnpm-debug.log*
+*.log
+
+# test output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# generated registry and caches (rebuilt by `pnpm protoyard index`)
+.protoyard/
+
+# environment variables (examples stay tracked)
+.env
+.env.*
+!.env.example
+
+# provider local state
+.wrangler/
+.netlify/
+.vercel/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+
+# Temporary workspace (agent outputs, scratch files)
+tmp/*
+!tmp/.gitkeep
+
+# Deep Work Plan working state (not tracked) — except the addon registry
+.dwp/*
+!.dwp/config.json
+
+# Plan analysis output belongs in the plan's own folder, never at the root
+/analysis_results

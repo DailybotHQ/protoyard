@@ -1,0 +1,21 @@
+{
+  "name": "@protoyard/runtime",
+  "version": "0.1.0",
+  "description": "Framework-agnostic Protoyard runtime: composes database, scenarios, session, overrides, clock, environment, themes and snapshots into one PrototypeRuntime.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@protoyard/core": "workspace:*",
+    "@protoyard/database": "workspace:*",
+    "@protoyard/scenarios": "workspace:*",
+    "@protoyard/themes": "workspace:*",
+    "dexie": "^4.4.0"
+  }
+}
