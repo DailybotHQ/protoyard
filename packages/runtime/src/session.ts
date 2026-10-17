@@ -93,7 +93,14 @@ export function createThemeController(k: Kernel): ThemeController {
     },
 
     async clearOverride() {
-      const { themeId: _t, mode: _m, reducedMotion: _r, viewport: _v, ...rest } = k.overrides;
+      const {
+        themeId: _t,
+        mode: _m,
+        reducedMotion: _r,
+        density: _d,
+        viewport: _v,
+        ...rest
+      } = k.overrides;
       await applyOverrides(k, rest);
     },
 

@@ -112,6 +112,8 @@ export interface AppearanceState {
   /** `system` resolved through prefers-color-scheme. */
   resolvedMode: 'light' | 'dark';
   reducedMotion: Effective<boolean>;
+  /** Spacing multiplier: override, else the active theme's `density`. */
+  density: Effective<number>;
   viewport: Effective<ViewportPreset>;
 }
 
@@ -130,6 +132,7 @@ export interface ThemeController {
     themeId?: string;
     mode?: ColorMode;
     reducedMotion?: boolean;
+    density?: number;
     viewport?: ViewportPreset;
   }): Promise<void>;
   clearOverride(): Promise<void>;

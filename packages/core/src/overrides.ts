@@ -24,6 +24,8 @@ export const OverridesSchema = z
     themeId: z.string().optional(),
     mode: ColorModeSchema.optional(),
     reducedMotion: z.boolean().optional(),
+    /** Spacing multiplier preview (compact 0.75 … comfortable 1.25). */
+    density: z.number().min(0.75).max(1.25).optional(),
     viewport: ViewportPresetSchema.optional(),
     environment: EnvironmentPatchSchema.optional(),
   })

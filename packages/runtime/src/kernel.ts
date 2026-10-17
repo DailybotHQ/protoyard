@@ -340,6 +340,10 @@ function computeAppearance(
       },
       media.prefersReducedMotion
     ),
+    density: resolveEffective(
+      { override: o.density },
+      k.themes.find((t) => t.id === theme.value)?.density ?? 1
+    ),
     viewport: resolveEffective(
       { override: o.viewport, scenario: scenario.viewport },
       manifest.preview.viewport
