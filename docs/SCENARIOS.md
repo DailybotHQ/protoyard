@@ -507,6 +507,13 @@ in `@protoyard/database` lists the sandboxes left over for cleanup. Sandbox
 names must match `[a-z0-9][a-z0-9-]{0,23}`; anything else is ignored and the
 default world opens.
 
+**Compare scenarios side by side.** Open a prototype in the gallery and choose
+**Compare scenarios** (`/p/<slug>/compare/?a=<id>&b=<id>`). Each frame loads
+the same build with `?sandbox=compare-<a|b|c>`, so it gets its own database
+pair (`protoyard.<namespace>~<sandbox>.*`). Edits never reach other frames or
+the prototype's normal data. **Reset sandboxes** re-seeds every frame from its
+scenario.
+
 ## Snapshots
 
 A snapshot is the actual current world: every domain and reserved table,
