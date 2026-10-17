@@ -9,7 +9,6 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
       "suspicious": {
         "noUnknownAtRules": "off"
       },
@@ -59,8 +58,23 @@
       "includes": ["**/*.svelte", "**/*.astro"],
       "linter": {
         "rules": {
-          "style": { "useConst": "off" },
-          "correctness": { "noUnusedVariables": "off", "noUnusedImports": "off" }
+          "style": {
+            "useConst": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/tests/**", "**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          }
         }
       }
     }

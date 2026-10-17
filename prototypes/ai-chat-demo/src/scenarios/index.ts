@@ -68,9 +68,9 @@ export const scenarios: ScenarioInput[] = [
     id: 'agent-outage',
     name: 'Agent outage',
     description:
-      'Agent requests fail with a simulated server error — check failed-reply and retry UX.',
+      'Chat works, but every agent request fails with a simulated 500 — check failed-reply and retry UX.',
     group: 'Conditions',
-    environment: { failureMode: 'server-error', failureRate: 1 },
+    environment: { failureMode: 'server-error', failureRate: 1, failureScope: ['agents.'] },
   }),
   defineScenario({
     ...activeTeam,

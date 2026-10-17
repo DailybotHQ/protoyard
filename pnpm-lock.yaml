@@ -20,6 +20,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:packages/core
+      '@protoyard/runtime':
+        specifier: workspace:*
+        version: link:packages/runtime
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.3.1
         version: 7.3.1(svelte@5.57.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))

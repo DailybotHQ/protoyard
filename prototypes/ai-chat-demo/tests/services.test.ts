@@ -1,0 +1,70 @@
+import { PermissionDeniedError } from '@protoyard/core';
+import { afterEach, describe, expect, it } from 'vitest';
+import { createHarness } from '../../../tests/support/runtime.ts';
+import type { ChatDatabase } from '../src/database/schema.ts';
+import { scriptedReply } from '../src/domain/agents.ts';
+import { createChatServices } from '../src/domain/services.ts';
+import { definition } from '../src/prototype.ts';
+
+let harness = createHarness<ChatDatabase>(definition);
+afterEach(() => {
+  harness.closeAll();
+  harness = createHarness<ChatDatabase>(definition);
+});
+
+describe('ai-chat-demo on the real runtime', () => {
+  it('persists a message and streams the scripted agent reply', async () => {
+    let runtime = await harness.boot('empty-new-user');
+    const chat = createChatServices(runtime, { chunkDelayMs: 0 });
+    const conversation = await chat.createConversation({
+      title: 'Ask Atlas',
+      agentIds: ['agent_atlas'],
+    });
+    const { message, runs } = await chat.send(conversation.id, 'Please summarize the launch plan');
+    const [run] = await runs;
+    expect(run?.status).toBe('done');
+
+    runtime = await harness.reload(runtime);
+    const messages = await runtime.db.messages
+      .where('conversationId')
+      .equals(conversation.id)
+      .sortBy('at');
+    expect(messages[0]?.id).toBe(message.id);
+    const atlas = await runtime.db.agents.get('agent_atlas');
+    expect(messages[1]?.body).toBe(scriptedReply(atlas!, 'Please summarize the launch plan'));
+    expect(messages[1]?.status).toBe('sent');
+  });
+
+  it('marks agent replies failed during an outage and recovers on retry', async () => {
+    const runtime = await harness.boot('agent-outage');
+    const chat = createChatServices(runtime, { chunkDelayMs: 0 });
+    const conversation = await chat.createConversation({ title: 'Ops', agentIds: ['agent_ops'] });
+    const { runs } = await chat.send(conversation.id, 'status of webhooks?');
+    const [run] = await runs;
+    expect(run?.status).toBe('error');
+    expect((await runtime.db.messages.where('runId').equals(run!.id).first())?.status).toBe(
+      'failed'
+    );
+
+    await runtime.overrides.set({ environment: { failureMode: 'none' } });
+    const retried = await chat.retry(run!.id);
+    expect(retried?.status).toBe('done');
+  });
+
+  it('guests can read but not post; members manage only their own conversations', async () => {
+    const runtime = await harness.boot('active-team');
+    const chat = createChatServices(runtime, { chunkDelayMs: 0 });
+    const conversations = await runtime.db.conversations.toArray();
+    await runtime.session.switchActor('user_0004');
+    await expect(chat.send(conversations[0]!.id, 'hello')).rejects.toBeInstanceOf(
+      PermissionDeniedError
+    );
+
+    await runtime.session.switchActor('user_0002');
+    const notMine = conversations.find((c) => c.createdBy !== 'user_0002');
+    if (notMine)
+      await expect(chat.archive(notMine.id)).rejects.toBeInstanceOf(PermissionDeniedError);
+    const mine = await chat.createConversation({ title: 'Mine', agentIds: [] });
+    await expect(chat.archive(mine.id)).resolves.toBeUndefined();
+  });
+});

@@ -77,7 +77,7 @@ export const database: DatabaseDefinition = {
         agents: 'id, handle',
         conversations: 'id, kind, lastMessageAt, archived, createdBy',
         participants: 'id, conversationId, memberId, [conversationId+memberId]',
-        messages: 'id, conversationId, authorId, at, [conversationId+at], status',
+        messages: 'id, conversationId, authorId, at, [conversationId+at], status, runId',
         runs: 'id, conversationId, agentId, status',
       },
     },

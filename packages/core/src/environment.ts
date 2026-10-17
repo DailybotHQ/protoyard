@@ -29,6 +29,11 @@ export const EnvironmentStateSchema = z.object({
   failureMode: FailureModeSchema.default('none'),
   /** 0..1 — share of operations that fail with `failureMode`. 1 = always. */
   failureRate: z.number().min(0).max(1).default(1),
+  /**
+   * Operation-name prefixes the failure mode applies to (e.g. `['agents.']`
+   * for a partial outage). Empty = every simulated operation.
+   */
+  failureScope: z.array(z.string().min(1)).default([]),
   subscription: SubscriptionStatusSchema.optional(),
   featureFlags: z.record(z.string(), z.boolean()).default({}),
 });
@@ -39,6 +44,7 @@ export const DEFAULT_ENVIRONMENT: EnvironmentState = {
   latencyMs: 0,
   failureMode: 'none',
   failureRate: 1,
+  failureScope: [],
   featureFlags: {},
 };
 
@@ -116,7 +122,10 @@ export function createSimulationEnvironment(
       const latency = state.latencyMs + (state.network === 'slow' ? SLOW_NETWORK_EXTRA_MS : 0);
       await sleep(latency);
       if (state.network === 'offline') throw new SimulatedServiceError('offline', operation);
-      if (state.failureMode !== 'none') {
+      const inScope =
+        state.failureScope.length === 0 ||
+        state.failureScope.some((prefix) => operation.startsWith(prefix));
+      if (state.failureMode !== 'none' && inScope) {
         const count = (callCounts.get(operation) ?? 0) + 1;
         callCounts.set(operation, count);
         const roll = createRng(hashString(`${operation}#${count}`)).next();

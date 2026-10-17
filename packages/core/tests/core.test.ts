@@ -111,6 +111,9 @@ describe('environment', () => {
     await expect(env.run('save', () => 1)).rejects.toMatchObject({ code: 'offline' });
     env.set({ network: 'online', failureMode: 'server-error', failureRate: 1 });
     await expect(env.run('save', () => 1)).rejects.toMatchObject({ code: 'server-error' });
+    env.set({ failureScope: ['agents.'] });
+    await expect(env.run('save', () => 1)).resolves.toBe(1);
+    await expect(env.run('agents.atlas', () => 1)).rejects.toMatchObject({ code: 'server-error' });
   });
 });
 
