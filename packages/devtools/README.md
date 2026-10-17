@@ -33,5 +33,21 @@ guarded). On narrow screens the panel is a bottom sheet with 44px targets.
 
 Styling: Tailwind utilities on the app's `--py-*` tokens (the panel follows
 the active theme), mounted in its own `.py-devtools` host outside `#app`; no
-global CSS is added. Known limit: while an app modal dialog is open, its focus
-trap keeps keyboard focus inside that dialog (the panel stays clickable).
+global CSS is added.
+
+## Working on top of app modals
+
+App dialogs and sheets (Bits UI) trap focus with a capture-phase `focusin`
+listener on `document` and close on outside pointer/focus events. The panel
+host is isolated from both (`isolateFromAppLayers`): `focusin` originating in
+the panel is stopped at `window` (which runs before `document` capture), and
+pointer/focus events are stopped from bubbling out of the host. So
+**Ctrl/⌘ + .** opens the panel above an open app dialog, keyboard focus moves
+into it, and clicking it doesn't dismiss the dialog. While a modal is open the
+launcher docks to the right edge so it never covers dialog actions; it also
+lifts above a fixed `BottomNav` (`data-py-bottom-nav`) or by
+`--py-devtools-offset` on `:root`.
+
+Caveat: focus traps from libraries that listen on `window` in the capture
+phase (not Bits UI) would still win; Tab from the app dialog does not cycle
+into the panel by design — use the shortcut.

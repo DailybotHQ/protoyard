@@ -22,6 +22,7 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
   const host = options.target ?? document.body.appendChild(document.createElement('div'));
   host.classList.add('py-devtools');
   host.dataset.protoyardDevtools = '';
+  const releaseIsolation = isolateFromAppLayers(host);
   const component = mount(Panel, {
     target: host,
     props: { runtime: options.runtime, themes: options.themes ?? [] },
@@ -29,7 +30,33 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
   return {
     async destroy() {
       await unmount(component);
+      releaseIsolation();
       if (!options.target) host.remove();
     },
+  };
+}
+
+/**
+ * App modals (Bits UI dialogs, sheets, popovers) trap focus with a
+ * capture-phase `focusin` listener on `document` and dismiss on outside
+ * pointer/focus events. DevTools must stay usable on top of them:
+ *  - `focusin` from inside the panel is stopped at `window` (capture runs
+ *    before `document`), so the trap never pulls focus back;
+ *  - pointer/focus events bubbling out of the host are stopped, so the app
+ *    layer doesn't treat panel clicks as "outside" and close itself.
+ * Listeners on the host itself (Svelte's delegated handlers) still run.
+ */
+export function isolateFromAppLayers(host: HTMLElement): () => void {
+  const inside = (event: Event) => event.composedPath().includes(host);
+  const guardFocus = (event: FocusEvent) => {
+    if (inside(event)) event.stopImmediatePropagation();
+  };
+  const stopBubble = (event: Event) => event.stopPropagation();
+  const bubbling = ['pointerdown', 'mousedown', 'touchstart', 'click', 'focusin'] as const;
+  window.addEventListener('focusin', guardFocus, true);
+  for (const type of bubbling) host.addEventListener(type, stopBubble);
+  return () => {
+    window.removeEventListener('focusin', guardFocus, true);
+    for (const type of bubbling) host.removeEventListener(type, stopBubble);
   };
 }
