@@ -24,7 +24,7 @@ await panel.destroy();
 | Personas | Acting principal (role, org, capabilities), quick switch (non-destructive), role override, organization switch |
 | Time | UI time vs committed vs reference; preview ±1/7/30 days or at an instant; clear preview; advance 1/7 days with applied/skipped counts; reset clock |
 | Data | Row counts per table, paginated read-only inspector, storage (world/sandbox, database name, backend, eviction protection, usage/quota, request persistence), sandboxes (discard the current one, or clear all others from the default world), reset scenario data |
-| Env | Network online/slow/offline, latency, failure mode + rate + scope prefixes, subscription, feature flags |
+| Env | Network online/slow/offline, latency, failure mode + rate + scope prefixes, subscription, feature flags, and the mock API request log (`@protoyard/http`: method · url · status chip · duration, expandable route/request/response previews, Clear) |
 | Look | Theme swatches, light/dark/system, reduced motion, density slider (0.75–1.25, override only), viewport preset — as a temporary override or saved persona preference |
 | Snaps | Save (name + notes), list, restore, download, delete; import a file with preview + warnings, then import or import & restore |
 | Share | Reproducible, presentation and fresh-sandbox (`?sandbox=try`) links, CLI commands (`pnpm protoyard dev/build/export/publish --dry-run`) — the browser never deploys |

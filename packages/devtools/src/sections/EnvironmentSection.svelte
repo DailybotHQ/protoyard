@@ -14,6 +14,7 @@ import Segmented from '../primitives/Segmented.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
 import Toggle from '../primitives/Toggle.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
+import NetworkLog from './NetworkLog.svelte';
 
 let { dt }: { dt: DevtoolsState } = $props();
 const runtime = $derived(dt.runtime);
@@ -222,3 +223,5 @@ function addScope() {
     Clear environment overrides
   </Btn>
 </Section>
+
+<NetworkLog {dt} />

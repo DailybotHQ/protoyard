@@ -178,6 +178,31 @@ describe('DevTools panel', () => {
     expect(left).toEqual([]);
   });
 
+  it('lists mock API requests with status chips and expandable previews', async () => {
+    const { createMockApi, json } = await import('@protoyard/http');
+    const { runtime, panel } = await open();
+    const api = createMockApi(runtime, {
+      baseUrl: '/api',
+      routes: { 'GET /ping': () => json({ ok: true }) },
+    });
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Env' }));
+    await settle();
+    expect(within(panel).getByText('No mock API requests yet.')).toBeTruthy();
+    await api.fetch('/api/ping');
+    await api.fetch('/api/missing');
+    await settle();
+    const list = within(panel).getByRole('list', { name: 'Mock API requests' });
+    expect(within(list).getByText('200')).toBeTruthy();
+    expect(within(list).getByText('404')).toBeTruthy();
+    await fireEvent.click(within(list).getAllByRole('button')[1] as HTMLElement);
+    await settle();
+    expect(within(list).getByText('GET /ping')).toBeTruthy();
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Clear' }));
+    await settle();
+    expect(within(panel).getByText('No mock API requests yet.')).toBeTruthy();
+    api.unregister();
+  });
+
   it('builds reproducible links with only scenario coordinates', async () => {
     const runtime = createFakeRuntime();
     await runtime.scenarios.load('busy', { seed: 99 });
