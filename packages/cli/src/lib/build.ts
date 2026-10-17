@@ -1,8 +1,10 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { digestDirectory, type FileDigest, listFiles } from './checksum.ts';
+import { findEscapingSymlinks } from './links.ts';
 import { CliError } from './output.ts';
+import { BUILD_MARKER, guardOutputDir } from './output-guard.ts';
 import { childPath, isInside, toPosixRelative } from './paths.ts';
 import { type RegistryEntry, writeJsonAtomic } from './registry.ts';
 import { normalizeBase, viteBuild } from './vite.ts';
@@ -44,8 +46,14 @@ export interface BuildOptions {
   base?: string;
   includeDevtools?: boolean;
   out?: string;
-  /** Where build-manifest.json goes (default: next to dist in the artifact folder). */
+  /**
+   * Where build-manifest.json goes. Default: artifacts/<slug>/ for the default
+   * output; for a custom --out only the marker inside it (so a custom build
+   * never overwrites the default build's manifest).
+   */
   manifestPath?: string;
+  /** Permit an --out outside the workspace (must be new, empty or ours). */
+  allowExternalOut?: boolean;
 }
 
 export interface BuildResult {
@@ -71,37 +79,22 @@ export function artifactDir(
 }
 
 /**
- * Vite empties the output directory, so a custom `--out` must never be (or
- * contain) the workspace or any source folder.
+ * Vite empties the output directory, so every output folder goes through the
+ * allow-list guard (lib/output-guard.ts). The default needs no flag.
  */
 export function resolveOutDir(
   ctx: CommandContext,
   entry: Pick<RegistryEntry, 'kind' | 'slug'>,
-  out?: string
+  out?: string,
+  options: { allowExternal?: boolean } = {}
 ): string {
-  if (!out) return join(artifactDir(ctx, entry), 'dist');
-  const target = resolve(ctx.root, out);
-  const protectedDirs = [
-    ctx.root,
-    ctx.paths.prototypes,
-    ctx.paths.templates,
-    join(ctx.root, 'packages'),
-    join(ctx.root, 'apps'),
-    join(ctx.root, 'node_modules'),
-    join(ctx.root, '.git'),
-  ];
-  for (const dir of protectedDirs) {
-    if (isInside(target, dir) || (dir !== ctx.root && isInside(dir, target))) {
-      throw new CliError(
-        'unsafe_path',
-        `Refusing --out ${target}: it would overwrite source files.`,
-        {
-          hint: 'Use a dedicated folder such as artifacts/<slug>/dist (the default) or tmp/out.',
-        }
-      );
-    }
-  }
-  return target;
+  return guardOutputDir({
+    root: ctx.root,
+    paths: ctx.paths,
+    requested: out ?? join(artifactDir(ctx, entry), 'dist'),
+    marker: BUILD_MARKER,
+    ...(options.allowExternal ? { allowExternal: true } : {}),
+  });
 }
 
 /** Checks that index.html exists and every local asset it references was emitted. */
@@ -138,7 +131,19 @@ export async function buildPrototype(
   };
   const base = normalizeBase(options.base, manifestRaw.build?.base ?? './');
   const includeDevtools = options.includeDevtools ?? manifestRaw.build?.includeDevtools ?? false;
-  const outDir = resolveOutDir(ctx, entry, options.out);
+  const outDir = resolveOutDir(ctx, entry, options.out, {
+    allowExternal: options.allowExternalOut,
+  });
+  const unsafeLinks = findEscapingSymlinks(dir);
+  if (unsafeLinks.length > 0) {
+    throw new CliError(
+      'validation',
+      `${entry.slug} contains symlinks that point outside its folder.`,
+      {
+        hint: `Builds dereference links, which would publish the targets: ${unsafeLinks.join(', ')}. Replace them with real files.`,
+      }
+    );
+  }
   await mkdir(dirname(outDir), { recursive: true });
 
   const { code, log } = await viteBuild({
@@ -186,9 +191,16 @@ export async function buildPrototype(
     },
     node: process.versions.node,
   };
+  // The marker both proves a later --out run may empty this folder again and
+  // records what was built there. It is excluded from digests and ZIPs.
+  await writeJsonAtomic(join(outDir, BUILD_MARKER), manifest);
+  const isDefaultOut = options.out === undefined;
   const manifestPath =
-    options.manifestPath ?? join(artifactDir(ctx, entry), BUILD_MANIFEST_FILENAME);
-  await writeJsonAtomic(manifestPath, manifest);
+    options.manifestPath ??
+    (isDefaultOut
+      ? join(artifactDir(ctx, entry), BUILD_MANIFEST_FILENAME)
+      : join(outDir, BUILD_MARKER));
+  if (manifestPath !== join(outDir, BUILD_MARKER)) await writeJsonAtomic(manifestPath, manifest);
   return { manifest, manifestPath, outDir, durationMs: performance.now() - started };
 }
 

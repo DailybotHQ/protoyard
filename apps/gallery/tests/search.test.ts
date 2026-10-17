@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { agentPrompt, newCommand, shellQuote } from '../src/lib/commands';
+import { localDevUrl } from '../src/lib/control.svelte';
 import { clampDimension, fitScale, safePreviewUrl } from '../src/lib/devices';
 import {
   applyQuery,
@@ -98,6 +99,10 @@ describe('gallery helpers', () => {
     expect(safePreviewUrl('http://localhost:5173')).toBe('http://localhost:5173/');
     expect(safePreviewUrl('javascript:alert(1)')).toBeNull();
     expect(safePreviewUrl('not a url')).toBeNull();
+    expect(localDevUrl('http://localhost:5173/')).toBe('http://localhost:5173/');
+    expect(localDevUrl('http://127.0.0.1:5174')).toBe('http://127.0.0.1:5174/');
+    expect(localDevUrl('https://evil.example/')).toBeNull();
+    expect(localDevUrl('javascript:alert(1)')).toBeNull();
     expect(clampDimension(10)).toBe(240);
     expect(clampDimension(99999)).toBe(3840);
     expect(fitScale(640, 1280)).toBe(0.5);

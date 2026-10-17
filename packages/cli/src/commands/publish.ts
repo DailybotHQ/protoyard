@@ -93,7 +93,7 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
   if (dryRun) {
     // Local checks only (PATH lookup); no provider API is contacted.
     const availability = await provider
-      .isAvailable()
+      .isAvailable({ localOnly: true })
       .catch(() => ({ available: false, hint: undefined }));
     const command = provider.command(input);
     const setup = provider.setupCommands?.(input) ?? [];

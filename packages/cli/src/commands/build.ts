@@ -13,6 +13,7 @@ export function buildOptionsFrom(options: Record<string, unknown>): BuildOptions
     ...(opt(options, 'base') !== undefined ? { base: opt(options, 'base') } : {}),
     ...(flag(options, 'includeDevtools') ? { includeDevtools: true } : {}),
     ...(opt(options, 'out') !== undefined ? { out: opt(options, 'out') } : {}),
+    ...(flag(options, 'allowExternalOut') ? { allowExternalOut: true } : {}),
   };
 }
 

@@ -21,6 +21,11 @@ import { assertSlug, readPackageJson, resolveTarget } from '../lib/workspace.ts'
 
 /** Never copied from a template: build output, installs and local state. */
 const SKIP_NAMES = new Set([
+  // Local secrets and history never travel into a new prototype.
+  '.git',
+  '.env',
+  '.envrc',
+  '.npmrc',
   'node_modules',
   'dist',
   '.astro',
@@ -44,7 +49,7 @@ export async function copyTemplate(source: string, destination: string): Promise
   let count = 0;
   await mkdir(destination, { recursive: true });
   for (const entry of await readdir(source, { withFileTypes: true })) {
-    if (SKIP_NAMES.has(entry.name)) continue;
+    if (SKIP_NAMES.has(entry.name) || /^\.env\.(?!example$)/.test(entry.name)) continue;
     const from = join(source, entry.name);
     const to = join(destination, entry.name);
     if (entry.isDirectory()) count += await copyTemplate(from, to);
@@ -106,7 +111,8 @@ export async function personalize(dir: string, input: NewProjectInput) {
   if (existsSync(readmePath)) {
     const readme = await readFile(readmePath, 'utf8');
     const titled = /^# .*$/m.test(readme)
-      ? readme.replace(/^# .*$/m, `# ${input.name}`)
+      ? // A function replacer: "$&" or "$1" in a name must stay literal text.
+        readme.replace(/^# .*$/m, () => `# ${input.name}`)
       : `# ${input.name}\n\n${readme}`;
     await writeFile(readmePath, titled);
   }

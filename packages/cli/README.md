@@ -86,6 +86,28 @@ With `--json`, stdout holds exactly one envelope:
 Commands that complete with failing checks (`validate`, `scenario validate`, `build --all`,
 `snapshot list`, `showcase`) return `ok: false` and keep the full `data`.
 
+## Output folders (`--out`)
+
+The CLI empties or replaces output folders, so the destination is allow-listed. The check runs on
+canonical paths: symlinks are resolved, and letter case is compared case-insensitively on macOS
+and Windows.
+
+- **Strictly inside `artifacts/` or `tmp/`:** always allowed. The default
+  (`artifacts/<slug>/dist`, or `artifacts/template-<name>/dist` for templates) needs no flag.
+- **Anywhere else in the workspace:** only a new or empty folder, or one Protoyard wrote before. A
+  build leaves a hidden `.protoyard-out` marker (it also holds that build's manifest); a showcase
+  leaves `.protoyard-showcase`.
+- **Outside the workspace:** additionally needs `--allow-external-out`.
+- **Never allowed:** the workspace or its parents, your home folder, `.git`, `node_modules`,
+  `packages`, `apps`, `prototypes`, `templates`, `docs`, `scripts`, `tests`, `.github`,
+  `.agents`, `.claude` or `.dwp`, nor a path that is itself a symlink.
+- **Markers stay out of artifacts:** they are excluded from digests, build manifests and ZIPs.
+
+Builds also refuse prototypes containing symlinks that point outside their folder (for example
+`public/x → ../../.env`), because Vite would copy the target into the output. `validate` reports
+these as a failing `symlinks` check. Discovery never indexes symlinked prototype folders or
+symlinked manifests.
+
 ## Trust model
 
 - **Indexing never executes code.** Manifests are JSON parsed with the core zod schema.
@@ -95,6 +117,14 @@ Commands that complete with failing checks (`validate`, `scenario validate`, `bu
   prototypes you trust (your own workspace).
 - Child processes always get an argv array (`shell: false`). Slugs, paths and project names never
   pass through a shell.
+- `preview` and `showcase --serve` serve only files whose real path is inside the output folder
+  (symlinks leaving it get 403), answer malformed URL escapes with 400, and send
+  `X-Content-Type-Options: nosniff`.
+- `publish --dry-run` and `doctor --offline` locate provider CLIs on `PATH` and in
+  `node_modules/.bin` only. They never spawn `npx`, so the npm registry is never contacted. Real
+  publishes may fall back to `npx --no-install` with `npm_config_offline=true`.
+- `new` never copies `.env*` (except `.env.example`), `.envrc`, `.npmrc` or `.git` from a
+  template.
 - The control server binds to `127.0.0.1`. It accepts only loopback `Host` headers (a DNS
   rebinding guard) and allow-listed `Origin`s (POST requires one), starts only slugs found in the
   registry, and runs at most 8 dev servers at once.

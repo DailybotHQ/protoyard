@@ -7,6 +7,7 @@ import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
 import { readManifest, statManifest } from '../lib/discovery.ts';
 import { inspectPrototype } from '../lib/inspect.ts';
+import { findEscapingSymlinks } from '../lib/links.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
 import { childPath, toPosixRelative } from '../lib/paths.ts';
 import { resolvePackageBin, run, stripAnsi } from '../lib/process.ts';
@@ -211,6 +212,16 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
       : check('manifest', 'protoyard.json schema', 'fail', parsed.errors)
   );
   checks.push(checkContractFiles(dir));
+  const links = findEscapingSymlinks(dir);
+  checks.push(
+    links.length > 0
+      ? check('symlinks', 'No symlinks leaving the folder', 'fail', [
+          ...links.map(
+            (l) => `${l} points outside the prototype (builds would publish its target)`
+          ),
+        ])
+      : check('symlinks', 'No symlinks leaving the folder', 'pass')
+  );
   checks.push(checkPackage(dir, slug, kind));
 
   if (parsed.manifest) {

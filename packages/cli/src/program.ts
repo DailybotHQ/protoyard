@@ -123,7 +123,14 @@ export function createProgram(env: RunnerEnv): Command {
       .description('production build of one prototype (or --all) into artifacts/<slug>/dist')
       .argument('[slug]')
       .option('--all', 'build every prototype sequentially')
-      .option('--out <dir>', 'custom output folder (never a source folder)')
+      .option(
+        '--out <dir>',
+        'custom output folder: under artifacts/ or tmp/, or a new/empty folder'
+      )
+      .option(
+        '--allow-external-out',
+        'permit an --out outside the workspace (must be new or empty)'
+      )
   ).action(def('build', buildCommand));
 
   buildOptions(
@@ -183,6 +190,10 @@ export function createProgram(env: RunnerEnv): Command {
     .command('showcase')
     .description('ONE static site: the gallery + every prototype build at <base>p/<slug>/app/')
     .option('--out <dir>', 'output folder', 'artifacts/showcase')
+    .option(
+      '--allow-external-out',
+      'permit an --out outside the workspace (must be new, empty or a previous showcase)'
+    )
     .option('--base <path>', 'absolute public base of the site', '/')
     .option('--no-devtools', 'leave the DevTools panel out of the bundled prototypes')
     .option('--include-templates', 'also bundle templates at <base>t/<name>/app/')

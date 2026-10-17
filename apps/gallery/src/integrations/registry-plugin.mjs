@@ -1,14 +1,25 @@
 // @ts-check
-import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
+import {
+  createReadStream,
+  existsSync,
+  lstatSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from 'node:fs';
 import { copyFile, mkdir } from 'node:fs/promises';
-import { dirname, extname, join, relative, resolve, sep } from 'node:path';
+import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const VIRTUAL_ID = 'virtual:protoyard-registry';
 const RESOLVED_ID = `\0${VIRTUAL_ID}`;
 const THUMBNAIL_DIR = 'thumbnails';
 const THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024;
-/** @type {Record<string, string>} */
+/**
+ * Raster formats only: an SVG opened directly from the gallery origin can run
+ * script, so it is never published as a thumbnail.
+ * @type {Record<string, string>}
+ */
 const IMAGE_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -16,7 +27,6 @@ const IMAGE_TYPES = {
   '.webp': 'image/webp',
   '.avif': 'image/avif',
   '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
 };
 
 /**
@@ -30,7 +40,19 @@ function readRegistry(registryPath) {
   try {
     const parsed = JSON.parse(readFileSync(registryPath, 'utf8'));
     if (parsed && parsed.format === 'protoyard.registry' && Array.isArray(parsed.entries)) {
-      return { registry: parsed, error: null };
+      // Slugs become page routes and file names: drop entries that could
+      // escape (e.g. slug "../../x") instead of trusting the file.
+      const entries = parsed.entries.filter(
+        (/** @type {Record<string, unknown>} */ e) =>
+          e &&
+          typeof e.slug === 'string' &&
+          SLUG_PATTERN.test(e.slug) &&
+          KINDS.has(/** @type {string} */ (e.kind)) &&
+          typeof e.path === 'string' &&
+          !isAbsolute(e.path) &&
+          !e.path.split(/[\\/]/).includes('..')
+      );
+      return { registry: { ...parsed, entries }, error: null };
     }
     return { registry: null, error: 'The registry file has an unexpected format.' };
   } catch (e) {
@@ -41,10 +63,28 @@ function readRegistry(registryPath) {
   }
 }
 
+/** Mirrors core SLUG_PATTERN; a registry file is untrusted input (PROTOYARD_REGISTRY). */
+const SLUG_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const KINDS = new Set(['prototype', 'template']);
+
 /**
- * Resolves manifest thumbnails to files the gallery may publish. A thumbnail
- * must stay inside its own prototype folder, be an image type and be at most
- * 2 MB; anything else is ignored (the card falls back to the icon).
+ * @param {string} parent
+ * @param {string} child
+ */
+function contains(parent, child) {
+  const rel = relative(parent, child);
+  return rel === '' || (!isAbsolute(rel) && rel.split(sep)[0] !== '..');
+}
+
+/**
+ * Resolves manifest thumbnails to files the gallery may publish. Rules:
+ *  - the entry's slug matches SLUG_PATTERN and its kind is prototype/template
+ *    (the copied file name derives from them);
+ *  - neither the folder nor the thumbnail is a symlink, and the REAL
+ *    thumbnail path stays inside the REAL folder, itself inside the workspace;
+ *  - it is an image type and at most 2 MB.
+ * Anything else falls back to the icon: a committed symlink such as
+ * public/thumbnail.png → ~/.ssh/id_ed25519 is never copied into the site.
  *
  * @param {string} workspaceRoot
  * @param {EntryLike[]} entries
@@ -53,19 +93,31 @@ function readRegistry(registryPath) {
 export function resolveThumbnails(workspaceRoot, entries) {
   /** @type {Map<string, Thumbnail>} */
   const out = new Map();
+  let realRoot;
+  try {
+    realRoot = realpathSync.native(workspaceRoot);
+  } catch {
+    return out;
+  }
   for (const entry of entries) {
-    if (!entry.thumbnail) continue;
+    if (typeof entry.thumbnail !== 'string' || entry.thumbnail === '') continue;
+    if (typeof entry.slug !== 'string' || !SLUG_PATTERN.test(entry.slug)) continue;
+    if (!KINDS.has(entry.kind) || typeof entry.path !== 'string') continue;
     const folder = resolve(workspaceRoot, entry.path);
     const source = resolve(folder, entry.thumbnail);
-    const rel = relative(folder, source);
-    if (rel.startsWith('..') || rel.split(sep)[0] === '..' || resolve(folder, rel) !== source)
-      continue;
+    if (!contains(folder, source)) continue;
     const ext = extname(source).toLowerCase();
     if (!IMAGE_TYPES[ext]) continue;
+    let real = '';
     let size = 0;
     let mtime = 0;
     try {
-      const s = statSync(source);
+      if (lstatSync(folder).isSymbolicLink() || lstatSync(source).isSymbolicLink()) continue;
+      const realFolder = realpathSync.native(folder);
+      real = realpathSync.native(source);
+      if (realFolder === realRoot || !contains(realRoot, realFolder) || !contains(realFolder, real))
+        continue;
+      const s = statSync(real);
       if (!s.isFile()) continue;
       size = s.size;
       mtime = Math.round(s.mtimeMs);
@@ -76,7 +128,7 @@ export function resolveThumbnails(workspaceRoot, entries) {
     const file = `${entry.kind}-${entry.slug}${ext}`;
     // The mtime query busts browser caches when a thumbnail is regenerated.
     out.set(`${entry.kind}:${entry.slug}`, {
-      source,
+      source: real,
       file,
       url: `${THUMBNAIL_DIR}/${file}?v=${mtime.toString(36)}`,
     });

@@ -1,5 +1,5 @@
 import { existsSync, realpathSync } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { CliError } from './output.ts';
 
 /** Workspace-relative locations every command agrees on. */
@@ -59,10 +59,50 @@ export function resolveWorkspaceRoot(options: { root?: string; cwd?: string } = 
   });
 }
 
-/** True when `child` is `parent` itself or strictly inside it. */
+/** macOS (APFS/HFS+ default) and Windows file systems are case-insensitive. */
+export const CASE_INSENSITIVE_FS = process.platform === 'darwin' || process.platform === 'win32';
+
+/**
+ * Canonical form of a path: symlinks resolved and on-disk letter case
+ * restored for the longest EXISTING ancestor (`realpathSync.native`), with
+ * the not-yet-existing tail re-appended. Two spellings of the same folder
+ * (`PROTOTYPES` vs `prototypes`, a symlink vs its target) canonicalize equal.
+ */
+export function canonicalPath(path: string): string {
+  let current = resolve(path);
+  const rest: string[] = [];
+  while (!existsSync(current)) {
+    const parent = dirname(current);
+    if (parent === current) break;
+    rest.unshift(basename(current));
+    current = parent;
+  }
+  let real = current;
+  try {
+    real = realpathSync.native(current);
+  } catch {
+    // unreadable ancestor: fall back to the lexical path
+  }
+  return rest.length > 0 ? join(real, ...rest) : real;
+}
+
+function comparable(path: string): string {
+  return CASE_INSENSITIVE_FS ? path.toLowerCase() : path;
+}
+
+/**
+ * True when `child` is `parent` itself or strictly inside it, comparing
+ * canonical paths — so neither letter case nor symlinks can smuggle a path
+ * past a containment check.
+ */
 export function isInside(parent: string, child: string): boolean {
-  const rel = relative(resolve(parent), resolve(child));
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel) && rel.split(sep)[0] !== '..');
+  const rel = relative(comparable(canonicalPath(parent)), comparable(canonicalPath(child)));
+  return rel === '' || (!isAbsolute(rel) && rel.split(sep)[0] !== '..');
+}
+
+/** Same path after canonicalization (case-insensitive where the file system is). */
+export function samePath(a: string, b: string): boolean {
+  return comparable(canonicalPath(a)) === comparable(canonicalPath(b));
 }
 
 /**

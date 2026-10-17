@@ -66,11 +66,12 @@ export function createNetlifyProvider(root: string): PublishProvider {
       /^[A-Za-z0-9][A-Za-z0-9-]{0,62}$/.test(project)
         ? null
         : 'Use a Netlify site name or site id.',
-    async isAvailable() {
+    async isAvailable(options = {}) {
       const { invocation: inv, ...availability } = await toolAvailability(
         'netlify',
         root,
-        INSTALL_HINT
+        INSTALL_HINT,
+        options
       );
       if (inv && availability.available) cached = inv;
       return availability;

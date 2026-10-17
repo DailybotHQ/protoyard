@@ -13,14 +13,29 @@ export interface ToolInvocation {
   via: string;
 }
 
-export async function locateTool(binary: string, root: string): Promise<ToolInvocation | null> {
+export interface LocateOptions {
+  /** PATH and node_modules/.bin only — never spawn npx (dry runs, doctor --offline). */
+  localOnly?: boolean;
+}
+
+export async function locateTool(
+  binary: string,
+  root: string,
+  options: LocateOptions = {}
+): Promise<ToolInvocation | null> {
   const onPath = await which(binary);
   if (onPath) return { argv: [onPath], via: binary };
   const local = join(root, 'node_modules', '.bin', binary);
   if (existsSync(local)) return { argv: [local], via: `node_modules/.bin/${binary}` };
+  if (options.localOnly) return null;
   const npx = await which('npx');
   if (npx) {
-    const probe = await run(npx, ['--no-install', binary, '--version'], { timeoutMs: 20_000 });
+    // --no-install alone still asks the registry about the package; offline
+    // mode limits the probe to the local npm cache.
+    const probe = await run(npx, ['--no-install', binary, '--version'], {
+      timeoutMs: 20_000,
+      env: { ...process.env, npm_config_offline: 'true' },
+    });
     if (probe.code === 0)
       return { argv: [npx, '--no-install', binary], via: `npx --no-install ${binary}` };
   }
@@ -30,12 +45,16 @@ export async function locateTool(binary: string, root: string): Promise<ToolInvo
 export async function toolAvailability(
   binary: string,
   root: string,
-  installHint: string
+  installHint: string,
+  options: LocateOptions = {}
 ): Promise<Availability & { invocation?: ToolInvocation }> {
-  const invocation = await locateTool(binary, root);
+  const invocation = await locateTool(binary, root, options);
   if (!invocation) return { available: false, hint: installHint };
   const [cmd, ...prefix] = invocation.argv as [string, ...string[]];
-  const version = await run(cmd, [...prefix, '--version'], { timeoutMs: 20_000 });
+  const version = await run(cmd, [...prefix, '--version'], {
+    timeoutMs: 20_000,
+    env: { ...process.env, npm_config_offline: 'true' },
+  });
   const firstLine = stripAnsi(version.stdout).trim().split('\n').find(Boolean);
   return {
     available: version.code === 0,

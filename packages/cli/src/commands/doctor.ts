@@ -195,11 +195,12 @@ function playwrightCheck(): DoctorCheck {
       );
 }
 
-async function providerChecks(ctx: CommandContext, checkAuth: boolean): Promise<DoctorCheck[]> {
+async function providerChecks(ctx: CommandContext, offline: boolean): Promise<DoctorCheck[]> {
+  const checkAuth = !offline;
   const out: DoctorCheck[] = [];
   for (const id of ['cloudflare', 'netlify', 'vercel'] as const) {
     const provider = createProvider(id, ctx.root);
-    const availability = await provider.isAvailable();
+    const availability = await provider.isAvailable({ localOnly: offline });
     const label = `${provider.label}${provider.experimental ? ' (experimental)' : ''}`;
     if (!availability.available) {
       out.push(
@@ -278,8 +279,7 @@ export const doctorCommand: Handler = async (ctx, _args, options): Promise<Comma
   }
   checks.push(await gitCheck(ctx));
   checks.push(playwrightCheck());
-  if (!flag(options, 'offline')) checks.push(...(await providerChecks(ctx, true)));
-  else checks.push(...(await providerChecks(ctx, false)));
+  checks.push(...(await providerChecks(ctx, flag(options, 'offline'))));
 
   const failed = checks.filter((c) => c.required && c.status === 'fail');
   return {

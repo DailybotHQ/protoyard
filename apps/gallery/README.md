@@ -47,8 +47,11 @@ The gallery consumes `protoyard.registry` v1 (`format`, `version`, `generatedAt`
   one, and showcases use `.protoyard/showcase-registry.json`. Entry paths resolve against the folder
   that holds that file's `.protoyard/`.
 - **`thumbnail`** (from `protoyard.json`, relative to the prototype folder): published only if it
-  stays inside that folder, is an image (`png`, `jpg`, `webp`, `avif`, `gif`, `svg`) and is at most
-  2 MB. Otherwise the card falls back to the icon.
+  stays inside that folder, is a raster image (`png`, `jpg`, `webp`, `avif`, `gif`; no SVG, which could run script on
+  the gallery origin) and is at most 2 MB. Neither the folder nor the file may be a symlink, and its
+  real path must stay inside the real prototype folder. Otherwise the card falls back to the icon.
+  Untrusted registries are filtered: entries with a slug that fails `SLUG_PATTERN`, an unknown kind
+  or a `..` path are dropped.
 - **`embedded: { url }`** (added only by `protoyard showcase`): the prototype's static build ships
   inside the site at `<base><url>`.
 

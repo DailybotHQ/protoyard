@@ -24,7 +24,13 @@ export function sha256Text(data: string | Uint8Array): string {
   return createHash('sha256').update(data).digest('hex');
 }
 
-/** All regular files under `root`, sorted by POSIX path for stable output. */
+/** Bookkeeping files the CLI writes into outputs (see lib/output-guard.ts). */
+const IGNORED_FILES = new Set(['.protoyard-out', '.protoyard-showcase']);
+
+/**
+ * All regular files under `root`, sorted by POSIX path for stable output.
+ * Symlinks are not followed and output markers are skipped.
+ */
 export async function listFiles(root: string): Promise<string[]> {
   const out: string[] = [];
   async function walk(dir: string) {
@@ -32,7 +38,7 @@ export async function listFiles(root: string): Promise<string[]> {
     for (const entry of entries) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) await walk(full);
-      else if (entry.isFile()) out.push(full);
+      else if (entry.isFile() && !IGNORED_FILES.has(entry.name)) out.push(full);
     }
   }
   await walk(root);

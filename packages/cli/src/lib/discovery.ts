@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { lstat, readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MANIFEST_FILENAME, type PrototypeManifest, safeParseManifest } from '@protoyard/core';
 import { toPosixRelative, type WorkspacePaths } from './paths.ts';
@@ -21,6 +21,11 @@ export interface ManifestLocation {
   manifestPath: string;
   /** Workspace-relative POSIX path of the folder, e.g. `prototypes/crm-demo`. */
   relDir: string;
+  /**
+   * The folder is a symlink. It is reported, never indexed: a linked folder
+   * could point anywhere on disk and pull outside files into builds.
+   */
+  symlink?: boolean;
 }
 
 export interface ManifestStat {
@@ -46,13 +51,18 @@ export async function listManifestLocations(paths: WorkspacePaths): Promise<Mani
       const entries = await readdir(base, { withFileTypes: true });
       names = entries
         .filter((e) => (e.isDirectory() || e.isSymbolicLink()) && !/^[._]/.test(e.name))
-        .map((e) => e.name);
+        .map((e) => (e.isSymbolicLink() ? `\0${e.name}` : e.name));
     } catch {
       continue;
     }
-    for (const folder of names.sort()) {
+    for (const raw of names.sort((a, b) =>
+      a.replace('\0', '').localeCompare(b.replace('\0', ''))
+    )) {
+      const symlink = raw.startsWith('\0');
+      const folder = symlink ? raw.slice(1) : raw;
       const dir = join(base, folder);
       out.push({
+        ...(symlink ? { symlink: true } : {}),
         folderKind,
         folder,
         dir,
@@ -65,7 +75,11 @@ export async function listManifestLocations(paths: WorkspacePaths): Promise<Mani
 }
 
 export async function statManifest(location: ManifestLocation): Promise<ManifestStat | null> {
+  if (location.symlink) return null;
   try {
+    const link = await lstat(location.manifestPath);
+    // A symlinked manifest is treated as missing data; readManifest explains why.
+    if (link.isSymbolicLink()) return null;
     const s = await stat(location.manifestPath);
     if (!s.isFile()) return null;
     return { mtimeMs: s.mtimeMs, size: s.size };
@@ -79,7 +93,28 @@ export async function readManifest(
   location: ManifestLocation,
   fileStat: ManifestStat | null
 ): Promise<ParsedManifest> {
-  if (!fileStat) return { manifest: null, errors: [`Missing ${MANIFEST_FILENAME}.`] };
+  if (location.symlink) {
+    return {
+      manifest: null,
+      errors: ['This folder is a symlink; symlinked prototype folders are not indexed or built.'],
+    };
+  }
+  if (!fileStat) {
+    let linked = false;
+    try {
+      linked = (await lstat(location.manifestPath)).isSymbolicLink();
+    } catch {
+      // missing
+    }
+    return {
+      manifest: null,
+      errors: [
+        linked
+          ? `${MANIFEST_FILENAME} is a symlink; it must be a regular file.`
+          : `Missing ${MANIFEST_FILENAME}.`,
+      ],
+    };
+  }
   if (fileStat.size > MANIFEST_MAX_BYTES) {
     return {
       manifest: null,

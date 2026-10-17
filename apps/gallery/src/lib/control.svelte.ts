@@ -1,3 +1,5 @@
+import { safePreviewUrl } from './devices';
+
 /**
  * Client for the local control server started by `pnpm dev`
  * (packages/cli/src/control-server.ts). On a static deployment there is no
@@ -15,6 +17,17 @@ export interface RunningServer {
 }
 
 type Status = 'unknown' | 'checking' | 'available' | 'unavailable';
+
+/**
+ * Dev servers started by the control server always listen on this machine.
+ * Anything else (another host, a javascript: URL) is never framed or linked.
+ */
+export function localDevUrl(input: string): string | null {
+  const url = safePreviewUrl(input);
+  if (!url) return null;
+  const host = new URL(url).hostname;
+  return ['localhost', '127.0.0.1', '[::1]'].includes(host) ? url : null;
+}
 
 async function fetchJson(url: string, init: RequestInit & { timeoutMs?: number } = {}) {
   const controller = new AbortController();
@@ -57,7 +70,10 @@ class ControlClient {
         timeoutMs: DETECT_TIMEOUT_MS,
       });
       if (!result.ok) throw new Error('unavailable');
-      this.running = (result.body.running as RunningServer[]) ?? [];
+      const listed = Array.isArray(result.body.running)
+        ? (result.body.running as RunningServer[])
+        : [];
+      this.running = listed.filter((r) => localDevUrl(String(r.url)) !== null);
       this.status = 'available';
     } catch {
       this.status = 'unavailable';
@@ -78,9 +94,12 @@ class ControlClient {
         timeoutMs: 90_000,
       });
       if (!result.ok) throw new Error(String(result.body.error ?? `HTTP ${result.status}`));
+      const url = localDevUrl(String(result.body.url));
+      if (!url)
+        throw new Error('The control server returned a non-local URL; refusing to open it.');
       const server: RunningServer = {
         slug,
-        url: String(result.body.url),
+        url,
         port: Number(result.body.port),
         startedAt: new Date().toISOString(),
       };

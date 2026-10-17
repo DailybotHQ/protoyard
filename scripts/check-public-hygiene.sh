@@ -10,14 +10,17 @@
 # text, so a real secret is not echoed into a CI log.
 #
 # Rules:
-#   env-file        a tracked .env / .env.* file (only .env.example is allowed)
+#   env-file        a tracked .env / .env.* / .envrc file (only .env.example is allowed)
+#   symlink-escape  a tracked symlink whose target is absolute or leaves the
+#                   repository (it would pull an outside file into builds)
 #   large-file      a tracked file over --max-kb (default 1024 KB); lockfiles exempt
 #   personal-path   absolute home paths (/Users/<name>, /home/<name>), except
 #                   the stock CI/container accounts (runner, node, user, ubuntu)
 #   private-email   @dailybot.com addresses other than the public aliases
 #   secret-*        credential shapes (AWS, GitHub, Anthropic/OpenAI, Slack,
 #                   Google, Cloudflare/Netlify/Vercel-style quoted tokens,
-#                   private-key headers, long quoted secret assignments)
+#                   private-key headers, long quoted secret assignments,
+#                   npm tokens and _authToken lines, JWTs)
 #
 # A fixture that needs a secret-shaped string lists it in
 # .public-hygiene-allow as `<path> <secret-rule> <reason>`; only secret-*
@@ -56,6 +59,8 @@ secret-ai	sk-ant-[A-Za-z0-9_-]{20,}|sk-(proj|svcacct|admin)-[A-Za-z0-9_-]{20,}|s
 secret-slack	xox[abposr]-[A-Za-z0-9-]{10,}	-
 secret-google	AIza[0-9A-Za-z_-]{35}	-
 secret-private-key	-----BEGIN ([A-Z0-9]+ )*PRIVATE KEY-----	-
+secret-npm	npm_[A-Za-z0-9]{36}|_authToken[[:space:]]*=[[:space:]]*[^$[:space:]][^[:space:]]{8,}	-
+secret-jwt	eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}	-
 secret-assignment	(api[_-]?key|secret|token|passw(or)?d|access[_-]?key)[A-Za-z0-9_]*["']?[[:space:]]*[:=][[:space:]]*["'][^"'[:space:]$]{16,}["']	i
 secret-env	^[[:space:]]*(export[[:space:]]+)?[A-Z0-9_]*(API_?KEY|SECRET|TOKEN|PASSWORD|PASSWD|ACCESS_KEY)[A-Z0-9_]*=[^"'[:space:]$]{16,}	-
 RULES
@@ -90,7 +95,7 @@ while IFS= read -r f; do
   base=${f##*/}
   case "$base" in
     .env.example | .env.*.example) ;;
-    .env | .env.*) report "$f" 1 env-file "environment files must never be tracked" ;;
+    .env | .env.* | .envrc) report "$f" 1 env-file "environment files must never be tracked" ;;
   esac
   case "$base" in pnpm-lock.yaml | package-lock.json | yarn.lock) continue ;; esac
   size_kb=$(( ($(wc -c <"$f") + 1023) / 1024 ))
@@ -98,6 +103,32 @@ while IFS= read -r f; do
 done <<EOF_FILES
 $files
 EOF_FILES
+
+# Tracked symlinks (git mode 120000): the target must stay inside the repo.
+repo_root=$(pwd -P)
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  path=${line#*	}
+  case "$path" in .agents/skills/* | .claude/*) continue ;; esac
+  target=$(git cat-file -p "$(printf '%s' "$line" | awk '{print $2}')" 2>/dev/null) || continue
+  case "$target" in
+    /*) report "$path" 1 symlink-escape "absolute target" ; continue ;;
+  esac
+  link_dir=$(dirname "$path")
+  resolved=$(cd "$link_dir" 2>/dev/null && cd "$(dirname "$target")" 2>/dev/null && pwd -P) || resolved=""
+  case "$resolved" in
+    "$repo_root" | "$repo_root"/*) ;;
+    *)
+      # Unresolvable (dangling) or outside: count ".." segments lexically as a fallback.
+      depth=$(printf '%s' "$link_dir" | awk -F/ '{print ($0=="."?0:NF)}')
+      ups=$(printf '%s' "$target" | awk -F/ '{n=0; for (i=1;i<=NF;i++) if ($i=="..") n++; print n}')
+      if [ -z "$resolved" ] && [ "$ups" -le "$depth" ]; then continue; fi
+      report "$path" 1 symlink-escape "target leaves the repository"
+      ;;
+  esac
+done <<EOF_LINKS
+$(git ls-files -s | awk '$1 == "120000"')
+EOF_LINKS
 
 # Content rules (text files only: grep -I skips binaries). Hits print from a
 # pipeline subshell, so they are collected as output and counted afterwards.

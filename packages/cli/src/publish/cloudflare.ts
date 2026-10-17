@@ -64,11 +64,12 @@ export function createCloudflareProvider(root: string): PublishProvider {
     experimental: false,
     defaultProject: (slug) => `protoyard-${slug}`.slice(0, 58),
     validateProject: validateCloudflareProject,
-    async isAvailable() {
+    async isAvailable(options = {}) {
       const { invocation: inv, ...availability } = await toolAvailability(
         'wrangler',
         root,
-        INSTALL_HINT
+        INSTALL_HINT,
+        options
       );
       if (inv && availability.available) cached = inv;
       return availability;

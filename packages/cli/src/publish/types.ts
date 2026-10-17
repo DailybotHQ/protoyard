@@ -47,7 +47,8 @@ export interface PublishProvider {
   /** Default project name for a slug. */
   defaultProject(slug: string): string;
   validateProject(project: string): string | null;
-  isAvailable(): Promise<Availability>;
+  /** `localOnly`: PATH and node_modules/.bin only, no npx (used by --dry-run). */
+  isAvailable(options?: { localOnly?: boolean }): Promise<Availability>;
   isAuthenticated(): Promise<AuthStatus>;
   /** The exact command `publish` would run (for --dry-run and logs). */
   command(input: PublishInput): string[];

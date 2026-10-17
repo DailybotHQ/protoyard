@@ -115,7 +115,14 @@ export async function startControlServer(options: ControlServerOptions): Promise
       return;
     }
     const [, verb, rawSlug] = match;
-    const slugCheck = checkSlug(decodeURIComponent(rawSlug ?? ''));
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(rawSlug ?? '');
+    } catch {
+      send(res, 400, { ok: false, error: 'malformed slug' }, corsOrigin);
+      return;
+    }
+    const slugCheck = checkSlug(decoded);
     if (!slugCheck.ok) {
       send(res, 400, { ok: false, error: slugCheck.reason }, corsOrigin);
       return;

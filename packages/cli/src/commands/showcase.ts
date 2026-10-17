@@ -1,14 +1,15 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, rename, rm } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { buildPrototype, scanForForeignCode } from '../lib/build.ts';
 import { digestDirectory } from '../lib/checksum.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { lanAddresses, untilSignal } from '../lib/network.ts';
 import { CliError, formatBytes, mark, toCliError } from '../lib/output.ts';
-import { isInside, toPosixRelative } from '../lib/paths.ts';
+import { BUILD_MARKER, guardOutputDir, SHOWCASE_MARKER } from '../lib/output-guard.ts';
+import { toPosixRelative } from '../lib/paths.ts';
 import { parsePort } from '../lib/ports.ts';
 import { resolvePackageBin } from '../lib/process.ts';
 import { buildIndex, type Registry, type RegistryEntry, writeJsonAtomic } from '../lib/registry.ts';
@@ -56,24 +57,19 @@ export function showcaseRegistry(registry: Registry, targets: readonly ShowcaseT
   } as Registry;
 }
 
-function resolveShowcaseOut(ctx: CommandContext, out: string | undefined): string {
-  const target = resolve(ctx.root, out ?? join('artifacts', 'showcase'));
-  const forbidden = [
-    ctx.root,
-    ctx.paths.prototypes,
-    ctx.paths.templates,
-    join(ctx.root, 'packages'),
-    join(ctx.root, 'apps'),
-  ];
-  for (const dir of forbidden) {
-    if (isInside(target, dir) || (dir !== ctx.root && isInside(dir, target))) {
-      throw new CliError(
-        'unsafe_path',
-        `Refusing --out ${target}: it would overwrite source files.`
-      );
-    }
-  }
-  return target;
+/** Same allow-list as build outputs; an existing site is only replaced when it is ours. */
+function resolveShowcaseOut(
+  ctx: CommandContext,
+  out: string | undefined,
+  allowExternal: boolean
+): string {
+  return guardOutputDir({
+    root: ctx.root,
+    paths: ctx.paths,
+    requested: out ?? join('artifacts', 'showcase'),
+    marker: SHOWCASE_MARKER,
+    allowExternal,
+  });
 }
 
 function buildGallery(
@@ -130,7 +126,8 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
       'A showcase needs an absolute --base such as "/" or "/protoyard/".'
     );
   }
-  const out = resolveShowcaseOut(ctx, opt(options, 'out'));
+  const allowExternal = flag(options, 'allowExternalOut');
+  const out = resolveShowcaseOut(ctx, opt(options, 'out'), allowExternal);
   const quiet = ctx.out.options.json || ctx.out.options.quiet;
 
   if (flag(options, 'skipBuild')) {
@@ -173,6 +170,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
           base: `${base}${appPath}`,
           includeDevtools,
           out: appOut,
+          allowExternalOut: allowExternal,
           manifestPath: join(
             ctx.paths.artifacts,
             'showcase-builds',
@@ -223,7 +221,16 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
       const destination = join(staging, target.appPath);
       await mkdir(dirname(destination), { recursive: true });
       await rename(join(appsStaging, target.appPath), destination);
+      // Build markers are local bookkeeping; they do not belong on a public site.
+      await rm(join(destination, BUILD_MARKER), { force: true });
     }
+    // The marker lets a later run replace this site, and only this site.
+    await writeJsonAtomic(join(staging, SHOWCASE_MARKER), {
+      generator: '@protoyard/cli',
+      builtAt: new Date().toISOString(),
+    });
+    // Re-check right before deleting: the guard ran minutes ago, before the builds.
+    resolveShowcaseOut(ctx, out, allowExternal);
     await rm(out, { recursive: true, force: true });
     await mkdir(dirname(out), { recursive: true });
     await rename(staging, out);

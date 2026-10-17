@@ -56,11 +56,12 @@ export function createVercelProvider(root: string): PublishProvider {
     // Vercel links the folder to a project interactively or via VERCEL_PROJECT_ID.
     validateProject: (project) =>
       /^[a-z0-9][a-z0-9._-]{0,99}$/.test(project) ? null : 'Use a lowercase Vercel project name.',
-    async isAvailable() {
+    async isAvailable(options = {}) {
       const { invocation: inv, ...availability } = await toolAvailability(
         'vercel',
         root,
-        INSTALL_HINT
+        INSTALL_HINT,
+        options
       );
       if (inv && availability.available) cached = inv;
       return availability;

@@ -37,6 +37,13 @@ export const devCommand: Handler = async (ctx, args, options): Promise<CommandRe
       if (server.port !== requested)
         out.info(c.dim(`  Port ${requested} was busy; using ${server.port}.`));
       for (const url of server.lan) out.always(`  On your phone (same network): ${c.cyan(url)}`);
+      if (server.lan.length > 0) {
+        out.always(
+          c.yellow(
+            '  ! --host exposes this dev server to your network, including workspace files Vite can serve. Use it on trusted networks only.'
+          )
+        );
+      }
       out.info(c.dim('  Only this prototype is served. Ctrl+C to stop.'));
     },
     keepAlive: stopped,
