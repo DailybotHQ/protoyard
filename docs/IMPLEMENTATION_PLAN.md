@@ -1,83 +1,69 @@
 # Implementation Plan
 
-Living checklist for building Protoyard. Items are marked **[x] verified** only
-when a command proved them; **[~] partial** when something works but a gap is
-known; **[ ]** otherwise. Deferred work is listed explicitly at the bottom.
+This is the living checklist for Protoyard. An item is marked **[x]** only
+when a command proved it (the evidence is in brackets). **[~]** means it works
+with a known gap. **[ ]** means it is not done. Deferred work is listed at the
+end.
 
-The execution record for this work is the Deep Work Plan
-`PLAN_001_protoyard_foundation` (kept under the git-ignored `.dwp/plans/`).
+The execution record is the Deep Work Plan `PLAN_001_protoyard_foundation`
+(15 tasks, under the git-ignored `.dwp/plans/`). It was built by a lead
+agent and three parallel lanes coordinated through Herdr, plus focused
+subagents for templates, demo UIs, docs and the agent kit. See
+[AI_AGENT_COLLAB.md](AI_AGENT_COLLAB.md).
 
-## Architecture in one paragraph
+## Phase 0: scaffold
 
-A pnpm workspace. `@protoyard/core` holds framework-agnostic contracts (zod
-schemas + interfaces). `@protoyard/runtime` composes the engine packages
-(`database`, `scenarios`, `themes`) into one `PrototypeRuntime`. Each prototype
-is an independent Vite + Svelte 5 app under `prototypes/<slug>/`, described by
-a data-only `protoyard.json` manifest and wired by `src/prototype.ts`.
-`@protoyard/renderer-svelte` mounts it (with `@protoyard/devtools` and
-`@protoyard/ui`). The Astro gallery reads a generated metadata registry and
-never imports prototype code. The CLI (`pnpm protoyard …`) discovers, indexes,
-scaffolds, runs, validates, builds, exports and publishes ONE target at a time.
+- [x] pnpm workspace, strict and erasable TypeScript, Biome, MIT license, supply-chain guard (`minimumReleaseAge`)
+- [x] `@protoyard/core` contracts, all covered by unit tests [`pnpm vitest run packages/core`]
+- [x] Gallery shell and CLI skeleton; `pnpm dev` and `pnpm protoyard new … --template blank` work
 
-## Lanes and path ownership (parallel build)
+## Phase 1: vertical slice (must)
 
-One writer per path. A lane never edits a path owned by another lane; it sends
-the owner a request instead. Only the lead runs `pnpm install` and edits the
-root `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `biome.json`,
-`tsconfig.base.json`, `AGENTS.md`, `README.md` and `docs/` (lanes may add their
-own `README.md` inside the packages they own and hand doc notes to the lead).
+- [x] CLI: help, doctor, list, index, new, dev, validate, build, export, preview, with `--json` and exit codes [42 CLI tests; real flows run]
+- [x] Database: namespaced data and control DBs, migrations, storage errors, memory fallback, persistence request
+- [x] Scenarios: presets and fragments, seeded generator SDK (lazy Faker), integrity, deterministic timeline helpers
+- [x] Runtime: load, reset and advance; session, overrides, clock, environment (with `failureScope`), snapshots with validated import, progress API, atomic chunked loads
+- [x] Themes: 6 AA-checked presets × light, dark and system, density, no-flash script; DevTools with every section
+- [x] `crm-demo` end to end: CRUD, kanban, roles with record rules, v1→v2 migration, 9 scenarios [real-runtime tests + Chromium smoke + E2E]
+- [x] Templates: `blank` first, then all seven
+- [x] Static ZIP export with sha256 and an isolation check; local preview
 
-| Lane | Pane | Owns |
-| --- | --- | --- |
-| Lead | `wH:p5` | root files, `packages/core`, `docs/`, DWP harness (`.agents/`, `.dwp/`), integration, commits |
-| A — Engine | `wH:p6` | `packages/database`, `packages/scenarios`, `packages/runtime` |
-| B — Experience | `wH:p8` | `packages/themes`, `packages/ui`, `packages/devtools`, `packages/renderer-svelte`, `templates/` |
-| C — Tooling | `wH:p9` | `packages/cli`, `apps/gallery`, `scripts/`, `.github/`, `playwright.config.ts`, `tests/e2e/` |
+## Phase 2: generalization (must)
 
-Later waves move the demos (`prototypes/*`) to lanes as the engine stabilizes.
+- [x] `mobile-banking-demo`: atomic transfers, integer-cent ledger, idempotent time travel [24 tests, 390px smokes]
+- [x] Lifecycle and time travel: preview vs committed advance, idempotent (7×1 day equals 1×7 days, tested in 3 domains)
+- [x] Templates: dashboard, mobile-app, chat, onboarding, plus task-manager and ecommerce [37+ template tests, Playwright smokes]
+- [x] Polished gallery: search, filters, favorites, recent, device preview, thumbnails, local control server, read-only hosted mode
+- [x] Playwright E2E across domains [22 passed locally; CI green]
+- [x] Stable `--json` envelope `{ ok, command, data?, error? }`
 
-## Phase 0 — Scaffold
+## Phase 3: publication and scale (must)
 
-- [x] pnpm workspace, strict TypeScript base, Biome, `.gitignore`, MIT license
-- [x] `@protoyard/core` contracts: manifest, slug, PRNG/ids, clock, environment,
-      scenario schema + links, session/policy, events, overrides, snapshot, theme,
-      prototype definition, runtime interfaces
-- [ ] Gallery shell (Astro) and CLI skeleton
-- [ ] `pnpm dev`, `pnpm protoyard new hello --template blank` work
+- [x] Publish adapter contract; Cloudflare Pages adapter with a real `--dry-run`; static/manual path
+- [~] Netlify and Vercel adapters: implemented and unit-tested, **never run against the live services** (labeled experimental)
+- [~] Cloudflare live deploy: command construction and output parsing tested; **no real deploy run** (needs your credentials and authorization)
+- [x] Portable ZIP, sub-path base support, hash routing (refresh and back verified in E2E)
+- [x] 1,000-manifest benchmark measured [cold 40.6–48.9 ms; docs/PERFORMANCE.md]
+- [x] Large worlds: 16,075 rows load in 628 ms with zero long tasks (headless Chromium)
+- [x] CI on GitHub (lint, types, unit, builds, export, E2E, hygiene) **green**; Dependabot; issue and PR templates; CODEOWNERS
+- [x] OSS docs (README, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, docs/*), CHANGELOG, release workflow on tags
 
-## Phase 1 — Vertical slice (MUST)
+## Phase 4: stretch
 
-- [ ] CLI: help, doctor, list, index, new, dev, validate, build, export (+ `--json`)
-- [ ] Database: namespaced Dexie DBs, control store, migrations, storage errors
-- [ ] Scenarios: presets, seeded generator SDK, referential integrity, load/reset
-- [ ] Runtime: session switch, overrides, clock, environment, snapshots
-- [ ] Themes engine + baseline DevTools
-- [ ] `crm-demo` end to end with permissions and reload persistence
-- [ ] One working template (`blank`)
-- [ ] Unit tests for critical state flows; static ZIP export; local preview
+- [x] Third demo, `ai-chat-demo`: scripted streaming agents, outage and retry, a 600-message thread
+- [x] `ui-kit` prototype: living component catalog and theme lab
+- [x] Showcase build (gallery + every live demo as one static site); GitHub Pages workflow (manual dispatch only)
+- [x] Gallery thumbnails generated by Playwright from the real apps (`pnpm thumbnails`)
+- [x] DevTools density control, load-progress UI, storage persistence request
+- [ ] Scenario comparison mode (side-by-side previews of two scenarios)
+- [ ] Optional MSW transport mock module and PWA offline caching
+- [ ] Publishing `@protoyard/*` packages to npm (needs a build step; ADR-004)
 
-## Phase 2 — Generalization (MUST)
+## Deferred and known gaps
 
-- [ ] `mobile-banking-demo` (atomic transfers, fictional ledger)
-- [ ] 5+ theme presets, light/dark/system, reduced motion
-- [ ] Lifecycle + time travel (preview vs committed advance)
-- [ ] Templates: dashboard, mobile-app, onboarding, chat
-- [ ] Polished gallery, device preview, scoped builds
-- [ ] Playwright E2E across domains; stable `--json` output
-
-## Phase 3 — Publication and scale (MUST)
-
-- [ ] Publish adapter contract, Cloudflare Pages adapter, `--dry-run`
-- [ ] Portable ZIP, sub-path base support, SPA hash routing
-- [ ] 1,000-manifest index benchmark with real measurements
-- [ ] CI workflows, OSS docs, security review
-
-## Phase 4 — Stretch
-
-- [ ] `ai-chat-demo`, task-manager and e-commerce templates
-- [ ] Netlify / Vercel adapters (only claimed when tested)
-- [ ] Scenario comparison, thumbnails, favorites
-
-## Deferred / known gaps
-
-_(filled in as work lands)_
+- **Live provider deploys** were not run: there are no credentials, and real publishing needs the owner's explicit authorization.
+- **Visual regression snapshots** are not set up.
+- **Mobile performance** was measured only with headless desktop Chromium at phone viewports, not on real devices.
+- **Older-schema snapshots** restore rows as-is; migrations don't replay on snapshot data, and the import warning says so.
+- **Persona preferences** are not captured in snapshots. Restore pins the captured theme and mode as visible overrides only when they differ.
+- **Same-origin storage** is not a security boundary. This is documented, not solved: use separate origins for untrusted prototypes.
