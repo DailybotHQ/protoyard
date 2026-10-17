@@ -18,6 +18,9 @@ describe('hash route matching', () => {
     expect(compilePattern('/docs/*').match('/docs/a/b')).toEqual({ '*': 'a/b' });
     expect(compilePattern('/x/:id').match('/x/%E0%A4%A')).toEqual({ id: '%E0%A4%A' });
     expect(fillParams('/deals/:id/edit', { id: 'a/b' })).toBe('/deals/a%2Fb/edit');
+    expect(compilePattern('/notes/:id?').match('/notes')).toEqual({});
+    expect(compilePattern('/notes/:id?').match('/notes/n1')).toEqual({ id: 'n1' });
+    expect(compilePattern('/notes/:id?').match('/notes/n1/x')).toBeNull();
   });
 });
 

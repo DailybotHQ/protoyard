@@ -6,6 +6,7 @@ import { mountPrototype } from '../src/index.ts';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import LiveList from './fixtures/LiveList.svelte';
 import ProbeApp from './fixtures/ProbeApp.svelte';
+import ThrowingApp from './fixtures/ThrowingApp.svelte';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const root = document.documentElement;
@@ -74,6 +75,30 @@ describe('mountPrototype', () => {
     expect(screen.getByRole('status').textContent).toContain("Changes won't be saved.");
   });
 
+  it('recovers when the App itself throws while initialising', async () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const runtime = createFakeRuntime();
+    let closed = false;
+    runtime.close = () => {
+      closed = true;
+    };
+    const mounted = await mountPrototype({
+      definition: runtime.definition,
+      App: ThrowingApp,
+      target,
+      search: '',
+      devtools: false,
+      createRuntime: () => runtime,
+    });
+    destroy = mounted.destroy;
+    expect(mounted.runtime).toBeNull();
+    expect(String(mounted.error)).toMatch(/App exploded/);
+    expect(closed).toBe(true);
+    expect(root.dataset.pyReady).toBe('error');
+    expect(window.__protoyard).toBeUndefined();
+    expect(screen.getByRole('heading', { name: /couldn't start/ })).toBeTruthy();
+  });
+
   it('renders a recovery screen instead of a blank page when boot fails', async () => {
     const { mounted } = await boot({ fail: true });
     expect(mounted.runtime).toBeNull();
@@ -108,7 +133,7 @@ describe('liveQuery', () => {
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('3');
     await view.rerender({ db, min: 5, onQuery: () => queries++ });
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('2');
-    // 2 subscriptions × (Dexie run + at most one tracking probe) + 1 table change.
+    // 2 subscriptions × (Dexie run + one tracking probe) + 1 table change.
     expect(queries).toBeLessThanOrEqual(5);
     view.unmount();
     await tick();
@@ -120,6 +145,16 @@ describe('liveQuery', () => {
     const view = render(LiveList, { db, min: 0, mode: 'deps' });
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('2');
     await view.rerender({ db, min: 5, mode: 'deps' });
+    await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('1');
+    view.unmount();
+    db.close();
+  });
+
+  it('tracks inputs the querier reads even when deps lists something else', async () => {
+    const db = await seed();
+    const view = render(LiveList, { db, min: 0, mode: 'partial-deps', other: 1 });
+    await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('2');
+    await view.rerender({ db, min: 5, mode: 'partial-deps', other: 1 });
     await expect.poll(() => screen.queryByTestId('count')?.textContent).toBe('1');
     view.unmount();
     db.close();

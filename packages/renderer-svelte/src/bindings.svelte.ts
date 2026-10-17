@@ -180,9 +180,10 @@ export interface LiveQueryOptions<T> {
   /** Value exposed as `current` until the first result arrives. */
   initial?: T;
   /**
-   * Extra reactive inputs: `deps: () => [id, stage]`. Reads the querier does
-   * synchronously (before its first `await`) are tracked automatically; list
-   * here anything it only reads AFTER an await, which Svelte cannot see.
+   * The query's reactive inputs: `deps: () => [id, stage]`. Project rule:
+   * list every route param, filter or state the query depends on. Reads the
+   * querier makes before its first `await` are also tracked automatically
+   * (safety net); inputs read only AFTER an await are invisible without deps.
    */
   deps?: () => unknown;
 }
@@ -209,20 +210,15 @@ export function liveQuery<T>(
 
   $effect(() => {
     options.deps?.();
-    // Svelte tracks what the querier reads synchronously — but only while it
-    // runs inside this effect. Dexie runs the first query synchronously during
-    // subscribe() when it can; when it defers (an active Dexie zone, common
-    // after awaits), one tracking probe runs here so route params and filters
-    // still re-subscribe. Cost: at most one extra query per (re)subscription,
-    // never per data change; pass `deps` to skip it on very large tables.
-    let subscribing = true;
-    let ranInside = false;
-    const tracked = () => {
-      if (subscribing) ranInside = true;
-      return querier();
-    };
+    // Dexie runs the querier later (setTimeout), outside Svelte's tracking.
+    // A tracking probe — one synchronous run whose result is discarded — lets
+    // Svelte see every reactive value the querier reads before its first
+    // `await`. It always runs (deps or not), so a forgotten input can never
+    // go stale; cost: one extra query per (re)subscription, never per change.
+    const probe = querier();
+    if (probe instanceof Promise) probe.catch(() => {});
     loading = true;
-    const subscription = dexieLiveQuery(tracked).subscribe({
+    const subscription = dexieLiveQuery(querier).subscribe({
       next(value) {
         current = value;
         error = undefined;
@@ -233,11 +229,6 @@ export function liveQuery<T>(
         loading = false;
       },
     });
-    subscribing = false;
-    if (!ranInside && !options.deps) {
-      const probe = querier();
-      if (probe instanceof Promise) probe.catch(() => {});
-    }
     return () => subscription.unsubscribe();
   });
 

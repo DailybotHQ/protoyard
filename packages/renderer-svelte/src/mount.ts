@@ -64,14 +64,8 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   const root = document.documentElement;
   const cleanups: (() => void | Promise<void>)[] = [];
 
-  let runtime: PrototypeRuntime | null = null;
-  try {
-    const create = options.createRuntime ?? createPrototypeRuntime;
-    runtime = await create(definition, { themes, link });
-    await runtime.scenarios.ensureSeeded();
-  } catch (error) {
+  const showBootError = (error: unknown): MountedPrototype => {
     console.error('[protoyard] boot failed', error);
-    runtime?.close();
     target.replaceChildren();
     const screen = mount(BootError, {
       target,
@@ -89,6 +83,16 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
         await unmount(screen);
       },
     };
+  };
+
+  let runtime: PrototypeRuntime | null = null;
+  try {
+    const create = options.createRuntime ?? createPrototypeRuntime;
+    runtime = await create(definition, { themes, link });
+    await runtime.scenarios.ensureSeeded();
+  } catch (error) {
+    runtime?.close();
+    return showBootError(error);
   }
 
   const rt = runtime;
@@ -97,10 +101,21 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   cleanups.push(bindAppearance(rt, themes, root));
 
   target.replaceChildren();
-  const app = mount(Root, {
-    target,
-    props: { runtime: rt, App, demoBadge: options.demoBadge ?? DEMO_BADGE_ENABLED },
-  });
+  let app: ReturnType<typeof mount>;
+  try {
+    // mount() runs the App's script synchronously: an App that throws while
+    // initialising must get the recovery screen, not a blank page.
+    app = mount(Root, {
+      target,
+      props: { runtime: rt, App, demoBadge: options.demoBadge ?? DEMO_BADGE_ENABLED },
+    });
+  } catch (error) {
+    for (const cleanup of cleanups.reverse()) await cleanup();
+    setMountedRuntime(null);
+    if (window.__protoyard === rt) delete window.__protoyard;
+    rt.close();
+    return showBootError(error);
+  }
   cleanups.push(() => unmount(app));
 
   // The define is read inline (not via flags.ts) so the minifier can fold it

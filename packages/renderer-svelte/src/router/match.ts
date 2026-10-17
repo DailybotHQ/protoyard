@@ -61,16 +61,19 @@ export function compilePattern(pattern: string): CompiledPattern {
           return params;
         }
         const part = parts[i];
-        if (part === undefined) return null;
+        const optional = segment.startsWith(':') && segment.endsWith('?');
+        if (part === undefined) {
+          // `/notes/:id?` matches `/notes`; anything else needs every segment.
+          if (optional) continue;
+          return null;
+        }
         if (segment.startsWith(':')) {
-          const optional = segment.endsWith('?');
-          const name = segment.slice(1, optional ? -1 : undefined);
-          params[name] = safeDecode(part);
+          params[segment.slice(1, optional ? -1 : undefined)] = safeDecode(part);
         } else if (segment !== part) {
           return null;
         }
       }
-      return parts.length === segments.length ? params : null;
+      return parts.length <= segments.length ? params : null;
     },
   };
 }

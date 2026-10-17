@@ -70,7 +70,7 @@ script on the origin) and the simulation is not a security boundary.
 | API | Returns |
 | --- | --- |
 | `getRuntime<TDb>()` | the runtime (context, or the mounted one outside components) |
-| `liveQuery(fn, { initial?, deps? })` | `{ current, loading, error }`; re-runs on table changes and when anything the querier reads **synchronously** (route params, filters) changes. Use `deps: () => [...]` only for inputs read after an `await` (or to skip the one tracking probe Dexie's deferred first run may need on very large tables) |
+| `liveQuery(fn, { initial?, deps? })` | `{ current, loading, error }`; re-runs on table changes and when its inputs change. **List every reactive input in `deps: () => [...]`** (route params, filters, persona). As a safety net, reads made before the querier's first `await` are tracked automatically (one extra query per subscription); inputs read only after an `await` need `deps` |
 | `usePrincipal()` / `useAppearance()` / `useEnvironment()` / `useOverrides()` | `{ current }` |
 | `useScenario()` | `{ active, list }` |
 | `useClock()` | `{ now, committed, reference, previewing, state }` |
