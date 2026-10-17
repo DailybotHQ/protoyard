@@ -447,11 +447,13 @@ describe('10. reopening', () => {
 
   it('a first visit honours the link scenario, seed and actor', async () => {
     const runtime = await start(createTasksDefinition(), backend(), {
-      link: { scenario: 'new-member', seed: 11, actor: 'user_0002' },
+      link: { scenario: 'new-member', seed: 11, actor: 'user_0002', theme: 'ocean', mode: 'dark' },
     });
     await runtime.scenarios.ensureSeeded();
     expect(runtime.scenarios.active()).toMatchObject({ seed: 11, scenario: { id: 'new-member' } });
     expect(runtime.session.principal()?.persona.id).toBe('user_0002');
+    expect(runtime.overrides.get()).toEqual({ themeId: 'ocean', mode: 'dark' });
+    expect(runtime.theme.appearance().resolvedMode).toBe('dark');
   });
 });
 

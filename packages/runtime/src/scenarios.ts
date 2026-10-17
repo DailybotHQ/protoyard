@@ -18,6 +18,7 @@ import {
   WorldIntegrityError,
 } from '@protoyard/scenarios';
 import type { Kernel } from './kernel.ts';
+import { applyOverrides } from './overrides.ts';
 
 export class UnknownScenarioError extends Error {
   readonly scenarioId: string;
@@ -206,6 +207,18 @@ export function createScenarioController(
             await k.writeControl({ actorId: link.actor });
             k.refreshDerived();
           }
+        }
+        // Link appearance is a visible, clearable override — never a persona preference.
+        const themeOk = link.theme && k.themes.some((t) => t.id === link.theme);
+        if (
+          (themeOk && link.theme !== k.overrides.themeId) ||
+          (link.mode && link.mode !== k.overrides.mode)
+        ) {
+          await applyOverrides(k, {
+            ...k.overrides,
+            ...(themeOk ? { themeId: link.theme } : {}),
+            ...(link.mode ? { mode: link.mode } : {}),
+          });
         }
       }),
 
