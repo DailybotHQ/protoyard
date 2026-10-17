@@ -2,7 +2,7 @@ import { PermissionDeniedError, SimulatedServiceError } from '@protoyard/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import type { BankDatabase, Transaction } from '../src/database/schema.ts';
-import { ledgerIsBalanced, TransferError } from '../src/domain/services.ts';
+import { createBankServices, ledgerIsBalanced, TransferError } from '../src/domain/services.ts';
 import {
   groupByMonth,
   matchesFilter,
@@ -132,6 +132,15 @@ describe('on the real runtime', () => {
     await runtime.scenarios.load('offline-mode');
     await expect(sims.simulatePayroll('acct_checking')).rejects.toMatchObject({ code: 'offline' });
     expect(await ledgerIsBalanced(runtime.db)).toBe(true);
+  });
+
+  it('rejects transfers that round to zero cents without writing anything', async () => {
+    const runtime = await harness.boot('active-customer');
+    const bank = createBankServices(runtime);
+    await expect(
+      bank.transfer({ fromAccountId: 'acct_checking', toAccountId: 'acct_savings', amount: 0.004 })
+    ).rejects.toMatchObject({ code: 'invalid' });
+    expect(await runtime.db.transfers.count()).toBe(0);
   });
 
   it('orders accounts checking → savings → credit', async () => {

@@ -92,6 +92,8 @@ export function createBankServices(runtime: PrototypeRuntime<BankDatabase>) {
       }
       const data = parsed.data;
       const amountCents = Math.round(data.amount * 100);
+      // Sub-cent amounts round to 0 and would write empty ledger rows.
+      if (amountCents < 1) throw new TransferError('invalid', 'The smallest transfer is $0.01.');
       session.assert(CAPABILITIES.transfersCreate, { amountCents });
       if (data.toAccountId === data.fromAccountId) {
         throw new TransferError('same-account', 'Choose a different account to send to.');
