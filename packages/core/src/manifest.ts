@@ -93,8 +93,13 @@ export const PrototypeManifestSchema = z
         demoBadge: z.boolean().default(true),
         /** Public base path. `./` produces relocatable output. */
         base: z.string().default('./'),
+        /**
+         * Opt-in offline support for exported builds (a service worker that
+         * caches the app shell; data is already local in IndexedDB).
+         */
+        offline: z.boolean().default(false),
       })
-      .default({ includeDevtools: false, demoBadge: true, base: './' }),
+      .default({ includeDevtools: false, demoBadge: true, base: './', offline: false }),
     /** Scenario ids declared by the prototype (indexed for the gallery). */
     scenarios: z.array(z.string()).default([]),
     createdAt: z.string().optional(),
