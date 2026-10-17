@@ -4,7 +4,9 @@ import {
   BUILTIN_THEMES,
   contrastRatio,
   parseHex,
+  relativeLuminance,
   TEXT_CONTRAST_PAIRS,
+  themeVariables,
   UI_CONTRAST_PAIRS,
 } from '../src/index.ts';
 
@@ -44,6 +46,27 @@ describe('built-in themes', () => {
           if (ratio < 3) failures.push(`${fg} on ${bg}: ${ratio.toFixed(2)} (UI)`);
         }
         expect(failures).toEqual([]);
+      });
+    }
+  }
+});
+
+describe('hover fills', () => {
+  for (const theme of BUILTIN_THEMES) {
+    for (const mode of ['light', 'dark'] as const) {
+      it(`${theme.id}/${mode} hover is visible and keeps text AA`, () => {
+        const vars = themeVariables({ theme, resolvedMode: mode });
+        const palette = theme[mode];
+        for (const [fill, text, hover] of [
+          [palette.primary, palette.primaryForeground, vars['--py-primary-hover']],
+          [palette.destructive, palette.destructiveForeground, vars['--py-destructive-hover']],
+        ] as const) {
+          expect(hover).toBeDefined();
+          expect(contrastRatio(hover as string, text)).toBeGreaterThanOrEqual(4.5);
+          expect(
+            Math.abs(relativeLuminance(hover as string) - relativeLuminance(fill))
+          ).toBeGreaterThanOrEqual(0.01);
+        }
       });
     }
   }

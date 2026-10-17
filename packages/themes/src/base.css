@@ -46,10 +46,10 @@
   --color-chart-4: var(--py-chart4);
   --color-chart-5: var(--py-chart5);
   --color-shadow: var(--py-shadow);
-  /* Hover fills move TOWARD the foreground, so text contrast only increases
-     (darker in light mode, lighter in dark mode). `/90` opacity did the opposite. */
-  --color-primary-hover: color-mix(in oklab, var(--py-primary) 85%, var(--py-foreground));
-  --color-destructive-hover: color-mix(in oklab, var(--py-destructive) 85%, var(--py-foreground));
+  /* Hover fills are computed per theme and mode by applyAppearance (hoverFill):
+     a visible darker/lighter step that keeps the button text at >= 4.5:1. */
+  --color-primary-hover: var(--py-primary-hover);
+  --color-destructive-hover: var(--py-destructive-hover);
 
   --radius-xs: calc(var(--py-radius) - 6px);
   --radius-sm: calc(var(--py-radius) - 4px);
@@ -104,6 +104,8 @@
     --py-chart4: #f59e0b;
     --py-chart5: #f43f5e;
     --py-shadow: rgb(15 23 42 / 0.08);
+    --py-primary-hover: #6b32cc;
+    --py-destructive-hover: #9f1818;
     --py-radius: 0.625rem;
     --py-font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
     --py-font-heading: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
@@ -146,6 +148,8 @@
     --py-chart4: #fbbf24;
     --py-chart5: #fb7185;
     --py-shadow: rgb(0 0 0 / 0.45);
+    --py-primary-hover: #b39bfb;
+    --py-destructive-hover: #f98585;
   }
 
   *,

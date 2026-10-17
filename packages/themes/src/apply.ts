@@ -1,4 +1,5 @@
 import { type ColorMode, type Theme, type ThemePalette, tokenToCssVar } from '@protoyard/core';
+import { hoverFill } from './contrast.ts';
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from './presets.ts';
 
 export type ResolvedMode = 'light' | 'dark';
@@ -61,6 +62,8 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
     input.resolvedMode === 'dark' ? input.theme.dark : input.theme.light;
   const vars: Record<string, string> = {};
   for (const [token, value] of Object.entries(palette)) vars[tokenToCssVar(token)] = value;
+  vars['--py-primary-hover'] = hoverFill(palette.primary, palette.primaryForeground);
+  vars['--py-destructive-hover'] = hoverFill(palette.destructive, palette.destructiveForeground);
   vars['--py-radius'] = input.theme.radius;
   vars['--py-font-sans'] = input.theme.fontFamily;
   vars['--py-font-heading'] = input.theme.fontFamilyHeading ?? input.theme.fontFamily;

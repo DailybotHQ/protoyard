@@ -61,3 +61,37 @@ export const UI_CONTRAST_PAIRS = [
   ['ring', 'background'],
   ['ring', 'surface'],
 ] as const;
+
+function mixHex(color: string, toward: string, amount: number): string | null {
+  const a = parseHex(color);
+  const b = parseHex(toward);
+  if (!a || !b) return null;
+  return `#${a
+    .map((c, i) =>
+      Math.round(c + ((b[i] as number) - c) * amount)
+        .toString(16)
+        .padStart(2, '0')
+    )
+    .join('')}`;
+}
+
+/**
+ * Hover fill for a filled control: a visible step darker or lighter that
+ * keeps `text` at AA. Prefers the direction that increases contrast; when
+ * the fill is already at an extreme (e.g. Monochrome dark, primary ≈ white)
+ * it steps the other way as long as contrast stays ≥ 4.5:1.
+ */
+export function hoverFill(fill: string, text: string): string {
+  if (!parseHex(fill) || !parseHex(text)) return fill;
+  const candidates = ['#000000', '#ffffff']
+    .map((target) => mixHex(fill, target, 0.14) as string)
+    .map((color) => ({
+      color,
+      ratio: contrastRatio(color, text),
+      delta: Math.abs(relativeLuminance(color) - relativeLuminance(fill)),
+    }))
+    .filter((c) => c.ratio >= 4.5 && c.delta >= 0.01);
+  if (candidates.length === 0) return fill;
+  // Most contrast wins; a visible step is guaranteed by the delta filter.
+  return candidates.sort((x, y) => y.ratio - x.ratio)[0]?.color ?? fill;
+}

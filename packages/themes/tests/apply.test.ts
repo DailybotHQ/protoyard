@@ -14,6 +14,7 @@ import {
   oceanTheme,
   readCachedAppearance,
   resolveMode,
+  themeVariables,
   violetTheme,
 } from '../src/index.ts';
 
@@ -149,6 +150,12 @@ describe('base.css', () => {
   it('ships Violet defaults that match the preset (first paint before boot)', () => {
     for (const [token, value] of Object.entries(violetTheme.light)) {
       expect(css).toContain(`${tokenToCssVar(token)}: ${value};`);
+    }
+    const lightVars = themeVariables({ theme: violetTheme, resolvedMode: 'light' });
+    const darkVars = themeVariables({ theme: violetTheme, resolvedMode: 'dark' });
+    for (const name of ['--py-primary-hover', '--py-destructive-hover']) {
+      expect(css).toContain(`${name}: ${lightVars[name]};`);
+      expect(css.slice(css.indexOf(':root.dark'))).toContain(`${name}: ${darkVars[name]};`);
     }
     const darkBlock = css.slice(css.indexOf(':root.dark'));
     for (const [token, value] of Object.entries(violetTheme.dark)) {
