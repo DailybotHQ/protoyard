@@ -34,9 +34,12 @@ const { db, services } = useBank();
 const clock = useClock();
 
 const accountId = $derived(params.id ?? '');
-const account = liveQuery(() => db.accounts.get(accountId));
-const transactions = liveQuery(() =>
-  db.transactions.where('accountId').equals(accountId).toArray()
+// `deps` re-subscribes when the route param changes (#/accounts/a → #/accounts/b):
+// the querier runs inside Dexie, where Svelte can't see what it reads.
+const account = liveQuery(() => db.accounts.get(accountId), { deps: () => accountId });
+const transactions = liveQuery(
+  () => db.transactions.where('accountId').equals(accountId).toArray(),
+  { deps: () => accountId }
 );
 
 let search = $state('');

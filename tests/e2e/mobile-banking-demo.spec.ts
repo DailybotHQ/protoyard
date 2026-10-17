@@ -67,6 +67,47 @@ test.describe('Lumen Bank (static build)', () => {
     await expect(page.getByText('Transfer from Everyday Checking').first()).toBeVisible();
   });
 
+  test('a transfer updates both account balances, and they persist', async ({ page }) => {
+    // Balances are read from the UI (#acct-balance on each account screen) and
+    // parsed from the displayed currency, so the check is format-agnostic.
+    const balance = async (account: string, name: RegExp) => {
+      await page.goto(`${prototypeUrl(SLUG)}#/accounts/${account}`);
+      await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+        timeout: 15_000,
+      });
+      // Wait for THIS account's screen, so the previous account's figure is never read.
+      await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      const text = (await page.locator('#acct-balance').innerText()).replace(/[^0-9.-]/g, '');
+      return Math.round(Number(text) * 100);
+    };
+    await openApp(page);
+    const checkingBefore = await balance('acct_checking', /Everyday Checking/);
+    const savingsBefore = await balance('acct_savings', /Rainy-day Savings/);
+
+    await page.goto(`${prototypeUrl(SLUG)}#/transfer`);
+    await page.getByRole('button', { name: /Everyday Checking/ }).click();
+    await page.getByRole('button', { name: /Rainy-day Savings/ }).click();
+    await page.getByLabel(/Amount/).fill('125.50');
+    await page.getByRole('button', { name: 'Review transfer' }).click();
+    await page.getByRole('button', { name: /Send \$125\.50/ }).click();
+    await expect(page.getByTestId('transfer-reference')).toHaveText(/^transfer_u/);
+
+    await page.reload();
+    expect(await balance('acct_checking', /Everyday Checking/)).toBe(checkingBefore - 12_550);
+    expect(await balance('acct_savings', /Rainy-day Savings/)).toBe(savingsBefore + 12_550);
+  });
+
+  test('switching accounts updates the screen without a reload', async ({ page }) => {
+    // Regression: AccountDetail's queries declare `deps: () => accountId`.
+    await openApp(page, '#/accounts/acct_checking');
+    await expect(page.getByRole('heading', { level: 1, name: /Everyday Checking/ })).toBeVisible();
+    await page.evaluate(() => {
+      location.hash = '#/accounts/acct_savings';
+    });
+    await expect(page.getByRole('heading', { level: 1, name: /Rainy-day Savings/ })).toBeVisible();
+  });
+
   test('a view-only persona is blocked without wiping data', async ({ page }) => {
     await openApp(page, '#/transfer');
     const before = await counts(page);

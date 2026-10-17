@@ -21,10 +21,14 @@ const clock = useClock();
 
 const accounts = liveQuery(() => db.accounts.toArray());
 const recent = liveQuery(() => db.transactions.orderBy('at').reverse().limit(6).toArray());
-const lastMonth = liveQuery(() => {
-  const from = new Date(clock.now.getTime() - 30 * MS_PER_DAY).toISOString();
-  return db.transactions.where('at').above(from).toArray();
-});
+// The 30-day window follows the simulated clock (preview / advance).
+const lastMonth = liveQuery(
+  () => {
+    const from = new Date(clock.now.getTime() - 30 * MS_PER_DAY).toISOString();
+    return db.transactions.where('at').above(from).toArray();
+  },
+  { deps: () => clock.now.getTime() }
+);
 
 const list = $derived(sortAccounts(accounts.current ?? []));
 const names = $derived(Object.fromEntries(list.map((a) => [a.id, a.name])));

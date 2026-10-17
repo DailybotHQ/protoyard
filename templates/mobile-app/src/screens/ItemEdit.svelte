@@ -21,7 +21,7 @@ let { params }: RouteProps = $props();
 
 const { db, items } = useApp();
 const id = $derived(params.id ?? null);
-const existing = liveQuery(() => (id ? db.items.get(id) : undefined));
+const existing = liveQuery(() => (id ? db.items.get(id) : undefined), { deps: () => id });
 
 let form = $state<ItemInput>({ title: '', notes: '', status: 'todo' });
 let errors = $state<Partial<Record<keyof ItemInput, string>>>({});

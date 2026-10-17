@@ -23,7 +23,8 @@ const { db, items, runtime } = useApp();
 const clock = useClock();
 
 const id = $derived(params.id ?? '');
-const item = liveQuery(() => db.items.get(id));
+// `deps`: re-query when the route param changes (Dexie hides reads from Svelte).
+const item = liveQuery(() => db.items.get(id), { deps: () => id });
 const owner = $derived(runtime.session.personas().find((p) => p.id === item.current?.ownerId));
 const canEdit = $derived(can(CAPABILITIES.update));
 const canDelete = $derived(can(CAPABILITIES.delete));
