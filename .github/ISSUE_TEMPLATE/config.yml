@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/DailybotHQ/protoyard/security/advisories/new
+    about: Never in a public issue — use private vulnerability reporting.
+  - name: Questions and ideas
+    url: https://github.com/DailybotHQ/protoyard/discussions
+    about: How-to questions, show-and-tell and early ideas.

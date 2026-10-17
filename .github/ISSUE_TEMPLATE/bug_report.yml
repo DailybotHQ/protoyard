@@ -1,0 +1,52 @@
+name: Bug report
+description: The CLI, the gallery, a template or a runtime package does not behave as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security issues go through private vulnerability reporting, never here.
+        Do not paste tokens (Cloudflare, Netlify, Vercel…) or private URLs — name the variable instead.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - CLI (pnpm protoyard …)
+        - Gallery
+        - Runtime / database / scenarios
+        - DevTools / themes / UI
+        - Template
+        - Example prototype
+        - Build, export or publish
+        - Docs
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node and pnpm versions (`pnpm protoyard doctor --offline` output helps), and the browser for UI problems.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Commands, the prototype slug and scenario id, and what you clicked.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened, with command output (`--json` is ideal) or a screenshot.
+    validations:
+      required: true

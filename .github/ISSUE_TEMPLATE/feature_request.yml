@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a CLI command, a runtime capability, a template, a gallery feature or a publish provider.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard or impossible today, and for whom (designers, PMs, coding agents…).
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What you would like Protoyard to do. Commands or API sketches welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: It keeps prototypes browser-only (no real backend, no real credentials).
+        - label: It works for one prototype at a time (no cross-prototype coupling).
