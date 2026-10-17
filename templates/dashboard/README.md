@@ -36,7 +36,7 @@ scenarios, go offline, travel in time and take snapshots.
 ```text
 protoyard.json               manifest (id, slug, scenarios, storage namespace + schemaVersion)
 src/prototype.ts             definePrototype(): schema + policy + scenarios + generator + integrity rules
-src/database/schema.ts       Dexie stores + row types (customers, orders, events, settings)
+src/database/schema.ts       Dexie stores + row types (customers, orders, events, settings); v2 moved order amounts to integer cents
 src/domain/policy.ts         roles → capabilities
 src/domain/validation.ts     zod input schemas + ValidationError (field → message)
 src/domain/services.ts       services: assert → validate → environment.run → db.transaction
@@ -50,6 +50,7 @@ src/screens/*.svelte         Overview, Customers, CustomerDetail, Orders, Settin
 src/components/*.svelte      dialogs, status badge/menu, bar chart, page header
 tests/generators.test.ts     determinism, integrity, density, viewer = active world
 tests/services.test.ts       CRUD + reload persistence, status transitions, roles, offline
+tests/money.test.ts          exact cents parsing, integer storage, the v1 → v2 migration
 ```
 
 ## Add a table
@@ -57,18 +58,23 @@ tests/services.test.ts       CRUD + reload persistence, status transitions, role
 Example: a `notes` table attached to customers.
 
 1. **Schema** — in `src/database/schema.ts` add the row type and a **new**
-   version (never edit version 1):
+   version (never edit an existing one; this template is at version 2):
 
    ```ts
    export type Note = { id: string; customerId: string; body: string; authorId: string; createdAt: string };
    // in DashboardDatabase:
    notes: EntityTable<Note, 'id'>;
    // in database.versions:
-   { version: 2, stores: { notes: 'id, customerId, createdAt' } },
+   { version: 3, stores: { notes: 'id, customerId, createdAt' } },
    ```
 
    Add `upgrade(tx)` to the version only if existing rows need transforming.
-2. Bump `storage.schemaVersion` in `protoyard.json` to `2`.
+   Upgrades run on the stored database, not on snapshot files: a snapshot
+   saved before a version restores its rows as-is (the import warns). For
+   example, a v1 snapshot brings back orders with `amount` in dollars and no
+   `amountCents`, so the money views cannot total them. Save snapshots again
+   after a schema change.
+2. Bump `storage.schemaVersion` in `protoyard.json` to `3`.
 3. **Generator** — create rows in `generateDashboardWorld` with `ctx.ids.next('note')`,
    `ctx.rng` and `ctx.time`, and return them in `tables: { …, notes }`.
 4. **Integrity** — in `src/prototype.ts` add
