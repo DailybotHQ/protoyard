@@ -68,3 +68,32 @@ export function isHashedAsset(url: string): boolean {
     url
   );
 }
+
+export interface OfflineBuildInfo {
+  version: string;
+  /** Number of precached URLs (including the `./` shell). */
+  precached: number;
+}
+
+/**
+ * Reads the offline info back from a finished build (for the CLI's
+ * build-manifest.json, which runs Vite in a child process). Null when the
+ * build has no Protoyard service worker.
+ */
+export function readOfflineBuild(outDir: string): OfflineBuildInfo | null {
+  let source: string;
+  try {
+    source = readFileSync(join(outDir, 'sw.js'), 'utf8');
+  } catch {
+    return null;
+  }
+  const match = /^const CONFIG = (\{.*\});$/m.exec(source);
+  if (!match?.[1]) return null;
+  try {
+    const config = JSON.parse(match[1]) as { version?: unknown; precache?: unknown };
+    if (typeof config.version !== 'string' || !Array.isArray(config.precache)) return null;
+    return { version: config.version, precached: config.precache.length };
+  } catch {
+    return null;
+  }
+}

@@ -10,6 +10,7 @@ import {
   createServiceWorkerSource,
   isHashedAsset,
   protoyardOffline,
+  readOfflineBuild,
   serviceWorkerConfig,
 } from '../src/index.ts';
 
@@ -356,6 +357,20 @@ describe('vite plugin', () => {
     expect(sw).toContain(`"version":"${seen[0]}"`);
     expect(sw).toContain('assets/index-K19iSqmG.js');
     expect(sw).not.toContain('"sw.js"');
+  });
+
+  it('reads the version back from a finished build for build-manifest.json', () => {
+    const dir = fakeBuild({ 'assets/index-K19iSqmG.js': 'app' });
+    const [plugin] = protoyardOffline({ enabled: true });
+    if (!plugin) throw new Error('plugin');
+    plugin.configResolved({ root: '/', build: { outDir: dir } });
+    writeFileSync(join(dir, 'index.html'), plugin.transformIndexHtml('<html><head></head></html>'));
+    plugin.closeBundle();
+    expect(readOfflineBuild(dir)).toEqual({
+      version: createPrecacheManifest(dir).version,
+      precached: 3,
+    });
+    expect(readOfflineBuild(fakeBuild({ 'index.html': 'x' }))).toBeNull();
   });
 
   it('fails the build when index.html lost the register script', () => {
