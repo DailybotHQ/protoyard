@@ -40,16 +40,23 @@ export function createChatServices(
     return principal.persona.id;
   };
   const cancelled = new Set<string>();
+  /** Runs streaming in THIS page; a `streaming` row not in here was cut off by a reload. */
+  const live = new Set<string>();
 
   /**
    * Message time that always sorts after the conversation's latest message.
    * The simulated clock is frozen unless running, so `now()` alone would give
    * a prompt and its reply the same instant (and an undefined order).
    */
+  const issued = new Map<string, number>();
   async function nextAt(conversationId: string): Promise<string> {
     const conversation = await db.conversations.get(conversationId);
     const last = conversation ? Date.parse(conversation.lastMessageAt) : 0;
-    return new Date(Math.max(clock.nowMs(), last + 1)).toISOString();
+    // Several agents answering one prompt start concurrently; remembering the
+    // last instant handed out keeps their replies from sharing a timestamp.
+    const at = Math.max(clock.nowMs(), last + 1, (issued.get(conversationId) ?? 0) + 1);
+    issued.set(conversationId, at);
+    return new Date(at).toISOString();
   }
 
   async function agentsIn(conversationId: string): Promise<Agent[]> {
@@ -70,6 +77,7 @@ export function createChatServices(
       finishedAt: null,
       tokens: 0,
     };
+    live.add(run.id);
     const at = await nextAt(prompt.conversationId);
     const reply: Message = {
       id: createRuntimeId('msg'),
@@ -110,6 +118,9 @@ export function createChatServices(
         error instanceof SimulatedServiceError ? error.message : 'The agent could not respond.';
       await finish(run, reply, '', 'error', message);
       return { ...run, status: 'error', error: message };
+    } finally {
+      live.delete(run.id);
+      cancelled.delete(run.id);
     }
   }
 
@@ -237,12 +248,31 @@ export function createChatServices(
       return runAgent(agent, prompt);
     },
 
-    cancel(runId: string) {
-      cancelled.add(runId);
+    /** Stops a streaming run. A run orphaned by a reload is closed directly. */
+    async cancel(runId: string): Promise<void> {
+      if (live.has(runId)) {
+        cancelled.add(runId);
+        return;
+      }
+      const run = await db.runs.get(runId);
+      if (run?.status !== 'streaming') return;
+      const reply = await db.messages.where('runId').equals(runId).first();
+      if (reply) await finish(run, reply, reply.body, 'cancelled', null);
+      else await db.runs.update(runId, { status: 'cancelled', finishedAt: now() });
+    },
+
+    /** True while the run is streaming in this page (false after a reload cut it off). */
+    isLive(runId: string): boolean {
+      return live.has(runId);
     },
 
     async markRead(conversationId: string): Promise<void> {
-      const at = now();
+      // Replies are stamped after the latest message, which can be ahead of a
+      // frozen simulated clock — reading must cover them too.
+      const conversation = await db.conversations.get(conversationId);
+      const at = new Date(
+        Math.max(clock.nowMs(), conversation ? Date.parse(conversation.lastMessageAt) : 0)
+      ).toISOString();
       await db.participants
         .where('[conversationId+memberId]')
         .equals([conversationId, me()])
