@@ -218,7 +218,7 @@ function onkeydown(event: KeyboardEvent): void {
       type="submit"
       disabled={!canSend}
       aria-busy={sending || undefined}
-      class="inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-soft hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 sm:min-h-0 sm:min-w-0"
+      class="inline-flex size-9 min-h-touch min-w-[44px] shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-soft hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 sm:min-h-0 sm:min-w-0"
     >
       {#if sending}<Spinner />{:else}<SendHorizontal class="size-4" aria-hidden="true" />{/if}
       <span class="sr-only">{sending ? 'Sending…' : 'Send message'}</span>

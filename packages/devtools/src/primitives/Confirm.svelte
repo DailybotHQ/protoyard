@@ -51,7 +51,7 @@ async function confirm() {
       <button
         bind:this={confirmButton}
         type="button"
-        class="inline-flex min-h-touch items-center gap-1.5 rounded-md bg-destructive px-2.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-50 sm:min-h-7"
+        class="inline-flex min-h-touch items-center gap-1.5 rounded-md bg-destructive px-2.5 text-xs font-medium text-destructive-foreground hover:bg-destructive-hover focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:opacity-50 sm:min-h-7"
         disabled={busy}
         aria-busy={busy || undefined}
         onclick={confirm}

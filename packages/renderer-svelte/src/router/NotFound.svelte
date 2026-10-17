@@ -13,7 +13,7 @@ let { path = '' }: { path?: string; [key: string]: unknown } = $props();
   </p>
   <a
     href="#/"
-    class="mt-2 inline-flex min-h-touch items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:min-h-9"
+    class="mt-2 inline-flex min-h-touch items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover sm:min-h-9"
   >
     Go to the start page
   </a>

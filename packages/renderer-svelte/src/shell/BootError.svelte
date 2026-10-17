@@ -64,7 +64,7 @@ async function wipe() {
     <div class="mt-6 flex flex-wrap gap-2">
       <button
         type="button"
-        class="inline-flex min-h-touch items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:min-h-9"
+        class="inline-flex min-h-touch items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover sm:min-h-9"
         onclick={() => location.reload()}
       >
         <Icon name="refresh" /> Reload
@@ -73,7 +73,7 @@ async function wipe() {
         {#if confirming}
           <button
             type="button"
-            class="inline-flex min-h-touch items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60 sm:min-h-9"
+            class="inline-flex min-h-touch items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive-hover disabled:opacity-60 sm:min-h-9"
             disabled={wiping}
             aria-busy={wiping}
             onclick={wipe}

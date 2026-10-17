@@ -19,7 +19,7 @@ const low = $derived(
   class={[
     'flex w-64 shrink-0 snap-start flex-col gap-4 rounded-2xl border p-4 shadow-soft transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
     account.status === 'active'
-      ? 'border-transparent bg-primary text-primary-foreground hover:bg-primary/90'
+      ? 'border-transparent bg-primary text-primary-foreground hover:bg-primary-hover'
       : 'border-border bg-surface text-foreground hover:bg-muted',
   ]}
   aria-label={`${account.name}, ${ACCOUNT_TYPE_LABELS[account.type]} ${account.masked}, balance ${formatMoney(account.balanceCents)}${account.status === 'active' ? '' : `, ${account.status}`}`}

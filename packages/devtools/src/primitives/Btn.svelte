@@ -16,10 +16,10 @@ let {
 } = $props();
 
 const variants = {
-  primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+  primary: 'bg-primary text-primary-foreground hover:bg-primary-hover',
   outline: 'border border-border bg-surface text-surface-foreground hover:bg-muted',
   ghost: 'text-foreground hover:bg-muted',
-  danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+  danger: 'bg-destructive text-destructive-foreground hover:bg-destructive-hover',
 };
 </script>
 

@@ -75,7 +75,7 @@ async function load() {
       <div class="flex gap-2">
         <button
           type="button"
-          class="inline-flex min-h-touch items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60 sm:min-h-8"
+          class="inline-flex min-h-touch items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-60 sm:min-h-8"
           disabled={busy}
           aria-busy={busy}
           onclick={load}

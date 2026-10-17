@@ -12,11 +12,12 @@ export const buttonVariants = tv({
   ],
   variants: {
     variant: {
-      default: 'bg-primary text-primary-foreground shadow-soft hover:bg-primary/90',
+      default: 'bg-primary text-primary-foreground shadow-soft hover:bg-primary-hover',
       secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
       outline: 'border border-input bg-surface text-foreground shadow-soft hover:bg-muted',
       ghost: 'text-foreground hover:bg-muted',
-      destructive: 'bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive/90',
+      destructive:
+        'bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive-hover',
       link: 'text-primary underline-offset-4 hover:underline',
     },
     size: {
