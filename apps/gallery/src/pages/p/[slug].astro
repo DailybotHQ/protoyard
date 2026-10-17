@@ -1,0 +1,95 @@
+---
+import CommandBlock from '@/components/CommandBlock.svelte';
+import FavoriteButton from '@/components/FavoriteButton.svelte';
+import LivePreview from '@/components/LivePreview.svelte';
+import MetaList from '@/components/MetaList.astro';
+import ProjectIcon from '@/components/ProjectIcon.svelte';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { commandsFor, devCommand } from '@/lib/commands';
+import { withBase } from '@/lib/format';
+import { prototypes } from '@/lib/registry';
+import type { RegistryEntry } from '@/lib/types';
+
+export function getStaticPaths() {
+  return prototypes().map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props as { entry: RegistryEntry };
+const commands = commandsFor(entry.slug);
+---
+
+<BaseLayout title={entry.name} description={entry.description}>
+  <a href={withBase('/')} class="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
+    <span aria-hidden="true">←</span> All prototypes
+  </a>
+  <header class="mt-4 flex flex-wrap items-start gap-4">
+    <ProjectIcon icon={entry.icon} name={entry.name} size="lg" />
+    <div class="min-w-0 flex-1">
+      <h1 class="text-3xl font-semibold tracking-tight" data-testid="detail-title">{entry.name}</h1>
+      <p class="mt-1 max-w-3xl text-muted">{entry.description || 'No description yet.'}</p>
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        {
+          entry.tags.map((tag) => (
+            <a
+              href={withBase(`/?tag=${encodeURIComponent(tag)}&kind=all`)}
+              class="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted hover:text-fg"
+            >
+              #{tag}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+    <FavoriteButton client:load slug={entry.slug} name={entry.name} withLabel />
+  </header>
+
+  <div class="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <div class="min-w-0 space-y-6">
+      <LivePreview
+        client:load
+        slug={entry.slug}
+        name={entry.name}
+        defaultViewport={entry.viewport}
+        devCommand={devCommand(entry.slug)}
+      />
+
+      <section aria-labelledby="scenarios-title">
+        <h2 id="scenarios-title" class="text-lg font-semibold">
+          Scenarios <span class="text-sm font-normal text-muted">{entry.scenarioCount}</span>
+        </h2>
+        <p class="mt-1 text-sm text-muted">
+          Each scenario rebuilds a deterministic world from its seed. Switch scenarios from DevTools inside
+          the prototype, or open a link with <code class="font-mono">?scenario=&lt;id&gt;</code>.
+        </p>
+        {
+          entry.scenarios.length > 0 ? (
+            <ul class="mt-3 flex flex-wrap gap-2" data-testid="scenarios">
+              {entry.scenarios.map((id) => (
+                <li class="rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs">
+                  {id}
+                  {id === entry.defaultScenario && (
+                    <span class="ml-1.5 rounded bg-accent-soft px-1 text-accent-fg">default</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="mt-3 text-sm text-muted">This prototype declares no scenarios.</p>
+          )
+        }
+      </section>
+    </div>
+    <aside class="space-y-6">
+      <section aria-labelledby="meta-title">
+        <h2 id="meta-title" class="mb-3 text-lg font-semibold">Details</h2>
+        <MetaList entry={entry} />
+      </section>
+      <section aria-labelledby="commands-title">
+        <h2 id="commands-title" class="mb-3 text-lg font-semibold">Commands</h2>
+        <div class="space-y-2">
+          {commands.map((c) => <CommandBlock client:visible label={c.label} command={c.command} />)}
+        </div>
+      </section>
+    </aside>
+  </div>
+</BaseLayout>

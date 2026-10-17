@@ -1,0 +1,86 @@
+---
+import '@/styles/global.css';
+import ThemeToggle from '@/components/ThemeToggle.svelte';
+import { withBase } from '@/lib/format';
+import { NO_FLASH_SCRIPT } from '@/lib/theme';
+
+interface Props {
+  title?: string;
+  description?: string;
+  active?: 'home' | 'templates' | 'new';
+}
+
+const {
+  title,
+  description = 'Build prototypes that feel real. Real behavior. Fake infrastructure.',
+  active,
+} = Astro.props;
+const fullTitle = title ? `${title} · Protoyard` : 'Protoyard — Build prototypes that feel real';
+const nav = [
+  { href: withBase('/'), label: 'Prototypes', id: 'home' },
+  { href: withBase('/#templates'), label: 'Templates', id: 'templates' },
+  { href: withBase('/new/'), label: 'Create', id: 'new' },
+];
+---
+
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href={withBase('/favicon.svg')} type="image/svg+xml" />
+    <script is:inline set:html={NO_FLASH_SCRIPT} />
+  </head>
+  <body class="bg-bg text-fg">
+    <a
+      href="#main"
+      class="sr-only-focusable fixed left-3 top-3 z-50 rounded-md bg-accent px-3 py-2 text-sm font-medium text-white"
+      >Skip to content</a
+    >
+    <header class="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur">
+      <div class="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
+        <a href={withBase('/')} class="flex items-center gap-2 font-semibold tracking-tight" aria-label="Protoyard home">
+          <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="8" fill="var(--py-accent)"></rect>
+            <path d="M10 22V10h7a4 4 0 0 1 0 8h-7" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <span>Protoyard</span>
+        </a>
+        <nav aria-label="Main" class="flex items-center gap-1 text-sm">
+          {
+            nav.map((item) => (
+              <a
+                href={item.href}
+                aria-current={active === item.id ? 'page' : undefined}
+                class:list={[
+                  'rounded-md px-2.5 py-1.5 text-muted hover:bg-surface-2 hover:text-fg',
+                  active === item.id && 'bg-surface-2 text-fg',
+                ]}
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+        <div class="ml-auto">
+          <ThemeToggle client:idle />
+        </div>
+      </div>
+    </header>
+    <main id="main" class="mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6">
+      <slot />
+    </main>
+    <footer class="border-t border-line">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-xs text-muted sm:px-6">
+        <p>Protoyard — real behavior, fake infrastructure. Every prototype keeps its data in your browser.</p>
+        <p>
+          <a class="underline-offset-2 hover:underline" href="https://github.com/DailybotHQ/protoyard">Source on GitHub</a>
+          · MIT · Dailybot, Inc.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

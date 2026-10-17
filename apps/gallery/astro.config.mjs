@@ -1,0 +1,48 @@
+// @ts-check
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import svelte from '@astrojs/svelte';
+import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'astro/config';
+import { protoyardRegistry } from './src/integrations/registry-plugin.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = resolve(__dirname, '../..');
+
+// The gallery is a static site. It reads ONLY the generated metadata registry
+// (`.protoyard/registry.json`, or PROTOYARD_REGISTRY for benchmarks) through a
+// virtual module, and never imports prototype code.
+export default defineConfig({
+  // Hosting the gallery under a sub-path: GALLERY_BASE=/protoyard/ pnpm build
+  base: process.env.GALLERY_BASE ?? '/',
+  ...(process.env.GALLERY_SITE ? { site: process.env.GALLERY_SITE } : {}),
+  trailingSlash: 'ignore',
+  compressHTML: true,
+  integrations: [svelte()],
+  server: { host: '127.0.0.1', port: 4321 },
+  vite: {
+    plugins: [
+      tailwindcss(),
+      protoyardRegistry({
+        registryPath: process.env.PROTOYARD_REGISTRY
+          ? resolve(process.cwd(), process.env.PROTOYARD_REGISTRY)
+          : resolve(workspaceRoot, '.protoyard/registry.json'),
+      }),
+    ],
+    resolve: {
+      alias: { '@': resolve(__dirname, './src') },
+    },
+    server: {
+      watch: {
+        // Prototype sources are irrelevant to the gallery; only the registry is watched.
+        ignored: [
+          '**/prototypes/**',
+          '**/templates/**',
+          '**/artifacts/**',
+          '**/tmp/**',
+          '**/.dwp/**',
+        ],
+      },
+    },
+  },
+});

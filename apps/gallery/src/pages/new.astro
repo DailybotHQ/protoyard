@@ -1,0 +1,30 @@
+---
+import CreateBuilder from '@/components/CreateBuilder.svelte';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { templates } from '@/lib/registry';
+
+const options = templates().map((t) => ({
+  slug: t.slug,
+  name: t.name,
+  description: t.description,
+}));
+---
+
+<BaseLayout title="Create a prototype" active="new">
+  <h1 class="text-3xl font-semibold tracking-tight">Create a prototype</h1>
+  <p class="mt-2 max-w-2xl text-muted">
+    New prototypes are copied from a template into <code class="font-mono">prototypes/&lt;slug&gt;/</code> by the CLI. Fill in the
+    fields to get the command — and a prompt for your coding agent.
+  </p>
+  <div class="mt-8">
+    <CreateBuilder client:load templates={options} />
+  </div>
+  <script>
+    // Preselect ?template=<slug> (from a template's "Use this template" button).
+    const wanted = new URLSearchParams(window.location.search).get('template');
+    if (wanted) {
+      const radio = document.querySelector<HTMLInputElement>(`input[name="template"][value="${CSS.escape(wanted)}"]`);
+      radio?.click();
+    }
+  </script>
+</BaseLayout>

@@ -1,0 +1,41 @@
+---
+import CommandBlock from './CommandBlock.svelte';
+
+interface Props {
+  reason: 'missing' | 'empty' | 'error';
+  error?: string | null;
+}
+const { reason, error } = Astro.props;
+---
+
+<section class="rounded-2xl border border-dashed border-line bg-surface p-8 sm:p-12" data-testid="first-run">
+  <p class="text-sm font-medium text-accent-fg">
+    {reason === 'missing' ? 'First run' : reason === 'empty' ? 'Nothing here yet' : 'Registry problem'}
+  </p>
+  <h2 class="mt-2 text-2xl font-semibold tracking-tight">
+    {
+      reason === 'missing'
+        ? 'Index your workspace to fill the gallery'
+        : reason === 'empty'
+          ? 'Create your first prototype'
+          : 'The registry could not be read'
+    }
+  </h2>
+  <p class="mt-2 max-w-2xl text-muted">
+    {
+      reason === 'error'
+        ? error
+        : 'The gallery only reads .protoyard/registry.json, the metadata index the CLI writes from each protoyard.json. It never runs prototype code.'
+    }
+  </p>
+  <div class="mt-6 grid max-w-2xl gap-3">
+    {
+      reason === 'empty' ? (
+        <CommandBlock client:visible label="Scaffold one from a template" command="pnpm protoyard new my-app --template blank" />
+      ) : (
+        <CommandBlock client:visible label="Build the registry (then reload)" command="pnpm protoyard index" />
+      )
+    }
+    <CommandBlock client:visible label="Or run everything (gallery + local control server)" command="pnpm dev" />
+  </div>
+</section>

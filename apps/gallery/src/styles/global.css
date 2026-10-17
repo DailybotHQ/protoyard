@@ -1,0 +1,99 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: reduced motion must override component transitions */
+@import "tailwindcss";
+
+/* Dark mode follows the html[data-theme] attribute set before first paint. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Restrained developer-tool palette: neutral canvas, one indigo accent.
+ * Foreground/background pairs meet WCAG AA (4.5:1) for body text.
+ */
+:root {
+  --py-bg: #fafafa;
+  --py-surface: #ffffff;
+  --py-surface-2: #f4f4f5;
+  --py-border: #e4e4e7;
+  --py-text: #18181b;
+  --py-muted: #52525b;
+  --py-accent: #4f46e5;
+  --py-accent-hover: #4338ca;
+  --py-accent-soft: #eef2ff;
+  --py-accent-text: #3730a3;
+  --py-success: #15803d;
+  --py-warning: #a16207;
+  --py-danger: #b91c1c;
+  --py-ring: #6366f1;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --py-bg: #09090b;
+  --py-surface: #111113;
+  --py-surface-2: #18181b;
+  --py-border: #27272a;
+  --py-text: #f4f4f5;
+  --py-muted: #a1a1aa;
+  --py-accent: #818cf8;
+  --py-accent-hover: #a5b4fc;
+  --py-accent-soft: #1e1b4b;
+  --py-accent-text: #c7d2fe;
+  --py-success: #4ade80;
+  --py-warning: #facc15;
+  --py-danger: #f87171;
+  --py-ring: #818cf8;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--py-bg);
+  --color-surface: var(--py-surface);
+  --color-surface-2: var(--py-surface-2);
+  --color-line: var(--py-border);
+  --color-fg: var(--py-text);
+  --color-muted: var(--py-muted);
+  --color-accent: var(--py-accent);
+  --color-accent-hover: var(--py-accent-hover);
+  --color-accent-soft: var(--py-accent-soft);
+  --color-accent-fg: var(--py-accent-text);
+  --color-success: var(--py-success);
+  --color-warning: var(--py-warning);
+  --color-danger: var(--py-danger);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html {
+  background: var(--py-bg);
+  color: var(--py-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--py-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.sr-only-focusable:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

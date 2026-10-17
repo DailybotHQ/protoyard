@@ -1,0 +1,102 @@
+---
+import Browser from '@/components/Browser.svelte';
+import FirstRun from '@/components/FirstRun.astro';
+import ProjectCard from '@/components/ProjectCard.svelte';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { withBase } from '@/lib/format';
+import {
+  compact,
+  facetValues,
+  inlineJson,
+  prototypes,
+  registry,
+  registryError,
+  templates,
+} from '@/lib/registry';
+
+const protos = prototypes();
+const temps = templates();
+const all = [...protos, ...temps];
+const index = all.map(compact);
+const initial = [...protos]
+  .sort((a, b) => a.name.localeCompare(b.name) || a.slug.localeCompare(b.slug))
+  .slice(0, 24)
+  .map(compact);
+const firstRun = registryError
+  ? 'error'
+  : !registry
+    ? 'missing'
+    : all.length === 0
+      ? 'empty'
+      : null;
+const invalidCount = registry?.invalid.length ?? 0;
+---
+
+<BaseLayout active="home">
+  <section class="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <div class="max-w-3xl">
+      <p class="text-sm font-medium text-accent-fg">Protoyard</p>
+      <h1 class="mt-2 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Build prototypes that feel real.</h1>
+      <p class="mt-3 text-lg text-muted">
+        Real behavior. Fake infrastructure. Every prototype is an independent app with its own persistent
+        browser database, scenarios, personas and simulated time.
+      </p>
+    </div>
+    {
+      registry && all.length > 0 && (
+        <dl class="flex gap-6 text-sm">
+          <div><dt class="text-muted">Prototypes</dt><dd class="text-2xl font-semibold tabular-nums">{protos.length}</dd></div>
+          <div><dt class="text-muted">Templates</dt><dd class="text-2xl font-semibold tabular-nums">{temps.length}</dd></div>
+          <div>
+            <dt class="text-muted">Scenarios</dt>
+            <dd class="text-2xl font-semibold tabular-nums">{protos.reduce((n, p) => n + p.scenarioCount, 0)}</dd>
+          </div>
+        </dl>
+      )
+    }
+  </section>
+
+  {
+    firstRun ? (
+      <FirstRun reason={firstRun} error={registryError} />
+    ) : (
+      <>
+        {invalidCount > 0 && (
+          <p class="mb-4 rounded-lg border border-line bg-surface px-4 py-3 text-sm text-warning" role="status">
+            {invalidCount} folder{invalidCount === 1 ? ' has' : 's have'} an invalid protoyard.json and {invalidCount === 1 ? 'is' : 'are'} hidden. Run{' '}
+            <code class="font-mono">pnpm protoyard index</code> for details.
+          </p>
+        )}
+        <script type="application/json" id="py-index" set:html={inlineJson(index)} />
+        <Browser
+          client:load
+          initial={initial}
+          dataId="py-index"
+          categories={facetValues(all, (e) => e.category)}
+          tags={facetValues(all, (e) => e.tags).slice(0, 40)}
+          platforms={facetValues(all, (e) => e.platform)}
+          counts={{ prototypes: protos.length, templates: temps.length }}
+        />
+
+        <section id="templates" class="mt-16 scroll-mt-20" aria-labelledby="templates-title">
+          <div class="flex items-end justify-between gap-4">
+            <div>
+              <h2 id="templates-title" class="text-xl font-semibold tracking-tight">Templates</h2>
+              <p class="mt-1 text-sm text-muted">Starting points for new prototypes. They are copied, never edited in place.</p>
+            </div>
+            <a href={withBase('/new/')} class="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover">Create prototype</a>
+          </div>
+          {temps.length > 0 ? (
+            <ul class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {temps.map((t) => (
+                <li><ProjectCard client:visible entry={compact(t)} /></li>
+              ))}
+            </ul>
+          ) : (
+            <p class="mt-4 rounded-xl border border-dashed border-line p-6 text-sm text-muted">No templates indexed yet.</p>
+          )}
+        </section>
+      </>
+    )
+  }
+</BaseLayout>

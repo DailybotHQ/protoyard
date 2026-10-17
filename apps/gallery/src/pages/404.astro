@@ -1,0 +1,13 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { withBase } from '@/lib/format';
+---
+
+<BaseLayout title="Not found">
+  <div class="py-24 text-center">
+    <p class="text-sm font-medium text-accent-fg">404</p>
+    <h1 class="mt-2 text-3xl font-semibold tracking-tight">That page is not in the gallery</h1>
+    <p class="mt-2 text-muted">The prototype may have been renamed, or the registry is out of date (<code class="font-mono">pnpm protoyard index</code>).</p>
+    <a href={withBase('/')} class="mt-6 inline-block rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover">Back to the gallery</a>
+  </div>
+</BaseLayout>

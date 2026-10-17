@@ -1,0 +1,68 @@
+---
+import CommandBlock from '@/components/CommandBlock.svelte';
+import MetaList from '@/components/MetaList.astro';
+import ProjectIcon from '@/components/ProjectIcon.svelte';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { withBase } from '@/lib/format';
+import { prototypes, templates } from '@/lib/registry';
+import type { RegistryEntry } from '@/lib/types';
+
+export function getStaticPaths() {
+  return templates().map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props as { entry: RegistryEntry };
+const usedBy = prototypes().filter((p) => p.template === entry.slug);
+---
+
+<BaseLayout title={`${entry.name} template`} description={entry.description} active="templates">
+  <a href={withBase('/#templates')} class="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
+    <span aria-hidden="true">←</span> All templates
+  </a>
+  <header class="mt-4 flex flex-wrap items-start gap-4">
+    <ProjectIcon icon={entry.icon} name={entry.name} size="lg" />
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-medium text-accent-fg">Template</p>
+      <h1 class="text-3xl font-semibold tracking-tight" data-testid="detail-title">{entry.name}</h1>
+      <p class="mt-1 max-w-3xl text-muted">{entry.description}</p>
+    </div>
+    <a
+      href={withBase(`/new/?template=${encodeURIComponent(entry.slug)}`)}
+      class="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-hover"
+    >
+      Use this template
+    </a>
+  </header>
+  <div class="mt-8 grid gap-6 lg:grid-cols-2">
+    <section class="space-y-3" aria-labelledby="start-title">
+      <h2 id="start-title" class="text-lg font-semibold">Start from it</h2>
+      <CommandBlock
+        client:visible
+        label="Create a prototype"
+        command={`pnpm protoyard new my-app --template ${entry.slug}`}
+      />
+      <CommandBlock client:visible label="Then run it" command="pnpm protoyard dev my-app" />
+      <h2 class="pt-4 text-lg font-semibold">Used by</h2>
+      {
+        usedBy.length > 0 ? (
+          <ul class="space-y-1 text-sm">
+            {usedBy.map((p) => (
+              <li>
+                <a class="underline-offset-2 hover:underline" href={withBase(`/p/${p.slug}/`)}>
+                  {p.name}
+                </a>{' '}
+                <span class="font-mono text-xs text-muted">{p.slug}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="text-sm text-muted">No indexed prototype was created from this template yet.</p>
+        )
+      }
+    </section>
+    <section aria-labelledby="meta-title">
+      <h2 id="meta-title" class="mb-3 text-lg font-semibold">Details</h2>
+      <MetaList entry={entry} />
+    </section>
+  </div>
+</BaseLayout>

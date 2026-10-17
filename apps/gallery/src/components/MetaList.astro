@@ -1,0 +1,32 @@
+---
+import { formatDate, PLATFORM_LABEL, STATUS_LABEL } from '@/lib/format';
+import type { RegistryEntry } from '@/lib/types';
+
+interface Props {
+  entry: RegistryEntry;
+}
+const { entry } = Astro.props;
+const rows: [string, string][] = [
+  ['Id', entry.id],
+  ['Version', entry.version],
+  ['Status', STATUS_LABEL[entry.status]],
+  ['Platform', PLATFORM_LABEL[entry.platform]],
+  ['Category', entry.category],
+  ['Template', entry.template ?? '—'],
+  ['Default theme', `${entry.defaultTheme} · ${entry.defaultMode}`],
+  ['Storage', `protoyard.${entry.namespace}.* · schema v${entry.schemaVersion}`],
+  ['Folder', entry.path],
+  ['Last modified', formatDate(entry.modifiedAt)],
+];
+---
+
+<dl class="divide-y divide-line rounded-xl border border-line bg-surface text-sm">
+  {
+    rows.map(([label, value]) => (
+      <div class="flex gap-4 px-4 py-2.5">
+        <dt class="w-32 shrink-0 text-muted">{label}</dt>
+        <dd class="min-w-0 break-words font-mono text-[13px]">{value}</dd>
+      </div>
+    ))
+  }
+</dl>
