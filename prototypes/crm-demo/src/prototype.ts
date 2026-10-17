@@ -15,6 +15,25 @@ export const definition = definePrototype({
   database,
   scenarios,
   policy,
+  integrity: {
+    relations: {
+      companies: { ownerId: 'py_personas' },
+      contacts: { companyId: 'companies', ownerId: 'py_personas' },
+      deals: { companyId: 'companies', contactId: 'contacts', ownerId: 'py_personas' },
+      activities: {
+        dealId: 'deals',
+        companyId: 'companies',
+        contactId: 'contacts',
+        actorId: 'py_personas',
+      },
+    },
+    timestamps: {
+      companies: ['createdAt'],
+      contacts: ['createdAt'],
+      deals: ['createdAt'],
+      activities: ['at'],
+    },
+  },
   generate: generateCrmWorld,
   timeline: crmTimeline,
   applyEvent: applyCrmEvent,

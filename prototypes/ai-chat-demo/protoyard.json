@@ -1,0 +1,31 @@
+{
+  "id": "example.ai-chat",
+  "slug": "ai-chat-demo",
+  "kind": "prototype",
+  "name": "Relay — team AI chat",
+  "description": "A team chat where people and scripted AI agents collaborate: conversations, streamed agent replies, unread badges, search, and failure states. No real AI API.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "ai",
+  "tags": ["ai", "chat", "agents", "messaging", "streaming"],
+  "template": "chat",
+  "status": "ready",
+  "icon": "💬",
+  "defaultScenario": "active-team",
+  "defaultTheme": "ocean",
+  "defaultMode": "dark",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "ai-chat-demo", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": [
+    "empty-new-user",
+    "active-team",
+    "member-view",
+    "viewer-view",
+    "agent-outage",
+    "long-thread"
+  ],
+  "createdAt": "2026-10-17T00:00:00.000Z",
+  "updatedAt": "2026-10-17T00:00:00.000Z"
+}

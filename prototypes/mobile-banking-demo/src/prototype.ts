@@ -15,5 +15,19 @@ export const definition = definePrototype({
   database,
   scenarios,
   policy,
+  integrity: {
+    relations: {
+      accounts: { ownerId: 'py_personas' },
+      transactions: { accountId: 'accounts', transferId: 'transfers' },
+      beneficiaries: { ownerId: 'py_personas' },
+      transfers: {
+        fromAccountId: 'accounts',
+        toAccountId: 'accounts',
+        beneficiaryId: 'beneficiaries',
+        createdBy: 'py_personas',
+      },
+    },
+    timestamps: { transactions: ['at'], beneficiaries: ['createdAt'] },
+  },
   generate: generateBankWorld,
 });
