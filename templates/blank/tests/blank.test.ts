@@ -67,12 +67,13 @@ describe('note services', () => {
     expect(note.authorId).toBe('user_0001');
     expect(note.createdAt).toBe(runtime.clock.now().toISOString());
     await notes.update(note.id, { title: 'First idea (edited)', body: 'Ship it soon' });
+    // `note` is a stale copy (pinned: false). Toggling must use the STORED state,
+    // so two toggles end unpinned; a copy-based toggle would leave it pinned.
     await notes.togglePin({ ...note });
-    // A stale copy (still pinned: false) must not flip it back.
-    await notes.togglePin({ ...note });
+    expect(await runtime.db.notes.get(note.id)).toMatchObject({ pinned: true });
     await notes.togglePin({ ...note });
     const stored = await runtime.db.notes.get(note.id);
-    expect(stored).toMatchObject({ title: 'First idea (edited)', pinned: true });
+    expect(stored).toMatchObject({ title: 'First idea (edited)', pinned: false });
     await notes.remove(note.id);
     expect(await runtime.db.notes.count()).toBe(0);
   });
