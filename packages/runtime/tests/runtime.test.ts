@@ -5,7 +5,13 @@ import {
   parseScenario,
   ThemePaletteSchema,
 } from '@protoyard/core';
-import { dumpTables, openControlStore } from '@protoyard/database';
+import {
+  dumpTables,
+  listProtoyardDatabases,
+  openControlStore,
+  parseDatabaseName,
+  sandboxNamespace,
+} from '@protoyard/database';
 import {
   composeScenario,
   createGenerateContext,
@@ -662,5 +668,123 @@ describe('hostile snapshot files', () => {
     const again = await start(createTasksDefinition(), store, { onError: (e) => errors.push(e) });
     expect(again.clock.now().toISOString()).toBe(REFERENCE_TIME);
     expect(errors.length).toBe(1);
+  });
+});
+
+describe('sandboxed worlds', () => {
+  it('keeps sandboxes isolated from each other and from the default world', async () => {
+    const store = backend();
+    const main = await start(createTasksDefinition(), store);
+    await main.scenarios.ensureSeeded();
+    await main.db
+      .rows('tasks')
+      .put({ id: 'task_main_edit', projectId: 'project_0001', title: 'Mine' });
+    const mainWorld = await dumpTables(main.db);
+
+    const a = await start(createTasksDefinition(), store, {
+      link: { sandbox: 'a', scenario: 'viewer' },
+    });
+    const b = await start(createTasksDefinition(), store, {
+      link: { sandbox: 'b', scenario: 'empty' },
+    });
+    await a.scenarios.ensureSeeded();
+    await b.scenarios.ensureSeeded();
+    expect(a.sandbox).toBe('a');
+    expect(main.sandbox).toBeUndefined();
+    expect(a.db.name).toBe('protoyard.tasks-fixture~a.data');
+    expect(a.scenarios.active()?.scenario.id).toBe('viewer');
+    expect(b.scenarios.active()?.scenario.id).toBe('empty');
+    expect(await b.db.rows('tasks').count()).toBe(0);
+
+    await a.db.rows('tasks').put({ id: 'task_a_edit', projectId: 'project_0001', title: 'A' });
+    await a.session.switchActor('user_0001');
+    await b.scenarios.load('active-month');
+    expect(await dumpTables(main.db)).toEqual(mainWorld);
+    expect(main.scenarios.active()?.scenario.id).toBe('active-month');
+    expect(await b.db.rows('tasks').get('task_a_edit')).toBeUndefined();
+    expect(await main.db.rows('tasks').get('task_a_edit')).toBeUndefined();
+
+    const listing = await listProtoyardDatabases('tasks-fixture', store);
+    expect(listing).toMatchObject({ supported: true, sandboxes: ['a', 'b'] });
+    expect(listing.databases.map((d) => d.name)).toEqual([
+      'protoyard.tasks-fixture.control',
+      'protoyard.tasks-fixture.data',
+      'protoyard.tasks-fixture~a.control',
+      'protoyard.tasks-fixture~a.data',
+      'protoyard.tasks-fixture~b.control',
+      'protoyard.tasks-fixture~b.data',
+    ]);
+  });
+
+  it('follows a new link scenario inside a sandbox, keeps edits on plain reloads', async () => {
+    const store = backend();
+    const first = await start(createTasksDefinition(), store, {
+      link: { sandbox: 'cmp', scenario: 'viewer' },
+    });
+    await first.scenarios.ensureSeeded();
+    await first.db.rows('tasks').put({ id: 'task_keep', projectId: 'project_0001', title: 'Keep' });
+    first.close();
+    const reload = await start(createTasksDefinition(), store, {
+      link: { sandbox: 'cmp', scenario: 'viewer' },
+    });
+    await reload.scenarios.ensureSeeded();
+    expect(await reload.db.rows('tasks').get('task_keep')).toBeDefined();
+    reload.close();
+    const relink = await start(createTasksDefinition(), store, {
+      link: { sandbox: 'cmp', scenario: 'new-member' },
+    });
+    await relink.scenarios.ensureSeeded();
+    expect(relink.scenarios.active()?.scenario.id).toBe('new-member');
+    expect(relink.scenarios.pendingLink()).toBeNull();
+    expect(await relink.db.rows('tasks').get('task_keep')).toBeUndefined();
+  });
+
+  it('discards only its own databases; outside a sandbox discard throws', async () => {
+    const store = backend();
+    const main = await start(createTasksDefinition(), store);
+    await main.scenarios.ensureSeeded();
+    const a = await start(createTasksDefinition(), store, {
+      link: { sandbox: 'a', scenario: 'empty' },
+    });
+    const b = await start(createTasksDefinition(), store, {
+      link: { sandbox: 'b', scenario: 'empty' },
+    });
+    await a.scenarios.ensureSeeded();
+    await b.scenarios.ensureSeeded();
+    await expect(main.discardSandbox()).rejects.toThrow(/not running in a sandbox/);
+    await a.discardSandbox();
+    expect(a.closed).toBe(true);
+    expect((await listProtoyardDatabases('tasks-fixture', store)).sandboxes).toEqual(['b']);
+    expect(await main.db.rows('tasks').count()).toBeGreaterThan(0);
+    expect(b.scenarios.active()?.scenario.id).toBe('empty');
+  });
+
+  it('ignores an invalid sandbox name and uses the default world', async () => {
+    const store = backend();
+    const runtime = await start(createTasksDefinition(), store, {
+      link: { sandbox: '../Evil~x', scenario: 'viewer' },
+    });
+    await runtime.scenarios.ensureSeeded();
+    expect(runtime.sandbox).toBeUndefined();
+    expect(runtime.db.name).toBe('protoyard.tasks-fixture.data');
+    expect((await listProtoyardDatabases('tasks-fixture', store)).sandboxes).toEqual([]);
+  });
+
+  it('lists gracefully when indexedDB.databases() is unavailable', async () => {
+    const factory = new IDBFactory() as unknown as globalThis.IDBFactory & { databases?: unknown };
+    Object.defineProperty(factory, 'databases', { value: undefined });
+    expect(await listProtoyardDatabases('tasks-fixture', { indexedDB: factory })).toEqual({
+      supported: false,
+      databases: [],
+      sandboxes: [],
+    });
+    expect(parseDatabaseName('protoyard.crm-demo~cmp-1.data')).toEqual({
+      name: 'protoyard.crm-demo~cmp-1.data',
+      namespace: 'crm-demo',
+      sandbox: 'cmp-1',
+      kind: 'data',
+    });
+    expect(parseDatabaseName('other.db')).toBeNull();
+    expect(() => sandboxNamespace('crm-demo', 'Bad Name')).toThrow(/Invalid sandbox/);
   });
 });

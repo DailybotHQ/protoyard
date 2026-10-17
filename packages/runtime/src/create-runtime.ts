@@ -1,9 +1,15 @@
-import type { DataInspector, PrototypeDefinition, PrototypeRuntime } from '@protoyard/core';
+import {
+  type DataInspector,
+  type PrototypeDefinition,
+  type PrototypeRuntime,
+  SANDBOX_PATTERN,
+} from '@protoyard/core';
 import {
   countTables,
   deleteProtoyardDatabases,
   openPrototypeStorage,
   type PrototypeDatabase,
+  sandboxNamespace,
 } from '@protoyard/database';
 import { createKernel, type Kernel } from './kernel.ts';
 import type { RuntimeOptions } from './options.ts';
@@ -18,6 +24,9 @@ export const MAX_INSPECTOR_PAGE = 500;
 export interface ProtoyardRuntime extends PrototypeRuntime<PrototypeDatabase> {
   readonly scenarios: PrototypeRuntime['scenarios'] & ScenarioControllerExtras;
   readonly snapshots: PrototypeRuntime['snapshots'] & SnapshotControllerExtras;
+  /** Present when running in a sandbox (`?sandbox=`). */
+  readonly sandbox?: string;
+  discardSandbox(): Promise<void>;
   /** True after `close()` or `destroy()`. */
   readonly closed: boolean;
 }
@@ -43,7 +52,20 @@ export async function createPrototypeRuntime(
   definition: PrototypeDefinition,
   options: RuntimeOptions = {}
 ): Promise<ProtoyardRuntime> {
-  const storage = await openPrototypeStorage(definition, {
+  // A valid `?sandbox=` gives this runtime its own pair of databases; anything
+  // else (including an invalid name passed by hand) uses the default world.
+  const sandbox =
+    options.link?.sandbox && SANDBOX_PATTERN.test(options.link.sandbox)
+      ? options.link.sandbox
+      : undefined;
+  const namespace = sandbox
+    ? sandboxNamespace(definition.manifest.storage.namespace, sandbox)
+    : definition.manifest.storage.namespace;
+  const source = {
+    manifest: { storage: { ...definition.manifest.storage, namespace } },
+    database: definition.database,
+  };
+  const storage = await openPrototypeStorage(source, {
     ...(options.indexedDB ? { indexedDB: options.indexedDB } : {}),
     ...(options.IDBKeyRange ? { IDBKeyRange: options.IDBKeyRange } : {}),
     ...(options.allowMemoryFallback !== undefined
@@ -76,6 +98,7 @@ export async function createPrototypeRuntime(
 
   const runtime: ProtoyardRuntime = {
     prototypeId: definition.manifest.id,
+    ...(sandbox ? { sandbox } : {}),
     manifest: definition.manifest,
     definition,
     db: kernel.db,
@@ -97,7 +120,11 @@ export async function createPrototypeRuntime(
       // Wait for in-flight loads/advances so nothing writes after deletion.
       await kernel.serial(async () => undefined);
       close();
-      await deleteProtoyardDatabases(definition.manifest.storage.namespace, kernel.backend);
+      await deleteProtoyardDatabases(namespace, kernel.backend);
+    },
+    async discardSandbox() {
+      if (!sandbox) throw new Error('This runtime is not running in a sandbox.');
+      await runtime.destroy();
     },
     close,
   };

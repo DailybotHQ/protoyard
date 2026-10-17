@@ -8,6 +8,7 @@ import {
   type LoadProgress,
   type LoadScenarioOptions,
   type Row,
+  SANDBOX_PATTERN,
   type Scenario,
   type ScenarioController,
   type TimelineContext,
@@ -117,6 +118,9 @@ export function createScenarioController(
   saveSafetySnapshot: SafetySnapshot
 ): ScenarioController & ScenarioControllerExtras {
   let pending: PendingLink | null = null;
+  const inSandbox = Boolean(
+    k.options.link?.sandbox && SANDBOX_PATTERN.test(k.options.link.sandbox)
+  );
   let lastTimings: LoadTimings | null = null;
   const byId = (id: string) => k.scenarios.find((s) => s.id === id);
 
@@ -307,15 +311,20 @@ export function createScenarioController(
           const differs =
             link.scenario !== k.active.scenario.id ||
             (link.seed !== undefined && link.seed !== k.active.seed);
-          pending = differs
-            ? {
-                scenario: link.scenario,
-                ...(link.seed !== undefined ? { seed: link.seed } : {}),
-                reason: byId(link.scenario)
-                  ? 'This browser already has edits for another scenario. Load the linked scenario to replace them.'
-                  : `The link points to unknown scenario "${link.scenario}".`,
-              }
-            : null;
+          // A sandbox is disposable by design: follow the link instead of asking.
+          if (differs && inSandbox && byId(link.scenario)) {
+            await load(link.scenario, link.seed !== undefined ? { seed: link.seed } : {});
+          }
+          pending =
+            differs && !(inSandbox && byId(link.scenario))
+              ? {
+                  scenario: link.scenario,
+                  ...(link.seed !== undefined ? { seed: link.seed } : {}),
+                  reason: byId(link.scenario)
+                    ? 'This browser already has edits for another scenario. Load the linked scenario to replace them.'
+                    : `The link points to unknown scenario "${link.scenario}".`,
+                }
+              : null;
         }
 
         if (link.actor && link.actor !== k.principal?.persona.id) {

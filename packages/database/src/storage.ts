@@ -2,7 +2,12 @@ import type { StorageStatus } from '@protoyard/core';
 import { loadMemoryBackend, resolveFactory, type StorageBackend } from './backend.ts';
 import { type ControlStore, openControlStore } from './control-store.ts';
 import { isStorageError, StorageError } from './errors.ts';
-import { controlDatabaseName, dataDatabaseName } from './names.ts';
+import {
+  controlDatabaseName,
+  dataDatabaseName,
+  type ParsedDatabaseName,
+  parseDatabaseName,
+} from './names.ts';
 import {
   type DatabaseSource,
   openPrototypeDatabase,
@@ -83,6 +88,48 @@ export async function deleteProtoyardDatabases(
   const factory = resolveFactory(backend);
   await deleteDatabase(factory, dataDatabaseName(namespace));
   await deleteDatabase(factory, controlDatabaseName(namespace));
+}
+
+export interface DatabaseListing {
+  /** False when the browser can't enumerate databases (no `indexedDB.databases()`). */
+  supported: boolean;
+  /** This prototype's databases: the default world and every sandbox. */
+  databases: ParsedDatabaseName[];
+  /** Sandbox names with at least one database, sorted. */
+  sandboxes: string[];
+}
+
+/**
+ * Lists a prototype's databases, including sandboxes, so DevTools can offer
+ * "Clear N sandboxes". Never throws: an unsupported or failing enumeration
+ * reports `supported: false` with empty lists.
+ */
+export async function listProtoyardDatabases(
+  namespace: string,
+  backend: StorageBackend = {}
+): Promise<DatabaseListing> {
+  let factory: IDBFactory;
+  try {
+    factory = resolveFactory(backend);
+  } catch {
+    return { supported: false, databases: [], sandboxes: [] };
+  }
+  if (typeof factory.databases !== 'function') {
+    return { supported: false, databases: [], sandboxes: [] };
+  }
+  try {
+    const infos = await factory.databases();
+    const databases = infos
+      .map((info) => (info.name ? parseDatabaseName(info.name) : null))
+      .filter((db): db is ParsedDatabaseName => db !== null && db.namespace === namespace)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const sandboxes = [
+      ...new Set(databases.flatMap((db) => (db.sandbox ? [db.sandbox] : []))),
+    ].sort();
+    return { supported: true, databases, sandboxes };
+  } catch {
+    return { supported: false, databases: [], sandboxes: [] };
+  }
 }
 
 export interface PrototypeStorage {

@@ -34,6 +34,26 @@ warning.
 | B | `overrides.set()`, `session.switchActor()`, `theme.*`, `environment.set()` | Non-destructive and persisted in the control DB; domain rows are never written |
 | C | `snapshots.save / restore / exportJson / importJson` | Captures and restores the actual world, records and session together |
 
+## Sandboxed worlds
+
+`?sandbox=<name>` (validated by core's `SANDBOX_PATTERN`) gives the runtime its own pair of
+databases, `protoyard.<namespace>~<name>.{data,control}`. Use it to show two scenarios side by
+side on one origin, for example two iframes with `?sandbox=a&scenario=X` and
+`?sandbox=b&scenario=Y`.
+
+- The default world is never read or written from a sandbox, and sandboxes never see each
+  other.
+- `ensureSeeded()` seeds the link's scenario in a new sandbox. When an existing sandbox gets
+  a link to a *different* scenario or seed, it loads it directly (sandboxes are disposable),
+  instead of showing the pending-link prompt. A plain reload keeps the sandbox's edits.
+- `runtime.sandbox` holds the name, or `undefined` in the default world.
+  `runtime.discardSandbox()` deletes only this sandbox's two databases, and throws outside a
+  sandbox.
+- An invalid name is ignored, and the runtime uses the default world.
+- `listProtoyardDatabases(namespace)` from `@protoyard/database` lists the default world and
+  every sandbox (`{ supported, databases, sandboxes }`), for cleanup UIs. It needs
+  `indexedDB.databases()`; otherwise it reports `supported: false`.
+
 ## Large worlds and progress
 
 Loads run in phases: **generate → validate → write → done**. The runtime yields to the event

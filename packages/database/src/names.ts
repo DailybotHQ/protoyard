@@ -1,4 +1,4 @@
-import { type DatabaseDefinition, RESERVED_TABLES } from '@protoyard/core';
+import { type DatabaseDefinition, RESERVED_TABLES, SANDBOX_PATTERN } from '@protoyard/core';
 
 /**
  * Every prototype owns exactly two IndexedDB databases. Names are derived
@@ -14,6 +14,42 @@ export function dataDatabaseName(namespace: string): string {
 
 export function controlDatabaseName(namespace: string): string {
   return `${DATABASE_PREFIX}.${namespace}.control`;
+}
+
+/**
+ * Sandboxes are disposable copies of a prototype's world (`?sandbox=a`). Their
+ * namespace is `<namespace>~<sandbox>`: `~` never appears in a manifest
+ * namespace, so a sandbox can't collide with another prototype.
+ */
+export const SANDBOX_SEPARATOR = '~';
+
+export function sandboxNamespace(namespace: string, sandbox: string): string {
+  if (!SANDBOX_PATTERN.test(sandbox)) {
+    throw new Error(`Invalid sandbox name "${sandbox}" (lowercase letters, digits and dashes).`);
+  }
+  return `${namespace}${SANDBOX_SEPARATOR}${sandbox}`;
+}
+
+export interface ParsedDatabaseName {
+  name: string;
+  /** Base namespace (without the sandbox suffix). */
+  namespace: string;
+  sandbox: string | null;
+  kind: 'data' | 'control';
+}
+
+/** Reads `protoyard.<namespace>[~<sandbox>].<data|control>`; null for anything else. */
+export function parseDatabaseName(name: string): ParsedDatabaseName | null {
+  const match = /^protoyard\.([a-z][a-z0-9-]*)(?:~([a-z0-9][a-z0-9-]*))?\.(data|control)$/.exec(
+    name
+  );
+  if (!match) return null;
+  return {
+    name,
+    namespace: match[1] as string,
+    sandbox: match[2] ?? null,
+    kind: match[3] as 'data' | 'control',
+  };
 }
 
 export const RESERVED_TABLE_NAMES = Object.keys(

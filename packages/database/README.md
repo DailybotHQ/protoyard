@@ -77,6 +77,12 @@ version and blocked errors are thrown rather than hidden behind memory storage.
 
 `deleteProtoyardDatabases(namespace)` deletes only that prototype's two databases.
 
+**Sandboxes:** `sandboxNamespace(namespace, name)` returns `<namespace>~<name>`; the `~`
+never appears in a manifest namespace. `listProtoyardDatabases(namespace)` returns
+`{ supported, databases, sandboxes }` using `indexedDB.databases()`, and reports
+`supported: false` where the browser can't enumerate. `parseDatabaseName(name)` reads any
+`protoyard.<namespace>[~<sandbox>].<data|control>` name.
+
 ## Tests
 
 `pnpm vitest run packages/database` covers migrations, version-newer, atomic restore, the

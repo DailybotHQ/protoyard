@@ -187,7 +187,14 @@ export interface PrototypeRuntime<TDatabase = unknown> {
   storage(): StorageStatus;
   /** Effective environment (scenario + overrides). */
   environmentState(): EnvironmentState;
-  /** Wipes ONLY this prototype's data + control databases. */
+  /**
+   * Set when this runtime runs in a disposable sandbox (`?sandbox=<name>`):
+   * its databases are `<namespace>~<sandbox>`, isolated from the default world.
+   */
+  readonly sandbox?: string;
+  /** Deletes ONLY this sandbox's two databases (throws outside a sandbox). */
+  discardSandbox?(): Promise<void>;
+  /** Wipes ONLY this prototype's data + control databases (the sandbox's, in a sandbox). */
   destroy(): Promise<void>;
   close(): void;
 }

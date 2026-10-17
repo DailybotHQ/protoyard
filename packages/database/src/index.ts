@@ -24,8 +24,12 @@ export {
   dataDatabaseName,
   domainTableNames,
   latestVersion,
+  type ParsedDatabaseName,
+  parseDatabaseName,
   RESERVED_PREFIX,
   RESERVED_TABLE_NAMES,
+  SANDBOX_SEPARATOR,
+  sandboxNamespace,
 } from './names.ts';
 export {
   createPrototypeDatabase,
@@ -34,7 +38,9 @@ export {
   PrototypeDatabase,
 } from './prototype-database.ts';
 export {
+  type DatabaseListing,
   deleteProtoyardDatabases,
+  listProtoyardDatabases,
   MEMORY_STORAGE_WARNING,
   openPrototypeStorage,
   type PrototypeStorage,
