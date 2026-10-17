@@ -1,0 +1,56 @@
+import { z } from 'zod';
+import { CURRENCIES, CUSTOMER_STATUSES, PLANS } from '../database/schema.ts';
+
+/**
+ * Input schemas for every service. `ValidationError.issues` maps a field name
+ * to its first message so dialogs can render errors inline (runService leaves
+ * these errors to the form instead of toasting them).
+ */
+
+export class ValidationError extends Error {
+  readonly issues: Record<string, string>;
+  constructor(issues: Record<string, string>) {
+    super(Object.values(issues)[0] ?? 'Invalid input');
+    this.name = 'ValidationError';
+    this.issues = issues;
+  }
+}
+
+export function parse<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
+  const result = schema.safeParse(input);
+  if (result.success) return result.data;
+  const issues: Record<string, string> = {};
+  for (const issue of result.error.issues) {
+    const key = issue.path.join('.') || 'form';
+    issues[key] ??= issue.message;
+  }
+  throw new ValidationError(issues);
+}
+
+export const CustomerInputSchema = z.object({
+  name: z.string().trim().min(2, 'Name must have at least 2 characters').max(80),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  company: z.string().trim().max(80, 'Keep it under 80 characters').default(''),
+  plan: z.enum(PLANS, 'Pick a plan'),
+  status: z.enum(CUSTOMER_STATUSES, 'Pick a status'),
+  country: z.string().trim().max(60).default(''),
+});
+export type CustomerInput = z.input<typeof CustomerInputSchema>;
+
+export const OrderInputSchema = z.object({
+  customerId: z.string().min(1, 'Pick a customer'),
+  description: z.string().trim().min(2, 'Describe the order').max(120),
+  amount: z.coerce
+    .number('Enter an amount')
+    .positive('Amount must be greater than zero')
+    .max(1_000_000, 'Amounts over 1,000,000 need a manual invoice'),
+});
+export type OrderInput = z.input<typeof OrderInputSchema>;
+
+export const SettingsInputSchema = z.object({
+  workspaceName: z.string().trim().min(2, 'Name must have at least 2 characters').max(60),
+  supportEmail: z.string().trim().toLowerCase().email('Enter a valid email address'),
+  currency: z.enum(CURRENCIES, 'Pick a currency'),
+  weeklyReport: z.boolean(),
+});
+export type SettingsInput = z.input<typeof SettingsInputSchema>;

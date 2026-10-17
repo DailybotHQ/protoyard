@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.dashboard",
+  "slug": "dashboard",
+  "kind": "template",
+  "name": "SaaS Dashboard",
+  "description": "A SaaS admin starter: overview metrics and a revenue chart, customers with search, filters and detail pages, orders with audited status changes, and a role-gated settings page for owner, admin, member and viewer personas.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "dashboard", "saas", "admin", "crud", "roles"],
+  "status": "ready",
+  "icon": "📊",
+  "defaultScenario": "active",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-dashboard", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "power-user", "viewer"]
+}
