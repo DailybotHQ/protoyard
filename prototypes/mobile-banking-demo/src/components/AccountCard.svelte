@@ -33,7 +33,7 @@ const low = $derived(
   </div>
   <div>
     <p class="text-2xl font-semibold tracking-tight tabular-nums">{formatMoney(account.balanceCents)}</p>
-    <p class="mt-1 flex items-center gap-2 text-xs opacity-80">
+    <p class="mt-1 flex items-center gap-2 text-xs">
       <span>{ACCOUNT_TYPE_LABELS[account.type]} · {account.masked}</span>
       {#if low}
         <span class="rounded-full bg-warning px-1.5 py-px font-medium text-warning-foreground">Low balance</span>

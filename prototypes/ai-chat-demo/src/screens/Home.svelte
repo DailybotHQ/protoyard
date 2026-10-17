@@ -29,7 +29,7 @@ async function start(agent: Agent) {
 <div class="flex h-full min-h-0 flex-col items-center justify-center overflow-y-auto px-6 py-10">
   {#if isNew}
     <div class="flex max-w-xl flex-col items-center text-center">
-      <span class="grid size-14 place-items-center rounded-2xl bg-primary/15 text-primary" aria-hidden="true">
+      <span class="grid size-14 place-items-center rounded-2xl bg-primary text-primary-foreground" aria-hidden="true">
         <Sparkles class="size-7" />
       </span>
       <h1 class="mt-5 text-2xl font-semibold tracking-tight">Welcome to Relay, {firstName}</h1>

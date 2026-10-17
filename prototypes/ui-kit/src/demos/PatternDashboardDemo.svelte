@@ -145,6 +145,7 @@ function createDeal(event: SubmitEvent): void {
 <div class="relative h-[560px] overflow-hidden rounded-xl border border-border">
   <AppShell
     bind:sidebarOpen
+    mainElement="div"
     mainId="pattern-dashboard-main"
     sidebarLabel="Dashboard navigation"
     class="h-full min-h-0 [&>div:first-of-type]:h-full"
@@ -172,7 +173,7 @@ function createDeal(event: SubmitEvent): void {
       </div>
     {/snippet}
     {#snippet header()}
-      <Header title={pageTitle} description="Q3 · Sales team">
+      <Header titleAs="p" title={pageTitle} description="Q3 · Sales team">
         {#snippet actions()}
           <Dialog
             bind:open={newOpen}

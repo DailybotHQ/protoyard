@@ -50,7 +50,7 @@ let range = $state('This week');
   </div>
 
   <div class="overflow-hidden rounded-xl border border-border">
-    <Header sticky={false}>
+    <Header titleAs="p" sticky={false}>
       {#snippet leading()}
         <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
         <div onclick={(event) => interceptDemoNav(event, () => toast.info('Breadcrumb clicked'))}>

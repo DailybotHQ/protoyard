@@ -39,7 +39,7 @@ const status = (step: StepId) =>
 
 {#if flow.completedAt}
   <div class="flex flex-col items-center py-6 text-center">
-    <span class="grid size-14 place-items-center rounded-full bg-success/15 text-success"><PartyPopper class="size-7" aria-hidden="true" /></span>
+    <span class="grid size-14 place-items-center rounded-full bg-success text-success-foreground"><PartyPopper class="size-7" aria-hidden="true" /></span>
     <StepHeading title="You're all set" description="Onboarding is complete. Here is what you set up." />
   </div>
 {:else}

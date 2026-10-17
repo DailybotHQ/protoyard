@@ -100,8 +100,11 @@ $effect(() => {
     {#each groups as group (group.key)}
       {@const author = authorOf(people, group.authorId)}
       {#if group.day}
-        <li class="flex items-center gap-3 text-xs text-muted-foreground" role="separator" aria-label={group.day}>
-          <span class="h-px flex-1 bg-border"></span><span aria-hidden="true">{group.day}</span><span class="h-px flex-1 bg-border"></span>
+        <!-- A list may only contain <li>: the separator role goes on an inner element. -->
+        <li>
+          <div class="flex items-center gap-3 text-xs text-muted-foreground" role="separator" aria-label={group.day}>
+            <span class="h-px flex-1 bg-border"></span><span aria-hidden="true">{group.day}</span><span class="h-px flex-1 bg-border"></span>
+          </div>
         </li>
       {/if}
       <li class={['flex gap-3 rounded-lg px-2 py-1.5', group.authorId === meId && 'bg-primary/5']}>

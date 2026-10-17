@@ -139,7 +139,8 @@ async function useTheme(themeId: string) {
       </div>
     </div>
   </div>
-  <div class="overflow-x-auto rounded-xl border border-border bg-surface">
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the wide table scrolls; keyboard users must reach it (WCAG 2.1.1). -->
+  <div class="overflow-x-auto rounded-xl border border-border bg-surface" tabindex="0" role="region" aria-label="Token table">
     <table class="w-full text-left text-sm">
       <caption class="sr-only">{selected.name} {tableMode} tokens and contrast ratios</caption>
       <thead class="bg-muted text-xs text-muted-foreground">

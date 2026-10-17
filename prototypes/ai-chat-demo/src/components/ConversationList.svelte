@@ -75,7 +75,7 @@ async function askAtlas() {
         <MessagesSquare class="size-4" />
       </span>
       <span class="min-w-0 leading-tight">
-        <span class="block text-sm font-semibold text-foreground">Relay</span>
+        <h1 class="block text-sm font-semibold text-foreground">Relay</h1>
         <span class="block truncate text-xs text-muted-foreground">{me?.organization?.name ?? 'Team AI chat'}</span>
       </span>
     </a>
@@ -126,7 +126,7 @@ async function askAtlas() {
         aria-pressed={!showArchived}
         class={[
           'inline-flex min-h-touch items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0',
-          !showArchived ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted',
+          !showArchived ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
         ]}
         onclick={() => (showArchived = false)}
       >
@@ -138,7 +138,7 @@ async function askAtlas() {
         aria-pressed={showArchived}
         class={[
           'inline-flex min-h-touch items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0',
-          showArchived ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted',
+          showArchived ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted',
         ]}
         onclick={() => (showArchived = true)}
       >

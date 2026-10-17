@@ -91,7 +91,7 @@ function addOrder(): void {
 
 <div class="relative mx-auto flex h-[640px] max-w-[390px] flex-col overflow-hidden rounded-[2rem] border-4 border-border bg-background">
   <div class="min-h-0 flex-1 overflow-y-auto">
-    <MobileHeader title={tabTitle} subtitle={tab.endsWith('/orders') ? `${orders.length} orders · ${pending} to prepare` : undefined}>
+    <MobileHeader titleAs="p" title={tabTitle} subtitle={tab.endsWith('/orders') ? `${orders.length} orders · ${pending} to prepare` : undefined}>
       {#snippet actions()}
         {#if tab.endsWith('/orders')}
           <Button size="icon" variant="ghost" aria-label="New order" onclick={addOrder}>

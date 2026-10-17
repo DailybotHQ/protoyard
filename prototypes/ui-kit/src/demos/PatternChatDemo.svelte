@@ -110,7 +110,7 @@ async function reply(conversation: Conversation): Promise<void> {
           <button
             type="button"
             aria-current={conversation.id === activeId ? 'true' : undefined}
-            class="flex min-h-touch w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[current=true]:bg-primary/10 aria-[current=true]:text-primary sm:min-h-9"
+            class="flex min-h-touch w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[current=true]:bg-primary/10 aria-[current=true]:font-semibold aria-[current=true]:text-foreground sm:min-h-9"
             onclick={() => select(conversation.id)}
           >
             {#if conversation.kind === 'channel'}

@@ -81,7 +81,7 @@ const plan = $derived(org?.billingStatus === 'expired' ? 'expired' : (org?.plan 
                 {router}
                 exact={item.exact}
                 class="group flex items-center gap-3 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                activeClass="bg-primary/10 !text-primary"
+                activeClass="bg-primary/10 font-semibold !text-foreground"
               >
                 <item.icon class="size-4 shrink-0" aria-hidden="true" />
                 {item.label}

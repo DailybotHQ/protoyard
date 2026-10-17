@@ -57,12 +57,12 @@ const navClass =
       <nav aria-label="Sections" class="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
         <ul class="flex flex-col gap-0.5">
           <li>
-            <Link href="/" {router} exact class={navClass} activeClass="bg-primary/10 !text-primary">
+            <Link href="/" {router} exact class={navClass} activeClass="bg-primary/10 font-semibold !text-foreground">
               <LayoutDashboard class="size-4 shrink-0" aria-hidden="true" />Overview
             </Link>
           </li>
           <li>
-            <Link href="/my-tasks" {router} class={navClass} activeClass="bg-primary/10 !text-primary">
+            <Link href="/my-tasks" {router} class={navClass} activeClass="bg-primary/10 font-semibold !text-foreground">
               <ListTodo class="size-4 shrink-0" aria-hidden="true" />My tasks
             </Link>
           </li>
@@ -72,7 +72,7 @@ const navClass =
           <ul class="mt-2 flex flex-col gap-0.5">
             {#each projects.current ?? [] as project (project.id)}
               <li>
-                <Link href={`/projects/${project.id}`} {router} class={navClass} activeClass="bg-primary/10 !text-primary">
+                <Link href={`/projects/${project.id}`} {router} class={navClass} activeClass="bg-primary/10 font-semibold !text-foreground">
                   <span class={['size-2.5 shrink-0 rounded-full', PROJECT_COLOR_CLASSES[project.color].dot]} aria-hidden="true"></span>
                   <span class="truncate">{project.name}</span>
                 </Link>

@@ -189,8 +189,6 @@ function onkeydown(event: KeyboardEvent): void {
       maxlength={4000}
       {disabled}
       placeholder={disabled ? disabledReason : 'Message the team — type @ to mention an agent'}
-      role="combobox"
-      aria-expanded={open}
       aria-controls={open ? listId : undefined}
       aria-autocomplete="list"
       aria-activedescendant={open && suggestions[highlighted] ? `${listId}-${suggestions[highlighted]?.id}` : undefined}

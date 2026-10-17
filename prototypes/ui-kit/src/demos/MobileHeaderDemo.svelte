@@ -15,7 +15,7 @@ const contact = $derived(contacts.find((c) => c.id === openId));
 <div class="mx-auto flex h-[420px] max-w-[390px] flex-col overflow-hidden rounded-[2rem] border-4 border-border bg-background">
   {#if contact}
     {@const isStarred = starred.includes(contact.id)}
-    <MobileHeader title={contact.name} subtitle={contact.role} onBack={() => (openId = null)} backLabel="Back to contacts">
+    <MobileHeader titleAs="p" title={contact.name} subtitle={contact.role} onBack={() => (openId = null)} backLabel="Back to contacts">
       {#snippet actions()}
         <Button
           size="icon"
@@ -36,7 +36,7 @@ const contact = $derived(contacts.find((c) => c.id === openId));
       Contact details for {contact.name}. The back button returns to the list.
     </div>
   {:else}
-    <MobileHeader title="Contacts" subtitle={`${contacts.length} people`} />
+    <MobileHeader titleAs="p" title="Contacts" subtitle={`${contacts.length} people`} />
     <ul class="divide-y divide-border">
       {#each contacts as item (item.id)}
         <li>

@@ -326,7 +326,7 @@ const quickAmounts = [20, 50, 100, 250];
           <Button variant="ghost" onclick={goBack} disabled={submitting}>Edit amount</Button>
         {:else if step === 'done' && receipt}
           <div class="flex flex-col items-center gap-2 pt-4 text-center">
-            <span class="grid size-16 place-items-center rounded-full bg-success/15 text-success" aria-hidden="true">
+            <span class="grid size-16 place-items-center rounded-full bg-success text-success-foreground" aria-hidden="true">
               <CircleCheck class="size-9" />
             </span>
             <h2 class="text-2xl font-semibold tabular-nums">{formatMoney(receipt.amountCents)}</h2>

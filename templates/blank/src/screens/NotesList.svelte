@@ -62,7 +62,7 @@ const visible = $derived.by(() => {
       {#each [0, 1, 2] as i (i)}<Skeleton class="h-20 w-full rounded-xl" />{/each}
     </div>
   {:else if notes.error}
-    <p class="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive" role="alert">
+    <p class="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-foreground" role="alert">
       Could not read notes: {String(notes.error)}
     </p>
   {:else if (notes.current?.length ?? 0) === 0}

@@ -90,7 +90,7 @@ function onDrop(stage: DealStage) {
 <div class="-mx-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
   <div class="flex min-w-max gap-4" role="list" aria-label="Pipeline stages">
     {#each columns as column (column.stage)}
-      <section
+      <div
         role="listitem"
         aria-label={`${STAGE_LABELS[column.stage]}: ${column.items.length} deals`}
         class={[
@@ -188,7 +188,7 @@ function onDrop(stage: DealStage) {
             </li>
           {/each}
         </ul>
-      </section>
+      </div>
     {/each}
   </div>
 </div>

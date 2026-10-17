@@ -27,6 +27,7 @@ async function copy() {
       {#if copied}<Check class="size-3.5 text-success" aria-hidden="true" />Copied{:else}<Copy class="size-3.5" aria-hidden="true" />Copy{/if}
     </button>
   </div>
-  <pre class="overflow-x-auto p-3 text-[12.5px] leading-relaxed"><code class="font-mono">{code}</code></pre>
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -- long lines scroll; keyboard users must reach them (WCAG 2.1.1). -->
+  <pre tabindex="0" aria-label={`${label} code`} class="overflow-x-auto p-3 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring text-[12.5px] leading-relaxed"><code class="font-mono">{code}</code></pre>
   <span class="sr-only" aria-live="polite">{copied ? 'Code copied to the clipboard' : ''}</span>
 </div>

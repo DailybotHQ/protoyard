@@ -207,9 +207,9 @@ async function move(task: Task, status: string) {
     <div class="flex gap-4 overflow-x-auto pb-3" role="region" aria-label={`${current.name} board (read-only)`}>
       {#each columns as column (column.id)}
         {@const items = visible.filter((t) => t.status === column.id)}
-        <section aria-labelledby={`col-${column.id}`} class="flex w-[85vw] max-w-80 shrink-0 flex-col rounded-xl border border-border bg-muted/40 sm:w-72">
+        <section aria-labelledby={`col-${column.id}`} class="flex w-[85vw] max-w-80 shrink-0 flex-col rounded-xl border border-border bg-muted/40 sm:w-auto sm:min-w-56 sm:flex-1 sm:basis-0">
           <header class="flex items-center justify-between px-3 pt-3 pb-2">
-            <h3 id={`col-${column.id}`} class="text-sm font-semibold">{column.title}</h3>
+            <h2 id={`col-${column.id}`} class="text-sm font-semibold">{column.title}</h2>
             <span class="rounded-full bg-background px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums">{items.length}<span class="sr-only"> tasks</span></span>
           </header>
           <ul class="flex min-h-24 flex-col gap-2 px-2 pb-2">
@@ -225,6 +225,7 @@ async function move(task: Task, status: string) {
   {:else}
     <Kanban
       label={`${current.name} board`}
+      headingLevel={2}
       {columns}
       items={visible}
       getColumn={(task) => task.status}

@@ -94,7 +94,7 @@ $effect(() => {
         : 'Change the filters to see more.'}
     />
   {:else}
-    <TransactionGroups transactions={visible} now={clock.now} accountNames={names} />
+    <TransactionGroups transactions={visible} now={clock.now} accountNames={names} headingLevel={2} />
     {#if hasMore}
       <div bind:this={sentinel} class="flex justify-center">
         <Button variant="outline" onclick={() => (limit += PAGE)}>Load more</Button>

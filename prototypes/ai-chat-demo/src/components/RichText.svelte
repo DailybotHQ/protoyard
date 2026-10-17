@@ -14,7 +14,7 @@ const blocks = $derived(parseMarkdown(text));
     {:else if node.type === 'code'}<code class="rounded bg-background/60 px-1 py-0.5 font-mono text-[0.85em]">{node.text}</code>
     {:else if node.type === 'mention'}
       {#if knownHandles.includes(node.handle)}
-        <span class="rounded bg-primary/15 px-1 font-medium text-primary">@{node.handle}</span>
+        <span class="rounded bg-primary/15 px-1 font-semibold text-foreground">@{node.handle}</span>
       {:else}@{node.handle}{/if}
     {:else}{node.text}{/if}
   {/each}

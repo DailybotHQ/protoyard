@@ -58,19 +58,19 @@ const navClass =
         <span class="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground" aria-hidden="true">
           <Store class="size-5" />
         </span>
-        <span class="hidden sm:inline">{principal.current?.organization?.name ?? 'Storefront'}</span>
+        <span class="sr-only sm:not-sr-only">{principal.current?.organization?.name ?? 'Storefront'}</span>
       </a>
       <nav aria-label="Main" class="flex items-center gap-0.5 sm:ml-4">
-        <Link href="/" {router} exact class={navClass} activeClass="bg-primary/10 !text-primary">
+        <Link href="/" {router} exact class={navClass} activeClass="bg-primary/10 font-semibold !text-foreground">
           <ShoppingBag class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Shop</span>
         </Link>
         {#if can(CAPABILITIES.ordersReadOwn)}
-          <Link href="/orders" {router} class={navClass} activeClass="bg-primary/10 !text-primary">
+          <Link href="/orders" {router} class={navClass} activeClass="bg-primary/10 font-semibold !text-foreground">
             <Package class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Orders</span>
           </Link>
         {/if}
         {#if can(CAPABILITIES.productsManage)}
-          <Link href="/admin" {router} class={navClass} activeClass="bg-primary/10 !text-primary">
+          <Link href="/admin" {router} class={navClass} activeClass="bg-primary/10 font-semibold !text-foreground">
             <Wrench class="size-4" aria-hidden="true" /><span class="max-sm:sr-only">Admin</span>
           </Link>
         {/if}
@@ -80,7 +80,7 @@ const navClass =
           href="/cart"
           {router}
           class="relative inline-flex size-11 items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
-          activeClass="bg-primary/10 text-primary"
+          activeClass="bg-primary text-primary-foreground"
           aria-label={`Cart, ${cartCount.current ?? 0} item${cartCount.current === 1 ? '' : 's'}`}
         >
           <ShoppingCart class="size-5" aria-hidden="true" />

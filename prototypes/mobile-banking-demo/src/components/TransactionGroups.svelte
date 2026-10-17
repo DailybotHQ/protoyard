@@ -8,11 +8,14 @@ let {
   transactions,
   now,
   accountNames,
+  headingLevel = 3,
 }: {
   transactions: readonly Transaction[];
   now: Date;
   /** When given, each row shows which account it belongs to. */
   accountNames?: Record<string, string>;
+  /** Month heading level, so it follows the screen's outline. */
+  headingLevel?: 2 | 3;
 } = $props();
 
 const groups = $derived(groupByMonth(transactions));
@@ -22,9 +25,9 @@ const groups = $derived(groupByMonth(transactions));
   {#each groups as group (group.key)}
     <section aria-labelledby={`month-${group.key}`}>
       <div class="sticky top-14 z-10 -mx-4 flex items-baseline justify-between bg-background/95 px-4 py-1.5 backdrop-blur">
-        <h3 id={`month-${group.key}`} class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <svelte:element this={`h${headingLevel}`} id={`month-${group.key}`} class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           {formatMonth(group.key)}
-        </h3>
+        </svelte:element>
         <span class="text-xs text-muted-foreground tabular-nums">Net {formatSigned(group.netCents)}</span>
       </div>
       <ul class="divide-y divide-border">

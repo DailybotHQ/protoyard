@@ -18,7 +18,7 @@ const incoming = $derived(transaction.amountCents > 0);
   <span
     class={[
       'grid size-10 shrink-0 place-items-center rounded-full',
-      incoming ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground',
+      incoming ? 'bg-success text-success-foreground' : 'bg-muted text-muted-foreground',
     ]}
     aria-hidden="true"
   >

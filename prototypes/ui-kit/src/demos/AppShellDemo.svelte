@@ -58,6 +58,7 @@ const sections: SidebarSection[] = $derived([
 <div class="relative h-[460px] overflow-hidden rounded-xl border border-border">
   <AppShell
     bind:sidebarOpen
+    mainElement="div"
     mainId="app-shell-demo-main"
     sidebarLabel="Demo navigation"
     class="h-full min-h-0 [&>div:first-of-type]:h-full"
@@ -77,7 +78,7 @@ const sections: SidebarSection[] = $derived([
       </div>
     {/snippet}
     {#snippet header()}
-      <Header title={page.title} description="AppShell demo">
+      <Header titleAs="p" title={page.title} description="AppShell demo">
         {#snippet actions()}
           <Avatar name="Jordan Example" size="sm" />
         {/snippet}

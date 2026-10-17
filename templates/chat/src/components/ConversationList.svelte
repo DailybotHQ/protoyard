@@ -31,7 +31,7 @@ const me = $derived(principal.current);
         <MessagesSquare class="size-4" />
       </span>
       <span class="min-w-0 leading-tight">
-        <span class="block text-sm font-semibold">Chat</span>
+        <h1 class="block text-sm font-semibold">Chat</h1>
         <span class="block truncate text-xs text-muted-foreground">{me?.organization?.name ?? 'Workspace'}</span>
       </span>
     </a>

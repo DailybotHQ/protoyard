@@ -30,8 +30,10 @@ const inThread = $derived(router.current.route?.path === '/c/:id');
 <div class="@container h-dvh overflow-hidden bg-background text-foreground">
   <div class="flex h-full flex-col">
     <EnvironmentBanner />
-    <div class="flex min-h-0 flex-1">
-      <aside
+    <!-- One <main> for both panes: on phones only one pane is visible at a time. -->
+    <main id="main-content" class="flex min-h-0 flex-1">
+      <div
+        role="region"
         class={[
           'h-full min-h-0 w-full flex-col border-border bg-sidebar @3xl:flex @3xl:w-80 @3xl:shrink-0 @3xl:border-r',
           inThread ? 'hidden' : 'flex',
@@ -39,14 +41,14 @@ const inThread = $derived(router.current.route?.path === '/c/:id');
         aria-label="Conversations"
       >
         <ConversationList {router} onNew={() => (newOpen = true)} />
-      </aside>
-      <main
-        id="main-content"
+      </div>
+      <section
+        aria-label="Conversation"
         class={['h-full min-h-0 min-w-0 flex-1 flex-col @3xl:flex', inThread ? 'flex' : 'hidden']}
       >
         <Router {router} />
-      </main>
-    </div>
+      </section>
+    </main>
   </div>
 </div>
 
