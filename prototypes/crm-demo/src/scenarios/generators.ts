@@ -31,7 +31,7 @@ import type { CrmGeneratorOptions } from './index.ts';
  */
 
 /** Bump when generated output for the same seed changes. */
-export const CRM_GENERATOR_VERSION = 2;
+export const CRM_GENERATOR_VERSION = 3;
 
 /** Named core cast, so every scenario shares recognizable people. */
 const CAST = [
@@ -282,6 +282,7 @@ export function generateCrmWorld(ctx: GenerateContext): WorldSeed {
             ? rng.pick(['Budget', 'Chose a competitor', 'No decision', 'Timing'])
             : null,
         createdAt: iso(dealCreated),
+        closedAt: closed ? iso(closeDate) : null,
         updatedAt: iso(closed ? closeDate : dealCreated),
       };
       deals.push(deal);
@@ -380,10 +381,12 @@ export async function crmTimeline(ctx: TimelineContext): Promise<DomainEvent[]> 
     .sort((a, b) => a.id.localeCompare(b.id));
   if (deals.length === 0) return [];
   const events: DomainEvent[] = [];
-  const startDay = Math.floor(ctx.from.getTime() / MS_PER_DAY) + 1;
+  const startDay = Math.floor(ctx.from.getTime() / MS_PER_DAY);
   const endDay = Math.floor(ctx.to.getTime() / MS_PER_DAY);
   for (let day = startDay; day <= endDay; day++) {
     const at = new Date(day * MS_PER_DAY + 15 * 3_600_000);
+    // The window is (from, to]: never emit before it or past the new "now".
+    if (at.getTime() <= ctx.from.getTime() || at.getTime() > ctx.to.getTime()) continue;
     const rng = ctx.rng.fork(`crm-day-${day}`);
     const perDay = rng.int(1, 3);
     for (let n = 0; n < perDay; n++) {
@@ -435,6 +438,7 @@ export async function applyCrmEvent(event: DomainEvent, ctx: EventApplyContext):
     stage: next,
     probability: STAGE_PROBABILITY[next],
     lostReason: next === 'lost' ? 'No decision' : null,
+    closedAt: next === 'won' || next === 'lost' ? event.at : null,
     updatedAt: event.at,
   });
   await ctx.put('activities', {

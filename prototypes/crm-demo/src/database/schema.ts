@@ -75,6 +75,11 @@ export interface Deal {
   probability: number;
   closeDate: string;
   lostReason: string | null;
+  /**
+   * When the deal reached won/lost (null while open). Optional because rows
+   * stored before generator v3 lack it; readers fall back to `updatedAt`.
+   */
+  closedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

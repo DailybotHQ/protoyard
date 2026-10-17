@@ -49,6 +49,9 @@ export function createChatServices(
    * a prompt and its reply the same instant (and an undefined order).
    */
   const issued = new Map<string, number>();
+  // A scenario load/reset (or snapshot restore) rewinds the clock and the
+  // conversations; instants issued for the previous world must not leak in.
+  runtime.scenarios.subscribe(() => issued.clear());
   async function nextAt(conversationId: string): Promise<string> {
     const conversation = await db.conversations.get(conversationId);
     const last = conversation ? Date.parse(conversation.lastMessageAt) : 0;
@@ -57,6 +60,15 @@ export function createChatServices(
     const at = Math.max(clock.nowMs(), last + 1, (issued.get(conversationId) ?? 0) + 1);
     issued.set(conversationId, at);
     return new Date(at).toISOString();
+  }
+
+  /** Archived or deleted conversations are read-only — enforced here, not only in the UI. */
+  async function assertWritable(conversationId: string): Promise<void> {
+    const conversation = await db.conversations.get(conversationId);
+    if (!conversation) throw new Error('This conversation no longer exists.');
+    if (conversation.archived) {
+      throw new Error('This conversation is archived. Unarchive it to send messages.');
+    }
   }
 
   async function agentsIn(conversationId: string): Promise<Agent[]> {
@@ -205,6 +217,7 @@ export function createChatServices(
       if (body.length > 4000) throw new Error('Messages are limited to 4,000 characters.');
       const message = await environment.run('messages.send', () =>
         db.transaction('rw', db.messages, db.conversations, db.participants, async () => {
+          await assertWritable(conversationId);
           const msg: Message = {
             id: createRuntimeId('msg'),
             conversationId,
@@ -244,6 +257,7 @@ export function createChatServices(
         db.messages.get(run.promptMessageId),
       ]);
       if (!agent || !prompt) return null;
+      await assertWritable(run.conversationId);
       await db.messages.where('runId').equals(runId).delete();
       return runAgent(agent, prompt);
     },
@@ -305,8 +319,10 @@ export function createChatServices(
     async togglePin(conversationId: string): Promise<void> {
       session.assert(CAPABILITIES.send);
       const conversation = await db.conversations.get(conversationId);
-      if (conversation)
-        await db.conversations.update(conversationId, { pinned: !conversation.pinned });
+      if (!conversation) return;
+      await environment.run('conversations.pin', () =>
+        db.conversations.update(conversationId, { pinned: !conversation.pinned })
+      );
     },
 
     async archive(conversationId: string, archived = true): Promise<void> {

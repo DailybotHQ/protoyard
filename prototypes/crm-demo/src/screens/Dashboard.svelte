@@ -46,7 +46,8 @@ const stats = $derived.by(() => {
   const now = clock.now.getTime();
   const monthAgo = now - 30 * 86_400_000;
   const closedRecently = all.filter(
-    (d) => (d.stage === 'won' || d.stage === 'lost') && Date.parse(d.updatedAt) >= monthAgo
+    (d) =>
+      (d.stage === 'won' || d.stage === 'lost') && Date.parse(d.closedAt ?? d.updatedAt) >= monthAgo
   );
   const wonRecently = closedRecently.filter((d) => d.stage === 'won');
   const closed = all.filter((d) => d.stage === 'won' || d.stage === 'lost');

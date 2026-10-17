@@ -220,7 +220,7 @@ async function sendStarter(prompt: string) {
         meId={me}
         directory={directory.current}
         {knownHandles}
-        {canInvoke}
+        canInvoke={canInvoke && !archived}
         onRetry={retry}
         onStop={(runId) => void services.cancel(runId)}
       />

@@ -68,3 +68,43 @@ describe('ai-chat-demo on the real runtime', () => {
     await expect(chat.archive(mine.id)).resolves.toBeUndefined();
   });
 });
+
+describe('ai-chat-demo review regressions', () => {
+  it('rejects sends and retries on archived conversations at the service level', async () => {
+    const runtime = await harness.boot('agent-outage');
+    const chat = createChatServices(runtime, { chunkDelayMs: 0 });
+    const conversation = await chat.createConversation({ title: 'Ops', agentIds: ['agent_ops'] });
+    const { runs } = await chat.send(conversation.id, 'status?');
+    const [run] = await runs;
+    await chat.archive(conversation.id);
+    await expect(chat.send(conversation.id, 'hello')).rejects.toThrow(/archived/);
+    await expect(chat.retry(run!.id)).rejects.toThrow(/archived/);
+  });
+
+  it('pinning goes through the simulated network', async () => {
+    const runtime = await harness.boot('active-team');
+    const chat = createChatServices(runtime, { chunkDelayMs: 0 });
+    const conversation = (await runtime.db.conversations.toArray())[0]!;
+    await runtime.overrides.set({ environment: { network: 'offline' } });
+    await expect(chat.togglePin(conversation.id)).rejects.toMatchObject({ code: 'offline' });
+    expect((await runtime.db.conversations.get(conversation.id))?.pinned).toBe(conversation.pinned);
+  });
+
+  it('does not stamp new messages in the future after advance + reset', async () => {
+    const runtime = await harness.boot('active-team');
+    const chat = createChatServices(runtime, { chunkDelayMs: 0 });
+    const conversation = (await runtime.db.conversations.toArray())[0]!;
+    await runtime.scenarios.advance({ days: 7 });
+    await chat.send(conversation.id, 'after advance');
+    await runtime.scenarios.reset();
+    const { message } = await chat.send(conversation.id, 'after reset');
+    const latestSeeded = Math.max(
+      ...(await runtime.db.messages.where('conversationId').equals(conversation.id).toArray())
+        .filter((m) => m.id !== message.id)
+        .map((m) => Date.parse(m.at))
+    );
+    expect(Date.parse(message.at) - Math.max(latestSeeded, runtime.clock.nowMs())).toBeLessThan(
+      1000
+    );
+  });
+});

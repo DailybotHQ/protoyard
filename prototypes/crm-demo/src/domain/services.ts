@@ -83,6 +83,8 @@ export class PaywallError extends Error {
   }
 }
 
+const isClosed = (stage: DealStage) => stage === 'won' || stage === 'lost';
+
 export const STAGE_LABELS: Record<DealStage, string> = {
   lead: 'Lead',
   qualified: 'Qualified',
@@ -247,7 +249,8 @@ export function createCrmServices(runtime: PrototypeRuntime<CrmDatabase>) {
               currency: 'USD',
               probability: STAGE_PROBABILITY[data.stage],
               closeDate: new Date(data.closeDate).toISOString(),
-              lostReason: null,
+              lostReason: data.stage === 'lost' ? 'No reason given' : null,
+              closedAt: isClosed(data.stage) ? now() : null,
               createdAt: now(),
               updatedAt: now(),
             };
@@ -279,9 +282,13 @@ export function createCrmServices(runtime: PrototypeRuntime<CrmDatabase>) {
               updatedAt: now(),
             });
             if (data.stage !== existing.stage) {
+              // Same bookkeeping as moveStage: reasons only on lost deals,
+              // closedAt set when the deal closes and cleared if it reopens.
               await db.deals.update(id, {
                 stage: data.stage,
                 probability: STAGE_PROBABILITY[data.stage],
+                lostReason: data.stage === 'lost' ? existing.lostReason || 'No reason given' : null,
+                closedAt: isClosed(data.stage) ? now() : null,
               });
               await db.activities.add(
                 logActivity(
@@ -306,6 +313,7 @@ export function createCrmServices(runtime: PrototypeRuntime<CrmDatabase>) {
               stage,
               probability: STAGE_PROBABILITY[stage],
               lostReason: stage === 'lost' ? lostReason?.trim() || 'No reason given' : null,
+              closedAt: isClosed(stage) ? now() : null,
               updatedAt: now(),
             });
             await db.activities.add(

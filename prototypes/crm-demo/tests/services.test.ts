@@ -181,3 +181,52 @@ describe('crm-demo on the real runtime', () => {
     expect(await b.db.activities.orderBy('id').toArray()).toEqual(stepwise);
   });
 });
+
+describe('crm-demo review regressions', () => {
+  it('keeps lostReason and closedAt consistent across edits and moves', async () => {
+    fresh();
+    const runtime = await boot();
+    const crm = createCrmServices(runtime);
+    const company = (await runtime.db.companies.toArray())[0];
+    if (!company) throw new Error('companies');
+    const deal = await crm.deals.create({
+      title: 'Review deal',
+      companyId: company.id,
+      amount: 1000,
+      closeDate: '2026-11-30',
+    });
+    expect(deal.closedAt).toBeNull();
+
+    await crm.deals.moveStage(deal.id, 'lost', 'Budget');
+    let stored = await runtime.db.deals.get(deal.id);
+    expect(stored?.lostReason).toBe('Budget');
+    expect(stored?.closedAt).toBeTruthy();
+
+    // Editing the stage to won through the form clears the stale reason.
+    await crm.deals.update(deal.id, {
+      title: 'Review deal',
+      companyId: company.id,
+      stage: 'won',
+      amount: 1000,
+      closeDate: '2026-11-30',
+    });
+    stored = await runtime.db.deals.get(deal.id);
+    expect(stored?.lostReason).toBeNull();
+    expect(stored?.closedAt).toBeTruthy();
+
+    // Re-opening a deal clears closedAt.
+    await crm.deals.moveStage(deal.id, 'proposal');
+    stored = await runtime.db.deals.get(deal.id);
+    expect(stored?.closedAt).toBeNull();
+    expect(stored?.lostReason).toBeNull();
+  });
+
+  it('never emits timeline events after the new "now" (sub-day advance)', async () => {
+    fresh();
+    const runtime = await boot();
+    await runtime.scenarios.advance({ hours: 12 });
+    const now = runtime.clock.committed().getTime();
+    const events = await runtime.db.table('py_events').toArray();
+    expect(events.every((e) => Date.parse(e.at as string) <= now)).toBe(true);
+  });
+});
