@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.task-manager",
+  "slug": "task-manager",
+  "kind": "template",
+  "name": "Task Manager",
+  "description": "Projects, a drag-and-drop board (To do → In progress → Review → Done), tasks with assignees, due dates, priorities, labels and comments, a “My tasks” view and owner/admin/member/viewer permissions.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "productivity",
+  "tags": ["tasks", "kanban", "projects", "collaboration", "productivity"],
+  "status": "ready",
+  "icon": "✅",
+  "defaultScenario": "active-team",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-task-manager", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active-team", "overdue-crunch", "viewer"]
+}
