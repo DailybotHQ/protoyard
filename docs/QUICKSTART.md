@@ -48,6 +48,11 @@ pnpm protoyard preview my-idea     # serves the static build locally
 | pnpm | `11.23.0` (`packageManager`), via `corepack enable` | Workspace installs |
 | git | any recent | Optional, but `doctor` checks it |
 
+> **Old Corepack?** Very old global Corepack builds (for example 0.10) can't
+> start pnpm 11 and fail with `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`. Update
+> it with `npm install -g corepack@latest && corepack enable`, or install pnpm
+> directly with `npm install -g pnpm@11`.
+
 `pnpm protoyard doctor --offline` checks all of this without touching the
 network:
 
