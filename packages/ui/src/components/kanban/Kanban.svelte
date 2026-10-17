@@ -121,7 +121,9 @@ function resetDrag(): void {
       <section
         aria-labelledby={headingId}
         class={cn(
-          'flex w-[85vw] max-w-80 shrink-0 snap-start flex-col rounded-xl border border-border bg-muted/40 transition-colors sm:w-72',
+          // Phones: one swipeable column per screen. Wider: fluid columns (14–20rem) that
+          // share the row, scrolling only when they no longer fit at their minimum.
+          'flex w-[85vw] max-w-80 shrink-0 snap-start flex-col rounded-xl border border-border bg-muted/40 transition-colors sm:w-auto sm:min-w-56 sm:flex-1 sm:basis-0',
           overColumn === column.id && 'border-primary bg-primary/5'
         )}
         ondragover={(event) => handleDragOver(event, column.id)}
