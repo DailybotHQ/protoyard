@@ -23,6 +23,7 @@ export {
   mountPrototype,
   type RuntimeFactoryOptions,
 } from './mount.ts';
+export { describeLoadProgress } from './progress.ts';
 export { default as Link } from './router/Link.svelte';
 export {
   compilePattern,

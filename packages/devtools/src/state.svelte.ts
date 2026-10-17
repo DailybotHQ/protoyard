@@ -3,6 +3,7 @@ import type {
   AppearanceState,
   ClockState,
   EnvironmentState,
+  LoadProgress,
   Overrides,
   Principal,
   PrototypeRuntime,
@@ -23,6 +24,8 @@ export interface DevtoolsState {
   readonly overrides: Overrides;
   readonly environment: EnvironmentState;
   readonly clock: ClockState;
+  /** Scenario load in flight (any caller), or null. */
+  readonly progress: LoadProgress | null;
   /** Bumps whenever the world may have changed (scenario load, snapshot restore, advance). */
   readonly worldVersion: number;
   touchWorld(): void;
@@ -45,6 +48,7 @@ export function createDevtoolsState(
   let overrides = $state.raw(runtime.overrides.get());
   let environment = $state.raw(runtime.environmentState());
   let clock = $state.raw(runtime.clock.getState());
+  let progress = $state.raw<LoadProgress | null>(runtime.scenarios.progress?.() ?? null);
   let worldVersion = $state(0);
   let status = $state.raw<DevtoolsState['status']>(null);
   const busy = $state<Record<string, boolean>>({});
@@ -72,6 +76,10 @@ export function createDevtoolsState(
     runtime.clock.subscribe(() => {
       clock = runtime.clock.getState();
     }),
+    // Optional chaining keeps older runtimes (before the progress API) working.
+    runtime.scenarios.subscribeProgress?.((next) => {
+      progress = next;
+    }) ?? (() => {}),
   ];
 
   const notify: DevtoolsState['notify'] = (kind, text) => {
@@ -105,6 +113,9 @@ export function createDevtoolsState(
     },
     get clock() {
       return clock;
+    },
+    get progress() {
+      return progress;
     },
     get worldVersion() {
       return worldVersion;

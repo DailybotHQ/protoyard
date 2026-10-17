@@ -4,6 +4,7 @@ import {
   createPermissionPolicy,
   createSimulationClock,
   createSimulationEnvironment,
+  type LoadProgress,
   type Membership,
   type Organization,
   type Overrides,
@@ -95,6 +96,7 @@ export function createFakeRuntime(
   let active: ActiveScenarioInfo | null = null;
   const listeners = {
     scenario: new Set<(info: ActiveScenarioInfo | null) => void>(),
+    progress: new Set<(p: LoadProgress | null) => void>(),
     session: new Set<(p: Principal | null) => void>(),
     overrides: new Set<(o: Overrides) => void>(),
     theme: new Set<(s: AppearanceState) => void>(),
@@ -149,9 +151,23 @@ export function createFakeRuntime(
     };
   };
 
-  const load = async (id: string, opts: { seed?: number } = {}) => {
+  let progress: LoadProgress | null = null;
+  const report = (p: LoadProgress | null, onProgress?: (p: LoadProgress) => void) => {
+    progress = p;
+    if (p) onProgress?.(p);
+    for (const l of listeners.progress) l(p);
+  };
+  const load = async (
+    id: string,
+    opts: { seed?: number; onProgress?: (p: LoadProgress) => void } = {}
+  ) => {
     const scenario = scenarios.find((s) => s.id === id);
     if (!scenario) throw new Error(`Unknown scenario ${id}`);
+    const rows = id === 'busy' ? 1 : 0;
+    report({ scenarioId: id, phase: 'generate', done: 0, total: 1 }, opts.onProgress);
+    report({ scenarioId: id, phase: 'validate', done: 0, total: 1 }, opts.onProgress);
+    report({ scenarioId: id, phase: 'write', done: 0, total: rows }, opts.onProgress);
+    report({ scenarioId: id, phase: 'done', done: rows, total: rows }, opts.onProgress);
     active = {
       scenario,
       loadedAt: '2026-10-16T10:00:00.000Z',
@@ -164,6 +180,7 @@ export function createFakeRuntime(
     clock.resetClock();
     for (const l of listeners.scenario) l(active);
     emit();
+    report(null);
   };
 
   const definition = {
@@ -189,14 +206,16 @@ export function createFakeRuntime(
         if (!active) await load('empty');
       },
       load,
-      reset: async () => {
-        if (active) await load(active.scenario.id, { seed: active.seed });
+      reset: async (o = {}) => {
+        if (active) await load(active.scenario.id, { seed: active.seed, ...o });
       },
       advance: async (duration) => {
         clock.commitAdvance(duration);
         return { applied: duration.days ?? 0, skipped: 0 };
       },
       subscribe: (l) => sub(listeners.scenario, l),
+      progress: () => progress,
+      subscribeProgress: (l) => sub(listeners.progress, l),
     },
     session: {
       principal,

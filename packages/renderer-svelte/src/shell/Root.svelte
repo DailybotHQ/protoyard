@@ -4,6 +4,7 @@ import { Toaster } from '@protoyard/ui';
 import type { Component } from 'svelte';
 import { provideRuntime } from '../context.ts';
 import DemoBadge from './DemoBadge.svelte';
+import LoadProgressBar from './LoadProgressBar.svelte';
 import PendingLinkPrompt from './PendingLinkPrompt.svelte';
 import StorageBanner from './StorageBanner.svelte';
 
@@ -27,6 +28,7 @@ const storage = runtime.storage();
 {#if !storage.persistent}
   <StorageBanner {storage} />
 {/if}
+<LoadProgressBar {runtime} />
 <PendingLinkPrompt {runtime} />
 <App />
 <Toaster />

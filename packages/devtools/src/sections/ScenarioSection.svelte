@@ -112,6 +112,37 @@ async function copyLink() {
   {/if}
 </Section>
 
+{#if dt.progress}
+  {@const p = dt.progress}
+  {@const fraction = p.phase === 'write' && p.total > 0 ? p.done / p.total : p.phase === 'done' ? 1 : null}
+  <Section title="Loading">
+    <p class="text-xs" role="status">
+      {p.phase === 'generate'
+        ? 'Generating the world…'
+        : p.phase === 'validate'
+          ? 'Checking integrity…'
+          : p.phase === 'write'
+            ? `Writing ${p.done.toLocaleString('en-US')} of ${p.total.toLocaleString('en-US')} rows…`
+            : 'Scenario loaded.'}
+      <span class="font-mono text-muted-foreground">{p.scenarioId}</span>
+    </p>
+    <div
+      class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
+      role="progressbar"
+      aria-label="Scenario load progress"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={fraction === null ? undefined : Math.round(fraction * 100)}
+    >
+      {#if fraction === null}
+        <div class="h-full w-1/3 animate-pulse rounded-full bg-primary"></div>
+      {:else}
+        <div class="h-full rounded-full bg-primary transition-[width] motion-reduce:transition-none" style:width={`${Math.round(fraction * 100)}%`}></div>
+      {/if}
+    </div>
+  </Section>
+{/if}
+
 <Section title="Load a scenario" description="Rebuilds the world from a versioned seed. Only this prototype's data changes.">
   <div class="space-y-3">
     {#each groups as [group, scenarios] (group)}
