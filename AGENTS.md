@@ -55,12 +55,13 @@ protoyard/
 │   ├── devtools/          in-browser control center                                               (README)
 │   ├── renderer-svelte/   Vite config factory, mountPrototype, bindings, hash router               (README)
 │   ├── http/              optional mock HTTP layer (fetch-compatible, no service worker)    (README)
+│   ├── offline/           optional service worker for exported prototypes (opt-in)          (README)
 │   └── cli/               `protoyard` CLI: index/new/dev/validate/build/export/preview/publish     (README)
 ├── apps/gallery/          Astro static gallery (reads the registry only)                           (README)
 ├── templates/<name>/      blank, dashboard, mobile-app, chat, onboarding, task-manager, ecommerce
 ├── prototypes/<slug>/     crm-demo, mobile-banking-demo, ai-chat-demo, ui-kit, …your prototypes
-├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright), setup/, unit/
-├── scripts/               bench-index.ts, check-public-hygiene.sh
+├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/
+├── scripts/               bench-index.ts, generate-thumbnails.ts, check-public-hygiene.sh, changelog-section.sh
 ├── docs/                  the guides above
 ├── .agents/               skills, agents, commands (.claude and .cursor symlink here)
 ├── .review/extension.md   repo rules for the AI Diff Reviewer local review
@@ -94,8 +95,8 @@ Nothing requires Docker or CI-only tooling.
 1. **English only** in code, comments, UI copy, docs and commits.
 2. **Conventional Commits**: `type(scope): summary`. Scopes: `core`,
    `database`, `scenarios`, `runtime`, `themes`, `ui`, `devtools`, `renderer`,
-   `cli`, `gallery`, `templates`, `<prototype-slug>`, `docs`, `ci`, `deps`,
-   `dwp`. **Stage exact paths**, never `git add -A`.
+   `cli`, `gallery`, `http`, `offline`, `templates`, `<prototype-slug>`,
+   `docs`, `ci`, `deps`, `dwp`. **Stage exact paths**, never `git add -A`.
 3. **Validation follows the touched surface.** Pick gates from the
    source→test map in [TESTING_GUIDE](docs/TESTING_GUIDE.md). Core or root
    config changes run the full `pnpm check`. When unsure, run the full suite.

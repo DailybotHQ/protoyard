@@ -25,6 +25,10 @@ meaningful exit codes: 0 ok · 1 failure · 2 usage · 3 not found ·
 | `pnpm test:e2e:install` | Install Playwright Chromium (once per machine) |
 | `pnpm test:e2e` | Playwright E2E. Builds and serves the gallery; add `PROTOYARD_E2E_PROTOTYPES=crm-demo,…` for prototype flows |
 | `pnpm bench:index` | Benchmark discovery and indexing over 1,000 synthetic manifests (results in `tmp/`) |
+| `pnpm build:showcase` | `protoyard showcase`: the gallery plus every prototype's build as one static site in `artifacts/showcase/` |
+| `pnpm preview:showcase` | Serve the built showcase (`showcase --skip-build --serve`) |
+| `pnpm thumbnails [slug…] [--check]` | Capture gallery thumbnails from real builds with Playwright into `prototypes/<slug>/public/thumbnail.png` |
+| `pnpm hygiene` | Public-hygiene check over tracked files (secrets, tokens, stray files) |
 | `pnpm check` | `lint` + `typecheck` + `test` |
 
 ## The `protoyard` CLI (`pnpm protoyard <command>`)
@@ -38,8 +42,9 @@ meaningful exit codes: 0 ok · 1 failure · 2 usage · 3 not found ·
 | `new <slug> --template <name> [--name] [--description] [--force] [--no-install]` | Copy a template into `prototypes/<slug>`, rewrite id, slug, name and namespace, link it and re-index. Refuses existing non-empty folders. |
 | `dev <slug> [--port] [--host]` | Start **only** that prototype's Vite dev server (HMR, DevTools on). `--host` exposes it on the LAN for phones. |
 | `validate <slug> [--skip-typecheck] [--build]` | Manifest schema, folder contract, package name, scenario ids, schema version, svelte-check, optional production build |
-| `build <slug> \| --all [--base] [--include-devtools] [--out]` | Production build into `artifacts/<slug>/dist` + `build-manifest.json`. DevTools are excluded unless requested. |
-| `export <slug> [--base] [--include-devtools] [--skip-build]` | Build, then zip into `artifacts/<slug>/<slug>.zip` (prints size and sha256, checks isolation) |
+| `build <slug> \| --all [--base] [--include-devtools] [--offline] [--out <dir>] [--allow-external-out]` | Production build into `artifacts/<slug>/dist` + `build-manifest.json`. DevTools are excluded unless requested. `--out` is allow-listed (under `artifacts/`); `--allow-external-out` permits a new or empty folder outside the repository. `--offline` adds the service worker. |
+| `showcase [--base] [--out] [--allow-external-out] [--no-devtools] [--include-templates] [--offline] [--serve] [--skip-build]` | Gallery + every prototype (optionally templates) as one static site in `artifacts/showcase/`. DevTools are included by default (demo site). |
+| `export <slug> [--base] [--include-devtools] [--offline] [--skip-build]` | Build, then zip into `artifacts/<slug>/<slug>.zip` (prints size and sha256, checks isolation) |
 | `preview <slug> [--port] [--strict-port] [--host]` | Serve the built artifact like a static host |
 | `publish <slug> --provider cloudflare\|netlify\|vercel\|static [--project] [--preview\|--production] [--dry-run]` | Build, verify and deploy through a provider adapter. `--dry-run` contacts no provider. `--production` requires `--yes`. |
 | `scenario list <slug>` | Scenario ids and names (static) |

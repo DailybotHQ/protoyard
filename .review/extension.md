@@ -13,10 +13,13 @@ determinism, isolation and honesty.
 ## Severity overrides for this codebase
 
 - **Always `critical`:** CLI file-system writes or deletes whose destination
-  is not proven inside the workspace with `isInside()`/`resolveInside`
-  (`packages/cli/src/lib/paths.ts`). This applies especially to `new`,
-  `build --out`, `export` and anything derived from a slug, `--out` or
-  `--cwd`. Slugs must pass `checkSlug` (`packages/core/src/slug.ts`) before
+  is not proven safe by the canonical guards — `childPath()` /
+  `isInside()` (`packages/cli/src/lib/paths.ts`, realpath + case-aware) and
+  `guardOutputDir()` (`packages/cli/src/lib/output-guard.ts`, the `--out`
+  allow-list). This applies especially to `new`, `build --out`, `export`,
+  `showcase` and anything derived from a slug, `--out` or `--cwd`. The
+  documented `--allow-external-out` escape hatch (empty or new folders only)
+  is intended, not a finding. Slugs must pass `checkSlug` (`packages/core/src/slug.ts`) before
   any path is built.
 - **Always `critical`:** child processes started with `shell: true`, or with
   user-controlled strings joined into a command line. Process spawning lives
@@ -91,7 +94,7 @@ determinism, isolation and honesty.
   `.svelte.ts` files.
 - **Accessibility:** every control needs a label. Destructive actions confirm
   through `AlertDialog`. Mobile touch targets are at least 44px.
-- **Commits:** Conventional Commits with the scopes listed in CONTRIBUTING.md.
+- **Commits:** Conventional Commits with the scopes listed in AGENTS.md (rule 2).
 
 ## Test-strategy expectations
 

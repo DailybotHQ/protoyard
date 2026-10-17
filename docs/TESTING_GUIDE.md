@@ -42,15 +42,18 @@ Run **one E2E session per machine at a time**: the Playwright web servers use
 fixed ports (gallery 4329, prototypes from 4401), so two concurrent runs
 collide with "port already used" or connection-refused errors.
 
-### Verified scoped runs (evidence, 2026-10-17)
+### Verified scoped runs (evidence, re-measured at the end of the foundation build, 2026-10-17)
 
 | Command | Selected → result |
 | --- | --- |
-| `pnpm vitest run packages/runtime` | 1 file, 19 tests, all pass |
-| `pnpm vitest run prototypes/crm-demo` | 2 files, 11 tests, all pass |
-| `pnpm vitest run packages/core/tests/core.test.ts` | 1 file, 10 tests, all pass |
-| `pnpm vitest run -t "idempotent"` | 1 test selected (217 skipped), passes |
-| `pnpm vitest run --changed HEAD~3` | 33 files, 218 tests. A core/config change in range widens the run to everything. |
+| `pnpm test` (full) | 61 files, 510 passed + 1 skipped (the opt-in benchmark) |
+| `pnpm vitest run packages/runtime` | 2 files, 33 tests, all pass |
+| `pnpm vitest run prototypes/crm-demo` | 3 files, 14 passed + 1 skipped (the benchmark) |
+| `pnpm vitest run packages/core/tests/core.test.ts` | 1 file, 11 tests, all pass |
+| `pnpm vitest run -t "idempotent"` | 2 tests selected (509 skipped), both pass |
+
+Counts grow with the suite. Re-run the command and check the selection rather
+than trusting these numbers.
 
 A command that exits 0 after selecting nothing is not evidence. Check the
 `Tests` line.

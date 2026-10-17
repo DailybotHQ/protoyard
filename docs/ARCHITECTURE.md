@@ -25,7 +25,7 @@ protoyard/
 │   ├── devtools/         the in-browser control center
 │   ├── renderer-svelte/  Vite config factory, mountPrototype(), reactive bindings, hash router
 │   ├── http/             optional fetch-compatible mock API over prototype services (no server, no service worker)
-│   ├── http/             optional fetch-compatible mock API over prototype services
+│   ├── offline/          optional build-time service worker for exported prototypes (opt-in)
 │   └── cli/              the `protoyard` command (index, new, dev, validate, build, export, publish…)
 ├── apps/gallery/         Astro static site — reads the metadata registry only
 ├── templates/<name>/     functional starting points (same layout as a prototype)
@@ -77,7 +77,7 @@ prototypes/<slug>/
 │   ├── prototype.ts      definePrototype({ manifest, database, scenarios, generate, policy, integrity, timeline?, applyEvent? })
 │   ├── App.svelte        shell + hash router
 │   ├── database/schema.ts   Dexie store definitions + versions/migrations + row types
-│   ├── domain/           services (validation → policy assert → environment.run → transaction) + policy
+│   ├── domain/           services (policy assert → validation → environment.run → transaction) + policy
 │   ├── scenarios/        scenario list + deterministic generator
 │   └── screens/ components/
 └── tests/                generator + service tests on the real runtime

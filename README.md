@@ -149,8 +149,10 @@ Full reference: [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md).
 - Biome, strict erasable TypeScript, `svelte-check` and `astro check` in CI.
 - A public-hygiene check for secrets and stray files.
 - Every theme is AA-contrast tested.
-- An independent security audit of the CLI, the local control server,
-  snapshot import and publishing ([docs/SECURITY.md](docs/SECURITY.md)).
+- An internal security review of the CLI, the local control server,
+  snapshot import and publishing, with a regression test for every finding
+  ([packages/cli/tests/security.test.ts](packages/cli/tests/security.test.ts);
+  threat model in [docs/SECURITY.md](docs/SECURITY.md)).
 - Performance numbers are measured, not estimated
   ([docs/PERFORMANCE.md](docs/PERFORMANCE.md)).
 
