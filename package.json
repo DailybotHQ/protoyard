@@ -38,6 +38,7 @@
     "hygiene": "bash scripts/check-public-hygiene.sh"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@biomejs/biome": "2.5.15",
     "@faker-js/faker": "^10.6.0",
     "@playwright/test": "^1.64.0",
