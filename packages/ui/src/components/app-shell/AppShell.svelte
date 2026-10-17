@@ -41,6 +41,21 @@ let {
   mainElement = 'main',
 }: Props = $props();
 
+// Any in-app navigation (hash routers, history) reveals the new screen, so
+// the drawer closes even when navigation was triggered from code.
+$effect(() => {
+  if (!sidebarOpen || typeof window === 'undefined') return;
+  const close = () => {
+    sidebarOpen = false;
+  };
+  window.addEventListener('hashchange', close);
+  window.addEventListener('popstate', close);
+  return () => {
+    window.removeEventListener('hashchange', close);
+    window.removeEventListener('popstate', close);
+  };
+});
+
 // The drawer only exists below `lg`; opening it on a wide screen would trap
 // focus in an invisible modal, so it closes as soon as the layout is wide.
 $effect(() => {

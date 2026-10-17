@@ -69,6 +69,26 @@ describe('AppShell + Sidebar + Header', () => {
     wide.mockRestore();
   });
 
+  it('closes the drawer on hash navigation triggered from code', async () => {
+    const narrow = vi
+      .spyOn(window, 'matchMedia')
+      .mockImplementation(
+        (query: string) =>
+          ({
+            matches: false,
+            media: query,
+            addEventListener() {},
+            removeEventListener() {},
+          }) as never
+      );
+    render(ShellHarness, {});
+    await fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
+    expect(screen.getByTestId('drawer').textContent).toBe('open');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await waitFor(() => expect(screen.getByTestId('drawer').textContent).toBe('closed'));
+    narrow.mockRestore();
+  });
+
   it('never keeps an invisible drawer open on wide screens', async () => {
     const wide = vi.spyOn(window, 'matchMedia').mockImplementation(
       (query: string) =>
