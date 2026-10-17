@@ -93,13 +93,13 @@ describe('build and export (real Vite)', () => {
     expect(html).toContain('/demos/beta/assets/');
   }, 60_000);
 
-  it('builds templates too, into artifacts/template-<name>/', async () => {
+  it('builds templates too, into artifacts/templates/<name>/', async () => {
     const run = await cli(['--root', ws.root, '--json', 'build', 'starter']);
     expect(run.code).toBe(0);
     expect(run.json<{ data: { outDir: string } }>().data.outDir).toBe(
-      'artifacts/template-starter/dist'
+      'artifacts/templates/starter/dist'
     );
-    expect(existsSync(join(ws.root, 'artifacts/template-starter/build-manifest.json'))).toBe(true);
+    expect(existsSync(join(ws.root, 'artifacts/templates/starter/build-manifest.json'))).toBe(true);
   }, 60_000);
 
   it('refuses an --out that would overwrite sources', async () => {

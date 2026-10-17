@@ -352,3 +352,112 @@ describe('L3: publish --dry-run stays offline', () => {
     vi.unstubAllEnvs();
   }, 90_000);
 });
+
+describe('final review regressions (W1, W2, I3, I4, I6, I7)', () => {
+  it('W1: a link inside a nested public/dist/ is still refused', async () => {
+    addBuildablePrototype(ws, 'nested-leak');
+    writeFileSync(join(outside, 'leak.txt'), 'FAKE-NESTED-SECRET');
+    mkdirSync(join(ws.root, 'prototypes/nested-leak/public/dist'), { recursive: true });
+    symlinkSync(
+      join(outside, 'leak.txt'),
+      join(ws.root, 'prototypes/nested-leak/public/dist/leak.txt')
+    );
+    const run = await cli(['--root', ws.root, '--json', 'build', 'nested-leak']);
+    expect(run.code).toBe(4);
+    expect(run.json<{ error: { hint: string } }>().error.hint).toContain('public/dist/leak.txt');
+  });
+
+  it('W2: validate refuses (and never builds) a symlinked prototype folder', async () => {
+    const real = join(outside, 'linked-proto');
+    mkdirSync(real, { recursive: true });
+    writeFileSync(
+      join(real, 'protoyard.json'),
+      JSON.stringify({
+        id: 'x.linked-proto',
+        slug: 'linked-proto',
+        name: 'Linked',
+        version: '0.1.0',
+        storage: { namespace: 'linked-proto', schemaVersion: 1 },
+      })
+    );
+    symlinkSync(real, join(ws.root, 'prototypes', 'linked-proto'));
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'validate',
+      'linked-proto',
+      '--skip-typecheck',
+      '--build',
+    ]);
+    expect(run.code).toBe(4);
+    const checks = run.json<{
+      data: { checks: { id: string; status: string; details: string[] }[] };
+    }>().data.checks;
+    expect(checks.find((c) => c.id === 'manifest')?.details.join(' ')).toMatch(/symlink/);
+    expect(checks.find((c) => c.id === 'build')?.status ?? 'skip').toBe('skip');
+    expect(existsSync(join(ws.root, 'artifacts/linked-proto'))).toBe(false);
+  });
+
+  it('I3: index and extension fallbacks cannot serve a symlinked file', async () => {
+    const dist = join(ws.root, 'tmp', 'served-fallbacks');
+    mkdirSync(join(dist, 'docs'), { recursive: true });
+    writeFileSync(join(dist, 'index.html'), '<p>root</p>');
+    writeFileSync(join(outside, 'page.html'), 'FAKE-PAGE-SECRET');
+    symlinkSync(join(outside, 'page.html'), join(dist, 'docs', 'index.html'));
+    symlinkSync(join(outside, 'page.html'), join(dist, 'about.html'));
+    const server = await serveStatic({
+      dir: dist,
+      base: './',
+      port: 0,
+      host: '127.0.0.1',
+      strictPort: true,
+    });
+    try {
+      for (const path of ['/docs/', '/docs', '/about']) {
+        const res = await get(server.port, path);
+        expect(res.body, path).not.toContain('FAKE-PAGE-SECRET');
+      }
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('I4: publish never uploads the build marker', async () => {
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'publish',
+      'app-one',
+      '--provider',
+      'static',
+    ]);
+    expect(run.code).toBe(0);
+    expect(existsSync(join(ws.root, 'artifacts/app-one/dist', BUILD_MARKER))).toBe(false);
+  }, 60_000);
+
+  it('I6: a prototype may not take a folder name the CLI owns in artifacts/', async () => {
+    addBuildablePrototype(ws, 'showcase-builds');
+    const run = await cli(['--root', ws.root, '--json', 'build', 'showcase-builds']);
+    expect(run.code).toBe(2);
+    expect(run.json<{ error: { message: string } }>().error.message).toMatch(/collides/);
+  });
+
+  it('I7: snapshot list reports malformed files instead of crashing', async () => {
+    ws.write('prototypes/app-one/snapshots/null-tables.protoyard.json', {
+      format: 'protoyard.snapshot',
+      tables: null,
+    });
+    ws.write('prototypes/app-one/snapshots/null.protoyard.json', 'null');
+    const run = await cli(['--root', ws.root, '--json', 'snapshot', 'list', 'app-one']);
+    expect(run.code).toBe(4);
+    const files = run.json<{ data: { files: { file: string; ok: boolean }[] } }>().data.files;
+    expect(
+      files
+        .filter((f) => !f.ok)
+        .map((f) => f.file)
+        .sort()
+    ).toEqual(['null-tables.protoyard.json', 'null.protoyard.json']);
+  });
+});

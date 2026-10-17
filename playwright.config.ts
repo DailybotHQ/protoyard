@@ -15,15 +15,23 @@ import { defineConfig, devices } from '@playwright/test';
  */
 
 const GALLERY_PORT = 4329;
+// Both values end up in shell webServer commands: accept only safe shapes.
+const SLUG = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const prototypes = (process.env.PROTOYARD_E2E_PROTOTYPES ?? '')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
+for (const slug of prototypes) {
+  if (!SLUG.test(slug)) throw new Error(`PROTOYARD_E2E_PROTOTYPES: invalid slug "${slug}"`);
+}
 const ci = Boolean(process.env.CI);
 /** PROTOYARD_E2E_SHOWCASE=1 builds `protoyard showcase` and runs tests/e2e/showcase.spec.ts. */
 const showcase = process.env.PROTOYARD_E2E_SHOWCASE === '1';
 /** Public base of the showcase site, e.g. `/protoyard/` for a GitHub Pages project path. */
 const showcaseBase = process.env.PROTOYARD_E2E_SHOWCASE_BASE ?? '/';
+if (!/^\/(?:[a-z0-9._-]+\/)*$/i.test(showcaseBase)) {
+  throw new Error(`PROTOYARD_E2E_SHOWCASE_BASE must look like /path/ (got "${showcaseBase}")`);
+}
 export const SHOWCASE_PORT = 4501;
 
 export default defineConfig({

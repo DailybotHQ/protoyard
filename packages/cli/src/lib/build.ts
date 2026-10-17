@@ -68,19 +68,37 @@ export interface BuildResult {
   durationMs: number;
 }
 
+/** Folders under artifacts/ that belong to the CLI itself, not to a prototype. */
+export const RESERVED_ARTIFACT_NAMES: ReadonlySet<string> = new Set([
+  'templates',
+  'showcase',
+  'showcase-builds',
+]);
+
 /**
- * `artifacts/<slug>/` for prototypes, `artifacts/template-<name>/` for
- * templates — a template and a prototype may share a name without their
- * builds overwriting each other.
+ * `artifacts/<slug>/` for prototypes, `artifacts/templates/<name>/` for
+ * templates. Separate namespaces mean no collision (a prototype named
+ * "template-foo" and a template "foo" used to share a folder), and a
+ * prototype may not use a name the CLI owns (`showcase` would be replaced by
+ * `protoyard showcase`).
  */
 export function artifactDir(
   ctx: CommandContext,
   entry: Pick<RegistryEntry, 'kind' | 'slug'>
 ): string {
-  return childPath(
-    ctx.paths.artifacts,
-    entry.kind === 'template' ? `template-${entry.slug}` : entry.slug
-  );
+  if (entry.kind === 'template') {
+    return childPath(join(ctx.paths.artifacts, 'templates'), entry.slug);
+  }
+  if (RESERVED_ARTIFACT_NAMES.has(entry.slug)) {
+    throw new CliError(
+      'usage',
+      `The slug "${entry.slug}" collides with a folder the CLI owns in artifacts/.`,
+      {
+        hint: `Rename the prototype (e.g. "${entry.slug}-app"); ${[...RESERVED_ARTIFACT_NAMES].join(', ')} are reserved.`,
+      }
+    );
+  }
+  return childPath(ctx.paths.artifacts, entry.slug);
 }
 
 /**

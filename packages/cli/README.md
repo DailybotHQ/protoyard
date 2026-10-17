@@ -18,7 +18,7 @@ pnpm protoyard publish my-crm --provider cloudflare --dry-run
 
 Target commands (`dev`, `validate`, `build`, `export`, `preview`, `publish`, `scenario`,
 `snapshot`) accept prototypes **and templates**. A slug resolves in `prototypes/` first, then
-`templates/`. Template artifacts go to `artifacts/template-<name>/`, so they never collide with a
+`templates/`. Template artifacts go to `artifacts/templates/<name>/`, so they never collide with a
 prototype of the same name. `build --all` builds prototypes only.
 
 | Command | What it does |
@@ -107,7 +107,8 @@ canonical paths: symlinks are resolved, and letter case is compared case-insensi
 and Windows.
 
 - **Strictly inside `artifacts/` or `tmp/`:** always allowed. The default
-  (`artifacts/<slug>/dist`, or `artifacts/template-<name>/dist` for templates) needs no flag.
+  (`artifacts/<slug>/dist`, or `artifacts/templates/<name>/dist` for templates) needs no flag.
+  Prototype slugs `showcase` and `showcase-builds` are reserved (the CLI owns those folders).
 - **Anywhere else in the workspace:** only a new or empty folder, or one Protoyard wrote before. A
   build leaves a hidden `.protoyard-out` marker (it also holds that build's manifest); a showcase
   leaves `.protoyard-showcase`.

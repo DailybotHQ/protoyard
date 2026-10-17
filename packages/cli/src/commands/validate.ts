@@ -7,7 +7,7 @@ import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
 import { readManifest, statManifest } from '../lib/discovery.ts';
 import { inspectPrototype } from '../lib/inspect.ts';
-import { findEscapingSymlinks } from '../lib/links.ts';
+import { findEscapingSymlinks, isSymlink } from '../lib/links.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
 import { childPath, toPosixRelative } from '../lib/paths.ts';
 import { resolvePackageBin, run, stripAnsi } from '../lib/process.ts';
@@ -194,7 +194,10 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
   }
   const kind: 'prototype' | 'template' = existsSync(prototypeDir) ? 'prototype' : 'template';
   const dir = kind === 'prototype' ? prototypeDir : templateDir;
+  // Same rule as discovery: a symlinked folder is never validated as valid or built.
+  const symlinkedFolder = isSymlink(dir);
   const location = {
+    ...(symlinkedFolder ? { symlink: true } : {}),
     folderKind: kind,
     folder: slug,
     dir,

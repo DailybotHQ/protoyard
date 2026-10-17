@@ -57,9 +57,14 @@ export const snapshotListCommand: Handler = async (ctx, args): Promise<CommandRe
       reports.push({ file, ok: false, warnings: [], error: 'not valid JSON' });
       continue;
     }
+    const declared = (json as { tables?: unknown } | null)?.tables;
+    // Without the prototype's table list, fall back to the file's own names —
+    // tolerating any shape, since the file is untrusted data.
     const knownTables =
       tables ??
-      ((json as { tables?: { name?: unknown }[] }).tables ?? []).map((t) => String(t.name ?? ''));
+      (Array.isArray(declared)
+        ? declared.map((t) => String((t as { name?: unknown } | null)?.name ?? ''))
+        : []);
     const result = validateSnapshot(json, {
       prototypeId: entry.id,
       schemaVersion: entry.schemaVersion,

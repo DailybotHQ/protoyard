@@ -1,8 +1,10 @@
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { artifactDir, buildPrototype, scanForForeignCode } from '../lib/build.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { CliError, formatBytes, mark } from '../lib/output.ts';
+import { BUILD_MARKER } from '../lib/output-guard.ts';
 import { toPosixRelative } from '../lib/paths.ts';
 import { resolveTarget } from '../lib/workspace.ts';
 import { zipDirectory } from '../lib/zip.ts';
@@ -54,6 +56,9 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
     );
   }
 
+  // The build marker is local bookkeeping (it embeds the full build manifest):
+  // never upload it. The default output lives under artifacts/, which needs no marker.
+  await rm(join(build.outDir, BUILD_MARKER), { force: true });
   const input: PublishInput = { slug: entry.slug, distDir: build.outDir, project, target };
   const common = {
     slug: entry.slug,

@@ -2,7 +2,7 @@ import { lstatSync, readdirSync, realpathSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { isInside } from './paths.ts';
 
-/** Install and build output: managed by tools, never prototype content. */
+/** Install and build output at the prototype ROOT only: managed by tools, not content. */
 const SKIP = new Set(['node_modules', 'dist', '.astro', '.vite', 'coverage']);
 
 /**
@@ -22,7 +22,8 @@ export function findEscapingSymlinks(dir: string, limit = 20): string[] {
     }
     for (const entry of entries) {
       if (found.length >= limit) return;
-      if (SKIP.has(entry.name)) continue;
+      // Only top-level tool folders are skipped: a nested public/dist/ is content Vite copies.
+      if (current === dir && SKIP.has(entry.name)) continue;
       const full = join(current, entry.name);
       if (entry.isSymbolicLink()) {
         let target: string | null = null;
