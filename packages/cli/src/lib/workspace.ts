@@ -51,14 +51,22 @@ export interface ResolvedTarget {
 }
 
 /** Looks a slug up in a fresh registry; unknown slugs get "did you mean" hints. */
+/**
+ * `runnable` (the default) accepts prototypes AND templates: a slug is looked
+ * up in prototypes/ first, then templates/, so templates can be run, checked
+ * and built directly while they are being authored.
+ */
 export async function resolveTarget(
   ctx: CommandContext,
   rawSlug: string | undefined,
-  kind: FolderKind | 'any' = 'prototype'
+  kind: FolderKind | 'runnable' = 'runnable'
 ): Promise<ResolvedTarget> {
   const slug = assertSlug(rawSlug);
   const registry = await loadRegistry(ctx.paths);
-  const entry = findEntry(registry, slug, kind);
+  const entry =
+    kind === 'runnable'
+      ? (findEntry(registry, slug, 'prototype') ?? findEntry(registry, slug, 'template'))
+      : findEntry(registry, slug, kind);
   if (!entry) {
     const broken = registry.invalid.find((i) => i.path.endsWith(`/${slug}`));
     if (broken) {
@@ -68,15 +76,15 @@ export async function resolveTarget(
       });
     }
     const similar = registry.entries
-      .filter((e) => kind === 'any' || e.kind === kind)
+      .filter((e) => kind === 'runnable' || e.kind === kind)
       .map((e) => e.slug)
       .filter((s) => s.includes(slug) || slug.includes(s) || s.split('-')[0] === slug.split('-')[0])
       .slice(0, 5);
-    const noun = kind === 'template' ? 'template' : 'prototype';
+    const noun = kind === 'runnable' ? 'prototype or template' : kind;
     throw new CliError('not_found', `No ${noun} "${slug}" in this workspace.`, {
       hint: similar.length
         ? `Did you mean: ${similar.join(', ')}?`
-        : `Run \`pnpm protoyard list --kind ${kind === 'any' ? 'all' : kind}\`.`,
+        : `Run \`pnpm protoyard list --kind ${kind === 'runnable' ? 'all' : kind}\`.`,
     });
   }
   return { registry, entry, dir: join(ctx.root, entry.path) };

@@ -12,7 +12,7 @@ import { resolveTarget } from '../lib/workspace.ts';
 
 export const previewCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const { entry } = await resolveTarget(ctx, args[0]);
-  const artifacts = artifactDir(ctx, entry.slug);
+  const artifacts = artifactDir(ctx, entry);
   const dir = join(artifacts, 'dist');
   if (!existsSync(join(dir, 'index.html'))) {
     throw new CliError('not_found', `${entry.slug} has not been built yet.`, {

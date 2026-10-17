@@ -44,6 +44,8 @@ export interface BuildOptions {
   base?: string;
   includeDevtools?: boolean;
   out?: string;
+  /** Where build-manifest.json goes (default: next to dist in the artifact folder). */
+  manifestPath?: string;
 }
 
 export interface BuildResult {
@@ -53,16 +55,31 @@ export interface BuildResult {
   durationMs: number;
 }
 
-export function artifactDir(ctx: CommandContext, slug: string): string {
-  return childPath(ctx.paths.artifacts, slug);
+/**
+ * `artifacts/<slug>/` for prototypes, `artifacts/template-<name>/` for
+ * templates — a template and a prototype may share a name without their
+ * builds overwriting each other.
+ */
+export function artifactDir(
+  ctx: CommandContext,
+  entry: Pick<RegistryEntry, 'kind' | 'slug'>
+): string {
+  return childPath(
+    ctx.paths.artifacts,
+    entry.kind === 'template' ? `template-${entry.slug}` : entry.slug
+  );
 }
 
 /**
  * Vite empties the output directory, so a custom `--out` must never be (or
  * contain) the workspace or any source folder.
  */
-export function resolveOutDir(ctx: CommandContext, slug: string, out?: string): string {
-  if (!out) return join(artifactDir(ctx, slug), 'dist');
+export function resolveOutDir(
+  ctx: CommandContext,
+  entry: Pick<RegistryEntry, 'kind' | 'slug'>,
+  out?: string
+): string {
+  if (!out) return join(artifactDir(ctx, entry), 'dist');
   const target = resolve(ctx.root, out);
   const protectedDirs = [
     ctx.root,
@@ -121,7 +138,7 @@ export async function buildPrototype(
   };
   const base = normalizeBase(options.base, manifestRaw.build?.base ?? './');
   const includeDevtools = options.includeDevtools ?? manifestRaw.build?.includeDevtools ?? false;
-  const outDir = resolveOutDir(ctx, entry.slug, options.out);
+  const outDir = resolveOutDir(ctx, entry, options.out);
   await mkdir(dirname(outDir), { recursive: true });
 
   const { code, log } = await viteBuild({
@@ -169,7 +186,8 @@ export async function buildPrototype(
     },
     node: process.versions.node,
   };
-  const manifestPath = join(artifactDir(ctx, entry.slug), BUILD_MANIFEST_FILENAME);
+  const manifestPath =
+    options.manifestPath ?? join(artifactDir(ctx, entry), BUILD_MANIFEST_FILENAME);
   await writeJsonAtomic(manifestPath, manifest);
   return { manifest, manifestPath, outDir, durationMs: performance.now() - started };
 }

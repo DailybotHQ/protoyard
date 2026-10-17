@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { unzipSync } from 'fflate';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -15,6 +15,14 @@ beforeAll(() => {
   ws = createWorkspace();
   addBuildablePrototype(ws, 'alpha-app', 'alpha says hi');
   addBuildablePrototype(ws, 'beta-app', 'beta says hi');
+  addBuildablePrototype(ws, 'starter', 'template says hi');
+  // Turn the last one into a template (same layout, templates/ folder, kind template).
+  renameSync(join(ws.root, 'prototypes/starter'), join(ws.root, 'templates/starter'));
+  ws.write('templates/starter/protoyard.json', {
+    ...JSON.parse(readFileSync(join(ws.root, 'templates/starter/protoyard.json'), 'utf8')),
+    id: 'template.starter',
+    kind: 'template',
+  });
 });
 afterAll(() => ws.cleanup());
 
@@ -83,6 +91,15 @@ describe('build and export (real Vite)', () => {
     expect(run.code).toBe(0);
     const html = readFileSync(join(ws.root, 'artifacts/beta-app/dist/index.html'), 'utf8');
     expect(html).toContain('/demos/beta/assets/');
+  }, 60_000);
+
+  it('builds templates too, into artifacts/template-<name>/', async () => {
+    const run = await cli(['--root', ws.root, '--json', 'build', 'starter']);
+    expect(run.code).toBe(0);
+    expect(run.json<{ data: { outDir: string } }>().data.outDir).toBe(
+      'artifacts/template-starter/dist'
+    );
+    expect(existsSync(join(ws.root, 'artifacts/template-starter/build-manifest.json'))).toBe(true);
   }, 60_000);
 
   it('refuses an --out that would overwrite sources', async () => {

@@ -41,7 +41,7 @@ async function verifyExistingBuild(outDir: string, manifestPath: string) {
 
 export const exportCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const { entry, dir, registry } = await resolveTarget(ctx, args[0]);
-  const artifacts = artifactDir(ctx, entry.slug);
+  const artifacts = artifactDir(ctx, entry);
   const outDir = join(artifacts, 'dist');
   const manifestPath = join(artifacts, BUILD_MANIFEST_FILENAME);
 

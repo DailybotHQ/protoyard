@@ -69,7 +69,7 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
   if (provider.id === 'static') {
     const zip = await zipDirectory(
       build.outDir,
-      join(artifactDir(ctx, entry.slug), `${entry.slug}.zip`)
+      join(artifactDir(ctx, entry), `${entry.slug}.zip`)
     );
     return {
       data: {

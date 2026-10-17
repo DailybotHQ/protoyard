@@ -182,14 +182,19 @@ async function checkTypes(ctx: CommandContext, dir: string): Promise<Check> {
 
 export const validateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const slug = assertSlug(args[0]);
-  const dir = childPath(ctx.paths.prototypes, slug);
-  if (!existsSync(dir)) {
-    throw new CliError('not_found', `No prototype folder prototypes/${slug}.`, {
-      hint: 'Run `pnpm protoyard list` to see the available prototypes.',
+  // Folder lookup (not the registry), so a broken manifest is still validated.
+  // prototypes/ wins over templates/, like every other target command.
+  const prototypeDir = childPath(ctx.paths.prototypes, slug);
+  const templateDir = childPath(ctx.paths.templates, slug);
+  if (!existsSync(prototypeDir) && !existsSync(templateDir)) {
+    throw new CliError('not_found', `No folder prototypes/${slug} or templates/${slug}.`, {
+      hint: 'Run `pnpm protoyard list --kind all` to see what exists.',
     });
   }
+  const kind: 'prototype' | 'template' = existsSync(prototypeDir) ? 'prototype' : 'template';
+  const dir = kind === 'prototype' ? prototypeDir : templateDir;
   const location = {
-    folderKind: 'prototype' as const,
+    folderKind: kind,
     folder: slug,
     dir,
     manifestPath: join(dir, MANIFEST_FILENAME),
@@ -206,7 +211,7 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
       : check('manifest', 'protoyard.json schema', 'fail', parsed.errors)
   );
   checks.push(checkContractFiles(dir));
-  checks.push(checkPackage(dir, slug, 'prototype'));
+  checks.push(checkPackage(dir, slug, kind));
 
   if (parsed.manifest) {
     checks.push(await checkSchemaVersion(dir, parsed.manifest));
@@ -245,7 +250,7 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
       try {
         const registry = await loadRegistry(ctx.paths);
         const entry =
-          registry.entries.find((e) => e.slug === slug && e.kind === 'prototype') ??
+          registry.entries.find((e) => e.slug === slug && e.kind === kind) ??
           toRegistryEntry(parsed.manifest, location, fileStat.mtimeMs);
         const result = await buildPrototype(ctx, entry, dir, {});
         checks.push(
@@ -264,7 +269,7 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
 
   const failed = checks.filter((c) => c.status === 'fail');
   return {
-    data: { slug, ok: failed.length === 0, checks },
+    data: { slug, kind, ok: failed.length === 0, checks },
     ...(failed.length > 0
       ? {
           failure: new CliError('validation', `${slug}: ${failed.length} check(s) failed.`, {
@@ -274,7 +279,7 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
       : {}),
     render(out) {
       const { c } = out;
-      out.always(`Validating ${c.bold(slug)}`);
+      out.always(`Validating ${c.bold(slug)}${kind === 'template' ? c.dim(' (template)') : ''}`);
       for (const item of checks) {
         out.always(
           `${mark(c, item.status)} ${item.label}${item.status === 'pass' && item.details[0] ? c.dim(`  ${item.details[0]}`) : ''}`
