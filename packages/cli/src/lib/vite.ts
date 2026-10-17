@@ -70,17 +70,23 @@ export interface ViteBuildOptions {
   outDir: string;
   base: string;
   includeDevtools: boolean;
+  /** Ask the renderer config to add the offline service worker (PROTOYARD_OFFLINE=1). */
+  offline?: boolean;
   /** Pipe output (for --json) instead of inheriting the terminal. */
   quiet: boolean;
 }
 
-export function buildEnv(options: Pick<ViteBuildOptions, 'outDir' | 'base' | 'includeDevtools'>) {
+export function buildEnv(
+  options: Pick<ViteBuildOptions, 'outDir' | 'base' | 'includeDevtools' | 'offline'>
+) {
   return {
     ...process.env,
     NODE_ENV: 'production',
     PROTOYARD_OUT_DIR: options.outDir,
     PROTOYARD_BASE: options.base,
     PROTOYARD_INCLUDE_DEVTOOLS: options.includeDevtools ? '1' : '0',
+    // Only forced on by --offline; otherwise the manifest's build.offline decides.
+    ...(options.offline ? { PROTOYARD_OFFLINE: '1' } : {}),
   };
 }
 

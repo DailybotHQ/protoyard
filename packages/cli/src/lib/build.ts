@@ -3,6 +3,7 @@ import { mkdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { digestDirectory, type FileDigest, listFiles } from './checksum.ts';
 import { findEscapingSymlinks } from './links.ts';
+import { type OfflineRecord, readOfflineRecord } from './offline.ts';
 import { CliError } from './output.ts';
 import { BUILD_MARKER, guardOutputDir } from './output-guard.ts';
 import { childPath, isInside, toPosixRelative } from './paths.ts';
@@ -40,6 +41,8 @@ export interface BuildManifest {
     vite: string | null;
   };
   node: string;
+  /** The opt-in service worker (dist/sw.js), or false when the build has none. */
+  offline: OfflineRecord;
 }
 
 export interface BuildOptions {
@@ -54,6 +57,8 @@ export interface BuildOptions {
   manifestPath?: string;
   /** Permit an --out outside the workspace (must be new, empty or ours). */
   allowExternalOut?: boolean;
+  /** Force the offline service worker on (PROTOYARD_OFFLINE=1). */
+  offline?: boolean;
 }
 
 export interface BuildResult {
@@ -127,7 +132,7 @@ export async function buildPrototype(
 ): Promise<BuildResult> {
   const started = performance.now();
   const manifestRaw = JSON.parse(await readFile(join(dir, 'protoyard.json'), 'utf8')) as {
-    build?: { base?: string; includeDevtools?: boolean };
+    build?: { base?: string; includeDevtools?: boolean; offline?: boolean };
   };
   const base = normalizeBase(options.base, manifestRaw.build?.base ?? './');
   const includeDevtools = options.includeDevtools ?? manifestRaw.build?.includeDevtools ?? false;
@@ -152,6 +157,7 @@ export async function buildPrototype(
     outDir,
     base,
     includeDevtools,
+    offline: options.offline === true,
     quiet: ctx.out.options.json || ctx.out.options.quiet,
   });
   if (code !== 0) {
@@ -190,7 +196,18 @@ export async function buildPrototype(
       vite: viteVersion,
     },
     node: process.versions.node,
+    offline: await readOfflineRecord(ctx.root, outDir),
   };
+  const wantsOffline = options.offline === true || manifestRaw.build?.offline === true;
+  if (wantsOffline && manifest.offline === false) {
+    throw new CliError(
+      'validation',
+      `${entry.slug} was built for offline use but has no service worker.`,
+      {
+        hint: 'The renderer did not emit dist/sw.js: check that the prototype uses defineProtoyardConfig from @protoyard/renderer-svelte/vite.',
+      }
+    );
+  }
   // The marker both proves a later --out run may empty this folder again and
   // records what was built there. It is excluded from digests and ZIPs.
   await writeJsonAtomic(join(outDir, BUILD_MARKER), manifest);

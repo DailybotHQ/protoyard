@@ -14,6 +14,7 @@ export function buildOptionsFrom(options: Record<string, unknown>): BuildOptions
     ...(flag(options, 'includeDevtools') ? { includeDevtools: true } : {}),
     ...(opt(options, 'out') !== undefined ? { out: opt(options, 'out') } : {}),
     ...(flag(options, 'allowExternalOut') ? { allowExternalOut: true } : {}),
+    ...(flag(options, 'offline') ? { offline: true } : {}),
   };
 }
 

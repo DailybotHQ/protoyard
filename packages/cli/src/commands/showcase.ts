@@ -171,6 +171,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
           includeDevtools,
           out: appOut,
           allowExternalOut: allowExternal,
+          ...(flag(options, 'offline') ? { offline: true } : {}),
           manifestPath: join(
             ctx.paths.artifacts,
             'showcase-builds',

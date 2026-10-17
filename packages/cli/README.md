@@ -86,6 +86,20 @@ With `--json`, stdout holds exactly one envelope:
 Commands that complete with failing checks (`validate`, `scenario validate`, `build --all`,
 `snapshot list`, `showcase`) return `ok: false` and keep the full `data`.
 
+## Offline builds (`--offline`)
+
+`build`, `export` and `showcase` accept `--offline`. It sets `PROTOYARD_OFFLINE=1` for the Vite
+child process, so `defineProtoyardConfig` adds the opt-in service worker from
+`@protoyard/offline`. A manifest with `build.offline: true` does the same without the flag.
+
+- **Recorded:** `build-manifest.json` gets `offline: { enabled: true, version, precached }` (read
+  back from `dist/sw.js`) or `offline: false`.
+- **Fails clearly:** if offline was requested but no `sw.js` was emitted, the build fails with
+  exit 4.
+- **Shipped:** `sw.js` is part of `dist`, so it is in the ZIP and in the showcase. There each
+  prototype's worker is scoped to its own `<base>p/<slug>/app/`.
+- **Opt out:** visitors append `?offline=0` to an app URL to unregister the worker.
+
 ## Output folders (`--out`)
 
 The CLI empties or replaces output folders, so the destination is allow-listed. The check runs on

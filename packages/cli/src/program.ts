@@ -115,7 +115,8 @@ export function createProgram(env: RunnerEnv): Command {
   const buildOptions = (cmd: Command) =>
     cmd
       .option('--base <path>', 'public base: ./ (relocatable, default) or /sub/path/')
-      .option('--include-devtools', 'ship the DevTools panel in the build');
+      .option('--include-devtools', 'ship the DevTools panel in the build')
+      .option('--offline', 'add the opt-in offline service worker (sets PROTOYARD_OFFLINE=1)');
 
   buildOptions(
     program
@@ -197,6 +198,7 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--base <path>', 'absolute public base of the site', '/')
     .option('--no-devtools', 'leave the DevTools panel out of the bundled prototypes')
     .option('--include-templates', 'also bundle templates at <base>t/<name>/app/')
+    .option('--offline', 'build every bundled prototype with the offline service worker')
     .option('--serve', 'serve the site after building (multi-page, 404.html fallback)')
     .option('--skip-build', 'with --serve: serve the existing showcase')
     .option('-p, --port <port>', 'port for --serve', '4500')
