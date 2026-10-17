@@ -190,6 +190,9 @@ importers:
       '@protoyard/devtools':
         specifier: workspace:*
         version: link:../devtools
+      '@protoyard/offline':
+        specifier: workspace:*
+        version: link:../offline
       '@protoyard/runtime':
         specifier: workspace:*
         version: link:../runtime

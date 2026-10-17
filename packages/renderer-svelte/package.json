@@ -23,13 +23,14 @@
   },
   "dependencies": {
     "@protoyard/core": "workspace:*",
-    "@protoyard/runtime": "workspace:*",
     "@protoyard/devtools": "workspace:*",
+    "@protoyard/offline": "workspace:*",
+    "@protoyard/runtime": "workspace:*",
     "@protoyard/themes": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "dexie": "^4.4.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tailwindcss/vite": "^4.3.0",
+    "dexie": "^4.4.0",
     "tailwindcss": "^4.3.0",
     "vite": "^8.3.0"
   },
