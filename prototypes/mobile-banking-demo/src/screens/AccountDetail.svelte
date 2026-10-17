@@ -85,21 +85,18 @@ const action = $derived(
         }
 );
 
-// The dialog keeps showing the action it was opened for until its close
-// animation ends; otherwise its text would flip to the opposite action.
+// Captured when the dialog opens, so its text doesn't flip to the opposite
+// action while it fades out after a successful change.
 let dialogAction = $state<typeof action>(null);
+let wasOpen = false;
 $effect(() => {
-  const latest = action;
-  if (confirmOpen) return;
-  const timer = setTimeout(() => (dialogAction = latest), 250);
-  return () => clearTimeout(timer);
-});
-$effect(() => {
-  if (dialogAction === null && action) dialogAction = action;
+  const open = confirmOpen;
+  if (open && !wasOpen) dialogAction = action;
+  wasOpen = open;
 });
 
 async function applyStatus() {
-  const chosen = dialogAction;
+  const chosen = dialogAction ?? action;
   if (!current || !chosen) return;
   try {
     await services.setAccountStatus(current.id, chosen.next);
