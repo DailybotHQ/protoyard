@@ -12,6 +12,7 @@
   "template": "chat",
   "status": "ready",
   "icon": "💬",
+  "thumbnail": "public/thumbnail.png",
   "defaultScenario": "active-team",
   "defaultTheme": "ocean",
   "defaultMode": "dark",

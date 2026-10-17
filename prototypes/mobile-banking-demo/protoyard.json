@@ -12,6 +12,7 @@
   "template": "mobile-app",
   "status": "ready",
   "icon": "🏦",
+  "thumbnail": "public/thumbnail.png",
   "defaultScenario": "active-customer",
   "defaultTheme": "emerald",
   "defaultMode": "system",

@@ -12,6 +12,7 @@
   "template": "dashboard",
   "status": "ready",
   "icon": "📈",
+  "thumbnail": "public/thumbnail.png",
   "defaultScenario": "growing-team",
   "defaultTheme": "violet",
   "defaultMode": "system",
