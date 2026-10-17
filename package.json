@@ -31,7 +31,8 @@
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
     "bench:index": "tsx scripts/bench-index.ts",
-    "check": "pnpm lint && pnpm typecheck && pnpm test"
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "thumbnails": "tsx scripts/generate-thumbnails.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

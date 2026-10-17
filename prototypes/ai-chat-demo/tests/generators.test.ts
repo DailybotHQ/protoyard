@@ -13,13 +13,14 @@ describe('ai-chat-demo', () => {
   it('generates deterministic, referentially valid worlds', () => {
     expect(generateChatWorld(ctx('active-team'))).toEqual(generateChatWorld(ctx('active-team')));
     for (const scenario of definition.scenarios) {
-      const world = generateChatWorld(ctx(scenario.id));
+      const context = ctx(scenario.id);
+      const world = generateChatWorld(context);
       const conversations = new Set(rows<Conversation>(world, 'conversations').map((c) => c.id));
       const authors = new Set([...world.personas.map((p) => p.id), ...AGENTS.map((a) => a.id)]);
       for (const m of rows<Message>(world, 'messages')) {
         expect(conversations.has(m.conversationId)).toBe(true);
         expect(authors.has(m.authorId)).toBe(true);
-        expect(Date.parse(m.at)).toBeLessThanOrEqual(Date.parse(scenario.referenceTime));
+        expect(Date.parse(m.at)).toBeLessThanOrEqual(Date.parse(context.scenario.referenceTime));
       }
       for (const p of rows<Participant>(world, 'participants')) {
         expect(conversations.has(p.conversationId)).toBe(true);
