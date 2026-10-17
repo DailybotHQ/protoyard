@@ -100,6 +100,13 @@ describe('presets and composition', () => {
     expect(() => composeScenario({ id: 'Bad Id', name: 'x', seed: 1, referenceTime: REF })).toThrow(
       /kebab-case/
     );
+    const hostile = JSON.parse(
+      '{"__proto__":{"polluted":true},"a":{"constructor":{"prototype":{"x":1}}}}'
+    );
+    const merged = deepMerge({ a: {} }, hostile) as Record<string, unknown>;
+    expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(merged).toEqual({ a: {} });
     expect(deepMerge({ a: { b: 1, c: [1] } }, { a: { c: [2] } }, undefined)).toEqual({
       a: { b: 1, c: [2] },
     });

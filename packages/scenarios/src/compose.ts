@@ -7,6 +7,8 @@ import {
 
 type Plain = Record<string, unknown>;
 
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 export type DeepPartial<T> = T extends readonly unknown[]
   ? T
   : T extends object
@@ -36,7 +38,8 @@ export function deepMerge<T>(target: T, ...sources: readonly unknown[]): T {
     }
     const next: Plain = { ...out };
     for (const [key, value] of Object.entries(source)) {
-      if (value === undefined) continue;
+      // Never let data reach an object's prototype chain.
+      if (value === undefined || UNSAFE_KEYS.has(key)) continue;
       const current = next[key];
       next[key] =
         isPlainObject(current) && isPlainObject(value) ? deepMerge(current, value) : value;
