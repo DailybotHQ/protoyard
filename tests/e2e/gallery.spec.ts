@@ -131,4 +131,17 @@ test.describe('gallery', () => {
     await slug.fill('Bad Slug');
     await expect(page.getByText('Use lowercase kebab-case')).toBeVisible();
   });
+
+  test('compare page without bundled builds explains how to run frames', async ({ page }) => {
+    const target = prototypes.find((p) => p.scenarios.length >= 2);
+    test.skip(!target, 'no prototype with two scenarios');
+    await page.goto(`/p/${target?.slug}/`);
+    await page.getByTestId('compare-link').click();
+    await expect(page.getByTestId('compare-unavailable')).toContainText(
+      `pnpm protoyard dev ${target?.slug}`
+    );
+    await expect(page.getByTestId('compare-scenario-a')).toBeVisible();
+    await page.getByRole('button', { name: 'Swap A and B' }).click();
+    await expect(page).toHaveURL(/[?&]a=/);
+  });
 });

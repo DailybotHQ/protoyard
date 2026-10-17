@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect, type FrameLocator, test } from '@playwright/test';
+import { expectAccessible } from './support/a11y.ts';
 
 /**
  * The hosted showcase (`protoyard showcase`): the gallery's live preview
@@ -73,5 +74,64 @@ test.describe('showcase site', () => {
     await expect(page.locator('#browse[data-hydrated="true"]')).toHaveCount(1);
     await page.waitForLoadState('networkidle');
     expect(failed).toEqual([]);
+  });
+
+  test('compare scenarios: sandboxed frames never touch each other or the default world', async ({
+    page,
+  }, testInfo) => {
+    const ready = (frame: FrameLocator) =>
+      expect(frame.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 20_000 });
+    const searchCompanies = async (frame: FrameLocator, text: string) => {
+      await frame.getByRole('link', { name: 'Companies' }).first().click();
+      await frame.getByRole('searchbox', { name: 'Search Companies' }).fill(text);
+    };
+
+    await page.goto(`${SITE}p/crm-demo/`);
+    await page.getByTestId('compare-link').click();
+    await expect(page).toHaveURL(new RegExp(`${escapeRe(BASE)}p/crm-demo/compare/`));
+    await expect(page.locator('[data-testid="compare"][data-hydrated="true"]')).toHaveCount(1);
+    const a = page.frameLocator('[data-testid="compare-pane-a"] iframe');
+    const b = page.frameLocator('[data-testid="compare-pane-b"] iframe');
+    await ready(a);
+    await ready(b);
+    await expectAccessible(page, testInfo, { label: 'compare' });
+
+    // Both frames on the SAME scenario, so only the sandbox separates them.
+    await page.getByTestId('compare-scenario-b').selectOption('growing-team');
+    await expect(page).toHaveURL(/[?&]b=growing-team/);
+    await ready(b);
+
+    const name = `Compare Probe ${testInfo.project.name}`;
+    await a.getByRole('link', { name: 'Companies' }).first().click();
+    await a.getByRole('button', { name: 'New company' }).click();
+    const dialog = a.getByRole('dialog');
+    await dialog.getByLabel('Name').fill(name);
+    await dialog.getByLabel('Website domain').fill('compare.example');
+    await dialog.getByLabel('Employees').fill('7');
+    await dialog.getByLabel('Employees').press('Enter');
+    await expect(a.getByRole('heading', { level: 1, name })).toBeVisible();
+
+    await searchCompanies(b, 'Compare Probe');
+    await expect(b.getByRole('row', { name: /^Open Compare Probe/ })).toHaveCount(0);
+    await expect(b.getByText('18 accounts')).toBeVisible();
+
+    // The prototype's default (non-sandboxed) world is untouched too.
+    const app = await page.context().newPage();
+    await app.goto(`${SITE}p/crm-demo/app/#/companies`);
+    await expect(app.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 20_000 });
+    await app.getByRole('searchbox', { name: 'Search Companies' }).fill('Compare Probe');
+    await expect(app.getByRole('row', { name: /^Open Compare Probe/ })).toHaveCount(0);
+    await app.close();
+
+    // Reset: fresh sandbox names, so frame A re-seeds without the probe.
+    await page.getByTestId('compare-reset').click();
+    await expect(page.locator('[data-testid="compare-pane-a"] iframe')).toHaveAttribute(
+      'data-sandbox',
+      'compare-a-1'
+    );
+    await expect(page).toHaveURL(/[?&]gen=1/);
+    await ready(a);
+    await searchCompanies(a, 'Compare Probe');
+    await expect(a.getByRole('row', { name: /^Open Compare Probe/ })).toHaveCount(0);
   });
 });

@@ -37,6 +37,14 @@ for (const mode of ['light', 'dark'] as const) {
       await expectAccessible(page, testInfo, { label: `gallery-detail-${mode}` });
     });
 
+    test('gallery compare page', async ({ page }, testInfo) => {
+      test.skip(!firstPrototype, 'no prototypes indexed');
+      await page.goto(`/p/${firstPrototype?.slug}/compare/`);
+      await expect(page.locator('[data-testid="compare"][data-hydrated="true"]')).toHaveCount(1);
+      await settle(page);
+      await expectAccessible(page, testInfo, { label: `gallery-compare-${mode}` });
+    });
+
     for (const slug of PROTOTYPE_TARGETS) {
       test(`${slug} main screen`, async ({ page }, testInfo) => {
         await page.goto(prototypeUrl(slug));

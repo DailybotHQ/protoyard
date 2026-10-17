@@ -18,6 +18,11 @@ export default defineConfig({
   base: process.env.GALLERY_BASE ?? '/',
   ...(process.env.GALLERY_SITE ? { site: process.env.GALLERY_SITE } : {}),
   trailingSlash: 'ignore',
+  // Separate caches let a showcase build run while the regular gallery builds
+  // (e.g. two Playwright webServers): they must not share .astro / Vite caches.
+  ...(process.env.PROTOYARD_GALLERY_CACHE_DIR
+    ? { cacheDir: resolve(process.env.PROTOYARD_GALLERY_CACHE_DIR, 'astro') }
+    : {}),
   compressHTML: true,
   integrations: [
     svelte(),
@@ -29,6 +34,9 @@ export default defineConfig({
   ],
   server: { host: '127.0.0.1', port: 4321 },
   vite: {
+    ...(process.env.PROTOYARD_GALLERY_CACHE_DIR
+      ? { cacheDir: resolve(process.env.PROTOYARD_GALLERY_CACHE_DIR, 'vite') }
+      : {}),
     plugins: [tailwindcss()],
     resolve: {
       alias: { '@': resolve(__dirname, './src') },

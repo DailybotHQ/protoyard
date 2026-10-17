@@ -75,6 +75,27 @@ Storage note: every prototype keeps its data in IndexedDB **per origin**. The de
 preview and a published URL each have their own data, and the gallery's preview iframe shares
 storage with that origin opened directly. The detail page says this in plain words.
 
+## Compare scenarios
+
+`/p/<slug>/compare/` (linked from the detail page as *Compare scenarios side by side*) shows the
+same prototype in 2 or 3 frames. Each frame has its own scenario picker and its own sandboxed
+world: its URL is `<app>?sandbox=compare-<a|b|c>[-<n>]&scenario=<id>&devtools=0`, and the runtime
+then uses a separate database pair (`protoyard.<namespace>~<sandbox>.*`). Records created in one
+frame never appear in another, and the prototype's normal (non-sandboxed) data is never touched.
+
+- **Controls:** *Swap A and B*, *Add a third frame* / *Remove frame C*, one shared device preset
+  for all frames, and *Reset sandboxes*. Reset bumps a generation number, which gives every frame
+  a fresh sandbox name, so each world re-seeds from its scenario. A plain reload keeps the edits
+  made in a sandbox.
+- **Deep links:** `?a=<scenario>&b=<scenario>[&c=…][&device=iphone][&gen=<n>]`. Unknown values
+  fall back to the default scenario, the next scenario and Desktop.
+- **Where frames come from:** a bundled build in a showcase site; a running dev server when the
+  local control server is available (*Start* runs it); otherwise the page explains what to run and
+  accepts a pasted prototype URL. A read-only hosted gallery never runs code on its own.
+- **Tested:** `tests/e2e/showcase.spec.ts` creates a record in frame A, then checks that frame B
+  (same scenario) and the app's default world do not have it, and that *Reset sandboxes* starts
+  frame A fresh. The page is also covered by the axe checks.
+
 ## Accessibility
 
 - A skip link, landmark regions, one `h1` per page, and labelled sections.
