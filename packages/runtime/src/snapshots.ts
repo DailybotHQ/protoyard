@@ -265,13 +265,21 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
         const { snapshot: parsed, warnings: found } = parse(text);
         // A fresh id: importing the same file twice never overwrites a stored snapshot.
         const snapshot: Snapshot = { ...parsed, id: createRuntimeId('snap') };
+        // Store the copy FIRST: if that fails (quota), nothing has changed yet. If
+        // the restore then fails, drop the copy again so a rejected import leaves
+        // no trace — the world is untouched because restoreTables is atomic.
+        await k.control.putSnapshot(snapshot);
         if (options.restore) {
-          const notes = await apply(snapshot);
-          warnings = [...new Set([...found, ...notes])];
+          try {
+            const notes = await apply(snapshot);
+            warnings = [...new Set([...found, ...notes])];
+          } catch (error) {
+            await k.control.deleteSnapshot(snapshot.id).catch(k.report);
+            throw error;
+          }
         } else {
           warnings = found;
         }
-        await k.control.putSnapshot(snapshot);
         return summarize(snapshot);
       }),
   };

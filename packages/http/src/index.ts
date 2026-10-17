@@ -3,6 +3,7 @@ export {
   type MockApi,
   type MockApiOptions,
   type MockRequest,
+  type RouteEntry,
   type RouteHandler,
   type Routes,
 } from './api.ts';

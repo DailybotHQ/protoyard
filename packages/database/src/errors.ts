@@ -46,10 +46,12 @@ const CODE_BY_NAME: Record<string, StorageErrorCode> = {
   VersionError: 'version-newer',
   MissingAPIError: 'unavailable',
   // Firefox private mode and Safari with storage disabled throw these on open.
+  // (Chrome's UnknownError — a transient/corrupt backing store on a profile that
+  // may hold real data — is deliberately NOT here: it must be shown, never
+  // silently replaced by an empty in-memory world.)
   InvalidStateError: 'unavailable',
   SecurityError: 'unavailable',
   NotAllowedError: 'unavailable',
-  UnknownError: 'unavailable',
   BlockedError: 'blocked',
   VersionChangeError: 'blocked',
 };

@@ -616,6 +616,20 @@ describe('hostile snapshot files', () => {
     expect(await runtime.snapshots.list()).toEqual([]);
   });
 
+  it('a restore that fails after validation leaves no stored copy and no data change', async () => {
+    const { runtime, snapshot } = await exported();
+    const before = await dumpTables(runtime.db);
+    const listed = await runtime.snapshots.list();
+    // Valid ids, but duplicated: passes validation, fails inside the restore transaction.
+    const tasks = snapshot.tables.find((t: { name: string }) => t.name === 'tasks');
+    tasks.rows.push({ ...tasks.rows[0] });
+    await expect(
+      runtime.snapshots.importJson(JSON.stringify(snapshot), { restore: true })
+    ).rejects.toThrow();
+    expect(await dumpTables(runtime.db)).toEqual(before);
+    expect(await runtime.snapshots.list()).toEqual(listed);
+  });
+
   it('rejects rows without a usable id and oversized worlds with a clear message', async () => {
     const { runtime, snapshot } = await exported();
     const before = await dumpTables(runtime.db);

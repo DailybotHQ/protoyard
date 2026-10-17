@@ -29,7 +29,9 @@ const response = await api.fetch('/api/deals?stage=lead'); // a real Response
    an `Allow` header.
 2. The handler receives `{ method, path, params, query, body, headers, runtime }`. `body` is
    parsed JSON (or text), and invalid JSON returns **400**.
-3. The handler runs through `runtime.environment.run('http.<METHOD> <route>')`, so every
+3. The handler runs through `runtime.environment.run('http.<METHOD> <route>')` (unless the
+   route is `{ handler, environment: 'services' }`, for handlers whose services already call
+   `environment.run`; otherwise latency and failure rolls would apply twice), so every
    DevTools environment toggle applies to the API exactly as it does to services:
    - latency and slow network,
    - offline,
@@ -97,9 +99,14 @@ export const api = createMockApi<CrmDatabase>(runtime, {
       return deal;
     },
     // POST /api/deals  { title, companyId, amount, closeDate }
-    'POST /deals': async ({ body }) => {
-      const deal = await crm.deals.create(body as DealInput); // 403 / 422 come from the service
-      return json(deal, { status: 201, headers: { location: `/api/deals/${deal.id}` } });
+    // The service already runs environment.run('deals.create', …): mark the route
+    // 'services' so latency and failure rolls apply once, not twice.
+    'POST /deals': {
+      environment: 'services',
+      handler: async ({ body }) => {
+        const deal = await crm.deals.create(body as DealInput); // 403 / 422 come from the service
+        return json(deal, { status: 201, headers: { location: `/api/deals/${deal.id}` } });
+      },
     },
   },
   // The demo's expired-trial error becomes a real 402.
@@ -164,8 +171,9 @@ The registry is a `WeakMap` keyed by runtime, so closed runtimes are garbage-col
 
 ## Layering MSW (optional)
 
-Protoyard does not ship a service worker. If you want real network interception (for
-example, so requests show up in the browser's Network tab), add MSW to your prototype
+`@protoyard/http` does not use a service worker (the optional `@protoyard/offline` one only
+caches the app shell and never sees mock requests). If you want real network interception
+(for example, so requests show up in the browser's Network tab), add MSW to your prototype
 yourself and delegate to the mock API:
 
 ```ts

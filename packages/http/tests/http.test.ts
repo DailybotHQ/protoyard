@@ -287,6 +287,33 @@ describe('discovery for DevTools', () => {
   });
 });
 
+describe('services that already simulate the environment', () => {
+  it("environment: 'services' applies latency and failures once, offline still rejects", async () => {
+    const sleeps: number[] = [];
+    const runtime = await boot('active-month', sleeps);
+    const viaService = () => runtime.environment.run('tasks.read', () => ({ ok: true }));
+    const api = createMockApi(runtime, {
+      routes: {
+        'GET /double': () => viaService(),
+        'GET /once': { handler: () => viaService(), environment: 'services' },
+        'GET /bad-status': () => {
+          throw new HttpError(600, 'typo');
+        },
+      },
+    });
+    runtime.environment.set({ latencyMs: 250 });
+    sleeps.length = 0;
+    await api.fetch('/api/double');
+    expect(sleeps).toEqual([250, 250]);
+    sleeps.length = 0;
+    expect((await api.fetch('/api/once')).status).toBe(200);
+    expect(sleeps).toEqual([250]);
+    expect((await api.fetch('/api/bad-status')).status).toBe(500);
+    runtime.environment.set({ network: 'offline' });
+    await expect(api.fetch('/api/once')).rejects.toThrow('Failed to fetch');
+  });
+});
+
 describe('global fetch and the network log', () => {
   it('intercepts only the API prefix and restores the original', async () => {
     const api = createMockApi(await boot(), { baseUrl: '/api', routes });

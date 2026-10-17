@@ -19,7 +19,20 @@ export interface MockRequest<TDb = unknown> {
 /** Return plain data (200 JSON), a `MockResponse`, or `undefined` (204). */
 export type RouteHandler<TDb = unknown> = (request: MockRequest<TDb>) => unknown | Promise<unknown>;
 
-export type Routes<TDb = unknown> = Record<string, RouteHandler<TDb>>;
+/**
+ * A route with options. `environment: 'services'` skips the per-request
+ * simulation because the handler calls domain services that already run
+ * through `environment.run` — otherwise latency and failure rolls apply twice.
+ */
+export interface RouteEntry<TDb = unknown> {
+  handler: RouteHandler<TDb>;
+  environment?: 'request' | 'services';
+}
+
+export type Routes<TDb = unknown> = Record<string, RouteHandler<TDb> | RouteEntry<TDb>>;
+
+const entryOf = <TDb>(route: RouteHandler<TDb> | RouteEntry<TDb>): RouteEntry<TDb> =>
+  typeof route === 'function' ? { handler: route, environment: 'request' } : route;
 
 export interface MockApiOptions<TDb = unknown> {
   /** Path prefix (`/api`) or absolute URL (`https://api.example.test/v1`). */
@@ -131,8 +144,9 @@ export function createMockApi<TDb = unknown>(
         );
       } else {
         entry.route = match.route.key;
-        const value = await runtime.environment.run(`http.${match.route.key}`, () =>
-          match.route.handler({
+        const route = entryOf(match.route.handler);
+        const call = () =>
+          route.handler({
             method: match.route.method,
             path,
             params: match.params,
@@ -140,8 +154,11 @@ export function createMockApi<TDb = unknown>(
             body: requestBody,
             headers: request.headers,
             runtime,
-          })
-        );
+          });
+        const value =
+          route.environment === 'services'
+            ? await call()
+            : await runtime.environment.run(`http.${match.route.key}`, call);
         result =
           value instanceof MockResponse
             ? value

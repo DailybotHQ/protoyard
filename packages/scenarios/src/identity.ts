@@ -95,8 +95,9 @@ function tenureSummary(title: string, days: number): string {
 
 /**
  * Builds one organization and its people. Deterministic for the same
- * context: it uses a forked rng (so team size never shifts the rest of the
- * generator's random stream) and the context's private faker.
+ * context. Role and avatar picks use a forked rng, but names come from the
+ * shared `ctx.faker` and ids from `ctx.ids`: changing the team size DOES shift
+ * later faker values and `user_*` ids, so generate the team first.
  */
 export function generateTeam(ctx: GenerateContext, options: GenerateTeamOptions = {}): Team {
   const { scenario, faker, time } = ctx;

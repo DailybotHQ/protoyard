@@ -197,6 +197,10 @@ describe('storage status and errors', () => {
     ).toBe('unavailable');
     expect(mapStorageError({ name: 'MissingAPIError' }).code).toBe('unavailable');
     expect(mapStorageError({ name: 'VersionError' }).code).toBe('version-newer');
+    // Chrome's transient/corrupt backing-store error must surface, never fall back to memory.
+    expect(mapStorageError({ name: 'OpenFailedError', inner: { name: 'UnknownError' } }).code).toBe(
+      'unknown'
+    );
     expect(mapStorageError(new Error('boom')).code).toBe('unknown');
     expect(mapStorageError({ name: 'QuotaExceededError' }).message).toMatch(/storage is full/i);
   });

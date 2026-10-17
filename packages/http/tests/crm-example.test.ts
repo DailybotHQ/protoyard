@@ -30,9 +30,12 @@ function crmApi(runtime: PrototypeRuntime<CrmDatabase>) {
         if (!deal) throw new HttpError(404, `Deal ${params.id} not found`);
         return deal;
       },
-      'POST /deals': async ({ body }) => {
-        const deal = await crm.deals.create(body as DealInput);
-        return json(deal, { status: 201, headers: { location: `/api/deals/${deal.id}` } });
+      'POST /deals': {
+        environment: 'services',
+        handler: async ({ body }) => {
+          const deal = await crm.deals.create(body as DealInput);
+          return json(deal, { status: 201, headers: { location: `/api/deals/${deal.id}` } });
+        },
       },
     },
     mapError: (error) =>

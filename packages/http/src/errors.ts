@@ -28,7 +28,10 @@ export type ErrorMapping = MockResponse | OfflineFetchError;
 export function mapError(error: unknown): ErrorMapping {
   if (error instanceof HttpError || named(error, 'HttpError')) {
     const e = error as HttpError;
-    return new MockResponse(e.status, body(e.status, e.message, e.details));
+    // A handler's typo (status 600, 200) must not crash the mapper itself.
+    const status =
+      Number.isInteger(e.status) && e.status >= 400 && e.status <= 599 ? e.status : 500;
+    return new MockResponse(status, body(status, e.message, e.details));
   }
   if (named(error, 'SimulatedServiceError')) {
     switch (error.code) {
