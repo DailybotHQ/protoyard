@@ -55,10 +55,7 @@
   },
   "overrides": [
     {
-      "includes": [
-        "**/*.svelte",
-        "**/*.astro"
-      ],
+      "includes": ["**/*.svelte", "**/*.astro"],
       "linter": {
         "rules": {
           "style": {
@@ -72,10 +69,7 @@
       }
     },
     {
-      "includes": [
-        "**/tests/**",
-        "**/*.test.ts"
-      ],
+      "includes": ["**/tests/**", "**/*.test.ts"],
       "linter": {
         "rules": {
           "style": {
