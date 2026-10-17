@@ -57,6 +57,59 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Flows | `Stepper`, `Wizard` |
 | Mobile | `BottomNav`, `MobileHeader`, `BottomSheet`, `SafeArea` |
 
+## Catalog
+
+Key props per component (all accept `class`; see the source for the full types). A live,
+interactive version of this catalog is the `prototypes/ui-kit` prototype
+(`pnpm protoyard dev ui-kit`).
+
+| Component | Key props / behavior |
+| --- | --- |
+| `Button` | `variant` default·secondary·outline·ghost·destructive·link, `size` sm·md·lg·icon, `loading` (+`loadingLabel`, sets `aria-busy`, disables), `href` → `<a>`, `bind:ref` |
+| `Input` / `Textarea` | native attributes, `bind:value`, `aria-invalid` styling |
+| `Label` | `for` |
+| `FormField` | `label`, `description`, `error`, `required`, `hideLabel`, `id`; `children({ id, describedBy, invalid, required, props })` |
+| `Checkbox` | `bind:checked`, `bind:indeterminate`, `label`, `description` |
+| `RadioGroup` / `RadioGroupItem` | `items: { value, label, description?, disabled? }[]`, `bind:value` (Bits props pass through) |
+| `Switch` | `bind:checked`, `label`, `description` |
+| `Select` | `items: { value, label, disabled? }[]`, `bind:value`, `bind:open`, `placeholder`, `name` (hidden input). Name comes from your label/`aria-label`; the selected value is exposed via `aria-describedby` |
+| `Combobox` | like `Select` + `filter`, `emptyText`; external `value` changes are mirrored into the input (unless a search is open) |
+| `UserPicker` | `users: { id, name, subtitle? }[]`, `bind:value`, `variant` popover·inline |
+| `Dialog` | `bind:open`, `title`, `description`, `size` sm·md·lg·xl, `trigger`, `footer`, `hideClose` |
+| `AlertDialog` | `bind:open`, `title`, `description`, `confirmLabel`, `cancelLabel`, `destructive`, `onConfirm` (async → spinner, closes on resolve, shows the error on reject), `trigger` |
+| `DetailPanel` | right sheet (full-height bottom sheet on phones): `bind:open`, `title`, `description`, `footer`, `trigger` |
+| `BottomSheet` | `bind:open`, `title`, `description`, `hideTitle`, `footer`, `trigger`, `swipeToDismiss` (default true: drag/flick the handle down; Esc and backdrop always close; reduced-motion aware) |
+| `DropdownMenu` | `items: (action \| { type: 'separator' } \| { type: 'label' })[]` with `label`, `icon`, `onSelect`, `destructive`, `disabled`; `trigger` |
+| `Popover` | `bind:open`, `trigger`, `side`, `align`, children |
+| `Tooltip` | `content` (string or snippet), `children` is the trigger, `side`, `delayDuration` |
+| `Tabs` | `items: { value, label, icon?, badge?, disabled? }[]`, `bind:value`, `content(item)` snippet, `variant`, `label` |
+| `Accordion` | `items: { value, title, content?, disabled? }[]`, `type` single·multiple, `bind:value`, `content(item)` snippet, `headingLevel` |
+| `Toaster` / `toast` | see *Toasts* below |
+| `Progress` | `value` (`null` = indeterminate), `max`, `label` or `ariaLabel`, `showValue`, `tone`, `size` |
+| `Spinner` / `Skeleton` | size / `class` for shape |
+| `EmptyState` / `ErrorState` / `LoadingState` | `title`, `description`, `icon`, `action` snippet; `ErrorState.onRetry`; `LoadingState.label` |
+| `Badge` | `variant` default·secondary·outline·success·warning·destructive·info |
+| `Avatar` | `name` (initials + deterministic color), `src?`, `size` xs·sm·md·lg, `decorative` |
+| `Card` + parts | `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
+| `Separator` / `Kbd` | `orientation` / children |
+| `StatCard` | `label`, `value`, `delta`, `trend` up·down·neutral, `positive`, `hint`, `icon` |
+| `DataTable` | `columns: { key, header, cell?, accessor?, sortable?, align?, hideBelow? }[]`, `rows`, `getRowId`, `bind:sort`, `bind:search`, `searchKeys`/`searchFn`, `pageSize` (0 = off), `bind:page`, `onRowClick` + `rowLabel`, `loading`, `empty`, `filters`, `toolbar`, `caption` |
+| `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
+| `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok), `canMove`, `card` snippet; HTML5 drag and drop + a keyboard "Move to…" menu per card |
+| `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer), skip link |
+| `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
+| `Header` | `title`, `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
+| `Breadcrumb` | `items: { label, href? }[]` |
+| `CardGrid` | `minItemWidth`, `gap`, `as` |
+| `ChatThread` | `messages`, `currentUserId`, `typing: string[]`, `bind:draft`, `onSend`, `sending` |
+| `MessageList` / `groupMessages` | messages `{ id, author: { id, name }, body, at, status? }`, `role="log"`, auto-scroll |
+| `Composer` | `bind:value`, `onSubmit` (return `false`/reject to keep the draft), Enter sends, Shift+Enter newline |
+| `TypingIndicator` | `names: string[]`, `showLabel` (sr-only text otherwise; reduced-motion safe) |
+| `Stepper` / `Wizard` | `steps: { id, label, description? }[]`, `current`; Stepper `completed`, `orientation`, `onStepClick`; Wizard `bind:current`, `content(step)` snippet, `validate` (false or message), `canAdvance`, `onFinish`, `onStepChange` |
+| `BottomNav` | `items: { label, href, icon, badge?, active? }[]`, `fixed`, safe-area padding, 44px targets; marked `data-py-bottom-nav` so DevTools lifts its launcher above it |
+| `MobileHeader` | `title`, `subtitle`, `backHref`/`onBack` + `backLabel`, `actions`, `sticky` |
+| `SafeArea` | `edges` (or `top`/`right`/`bottom`/`left`) padded with `env(safe-area-inset-*)`, `as` |
+
 ## Conventions
 
 - `variant`, `size` and `class` (merged with `cn`, so your utilities win). Most components spread
@@ -103,5 +156,5 @@ prototype's own reduced-motion toggle.
 
 ```sh
 pnpm --filter @protoyard/ui typecheck
-pnpm --filter @protoyard/ui test   # uses packages/ui/vitest.config.ts (see the note inside)
+pnpm vitest run packages/ui        # root config inlines bits-ui, @lucide/svelte, svelte-toolbelt, runed
 ```

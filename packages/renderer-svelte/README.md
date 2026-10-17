@@ -50,7 +50,8 @@ Boot: `parseScenarioLink(location.search)` → `createPrototypeRuntime(definitio
 App mounted with the runtime in context → DevTools (dynamic import) unless
 `?devtools=0`. Also renders the storage-degraded banner, a "Load linked
 scenario" prompt when a link disagrees with stored data (never automatic),
-the optional "Prototype · simulated data" badge, and a recovery screen
+a thin top progress bar (+ screen-reader status) while any caller loads a
+scenario (`scenarios.subscribeProgress`), the optional "Prototype · simulated data" badge, and a recovery screen
 (reload / reset only this prototype's databases) when boot fails.
 `<html data-py-ready="true|error">` and `window.__protoyard` help E2E tests.
 
@@ -64,6 +65,10 @@ the optional "Prototype · simulated data" badge, and a recovery screen
 | `useScenario()` | `{ active, list }` |
 | `useClock()` | `{ now, committed, reference, previewing, state }` |
 | `can(capability, resource?)` | reactive boolean (services must still `assert`) |
+
+`describeLoadProgress(progress)` turns a core `LoadProgress` into
+`{ label, fraction }` ("Writing 6,000 of 15,000 rows…", `0.4`; `fraction: null`
+while generating/validating) for custom loading UIs.
 
 ## Router
 

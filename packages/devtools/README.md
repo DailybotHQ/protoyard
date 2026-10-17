@@ -11,9 +11,16 @@ const panel = mountDevtools({ runtime, themes });
 await panel.destroy();
 ```
 
+| Export | Purpose |
+| --- | --- |
+| `mountDevtools({ runtime, themes?, target? })` | Mounts the panel in its own `.py-devtools` host (default: appended to `<body>`); returns `{ destroy }` |
+| `isolateFromAppLayers(host)` | Keeps app focus traps / outside-dismiss listeners from reacting to the panel; returns a release function (used by `mountDevtools`) |
+| `reproducibleLink(runtime, { presentation?, href? })` | Current URL + `scenario`/`actor`/`seed` (+ `devtools=0`), dropping stale params |
+| `DevtoolsPanel` | The Svelte component, for custom hosts |
+
 | Tab | What it does |
 | --- | --- |
-| Scenario | Active scenario (seed, reference time, versions), grouped picker, load with confirm + "snapshot first" + custom seed, reset, copy reproducible link |
+| Scenario | Active scenario (seed, reference time, SDK + prototype generator versions), live load progress (indeterminate while generating/validating, determinate while writing rows), grouped picker, load with confirm + "snapshot first" + custom seed, reset, copy reproducible link |
 | Personas | Acting principal (role, org, capabilities), quick switch (non-destructive), role override, organization switch |
 | Time | UI time vs committed vs reference; preview ±1/7/30 days or at an instant; clear preview; advance 1/7 days with applied/skipped counts; reset clock |
 | Data | Row counts per table, paginated read-only inspector, reset scenario data |

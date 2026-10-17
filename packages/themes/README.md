@@ -23,7 +23,13 @@ applyAppearance(document.documentElement, {
 | `themeVariables(input)` | The same variables as a plain object |
 | `cacheAppearance(namespace, applied)` / `readCachedAppearance` | localStorage cache at `protoyard.<namespace>.appearance` (try/catch) |
 | `noFlashScript(namespace)` | Inline `<head>` script body that replays the cache before first paint |
-| `contrastRatio`, `TEXT_CONTRAST_PAIRS` | WCAG helpers used by the preset tests |
+| `contrastRatio`, `relativeLuminance`, `parseHex`, `TEXT_CONTRAST_PAIRS`, `UI_CONTRAST_PAIRS` | WCAG helpers used by the preset tests and the UI Kit theme lab |
+| `DEFAULT_THEME_ID`, `prefersDark(matchMedia?)`, `densityScale(density, theme?)` | Small helpers behind `getTheme` / `resolveMode` / `applyAppearance` |
+| `appearanceCacheKey(namespace)`, `APPEARANCE_CACHE_VERSION` | Cache key/version shared by `cacheAppearance` and the inline script |
+
+Subpath exports: `@protoyard/themes/presets` (presets only), `@protoyard/themes/no-flash`
+(cache + inline script, erasable-only TypeScript so Vite configs can import it under Node type
+stripping) and `@protoyard/themes/base.css`.
 
 ## CSS
 
