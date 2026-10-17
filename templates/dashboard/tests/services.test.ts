@@ -58,7 +58,7 @@ describe('dashboard services on the real runtime', () => {
       description: 'Annual plan',
       amount: '1200',
     });
-    expect(order).toMatchObject({ reference: 'ORD-1001', status: 'pending', amount: 1200 });
+    expect(order).toMatchObject({ reference: 'ORD-1001', status: 'pending', amountCents: 120_000 });
 
     await services.customers.remove(customer.id);
     runtime = await harness.reload(runtime);

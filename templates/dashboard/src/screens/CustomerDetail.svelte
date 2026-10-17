@@ -61,7 +61,7 @@ let orderOpen = $state(false);
 let deleteOpen = $state(false);
 const currency = $derived(settings.current?.currency ?? 'USD');
 const lifetime = $derived(
-  (orders.current ?? []).filter(isRevenue).reduce((s, o) => s + o.amount, 0)
+  (orders.current ?? []).filter(isRevenue).reduce((s, o) => s + o.amountCents, 0)
 );
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -134,7 +134,7 @@ async function remove(customerId: string) {
               <span class="block text-xs text-muted-foreground">{formatDate(order.createdAt)}</span>
             </span>
             <span class="flex shrink-0 items-center gap-3">
-              <span class="text-sm tabular-nums">{money(order.amount, currency)}</span>
+              <span class="text-sm tabular-nums">{money(order.amountCents, currency)}</span>
               <OrderStatusMenu {order} />
             </span>
           </li>

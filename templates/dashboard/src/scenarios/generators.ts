@@ -27,7 +27,8 @@ import type { DashboardGeneratorOptions } from './index.ts';
  */
 
 /** Bump when the same seed would produce a different world. */
-export const DASHBOARD_GENERATOR_VERSION = 1;
+/** v2: orders carry `amountCents` instead of `amount`. */
+export const DASHBOARD_GENERATOR_VERSION = 2;
 
 /** Fixed people, so links like `?actor=user_0004` always mean the same person. */
 const PEOPLE = [
@@ -243,7 +244,8 @@ export function generateDashboardWorld(ctx: GenerateContext): WorldSeed {
       draftOrders.push({
         customerId: customer.id,
         description,
-        amount: rng.int(min, max),
+        // Same draw as v1 (whole units), stored as integer cents.
+        amountCents: rng.int(min, max) * 100,
         status,
         createdAt: time.iso(new Date(orderMs)),
         updatedAt: time.iso(new Date(updatedMs)),

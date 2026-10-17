@@ -147,7 +147,7 @@ const trend = (value: number | null) =>
                 <span class="block truncate text-xs text-muted-foreground">{order.description} · {fromNow(order.createdAt, clock.now)}</span>
               </span>
               <span class="flex shrink-0 items-center gap-3">
-                <span class="text-sm tabular-nums">{money(order.amount, currency)}</span>
+                <span class="text-sm tabular-nums">{money(order.amountCents, currency)}</span>
                 <StatusBadge status={order.status} />
               </span>
             </Link>

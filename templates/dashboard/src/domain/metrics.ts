@@ -15,7 +15,7 @@ export interface DailyTotal {
 
 export const isRevenue = (order: Order) => REVENUE_STATUSES.includes(order.status);
 
-const sum = (orders: readonly Order[]) => orders.reduce((s, o) => s + o.amount, 0);
+const sum = (orders: readonly Order[]) => orders.reduce((s, o) => s + o.amountCents, 0);
 
 /** Percent change, or null when there is no previous value to compare with. */
 export function percentChange(current: number, previous: number): number | null {
@@ -62,7 +62,7 @@ export function dailyRevenue(orders: readonly Order[], now: Date, days = 14): Da
     if (!isRevenue(order) || Date.parse(order.createdAt) > now.getTime()) continue;
     const bucket = buckets[index.get(order.createdAt.slice(0, 10)) ?? -1];
     if (bucket) {
-      bucket.total += order.amount;
+      bucket.total += order.amountCents;
       bucket.count += 1;
     }
   }
@@ -75,7 +75,7 @@ export function customerTotals(orders: readonly Order[]) {
   for (const order of orders) {
     const entry = totals.get(order.customerId) ?? { orders: 0, value: 0 };
     entry.orders += 1;
-    if (isRevenue(order)) entry.value += order.amount;
+    if (isRevenue(order)) entry.value += order.amountCents;
     totals.set(order.customerId, entry);
   }
   return totals;

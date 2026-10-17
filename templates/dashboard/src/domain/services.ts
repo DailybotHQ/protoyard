@@ -174,7 +174,7 @@ export function createServices(runtime: PrototypeRuntime<DashboardDatabase>) {
               reference: await nextReference(),
               customerId: customer.id,
               description: data.description,
-              amount: Math.round(data.amount * 100) / 100,
+              amountCents: data.amount,
               status: 'pending',
               createdAt: at,
               updatedAt: at,

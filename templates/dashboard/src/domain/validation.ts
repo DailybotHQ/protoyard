@@ -37,13 +37,27 @@ export const CustomerInputSchema = z.object({
 });
 export type CustomerInput = z.input<typeof CustomerInputSchema>;
 
+/** "1,299.5" → 129950. NaN for anything that is not a plain amount with ≤ 2 decimals. */
+export function toCents(value: string | number): number {
+  const text = typeof value === 'number' ? String(value) : value.trim().replace(/[,\s]/g, '');
+  const match = /^(\d{1,9})(?:\.(\d{1,2}))?$/.exec(text);
+  if (!match) return Number.NaN;
+  return Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'));
+}
+
 export const OrderInputSchema = z.object({
   customerId: z.string().min(1, 'Pick a customer'),
   description: z.string().trim().min(2, 'Describe the order').max(120),
-  amount: z.coerce
-    .number('Enter an amount')
-    .positive('Amount must be greater than zero')
-    .max(1_000_000, 'Amounts over 1,000,000 need a manual invoice'),
+  // Typed as text or a number; parsed exactly into integer cents (no float math).
+  amount: z
+    .union([z.string(), z.number()], 'Enter an amount')
+    .transform((value) => toCents(value))
+    .pipe(
+      z
+        .number('Enter an amount like 499 or 499.90')
+        .positive('Amount must be greater than zero')
+        .max(100_000_000, 'Amounts over 1,000,000 need a manual invoice')
+    ),
 });
 export type OrderInput = z.input<typeof OrderInputSchema>;
 

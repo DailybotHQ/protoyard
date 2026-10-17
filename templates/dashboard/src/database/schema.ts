@@ -1,5 +1,5 @@
 import type { DatabaseDefinition } from '@protoyard/core';
-import type { Dexie, EntityTable } from 'dexie';
+import type { Dexie, EntityTable, Transaction } from 'dexie';
 
 /**
  * Domain tables in Dexie store syntax: the first key is the primary key, the
@@ -49,8 +49,8 @@ export type Order = {
   reference: string;
   customerId: string;
   description: string;
-  /** Whole currency units. */
-  amount: number;
+  /** Integer cents (AGENTS rule 7): format at display time with `money()`. */
+  amountCents: number;
   status: OrderStatus;
   createdAt: string;
   updatedAt: string;
@@ -102,6 +102,22 @@ export const database: DatabaseDefinition = {
         orders: 'id, reference, customerId, status, createdAt',
         events: 'id, type, customerId, orderId, actorId, at',
         settings: 'id',
+      },
+    },
+    {
+      // v2: money as integer cents. Existing rows convert in place; no data is lost.
+      version: 2,
+      stores: {},
+      upgrade: async (tx) => {
+        await (tx as Transaction)
+          .table('orders')
+          .toCollection()
+          .modify((order: Record<string, unknown>) => {
+            if (typeof order.amount === 'number') {
+              order.amountCents = Math.round(order.amount * 100);
+              delete order.amount;
+            }
+          });
       },
     },
   ],

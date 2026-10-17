@@ -38,13 +38,13 @@ const currency = $derived(settings.current?.currency ?? 'USD');
 const filtered = $derived(
   (rows.current ?? []).filter((o) => status === 'all' || o.status === status)
 );
-const total = $derived(filtered.reduce((s, o) => s + o.amount, 0));
+const total = $derived(filtered.reduce((s, o) => s + o.amountCents, 0));
 
 const columns: DataTableColumn<Row>[] = [
   { key: 'reference', header: 'Order', sortable: true, cell: referenceCell },
   { key: 'customerName', header: 'Customer', sortable: true, cell: customerCell },
   { key: 'description', header: 'Description', hideBelow: 'lg' },
-  { key: 'amount', header: 'Amount', sortable: true, align: 'right', cell: amountCell },
+  { key: 'amountCents', header: 'Amount', sortable: true, align: 'right', cell: amountCell },
   { key: 'status', header: 'Status', sortable: true, cell: statusCell },
   { key: 'createdAt', header: 'Created', sortable: true, hideBelow: 'md', cell: createdCell },
 ];
@@ -54,7 +54,7 @@ const columns: DataTableColumn<Row>[] = [
 {#snippet customerCell(o: Row)}
   <Link href={`/customers/${o.customerId}`} class="font-medium text-primary hover:underline">{o.customerName}</Link>
 {/snippet}
-{#snippet amountCell(o: Row)}<span class="tabular-nums">{money(o.amount, currency)}</span>{/snippet}
+{#snippet amountCell(o: Row)}<span class="tabular-nums">{money(o.amountCents, currency)}</span>{/snippet}
 {#snippet statusCell(o: Row)}<OrderStatusMenu order={o} />{/snippet}
 {#snippet createdCell(o: Row)}
   <time class="text-muted-foreground" datetime={o.createdAt}>{fromNow(o.createdAt, clock.now)}</time>

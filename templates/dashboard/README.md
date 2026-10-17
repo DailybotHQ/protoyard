@@ -44,7 +44,7 @@ src/domain/metrics.ts        pure read-model helpers for the Overview (stats, da
 src/scenarios/index.ts       scenarios composed from @protoyard/scenarios presets
 src/scenarios/generators.ts  generate(ctx) → WorldSeed (deterministic)
 src/lib/context.ts           provideDashboard()/useDashboard(): runtime, db, services, live settings
-src/lib/format.ts            money (currency from settings), dates relative to the SIMULATED clock
+src/lib/format.ts            money (integer cents → currency from settings), dates relative to the SIMULATED clock
 src/App.svelte               AppShell + Sidebar + hash routes
 src/screens/*.svelte         Overview, Customers, CustomerDetail, Orders, Settings
 src/components/*.svelte      dialogs, status badge/menu, bar chart, page header

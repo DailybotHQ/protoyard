@@ -1,14 +1,16 @@
 import { MS_PER_DAY } from '@protoyard/core';
 
 const formatters = new Map<string, Intl.NumberFormat>();
-function currencyFormat(currency: string, compact: boolean): Intl.NumberFormat {
-  const key = `${currency}:${compact}`;
+/** `digits` = fraction digits for the full format (0 for whole amounts, 2 otherwise). */
+function currencyFormat(currency: string, compact: boolean, digits = 0): Intl.NumberFormat {
+  const key = `${currency}:${compact}:${digits}`;
   let format = formatters.get(key);
   if (!format) {
     format = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
-      maximumFractionDigits: compact ? 1 : 0,
+      minimumFractionDigits: compact ? 0 : digits,
+      maximumFractionDigits: compact ? 1 : digits,
       ...(compact ? { notation: 'compact' as const } : {}),
     });
     formatters.set(key, format);
@@ -16,11 +18,15 @@ function currencyFormat(currency: string, compact: boolean): Intl.NumberFormat {
   return format;
 }
 
-/** Currency comes from workspace settings, so changing it in Settings updates every screen. */
-export const money = (amount: number, currency = 'USD') =>
-  currencyFormat(currency, false).format(amount);
-export const moneyCompact = (amount: number, currency = 'USD') =>
-  currencyFormat(currency, true).format(amount);
+/**
+ * Money is stored as integer cents and divided only here, at display time.
+ * Currency comes from workspace settings, so changing it in Settings updates every screen.
+ */
+export const money = (cents: number, currency = 'USD') =>
+  // Whole amounts stay clean ($1,200); amounts with cents show them ($0.30, $1,299.50).
+  currencyFormat(currency, false, Math.round(cents) % 100 === 0 ? 0 : 2).format(cents / 100);
+export const moneyCompact = (cents: number, currency = 'USD') =>
+  currencyFormat(currency, true).format(cents / 100);
 
 const dateFormat = new Intl.DateTimeFormat('en-US', {
   month: 'short',
