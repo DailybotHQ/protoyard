@@ -48,7 +48,10 @@ const frame = $derived.by(() => {
 });
 const scale = $derived(fitScale(stageWidth - 2, frame.width));
 
+let hydrated = $state(false);
+
 onMount(() => {
+  hydrated = true;
   library.visit(slug);
   control.detect().then(() => {
     if (running) show(running.url);
@@ -104,7 +107,7 @@ async function openManual(event: SubmitEvent) {
 }
 </script>
 
-<section aria-labelledby="preview-title" class="rounded-xl border border-line bg-surface">
+<section aria-labelledby="preview-title" class="rounded-xl border border-line bg-surface" data-hydrated={hydrated}>
   <div class="flex flex-wrap items-center gap-3 border-b border-line p-3">
     <h2 id="preview-title" class="font-medium">Live preview</h2>
     <div role="group" aria-label="Device" class="flex flex-wrap rounded-lg border border-line bg-bg p-0.5" data-testid="devices">

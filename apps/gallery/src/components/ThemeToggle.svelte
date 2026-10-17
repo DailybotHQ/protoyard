@@ -6,6 +6,7 @@ import { onMount } from 'svelte';
 import { applyTheme, readThemeChoice, type ThemeChoice } from '@/lib/theme';
 
 let choice = $state<ThemeChoice>('system');
+let hydrated = $state(false);
 
 const options = [
   { value: 'light', label: 'Light theme', Icon: Sun },
@@ -15,6 +16,7 @@ const options = [
 
 onMount(() => {
   choice = readThemeChoice();
+  hydrated = true;
   const media = window.matchMedia('(prefers-color-scheme: dark)');
   // While on "system", follow OS changes live.
   const onChange = () => {
@@ -30,7 +32,7 @@ function select(value: ThemeChoice) {
 }
 </script>
 
-<div role="group" aria-label="Color theme" class="flex rounded-lg border border-line bg-surface p-0.5">
+<div role="group" aria-label="Color theme" data-hydrated={hydrated} class="flex rounded-lg border border-line bg-surface p-0.5">
   {#each options as option (option.value)}
     <button
       type="button"

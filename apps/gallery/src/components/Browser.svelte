@@ -110,7 +110,7 @@ const views = [
 ] as const;
 </script>
 
-<section id="browse" aria-labelledby="browse-title" class="scroll-mt-20">
+<section id="browse" aria-labelledby="browse-title" class="scroll-mt-20" data-hydrated={ready}>
   <h2 id="browse-title" class="sr-only">Browse prototypes</h2>
   <div class="flex flex-col gap-3 rounded-xl border border-line bg-surface p-3">
     <div class="flex flex-col gap-3 md:flex-row md:items-center">
