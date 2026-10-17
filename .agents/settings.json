@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm biome:check)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm test)",
+      "Bash(pnpm check)",
+      "Bash(pnpm vitest run:*)",
+      "Bash(pnpm --filter * typecheck)",
+      "Bash(npx biome check:*)",
+      "Bash(pnpm protoyard help:*)",
+      "Bash(pnpm protoyard doctor:*)",
+      "Bash(pnpm protoyard list:*)",
+      "Bash(pnpm protoyard scenario list:*)",
+      "Bash(pnpm protoyard snapshot list:*)",
+      "Bash(bash scripts/check-public-hygiene.sh:*)"
+    ],
+    "ask": [
+      "Bash(pnpm install:*)",
+      "Bash(pnpm protoyard publish:*)",
+      "Bash(git push:*)",
+      "Bash(npx wrangler:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Bash(git add -A:*)",
+      "Bash(git push --force:*)"
+    ]
+  }
+}
