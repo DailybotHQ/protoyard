@@ -148,6 +148,20 @@ responseBody?, error? }`:
 - `status` is `null` when the request never got a response (offline).
 - Bodies are previews truncated to 2,000 characters, never live objects.
 
+### Discovery
+
+`createMockApi` registers itself per runtime, so DevTools can find every API without the
+prototype wiring anything:
+
+```ts
+import { getMockApis, subscribeMockApis } from '@protoyard/http';
+getMockApis(runtime); // readonly MockApi[] — each has baseUrl, routes, log
+const off = subscribeMockApis(runtime, (apis) => …);
+api.unregister(); // remove one (e.g. in tests)
+```
+
+The registry is a `WeakMap` keyed by runtime, so closed runtimes are garbage-collected.
+
 ## Layering MSW (optional)
 
 Protoyard does not ship a service worker. If you want real network interception (for

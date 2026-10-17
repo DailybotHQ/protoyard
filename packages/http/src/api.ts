@@ -1,6 +1,7 @@
 import type { PrototypeRuntime } from '@protoyard/core';
 import { type ErrorMapping, mapError, OfflineFetchError } from './errors.ts';
 import { createNetworkLog, DEFAULT_LOG_SIZE, type NetworkLog, preview } from './log.ts';
+import { registerMockApi } from './registry.ts';
 import { HttpError, MockResponse, toResponse } from './response.ts';
 import { compileRoutes, type HttpMethod, matchRoute } from './router.ts';
 
@@ -44,6 +45,8 @@ export interface MockApi {
   handle(request: Request): Promise<Response>;
   /** True when a URL belongs to this API (used by installGlobalFetch). */
   matches(input: RequestInfo | URL): boolean;
+  /** Removes it from `getMockApis(runtime)` (DevTools). */
+  unregister(): void;
 }
 
 /** Relative URLs resolve against the page; in Node there is no page, so use a stable origin. */
@@ -171,7 +174,8 @@ export function createMockApi<TDb = unknown>(
     return toResponse(result);
   }
 
-  return {
+  let unregister = () => {};
+  const api: MockApi = {
     baseUrl: base.href.replace(/\/+$/, ''),
     routes: compiled.map((route) => route.key),
     log,
@@ -186,5 +190,8 @@ export function createMockApi<TDb = unknown>(
       const request = input instanceof Request ? new Request(input, init) : new Request(url, init);
       return handle(request);
     },
+    unregister: () => unregister(),
   };
+  unregister = registerMockApi(runtime as PrototypeRuntime<unknown>, api);
+  return api;
 }

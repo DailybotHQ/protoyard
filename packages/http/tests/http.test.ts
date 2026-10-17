@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createTasksDefinition, type Task } from '../../runtime/tests/fixtures/tasks-prototype.ts';
 import {
   createMockApi,
+  getMockApis,
   HttpError,
   installGlobalFetch,
   json,
@@ -12,6 +13,7 @@ import {
   MockResponse,
   OfflineFetchError,
   type Routes,
+  subscribeMockApis,
 } from '../src/index.ts';
 
 class ValidationError extends Error {
@@ -265,6 +267,23 @@ describe('error mapping', () => {
     sleeps.length = 0;
     await api.fetch('/api/tasks');
     expect(sleeps).toEqual([1500]);
+  });
+});
+
+describe('discovery for DevTools', () => {
+  it('registers every API per runtime and notifies subscribers', async () => {
+    const runtime = await boot();
+    const seen: number[] = [];
+    const off = subscribeMockApis(runtime, (apis) => seen.push(apis.length));
+    const a = createMockApi(runtime, { baseUrl: '/api', routes });
+    const b = createMockApi(runtime, { baseUrl: '/v2', routes: {} });
+    expect(getMockApis(runtime)).toEqual([a, b]);
+    expect(getMockApis(await boot('viewer'))).toEqual([]);
+    a.unregister();
+    expect(getMockApis(runtime)).toEqual([b]);
+    off();
+    b.unregister();
+    expect(seen).toEqual([1, 2, 1]);
   });
 });
 
