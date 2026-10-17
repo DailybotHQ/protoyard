@@ -57,15 +57,31 @@ export const ProductEditSchema = z.object({
     .string()
     .transform((v) => parseDollars(v))
     .refine((v): v is number => v !== null && v >= 50, 'Enter a price of at least $0.50'),
+  // Validate the text BEFORE converting: "abc" must be an error, not a silently
+  // cleared sale price (parseDollars returns null for both "" and garbage).
   compareAt: z
     .string()
+    .refine(
+      (v) => v.trim() === '' || parseDollars(v) !== null,
+      'Enter a valid amount or leave empty'
+    )
     .transform((v) => (v.trim() === '' ? null : parseDollars(v)))
     .refine((v) => v === null || v > 0, 'Enter a valid amount or leave empty'),
-  stock: z.coerce
-    .number({ message: 'Enter a whole number' })
-    .int('Enter a whole number')
-    .min(0, 'Stock cannot be negative')
-    .max(9999, 'Keep stock under 10,000'),
+  // A cleared field ('' or null from a number input) is missing, not 0 — coercing
+  // it would silently mark the product sold out.
+  stock: z.preprocess(
+    (v) =>
+      v === null || v === undefined || (typeof v === 'string' && v.trim() === '')
+        ? undefined
+        : typeof v === 'string'
+          ? Number(v)
+          : v,
+    z
+      .number({ error: 'Enter a whole number' })
+      .int('Enter a whole number')
+      .min(0, 'Stock cannot be negative')
+      .max(9999, 'Keep stock under 10,000')
+  ),
 });
 export type ProductEditInput = z.input<typeof ProductEditSchema>;
 
@@ -292,6 +308,14 @@ export function createShopServices(runtime: PrototypeRuntime<ShopDatabase>) {
         }
         await environment.run('orders.cancel', () =>
           db.transaction('rw', db.orders, db.orderItems, db.products, async () => {
+            // Re-check inside the transaction: a second tab (or a status change)
+            // may have cancelled or shipped it meanwhile — never restock twice.
+            const current = await db.orders.get(orderId);
+            if (!current || (current.status !== 'placed' && current.status !== 'processing')) {
+              throw new ValidationError({
+                order: 'Only orders that have not shipped can be cancelled.',
+              });
+            }
             for (const item of await db.orderItems.where('orderId').equals(orderId).toArray()) {
               const product = await db.products.get(item.productId);
               if (product) {

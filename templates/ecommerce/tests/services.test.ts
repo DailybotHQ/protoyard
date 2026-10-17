@@ -182,6 +182,47 @@ describe('storefront services on the real runtime', () => {
     });
   });
 
+  it('rejects a garbage "was" price and an empty stock instead of silently changing them', async () => {
+    fresh();
+    const runtime = await harness.boot('returning-customer');
+    const shop = createShopServices(runtime);
+    await runtime.session.switchActor('user_0002');
+    const product = (await runtime.db.products.toArray()).find((p) => p.compareAtCents !== null);
+    if (!product) throw new Error('seed has a product on sale');
+    for (const compareAt of ['abc', '12.345', '-5']) {
+      await expect(
+        shop.products.update(product.id, { price: '12.50', compareAt, stock: '7' })
+      ).rejects.toMatchObject({ issues: { compareAt: 'Enter a valid amount or leave empty' } });
+    }
+    for (const stock of ['', '   ', null, 'abc']) {
+      await expect(
+        shop.products.update(product.id, { price: '12.50', compareAt: '', stock })
+      ).rejects.toMatchObject({ issues: { stock: 'Enter a whole number' } });
+    }
+    expect(await runtime.db.products.get(product.id)).toEqual(product);
+  });
+
+  it('two concurrent cancels restock only once', async () => {
+    fresh();
+    const runtime = await harness.boot('returning-customer');
+    const shop = createShopServices(runtime);
+    const order = (await runtime.db.orders.where('customerId').equals('user_0003').toArray()).find(
+      (o) => o.status === 'placed' || o.status === 'processing'
+    );
+    if (!order) throw new Error('seed has an open order');
+    const items = await runtime.db.orderItems.where('orderId').equals(order.id).toArray();
+    const before = await runtime.db.products.bulkGet(items.map((i) => i.productId));
+    const results = await Promise.allSettled([
+      shop.orders.cancel(order.id),
+      shop.orders.cancel(order.id),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected']);
+    const after = await runtime.db.products.bulkGet(items.map((i) => i.productId));
+    items.forEach((item, i) => {
+      expect(after[i]?.stock).toBe((before[i]?.stock ?? 0) + item.quantity);
+    });
+  });
+
   it('cancelling an order returns its items to stock', async () => {
     fresh();
     const runtime = await harness.boot('returning-customer');
