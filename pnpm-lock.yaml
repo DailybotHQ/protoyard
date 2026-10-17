@@ -98,6 +98,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+      '@protoyard/offline':
+        specifier: workspace:*
+        version: link:../offline
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../renderer-svelte
