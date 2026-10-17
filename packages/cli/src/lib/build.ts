@@ -182,10 +182,23 @@ export interface ForeignReference {
   slug: string;
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Matches a manifest-shaped property (`id:"x"`, `"id": 'x'`, ``namespace:`x` ``)
+ * — how a bundled protoyard.json looks after minification. A bare mention of
+ * an id (e.g. in an error message example) is not a leak.
+ */
+export function manifestPropertyPattern(key: 'id' | 'namespace', value: string): RegExp {
+  return new RegExp(`(?:^|[{,\\s])["'\`]?${key}["'\`]?\\s*:\\s*["'\`]${escapeRegExp(value)}["'\`]`);
+}
+
 /**
  * Export isolation guard: a prototype bundle must not contain another
- * registered prototype's id or storage namespace. Matching quoted literals
- * keeps false positives low (ids are dotted, namespaces end in `.data`).
+ * registered prototype's manifest (its id, slug + namespace as properties) or
+ * its storage database name.
  */
 export async function scanForForeignCode(
   outDir: string,
@@ -194,21 +207,26 @@ export async function scanForForeignCode(
 ): Promise<ForeignReference[]> {
   const others = entries.filter((e) => e.id !== self.id && e.slug !== self.slug);
   if (others.length === 0) return [];
-  const needles = others.flatMap((e) => [
-    { entry: e, text: `"${e.id}"` },
-    { entry: e, text: `'${e.id}'` },
-    { entry: e, text: `protoyard.${e.namespace}.data` },
-  ]);
+  const needles = others.map((entry) => ({
+    entry,
+    patterns: [
+      manifestPropertyPattern('id', entry.id),
+      // A slug alone is a common word; together with its namespace it is a manifest.
+      ...(entry.namespace !== self.namespace
+        ? [manifestPropertyPattern('namespace', entry.namespace)]
+        : []),
+      new RegExp(escapeRegExp(`protoyard.${entry.namespace}.data`)),
+    ],
+  }));
   const found: ForeignReference[] = [];
   for (const file of await listFiles(outDir)) {
     if (!TEXT_ASSET.test(file)) continue;
     if ((await stat(file)).size > 20 * 1024 * 1024) continue;
     const text = await readFile(file, 'utf8');
     for (const needle of needles) {
-      if (
-        text.includes(needle.text) &&
-        !found.some((f) => f.file === file && f.id === needle.entry.id)
-      ) {
+      if (found.some((f) => f.file === toPosixRelative(outDir, file) && f.id === needle.entry.id))
+        continue;
+      if (needle.patterns.some((pattern) => pattern.test(text))) {
         found.push({
           file: toPosixRelative(outDir, file),
           id: needle.entry.id,

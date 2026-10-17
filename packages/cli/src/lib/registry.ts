@@ -266,7 +266,10 @@ export interface RegistryQuery {
 
 /** Normalizes text for accent- and case-insensitive matching. */
 export function normalizeText(text: string): string {
-  return text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return text
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 
 export function searchableText(entry: RegistryEntry): string {

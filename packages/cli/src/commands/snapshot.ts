@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { RESERVED_TABLES, SNAPSHOT_MAX_BYTES, validateSnapshot } from '@protoyard/core';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { inspectPrototype } from '../lib/inspect.ts';
-import { mark } from '../lib/output.ts';
+import { CliError, mark } from '../lib/output.ts';
 import { resolveTarget } from '../lib/workspace.ts';
 
 export const SNAPSHOT_FILE_SUFFIX = '.protoyard.json';
@@ -80,6 +80,7 @@ export const snapshotListCommand: Handler = async (ctx, args): Promise<CommandRe
     );
   }
 
+  const invalid = reports.filter((r) => !r.ok);
   return {
     data: {
       slug: entry.slug,
@@ -87,6 +88,13 @@ export const snapshotListCommand: Handler = async (ctx, args): Promise<CommandRe
       files: reports,
       tablesKnown: tables !== null,
     },
+    ...(invalid.length > 0
+      ? {
+          failure: new CliError('validation', `${invalid.length} snapshot file(s) are invalid.`, {
+            hint: invalid.map((r) => `${r.file}: ${r.error ?? 'invalid'}`).join('; '),
+          }),
+        }
+      : {}),
     render(out) {
       const { c } = out;
       out.info(

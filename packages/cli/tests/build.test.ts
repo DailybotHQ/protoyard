@@ -124,7 +124,20 @@ describe('build and export (real Vite)', () => {
     const { registry } = await buildIndex(paths);
     const alpha = registry.entries.find((e) => e.slug === 'alpha-app');
     if (!alpha) throw new Error('fixture missing');
-    ws.write('artifacts/alpha-app/dist/assets/leak.js', 'const other = "example.beta-app";');
+    ws.write(
+      'artifacts/alpha-app/dist/assets/docs.js',
+      'const hint = `id must be dotted, e.g. "example.beta-app"`;'
+    );
+    const clean = await scanForForeignCode(
+      join(ws.root, 'artifacts/alpha-app/dist'),
+      alpha,
+      registry.entries
+    );
+    expect(clean).toEqual([]);
+    ws.write(
+      'artifacts/alpha-app/dist/assets/leak.js',
+      'const m={id:`example.beta-app`,slug:`beta-app`};'
+    );
     const leaks = await scanForForeignCode(
       join(ws.root, 'artifacts/alpha-app/dist'),
       alpha,

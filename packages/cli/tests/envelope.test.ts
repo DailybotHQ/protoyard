@@ -111,6 +111,7 @@ describe('JSON envelope', () => {
       ['other.protoyard.json', false],
     ]);
     expect(files[0]?.rows).toBe(1);
+    expect(run.code).toBe(4);
   });
 
   it('formats aligned tables with truncation', () => {
