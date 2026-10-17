@@ -15,6 +15,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # Types must describe the Node we support (engines: >=24.20, CI on 24.20):
+      # @types/node 25+ would type APIs that do not exist on Node 24. Minor and
+      # patch updates of 24.x still arrive. Raise this together with engines.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
     groups:
       minor-and-patch:
         update-types: [minor, patch]
