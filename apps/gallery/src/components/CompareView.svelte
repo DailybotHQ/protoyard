@@ -46,6 +46,16 @@ let grid: HTMLDivElement | undefined = $state();
 const running = $derived(control.find(slug));
 /** Where the frames point: the bundled build, a running dev server, or a pasted URL. */
 const appUrl = $derived(embeddedUrl ?? running?.url ?? pastedUrl);
+/**
+ * A pasted URL may be any origin: frame it with an iframe sandbox so it cannot
+ * navigate or script the gallery tab. Bundled builds and local dev servers
+ * are trusted and keep full capabilities.
+ */
+const framePolicy = $derived(
+  !embeddedUrl && !running && pastedUrl
+    ? 'allow-scripts allow-same-origin allow-forms allow-modals allow-popups'
+    : undefined
+);
 const panes = $derived(
   state.scenarios.map((scenario, i) => ({ id: PANE_IDS[i] as PaneId, scenario }))
 );
@@ -156,8 +166,8 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
   </div>
 
   <p class="text-xs text-muted">
-    Each frame runs in its own sandboxed world (<code class="font-mono">?sandbox=…</code>): changes stay
-    in that frame and never touch the prototype's normal data. <strong class="font-medium text-fg">Reset sandboxes</strong>
+    Each frame keeps its own isolated data (<code class="font-mono">?sandbox=…</code> gives it a
+    separate database): changes stay in that frame and never touch the prototype's normal data. <strong class="font-medium text-fg">Reset sandboxes</strong>
     starts every frame from a fresh copy of its scenario.
   </p>
 
@@ -238,6 +248,7 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
                     title={`${name}, frame ${pane.id.toUpperCase()}: scenario ${pane.scenario} (sandbox ${sandboxName(pane.id, state.generation)})`}
                     class="size-full border-0"
                     data-sandbox={sandboxName(pane.id, state.generation)}
+                    sandbox={framePolicy}
                   ></iframe>
                 {/key}
               </div>

@@ -1,3 +1,4 @@
+import { SANDBOX_PATTERN as CORE_SANDBOX_PATTERN } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
 import {
   defaultScenarios,
@@ -11,6 +12,12 @@ import {
 const scenarios = ['new-company', 'growing-team', 'mature-company'];
 
 describe('compare scenarios', () => {
+  it('uses exactly the runtime sandbox pattern from @protoyard/core', () => {
+    // Duplicated to keep zod out of the gallery's client bundle; this pins them together.
+    expect(SANDBOX_PATTERN.source).toBe(CORE_SANDBOX_PATTERN.source);
+    expect(SANDBOX_PATTERN.flags).toBe(CORE_SANDBOX_PATTERN.flags);
+  });
+
   it('names sandboxes per pane and generation within the runtime pattern', () => {
     expect(sandboxName('a', 0)).toBe('compare-a');
     expect(sandboxName('b', 3)).toBe('compare-b-3');

@@ -49,6 +49,16 @@ async function navTo(page: Page, label: string) {
   await link.click();
 }
 
+/**
+ * Waits until the Companies list has rendered its data. data-py-ready is set
+ * at mount, before liveQuery returns, so a negative check ("row absent") must
+ * never run against the empty loading state.
+ */
+async function companiesLoaded(page: Page, count: RegExp | string = /\b\d+ accounts\b/) {
+  await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 15_000 });
+  await expect(page.getByText(count)).toBeVisible();
+}
+
 async function createCompany(page: Page, name: string) {
   await page.getByRole('button', { name: 'New company' }).click();
   const dialog = page.getByRole('dialog');
@@ -112,6 +122,7 @@ test.describe('Pipeline CRM (static build)', () => {
     await expect(toast(page, 'Company deleted')).toBeVisible();
     await expect(page).toHaveURL(/#\/companies$/);
     await page.reload();
+    await companiesLoaded(page, '18 accounts');
     await page.getByRole('searchbox', { name: 'Search Companies' }).fill('E2E Robotics');
     await expect(page.getByRole('row', { name: /^Open E2E Robotics/ })).toHaveCount(0);
   });
@@ -155,6 +166,7 @@ test.describe('Pipeline CRM (static build)', () => {
     await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
     await page.goto(`${prototypeUrl(SLUG)}#/companies`);
+    await companiesLoaded(page, '18 accounts');
     await expect(page.getByRole('button', { name: 'New company' })).toHaveCount(0);
     await expect(page.getByText('18 accounts')).toBeVisible();
     expect(await counts(page)).toEqual(before);
@@ -244,6 +256,7 @@ test.describe('Pipeline CRM (static build)', () => {
     await expect(dialog).toBeVisible();
     expect(await counts(page)).toEqual(before);
     await page.reload();
+    await companiesLoaded(page);
     await page.getByRole('searchbox', { name: 'Search Companies' }).fill('Offline Probe');
     await expect(page.getByRole('row', { name: /^Open Offline Probe/ })).toHaveCount(0);
   });

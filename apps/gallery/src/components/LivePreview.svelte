@@ -51,6 +51,8 @@ let device = $state<DeviceId>(defaultViewport);
 let customWidth = $state(1024);
 let customHeight = $state(768);
 let manualUrl = $state('');
+/** A pasted URL may be any origin: framed with an iframe sandbox (see below). */
+let pasted = $state(false);
 let manualError = $state('');
 let previewUrl = $state<string | null>(null);
 let loading = $state(false);
@@ -105,6 +107,7 @@ function show(url: string) {
 }
 
 async function start() {
+  pasted = false;
   const server = await control.start(slug);
   if (server) show(server.url);
 }
@@ -126,6 +129,7 @@ async function openManual(event: SubmitEvent) {
   // instead of framing a browser error page.
   try {
     await fetch(url, { mode: 'no-cors', cache: 'no-store' });
+    pasted = true;
     show(url);
   } catch {
     manualError = `Could not reach ${url}. Is the server running?`;
@@ -235,6 +239,7 @@ async function openManual(event: SubmitEvent) {
               src={previewUrl}
               title={`${name} preview (${frame.label})`}
               class="size-full border-0"
+              sandbox={pasted ? 'allow-scripts allow-same-origin allow-forms allow-modals allow-popups' : undefined}
               onload={() => {
                 loading = false;
                 slow = false;

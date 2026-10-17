@@ -12,13 +12,16 @@ const firstPrototype = registry?.entries.find((e) => e.kind === 'prototype');
 
 async function settle(page: Page) {
   await page.waitForLoadState('networkidle');
-  // Contrast rules read computed colors: let theme transitions finish.
-  await page.waitForTimeout(300);
+  // Contrast rules read computed colors: wait until no transition or
+  // animation is running (reduced motion makes them near-instant anyway).
+  await page.waitForFunction(() =>
+    document.getAnimations().every((a) => a.playState !== 'running')
+  );
 }
 
 for (const mode of ['light', 'dark'] as const) {
   test.describe(`accessibility (${mode})`, () => {
-    test.use({ colorScheme: mode });
+    test.use({ colorScheme: mode, reducedMotion: 'reduce' });
 
     test('gallery home', async ({ page }, testInfo) => {
       await page.goto('/');

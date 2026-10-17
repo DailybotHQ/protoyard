@@ -81,8 +81,11 @@ test.describe('showcase site', () => {
   }, testInfo) => {
     const ready = (frame: FrameLocator) =>
       expect(frame.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 20_000 });
+    // Negative checks only after the list shows its data (data-py-ready is set
+    // at mount, before the first query returns).
     const searchCompanies = async (frame: FrameLocator, text: string) => {
       await frame.getByRole('link', { name: 'Companies' }).first().click();
+      await expect(frame.getByText('18 accounts')).toBeVisible();
       await frame.getByRole('searchbox', { name: 'Search Companies' }).fill(text);
     };
 
@@ -119,6 +122,7 @@ test.describe('showcase site', () => {
     const app = await page.context().newPage();
     await app.goto(`${SITE}p/crm-demo/app/#/companies`);
     await expect(app.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 20_000 });
+    await expect(app.getByText('18 accounts')).toBeVisible();
     await app.getByRole('searchbox', { name: 'Search Companies' }).fill('Compare Probe');
     await expect(app.getByRole('row', { name: /^Open Compare Probe/ })).toHaveCount(0);
     await app.close();

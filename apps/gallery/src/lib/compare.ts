@@ -10,7 +10,10 @@ import type { DeviceId } from './devices';
 export const PANE_IDS = ['a', 'b', 'c'] as const;
 export type PaneId = (typeof PANE_IDS)[number];
 
-/** The runtime accepts sandbox names matching this pattern (Lane A contract). */
+/**
+ * Mirrors `SANDBOX_PATTERN` in @protoyard/core (importing core would pull zod into
+ * the client bundle); tests/compare.test.ts asserts they stay identical.
+ */
 export const SANDBOX_PATTERN = /^[a-z0-9][a-z0-9-]{0,23}$/;
 
 export interface CompareState {

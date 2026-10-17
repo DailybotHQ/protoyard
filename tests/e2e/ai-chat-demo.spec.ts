@@ -47,7 +47,13 @@ test.describe('Relay (static build)', () => {
     await page.evaluate(() =>
       window.__protoyard?.overrides.set({ environment: { failureMode: 'none' } })
     );
+    const failedId = await failed.getAttribute('data-message-id');
     await failed.getByRole('button', { name: 'Retry' }).click();
-    await expect(page.locator('[data-status="failed"]')).toHaveCount(0, { timeout: 20_000 });
+    // Retry replaces the failed reply, so "no failed message" alone proves nothing:
+    // wait for a NEW agent reply to finish streaming as sent.
+    const replies = page.locator('[data-message-id][data-status]');
+    await expect(replies.last()).toHaveAttribute('data-status', 'sent', { timeout: 20_000 });
+    expect(await replies.last().getAttribute('data-message-id')).not.toBe(failedId);
+    await expect(page.getByText('Reply failed.')).toHaveCount(0);
   });
 });

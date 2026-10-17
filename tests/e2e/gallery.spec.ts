@@ -141,7 +141,14 @@ test.describe('gallery', () => {
       `pnpm protoyard dev ${target?.slug}`
     );
     await expect(page.getByTestId('compare-scenario-a')).toBeVisible();
+    await expect(page.locator('[data-testid="compare"][data-hydrated="true"]')).toHaveCount(1);
+    const a = page.getByTestId('compare-scenario-a');
+    const b = page.getByTestId('compare-scenario-b');
+    const [beforeA, beforeB] = [await a.inputValue(), await b.inputValue()];
+    expect(beforeA).not.toBe(beforeB);
     await page.getByRole('button', { name: 'Swap A and B' }).click();
-    await expect(page).toHaveURL(/[?&]a=/);
+    await expect(a).toHaveValue(beforeB);
+    await expect(b).toHaveValue(beforeA);
+    await expect(page).toHaveURL(new RegExp(`[?&]a=${beforeB}&b=${beforeA}`));
   });
 });
