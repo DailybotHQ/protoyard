@@ -12,6 +12,30 @@ export interface StaticServer {
   close(): Promise<void>;
 }
 
+/** Extensions sirv tries, in its order ('' = the path as given). */
+const SIRV_EXTENSIONS = ['', 'html', 'htm'];
+
+/** sirv's `toAssume` (v3): `uri`, `uri/index`, then each with every extension. */
+function assume(uri: string): string[] {
+  const trimmed = uri.endsWith('/') ? uri.slice(0, -1) : uri;
+  const out: string[] = [];
+  for (const ext of SIRV_EXTENSIONS) {
+    const suffix = ext ? `.${ext}` : '';
+    if (trimmed) out.push(trimmed + suffix);
+    out.push(`${trimmed}/index${suffix}`);
+  }
+  return out;
+}
+
+/**
+ * Every path sirv may serve for a request: its own lookups and, in SPA
+ * mode, the root fallback (`/index`, `/index.html`, `/index.htm`). Kept in
+ * lock-step with sirv so the containment check covers each one.
+ */
+export function sirvCandidates(pathname: string, spa: boolean): string[] {
+  return spa ? [...assume(pathname), ...assume('/')] : assume(pathname);
+}
+
 /**
  * Serves a built prototype like a static host would, including the SPA
  * fallback and an absolute `base` (assets live under `/sub/path/`).
@@ -35,43 +59,6 @@ export async function serveStatic(options: {
   const server = createServer((req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     const url = req.url ?? '/';
-    let pathname: string;
-    try {
-      pathname = decodeURIComponent(url.split('?')[0] ?? '/');
-    } catch {
-      res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Bad request: malformed URL escape.');
-      return;
-    }
-    // Containment on the REAL path: a symlink inside dist must not serve a
-    // file from elsewhere on disk.
-    const relativePath = (
-      prefix !== '/' && pathname.startsWith(prefix) ? pathname.slice(prefix.length) : pathname
-    ).replace(/^\/+/, '');
-    // Every file sirv might answer with (the path, its .html/.htm sibling, or a
-    // directory's index) must really live inside the served folder.
-    const base = join(options.dir, relativePath);
-    const candidates = [
-      base,
-      `${base}.html`,
-      `${base}.htm`,
-      join(base, 'index.html'),
-      join(base, 'index.htm'),
-    ];
-    for (const candidate of candidates) {
-      if (!existsSync(candidate)) continue;
-      let real = '';
-      try {
-        real = realpathSync.native(candidate);
-      } catch {
-        real = '';
-      }
-      if (!real || !isInside(realRoot, real)) {
-        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
-        res.end('Forbidden.');
-        return;
-      }
-    }
     if (prefix !== '/') {
       if (url === '/' || url === prefix.slice(0, -1)) {
         res.writeHead(302, { Location: prefix });
@@ -84,6 +71,35 @@ export async function serveStatic(options: {
         return;
       }
       req.url = url.slice(prefix.length - 1);
+    }
+    // Decode exactly like sirv (decodeURI keeps %2F encoded), so the paths
+    // checked below are the paths sirv will open.
+    let pathname = (req.url ?? '/').split(/[?#]/)[0] || '/';
+    if (pathname.includes('%')) {
+      try {
+        pathname = decodeURI(pathname);
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Bad request: malformed URL escape.');
+        return;
+      }
+    }
+    // Containment on the REAL path of every file sirv might answer with: a
+    // symlink inside the folder must never serve a file from elsewhere.
+    for (const candidate of sirvCandidates(pathname, spa)) {
+      const file = join(options.dir, candidate);
+      if (!existsSync(file)) continue;
+      let real = '';
+      try {
+        real = realpathSync.native(file);
+      } catch {
+        real = '';
+      }
+      if (!real || !isInside(realRoot, real)) {
+        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Forbidden.');
+        return;
+      }
     }
     handler(req, res, () => {
       if (!spa && existsSync(notFoundPage)) {

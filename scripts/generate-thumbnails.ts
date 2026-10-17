@@ -63,6 +63,9 @@ function discover(only: readonly string[]): Target[] {
   const base = join(ROOT, 'prototypes');
   const targets: Target[] = [];
   for (const slug of readdirSync(base).sort()) {
+    // Same rule as the CLI's discovery: symlinked prototype folders are never
+    // processed (writing a thumbnail would go into the link's target).
+    if (lstatSync(join(base, slug)).isSymbolicLink()) continue;
     const manifestPath = join(base, slug, 'protoyard.json');
     if (!existsSync(manifestPath)) continue;
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {

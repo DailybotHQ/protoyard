@@ -22,7 +22,7 @@ import { listFiles } from '../src/lib/checksum.ts';
 import { BUILD_MARKER, guardOutputDir, SHOWCASE_MARKER } from '../src/lib/output-guard.ts';
 import { CASE_INSENSITIVE_FS, workspacePaths } from '../src/lib/paths.ts';
 import { buildIndex } from '../src/lib/registry.ts';
-import { serveStatic } from '../src/lib/static-server.ts';
+import { serveStatic, sirvCandidates } from '../src/lib/static-server.ts';
 import {
   addBuildablePrototype,
   addPrototype,
@@ -418,6 +418,17 @@ describe('final review regressions (W1, W2, I3, I4, I6, I7)', () => {
         const res = await get(server.port, path);
         expect(res.body, path).not.toContain('FAKE-PAGE-SECRET');
       }
+      // sirv also tries an extension-less <dir>/index (W-C1) …
+      mkdirSync(join(dist, 'bare'), { recursive: true });
+      symlinkSync(join(outside, 'page.html'), join(dist, 'bare', 'index'));
+      for (const path of ['/bare', '/bare/']) {
+        const res = await get(server.port, path);
+        expect(res.body, path).not.toContain('FAKE-PAGE-SECRET');
+      }
+      // … and a file literally named with an encoded slash is decoded like sirv does (I-C2).
+      symlinkSync(join(outside, 'page.html'), join(dist, 'a%2Fb'));
+      expect((await get(server.port, '/a%252Fb')).body).not.toContain('FAKE-PAGE-SECRET');
+      expect((await get(server.port, '/a%2Fb')).body).not.toContain('FAKE-PAGE-SECRET');
       // Regular directory indexes and extension lookups still work.
       mkdirSync(join(dist, 'guide'), { recursive: true });
       writeFileSync(join(dist, 'guide', 'index.html'), '<p>guide</p>');
@@ -466,5 +477,48 @@ describe('final review regressions (W1, W2, I3, I4, I6, I7)', () => {
         .map((f) => f.file)
         .sort()
     ).toEqual(['null-tables.protoyard.json', 'null.protoyard.json']);
+  });
+});
+
+describe('sirv lookup mirror (W-C1, I-C3)', () => {
+  it("lists exactly sirv's candidates, plus the SPA root fallback", () => {
+    expect(sirvCandidates('/foo', false)).toEqual([
+      '/foo',
+      '/foo/index',
+      '/foo.html',
+      '/foo/index.html',
+      '/foo.htm',
+      '/foo/index.htm',
+    ]);
+    expect(sirvCandidates('/foo/', true).slice(-3)).toEqual([
+      '/index',
+      '/index.html',
+      '/index.htm',
+    ]);
+    // The root never checks a sibling of the served folder (dist.html).
+    expect(sirvCandidates('/', false)).toEqual(['/index', '/index.html', '/index.htm']);
+  });
+
+  it('refuses an SPA fallback whose root index is a symlink leaving the folder', async () => {
+    const dist = join(ws.root, 'tmp', 'spa-root');
+    mkdirSync(dist, { recursive: true });
+    writeFileSync(join(outside, 'spa.html'), 'FAKE-SPA-SECRET');
+    symlinkSync(join(outside, 'spa.html'), join(dist, 'index.html'));
+    const server = await serveStatic({
+      dir: dist,
+      base: './',
+      port: 0,
+      host: '127.0.0.1',
+      strictPort: true,
+    });
+    try {
+      for (const path of ['/', '/some/route']) {
+        const res = await get(server.port, path);
+        expect(res.status, path).toBe(403);
+        expect(res.body).not.toContain('FAKE-SPA-SECRET');
+      }
+    } finally {
+      await server.close();
+    }
   });
 });

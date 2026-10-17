@@ -8,9 +8,9 @@ type Reader = (outDir: string) => { version: string; precached: number } | null;
 
 /**
  * Loads `readOfflineBuild` from @protoyard/offline, falling back to the
- * workspace source when the package is not linked into the CLI yet, so a
- * missing install can never break builds; without either, offline is
- * reported as not detected.
+ * workspace source when the package is not linked into the CLI yet. Only a
+ * missing module is tolerated; without either location, offline is reported
+ * as not detected.
  */
 async function loadReader(root: string): Promise<Reader | null> {
   for (const specifier of [
@@ -20,8 +20,11 @@ async function loadReader(root: string): Promise<Reader | null> {
     try {
       const mod = (await import(specifier)) as { readOfflineBuild?: Reader };
       if (typeof mod.readOfflineBuild === 'function') return mod.readOfflineBuild;
-    } catch {
-      // try the next location
+    } catch (error) {
+      // Only a missing package means "try the next location". A syntax or
+      // runtime error inside @protoyard/offline is a real bug: surface it.
+      const code = (error as { code?: string }).code;
+      if (code !== 'ERR_MODULE_NOT_FOUND' && code !== 'MODULE_NOT_FOUND') throw error;
     }
   }
   return null;
