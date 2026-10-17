@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { vi } from 'vitest';
 import { runCli } from '../src/program.ts';
 
 export interface TempWorkspace {
@@ -101,7 +102,22 @@ export interface CliRun {
   json<T = Record<string, unknown>>(): T;
 }
 
-export async function cli(args: string[]): Promise<CliRun> {
+/**
+ * Runs the CLI in-process. CI is pinned off (CI=1 implies --yes, which
+ * changes behavior) so results never depend on where the tests run; pass
+ * `env` to opt into specific variables.
+ */
+export async function cli(args: string[], env: Record<string, string> = {}): Promise<CliRun> {
+  vi.stubEnv('CI', '');
+  for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+  try {
+    return await runInProcess(args);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+}
+
+async function runInProcess(args: string[]): Promise<CliRun> {
   let stdout = '';
   let stderr = '';
   let code = 0;

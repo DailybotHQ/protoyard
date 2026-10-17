@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { CliError } from '../src/lib/output.ts';
 import { childPath, isInside, resolveWorkspaceRoot } from '../src/lib/paths.ts';
 import { normalizeBase } from '../src/lib/vite.ts';
-import { assertSlug } from '../src/lib/workspace.ts';
+import { assertSlug, isCi } from '../src/lib/workspace.ts';
 import { createWorkspace, type TempWorkspace } from './helpers.ts';
 
 let ws: TempWorkspace | undefined;
@@ -17,6 +17,12 @@ describe('slug and path guards', () => {
       expect(() => assertSlug(bad), bad).toThrow(CliError);
     }
     expect(assertSlug('my-app')).toBe('my-app');
+  });
+
+  it('treats CI as non-interactive unless it is empty, 0 or false', () => {
+    for (const value of ['1', 'true', 'TRUE', 'yes']) expect(isCi({ CI: value }), value).toBe(true);
+    for (const value of ['', '0', 'false', 'False']) expect(isCi({ CI: value }), value).toBe(false);
+    expect(isCi({})).toBe(false);
   });
 
   it('childPath only ever returns a direct child', () => {
