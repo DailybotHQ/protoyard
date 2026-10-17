@@ -42,7 +42,7 @@
     "@protoyard/scenarios": "workspace:*",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@testing-library/svelte": "^5.4.2",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.5",
     "@vitest/coverage-v8": "^5.0.3",
     "fake-indexeddb": "~6.2.0",
     "happy-dom": "^20.14.5",
