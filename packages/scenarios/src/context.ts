@@ -1,4 +1,4 @@
-import { base, en, Faker } from '@faker-js/faker';
+import type { Faker } from '@faker-js/faker';
 import {
   createIdFactory,
   createRng,
@@ -33,25 +33,54 @@ export function scaleForDensity(density: DataDensity, baseCount: number): number
   return Math.max(1, Math.round(baseCount * DENSITY_FACTORS[density]));
 }
 
+/** The parts of `@faker-js/faker` a generation run needs. */
+export interface FakerModule {
+  Faker: typeof Faker;
+  en: unknown;
+  base: unknown;
+}
+
 /** A Faker instance private to one generation run — never the shared global. */
-export function createSeededFaker(seed: number, referenceTime: string | Date): Faker {
-  const faker = new Faker({ locale: [en, base] });
+export function seededFaker(mod: FakerModule, seed: number, referenceTime: string | Date): Faker {
+  const faker = new mod.Faker({ locale: [mod.en, mod.base] as never });
   faker.seed(seed);
   faker.setDefaultRefDate(referenceTime);
   return faker;
 }
 
-/**
- * Everything a generator needs, derived only from the scenario: same seed,
- * reference time and SDK version → the same world on every machine.
- */
-export function createGenerateContext(scenario: Scenario): GenerateContext {
+/** Builds the context from an already-loaded faker module. */
+export function buildGenerateContext(scenario: Scenario, mod: FakerModule): GenerateContext {
   return {
     scenario,
     rng: createRng(scenario.seed),
-    faker: createSeededFaker(scenario.seed, scenario.referenceTime),
+    faker: seededFaker(mod, scenario.seed, scenario.referenceTime),
     ids: createIdFactory(),
     time: createTimeHelpers(scenario.referenceTime),
     scale: (baseCount) => scaleForDensity(scenario.density, baseCount),
   };
+}
+
+let fakerModule: Promise<FakerModule> | null = null;
+
+/**
+ * Loads faker on demand. It is by far the largest dependency and only needed
+ * when a world is GENERATED (first seed, load, reset, advance), so bundlers
+ * split it into its own chunk that normal page opens never download.
+ */
+export function loadFaker(): Promise<FakerModule> {
+  fakerModule ??= import('@faker-js/faker').then((mod) => ({
+    Faker: mod.Faker,
+    en: mod.en,
+    base: mod.base,
+  }));
+  return fakerModule;
+}
+
+/**
+ * Everything a generator needs, derived only from the scenario: same seed,
+ * reference time and SDK version → the same world on every machine. This is
+ * what the runtime uses; it keeps faker out of the main bundle.
+ */
+export async function createGenerateContextAsync(scenario: Scenario): Promise<GenerateContext> {
+  return buildGenerateContext(scenario, await loadFaker());
 }

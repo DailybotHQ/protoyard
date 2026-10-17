@@ -11,7 +11,7 @@ import {
   type WorldSeed,
 } from '@protoyard/core';
 import {
-  createGenerateContext,
+  createGenerateContextAsync,
   GENERATOR_SDK_VERSION,
   type IntegrityViolation,
   validateWorld,
@@ -76,7 +76,7 @@ export function createScenarioController(
 
   async function loadScenario(scenario: Scenario, seed: number): Promise<void> {
     const effective = withSeed(scenario, seed);
-    const world = await k.definition.generate(createGenerateContext(effective));
+    const world = await k.definition.generate(await createGenerateContextAsync(effective));
     const violations = checkWorld(k, world, effective);
     const mode = k.options.validation ?? 'throw';
     if (violations.length && mode !== 'off') {
@@ -251,7 +251,7 @@ export function createScenarioController(
 
         const timeline = k.definition.timeline;
         if (timeline) {
-          const base = createGenerateContext(withSeed(active.scenario, active.seed));
+          const base = await createGenerateContextAsync(withSeed(active.scenario, active.seed));
           const ctx: TimelineContext = {
             ...base,
             from,

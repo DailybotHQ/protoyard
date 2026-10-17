@@ -8,12 +8,16 @@ export {
   type ScenarioFragment,
 } from './compose.ts';
 export {
-  createGenerateContext,
-  createSeededFaker,
+  buildGenerateContext,
+  createGenerateContextAsync,
   DENSITY_FACTORS,
+  type FakerModule,
   GENERATOR_SDK_VERSION,
+  loadFaker,
   scaleForDensity,
+  seededFaker,
 } from './context.ts';
+export { createGenerateContext, createSeededFaker } from './context-sync.ts';
 export {
   AVATAR_COLORS,
   EXAMPLE_EMAIL_DOMAINS,

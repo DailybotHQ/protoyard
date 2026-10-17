@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   composeScenario,
   createGenerateContext,
+  createGenerateContextAsync,
   dailyEvents,
   deepMerge,
   fragments,
   generateTeam,
+  loadFaker,
   PRESET_IDS,
   PRESETS,
   presetScenario,
@@ -38,6 +40,16 @@ describe('generate context', () => {
     // faker's reference date is the scenario time, not the machine clock.
     const recent = createGenerateContext(scenario()).faker.date.recent();
     expect(recent.getTime()).toBeLessThanOrEqual(Date.parse(REF));
+  });
+
+  it('the lazy async context matches the sync one', async () => {
+    const asyncCtx = await createGenerateContextAsync(scenario());
+    const syncCtx = createGenerateContext(scenario());
+    expect([asyncCtx.faker.person.fullName(), asyncCtx.rng.next()]).toEqual([
+      syncCtx.faker.person.fullName(),
+      syncCtx.rng.next(),
+    ]);
+    expect(await loadFaker()).toBe(await loadFaker());
   });
 
   it('scales by density', () => {
