@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "protoyard.ui-kit",
+  "slug": "ui-kit",
+  "kind": "prototype",
+  "name": "Protoyard UI Kit",
+  "description": "A living showcase of every @protoyard/ui component, patterns, forms and a theme lab with live tokens and contrast ratios.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "design-system",
+  "tags": ["design-system", "components", "themes", "accessibility", "showcase"],
+  "status": "ready",
+  "icon": "🧩",
+  "defaultScenario": "default",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "ui-kit", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["default", "dark-viewer", "empty"]
+}
