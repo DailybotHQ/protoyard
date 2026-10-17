@@ -33,6 +33,7 @@ const tones = {
   <Icon class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
   <div class="min-w-0">
     <p class="font-medium">{title}</p>
-    {#if children}<div class="mt-0.5 text-muted-foreground">{@render children()}</div>{/if}
+    <!-- Foreground text: muted text on a tinted notice drops below 4.5:1 in dark mode. -->
+    {#if children}<div class="mt-0.5 text-foreground">{@render children()}</div>{/if}
   </div>
 </div>
