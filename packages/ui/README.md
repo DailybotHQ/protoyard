@@ -96,9 +96,9 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `DataTable` | `columns: { key, header, cell?, accessor?, sortable?, align?, hideBelow? }[]`, `rows`, `getRowId`, `bind:sort`, `bind:search`, `searchKeys`/`searchFn`, `pageSize` (0 = off), `bind:page`, `onRowClick` + `rowLabel`, `loading`, `empty`, `filters`, `toolbar`, `caption` |
 | `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
 | `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok), `canMove`, `card` snippet; HTML5 drag and drop + a keyboard "Move to…" menu per card |
-| `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer), skip link |
+| `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link |
 | `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
-| `Header` | `title`, `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
+| `Header` | `title`, `titleAs` (default `h1`; use `p` when the page has its own `h1`), `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
 | `Breadcrumb` | `items: { label, href? }[]` |
 | `CardGrid` | `minItemWidth`, `gap`, `as` |
 | `ChatThread` | `messages`, `currentUserId`, `typing: string[]`, `bind:draft`, `onSend`, `sending` |
@@ -107,7 +107,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `TypingIndicator` | `names: string[]`, `showLabel` (sr-only text otherwise; reduced-motion safe) |
 | `Stepper` / `Wizard` | `steps: { id, label, description? }[]`, `current`; Stepper `completed`, `orientation`, `onStepClick`; Wizard `bind:current`, `content(step)` snippet, `validate` (false or message), `canAdvance`, `onFinish`, `onStepChange` |
 | `BottomNav` | `items: { label, href, icon, badge?, active? }[]`, `fixed`, safe-area padding, 44px targets; marked `data-py-bottom-nav` so DevTools lifts its launcher above it |
-| `MobileHeader` | `title`, `subtitle`, `backHref`/`onBack` + `backLabel`, `actions`, `sticky` |
+| `MobileHeader` | `title`, `titleAs`, `subtitle`, `backHref`/`onBack` + `backLabel`, `actions`, `sticky` |
 | `SafeArea` | `edges` (or `top`/`right`/`bottom`/`left`) padded with `env(safe-area-inset-*)`, `as` |
 
 ## Conventions
@@ -123,6 +123,9 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
   `props` (`id`, `aria-describedby`, `aria-invalid`, `aria-required`) onto any control.
 - Navigation items (`Sidebar`, `BottomNav`, `Breadcrumb`) render plain `<a href>`. Use hash routes
   such as `#/projects`, because the package does not depend on a router.
+- `Tooltip` trigger props include its own `onclick`; if your trigger needs a click handler too,
+  call both (`onclick={(e) => { props.onclick?.(e); mine(e); }}`) — a plain `onclick=` after the
+  spread replaces it.
 - Async callbacks (`AlertDialog.onConfirm`, `ErrorState.onRetry`, `Wizard.validate` / `onFinish`,
   `Composer.onSubmit`, `Kanban.onMove`) show a loading state until they settle.
 
