@@ -28,6 +28,51 @@ function summarize(snapshot: Snapshot): SnapshotSummary {
   return summary;
 }
 
+/** Largest restorable world; far above any demo, far below what freezes a tab. */
+export const SNAPSHOT_MAX_ROWS = 250_000;
+/** ECMAScript Date range (±100,000,000 days around 1970). */
+const MAX_DATE_MS = 8.64e15;
+
+function invalid(message: string): SnapshotImportError {
+  return new SnapshotImportError(`${message} Nothing was changed.`);
+}
+
+/** Rows need a usable primary key, and the world must stay a sane size. */
+function assertRestorableRows(snapshot: Snapshot): void {
+  let total = 0;
+  for (const table of snapshot.tables) {
+    total += table.rows.length;
+    if (total > SNAPSHOT_MAX_ROWS) {
+      throw invalid(`Snapshot has more than ${SNAPSHOT_MAX_ROWS.toLocaleString('en-US')} rows.`);
+    }
+    table.rows.forEach((row, index) => {
+      const id = row.id;
+      const ok =
+        (typeof id === 'string' && id.length > 0 && id.length <= 512) ||
+        (typeof id === 'number' && Number.isFinite(id));
+      if (!ok) throw invalid(`Row ${index + 1} of table "${table.name}" has no valid id.`);
+    });
+  }
+}
+
+/** Validates a clock from untrusted input and derives its checkpoint. */
+function clockCheckpoint(clock: ClockState): { committedOffsetMs: number; at: string } {
+  const reference = Date.parse(clock.referenceTime);
+  const committed = reference + clock.committedOffsetMs;
+  const effective = committed + clock.previewOffsetMs;
+  if (
+    !Number.isFinite(reference) ||
+    !Number.isFinite(committed) ||
+    !Number.isFinite(effective) ||
+    Math.abs(committed) > MAX_DATE_MS ||
+    Math.abs(effective) > MAX_DATE_MS ||
+    (clock.runningSince !== undefined && !Number.isFinite(clock.runningSince))
+  ) {
+    throw invalid('Snapshot clock is not a valid point in time.');
+  }
+  return { committedOffsetMs: clock.committedOffsetMs, at: new Date(committed).toISOString() };
+}
+
 export function snapshotFilename(slug: string, name: string, createdAt: string): string {
   return `${slug}-${slugify(name) || 'snapshot'}-${createdAt.slice(0, 10)}.protoyard.json`;
 }
@@ -81,14 +126,11 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
    * it was), then the control state that describes them.
    */
   async function apply(snapshot: Snapshot): Promise<string[]> {
+    // Prepare and validate EVERYTHING first: once the record transaction commits,
+    // nothing below may fail on bad input, or a "rejected" import would have
+    // already replaced the user's data.
     const notes: string[] = [];
-    const result = await restoreTables(k.db, snapshot.tables, { knownTables: k.db.allTables });
-    for (const name of result.skipped) notes.push(`Unknown table "${name}" was skipped.`);
-    if (snapshot.schemaVersion < k.db.schemaVersion) {
-      notes.push(
-        `Snapshot rows use schema v${snapshot.schemaVersion}; they were restored as-is into v${k.db.schemaVersion}.`
-      );
-    }
+    assertRestorableRows(snapshot);
 
     const scenario = snapshot.scenarioId
       ? k.scenarios.find((s) => s.id === snapshot.scenarioId)
@@ -124,6 +166,15 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
       : referenceTime
         ? { referenceTime, committedOffsetMs: 0, previewOffsetMs: 0, running: false }
         : null;
+    const checkpoint = clock ? clockCheckpoint(clock) : null;
+
+    const result = await restoreTables(k.db, snapshot.tables, { knownTables: k.db.allTables });
+    for (const name of result.skipped) notes.push(`Unknown table "${name}" was skipped.`);
+    if (snapshot.schemaVersion < k.db.schemaVersion) {
+      notes.push(
+        `Snapshot rows use schema v${snapshot.schemaVersion}; they were restored as-is into v${k.db.schemaVersion}.`
+      );
+    }
 
     await k.writeControl({
       activeScenario: active,
@@ -131,12 +182,7 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
       actorId: snapshot.actorId,
       organizationId: snapshot.organizationId,
       clock,
-      timelineCheckpoint: clock
-        ? {
-            committedOffsetMs: clock.committedOffsetMs,
-            at: new Date(Date.parse(clock.referenceTime) + clock.committedOffsetMs).toISOString(),
-          }
-        : null,
+      timelineCheckpoint: checkpoint,
     });
 
     k.active = active;
@@ -175,6 +221,9 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
   function parse(text: string) {
     const result = parseSnapshotText(text, target());
     if (!result.ok) throw new SnapshotImportError(result.error);
+    // Same checks as restore, so a preview already tells the truth.
+    assertRestorableRows(result.snapshot);
+    if (result.snapshot.clock) clockCheckpoint(result.snapshot.clock);
     return result;
   }
 

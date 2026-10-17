@@ -5,7 +5,7 @@ import {
   parseScenario,
   ThemePaletteSchema,
 } from '@protoyard/core';
-import { dumpTables } from '@protoyard/database';
+import { dumpTables, openControlStore } from '@protoyard/database';
 import {
   composeScenario,
   createGenerateContext,
@@ -20,6 +20,7 @@ import {
   type MatchMedia,
   type ProtoyardRuntime,
   type RuntimeOptions,
+  SNAPSHOT_MAX_ROWS,
   SnapshotImportError,
 } from '../src/index.ts';
 import { createTasksDefinition, REFERENCE_TIME, type Task } from './fixtures/tasks-prototype.ts';
@@ -576,5 +577,90 @@ describe('large-world loads', () => {
     expect(progress).not.toContain('done');
     expect(progress.at(-1)).toBeNull();
     expect(runtime.scenarios.progress()).toBeNull();
+  });
+});
+
+describe('hostile snapshot files', () => {
+  async function exported() {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const { json } = await runtime.snapshots.exportJson();
+    return { runtime, snapshot: JSON.parse(json) };
+  }
+
+  it('rejects an impossible clock BEFORE touching records', async () => {
+    const { runtime, snapshot } = await exported();
+    const before = await dumpTables(runtime.db);
+    snapshot.tables.find((t: { name: string }) => t.name === 'tasks').rows = [
+      { id: 'evil', projectId: 'project_0001', title: 'from the file' },
+    ];
+    for (const clock of [
+      { ...snapshot.clock, referenceTime: 'garbage' },
+      { ...snapshot.clock, committedOffsetMs: 9_000_000_000_000_000 },
+    ]) {
+      const text = JSON.stringify({ ...snapshot, clock });
+      await expect(runtime.snapshots.previewImport(text)).rejects.toThrow(
+        /not a valid point in time/
+      );
+      await expect(runtime.snapshots.importJson(text, { restore: true })).rejects.toThrow(
+        /Nothing was changed/
+      );
+      expect(await dumpTables(runtime.db)).toEqual(before);
+    }
+    expect(await runtime.snapshots.list()).toEqual([]);
+  });
+
+  it('rejects rows without a usable id and oversized worlds with a clear message', async () => {
+    const { runtime, snapshot } = await exported();
+    const before = await dumpTables(runtime.db);
+    const tasks = snapshot.tables.find((t: { name: string }) => t.name === 'tasks');
+    tasks.rows.push({ id: { nested: 1 }, title: 'x' });
+    await expect(
+      runtime.snapshots.importJson(JSON.stringify(snapshot), { restore: true })
+    ).rejects.toThrow(/table "tasks" has no valid id/);
+    tasks.rows = Array.from({ length: SNAPSHOT_MAX_ROWS + 1 }, (_, i) => ({ id: `t${i}` }));
+    await expect(runtime.snapshots.previewImport(JSON.stringify(snapshot))).rejects.toThrow(
+      /more than 250,000 rows/
+    );
+    expect(await dumpTables(runtime.db)).toEqual(before);
+  });
+
+  it('never pollutes prototypes through __proto__ / constructor keys', async () => {
+    const { runtime, snapshot } = await exported();
+    const text = JSON.stringify(snapshot)
+      .replace(
+        '"rows":[{',
+        '"rows":[{"__proto__":{"polluted":true},"constructor":{"prototype":{"isAdmin":true}},'
+      )
+      .replace('"overrides":{}', '"overrides":{"__proto__":{"role":"viewer"}}');
+    await runtime.snapshots.importJson(text, { restore: true });
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(({} as Record<string, unknown>).isAdmin).toBeUndefined();
+    expect(runtime.overrides.get()).toEqual({});
+    for (const table of await dumpTables(runtime.db)) {
+      for (const row of table.rows) {
+        expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+        expect(Object.hasOwn(row, '__proto__')).toBe(false);
+      }
+    }
+  });
+
+  it('boots even when the stored clock is corrupt', async () => {
+    const store = backend();
+    const first = await start(createTasksDefinition(), store);
+    await first.scenarios.ensureSeeded();
+    first.close();
+    const control = await openControlStore('tasks-fixture', store);
+    await control.setState('clock', {
+      referenceTime: 'garbage',
+      committedOffsetMs: 0,
+      previewOffsetMs: 0,
+      running: false,
+    });
+    control.close();
+    const errors: unknown[] = [];
+    const again = await start(createTasksDefinition(), store, { onError: (e) => errors.push(e) });
+    expect(again.clock.now().toISOString()).toBe(REFERENCE_TIME);
+    expect(errors.length).toBe(1);
   });
 });

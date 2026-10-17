@@ -4,6 +4,9 @@ import type { PrototypeDatabase } from './prototype-database.ts';
 
 export type SnapshotTable = Snapshot['tables'][number];
 
+/** Rows per bulkAdd inside the single restore transaction. */
+const RESTORE_CHUNK = 1000;
+
 /** Reads every domain + reserved table in one read transaction (consistent view). */
 export async function dumpTables(db: PrototypeDatabase): Promise<SnapshotTable[]> {
   const names = db.allTables;
@@ -53,7 +56,10 @@ export async function restoreTables(
         await table.clear();
         const rows = byName.get(name);
         if (rows?.length) {
-          await table.bulkAdd(rows);
+          // Chunked so big restores keep the page responsive (same as scenario loads).
+          for (let i = 0; i < rows.length; i += RESTORE_CHUNK) {
+            await table.bulkAdd(rows.slice(i, i + RESTORE_CHUNK));
+          }
           restored.push(name);
         }
       }

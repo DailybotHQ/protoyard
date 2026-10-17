@@ -15,6 +15,7 @@ export {
   UnknownScenarioError,
 } from './scenarios.ts';
 export {
+  SNAPSHOT_MAX_ROWS,
   type SnapshotControllerExtras,
   SnapshotImportError,
   snapshotFilename,

@@ -128,11 +128,18 @@ export async function createKernel(
   } catch (error) {
     report(error);
   }
-  const clock = createSimulationClock(
-    stored.clock ?? {
-      referenceTime: stored.activeScenario?.scenario.referenceTime ?? new Date(now()).toISOString(),
-    }
-  );
+  const fallbackClock = {
+    referenceTime: stored.activeScenario?.scenario.referenceTime ?? new Date(now()).toISOString(),
+  };
+  let clock: SimulationClock;
+  try {
+    clock = createSimulationClock(stored.clock ?? fallbackClock);
+    clock.now().toISOString();
+  } catch (error) {
+    // A corrupt stored clock must not brick the prototype: fall back and say so.
+    report(error);
+    clock = createSimulationClock(fallbackClock);
+  }
 
   const matchMedia = options.matchMedia ?? defaultMatchMedia();
   const darkQuery = matchMedia?.('(prefers-color-scheme: dark)');
