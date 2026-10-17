@@ -53,7 +53,10 @@ scenario" prompt when a link disagrees with stored data (never automatic),
 a thin top progress bar (+ screen-reader status) while any caller loads a
 scenario (`scenarios.subscribeProgress`), the optional "Prototype · simulated data" badge, and a recovery screen
 (reload / reset only this prototype's databases) when boot fails.
-`<html data-py-ready="true|error">` and `window.__protoyard` help E2E tests.
+`<html data-py-ready="true|error">` and `window.__protoyard` help E2E tests,
+thumbnails and benchmarks. `window.__protoyard` is exposed in production builds on purpose: it
+grants nothing same-origin code couldn't already do (IndexedDB is readable and writable by any
+script on the origin) and the simulation is not a security boundary.
 
 ## Bindings (`.svelte.ts`)
 

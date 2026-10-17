@@ -1,6 +1,10 @@
 <script lang="ts">
 import { Download, Trash2, Upload } from '@lucide/svelte';
-import type { SnapshotImportPreview, SnapshotSummary } from '@protoyard/core';
+import {
+  SNAPSHOT_MAX_BYTES,
+  type SnapshotImportPreview,
+  type SnapshotSummary,
+} from '@protoyard/core';
 import { downloadText, formatDateTime } from '../format.ts';
 import Btn from '../primitives/Btn.svelte';
 import Confirm from '../primitives/Confirm.svelte';
@@ -88,6 +92,11 @@ async function onFile(event: Event) {
   importText = null;
   if (!file) return;
   importName = file.name;
+  // Check the size BEFORE reading: a huge file must never be loaded into memory.
+  if (file.size > SNAPSHOT_MAX_BYTES) {
+    importError = `This file is larger than ${Math.round(SNAPSHOT_MAX_BYTES / 1_048_576)} MB and was not imported.`;
+    return;
+  }
   try {
     const text = await file.text();
     preview = await runtime.snapshots.previewImport(text);

@@ -1,6 +1,6 @@
 import { fireEvent, screen, within } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createFakeRuntime } from '../../renderer-svelte/tests/fixtures/fake-runtime.ts';
 import { BUILTIN_THEMES } from '../../themes/src/index.ts';
 import { type DevtoolsHandle, mountDevtools, reproducibleLink } from '../src/index.ts';
@@ -124,6 +124,20 @@ describe('DevTools panel', () => {
     await fireEvent.click(within(panel).getByRole('button', { name: 'Delete snapshot' }));
     await settle();
     expect(await runtime.snapshots.list()).toEqual([]);
+  });
+
+  it('refuses oversized snapshot files without reading them', async () => {
+    const { panel } = await open();
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Snaps' }));
+    await settle();
+    const input = panel.querySelector('input[type="file"]') as HTMLInputElement;
+    const text = vi.fn(async () => '{}');
+    const huge = { name: 'huge.protoyard.json', size: 26 * 1024 * 1024, text };
+    Object.defineProperty(input, 'files', { value: [huge], configurable: true });
+    await fireEvent.change(input);
+    await settle();
+    expect(text).not.toHaveBeenCalled();
+    expect(within(panel).getByRole('alert').textContent).toMatch(/larger than 25 MB/);
   });
 
   it('builds reproducible links with only scenario coordinates', async () => {
