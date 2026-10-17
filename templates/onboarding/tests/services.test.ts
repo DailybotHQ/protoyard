@@ -106,6 +106,17 @@ describe('onboarding services on the real runtime', () => {
     expect(await runtime.db.invitations.count()).toBe(1);
   });
 
+  it('skip() cannot jump past unfinished required steps', async () => {
+    const runtime = await harness.boot('not-started');
+    const services = createOnboardingServices(runtime);
+    const before = await services.state();
+    expect(before.currentStep).toBe('profile');
+    await expect(services.skip('preferences')).rejects.toMatchObject({
+      issues: { form: expect.stringMatching(/Finish the earlier steps/) },
+    });
+    expect(await services.state()).toEqual(before);
+  });
+
   it('resumes the half-complete scenario at step 3', async () => {
     const runtime = await harness.boot('half-complete');
     const services = createOnboardingServices(runtime);

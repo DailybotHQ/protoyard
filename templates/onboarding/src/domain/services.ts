@@ -183,9 +183,20 @@ export function createOnboardingServices(runtime: PrototypeRuntime<OnboardingDat
         });
       }
       // Skipping a step that was already answered keeps those answers (and anything they created).
-      return mutate(`onboarding.${step}`, (state, at) =>
-        settle(state, step, state.completedSteps.includes(step) ? 'completed' : 'skipped', at)
-      );
+      return mutate(`onboarding.${step}`, (state, at) => {
+        // Same rule as goTo: skipping a later step must not jump past unfinished required ones.
+        if (!canVisit(state, step)) {
+          throw new ValidationError({
+            form: `Finish the earlier steps before ${STEP_DETAILS[step].label}.`,
+          });
+        }
+        return settle(
+          state,
+          step,
+          state.completedSteps.includes(step) ? 'completed' : 'skipped',
+          at
+        );
+      });
     },
 
     /** Back / jump to a step already reached. Persisted, so a reload lands there too. */
