@@ -116,6 +116,7 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
     }
   }
 
+  void requestPersistentStorage(rt);
   root.dataset.pyReady = 'true';
   return {
     runtime: rt,
@@ -128,4 +129,21 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
       rt.close();
     },
   };
+}
+
+/**
+ * Asks the browser once to keep this origin's IndexedDB from being evicted
+ * under storage pressure. Best effort: browsers may silently decline, and the
+ * in-memory fallback has nothing to persist. DevTools → Data shows the result.
+ */
+async function requestPersistentStorage(runtime: PrototypeRuntime): Promise<boolean | undefined> {
+  if (runtime.storage().backend !== 'indexeddb') return undefined;
+  try {
+    const storage = typeof navigator !== 'undefined' ? navigator.storage : undefined;
+    if (!storage?.persist) return undefined;
+    if (await storage.persisted?.()) return true;
+    return await storage.persist();
+  } catch {
+    return undefined;
+  }
 }

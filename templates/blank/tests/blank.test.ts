@@ -1,23 +1,28 @@
 import { PermissionDeniedError, SimulatedServiceError } from '@protoyard/core';
 import { createPrototypeRuntime } from '@protoyard/runtime';
-import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
+import {
+  createGenerateContext,
+  PRESETS,
+  resolveScenarios,
+  validateWorld,
+} from '@protoyard/scenarios';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { BlankDatabase } from '../src/database/schema.ts';
 import { createNoteServices, NoteValidationError, sortNotes } from '../src/domain/notes.ts';
 import { definition } from '../src/prototype.ts';
 import { generateBlankWorld } from '../src/scenarios/generators.ts';
 
+// Same resolution as the runtime: `extends` against own scenarios + presets.
+const resolved = resolveScenarios(definition.scenarios, PRESETS);
 const scenario = (id: string) => {
-  const s = definition.scenarios.find((x) => x.id === id);
+  const s = resolved.find((x) => x.id === id);
   if (!s) throw new Error(id);
   return s;
 };
 
 describe('blank generator', () => {
   it('is deterministic and referentially sound for every scenario', async () => {
-    const { parseScenario } = await import('@protoyard/core');
-    for (const input of definition.scenarios) {
-      const s = parseScenario(input);
+    for (const s of resolved) {
       const a = generateBlankWorld(createGenerateContext(s));
       const b = generateBlankWorld(createGenerateContext(s));
       expect(a).toEqual(b);
@@ -29,12 +34,12 @@ describe('blank generator', () => {
       });
       expect(violations).toEqual([]);
     }
-    expect(
-      generateBlankWorld(createGenerateContext(parseScenario(scenario('empty')))).tables.notes
-    ).toHaveLength(0);
-    expect(
-      generateBlankWorld(createGenerateContext(parseScenario(scenario('active')))).tables.notes
-    ).toHaveLength(12);
+    expect(generateBlankWorld(createGenerateContext(scenario('empty'))).tables.notes).toHaveLength(
+      0
+    );
+    expect(generateBlankWorld(createGenerateContext(scenario('active'))).tables.notes).toHaveLength(
+      12
+    );
   });
 });
 

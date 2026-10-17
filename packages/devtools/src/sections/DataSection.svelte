@@ -46,6 +46,41 @@ $effect(() => {
   void refresh();
 });
 
+const storage = $derived.by(() => {
+  dt.worldVersion;
+  return runtime.storage();
+});
+let persisted = $state<boolean | null>(null);
+let usage = $state<{ usage?: number; quota?: number } | null>(null);
+const supported = typeof navigator !== 'undefined' && !!navigator.storage?.persisted;
+
+async function readStorage() {
+  try {
+    persisted = (await navigator.storage?.persisted?.()) ?? null;
+    usage = (await navigator.storage?.estimate?.()) ?? null;
+  } catch {
+    persisted = null;
+  }
+}
+$effect(() => {
+  void readStorage();
+});
+
+async function askPersistence() {
+  const granted = await dt.run('data:persist', () => navigator.storage.persist());
+  await readStorage();
+  dt.notify(
+    granted ? 'success' : 'info',
+    granted
+      ? 'Storage is now persistent.'
+      : 'The browser declined persistent storage (it decides, not the page).'
+  );
+}
+
+function mb(bytes?: number) {
+  return bytes === undefined ? '—' : `${(bytes / 1_048_576).toFixed(1)} MB`;
+}
+
 // Edits made in the app are picked up while the tab is open.
 $effect(() => {
   const timer = setInterval(() => void refresh(), 5000);
@@ -118,6 +153,21 @@ function pick(name: string) {
     </div>
   </Section>
 {/if}
+
+<Section title="Storage">
+  <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[11px]">
+    <dt class="text-muted-foreground">Backend</dt>
+    <dd class="font-mono">{storage.backend}{storage.persistent ? '' : ' (not saved across reloads)'}</dd>
+    <dt class="text-muted-foreground">Eviction-protected</dt>
+    <dd>{!supported ? 'not supported by this browser' : persisted === null ? '—' : persisted ? 'yes (persisted)' : 'no — the browser may clear it under pressure'}</dd>
+    <dt class="text-muted-foreground">Origin usage</dt>
+    <dd class="font-mono">{mb(usage?.usage)} of {mb(usage?.quota)}</dd>
+  </dl>
+  {#if storage.warning}<p class="mt-1.5 text-[11px] text-destructive">{storage.warning}</p>{/if}
+  {#if supported && persisted === false && storage.backend === 'indexeddb'}
+    <div class="mt-2"><Btn busy={dt.isBusy('data:persist')} onclick={askPersistence}>Request persistent storage</Btn></div>
+  {/if}
+</Section>
 
 <Section title="Danger zone">
   <Confirm

@@ -48,7 +48,7 @@ export function readPrototypeManifest(root: string): PrototypeManifest {
   const file = resolve(root, MANIFEST_FILENAME);
   if (!existsSync(file)) {
     throw new Error(
-      `[protoyard] ${MANIFEST_FILENAME} not found in ${root}. Every prototype needs one (see docs/PROTOTYPES.md).`
+      `[protoyard] ${MANIFEST_FILENAME} not found in ${root}. Every prototype needs one (see docs/ARCHITECTURE.md#the-prototype-contract).`
     );
   }
   let json: unknown;
