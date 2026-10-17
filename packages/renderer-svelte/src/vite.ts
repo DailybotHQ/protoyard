@@ -10,6 +10,7 @@ import {
   defineConfig,
   mergeConfig,
   type Plugin,
+  searchForWorkspaceRoot,
   type UserConfig,
   type UserConfigFnObject,
 } from 'vite';
@@ -67,6 +68,17 @@ export function envFlag(value: string | undefined): boolean | undefined {
   if (['1', 'true', 'yes', 'on'].includes(v)) return true;
   if (['0', 'false', 'no', 'off'].includes(v)) return false;
   return undefined;
+}
+
+/**
+ * What the dev server may serve through `/@fs`: this prototype, the shared
+ * workspace packages and installed dependencies — never the rest of the
+ * workspace (other prototypes, artifacts, dotfiles). Vite's default
+ * `fs.deny` (.env, *.pem, *.crt…) still applies on top.
+ */
+export function devFsAllow(root: string): string[] {
+  const workspace = searchForWorkspaceRoot(root);
+  return [resolve(root), resolve(workspace, 'packages'), resolve(workspace, 'node_modules')];
 }
 
 export interface ResolvedProtoyardSettings {
@@ -152,6 +164,8 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
       server: {
         ...(settings.port ? { port: settings.port } : {}),
         strictPort: false,
+        // `--host` exposes /@fs to the LAN: keep it to what this prototype needs.
+        fs: { allow: devFsAllow(root) },
       },
       preview: {
         ...(settings.port ? { port: settings.port } : {}),

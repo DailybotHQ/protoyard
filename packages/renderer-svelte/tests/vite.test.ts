@@ -3,7 +3,12 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseManifest } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
-import { defineProtoyardConfig, envFlag, resolveProtoyardSettings } from '../src/vite.ts';
+import {
+  defineProtoyardConfig,
+  devFsAllow,
+  envFlag,
+  resolveProtoyardSettings,
+} from '../src/vite.ts';
 
 const manifest = parseManifest({
   id: 'example.crm',
@@ -82,5 +87,17 @@ describe('defineProtoyardConfig', () => {
     expect(() =>
       factory({ command: 'serve', mode: 'development', isSsrBuild: false, isPreview: false })
     ).toThrow(/protoyard.json not found/);
+  });
+});
+
+describe('dev server file access', () => {
+  it('allows only the prototype, workspace packages and dependencies', () => {
+    const workspace = resolve(import.meta.dirname, '../../..');
+    const root = resolve(workspace, 'templates/blank');
+    expect(devFsAllow(root)).toEqual([
+      root,
+      resolve(workspace, 'packages'),
+      resolve(workspace, 'node_modules'),
+    ]);
   });
 });

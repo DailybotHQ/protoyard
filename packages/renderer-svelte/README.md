@@ -24,6 +24,10 @@ the no-flash appearance script. The CLI drives it through env vars:
 | `PROTOYARD_PORT` | dev/preview port (`strictPort: false`) | Vite default |
 | `PROTOYARD_BUILT_AT` | `__PROTOYARD_BUILD__.builtAt` | build time |
 
+The dev server's `/@fs` access (`server.fs.allow`) is limited to the prototype folder, the
+workspace `packages/` and `node_modules` (`devFsAllow(root)`), so `protoyard dev --host` never
+exposes other prototypes or workspace files to the LAN; Vite's default `fs.deny` still applies.
+
 The config module only imports erasable TypeScript (`@protoyard/core/manifest`,
 `@protoyard/themes/no-flash`), so plain `vite` loads it under Node type
 stripping. With DevTools disabled the panel is tree-shaken out of the bundle.
