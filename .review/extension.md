@@ -18,8 +18,10 @@ determinism, isolation and honesty.
   `guardOutputDir()` (`packages/cli/src/lib/output-guard.ts`, the `--out`
   allow-list). This applies especially to `new`, `build --out`, `export`,
   `showcase` and anything derived from a slug, `--out` or `--cwd`. The
-  documented `--allow-external-out` escape hatch (empty or new folders only)
-  is intended, not a finding. Slugs must pass `checkSlug` (`packages/core/src/slug.ts`) before
+  documented allow-list is intended, not a finding: `artifacts/` and `tmp/`;
+  elsewhere only missing, empty or marker-carrying folders (`.protoyard-out`,
+  `.protoyard-showcase`); `--allow-external-out` applies the same rule outside
+  the workspace. Slugs must pass `checkSlug` (`packages/core/src/slug.ts`) before
   any path is built.
 - **Always `critical`:** child processes started with `shell: true`, or with
   user-controlled strings joined into a command line. Process spawning lives

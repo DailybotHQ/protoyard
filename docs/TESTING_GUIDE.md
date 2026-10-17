@@ -46,11 +46,11 @@ collide with "port already used" or connection-refused errors.
 
 | Command | Selected → result |
 | --- | --- |
-| `pnpm test` (full) | 61 files, 510 passed + 1 skipped (the opt-in benchmark) |
-| `pnpm vitest run packages/runtime` | 2 files, 33 tests, all pass |
-| `pnpm vitest run prototypes/crm-demo` | 3 files, 14 passed + 1 skipped (the benchmark) |
+| `pnpm test` (full) | 63 files, 546 passed + 1 skipped (the opt-in benchmark) |
+| `pnpm vitest run packages/runtime` | 2 files, 34 tests, all pass |
+| `pnpm vitest run prototypes/crm-demo` | 3 files, 15 passed + 1 skipped (the benchmark) |
 | `pnpm vitest run packages/core/tests/core.test.ts` | 1 file, 11 tests, all pass |
-| `pnpm vitest run -t "idempotent"` | 2 tests selected (509 skipped), both pass |
+| `pnpm vitest run -t "idempotent"` | 2 tests selected (545 skipped), both pass |
 
 Counts grow with the suite. Re-run the command and check the selection rather
 than trusting these numbers.

@@ -108,3 +108,24 @@ describe('ai-chat-demo review regressions', () => {
     );
   });
 });
+
+describe('ai-chat-demo delta-review regressions', () => {
+  it('two concurrent pin toggles end where they started (no lost update)', async () => {
+    const runtime = await harness.boot('active-team');
+    const chat = createChatServices(runtime, { chunkDelayMs: 0 });
+    const conversation = (await runtime.db.conversations.toArray())[0]!;
+    await Promise.all([chat.togglePin(conversation.id), chat.togglePin(conversation.id)]);
+    expect((await runtime.db.conversations.get(conversation.id))?.pinned).toBe(conversation.pinned);
+  });
+
+  it('retry offline keeps the failed reply instead of deleting it', async () => {
+    const runtime = await harness.boot('agent-outage');
+    const chat = createChatServices(runtime, { chunkDelayMs: 0 });
+    const conversation = await chat.createConversation({ title: 'Ops', agentIds: ['agent_ops'] });
+    const { runs } = await chat.send(conversation.id, 'status?');
+    const [run] = await runs;
+    await runtime.overrides.set({ environment: { network: 'offline' } });
+    await expect(chat.retry(run!.id)).rejects.toMatchObject({ code: 'offline' });
+    expect(await runtime.db.messages.where('runId').equals(run!.id).count()).toBe(1);
+  });
+});

@@ -512,7 +512,13 @@ default world opens.
 the same build with `?sandbox=compare-<a|b|c>`, so it gets its own database
 pair (`protoyard.<namespace>~<sandbox>.*`). Edits never reach other frames or
 the prototype's normal data. **Reset sandboxes** re-seeds every frame from its
-scenario.
+scenario by moving to fresh names (`compare-a-1`, `compare-a-2`, …).
+
+Limits: the old sandbox databases stay in the browser until you clear them
+(DevTools → Data → *Clear other sandboxes*, or `listProtoyardDatabases`). In
+the local dev gallery, frames point at a running dev server (start it from
+the page or with `pnpm protoyard dev <slug>`). A static gallery without
+embedded builds only shows the commands.
 
 ## Snapshots
 

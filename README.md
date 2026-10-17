@@ -150,8 +150,9 @@ Full reference: [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md).
 - A public-hygiene check for secrets and stray files.
 - Every theme is AA-contrast tested.
 - An internal security review of the CLI, the local control server,
-  snapshot import and publishing, with a regression test for every finding
-  ([packages/cli/tests/security.test.ts](packages/cli/tests/security.test.ts);
+  snapshot import and publishing, with regression tests that reproduce the
+  fixed findings (for example
+  [packages/cli/tests/security.test.ts](packages/cli/tests/security.test.ts);
   threat model in [docs/SECURITY.md](docs/SECURITY.md)).
 - Performance numbers are measured, not estimated
   ([docs/PERFORMANCE.md](docs/PERFORMANCE.md)).

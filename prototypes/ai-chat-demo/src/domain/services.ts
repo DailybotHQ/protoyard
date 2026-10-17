@@ -258,7 +258,10 @@ export function createChatServices(
       ]);
       if (!agent || !prompt) return null;
       await assertWritable(run.conversationId);
-      await db.messages.where('runId').equals(runId).delete();
+      // Removing the failed reply is a write: it goes through the simulated network too.
+      await environment.run('messages.retry', () =>
+        db.messages.where('runId').equals(runId).delete()
+      );
       return runAgent(agent, prompt);
     },
 
@@ -318,10 +321,15 @@ export function createChatServices(
 
     async togglePin(conversationId: string): Promise<void> {
       session.assert(CAPABILITIES.send);
-      const conversation = await db.conversations.get(conversationId);
-      if (!conversation) return;
+      // Read-modify-write inside the simulated call AND one transaction, so
+      // two quick toggles can't both read the same stale value.
       await environment.run('conversations.pin', () =>
-        db.conversations.update(conversationId, { pinned: !conversation.pinned })
+        db.transaction('rw', db.conversations, async () => {
+          const conversation = await db.conversations.get(conversationId);
+          if (conversation) {
+            await db.conversations.update(conversationId, { pinned: !conversation.pinned });
+          }
+        })
       );
     },
 

@@ -230,3 +230,30 @@ describe('crm-demo review regressions', () => {
     expect(events.every((e) => Date.parse(e.at as string) <= now)).toBe(true);
   });
 });
+
+describe('crm-demo create with a closed stage', () => {
+  it('records closedAt and a default lost reason', async () => {
+    fresh();
+    const runtime = await boot();
+    const crm = createCrmServices(runtime);
+    const company = (await runtime.db.companies.toArray())[0]!;
+    const lost = await crm.deals.create({
+      title: 'Closed lost',
+      companyId: company.id,
+      stage: 'lost',
+      amount: 10,
+      closeDate: '2026-11-30',
+    });
+    expect(lost.closedAt).toBeTruthy();
+    expect(lost.lostReason).toBe('No reason given');
+    const won = await crm.deals.create({
+      title: 'Closed won',
+      companyId: company.id,
+      stage: 'won',
+      amount: 10,
+      closeDate: '2026-11-30',
+    });
+    expect(won.closedAt).toBeTruthy();
+    expect(won.lostReason).toBeNull();
+  });
+});
