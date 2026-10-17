@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.blank",
+  "slug": "blank",
+  "kind": "template",
+  "name": "Blank",
+  "description": "A minimal but real starting point: a persisted Notes list with owner and viewer personas, three scenarios and permission-checked services.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "notes", "minimal"],
+  "status": "ready",
+  "icon": "📝",
+  "defaultScenario": "active",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-blank", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "viewer"]
+}
