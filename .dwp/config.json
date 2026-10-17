@@ -1,5 +1,10 @@
 {
   "addons": {
+    "ai-diff-reviewer": {
+      "enabled": true,
+      "version": "v3.3.14",
+      "note": "required local review: vendored skill (checksum-verified v3.3.14 release archive) + repo-tailored .review/extension.md; Flow A (local) only \u2014 Flow B CI not installed"
+    },
     "herdr": {
       "enabled": true,
       "note": "herdr-peers v1.0.0 on this machine; the developer asked the lead (wH:p5) to orchestrate the build with the three Claude lanes in this Herdr tab (wH:p6, wH:p8, wH:p9)",
