@@ -1,4 +1,10 @@
-import { createIdFactory, MS_PER_DAY, parseScenario, type Scenario } from '@protoyard/core';
+import {
+  createIdFactory,
+  MS_PER_DAY,
+  parseScenario,
+  type Scenario,
+  type ScenarioDefinition,
+} from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
 import {
   composeScenario,
@@ -97,6 +103,18 @@ describe('presets and composition', () => {
     expect(deepMerge({ a: { b: 1, c: [1] } }, { a: { c: [2] } }, undefined)).toEqual({
       a: { b: 1, c: [2] },
     });
+  });
+
+  it('accepts core ScenarioDefinition lists where extensions omit inherited fields', () => {
+    const definitions: readonly ScenarioDefinition[] = [
+      { id: 'base', name: 'Base', seed: 5, referenceTime: REF, organization: { ageDays: 40 } },
+      { id: 'child', extends: 'base', actor: { role: 'viewer' } },
+      { id: 'week', extends: 'first-week' },
+    ];
+    const [, child, week] = resolveScenarios(definitions, PRESETS);
+    expect(child).toMatchObject({ seed: 5, referenceTime: REF, organization: { ageDays: 40 } });
+    expect(child?.actor.role).toBe('viewer');
+    expect(week).toMatchObject({ id: 'week', referenceTime: PRESETS['first-week'].referenceTime });
   });
 
   it('resolves extends against own scenarios and presets, detecting cycles and duplicates', () => {

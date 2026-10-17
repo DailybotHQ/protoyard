@@ -1,4 +1,9 @@
-import { type Scenario, type ScenarioInput, ScenarioSchema } from '@protoyard/core';
+import {
+  type Scenario,
+  type ScenarioDefinition,
+  type ScenarioInput,
+  ScenarioSchema,
+} from '@protoyard/core';
 
 type Plain = Record<string, unknown>;
 
@@ -81,7 +86,7 @@ export function composeScenario(
  * parents and duplicate ids fail loudly with the offending ids.
  */
 export function resolveScenarios(
-  inputs: readonly ScenarioFragment[],
+  inputs: readonly (ScenarioDefinition | ScenarioFragment)[],
   presets: Readonly<Record<string, ScenarioFragment>> = {}
 ): Scenario[] {
   const own = new Map<string, ScenarioFragment>();

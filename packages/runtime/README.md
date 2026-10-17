@@ -81,6 +81,11 @@ and full numbers are in `docs/PERFORMANCE.md`.
   match, 25 MB limit). Unknown tables are skipped with a warning. Records are restored in one
   transaction, so a failed import leaves current data untouched. Filenames follow
   `<slug>-<name>-<YYYY-MM-DD>.protoyard.json`.
+  A snapshot restores records, active scenario, actor/organization, clock and overrides.
+  Per-persona **preferences are not captured**. So the world looks the same as when it was
+  saved, the recorded `appearance` (theme, mode) is re-applied as visible, clearable
+  **overrides**, but only when it would otherwise differ. Restoring your own snapshot adds
+  nothing; a colleague's snapshot shows their theme until you clear the override.
 - **data**: `tables()`, `counts()`, `rows(table, { limit ≤ 500, offset })` for the inspector.
 - `destroy()` waits for in-flight work, then deletes only this prototype's two databases.
   `close()` closes them.

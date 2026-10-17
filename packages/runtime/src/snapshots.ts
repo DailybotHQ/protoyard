@@ -13,7 +13,7 @@ import {
 } from '@protoyard/core';
 import { countTables, dumpTables, restoreTables } from '@protoyard/database';
 import type { Kernel } from './kernel.ts';
-import { normalizeOverrides } from './overrides.ts';
+import { applyOverrides, normalizeOverrides } from './overrides.ts';
 import { generatorVersions } from './scenarios.ts';
 
 export class SnapshotImportError extends Error {
@@ -146,7 +146,21 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
     if (clock) k.setClockSilently(clock);
     await k.reloadIdentity();
     k.refreshDerived();
-    k.events.overrides.emit(k.overrides);
+    // Per-persona preferences are not part of a snapshot, so the same records could
+    // render in another theme here. Pin the captured look as visible, clearable
+    // overrides — only when it would otherwise differ.
+    const captured = snapshot.appearance;
+    const pin: Record<string, unknown> = {};
+    if (captured.themeId && captured.themeId !== k.appearance.theme.value) {
+      if (k.themes.some((t) => t.id === captured.themeId)) pin.themeId = captured.themeId;
+      else notes.push(`Theme "${captured.themeId}" is not available here; kept the current theme.`);
+    }
+    if (captured.mode && captured.mode !== k.appearance.mode.value) pin.mode = captured.mode;
+    if (Object.keys(pin).length) {
+      await applyOverrides(k, { ...k.overrides, ...pin });
+    } else {
+      k.events.overrides.emit(k.overrides);
+    }
     k.events.scenario.emit(active);
     warnings = notes;
     return notes;

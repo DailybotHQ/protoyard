@@ -281,6 +281,24 @@ describe('5. snapshots', () => {
     await expect(other.snapshots.previewImport(json)).rejects.toThrow(/belongs to/);
   });
 
+  it('restores the captured look as overrides only when it would otherwise differ', async () => {
+    const store = backend();
+    const author = await start(createTasksDefinition(), store);
+    await author.scenarios.ensureSeeded();
+    await author.theme.setPreference({ themeId: 'ocean', mode: 'dark' });
+    const own = await author.snapshots.save({ name: 'Ocean dark' });
+    await author.snapshots.restore(own.id);
+    // Same persona, same preference: nothing to pin.
+    expect(author.overrides.get()).toEqual({});
+    const { json } = await author.snapshots.exportJson(own.id);
+
+    const colleague = await start(createTasksDefinition(), backend());
+    await colleague.scenarios.ensureSeeded();
+    await colleague.snapshots.importJson(json, { restore: true });
+    expect(colleague.overrides.get()).toEqual({ themeId: 'ocean', mode: 'dark' });
+    expect(colleague.theme.appearance().theme).toEqual({ value: 'ocean', source: 'override' });
+  });
+
   it('skips unknown tables with a warning', async () => {
     const runtime = await start(createTasksDefinition(), backend());
     await runtime.scenarios.ensureSeeded();
