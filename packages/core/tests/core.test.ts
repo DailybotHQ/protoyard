@@ -161,3 +161,12 @@ describe('links, overrides and snapshots', () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe('environment patches', () => {
+  it('do not fill defaults, so overriding latency keeps the scenario network', async () => {
+    const { OverridesSchema } = await import('../src/index.ts');
+    expect(OverridesSchema.parse({ environment: { latencyMs: 250 } })).toEqual({
+      environment: { latencyMs: 250 },
+    });
+  });
+});

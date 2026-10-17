@@ -39,6 +39,24 @@ export const EnvironmentStateSchema = z.object({
 });
 export type EnvironmentState = z.infer<typeof EnvironmentStateSchema>;
 
+/**
+ * A partial environment WITHOUT defaults, for overrides, scenarios and
+ * snapshots. (zod's `.partial()` keeps field defaults, which would silently
+ * turn `{ latencyMs: 250 }` into a full state that resets `network`.)
+ */
+export const EnvironmentPatchSchema = z
+  .object({
+    network: NetworkModeSchema,
+    latencyMs: z.number().int().min(0).max(30_000),
+    failureMode: FailureModeSchema,
+    failureRate: z.number().min(0).max(1),
+    failureScope: z.array(z.string().min(1)),
+    subscription: SubscriptionStatusSchema,
+    featureFlags: z.record(z.string(), z.boolean()),
+  })
+  .partial();
+export type EnvironmentPatch = z.infer<typeof EnvironmentPatchSchema>;
+
 export const DEFAULT_ENVIRONMENT: EnvironmentState = {
   network: 'online',
   latencyMs: 0,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EnvironmentStateSchema } from './environment.ts';
+import { EnvironmentPatchSchema } from './environment.ts';
 import { ColorModeSchema } from './manifest.ts';
 import { ClockStateSchema } from './overrides.ts';
 
@@ -40,7 +40,7 @@ export const SnapshotSchema = z
     actorId: z.string().nullable(),
     organizationId: z.string().nullable(),
     clock: ClockStateSchema.nullable(),
-    environment: EnvironmentStateSchema.partial(),
+    environment: EnvironmentPatchSchema,
     overrides: z.record(z.string(), z.unknown()).default({}),
     appearance: z
       .object({

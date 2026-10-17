@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EnvironmentStateSchema } from './environment.ts';
+import { EnvironmentPatchSchema } from './environment.ts';
 import { ColorModeSchema, ViewportPresetSchema } from './manifest.ts';
 
 /**
@@ -25,7 +25,7 @@ export const OverridesSchema = z
     mode: ColorModeSchema.optional(),
     reducedMotion: z.boolean().optional(),
     viewport: ViewportPresetSchema.optional(),
-    environment: EnvironmentStateSchema.partial().optional(),
+    environment: EnvironmentPatchSchema.optional(),
   })
   .strict();
 export type Overrides = z.infer<typeof OverridesSchema>;

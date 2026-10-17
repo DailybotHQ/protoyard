@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { EnvironmentStateSchema, SubscriptionStatusSchema } from './environment.ts';
+import { EnvironmentPatchSchema, SubscriptionStatusSchema } from './environment.ts';
 import { ColorModeSchema, ViewportPresetSchema } from './manifest.ts';
 
 /**
@@ -85,7 +85,7 @@ export const ScenarioSchema = z.object({
   }),
   density: DataDensitySchema.default('normal'),
   activity: z.object({ level: ActivityLevelSchema.default('normal') }).default({ level: 'normal' }),
-  environment: EnvironmentStateSchema.partial().default({}),
+  environment: EnvironmentPatchSchema.default({}),
   appearance: ScenarioAppearanceSchema.default({}),
   /** Prototype-specific knobs, passed untouched to the generator. */
   generators: z.record(z.string(), z.unknown()).default({}),

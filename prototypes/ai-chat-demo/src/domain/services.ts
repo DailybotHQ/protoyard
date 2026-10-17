@@ -41,6 +41,17 @@ export function createChatServices(
   };
   const cancelled = new Set<string>();
 
+  /**
+   * Message time that always sorts after the conversation's latest message.
+   * The simulated clock is frozen unless running, so `now()` alone would give
+   * a prompt and its reply the same instant (and an undefined order).
+   */
+  async function nextAt(conversationId: string): Promise<string> {
+    const conversation = await db.conversations.get(conversationId);
+    const last = conversation ? Date.parse(conversation.lastMessageAt) : 0;
+    return new Date(Math.max(clock.nowMs(), last + 1)).toISOString();
+  }
+
   async function agentsIn(conversationId: string): Promise<Agent[]> {
     const members = await db.participants.where('conversationId').equals(conversationId).toArray();
     const ids = members.filter((m) => m.memberKind === 'agent').map((m) => m.memberId);
@@ -59,19 +70,21 @@ export function createChatServices(
       finishedAt: null,
       tokens: 0,
     };
+    const at = await nextAt(prompt.conversationId);
     const reply: Message = {
       id: createRuntimeId('msg'),
       conversationId: prompt.conversationId,
       authorId: agent.id,
       authorKind: 'agent',
       body: '',
-      at: now(),
+      at,
       status: 'streaming',
       runId: run.id,
     };
-    await db.transaction('rw', db.runs, db.messages, async () => {
+    await db.transaction('rw', db.runs, db.messages, db.conversations, async () => {
       await db.runs.add(run);
       await db.messages.add(reply);
+      await db.conversations.update(prompt.conversationId, { lastMessageAt: at });
     });
 
     try {
@@ -91,7 +104,6 @@ export function createChatServices(
         await sleep(chunkDelay);
       }
       await finish(run, reply, body, 'done', null);
-      await db.conversations.update(prompt.conversationId, { lastMessageAt: now() });
       return { ...run, status: 'done' };
     } catch (error) {
       const message =
@@ -188,7 +200,7 @@ export function createChatServices(
             authorId: me(),
             authorKind: 'person',
             body,
-            at: now(),
+            at: await nextAt(conversationId),
             status: 'sent',
             runId: null,
           };
