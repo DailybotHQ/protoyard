@@ -79,14 +79,15 @@ export interface PolicyDefinition {
 
 export class PermissionDeniedError extends Error {
   readonly code = 'permission-denied' as const;
-  constructor(
-    readonly capability: string,
-    readonly role: Role | null
-  ) {
+  readonly capability: string;
+  readonly role: Role | null;
+  constructor(capability: string, role: Role | null) {
     super(
       `Permission denied: role "${role ?? 'none'}" lacks "${capability}". (Simulated policy — not real security.)`
     );
     this.name = 'PermissionDeniedError';
+    this.capability = capability;
+    this.role = role;
   }
 }
 

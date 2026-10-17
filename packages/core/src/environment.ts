@@ -70,13 +70,16 @@ export const SLOW_NETWORK_EXTRA_MS = 1200;
 
 export type SimulatedErrorCode = Exclude<FailureMode, 'none'> | 'offline';
 
+// Explicit fields (no TS parameter properties) keep core runnable under
+// Node's type stripping, which Vite uses to load vite.config.ts.
 export class SimulatedServiceError extends Error {
-  constructor(
-    readonly code: SimulatedErrorCode,
-    readonly operation: string
-  ) {
+  readonly code: SimulatedErrorCode;
+  readonly operation: string;
+  constructor(code: SimulatedErrorCode, operation: string) {
     super(SIMULATED_ERROR_MESSAGES[code]);
     this.name = 'SimulatedServiceError';
+    this.code = code;
+    this.operation = operation;
   }
 }
 

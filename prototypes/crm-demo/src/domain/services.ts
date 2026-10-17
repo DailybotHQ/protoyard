@@ -57,8 +57,10 @@ export const DealInputSchema = z.object({
 export type DealInput = z.input<typeof DealInputSchema>;
 
 export class ValidationError extends Error {
-  constructor(readonly issues: Record<string, string>) {
+  readonly issues: Record<string, string>;
+  constructor(issues: Record<string, string>) {
     super(Object.values(issues)[0] ?? 'Invalid input');
+    this.issues = issues;
     this.name = 'ValidationError';
   }
 }

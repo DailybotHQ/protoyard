@@ -15,20 +15,21 @@ import { CAPABILITIES } from './policy.ts';
  * both balances — so a failure anywhere leaves every balance untouched.
  */
 
+export type TransferErrorCode =
+  | 'insufficient-funds'
+  | 'account-locked'
+  | 'account-dormant'
+  | 'over-limit'
+  | 'same-account'
+  | 'not-found'
+  | 'invalid';
+
 export class TransferError extends Error {
-  constructor(
-    readonly code:
-      | 'insufficient-funds'
-      | 'account-locked'
-      | 'account-dormant'
-      | 'over-limit'
-      | 'same-account'
-      | 'not-found'
-      | 'invalid',
-    message: string
-  ) {
+  readonly code: TransferErrorCode;
+  constructor(code: TransferErrorCode, message: string) {
     super(message);
     this.name = 'TransferError';
+    this.code = code;
   }
 }
 
