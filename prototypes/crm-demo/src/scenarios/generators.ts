@@ -31,7 +31,7 @@ import type { CrmGeneratorOptions } from './index.ts';
  */
 
 /** Bump when generated output for the same seed changes. */
-export const CRM_GENERATOR_VERSION = 1;
+export const CRM_GENERATOR_VERSION = 2;
 
 /** Named core cast, so every scenario shares recognizable people. */
 const CAST = [
@@ -250,7 +250,7 @@ export function generateCrmWorld(ctx: GenerateContext): WorldSeed {
       const dealCreated = between(createdAt, activityCeiling);
       const ageDays = (now.getTime() - dealCreated.getTime()) / MS_PER_DAY;
       // Older deals are more likely to be closed.
-      const closed = ageDays > 21 && rng.chance(Math.min(0.85, ageDays / 120));
+      const closed = ageDays > 10 && rng.chance(Math.min(0.85, ageDays / 45));
       const stage: DealStage = closed
         ? rng.chance(opts.winRate)
           ? 'won'
@@ -359,23 +359,25 @@ function activityBody(type: Activity['type'], contact: Contact | null, roll: num
 
 interface FollowUpPayload {
   dealId: string;
-  companyId: string;
   actorId: string;
-  advanceTo: DealStage | null;
+  /** Whether this follow-up moves an open deal one stage forward. */
+  advance: boolean;
+  /** Outcome used if the deal is in its last open stage. */
+  closeAs: 'won' | 'lost';
   body: string;
 }
 
 /**
- * One deterministic day of pipeline life per simulated day: a few follow-ups
- * on open deals, sometimes advancing a stage. Events are keyed by day + index,
- * so advancing 7×1 day or 1×7 days produces the same ids (idempotent).
+ * One deterministic day of pipeline life per simulated day. Events depend
+ * ONLY on the day and the stable, sorted deal ids — never on current stages —
+ * so advancing 7×1 day or 1×7 days produces identical events (idempotent),
+ * and the stage transition is resolved when the event is applied.
  */
 export async function crmTimeline(ctx: TimelineContext): Promise<DomainEvent[]> {
-  const deals = (await ctx.read('deals')) as unknown as Deal[];
-  const open = deals
-    .filter((d) => OPEN_STAGES.includes(d.stage))
+  const deals = ((await ctx.read('deals')) as unknown as Deal[])
+    .map((d) => ({ id: d.id, ownerId: d.ownerId }))
     .sort((a, b) => a.id.localeCompare(b.id));
-  if (open.length === 0) return [];
+  if (deals.length === 0) return [];
   const events: DomainEvent[] = [];
   const startDay = Math.floor(ctx.from.getTime() / MS_PER_DAY) + 1;
   const endDay = Math.floor(ctx.to.getTime() / MS_PER_DAY);
@@ -384,11 +386,7 @@ export async function crmTimeline(ctx: TimelineContext): Promise<DomainEvent[]> 
     const rng = ctx.rng.fork(`crm-day-${day}`);
     const perDay = rng.int(1, 3);
     for (let n = 0; n < perDay; n++) {
-      const deal = rng.pick(open);
-      const nextIndex = OPEN_STAGES.indexOf(deal.stage) + 1;
-      const advance = rng.chance(0.3)
-        ? (OPEN_STAGES[nextIndex] ?? (rng.chance(0.6) ? 'won' : 'lost'))
-        : null;
+      const deal = rng.pick(deals);
       events.push({
         id: eventId(ctx.scenario.id, at, n),
         type: 'crm.follow-up',
@@ -397,9 +395,9 @@ export async function crmTimeline(ctx: TimelineContext): Promise<DomainEvent[]> 
         source: 'timeline',
         payload: {
           dealId: deal.id,
-          companyId: deal.companyId,
           actorId: deal.ownerId,
-          advanceTo: advance,
+          advance: rng.chance(0.3),
+          closeAs: rng.chance(0.6) ? 'won' : 'lost',
           body: rng.pick([
             'Checked in after the demo; next steps agreed.',
             'Sent revised pricing.',
@@ -417,7 +415,8 @@ export async function applyCrmEvent(event: DomainEvent, ctx: EventApplyContext):
   if (event.type !== 'crm.follow-up') return;
   const payload = event.payload as FollowUpPayload;
   const deal = (await ctx.get('deals', payload.dealId)) as unknown as Deal | undefined;
-  if (!deal) return; // The user deleted it — skip, never resurrect.
+  // Deleted or already closed deals get no follow-ups — never resurrect data.
+  if (!deal || !OPEN_STAGES.includes(deal.stage)) return;
   await ctx.put('activities', {
     id: `activity_${event.id}`,
     type: 'note',
@@ -428,23 +427,23 @@ export async function applyCrmEvent(event: DomainEvent, ctx: EventApplyContext):
     body: payload.body,
     at: event.at,
   });
-  if (payload.advanceTo && OPEN_STAGES.includes(deal.stage)) {
-    await ctx.put('deals', {
-      ...(deal as unknown as Row),
-      stage: payload.advanceTo,
-      probability: STAGE_PROBABILITY[payload.advanceTo],
-      lostReason: payload.advanceTo === 'lost' ? 'No decision' : null,
-      updatedAt: event.at,
-    });
-    await ctx.put('activities', {
-      id: `activity_${event.id}_stage`,
-      type: 'stage-change',
-      dealId: deal.id,
-      companyId: deal.companyId,
-      contactId: null,
-      actorId: payload.actorId,
-      body: `Moved to ${payload.advanceTo[0]?.toUpperCase()}${payload.advanceTo.slice(1)}`,
-      at: event.at,
-    });
-  }
+  if (!payload.advance) return;
+  const next = OPEN_STAGES[OPEN_STAGES.indexOf(deal.stage) + 1] ?? payload.closeAs;
+  await ctx.put('deals', {
+    ...(deal as unknown as Row),
+    stage: next,
+    probability: STAGE_PROBABILITY[next],
+    lostReason: next === 'lost' ? 'No decision' : null,
+    updatedAt: event.at,
+  });
+  await ctx.put('activities', {
+    id: `activity_${event.id}_stage`,
+    type: 'stage-change',
+    dealId: deal.id,
+    companyId: deal.companyId,
+    contactId: null,
+    actorId: payload.actorId,
+    body: `Moved to ${next[0]?.toUpperCase()}${next.slice(1)}`,
+    at: event.at,
+  });
 }

@@ -2,7 +2,7 @@ import { definePrototype, parseManifest } from '@protoyard/core';
 import manifestJson from '../protoyard.json';
 import { database } from './database/schema.ts';
 import { policy } from './domain/policy.ts';
-import { generateBankWorld } from './scenarios/generators.ts';
+import { BANK_GENERATOR_VERSION, generateBankWorld } from './scenarios/generators.ts';
 import { scenarios } from './scenarios/index.ts';
 
 /**
@@ -30,4 +30,5 @@ export const definition = definePrototype({
     timestamps: { transactions: ['at'], beneficiaries: ['createdAt'] },
   },
   generate: generateBankWorld,
+  generatorVersion: BANK_GENERATOR_VERSION,
 });

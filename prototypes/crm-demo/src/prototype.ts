@@ -2,7 +2,12 @@ import { definePrototype, parseManifest } from '@protoyard/core';
 import manifestJson from '../protoyard.json';
 import { database } from './database/schema.ts';
 import { policy } from './domain/policy.ts';
-import { applyCrmEvent, crmTimeline, generateCrmWorld } from './scenarios/generators.ts';
+import {
+  applyCrmEvent,
+  CRM_GENERATOR_VERSION,
+  crmTimeline,
+  generateCrmWorld,
+} from './scenarios/generators.ts';
 import { scenarios } from './scenarios/index.ts';
 
 /**
@@ -35,6 +40,7 @@ export const definition = definePrototype({
     },
   },
   generate: generateCrmWorld,
+  generatorVersion: CRM_GENERATOR_VERSION,
   timeline: crmTimeline,
   applyEvent: applyCrmEvent,
 });

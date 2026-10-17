@@ -76,6 +76,13 @@ function parse<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
   throw new ValidationError(issues);
 }
 
+export class PaywallError extends Error {
+  constructor() {
+    super('Your subscription has expired. Renew the plan to create new records (simulated).');
+    this.name = 'PaywallError';
+  }
+}
+
 export const STAGE_LABELS: Record<DealStage, string> = {
   lead: 'Lead',
   qualified: 'Qualified',
@@ -94,6 +101,15 @@ export function createCrmServices(runtime: PrototypeRuntime<CrmDatabase>) {
     return principal.persona.id;
   };
 
+  /** Expired workspaces stay readable, but new records are paywalled. */
+  const assertActivePlan = () => {
+    const organization = session.principal()?.organization;
+    const subscription = runtime.environmentState().subscription;
+    if (organization?.billingStatus === 'expired' || subscription === 'expired') {
+      throw new PaywallError();
+    }
+  };
+
   const logActivity = (
     type: ActivityType,
     body: string,
@@ -110,9 +126,18 @@ export function createCrmServices(runtime: PrototypeRuntime<CrmDatabase>) {
   });
 
   return {
+    isPaywalled() {
+      try {
+        assertActivePlan();
+        return false;
+      } catch {
+        return true;
+      }
+    },
     companies: {
       async create(input: CompanyInput): Promise<Company> {
         session.assert(CAPABILITIES.companiesWrite);
+        assertActivePlan();
         const data = parse(CompanyInputSchema, input);
         return environment.run('companies.create', () =>
           db.transaction('rw', db.companies, db.activities, async () => {
@@ -157,6 +182,7 @@ export function createCrmServices(runtime: PrototypeRuntime<CrmDatabase>) {
     contacts: {
       async create(input: ContactInput): Promise<Contact> {
         session.assert(CAPABILITIES.contactsWrite);
+        assertActivePlan();
         const data = parse(ContactInputSchema, input);
         return environment.run('contacts.create', () =>
           db.transaction('rw', db.companies, db.contacts, db.activities, async () => {
@@ -203,6 +229,7 @@ export function createCrmServices(runtime: PrototypeRuntime<CrmDatabase>) {
     deals: {
       async create(input: DealInput): Promise<Deal> {
         session.assert(CAPABILITIES.dealsCreate);
+        assertActivePlan();
         const data = parse(DealInputSchema, input);
         return environment.run('deals.create', () =>
           db.transaction('rw', db.companies, db.deals, db.activities, async () => {

@@ -20,6 +20,8 @@ export default defineConfig({
       'tests/unit/**/*.test.ts',
     ],
     exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**'],
+    // These ship raw .svelte files; Vitest must transform them, not externalize.
+    server: { deps: { inline: [/@lucide\/svelte/, /bits-ui/] } },
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**'],

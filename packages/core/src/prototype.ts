@@ -96,6 +96,11 @@ export interface PrototypeDefinition {
   database: DatabaseDefinition;
   scenarios: readonly ScenarioInput[];
   generate(ctx: GenerateContext): WorldSeed | Promise<WorldSeed>;
+  /**
+   * Version of THIS prototype's generator. Bump it whenever the same seed can
+   * produce a different world; it is recorded with every scenario load.
+   */
+  generatorVersion?: number;
   policy?: PolicyDefinition;
   /** Validated on every scenario load; violations fail loudly. */
   integrity?: IntegrityRules;

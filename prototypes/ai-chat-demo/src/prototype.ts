@@ -2,7 +2,7 @@ import { definePrototype, parseManifest } from '@protoyard/core';
 import manifestJson from '../protoyard.json';
 import { database } from './database/schema.ts';
 import { policy } from './domain/policy.ts';
-import { generateChatWorld } from './scenarios/generators.ts';
+import { CHAT_GENERATOR_VERSION, generateChatWorld } from './scenarios/generators.ts';
 import { scenarios } from './scenarios/index.ts';
 
 /** Relay wiring: schema → policy → scenarios → generator. */
@@ -21,4 +21,5 @@ export const definition = definePrototype({
     timestamps: { conversations: ['createdAt'], messages: ['at'] },
   },
   generate: generateChatWorld,
+  generatorVersion: CHAT_GENERATOR_VERSION,
 });

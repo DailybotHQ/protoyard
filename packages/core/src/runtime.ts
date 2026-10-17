@@ -37,7 +37,10 @@ export interface ActiveScenarioInfo {
   loadedAt: string;
   /** Seed actually used (a link may override the scenario default). */
   seed: number;
+  /** `@protoyard/scenarios` SDK version used for the load. */
   generatorVersion: number;
+  /** The prototype's own `definition.generatorVersion`, when declared. */
+  prototypeGeneratorVersion?: number;
 }
 
 export interface LoadScenarioOptions {

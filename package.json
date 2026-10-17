@@ -16,7 +16,7 @@
     "node": ">=24.20.0"
   },
   "scripts": {
-    "dev": "pnpm protoyard index --quiet && pnpm --filter @protoyard/gallery dev",
+    "dev": "pnpm protoyard gallery",
     "build": "pnpm protoyard index --quiet && pnpm --filter @protoyard/gallery build",
     "preview": "pnpm --filter @protoyard/gallery preview",
     "protoyard": "tsx packages/cli/src/bin.ts",
