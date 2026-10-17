@@ -77,12 +77,13 @@ function emailFor(name: string, domain: string): string {
     .replace(/^\.|\.$/g, '')}@${domain}`;
 }
 
-function options(ctx: GenerateContext): CrmGeneratorOptions {
+function options(ctx: GenerateContext): Required<CrmGeneratorOptions> {
   const raw = (ctx.scenario.generators.crm ?? {}) as Partial<CrmGeneratorOptions>;
   return {
     companies: raw.companies ?? ctx.scale(16),
     dealsPerCompany: raw.dealsPerCompany ?? [1, 3],
     winRate: raw.winRate ?? 0.5,
+    contactsPerCompany: raw.contactsPerCompany ?? [1, 3],
   };
 }
 
@@ -224,7 +225,7 @@ export function generateCrmWorld(ctx: GenerateContext): WorldSeed {
     });
 
     const companyContacts: Contact[] = [];
-    for (let k = 0, n = rng.int(1, 3); k < n; k++) {
+    for (let k = 0, n = rng.int(...opts.contactsPerCompany); k < n; k++) {
       const firstName = faker.person.firstName();
       const lastName = faker.person.lastName();
       const contactCreated = between(createdAt, activityCeiling);

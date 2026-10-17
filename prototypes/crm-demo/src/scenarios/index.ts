@@ -16,6 +16,8 @@ export interface CrmGeneratorOptions {
   dealsPerCompany: [number, number];
   /** Share of closed deals that were won (0..1). */
   winRate: number;
+  /** Contacts created per company, inclusive range. Defaults to [1, 3]. */
+  contactsPerCompany?: [number, number];
 }
 
 const growingTeam = defineScenario({
@@ -132,5 +134,28 @@ export const scenarios: ScenarioInput[] = [
     description: 'Every save fails as if the network dropped — check the error states.',
     group: 'Conditions',
     environment: { network: 'offline' },
+  }),
+  defineScenario({
+    ...matureCompany,
+    id: 'enterprise-scale',
+    name: 'Enterprise scale (15k+ records)',
+    description:
+      'A large sales org after 18 months: ~300 companies, ~900 contacts, ~3,000 deals and 10k+ activities. Loads in chunks with progress — use it to check lists, search and performance.',
+    group: 'Scale',
+    seed: 77_001,
+    organization: {
+      id: 'org_0001',
+      name: 'Northwind Labs',
+      ageDays: 540,
+      size: 40,
+      subscription: 'enterprise',
+    },
+    actor: { id: 'user_0001', role: 'owner', joinedDaysAgo: 540, onboardingComplete: true },
+    density: 'massive',
+    activity: { level: 'normal' },
+    generators: {
+      crm: { companies: 300, dealsPerCompany: [8, 12], winRate: 0.5, contactsPerCompany: [2, 4] },
+    },
+    tags: ['scale', 'performance'],
   }),
 ];
