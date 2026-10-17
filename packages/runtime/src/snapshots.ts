@@ -125,7 +125,11 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
    * Records first (one atomic transaction — a failure leaves everything as
    * it was), then the control state that describes them.
    */
-  async function apply(snapshot: Snapshot): Promise<string[]> {
+  /** `progress.tablesRestored` turns true once the records were replaced (atomically). */
+  async function apply(
+    snapshot: Snapshot,
+    progress: { tablesRestored: boolean } = { tablesRestored: false }
+  ): Promise<string[]> {
     // Prepare and validate EVERYTHING first: once the record transaction commits,
     // nothing below may fail on bad input, or a "rejected" import would have
     // already replaced the user's data.
@@ -169,6 +173,7 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
     const checkpoint = clock ? clockCheckpoint(clock) : null;
 
     const result = await restoreTables(k.db, snapshot.tables, { knownTables: k.db.allTables });
+    progress.tablesRestored = true;
     for (const name of result.skipped) notes.push(`Unknown table "${name}" was skipped.`);
     if (snapshot.schemaVersion < k.db.schemaVersion) {
       notes.push(
@@ -266,15 +271,20 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
         // A fresh id: importing the same file twice never overwrites a stored snapshot.
         const snapshot: Snapshot = { ...parsed, id: createRuntimeId('snap') };
         // Store the copy FIRST: if that fails (quota), nothing has changed yet. If
-        // the restore then fails, drop the copy again so a rejected import leaves
-        // no trace — the world is untouched because restoreTables is atomic.
+        // the restore fails before the records change (restoreTables is atomic),
+        // drop the copy again so a rejected import leaves no trace. If it fails
+        // AFTER the records were replaced (control state, identity), keep the copy:
+        // the world already holds its rows and the stored copy is the way to retry.
         await k.control.putSnapshot(snapshot);
         if (options.restore) {
+          const progress = { tablesRestored: false };
           try {
-            const notes = await apply(snapshot);
+            const notes = await apply(snapshot, progress);
             warnings = [...new Set([...found, ...notes])];
           } catch (error) {
-            await k.control.deleteSnapshot(snapshot.id).catch(k.report);
+            if (!progress.tablesRestored) {
+              await k.control.deleteSnapshot(snapshot.id).catch(k.report);
+            }
             throw error;
           }
         } else {

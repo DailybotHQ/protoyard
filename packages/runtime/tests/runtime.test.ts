@@ -19,8 +19,8 @@ import {
   PRESETS,
   validateWorld,
 } from '@protoyard/scenarios';
-import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
-import { afterEach, describe, expect, it } from 'vitest';
+import { IDBFactory, IDBKeyRange, IDBObjectStore } from 'fake-indexeddb';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createPrototypeRuntime,
   type MatchMedia,
@@ -628,6 +628,34 @@ describe('hostile snapshot files', () => {
     ).rejects.toThrow();
     expect(await dumpTables(runtime.db)).toEqual(before);
     expect(await runtime.snapshots.list()).toEqual(listed);
+  });
+
+  it('keeps the stored copy when the restore fails after the records were replaced', async () => {
+    const { runtime, snapshot } = await exported();
+    const listed = await runtime.snapshots.list();
+    const tasks = snapshot.tables.find((t: { name: string }) => t.name === 'tasks');
+    tasks.rows = [{ ...tasks.rows[0], title: 'from the file' }];
+    // The control-state write that follows the (committed) record restore fails.
+    const put = IDBObjectStore.prototype.put;
+    const spy = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (
+      this: IDBObjectStore,
+      ...args: Parameters<IDBObjectStore['put']>
+    ) {
+      if (this.name === 'state') throw new DOMException('Simulated failure', 'UnknownError');
+      return put.apply(this, args);
+    });
+    try {
+      await expect(
+        runtime.snapshots.importJson(JSON.stringify(snapshot), { restore: true })
+      ).rejects.toThrow();
+    } finally {
+      spy.mockRestore();
+    }
+    // The records already hold the file's rows, so the copy stays as the way back.
+    expect((await runtime.db.table('tasks').toArray()).map((t) => t.title)).toEqual([
+      'from the file',
+    ]);
+    expect(await runtime.snapshots.list()).toHaveLength(listed.length + 1);
   });
 
   it('rejects rows without a usable id and oversized worlds with a clear message', async () => {
