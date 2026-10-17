@@ -54,6 +54,7 @@ protoyard/
 │   ├── ui/                Svelte 5 components (Bits UI + Tailwind 4 + Lucide)                      (README)
 │   ├── devtools/          in-browser control center                                               (README)
 │   ├── renderer-svelte/   Vite config factory, mountPrototype, bindings, hash router               (README)
+│   ├── http/              optional mock HTTP layer (fetch-compatible, no service worker)    (README)
 │   └── cli/               `protoyard` CLI: index/new/dev/validate/build/export/preview/publish     (README)
 ├── apps/gallery/          Astro static gallery (reads the registry only)                           (README)
 ├── templates/<name>/      blank, dashboard, mobile-app, chat, onboarding, task-manager, ecommerce

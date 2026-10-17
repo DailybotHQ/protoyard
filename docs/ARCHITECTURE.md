@@ -25,6 +25,7 @@ protoyard/
 │   ├── devtools/         the in-browser control center
 │   ├── renderer-svelte/  Vite config factory, mountPrototype(), reactive bindings, hash router
 │   ├── http/             optional fetch-compatible mock API over prototype services (no server, no service worker)
+│   ├── http/             optional fetch-compatible mock API over prototype services
 │   └── cli/              the `protoyard` command (index, new, dev, validate, build, export, publish…)
 ├── apps/gallery/         Astro static site — reads the metadata registry only
 ├── templates/<name>/     functional starting points (same layout as a prototype)
