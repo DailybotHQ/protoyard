@@ -1,4 +1,5 @@
 export { default as InboxBadge } from './components/InboxBadge.svelte';
+export { default as TrialBanner } from './components/TrialBanner.svelte';
 export {
   DEFAULT_SAAS_UI_CONFIG,
   type ResolvedSaasUiConfig,
@@ -8,6 +9,7 @@ export {
 export {
   getSaas,
   hasSaas,
+  type ProvideSaasOptions,
   provideSaas,
   type SaasContext,
 } from './context.ts';
@@ -19,6 +21,7 @@ export {
   requireOnboarded,
   type SaasSessionLike,
 } from './guards.ts';
+export { daysUntil, formatCents } from './lib/money.ts';
 export {
   requireSaasApp,
   resolveEagerSaasScreens,

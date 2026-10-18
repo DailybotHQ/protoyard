@@ -170,6 +170,9 @@ describe('saasRoutes', () => {
     const screens = await resolveEagerSaasScreens();
     expect(Object.keys(screens).sort()).toEqual(
       [
+        'billingCheckout',
+        'billingPlans',
+        'billingPortal',
         'inbox',
         'magicLink',
         'mfa',
