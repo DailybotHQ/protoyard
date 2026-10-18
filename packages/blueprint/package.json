@@ -14,5 +14,9 @@
   "dependencies": {
     "@protoyard/core": "workspace:*",
     "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@protoyard/database": "workspace:*",
+    "@protoyard/scenarios": "workspace:*"
   }
 }
