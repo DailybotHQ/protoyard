@@ -12,6 +12,7 @@ export {
   type StepEffect,
   ValidationError,
 } from './onboarding.ts';
+export {
   createInbox,
   type DeliverInboxMessageInput,
   DeliverInboxMessageSchema,
