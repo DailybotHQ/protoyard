@@ -18,6 +18,7 @@ exporting, previewing and putting it on a host. Design decisions: ADR-009
 | `pnpm protoyard publish <slug> --provider <p>` | Build, verify, deploy, print the provider's URL | Yes |
 | `pnpm protoyard publish <slug> <slug>… \| --all \| --tag <tag> --provider <p> [--dry-run]` | The same for several prototypes, one after another, with one summary | Only without `--dry-run` |
 | `pnpm protoyard publish --history [<slug>…] [--provider <p>] [--limit <n>]` | Print the last recorded publishes from the local ledger | No |
+| `pnpm protoyard review-index [--from-ledger \| --slugs a,b]` | One static page linking every real deployment, with scenario and persona links | No |
 
 `pnpm protoyard build --all` builds every prototype one after another (for CI
 smoke runs).
@@ -264,6 +265,38 @@ entries }`. Lines that are not valid entries are skipped and counted. If the
 ledger cannot be written, the publish still reports its result, with a
 warning and `ledger: null`.
 
+### The team review index
+
+`pnpm protoyard review-index` writes one static page for reviewers,
+`artifacts/review/index.html`, plus `review-manifest.json` (the same data as
+JSON). For each prototype it shows the name, description and icon, then:
+
+- **Deployed** (the deploy ledger has a real publish): the URL the provider
+  printed, target and preview branch, publish time and commit, one link per
+  scenario (`?scenario=<id>`), and one per persona of the default scenario
+  (`?actor=<id>`, at most 12).
+- **Not deployed**: a "not deployed" badge and the command to publish it.
+  No URL is ever guessed. Dry runs and ZIPs do not count as deployments.
+
+```bash
+pnpm protoyard review-index                          # every prototype
+pnpm protoyard review-index --from-ledger            # only prototypes with a real deploy
+pnpm protoyard review-index --slugs crm-demo,mobile-banking-demo --title "Sprint 12 review"
+```
+
+| Option | Effect |
+| --- | --- |
+| `--out <dir>` | Output folder (default `artifacts/review`, same safety rules as `build --out`) |
+| `--base <path>` | Public base of the review page itself (`./` or `/sub/path/`), used for its link to `review-manifest.json` |
+| `--provider <p>` | Provider named in the publish command for undeployed prototypes (default `cloudflare`) |
+| `--no-personas` | Skip persona links. Persona ids come from running each deployed prototype's generator for its default scenario in a child process, as `validate` does. |
+
+The page has no JavaScript and no external requests: plain HTML with inline
+CSS using the default theme's tokens, light and dark. All text is escaped. The
+same ledger and registry produce the same bytes, so the page can be committed
+or diffed. Publishing the page itself is a separate step.
+
+### Cloudflare Pages
 ### Cloudflare Pages
 
 Dry run first. It needs no account and does not require Wrangler:

@@ -11,6 +11,7 @@ import { listCommand } from './commands/list.ts';
 import { newCommand } from './commands/new.ts';
 import { previewCommand } from './commands/preview.ts';
 import { publishCommand } from './commands/publish.ts';
+import { reviewIndexCommand } from './commands/review-index.ts';
 import {
   scenarioBenchCommand,
   scenarioListCommand,
@@ -257,6 +258,24 @@ export function createProgram(env: RunnerEnv): Command {
     .command('snapshot')
     .description('snapshot files committed with a prototype');
   snapshot.command('list').argument('<slug>').action(def('snapshot list', snapshotListCommand));
+
+  program
+    .command('review-index')
+    .description(
+      'one static page for reviewers: every published prototype with scenario and persona links'
+    )
+    .option('--out <dir>', 'output folder (default artifacts/review)')
+    .option('--allow-external-out', 'permit an --out outside the workspace (must be new or empty)')
+    .option('--from-ledger', 'only prototypes with a recorded real deploy')
+    .option('--slugs <list>', 'only these prototypes (comma-separated)')
+    .option('--base <path>', "public base of the review page ('./' or /sub/path/)")
+    .option('--title <text>', 'page title (default "Prototype review")')
+    .option(
+      '--provider <id>',
+      'provider named in the publish command for undeployed prototypes (default cloudflare)'
+    )
+    .option('--no-personas', 'skip persona links (they run each generator in a child process)')
+    .action(def('review-index', reviewIndexCommand));
 
   program
     .command('showcase')
