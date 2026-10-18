@@ -1,3 +1,4 @@
+import { parseInput, ValidationError } from '@protoyard/core';
 import { z } from 'zod';
 import {
   COLOR_MODES,
@@ -9,29 +10,13 @@ import {
 } from '../database/schema.ts';
 
 /**
- * One zod schema per step. `ValidationError.issues` maps a field path
- * (`invites.1.email`) to its first message so steps render errors inline.
+ * One zod schema per step. Field errors come from core `ValidationError.issues`
+ * (path → first message, e.g. `invites.1.email`) so steps render them inline.
  */
 
-export class ValidationError extends Error {
-  readonly issues: Record<string, string>;
-  constructor(issues: Record<string, string>) {
-    super(Object.values(issues)[0] ?? 'Invalid input');
-    this.name = 'ValidationError';
-    this.issues = issues;
-  }
-}
-
-export function parse<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
-  const result = schema.safeParse(input);
-  if (result.success) return result.data;
-  const issues: Record<string, string> = {};
-  for (const issue of result.error.issues) {
-    const key = issue.path.join('.') || 'form';
-    issues[key] ??= issue.message;
-  }
-  throw new ValidationError(issues);
-}
+export { parseInput, ValidationError };
+/** Local alias so services keep calling `parse(Schema, input)`. */
+export const parse = parseInput;
 
 export const ProfileSchema = z.object({
   fullName: z.string().trim().min(2, 'Enter your full name').max(60, 'Keep it under 60 characters'),

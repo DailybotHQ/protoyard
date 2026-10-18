@@ -1,31 +1,16 @@
+import { parseInput, ValidationError } from '@protoyard/core';
 import { z } from 'zod';
 import { CURRENCIES, CUSTOMER_STATUSES, PLANS } from '../database/schema.ts';
 
 /**
- * Input schemas for every service. `ValidationError.issues` maps a field name
- * to its first message so dialogs can render errors inline (runService leaves
- * these errors to the form instead of toasting them).
+ * Input schemas for every service. Field errors come from core
+ * `ValidationError.issues` (path → first message) so dialogs can render them
+ * inline; `runService` leaves these errors to the form instead of toasting them.
  */
 
-export class ValidationError extends Error {
-  readonly issues: Record<string, string>;
-  constructor(issues: Record<string, string>) {
-    super(Object.values(issues)[0] ?? 'Invalid input');
-    this.name = 'ValidationError';
-    this.issues = issues;
-  }
-}
-
-export function parse<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
-  const result = schema.safeParse(input);
-  if (result.success) return result.data;
-  const issues: Record<string, string> = {};
-  for (const issue of result.error.issues) {
-    const key = issue.path.join('.') || 'form';
-    issues[key] ??= issue.message;
-  }
-  throw new ValidationError(issues);
-}
+export { parseInput, ValidationError };
+/** Local alias so services keep calling `parse(Schema, input)`. */
+export const parse = parseInput;
 
 export const CustomerInputSchema = z.object({
   name: z.string().trim().min(2, 'Name must have at least 2 characters').max(80),

@@ -1,4 +1,9 @@
-import { createRuntimeId, type PrototypeRuntime } from '@protoyard/core';
+import {
+  createRuntimeId,
+  type PrototypeRuntime,
+  parseInput,
+  ValidationError,
+} from '@protoyard/core';
 import { z } from 'zod';
 import {
   type CartItem,
@@ -11,6 +16,8 @@ import {
 } from '../database/schema.ts';
 import { computeTotals, parseDollars } from './catalog.ts';
 import { CAPABILITIES } from './policy.ts';
+
+export { ValidationError };
 
 /**
  * Domain services: the ONLY way the UI changes data. Each mutation
@@ -85,15 +92,6 @@ export const ProductEditSchema = z.object({
 });
 export type ProductEditInput = z.input<typeof ProductEditSchema>;
 
-export class ValidationError extends Error {
-  readonly issues: Record<string, string>;
-  constructor(issues: Record<string, string>) {
-    super(Object.values(issues)[0] ?? 'Invalid input');
-    this.issues = issues;
-    this.name = 'ValidationError';
-  }
-}
-
 export interface Shortage {
   productId: string;
   name: string;
@@ -123,17 +121,6 @@ export class EmptyCartError extends ValidationError {
     super({ cart: 'Your cart is empty.' });
     this.name = 'EmptyCartError';
   }
-}
-
-function parse<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
-  const result = schema.safeParse(input);
-  if (result.success) return result.data;
-  const issues: Record<string, string> = {};
-  for (const issue of result.error.issues) {
-    const key = issue.path.join('.') || 'form';
-    issues[key] ??= issue.message;
-  }
-  throw new ValidationError(issues);
 }
 
 /** Statuses an order may move to (no going backwards, no reviving cancelled orders). */
@@ -225,7 +212,7 @@ export function createShopServices(runtime: PrototypeRuntime<ShopDatabase>) {
        */
       async placeOrder(input: CheckoutInput): Promise<Order> {
         session.assert(CAPABILITIES.checkout);
-        const data = parse(CheckoutSchema, input);
+        const data = parseInput(CheckoutSchema, input);
         const owner = customerId();
         return environment.run('checkout.placeOrder', () =>
           db.transaction('rw', [db.products, db.cartItems, db.orders, db.orderItems], async () => {
@@ -350,7 +337,7 @@ export function createShopServices(runtime: PrototypeRuntime<ShopDatabase>) {
     products: {
       async update(id: string, input: ProductEditInput): Promise<void> {
         session.assert(CAPABILITIES.productsManage);
-        const data = parse(ProductEditSchema, input);
+        const data = parseInput(ProductEditSchema, input);
         if (data.compareAt !== null && data.compareAt <= data.price) {
           throw new ValidationError({ compareAt: 'The “was” price must be higher than the price' });
         }
