@@ -6,6 +6,7 @@ import {
   ValidationError,
 } from '@protoyard/core';
 import { z } from 'zod';
+import { blueprintUsesAudit, createAuditWriter } from './audit.ts';
 import {
   type CsvParseOptions,
   type CsvRowError,
@@ -239,7 +240,7 @@ export function createEntityServices(
   const filesEnabled = blueprint.entities.some((e) => e.features.files);
   const notificationsEnabled =
     blueprint.notifications.length > 0 || blueprint.entities.some((e) => e.features.notifications);
-  const auditEnabled = blueprint.entities.some((e) => e.features.audit);
+  const auditEnabled = blueprintUsesAudit(blueprint);
   const writeTables = [
     ...tables,
     ...(filesEnabled ? [FEATURE_TABLES.files] : []),
@@ -251,6 +252,7 @@ export function createEntityServices(
       : []),
   ];
   const notify = createNotificationWriter(runtime, blueprint);
+  const audit = createAuditWriter(runtime, blueprint);
 
   /** Relation fields (in any entity) that point at `target`. */
   const referencesTo = (target: string): Reference[] =>
@@ -402,27 +404,25 @@ export function createEntityServices(
     return { headers: headerRow, columns, valid, errors, rowCount };
   }
 
+  /** CSV import commits use the same audit writer as live mutations (diff + redaction). */
   async function writeAuditBatch(
     entity: BlueprintEntity,
     rows: readonly Row[],
-    action: string,
-    actor: string
+    action: 'create' | 'import'
   ): Promise<string[]> {
     if (!entity.features.audit || rows.length === 0) return [];
-    const at = clock.now().toISOString();
-    const entries = rows.map((row) => {
-      const id = createRuntimeId('audit');
-      return {
-        id,
-        entity: entity.name,
-        recordId: row.id,
-        actorId: actor,
+    const ids: string[] = [];
+    for (const row of rows) {
+      const entry = await audit({
         action,
-        at,
-      } satisfies Row;
-    });
-    await putChunked(db.table(FEATURE_TABLES.audit), entries);
-    return entries.map((e) => e.id);
+        entity,
+        recordId: row.id,
+        before: null,
+        after: row,
+      });
+      if (entry) ids.push(entry.id);
+    }
+    return ids;
   }
 
   /** Fails with a field-keyed ValidationError when a referenced row is missing. */
@@ -654,6 +654,7 @@ export function createEntityServices(
               updatedAt: now,
             };
             await db.table(table).put(row);
+            await audit({ action: 'create', entity, recordId: row.id, before: null, after: row });
             await notify({ on: 'create', entity, row });
             return row;
           })
@@ -670,6 +671,13 @@ export function createEntityServices(
             await assertReferences(entity, values);
             const row: Row = { ...current, ...values, id, updatedAt: clock.now().toISOString() };
             await db.table(table).put(row);
+            await audit({
+              action: 'update',
+              entity,
+              recordId: id,
+              before: current,
+              after: row,
+            });
             await notify({ on: 'update', entity, row, previous: current });
             return row;
           })
@@ -682,11 +690,18 @@ export function createEntityServices(
         if (entity.features.softDelete) {
           return environment.run(op('remove'), () =>
             db.transaction('rw', writeTables, async () => {
-              await load(id);
+              const current = await load(id);
               const deletedAt = clock.now().toISOString();
               const result = await deleteWithEffects(entity, [id], deletedAt, actorId());
               if (typeof result === 'number')
                 throw new Error('Soft delete did not create an undo set.');
+              await audit({
+                action: 'delete',
+                entity,
+                recordId: id,
+                before: current,
+                after: { ...current, deletedAt, deletedBy: actorId() },
+              });
               const payload: UndoPayload = {
                 version: 1,
                 entity: entity.name,
@@ -701,8 +716,15 @@ export function createEntityServices(
         }
         await environment.run(op('remove'), () =>
           db.transaction('rw', writeTables, async () => {
-            await load(id);
+            const current = await load(id);
             await deleteWithEffects(entity, [id]);
+            await audit({
+              action: 'delete',
+              entity,
+              recordId: id,
+              before: current,
+              after: null,
+            });
           })
         );
         return undefined;
@@ -763,6 +785,16 @@ export function createEntityServices(
               await putChunked(db.table(entityTable(byName.get(name) as BlueprintEntity)), rows);
               count += rows.length;
             }
+            const restoredRoot = restored.get(entity.name)?.[0];
+            if (restoredRoot) {
+              await audit({
+                action: 'restore',
+                entity,
+                recordId: restoredRoot.id,
+                before: root,
+                after: restoredRoot,
+              });
+            }
             return count;
           })
         );
@@ -778,6 +810,13 @@ export function createEntityServices(
             if (!current?.deletedAt) throw new EntityNotFoundError(entity.name, id);
             const deleted = await deleteWithEffects(entity, [id]);
             if (typeof deleted !== 'number') throw new Error('Purge did not hard delete rows.');
+            await audit({
+              action: 'purge',
+              entity,
+              recordId: id,
+              before: current,
+              after: null,
+            });
             return deleted;
           })
         );
@@ -796,7 +835,16 @@ export function createEntityServices(
             const rows = current.map((row) => ({ ...row, ...values, id: row.id, updatedAt: now }));
             await putChunked(db.table(table), rows);
             for (let i = 0; i < rows.length; i += 1) {
-              await notify({ on: 'update', entity, row: rows[i] as Row, previous: current[i] });
+              const previous = current[i] as Row;
+              const next = rows[i] as Row;
+              await audit({
+                action: 'update',
+                entity,
+                recordId: next.id,
+                before: previous,
+                after: next,
+              });
+              await notify({ on: 'update', entity, row: next, previous });
             }
             return rows;
           })
@@ -809,8 +857,17 @@ export function createEntityServices(
         for (const row of existing) assertOn('delete', row);
         return environment.run(op('bulkRemove'), () =>
           db.transaction('rw', writeTables, async () => {
-            await Promise.all(unique.map(load));
+            const current = await Promise.all(unique.map(load));
             const result = await deleteWithEffects(entity, unique);
+            for (const row of current) {
+              await audit({
+                action: 'delete',
+                entity,
+                recordId: row.id,
+                before: row,
+                after: null,
+              });
+            }
             return typeof result === 'number' ? result : result.count;
           })
         );
@@ -878,7 +935,7 @@ export function createEntityServices(
               created.push(row);
             }
             await putChunked(db.table(table), created);
-            const auditIds = await writeAuditBatch(entity, created, 'import', actor);
+            const auditIds = await writeAuditBatch(entity, created, 'import');
             for (const row of created) {
               await notify({ on: 'create', entity, row });
             }

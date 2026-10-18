@@ -1,0 +1,29 @@
+{
+  "name": "@protoyard-template/team-chat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Protoyard team-chat template: Slack-like workspaces, channels, DMs, threads, reactions, presence, search, slash commands, AI bots and simulated huddles with captions.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/ai": "workspace:*",
+    "@protoyard/ai-ui": "workspace:*",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "dexie": "^4.4.0",
+    "svelte": "^5.57.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@protoyard/runtime": "workspace:*",
+    "@protoyard/scenarios": "workspace:*"
+  }
+}

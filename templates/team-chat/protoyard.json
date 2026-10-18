@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.team-chat",
+  "slug": "team-chat",
+  "kind": "template",
+  "name": "Team chat",
+  "description": "A Slack-like team chat starter: workspaces, channels and DMs, threads, reactions, mentions, presence, unread state, search, file shares, slash commands, AI bots in channels, and simulated huddles with captions. Simulated AI only — no real models.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "communication",
+  "tags": ["starter", "chat", "team", "slack", "ai", "bots", "voice", "huddle"],
+  "status": "ready",
+  "icon": "💬",
+  "defaultScenario": "busy-day",
+  "defaultTheme": "ocean",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop", "shell": "browser" },
+  "storage": { "namespace": "template-team-chat", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "busy-day", "quiet-night", "viewer"]
+}

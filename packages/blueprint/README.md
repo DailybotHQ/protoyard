@@ -9,8 +9,8 @@ Framework-agnostic: it depends only on `@protoyard/core` and zod and never impor
 
 ## Status
 
-Implemented: schema, storage, migrations, validation, policy, notifications, file services and CSV codec. Remaining
-derivations land in later PLAN_002 tasks:
+Implemented: schema, storage, migrations, validation, policy, notifications, audit, file
+services and CSV codec. Remaining work lands in later PLAN_002 tasks:
 
 | Module | Derives | Status |
 | --- | --- | --- |
@@ -19,6 +19,7 @@ derivations land in later PLAN_002 tasks:
 | validation | create and update zod input schemas per entity | done |
 | policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
 | notifications | validated create/update/assignment rules, atomic writes and actor-scoped read state | done |
+| audit | per-mutation `auditEntries` rows (diff + sensitive redaction) and history reads | done |
 | files | size/type/quota checked Blob uploads, metadata listing, on-demand reads and removal | done |
 | csv | RFC 4180 parse/serialize + row validation (`@protoyard/blueprint/csv`) | done |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
@@ -194,6 +195,26 @@ const { valid, errors } = validateCsv(entity, text);
 - Money and dates go through `deriveInputSchemas` create coercion (`12.50` → 1250 cents).
 - Export prefixes cells starting with `= + - @` with `'` (spreadsheet formula guard).
 - Hard limits: `CSV_MAX_BYTES` (2 MiB) and `CSV_MAX_ROWS` (10,000 data rows); override per call.
+
+## Audit log
+
+When an entity sets `features.audit`, every successful mutation writes one row to the shared
+`auditEntries` table **inside the same Dexie transaction** as the row change:
+
+```ts
+import { createEntityServices, createAuditService } from '@protoyard/blueprint';
+
+const services = createEntityServices(runtime, blueprint);
+const audit = createAuditService(runtime, blueprint);
+await services.ticket.update(id, { status: 'solved' });
+const history = await audit.listForRecord('ticket', id);
+// [{ action: 'update', actorId, at, changes: { status: { before: 'open', after: 'solved' } } }, …]
+```
+
+- Diffs list **only changed** input properties; `sensitive` fields store `[redacted]`.
+- Failed mutations (validation, permission denied, offline) write **no** audit row.
+- Soft delete / restore / purge / bulk ops emit `delete` / `restore` / `purge` / `update` actions.
+- `listForRecord` and `listRecent` require `<entity>:read` on an audited entity.
 
 ## Entity services
 
