@@ -87,8 +87,9 @@ The frame decoration is a lazily loaded chunk registered in
 - **`extension-popup`** reuses `BrowserChrome` for a fictional browser toolbar and shows
   the app in a 360×600 popup (`--py-app-height: 600px`) anchored under the extension
   icon. It opens for review, closes on an outside click or Escape, and can be pinned open.
-- **`tablet`** still uses a generic bezel until its detailed frame ships. Shells without a
-  registered frame render full-bleed.
+- **`tablet`** uses a brand-neutral tablet frame with a working orientation control.
+  Phone and tablet orientation overrides update the device dimensions and the safe-area
+  tokens. Shells without a registered frame render full-bleed.
 
 A registry entry can reserve `screenInset` space inside the device box for its own chrome
 (the desktop window's 40 px title bar, the browser's 88 px toolbar), and can set

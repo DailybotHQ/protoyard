@@ -1,4 +1,4 @@
-import { getDevice, orient, safeAreaOf } from '@protoyard/core';
+import { getDevice, orient, rotate, safeAreaOf } from '@protoyard/core';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +16,7 @@ import {
   SIDE_PANEL_WIDTH_STEP,
   sidePanelWidthKey,
 } from '../src/shell/frames/side-panel-prefs.ts';
+import TabletFrame from '../src/shell/frames/TabletFrame.svelte';
 import WidgetHostFrame from '../src/shell/frames/WidgetHostFrame.svelte';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import ProbeApp from './fixtures/ProbeApp.svelte';
@@ -112,6 +113,53 @@ describe('PhoneFrame', () => {
     expect(frame?.style.height).toBe(`${spec.height}px`);
     expect(spec.width).toBe(base.height);
     expect(spec.height).toBe(base.width);
+    expect(safeAreaOf(spec)).toEqual({ top: 0, right: 59, bottom: 21, left: 59 });
+  });
+
+  it('persists the phone orientation toggle as a runtime appearance override', async () => {
+    const spec = getDevice('phone-pill');
+    const runtime = createFakeRuntime();
+    runtimeMock.current = runtime;
+    if (!spec) return;
+
+    render(PhoneFrame, { spec, shell: 'phone' });
+    await fireEvent.click(screen.getByRole('button', { name: 'Rotate phone to landscape' }));
+    expect(runtime.theme.appearance().orientation.value).toBe('landscape');
+  });
+});
+
+describe('tablet frame', () => {
+  it('renders catalog dimensions and persists orientation from its control', async () => {
+    const runtime = createFakeRuntime();
+    runtimeMock.current = runtime;
+    const spec = getDevice('tablet');
+    if (!spec) return;
+
+    const { container } = render(TabletFrame, { spec, shell: 'tablet' });
+    const frame = container.querySelector<HTMLElement>('[data-py-frame="tablet"]');
+    expect(frame?.style.width).toBe(`${spec.width}px`);
+    expect(frame?.style.height).toBe(`${spec.height}px`);
+    expect(container.querySelector('[data-py-home-indicator]')).not.toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Rotate tablet to landscape' }));
+    expect(runtime.theme.appearance().orientation.value).toBe('landscape');
+  });
+
+  it('rotates tablet and phone catalog geometry and safe-area insets', () => {
+    const tablet = getDevice('tablet');
+    const phone = getDevice('phone-pill');
+    if (!tablet || !phone) return;
+
+    const landscapeTablet = rotate(tablet);
+    expect(landscapeTablet.width).toBe(tablet.height);
+    expect(landscapeTablet.height).toBe(tablet.width);
+    expect(landscapeTablet.orientation).toBe('landscape');
+    expect(safeAreaOf(landscapeTablet)).toEqual(tablet.safeArea.landscape);
+
+    const landscapePhone = rotate(phone);
+    expect(landscapePhone.width).toBe(phone.height);
+    expect(landscapePhone.height).toBe(phone.width);
+    expect(safeAreaOf(landscapePhone)).toEqual({ top: 0, right: 59, bottom: 21, left: 59 });
   });
 });
 
@@ -177,6 +225,13 @@ describe('frame registry', () => {
     expect(entry).toBeDefined();
     const mod = await entry!.load();
     expect(mod.default).toBe(PhoneFrame);
+  });
+
+  it('lazy-loads TabletFrame for the tablet shell', async () => {
+    const entry = FRAMES.tablet;
+    expect(entry).toBeDefined();
+    const mod = await entry!.load();
+    expect(mod.default).toBe(TabletFrame);
   });
 
   it('lazy-loads ExtensionPopupFrame for the extension-popup shell', async () => {
@@ -597,6 +652,7 @@ describe('browser frame', () => {
     location.hash = '#/home';
     document.title = 'CRM Demo';
     const runtime = createFakeRuntime({ persistent: true });
+    runtimeMock.current = null;
     if (options.origin) {
       const preview = runtime.definition.manifest.preview as {
         chrome?: { origin?: string };
@@ -617,6 +673,26 @@ describe('browser frame', () => {
     destroy = mounted.destroy;
     return { mounted, runtime, target };
   }
+
+  it('rotates the mounted tablet shell and updates safe-area tokens live', async () => {
+    const { runtime, target } = await boot();
+    await runtime.theme.setOverride({ shell: 'tablet', device: 'tablet' });
+    flushSync();
+    await vi.waitFor(() => expect(target.querySelector('[data-py-frame="tablet"]')).not.toBeNull());
+
+    const device = target.querySelector<HTMLElement>('[data-py-shell-part="device"]');
+    const screen = target.querySelector<HTMLElement>('[data-py-shell-part="screen"]');
+    expect(device?.style.width).toBe('820px');
+    expect(device?.style.height).toBe('1180px');
+
+    await fireEvent.click(
+      target.querySelector('[data-py-orientation-toggle]') as HTMLButtonElement
+    );
+    await vi.waitFor(() => expect(device?.style.width).toBe('1180px'));
+    expect(device?.style.height).toBe('820px');
+    expect(screen?.style.getPropertyValue('--py-safe-top')).toBe('24px');
+    expect(runtime.theme.appearance().orientation.value).toBe('landscape');
+  });
 
   it('registers the browser shell frame and frames it when the window fits', () => {
     expect(FRAMES.browser).toBeDefined();
