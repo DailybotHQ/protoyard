@@ -23,8 +23,8 @@ The table layout, row schemas and integrity rules, plus:
 
 - **Magic link** — `createMagicLinkServices(runtime)`
 - **MFA (simulated TOTP + recovery)** — `createMfaServices(runtime)`
-
-Invitations services come in later PLAN_002 tasks.
+- **Password reset** — `createPasswordResetServices(runtime)`
+- **Workspace invitations** — `createInvitationServices(runtime)`
 
 ### Magic link (`createMagicLinkServices`)
 
@@ -66,6 +66,35 @@ if (step.status === 'mfa-required') {
 - Codes are **deterministic** from the stored seed and a 30s window of `clock.now()` — not real TOTP.
 - Active MFA blocks password and magic-link sign-in until `completeChallenge`.
 - Recovery codes are single-use; `disable` requires a valid code or recovery code.
+
+### Password reset (`createPasswordResetServices`)
+
+```ts
+const reset = createPasswordResetServices(runtime, { productName: 'Acme' });
+const { token } = await reset.request({ email: 'ada@example.com' });
+await reset.consume({ tokenId: token!.id, password: 'new simulated password' });
+```
+
+- Reset links are single-use and expire on the simulated clock (30 minutes by default).
+- Unknown and disabled accounts return `{ delivered: false }` without writing a token or message.
+- The new password is stored as a simulated value; this does not send email or provide security.
+
+### Workspace invitations (`createInvitationServices`)
+
+```ts
+const invites = createInvitationServices(runtime, { productName: 'Acme' });
+const { invitation, token } = await invites.create({ email: 'grace@example.com', role: 'member' });
+await invites.resend(invitation.id); // invalidates the previous link
+const accepted = await invites.accept({ tokenId: token.id });
+// await invites.revoke(invitation.id) while it is pending
+```
+
+- Create, resend and revoke require the `members:invite` capability for the active workspace.
+- Accepting an unexpired link consumes it and creates one membership. Existing accounts are
+  matched by email; a new invitee gets a persona and simulated account. Optional `name` and
+  `password` fields supply the new account details.
+- The inbox is local to the prototype. No email is sent, and accepting an invite does not sign
+  the person in or bypass MFA.
 
 ### OAuth (`createOAuthSimulator`)
 
@@ -176,8 +205,8 @@ await auth.signOut();
 - **The password is stored as typed.** That is deliberate: this is UX
   simulation, not security, and nothing here protects or transmits a real
   credential.
-- A locked account has no unlock flow yet. Password reset comes in a later
-  task.
+- Password reset clears failed attempts and unlocks a locked account. Disabled
+  accounts remain unavailable.
 
 ### Workspaces (`createWorkspaces`)
 
