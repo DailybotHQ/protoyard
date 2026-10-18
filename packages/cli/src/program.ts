@@ -20,6 +20,12 @@ import {
 import { controlServerCommand, galleryCommand } from './commands/serve.ts';
 import { showcaseCommand } from './commands/showcase.ts';
 import { snapshotListCommand } from './commands/snapshot.ts';
+import {
+  themeCreateCommand,
+  themeExportCommand,
+  themeImportCommand,
+  themeListCommand,
+} from './commands/theme.ts';
 import { validateCommand } from './commands/validate.ts';
 import { action, type RunnerEnv } from './lib/command.ts';
 import { CliError, ExitCode, errorEnvelope, processStreams } from './lib/output.ts';
@@ -260,6 +266,43 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--runs <count>', 'runs per scenario', '3')
     .option('--check', 'fail when median generation plus validation exceeds the budget')
     .action(def('scenario bench', scenarioBenchCommand));
+
+  const theme = program.command('theme').description('create, list, export and import themes');
+  theme
+    .command('list')
+    .description('list built-in and library themes')
+    .action(def('theme list', themeListCommand));
+  theme
+    .command('create')
+    .description('write a typed theme into a prototype from a seed or JSON file')
+    .argument('<slug>', 'prototype slug')
+    .option('--id <id>', 'theme id (lowercase kebab-case; required with --seed)')
+    .option('--name <name>', 'theme display name')
+    .option('--seed <hex>', 'brand color seed (#rgb or #rrggbb)')
+    .option('--secondary <hex>', 'optional secondary brand color')
+    .option('--from <file>', 'theme JSON file to import')
+    .option('--force', 'overwrite src/theme.ts')
+    .option('--dry-run', 'show the generated file without writing')
+    .action(def('theme create', themeCreateCommand));
+  theme
+    .command('export')
+    .description('export a theme as CSS variables, Tailwind tokens or W3C design tokens')
+    .argument('[id]', 'built-in or library theme id; use --from for custom JSON themes')
+    .option('--from <file>', 'custom theme JSON file')
+    .addOption(
+      new Option('--format <format>', 'css, tailwind or tokens')
+        .choices(['css', 'tailwind', 'tokens'])
+        .default('css')
+    )
+    .action(def('theme export', themeExportCommand));
+  theme
+    .command('import')
+    .description('write a validated JSON theme into a prototype')
+    .argument('<slug>', 'prototype slug')
+    .argument('<file>', 'path to a theme JSON file')
+    .option('--force', 'overwrite src/theme.ts')
+    .option('--dry-run', 'show the generated file without writing')
+    .action(def('theme import', themeImportCommand));
 
   const snapshot = program
     .command('snapshot')
