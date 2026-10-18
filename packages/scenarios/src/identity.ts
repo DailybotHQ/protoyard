@@ -39,14 +39,60 @@ const DEFAULT_TITLES: Record<string, readonly string[]> = {
 
 const PLAN_BY_SUBSCRIPTION: Record<
   SubscriptionStatus,
-  Pick<Organization, 'plan' | 'billingStatus'>
+  Pick<Organization, 'plan' | 'billingStatus' | 'billingInterval'>
 > = {
-  free: { plan: 'free', billingStatus: 'none' },
-  trial: { plan: 'pro', billingStatus: 'trialing' },
-  pro: { plan: 'pro', billingStatus: 'active' },
-  enterprise: { plan: 'enterprise', billingStatus: 'active' },
-  expired: { plan: 'pro', billingStatus: 'expired' },
+  free: { plan: 'free', billingStatus: 'none', billingInterval: null },
+  trial: { plan: 'pro', billingStatus: 'trialing', billingInterval: 'month' },
+  pro: { plan: 'pro', billingStatus: 'active', billingInterval: 'month' },
+  enterprise: { plan: 'enterprise', billingStatus: 'active', billingInterval: 'year' },
+  expired: { plan: 'pro', billingStatus: 'expired', billingInterval: 'month' },
 };
+
+/** Days left on a generated trial. */
+export const TRIAL_DAYS_LEFT = 7;
+/** How long ago a generated `expired` subscription lapsed. */
+export const LAPSED_DAYS_AGO = 14;
+/** Billing periods are fixed lengths from the organization's creation (no calendar math). */
+const PERIOD_DAYS = { month: 30, year: 365 } as const;
+
+/**
+ * Simulated billing fields, derived only from the subscription, the team
+ * size and `ctx.time` (no rng), so adding them shifts no other value.
+ */
+export function billingFields(
+  subscription: SubscriptionStatus,
+  size: number,
+  createdMs: number,
+  nowMs: number
+): Pick<Organization, 'trialEndsAt' | 'seats' | 'billingInterval' | 'currentPeriodEnd'> {
+  const { billingInterval } = PLAN_BY_SUBSCRIPTION[subscription];
+  // Enterprise buys seats in blocks of 10; everyone else pays for who is there.
+  const seats = subscription === 'enterprise' ? Math.max(10, Math.ceil(size / 10) * 10) : size;
+  const iso = (ms: number) => new Date(ms).toISOString();
+  if (subscription === 'trial') {
+    const end = iso(nowMs + TRIAL_DAYS_LEFT * MS_PER_DAY);
+    return { trialEndsAt: end, seats, billingInterval, currentPeriodEnd: end };
+  }
+  if (subscription === 'expired') {
+    return {
+      trialEndsAt: null,
+      seats,
+      billingInterval,
+      currentPeriodEnd: iso(nowMs - LAPSED_DAYS_AGO * MS_PER_DAY),
+    };
+  }
+  if (!billingInterval) {
+    return { trialEndsAt: null, seats, billingInterval: null, currentPeriodEnd: null };
+  }
+  const periodMs = PERIOD_DAYS[billingInterval] * MS_PER_DAY;
+  const periods = Math.floor(Math.max(0, nowMs - createdMs) / periodMs) + 1;
+  return {
+    trialEndsAt: null,
+    seats,
+    billingInterval,
+    currentPeriodEnd: iso(createdMs + periods * periodMs),
+  };
+}
 
 export interface GenerateTeamOptions {
   /** Field overrides for the organization (name, type…). */
@@ -118,6 +164,7 @@ export function generateTeam(ctx: GenerateContext, options: GenerateTeamOptions 
     createdAt: new Date(orgCreatedMs).toISOString(),
     size,
     featureFlags: { ...scenario.organization.featureFlags },
+    ...billingFields(scenario.organization.subscription, size, orgCreatedMs, nowMs),
     ...options.organization,
   };
 

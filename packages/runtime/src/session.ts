@@ -5,37 +5,59 @@ import { applyOverrides } from './overrides.ts';
 /**
  * Switching actor or organization only changes WHO is looking: it persists
  * an id in the control DB and recomputes the principal. Records are untouched.
+ * Sign-in / sign-out (UX simulation, not authentication) persist `signedOut`
+ * next to `actorId`, so the state survives a reload.
  */
 export function createSessionController(k: Kernel): SessionController {
+  /** Recomputes the principal; an explicit session action wins over a DevTools actor override. */
+  async function dropActorOverride(writes: Promise<void> = Promise.resolve()) {
+    if (k.overrides.actorId !== undefined) {
+      const { actorId: _drop, ...rest } = k.overrides;
+      await Promise.all([writes, applyOverrides(k, rest as Overrides)]);
+    } else {
+      k.refreshDerived();
+      await writes;
+    }
+  }
+
+  /** Acts as `personaId`; `signedOut` stays as given (switching never signs in). */
+  async function act(personaId: string, signedOut: boolean) {
+    if (!k.personas.some((p) => p.id === personaId)) {
+      throw new Error(`Unknown persona "${personaId}".`);
+    }
+    k.actorId = personaId;
+    k.signedOut = signedOut;
+    // Keep the current org when the persona belongs to it, else its first org.
+    const own = k.memberships.filter((m) => m.personaId === personaId);
+    if (own.length && !own.some((m) => m.organizationId === k.organizationId)) {
+      k.organizationId = own[0]?.organizationId ?? k.organizationId;
+    }
+    await dropActorOverride(
+      k.writeControl({
+        actorId: personaId,
+        ...(k.organizationId ? { organizationId: k.organizationId } : {}),
+        signedOut: signedOut ? true : null,
+      })
+    );
+  }
+
   return {
     principal: () => k.principal,
     personas: () => k.personas,
     organizations: () => k.organizations,
     memberships: () => k.memberships,
 
-    async switchActor(personaId) {
-      if (!k.personas.some((p) => p.id === personaId)) {
-        throw new Error(`Unknown persona "${personaId}".`);
-      }
-      k.actorId = personaId;
-      // Keep the current org when the persona belongs to it, else its first org.
-      const own = k.memberships.filter((m) => m.personaId === personaId);
-      if (own.length && !own.some((m) => m.organizationId === k.organizationId)) {
-        k.organizationId = own[0]?.organizationId ?? k.organizationId;
-      }
-      const writes = k.writeControl({
-        actorId: personaId,
-        ...(k.organizationId ? { organizationId: k.organizationId } : {}),
-      });
-      // An explicit switch wins over a leftover DevTools actor override.
-      if (k.overrides.actorId !== undefined) {
-        const { actorId: _drop, ...rest } = k.overrides;
-        await Promise.all([writes, applyOverrides(k, rest as Overrides)]);
-      } else {
-        k.refreshDerived();
-        await writes;
-      }
+    switchActor: (personaId) => act(personaId, k.signedOut),
+
+    signIn: (personaId) => act(personaId, false),
+
+    async signOut() {
+      k.signedOut = true;
+      await dropActorOverride(k.writeControl({ signedOut: true }));
     },
+
+    isSignedIn: () => k.principal !== null,
+    authState: () => (k.principal ? 'signed-in' : 'signed-out'),
 
     async switchOrganization(organizationId) {
       if (!k.organizations.some((o) => o.id === organizationId)) {

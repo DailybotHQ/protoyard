@@ -20,10 +20,13 @@ export {
 export { createGenerateContext, createSeededFaker } from './context-sync.ts';
 export {
   AVATAR_COLORS,
+  billingFields,
   EXAMPLE_EMAIL_DOMAINS,
   type GenerateTeamOptions,
   generateTeam,
+  LAPSED_DAYS_AGO,
   type Team,
+  TRIAL_DAYS_LEFT,
 } from './identity.ts';
 export {
   type IntegrityViolation,

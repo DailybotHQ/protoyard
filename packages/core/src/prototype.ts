@@ -1,4 +1,5 @@
 import type { Faker } from '@faker-js/faker';
+import { z } from 'zod';
 import type { TimeHelpers } from './clock.ts';
 import type { DomainEvent } from './events.ts';
 import type { PrototypeManifest } from './manifest.ts';
@@ -91,8 +92,26 @@ export interface IntegrityRules {
   timestamps?: Record<string, readonly string[]>;
 }
 
+/**
+ * Simulated sign-in behavior (UX simulation, NOT authentication). Lives on
+ * the definition, not in `protoyard.json`, so manifests stay data-only.
+ */
+export const PrototypeAuthOptionsSchema = z
+  .object({
+    /**
+     * Start every scenario load signed out, so the app shows its sign-in
+     * screen until a service calls `session.signIn(personaId)`. Default
+     * `false`: the scenario actor is signed in, as in every prototype so far.
+     */
+    signedOutByDefault: z.boolean().default(false),
+  })
+  .strict();
+export type PrototypeAuthOptions = z.input<typeof PrototypeAuthOptionsSchema>;
+
 export interface PrototypeDefinition {
   manifest: PrototypeManifest;
+  /** Opt-in simulated sign-in behavior. Omit to keep a signed-in persona. */
+  auth?: PrototypeAuthOptions;
   database: DatabaseDefinition;
   /** Full scenarios or `extends` extensions (resolved against presets by the runtime). */
   scenarios: readonly ScenarioDefinition[];
@@ -114,6 +133,15 @@ export interface PrototypeDefinition {
 }
 
 export function definePrototype(definition: PrototypeDefinition): PrototypeDefinition {
+  if (definition.auth !== undefined) {
+    const auth = PrototypeAuthOptionsSchema.safeParse(definition.auth);
+    if (!auth.success) {
+      const issue = auth.error.issues[0];
+      throw new Error(
+        `Invalid prototype "auth" options${issue ? ` (${issue.path.join('.') || 'auth'}: ${issue.message})` : ''}.`
+      );
+    }
+  }
   const declared = new Set(definition.manifest.scenarios);
   for (const scenario of definition.scenarios) {
     if (declared.size > 0 && !declared.has(scenario.id)) {

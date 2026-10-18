@@ -39,6 +39,8 @@ export const SnapshotSchema = z
     createdAt: z.string(),
     actorId: z.string().nullable(),
     organizationId: z.string().nullable(),
+    /** Simulated sign-out at capture time. Absent (older files, signed in) means signed in. */
+    signedOut: z.boolean().optional(),
     clock: ClockStateSchema.nullable(),
     environment: EnvironmentPatchSchema,
     overrides: z.record(z.string(), z.unknown()).default({}),

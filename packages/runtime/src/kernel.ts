@@ -17,6 +17,7 @@ import {
   type PermissionPolicy,
   type Persona,
   type Principal,
+  PrototypeAuthOptionsSchema,
   type PrototypeDefinition,
   type PrototypeManifest,
   resolveEffective,
@@ -68,6 +69,8 @@ export interface Kernel {
   overrides: Overrides;
   actorId: string | null;
   organizationId: string | null;
+  /** Simulated sign-out: no principal unless a DevTools actor override is set. */
+  signedOut: boolean;
   personas: Persona[];
   organizations: Organization[];
   memberships: Membership[];
@@ -176,6 +179,8 @@ export async function createKernel(
     overrides: storedOverrides,
     actorId: stored.actorId ?? null,
     organizationId: stored.organizationId ?? null,
+    // A world stored before this flag existed stays signed in; a fresh one follows the definition.
+    signedOut: stored.signedOut ?? (stored.activeScenario ? false : signedOutByDefault(definition)),
     personas: [],
     organizations: [],
     memberships: [],
@@ -264,8 +269,15 @@ export async function createKernel(
   return kernel;
 }
 
+/** The definition's opt-in (`auth.signedOutByDefault`); `false` when omitted. */
+export function signedOutByDefault(definition: PrototypeDefinition): boolean {
+  return PrototypeAuthOptionsSchema.parse(definition.auth ?? {}).signedOutByDefault;
+}
+
 function computePrincipal(k: Kernel): Principal | null {
   if (k.personas.length === 0) return null;
+  // Signed out: nobody acts, unless DevTools explicitly acts as someone.
+  if (k.signedOut && k.overrides.actorId === undefined) return null;
   const scenarioActor = k.active?.scenario.actor.id;
   const wanted = k.overrides.actorId ?? k.actorId ?? scenarioActor;
   const persona =
