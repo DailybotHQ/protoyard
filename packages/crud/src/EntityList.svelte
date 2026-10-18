@@ -182,7 +182,8 @@ async function onImportFile(event: Event) {
 {:else if !canRead}
   <p class="text-sm text-muted-foreground" role="status">You do not have access to this list.</p>
 {:else}
-  <div class="grid gap-3" data-entity-list={entity.name} data-view={view}>
+  <!-- minmax(0, 1fr) (inline, so it never depends on Tailwind scanning this package): a wide table scrolls inside its container instead of widening the page. -->
+  <div class="grid min-w-0 gap-3" style="grid-template-columns: minmax(0, 1fr)" data-entity-list={entity.name} data-view={view}>
     {#if softDelete}
       <div class="flex gap-1" role="group" aria-label="List view">
         <Button

@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import {
   cpSync,
   existsSync,
@@ -217,4 +218,19 @@ export function helpdeskBlueprint(overrides: Record<string, unknown> = {}) {
     ],
     ...overrides,
   };
+}
+
+/**
+ * Runs the repository's Biome formatter check on paths inside a temp
+ * workspace (Biome only formats files under its root, so the repository
+ * config is copied there). Returns the exit code and output.
+ */
+export function biomeFormatCheck(ws: TempWorkspace, paths: string[]) {
+  cpSync(join(REPO_ROOT, 'biome.json'), join(ws.root, 'biome.json'));
+  const result = spawnSync(
+    join(REPO_ROOT, 'node_modules/.bin/biome'),
+    ['format', '--vcs-enabled=false', ...paths],
+    { cwd: ws.root, encoding: 'utf8' }
+  );
+  return { code: result.status ?? 1, output: `${result.stdout}\n${result.stderr}` };
 }
