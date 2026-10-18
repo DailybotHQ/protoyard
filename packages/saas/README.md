@@ -4,6 +4,8 @@ The engine of Protoyard's simulated SaaS kits (ADR-018 in
 [docs/DECISIONS.md](../../docs/DECISIONS.md)). This package is
 framework-agnostic: it has no Svelte, and its only dependencies are
 `@protoyard/core` and zod. Screens live in `@protoyard/saas-ui`.
+See the [SaaS kits guide](../../docs/SAAS_KITS.md) for prototype integration,
+scenario composition and honest behavior boundaries.
 
 > **Simulation, not security.** Accounts, "passwords", tokens and MFA seeds
 > are plain values in the browser's IndexedDB, and any script on the same
@@ -96,6 +98,11 @@ const accepted = await invites.accept({ tokenId: token.id });
   `password` fields supply the new account details.
 - The inbox is local to the prototype. No email is sent, and accepting an invite does not sign
   the person in or bypass MFA.
+- Invitation acceptance is currently service-only: `@protoyard/saas-ui` does not
+  include an acceptance screen or route. The default service action uses
+  `#/invites/accept?token=…`; the `pendingInvite` scenario action uses
+  `#/invite?token=…`. Neither path is registered by `saasRoutes`, so prototypes
+  need a custom screen and route to make these actions complete end to end.
 
 ### OAuth (`createOAuthSimulator`)
 
