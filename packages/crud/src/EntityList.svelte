@@ -8,9 +8,15 @@ import {
   entityTable,
 } from '@protoyard/blueprint';
 import type { Row } from '@protoyard/core';
-import { can, liveQuery, runService } from '@protoyard/renderer-svelte';
+import { can, getRuntime, liveQuery, runService } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, DataTable, type DataTableSort, toast } from '@protoyard/ui';
-import { entityListColumns, entitySearchKeys } from './columns.ts';
+import {
+  type EntityListDisplayNames,
+  entityListColumns,
+  entityListHeading,
+  entitySearchKeys,
+  loadEntityListDisplayNames,
+} from './columns.ts';
 
 /**
  * Blueprint-driven list: DataTable with selection, bulk delete, optional CSV
@@ -35,9 +41,33 @@ let {
 const entity = $derived(blueprint.entities.find((e) => e.name === entityName));
 const service = $derived(entity ? services[entity.name] : undefined) as EntityService | undefined;
 const caps = $derived(entity ? CAPABILITIES(blueprint)[entity.name] : undefined);
+const runtime = getRuntime();
 
-const columns = $derived(entity ? entityListColumns(entity) : []);
+let displayNames = $state<EntityListDisplayNames>({});
+const columns = $derived(entity ? entityListColumns(entity, displayNames) : []);
 const searchKeys = $derived(entity ? entitySearchKeys(entity) : []);
+
+$effect(() => {
+  const currentEntity = entity;
+  let cancelled = false;
+  if (!currentEntity) {
+    displayNames = {};
+    return;
+  }
+  void loadEntityListDisplayNames(currentEntity, blueprint, {
+    canReadEntity: (name) => runtime.session.can(`${name}:read`),
+    listEntity: async (name) => {
+      const relatedService = services[name];
+      return relatedService ? relatedService.list() : [];
+    },
+    listPersonas: () => runtime.members.list(),
+  }).then((names) => {
+    if (!cancelled) displayNames = names;
+  });
+  return () => {
+    cancelled = true;
+  };
+});
 
 let view = $state<'active' | 'trash'>('active');
 let selected = $state<string[]>([]);
@@ -191,8 +221,8 @@ async function onImportFile(event: Event) {
       {searchKeys}
       selectable={canDelete && view === 'active'}
       loading={loading}
-      caption={entity.label ?? entity.plural}
-      emptyTitle={view === 'trash' ? 'Trash is empty' : `No ${entity.plural} yet`}
+      caption={entityListHeading(entity)}
+      emptyTitle={view === 'trash' ? 'Trash is empty' : `No ${entityListHeading(entity)} yet`}
       emptyDescription={view === 'trash'
         ? 'Soft-deleted records appear here.'
         : canCreate
