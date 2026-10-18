@@ -1,0 +1,44 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.nova-assistant-demo",
+  "slug": "nova-assistant-demo",
+  "kind": "prototype",
+  "name": "Nova Assistant",
+  "description": "A simulated AI flagship with voice, agent tools, an embeddable widget and 5,000-message history.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "ai",
+  "tags": ["ai", "assistant", "agents", "voice", "canvas", "widget", "starter"],
+  "status": "active",
+  "icon": "✦",
+  "defaultScenario": "active-workspace",
+  "defaultTheme": "amethyst",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "shell": "browser"
+  },
+  "storage": {
+    "namespace": "nova-assistant-demo",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": [
+    "fresh-workspace",
+    "active-workspace",
+    "power-user",
+    "long-history",
+    "slow-model",
+    "rate-limited",
+    "assistant-outage",
+    "agent-approval"
+  ],
+  "template": "ai-assistant",
+  "createdAt": "2026-10-18T14:06:11.471Z",
+  "updatedAt": "2026-10-18T14:06:11.471Z"
+}
