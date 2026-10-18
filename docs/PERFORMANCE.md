@@ -37,7 +37,7 @@ loader uses the defaults below.
 | --- | ---: | --- |
 | `initialJsGzipKb` | 250 KB | Initial JavaScript transfer size after gzip |
 | `cssGzipKb` | 30 KB | CSS transfer size after gzip |
-| `coldStartMs` | `null` | No calibrated threshold yet; report-only until set |
+| `coldStartMs` | `null` | No calibrated threshold yet; report-only until set (see [Cold start](#cold-start-built-prototypes)) |
 | `generateMs` | 50 ms | Scenario generation target |
 | `indexColdMs` | 100 ms | Cold metadata-index target |
 
@@ -80,6 +80,49 @@ screen to `load` (crm-demo validate --build still passes with eager routes).
 
 **Possible next steps (not done):** zod's smaller `zod/mini` build for runtime
 parsing; moving secondary crm-demo / generated-app screens onto `load`.
+
+## Cold start (built prototypes)
+
+Method: `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --runs <n>`
+serves `artifacts/<slug>/dist` (build first with
+`pnpm protoyard build <slug>`) with the CLI's static server on an
+OS-assigned port, then opens a **fresh** headless Chromium context per run
+(1280×800) and reads two performance marks that `mountPrototype` sets, both
+measured from navigation start:
+
+- `protoyard:world-ready`: the runtime is open and the world exists.
+- `protoyard:ready`: the first screen has rendered (`html[data-protoyard-ready="1"]`).
+
+**First visit** starts with an empty IndexedDB, so the default scenario is
+generated (Faker is downloaded lazily) and written before the app renders.
+**Repeat visit** reloads the same context: the stored world is reused and
+the HTTP cache is warm. Results go to `tmp/bench-cold-start-<timestamp>.json`
+with every sample and the machine.
+
+Medians of 5 runs on 2026-10-18 (Apple M1 Max, 10 cores, 64 GB, macOS 27.0,
+Node 26.11.1, headless Chromium 156.0.8078.4, a local static server, no
+network throttling, production builds without DevTools):
+
+| Prototype | First visit: ready (world ready) | Range | Repeat visit: ready (world ready) | Range |
+| --- | --- | --- | --- | --- |
+| `crm-demo` | **141 ms** (105 ms) | 139–148 ms | **44 ms** (34 ms) | 41–45 ms |
+| `mobile-banking-demo` | **132 ms** (106 ms) | 130–137 ms | **38 ms** (31 ms) | 37–43 ms |
+
+- Most of a first visit is building the world (generate, validate, write),
+  not rendering: `ready` follows `world ready` by about 26 to 36 ms.
+- **Not measured:** real phones, throttled CPU or network, a remote host, or
+  a cold HTTP cache on repeat visits. No claim is made beyond this table.
+
+`--check` compares both medians with `coldStartMs` (per-prototype overrides
+apply) and exits `1` when one is over. While `coldStartMs` is `null` it
+prints "not calibrated … reported only, not gated" and passes, as ADR-019
+says. Setting the threshold is a separate decision: CI runners are slower
+than this machine.
+
+```bash
+pnpm protoyard build crm-demo
+pnpm exec tsx scripts/bench-cold-start.ts crm-demo --runs 5 --check
+```
 
 ## Metadata index and gallery at 1,000 prototypes
 
