@@ -123,9 +123,13 @@ export function createProgram(env: RunnerEnv): Command {
 
   program
     .command('new')
-    .description('create prototypes/<slug> from a template')
+    .description('create prototypes/<slug> from a template or by remixing an existing prototype')
     .argument('<slug>', 'lowercase kebab-case folder name')
-    .requiredOption('-t, --template <name>', 'template to copy (see `list --kind template`)')
+    .option('-t, --template <name>', 'template to copy (see `list --kind template`)')
+    .option(
+      '--from <slug>',
+      'template or existing prototype to copy (prototypes win); gets a fresh id, name and storage namespace'
+    )
     .option('--name <name>', 'display name (default: from the slug)')
     .option('--description <text>', 'one-line description')
     .option('--force', 'reuse an EXISTING EMPTY folder (never overwrites files)')

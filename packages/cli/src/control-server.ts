@@ -1,7 +1,10 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { checkSlug } from '@protoyard/core';
+import { z } from 'zod';
+import { type CreateInput, type CreateResult, createPrototypeFrom } from './commands/new.ts';
 import { type DevServerHandle, startDevServer } from './lib/dev-server.ts';
+import { CliError, createOutput, toCliError } from './lib/output.ts';
 import { workspacePaths } from './lib/paths.ts';
 import {
   findEntry,
@@ -9,7 +12,7 @@ import {
   type RegistryEntry,
   templateDemoNamespace,
 } from './lib/registry.ts';
-import { CLI_VERSION } from './lib/workspace.ts';
+import { CLI_VERSION, createContext } from './lib/workspace.ts';
 
 /**
  * Tiny local control API used by the gallery in `pnpm dev`:
@@ -17,6 +20,9 @@ import { CLI_VERSION } from './lib/workspace.ts';
  *   GET  /api/status       → running dev servers
  *   POST /api/dev/:slug    → start that prototype or template's Vite dev server
  *   POST /api/stop/:slug   → stop it
+ *   POST /api/new          → copy a template or prototype into a new slug
+ *                            ({ slug, from, name?, description? }), link it
+ *                            offline, start it and return its dev URL
  *
  * Templates run as live demos under a `template-demo-<name>` storage namespace
  * so demo data never mixes with prototypes and never lands in the template's
@@ -31,6 +37,52 @@ import { CLI_VERSION } from './lib/workspace.ts';
 export const DEFAULT_CONTROL_PORT = 4300;
 export const DEFAULT_GALLERY_PORT = 4321;
 const MAX_RUNNING = 8;
+class LaunchError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/** Largest accepted POST /api/new body. */
+const MAX_BODY_BYTES = 8 * 1024;
+
+const NewRequestSchema = z
+  .object({
+    slug: z.string().min(1).max(64),
+    from: z.string().min(1).max(64),
+    name: z.string().trim().min(1).max(80).optional(),
+    description: z.string().trim().max(300).optional(),
+  })
+  .strict();
+
+const STATUS_BY_CODE: Record<string, number> = {
+  usage: 400,
+  unsafe_path: 400,
+  not_found: 404,
+  conflict: 409,
+  validation: 422,
+};
+
+/** Reads a small JSON body; refuses other content types and oversized bodies. */
+async function readJson(req: IncomingMessage): Promise<unknown> {
+  const type = (req.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase();
+  if (type !== 'application/json')
+    throw new CliError('usage', 'Content-Type must be application/json.');
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += (chunk as Buffer).length;
+    if (size > MAX_BODY_BYTES) throw new CliError('usage', 'Request body too large.');
+    chunks.push(chunk as Buffer);
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    throw new CliError('usage', 'Request body is not valid JSON.');
+  }
+}
 
 export interface ControlServerOptions {
   root: string;
@@ -47,6 +99,14 @@ export interface ControlServerOptions {
     storageNamespace?: string;
   }) => Promise<DevServerHandle>;
   log?: (line: string) => void;
+  /**
+   * How POST /api/new links the new prototype: `offline` (default) runs
+   * `pnpm install --offline` and, when that is not enough, returns the
+   * command to run instead of reaching the network. `skip` is for tests.
+   */
+  newInstall?: 'offline' | 'skip';
+  /** Injected for tests; defaults to the same code path as `protoyard new`. */
+  create?: (input: CreateInput) => Promise<CreateResult>;
 }
 
 export interface ControlServer {
@@ -101,6 +161,16 @@ export async function startControlServer(options: ControlServerOptions): Promise
   /** Kind / demo namespace for each running slug (status payload). */
   const meta = new Map<string, { kind: RegistryEntry['kind']; storageNamespace?: string }>();
   let port = options.port ?? DEFAULT_CONTROL_PORT;
+  // In-process, silent: the same code path as `protoyard new`, never a shell.
+  const quiet = createOutput(
+    { json: true, quiet: true, color: false },
+    { stdout() {}, stderr() {} }
+  );
+  const create =
+    options.create ??
+    ((input: CreateInput) => createPrototypeFrom(createContext(options.root, quiet, true), input));
+  /** One creation at a time: copies, installs and re-indexes never interleave. */
+  let creating: Promise<unknown> = Promise.resolve();
 
   const running = () =>
     [...servers.values()].map((s) => {
@@ -140,6 +210,14 @@ export async function startControlServer(options: ControlServerOptions): Promise
     }
     if (req.method === 'GET' && url.pathname === '/api/status') {
       send(res, 200, { ok: true, version: CLI_VERSION, running: running() }, corsOrigin);
+      return;
+    }
+    if (req.method === 'POST' && url.pathname === '/api/new') {
+      if (!corsOrigin) {
+        send(res, 403, { ok: false, error: 'origin required' });
+        return;
+      }
+      await handleNew(req, res, corsOrigin);
       return;
     }
     const match = /^\/api\/(dev|stop)\/([^/]+)$/.exec(url.pathname);
@@ -206,17 +284,34 @@ export async function startControlServer(options: ControlServerOptions): Promise
       send(res, 404, { ok: false, error: `unknown prototype or template "${slug}"` }, corsOrigin);
       return;
     }
+    try {
+      send(res, 200, { ok: true, ...(await launch(entry)) }, corsOrigin);
+    } catch (error) {
+      const status = error instanceof LaunchError ? error.status : 500;
+      send(res, status, { ok: false, error: (error as Error).message }, corsOrigin);
+    }
+  }
+
+  /** Starts (or reuses) the dev server of a registry entry. */
+  async function launch(entry: RegistryEntry) {
+    const slug = entry.slug;
+    const existing = servers.get(slug);
+    if (existing) {
+      const info = meta.get(slug);
+      return {
+        slug,
+        url: existing.url,
+        port: existing.port,
+        reused: true,
+        kind: info?.kind ?? entry.kind,
+        ...(info?.storageNamespace ? { storageNamespace: info.storageNamespace } : {}),
+      };
+    }
     if (servers.size + pending.size >= MAX_RUNNING && !pending.has(slug)) {
-      send(
-        res,
+      throw new LaunchError(
         429,
-        {
-          ok: false,
-          error: `at most ${MAX_RUNNING} prototypes or template demos can run at once; stop one first`,
-        },
-        corsOrigin
+        `at most ${MAX_RUNNING} prototypes or template demos can run at once; stop one first`
       );
-      return;
     }
     const storageNamespace =
       entry.kind === 'template' ? templateDemoNamespace(entry.slug) : undefined;
@@ -249,24 +344,116 @@ export async function startControlServer(options: ControlServerOptions): Promise
           ? `started template demo ${slug} at ${server.url} (namespace ${storageNamespace})`
           : `started ${slug} at ${server.url}`
       );
+      return {
+        slug,
+        url: server.url,
+        port: server.port,
+        reused: false,
+        kind: entry.kind,
+        ...(storageNamespace ? { storageNamespace } : {}),
+      };
+    } finally {
+      pending.delete(slug);
+    }
+  }
+
+  /** POST /api/new: create, link (offline only), then start and return the dev URL. */
+  async function handleNew(req: IncomingMessage, res: ServerResponse, corsOrigin: string) {
+    let input: z.infer<typeof NewRequestSchema>;
+    try {
+      const parsed = NewRequestSchema.safeParse(await readJson(req));
+      if (!parsed.success) {
+        throw new CliError(
+          'usage',
+          `Invalid request: ${parsed.error.issues.map((i) => `${i.path.join('.') || 'body'} ${i.message}`).join('; ')}.`
+        );
+      }
+      input = parsed.data;
+      for (const value of [input.slug, input.from]) {
+        const check = checkSlug(value);
+        if (!check.ok) throw new CliError('usage', check.reason);
+      }
+    } catch (error) {
+      const err = toCliError(error);
+      send(res, STATUS_BY_CODE[err.code] ?? 400, { ok: false, error: err.message }, corsOrigin);
+      return;
+    }
+    const run = creating.then(() =>
+      create({
+        slug: input.slug,
+        from: input.from,
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        install: options.newInstall ?? 'offline',
+        stdio: 'pipe',
+      })
+    );
+    creating = run.catch(() => undefined);
+    let result: CreateResult;
+    try {
+      result = await run;
+    } catch (error) {
+      const err = toCliError(error);
+      send(
+        res,
+        STATUS_BY_CODE[err.code] ?? 500,
+        { ok: false, error: err.message, ...(err.hint ? { hint: err.hint } : {}) },
+        corsOrigin
+      );
+      return;
+    }
+    log(`created ${result.path} from ${result.source.kind} ${result.source.slug}`);
+    const created = {
+      slug: result.slug,
+      id: result.id,
+      name: result.name,
+      path: result.path,
+      source: result.source,
+      created: result.created,
+      spec: { ok: result.spec.ok },
+    };
+    if (!result.install.ok) {
+      // Not linked: nothing can start yet. The gallery shows the exact command.
       send(
         res,
         200,
         {
           ok: true,
-          slug,
-          url: server.url,
-          port: server.port,
-          reused: false,
-          kind: entry.kind,
-          ...(storageNamespace ? { storageNamespace } : {}),
+          ...created,
+          linked: false,
+          command: result.install.command ?? 'pnpm install',
+          next: `Run \`${result.install.command ?? 'pnpm install'}\` in the workspace, then start ${result.slug}.`,
         },
         corsOrigin
       );
+      return;
+    }
+    const entry = findEntry(await loadRegistry(paths), result.slug, 'prototype');
+    if (!entry) {
+      send(
+        res,
+        500,
+        { ok: false, error: `${result.path} was created but is not indexed` },
+        corsOrigin
+      );
+      return;
+    }
+    try {
+      const dev = await launch(entry);
+      send(
+        res,
+        200,
+        { ok: true, ...created, linked: true, url: dev.url, port: dev.port },
+        corsOrigin
+      );
     } catch (error) {
-      send(res, 500, { ok: false, error: (error as Error).message }, corsOrigin);
-    } finally {
-      pending.delete(slug);
+      // Created and linked; only the start failed (e.g. too many running).
+      send(
+        res,
+        200,
+        { ok: true, ...created, linked: true, started: false, error: (error as Error).message },
+        corsOrigin
+      );
     }
   }
 

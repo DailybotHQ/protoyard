@@ -11,7 +11,7 @@ import {
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { addTemplate, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
+import { addPrototype, addTemplate, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 let ws: TempWorkspace;
 beforeEach(() => {
@@ -268,5 +268,134 @@ describe('new: prototype spec', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('new --from', () => {
+  const read = (path: string) => readFileSync(join(ws.root, path), 'utf8');
+
+  it('copies a template with --from like --template', async () => {
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'new',
+      'from-tpl',
+      '--from',
+      'blank',
+      '--no-install',
+    ]);
+    expect(run.code, run.stdout).toBe(0);
+    expect(run.json<{ data: Record<string, unknown> }>().data).toMatchObject({
+      source: { kind: 'template', slug: 'blank' },
+      template: 'blank',
+      path: 'prototypes/from-tpl',
+    });
+    expect(JSON.parse(read('prototypes/from-tpl/protoyard.json'))).toMatchObject({
+      template: 'blank',
+      kind: 'prototype',
+    });
+  });
+
+  it('remixes an existing prototype: new id, name and storage namespace, source untouched', async () => {
+    addPrototype(ws, 'source-app', {
+      name: 'Source App',
+      template: 'blank',
+      storage: { namespace: 'source-app', schemaVersion: 1 },
+    });
+    ws.write('prototypes/source-app/src/main.ts', 'export {};\n');
+    const before = read('prototypes/source-app/protoyard.json');
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'new',
+      'remix-app',
+      '--from',
+      'source-app',
+      '--no-install',
+    ]);
+    expect(run.code, run.stdout).toBe(0);
+    expect(run.json<{ data: Record<string, unknown> }>().data).toMatchObject({
+      source: { kind: 'prototype', slug: 'source-app' },
+      template: 'blank',
+      id: 'local.remix-app',
+    });
+    expect(JSON.parse(read('prototypes/remix-app/protoyard.json'))).toMatchObject({
+      id: 'local.remix-app',
+      slug: 'remix-app',
+      name: 'Remix App',
+      template: 'blank',
+      storage: { namespace: 'remix-app' },
+    });
+    expect(read('prototypes/remix-app/src/main.ts')).toBe('export {};\n');
+    expect(read('prototypes/source-app/protoyard.json')).toBe(before);
+  });
+
+  it('refuses an existing slug, traversal, both or neither source flag', async () => {
+    addPrototype(ws, 'taken-app');
+    const before = read('prototypes/taken-app/protoyard.json');
+    expect(
+      (
+        await cli([
+          '--root',
+          ws.root,
+          '--json',
+          'new',
+          'taken-app',
+          '--from',
+          'blank',
+          '--no-install',
+        ])
+      ).code
+    ).toBe(1);
+    expect(read('prototypes/taken-app/protoyard.json')).toBe(before);
+    expect(
+      (
+        await cli([
+          '--root',
+          ws.root,
+          '--json',
+          'new',
+          '../escape',
+          '--from',
+          'blank',
+          '--no-install',
+        ])
+      ).code
+    ).toBe(2);
+    expect(
+      (
+        await cli([
+          '--root',
+          ws.root,
+          '--json',
+          'new',
+          'ok-app',
+          '--from',
+          '../../etc',
+          '--no-install',
+        ])
+      ).code
+    ).toBe(2);
+    expect(
+      (
+        await cli([
+          '--root',
+          ws.root,
+          '--json',
+          'new',
+          'ok-app',
+          '--from',
+          'blank',
+          '--template',
+          'blank',
+        ])
+      ).code
+    ).toBe(2);
+    expect((await cli(['--root', ws.root, '--json', 'new', 'ok-app', '--no-install'])).code).toBe(
+      2
+    );
+    expect(existsSync(join(ws.root, 'prototypes/ok-app'))).toBe(false);
   });
 });

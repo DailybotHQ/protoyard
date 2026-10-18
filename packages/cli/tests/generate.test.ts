@@ -287,9 +287,11 @@ describe('protoyard generate', () => {
       join(ws.root, 'prototypes/help-desk/node_modules'),
       'dir'
     );
-    // Templates ship AGENTS.md/docs markers; refresh them for the generated blueprint
-    // before validate (stale generated regions always fail the spec check).
-    expect((await cli(['--root', ws.root, '--json', 'spec', 'help-desk', '--write'])).code).toBe(0);
+    // The template ships spec files; with dependencies linked now, refresh their
+    // generated regions as `generate` suggests (it could not load them before linking).
+    expect(
+      (await cli(['--root', ws.root, '--json', 'spec', 'help-desk', '--init', '--write'])).code
+    ).toBe(0);
     const run = await cli(['--root', ws.root, '--json', 'validate', 'help-desk']);
     const { ok, data } = run.json<{
       ok: boolean;
