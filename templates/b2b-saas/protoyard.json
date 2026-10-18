@@ -1,0 +1,29 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.b2b-saas",
+  "slug": "b2b-saas",
+  "kind": "template",
+  "name": "B2B SaaS Workspace",
+  "description": "A complete simulated SaaS starter with sign-in, SSO, onboarding, workspaces, billing, settings, inbox, and project management.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "saas", "b2b", "workspace", "billing", "projects"],
+  "status": "ready",
+  "icon": "🏢",
+  "defaultScenario": "signed-out",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-b2b-saas", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": [
+    "signed-out",
+    "active",
+    "trial-ending",
+    "past-due",
+    "pending-invites",
+    "mfa-enrolled"
+  ]
+}
