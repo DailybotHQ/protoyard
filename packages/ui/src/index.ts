@@ -18,6 +18,8 @@ export { default as BottomNav } from './components/bottom-nav/BottomNav.svelte';
 export { default as BottomSheet } from './components/bottom-sheet/BottomSheet.svelte';
 export { default as Breadcrumb } from './components/breadcrumb/Breadcrumb.svelte';
 export type { BreadcrumbItem } from './components/breadcrumb/types.ts';
+export { formatAddress, parseAddress } from './components/browser-chrome/address.ts';
+export { default as BrowserChrome } from './components/browser-chrome/BrowserChrome.svelte';
 // Primitives
 export { default as Button } from './components/button/Button.svelte';
 export {
