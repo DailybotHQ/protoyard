@@ -1,3 +1,6 @@
+<!-- Static markup with no runes would compile in legacy mode and pull legacy helpers into the shared runtime. -->
+<svelte:options runes />
+
 <script lang="ts">
 /** Fictional design-canvas host mock — geometric shapes only, no product logos. */
 </script>

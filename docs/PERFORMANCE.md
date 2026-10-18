@@ -45,49 +45,62 @@ the 2026-10-18 rebuild in that section is the current measured value.
 
 ## Shells
 
-Method: `pnpm protoyard build <slug>` at revision `d17bf47` (2026-10-18, same machine,
-Node 26.11.1, pnpm 11.23.0, Vite 8.3.4 / Rolldown 1.2.13). Each file is gzipped at level 9
-with Node's zlib (no file name in the header, so a few bytes smaller than `gzip -9`).
-"Initial" is the entry script plus everything it imports statically, which is what a page
-open downloads. `pnpm protoyard budget crm-demo` reports 202.03 KiB (206,881 B) on the
-same build, which agrees. The comparison builds were local edits that were reverted
-afterwards: `Root.svelte` without `ShellHost`, then `ShellHost` with an empty frame
-registry.
+Method: `pnpm protoyard build <slug>` at revision `459054c` plus the chunking fix
+(2026-10-18, same machine, Node 26.11.1, pnpm 11.23.0, Vite 8.3.4 / Rolldown 1.2.13).
+Each file is gzipped at level 9 with Node's zlib (no file name in the header). "Initial" is
+the entry script plus everything it imports statically, which is what a page open
+downloads. The before/after columns are `pnpm protoyard budget <slug>` (`initialJsGzip`,
+KiB).
 
-| Prototype (its shell) | No `ShellHost` | `ShellHost`, no frames | Current (7 frames registered) |
+**Fix (2026-10-18).** The extension-popup frame loaded BrowserChrome with a dynamic
+`import()` of the whole `@protoyard/ui` barrel. The entry already loads that barrel
+(`<Toaster />`), so the bundler turned it into a shared chunk and put every member read
+from it, including WindowChrome and BrowserChrome, in every prototype's initial JS. The
+frame now imports BrowserChrome statically (it is already lazy), and a test
+(`packages/renderer-svelte/tests/bundle-hygiene.test.ts`) fails on any dynamic import of
+`@protoyard/ui`. Two runes-less side-panel host mocks now opt into runes mode, so they no
+longer pull in Svelte's legacy helpers.
+
+| Prototype (its shell) | Before | After | Change |
 | --- | ---: | ---: | ---: |
-| `crm-demo` (none) | 164,895 B | 166,684 B (+1,789) | 206,868 B (+41,973) |
-| `mobile-banking-demo` (phone) | 197,202 B | 198,655 B (+1,453) | 204,170 B (+6,968) |
-| `support-widget-demo` (widget-host) | 143,567 B | 145,148 B (+1,581) | 150,532 B (+6,965) |
+| `crm-demo` (none) | 202.04 KiB | 165.44 KiB | −36.60 KiB |
+| `mobile-banking-demo` (phone) | 199.38 KiB | 196.45 KiB | −2.93 KiB |
+| `support-widget-demo` (widget-host) | 147.01 KiB | 144.00 KiB | −3.01 KiB |
+| `nova-assistant-demo` (browser) | 165.49 KiB | 162.15 KiB | −3.33 KiB |
 
-- **Every prototype stays under the 250 KB initial-JS budget.**
-- **The shell host itself costs 1.5–1.8 KB gzip.** That is just over the 1.5 KB target the
-  shells work set for `crm-demo` (1,789 B) and `support-widget-demo` (1,581 B).
-- **Registering the frames costs far more than their own chunks**, and it is not met by
-  the target. No frame chunk is preloaded, but the bundler places code that the lazy
-  frames share with the rest of `@protoyard/ui` (WindowChrome and BrowserChrome are both
-  in the initial chunk of all three builds) into chunks the entry loads. On `crm-demo`, which
-  also has lazy routes, the shared-chunk shift is about 40 KB. An experiment that marked
-  only CSS as side-effectful in `@protoyard/ui` cut `crm-demo` to 175,875 B, but made
-  `mobile-banking-demo` slightly larger (205,064 B in 8 files), so the fix needs its own
-  task (chunking rules in the Vite config factory, or how ui declares side effects). It is
-  not done.
+What the shell layer still costs, after the fix. The comparison builds were local edits
+that were reverted afterwards: `Root.svelte` without `ShellHost`, and `ShellHost` with an
+empty frame registry.
 
-Lazy frame chunks (`crm-demo`; the other two builds are within ±60 B). A frame's cost
-when it is first shown is its chunk plus any lazy chunk it imports:
+| Prototype | No `ShellHost` | `ShellHost`, empty registry | Current (7 frames registered) |
+| --- | ---: | ---: | ---: |
+| `crm-demo` | 164,902 B | 166,688 B (+1,786) | 169,414 B (+4,512) |
+| `mobile-banking-demo` | 197,203 B | 198,656 B (+1,453) | 201,168 B (+3,965) |
+| `support-widget-demo` | 143,567 B | 145,148 B (+1,581) | 147,455 B (+3,888) |
+| `nova-assistant-demo` | 162,792 B | 164,537 B (+1,745) | 166,044 B (+3,252) |
+
+- **Every prototype stays well under the 250 KB initial-JS budget.**
+- **The shells target of at most 1.5 KB is still not met.** The host itself costs
+  1.5–1.8 KB. The seven registered frames add 1.5–2.7 KB more: Vite's preload map (one
+  entry per lazy chunk, about 150 B gzip) and the Svelte runtime helpers that the frames
+  use. Those helpers live in the Svelte runtime chunk the entry already loads, so moving
+  them would add a request without saving bytes. No frame component, chrome component or
+  frame CSS is in the initial JS any more. A page opened without a shell downloads no
+  frame code (checked in Chromium on `crm-demo`: `?shell=desktop-window` loads only
+  `DesktopWindowFrame`, and `?shell=browser` loads `BrowserFrame` and `BrowserChrome`).
+
+Lazy frame chunks (`crm-demo`; the other builds are within ±60 B). A frame's cost when it
+is first shown is its chunk plus the lazy chunks it imports:
 
 | Shell | Frame chunk | With its lazy imports |
 | --- | ---: | ---: |
-| `phone` (`PhoneFrame`) | 1,519 B | 3,318 B (+ `StatusBar`) |
-| `tablet` (`TabletFrame`) | 1,136 B | 2,935 B (+ `StatusBar`) |
-| `desktop-window` (`DesktopWindowFrame`) | 1,468 B | 1,468 B |
-| `browser` (`BrowserFrame`) | 762 B | 762 B |
-| `widget-host` (`WidgetHostFrame`) | 3,565 B | 3,565 B |
-| `extension-popup` (`ExtensionPopupFrame`) | 1,799 B | 1,799 B |
-| `side-panel` (`SidePanelFrame`) | 2,426 B | 2,426 B, plus one host chunk: 1,144 B chat workspace, 976 B code editor, 769 B design canvas |
-
-`desktop-window`, `browser` and `extension-popup` look small only because their chrome
-components already sit in the initial chunk (see above).
+| `phone` (`PhoneFrame`) | 1,519 B | 3,322 B (+ `StatusBar`) |
+| `tablet` (`TabletFrame`) | 1,134 B | 2,937 B (+ `StatusBar`) |
+| `desktop-window` (`DesktopWindowFrame`, includes WindowChrome) | 3,362 B | 3,596 B (+ an icon) |
+| `browser` (`BrowserFrame`) | 764 B | 3,342 B (+ `BrowserChrome`, shared with the popup) |
+| `widget-host` (`WidgetHostFrame`) | 3,563 B | 3,563 B |
+| `extension-popup` (`ExtensionPopupFrame`) | 1,501 B | 4,079 B (+ `BrowserChrome`) |
+| `side-panel` (`SidePanelFrame`) | 2,449 B | 2,449 B, plus one host chunk: 1,116 B chat workspace, 976 B code editor, 749 B design canvas |
 
 ## Versioned budgets
 
