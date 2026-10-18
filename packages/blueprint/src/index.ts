@@ -12,6 +12,18 @@
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
 export {
+  AUDIT_REDACTED,
+  type AuditAction,
+  type AuditChange,
+  type AuditEntry,
+  type AuditEvent,
+  auditDiff,
+  type BlueprintAuditService,
+  blueprintUsesAudit,
+  createAuditService,
+  createAuditWriter,
+} from './audit.ts';
+export {
   appendMigration,
   applyUpgradeOps,
   type BlueprintMigration,
