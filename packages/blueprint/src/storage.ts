@@ -109,7 +109,9 @@ function featureFlags(blueprint: Blueprint): {
   return {
     audit: blueprint.entities.some((e) => e.features.audit),
     files: blueprint.entities.some((e) => e.features.files),
-    notifications: blueprint.entities.some((e) => e.features.notifications),
+    notifications:
+      blueprint.notifications.length > 0 ||
+      blueprint.entities.some((e) => e.features.notifications),
   };
 }
 

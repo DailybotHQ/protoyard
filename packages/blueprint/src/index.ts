@@ -23,6 +23,12 @@ export {
   toDatabaseVersion,
   type UpgradeOp,
 } from './migrations.ts';
+export {
+  type BlueprintNotificationService,
+  createNotificationService,
+  createNotificationWriter,
+  type NotificationEvent,
+} from './notifications.ts';
 export { CAPABILITIES, derivePolicy, type EntityCapabilityMap } from './policy.ts';
 export {
   BLUEPRINT_SCHEMA_URL,
@@ -30,6 +36,7 @@ export {
   type BlueprintEntity,
   type BlueprintField,
   type BlueprintInput,
+  type BlueprintNotificationRule,
   type BlueprintRole,
   BlueprintSchema,
   type BlueprintScreen,
