@@ -150,6 +150,8 @@ function openFromMenu(): void {
   z-index: 2;
   width: 360px;
   height: 600px;
+  /* App layouts (MobileAppShell, h-app) size to the popup, not the window. */
+  --py-app-height: 600px;
   overflow: hidden;
   box-shadow: 0 18px 42px -18px rgb(0 0 0 / 0.5);
 }

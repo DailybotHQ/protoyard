@@ -6,6 +6,7 @@ import { STATIC_INSTRUCTIONS } from '../publish/static.ts';
 import type { PublishProvider, PublishTarget } from '../publish/types.ts';
 import { ProviderError } from '../publish/types.ts';
 import { artifactDir, buildPrototype, scanForForeignCode } from './build.ts';
+import { digestDirectory } from './checksum.ts';
 import { CliError } from './output.ts';
 import { BUILD_MARKER } from './output-guard.ts';
 import { toPosixRelative } from './paths.ts';
@@ -125,29 +126,7 @@ async function publishUnrecorded(
   options: PublishRunOptions,
   registry?: Registry
 ): Promise<PublishRunResult> {
-  if (options.preview && options.production) {
-    throw new CliError('usage', 'Pass --preview or --production, not both.');
-  }
-  const target: PublishTarget = options.production ? 'production' : 'preview';
-  const dryRun = options.dryRun === true;
-  if (options.branch !== undefined) {
-    if (provider.id !== 'cloudflare') {
-      throw new CliError('usage', `--branch is not supported by the ${provider.label} adapter.`);
-    }
-    if (target === 'production') {
-      throw new CliError('usage', '--branch can only be used with preview deployments.');
-    }
-    const invalidBranch = validateCloudflareBranch(options.branch);
-    if (invalidBranch) throw new CliError('usage', invalidBranch);
-  }
-  if (target === 'production' && !dryRun && !ctx.yes && provider.id !== 'static') {
-    throw new CliError('usage', 'Publishing to production needs explicit confirmation.', {
-      hint: 'Re-run with --yes (or try --dry-run first to see the exact command).',
-    });
-  }
-  const project = options.project ?? provider.defaultProject(entry.slug);
-  const invalidProject = provider.validateProject(project);
-  if (invalidProject) throw new CliError('usage', invalidProject);
+  preparePublish(ctx, entry.slug, provider, options);
 
   ctx.out.info(`Building ${ctx.out.c.bold(entry.slug)} for ${provider.label}…`);
   const dir = join(ctx.root, entry.path);
@@ -167,33 +146,63 @@ async function publishUnrecorded(
 
   // The build marker is local bookkeeping and must never reach a provider.
   await rm(join(build.outDir, BUILD_MARKER), { force: true });
-  const input = {
-    slug: entry.slug,
-    distDir: build.outDir,
-    project,
-    target,
-    ...(options.branch !== undefined ? { branch: options.branch } : {}),
-    ...(options.ensureProject ? { ensureProject: true as const } : {}),
-  };
+  return publishDirectory(
+    ctx,
+    {
+      slug: entry.slug,
+      distDir: build.outDir,
+      zipPath: join(artifactDir(ctx, entry), `${entry.slug}.zip`),
+    },
+    provider,
+    options
+  );
+}
+
+export interface PublishDirectoryInput {
+  /** Used by the adapter command and as the source for its default project. */
+  slug: string;
+  /** Absolute path to an already-built static directory. */
+  distDir: string;
+  /** Destination ZIP path when the static manual-upload adapter is selected. */
+  zipPath?: string;
+}
+
+/** Publishes an existing static directory through the same provider contract as prototypes. */
+export async function publishDirectory(
+  ctx: CommandContext,
+  directory: PublishDirectoryInput,
+  provider: PublishProvider,
+  options: PublishRunOptions
+): Promise<PublishRunResult> {
+  const { target, dryRun, project } = preparePublish(ctx, directory.slug, provider, options);
+  const files = await digestDirectory(directory.distDir);
   const common = {
-    slug: entry.slug,
+    slug: directory.slug,
     provider: provider.id,
     experimental: provider.experimental,
     project,
     target,
-    distDir: toPosixRelative(ctx.root, build.outDir),
-    files: build.manifest.fileCount,
-    bytes: build.manifest.totalBytes,
-    buildSha256: buildDigest(build.manifest.files),
+    distDir: toPosixRelative(ctx.root, directory.distDir),
+    files: files.length,
+    bytes: files.reduce((sum, file) => sum + file.size, 0),
+    buildSha256: buildDigest(files),
+    ...(options.branch !== undefined ? { branch: options.branch } : {}),
+    ...(options.ensureProject ? { ensureProject: true as const } : {}),
+  };
+  const input = {
+    slug: directory.slug,
+    distDir: directory.distDir,
+    project,
+    target,
     ...(options.branch !== undefined ? { branch: options.branch } : {}),
     ...(options.ensureProject ? { ensureProject: true as const } : {}),
   };
 
   if (provider.id === 'static') {
-    const zip = await zipDirectory(
-      build.outDir,
-      join(artifactDir(ctx, entry), `${entry.slug}.zip`)
-    );
+    if (!directory.zipPath) {
+      throw new CliError('usage', 'The static adapter needs a ZIP destination for this directory.');
+    }
+    const zip = await zipDirectory(directory.distDir, directory.zipPath);
     return {
       ...common,
       kind: 'static',
@@ -249,4 +258,36 @@ async function publishUnrecorded(
     deploymentId: result.deploymentId ?? null,
     details: result.details ?? {},
   };
+}
+
+function preparePublish(
+  ctx: CommandContext,
+  slug: string,
+  provider: PublishProvider,
+  options: PublishRunOptions
+): { target: PublishTarget; dryRun: boolean; project: string } {
+  if (options.preview && options.production) {
+    throw new CliError('usage', 'Pass --preview or --production, not both.');
+  }
+  const target: PublishTarget = options.production ? 'production' : 'preview';
+  const dryRun = options.dryRun === true;
+  if (options.branch !== undefined) {
+    if (provider.id !== 'cloudflare') {
+      throw new CliError('usage', `--branch is not supported by the ${provider.label} adapter.`);
+    }
+    if (target === 'production') {
+      throw new CliError('usage', '--branch can only be used with preview deployments.');
+    }
+    const invalidBranch = validateCloudflareBranch(options.branch);
+    if (invalidBranch) throw new CliError('usage', invalidBranch);
+  }
+  if (target === 'production' && !dryRun && !ctx.yes && provider.id !== 'static') {
+    throw new CliError('usage', 'Publishing to production needs explicit confirmation.', {
+      hint: 'Re-run with --yes (or try --dry-run first to see the exact command).',
+    });
+  }
+  const project = options.project ?? provider.defaultProject(slug);
+  const invalidProject = provider.validateProject(project);
+  if (invalidProject) throw new CliError('usage', invalidProject);
+  return { target, dryRun, project };
 }

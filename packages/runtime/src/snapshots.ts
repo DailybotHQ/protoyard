@@ -82,6 +82,41 @@ export interface SnapshotControllerExtras {
   lastWarnings(): readonly string[];
 }
 
+/** True for binary payloads (uploaded files) that a JSON snapshot cannot carry. */
+function isBinary(value: unknown): boolean {
+  return (
+    value instanceof ArrayBuffer ||
+    ArrayBuffer.isView(value) ||
+    (typeof Blob !== 'undefined' && value instanceof Blob)
+  );
+}
+
+/**
+ * Snapshots are JSON: uploaded file bytes (ArrayBuffer/Blob fields) are left
+ * out and set to `null`, so the row keeps its metadata and readers can tell the
+ * contents are missing instead of receiving a placeholder object.
+ */
+export function stripBinaryFields<T extends { name: string; rows: unknown[] }>(
+  tables: T[]
+): { tables: T[]; excluded: number } {
+  let excluded = 0;
+  const out = tables.map((table) => ({
+    ...table,
+    rows: table.rows.map((row) => {
+      if (!row || typeof row !== 'object') return row;
+      let copy: Record<string, unknown> | null = null;
+      for (const [key, value] of Object.entries(row as Record<string, unknown>)) {
+        if (!isBinary(value)) continue;
+        copy ??= { ...(row as Record<string, unknown>) };
+        copy[key] = null;
+        excluded += 1;
+      }
+      return copy ?? row;
+    }),
+  }));
+  return { tables: out, excluded };
+}
+
 export function createSnapshotController(k: Kernel): SnapshotController & SnapshotControllerExtras {
   const manifest = k.definition.manifest;
   const target = () => ({
@@ -92,7 +127,8 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
   let warnings: string[] = [];
 
   async function build(input: { name: string; notes?: string } = { name: 'Current world' }) {
-    const [tables, stats] = await Promise.all([dumpTables(k.db), countTables(k.db)]);
+    const [dumped, stats] = await Promise.all([dumpTables(k.db), countTables(k.db)]);
+    const { tables } = stripBinaryFields(dumped);
     const active = k.active;
     const appearance = k.appearance;
     const snapshot: Snapshot = {

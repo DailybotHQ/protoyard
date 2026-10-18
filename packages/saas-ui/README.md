@@ -70,11 +70,14 @@ UI until a kit route opens.
 | `/auth/magic`, `/auth/reset`, `/auth/verify` | Magic link, reset, verify | — |
 | `/auth/mfa` | MFA challenge | `requireAuth` |
 | `/oauth/consent` | Simulated provider consent | — |
-| `/inbox` | Simulated inbox | `requireAuth` |
+| `/inbox` | Simulated inbox with read, archive and action links | `requireAuth` |
 | `/onboarding` | Onboarding wizard | `requireAuth` |
 
-Full interactive screens land in later PLAN_002 tasks; the scaffold ships
-accessible placeholders so routes and guards are real today.
+Use the exported `InboxDrawer` on a signed-out screen to open the simulated
+mailbox without changing routes. Pass a fictional `recipient` when no signed-in
+persona supplies one. `InboxBadge` is available for headers and displays the
+unread count. Inbox messages are plain text and action links stay in the
+prototype's hash routes.
 
 ## Guards
 

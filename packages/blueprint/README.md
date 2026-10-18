@@ -9,7 +9,7 @@ Framework-agnostic: it depends only on `@protoyard/core` and zod and never impor
 
 ## Status
 
-Implemented: schema, storage, migrations, validation, policy, notifications and CSV codec. Remaining
+Implemented: schema, storage, migrations, validation, policy, notifications, file services and CSV codec. Remaining
 derivations land in later PLAN_002 tasks:
 
 | Module | Derives | Status |
@@ -19,6 +19,7 @@ derivations land in later PLAN_002 tasks:
 | validation | create and update zod input schemas per entity | done |
 | policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
 | notifications | validated create/update/assignment rules, atomic writes and actor-scoped read state | done |
+| files | size/type/quota checked Blob uploads, metadata listing, on-demand reads and removal | done |
 | csv | RFC 4180 parse/serialize + row validation (`@protoyard/blueprint/csv`) | done |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | done |
@@ -245,13 +246,36 @@ new persona. Rule titles are plain text and interpolate entity fields; the actor
 their own notification. `createNotificationService(runtime)` scopes list, unread count and read
 state changes to whichever persona is active, so switching persona changes the visible inbox.
 
+Entities with `features.files` can use `createFileServices(runtime, blueprint)`. Uploads validate
+the file field's `accept` and `maxSizeBytes`, check the 50 MiB per-prototype default quota and the
+runtime storage estimate, then attach the file id and persist binary bytes in the same simulated
+service transaction. `list()` returns metadata without a `blob`; `get()` reconstructs a Blob on
+demand. JSON snapshots do not preserve file bytes, so users should not rely on snapshots to move
+attachments between prototypes. A visible note in the snapshot UI still requires the runtime
+snapshot surface to opt in.
+
 Tests run on the real runtime with the help desk fixture in
 `tests/fixtures/blueprint-prototype.ts`, a prototype whose stores, policy and integrity
 are all derived from its blueprint.
 
 ## Tests
 
-```bash
+```
+
+CSV import/export live on the same service object (capabilities `<entity>:export` /
+`<entity>:import`):
+
+```ts
+const csv = await services.ticket.exportCsv(); // visible rows, formula-safe
+const preview = await services.ticket.importCsv(text); // mode defaults to preview
+const committed = await services.ticket.importCsv(text, {
+  mode: 'commit',
+  skipInvalid: true, // otherwise any invalid row aborts and writes nothing
+});
+// Relation cells accept a target id or its title. Commit is one transaction
+// (bulk chunks of 1,000). Audit rows are written when features.audit is on.
+```
+bash
 pnpm vitest run packages/blueprint
 pnpm --filter @protoyard/blueprint typecheck
 ```

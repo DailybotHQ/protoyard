@@ -12,6 +12,16 @@
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
 export {
+  type BlueprintFile,
+  type BlueprintFileMetadata,
+  createFileServices,
+  DEFAULT_FILE_QUOTA_BYTES,
+  type FileService,
+  type FileServices,
+  FileUploadError,
+  type FileUploadProgress,
+} from './files.ts';
+export {
   appendMigration,
   applyUpgradeOps,
   type BlueprintMigration,
@@ -64,6 +74,11 @@ export {
   EntityNotFoundError,
   type EntityService,
   type EntityServices,
+  type ExportCsvFilter,
+  ImportCsvError,
+  type ImportCsvOptions,
+  type ImportCsvResult,
+  UNDO_WINDOW_MS,
 } from './services.ts';
 export {
   deriveIntegrity,

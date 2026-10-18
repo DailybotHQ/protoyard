@@ -8,6 +8,7 @@ import {
   FRAMES,
   type FrameComponent,
   isEmbedded,
+  screenInsetOf,
   stageScale,
 } from './frames/registry.ts';
 
@@ -38,8 +39,50 @@ const shell = $derived(
 );
 const entry = $derived(shell === 'none' ? undefined : FRAMES[shell]);
 const framed = $derived(shell !== 'none' && spec !== undefined && entry !== undefined);
-const scale = $derived(spec && entry ? stageScale(available, spec, entry.margin) : 1);
 const insets = $derived(spec ? safeAreaOf(spec) : undefined);
+const inset = $derived(screenInsetOf(entry));
+/**
+ * Panel shells (widget-host, side-panel, extension-popup) position their screen
+ * in CSS and size it themselves (`--py-app-height` = panel height), so the host
+ * leaves their inset, radius and tokens alone.
+ */
+const PANEL_SHELLS: readonly string[] = ['widget-host', 'side-panel', 'extension-popup'];
+const sizedScreen = $derived(!PANEL_SHELLS.includes(shell));
+
+// Window-like frames can fill the stage or hide the screen (minimized, closed);
+// the app stays mounted either way.
+let maximized = $state(false);
+let screenHidden = $state(false);
+$effect(() => {
+  void shell;
+  maximized = false;
+  screenHidden = false;
+});
+
+/** The device box: catalog size scaled to fit, or the whole stage when maximized. */
+const box = $derived.by(() => {
+  if (!framed || !spec || !entry) return undefined;
+  if (maximized && available.width > 0 && available.height > 0) {
+    return {
+      width: Math.floor(available.width),
+      height: Math.floor(available.height),
+      radius: 0,
+      scale: 1,
+    };
+  }
+  return {
+    width: spec.width,
+    height: spec.height,
+    radius: spec.cornerRadius,
+    scale: stageScale(available, spec, entry.margin),
+  };
+});
+/** Corners touching chrome (a title bar) stay square. */
+const screenRadius = $derived.by(() => {
+  if (!box) return undefined;
+  const r = (a: number, b: number) => (a === 0 && b === 0 ? box.radius : 0);
+  return `${r(inset.top, inset.left)}px ${r(inset.top, inset.right)}px ${r(inset.bottom, inset.right)}px ${r(inset.bottom, inset.left)}px`;
+});
 
 let Frame = $state.raw<FrameComponent | null>(null);
 let screenEl = $state<HTMLDivElement | undefined>();
@@ -96,42 +139,46 @@ $effect(() => {
 <div bind:this={stage} data-py-shell-part="stage">
   <div
     data-py-shell-part="sizer"
-    style:width={framed && spec ? `${spec.width * scale}px` : undefined}
-    style:height={framed && spec ? `${spec.height * scale}px` : undefined}
+    style:width={box ? `${box.width * box.scale}px` : undefined}
+    style:height={box ? `${box.height * box.scale}px` : undefined}
   >
     <div
       data-py-shell-part="device"
-      style:width={framed && spec ? `${spec.width}px` : undefined}
-      style:height={framed && spec ? `${spec.height}px` : undefined}
-      style:transform={framed && scale < 1 ? `scale(${scale})` : undefined}
+      data-py-maximized={box && maximized ? '' : undefined}
+      style:width={box ? `${box.width}px` : undefined}
+      style:height={box ? `${box.height}px` : undefined}
+      style:transform={box && box.scale < 1 ? `scale(${box.scale})` : undefined}
     >
       <div
         bind:this={screenEl}
         data-py-shell-part="screen"
         data-py-portal-root={framed ? '' : undefined}
-        style:border-radius={framed && spec && shell !== 'widget-host'
-          ? `${spec.cornerRadius}px`
+        aria-hidden={box && screenHidden ? 'true' : undefined}
+        style:inset={box && sizedScreen
+          ? `${inset.top}px ${inset.right}px ${inset.bottom}px ${inset.left}px`
           : undefined}
-        style:--py-app-height={framed && spec && shell !== 'widget-host'
-          ? `${spec.height}px`
+        style:visibility={box && screenHidden ? 'hidden' : undefined}
+        style:border-radius={sizedScreen ? screenRadius : undefined}
+        style:--py-app-height={box && sizedScreen
+          ? `${box.height - inset.top - inset.bottom}px`
           : undefined}
-        style:--py-safe-top={framed && insets && shell !== 'widget-host'
-          ? `${insets.top}px`
-          : undefined}
-        style:--py-safe-right={framed && insets && shell !== 'widget-host'
-          ? `${insets.right}px`
-          : undefined}
-        style:--py-safe-bottom={framed && insets && shell !== 'widget-host'
-          ? `${insets.bottom}px`
-          : undefined}
-        style:--py-safe-left={framed && insets && shell !== 'widget-host'
-          ? `${insets.left}px`
-          : undefined}
+        style:--py-safe-top={box && insets && sizedScreen ? `${insets.top}px` : undefined}
+        style:--py-safe-right={box && insets && sizedScreen ? `${insets.right}px` : undefined}
+        style:--py-safe-bottom={box && insets && sizedScreen ? `${insets.bottom}px` : undefined}
+        style:--py-safe-left={box && insets && sizedScreen ? `${insets.left}px` : undefined}
       >
         {@render children()}
       </div>
-      {#if framed && Frame && spec}
-        <Frame {spec} {shell} />
+      {#if box && Frame && spec}
+        <Frame
+          {spec}
+          {shell}
+          chrome={runtime.manifest.preview.chrome}
+          app={{ name: runtime.manifest.name, icon: runtime.manifest.icon }}
+          {maximized}
+          setMaximized={(value: boolean) => (maximized = value)}
+          setScreenHidden={(value: boolean) => (screenHidden = value)}
+        />
       {/if}
     </div>
   </div>
