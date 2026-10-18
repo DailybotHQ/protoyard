@@ -1,4 +1,5 @@
 <script lang="ts">
+import { ErrorState, LoadingState } from '@protoyard/ui';
 import NotFound from './NotFound.svelte';
 import type { Router } from './router.svelte.ts';
 
@@ -6,26 +7,76 @@ import type { Router } from './router.svelte.ts';
 let { router, ...rest }: { router: Router; [key: string]: unknown } = $props();
 
 const match = $derived(router.current);
-const page = $derived(match.route ? router.resolve(match.route) : (router.notFound ?? NotFound));
+
+/**
+ * Bumped on retry so `{#await}` re-subscribes after `invalidate` clears a
+ * failed lazy cache entry. Reset when the matched route path changes.
+ */
+let loadAttempt = $state(0);
+let focusedPath = $state<string | null>(null);
+
+const page = $derived.by(() => {
+  void loadAttempt;
+  if (!match.route) return router.notFound ?? NotFound;
+  return router.resolve(match.route);
+});
+
+const routeKey = $derived(match.route?.path ?? '__not-found__');
+
+$effect(() => {
+  // Reset the retry counter when navigation changes the matched route.
+  void routeKey;
+  loadAttempt = 0;
+  focusedPath = null;
+});
+
+function retryLoad(): void {
+  if (match.route) router.invalidate(match.route);
+  loadAttempt += 1;
+}
+
+/** Move keyboard focus into the outlet after a screen (or not-found) mounts. */
+function focusOutlet(node: HTMLElement): void {
+  const path = routeKey;
+  if (focusedPath === path) return;
+  focusedPath = path;
+  queueMicrotask(() => {
+    if (document.activeElement === node) return;
+    node.focus({ preventScroll: true });
+  });
+}
 </script>
 
-{#key match.route?.path ?? '__not-found__'}
+{#key `${routeKey}:${loadAttempt}`}
   {#if page instanceof Promise}
     {#await page}
-      <div class="mx-auto my-16 h-1 w-24 overflow-hidden rounded-full bg-muted" role="status" aria-label="Loading screen">
-        <div class="h-full w-1/2 animate-pulse rounded-full bg-primary motion-reduce:animate-none"></div>
-      </div>
+      <LoadingState label="Loading screen" class="py-16" />
     {:then Page}
-      <Page params={match.params} query={match.query} path={match.path} {...rest} />
-    {:catch error}
-      <div class="mx-auto my-16 max-w-md text-center" role="alert">
-        <p class="font-semibold">This screen could not be loaded.</p>
-        <p class="mt-1 text-sm text-muted-foreground">{String(error)}</p>
-        <button type="button" class="mt-3 text-sm font-medium text-primary underline" onclick={() => location.reload()}>Reload</button>
+      <div
+        class="outline-none"
+        tabindex="-1"
+        data-py-router-outlet=""
+        {@attach focusOutlet}
+      >
+        <Page params={match.params} query={match.query} path={match.path} {...rest} />
       </div>
+    {:catch error}
+      <ErrorState
+        title="This screen could not be loaded"
+        message={error instanceof Error ? error.message : String(error)}
+        onRetry={retryLoad}
+        retryLabel="Try again"
+      />
     {/await}
   {:else}
     {@const Page = page}
-    <Page params={match.params} query={match.query} path={match.path} {...rest} />
+    <div
+      class="outline-none"
+      tabindex="-1"
+      data-py-router-outlet=""
+      {@attach focusOutlet}
+    >
+      <Page params={match.params} query={match.query} path={match.path} {...rest} />
+    </div>
   {/if}
 {/key}

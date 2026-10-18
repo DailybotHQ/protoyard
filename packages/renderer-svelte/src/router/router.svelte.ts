@@ -57,6 +57,11 @@ export interface Router {
   match(path: string): RouteMatch;
   /** Resolves a route's component, loading (and caching) lazy routes. */
   resolve(route: RouteDefinition): AnyComponent | Promise<AnyComponent>;
+  /**
+   * Drops a cached lazy module so the next `resolve` calls `load` again
+   * (used by `<Router>` retry after a failed chunk).
+   */
+  invalidate(route: RouteDefinition): void;
   destroy(): void;
 }
 
@@ -143,12 +148,20 @@ export function createRouter(
       if (route.component) return route.component;
       let pending = loaded.get(route);
       if (!pending) {
-        pending = (route.load as NonNullable<RouteDefinition['load']>)().then((m) => m.default);
-        // A failed chunk (offline, redeploy) may be retried on the next visit.
-        pending.catch(() => loaded.delete(route));
+        const load = route.load as NonNullable<RouteDefinition['load']>;
+        pending = load()
+          .then((m) => m.default)
+          .catch((error: unknown) => {
+            // Drop the rejected entry so retry / next visit can call load again.
+            loaded.delete(route);
+            throw error;
+          });
         loaded.set(route, pending);
       }
       return pending;
+    },
+    invalidate(route) {
+      loaded.delete(route);
     },
     destroy: off,
   };

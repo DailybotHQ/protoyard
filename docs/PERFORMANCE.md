@@ -29,8 +29,18 @@ every file in `artifacts/<slug>/dist`. DevTools excluded (the default).
 **Budget (guideline, not enforced in CI):** keep initial JS under 250 KB
 gzip per prototype, and keep generation-only dependencies lazy.
 
+**Route-level code splitting (available):** `@protoyard/renderer-svelte`
+`createRouter` accepts `load: () => import('./Screen.svelte')` per route.
+`<Router>` shows `LoadingState` while the chunk loads and `ErrorState` with
+retry on failure; eager `component` routes are unchanged. Use `load` for
+secondary screens in multi-entity apps so they leave the initial chunk.
+Flagship prototypes still ship mostly eager routes today — adopt `load` when
+adding screens that would push initial JS over the 250 KB gzip budget. No
+before/after gzip delta is recorded here until a flagship switches a real
+screen to `load` (crm-demo validate --build still passes with eager routes).
+
 **Possible next steps (not done):** zod's smaller `zod/mini` build for runtime
-parsing; route-level code splitting inside large prototypes.
+parsing; moving secondary crm-demo / generated-app screens onto `load`.
 
 ## Metadata index and gallery at 1,000 prototypes
 
