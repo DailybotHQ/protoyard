@@ -50,19 +50,22 @@ test.describe('Relay Chat flagship', () => {
 
     // Mention AI teammate — assert body text so a scenario bot row + badge cannot fake a pass.
     await send('@relay what should we prioritize?');
-    const relayReply = messages.locator('[data-author-id="bot_relay"]').filter({
-      has: page.locator('[data-message-body]'),
-    }).last();
+    const relayReply = messages
+      .locator('[data-author-id="bot_relay"]')
+      .filter({
+        has: page.locator('[data-message-body]'),
+      })
+      .last();
     await expect(relayReply.locator('[data-message-body]')).toBeVisible({ timeout: 15_000 });
     await expect(relayReply.locator('[data-message-body]')).toContainText(
       /simulated|priorit|launch|demo|checklist|ship/i,
-      { timeout: 15_000 },
+      { timeout: 15_000 }
     );
 
     // /summarize
     await send('/summarize');
     await expect(
-      messages.locator('[data-message-body]').filter({ hasText: /Relay summary \(simulated\)/i }),
+      messages.locator('[data-message-body]').filter({ hasText: /Relay summary \(simulated\)/i })
     ).toBeVisible({ timeout: 15_000 });
     await expectAccessible(page, testInfo, { label: 'relay-chat-after-ai' });
 

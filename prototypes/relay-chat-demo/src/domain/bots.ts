@@ -53,10 +53,7 @@ export function botReply(botId: string, prompt: string, seed: number | string): 
 /**
  * Channel summary for `/summarize` — deterministic from message bodies + seed.
  */
-export function summarizeChannel(
-  bodies: readonly string[],
-  seed: number | string
-): string {
+export function summarizeChannel(bodies: readonly string[], seed: number | string): string {
   const rng = createRng(hashString(`${String(seed)}:summarize:${bodies.join('\n')}`));
   const sample = bodies
     .map((b) => b.trim())
