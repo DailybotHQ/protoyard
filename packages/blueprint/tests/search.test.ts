@@ -181,7 +181,8 @@ describe('global blueprint entity search', () => {
     console.info(`searchEntities 16k-row median: ${medianMs.toFixed(2)} ms`);
     // Wall-clock budgets are opt-in (like crm-demo's enterprise-scale benchmark): a loaded machine
     // makes them flaky in the default suite. Run: PROTOYARD_BENCH=1 pnpm vitest run packages/blueprint/tests/search.test.ts
-    const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+    const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
+      ?.env;
     if (env?.PROTOYARD_BENCH) expect(medianMs).toBeLessThan(50);
   });
 });
