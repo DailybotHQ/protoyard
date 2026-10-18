@@ -161,4 +161,9 @@ export { default as Wizard } from './components/wizard/Wizard.svelte';
 export { cn } from './lib/cn.ts';
 export { type DateInput, formatDay, formatTime } from './lib/date.ts';
 export { hashString, initials } from './lib/hash.ts';
+export {
+  getOverlayPortalTarget,
+  setOverlayPortalTarget,
+  subscribeOverlayPortalTarget,
+} from './lib/overlay-portal.ts';
 export type { IconComponent, NavItem, TriggerSnippet, WithElementRef } from './lib/types.ts';
