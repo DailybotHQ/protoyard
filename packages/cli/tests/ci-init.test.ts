@@ -388,7 +388,7 @@ describe('drift detection (ci check)', () => {
     }
   });
 
-  // Runs `doctor` three times (git, Playwright and provider probes): slow under full-suite load.
+  // doctor spawns several tools; allow a loaded machine.
   it('drift: doctor adds an informational line for outdated or unhashed workflows', {
     timeout: 60_000,
   }, async () => {

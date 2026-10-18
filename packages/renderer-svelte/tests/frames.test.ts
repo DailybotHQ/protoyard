@@ -7,7 +7,13 @@ import DesktopWindowFrame from '../src/shell/frames/DesktopWindowFrame.svelte';
 import ExtensionPopupFrame from '../src/shell/frames/ExtensionPopupFrame.svelte';
 import HomeIndicator from '../src/shell/frames/HomeIndicator.svelte';
 import PhoneFrame from '../src/shell/frames/PhoneFrame.svelte';
-import { activeFrame, FRAMES, screenInsetOf, windowVariant } from '../src/shell/frames/registry.ts';
+import {
+  activeFrame,
+  FRAMES,
+  SHELL_CSS_MARKER,
+  screenInsetOf,
+  windowVariant,
+} from '../src/shell/frames/registry.ts';
 import SidePanelFrame from '../src/shell/frames/SidePanelFrame.svelte';
 import StatusBar from '../src/shell/frames/StatusBar.svelte';
 import {
@@ -22,6 +28,12 @@ import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import ProbeApp from './fixtures/ProbeApp.svelte';
 import SidePanelHarness from './fixtures/SidePanelHarness.svelte';
 import WidgetHostHarness from './fixtures/WidgetHostHarness.svelte';
+
+// Unit tests load no stylesheet. Simulate a prototype whose app.css imports the
+// renderer CSS (ShellHost frames only when its marker is present).
+beforeEach(() => {
+  document.documentElement.style.setProperty(SHELL_CSS_MARKER, '1');
+});
 
 const runtimeMock = vi.hoisted(() => ({ current: null as unknown }));
 
@@ -52,6 +64,29 @@ beforeEach(() => {
     ...runtime,
     manifest: { ...runtime.manifest, slug: 'demo-extension', name: 'Demo extension', icon: '🧪' },
   };
+});
+
+describe('device bezels never paint over the app', () => {
+  // The phone and tablet bezels sit above the screen (frame z-index 1). They draw the
+  // bezel with their border only; a background fill hid every framed app.
+  const opaqueFill = /(^|\s)(dark:)?bg-(?!transparent\b)\S+/;
+
+  it('keeps the phone and tablet bezel interiors transparent', () => {
+    const phone = getDevice('phone-pill');
+    const tablet = getDevice('tablet');
+    if (!phone || !tablet) throw new Error('catalog devices missing');
+    runtimeMock.current = createFakeRuntime();
+    for (const [Frame, spec, shell] of [
+      [PhoneFrame, phone, 'phone'],
+      [TabletFrame, tablet, 'tablet'],
+    ] as const) {
+      const { container } = render(Frame, { spec, shell });
+      const bezel = container.querySelector<HTMLElement>('[data-py-frame-decoration]');
+      expect(bezel, shell).not.toBeNull();
+      expect(bezel?.className, `${shell} bezel`).not.toMatch(opaqueFill);
+      cleanup();
+    }
+  });
 });
 
 describe('PhoneFrame', () => {
@@ -97,10 +132,11 @@ describe('PhoneFrame', () => {
     const spec = getDevice('phone-pill');
     if (!spec) return;
     const { container } = render(PhoneFrame, { spec, shell: 'phone' });
-    // Bezel uses dark: Tailwind variants (zinc-800 / zinc-950) — class list carries both.
-    const bezel = container.querySelector('[data-py-frame="phone"] > div');
-    expect(bezel?.className).toMatch(/dark:bg-zinc-950/);
-    expect(bezel?.className).toMatch(/bg-zinc-800/);
+    // The bezel ring is its border, with dark: variants (zinc-800 / zinc-950). Its
+    // interior stays transparent so the app shows through (see "never paint over").
+    const bezel = container.querySelector('[data-py-frame-decoration]');
+    expect(bezel?.className).toMatch(/(^|\s)border-zinc-800(\s|$)/);
+    expect(bezel?.className).toMatch(/dark:border-zinc-950/);
   });
 
   it('keeps landscape orientation dimensions from orient()', () => {
@@ -726,6 +762,14 @@ describe('browser frame', () => {
     expect(
       target.querySelector('[data-py-browser-origin]')?.getAttribute('data-py-browser-origin')
     ).toBe('https://fake.example');
+    // The frame is exactly the reserved toolbar strip, so it never paints over the app
+    // (an inset-0 overlay with an opaque BrowserChrome hid every browser-shell app).
+    const frame = target.querySelector<HTMLElement>('[data-py-frame="browser"]');
+    expect(frame?.style.height).toBe(`${screenInsetOf(FRAMES.browser).top}px`);
+    expect(frame?.className).not.toMatch(/\binset-0\b/);
+    expect(target.querySelector<HTMLElement>('[data-py-shell-part="screen"]')?.style.inset).toBe(
+      `${screenInsetOf(FRAMES.browser).top}px 0px 0px 0px`
+    );
 
     const address = screen.getByRole('textbox', { name: 'Address' }) as HTMLInputElement;
     expect(address.value).toBe('https://fake.example/#/home');

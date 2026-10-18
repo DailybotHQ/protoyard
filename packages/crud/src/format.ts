@@ -1,4 +1,4 @@
-import type { BlueprintField } from '@protoyard/blueprint';
+import type { BlueprintEntity, BlueprintField } from '@protoyard/blueprint';
 import { fieldLabel, inputProperty } from '@protoyard/blueprint';
 import type { Row } from '@protoyard/core';
 
@@ -8,7 +8,18 @@ export function formatMoney(cents: unknown, currency = 'USD', locale = 'en-US'):
   return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(cents / 100);
 }
 
-export function formatFieldValue(field: BlueprintField, value: unknown): string {
+export function formatEntityHeading(entity: Pick<BlueprintEntity, 'label' | 'plural'>): string {
+  return (entity.label ?? entity.plural)
+    .replace(/[-_]+/g, ' ')
+    .toLocaleLowerCase('en-US')
+    .replace(/(^|\s)\p{L}/gu, (letter) => letter.toLocaleUpperCase('en-US'));
+}
+
+export function formatFieldValue(
+  field: BlueprintField,
+  value: unknown,
+  displayNames?: ReadonlyMap<string, string>
+): string {
   if (value === null || value === undefined || value === '') return '—';
   switch (field.kind) {
     case 'money':
@@ -21,8 +32,9 @@ export function formatFieldValue(field: BlueprintField, value: unknown): string 
       return field.labels?.[String(value)] ?? String(value);
     case 'relation':
     case 'persona':
-      if (Array.isArray(value)) return value.join(', ');
-      return String(value);
+      return (Array.isArray(value) ? value : [value])
+        .map((id) => displayNames?.get(String(id)) ?? String(id))
+        .join(', ');
     case 'json':
       try {
         return JSON.stringify(value);

@@ -74,7 +74,10 @@ The renderer shows the bare app, with no frame, when:
 - the prototype runs inside an iframe (the gallery preview draws its own device frame);
 - the window is too narrow. Phones and tablets need the device width plus the frame and a
   gutter, so a real phone is always full-bleed. `desktop-window` and `browser` need 768 px
-  and scale down on smaller desktops.
+  and scale down on smaller desktops;
+- the prototype's stylesheet does not import `@protoyard/renderer-svelte/app.css`, which
+  holds the shell layout rules. The console then explains what to add. Every prototype's
+  `src/app.css` should start with that import.
 
 The device box scales down to fit the window on both axes. It never scales up.
 
@@ -136,7 +139,10 @@ A frame is a sibling overlay of the app's screen, not a wrapper, so switching sh
 remounts the app. It receives `FrameProps`: `spec` (the device in its orientation), `shell`,
 `chrome`, and, for window-like frames, `app`, `maximized`, `setMaximized()` and
 `setScreenHidden()`. Give the overlay `pointer-events: none`, except on controls that really
-work. Shells that position the screen themselves (panel shells such as `widget-host`) must
+work. **Never paint over the screen:** reserve chrome space with `screenInset` and keep the
+overlay out of it (the browser frame is exactly toolbar-tall), and draw bezels with a border
+ring, not a background fill. The shell E2E matrix checks that the app is actually painted,
+not just laid out. Shells that position the screen themselves (panel shells such as `widget-host`) must
 also be added to `PANEL_SHELLS` in `ShellHost.svelte`.
 
 ## Tests

@@ -1,13 +1,17 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { getDevice } from '@protoyard/core';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { Dexie, type EntityTable } from 'dexie';
 import { flushSync } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mountPrototype } from '../src/index.ts';
 import {
   activeFrame,
   FRAMES,
+  hasShellCss,
   isEmbedded,
+  SHELL_CSS_MARKER,
   STAGE_GUTTER,
   stageScale,
 } from '../src/shell/frames/registry.ts';
@@ -16,6 +20,12 @@ import LiveList from './fixtures/LiveList.svelte';
 import ProbeApp from './fixtures/ProbeApp.svelte';
 import ThrowingApp from './fixtures/ThrowingApp.svelte';
 import ThrowingQuery from './fixtures/ThrowingQuery.svelte';
+
+// Unit tests load no stylesheet. Simulate a prototype whose app.css imports the
+// renderer CSS (ShellHost frames only when its marker is present).
+beforeEach(() => {
+  document.documentElement.style.setProperty(SHELL_CSS_MARKER, '1');
+});
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const root = document.documentElement;
@@ -119,6 +129,36 @@ describe('mountPrototype', () => {
     expect(getOverlayPortalTarget()).toBeNull();
     expect(root.dataset.pyShell).toBeUndefined();
     expect(screen.getByTestId('who')).toBe(before);
+  });
+
+  it('renders full-bleed and warns once when the renderer CSS is missing (no blank page)', async () => {
+    // A prototype whose app.css skips `@protoyard/renderer-svelte/app.css` has no shell
+    // layout rules: framing it collapsed the stage and scaled the device to a speck.
+    document.documentElement.style.removeProperty(SHELL_CSS_MARKER);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { runtime, target } = await boot();
+      await runtime.theme.setOverride({ shell: 'browser' });
+      flushSync();
+      await tick();
+      expect(runtime.theme.appearance().shell.value).toBe('browser');
+      expect(root.dataset.pyShell).toBeUndefined();
+      expect(target.querySelector('[data-py-frame]')).toBeNull();
+      // The app is there and unscaled: the wrappers carry no inline layout.
+      expect(screen.getByTestId('who').textContent).toBe('Olivia Owner');
+      for (const part of target.querySelectorAll<HTMLElement>('[data-py-shell-part]')) {
+        expect(part.getAttribute('style') ?? '').toBe('');
+      }
+      await runtime.theme.setOverride({ shell: 'phone' });
+      flushSync();
+      await tick();
+      const warnings = warn.mock.calls.filter(([m]) =>
+        String(m).includes('renderer-svelte/app.css')
+      );
+      expect(warnings).toHaveLength(1);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('forces full-bleed when embedded in an iframe (the gallery draws its own device)', async () => {
@@ -332,6 +372,27 @@ describe('shell frame decisions', () => {
       'side-panel',
     ] as const;
     for (const shell of shells) expect(FRAMES[shell], shell).toBeDefined();
+  });
+
+  it('frames only when the shell CSS is loaded, and the renderer CSS keeps its marker', () => {
+    const base = {
+      shell: 'browser' as const,
+      spec: getDevice('laptop-window'),
+      windowWidth: 1440,
+      embedded: false,
+    };
+    expect(activeFrame(base)).toBe('browser');
+    expect(activeFrame({ ...base, cssReady: true })).toBe('browser');
+    expect(activeFrame({ ...base, cssReady: false })).toBe('none');
+
+    const el = document.body.appendChild(document.createElement('div'));
+    expect(hasShellCss(el)).toBe(false);
+    el.style.setProperty(SHELL_CSS_MARKER, '1');
+    expect(hasShellCss(el)).toBe(true);
+    el.remove();
+
+    const css = readFileSync(join(import.meta.dirname, '../src/app.css'), 'utf8');
+    expect(css).toMatch(/:root\s*\{\s*--py-shell-css:\s*1;\s*\}/);
   });
 
   it('detects embedding, including a cross-origin parent that throws', () => {

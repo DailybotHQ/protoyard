@@ -92,6 +92,18 @@ export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
   },
 };
 
+/** Custom property `app.css` sets on `:root`, so the host can tell the shell CSS is loaded. */
+export const SHELL_CSS_MARKER = '--py-shell-css';
+
+/**
+ * True when the stylesheet carrying the shell layout rules is loaded. Without
+ * those rules the stage collapses to a few pixels and the device scales to a
+ * speck (a blank page), so the host renders full-bleed instead.
+ */
+export function hasShellCss(root: HTMLElement = document.documentElement): boolean {
+  return getComputedStyle(root).getPropertyValue(SHELL_CSS_MARKER).trim() === '1';
+}
+
 /** Resolved inset of the app screen inside the device box. */
 export function screenInsetOf(entry: FrameEntry | undefined): ScreenInset {
   return { top: 0, right: 0, bottom: 0, left: 0, ...entry?.screenInset };
@@ -119,6 +131,11 @@ export interface FrameDecisionInput {
   /** The real window width (media queries follow it). */
   windowWidth: number;
   embedded: boolean;
+  /**
+   * Whether the shell layout CSS (`@protoyard/renderer-svelte/app.css`) is
+   * loaded. Default `true`; ShellHost passes `hasShellCss()`.
+   */
+  cssReady?: boolean;
 }
 
 /**
@@ -127,9 +144,9 @@ export interface FrameDecisionInput {
  * gutter (a real phone, even one slightly wider than the catalog device).
  */
 export function activeFrame(input: FrameDecisionInput): ResolvedShell {
-  const { shell, spec, windowWidth, embedded } = input;
+  const { shell, spec, windowWidth, embedded, cssReady = true } = input;
   const entry = shell === 'none' ? undefined : FRAMES[shell];
-  if (!entry || embedded || !spec) return 'none';
+  if (!entry || embedded || !spec || !cssReady) return 'none';
   const needed = entry.minWindowWidth ?? spec.width + 2 * (entry.margin + STAGE_GUTTER);
   return windowWidth < needed ? 'none' : shell;
 }

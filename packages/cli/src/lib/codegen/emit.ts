@@ -1,4 +1,11 @@
-import { type Blueprint, type BlueprintEntity, entityTable } from '@protoyard/blueprint';
+import {
+  type Blueprint,
+  type BlueprintEntity,
+  brandThemeExportName,
+  emitBrandThemeModule,
+  entityTable,
+  resolveBlueprintBrand,
+} from '@protoyard/blueprint';
 import { withHeader } from './header.ts';
 
 /**
@@ -296,6 +303,32 @@ const counts = liveQuery(
 `;
 }
 
+/** Prototype definition that registers the blueprint brand theme as default. */
+function prototypeWithBrand(exportName: string): string {
+  return `import { deriveIntegrity } from '@protoyard/blueprint';
+import { definePrototype, parseManifest } from '@protoyard/core';
+import manifestJson from '../protoyard.json';
+import { database } from './database/schema.ts';
+import { ${exportName} } from './generated/brand-theme.ts';
+import { blueprint } from './generated/blueprint.ts';
+import { policy } from './generated/policy.ts';
+import { generate } from './scenarios/generators.ts';
+import { scenarios } from './scenarios/index.ts';
+
+export const definition = definePrototype({
+  manifest: parseManifest(manifestJson),
+  database,
+  scenarios,
+  policy,
+  generate,
+  // Bumped via blueprint generator hash when the blueprint changes.
+  generatorVersion: 1,
+  integrity: deriveIntegrity(blueprint),
+  themes: [${exportName}],
+});
+`;
+}
+
 function generatorsTest(): string {
   return `import { entityTable } from '@protoyard/blueprint';
 import { parseScenario } from '@protoyard/core';
@@ -421,7 +454,7 @@ export function emitPrototype(
   slug: string,
   blueprintText: string
 ): EmittedFile[] {
-  return [
+  const files: EmittedFile[] = [
     owned('blueprint.json', blueprintText),
     generated('src/generated/blueprint.ts', blueprintModule()),
     generated('src/generated/schema.ts', schemaModule()),
@@ -438,4 +471,20 @@ export function emitPrototype(
     owned('tests/services.test.ts', servicesTest(blueprint)),
     owned('README.md', readme(blueprint, slug)),
   ];
+
+  if (blueprint.brand) {
+    const theme = resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name });
+    const exportName = brandThemeExportName(theme.id);
+    files.push(generated('src/generated/brand-theme.ts', emitBrandThemeModule(theme)));
+    // Owned: replaces the template prototype so the brand theme is registered.
+    files.push(owned('src/prototype.ts', prototypeWithBrand(exportName)));
+  }
+
+  return files;
+}
+
+/** Theme id written to protoyard.json when the blueprint declares a brand. */
+export function brandDefaultThemeId(blueprint: Blueprint): string | null {
+  if (!blueprint.brand) return null;
+  return resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name }).id;
 }

@@ -13,6 +13,7 @@ describe('@protoyard/blueprint package', () => {
     expect(Object.keys(pkg.dependencies).sort()).toEqual([
       '@protoyard/core',
       '@protoyard/scenarios',
+      '@protoyard/themes',
       'zod',
     ]);
     expect('peerDependencies' in pkg).toBe(false);

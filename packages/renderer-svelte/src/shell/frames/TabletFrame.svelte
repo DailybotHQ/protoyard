@@ -25,9 +25,10 @@ async function toggleOrientation(): Promise<void> {
   style:height="{spec.height}px"
 >
   {#key spec.orientation}
+    <!-- The bezel is the border ring only: a fill here would paint over the app's screen. -->
     <div
       data-py-frame-decoration
-      class="absolute border-solid border-zinc-800 bg-zinc-800 shadow-[0_0_0_1px_rgb(39_39_42),0_28px_70px_-24px_rgb(0_0_0/0.55)] dark:border-zinc-950 dark:bg-zinc-950 dark:shadow-[0_0_0_1px_rgb(24_24_27),0_28px_70px_-24px_rgb(0_0_0/0.75)]"
+      class="absolute border-solid border-zinc-800 bg-transparent shadow-[0_0_0_1px_rgb(39_39_42),0_28px_70px_-24px_rgb(0_0_0/0.55)] dark:border-zinc-950 dark:shadow-[0_0_0_1px_rgb(24_24_27),0_28px_70px_-24px_rgb(0_0_0/0.75)]"
       style:inset="-{bezel}px"
       style:border-width="{bezel}px"
       style:border-radius="{spec.cornerRadius + bezel}px"
