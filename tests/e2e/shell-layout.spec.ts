@@ -5,8 +5,9 @@ import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
  * Layout under viewport presets, against the STATIC build of Lumen Bank
  * (manifest `preview.viewport: "iphone"`). The preset narrows #app; it must
  * not grow the document or push fixed descendants (the bottom nav) below
- * the fold: #app is a viewport-tall box and the app scrolls inside the
- * renderer's scroll root.
+ * the fold: #app is a viewport-tall box and the app scrolls inside its own
+ * scroll container (Lumen Bank: MobileAppShell's <main>; other apps: the
+ * renderer's scroll root).
  */
 const SLUG = 'mobile-banking-demo';
 test.skip(!PROTOTYPE_TARGETS.includes(SLUG), `set PROTOYARD_E2E_PROTOTYPES to include ${SLUG}`);
@@ -18,6 +19,9 @@ async function openApp(page: Page, hash = '') {
 }
 
 const viewportHeight = (page: Page) => page.evaluate(() => window.innerHeight);
+
+/** Lumen Bank scrolls inside MobileAppShell's <main id="main">, never the document. */
+const appScroller = (page: Page) => page.locator('[data-py-scroll-root] main#main');
 
 test.describe('viewport preset layout (Lumen Bank)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -51,7 +55,7 @@ test.describe('viewport preset layout (Lumen Bank)', () => {
     page,
   }) => {
     await openApp(page);
-    const scrollRoot = page.locator('[data-py-scroll-root]');
+    const scrollRoot = appScroller(page);
     const overflow = await scrollRoot.evaluate((el) => el.scrollHeight - el.clientHeight);
     expect(overflow).toBeGreaterThan(0);
 
@@ -72,7 +76,7 @@ test.describe('viewport preset layout (Lumen Bank)', () => {
 
   test('navigating resets the app scroll position', async ({ page }) => {
     await openApp(page);
-    const scrollRoot = page.locator('[data-py-scroll-root]');
+    const scrollRoot = appScroller(page);
     await scrollRoot.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
     expect(await scrollRoot.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 
