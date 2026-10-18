@@ -9,7 +9,7 @@ Framework-agnostic: it depends only on `@protoyard/core` and zod and never impor
 
 ## Status
 
-Implemented: schema, storage, migrations, validation, policy and CSV codec. Remaining
+Implemented: schema, storage, migrations, validation, policy, notifications and CSV codec. Remaining
 derivations land in later PLAN_002 tasks:
 
 | Module | Derives | Status |
@@ -18,6 +18,7 @@ derivations land in later PLAN_002 tasks:
 | migrations | the next appended database version from a blueprint change | done |
 | validation | create and update zod input schemas per entity | done |
 | policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
+| notifications | validated create/update/assignment rules, atomic writes and actor-scoped read state | done |
 | csv | RFC 4180 parse/serialize + row validation (`@protoyard/blueprint/csv`) | done |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | done |
@@ -48,6 +49,10 @@ optional `screens`. Every object is strict, so unknown keys fail.
   `update`, `update:own`, `delete`, `delete:own`, `import`, `export` or `*`.
 - **Screens:** `list` (`columns`), `detail`, `form`, `board` (`groupBy` an enum field) and
   `dashboard` (`metrics` with `count` or `sum` over a number, integer or money field).
+- **Notifications:** optional top-level rules use `on: 'create' | 'update' | 'assign'`, an
+  entity, `notify: 'owner' | 'assignee' | 'role:<name>'`, and a plain-text title with `{field}`
+  substitutions. Assignment rules name a persona field. Writes share the entity mutation
+  transaction, exclude the actor, and store an empty body for future UI copy.
 
 After the shape is valid, cross-references are checked with path-specific messages, for
 example `entities.1.fields.3.to: relation "support-ticket.customer" targets unknown entity
@@ -233,6 +238,12 @@ throws `EntityNotFoundError`. Bulk writes go through `bulkPut` in chunks of `BUL
 (1,000) rows inside the same transaction. Reads (`list`, `get`) need `<entity>:read`, hide
 rows with `deletedAt`, sort by `defaultSort` (else `createdAt`), and read IndexedDB
 directly without the simulated network, like `liveQuery` reads.
+
+When notification rules are present, matching create and update mutations append notification
+rows in that same transaction. Assignment rules fire when the named persona field changes to a
+new persona. Rule titles are plain text and interpolate entity fields; the actor never receives
+their own notification. `createNotificationService(runtime)` scopes list, unread count and read
+state changes to whichever persona is active, so switching persona changes the visible inbox.
 
 Tests run on the real runtime with the help desk fixture in
 `tests/fixtures/blueprint-prototype.ts`, a prototype whose stores, policy and integrity
