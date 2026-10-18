@@ -1,0 +1,28 @@
+{
+  "name": "@prototype/helpdesk-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Protoyard crud-app template: blueprint-driven projects/tasks with CRUD kit, notifications, members and search.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/blueprint": "workspace:*",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/crud": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "dexie": "^4.4.0",
+    "svelte": "^5.57.0"
+  },
+  "devDependencies": {
+    "@protoyard/runtime": "workspace:*",
+    "@protoyard/scenarios": "workspace:*"
+  }
+}
