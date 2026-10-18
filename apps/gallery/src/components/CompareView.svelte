@@ -7,6 +7,7 @@ import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 import X from '@lucide/svelte/icons/x';
 import { onMount } from 'svelte';
 import {
+  COMPARE_DEVICE_IDS,
   type CompareState,
   defaultScenarios,
   PANE_IDS,
@@ -17,7 +18,7 @@ import {
   stateFromParams,
 } from '@/lib/compare';
 import { control } from '@/lib/control.svelte';
-import { DEVICES, type DeviceId, fitScale, safePreviewUrl } from '@/lib/devices';
+import { DEVICES, fitScale, frameFor, safePreviewUrl, withGalleryShellNone } from '@/lib/devices';
 import CommandBlock from './CommandBlock.svelte';
 
 interface Props {
@@ -33,7 +34,7 @@ let { slug, name, scenarios, defaultScenario, embeddedUrl, devCommand }: Props =
 
 let state = $state<CompareState>({
   scenarios: defaultScenarios(scenarios, defaultScenario),
-  device: 'desktop',
+  device: 'laptop-window',
   generation: 0,
 });
 let hydrated = $state(false);
@@ -59,9 +60,7 @@ const framePolicy = $derived(
 const panes = $derived(
   state.scenarios.map((scenario, i) => ({ id: PANE_IDS[i] as PaneId, scenario }))
 );
-const device = $derived(
-  DEVICES.find((d) => d.id === state.device) ?? (DEVICES[0] as (typeof DEVICES)[number])
-);
+const device = $derived(frameFor(state.device));
 // Each pane gets an equal share of the grid width (minus gaps).
 const paneWidth = $derived(Math.max(0, (width - (panes.length - 1) * 16) / panes.length));
 const scale = $derived(fitScale(paneWidth - 2, device.width));
@@ -237,14 +236,19 @@ const select = 'h-9 rounded-lg border border-line bg-bg px-2.5 text-sm text-fg';
           {#if appUrl}
             <div class="mx-auto" style:width="{device.width * scale}px" style:height="{device.height * scale}px">
               <div
-                class={['origin-top-left overflow-hidden border border-line bg-white', device.rounded ? 'rounded-[28px] border-8 border-zinc-800' : 'rounded-lg']}
+                class={[
+                  'origin-top-left overflow-hidden border border-line bg-white',
+                  device.framed ? 'rounded-[28px] border-8 border-zinc-800' : 'rounded-lg',
+                ]}
                 style:width="{device.width}px"
                 style:height="{device.height}px"
                 style:transform="scale({scale})"
               >
                 {#key paneUrl(appUrl, pane.id, pane.scenario, state.generation)}
                   <iframe
-                    src={paneUrl(appUrl, pane.id, pane.scenario, state.generation)}
+                    src={device.framed
+                      ? withGalleryShellNone(paneUrl(appUrl, pane.id, pane.scenario, state.generation))
+                      : paneUrl(appUrl, pane.id, pane.scenario, state.generation)}
                     title={`${name}, frame ${pane.id.toUpperCase()}: scenario ${pane.scenario} (sandbox ${sandboxName(pane.id, state.generation)})`}
                     class="size-full border-0"
                     data-sandbox={sandboxName(pane.id, state.generation)}

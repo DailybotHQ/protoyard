@@ -34,6 +34,19 @@ export interface RegistryEntry {
   createdAt: string | null;
   updatedAt: string | null;
   /**
+   * Marketplace catalog block when present. `shell` is resolved (`auto` → phone
+   * or none from platform) for gallery framing defaults.
+   */
+  catalog?: {
+    shell?: string;
+    category?: string;
+    productType?: string | null;
+    platforms?: string[];
+    features?: string[];
+    highlights?: string[];
+    difficulty?: string | null;
+  } | null;
+  /**
    * Set by `protoyard showcase`: the prototype's static build ships inside
    * this site, so previews work without a local control server.
    */
