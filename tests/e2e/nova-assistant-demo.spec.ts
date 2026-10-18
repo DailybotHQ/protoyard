@@ -67,9 +67,19 @@ test.describe('Nova Assistant flagship', () => {
     await host.getByRole('button', { name: 'Open simulated assistant' }).click();
     const widget = page.getByRole('dialog', { name: 'Simulated assistant' });
     await expect(widget).toBeVisible();
+    // Audit the settled panel, not its 300 ms opacity/slide transition.
+    const settled = () =>
+      page.waitForFunction(() => {
+        const panel = document.getElementById('ai-widget-panel');
+        return (
+          !!panel && getComputedStyle(panel).opacity === '1' && panel.getAnimations().length === 0
+        );
+      });
+    await settled();
     await expectAccessible(page, testInfo, { label: 'nova-widget-sidebar' });
     await widget.getByRole('button', { name: 'Expand assistant to full screen' }).click();
     await expect(widget).toHaveAttribute('data-widget-fullscreen', 'true');
+    await settled();
     await expectAccessible(page, testInfo, { label: 'nova-widget-fullscreen' });
   });
 

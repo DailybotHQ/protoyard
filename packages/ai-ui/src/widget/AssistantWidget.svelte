@@ -131,7 +131,7 @@ function trapFullscreenFocus(event: KeyboardEvent): void {
     <div
       bind:this={panel}
       id="ai-widget-panel"
-      class="pointer-events-auto absolute inset-y-0 right-0 flex min-h-0 flex-col overflow-hidden border border-border bg-background shadow-2xl transition-[width,height,opacity,transform,border-radius] duration-300 ease-out"
+      class="pointer-events-auto absolute inset-y-0 right-0 flex min-h-0 flex-col overflow-hidden border border-border bg-background shadow-2xl transition-[width,height,opacity,transform,border-radius] duration-300 ease-out motion-reduce:transition-none"
       class:w-full={mode === 'fullscreen'}
       class:h-full={mode !== 'launcher'}
       class:w-[min(28rem,100%)]={mode === 'sidebar'}
