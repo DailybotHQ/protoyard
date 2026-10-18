@@ -46,7 +46,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 
 | Group | Components |
 | --- | --- |
-| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker` |
+| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone` |
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
 | Disclosure | `Tabs`, `Accordion` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
@@ -69,6 +69,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Button` | `variant` default·secondary·outline·ghost·destructive·link, `size` sm·md·lg·icon, `loading` (+`loadingLabel`, sets `aria-busy`, disables), `href` → `<a>`, `bind:ref` |
 | `Input` / `Textarea` | native attributes, `bind:value`, `aria-invalid` styling |
 | `Label` | `for` |
+| `FileDropzone` | `accept`, `maxSize`, `maxFiles`, `multiple`, `bind:files` (`DropzoneFile[]` with real `File`s), `bind:rejects`, drag-and-drop + keyboard file input, image previews via `URL.createObjectURL` (revoked on remove/destroy), per-file `Progress`, inline limit errors. Never reads file contents as HTML. |
 | `FormField` | `label`, `description`, `error`, `required`, `hideLabel`, `id`; `children({ id, describedBy, invalid, required, props })` |
 | `Checkbox` | `bind:checked`, `bind:indeterminate`, `label`, `description` |
 | `RadioGroup` / `RadioGroupItem` | `items: { value, label, description?, disabled? }[]`, `bind:value` (Bits props pass through) |
