@@ -24,7 +24,8 @@
     "@protoyard/core": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/saas": "workspace:*",
-    "@protoyard/ui": "workspace:*"
+    "@protoyard/ui": "workspace:*",
+    "zod": "^4.6.0"
   },
   "devDependencies": {
     "svelte": "^5.57.0"

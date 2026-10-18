@@ -1,5 +1,6 @@
 <script lang="ts">
-import KitPlaceholder from '../components/KitPlaceholder.svelte';
+import OnboardingWizard from './onboarding/OnboardingWizard.svelte';
 </script>
 
-<KitPlaceholder title="Onboarding" description="Persisted simulated onboarding wizard (scaffold)." />
+<!-- The `/onboarding` kit route: the persisted wizard with the default steps. -->
+<OnboardingWizard />

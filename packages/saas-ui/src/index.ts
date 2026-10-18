@@ -28,3 +28,18 @@ export {
   saasRoutes,
 } from './routes.ts';
 export { default as InboxDrawer } from './screens/inbox/InboxDrawer.svelte';
+export {
+  default as OnboardingWizard,
+  type OnboardingStepSnippet,
+  type OnboardingStepSnippetArgs,
+} from './screens/onboarding/OnboardingWizard.svelte';
+export {
+  defaultOnboardingSteps,
+  type OnboardingField,
+  type OnboardingRuntime,
+  type OnboardingSelectOption,
+  type OnboardingStepContext,
+  type OnboardingUiStep,
+  stepInput,
+  stepValues,
+} from './screens/onboarding/steps.ts';

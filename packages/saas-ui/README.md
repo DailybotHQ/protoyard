@@ -78,6 +78,60 @@ mailbox without changing routes. Pass a fictional `recipient` when no signed-in
 persona supplies one. `InboxBadge` is available for headers and displays the
 unread count. Inbox messages are plain text and action links stay in the
 prototype's hash routes.
+| `/inbox` | Simulated inbox | `requireAuth` |
+| `/onboarding` | Onboarding wizard (**working**, see below) | `requireAuth` |
+
+The other screens are still accessible placeholders; their full UI lands in later
+PLAN_002 tasks. Routes and guards are real today.
+
+## Onboarding wizard
+
+`/onboarding` renders `OnboardingWizard`: `@protoyard/ui` `Wizard` on the
+`@protoyard/saas` engine (`createOnboarding`), rows in `saas_onboarding`. Add
+the table with `saasStores(1, { tables: ['saas_onboarding', …] })` and grant
+`onboarding:progress` in your policy.
+
+- **Persisted:** Next saves the answer and the position in one transaction; Back
+  and **Skip for now** (optional steps) are saved too. A reload resumes at the
+  stored step, with earlier answers filled in.
+- **Real changes:** the default steps apply their answers before saving:
+  - *Profile* updates the persona's name and title (`runtime.identity`).
+  - *Workspace* renames the organization (`workspaces:rename`). Without that
+    capability the field is read-only and the person just continues.
+  - *Invite teammates* adds members through `runtime.members.invite`
+    (`members:invite`). Addresses must be fictional (`@example.com`).
+  - *Preferences* sets the persona's color mode.
+- **Finish** marks the persona `onboardingComplete` and goes to `?next=` or the
+  kit's home path (or calls `onComplete`). The finished view lists the answers and
+  offers **Restart onboarding** behind a confirmation dialog. Restarting keeps the
+  answers as defaults; people already invited stay in the workspace.
+- **Progress:** a progress bar (`flow.progressOf`) plus the Wizard stepper.
+- Field errors from zod show inline under each field. Errors from `apply` keep
+  the person on the step.
+
+Configure it by passing your own steps, and render any step yourself with a snippet:
+
+```svelte
+<script lang="ts">
+  import { defaultOnboardingSteps, OnboardingWizard, type OnboardingUiStep } from '@protoyard/saas-ui';
+  import { z } from 'zod';
+
+  const steps: OnboardingUiStep[] = [
+    ...defaultOnboardingSteps().slice(0, 2),
+    { id: 'goal', label: 'Your goal', schema: z.object({ goal: z.enum(['ship', 'learn']) }) },
+  ];
+</script>
+
+{#snippet goal({ values, issues, setValue })}
+  <!-- your own controls; call setValue('goal', 'ship') -->
+{/snippet}
+
+<OnboardingWizard {steps} snippets={{ goal }} />
+```
+
+A step without a snippet renders its `fields` (`text`, `emails`, `select`).
+`defaults`, `readOnly`/`readOnlyNote` and `apply` are optional. The screen is
+its own lazy chunk through the `/onboarding` route.
 
 ## Guards
 
