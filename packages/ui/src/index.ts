@@ -68,6 +68,9 @@ export type {
 } from './components/dropdown-menu/types.ts';
 export { default as EmptyState } from './components/empty-state/EmptyState.svelte';
 export { default as ErrorState } from './components/error-state/ErrorState.svelte';
+export { formatBytes, matchesAccept, validateFiles } from './components/file-dropzone/accept.ts';
+export { default as FileDropzone } from './components/file-dropzone/FileDropzone.svelte';
+export type { DropzoneFile, DropzoneReject } from './components/file-dropzone/types.ts';
 export {
   applyFilters,
   buildFilterChips,
