@@ -1,7 +1,13 @@
 import { parseBlueprint } from '@protoyard/blueprint';
 import { describe, expect, it } from 'vitest';
-import { entityListColumns, entitySearchKeys } from '../src/columns.ts';
-import { formatFieldValue, formatMoney } from '../src/format.ts';
+import { helpdeskBlueprint } from '../../../tests/fixtures/blueprint-prototype.ts';
+import {
+  entityListColumns,
+  entityListHeading,
+  entitySearchKeys,
+  loadEntityListDisplayNames,
+} from '../src/columns.ts';
+import { formatEntityHeading, formatFieldValue, formatMoney } from '../src/format.ts';
 
 const blueprint = parseBlueprint({
   formatVersion: 1,
@@ -44,5 +50,54 @@ describe('crud format helpers', () => {
     expect(columns[0]?.key).toBe('title');
     expect(columns.some((c) => c.key === 'price')).toBe(true);
     expect(entitySearchKeys(entity)).toContain('title');
+  });
+
+  it('uses the display label or title-cases the blueprint plural for list headings', () => {
+    expect(formatEntityHeading({ label: undefined, plural: 'support-tickets' })).toBe(
+      'Support Tickets'
+    );
+    expect(entityListHeading({ label: 'Support tickets', plural: 'support-tickets' })).toBe(
+      'Support Tickets'
+    );
+  });
+
+  it('formats money columns as currency from cents', () => {
+    const invoice = helpdeskBlueprint.entities.find((candidate) => candidate.name === 'invoice')!;
+    const amountColumn = entityListColumns(invoice).find((column) => column.key === 'amount');
+    expect(amountColumn?.accessor?.({ amount: 90_337 } as never)).toMatch(/903\.37/);
+    expect(amountColumn?.accessor?.({ amount: 90_337 } as never)).toContain('$');
+  });
+
+  it('loads related entities and personas once and displays their names in columns', async () => {
+    const ticket = helpdeskBlueprint.entities.find((candidate) => candidate.name === 'ticket')!;
+    const calls: string[] = [];
+    const displayNames = await loadEntityListDisplayNames(ticket, helpdeskBlueprint, {
+      canReadEntity: () => true,
+      async listEntity(entityName) {
+        calls.push(entityName);
+        return [{ id: 'customer_0008', name: 'Northstar Studio' }];
+      },
+      listPersonas: () => [
+        { persona: { id: 'user_0002', name: 'Sam Rivera' } },
+        { persona: { id: 'user_0003', name: 'Jordan Lee' } },
+      ],
+    });
+    expect(calls).toEqual(['customer']);
+
+    const columns = entityListColumns(ticket, displayNames);
+    expect(
+      columns
+        .find((column) => column.key === 'customerId')
+        ?.accessor?.({
+          customerId: 'customer_0008',
+        } as never)
+    ).toBe('Northstar Studio');
+    expect(
+      columns
+        .find((column) => column.key === 'assigneeId')
+        ?.accessor?.({
+          assigneeId: 'user_0002',
+        } as never)
+    ).toBe('Sam Rivera');
   });
 });

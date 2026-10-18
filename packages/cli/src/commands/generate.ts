@@ -284,7 +284,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   );
   const nextSteps = [
     ...(install.ok && !install.skipped ? [] : ['pnpm install']),
-    ...(spec.ok ? [] : [`pnpm protoyard spec ${slug} --write`]),
+    ...(spec.ok ? [] : [`pnpm protoyard spec ${slug} --init --write`]),
     `pnpm protoyard dev ${slug}`,
     `pnpm vitest run prototypes/${slug}`,
     `pnpm protoyard validate ${slug} --build`,
@@ -320,6 +320,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
         out.warn(`${mark(c, 'warn')} pnpm install failed — run it manually before \`dev\`.`);
         if (install.log) out.warn(c.dim(install.log));
       }
+      if (spec?.ok) out.info(`${mark(c, 'pass')} Spec: AGENTS.md and docs/ filled for ${slug}`);
+      else if (spec)
+        out.warn(`${mark(c, 'warn')} Spec regions not refreshed: ${spec.error ?? 'unknown error'}`);
       out.info('\nNext steps:');
       for (const step of nextSteps) out.info(`  ${c.cyan(step)}`);
     },
@@ -426,7 +429,7 @@ async function regenerate(
       const { c } = out;
       if (spec && !spec.ok) {
         out.warn(
-          `${mark(c, 'warn')} Spec docs not refreshed (${spec.error ?? 'unknown error'}). Run \`pnpm protoyard spec ${slug} --write\`.`
+          `${mark(c, 'warn')} Spec docs not refreshed (${spec.error ?? 'unknown error'}). Run \`pnpm protoyard spec ${slug} --init --write\`.`
         );
       }
       if (unchanged) {

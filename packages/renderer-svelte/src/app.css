@@ -14,6 +14,15 @@
 @source "./";
 
 /*
+ * Marker ShellHost reads to know these layout rules are loaded. A prototype whose
+ * stylesheet skips this file renders full-bleed (with a console warning) instead of
+ * a collapsed frame.
+ */
+:root {
+  --py-shell-css: 1;
+}
+
+/*
  * The app's scroll root and the ShellHost wrappers. Without a viewport preset or a
  * shell frame they are `display: contents`, so the document scrolls exactly as before.
  */

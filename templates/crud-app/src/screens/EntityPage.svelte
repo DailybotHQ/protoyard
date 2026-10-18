@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Row } from '@protoyard/core';
-import { EntityForm, EntityList } from '@protoyard/crud';
+import { EntityForm, EntityList, formatEntityHeading } from '@protoyard/crud';
 import { navigate, type RouteProps } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
 import { useCrudApp } from '../lib/context.ts';
@@ -60,7 +60,7 @@ async function submitEdit(input: Record<string, unknown>) {
 {:else}
   <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
     <div>
-      <h1 class="text-xl font-semibold capitalize">{entity.plural}</h1>
+      <h1 class="text-xl font-semibold">{formatEntityHeading(entity)}</h1>
       <p class="text-sm text-muted-foreground">
         Blueprint-driven list and forms. Mutations go through entity services.
       </p>

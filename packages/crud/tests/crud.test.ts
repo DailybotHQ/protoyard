@@ -55,6 +55,33 @@ describe('EntityList', () => {
     );
     expect(screen.queryByRole('button', { name: /New/i })).toBeNull();
   });
+
+  it('shows related record titles and persona names instead of ids', async () => {
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, helpdeskBlueprint);
+    const customer = await services.customer!.create({ name: 'Northstar Studio' });
+    const persona = runtime.members.list()[0]!.persona;
+    const ticket = await services.ticket!.create({
+      subject: 'Workspace access',
+      customerId: customer.id,
+      assigneeId: persona.id,
+    });
+
+    render(CrudHarness, {
+      runtime,
+      blueprint: helpdeskBlueprint,
+      services,
+      mode: 'list',
+      entityName: 'ticket',
+    });
+
+    expect(await screen.findByText(String(ticket.subject))).toBeTruthy();
+    expect(screen.getByText('Northstar Studio')).toBeTruthy();
+    expect(screen.getByText(persona.name)).toBeTruthy();
+    expect(screen.queryByText(customer.id)).toBeNull();
+    expect(screen.queryByText(persona.id)).toBeNull();
+    expect(screen.getByRole('table', { name: 'Tickets' })).toBeTruthy();
+  });
 });
 
 describe('EntityForm', () => {

@@ -6,6 +6,9 @@ record, indexed related records, attachments and audit history; `EntityForm`
 renders a `FormField` per blueprint field with inline zod errors via `runService`.
 `RelationPicker` searches indexed relation/persona options and can create a
 related record inline when the current persona has create permission.
+List columns resolve related records and personas in batches, and format money
+fields from integer cents with the blueprint currency. Entity headings use the
+blueprint label or a title-cased plural name.
 Blueprint-driven list and form screens for Protoyard. `EntityList` wraps
 `DataTable` + selection + bulk actions + CSV + trash; `EntityForm` renders a
 `FormField` per blueprint field with inline zod errors via `runService`.
