@@ -1,8 +1,16 @@
+import { getDevice } from '@protoyard/core';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { Dexie, type EntityTable } from 'dexie';
 import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mountPrototype } from '../src/index.ts';
+import {
+  activeFrame,
+  FRAMES,
+  isEmbedded,
+  STAGE_GUTTER,
+  stageScale,
+} from '../src/shell/frames/registry.ts';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import LiveList from './fixtures/LiveList.svelte';
 import ProbeApp from './fixtures/ProbeApp.svelte';
@@ -47,10 +55,77 @@ describe('mountPrototype', () => {
   it('renders the app inside the scroll root, with overlays outside it', async () => {
     const { target } = await boot();
     const scrollRoot = target.querySelector('[data-py-scroll-root]');
-    expect(scrollRoot?.parentElement).toBe(target);
     expect(scrollRoot?.contains(screen.getByTestId('who'))).toBe(true);
-    // Fixed overlays (toasts, badge, progress) stay siblings, so the scroll root never moves them.
-    expect(target.querySelectorAll(':scope > [data-py-scroll-root]')).toHaveLength(1);
+    expect(target.querySelectorAll('[data-py-scroll-root]')).toHaveLength(1);
+    // Toasts are siblings of the scroll root, so scrolling the app never moves them.
+    const toaster = target.querySelector('[aria-label="Notifications"]');
+    expect(toaster).not.toBeNull();
+    expect(scrollRoot?.contains(toaster)).toBe(false);
+    expect(scrollRoot?.parentElement?.contains(toaster)).toBe(true);
+  });
+
+  it("renders the app directly with shell 'none': no frame, no shell styles", async () => {
+    const { runtime, target } = await boot();
+    expect(runtime.theme.appearance().shell.value).toBe('none');
+    await tick();
+    expect(root.dataset.pyShell).toBeUndefined();
+    expect(target.querySelector('[data-py-frame]')).toBeNull();
+    // The wrappers exist (so the app never remounts) but carry no inline layout.
+    const parts = [...target.querySelectorAll<HTMLElement>('[data-py-shell-part]')];
+    expect(parts.map((el) => el.dataset.pyShellPart)).toEqual([
+      'stage',
+      'sizer',
+      'device',
+      'screen',
+    ]);
+    for (const part of parts) expect(part.getAttribute('style') ?? '').toBe('');
+  });
+
+  it("lazy-loads the device frame for 'phone' and sizes the screen from the catalog", async () => {
+    const { runtime, target } = await boot();
+    const before = screen.getByTestId('who');
+    await runtime.theme.setOverride({ shell: 'phone' });
+    flushSync();
+    await vi.waitFor(() => expect(target.querySelector('[data-py-frame="device"]')).not.toBeNull());
+    expect(root.dataset.pyShell).toBe('phone');
+    // The app was not remounted by the shell change.
+    expect(screen.getByTestId('who')).toBe(before);
+
+    const screenEl = target.querySelector<HTMLElement>('[data-py-shell-part="screen"]');
+    const device = target.querySelector<HTMLElement>('[data-py-shell-part="device"]');
+    const phone = getDevice('phone-pill');
+    expect(device?.style.width).toBe(`${phone?.width}px`);
+    expect(device?.style.height).toBe(`${phone?.height}px`);
+    expect(screenEl?.style.getPropertyValue('--py-app-height')).toBe(`${phone?.height}px`);
+    expect(screenEl?.style.getPropertyValue('--py-safe-top')).toBe(
+      `${phone?.safeArea.portrait.top}px`
+    );
+    expect(screenEl?.style.getPropertyValue('--py-safe-bottom')).toBe(
+      `${phone?.safeArea.portrait.bottom}px`
+    );
+    // Toasts render on the device screen, not on the desktop.
+    expect(screenEl?.querySelector('[aria-label="Notifications"]')).not.toBeNull();
+
+    await runtime.theme.setOverride({ shell: 'none' });
+    flushSync();
+    await vi.waitFor(() => expect(target.querySelector('[data-py-frame]')).toBeNull());
+    expect(root.dataset.pyShell).toBeUndefined();
+    expect(screen.getByTestId('who')).toBe(before);
+  });
+
+  it('forces full-bleed when embedded in an iframe (the gallery draws its own device)', async () => {
+    const top = vi.spyOn(window, 'top', 'get').mockReturnValue({} as Window);
+    try {
+      const { runtime, target } = await boot();
+      await runtime.theme.setOverride({ shell: 'phone' });
+      flushSync();
+      await tick();
+      expect(runtime.theme.appearance().shell.value).toBe('phone');
+      expect(root.dataset.pyShell).toBeUndefined();
+      expect(target.querySelector('[data-py-frame]')).toBeNull();
+    } finally {
+      top.mockRestore();
+    }
   });
 
   it('signals ready after seeding and mounts the app with reactive bindings', async () => {
@@ -220,5 +295,52 @@ describe('liveQuery', () => {
     expect(screen.queryByTestId('count')?.textContent).toBe('2');
     view.unmount();
     db.close();
+  });
+});
+
+describe('shell frame decisions', () => {
+  const phone = getDevice('phone-pill');
+
+  it('frames only a shell with a frame, when not embedded and the window fits the device', () => {
+    const base = { shell: 'phone' as const, spec: phone, windowWidth: 1280, embedded: false };
+    expect(activeFrame(base)).toBe('phone');
+    expect(activeFrame({ ...base, shell: 'none' })).toBe('none');
+    expect(activeFrame({ ...base, embedded: true })).toBe('none');
+    // A real phone (window narrower than the device) gets full-bleed.
+    expect(activeFrame({ ...base, windowWidth: 390 })).toBe('none');
+    expect(activeFrame({ ...base, spec: undefined })).toBe('none');
+    // Shells whose frame has not shipped yet stay full-bleed.
+    expect(FRAMES['side-panel']).toBeUndefined();
+    expect(activeFrame({ ...base, shell: 'side-panel', spec: getDevice('laptop-window') })).toBe(
+      'none'
+    );
+  });
+
+  it('detects embedding, including a cross-origin parent that throws', () => {
+    const self = {} as Window;
+    expect(isEmbedded({ top: self, self } as Window)).toBe(false);
+    expect(isEmbedded({ top: {}, self } as unknown as Window)).toBe(true);
+    const crossOrigin = Object.defineProperty({ self }, 'top', {
+      get() {
+        throw new DOMException('Blocked a frame', 'SecurityError');
+      },
+    }) as unknown as Window;
+    expect(isEmbedded(crossOrigin)).toBe(true);
+  });
+
+  it('fits the device and its frame on both axes and never upscales', () => {
+    const spec = { width: 393, height: 852 };
+    const outerHeight = 852 + 2 * (14 + STAGE_GUTTER);
+    expect(stageScale({ width: 3000, height: 3000 }, spec, 14)).toBe(1);
+    expect(stageScale({ width: 1280, height: 800 }, spec, 14)).toBeCloseTo(800 / outerHeight, 5);
+    expect(stageScale({ width: 300, height: 3000 }, spec, 14)).toBeLessThan(1);
+    expect(stageScale({ width: 0, height: 0 }, spec, 14)).toBe(1);
+  });
+
+  it('loads every registered frame as its own module', async () => {
+    for (const entry of Object.values(FRAMES)) {
+      const module = await entry?.load();
+      expect(typeof module?.default).toBe('function');
+    }
   });
 });

@@ -14,32 +14,89 @@
 @source "./";
 
 /*
- * The app's scroll root. With the desktop preset it is `display: contents`, so the
- * document scrolls exactly as before.
+ * The app's scroll root and the ShellHost wrappers. Without a viewport preset or a
+ * shell frame they are `display: contents`, so the document scrolls exactly as before.
  */
-[data-py-scroll-root] {
+[data-py-scroll-root],
+[data-py-shell-part] {
   display: contents;
 }
 
 /*
+ * Shell frames (ADR-016, ShellHost). The page becomes a stage that centers a scaled
+ * device box; the screen inside it is the containing block for fixed descendants
+ * (transform), never scrolls, and is a size container so container queries see the
+ * device width. The app scrolls inside [data-py-scroll-root]; ShellHost sets the
+ * screen size, `--py-app-height` and `--py-safe-*` inline.
+ */
+html[data-py-shell],
+html[data-py-shell] body {
+  height: 100%;
+  overflow: hidden;
+}
+html[data-py-shell] #app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+html[data-py-shell] [data-py-shell-part="stage"] {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--color-muted) 70%, var(--color-background));
+}
+html[data-py-shell] [data-py-shell-part="sizer"] {
+  display: block;
+  position: relative;
+  flex: none;
+}
+html[data-py-shell] [data-py-shell-part="device"] {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+html[data-py-shell] [data-py-shell-part="screen"] {
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: inline-size;
+  background: var(--color-background);
+  transform: translateZ(0);
+}
+html[data-py-shell] [data-py-shell-part="screen"] > [data-py-scroll-root] {
+  display: block;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/*
  * Viewport presets narrow the app column (media queries still follow the real window).
+ * They apply only while no shell frame is shown (`html[data-py-shell]`, see below).
  * #app is a viewport-tall box that never scrolls; `transform` makes it the containing
  * block for fixed descendants (bottom nav, toasts, demo badge), so they stay pinned to
  * the visible column. The app scrolls inside [data-py-scroll-root] instead, which does
  * not move those fixed descendants because their containing block is its ancestor.
  */
-html[data-py-viewport="iphone"],
-html[data-py-viewport="android"],
-html[data-py-viewport="tablet"],
-html[data-py-viewport="iphone"] body,
-html[data-py-viewport="android"] body,
-html[data-py-viewport="tablet"] body {
+html[data-py-viewport="iphone"]:not([data-py-shell]),
+html[data-py-viewport="android"]:not([data-py-shell]),
+html[data-py-viewport="tablet"]:not([data-py-shell]),
+html[data-py-viewport="iphone"]:not([data-py-shell]) body,
+html[data-py-viewport="android"]:not([data-py-shell]) body,
+html[data-py-viewport="tablet"]:not([data-py-shell]) body {
   height: 100%;
   overflow: hidden;
 }
-html[data-py-viewport="iphone"] #app,
-html[data-py-viewport="android"] #app,
-html[data-py-viewport="tablet"] #app {
+html[data-py-viewport="iphone"]:not([data-py-shell]) #app,
+html[data-py-viewport="android"]:not([data-py-shell]) #app,
+html[data-py-viewport="tablet"]:not([data-py-shell]) #app {
   display: flex;
   flex-direction: column;
   margin-inline: auto;
@@ -50,9 +107,9 @@ html[data-py-viewport="tablet"] #app {
     0 20px 60px -20px var(--color-shadow);
   transform: translateZ(0);
 }
-html[data-py-viewport="iphone"] [data-py-scroll-root],
-html[data-py-viewport="android"] [data-py-scroll-root],
-html[data-py-viewport="tablet"] [data-py-scroll-root] {
+html[data-py-viewport="iphone"]:not([data-py-shell]) [data-py-scroll-root],
+html[data-py-viewport="android"]:not([data-py-shell]) [data-py-scroll-root],
+html[data-py-viewport="tablet"]:not([data-py-shell]) [data-py-scroll-root] {
   display: block;
   flex: 1 1 auto;
   min-height: 0;
@@ -60,12 +117,12 @@ html[data-py-viewport="tablet"] [data-py-scroll-root] {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-html[data-py-viewport="iphone"] #app {
+html[data-py-viewport="iphone"]:not([data-py-shell]) #app {
   max-width: 390px;
 }
-html[data-py-viewport="android"] #app {
+html[data-py-viewport="android"]:not([data-py-shell]) #app {
   max-width: 412px;
 }
-html[data-py-viewport="tablet"] #app {
+html[data-py-viewport="tablet"]:not([data-py-shell]) #app {
   max-width: 820px;
 }

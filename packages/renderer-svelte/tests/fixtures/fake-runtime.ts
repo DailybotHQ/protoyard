@@ -283,7 +283,8 @@ export function createFakeRuntime(
         emit();
       },
       setOverride: async (patch) => {
-        const { themeId, mode, reducedMotion, viewport, density } = patch;
+        const { themeId, mode, reducedMotion, viewport, density, shell, device, orientation } =
+          patch;
         overrides = {
           ...overrides,
           ...(themeId !== undefined ? { themeId } : {}),
@@ -291,6 +292,9 @@ export function createFakeRuntime(
           ...(reducedMotion !== undefined ? { reducedMotion } : {}),
           ...(viewport !== undefined ? { viewport } : {}),
           ...(density !== undefined ? { density } : {}),
+          ...(shell !== undefined ? { shell } : {}),
+          ...(device !== undefined ? { device } : {}),
+          ...(orientation !== undefined ? { orientation } : {}),
         };
         emit();
       },
@@ -301,6 +305,9 @@ export function createFakeRuntime(
           reducedMotion: _r,
           viewport: _v,
           density: _d,
+          shell: _s,
+          device: _dv,
+          orientation: _o,
           ...rest
         } = overrides;
         overrides = rest;
