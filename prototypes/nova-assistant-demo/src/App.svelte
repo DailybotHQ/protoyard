@@ -60,6 +60,9 @@ const activeConversation = $derived(
 const activeMessages = $derived(
   (messages.current ?? []).filter((message) => message.conversationId === activeConversation?.id)
 );
+const latestAssistantReply = $derived(
+  [...activeMessages].reverse().find((message) => message.role === 'assistant')?.content ?? ''
+);
 const usedTokens = $derived(
   (messages.current ?? [])
     .filter((message) =>
@@ -136,9 +139,9 @@ function messageOf(error: unknown) {
       <span>Nova <span class="font-normal text-[#858194]">Assistant</span></span>
     </a>
     <button type="button" class="mb-5 flex min-h-11 items-center gap-2 rounded-xl border border-[#e6e2ed] bg-white px-3 text-left text-sm font-medium shadow-sm hover:bg-[#f6f3fc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8370db]" onclick={createConversation}>
-      <MessageSquarePlus class="size-4" aria-hidden="true" /> New conversation <span class="ml-auto text-xs text-[#8b8798]">⌘ K</span>
+      <MessageSquarePlus class="size-4" aria-hidden="true" /> New conversation <span class="ml-auto text-xs text-[#686477]">⌘ K</span>
     </button>
-    <p class="px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-[#898598]">Projects</p>
+    <p class="px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-[#686477]">Projects</p>
     <nav class="space-y-1" aria-label="Projects">
       {#each projects.current ?? [] as project (project.id)}
         <button type="button" class={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-sm hover:bg-[#efedf4] ${activeProjectId === project.id ? 'bg-[#efedf4] font-medium' : 'text-[#5d596c]'}`} aria-pressed={activeProjectId === project.id} onclick={() => (activeProjectId = activeProjectId === project.id ? '' : project.id)}>
@@ -146,7 +149,7 @@ function messageOf(error: unknown) {
         </button>
       {/each}
     </nav>
-    <div class="mt-6 flex items-center gap-2 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-[#898598]"><Folder class="size-3.5" aria-hidden="true" /> History</div>
+    <div class="mt-6 flex items-center gap-2 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-[#686477]"><Folder class="size-3.5" aria-hidden="true" /> History</div>
     <div class="min-h-0 flex-1 overflow-y-auto">
       {#each projectConversations.slice(0, 10) as conversation (conversation.id)}
         <button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs hover:bg-[#efedf4] ${conversation.id === activeConversation?.id ? 'bg-[#efedf4] text-[#37314e]' : 'text-[#777386]'}`} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</button>
@@ -155,14 +158,14 @@ function messageOf(error: unknown) {
     <div class="mt-3 rounded-xl border border-[#e9e6ef] bg-white p-3">
       <div class="flex items-center justify-between text-xs"><span>Monthly usage</span><span class="tabular-nums">{Math.min(100, Math.round((usedTokens / monthlyLimit) * 100))}%</span></div>
       <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-[#eeebf4]" role="meter" aria-label="Simulated monthly token usage" aria-valuemin="0" aria-valuemax={monthlyLimit} aria-valuenow={usedTokens}><div class="h-full rounded-full bg-[#7e6bd3]" style={`width:${Math.min(100, (usedTokens / monthlyLimit) * 100)}%`}></div></div>
-      <p class="mt-1 text-[0.65rem] text-[#858194]">{usedTokens.toLocaleString()} / {monthlyLimit.toLocaleString()} tokens · simulated</p>
+      <p class="mt-1 text-[0.65rem] text-[#686477]">{usedTokens.toLocaleString()} / {monthlyLimit.toLocaleString()} tokens · simulated</p>
     </div>
     <a href="#/settings" class="mt-3 flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm text-[#6b677a] hover:bg-[#efedf4]"><Settings2 class="size-4" aria-hidden="true" /> Settings</a>
   </aside>
 
   <main class="flex min-w-0 flex-1 flex-col p-2 sm:p-4 lg:p-6">
     <header class="mb-3 flex items-center justify-between rounded-2xl border border-[#e9e6ef] bg-white/90 px-4 py-3 shadow-sm">
-      <div><p class="text-sm font-semibold">{router.current.route?.title ?? 'Assistant'}</p><p class="text-[0.68rem] text-[#817c90]">A calm place to think, build, and explore</p></div>
+      <div><p class="text-sm font-semibold">{router.current.route?.title ?? 'Assistant'}</p><p class="text-[0.68rem] text-[#686477]">A calm place to think, build, and explore</p></div>
       <div class="flex items-center gap-2">
         <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'assistant' ? 'bg-[#f0edf8] text-[#5545a4]' : 'text-[#716d7f] hover:bg-[#f7f5fa]'}`} aria-pressed={activeTab === 'assistant'} onclick={() => (activeTab = 'assistant')}><Bot class="size-4" aria-hidden="true" /> Assistant</button>
         <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'voice' ? 'bg-[#f0edf8] text-[#5545a4]' : 'text-[#716d7f] hover:bg-[#f7f5fa]'}`} aria-pressed={activeTab === 'voice'} onclick={() => void loadVoice()}><AudioLines class="size-4" aria-hidden="true" /> Voice</button>
@@ -174,7 +177,7 @@ function messageOf(error: unknown) {
     {#if activeTab === 'voice'}
       <section class="mx-auto my-auto w-full max-w-xl rounded-2xl border border-[#e9e6ef] bg-white p-5 shadow-sm">
         {#if VoiceMode}
-          <VoiceMode clock={{ now: () => runtime.clock.now(), nowMs: () => runtime.clock.nowMs(), sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) }} onTranscript={(text) => void sendVoiceTranscript(text)} reply={activeMessages.at(-1)?.role === 'assistant' ? activeMessages.at(-1)?.content : ''} />
+          <VoiceMode clock={{ now: () => runtime.clock.now(), nowMs: () => runtime.clock.nowMs(), sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) }} onTranscript={(text) => void sendVoiceTranscript(text)} reply={latestAssistantReply} />
         {:else}<div class="py-10 text-center text-sm text-[#817c90]" role="status">Loading voice mode…</div>{/if}
       </section>
     {:else if activeTab === 'widget'}
@@ -184,6 +187,6 @@ function messageOf(error: unknown) {
         <Router {router} />
       </div>
     {/if}
-    <footer class="flex items-center justify-center gap-1 pt-2 text-[0.65rem] text-[#888497]"><Archive class="size-3" aria-hidden="true" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Check class="size-3" aria-hidden="true" /></footer>
+    <footer class="flex items-center justify-center gap-1 pt-2 text-[0.65rem] text-[#686477]"><Archive class="size-3" aria-hidden="true" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Check class="size-3" aria-hidden="true" /></footer>
   </main>
 </div>

@@ -24,6 +24,7 @@ type LazyCanvasComponent = Component<{
 const { services, conversations, messages, projects, settings } = useAssistant();
 let selectedConversationId = $state('');
 let selectedProjectId = $state('');
+let messageListRevision = $state(0);
 let streamingConversation = $state('');
 let search = $state('');
 let folderFilter = $state('');
@@ -45,7 +46,13 @@ const activeConversation = $derived(
   ) ?? visibleConversations[0]
 );
 const activeMessages = $derived(
-  (messages.current ?? []).filter((message) => message.conversationId === activeConversation?.id)
+  (messages.current ?? [])
+    .filter((message) => message.conversationId === activeConversation?.id)
+    .sort(
+      (left, right) =>
+        left.createdAt.localeCompare(right.createdAt) ||
+        (left.role === right.role ? 0 : left.role === 'user' ? -1 : 1)
+    )
 );
 const activeModelId = $derived(
   activeConversation?.modelId ?? ASSISTANT_MODELS[0]?.id ?? 'py-orbit-small'
@@ -63,6 +70,8 @@ async function createConversation() {
 }
 
 async function send(conversationId: string, input: AssistantSendInput) {
+  selectedConversationId = conversationId;
+  messageListRevision += 1;
   streamingConversation = conversationId;
   notice = '';
   try {
@@ -91,6 +100,22 @@ async function send(conversationId: string, input: AssistantSendInput) {
         ? error.message
         : 'The simulated assistant could not complete that request.';
     return false;
+  } finally {
+    streamingConversation = '';
+  }
+}
+
+async function regenerate(conversationId: string) {
+  messageListRevision += 1;
+  streamingConversation = conversationId;
+  notice = '';
+  try {
+    await services.regenerate(conversationId);
+  } catch (error) {
+    notice =
+      error instanceof Error
+        ? error.message
+        : 'The simulated assistant could not regenerate that reply.';
   } finally {
     streamingConversation = '';
   }
@@ -144,7 +169,7 @@ function report(error: unknown) {
       <aside class="hidden w-64 shrink-0 flex-col border-r border-[#efedf2] bg-[#fcfbfd] p-3 md:flex" aria-label="Conversation history">
         <label for="history-search" class="sr-only">Search conversations</label>
         <div class="mb-3 flex min-h-10 items-center gap-2 rounded-lg border border-[#e8e5ed] bg-white px-3"><Search class="size-3.5 text-[#8b8798]" aria-hidden="true" /><input id="history-search" bind:value={search} class="min-w-0 flex-1 bg-transparent text-xs outline-none" placeholder="Search history" /></div>
-        <p class="mb-2 px-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#8b8798]">Recent conversations</p>
+        <p class="mb-2 px-2 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#686477]">Recent conversations</p>
         <div class="min-h-0 flex-1 overflow-y-auto">
           {#each visibleConversations as conversation (conversation.id)}
             <button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs ${conversation.id === activeConversation.id ? 'bg-[#efedf6] text-[#43386e]' : 'text-[#686477] hover:bg-[#f2f0f6]'}`} aria-current={conversation.id === activeConversation.id ? 'page' : undefined} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</button>
@@ -152,14 +177,14 @@ function report(error: unknown) {
           {#if visibleConversations.length === 0}<p class="px-2 py-3 text-xs text-[#858194]">No matching conversations.</p>{/if}
         </div>
         <div class="mt-3 border-t border-[#efedf2] pt-3">
-          <div class="mb-2 flex items-center justify-between px-1 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#8b8798]"><span>Folders</span><FolderPlus class="size-3.5" aria-hidden="true" /></div>
+          <div class="mb-2 flex items-center justify-between px-1 text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-[#686477]"><span>Folders</span><FolderPlus class="size-3.5" aria-hidden="true" /></div>
           {#each folders as folder (folder)}<button type="button" class={`mb-1 block w-full truncate rounded-lg px-2 py-1.5 text-left text-xs ${folderFilter === folder ? 'bg-[#efedf6] text-[#43386e]' : 'text-[#686477] hover:bg-[#f2f0f6]'}`} aria-pressed={folderFilter === folder} onclick={() => (folderFilter = folderFilter === folder ? '' : folder)}>{folder}</button>{/each}
           <form class="mt-2 flex gap-1" onsubmit={(event) => { event.preventDefault(); void createFolder(); }}><label for="new-folder" class="sr-only">New folder name</label><input id="new-folder" bind:value={folderDraft} class="min-w-0 flex-1 rounded-md border border-[#e8e5ed] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#8771d9]" placeholder="New folder" maxlength="40" /><button type="submit" class="rounded-md px-2 text-xs text-[#6553ae] hover:bg-[#f0edf8]" aria-label="Create folder">+</button></form>
         </div>
       </aside>
       <div class="flex min-w-0 flex-1 flex-col">
         <header class="flex flex-wrap items-center gap-2 border-b border-[#efedf2] px-3 py-2.5 sm:px-4">
-          <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium text-[#373348]">{activeConversation.title}</p><p class="text-[0.65rem] text-[#8b8798]">{activeConversation.folder ? `In ${activeConversation.folder} · ` : ''}Responses are simulated</p></div>
+          <div class="min-w-0 flex-1"><p class="truncate text-sm font-medium text-[#373348]">{activeConversation.title}</p><p class="text-[0.65rem] text-[#686477]">{activeConversation.folder ? `In ${activeConversation.folder} · ` : ''}Responses are simulated</p></div>
           <button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" aria-label={activeConversation.pinned ? 'Unpin conversation' : 'Pin conversation'} aria-pressed={activeConversation.pinned ?? false} onclick={() => void services.togglePin(activeConversation.id).catch(report)}><Star class="size-3.5" aria-hidden="true" /> Pin</button>
           <label for="conversation-folder" class="sr-only">Move conversation to folder</label>
           <select id="conversation-folder" value={activeConversation.folder ?? ''} class="min-h-9 max-w-28 rounded-lg border border-[#e8e5ed] bg-white px-2 text-xs text-[#716d7f]" onchange={(event) => void services.moveToFolder(activeConversation.id, event.currentTarget.value || null).catch(report)}><option value="">No folder</option>{#each folders as folder (folder)}<option value={folder}>{folder}</option>{/each}</select>
@@ -167,14 +192,16 @@ function report(error: unknown) {
           <button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={() => void shareConversation()}><ArrowUpRight class="size-3.5" aria-hidden="true" /> Share</button>
           <button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-[#716d7f] hover:bg-[#f5f3f8]" onclick={() => void loadCanvas()}><FileText class="size-3.5" aria-hidden="true" /> Canvas</button>
         </header>
-        <MessageList
-          messages={activeMessages}
-          conversationId={activeConversation.id}
-          {streaming}
-          onRegenerate={() => void services.regenerate(activeConversation.id).catch(report)}
-          onEditMessage={(id, content) => void services.editMessage(activeConversation.id, id, content, ASSISTANT_MODELS.find((model) => model.id === activeModelId) ?? ASSISTANT_MODELS[0]!).catch(report)}
-          onFeedback={(id, rating) => void services.feedback(id, rating).catch(report)}
-        />
+        {#key messageListRevision}
+          <MessageList
+            messages={activeMessages}
+            conversationId={activeConversation.id}
+            {streaming}
+            onRegenerate={() => void regenerate(activeConversation.id)}
+            onEditMessage={(id, content) => void services.editMessage(activeConversation.id, id, content, ASSISTANT_MODELS.find((model) => model.id === activeModelId) ?? ASSISTANT_MODELS[0]!).catch(report)}
+            onFeedback={(id, rating) => void services.feedback(id, rating).catch(report)}
+          />
+        {/key}
         <div class="border-t border-[#efedf2] p-3 sm:px-5">
           <AssistantComposer
             models={ASSISTANT_MODELS}
@@ -185,7 +212,7 @@ function report(error: unknown) {
             onStop={() => services.stop(activeConversation.id)}
             onSubmit={(input) => send(activeConversation.id, input)}
           />
-          <p class="mt-2 flex items-center justify-center gap-1 text-[0.62rem] text-[#8b8798]"><Sparkles class="size-3" aria-hidden="true" /> Models and agent tools are simulated · <a href="#/settings" class="underline decoration-dotted underline-offset-2">Settings and data controls</a></p>
+          <p class="mt-2 flex items-center justify-center gap-1 text-[0.62rem] text-[#686477]"><Sparkles class="size-3" aria-hidden="true" /> Models and agent tools are simulated · <a href="#/settings" class="underline decoration-dotted underline-offset-2">Settings and data controls</a></p>
         </div>
       </div>
     </div>
