@@ -104,7 +104,7 @@ async function shareDemoFile() {
 }
 </script>
 
-<div class="flex h-full min-h-0 bg-background text-foreground">
+<div class="flex h-dvh max-h-dvh min-h-0 overflow-hidden bg-background text-foreground">
   <aside class="flex w-60 shrink-0 flex-col border-r border-border bg-muted/30">
     <div class="border-b border-border px-3 py-3">
       <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workspace</p>
@@ -262,7 +262,7 @@ async function shareDemoFile() {
               </span>
               <time datetime={msg.at}>{formatTime(msg.at)}</time>
               {#if msg.authorKind === 'bot'}
-                <span class="rounded bg-primary/15 px-1 text-[0.65rem] text-primary">AI · simulated</span>
+                <span class="rounded border border-border bg-muted px-1 text-[0.65rem] text-muted-foreground">AI · simulated</span>
               {/if}
             </div>
             <p class="whitespace-pre-wrap text-sm" data-message-body="">{msg.body}</p>

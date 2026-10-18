@@ -239,7 +239,7 @@ async function shareDemoFile() {
               </span>
               <time datetime={msg.at}>{formatTime(msg.at)}</time>
               {#if msg.authorKind === 'bot'}
-                <span class="rounded bg-primary/15 px-1 text-[0.65rem] text-primary">BOT</span>
+                <span class="rounded border border-border bg-muted px-1 text-[0.65rem] text-muted-foreground">BOT</span>
               {/if}
             </div>
             <p class="whitespace-pre-wrap text-sm">{msg.body}</p>

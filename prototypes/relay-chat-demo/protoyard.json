@@ -17,7 +17,7 @@
   "defaultMode": "system",
   "preview": {
     "viewport": "desktop",
-    "shell": "browser"
+    "shell": "none"
   },
   "storage": {
     "namespace": "relay-chat-demo",

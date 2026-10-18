@@ -62,9 +62,15 @@ describe('relay services', () => {
     const ai = await chat.sendMessage(general.id, { body: '@relay what should we prioritize?' });
     expect(ai.bot?.authorId).toBe('bot_relay');
     expect(ai.bot?.body.length).toBeGreaterThan(10);
+    expect(ai.bot?.threadId).toBeNull();
+    const channelAfterAi = await chat.listMessages(general.id, null);
+    expect(channelAfterAi.some((m) => m.id === ai.bot!.id)).toBe(true);
 
     const summary = await chat.sendMessage(general.id, { body: '/summarize' });
     expect(summary.bot?.body).toMatch(/Relay summary \(simulated\)/i);
+    expect(summary.bot?.threadId).toBeNull();
+    const channelAfterSummary = await chat.listMessages(general.id, null);
+    expect(channelAfterSummary.some((m) => m.id === summary.bot!.id)).toBe(true);
 
     const huddle = await chat.startHuddle(general.id);
     expect(huddle.endedAt).toBeNull();
