@@ -116,6 +116,12 @@ export { default as Tooltip } from './components/tooltip/Tooltip.svelte';
 export { default as TypingIndicator } from './components/typing-indicator/TypingIndicator.svelte';
 export type { PickerUser } from './components/user-picker/types.ts';
 export { default as UserPicker } from './components/user-picker/UserPicker.svelte';
+export type {
+  WindowChromeState,
+  WindowChromeVariant,
+} from './components/window-chrome/types.ts';
+// Shells
+export { default as WindowChrome } from './components/window-chrome/WindowChrome.svelte';
 export { default as Wizard } from './components/wizard/Wizard.svelte';
 export { cn } from './lib/cn.ts';
 export { type DateInput, formatDay, formatTime } from './lib/date.ts';
