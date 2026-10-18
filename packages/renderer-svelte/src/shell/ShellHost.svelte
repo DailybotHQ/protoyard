@@ -7,6 +7,7 @@ import {
   activeFrame,
   FRAMES,
   type FrameComponent,
+  hasShellCss,
   isEmbedded,
   screenInsetOf,
   stageScale,
@@ -25,6 +26,10 @@ let { runtime, children }: { runtime: PrototypeRuntime; children: Snippet } = $p
 // svelte-ignore state_referenced_locally
 const appearance = useAppearance(runtime);
 const embedded = typeof window !== 'undefined' && isEmbedded();
+// The prototype's stylesheet is in place before mount (a <link> in builds, an imported
+// module in dev), so one check at startup is enough.
+const cssReady = typeof document !== 'undefined' && hasShellCss();
+let warnedMissingCss = false;
 
 let windowWidth = $state(typeof window === 'undefined' ? 0 : window.innerWidth);
 let stage: HTMLDivElement | undefined = $state();
@@ -35,7 +40,7 @@ const spec = $derived.by(() => {
   return device ? orient(device, appearance.current.orientation.value) : undefined;
 });
 const shell = $derived(
-  activeFrame({ shell: appearance.current.shell.value, spec, windowWidth, embedded })
+  activeFrame({ shell: appearance.current.shell.value, spec, windowWidth, embedded, cssReady })
 );
 const entry = $derived(shell === 'none' ? undefined : FRAMES[shell]);
 const framed = $derived(shell !== 'none' && spec !== undefined && entry !== undefined);
@@ -112,6 +117,15 @@ $effect(() => {
   if (framed && screenEl) setOverlayPortalTarget(screenEl);
   else setOverlayPortalTarget(null);
   return () => setOverlayPortalTarget(null);
+});
+
+$effect(() => {
+  if (cssReady || warnedMissingCss || appearance.current.shell.value === 'none') return;
+  warnedMissingCss = true;
+  console.warn(
+    `[protoyard] The "${appearance.current.shell.value}" shell needs the renderer stylesheet, so the app renders full-bleed. ` +
+      "Add `@import '@protoyard/renderer-svelte/app.css';` to this prototype's src/app.css."
+  );
 });
 
 // Lets the viewport-preset CSS step aside while a frame is shown.
