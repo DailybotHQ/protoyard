@@ -146,6 +146,44 @@ function expectInside(inner: Box, outer: Box, label: string) {
   );
 }
 
+/**
+ * The app is actually painted, not just laid out: at the app heading, the top element
+ * (with pointer events forced on for frame parts, so overlays count) must be inside the
+ * screen, or a fully transparent frame part. A frame that covered the app with an opaque
+ * surface passed every geometric check while showing a blank screen.
+ */
+async function expectAppPainted(page: Page, label: string) {
+  const blocker = await page.evaluate(() => {
+    const screenEl = document.querySelector('[data-py-shell-part="screen"]');
+    const heading = screenEl?.querySelector('h1');
+    if (!screenEl || !heading) return 'no app heading in the screen';
+    const force = document.createElement('style');
+    force.textContent =
+      '[data-py-frame], [data-py-frame] *, [data-py-wallpaper] { pointer-events: auto !important; }';
+    document.head.append(force);
+    const r = heading.getBoundingClientRect();
+    const stack = document.elementsFromPoint(
+      r.left + Math.min(r.width / 2, 24),
+      r.top + r.height / 2
+    );
+    force.remove();
+    for (const el of stack) {
+      if (screenEl.contains(el)) return null;
+      const cs = getComputedStyle(el);
+      const transparent =
+        /^(transparent|rgba\(.*,\s*0\))$/.test(cs.backgroundColor) && cs.backgroundImage === 'none';
+      if (!transparent) {
+        const marks = [...el.attributes]
+          .filter((a) => a.name.startsWith('data-py'))
+          .map((a) => a.name);
+        return `${el.tagName.toLowerCase()} ${marks.join(' ')} (${cs.backgroundColor}) covers the app`;
+      }
+    }
+    return 'the app heading is not painted';
+  });
+  expect(blocker, `${label}: app content visible`).toBeNull();
+}
+
 async function expectDocumentDoesNotScroll(page: Page) {
   const doc = await page.evaluate(() => {
     const el = document.scrollingElement ?? document.documentElement;
@@ -199,6 +237,7 @@ test.describe('shell matrix: framed on desktop', () => {
       const screen = await boxOf(page, '[data-py-shell-part="screen"]');
       expectInside(screen, viewport, `${shell} screen`);
       await expectActionsInside(page, screen, shell);
+      await expectAppPainted(page, shell);
 
       // position: fixed descendants (the bottom nav, sheets…) stay in the screen box.
       const escaped = await page.evaluate(() => {

@@ -2,7 +2,7 @@
 import { BrowserChrome } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { getRuntime } from '../../context.ts';
-import type { FrameProps } from './registry.ts';
+import { FRAMES, type FrameProps, screenInsetOf } from './registry.ts';
 
 /**
  * Browser shell decoration: tab + address bar over the device screen using
@@ -13,6 +13,8 @@ import type { FrameProps } from './registry.ts';
  * API (same as the hash router).
  */
 let { shell }: FrameProps = $props();
+/** Tab strip (40 px) + address bar (48 px): the space ShellHost reserves above the app. */
+const toolbarHeight = screenInsetOf(FRAMES.browser).top;
 
 const runtime = getRuntime();
 const origin = $derived(
@@ -57,8 +59,14 @@ onMount(() => {
 });
 </script>
 
+<!--
+  Exactly toolbar-tall: ShellHost already starts the app's screen below it
+  (screenInset.top), so the frame never paints over the app. BrowserChrome's own
+  content pane is empty here and hidden.
+-->
 <div
-  class="pointer-events-none absolute inset-0 z-[2] flex min-h-0 flex-col"
+  class="pointer-events-none absolute inset-x-0 top-0 z-[2] flex min-h-0 flex-col"
+  style:height="{toolbarHeight}px"
   data-py-frame="browser"
   data-py-frame-shell={shell}
   data-py-browser-origin={origin}
@@ -66,6 +74,6 @@ onMount(() => {
   <BrowserChrome
     {origin}
     {title}
-    class="pointer-events-none h-full min-h-0 rounded-none border-0 shadow-none [&>div:last-child]:pointer-events-none [&>div:last-child]:bg-transparent [&>div:not(:last-child)]:pointer-events-auto"
+    class="pointer-events-auto h-full min-h-0 rounded-none border-0 shadow-none [&>div:last-child]:hidden"
   />
 </div>
