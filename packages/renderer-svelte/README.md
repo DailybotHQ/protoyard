@@ -62,30 +62,45 @@ width), and sets `--py-app-height` and `--py-safe-*` from `@protoyard/core` `DEV
 Viewport-preset rules step aside while a frame is shown.
 
 The frame decoration is a lazily loaded chunk registered in
-`src/shell/frames/registry.ts`. The `phone` shell uses `PhoneFrame` (bezel, side
-buttons, pill/punch-hole cutout, status bar in `--py-safe-top`, home indicator that
-navigates to `#/`). The `widget-host` shell draws a fictional customer site
-(`HostSite`, brand from `preview.chrome.hostName`) with a launcher that opens the
-prototype in an anchored panel (`--py-app-height` = panel height; fullscreen under
-480px). Apps drive the unread badge via `getWidgetHost().setUnread(n)` or
-`window.__protoyardWidget`. `tablet` still uses a generic bezel until its detailed
-frame ships; other shells render full-bleed. While framed, Bits UI dialogs and
-sheets portal into the device screen (`setOverlayPortalTarget`) so overlays stay
-inside the bezel. The app goes full-bleed when the shell is `none`, inside an
-iframe (the gallery preview draws its own device), or when the window is too
-narrow for the device plus its frame (a real phone). The wrappers always exist, so
+`src/shell/frames/registry.ts`.
+
+- **`phone`** uses `PhoneFrame`: a bezel, side buttons, a pill or punch-hole cutout, a
+  simulated clock and network status bar in `--py-safe-top`, and a home indicator that
+  navigates to `#/`.
+- **`widget-host`** draws a fictional customer site (`HostSite`, with the brand from
+  `preview.chrome.hostName`) and a launcher that opens the prototype in an anchored panel
+  (`--py-app-height` = panel height; fullscreen under 480px). Apps drive the unread badge
+  through `getWidgetHost().setUnread(n)` or `window.__protoyardWidget`.
+- **`browser`** draws `@protoyard/ui` `BrowserChrome` (a tab and an address bar, 88 px,
+  reserved through `screenInset`) using `preview.chrome.origin` (default
+  `https://<slug>.example`), with `document.title` as the tab label. Back and forward
+  follow the hash router.
+- **`desktop-window`** draws the app in `@protoyard/ui` WindowChrome on a theme-token
+  wallpaper, with a dock (mac-like) or a taskbar (windows-like). `preview.chrome.os` picks
+  the style; without it the visitor's OS decides. The title bar follows `document.title`,
+  and every control works: minimize to the dock, restore or reopen from the dock, maximize
+  to fill the stage, close and reopen. The app stays mounted while the window is minimized
+  or closed.
+- **`side-panel`** embeds the prototype in a resizable right-hand plugin panel beside a
+  mock host app (`preview.chrome.hostVariant`: `chat-workspace`, `design-canvas` or
+  `code-editor`). The panel width persists in `localStorage`.
+- **`extension-popup`** reuses `BrowserChrome` for a fictional browser toolbar and shows
+  the app in a 360×600 popup (`--py-app-height: 600px`) anchored under the extension
+  icon. It opens for review, closes on an outside click or Escape, and can be pinned open.
+- **`tablet`** uses a brand-neutral tablet frame with a working orientation control.
+  Phone and tablet orientation overrides update the device dimensions and the safe-area
+  tokens. Shells without a registered frame render full-bleed.
+
+A registry entry can reserve `screenInset` space inside the device box for its own chrome
+(the desktop window's 40 px title bar, the browser's 88 px toolbar), and can set
+`minWindowWidth`. Window-like shells (desktop window, browser) use 768 px and scale down on smaller desktops, while phones need the device plus its frame. While
+framed, Bits UI dialogs and sheets portal into the device screen
+(`setOverlayPortalTarget`), so overlays stay inside the frame. The app goes full-bleed
+when the shell is `none`, inside an iframe (the gallery preview draws its own device), or
+when the window is too narrow for the device plus its frame (a real phone). The wrappers
+always exist, so
 changing the shell never remounts the app; without a frame they are
 `display: contents`.
-navigates to `#/`). `browser` draws `@protoyard/ui` `BrowserChrome` (tab + address
-bar) using `preview.chrome.origin` (default `https://<slug>.example`) and
-`document.title` as the tab label — back/forward follow the hash router. `tablet`
-still uses a generic bezel until its detailed frame ships; other shells render
-full-bleed. While framed, Bits UI dialogs and sheets portal into the device screen
-(`setOverlayPortalTarget`) so overlays stay inside the bezel. The app goes
-full-bleed when the shell is `none`, inside an iframe (the gallery preview draws
-its own device), or when the window is too narrow for the device plus its frame
-(a real phone). The wrappers always exist, so changing
-the shell never remounts the app; without a frame they are `display: contents`.
 
 ## Mount
 

@@ -7,12 +7,14 @@ import Square from '@lucide/svelte/icons/square';
 import { onMount } from 'svelte';
 import { control } from '@/lib/control.svelte';
 import {
-  clampDimension,
   DEVICES,
-  type Device,
   type DeviceId,
+  defaultGalleryDevice,
   fitScale,
+  frameFor,
+  type Orientation,
   safePreviewUrl,
+  withGalleryShellNone,
 } from '@/lib/devices';
 import { library } from '@/lib/library.svelte';
 import CommandBlock from './CommandBlock.svelte';
@@ -20,7 +22,13 @@ import CommandBlock from './CommandBlock.svelte';
 interface Props {
   slug: string;
   name: string;
-  defaultViewport: DeviceId;
+  /** Registry `preview.viewport` (legacy alias ok). */
+  defaultViewport?: string;
+  /** Resolved shell from registry catalog when present. */
+  defaultShell?: string | null;
+  /** Catalog device id from the manifest when present. */
+  defaultDevice?: string | null;
+  platform?: string | null;
   devCommand: string;
   /** Bundled static build in a showcase site (already base-prefixed). */
   embeddedUrl?: string | null;
@@ -32,7 +40,10 @@ interface Props {
 let {
   slug,
   name,
-  defaultViewport,
+  defaultViewport = 'desktop',
+  defaultShell = null,
+  defaultDevice = null,
+  platform = null,
   devCommand,
   embeddedUrl = null,
   scenarios = [],
@@ -41,13 +52,21 @@ let {
 }: Props = $props();
 let scenario = $state('');
 
+const initialDevice = defaultGalleryDevice({
+  viewport: defaultViewport,
+  shell: defaultShell,
+  device: defaultDevice,
+  platform,
+});
+
 /** Scenario links use the runtime's `?scenario=<id>` contract (core parseScenarioLink). */
 function embeddedHref(id: string) {
   if (!embeddedUrl) return '';
   return id ? `${embeddedUrl}?scenario=${encodeURIComponent(id)}` : embeddedUrl;
 }
 
-let device = $state<DeviceId>(defaultViewport);
+let device = $state<DeviceId>(initialDevice);
+let orientation = $state<Orientation>('portrait');
 let customWidth = $state(1024);
 let customHeight = $state(768);
 let manualUrl = $state('');
@@ -64,13 +83,29 @@ let stageWidth = $state(0);
 const running = $derived(control.find(slug));
 const busy = $derived(control.busy[slug]);
 const error = $derived(control.errors[slug]);
-const frame = $derived.by(() => {
-  const preset = DEVICES.find((d) => d.id === device) ?? (DEVICES[0] as Device);
-  return device === 'custom'
-    ? { ...preset, width: clampDimension(customWidth), height: clampDimension(customHeight) }
-    : preset;
-});
-const scale = $derived(fitScale(stageWidth - 2, frame.width));
+const frame = $derived(
+  frameFor(device, {
+    customWidth,
+    customHeight,
+    orientation: device === 'custom' ? undefined : orientation,
+  })
+);
+const scale = $derived(fitScale(stageWidth - 24, frame.width + (frame.framed ? 28 : 0)));
+const canRotate = $derived(Boolean(frame.spec?.rotatable));
+const iframeSrc = $derived(
+  previewUrl ? (frame.framed ? withGalleryShellNone(previewUrl) : previewUrl) : null
+);
+
+function selectDevice(id: DeviceId) {
+  device = id;
+  const next = frameFor(id);
+  orientation = next.spec?.orientation ?? 'portrait';
+}
+
+function toggleOrientation() {
+  if (!canRotate) return;
+  orientation = orientation === 'portrait' ? 'landscape' : 'portrait';
+}
 
 let hydrated = $state(false);
 
@@ -146,17 +181,35 @@ async function openManual(event: SubmitEvent) {
           type="button"
           class="rounded-md px-2.5 py-1 text-xs text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
           aria-pressed={device === d.id}
-          onclick={() => (device = d.id)}
+          onclick={() => selectDevice(d.id)}
         >
           {d.label}
         </button>
       {/each}
+      <button
+        type="button"
+        class="rounded-md px-2.5 py-1 text-xs text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
+        aria-pressed={device === 'custom'}
+        onclick={() => selectDevice('custom')}
+      >
+        Custom
+      </button>
     </div>
     {#if device === 'custom'}
       <div class="flex items-center gap-1.5 text-xs text-muted">
         <label class="flex items-center gap-1">W <input type="number" min="240" max="3840" class="h-7 w-20 rounded-md border border-line bg-bg px-2 text-fg" bind:value={customWidth} /></label>
         <label class="flex items-center gap-1">H <input type="number" min="240" max="3840" class="h-7 w-20 rounded-md border border-line bg-bg px-2 text-fg" bind:value={customHeight} /></label>
       </div>
+    {/if}
+    {#if canRotate}
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 rounded-md border border-line px-2.5 py-1 text-xs hover:bg-surface-2"
+        onclick={toggleOrientation}
+        data-testid="rotate-device"
+      >
+        Rotate
+      </button>
     {/if}
     <span class="ml-auto text-xs text-muted">{frame.width}×{frame.height}{scale < 1 ? ` · ${Math.round(scale * 100)}%` : ''}</span>
   </div>
@@ -225,32 +278,98 @@ async function openManual(event: SubmitEvent) {
     {/if}
   </div>
 
-  <div bind:this={stage} class="overflow-hidden bg-surface-2 p-4">
-    {#if previewUrl}
-      <div class="mx-auto" style:width="{frame.width * scale}px" style:height="{frame.height * scale}px">
+  <div bind:this={stage} class="overflow-hidden bg-surface-2 p-4" data-testid="preview-stage">
+    {#if previewUrl && iframeSrc}
+      {@const bezel = frame.framed ? 12 : 0}
+      {@const outerW = frame.width + bezel * 2}
+      {@const outerH = frame.height + bezel * 2}
+      <div class="mx-auto" style:width="{outerW * scale}px" style:height="{outerH * scale}px">
         <div
-          class={['relative origin-top-left overflow-hidden border border-line bg-white shadow-sm', frame.rounded ? 'rounded-[28px] border-8 border-zinc-800' : 'rounded-lg']}
-          style:width="{frame.width}px"
-          style:height="{frame.height}px"
+          class="relative origin-top-left"
+          style:width="{outerW}px"
+          style:height="{outerH}px"
           style:transform="scale({scale})"
+          data-testid="device-frame"
+          data-py-gallery-frame={frame.framed ? (frame.spec?.kind ?? 'device') : 'plain'}
+          data-py-cutout={frame.spec?.cutout ?? 'none'}
         >
-          {#key `${previewUrl}#${reloadKey}`}
-            <iframe
-              src={previewUrl}
-              title={`${name} preview (${frame.label})`}
-              class="size-full border-0"
-              sandbox={pasted ? 'allow-scripts allow-same-origin allow-forms allow-modals allow-popups' : undefined}
-              onload={() => {
-                loading = false;
-                slow = false;
-              }}
-            ></iframe>
-          {/key}
-          {#if loading}
-            <div class="absolute inset-0 grid place-items-center bg-surface/80 text-sm text-muted" aria-live="polite">
-              <span class="inline-flex items-center gap-2"><LoaderCircle size={16} class="animate-spin" aria-hidden="true" />{slow ? 'Still loading — check the dev server output.' : 'Loading…'}</span>
-            </div>
+          {#if frame.framed && frame.spec}
+            <!-- Brand-neutral phone/tablet bezel matching the renderer PhoneFrame chrome. -->
+            <div
+              class="absolute border-solid border-zinc-800 bg-zinc-800 shadow-[0_0_0_1px_rgb(39_39_42),0_28px_70px_-24px_rgb(0_0_0/0.55)] dark:border-zinc-950 dark:bg-zinc-950"
+              style:inset="0"
+              style:border-width="{bezel}px"
+              style:border-radius="{frame.spec.cornerRadius + bezel}px"
+              aria-hidden="true"
+              data-testid="device-bezel"
+            ></div>
           {/if}
+          <div
+            class={[
+              'absolute overflow-hidden bg-white',
+              frame.framed ? '' : 'rounded-lg border border-line shadow-sm',
+            ]}
+            style:top="{bezel}px"
+            style:left="{bezel}px"
+            style:width="{frame.width}px"
+            style:height="{frame.height}px"
+            style:border-radius={frame.framed && frame.spec ? `${frame.spec.cornerRadius}px` : undefined}
+            data-testid="device-screen"
+          >
+            {#if frame.framed && frame.spec}
+              {#if frame.spec.cutout === 'pill'}
+                <div
+                  class="pointer-events-none absolute top-[11px] left-1/2 z-20 h-[28px] w-[96px] -translate-x-1/2 rounded-full bg-zinc-950"
+                  aria-hidden="true"
+                  data-testid="device-cutout"
+                ></div>
+              {:else if frame.spec.cutout === 'punch-hole'}
+                <div
+                  class="pointer-events-none absolute top-[12px] left-1/2 z-20 size-[11px] -translate-x-1/2 rounded-full bg-zinc-950"
+                  aria-hidden="true"
+                  data-testid="device-cutout"
+                ></div>
+              {/if}
+              {#if frame.spec.statusBar.style !== 'none'}
+                <div
+                  class="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-end justify-between px-5 pb-1.5 text-[11px] font-semibold text-zinc-900"
+                  style:height="{Math.max(frame.spec.statusBar.height, frame.spec.safeArea[frame.orientation].top)}px"
+                  aria-hidden="true"
+                  data-testid="device-status-bar"
+                >
+                  <time datetime="09:41">9:41</time>
+                  <span class="opacity-70">■■■</span>
+                </div>
+              {/if}
+              {#if frame.spec.homeIndicator.height > 0}
+                <div
+                  class="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pb-2"
+                  style:height="{frame.spec.homeIndicator.height}px"
+                  aria-hidden="true"
+                  data-testid="device-home-indicator"
+                >
+                  <span class="block h-1 w-[36%] max-w-[140px] rounded-full bg-zinc-900/35"></span>
+                </div>
+              {/if}
+            {/if}
+            {#key `${iframeSrc}#${reloadKey}`}
+              <iframe
+                src={iframeSrc}
+                title={`${name} preview (${frame.label})`}
+                class="size-full border-0"
+                sandbox={pasted ? 'allow-scripts allow-same-origin allow-forms allow-modals allow-popups' : undefined}
+                onload={() => {
+                  loading = false;
+                  slow = false;
+                }}
+              ></iframe>
+            {/key}
+            {#if loading}
+              <div class="absolute inset-0 grid place-items-center bg-surface/80 text-sm text-muted" aria-live="polite">
+                <span class="inline-flex items-center gap-2"><LoaderCircle size={16} class="animate-spin" aria-hidden="true" />{slow ? 'Still loading — check the dev server output.' : 'Loading…'}</span>
+              </div>
+            {/if}
+          </div>
         </div>
       </div>
     {:else}

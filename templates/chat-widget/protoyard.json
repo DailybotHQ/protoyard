@@ -1,0 +1,26 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.chat-widget",
+  "slug": "chat-widget",
+  "kind": "template",
+  "name": "Chat widget",
+  "description": "A compact single-thread support widget for the widget-host shell: greeting, scripted streaming assistant, handoff-to-human simulation, offline banner, and four scenarios.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "chat", "widget", "support", "assistant", "streaming"],
+  "status": "ready",
+  "icon": "💬",
+  "defaultScenario": "first-visit",
+  "defaultTheme": "ocean",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "shell": "widget-host",
+    "chrome": { "hostName": "Northwind Outfitters (fictional)" }
+  },
+  "storage": { "namespace": "template-chat-widget", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["first-visit", "returning-visitor", "agent-offline", "outage"]
+}
