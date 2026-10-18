@@ -271,6 +271,20 @@ const NotificationRuleSchema = z
   });
 export type BlueprintNotificationRule = z.infer<typeof NotificationRuleSchema>;
 
+/**
+ * A previous blueprint kept by `protoyard generate` so every database version
+ * can be rebuilt from data alone: version 1 is the first entry's stores, and
+ * each later entry (and finally the current blueprint) is diffed against the
+ * one before it. `migrateNext` holds the options of that next diff.
+ */
+export const BlueprintHistoryEntrySchema = z.strictObject({
+  schemaVersion: z.number().int().positive(),
+  /** The blueprint as it was (without its own history); validated when versions are derived. */
+  blueprint: z.record(z.string(), z.unknown()),
+  migrateNext: z.strictObject({ allowDrop: z.boolean().optional() }).optional(),
+});
+export type BlueprintHistoryEntry = z.infer<typeof BlueprintHistoryEntrySchema>;
+
 const BlueprintShape = z.strictObject({
   $schema: z.string().optional(),
   formatVersion: z.literal(1),
@@ -280,6 +294,8 @@ const BlueprintShape = z.strictObject({
   roles: z.array(RoleSchema).min(1, { message: 'a blueprint needs at least one role' }),
   notifications: z.array(NotificationRuleSchema).default([]),
   screens: z.array(ScreenSchema).default([]),
+  /** Earlier versions, oldest first. Written by `protoyard generate`; do not edit by hand. */
+  history: z.array(BlueprintHistoryEntrySchema).default([]),
 });
 
 /** `plural` in lowerCamelCase unless `table` is set: `support-tickets` → `supportTickets`. */

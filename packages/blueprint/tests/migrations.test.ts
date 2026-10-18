@@ -6,8 +6,10 @@ import {
   appendMigration,
   type BlueprintInput,
   defaultForField,
+  deriveDatabaseVersions,
   deriveStores,
   diffBlueprints,
+  latestSchemaVersion,
   MigrationError,
   parseBlueprint,
   toDatabaseVersion,
@@ -298,5 +300,84 @@ describe('defaultForField', () => {
     expect(defaultForField(fields.flag!)).toBe(true);
     expect(defaultForField(fields.labels!)).toEqual([]);
     expect(defaultForField(fields.level!)).toBe('a');
+  });
+});
+
+describe('deriveDatabaseVersions', () => {
+  const base = {
+    formatVersion: 1,
+    name: 'History fixture',
+    entities: [
+      {
+        name: 'note',
+        plural: 'notes',
+        fields: [{ name: 'title', kind: 'text' }],
+        titleField: 'title',
+      },
+    ],
+    roles: [{ name: 'owner', permissions: { '*': ['*'] } }],
+  };
+  const withField = {
+    ...base,
+    entities: [
+      {
+        ...base.entities[0],
+        fields: [
+          { name: 'title', kind: 'text' },
+          { name: 'pinned', kind: 'boolean', default: false },
+        ],
+      },
+    ],
+  };
+
+  it('is a single version without history', () => {
+    const versions = deriveDatabaseVersions(parseBlueprint(base));
+    expect(versions.map((v) => v.version)).toEqual([1]);
+    expect(latestSchemaVersion(parseBlueprint(base))).toBe(1);
+  });
+
+  it('rebuilds every version from the history, skipping steps that change nothing', () => {
+    const current = parseBlueprint({
+      ...withField,
+      history: [
+        { schemaVersion: 1, blueprint: base },
+        // A rename of the blueprint itself changes no storage: no version.
+        { schemaVersion: 1, blueprint: { ...base, name: 'Renamed' } },
+      ],
+    });
+    const versions = deriveDatabaseVersions(current);
+    expect(versions.map((v) => v.version)).toEqual([1, 2]);
+    expect(typeof versions[1]?.upgrade).toBe('function');
+    expect(latestSchemaVersion(current)).toBe(2);
+    // Same data → same versions (store strings), every time.
+    expect(deriveDatabaseVersions(current).map((v) => v.stores)).toEqual(
+      versions.map((v) => v.stores)
+    );
+  });
+
+  it('needs migrateNext.allowDrop to drop a table recorded in the history', () => {
+    const dropped = {
+      ...base,
+      entities: [
+        {
+          name: 'task',
+          plural: 'tasks',
+          fields: [{ name: 'title', kind: 'text' }],
+          titleField: 'title',
+        },
+      ],
+    };
+    expect(() =>
+      deriveDatabaseVersions(
+        parseBlueprint({ ...dropped, history: [{ schemaVersion: 1, blueprint: base }] })
+      )
+    ).toThrow(MigrationError);
+    const versions = deriveDatabaseVersions(
+      parseBlueprint({
+        ...dropped,
+        history: [{ schemaVersion: 1, blueprint: base, migrateNext: { allowDrop: true } }],
+      })
+    );
+    expect(versions[1]?.stores.notes).toBeNull();
   });
 });

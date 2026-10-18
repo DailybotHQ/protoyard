@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MANIFEST_FILENAME, type PrototypeManifest } from '@protoyard/core';
 import { buildPrototype } from '../lib/build.ts';
+import { checkBlueprintDrift, SNAPSHOT_PATH } from '../lib/codegen/regenerate.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
 import { readManifest, statManifest } from '../lib/discovery.ts';
@@ -230,6 +231,34 @@ export async function checkSpec(
   ]);
 }
 
+/**
+ * Drift check for prototypes made by `protoyard generate` (they carry the
+ * generation snapshot): the blueprint parses, its history rebuilds the
+ * manifest's schema version, and every generated file is present, unedited
+ * and current. Reads JSON and hashes files only; no prototype code runs.
+ */
+export async function checkBlueprint(
+  dir: string,
+  slug: string,
+  manifest: PrototypeManifest
+): Promise<Check | null> {
+  if (!existsSync(join(dir, 'blueprint.json'))) return null;
+  const label = 'Blueprint (generated files fresh, versions agree)';
+  if (!existsSync(join(dir, SNAPSHOT_PATH))) {
+    return check('blueprint', label, 'skip', [
+      'hand-wired blueprint (not made by `protoyard generate`)',
+    ]);
+  }
+  try {
+    const report = await checkBlueprintDrift(dir, slug, manifest.storage.schemaVersion);
+    return report.ok
+      ? check('blueprint', label, 'pass', [report.summary])
+      : check('blueprint', label, 'fail', report.problems);
+  } catch (error) {
+    return check('blueprint', label, 'fail', [toCliError(error).message]);
+  }
+}
+
 export const validateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const slug = assertSlug(args[0]);
   // Folder lookup (not the registry), so a broken manifest is still validated.
@@ -279,6 +308,8 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
   let inspection: Inspection | null = null;
   if (parsed.manifest) {
     checks.push(await checkSchemaVersion(dir, parsed.manifest));
+    const blueprintCheck = await checkBlueprint(dir, slug, parsed.manifest);
+    if (blueprintCheck) checks.push(blueprintCheck);
     if (existsSync(join(dir, 'src', 'prototype.ts'))) {
       try {
         // `spec` mode is `inspect` plus the facts the spec check needs: one runner pass.

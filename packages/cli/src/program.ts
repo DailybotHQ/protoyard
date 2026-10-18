@@ -1,5 +1,6 @@
 import { Command, CommanderError, Option } from 'commander';
 import { affectedCommand } from './commands/affected.ts';
+import { blueprintValidateCommand } from './commands/blueprint.ts';
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
 import { ciCheckCommand, ciInitCommand } from './commands/ci.ts';
@@ -134,16 +135,34 @@ export function createProgram(env: RunnerEnv): Command {
 
   program
     .command('generate')
-    .description('create prototypes/<slug> from a data-only blueprint (crud-app template)')
+    .description(
+      'create prototypes/<slug> from a data-only blueprint, or regenerate it after the blueprint changes'
+    )
     .argument('<slug>', 'lowercase kebab-case folder name')
     .requiredOption('-b, --blueprint <file>', 'blueprint JSON file (see packages/blueprint)')
     .option('-t, --template <name>', 'base template', 'crud-app')
     .option('--name <name>', 'display name (default: the blueprint name)')
     .option('--description <text>', 'one-line description (default: the blueprint description)')
-    .option('--dry-run', 'validate and list the files without writing anything')
-    .option('--force', 'reuse an EXISTING EMPTY folder (never overwrites files)')
+    .option('--dry-run', 'validate and list (or plan) the files without writing anything')
+    .option(
+      '--force',
+      'reuse an EXISTING EMPTY folder; when regenerating, overwrite hand-edited generated files'
+    )
+    .option(
+      '--allow-drop',
+      'when regenerating, allow dropping tables or fields (deletes their data)'
+    )
     .option('--no-install', 'skip `pnpm install` (link the package later)')
     .action(def('generate', generateCommand));
+
+  const blueprintCmd = program
+    .command('blueprint')
+    .description('work with data-only blueprints (see packages/blueprint)');
+  blueprintCmd
+    .command('validate')
+    .description('validate a blueprint JSON file (exit 4 with path-specific issues)')
+    .argument('<file>', 'blueprint JSON file')
+    .action(def('blueprint validate', blueprintValidateCommand));
 
   program
     .command('dev')
