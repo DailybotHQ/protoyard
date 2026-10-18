@@ -1,0 +1,117 @@
+/*
+ * Optional component profiles. Put a data-py-*-style attribute on the component
+ * or an ancestor (usually html) to select a profile. With no attribute every
+ * component keeps its existing Tailwind-token appearance.
+ */
+
+/* Attribute profiles are explicit overrides, so these rules sit above utilities. */
+:where([data-py-button-style="pill"]) .ui-button,
+.ui-button[data-py-button-style="pill"] {
+  border-radius: 9999px;
+}
+
+:where([data-py-button-style="rounded"]) .ui-button,
+.ui-button[data-py-button-style="rounded"] {
+  border-radius: var(--radius-md);
+}
+
+:where([data-py-button-style="square"]) .ui-button,
+.ui-button[data-py-button-style="square"] {
+  border-radius: 0;
+}
+
+:where([data-py-card-style="flat"]) .ui-card,
+.ui-card[data-py-card-style="flat"] {
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+:where([data-py-card-style="bordered"]) .ui-card,
+.ui-card[data-py-card-style="bordered"] {
+  box-shadow: none;
+}
+
+:where([data-py-card-style="elevated"]) .ui-card,
+.ui-card[data-py-card-style="elevated"] {
+  border-color: transparent;
+  box-shadow: var(--shadow-float);
+}
+
+:where([data-py-card-style="glass"]) .ui-card,
+.ui-card[data-py-card-style="glass"] {
+  border-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  -webkit-backdrop-filter: blur(var(--py-glass-blur, 16px));
+  backdrop-filter: blur(var(--py-glass-blur, 16px));
+  box-shadow: var(--shadow-soft);
+}
+
+:where([data-py-input-style="filled"]) .ui-input,
+.ui-input[data-py-input-style="filled"] {
+  border-color: transparent;
+  background-color: var(--color-muted);
+  box-shadow: none;
+}
+
+:where([data-py-input-style="underline"]) .ui-input,
+.ui-input[data-py-input-style="underline"] {
+  border-color: transparent;
+  border-bottom-color: var(--color-input);
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+:where([data-py-input-style="underline"]) .ui-input:focus-visible,
+.ui-input[data-py-input-style="underline"]:focus-visible {
+  border-bottom-color: var(--color-ring);
+  box-shadow: 0 1px 0 var(--color-ring);
+  outline: none;
+}
+
+[data-py-navigation-style="pills"] [data-py-navigation-item] {
+  border-radius: 9999px;
+}
+
+[data-py-navigation-style="pills"] [data-py-navigation-item][aria-current="page"],
+[data-py-navigation-style="pills"] [data-py-navigation-item][aria-selected="true"] {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+[data-py-navigation-style="underline"] [data-py-navigation-item] {
+  border-radius: 0;
+  border-bottom: var(--default-border-width) solid transparent;
+}
+
+[data-py-navigation-style="underline"] [data-py-navigation-item][aria-current="page"],
+[data-py-navigation-style="underline"] [data-py-navigation-item][aria-selected="true"] {
+  border-bottom-color: var(--color-primary);
+}
+[data-py-focus-ring-style="ring"] :focus-visible,
+:focus-visible[data-py-focus-ring-style="ring"] {
+  outline: var(--py-focus-ring-width, 2px) solid var(--color-ring);
+  outline-offset: var(--py-focus-ring-offset, 2px);
+  box-shadow: none;
+}
+
+[data-py-focus-ring-style="outline"] :focus-visible,
+:focus-visible[data-py-focus-ring-style="outline"] {
+  outline: var(--py-focus-ring-width, 2px) solid var(--color-ring);
+  outline-offset: var(--py-focus-ring-offset, 3px);
+  box-shadow: none;
+}
+
+[data-py-focus-ring-style="glow"] :focus-visible,
+:focus-visible[data-py-focus-ring-style="glow"] {
+  outline: var(--py-focus-ring-width, 2px) solid var(--color-ring);
+  outline-offset: var(--py-focus-ring-offset, 1px);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-ring) 28%, transparent);
+}
+
+[data-py-focus-ring-style="inset"] :focus-visible,
+:focus-visible[data-py-focus-ring-style="inset"] {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--py-focus-ring-width, 2px) var(--color-ring);
+}

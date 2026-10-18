@@ -8,6 +8,6 @@ type Props = WithElementRef<HTMLAttributes<HTMLDivElement>>;
 let { class: className, ref = $bindable(null), children, ...rest }: Props = $props();
 </script>
 
-<div bind:this={ref} class={cn('flex flex-col rounded-xl border border-border bg-surface text-surface-foreground shadow-soft', className)} {...rest}>
+<div bind:this={ref} class={cn('ui-card flex flex-col rounded-xl border border-border bg-surface text-surface-foreground shadow-soft', className)} {...rest}>
   {@render children?.()}
 </div>

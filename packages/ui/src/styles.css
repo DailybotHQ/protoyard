@@ -6,11 +6,13 @@
  *   @import '@protoyard/ui/styles.css';
  *
  * The `@source` below registers this package's components with Tailwind's scanner, so apps get
- * every class used here without extra configuration. Only motion lives here; everything else
- * is Tailwind utilities on tokens. Animations are gated on `prefers-reduced-motion:
+ * every class used here without extra configuration. Motion and optional data-attribute component
+ * profiles live here; everything else is Tailwind utilities on tokens. Animations are gated on `prefers-reduced-motion:
  * no-preference`, and base.css also neutralizes durations when the prototype's own
  * reduced-motion toggle is on.
  */
+
+@import "./styles/variants.css";
 
 @source "./";
 

@@ -34,7 +34,7 @@ const classes = $derived(cn(buttonVariants({ variant, size }), className));
 {#if href}
   <a
     bind:this={ref}
-    class={classes}
+    class={cn('ui-button', classes)}
     href={inactive ? undefined : href}
     role={inactive ? 'link' : undefined}
     aria-disabled={inactive || undefined}
@@ -47,7 +47,7 @@ const classes = $derived(cn(buttonVariants({ variant, size }), className));
 {:else}
   <button
     bind:this={ref}
-    class={classes}
+    class={cn('ui-button', classes)}
     {type}
     disabled={inactive}
     aria-busy={loading || undefined}
