@@ -12,6 +12,10 @@ covers Protoyard's threat model and the rules contributors and agents follow.
   browser can open DevTools and change IndexedDB. Policies are enforced in
   services so prototypes *behave* realistically, but this is not access
   control and must never protect real data.
+- **SaaS auth, OAuth, MFA and billing are simulations.** They do not authenticate
+  users, contact identity providers, provide a second security factor or charge
+  money. Accounts, tokens and billing state stay in browser storage. See the
+  [SaaS kits guide](SAAS_KITS.md) for each kit's behavior and current limits.
 - **No real money, identity or personal data.** The demos are fictional.
   `mobile-banking-demo` never collects card or bank details.
 

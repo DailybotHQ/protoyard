@@ -3,6 +3,8 @@
 Svelte 5 screens and route helpers for Protoyard's **simulated** SaaS kits
 (ADR-018). The engine stays in `@protoyard/saas` (no Svelte); this package is
 the drop-in UI layer on `@protoyard/ui` and `@protoyard/renderer-svelte`.
+See the [SaaS kits guide](../../docs/SAAS_KITS.md) for engine setup, scenario
+fragments and the simulation boundaries.
 
 > **Simulation, not security.** Guards and screens only shape the prototype UX.
 > Any script on the same origin can change the session.
@@ -77,6 +79,13 @@ UI until a kit route opens.
 | `/billing/checkout` | Simulated checkout — no card, no charge; outcome picker only when `billingShowOutcomePicker` | `requireAuth` |
 | `/billing/portal` | Current plan, seats, invoices, cancel/resume | `requireAuth` |
 | `/settings`, `/settings/:tab` | Profile, security, members and notification preferences | `requireAuth` |
+
+**Invitation acceptance is not a built-in route yet.** The engine can accept an
+invite token, but this route table has no acceptance screen. The default
+service-generated action (`#/invites/accept?token=…`) and `pendingInvite`
+scenario action (`#/invite?token=…`) are both currently unmatched. A prototype
+must supply a custom route and screen that calls the invitation service; the
+service does not sign the invitee in.
 
 
 Mount `TrialBanner` in the app shell to show remaining trial days from the simulated clock. Use the exported `InboxDrawer` on a signed-out screen to open the simulated
