@@ -119,6 +119,10 @@ export function paletteCommands(
       type: 'navigate',
       href: `${baseHref('/', basePath)}#templates`,
     }),
+    command('page:themes', 'Browse themes', 'Pages', 'theme palette swatch design library colors', {
+      type: 'navigate',
+      href: baseHref('/themes/', basePath),
+    }),
     command('page:create', 'Create a prototype', 'Pages', 'new build generate project', {
       type: 'navigate',
       href: baseHref('/new/', basePath),

@@ -14,10 +14,14 @@
     "@astrojs/check": "^0.9.10",
     "@astrojs/svelte": "^9.0.1",
     "@protoyard/core": "workspace:*",
+    "@protoyard/themes": "workspace:*",
     "@tailwindcss/vite": "^4.3.0",
     "astro": "^7.3.6",
     "svelte": "^5.57.0",
     "tailwindcss": "^4.3.0",
     "@lucide/svelte": "^1.50.0"
+  },
+  "devDependencies": {
+    "axe-core": "^4.13.0"
   }
 }
