@@ -52,6 +52,23 @@ router resets it to the top on navigation. With the desktop preset that wrapper 
 `display: contents` and the document scrolls as usual. Media queries still follow the
 real window.
 
+**Shells** (ADR-016). `ShellHost` wraps the app, toasts and the demo badge, and reads
+the runtime's effective `shell`, `device` and `orientation`
+(`runtime.theme.appearance()`). When a frame is shown it sets `<html data-py-shell>`.
+The page then becomes a stage that centers a device box scaled to fit the window on
+both axes (never upscaled). The device screen has the catalog size, is the containing
+block for fixed descendants, is a size container (container queries see the device
+width), and sets `--py-app-height` and `--py-safe-*` from `@protoyard/core` `DEVICES`.
+Viewport-preset rules step aside while a frame is shown.
+
+The frame decoration is a lazily loaded chunk registered in
+`src/shell/frames/registry.ts`. Today `phone` and `tablet` use a generic bezel; other
+shells render full-bleed until their frame ships. The app goes full-bleed when the
+shell is `none`, inside an iframe (the gallery preview draws its own device), or when
+the window is too narrow for the device plus its frame (a real phone). The wrappers always exist, so
+changing the shell never remounts the app; without a frame they are
+`display: contents`.
+
 ## Mount
 
 ```ts

@@ -6,6 +6,7 @@ import { provideRuntime } from '../context.ts';
 import DemoBadge from './DemoBadge.svelte';
 import LoadProgressBar from './LoadProgressBar.svelte';
 import PendingLinkPrompt from './PendingLinkPrompt.svelte';
+import ShellHost from './ShellHost.svelte';
 import StorageBanner from './StorageBanner.svelte';
 
 let {
@@ -30,11 +31,14 @@ const storage = runtime.storage();
 {/if}
 <LoadProgressBar {runtime} />
 <PendingLinkPrompt {runtime} />
-<!-- Scroll root: `display: contents` normally, the scrolling region under viewport presets (app.css). -->
-<div data-py-scroll-root>
-  <App />
-</div>
-<Toaster />
-{#if demoBadge}
-  <DemoBadge name={runtime.manifest.name} />
-{/if}
+<!-- Toasts and the badge sit inside the shell's screen, so they appear on the device. -->
+<ShellHost {runtime}>
+  <!-- Scroll root: `display: contents` normally; the scrolling region under viewport presets and in shells (app.css). -->
+  <div data-py-scroll-root>
+    <App />
+  </div>
+  <Toaster />
+  {#if demoBadge}
+    <DemoBadge name={runtime.manifest.name} />
+  {/if}
+</ShellHost>
