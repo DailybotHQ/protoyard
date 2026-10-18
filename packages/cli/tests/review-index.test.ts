@@ -281,6 +281,46 @@ describe('protoyard review-index (CLI)', () => {
     expect(html).toContain('href="/review/review-manifest.json"');
   });
 
+  it('reads another ledger file with --ledger', async () => {
+    const other = join(ws.root, 'fixtures', 'ledger.jsonl');
+    await appendLedgerEntry(
+      other,
+      ledgerLine({
+        slug: 'beta-app',
+        project: 'protoyard-beta-app',
+        url: 'https://ffffffff.protoyard-beta-app.pages.dev/',
+      })
+    );
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'review-index',
+      '--no-personas',
+      '--ledger',
+      'fixtures/ledger.jsonl',
+      '--out',
+      'artifacts/review-fixture',
+    ]);
+    expect(run.code, run.stdout).toBe(0);
+    expect(run.json<{ data: { ledger: string; notDeployed: string[] } }>().data).toMatchObject({
+      ledger: 'fixtures/ledger.jsonl',
+      notDeployed: ['alpha-app'],
+    });
+    expect(read('artifacts/review-fixture/index.html')).toContain(
+      'href="https://ffffffff.protoyard-beta-app.pages.dev/"'
+    );
+    const missing = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'review-index',
+      '--ledger',
+      'nope.jsonl',
+    ]);
+    expect(missing.code).toBe(3);
+  });
+
   it('refuses bad selections and unsafe output folders', async () => {
     const base = ['--root', ws.root, '--json', 'review-index', '--no-personas'];
     expect((await cli([...base, '--from-ledger', '--slugs', 'alpha-app'])).code).toBe(2);
