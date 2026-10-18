@@ -1,4 +1,4 @@
-import type { DeviceId } from './devices';
+import { DEVICE_IDS as ALL_DEVICE_IDS, type DeviceId, normalizeDeviceId } from './devices';
 
 /**
  * "Compare scenarios": the SAME prototype URL in 2–3 frames, each with its own
@@ -24,7 +24,7 @@ export interface CompareState {
   generation: number;
 }
 
-const DEVICE_IDS: readonly DeviceId[] = ['desktop', 'tablet', 'iphone', 'android'];
+const COMPARE_DEVICE_IDS = ALL_DEVICE_IDS.filter((id) => id !== 'custom');
 
 /** `compare-a`, then `compare-a-1`, `compare-a-2`… after each reset. */
 export function sandboxName(pane: PaneId, generation: number): string {
@@ -72,11 +72,12 @@ export function stateFromParams(
   const picked = [pick('a', 0) ?? '', pick('b', 1) ?? ''];
   const c = params.get('c');
   if (c && scenarios.includes(c)) picked.push(c);
-  const device = params.get('device') as DeviceId | null;
+  const deviceParam = params.get('device');
   const generation = Number(params.get('gen'));
+  const device = normalizeDeviceId(deviceParam, 'laptop-window');
   return {
     scenarios: picked,
-    device: device && DEVICE_IDS.includes(device) ? device : 'desktop',
+    device: device === 'custom' ? 'laptop-window' : device,
     generation:
       Number.isInteger(generation) && generation > 0 && generation < 10_000 ? generation : 0,
   };
@@ -88,7 +89,9 @@ export function paramsFromState(state: CompareState): string {
     const pane = PANE_IDS[i];
     if (pane && scenario) params.set(pane, scenario);
   });
-  if (state.device !== 'desktop') params.set('device', state.device);
+  if (state.device !== 'laptop-window') params.set('device', state.device);
   if (state.generation > 0) params.set('gen', String(state.generation));
   return `?${params.toString()}`;
 }
+
+export { COMPARE_DEVICE_IDS };
