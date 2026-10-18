@@ -85,8 +85,8 @@ test.describe('gallery', () => {
     await page.goto(`/p/${prototypes[0]?.slug}/`);
     await hydrated(page, 'section[aria-labelledby="preview-title"]');
     const devices = page.getByTestId('devices');
-    await devices.getByRole('button', { name: 'iPhone-like' }).click();
-    await expect(devices.getByRole('button', { name: 'iPhone-like' })).toHaveAttribute(
+    await devices.getByRole('button', { name: 'Phone (pill cutout)' }).click();
+    await expect(devices.getByRole('button', { name: 'Phone (pill cutout)' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
