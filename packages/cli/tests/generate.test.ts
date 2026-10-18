@@ -4,9 +4,11 @@ import { join } from 'node:path';
 import { parseBlueprint } from '@protoyard/blueprint';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { emitPrototype, personalizeHtml } from '../src/lib/codegen/emit.ts';
+import { formatJson, tsString } from '../src/lib/codegen/format.ts';
 import { checkHeader, withHeader } from '../src/lib/codegen/header.ts';
 import {
   addCrudTemplate,
+  biomeFormatCheck,
   cli,
   createWorkspace,
   helpdeskBlueprint,
@@ -344,7 +346,7 @@ describe('protoyard generate', () => {
 
     const added = await generate('help-desk', '--blueprint', inPlace, '--no-install');
     expect(added.code).toBe(0);
-    expect(read('prototypes/help-desk/src/generated/routes.ts')).toContain('"/notes"');
+    expect(read('prototypes/help-desk/src/generated/routes.ts')).toContain("'/notes'");
     expect(
       checkHeader(read('prototypes/help-desk/src/generated/screens/NotePage.svelte')).intact
     ).toBe(true);
@@ -368,6 +370,31 @@ describe('protoyard generate', () => {
     const history = JSON.parse(read('prototypes/help-desk/blueprint.json')).history;
     expect(history.map((h: { schemaVersion: number }) => h.schemaVersion)).toEqual([1, 2]);
     expect(history[1].migrateNext).toEqual({ allowDrop: true });
+  });
+
+  it('writes files Biome leaves unchanged, so lint --write never breaks the hashes', async () => {
+    const withQuotes = blueprintInput({ name: 'Help desk\'s "VIP" queue' });
+    const file = writeBlueprint(withQuotes);
+    expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(0);
+    const paths = [
+      'prototypes/help-desk/blueprint.json',
+      'prototypes/help-desk/protoyard.json',
+      'prototypes/help-desk/src/generated',
+    ];
+    const first = biomeFormatCheck(ws, paths);
+    expect(first.output).toMatch(/Checked [1-9]\d* files/);
+    expect(first.code, first.output).toBe(0);
+
+    // After a storage change too (history entries, schema version bump).
+    const next = blueprintInput({ name: 'Help desk\'s "VIP" queue' });
+    const customer = next.entities[0];
+    if (!customer) throw new Error('fixture has no customer entity');
+    (customer.fields as unknown[]).push({ name: 'tier', kind: 'enum', values: ['a', 'b'] });
+    expect((await generate('help-desk', '--blueprint', writeBlueprint(next, 'v2.json'))).code).toBe(
+      0
+    );
+    const second = biomeFormatCheck(ws, paths);
+    expect(second.code, second.output).toBe(0);
   });
 
   it('generates a 10-entity blueprint in under 2 seconds (excluding pnpm install)', async () => {
@@ -411,12 +438,22 @@ describe('codegen emitters', () => {
     expect(byPath['tests/services.test.ts']).toMatchSnapshot();
   });
 
-  it('only reaches code through JSON string literals', () => {
+  it('only reaches code through escaped string literals', () => {
     const routes = emitPrototype(blueprint, 'x', '{}').find(
       (f) => f.path === 'src/generated/routes.ts'
     );
-    expect(routes?.content).toContain('title: "Tickets \\"VIP\\" </script>"');
-    expect(routes?.content).not.toContain('title: "Tickets "VIP"');
+    expect(routes?.content).toContain(`title: 'Tickets "VIP" </script>'`);
+    // A quote in a value is escaped, never closing the literal.
+    expect(tsString("it's")).toBe('"it\'s"');
+    expect(tsString(`a'b"c\\`)).toBe(`'a\\'b"c\\\\'`);
+  });
+
+  it('formats JSON like Biome: short primitive arrays inline, objects expanded', () => {
+    expect(formatJson({ a: [1, 'x', null], b: {}, c: [], d: [{ e: true }] })).toBe(
+      '{\n  "a": [1, "x", null],\n  "b": {},\n  "c": [],\n  "d": [\n    {\n      "e": true\n    }\n  ]\n}\n'
+    );
+    const long = Array.from({ length: 30 }, (_, i) => `value-${i}`);
+    expect(formatJson({ long }).split('\n')).toHaveLength(30 + 5);
   });
 
   it('detects edited generated files from the header hash', () => {

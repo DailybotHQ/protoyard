@@ -1,0 +1,286 @@
+{
+  "$schema": "../../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Beacon Help Desk",
+  "description": "A support desk generated from a blueprint: customers, tickets with SLAs and a status board, replies, attachments, audit history, notifications and CSV.",
+  "entities": [
+    {
+      "name": "customer",
+      "plural": "customers",
+      "label": "Customers",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "minLength": 2,
+          "maxLength": 80,
+          "fake": "company.name"
+        },
+        {
+          "name": "email",
+          "kind": "email",
+          "required": true,
+          "fake": "internet.email"
+        },
+        {
+          "name": "plan",
+          "kind": "enum",
+          "values": ["free", "pro", "enterprise"],
+          "labels": {
+            "free": "Free",
+            "pro": "Pro",
+            "enterprise": "Enterprise"
+          },
+          "default": "free",
+          "required": true
+        },
+        {
+          "name": "accountManager",
+          "kind": "persona",
+          "label": "Account manager"
+        },
+        {
+          "name": "tags",
+          "kind": "tags"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name", "email"],
+      "ownerField": "accountManager",
+      "indexes": ["plan"],
+      "defaultSort": {
+        "field": "name",
+        "direction": "asc"
+      },
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "ticket",
+      "plural": "tickets",
+      "label": "Tickets",
+      "fields": [
+        {
+          "name": "subject",
+          "kind": "text",
+          "required": true,
+          "minLength": 4,
+          "maxLength": 120,
+          "fake": "lorem.sentence"
+        },
+        {
+          "name": "description",
+          "kind": "longText",
+          "maxLength": 4000,
+          "fake": "lorem.paragraph"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["open", "pending", "on-hold", "solved"],
+          "labels": {
+            "open": "Open",
+            "pending": "Pending",
+            "on-hold": "On hold",
+            "solved": "Solved"
+          },
+          "default": "open",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "normal", "high", "urgent"],
+          "labels": {
+            "low": "Low",
+            "normal": "Normal",
+            "high": "High",
+            "urgent": "Urgent"
+          },
+          "default": "normal",
+          "required": true
+        },
+        {
+          "name": "channel",
+          "kind": "enum",
+          "values": ["email", "chat", "phone"],
+          "labels": {
+            "email": "Email",
+            "chat": "Chat",
+            "phone": "Phone"
+          },
+          "default": "email",
+          "required": true
+        },
+        {
+          "name": "customer",
+          "kind": "relation",
+          "to": "customer",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "assignee",
+          "kind": "persona"
+        },
+        {
+          "name": "slaDueAt",
+          "kind": "datetime",
+          "label": "SLA due"
+        },
+        {
+          "name": "attachments",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf", "text/plain"],
+          "maxSizeBytes": 2097152,
+          "multiple": true
+        },
+        {
+          "name": "tags",
+          "kind": "tags"
+        }
+      ],
+      "titleField": "subject",
+      "searchable": ["subject", "description"],
+      "ownerField": "assignee",
+      "indexes": ["status", "priority", "slaDueAt"],
+      "defaultSort": {
+        "field": "slaDueAt",
+        "direction": "asc"
+      },
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "reply",
+      "plural": "replies",
+      "label": "Replies",
+      "fields": [
+        {
+          "name": "message",
+          "kind": "text",
+          "required": true,
+          "minLength": 2,
+          "maxLength": 200,
+          "fake": "lorem.sentence"
+        },
+        {
+          "name": "ticket",
+          "kind": "relation",
+          "to": "ticket",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "author",
+          "kind": "persona"
+        },
+        {
+          "name": "internal",
+          "kind": "boolean",
+          "label": "Internal note",
+          "default": false
+        }
+      ],
+      "titleField": "message",
+      "ownerField": "author",
+      "features": {
+        "audit": true
+      }
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "label": "Owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "admin",
+      "label": "Support lead",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "member",
+      "label": "Agent",
+      "description": "Works tickets: creates and updates them, deletes only their own.",
+      "permissions": {
+        "customer": ["read", "create", "update", "export"],
+        "ticket": ["read", "create", "update", "delete:own", "import", "export"],
+        "reply": ["read", "create", "update:own", "delete:own"]
+      }
+    },
+    {
+      "name": "viewer",
+      "label": "Viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "notifications": [
+    {
+      "on": "assign",
+      "entity": "ticket",
+      "field": "assignee",
+      "notify": "assignee",
+      "title": "You were assigned: {subject}"
+    },
+    {
+      "on": "create",
+      "entity": "ticket",
+      "notify": "role:admin",
+      "title": "New ticket: {subject}"
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "title": "Overview",
+      "metrics": [
+        {
+          "label": "Tickets",
+          "entity": "ticket",
+          "aggregate": "count"
+        },
+        {
+          "label": "Customers",
+          "entity": "customer",
+          "aggregate": "count"
+        }
+      ]
+    },
+    {
+      "type": "board",
+      "entity": "ticket",
+      "groupBy": "status"
+    },
+    {
+      "type": "list",
+      "entity": "ticket",
+      "columns": ["subject", "status", "priority", "customer", "assignee", "slaDueAt"]
+    },
+    {
+      "type": "list",
+      "entity": "customer",
+      "columns": ["name", "email", "plan", "accountManager"]
+    },
+    {
+      "type": "list",
+      "entity": "reply"
+    }
+  ]
+}

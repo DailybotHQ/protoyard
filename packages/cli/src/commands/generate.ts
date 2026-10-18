@@ -9,6 +9,7 @@ import {
   personalizeHtml,
   TEMPLATE_FILES_REMOVED,
 } from '../lib/codegen/emit.ts';
+import { formatJson } from '../lib/codegen/format.ts';
 import { checkHeader } from '../lib/codegen/header.ts';
 import {
   emitOrThrow,
@@ -78,7 +79,7 @@ async function readBlueprint(
   return {
     blueprint: parsed.data,
     raw: raw as Record<string, unknown>,
-    text: `${JSON.stringify(raw, null, 2)}\n`,
+    text: formatJson(raw),
   };
 }
 
@@ -242,7 +243,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       manifest.preview = preview;
       const brandTheme = brandDefaultThemeId(blueprint);
       if (brandTheme) manifest.defaultTheme = brandTheme;
-      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+      await writeFile(manifestPath, formatJson(manifest));
       const htmlPath = join(staging, 'index.html');
       if (existsSync(htmlPath)) {
         const html = await readFile(htmlPath, 'utf8');
@@ -395,7 +396,7 @@ async function regenerate(
     if (schema.to !== schema.from) {
       manifest.storage = { ...manifest.storage, schemaVersion: schema.to };
       manifest.updatedAt = new Date().toISOString();
-      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+      await writeFile(manifestPath, formatJson(manifest));
     }
     await buildIndex(ctx.paths);
   }
