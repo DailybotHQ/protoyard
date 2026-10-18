@@ -85,7 +85,7 @@ const dragStyle = $derived(
     <DialogPrimitive.Content
       bind:ref
       class={cn(
-        'fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-2xl border border-b-0 border-border bg-elevated text-foreground shadow-float outline-none ui-anim-sheet',
+        'fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[calc(var(--py-app-height)*0.9)] w-full max-w-lg flex-col rounded-t-2xl border border-b-0 border-border bg-elevated text-foreground shadow-float outline-none ui-anim-sheet',
         settling && 'transition-transform duration-200 ease-out',
         className
       )}

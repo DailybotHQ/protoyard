@@ -21,7 +21,7 @@ interface Props {
   class?: string;
   mainClass?: string;
   mainId?: string;
-  /** Classes for the desktop sidebar column (default height is the viewport). */
+  /** Classes for the desktop sidebar column (default height is the app frame via `h-app`). */
   sidebarClass?: string;
   /** Use `div` for a shell nested inside another page's `<main>` (demos, previews). */
   mainElement?: 'main' | 'div';
@@ -90,7 +90,7 @@ function closeOnNavigate(event: MouseEvent): void {
 }
 </script>
 
-<div class={cn('flex min-h-dvh bg-background text-foreground', className)}>
+<div class={cn('flex min-h-app bg-background text-foreground', className)}>
   <a
     href={`#${mainId}`}
     class="sr-only z-[70] rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -109,7 +109,7 @@ function closeOnNavigate(event: MouseEvent): void {
     <svelte:element
       this={mainElement === 'main' ? 'aside' : 'div'}
       aria-label={mainElement === 'main' ? sidebarLabel : undefined}
-      class={cn('sticky top-0 hidden h-dvh shrink-0 lg:flex', sidebarClass)}
+      class={cn('sticky top-0 hidden h-app shrink-0 lg:flex', sidebarClass)}
     >
       {@render sidebar()}
     </svelte:element>
