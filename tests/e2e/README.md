@@ -59,4 +59,4 @@ open dialog.
 
 Use one file per prototype (`<slug>.spec.ts`). Skip unless the slug is in
 `PROTOYARD_E2E_PROTOTYPES`, open `prototypeUrl(slug)` with `?scenario=<id>`, and wait for
-`html[data-py-ready="true"]`. See the `write-e2e` skill for the full pattern.
+`html[data-protoyard-ready="1"]` (and the older `data-py-ready="true"`). Use `waitForPrototypeReady(page, { slug })` from `tests/e2e/support/ready.ts` instead of ad-hoc selector polls. Viewport layout is guarded by `tests/e2e/viewport-fit.spec.ts` (desktop 1280×800 + Pixel 7). See the `write-e2e` skill for the full pattern.
