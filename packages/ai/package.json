@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./packs": "./src/packs.ts",
-    "./scenarios": "./src/scenarios.ts"
+    "./scenarios": "./src/scenarios.ts",
+    "./voice": "./src/voice.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

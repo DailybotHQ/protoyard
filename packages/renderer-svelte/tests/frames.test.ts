@@ -1,22 +1,35 @@
 import { getDevice, orient, safeAreaOf } from '@protoyard/core';
-import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ExtensionPopupFrame from '../src/shell/frames/ExtensionPopupFrame.svelte';
 import HomeIndicator from '../src/shell/frames/HomeIndicator.svelte';
 import PhoneFrame from '../src/shell/frames/PhoneFrame.svelte';
 import { FRAMES } from '../src/shell/frames/registry.ts';
 import StatusBar from '../src/shell/frames/StatusBar.svelte';
+import WidgetHostFrame from '../src/shell/frames/WidgetHostFrame.svelte';
+import { createFakeRuntime } from './fixtures/fake-runtime.ts';
+import WidgetHostHarness from './fixtures/WidgetHostHarness.svelte';
+
+const runtimeMock = vi.hoisted(() => ({ current: null as unknown }));
 
 vi.mock('../src/context.ts', () => ({
-  getRuntime: () => ({
-    manifest: { slug: 'demo-extension', name: 'Demo extension', icon: '🧪' },
-  }),
+  getRuntime: () => runtimeMock.current,
 }));
 
 afterEach(() => {
   cleanup();
   // Home indicator may assign location.hash.
   if (typeof location !== 'undefined' && location.hash) location.hash = '';
+  delete window.__protoyardWidget;
+  runtimeMock.current = null;
+});
+
+beforeEach(() => {
+  const runtime = createFakeRuntime();
+  runtimeMock.current = {
+    ...runtime,
+    manifest: { ...runtime.manifest, slug: 'demo-extension', name: 'Demo extension', icon: '🧪' },
+  };
 });
 
 describe('PhoneFrame', () => {
@@ -40,7 +53,7 @@ describe('PhoneFrame', () => {
     const expectedHeight = Math.max(spec.statusBar.height, insets.top);
     expect(status?.style.height).toBe(`${expectedHeight}px`);
     expect(status?.getAttribute('data-py-status-style')).toBe('split');
-    expect(screen.getByText('9:41').tagName).toBe('TIME');
+    expect(screen.getByRole('time').tagName).toBe('TIME');
 
     expect(container.querySelector('[data-py-home-indicator]')).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Go home' })).toBeTruthy();
@@ -91,14 +104,49 @@ describe('HomeIndicator', () => {
   });
 });
 
-describe('StatusBar', () => {
+describe('status bar', () => {
   it('fills the top safe-area inset height', () => {
+    runtimeMock.current = createFakeRuntime();
     const spec = getDevice('phone-pill');
     if (!spec) return;
     const { container } = render(StatusBar, { spec });
     const bar = container.querySelector<HTMLElement>('[data-py-status-bar]');
     const insets = safeAreaOf(spec);
     expect(bar?.style.height).toBe(`${Math.max(spec.statusBar.height, insets.top)}px`);
+  });
+
+  it('updates its accessible clock and network glyph from the simulated runtime', async () => {
+    const runtime = createFakeRuntime();
+    runtimeMock.current = runtime;
+    const spec = getDevice('phone-pill');
+    if (!spec) return;
+
+    const { container } = render(StatusBar, { spec });
+    const time = screen.getByRole('time');
+    expect(time.textContent).toBe(
+      new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(
+        new Date('2026-10-16T10:00:00Z')
+      )
+    );
+    expect(time.getAttribute('datetime')).toBe('2026-10-16T10:00:00.000Z');
+    expect(screen.getByLabelText('Signal strong (simulated)')).toBeTruthy();
+
+    runtime.clock.setTime('2026-10-16T15:45:00Z');
+    await waitFor(() =>
+      expect(time.textContent).toBe(
+        new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(
+          new Date('2026-10-16T15:45:00Z')
+        )
+      )
+    );
+    expect(time.getAttribute('datetime')).toBe('2026-10-16T15:45:00.000Z');
+
+    runtime.environment.set({ network: 'offline' });
+    await waitFor(() => expect(screen.getByLabelText('Offline (simulated)')).toBeTruthy());
+    expect(container.querySelector('[data-py-signal="offline"]')).toBeTruthy();
+
+    runtime.environment.set({ network: 'online', latencyMs: 1_500 });
+    await waitFor(() => expect(screen.getByLabelText('Signal degraded (simulated)')).toBeTruthy());
   });
 });
 
@@ -165,5 +213,75 @@ describe('extension popup frame', () => {
     ).toBe('true');
     await fireEvent.pointerDown(document.body);
     expect(frame?.dataset.open).toBe('true');
+  });
+});
+
+describe('frame registry', () => {
+  it('lazy-loads WidgetHostFrame for the widget-host shell', async () => {
+    const entry = FRAMES['widget-host'];
+    expect(entry).toBeDefined();
+    const mod = await entry!.load();
+    expect(mod.default).toBe(WidgetHostFrame);
+  });
+});
+
+describe('widget host shell', () => {
+  it('opens and closes the panel from the launcher with aria-expanded', async () => {
+    render(WidgetHostHarness);
+    const launcher = screen.getByRole('button', { name: 'Open chat' });
+    const panel = screen.getByTestId('widget-screen');
+    expect(launcher.getAttribute('aria-expanded')).toBe('false');
+    expect(panel.getAttribute('data-py-widget-panel')).toBe('closed');
+
+    await fireEvent.click(launcher);
+    expect(screen.getByRole('button', { name: 'Close chat' }).getAttribute('aria-expanded')).toBe(
+      'true'
+    );
+    expect(panel.getAttribute('data-py-widget-panel')).toBe('open');
+    expect(panel.getAttribute('role')).toBe('dialog');
+    expect(panel.style.getPropertyValue('--py-app-height')).toMatch(/px$/);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Close chat' }));
+    expect(screen.getByRole('button', { name: 'Open chat' }).getAttribute('aria-expanded')).toBe(
+      'false'
+    );
+    expect(panel.getAttribute('data-py-widget-panel')).toBe('closed');
+  });
+
+  it('closes on Escape and returns focus to the launcher', async () => {
+    render(WidgetHostHarness);
+    const launcher = screen.getByRole('button', { name: 'Open chat' });
+    await fireEvent.click(launcher);
+    expect(screen.getByTestId('widget-screen').getAttribute('data-py-widget-panel')).toBe('open');
+
+    await fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.getByTestId('widget-screen').getAttribute('data-py-widget-panel')).toBe(
+        'closed'
+      )
+    );
+    await waitFor(() => expect(document.activeElement).toBe(launcher));
+  });
+
+  it('drives the unread badge through window.__protoyardWidget.setUnread', async () => {
+    render(WidgetHostHarness);
+    expect(window.__protoyardWidget).toBeDefined();
+    expect(screen.queryByLabelText(/unread/)).toBeNull();
+
+    window.__protoyardWidget?.setUnread(3);
+    await waitFor(() => expect(screen.getByLabelText('3 unread')).toBeTruthy());
+    expect(
+      screen.getByTestId('widget-screen').ownerDocument.querySelector('[data-py-widget-badge]')
+        ?.textContent
+    ).toBe('3');
+
+    window.__protoyardWidget?.setUnread(0);
+    await waitFor(() => expect(screen.queryByLabelText(/unread/)).toBeNull());
+  });
+
+  it('renders the fictional host brand on the customer site', () => {
+    render(WidgetHostHarness);
+    expect(screen.getByText(/Northwind Outfitters \(fictional\)/)).toBeTruthy();
+    expect(document.querySelector('[data-py-host-site]')?.getAttribute('data-theme')).toBe('light');
   });
 });

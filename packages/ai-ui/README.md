@@ -17,6 +17,8 @@ Add `"@protoyard/ai-ui": "workspace:*"` to the prototype dependencies. Import th
 
 `AssistantWorkspace` accepts conversation summaries and the active branch's messages. Send, stop, rename, pin, folder, feedback, branch, regenerate, edit and share operations are callbacks. The component does not persist changes. `onShare` must return a URL created by the consuming prototype; the UI then offers a copy action.
 
+The workspace renders its conversation through `MessageList`, which virtualizes rows using measured heights and a small overscan window. It keeps the visible message anchored as streamed content changes and restores that message and offset from session storage when the same conversation is reopened in the tab. The saved position is presentation state; conversation messages remain owned by the prototype.
+
 ```svelte
 <script lang="ts">
   import { AssistantWorkspace, type AssistantConversation, type AssistantMessage, type AssistantSendInput } from '@protoyard/ai-ui';
@@ -47,3 +49,13 @@ The composer supports Enter to send, Shift+Enter for a newline, Escape to stop a
 Conversation folder controls require `folders`, `onCreateFolder`, and `onMoveToFolder` callbacks. Features without a callback are disabled. The caller supplies `onRegenerate`, `onEditMessage`, `onBranchChange`, `onFeedback`, and `onShare` only when those operations are implemented.
 
 All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
+
+## Simulated voice mode
+
+Load the voice panel from its lazy subpath when the user opens voice mode:
+
+```ts
+const { VoiceMode } = await import('@protoyard/ai-ui/voice');
+```
+
+Pass the injected `AiClock`, scripted transcript options, the latest simulated assistant reply and an `onTranscript` handler. Captions are always visible. Browser `speechSynthesis` speaks replies locally when available; otherwise output stays muted and the reply caption remains visible. The panel does not request a microphone by default. A consumer may opt into showing the local mic level meter; enabling it asks for microphone permission and reads amplitude only with Web Audio, without recording, storing or uploading audio. Stop the meter to release its stream; component teardown also stops it.

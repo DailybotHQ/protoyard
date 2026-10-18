@@ -151,6 +151,8 @@ export interface AppliedAppearance {
   mode: ResolvedMode;
   reducedMotion: boolean;
   density: number;
+  /** Theme surface style (`solid` | `glass`) for no-flash replay. */
+  surface: Theme['style']['surface'];
   vars: Record<string, string>;
 }
 
@@ -175,6 +177,7 @@ export function applyAppearance(target: HTMLElement, input: AppearanceInput): Ap
     mode: input.resolvedMode,
     reducedMotion,
     density: Number(vars['--py-density']),
+    surface: input.theme.style.surface,
     vars,
   };
 }

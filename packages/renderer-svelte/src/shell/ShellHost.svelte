@@ -109,12 +109,24 @@ $effect(() => {
         bind:this={screenEl}
         data-py-shell-part="screen"
         data-py-portal-root={framed ? '' : undefined}
-        style:border-radius={framed && spec ? `${spec.cornerRadius}px` : undefined}
-        style:--py-app-height={framed && spec ? `${spec.height}px` : undefined}
-        style:--py-safe-top={framed && insets ? `${insets.top}px` : undefined}
-        style:--py-safe-right={framed && insets ? `${insets.right}px` : undefined}
-        style:--py-safe-bottom={framed && insets ? `${insets.bottom}px` : undefined}
-        style:--py-safe-left={framed && insets ? `${insets.left}px` : undefined}
+        style:border-radius={framed && spec && shell !== 'widget-host'
+          ? `${spec.cornerRadius}px`
+          : undefined}
+        style:--py-app-height={framed && spec && shell !== 'widget-host'
+          ? `${spec.height}px`
+          : undefined}
+        style:--py-safe-top={framed && insets && shell !== 'widget-host'
+          ? `${insets.top}px`
+          : undefined}
+        style:--py-safe-right={framed && insets && shell !== 'widget-host'
+          ? `${insets.right}px`
+          : undefined}
+        style:--py-safe-bottom={framed && insets && shell !== 'widget-host'
+          ? `${insets.bottom}px`
+          : undefined}
+        style:--py-safe-left={framed && insets && shell !== 'widget-host'
+          ? `${insets.left}px`
+          : undefined}
       >
         {@render children()}
       </div>

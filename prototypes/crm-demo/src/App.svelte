@@ -14,33 +14,12 @@ import { onDestroy } from 'svelte';
 import SidebarNav from './components/SidebarNav.svelte';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideCrm } from './lib/context.ts';
-import ActivityFeed from './screens/ActivityFeed.svelte';
-import Companies from './screens/Companies.svelte';
-import CompanyDetail from './screens/CompanyDetail.svelte';
-import Contacts from './screens/Contacts.svelte';
-import Dashboard from './screens/Dashboard.svelte';
-import DealDetail from './screens/DealDetail.svelte';
-import Deals from './screens/Deals.svelte';
-import Pipeline from './screens/Pipeline.svelte';
-import Team from './screens/Team.svelte';
+import { routes } from './routes.ts';
 
 const crm = provideCrm();
 const principal = usePrincipal();
 
-const router = createRouter(
-  [
-    { path: '/', component: Dashboard, title: 'Dashboard' },
-    { path: '/pipeline', component: Pipeline, title: 'Pipeline' },
-    { path: '/deals', component: Deals, title: 'Deals' },
-    { path: '/deals/:id', component: DealDetail, title: 'Deal' },
-    { path: '/companies', component: Companies, title: 'Companies' },
-    { path: '/companies/:id', component: CompanyDetail, title: 'Company' },
-    { path: '/contacts', component: Contacts, title: 'Contacts' },
-    { path: '/activity', component: ActivityFeed, title: 'Activity' },
-    { path: '/team', component: Team, title: 'Team & settings' },
-  ],
-  { titleSuffix: crm.runtime.manifest.name }
-);
+const router = createRouter(routes, { titleSuffix: crm.runtime.manifest.name });
 onDestroy(() => router.destroy());
 
 const nav = [

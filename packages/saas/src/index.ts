@@ -1,4 +1,13 @@
 export {
+  type AuthOptions,
+  type AuthServices,
+  createAuthServices,
+  type SignInInput,
+  SignInSchema,
+  type SignUpInput,
+  SignUpSchema,
+} from './auth.ts';
+export {
   createInbox,
   type DeliverInboxMessageInput,
   DeliverInboxMessageSchema,

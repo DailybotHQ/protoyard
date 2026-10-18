@@ -26,6 +26,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
   createPrototypeRuntime,
+  type IdentityOps,
   IdentityValidationError,
   type MatchMedia,
   type ProtoyardRuntime,
@@ -1190,6 +1191,29 @@ describe('runtime identity writes', () => {
     expect(reopened.session.principal()?.persona.id).toBe(persona.id);
     expect(reopened.session.principal()?.organization?.name).toBe('Northwind Example');
     expect(await reopened.db.rows('projects').get('project_signup')).toBeDefined();
+  });
+
+  it('keeps the transaction across nested async helpers and awaited plain values', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    // Service code composes helpers; each layer adds a native async boundary.
+    const makeOrganization = async (ops: IdentityOps) => {
+      await Promise.resolve();
+      return ops.putOrganization({ name: 'Nested Example' });
+    };
+    const makeOwner = async (ops: IdentityOps, organizationId: string) => {
+      const persona = await ops.putPersona({ name: 'Ada Nested', email: 'ada.nested@example.com' });
+      await ops.putMembership({ personaId: persona.id, organizationId, role: 'owner' });
+      return persona;
+    };
+    const persona = await runtime.identity.write(async (ops) => {
+      const flag = await 42; // an awaited non-promise
+      expect(flag).toBe(42);
+      const organization = await makeOrganization(ops);
+      return makeOwner(ops, organization.id);
+    });
+    expect(runtime.session.personas().some((p) => p.id === persona.id)).toBe(true);
+    runtime.close();
   });
 
   it('survives a snapshot round-trip after the scenario is reloaded', async () => {
