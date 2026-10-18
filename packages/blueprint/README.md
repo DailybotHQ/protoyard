@@ -9,17 +9,16 @@ Framework-agnostic: it depends only on `@protoyard/core` and zod and never impor
 
 ## Status
 
-Implemented: schema, storage, migrations and policy. Remaining derivations land in later
-PLAN_002 tasks:
+Implemented: schema, storage, migrations, validation, policy and CSV codec. Remaining
+derivations land in later PLAN_002 tasks:
 
 | Module | Derives | Status |
 | --- | --- | --- |
 | storage | Dexie store strings and integrity rules | done |
 | migrations | the next appended database version from a blueprint change | done |
-| validation | create and update zod input schemas per entity | planned |
-| policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
 | validation | create and update zod input schemas per entity | done |
-| policy | role capabilities (`<entity>:<action>`) and record rules | planned |
+| policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
+| csv | RFC 4180 parse/serialize + row validation (`@protoyard/blueprint/csv`) | done |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | planned |
 
@@ -137,6 +136,7 @@ const caps = CAPABILITIES(blueprint);
 ```
 
 Role actions become `<entity>:<action>` capabilities. `*` grants are expanded or preserved for the runtime policy, and explicit `-capability` entries remain denials. `update:own` and `delete:own` use the persona id column derived from the entity's `ownerField`. Owner/admin roles receive the platform `members:*` capability for team-management services. These permissions are simulated UI behavior, not security.
+
 ## Input validation
 
 ```ts
@@ -163,6 +163,31 @@ const patch = parseInput(update, { status: 'solved' }); // only keys present are
   "<Label> is required" unless it has a default. On update, blanks clear optional fields
   (`null` or `[]`) and fail for required ones.
 - **Messages** use the field `label`, or the name in sentence case (`dueOn` → "Due on").
+
+## CSV codec
+
+Lazy entry point — load only when the user opens import/export:
+
+```ts
+import {
+  parseCsv,
+  serializeCsv,
+  serializeEntityCsv,
+  validateCsv,
+  CSV_MAX_BYTES,
+  CSV_MAX_ROWS,
+} from '@protoyard/blueprint/csv';
+
+const matrix = parseCsv(text); // RFC 4180: quotes, "", CRLF, BOM
+const csv = serializeEntityCsv(entity, rows); // headers = labels; formulas neutralized
+const { valid, errors } = validateCsv(entity, text);
+// errors: [{ row: 2, field: 'amount', message: '…' }]  (1-based data rows)
+```
+
+- Headers match field **name**, input **property** (`customerId`) or **label** (case-insensitive).
+- Money and dates go through `deriveInputSchemas` create coercion (`12.50` → 1250 cents).
+- Export prefixes cells starting with `= + - @` with `'` (spreadsheet formula guard).
+- Hard limits: `CSV_MAX_BYTES` (2 MiB) and `CSV_MAX_ROWS` (10,000 data rows); override per call.
 
 ## Tests
 
