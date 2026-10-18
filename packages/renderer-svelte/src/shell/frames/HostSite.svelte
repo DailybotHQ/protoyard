@@ -37,7 +37,7 @@ const brand = $derived(hostName.replace(/\s*\(fictional\)\s*$/i, '').trim() || h
       </span>
       <div>
         <p class="text-sm font-semibold tracking-tight" style="color: #0f172a;">{hostName}</p>
-        <p class="text-xs" style="color: #64748b;">example.com · simulated storefront</p>
+        <p class="text-xs" style="color: #475569;">example.com · simulated storefront</p>
       </div>
     </div>
     <nav class="hidden items-center gap-5 text-sm font-medium sm:flex" style="color: #334155;" aria-label="Host site">
@@ -90,7 +90,7 @@ const brand = $derived(hostName.replace(/\s*\(fictional\)\s*$/i, '').trim() || h
           <div class="h-24 rounded-lg" style="background: linear-gradient(135deg, #ccfbf1, #e2e8f0);" aria-hidden="true"
           ></div>
           <h2 class="text-sm font-semibold" style="color: #0f172a;">{item.title}</h2>
-          <p class="text-xs" style="color: #64748b;">{item.detail}</p>
+          <p class="text-xs" style="color: #475569;">{item.detail}</p>
         </article>
       {/each}
     </section>
@@ -107,7 +107,7 @@ const brand = $derived(hostName.replace(/\s*\(fictional\)\s*$/i, '').trim() || h
     </section>
   </main>
 
-  <footer class="shrink-0 px-8 py-4 text-xs" style="color: #94a3b8; border-top: 1px solid #e2e8f0;">
+  <footer class="shrink-0 px-8 py-4 text-xs" style="color: #475569; border-top: 1px solid #e2e8f0;">
     © {brand} · fictional brand · Protoyard widget-host shell
   </footer>
 </div>

@@ -19,7 +19,7 @@ const people = ['Ada Example', 'Bea Demo', 'Cy Fiction'];
       Atlas Team (fictional)
     </p>
     <div>
-      <p class="mb-1 px-2 text-[11px] font-semibold uppercase" style="color: #64748b;">Channels</p>
+      <p class="mb-1 px-2 text-[11px] font-semibold uppercase" style="color: #94a3b8;">Channels</p>
       <ul class="flex flex-col gap-0.5">
         {#each channels as channel (channel)}
           <li>
@@ -34,7 +34,7 @@ const people = ['Ada Example', 'Bea Demo', 'Cy Fiction'];
       </ul>
     </div>
     <div>
-      <p class="mb-1 px-2 text-[11px] font-semibold uppercase" style="color: #64748b;">People</p>
+      <p class="mb-1 px-2 text-[11px] font-semibold uppercase" style="color: #94a3b8;">People</p>
       <ul class="flex flex-col gap-0.5">
         {#each people as person (person)}
           <li class="truncate px-2 py-1" style="color: #cbd5e1;">{person}</li>
@@ -50,7 +50,7 @@ const people = ['Ada Example', 'Bea Demo', 'Cy Fiction'];
       # general
     </header>
     <div class="flex flex-1 flex-col gap-3 overflow-auto px-4 py-4 text-sm">
-      <p style="color: #64748b;">Yesterday</p>
+      <p style="color: #475569;">Yesterday</p>
       <div class="rounded-lg px-3 py-2" style="background: #ffffff; border: 1px solid #e2e8f0;">
         <p class="text-xs font-semibold">Ada Example</p>
         <p style="color: #334155;">Mock thread: the plugin panel on the right is the prototype under review.</p>
@@ -62,7 +62,7 @@ const people = ['Ada Example', 'Bea Demo', 'Cy Fiction'];
     </div>
     <div
       class="shrink-0 border-t px-4 py-3 text-sm"
-      style="border-color: #e2e8f0; background: #ffffff; color: #94a3b8;"
+      style="border-color: #e2e8f0; background: #ffffff; color: #475569;"
     >
       Message #general (decorative)
     </div>

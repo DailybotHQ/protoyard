@@ -22,7 +22,7 @@ const sample = [
     style="border-color: #1e293b; background: #020617;"
     aria-label="File tree"
   >
-    <p class="px-2 pb-2 text-[10px] font-semibold tracking-wide uppercase" style="color: #64748b;">
+    <p class="px-2 pb-2 text-[10px] font-semibold tracking-wide uppercase" style="color: #94a3b8;">
       Harbor IDE (fictional)
     </p>
     {#each files as file (file)}

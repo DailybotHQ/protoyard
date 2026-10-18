@@ -13,8 +13,8 @@
     style="background: #ffffff; border-color: #cbd5e1;"
   >
     <span class="font-semibold">Frameboard (fictional)</span>
-    <span style="color: #64748b;">· Draft board</span>
-    <span class="ml-auto text-xs" style="color: #94a3b8;">100%</span>
+    <span style="color: #475569;">· Draft board</span>
+    <span class="ml-auto text-xs" style="color: #475569;">100%</span>
   </header>
   <div class="relative min-h-0 flex-1 overflow-hidden" aria-label="Canvas">
     <div
@@ -39,7 +39,7 @@
     ></div>
     <p
       class="absolute right-4 bottom-4 rounded-md px-2 py-1 text-xs"
-      style="background: #ffffff; color: #64748b; border: 1px solid #e2e8f0;"
+      style="background: #ffffff; color: #475569; border: 1px solid #e2e8f0;"
     >
       Plugin panel →
     </p>
