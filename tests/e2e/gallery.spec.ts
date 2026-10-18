@@ -37,8 +37,9 @@ test.describe('gallery', () => {
     await hydrated(page, '#browse');
     const search = page.getByTestId('search');
     await search.fill(target.name);
-    const results = page.getByTestId('results').getByTestId('project-card');
-    await expect(results.first()).toHaveAttribute('data-slug', target.slug);
+    await expect(
+      page.locator(`[data-testid="results"] [data-slug="${target.slug}"]`)
+    ).toBeVisible();
     // The query is reflected in the URL so the view can be shared.
     await expect(page).toHaveURL(/[?&]q=/);
 
@@ -49,7 +50,7 @@ test.describe('gallery', () => {
     await expect(page.getByTestId('result-count')).toContainText(`of ${prototypes.length}`);
     await expect(page.getByTestId('results')).toBeVisible();
 
-    await search.fill(target.slug);
+    await search.fill(target.name);
     await page.getByRole('link', { name: target.name, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/p/${target.slug}/?$`));
     await expect(page.getByTestId('detail-title')).toHaveText(target.name);

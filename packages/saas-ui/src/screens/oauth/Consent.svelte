@@ -122,8 +122,8 @@ async function respond(action: 'approve' | 'deny'): Promise<void> {
         <p role="alert" class="text-sm text-destructive">This provider is not supported by the simulator.</p>
       {/if}
       {#if stateIssue}<p role="alert" class="text-sm text-destructive">{stateIssue}</p>{/if}
-      {#if message}<p role="status" class="text-sm text-muted-foreground">{redirecting ? 'Redirecting…' : message}</p>{/if}
-      {#if redirecting && !message}<p role="status" class="text-sm text-muted-foreground">Redirecting…</p>{/if}
+      {#if message}<p role="status" class="text-sm text-muted-foreground">{message}</p>{/if}
+      {#if redirecting}<p role="status" class="text-sm text-muted-foreground">Redirecting…</p>{/if}
     </CardContent>
     <CardFooter class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       <Button variant="outline" disabled={!details || busy || redirecting} onclick={() => void respond('deny')}>Deny</Button>
