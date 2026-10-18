@@ -1,11 +1,15 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createOutput } from '../src/lib/output.ts';
+import { publishPrototype } from '../src/lib/publish-run.ts';
+import { createContext, resolveTarget } from '../src/lib/workspace.ts';
 import { formatCommand } from '../src/publish/cli-tool.ts';
 import {
   cloudflareArgs,
   parseCloudflareOutput,
   validateCloudflareProject,
 } from '../src/publish/cloudflare.ts';
+import { createProvider } from '../src/publish/index.ts';
 import { netlifyArgs, parseNetlifyOutput } from '../src/publish/netlify.ts';
 import { parseVercelOutput, vercelArgs, vercelLinkArgs } from '../src/publish/vercel.ts';
 import { addBuildablePrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
@@ -131,6 +135,34 @@ describe('protoyard publish --dry-run', () => {
       '--commit-dirty=true',
     ]);
     expect(data.command).toContain('--project-name');
+  }, 60_000);
+
+  it('returns a structured dry-run result from publishPrototype', async () => {
+    const ctx = createContext(
+      ws.root,
+      createOutput({ json: true, quiet: false, color: false }),
+      false
+    );
+    const { entry, registry } = await resolveTarget(ctx, 'dry-app');
+    const result = await publishPrototype(
+      ctx,
+      entry,
+      createProvider('cloudflare', ws.root),
+      { dryRun: true },
+      registry
+    );
+    expect(result).toMatchObject({
+      slug: 'dry-app',
+      provider: 'cloudflare',
+      target: 'preview',
+      project: 'protoyard-dry-app',
+      dryRun: true,
+      kind: 'dry-run',
+      toolAvailable: expect.any(Boolean),
+      command: expect.arrayContaining(['--project-name', 'protoyard-dry-app']),
+    });
+    expect(result.files).toBeGreaterThan(0);
+    expect(result.bytes).toBeGreaterThan(0);
   }, 60_000);
 
   it('requires --yes for production deploys and rejects bad project names', async () => {
