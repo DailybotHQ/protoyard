@@ -13,9 +13,9 @@ framework-agnostic: it has no Svelte, and its only dependencies are
 
 ## What ships today
 
-The table layout, row schemas and integrity rules. The services that read
-and write these tables (sign-in, OAuth, magic links, MFA, invitations,
-workspaces, billing, onboarding) come in later PLAN_002 tasks and are not in
+The table layout, row schemas and integrity rules, plus the onboarding
+wizard engine (below). The other services (sign-in, OAuth, magic links, MFA,
+invitations, workspaces, billing) come in later PLAN_002 tasks and are not in
 this package yet.
 
 | Table | Holds | Indexes |
@@ -80,9 +80,49 @@ Generators build these rows with `ctx.ids`, `ctx.rng`, `ctx.faker` and
 `ctx.time` only, like every other generator. Bump your `generatorVersion`
 when the output changes.
 
+## Onboarding wizard engine
+
+`createOnboarding(runtime, { steps, capability?, area?, tables? })` is the
+persisted wizard from `templates/onboarding`, made generic. You declare the
+answer steps, and the engine appends a final `done` step.
+
+```ts
+const onboarding = createOnboarding(runtime, {
+  steps: [
+    { id: 'profile', label: 'Profile', schema: ProfileSchema },
+    { id: 'workspace', label: 'Workspace', schema: WorkspaceSchema,
+      capability: 'workspace:update', effect: (answer, { at }) => db.workspaces.put(…) },
+    { id: 'invite', label: 'Invite teammates', optional: true, schema: InvitesSchema },
+  ],
+  tables: ['workspaces'], // tables your step effects write
+});
+await onboarding.submit('profile', input); // validate → save answer + position → next step
+await onboarding.skip('invite');           // optional steps only
+await onboarding.goTo('profile');          // back / jump to a reached step
+await onboarding.complete();               // needs every required step
+await onboarding.restart();                // back to step 1, answers kept as defaults
+```
+
+- Each action calls `session.assert(capability)` (default
+  `onboarding:progress`, plus the step's own `capability`), validates with the
+  step's zod schema (`ValidationError.issues` per field, the shape
+  `runService` shows inline), runs through `environment.run('<area>.<step>')`
+  and writes the answer and the new position in **one transaction**. A reload
+  resumes exactly where the person left off, and an offline failure writes
+  nothing.
+- `complete()` also sets the persona's `onboardingComplete` in the same
+  transaction, then refreshes the session. `restart()` clears it again.
+  Step effects are not undone.
+- Rows live in `saas_onboarding`, one per persona, so add that table with
+  `saasStores(1, { tables: ['saas_onboarding', …] })`.
+- `createOnboardingFlow(steps)` is the pure logic (`next`, `canVisit`,
+  `missingRequired`, `progressOf`, `stepsForProgress`, `freshState`). Use it in
+  generators to place a scenario's actor from `actor.onboardingProgress`.
+
 ## Size
 
-The whole module is about 2.2 KB gzip, minified with esbuild, with zod and
+The schema module is about 2.2 KB gzip and `createOnboarding` with its
+dependencies about 1.8 KB, minified with esbuild, with zod and
 `@protoyard/core` external because every prototype already ships them. It
 is tree-shakable (`sideEffects: false`).
 
