@@ -162,4 +162,32 @@ describe('base.css', () => {
       expect(darkBlock).toContain(`${tokenToCssVar(token)}: ${value};`);
     }
   });
+
+  it('provides app-height and simulated safe-area utilities', () => {
+    for (const utility of [
+      'h-app',
+      'min-h-app',
+      'max-h-app',
+      'pt-safe',
+      'pb-safe',
+      'pl-safe',
+      'pr-safe',
+      'px-safe',
+    ]) {
+      expect(css).toContain(`@utility ${utility} {`);
+    }
+    expect(css).toContain('--py-app-height: 100dvh;');
+    expect(css).toContain('height: var(--py-app-height, 100dvh);');
+    expect(css).toContain('min-height: var(--py-app-height, 100dvh);');
+    expect(css).toContain('max-height: var(--py-app-height, 100dvh);');
+
+    for (const [side, inset] of [
+      ['top', 'top'],
+      ['bottom', 'bottom'],
+      ['left', 'left'],
+      ['right', 'right'],
+    ]) {
+      expect(css).toContain(`max(env(safe-area-inset-${inset}, 0px), var(--py-safe-${side}, 0px))`);
+    }
+  });
 });
