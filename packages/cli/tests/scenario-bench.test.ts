@@ -59,10 +59,9 @@ describe('protoyard scenario bench', () => {
       withinBudget: true,
       ok: true,
     });
-    expect(result?.durationMs).toBeCloseTo(
-      (result?.generateMs ?? 0) + (result?.validateMs ?? 0),
-      1
-    );
+    // Each figure is rounded on its own, so the sum may differ by a few hundredths.
+    const sum = (result?.generateMs ?? 0) + (result?.validateMs ?? 0);
+    expect(Math.abs((result?.durationMs ?? 0) - sum)).toBeLessThan(0.5);
   });
 
   it('fails with validation exit code 4 when --check exceeds the generation budget', {

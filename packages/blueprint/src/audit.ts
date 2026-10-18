@@ -6,7 +6,7 @@ import { inputProperty } from './validation.ts';
 /** Placeholder stored instead of a sensitive field's real value. */
 export const AUDIT_REDACTED = '[redacted]';
 
-export type AuditAction = 'create' | 'update' | 'delete' | 'restore' | 'purge';
+export type AuditAction = 'create' | 'update' | 'delete' | 'restore' | 'purge' | 'import';
 
 export interface AuditChange {
   before: unknown;
@@ -193,7 +193,8 @@ export function createAuditService(
         if (runtime.session.can(`${entity.name}:read`)) allowed.add(entity.name);
       }
       if (allowed.size === 0) {
-        runtime.session.assert(`${audited[0]!.name}:read`);
+        const first = audited[0];
+        if (first) runtime.session.assert(`${first.name}:read`);
       }
       const rows = (await db.table(FEATURE_TABLES.audit).toArray()) as AuditEntry[];
       return sortNewest(rows.filter((row) => allowed.has(row.entity))).slice(0, Math.max(0, limit));

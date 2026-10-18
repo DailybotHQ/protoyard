@@ -33,6 +33,7 @@ import {
   type RuntimeOptions,
   SNAPSHOT_MAX_ROWS,
   SnapshotImportError,
+  stripBinaryFields,
 } from '../src/index.ts';
 import { createTasksDefinition, REFERENCE_TIME, type Task } from './fixtures/tasks-prototype.ts';
 
@@ -1270,5 +1271,26 @@ describe('runtime identity writes', () => {
       /Unknown table "missing"/
     );
     expect(await dumpTables(runtime.db)).toEqual(before);
+  });
+});
+
+describe('snapshot binary payloads', () => {
+  it('drops uploaded file bytes but keeps the row metadata', () => {
+    const { tables, excluded } = stripBinaryFields([
+      {
+        name: 'files',
+        rows: [
+          { id: 'file_1', name: 'logo.png', size: 4, data: new ArrayBuffer(4) },
+          { id: 'file_2', name: 'notes.txt', size: 2, data: new Uint8Array([1, 2]) },
+          { id: 'file_3', name: 'empty.txt', size: 0, data: null },
+        ],
+      },
+    ]);
+    expect(excluded).toBe(2);
+    expect(tables[0]?.rows).toEqual([
+      { id: 'file_1', name: 'logo.png', size: 4, data: null },
+      { id: 'file_2', name: 'notes.txt', size: 2, data: null },
+      { id: 'file_3', name: 'empty.txt', size: 0, data: null },
+    ]);
   });
 });

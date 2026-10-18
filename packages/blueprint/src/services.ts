@@ -404,27 +404,25 @@ export function createEntityServices(
     return { headers: headerRow, columns, valid, errors, rowCount };
   }
 
+  /** CSV import commits use the same audit writer as live mutations (diff + redaction). */
   async function writeAuditBatch(
     entity: BlueprintEntity,
     rows: readonly Row[],
-    action: string,
-    actor: string
+    action: 'create' | 'import'
   ): Promise<string[]> {
     if (!entity.features.audit || rows.length === 0) return [];
-    const at = clock.now().toISOString();
-    const entries = rows.map((row) => {
-      const id = createRuntimeId('audit');
-      return {
-        id,
-        entity: entity.name,
-        recordId: row.id,
-        actorId: actor,
+    const ids: string[] = [];
+    for (const row of rows) {
+      const entry = await audit({
         action,
-        at,
-      } satisfies Row;
-    });
-    await putChunked(db.table(FEATURE_TABLES.audit), entries);
-    return entries.map((e) => e.id);
+        entity,
+        recordId: row.id,
+        before: null,
+        after: row,
+      });
+      if (entry) ids.push(entry.id);
+    }
+    return ids;
   }
 
   /** Fails with a field-keyed ValidationError when a referenced row is missing. */
@@ -937,7 +935,7 @@ export function createEntityServices(
               created.push(row);
             }
             await putChunked(db.table(table), created);
-            const auditIds = await writeAuditBatch(entity, created, 'import', actor);
+            const auditIds = await writeAuditBatch(entity, created, 'import');
             for (const row of created) {
               await notify({ on: 'create', entity, row });
             }

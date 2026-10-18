@@ -321,11 +321,17 @@ describe('shell frame decisions', () => {
     expect(activeFrame({ ...base, windowWidth: fits - 1 })).toBe('none');
     expect(activeFrame({ ...base, windowWidth: fits })).toBe('phone');
     expect(activeFrame({ ...base, spec: undefined })).toBe('none');
-    // Shells whose frame has not shipped yet stay full-bleed.
-    expect(FRAMES['side-panel']).toBeUndefined();
-    expect(activeFrame({ ...base, shell: 'side-panel', spec: getDevice('laptop-window') })).toBe(
-      'none'
-    );
+    // Every shell now ships a frame.
+    const shells = [
+      'phone',
+      'tablet',
+      'desktop-window',
+      'browser',
+      'widget-host',
+      'extension-popup',
+      'side-panel',
+    ] as const;
+    for (const shell of shells) expect(FRAMES[shell], shell).toBeDefined();
   });
 
   it('detects embedding, including a cross-origin parent that throws', () => {

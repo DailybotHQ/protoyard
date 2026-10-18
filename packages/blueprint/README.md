@@ -9,8 +9,8 @@ Framework-agnostic: it depends only on `@protoyard/core` and zod and never impor
 
 ## Status
 
-Implemented: schema, storage, migrations, validation, policy, notifications, audit and CSV codec.
-Remaining work lands in later PLAN_002 tasks:
+Implemented: schema, storage, migrations, validation, policy, notifications, audit, file
+services and CSV codec. Remaining work lands in later PLAN_002 tasks:
 
 | Module | Derives | Status |
 | --- | --- | --- |
@@ -20,6 +20,7 @@ Remaining work lands in later PLAN_002 tasks:
 | policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
 | notifications | validated create/update/assignment rules, atomic writes and actor-scoped read state | done |
 | audit | per-mutation `auditEntries` rows (diff + sensitive redaction) and history reads | done |
+| files | size/type/quota checked Blob uploads, metadata listing, on-demand reads and removal | done |
 | csv | RFC 4180 parse/serialize + row validation (`@protoyard/blueprint/csv`) | done |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | done |
@@ -265,6 +266,14 @@ rows in that same transaction. Assignment rules fire when the named persona fiel
 new persona. Rule titles are plain text and interpolate entity fields; the actor never receives
 their own notification. `createNotificationService(runtime)` scopes list, unread count and read
 state changes to whichever persona is active, so switching persona changes the visible inbox.
+
+Entities with `features.files` can use `createFileServices(runtime, blueprint)`. Uploads validate
+the file field's `accept` and `maxSizeBytes`, check the 50 MiB per-prototype default quota and the
+runtime storage estimate, then attach the file id and persist binary bytes in the same simulated
+service transaction. `list()` returns metadata without a `blob`; `get()` reconstructs a Blob on
+demand. JSON snapshots do not preserve file bytes, so users should not rely on snapshots to move
+attachments between prototypes. A visible note in the snapshot UI still requires the runtime
+snapshot surface to opt in.
 
 Tests run on the real runtime with the help desk fixture in
 `tests/fixtures/blueprint-prototype.ts`, a prototype whose stores, policy and integrity

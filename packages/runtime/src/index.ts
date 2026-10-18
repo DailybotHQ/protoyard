@@ -29,6 +29,7 @@ export {
   type SnapshotControllerExtras,
   SnapshotImportError,
   snapshotFilename,
+  stripBinaryFields,
 } from './snapshots.ts';
 export {
   CUSTOM_THEMES_KEY,
