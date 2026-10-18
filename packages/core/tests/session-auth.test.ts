@@ -8,6 +8,7 @@ import {
   parseManifest,
   type SessionAuthState,
   type SessionController,
+  SnapshotSchema,
 } from '../src/index.ts';
 
 function definition(extra: Partial<PrototypeDefinition> = {}): PrototypeDefinition {
@@ -57,5 +58,33 @@ describe('signed-out session contract', () => {
     expect(() => definePrototype(definition({ auth: { signedOutByDefault: 1 as never } }))).toThrow(
       /Invalid prototype "auth" options \(signedOutByDefault/
     );
+  });
+});
+
+describe('snapshot sign-in state', () => {
+  const base = {
+    format: 'protoyard.snapshot',
+    formatVersion: 1,
+    id: 'snap_1',
+    name: 'World',
+    prototypeId: 'example.auth',
+    prototypeVersion: '0.1.0',
+    schemaVersion: 1,
+    scenarioId: null,
+    scenarioVersion: null,
+    seed: null,
+    referenceTime: null,
+    createdAt: '2026-10-17T12:00:00.000Z',
+    actorId: 'user_0001',
+    organizationId: null,
+    clock: null,
+    environment: {},
+    tables: [],
+  };
+
+  it('accepts older snapshots without signedOut and records it when present', () => {
+    expect(SnapshotSchema.parse(base).signedOut).toBeUndefined();
+    expect(SnapshotSchema.parse({ ...base, signedOut: true }).signedOut).toBe(true);
+    expect(SnapshotSchema.safeParse({ ...base, signedOut: 'yes' }).success).toBe(false);
   });
 });

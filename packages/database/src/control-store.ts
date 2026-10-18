@@ -31,6 +31,8 @@ export interface ControlState {
   clock: ClockState;
   actorId: string;
   organizationId: string;
+  /** Simulated sign-out (stored only while signed out). */
+  signedOut: boolean;
   timelineCheckpoint: TimelineCheckpoint;
 }
 

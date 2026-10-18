@@ -111,6 +111,8 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
       createdAt: new Date(k.now()).toISOString(),
       actorId: k.principal?.persona.id ?? k.actorId,
       organizationId: k.principal?.organization?.id ?? k.organizationId,
+      // Written only while signed out, so signed-in snapshots keep their old shape.
+      ...(k.signedOut ? { signedOut: true } : {}),
       clock: k.clock.getState(),
       environment: k.env.get(),
       overrides: { ...k.overrides },
@@ -186,6 +188,7 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
       overrides: Object.keys(overrides).length ? overrides : null,
       actorId: snapshot.actorId,
       organizationId: snapshot.organizationId,
+      signedOut: snapshot.signedOut ? true : null,
       clock,
       timelineCheckpoint: checkpoint,
     });
@@ -194,6 +197,7 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
     k.overrides = overrides;
     k.actorId = snapshot.actorId;
     k.organizationId = snapshot.organizationId;
+    k.signedOut = snapshot.signedOut === true;
     if (clock) k.setClockSilently(clock);
     await k.reloadIdentity();
     k.refreshDerived();

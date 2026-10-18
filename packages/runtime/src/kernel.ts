@@ -173,7 +173,8 @@ export async function createKernel(
     overrides: storedOverrides,
     actorId: stored.actorId ?? null,
     organizationId: stored.organizationId ?? null,
-    signedOut: signedOutByDefault(definition),
+    // A world stored before this flag existed stays signed in; a fresh one follows the definition.
+    signedOut: stored.signedOut ?? (stored.activeScenario ? false : signedOutByDefault(definition)),
     personas: [],
     organizations: [],
     memberships: [],

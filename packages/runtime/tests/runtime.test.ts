@@ -21,6 +21,7 @@ import {
 } from '@protoyard/scenarios';
 import { IDBFactory, IDBKeyRange, IDBObjectStore } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createHarness } from '../../../tests/support/runtime.ts';
 import {
   createPrototypeRuntime,
   type MatchMedia,
@@ -865,6 +866,85 @@ describe('simulated sign-in (signed out sessions)', () => {
     await expect(runtime.session.signIn('nobody')).rejects.toThrow(/Unknown persona/);
     expect(seen).toEqual([null, other]);
     expect(await dumpTables(runtime.db)).toEqual(before);
+  });
+
+  it('stays signed out across reload and signed in after an explicit sign-in', async () => {
+    const store = backend();
+    const first = await start(createTasksDefinition(), store);
+    await first.scenarios.ensureSeeded();
+    const other = first.session.personas()[1]?.id as string;
+    await first.session.signOut();
+    first.close();
+
+    const second = await start(createTasksDefinition(), store);
+    await second.scenarios.ensureSeeded();
+    expect(second.session.principal()).toBeNull();
+    expect(second.session.authState()).toBe('signed-out');
+    // Switching persona while signed out must not sign back in, even after a reload.
+    await second.session.switchActor(other);
+    second.close();
+
+    const third = await start(createTasksDefinition(), store);
+    await third.scenarios.ensureSeeded();
+    expect(third.session.principal()).toBeNull();
+    await third.session.signIn(other);
+    third.close();
+
+    const fourth = await start(createTasksDefinition(), store);
+    await fourth.scenarios.ensureSeeded();
+    expect(fourth.session.principal()?.persona.id).toBe(other);
+    expect(fourth.session.isSignedIn()).toBe(true);
+  });
+
+  it('a scenario load signs the scenario actor back in unless the prototype opts out', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    await runtime.session.signOut();
+    await runtime.scenarios.load('viewer');
+    expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+    expect(runtime.session.principal()?.role).toBe('viewer');
+  });
+
+  it('starts signed out with auth.signedOutByDefault and keeps it through reload and reset', async () => {
+    const definition = { ...createTasksDefinition(), auth: { signedOutByDefault: true } };
+    const harness = createHarness(definition);
+    try {
+      const runtime = await harness.boot();
+      expect(runtime.session.personas().length).toBeGreaterThan(1);
+      expect(runtime.session.principal()).toBeNull();
+      expect(runtime.session.isSignedIn()).toBe(false);
+
+      const reloaded = await harness.reload(runtime);
+      expect(reloaded.session.principal()).toBeNull();
+      await reloaded.session.signIn('user_0001');
+      expect(reloaded.session.principal()?.persona.id).toBe('user_0001');
+
+      const again = await harness.reload(reloaded);
+      expect(again.session.principal()?.persona.id).toBe('user_0001');
+      await again.scenarios.reset();
+      expect(again.session.principal()).toBeNull();
+    } finally {
+      harness.closeAll();
+    }
+  });
+
+  it('snapshots capture the signed-out state; signed-in snapshots keep their old shape', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const signedIn = await runtime.snapshots.save({ name: 'Signed in' });
+    expect('signedOut' in signedIn).toBe(false);
+
+    await runtime.session.signOut();
+    const signedOut = await runtime.snapshots.save({ name: 'Signed out' });
+    expect(signedOut.signedOut).toBe(true);
+    const { json } = await runtime.snapshots.exportJson(signedOut.id);
+
+    await runtime.snapshots.restore(signedIn.id);
+    expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+    await runtime.snapshots.importJson(json, { restore: true });
+    expect(runtime.session.principal()).toBeNull();
+    await runtime.snapshots.restore(signedIn.id);
+    expect(runtime.session.isSignedIn()).toBe(true);
   });
 
   it('lets a DevTools actor override act while signed out; sign-in and sign-out clear it', async () => {

@@ -5,6 +5,8 @@ import { applyOverrides } from './overrides.ts';
 /**
  * Switching actor or organization only changes WHO is looking: it persists
  * an id in the control DB and recomputes the principal. Records are untouched.
+ * Sign-in / sign-out (UX simulation, not authentication) persist `signedOut`
+ * next to `actorId`, so the state survives a reload.
  */
 export function createSessionController(k: Kernel): SessionController {
   /** Recomputes the principal; an explicit session action wins over a DevTools actor override. */
@@ -34,6 +36,7 @@ export function createSessionController(k: Kernel): SessionController {
       k.writeControl({
         actorId: personaId,
         ...(k.organizationId ? { organizationId: k.organizationId } : {}),
+        signedOut: signedOut ? true : null,
       })
     );
   }
@@ -50,7 +53,7 @@ export function createSessionController(k: Kernel): SessionController {
 
     async signOut() {
       k.signedOut = true;
-      await dropActorOverride();
+      await dropActorOverride(k.writeControl({ signedOut: true }));
     },
 
     isSignedIn: () => k.principal !== null,
