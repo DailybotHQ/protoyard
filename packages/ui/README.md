@@ -57,7 +57,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Collaboration | `ChatThread`, `MessageList`, `Composer`, `TypingIndicator` |
 | Flows | `Stepper`, `Wizard` |
 | Search | `CommandPalette` |
-| Mobile | `BottomNav`, `MobileHeader`, `BottomSheet`, `SafeArea` |
+| Mobile | `MobileAppShell`, `BottomNav`, `MobileHeader`, `BottomSheet`, `SafeArea` |
 
 ## Catalog
 
@@ -101,6 +101,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
 | `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok), `canMove`, `card` snippet; HTML5 drag and drop + a keyboard "Move to…" menu per card |
 | `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link; frame uses `min-h-app` / sidebar column `h-app` (`--py-app-height`) so framed shells match the device screen |
+| `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter`, and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
 | `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
 | `Header` | `title`, `titleAs` (default `h1`; use `p` when the page has its own `h1`), `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
 | `Breadcrumb` | `items: { label, href? }[]` |
