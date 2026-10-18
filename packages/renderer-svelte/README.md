@@ -52,7 +52,7 @@ router resets it to the top on navigation. With the desktop preset that wrapper 
 `display: contents` and the document scrolls as usual. Media queries still follow the
 real window.
 
-**Shells** (ADR-016). `ShellHost` wraps the app, toasts and the demo badge, and reads
+**Shells** (ADR-016; the user guide is [docs/SHELLS.md](../../docs/SHELLS.md)). `ShellHost` wraps the app, toasts and the demo badge, and reads
 the runtime's effective `shell`, `device` and `orientation`
 (`runtime.theme.appearance()`). When a frame is shown it sets `<html data-py-shell>`.
 The page then becomes a stage that centers a device box scaled to fit the window on
