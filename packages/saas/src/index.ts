@@ -17,6 +17,15 @@ export {
   type SaasInboxDatabase,
 } from './inbox.ts';
 export {
+  type AcceptInvitationInput,
+  AcceptInvitationSchema,
+  type CreateInvitationInput,
+  CreateInvitationSchema,
+  createInvitationServices,
+  type InvitationOptions,
+  type InvitationServices,
+} from './invitations.ts';
+export {
   createMagicLinkServices,
   type IssueMagicLinkInput,
   IssueMagicLinkSchema,
@@ -71,6 +80,15 @@ export {
   type OAuthProviderScenarios,
   parseOAuthProviderScenarios,
 } from './providers.ts';
+export {
+  type ConsumePasswordResetInput,
+  ConsumePasswordResetSchema,
+  createPasswordResetServices,
+  type PasswordResetOptions,
+  type PasswordResetServices,
+  type RequestPasswordResetInput,
+  RequestPasswordResetSchema,
+} from './reset.ts';
 export {
   HashHrefSchema,
   INBOX_KINDS,
