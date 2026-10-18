@@ -2,6 +2,8 @@
 
 Svelte 5 components for prototypes that simulate AI assistants. The package renders conversations and interaction controls; it does not call a model provider, create database rows, or implement sharing itself. Mutations are callback props so the prototype can route them through its own services. Model labels and UI copy keep the simulated boundary visible.
 
+**Platform guide:** [docs/AI_KITS.md](../../docs/AI_KITS.md) (workspace, virtual threads, widget launcher→sidebar→fullscreen, voice panel). **Measured bundles and long threads:** [docs/PERFORMANCE.md → AI kits](../../docs/PERFORMANCE.md#ai-kits).
+
 ## Install in a workspace prototype
 
 Add `"@protoyard/ai-ui": "workspace:*"` to the prototype dependencies. Import the styles after Tailwind and the theme/UI styles:
@@ -59,3 +61,11 @@ const { VoiceMode } = await import('@protoyard/ai-ui/voice');
 ```
 
 Pass the injected `AiClock`, scripted transcript options, the latest simulated assistant reply and an `onTranscript` handler. Captions are always visible. Browser `speechSynthesis` speaks replies locally when available; otherwise output stays muted and the reply caption remains visible. The panel does not request a microphone by default. A consumer may opt into showing the local mic level meter; enabling it asks for microphone permission and reads amplitude only with Web Audio, without recording, storing or uploading audio. Stop the meter to release its stream; component teardown also stops it.
+
+## Widget modes
+
+```ts
+const { AssistantWidget } = await import('@protoyard/ai-ui/widget');
+```
+
+`AssistantWidget` hosts the same workspace callbacks inside **launcher → sidebar → fullscreen** chrome. The panel module loads on first open. Mode is stored per `prototypeId` in `localStorage` when the browser allows it. Escape collapses one level. No model or network call is introduced by the widget shell.

@@ -2,6 +2,8 @@
 
 Framework-agnostic deterministic simulated AI conversations. Every catalog entry and response is fictional; the package never calls a model provider or uses credentials.
 
+**Platform guide:** [docs/AI_KITS.md](../../docs/AI_KITS.md) (engine, packs, agents, voice, templates, flagships, honest boundaries). **Measured bundles and long threads:** [docs/PERFORMANCE.md → AI kits](../../docs/PERFORMANCE.md#ai-kits).
+
 ```ts
 import { createAiEngine } from '@protoyard/ai';
 

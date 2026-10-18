@@ -16,6 +16,10 @@ every file in `artifacts/<slug>/dist`. DevTools excluded (the default).
 | `mobile-banking-demo` | 181 KB (+14 KB) | 12 KB | 150 KB | 1,123 KB / 358 KB |
 | `ai-chat-demo` | 182 KB (+14 KB) | 12 KB | 150 KB | 1,121 KB / 358 KB |
 
+AI-era flagships (Nova, Relay) and refreshed kit builds are recorded under
+[AI kits](#ai-kits). The `ai-chat-demo` row above is the 2026-10-17 baseline;
+the 2026-10-18 rebuild in that section is the current measured value.
+
 - **Faker loads only when a world is generated** (first seed, scenario load,
   reset or time advance) through a dynamic `import()`. Ordinary page opens
   never download it. Making it lazy cut the CRM's main chunk from 1,080 KB to
@@ -244,6 +248,74 @@ Reproduce:
 ```bash
 PROTOYARD_BENCH=1 PROTOYARD_BENCH_RUNS=3 pnpm vitest run prototypes/crm-demo/tests/enterprise-scale.test.ts --silent=false
 ```
+
+## AI kits
+
+Method and machine: Apple M1 Max (arm64, 64 GB, macOS 27.0), Node 26.11.1,
+pnpm 11.23.0, 2026-10-18. Production builds with DevTools excluded:
+`pnpm protoyard build <slug>` then `pnpm protoyard budget <slug>`. Whole-`dist`
+gzip is the sum of per-file gzip level 9 (Node zlib, no filename header).
+Long-thread generation timed with `performance.now()` over 5 runs in Node
+(median). Virtual-window cost is a microbench of
+`calculateVirtualWindow` from `@protoyard/ai-ui` (same Node process).
+
+**Honest boundary:** these numbers are for **simulated** AI only — response
+packs, scripted voice captions, fictional tools. No provider SDK and no
+network completion path is included. Product docs:
+[AI_KITS.md](AI_KITS.md).
+
+### Flagship and kit bundles
+
+| Target | Initial JS (gzip) | CSS (gzip) | Lazy JS (gzip, sum) | Whole `dist` (raw / gzip) | Budget |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `nova-assistant-demo` | **165 KB** (165.48) | 18 KB (17.58) | 195 KB | 1,166 KB / 382 KB | PASS (+84.5 KB headroom) |
+| `relay-chat-demo` | **146 KB** (146.11) | 13 KB (12.93) | 181 KB | 1,039 KB / 343 KB | PASS (+103.9 KB) |
+| `ai-chat-demo` (2026-10-18 rebuild) | **199 KB** (199.23) | 16 KB (15.86) | 181 KB | 1,350 KB / 504 KB | PASS (+50.8 KB) |
+| `templates/agent-console` build artifact | **209 KB** | 17 KB | 181 KB | 1,286 KB / 409 KB | under 250 KB initial |
+
+Every row stays under the workspace **250 KB** initial-JS gzip default
+(`protoyard.budgets.json`). Nova keeps voice, widget panel and canvas on
+lazy chunks; sample gzip sizes from the Nova `dist/assets` build:
+
+| Lazy chunk (Nova) | Gzip |
+| --- | ---: |
+| `voice-*.js` | 3.2 KB |
+| `AssistantWidgetPanel-*.js` | 5.8 KB |
+| `WidgetDemo-*.js` | 3.6 KB |
+| `CanvasPanel-*.js` | 1.3 KB |
+
+Reproduce:
+
+```bash
+pnpm protoyard build nova-assistant-demo
+pnpm protoyard budget nova-assistant-demo
+pnpm protoyard build relay-chat-demo && pnpm protoyard budget relay-chat-demo
+pnpm protoyard build ai-chat-demo && pnpm protoyard budget ai-chat-demo
+```
+
+### Long threads
+
+| Workload | Result | Method |
+| --- | --- | --- |
+| Nova `long-history` world | **5,000** messages, byte-identical on regenerate, 0 integrity violations | `generateAssistantWorld` + `validateWorld` |
+| Generate median (5 runs) | **4.3 ms** (range 4.1–6.4 ms) | Node, same machine as above |
+| Validate after generate | **4.0 ms** | one pass after the median generate |
+| `@protoyard/ai` `powerUser` fragment | **600** messages (8 × 75) | `AI_SCENARIO_FRAGMENTS.powerUser` |
+| Virtual window @ 5,000 × est. 120 px | **14** DOM items (overscan 4), total height 600,000 px | `calculateVirtualWindow(5000, 120_000, 600, [], 120, 4)` |
+| One window calc median | **22 µs** (p95 27 µs); 1,000 calls **26.2 ms** | Node microbench |
+
+Unit coverage that locks these shapes:
+
+```bash
+pnpm vitest run prototypes/nova-assistant-demo   # includes 5,000-message determinism
+pnpm vitest run packages/ai-ui                   # virtual window + MessageList
+pnpm vitest run packages/ai                      # scenarios (600-message powerUser), packs, voice
+```
+
+**Not measured here:** Chromium paint/scroll FPS for the 5,000-row thread,
+throttled mobile CPUs, or first-visit cold start for Nova/Relay (use
+`scripts/bench-cold-start.ts` when calibrating those slugs). No claim is made
+beyond the table.
 
 ## Runtime behavior worth knowing
 
