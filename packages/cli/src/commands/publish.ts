@@ -224,6 +224,7 @@ async function publishOne(
     distDir: result.distDir,
     fileCount: result.files,
     totalBytes: result.bytes,
+    ...(result.ensureProject ? { ensureProject: true as const } : {}),
   };
   if (result.kind === 'static') {
     return {
