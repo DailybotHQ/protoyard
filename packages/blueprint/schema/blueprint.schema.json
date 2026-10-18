@@ -930,6 +930,38 @@
         "additionalProperties": false
       }
     },
+    "notifications": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "on": {
+            "type": "string",
+            "enum": ["create", "update", "assign"]
+          },
+          "entity": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "field": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]*$"
+          },
+          "notify": {
+            "type": "string",
+            "pattern": "^(owner|assignee|role:[a-z][a-z0-9]*(?:-[a-z0-9]+)*)$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": ["on", "entity", "notify", "title"],
+        "additionalProperties": false
+      }
+    },
     "screens": {
       "default": [],
       "type": "array",

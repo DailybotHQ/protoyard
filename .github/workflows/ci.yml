@@ -2,7 +2,9 @@ name: ci
 
 # Every pull request and every push to main: public hygiene, lint, types,
 # unit tests, the gallery build, a scoped build + export of the reference
-# prototype, and Playwright E2E (Chromium only) against real static builds.
+# prototype, Playwright E2E (Chromium only) against real static builds, and
+# the performance budgets job (bundle + index + scenario generation gates;
+# cold-start reported only).
 
 on:
   push:
@@ -131,3 +133,92 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  # Bundle, index and scenario generation budgets. Cold-start is reported only
+  # (not a gate) until CI runners are calibrated against coldStartMs.
+  perf:
+    name: performance budgets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prepare report directory
+        run: mkdir -p artifacts/perf tmp
+      - name: Build all prototypes
+        run: pnpm protoyard build --all
+      - name: Bundle size budgets
+        # --silent keeps pnpm from prefixing the JSON envelope with the script line.
+        run: pnpm --silent protoyard budget --all --skip-build --json > artifacts/perf/budget.json
+      - name: Index scale budget (1,000 manifests)
+        run: pnpm bench:index --runs 3 --check
+      - name: Scenario generation budgets (default scenarios)
+        run: |
+          set -euo pipefail
+          mapfile -t slugs < <(
+            pnpm --silent protoyard list --kind prototype --json | node -e '
+              let s = "";
+              process.stdin.on("data", (c) => (s += c));
+              process.stdin.on("end", () => {
+                const body = JSON.parse(s);
+                const entries = body?.data?.entries ?? body?.entries ?? [];
+                for (const e of entries) {
+                  if (e && e.kind === "prototype" && typeof e.slug === "string") console.log(e.slug);
+                }
+              });
+            '
+          )
+          if [ "${#slugs[@]}" -eq 0 ]; then
+            echo "No prototypes indexed; skipping scenario bench."
+            exit 0
+          fi
+          for slug in "${slugs[@]}"; do
+            echo "::group::scenario bench ${slug}"
+            pnpm --silent protoyard scenario bench "$slug" --check --json \
+              > "artifacts/perf/scenario-bench-${slug}.json"
+            echo "::endgroup::"
+          done
+      - name: Cold-start bench (report only — not a gate yet)
+        # Runner variance is unknown; gate after a calibration run (open question).
+        # Always upload numbers; do not fail the job on cold-start thresholds.
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mapfile -t slugs < <(
+            pnpm --silent protoyard list --kind prototype --json | node -e '
+              let s = "";
+              process.stdin.on("data", (c) => (s += c));
+              process.stdin.on("end", () => {
+                const body = JSON.parse(s);
+                const entries = body?.data?.entries ?? body?.entries ?? [];
+                for (const e of entries) {
+                  if (e && e.kind === "prototype" && typeof e.slug === "string") console.log(e.slug);
+                }
+              });
+            '
+          )
+          if [ "${#slugs[@]}" -eq 0 ]; then
+            echo "No prototypes to cold-start."
+            exit 0
+          fi
+          pnpm exec tsx scripts/bench-cold-start.ts "${slugs[@]}" --runs 3 \
+            | tee artifacts/perf/cold-start.txt
+      - name: Upload performance reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: perf-reports-${{ github.run_id }}
+          path: |
+            artifacts/perf/
+            tmp/bench-index-*.json
+            tmp/bench-cold-start-*.json
+          if-no-files-found: warn
+          retention-days: 14

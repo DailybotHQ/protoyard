@@ -17,6 +17,14 @@ export {
   type SaasInboxDatabase,
 } from './inbox.ts';
 export {
+  createOAuthSimulator,
+  type OAuthIntent,
+  OAuthIntentSchema,
+  type OAuthResult,
+  type OAuthSimulator,
+  OAuthStartSchema,
+} from './oauth.ts';
+export {
   createOnboarding,
   createOnboardingFlow,
   DEFAULT_ONBOARDING_CAPABILITY,
@@ -30,6 +38,18 @@ export {
   type StepEffect,
   ValidationError,
 } from './onboarding.ts';
+export {
+  defaultOAuthProviderScenarios,
+  OAUTH_PROVIDER_REGISTRY,
+  type OAuthIdentity,
+  OAuthIdentitySchema,
+  type OAuthOutcome,
+  OAuthOutcomeSchema,
+  type OAuthProviderScenario,
+  OAuthProviderScenarioSchema,
+  type OAuthProviderScenarios,
+  parseOAuthProviderScenarios,
+} from './providers.ts';
 export {
   HashHrefSchema,
   INBOX_KINDS,
