@@ -1,0 +1,207 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Stockroom Inventory",
+  "description": "SKUs, warehouses and stock moves for a fictional warehouse.",
+  "icon": "📦",
+  "category": "operations",
+  "tags": [
+    "inventory",
+    "warehouse",
+    "sku"
+  ],
+  "catalog": {
+    "category": "operations",
+    "productType": "Inventory",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "stock-levels",
+      "transfers"
+    ],
+    "highlights": [
+      "Multi-warehouse",
+      "Stock moves",
+      "Reorder points"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "inventory-brand",
+    "name": "Stockroom Inventory",
+    "seed": "#0f766e",
+    "styleProfile": "flat",
+    "font": "system"
+  },
+  "entities": [
+    {
+      "name": "sku",
+      "plural": "skus",
+      "label": "SKUs",
+      "fields": [
+        {
+          "name": "code",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "commerce.productName"
+        },
+        {
+          "name": "unitCost",
+          "kind": "money",
+          "currency": "USD",
+          "min": 0
+        },
+        {
+          "name": "reorderAt",
+          "kind": "integer",
+          "min": 0,
+          "default": 10
+        }
+      ],
+      "titleField": "name",
+      "searchable": [
+        "code",
+        "name"
+      ],
+      "features": {
+        "csv": true
+      }
+    },
+    {
+      "name": "warehouse",
+      "plural": "warehouses",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "city",
+          "kind": "text",
+          "fake": "location.city"
+        }
+      ],
+      "titleField": "name"
+    },
+    {
+      "name": "stock-move",
+      "plural": "stock-moves",
+      "fields": [
+        {
+          "name": "sku",
+          "kind": "relation",
+          "to": "sku",
+          "required": true,
+          "onDelete": "restrict"
+        },
+        {
+          "name": "warehouse",
+          "kind": "relation",
+          "to": "warehouse",
+          "required": true,
+          "onDelete": "restrict"
+        },
+        {
+          "name": "kind",
+          "kind": "enum",
+          "values": [
+            "receive",
+            "ship",
+            "adjust"
+          ],
+          "default": "receive",
+          "required": true
+        },
+        {
+          "name": "quantity",
+          "kind": "integer",
+          "min": 1,
+          "required": true
+        },
+        {
+          "name": "movedAt",
+          "kind": "datetime"
+        }
+      ],
+      "titleField": "kind"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "sku",
+      "columns": [
+        "code",
+        "name",
+        "unitCost"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "sku"
+    },
+    {
+      "type": "list",
+      "entity": "warehouse",
+      "columns": [
+        "name",
+        "city"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "warehouse"
+    },
+    {
+      "type": "list",
+      "entity": "stock-move",
+      "columns": [
+        "sku",
+        "warehouse",
+        "kind"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "stock-move"
+    }
+  ]
+}

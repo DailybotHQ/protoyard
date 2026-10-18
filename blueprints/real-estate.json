@@ -1,0 +1,221 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Lotline Realty",
+  "description": "Listings, showings and offers for a fictional brokerage.",
+  "icon": "🏠",
+  "category": "real-estate",
+  "tags": [
+    "real-estate",
+    "listings",
+    "offers"
+  ],
+  "catalog": {
+    "category": "real-estate",
+    "productType": "Realty",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "showings",
+      "offers"
+    ],
+    "highlights": [
+      "MLS-style listings",
+      "Showing calendar",
+      "Offer tracker"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "real-estate-brand",
+    "name": "Lotline Realty",
+    "seed": "#b45309",
+    "styleProfile": "flat",
+    "font": "system"
+  },
+  "entities": [
+    {
+      "name": "listing",
+      "plural": "listings",
+      "fields": [
+        {
+          "name": "address",
+          "kind": "text",
+          "required": true,
+          "fake": "location.city"
+        },
+        {
+          "name": "city",
+          "kind": "text",
+          "fake": "location.city"
+        },
+        {
+          "name": "price",
+          "kind": "money",
+          "currency": "USD",
+          "min": 0,
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "active",
+            "pending",
+            "sold",
+            "withdrawn"
+          ],
+          "default": "active",
+          "required": true
+        },
+        {
+          "name": "agent",
+          "kind": "persona"
+        }
+      ],
+      "titleField": "address",
+      "ownerField": "agent",
+      "searchable": [
+        "address",
+        "city"
+      ]
+    },
+    {
+      "name": "showing",
+      "plural": "showings",
+      "fields": [
+        {
+          "name": "listing",
+          "kind": "relation",
+          "to": "listing",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "required": true
+        },
+        {
+          "name": "clientName",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        }
+      ],
+      "titleField": "clientName"
+    },
+    {
+      "name": "offer",
+      "plural": "offers",
+      "fields": [
+        {
+          "name": "listing",
+          "kind": "relation",
+          "to": "listing",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "amount",
+          "kind": "money",
+          "currency": "USD",
+          "min": 0,
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "submitted",
+            "countered",
+            "accepted",
+            "rejected"
+          ],
+          "default": "submitted",
+          "required": true
+        },
+        {
+          "name": "buyerName",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        }
+      ],
+      "titleField": "buyerName"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "listing",
+      "columns": [
+        "address",
+        "city",
+        "price"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "listing"
+    },
+    {
+      "type": "list",
+      "entity": "showing",
+      "columns": [
+        "listing",
+        "startsAt",
+        "clientName"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "showing"
+    },
+    {
+      "type": "list",
+      "entity": "offer",
+      "columns": [
+        "listing",
+        "amount",
+        "status"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "offer"
+    }
+  ]
+}

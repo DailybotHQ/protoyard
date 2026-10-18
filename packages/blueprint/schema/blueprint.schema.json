@@ -20,6 +20,125 @@
       "type": "string",
       "maxLength": 280
     },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "starter",
+            "productivity",
+            "communication",
+            "sales",
+            "marketing",
+            "support",
+            "finance",
+            "commerce",
+            "marketplace",
+            "ai",
+            "analytics",
+            "developer-tools",
+            "design",
+            "education",
+            "health",
+            "hr",
+            "operations",
+            "media",
+            "social",
+            "travel",
+            "real-estate",
+            "internal-tools"
+          ]
+        },
+        "productType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "platforms": {
+          "default": [],
+          "maxItems": 7,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "web",
+              "mobile",
+              "tablet",
+              "desktop",
+              "widget",
+              "extension",
+              "plugin"
+            ]
+          }
+        },
+        "shell": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "none",
+            "phone",
+            "tablet",
+            "desktop-window",
+            "browser",
+            "widget-host",
+            "extension-popup",
+            "side-panel"
+          ]
+        },
+        "features": {
+          "default": [],
+          "maxItems": 24,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 40,
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          }
+        },
+        "highlights": {
+          "default": [],
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": [
+            "beginner",
+            "intermediate",
+            "advanced"
+          ]
+        }
+      },
+      "required": [
+        "category"
+      ],
+      "additionalProperties": false
+    },
+    "tags": {
+      "default": [],
+      "maxItems": 16,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 32
+      }
+    },
+    "icon": {
+      "type": "string",
+      "maxLength": 8
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40
+    },
     "brand": {
       "type": "object",
       "properties": {
@@ -43,11 +162,25 @@
         },
         "preset": {
           "type": "string",
-          "enum": ["violet", "ocean", "emerald", "rose", "amber", "monochrome"]
+          "enum": [
+            "violet",
+            "ocean",
+            "emerald",
+            "rose",
+            "amber",
+            "monochrome"
+          ]
         },
         "styleProfile": {
           "type": "string",
-          "enum": ["soft", "crisp", "flat", "rounded", "editorial", "mono"]
+          "enum": [
+            "soft",
+            "crisp",
+            "flat",
+            "rounded",
+            "editorial",
+            "mono"
+          ]
         },
         "font": {
           "type": "string",
@@ -149,7 +282,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -199,7 +335,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -244,7 +383,10 @@
                       "type": "number"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -295,7 +437,10 @@
                       "maximum": 9007199254740991
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -351,7 +496,10 @@
                       "maximum": 9007199254740991
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -390,7 +538,10 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -426,7 +577,10 @@
                       "const": "date"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -462,7 +616,10 @@
                       "const": "datetime"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -519,7 +676,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["name", "kind", "values"],
+                  "required": [
+                    "name",
+                    "kind",
+                    "values"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -555,7 +716,10 @@
                       "const": "email"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -591,7 +755,10 @@
                       "const": "url"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -627,7 +794,10 @@
                       "const": "phone"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -669,7 +839,10 @@
                       "maximum": 64
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -711,15 +884,26 @@
                     "cardinality": {
                       "default": "one",
                       "type": "string",
-                      "enum": ["one", "many"]
+                      "enum": [
+                        "one",
+                        "many"
+                      ]
                     },
                     "onDelete": {
                       "default": "restrict",
                       "type": "string",
-                      "enum": ["restrict", "cascade", "nullify"]
+                      "enum": [
+                        "restrict",
+                        "cascade",
+                        "nullify"
+                      ]
                     }
                   },
-                  "required": ["name", "kind", "to"],
+                  "required": [
+                    "name",
+                    "kind",
+                    "to"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -755,7 +939,10 @@
                       "const": "persona"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -809,7 +996,10 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -845,7 +1035,10 @@
                       "const": "json"
                     }
                   },
-                  "required": ["name", "kind"],
+                  "required": [
+                    "name",
+                    "kind"
+                  ],
                   "additionalProperties": false
                 }
               ]
@@ -885,10 +1078,15 @@
               "direction": {
                 "default": "asc",
                 "type": "string",
-                "enum": ["asc", "desc"]
+                "enum": [
+                  "asc",
+                  "desc"
+                ]
               }
             },
-            "required": ["field"],
+            "required": [
+              "field"
+            ],
             "additionalProperties": false
           },
           "features": {
@@ -925,7 +1123,12 @@
             "additionalProperties": false
           }
         },
-        "required": ["name", "plural", "fields", "titleField"],
+        "required": [
+          "name",
+          "plural",
+          "fields",
+          "titleField"
+        ],
         "additionalProperties": false
       }
     },
@@ -980,7 +1183,10 @@
             }
           }
         },
-        "required": ["name", "permissions"],
+        "required": [
+          "name",
+          "permissions"
+        ],
         "additionalProperties": false
       }
     },
@@ -992,7 +1198,11 @@
         "properties": {
           "on": {
             "type": "string",
-            "enum": ["create", "update", "assign"]
+            "enum": [
+              "create",
+              "update",
+              "assign"
+            ]
           },
           "entity": {
             "type": "string",
@@ -1012,7 +1222,12 @@
             "maxLength": 120
           }
         },
-        "required": ["on", "entity", "notify", "title"],
+        "required": [
+          "on",
+          "entity",
+          "notify",
+          "title"
+        ],
         "additionalProperties": false
       }
     },
@@ -1049,7 +1264,10 @@
                 }
               }
             },
-            "required": ["type", "entity"],
+            "required": [
+              "type",
+              "entity"
+            ],
             "additionalProperties": false
           },
           {
@@ -1073,7 +1291,10 @@
                 "minLength": 1
               }
             },
-            "required": ["type", "entity"],
+            "required": [
+              "type",
+              "entity"
+            ],
             "additionalProperties": false
           },
           {
@@ -1097,7 +1318,10 @@
                 "minLength": 1
               }
             },
-            "required": ["type", "entity"],
+            "required": [
+              "type",
+              "entity"
+            ],
             "additionalProperties": false
           },
           {
@@ -1125,7 +1349,11 @@
                 "pattern": "^[a-z][a-zA-Z0-9]*$"
               }
             },
-            "required": ["type", "entity", "groupBy"],
+            "required": [
+              "type",
+              "entity",
+              "groupBy"
+            ],
             "additionalProperties": false
           },
           {
@@ -1161,19 +1389,28 @@
                     },
                     "aggregate": {
                       "type": "string",
-                      "enum": ["count", "sum"]
+                      "enum": [
+                        "count",
+                        "sum"
+                      ]
                     },
                     "field": {
                       "type": "string",
                       "pattern": "^[a-z][a-zA-Z0-9]*$"
                     }
                   },
-                  "required": ["label", "entity", "aggregate"],
+                  "required": [
+                    "label",
+                    "entity",
+                    "aggregate"
+                  ],
                   "additionalProperties": false
                 }
               }
             },
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "additionalProperties": false
           }
         ]
@@ -1207,11 +1444,19 @@
             "additionalProperties": false
           }
         },
-        "required": ["schemaVersion", "blueprint"],
+        "required": [
+          "schemaVersion",
+          "blueprint"
+        ],
         "additionalProperties": false
       }
     }
   },
-  "required": ["formatVersion", "name", "entities", "roles"],
+  "required": [
+    "formatVersion",
+    "name",
+    "entities",
+    "roles"
+  ],
   "additionalProperties": false
 }

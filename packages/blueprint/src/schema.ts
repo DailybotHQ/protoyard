@@ -1,3 +1,4 @@
+import { CatalogSchema } from '@protoyard/core';
 import { z } from 'zod';
 
 /**
@@ -359,6 +360,18 @@ const BlueprintShape = z.strictObject({
   formatVersion: z.literal(1),
   name: z.string().min(1).max(80),
   description: z.string().max(280).optional(),
+  /**
+   * Marketplace shelf metadata (optional). Catalog blueprints under
+   * `blueprints/` set this so the registry can index them without a
+   * `protoyard.json`. Same shape as the manifest `catalog` block.
+   */
+  catalog: CatalogSchema.optional(),
+  /** Gallery tags when this file is indexed as a catalog blueprint. */
+  tags: z.array(z.string().min(1).max(32)).max(16).default([]),
+  /** Emoji or short glyph for catalog cards. */
+  icon: z.string().max(8).optional(),
+  /** Coarse category string (falls back to `catalog.category` when indexed). */
+  category: z.string().min(1).max(40).optional(),
   /** Optional brand → generated on-brand theme for `protoyard generate`. */
   brand: BlueprintBrandSchema.optional(),
   entities: z.array(EntitySchema).min(1, { message: 'a blueprint needs at least one entity' }),

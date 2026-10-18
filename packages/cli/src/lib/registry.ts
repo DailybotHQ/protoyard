@@ -1,5 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import type { Blueprint } from '@protoyard/blueprint';
 import {
   type Catalog,
   type PrototypeManifest,
@@ -7,9 +8,11 @@ import {
   resolveShell,
 } from '@protoyard/core';
 import {
+  catalogBlueprintThemeId,
   type FolderKind,
   listManifestLocations,
   type ManifestLocation,
+  readBlueprintCatalog,
   readManifest,
   statManifest,
 } from './discovery.ts';
@@ -23,8 +26,8 @@ import type { WorkspacePaths } from './paths.ts';
 
 export const REGISTRY_FORMAT = 'protoyard.registry';
 export const REGISTRY_VERSION = 1;
-/** v2: entries gained `catalog`; older caches would serve entries without it. */
-const CACHE_VERSION = 2;
+/** v3: catalog blueprints (`blueprints/*.json`, kind `blueprint`) are indexed. */
+const CACHE_VERSION = 3;
 
 /** The manifest's catalog block as indexed: `shell` resolved for card framing. */
 export interface RegistryCatalog {
@@ -81,7 +84,13 @@ export interface Registry {
   generatedAt: string;
   entries: RegistryEntry[];
   invalid: RegistryIssue[];
-  stats: { total: number; prototypes: number; templates: number; invalid: number };
+  stats: {
+    total: number;
+    prototypes: number;
+    templates: number;
+    blueprints: number;
+    invalid: number;
+  };
 }
 
 interface CacheRecord {
@@ -153,6 +162,59 @@ function toRegistryCatalog(manifest: PrototypeManifest): RegistryCatalog | null 
   };
 }
 
+function catalogFromBlueprint(blueprint: Blueprint): RegistryCatalog | null {
+  const catalog = blueprint.catalog;
+  if (!catalog) return null;
+  return {
+    category: catalog.category,
+    productType: catalog.productType ?? null,
+    platforms: catalog.platforms,
+    shell: resolveShell(catalog.shell ?? 'auto', 'responsive'),
+    features: catalog.features,
+    highlights: catalog.highlights,
+    difficulty: catalog.difficulty ?? null,
+  };
+}
+
+/** Registry row for a data-only catalog blueprint under `blueprints/<slug>.json`. */
+export function toBlueprintRegistryEntry(
+  blueprint: Blueprint,
+  location: ManifestLocation,
+  id: string,
+  slug: string,
+  mtimeMs: number
+): RegistryEntry {
+  const catalog = catalogFromBlueprint(blueprint);
+  return {
+    kind: 'blueprint',
+    id,
+    slug,
+    name: blueprint.name,
+    description: blueprint.description ?? '',
+    version: '0.1.0',
+    category: blueprint.category ?? catalog?.category ?? 'general',
+    tags: blueprint.tags,
+    platform: 'responsive',
+    status: 'ready',
+    template: 'crud-app',
+    icon: blueprint.icon ?? null,
+    thumbnail: null,
+    scenarios: [],
+    scenarioCount: 0,
+    defaultScenario: null,
+    defaultTheme: catalogBlueprintThemeId(blueprint),
+    defaultMode: 'system',
+    viewport: 'desktop',
+    namespace: `blueprint-${slug}`,
+    schemaVersion: 1,
+    path: location.relDir,
+    modifiedAt: new Date(mtimeMs).toISOString(),
+    createdAt: null,
+    updatedAt: null,
+    catalog,
+  };
+}
+
 async function readCache(path: string): Promise<IndexCache> {
   try {
     const cache = JSON.parse(await readFile(path, 'utf8')) as IndexCache;
@@ -201,6 +263,24 @@ export async function buildIndex(
       if (hit && fileStat && hit.mtimeMs === fileStat.mtimeMs && hit.size === fileStat.size) {
         record = hit;
         cached++;
+      } else if (location.folderKind === 'blueprint') {
+        const result = await readBlueprintCatalog(location, fileStat);
+        parsed++;
+        record = {
+          mtimeMs: fileStat?.mtimeMs ?? 0,
+          size: fileStat?.size ?? 0,
+          entry:
+            result.blueprint && result.id && result.slug
+              ? toBlueprintRegistryEntry(
+                  result.blueprint,
+                  location,
+                  result.id,
+                  result.slug,
+                  fileStat?.mtimeMs ?? 0
+                )
+              : null,
+          errors: result.errors,
+        };
       } else {
         const result = await readManifest(location, fileStat);
         parsed++;
@@ -254,6 +334,7 @@ export async function buildIndex(
       total: unique.length,
       prototypes: unique.filter((e) => e.kind === 'prototype').length,
       templates: unique.filter((e) => e.kind === 'template').length,
+      blueprints: unique.filter((e) => e.kind === 'blueprint').length,
       invalid: invalid.length,
     },
   };
@@ -265,9 +346,15 @@ export async function buildIndex(
   return { registry, parsed, cached, durationMs: performance.now() - started };
 }
 
-/** Default order: templates after prototypes, then by name, then slug. */
+const KIND_ORDER: Record<FolderKind, number> = {
+  prototype: 0,
+  blueprint: 1,
+  template: 2,
+};
+
+/** Default order: prototypes, then blueprints, then templates; then name, then slug. */
 export function compareEntries(a: RegistryEntry, b: RegistryEntry): number {
-  if (a.kind !== b.kind) return a.kind === 'prototype' ? -1 : 1;
+  if (a.kind !== b.kind) return KIND_ORDER[a.kind] - KIND_ORDER[b.kind];
   return a.name.localeCompare(b.name) || a.slug.localeCompare(b.slug);
 }
 

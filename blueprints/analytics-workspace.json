@@ -1,0 +1,203 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Signalboard Analytics",
+  "description": "Datasets, charts and dashboards for a fictional analytics desk.",
+  "icon": "📊",
+  "category": "analytics",
+  "tags": [
+    "analytics",
+    "dashboards",
+    "metrics"
+  ],
+  "catalog": {
+    "category": "analytics",
+    "productType": "Analytics",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "dashboards",
+      "datasets"
+    ],
+    "highlights": [
+      "Dataset catalog",
+      "Chart specs",
+      "Shared boards"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "analytics-workspace-brand",
+    "name": "Signalboard Analytics",
+    "seed": "#4f46e5",
+    "styleProfile": "crisp",
+    "font": "mono"
+  },
+  "entities": [
+    {
+      "name": "dataset",
+      "plural": "datasets",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "source",
+          "kind": "text"
+        },
+        {
+          "name": "rowCount",
+          "kind": "integer",
+          "min": 0
+        },
+        {
+          "name": "owner",
+          "kind": "persona"
+        }
+      ],
+      "titleField": "name",
+      "ownerField": "owner",
+      "searchable": [
+        "name"
+      ]
+    },
+    {
+      "name": "chart",
+      "plural": "charts",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "dataset",
+          "kind": "relation",
+          "to": "dataset",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "kind",
+          "kind": "enum",
+          "values": [
+            "line",
+            "bar",
+            "pie",
+            "table"
+          ],
+          "default": "line",
+          "required": true
+        },
+        {
+          "name": "query",
+          "kind": "longText"
+        }
+      ],
+      "titleField": "title"
+    },
+    {
+      "name": "dashboard",
+      "plural": "dashboards",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "owner",
+          "kind": "persona"
+        },
+        {
+          "name": "published",
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "name": "primaryChart",
+          "kind": "relation",
+          "to": "chart",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "name",
+      "ownerField": "owner"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "dataset",
+      "columns": [
+        "name",
+        "source",
+        "rowCount"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "dataset"
+    },
+    {
+      "type": "list",
+      "entity": "chart",
+      "columns": [
+        "title",
+        "dataset",
+        "kind"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "chart"
+    },
+    {
+      "type": "list",
+      "entity": "dashboard",
+      "columns": [
+        "name",
+        "owner",
+        "published"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "dashboard"
+    }
+  ]
+}

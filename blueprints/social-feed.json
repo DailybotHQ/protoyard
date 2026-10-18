@@ -1,0 +1,191 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Neighborhood Feed",
+  "description": "Posts, reactions and follows for a fictional social network.",
+  "icon": "💬",
+  "category": "social",
+  "tags": [
+    "social",
+    "feed",
+    "community"
+  ],
+  "catalog": {
+    "category": "social",
+    "productType": "Social",
+    "platforms": [
+      "web",
+      "mobile"
+    ],
+    "features": [
+      "reactions",
+      "follows"
+    ],
+    "highlights": [
+      "Local feed",
+      "Reactions",
+      "Follow graph"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "social-feed-brand",
+    "name": "Neighborhood Feed",
+    "seed": "#e11d48",
+    "styleProfile": "rounded",
+    "font": "rounded"
+  },
+  "entities": [
+    {
+      "name": "post",
+      "plural": "posts",
+      "fields": [
+        {
+          "name": "label",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "body",
+          "kind": "longText",
+          "required": true
+        },
+        {
+          "name": "author",
+          "kind": "persona",
+          "required": true
+        },
+        {
+          "name": "postedAt",
+          "kind": "datetime"
+        }
+      ],
+      "titleField": "label",
+      "ownerField": "author"
+    },
+    {
+      "name": "reaction",
+      "plural": "reactions",
+      "fields": [
+        {
+          "name": "post",
+          "kind": "relation",
+          "to": "post",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "actor",
+          "kind": "persona",
+          "required": true
+        },
+        {
+          "name": "emoji",
+          "kind": "enum",
+          "values": [
+            "like",
+            "love",
+            "wow",
+            "sad"
+          ],
+          "default": "like",
+          "required": true
+        }
+      ],
+      "titleField": "emoji"
+    },
+    {
+      "name": "follow",
+      "plural": "follows",
+      "fields": [
+        {
+          "name": "label",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "follower",
+          "kind": "persona",
+          "required": true
+        },
+        {
+          "name": "following",
+          "kind": "persona",
+          "required": true
+        }
+      ],
+      "titleField": "label"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "post",
+      "columns": [
+        "body",
+        "author",
+        "postedAt"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "post"
+    },
+    {
+      "type": "list",
+      "entity": "reaction",
+      "columns": [
+        "post",
+        "actor",
+        "emoji"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "reaction"
+    },
+    {
+      "type": "list",
+      "entity": "follow",
+      "columns": [
+        "follower",
+        "following"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "follow"
+    }
+  ]
+}

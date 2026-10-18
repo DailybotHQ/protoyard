@@ -3,7 +3,7 @@ import { opt } from '../lib/command.ts';
 import { CliError, formatTable } from '../lib/output.ts';
 import { filterEntries, loadRegistry, type RegistryQuery } from '../lib/registry.ts';
 
-const KINDS = ['prototype', 'template', 'all'] as const;
+const KINDS = ['prototype', 'template', 'blueprint', 'all'] as const;
 
 export const listCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
   const kind = opt(options, 'kind') ?? 'all';
