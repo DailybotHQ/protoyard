@@ -134,10 +134,17 @@ async function main() {
           py_events: world.events?.length ?? 0,
         };
         for (const [table, rows] of Object.entries(world.tables)) counts[table] = rows.length;
+        // Fictional generated identities (id, name, first role) for `?actor=` links.
+        const personas = world.personas.slice(0, 50).map((p) => ({
+          id: p.id,
+          name: p.name,
+          role: world.memberships.find((m) => m.personaId === p.id)?.role ?? null,
+        }));
         runs.push({
           id: scenario.id,
           ok: violations.length === 0,
           counts,
+          personas,
           violationCount: violations.length,
           violations: violations.slice(0, 20),
           durationMs: Math.round(performance.now() - started),
