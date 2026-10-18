@@ -17,8 +17,43 @@ The table layout, row schemas and integrity rules, plus:
 
 - **Inbox** — `createInbox(runtime)`
 - **Email/password auth** — `createAuthServices(runtime, options)`
+- **OAuth** — `createOAuthSimulator(runtime, providers)`
 - **Onboarding** — `createOnboarding(runtime, { steps })`
 - **Workspaces** — `createWorkspaces(runtime)`
+
+Magic links, MFA, invitations and billing services come in later PLAN_002
+tasks.
+
+### OAuth (`createOAuthSimulator`)
+
+```ts
+import { createOAuthSimulator } from '@protoyard/saas';
+
+const oauth = createOAuthSimulator(runtime, {
+  google: {
+    identity: {
+      subject: 'google_ada_001',
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      emailShared: true,
+    },
+    outcome: 'success', // success, consent-denied, email-not-shared, provider-error
+  },
+});
+
+const consent = await oauth.start('google', 'sign-in');
+router.navigate(consent.route); // #/oauth/google/consent?state=… — stays in this app
+const result = await oauth.approve(consent.state);
+```
+
+The simulator supports Google, GitHub, Microsoft, Apple and Slack. Supply
+scenario-specific fictional identities (normally generated from `ctx.faker`)
+through `providers`; default profiles also use `@example.com`. A matching
+email without a matching provider returns an account-link prompt. After the
+person signs in, start again with intent `link` to confirm linking. Consent
+states are deterministic, expire after ten simulated minutes and are
+single-use. No provider SDK, redirect or network request is used.
+- **Email/password auth** — `createAuthServices(runtime)`
 
 OAuth, magic links, MFA, invitations and billing services come in later
 PLAN_002 tasks.
@@ -100,6 +135,25 @@ await auth.signOut();
   credential.
 - A locked account has no unlock flow yet. Password reset comes in a later
   task.
+
+### Workspaces (`createWorkspaces`)
+
+```ts
+import { createWorkspaces, WORKSPACE_CAPABILITIES } from '@protoyard/saas';
+
+// Policy roles should grant workspaces:create / rename / leave (or `*`).
+const workspaces = createWorkspaces(runtime);
+const { organization } = await workspaces.create({ name: 'Acme Labs' });
+await workspaces.switchTo(organization.id); // also happens automatically after create
+await workspaces.rename(organization.id, { name: 'Acme Cloud' });
+// Last owner cannot leave — transfer first via workspaces.transferOwnership(memberId)
+await workspaces.leave(organization.id);
+```
+
+- Creates the organization + owner membership in **one** `runtime.identity.write` transaction, then `session.switchOrganization`.
+- **`switchTo`** only allows organizations the persona already belongs to (control-state only, works offline).
+- **`leave`** refuses when the actor is the last `owner`; after a successful leave, switches to another membership when the active org was left.
+- **`transferOwnership`** delegates to `runtime.members.transferOwnership`.
 
 | Table | Holds | Indexes |
 | --- | --- | --- |

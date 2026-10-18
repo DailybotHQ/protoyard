@@ -238,6 +238,39 @@ export const ScreenSchema = z.discriminatedUnion('type', [
 ]);
 export type BlueprintScreen = z.infer<typeof ScreenSchema>;
 
+const NotificationRuleSchema = z
+  .strictObject({
+    on: z.enum(['create', 'update', 'assign']),
+    entity: name('notification entity'),
+    field: fieldName.optional(),
+    notify: z.string().regex(/^(owner|assignee|role:[a-z][a-z0-9]*(?:-[a-z0-9]+)*)$/),
+    /** Plain text; `{field}` tokens are substituted from the changed entity row. */
+    title: z
+      .string()
+      .min(1)
+      .max(120)
+      .refine((value) => !/<\/?[a-z][^>]*>/i.test(value), {
+        message: 'notification titles must be plain text, not HTML',
+      }),
+  })
+  .superRefine((rule, ctx) => {
+    if (rule.on === 'assign' && !rule.field) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['field'],
+        message: 'assign rules need a persona field',
+      });
+    }
+    if (rule.on !== 'assign' && rule.field !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['field'],
+        message: 'field is only valid for assign rules',
+      });
+    }
+  });
+export type BlueprintNotificationRule = z.infer<typeof NotificationRuleSchema>;
+
 const BlueprintShape = z.strictObject({
   $schema: z.string().optional(),
   formatVersion: z.literal(1),
@@ -245,6 +278,7 @@ const BlueprintShape = z.strictObject({
   description: z.string().max(280).optional(),
   entities: z.array(EntitySchema).min(1, { message: 'a blueprint needs at least one entity' }),
   roles: z.array(RoleSchema).min(1, { message: 'a blueprint needs at least one role' }),
+  notifications: z.array(NotificationRuleSchema).default([]),
   screens: z.array(ScreenSchema).default([]),
 });
 
@@ -375,6 +409,48 @@ export function blueprintIssues(blueprint: Shape): Issue[] {
   }
   blueprint.entities.forEach((entity, i) => {
     checkEntity(entity, i, names, add);
+  });
+
+  blueprint.notifications.forEach((rule, i) => {
+    const path = ['notifications', i];
+    const entity = entities.get(rule.entity);
+    if (!entity) {
+      add([...path, 'entity'], `unknown entity "${rule.entity}"`);
+      return;
+    }
+    const fields = new Map(entity.fields.map((field) => [field.name, field]));
+    if (rule.on === 'assign' && rule.field && fields.get(rule.field)?.kind !== 'persona') {
+      add(
+        [...path, 'field'],
+        `assign field "${rule.field}" must be a persona field of "${entity.name}"`
+      );
+    }
+    if (
+      rule.notify === 'owner' &&
+      (!entity.ownerField || fields.get(entity.ownerField)?.kind !== 'persona')
+    ) {
+      add([...path, 'notify'], `notify "owner" needs an ownerField on "${entity.name}"`);
+    }
+    if (
+      rule.notify === 'assignee' &&
+      !entity.fields.some((field) => field.name === 'assignee' && field.kind === 'persona')
+    ) {
+      add(
+        [...path, 'notify'],
+        `notify "assignee" needs an assignee persona field on "${entity.name}"`
+      );
+    }
+    if (rule.notify.startsWith('role:')) {
+      const roleName = rule.notify.slice('role:'.length);
+      if (!blueprint.roles.some((role) => role.name === roleName)) {
+        add([...path, 'notify'], `unknown notification role "${roleName}"`);
+      }
+    }
+    for (const match of rule.title.matchAll(/\{([^{}]+)\}/g)) {
+      if (!fields.has(match[1] ?? '')) {
+        add([...path, 'title'], `unknown title placeholder "${match[1]}" on "${entity.name}"`);
+      }
+    }
   });
 
   const roleDupes = duplicates(blueprint.roles.map((r) => r.name));

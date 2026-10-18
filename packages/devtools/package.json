@@ -23,6 +23,7 @@
     "@protoyard/core": "workspace:*",
     "@protoyard/database": "workspace:*",
     "@protoyard/http": "workspace:*",
+    "@protoyard/themes": "workspace:*",
     "@protoyard/ui": "workspace:*"
   },
   "devDependencies": {
