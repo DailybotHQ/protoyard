@@ -1,0 +1,30 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.ai-assistant",
+  "slug": "ai-assistant",
+  "kind": "template",
+  "name": "AI Assistant",
+  "description": "A simulated assistant workspace with persistent project history, model selection, canvas, agent and voice modes, settings, memory controls and usage limits.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "ai",
+  "tags": ["ai", "assistant", "agents", "voice", "canvas", "starter"],
+  "status": "ready",
+  "icon": "✦",
+  "defaultScenario": "active-workspace",
+  "defaultTheme": "amethyst",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop", "shell": "browser" },
+  "storage": { "namespace": "template-ai-assistant", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": [
+    "fresh-workspace",
+    "active-workspace",
+    "power-user",
+    "slow-model",
+    "rate-limited",
+    "assistant-outage",
+    "agent-approval"
+  ]
+}

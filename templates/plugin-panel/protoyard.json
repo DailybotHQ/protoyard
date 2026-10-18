@@ -1,0 +1,26 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.plugin-panel",
+  "slug": "plugin-panel",
+  "kind": "template",
+  "name": "Plugin panel",
+  "description": "A narrow side-panel plugin starter with editable connected items, account preferences, and a simulated OAuth connection flow.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "plugin", "extension", "side-panel", "integrations"],
+  "status": "ready",
+  "icon": "🔌",
+  "defaultScenario": "connected-workspace",
+  "defaultTheme": "ocean",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "shell": "side-panel",
+    "chrome": { "hostName": "Orbit workspace (fictional)", "hostVariant": "code-editor" }
+  },
+  "storage": { "namespace": "template-plugin-panel", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "connected-workspace", "sync-paused", "connect-error", "read-only"]
+}
