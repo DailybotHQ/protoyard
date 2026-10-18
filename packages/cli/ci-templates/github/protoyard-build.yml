@@ -1,4 +1,4 @@
-# protoyard-ci-template: build v1
+# protoyard-ci-template: build v2
 name: Protoyard affected builds
 
 on:

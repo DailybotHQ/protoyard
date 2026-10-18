@@ -12,9 +12,10 @@ import {
 import { digestDirectory } from '../lib/checksum.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
-import { CliError, formatBytes, mark } from '../lib/output.ts';
+import { CliError, formatBytes, mark, toCliError } from '../lib/output.ts';
 import { toPosixRelative } from '../lib/paths.ts';
-import { resolveTarget } from '../lib/workspace.ts';
+import { loadRegistry, type Registry, type RegistryEntry } from '../lib/registry.ts';
+import { type CommandContext, resolveTarget } from '../lib/workspace.ts';
 import { zipDirectory } from '../lib/zip.ts';
 import { buildOptionsFrom } from './build.ts';
 
@@ -39,8 +40,26 @@ async function verifyExistingBuild(outDir: string, manifestPath: string) {
   return manifest;
 }
 
-export const exportCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
-  const { entry, dir, registry } = await resolveTarget(ctx, args[0]);
+export interface ExportOneResult {
+  slug: string;
+  zip: string;
+  size: number;
+  sha256: string;
+  files: number;
+  base: string;
+  includeDevtools: boolean;
+  buildManifest: string;
+  isolation: { checkedAgainst: number; foreign: unknown[] };
+}
+
+/** Build (unless skipped) + isolate + zip one prototype. Shared by single and --all. */
+export async function exportOne(
+  ctx: CommandContext,
+  entry: RegistryEntry,
+  dir: string,
+  registry: Registry,
+  options: Record<string, unknown>
+): Promise<ExportOneResult> {
   const artifacts = artifactDir(ctx, entry);
   const outDir = join(artifacts, 'dist');
   const manifestPath = join(artifacts, BUILD_MANIFEST_FILENAME);
@@ -71,36 +90,137 @@ export const exportCommand: Handler = async (ctx, args, options): Promise<Comman
   const zipPath = join(artifacts, `${entry.slug}.zip`);
   const zip = await zipDirectory(outDir, zipPath);
   return {
-    data: {
-      slug: entry.slug,
-      zip: toPosixRelative(ctx.root, zip.path),
-      size: zip.size,
-      sha256: zip.sha256,
-      files: zip.files,
-      base: manifest.base,
-      includeDevtools: manifest.includeDevtools,
-      buildManifest: toPosixRelative(ctx.root, manifestPath),
-      isolation: { checkedAgainst: registry.entries.length - 1, foreign: [] },
-    },
+    slug: entry.slug,
+    zip: toPosixRelative(ctx.root, zip.path),
+    size: zip.size,
+    sha256: zip.sha256,
+    files: zip.files,
+    base: manifest.base,
+    includeDevtools: manifest.includeDevtools,
+    buildManifest: toPosixRelative(ctx.root, manifestPath),
+    isolation: { checkedAgainst: registry.entries.length - 1, foreign: [] },
+  };
+}
+
+export const exportCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  if (flag(options, 'all')) {
+    if (args[0]) throw new CliError('usage', 'Pass either <slug> or --all, not both.');
+    return exportAll(ctx, options);
+  }
+  const { entry, dir, registry } = await resolveTarget(ctx, args[0]);
+  const data = await exportOne(ctx, entry, dir, registry, options);
+  return {
+    data,
     render(out) {
       const { c } = out;
-      out.always(`${mark(c, 'pass')} Exported ${c.bold(entry.slug)}`);
-      out.always(
-        `  ${c.cyan(toPosixRelative(ctx.root, zip.path))}  ${formatBytes(zip.size)}  (${zip.files} files)`
-      );
-      out.always(`  sha256 ${zip.sha256}`);
+      out.always(`${mark(c, 'pass')} Exported ${c.bold(data.slug)}`);
+      out.always(`  ${c.cyan(data.zip)}  ${formatBytes(data.size)}  (${data.files} files)`);
+      out.always(`  sha256 ${data.sha256}`);
       out.info(
         c.dim(
-          `  Isolation: no references to the other ${registry.entries.length - 1} registered projects.`
+          `  Isolation: no references to the other ${data.isolation.checkedAgainst} registered projects.`
         )
       );
       out.info(
         c.dim(
-          manifest.base === './'
+          data.base === './'
             ? '  Relocatable (base ./): unzip into any folder of any static host.'
-            : `  Built for base ${manifest.base}: serve it from that path.`
+            : `  Built for base ${data.base}: serve it from that path.`
         )
       );
     },
   };
 };
+
+/**
+ * Export every prototype sequentially (same order as `build --all`). Continues
+ * past failures and exits 1 when any failed. Templates are never included.
+ */
+async function exportAll(
+  ctx: CommandContext,
+  options: Record<string, unknown>
+): Promise<CommandResult> {
+  const registry = await loadRegistry(ctx.paths);
+  const targets = registry.entries.filter((e) => e.kind === 'prototype');
+  const results: Array<
+    | (ExportOneResult & { ok: true; durationMs: number; error?: undefined })
+    | {
+        ok: false;
+        slug: string;
+        durationMs: number;
+        error: string;
+        zip?: undefined;
+        sha256?: undefined;
+        size?: undefined;
+      }
+  > = [];
+
+  // Sequential: Vite builds and zips share disk and CPU; failures stay attributable.
+  for (const entry of targets) {
+    const started = performance.now();
+    try {
+      const data = await exportOne(ctx, entry, join(ctx.root, entry.path), registry, options);
+      results.push({
+        ...data,
+        ok: true,
+        durationMs: Math.round(performance.now() - started),
+      });
+    } catch (error) {
+      results.push({
+        ok: false,
+        slug: entry.slug,
+        durationMs: Math.round(performance.now() - started),
+        error: toCliError(error).message,
+      });
+    }
+  }
+
+  const failed = results.filter((r) => !r.ok);
+  return {
+    data: {
+      total: results.length,
+      failed: failed.length,
+      results: results.map((r) =>
+        r.ok
+          ? {
+              slug: r.slug,
+              ok: true as const,
+              zip: r.zip,
+              sha256: r.sha256,
+              size: r.size,
+              files: r.files,
+              durationMs: r.durationMs,
+            }
+          : {
+              slug: r.slug,
+              ok: false as const,
+              error: r.error,
+              durationMs: r.durationMs,
+            }
+      ),
+    },
+    ...(failed.length > 0
+      ? {
+          failure: new CliError('failure', `${failed.length} of ${results.length} exports failed.`),
+        }
+      : {}),
+    render(out) {
+      const { c } = out;
+      if (results.length === 0) out.always('No prototypes to export.');
+      for (const r of results) {
+        if (r.ok) {
+          out.always(
+            `${mark(c, 'pass')} ${r.slug.padEnd(28)} ${(r.durationMs / 1000).toFixed(1).padStart(6)} s  ${formatBytes(r.size)}  ${c.dim(`${r.sha256.slice(0, 12)}…`)}`
+          );
+        } else {
+          out.always(
+            `${mark(c, 'fail')} ${r.slug.padEnd(28)} ${(r.durationMs / 1000).toFixed(1).padStart(6)} s  ${c.red(r.error)}`
+          );
+        }
+      }
+      if (results.length > 0 && failed.length === 0) {
+        out.always(c.green(`\nAll ${results.length} exports succeeded.`));
+      }
+    },
+  };
+}
