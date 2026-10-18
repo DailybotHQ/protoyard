@@ -51,7 +51,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Disclosure | `Tabs`, `Accordion` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
-| Data | `DataTable`, `Pagination`, `Kanban` |
+| Data | `DataTable`, `FilterBar` (+ `applyFilters`), `Pagination`, `Kanban` |
 | Layout | `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid` |
 | Collaboration | `ChatThread`, `MessageList`, `Composer`, `TypingIndicator` |
 | Flows | `Stepper`, `Wizard` |
@@ -94,6 +94,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Separator` / `Kbd` | `orientation` / children |
 | `StatCard` | `label`, `value`, `delta`, `trend` up·down·neutral, `positive`, `hint`, `icon` |
 | `DataTable` | `columns: { key, header, cell?, accessor?, sortable?, align?, hideBelow? }[]`, `rows`, `getRowId`, `bind:sort`, `bind:search`, `searchKeys`/`searchFn`, `pageSize` (0 = off), `bind:page`, `onRowClick` + `rowLabel`, `loading`, `empty`, `filters`, `toolbar`, `caption` |
+| `FilterBar` | `fields: { id, label, kind: enum·date-range·boolean·relation, options?, multiple?, key?, accessor? }[]`, `bind:values` (plain JSON for the hash query), chips + reset; pair with pure `applyFilters(rows, fields, values)` |
 | `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
 | `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok), `canMove`, `card` snippet; HTML5 drag and drop + a keyboard "Move to…" menu per card |
 | `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link |

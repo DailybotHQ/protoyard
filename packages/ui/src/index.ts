@@ -66,6 +66,29 @@ export type {
 } from './components/dropdown-menu/types.ts';
 export { default as EmptyState } from './components/empty-state/EmptyState.svelte';
 export { default as ErrorState } from './components/error-state/ErrorState.svelte';
+export {
+  applyFilters,
+  buildFilterChips,
+  clearFilterChip,
+  hasActiveFilters,
+  isFilterActive,
+  readFilterValue,
+  resetFilterValues,
+  setListFilterValue,
+} from './components/filter-bar/apply-filters.ts';
+export { default as FilterBar } from './components/filter-bar/FilterBar.svelte';
+export type {
+  BooleanFilterField,
+  DateRangeFilterField,
+  DateRangeFilterValue,
+  EnumFilterField,
+  FilterChip,
+  FilterField,
+  FilterOption,
+  FilterValue,
+  FilterValues,
+  RelationFilterField,
+} from './components/filter-bar/types.ts';
 export { default as FormField } from './components/form-field/FormField.svelte';
 export type { FormFieldControl } from './components/form-field/form-field.ts';
 export { default as Header } from './components/header/Header.svelte';
