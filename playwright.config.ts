@@ -9,6 +9,10 @@ import { defineConfig, devices } from '@playwright/test';
  * Showcase: PROTOYARD_E2E_SHOWCASE=1 also builds and serves the one-site
  * showcase on port 4501 (gallery + bundled prototype builds).
  *
+ * Review index: PROTOYARD_E2E_REVIEW=1 renders `protoyard review-index` from
+ * the fixture ledger tests/e2e/fixtures/publish-ledger.jsonl (no network, no
+ * deploy) and serves it on port 4502 (PROTOYARD_E2E_REVIEW_PORT overrides it).
+ *
  * Prototype targets: PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo
  * (each gets its own port from 4401 and is reachable in specs through
  * `prototypeUrl(slug)` in tests/e2e/targets.ts).
@@ -33,6 +37,14 @@ if (!/^\/(?:[a-z0-9._-]+\/)*$/i.test(showcaseBase)) {
   throw new Error(`PROTOYARD_E2E_SHOWCASE_BASE must look like /path/ (got "${showcaseBase}")`);
 }
 export const SHOWCASE_PORT = 4501;
+/** PROTOYARD_E2E_REVIEW=1 serves the review index built from the fixture ledger. */
+const review = process.env.PROTOYARD_E2E_REVIEW === '1';
+const REVIEW_PORT = Number(process.env.PROTOYARD_E2E_REVIEW_PORT ?? 4502);
+if (!Number.isInteger(REVIEW_PORT) || REVIEW_PORT < 1024 || REVIEW_PORT > 65535) {
+  throw new Error(
+    `PROTOYARD_E2E_REVIEW_PORT must be a port number (got "${process.env.PROTOYARD_E2E_REVIEW_PORT}")`
+  );
+}
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -67,6 +79,16 @@ export default defineConfig({
             url: `http://127.0.0.1:${SHOWCASE_PORT}${showcaseBase}`,
             reuseExistingServer: !ci,
             timeout: 600_000,
+          },
+        ]
+      : []),
+    ...(review
+      ? [
+          {
+            command: `pnpm protoyard review-index --ledger tests/e2e/fixtures/publish-ledger.jsonl --out artifacts/e2e-review --serve --port ${REVIEW_PORT} --strict-port`,
+            url: `http://127.0.0.1:${REVIEW_PORT}/`,
+            reuseExistingServer: !ci,
+            timeout: 180_000,
           },
         ]
       : []),

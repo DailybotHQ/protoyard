@@ -9,6 +9,7 @@ between tests. There are two projects: `chromium` (Desktop Chrome) and `mobile` 
 pnpm test:e2e                                                        # gallery only
 PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo,ai-chat-demo pnpm test:e2e   # what CI runs
 PROTOYARD_E2E_SHOWCASE=1 PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/ pnpm test:e2e    # + the one-site showcase
+PROTOYARD_E2E_REVIEW=1 pnpm test:e2e tests/e2e/review-index.spec.ts              # the team review index (port 4502)
 ```
 
 Builds exclude DevTools, as shipped. Setup steps that the standalone build has no UI for

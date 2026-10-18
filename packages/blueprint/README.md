@@ -9,7 +9,7 @@ Framework-agnostic: it depends only on `@protoyard/core` and zod and never impor
 
 ## Status
 
-Implemented: schema, storage, migrations, validation, policy and CSV codec. Remaining
+Implemented: schema, storage, migrations, validation, policy, notifications and CSV codec. Remaining
 derivations land in later PLAN_002 tasks:
 
 | Module | Derives | Status |
@@ -18,6 +18,7 @@ derivations land in later PLAN_002 tasks:
 | migrations | the next appended database version from a blueprint change | done |
 | validation | create and update zod input schemas per entity | done |
 | policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
+| notifications | validated create/update/assignment rules, atomic writes and actor-scoped read state | done |
 | csv | RFC 4180 parse/serialize + row validation (`@protoyard/blueprint/csv`) | done |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | done |
@@ -48,6 +49,10 @@ optional `screens`. Every object is strict, so unknown keys fail.
   `update`, `update:own`, `delete`, `delete:own`, `import`, `export` or `*`.
 - **Screens:** `list` (`columns`), `detail`, `form`, `board` (`groupBy` an enum field) and
   `dashboard` (`metrics` with `count` or `sum` over a number, integer or money field).
+- **Notifications:** optional top-level rules use `on: 'create' | 'update' | 'assign'`, an
+  entity, `notify: 'owner' | 'assignee' | 'role:<name>'`, and a plain-text title with `{field}`
+  substitutions. Assignment rules name a persona field. Writes share the entity mutation
+  transaction, exclude the actor, and store an empty body for future UI copy.
 
 After the shape is valid, cross-references are checked with path-specific messages, for
 example `entities.1.fields.3.to: relation "support-ticket.customer" targets unknown entity
@@ -197,11 +202,21 @@ import { createEntityServices } from '@protoyard/blueprint';
 const services = createEntityServices(runtime, blueprint); // one service per entity name
 const ticket = await services.ticket.create({ subject: 'Printer jam', customerId });
 await services.ticket.update(ticket.id, { status: 'solved' });
-await services.customer.bulkRemove(selectedIds); // returns the number of rows deleted
+const undoToken = await services.customer.remove(customerId); // token only when softDelete is enabled
+if (undoToken) await services.customer.restore(undoToken); // restore within the simulated undo window
+await services.customer.purge(customerId); // permanently remove trashed rows
 ```
 
-Each entity gets `list`, `get`, `create`, `update`, `remove`, `bulkUpdate` and
-`bulkRemove`. Every mutation runs:
+Each entity gets `list`, `trash`, `get`, `create`, `update`, `remove`, `restore`, `purge`,
+`bulkUpdate` and `bulkRemove`. `list` hides soft-deleted rows; `trash` reads the indexed
+`deletedAt` values for review. When `features.softDelete` is enabled, `remove` marks the record
+and its cascade set with `deletedAt` / `deletedBy` and returns an undo token that works for 30
+seconds of simulated time, including after a reload. Restoring also reverses nullified relation
+fields. `purge` requires the full `<entity>:delete` capability and permanently removes the trashed
+record and its cascade dependents. Entities without soft delete keep hard-delete `remove`; the
+explicit `bulkRemove` operation is also permanent and returns the number of removed rows.
+
+Every mutation runs:
 
 1. `session.assert('<entity>:<action>')`. For update and delete, a role with only
    `update:own` / `delete:own` passes when the record's `ownerField` is the actor. A
@@ -213,9 +228,9 @@ Each entity gets `list`, `get`, `create`, `update`, `remove`, `bulkUpdate` and
 4. One `db.transaction('rw', …)` that checks referenced rows exist (relations,
    `py_personas`, files; a missing one fails as `customerId: 'Customer not found'`),
    writes the row with `createdAt`/`updatedAt` from the simulated clock, and applies every
-   `onDelete` rule: `cascade` deletes dependents (recursively), `nullify` clears single
-   references or removes the id from many-relations, and `restrict` refuses the whole delete
-   with `EntityInUseError`. A failure at any step writes nothing.
+   `onDelete` rule: `cascade` removes dependents recursively (softly for an undoable remove),
+   `nullify` clears single references or removes the id from many-relations, and `restrict`
+   refuses the whole delete with `EntityInUseError`. A failure at any step writes nothing.
 
 New rows get `createRuntimeId` ids (`support_ticket_u3f9…`) and the actor as owner when
 the entity has an `ownerField` and none was given. Updating or deleting a missing id
@@ -223,6 +238,12 @@ throws `EntityNotFoundError`. Bulk writes go through `bulkPut` in chunks of `BUL
 (1,000) rows inside the same transaction. Reads (`list`, `get`) need `<entity>:read`, hide
 rows with `deletedAt`, sort by `defaultSort` (else `createdAt`), and read IndexedDB
 directly without the simulated network, like `liveQuery` reads.
+
+When notification rules are present, matching create and update mutations append notification
+rows in that same transaction. Assignment rules fire when the named persona field changes to a
+new persona. Rule titles are plain text and interpolate entity fields; the actor never receives
+their own notification. `createNotificationService(runtime)` scopes list, unread count and read
+state changes to whichever persona is active, so switching persona changes the visible inbox.
 
 Tests run on the real runtime with the help desk fixture in
 `tests/fixtures/blueprint-prototype.ts`, a prototype whose stores, policy and integrity
