@@ -1,5 +1,6 @@
 <script lang="ts">
 import { getDevice, orient, type PrototypeRuntime, safeAreaOf } from '@protoyard/core';
+import { setOverlayPortalTarget } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
 import { useAppearance } from '../bindings.svelte.ts';
 import {
@@ -41,6 +42,8 @@ const scale = $derived(spec && entry ? stageScale(available, spec, entry.margin)
 const insets = $derived(spec ? safeAreaOf(spec) : undefined);
 
 let Frame = $state.raw<FrameComponent | null>(null);
+let screenEl = $state<HTMLDivElement | undefined>();
+
 $effect(() => {
   const current = entry;
   Frame = null;
@@ -58,6 +61,14 @@ $effect(() => {
   return () => {
     cancelled = true;
   };
+});
+
+// Bits UI dialogs/sheets portal to body by default and escape the bezel.
+// While framed, send overlays to the device screen (containing block via transform).
+$effect(() => {
+  if (framed && screenEl) setOverlayPortalTarget(screenEl);
+  else setOverlayPortalTarget(null);
+  return () => setOverlayPortalTarget(null);
 });
 
 // Lets the viewport-preset CSS step aside while a frame is shown.
@@ -95,13 +106,27 @@ $effect(() => {
       style:transform={framed && scale < 1 ? `scale(${scale})` : undefined}
     >
       <div
+        bind:this={screenEl}
         data-py-shell-part="screen"
-        style:border-radius={framed && spec ? `${spec.cornerRadius}px` : undefined}
-        style:--py-app-height={framed && spec ? `${spec.height}px` : undefined}
-        style:--py-safe-top={framed && insets ? `${insets.top}px` : undefined}
-        style:--py-safe-right={framed && insets ? `${insets.right}px` : undefined}
-        style:--py-safe-bottom={framed && insets ? `${insets.bottom}px` : undefined}
-        style:--py-safe-left={framed && insets ? `${insets.left}px` : undefined}
+        data-py-portal-root={framed ? '' : undefined}
+        style:border-radius={framed && spec && shell !== 'widget-host'
+          ? `${spec.cornerRadius}px`
+          : undefined}
+        style:--py-app-height={framed && spec && shell !== 'widget-host'
+          ? `${spec.height}px`
+          : undefined}
+        style:--py-safe-top={framed && insets && shell !== 'widget-host'
+          ? `${insets.top}px`
+          : undefined}
+        style:--py-safe-right={framed && insets && shell !== 'widget-host'
+          ? `${insets.right}px`
+          : undefined}
+        style:--py-safe-bottom={framed && insets && shell !== 'widget-host'
+          ? `${insets.bottom}px`
+          : undefined}
+        style:--py-safe-left={framed && insets && shell !== 'widget-host'
+          ? `${insets.left}px`
+          : undefined}
       >
         {@render children()}
       </div>

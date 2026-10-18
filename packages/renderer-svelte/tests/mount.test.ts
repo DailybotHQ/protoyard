@@ -86,7 +86,7 @@ describe('mountPrototype', () => {
     const before = screen.getByTestId('who');
     await runtime.theme.setOverride({ shell: 'phone' });
     flushSync();
-    await vi.waitFor(() => expect(target.querySelector('[data-py-frame="device"]')).not.toBeNull());
+    await vi.waitFor(() => expect(target.querySelector('[data-py-frame="phone"]')).not.toBeNull());
     expect(root.dataset.pyShell).toBe('phone');
     // The app was not remounted by the shell change.
     expect(screen.getByTestId('who')).toBe(before);
@@ -103,12 +103,20 @@ describe('mountPrototype', () => {
     expect(screenEl?.style.getPropertyValue('--py-safe-bottom')).toBe(
       `${phone?.safeArea.portrait.bottom}px`
     );
+    // Status bar paints the top safe inset; home indicator is a real control.
+    expect(target.querySelector('[data-py-status-bar]')).not.toBeNull();
+    expect(target.querySelector('[data-py-home-indicator]')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Go home' })).toBeTruthy();
     // Toasts render on the device screen, not on the desktop.
     expect(screenEl?.querySelector('[aria-label="Notifications"]')).not.toBeNull();
+    // Overlay portal target is the framed screen.
+    const { getOverlayPortalTarget } = await import('@protoyard/ui');
+    expect(getOverlayPortalTarget()).toBe(screenEl);
 
     await runtime.theme.setOverride({ shell: 'none' });
     flushSync();
     await vi.waitFor(() => expect(target.querySelector('[data-py-frame]')).toBeNull());
+    expect(getOverlayPortalTarget()).toBeNull();
     expect(root.dataset.pyShell).toBeUndefined();
     expect(screen.getByTestId('who')).toBe(before);
   });

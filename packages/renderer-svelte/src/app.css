@@ -78,6 +78,61 @@ html[data-py-shell] [data-py-shell-part="screen"] > [data-py-scroll-root] {
 }
 
 /*
+ * Widget-host shell: the device is a customer site; the prototype lives in an
+ * anchored panel (fullscreen when the window is under 480px). WidgetHostFrame
+ * toggles data-py-widget-panel and sets --py-app-height to the panel height.
+ */
+html[data-py-shell="widget-host"] [data-py-shell-part="screen"] {
+  inset: auto;
+  right: 20px;
+  bottom: 88px;
+  z-index: 20;
+  width: 380px;
+  max-width: calc(100% - 32px);
+  height: 560px;
+  max-height: calc(100% - 100px);
+  border-radius: 16px;
+  border: 1px solid rgb(15 23 42 / 0.08);
+  box-shadow:
+    0 0 0 1px rgb(15 23 42 / 0.04),
+    0 24px 48px -16px rgb(15 23 42 / 0.35);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(10px) translateZ(0);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    visibility 160ms;
+}
+html[data-py-shell="widget-host"] [data-py-shell-part="screen"][data-py-widget-panel="open"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateZ(0);
+}
+html[data-py-shell="widget-host"] [data-py-shell-part="screen"][data-py-widget-panel="closed"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+@media (max-width: 479px) {
+  html[data-py-shell="widget-host"] [data-py-shell-part="screen"],
+  html[data-py-shell="widget-host"] [data-py-shell-part="screen"][data-py-widget-panel="open"] {
+    inset: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
+  }
+}
+
+/*
  * Viewport presets narrow the app column (media queries still follow the real window).
  * They apply only while no shell frame is shown (`html[data-py-shell]`, see below).
  * #app is a viewport-tall box that never scrolls; `transform` makes it the containing

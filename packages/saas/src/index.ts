@@ -72,3 +72,16 @@ export {
   saasTables,
   TOKEN_KINDS,
 } from './schema.ts';
+export {
+  type CreateWorkspaceInput,
+  CreateWorkspaceSchema,
+  createWorkspaces,
+  type RenameWorkspaceInput,
+  RenameWorkspaceSchema,
+  WORKSPACE_CAPABILITIES,
+  type WorkspaceIdentity,
+  type WorkspaceIdentityOps,
+  type WorkspaceMember,
+  type WorkspacesRuntime,
+  type WorkspacesService,
+} from './workspaces.ts';
