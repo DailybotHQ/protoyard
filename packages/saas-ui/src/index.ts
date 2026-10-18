@@ -1,4 +1,5 @@
 export { default as InboxBadge } from './components/InboxBadge.svelte';
+export { default as WorkspaceSwitcher } from './components/WorkspaceSwitcher.svelte';
 export {
   DEFAULT_SAAS_UI_CONFIG,
   type ResolvedSaasUiConfig,
