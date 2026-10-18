@@ -297,6 +297,25 @@ importers:
         specifier: workspace:*
         version: link:../scenarios
 
+  packages/saas-ui:
+    dependencies:
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../renderer-svelte
+      '@protoyard/saas':
+        specifier: workspace:*
+        version: link:../saas
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.2
+
   packages/scenarios:
     dependencies:
       '@faker-js/faker':
