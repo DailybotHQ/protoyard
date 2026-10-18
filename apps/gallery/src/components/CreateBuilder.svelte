@@ -43,7 +43,7 @@ function suggestSlug() {
 const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
 </script>
 
-<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+<div class="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
   <form class="space-y-4 rounded-xl border border-line bg-surface p-5" onsubmit={(e) => e.preventDefault()} aria-describedby="builder-note">
     <p id="builder-note" class="text-sm text-muted">
       This page cannot create files — it builds the exact command to run in your terminal (or to give your coding agent).
@@ -65,7 +65,7 @@ const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
       {#each templates as option (option.slug)}
         <label class="flex cursor-pointer gap-3 rounded-lg border border-line p-3 has-checked:border-accent has-checked:bg-accent-soft">
           <input type="radio" name="template" value={option.slug} bind:group={template} class="mt-1 accent-[var(--py-accent)]" />
-          <span>
+          <span class="min-w-0 break-words">
             <span class="block text-sm font-medium">{option.name} <span class="font-mono text-xs text-muted">{option.slug}</span></span>
             <span class="block text-xs text-muted">{option.description}</span>
           </span>
