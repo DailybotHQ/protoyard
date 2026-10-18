@@ -31,6 +31,8 @@ export interface FrameEntry {
 export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
   phone: { load: () => import('./DeviceFrame.svelte'), margin: 14 },
   tablet: { load: () => import('./DeviceFrame.svelte'), margin: 14 },
+  /** Browser chrome overlays the screen; a light margin leaves room for the rounded card shadow. */
+  browser: { load: () => import('./BrowserFrame.svelte'), margin: 12 },
 };
 
 /** Gap kept between the frame and the window edge, in CSS px. */

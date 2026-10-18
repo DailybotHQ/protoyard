@@ -62,12 +62,14 @@ width), and sets `--py-app-height` and `--py-safe-*` from `@protoyard/core` `DEV
 Viewport-preset rules step aside while a frame is shown.
 
 The frame decoration is a lazily loaded chunk registered in
-`src/shell/frames/registry.ts`. Today `phone` and `tablet` use a generic bezel; other
-shells render full-bleed until their frame ships. The app goes full-bleed when the
-shell is `none`, inside an iframe (the gallery preview draws its own device), or when
-the window is too narrow for the device plus its frame (a real phone). The wrappers always exist, so
-changing the shell never remounts the app; without a frame they are
-`display: contents`.
+`src/shell/frames/registry.ts`. `phone` and `tablet` use a generic bezel; `browser`
+draws `@protoyard/ui` `BrowserChrome` (tab + address bar) using
+`preview.chrome.origin` (default `https://<slug>.example`) and `document.title` as
+the tab label — back/forward follow the hash router. Other shells render full-bleed
+until their frame ships. The app goes full-bleed when the shell is `none`, inside an
+iframe (the gallery preview draws its own device), or when the window is too narrow
+for the device plus its frame (a real phone). The wrappers always exist, so changing
+the shell never remounts the app; without a frame they are `display: contents`.
 
 ## Mount
 
