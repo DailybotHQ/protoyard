@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.agent-console",
+  "slug": "agent-console",
+  "kind": "template",
+  "name": "Agent Console",
+  "description": "A simulated agent platform: agent definitions, a playground with step traces and approvals, run history, deterministic evaluations and usage/cost dashboards.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "desktop",
+  "category": "ai",
+  "tags": ["ai", "agents", "evaluations", "simulated"],
+  "status": "ready",
+  "icon": "🤖",
+  "defaultScenario": "active",
+  "defaultTheme": "ocean",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-agent-console", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "member", "viewer", "tool-outage"]
+}
