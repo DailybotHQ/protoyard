@@ -12,7 +12,7 @@ pnpm protoyard build ui-kit
 | Overview (stats, groups, recently starred) | `#/` |
 | Component groups — every component in its states, with copyable usage and a11y notes | `#/components/<group>` |
 | One component (prev/next navigation) | `#/c/<id>` |
-| Theme lab — all built-in themes in light and dark side by side (scoped `applyAppearance`), density/radius tuning, token table with live swatches and contrast ratios | `#/themes` |
+| Theme lab — built-in and product-category theme library, category filtering, side-by-side light/dark and component-variant previews, adjacent theme studio, token export/copy, and live contrast ratios | `#/themes` |
 | Forms with validation | `#/forms` |
 | Patterns — dashboard, task board, team chat, mobile app | `#/components/patterns` |
 | Accessibility — live contrast audit of the active theme, guarantees, keyboard map | `#/a11y` |
@@ -46,3 +46,7 @@ tests/                    catalog/generator/service tests and a render test for 
 To add a component to the kit: add an entry to `src/catalog/entries.ts`, a
 `src/demos/<Name>Demo.svelte`, and its `DEMOS` record in `src/catalog/registry.ts`
 (the test fails if the two lists disagree).
+
+Theme-library metadata is available without palette generation. The theme lab
+loads palette tokens only for the active category, and its copy action uses the
+runtime theme export format so copied JSON can be imported by Theme Studio.
