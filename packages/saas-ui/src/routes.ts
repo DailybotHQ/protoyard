@@ -36,7 +36,7 @@ const LOADERS = {
   resetPassword: () => import('./screens/ResetPassword.svelte'),
   verifyEmail: () => import('./screens/VerifyEmail.svelte'),
   oauthConsent: () => import('./screens/OAuthConsent.svelte'),
-  inbox: () => import('./screens/Inbox.svelte'),
+  inbox: () => import('./screens/inbox/Inbox.svelte'),
   onboarding: () => import('./screens/Onboarding.svelte'),
 } as const satisfies Record<string, ScreenLoader>;
 
