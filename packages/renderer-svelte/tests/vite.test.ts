@@ -65,6 +65,14 @@ describe('resolveProtoyardSettings', () => {
     expect(
       resolveProtoyardSettings(manifest, 'serve', { PROTOYARD_OFFLINE: '1' }, '/proj').offline
     ).toBe(false);
+    expect(
+      resolveProtoyardSettings(
+        manifest,
+        'serve',
+        { PROTOYARD_STORAGE_NAMESPACE: 'template-demo-blank' },
+        '/proj'
+      ).build.namespace
+    ).toBe('template-demo-blank');
     expect(envFlag('maybe')).toBeUndefined();
   });
 });

@@ -12,7 +12,7 @@ import { toast } from '@protoyard/ui';
 import { type Component, mount, tick, unmount } from 'svelte';
 import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
-import { DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
+import { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
 import BootError from './shell/BootError.svelte';
 import Root from './shell/Root.svelte';
 
@@ -58,7 +58,22 @@ declare global {
  * Any boot failure renders a recovery screen instead of a blank page.
  */
 export async function mountPrototype(options: MountPrototypeOptions): Promise<MountedPrototype> {
-  const { definition, App, target } = options;
+  const { App, target } = options;
+  // Template live demos (and any CLI override) set PROTOYARD_STORAGE_NAMESPACE →
+  // __PROTOYARD_BUILD__.namespace so IndexedDB never shares the template's authoring world.
+  const definition =
+    BUILD_INFO?.namespace && BUILD_INFO.namespace !== options.definition.manifest.storage.namespace
+      ? {
+          ...options.definition,
+          manifest: {
+            ...options.definition.manifest,
+            storage: {
+              ...options.definition.manifest.storage,
+              namespace: BUILD_INFO.namespace,
+            },
+          },
+        }
+      : options.definition;
   const link = parseScenarioLink(options.search ?? location.search);
   const themes = mergeThemes(BUILTIN_THEMES, definition.themes);
   const root = document.documentElement;

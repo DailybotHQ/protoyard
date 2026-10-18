@@ -139,6 +139,8 @@ export interface ViteDevOptions {
   host: boolean;
   /** `inherit` for `protoyard dev`; `pipe` for the control server. */
   stdio: 'inherit' | 'pipe';
+  /** When set, Vite/runtime use this IndexedDB namespace instead of the manifest's. */
+  storageNamespace?: string;
 }
 
 export function spawnViteDev(options: ViteDevOptions): ChildProcess {
@@ -159,7 +161,13 @@ export function spawnViteDev(options: ViteDevOptions): ChildProcess {
   args.push('--host', options.host ? '0.0.0.0' : '127.0.0.1');
   return spawn(process.execPath, args, {
     cwd: options.dir,
-    env: { ...process.env, PROTOYARD_INCLUDE_DEVTOOLS: '1' },
+    env: {
+      ...process.env,
+      PROTOYARD_INCLUDE_DEVTOOLS: '1',
+      ...(options.storageNamespace
+        ? { PROTOYARD_STORAGE_NAMESPACE: options.storageNamespace }
+        : {}),
+    },
     shell: false,
     stdio: options.stdio === 'inherit' ? 'inherit' : ['ignore', 'pipe', 'pipe'],
   });

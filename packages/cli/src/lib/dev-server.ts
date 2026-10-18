@@ -31,6 +31,11 @@ export async function startDevServer(options: {
   host?: boolean;
   stdio: 'inherit' | 'pipe';
   readyTimeoutMs?: number;
+  /**
+   * Overrides the prototype/template storage namespace for this dev session
+   * (template live demos use `template-demo-<name>`).
+   */
+  storageNamespace?: string;
 }): Promise<DevServerHandle> {
   const bindHost = options.host ? '0.0.0.0' : '127.0.0.1';
   const port = await findFreePort(options.port ?? DEFAULT_DEV_PORT, bindHost);
@@ -40,6 +45,7 @@ export async function startDevServer(options: {
     port,
     host: Boolean(options.host),
     stdio: options.stdio,
+    ...(options.storageNamespace ? { storageNamespace: options.storageNamespace } : {}),
   });
   let log = '';
   const collect = (chunk: Buffer) => {

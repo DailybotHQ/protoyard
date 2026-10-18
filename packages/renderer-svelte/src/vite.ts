@@ -126,7 +126,8 @@ export function resolveProtoyardSettings(
       id: manifest.id,
       slug: manifest.slug,
       version: manifest.version,
-      namespace: manifest.storage.namespace,
+      // PROTOYARD_STORAGE_NAMESPACE isolates template live demos (template-demo-<name>).
+      namespace: env.PROTOYARD_STORAGE_NAMESPACE?.trim() || manifest.storage.namespace,
       // Build metadata only — never used for seeded data.
       builtAt: env.PROTOYARD_BUILT_AT || new Date().toISOString(),
       mode: isBuild ? 'build' : 'dev',
@@ -136,7 +137,7 @@ export function resolveProtoyardSettings(
 }
 
 /** Injects the no-flash appearance script and prototype metadata into index.html. */
-function protoyardHtml(manifest: PrototypeManifest): Plugin {
+function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
   return {
     name: 'protoyard:html',
     transformIndexHtml: {
@@ -150,7 +151,7 @@ function protoyardHtml(manifest: PrototypeManifest): Plugin {
           },
           {
             tag: 'script',
-            children: noFlashScript(manifest.storage.namespace),
+            children: noFlashScript(namespace),
             injectTo: 'head-prepend',
           },
         ];
@@ -170,7 +171,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
       plugins: [
         svelte(),
         tailwindcss(),
-        protoyardHtml(manifest),
+        protoyardHtml(manifest, settings.build.namespace),
         // Structurally typed Vite plugin (the offline package has no vite dependency).
         ...(settings.offline ? (protoyardOffline({ enabled: true }) as unknown as Plugin[]) : []),
       ],
