@@ -187,6 +187,10 @@ export function createProgram(env: RunnerEnv): Command {
       .option('--preview', 'preview deployment (default)')
       .option('--production', 'production deployment (requires --yes)')
       .option('--dry-run', 'build and verify, print the exact command, contact no provider')
+      .option(
+        '--ensure-project',
+        'Cloudflare: create the Pages project when missing (shown on dry-run; run on real publish)'
+      )
   ).action(def('publish', publishCommand));
 
   const scenario = program.command('scenario').description("inspect a prototype's scenarios");

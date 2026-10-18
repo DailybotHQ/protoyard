@@ -21,6 +21,8 @@ export interface PublishRunOptions {
   branch?: string;
   base?: string;
   includeDevtools?: boolean;
+  /** Cloudflare: create the Pages project when missing (opt-in). */
+  ensureProject?: boolean;
 }
 
 export interface PublishRunResult {
@@ -34,6 +36,8 @@ export interface PublishRunResult {
   experimental: boolean;
   distDir: string;
   kind: 'static' | 'dry-run' | 'published';
+  /** Present when `--ensure-project` was requested (Cloudflare). */
+  ensureProject?: boolean;
   zip?: string;
   sha256?: string;
   size?: number;
@@ -111,6 +115,7 @@ export async function publishPrototype(
     project,
     target,
     ...(options.branch !== undefined ? { branch: options.branch } : {}),
+    ...(options.ensureProject ? { ensureProject: true as const } : {}),
   };
   const common = {
     slug: entry.slug,
@@ -121,6 +126,7 @@ export async function publishPrototype(
     distDir: toPosixRelative(ctx.root, build.outDir),
     files: build.manifest.fileCount,
     bytes: build.manifest.totalBytes,
+    ...(options.ensureProject ? { ensureProject: true as const } : {}),
   };
 
   if (provider.id === 'static') {

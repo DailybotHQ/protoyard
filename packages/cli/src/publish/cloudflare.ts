@@ -41,6 +41,64 @@ export function cloudflareArgs(input: PublishInput): string[] {
   ];
 }
 
+/** Argv suffix for `wrangler pages project create` (after the wrangler binary). */
+export function cloudflareEnsureProjectArgs(project: string): string[] {
+  return ['pages', 'project', 'create', project, '--production-branch', 'main'];
+}
+
+/**
+ * Parses `wrangler pages project list --json`. Returns project names only —
+ * never account ids, emails or other fields (those stay out of logs and hints).
+ */
+export function parseCloudflareProjectList(output: string): string[] {
+  const text = stripAnsi(output).trim();
+  if (!text) return [];
+  // Wrangler sometimes prints a banner before the JSON array/object.
+  const start = text.indexOf('[');
+  const objStart = text.indexOf('{');
+  let jsonText = text;
+  if (start >= 0 && (objStart < 0 || start <= objStart)) {
+    jsonText = text.slice(start);
+  } else if (objStart >= 0) {
+    jsonText = text.slice(objStart);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch {
+    return [];
+  }
+  const rows: unknown[] = Array.isArray(parsed)
+    ? parsed
+    : parsed &&
+        typeof parsed === 'object' &&
+        Array.isArray((parsed as { projects?: unknown }).projects)
+      ? (parsed as { projects: unknown[] }).projects
+      : parsed &&
+          typeof parsed === 'object' &&
+          Array.isArray((parsed as { result?: unknown }).result)
+        ? (parsed as { result: unknown[] }).result
+        : [];
+  const names: string[] = [];
+  for (const row of rows) {
+    if (!row || typeof row !== 'object') continue;
+    const name = (row as { name?: unknown }).name;
+    if (typeof name === 'string' && name.trim()) names.push(name.trim());
+  }
+  return names;
+}
+
+/** True when create failed because the project is already there (race / retry). */
+export function isCloudflareProjectAlreadyExists(output: string): boolean {
+  const text = stripAnsi(output);
+  return (
+    /already exists/i.test(text) ||
+    /project with (that |the )?name .* already/i.test(text) ||
+    /code:\s*8000004/i.test(text) ||
+    /A project with this name already exists/i.test(text)
+  );
+}
+
 /**
  * Wrangler prints the deployment URL ("Take a peek over at https://<hash>.<project>.pages.dev").
  * We take the last pages.dev URL in the output; nothing is synthesized.
@@ -54,6 +112,52 @@ export function parseCloudflareOutput(output: string): PublishResult | null {
   const host = new URL(url).hostname;
   const first = host.split('.')[0] ?? '';
   return /^[0-9a-f]{8}$/.test(first) ? { url, deploymentId: first } : { url };
+}
+
+function wranglerBase(cached: ToolInvocation | undefined): string[] {
+  return [...(cached?.argv ?? ['npx', '--no-install', 'wrangler'])];
+}
+
+/**
+ * Lists Pages projects and creates `project` when missing. Names only are
+ * read from the list output; account details never enter logs or errors.
+ */
+export async function ensureCloudflareProject(
+  argvPrefix: readonly string[],
+  project: string,
+  options: { runFn?: typeof run; timeoutMs?: number } = {}
+): Promise<{ created: boolean; existed: boolean }> {
+  const runFn = options.runFn ?? run;
+  const timeoutMs = options.timeoutMs ?? 120_000;
+  const [cmd, ...prefix] = argvPrefix as [string, ...string[]];
+
+  const list = await runFn(cmd, [...prefix, 'pages', 'project', 'list', '--json'], {
+    timeoutMs,
+  });
+  const listOut = `${list.stdout}\n${list.stderr}`;
+  if (list.code !== 0) {
+    throw new ProviderError(`wrangler pages project list failed (exit ${list.code}).`, {
+      hint: lastLines(listOut) || 'Check wrangler auth (`npx wrangler login`).',
+    });
+  }
+  const names = parseCloudflareProjectList(list.stdout || list.stderr);
+  if (names.includes(project)) {
+    return { created: false, existed: true };
+  }
+
+  const create = await runFn(cmd, [...prefix, ...cloudflareEnsureProjectArgs(project)], {
+    timeoutMs,
+  });
+  const createOut = `${create.stdout}\n${create.stderr}`;
+  if (create.code !== 0) {
+    if (isCloudflareProjectAlreadyExists(createOut)) {
+      return { created: false, existed: true };
+    }
+    throw new ProviderError(`wrangler pages project create failed (exit ${create.code}).`, {
+      hint: lastLines(createOut),
+    });
+  }
+  return { created: true, existed: false };
 }
 
 export function createCloudflareProvider(root: string): PublishProvider {
@@ -101,17 +205,24 @@ export function createCloudflareProvider(root: string): PublishProvider {
           };
     },
     command(input) {
-      return [...(cached?.argv ?? ['npx', '--no-install', 'wrangler']), ...cloudflareArgs(input)];
+      return [...wranglerBase(cached), ...cloudflareArgs(input)];
+    },
+    setupCommands(input) {
+      if (!input.ensureProject) return [];
+      return [[...wranglerBase(cached), ...cloudflareEnsureProjectArgs(input.project)]];
     },
     async publish(input) {
       const [cmd, ...prefix] = (await invocation()).argv as [string, ...string[]];
+      if (input.ensureProject) {
+        await ensureCloudflareProject([cmd, ...prefix], input.project);
+      }
       const result = await run(cmd, [...prefix, ...cloudflareArgs(input)], { timeoutMs: 600_000 });
       const output = `${result.stdout}\n${result.stderr}`;
       if (result.code !== 0) {
         const missingProject = /project not found|8000007|could not find project/i.test(output);
         throw new ProviderError(`wrangler pages deploy failed (exit ${result.code}).`, {
           hint: missingProject
-            ? `Create the project once: npx wrangler pages project create ${input.project} --production-branch main`
+            ? `Create the project once: npx wrangler pages project create ${input.project} --production-branch main (or re-run with --ensure-project)`
             : lastLines(output),
         });
       }
