@@ -3,8 +3,11 @@ import { join } from 'node:path';
 import {
   applyCiInit,
   assertWritable,
+  CI_DRIFT_STATUSES,
+  type CiDriftReport,
   type CiInitPlan,
   type CiTemplatePlaceholders,
+  checkCiDrift,
   contentSha256,
   nodeVersionFromEngines,
   parseCiProvider,
@@ -15,7 +18,7 @@ import {
 } from '../lib/ci-templates.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
-import { mark } from '../lib/output.ts';
+import { CliError, mark } from '../lib/output.ts';
 import { workspacePaths } from '../lib/paths.ts';
 import { loadRegistry } from '../lib/registry.ts';
 
@@ -139,6 +142,73 @@ export const ciInitCommand: Handler = async (ctx, _args, options): Promise<Comma
       } else {
         out.info(c.dim('\nSettings are not changed by this command.'));
       }
+    },
+  };
+};
+
+const DRIFT_LABEL: Record<CiDriftReport['status'], string> = {
+  'up-to-date': 'up to date',
+  outdated: 'outdated',
+  modified: 'locally modified',
+  unhashed: 'no hash line',
+  unmanaged: 'not a Protoyard template',
+};
+
+/**
+ * `protoyard ci check` — compares scaffolded workflows with the packaged
+ * templates: edited since `ci init` (hash mismatch), or older than the
+ * template Protoyard ships now. `--strict` exits 4 on any drift.
+ */
+export const ciCheckCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
+  const provider = parseCiProvider(opt(options, 'provider'));
+  const files = await checkCiDrift({ root: ctx.root, provider });
+  const drift = files.filter((f) => CI_DRIFT_STATUSES.has(f.status));
+  const strict = flag(options, 'strict');
+  const outdated = files.filter((f) => f.outdated).map((f) => f.id as string);
+  return {
+    data: {
+      provider,
+      files,
+      upToDate: files.filter((f) => f.status === 'up-to-date').length,
+      drift: drift.length,
+      strict,
+    },
+    ...(strict && drift.length > 0
+      ? {
+          failure: new CliError(
+            'validation',
+            `${drift.length} scaffolded workflow(s) drifted from the Protoyard templates.`,
+            {
+              hint: `Review with \`pnpm protoyard ci init --with ${drift.map((f) => f.id).join(',')} --dry-run\`, then re-run with --force to update.`,
+            }
+          ),
+        }
+      : {}),
+    render(out) {
+      const { c } = out;
+      if (files.length === 0) {
+        out.always(
+          'No scaffolded workflows (.github/workflows/protoyard-*.yml). Run `pnpm protoyard ci init`.'
+        );
+        return;
+      }
+      for (const f of files) {
+        const status: 'pass' | 'warn' | 'skip' =
+          f.status === 'up-to-date' ? 'pass' : f.status === 'unmanaged' ? 'skip' : 'warn';
+        const versions =
+          f.version !== null && f.latestVersion !== null && f.outdated
+            ? ` (v${f.version} → v${f.latestVersion} available)`
+            : '';
+        out.always(`${mark(c, status)} ${f.path.padEnd(42)} ${DRIFT_LABEL[f.status]}${versions}`);
+      }
+      if (outdated.length > 0)
+        out.info(
+          c.dim(
+            `  Update: pnpm protoyard ci init --with ${outdated.join(',')} --dry-run, then --force.`
+          )
+        );
+      if (drift.length === 0)
+        out.always(c.green('All scaffolded workflows match their templates.'));
     },
   };
 };

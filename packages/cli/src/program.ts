@@ -2,7 +2,7 @@ import { Command, CommanderError, Option } from 'commander';
 import { affectedCommand } from './commands/affected.ts';
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
-import { ciInitCommand } from './commands/ci.ts';
+import { ciCheckCommand, ciInitCommand } from './commands/ci.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { exportCommand } from './commands/export.ts';
@@ -188,6 +188,13 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--dry-run', 'print paths and unified diffs; write nothing')
     .option('--force', 'overwrite existing workflow files')
     .action(def('ci init', ciInitCommand));
+  ci.command('check')
+    .description(
+      'report scaffolded workflows that are outdated or edited since `ci init` (reads only)'
+    )
+    .addOption(new Option('--provider <id>', 'CI host').choices(['github']).default('github'))
+    .option('--strict', 'exit 4 when any workflow drifted')
+    .action(def('ci check', ciCheckCommand));
 
   buildOptions(
     program
