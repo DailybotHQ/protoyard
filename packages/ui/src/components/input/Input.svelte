@@ -28,7 +28,7 @@ const classes = $derived(
 </script>
 
 {#if type === 'file'}
-  <input bind:this={ref} type="file" bind:files class={classes} {...rest} />
+  <input bind:this={ref} type="file" bind:files class={cn('ui-input', classes)} {...rest} />
 {:else}
-  <input bind:this={ref} {type} bind:value class={classes} {...rest} />
+  <input bind:this={ref} {type} bind:value class={cn('ui-input', classes)} {...rest} />
 {/if}
