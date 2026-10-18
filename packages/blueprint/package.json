@@ -1,0 +1,18 @@
+{
+  "name": "@protoyard/blueprint",
+  "version": "0.1.0",
+  "description": "Data-only blueprints for Protoyard: schema validation and the derivations (stores, integrity, migrations, inputs, policy, generators, entity services) that turn a blueprint into a working prototype.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@protoyard/core": "workspace:*",
+    "zod": "^4.6.0"
+  }
+}
