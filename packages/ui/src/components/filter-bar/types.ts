@@ -15,7 +15,8 @@ interface FilterFieldBase<T> {
    */
   key?: string;
   /** Custom value reader; takes precedence over `key`. */
-  accessor?: (row: T) => unknown;
+  // Method syntax keeps the parameter bivariant, so a FilterField<Deal> is usable where FilterField<unknown> is expected.
+  accessor?(row: T): unknown;
 }
 
 /** Discrete set of string values (status, stage, category…). */
