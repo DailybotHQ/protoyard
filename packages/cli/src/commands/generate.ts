@@ -6,7 +6,6 @@ import { MANIFEST_FILENAME } from '@protoyard/core';
 import {
   brandDefaultThemeId,
   type EmittedFile,
-  emitPrototype,
   personalizeHtml,
   TEMPLATE_FILES_REMOVED,
 } from '../lib/codegen/emit.ts';
@@ -21,7 +20,7 @@ import {
 } from '../lib/codegen/regenerate.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
-import { CliError, mark, toCliError } from '../lib/output.ts';
+import { CliError, mark } from '../lib/output.ts';
 import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
 import { installWorkspace } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';

@@ -1,7 +1,6 @@
 // @vitest-environment node
-import { cpSync, existsSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseBlueprint } from '@protoyard/blueprint';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { emitPrototype, personalizeHtml } from '../src/lib/codegen/emit.ts';
@@ -274,7 +273,9 @@ describe('protoyard generate', () => {
     const appBefore = readFileSync(app, 'utf8');
 
     const next = blueprintInput();
-    (next.entities[0]?.fields as unknown[]).push({ name: 'vip', kind: 'boolean', default: false });
+    const customer = next.entities[0];
+    if (!customer) throw new Error('fixture has no customer entity');
+    (customer.fields as unknown[]).push({ name: 'vip', kind: 'boolean', default: false });
     const run = await generate('help-desk', '--blueprint', writeBlueprint(next, 'v2.json'));
     expect(run.code).toBe(0);
     const { data } = run.json<{
