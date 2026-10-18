@@ -160,3 +160,110 @@ and lead (core, demos, docs). Each path had a single writer, only the lead
 changed the lockfile, and every task was tracked in
 `PLAN_001_protoyard_foundation` with evidence-backed gates. See
 [AI_AGENT_COLLAB.md](AI_AGENT_COLLAB.md).
+
+## ADR-016 — Device and host shells render in the same document
+
+**Context.** Protoyard must make a prototype look like the product it
+simulates: a phone, a tablet, a desktop window, a browser, a chat widget on a
+customer site, a browser-extension popup or a plugin side panel. A shell can
+either wrap `#app` in the same document or load the prototype inside an
+iframe it draws around.
+
+**Options.** (1) In-document frames around `#app`. (2) A self-framing iframe
+per shell (honest media queries, but two runtimes on one IndexedDB and a new
+cross-frame protocol for DevTools).
+
+**Decision.** In-document frames. The manifest gains `preview.shell`
+(`none`, `auto`, `phone`, `tablet`, `desktop-window`, `browser`,
+`widget-host`, `extension-popup`, `side-panel`) plus a device, orientation
+and chrome; a `?shell=` link parameter overrides it, and the runtime reports
+the effective shell with its source. The renderer's `ShellHost` lazy-loads
+the selected frame, so `none` costs nothing. Layout code uses the
+`--py-app-height` token and container queries instead of `dvh`, which
+mitigates media queries that follow the window. `auto` frames the app when
+the viewport is wider than the device (dev, gallery and published builds)
+and goes full-bleed on a real phone or inside an iframe.
+
+**Consequences.** One runtime, DevTools unchanged, no extra boot. Media
+queries still see the window; prototypes that need device breakpoints use
+container queries. Frames are brand-neutral (no real device or OS marks).
+**Reverse:** set `preview.shell: none` (per prototype) or drop `ShellHost`
+from the renderer root.
+
+## ADR-017 — Data-only blueprints generate prototypes
+
+**Context.** "Generate anything" needs a description of a product that
+humans and agents can write, review and regenerate safely.
+
+**Decision.** A prototype can be described by a data-only `blueprint.json`
+(entities, fields, relations, roles, screens, notifications, brand),
+validated by `@protoyard/blueprint` (framework-agnostic: zod and JSON Schema,
+derived Dexie stores and integrity rules, appended migrations, zod inputs,
+capability policy, deterministic generators and entity services that follow
+`session.assert` → zod → `environment.run` → `db.transaction`).
+`@protoyard/crud` provides the Svelte CRUD kit. `protoyard generate` writes
+generated code only under `src/generated/**`, guarded by a content hash, so
+regeneration never overwrites hand-written code. Like manifests (ADR-002),
+blueprints contain no executable code.
+
+**Consequences.** Generated prototypes are ordinary prototypes: they can be
+edited, exported and published. Schema changes produce appended migrations,
+never edits of shipped versions. **Reverse:** a prototype can drop its
+blueprint and keep the generated code as hand-written code.
+
+## ADR-018 — Simulated authentication, OAuth, MFA and billing kits
+
+**Context.** SaaS prototypes need sign in, sign up, SSO, magic links, MFA,
+invitations, workspaces, onboarding and billing that feel real without any
+backend, provider account or payment processor.
+
+**Decision.** `@protoyard/saas` (engine, no Svelte) and `@protoyard/saas-ui`
+(screens) simulate those flows inside the prototype: a simulated OAuth round
+trip (provider consent screen, redirect back, account linking, deny and
+error outcomes) never leaves the app; email-like messages land in a
+simulated inbox; MFA codes derive from the simulated clock; billing amounts
+are integer cents. SSO buttons show provider names with neutral icons and a
+persistent "Simulated" label: no official logos. The core session gains an
+optional signed-out state, used by templates that opt in; existing
+prototypes keep a signed-in persona.
+
+**Consequences.** Simulated auth is never security (same as personas,
+ADR-007): no real credential is captured or sent anywhere, and docs say so.
+**Reverse:** a prototype that does not opt in is unaffected; the kits are
+separate packages.
+
+## ADR-019 — Prototype specs and performance budgets are part of the contract
+
+**Context.** Every prototype should be rebuildable as a real app by any
+agent, and speed is non-negotiable.
+
+**Decision.** Each prototype carries an `AGENTS.md` and a `docs/` spec
+(SPEC, data model, flows, screens, simulated boundaries, rebuild path) with
+generated regions that `protoyard spec --check` keeps in sync with the code.
+Performance budgets live in a workspace `protoyard.budgets.json` (default:
+initial JS ≤ 250 KB gzip per prototype) with per-prototype overrides, and
+`protoyard budget` enforces them on built artifacts. Cold-start timing is
+report-only in CI until a calibration run sets its threshold; locally it is
+measured with the method in PERFORMANCE.md.
+
+**Consequences.** Spec drift and budget regressions fail validation instead
+of surfacing in review. **Reverse:** budgets can be raised per prototype
+with a recorded reason; spec checks can be made advisory with
+`--no-strict-spec`.
+
+## ADR-020 — Lane worktrees with lead-owned integration
+
+**Context.** PLAN_002 runs twelve agents (Claude, Codex and Grok lanes)
+whose areas still touch a few shared files (`packages/cli/src/program.ts`,
+`packages/ui/src/index.ts`, `tests/e2e/targets.ts`).
+
+**Decision.** Each lane works in its own git worktree under the git-ignored
+`tmp/lanes/<lane>` on branch `plan002/lane-<lane>`. The lead merges each
+finished task into `main`, is the only one who runs `pnpm install` on `main`
+and commits `pnpm-lock.yaml`, owns `packages/core`, `packages/runtime` and
+the index docs, and runs every plan gate on the integrated `main`. E2E runs
+one session per machine (fixed ports), scheduled by the lead.
+
+**Consequences.** No two writers share a checkout; conflicts surface as
+ordinary merges the lead resolves. **Reverse:** remove the worktrees
+(`git worktree remove`) once the lane branches are merged.
