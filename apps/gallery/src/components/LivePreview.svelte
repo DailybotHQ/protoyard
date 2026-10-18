@@ -76,6 +76,8 @@ let manualError = $state('');
 let previewUrl = $state<string | null>(null);
 let loading = $state(false);
 let slow = $state(false);
+/** True after the 12s timer or an iframe error while still loading. */
+let loadFailed = $state(false);
 let reloadKey = $state(0);
 let stage: HTMLDivElement | undefined = $state();
 let stageWidth = $state(0);
@@ -135,9 +137,40 @@ function show(url: string) {
   previewUrl = url;
   loading = true;
   slow = false;
+  loadFailed = false;
   clearTimeout(slowTimer);
   slowTimer = setTimeout(() => {
-    if (loading) slow = true;
+    if (loading) {
+      slow = true;
+      loadFailed = true;
+    }
+  }, 12_000);
+}
+
+function markLoaded() {
+  loading = false;
+  slow = false;
+  loadFailed = false;
+  clearTimeout(slowTimer);
+}
+
+function markFailed() {
+  if (!loading) return;
+  loadFailed = true;
+  slow = true;
+}
+
+function retryPreview() {
+  loadFailed = false;
+  slow = false;
+  loading = true;
+  reloadKey += 1;
+  clearTimeout(slowTimer);
+  slowTimer = setTimeout(() => {
+    if (loading) {
+      slow = true;
+      loadFailed = true;
+    }
   }, 12_000);
 }
 
@@ -358,15 +391,66 @@ async function openManual(event: SubmitEvent) {
                 title={`${name} preview (${frame.label})`}
                 class="size-full border-0"
                 sandbox={pasted ? 'allow-scripts allow-same-origin allow-forms allow-modals allow-popups' : undefined}
-                onload={() => {
-                  loading = false;
-                  slow = false;
-                }}
+                onload={markLoaded}
+                onerror={markFailed}
               ></iframe>
             {/key}
-            {#if loading}
-              <div class="absolute inset-0 grid place-items-center bg-surface/80 text-sm text-muted" aria-live="polite">
-                <span class="inline-flex items-center gap-2"><LoaderCircle size={16} class="animate-spin" aria-hidden="true" />{slow ? 'Still loading — check the dev server output.' : 'Loading…'}</span>
+            {#if loading && !loadFailed}
+              <div
+                class="absolute inset-0 z-30 flex flex-col bg-[color:var(--py-bg,#fafafa)] dark:bg-[color:var(--py-bg,#09090b)]"
+                style:padding-top={frame.framed && frame.spec ? `${Math.max(frame.spec.statusBar.height, 12)}px` : '0'}
+                style:padding-bottom={frame.framed && frame.spec ? `${frame.spec.homeIndicator.height}px` : '0'}
+                aria-live="polite"
+                aria-busy="true"
+                data-testid="preview-skeleton"
+              >
+                <div class="flex flex-1 flex-col gap-3 p-4">
+                  <div class="py-skeleton h-3 w-1/3 rounded-md"></div>
+                  <div class="py-skeleton h-8 w-2/3 rounded-md"></div>
+                  <div class="py-skeleton mt-2 h-24 w-full flex-1 rounded-lg"></div>
+                  <div class="flex gap-2">
+                    <div class="py-skeleton h-9 flex-1 rounded-md"></div>
+                    <div class="py-skeleton h-9 flex-1 rounded-md"></div>
+                  </div>
+                </div>
+                <p class="px-4 pb-3 text-center text-xs text-muted">
+                  {slow ? 'Still loading — check the dev server output.' : `Loading ${name}…`}
+                </p>
+              </div>
+            {:else if loadFailed}
+              <div
+                class="absolute inset-0 z-30 grid place-items-center bg-surface/95 p-4 text-center"
+                role="alert"
+                data-testid="preview-error"
+              >
+                <div class="max-w-sm space-y-3">
+                  <p class="text-sm font-medium text-fg">Preview did not load</p>
+                  <p class="text-xs text-muted">
+                    The frame stayed blank for too long, or the browser reported an error. Confirm the
+                    prototype is running, then retry.
+                  </p>
+                  <div class="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-on-accent hover:bg-accent-hover"
+                      data-testid="preview-retry"
+                      onclick={retryPreview}
+                    >
+                      <RotateCw size={14} aria-hidden="true" /> Retry
+                    </button>
+                    {#if previewUrl}
+                      <a
+                        class="inline-flex items-center gap-1 rounded-md border border-line px-3 py-1.5 text-sm hover:bg-surface-2"
+                        href={previewUrl}
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        <ExternalLink size={14} aria-hidden="true" /> Open in tab
+                      </a>
+                    {/if}
+                  </div>
+                  <CommandBlock command={devCommand} />
+                </div>
               </div>
             {/if}
           </div>

@@ -118,6 +118,33 @@ body {
   }
 }
 
+/* Device-shaped preview skeleton (LivePreview). Shimmer only when motion is ok. */
+.py-skeleton {
+  background: color-mix(in oklab, var(--py-border, #e4e4e7) 65%, var(--py-surface, #fff));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .py-skeleton {
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--py-border, #e4e4e7) 55%, transparent) 0%,
+      color-mix(in oklab, var(--py-surface-2, #f4f4f5) 90%, transparent) 50%,
+      color-mix(in oklab, var(--py-border, #e4e4e7) 55%, transparent) 100%
+    );
+    background-size: 200% 100%;
+    animation: py-skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+
+  @keyframes py-skeleton-shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+}
+
 .sr-only-focusable:not(:focus) {
   position: absolute;
   width: 1px;

@@ -44,8 +44,10 @@ test.describe('gallery', () => {
 
     await search.fill('zz-no-such-prototype-zz');
     await expect(page.getByTestId('result-count')).toHaveText('No matches');
-    await page.getByRole('button', { name: 'Clear filters' }).click();
+    await expect(page.getByTestId('browse-empty')).toHaveAttribute('data-empty', 'filters');
+    await page.getByTestId('empty-clear-filters').click();
     await expect(page.getByTestId('result-count')).toContainText(`of ${prototypes.length}`);
+    await expect(page.getByTestId('results')).toBeVisible();
 
     await search.fill(target.slug);
     await page.getByRole('link', { name: target.name, exact: true }).click();
@@ -78,6 +80,38 @@ test.describe('gallery', () => {
     const cards = page.getByTestId('results').getByTestId('project-card');
     await expect(cards).toHaveCount(1);
     await expect(cards).toHaveAttribute('data-slug', target.slug);
+  });
+
+  test('empty-state CTAs clear filters, browse templates, and open create', async ({ page }) => {
+    test.skip(prototypes.length === 0, 'no prototypes indexed');
+    await page.goto('/');
+    await hydrated(page, '#browse');
+
+    // Favorites empty → browse all
+    await page.getByRole('button', { name: /^Favorites/ }).click();
+    const favResults = page.getByTestId('results');
+    while ((await favResults.getByTestId('project-card').count()) > 0) {
+      await favResults
+        .getByRole('button', { name: /Remove .+ from favorites/ })
+        .first()
+        .click();
+    }
+    await expect(page.getByTestId('browse-empty')).toHaveAttribute('data-empty', 'favorites');
+    await page.getByTestId('empty-browse-all').click();
+    await expect(page.getByTestId('result-count')).toContainText(`of ${prototypes.length}`);
+
+    // No-matches filters → create prototype CTA
+    await page.getByTestId('search').fill('zz-no-such-prototype-zz');
+    await expect(page.getByTestId('browse-empty')).toHaveAttribute('data-empty', 'filters');
+    await page.getByTestId('empty-create-prototype').click();
+    await expect(page).toHaveURL(/\/new\/?/);
+
+    // Browse templates jumps to the templates section
+    await page.goto('/');
+    await hydrated(page, '#browse');
+    await page.getByTestId('search').fill('zz-no-such-prototype-zz');
+    await page.getByTestId('empty-browse-templates').click();
+    await expect(page.locator('#templates')).toBeInViewport();
   });
 
   test('switches the device preview frame', async ({ page }) => {
