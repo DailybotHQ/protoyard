@@ -80,6 +80,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@protoyard/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.3(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
@@ -92,6 +95,10 @@ importers:
       tailwindcss:
         specifier: ^4.3.0
         version: 4.3.3
+    devDependencies:
+      axe-core:
+        specifier: ^4.13.0
+        version: 4.13.0
 
   packages/ai:
     dependencies:
