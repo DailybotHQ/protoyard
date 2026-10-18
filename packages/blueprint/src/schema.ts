@@ -271,11 +271,82 @@ const NotificationRuleSchema = z
   });
 export type BlueprintNotificationRule = z.infer<typeof NotificationRuleSchema>;
 
+/** Brand hex seed (`#rgb` or `#rrggbb`). */
+const brandHex = z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, {
+  message: 'brand colors must be #rgb or #rrggbb hex',
+});
+
+/**
+ * Optional product brand for `protoyard generate`. When set, the CLI builds a
+ * WCAG AA theme (seed palette and/or built-in preset + style profile + font)
+ * and wires it as the prototype default. Absent brand → template default theme.
+ */
+export const BlueprintBrandSchema = z
+  .strictObject({
+    /** Theme id written into the prototype (`^[a-z][a-z0-9-]*$`). Defaults from name. */
+    id: z
+      .string()
+      .regex(/^[a-z][a-z0-9-]*$/, { message: 'brand id must be lowercase kebab-case' })
+      .max(40)
+      .optional(),
+    /** Display name for the generated theme (max 40; ThemeSchema limit). */
+    name: z.string().min(1).max(40).optional(),
+    /** Brand seed for the palette engine. Required unless `preset` is set. */
+    seed: brandHex.optional(),
+    /** Optional secondary seed for charts and secondary fills. */
+    secondary: brandHex.optional(),
+    /**
+     * Built-in preset id (`violet`, `ocean`, …). Used as the full theme when
+     * `seed` is omitted; ignored for palette when `seed` is present.
+     */
+    preset: z.enum(['violet', 'ocean', 'emerald', 'rose', 'amber', 'monochrome']).optional(),
+    /**
+     * Named style profile: radius, density and elevation knobs applied after
+     * the palette (or preset) is chosen.
+     */
+    styleProfile: z.enum(['soft', 'crisp', 'flat', 'rounded', 'editorial', 'mono']).optional(),
+    /** `FONT_CATALOG` id from `@protoyard/themes`. */
+    font: z
+      .enum([
+        'system',
+        'humanist',
+        'geometric',
+        'grotesk',
+        'editorial',
+        'rounded',
+        'condensed',
+        'mono',
+      ])
+      .optional(),
+    /** CSS radius length (`0.5rem`, `8px`). */
+    radius: z
+      .string()
+      .regex(/^(?:0|\d{1,3}(?:\.\d{1,4})?(?:px|rem|em))$/, {
+        message: 'radius must look like 0.5rem or 8px',
+      })
+      .optional(),
+    /** Spacing multiplier 0.75–1.25. */
+    density: z.number().min(0.75).max(1.25).optional(),
+  })
+  .superRefine((brand, ctx) => {
+    if (!brand.seed && !brand.preset) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['seed'],
+        message: 'brand needs a seed color or a theme preset',
+      });
+    }
+  });
+export type BlueprintBrand = z.infer<typeof BlueprintBrandSchema>;
+export type BlueprintBrandInput = z.input<typeof BlueprintBrandSchema>;
+
 const BlueprintShape = z.strictObject({
   $schema: z.string().optional(),
   formatVersion: z.literal(1),
   name: z.string().min(1).max(80),
   description: z.string().max(280).optional(),
+  /** Optional brand → generated on-brand theme for `protoyard generate`. */
+  brand: BlueprintBrandSchema.optional(),
   entities: z.array(EntitySchema).min(1, { message: 'a blueprint needs at least one entity' }),
   roles: z.array(RoleSchema).min(1, { message: 'a blueprint needs at least one role' }),
   notifications: z.array(NotificationRuleSchema).default([]),

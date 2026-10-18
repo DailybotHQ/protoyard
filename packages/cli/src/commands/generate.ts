@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { type Blueprint, safeParseBlueprint } from '@protoyard/blueprint';
+import { type Blueprint, BrandThemeError, safeParseBlueprint } from '@protoyard/blueprint';
 import { MANIFEST_FILENAME } from '@protoyard/core';
 import {
+  brandDefaultThemeId,
   type EmittedFile,
   emitPrototype,
   personalizeHtml,
@@ -123,7 +124,18 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     dir: templateDir,
     registry,
   } = await resolveTarget(ctx, templateName, 'template');
-  const files = emitPrototype(blueprint, slug, text);
+  let files: EmittedFile[];
+  try {
+    files = emitPrototype(blueprint, slug, text);
+  } catch (error) {
+    if (error instanceof BrandThemeError) {
+      throw new CliError('validation', error.message, {
+        hint: 'Adjust brand.seed / preset / styleProfile so text pairs reach WCAG AA 4.5:1.',
+        data: { failures: error.failures },
+      });
+    }
+    throw error;
+  }
   const dryRun = flag(options, 'dryRun');
 
   await mkdir(ctx.paths.prototypes, { recursive: true });
@@ -217,6 +229,8 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       const preview = { ...((manifest.preview as Record<string, unknown> | undefined) ?? {}) };
       delete preview.shell;
       manifest.preview = preview;
+      const brandTheme = brandDefaultThemeId(blueprint);
+      if (brandTheme) manifest.defaultTheme = brandTheme;
       await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
       const htmlPath = join(staging, 'index.html');
       if (existsSync(htmlPath)) {

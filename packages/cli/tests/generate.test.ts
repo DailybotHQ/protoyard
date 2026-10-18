@@ -189,6 +189,58 @@ describe('protoyard generate', () => {
     expect(read('prototypes/help-desk/src/App.svelte')).not.toContain('NotificationsBell');
   });
 
+  it('wires an optional blueprint brand into the default theme (AA, hash-headed)', async () => {
+    const file = writeBlueprint(
+      blueprintInput({
+        brand: {
+          id: 'acme-teal',
+          name: 'Acme Teal',
+          seed: '#0f766e',
+          styleProfile: 'soft',
+          font: 'grotesk',
+        },
+      }),
+      'branded.json'
+    );
+    const run = await generate('branded-desk', '--blueprint', file, '--no-install');
+    expect(run.code).toBe(0);
+    const { data } = run.json<Envelope>();
+    expect(data.hashesIntact).toBe(true);
+    expect(data.generated as string[]).toContain('src/generated/brand-theme.ts');
+
+    const manifest = JSON.parse(read('prototypes/branded-desk/protoyard.json'));
+    expect(manifest.defaultTheme).toBe('acme-teal');
+
+    const themeModule = read('prototypes/branded-desk/src/generated/brand-theme.ts');
+    expect(checkHeader(themeModule)).toEqual({ generated: true, intact: true });
+    expect(themeModule).toContain('acmeTealTheme');
+    expect(themeModule).toContain('"id": "acme-teal"');
+
+    const prototype = read('prototypes/branded-desk/src/prototype.ts');
+    expect(prototype).toContain("from './generated/brand-theme.ts'");
+    expect(prototype).toContain('themes: [acmeTealTheme]');
+
+    // Same blueprint again is a no-op (hash guard).
+    const again = await generate('branded-desk', '--blueprint', file, '--no-install');
+    expect(again.code).toBe(0);
+    expect(again.json<Envelope>().data).toMatchObject({ created: false, unchanged: true });
+
+    // Without brand, the template default theme is left alone.
+    const plain = await generate(
+      'plain-desk',
+      '--blueprint',
+      writeBlueprint(blueprintInput(), 'plain.json'),
+      '--no-install'
+    );
+    expect(plain.code).toBe(0);
+    const plainManifest = JSON.parse(read('prototypes/plain-desk/protoyard.json'));
+    const templateManifest = JSON.parse(read('templates/crud-app/protoyard.json'));
+    expect(plainManifest.defaultTheme).toBe(templateManifest.defaultTheme);
+    expect(existsSync(join(ws.root, 'prototypes/plain-desk/src/generated/brand-theme.ts'))).toBe(
+      false
+    );
+  });
+
   it('is idempotent for the same blueprint and refuses to overwrite a different one', async () => {
     const file = writeBlueprint();
     expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(0);
@@ -235,6 +287,9 @@ describe('protoyard generate', () => {
       join(ws.root, 'prototypes/help-desk/node_modules'),
       'dir'
     );
+    // Templates ship AGENTS.md/docs markers; refresh them for the generated blueprint
+    // before validate (stale generated regions always fail the spec check).
+    expect((await cli(['--root', ws.root, '--json', 'spec', 'help-desk', '--write'])).code).toBe(0);
     const run = await cli(['--root', ws.root, '--json', 'validate', 'help-desk']);
     const { ok, data } = run.json<{
       ok: boolean;
