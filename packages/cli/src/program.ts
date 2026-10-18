@@ -10,7 +10,11 @@ import { listCommand } from './commands/list.ts';
 import { newCommand } from './commands/new.ts';
 import { previewCommand } from './commands/preview.ts';
 import { publishCommand } from './commands/publish.ts';
-import { scenarioListCommand, scenarioValidateCommand } from './commands/scenario.ts';
+import {
+  scenarioBenchCommand,
+  scenarioListCommand,
+  scenarioValidateCommand,
+} from './commands/scenario.ts';
 import { controlServerCommand, galleryCommand } from './commands/serve.ts';
 import { showcaseCommand } from './commands/showcase.ts';
 import { snapshotListCommand } from './commands/snapshot.ts';
@@ -218,6 +222,14 @@ export function createProgram(env: RunnerEnv): Command {
     .argument('<slug>')
     .option('-s, --scenario <id>', 'only this scenario')
     .action(def('scenario validate', scenarioValidateCommand));
+  scenario
+    .command('bench')
+    .description('benchmark generation and integrity validation for one or all scenarios')
+    .argument('<slug>')
+    .option('-s, --scenario <id>', 'only this scenario')
+    .option('--runs <count>', 'runs per scenario', '3')
+    .option('--check', 'fail when median generation plus validation exceeds the budget')
+    .action(def('scenario bench', scenarioBenchCommand));
 
   const snapshot = program
     .command('snapshot')
