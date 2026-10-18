@@ -47,3 +47,4 @@ export {
   stepInput,
   stepValues,
 } from './screens/onboarding/steps.ts';
+export { default as Settings } from './screens/settings/Settings.svelte';

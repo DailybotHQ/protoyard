@@ -131,6 +131,7 @@ describe('saasRoutes', () => {
     expect(paths).toContain('/onboarding');
     expect(paths).toContain('/oauth/:provider/consent');
     expect(paths).toContain('/oauth/:provider/link');
+    expect(paths).toContain('/settings/:tab?');
   });
 
   it('guards inbox when signed out and allows it when signed in', async () => {
@@ -181,6 +182,7 @@ describe('saasRoutes', () => {
         'oauthLink',
         'onboarding',
         'resetPassword',
+        'settings',
         'signIn',
         'signUp',
         'verifyEmail',

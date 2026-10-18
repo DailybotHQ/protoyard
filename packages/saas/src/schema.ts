@@ -39,6 +39,19 @@ export const LinkedProviderSchema = z.object({
 });
 export type LinkedProvider = z.infer<typeof LinkedProviderSchema>;
 
+export const SaasNotificationPreferencesSchema = z.object({
+  productUpdates: z.boolean(),
+  securityAlerts: z.boolean(),
+  workspaceActivity: z.boolean(),
+});
+export type SaasNotificationPreferences = z.infer<typeof SaasNotificationPreferencesSchema>;
+
+export const DEFAULT_SAAS_NOTIFICATION_PREFERENCES: SaasNotificationPreferences = {
+  productUpdates: false,
+  securityAlerts: true,
+  workspaceActivity: true,
+};
+
 export const SaasAccountSchema = z.object({
   id: z.string().min(1),
   personaId: z.string().min(1),
@@ -47,6 +60,7 @@ export const SaasAccountSchema = z.object({
   /** Simulated password, stored as typed. Simulation only: never a real password. */
   simulatedPassword: z.string().nullable().default(null),
   providers: z.array(LinkedProviderSchema).default([]),
+  notificationPreferences: SaasNotificationPreferencesSchema.optional(),
   status: z.enum(['active', 'locked', 'disabled']).default('active'),
   failedAttempts: z.number().int().nonnegative().default(0),
   createdAt: isoDate,

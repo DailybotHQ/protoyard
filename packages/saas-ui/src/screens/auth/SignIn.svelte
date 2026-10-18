@@ -1,5 +1,5 @@
 <script lang="ts">
-import { navigate, runService } from '@protoyard/renderer-svelte';
+import { navigate, nextPath, runService } from '@protoyard/renderer-svelte';
 import { createMfaServices } from '@protoyard/saas';
 import {
   Button,
@@ -37,11 +37,14 @@ async function submit() {
     );
     return;
   }
+  const next = nextPath(new URLSearchParams(location.hash.split('?')[1] ?? ''), config.homePath);
   if (result.value.status === 'mfa-required') {
-    navigate(`/auth/mfa?account=${encodeURIComponent(result.value.account.id)}`);
+    navigate(
+      `/auth/mfa?account=${encodeURIComponent(result.value.account.id)}&next=${encodeURIComponent(next)}`
+    );
     return;
   }
-  navigate(config.homePath);
+  navigate(next);
 }
 </script>
 

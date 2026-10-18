@@ -118,6 +118,7 @@ export {
   saasScenarioIntegrity,
 } from './scenarios.ts';
 export {
+  DEFAULT_SAAS_NOTIFICATION_PREFERENCES,
   HashHrefSchema,
   INBOX_KINDS,
   InboxActionSchema,
@@ -140,6 +141,8 @@ export {
   SaasInvoiceSchema,
   type SaasMfa,
   SaasMfaSchema,
+  type SaasNotificationPreferences,
+  SaasNotificationPreferencesSchema,
   type SaasOnboarding,
   SaasOnboardingSchema,
   type SaasProvider,
@@ -159,6 +162,13 @@ export {
   saasTables,
   TOKEN_KINDS,
 } from './schema.ts';
+export {
+  type ChangePasswordInput,
+  ChangePasswordSchema,
+  createSettingsServices,
+  type UpdateProfileInput,
+  UpdateProfileSchema,
+} from './settings.ts';
 export {
   type CreateWorkspaceInput,
   CreateWorkspaceSchema,
