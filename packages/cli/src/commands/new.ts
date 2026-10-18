@@ -13,11 +13,19 @@ import { join } from 'node:path';
 import { MANIFEST_FILENAME, safeParseManifest } from '@protoyard/core';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
-import { CliError, mark } from '../lib/output.ts';
+import { inspectSpec } from '../lib/inspect.ts';
+import { CliError, mark, toCliError } from '../lib/output.ts';
 import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
 import { installWorkspace } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
-import { assertSlug, readPackageJson, resolveTarget } from '../lib/workspace.ts';
+import { SPEC_FILES } from '../lib/spec-render.ts';
+import {
+  assertSlug,
+  type CommandContext,
+  readPackageJson,
+  resolveTarget,
+} from '../lib/workspace.ts';
+import { specForPrototype } from './spec.ts';
 
 /** Never copied from a template: build output, installs and local state. */
 const SKIP_NAMES = new Set([
@@ -115,6 +123,51 @@ export async function personalize(dir: string, input: NewProjectInput) {
         readme.replace(/^# .*$/m, () => `# ${input.name}`)
       : `# ${input.name}\n\n${readme}`;
     await writeFile(readmePath, titled);
+  }
+
+  // Spec files (docs/SPECS.md) keep their prose; only the title lines change:
+  // `# AGENTS.md — <name> (`<slug>`)` and `# <name>: <topic>`.
+  for (const file of SPEC_FILES) {
+    const path = join(dir, file);
+    if (!existsSync(path)) continue;
+    const text = await readFile(path, 'utf8');
+    const retitled = text.replace(/^# .*$/m, (line) =>
+      file === 'AGENTS.md'
+        ? `# AGENTS.md — ${input.name} (\`${input.slug}\`)`
+        : `# ${input.name}: ${line.includes(': ') ? line.slice(line.lastIndexOf(': ') + 2) : 'spec'}`
+    );
+    if (retitled !== text) await writeFile(path, retitled);
+  }
+}
+
+export interface NewSpecResult {
+  ok: boolean;
+  /** Spec files created because the template had none. */
+  created: number;
+  /** Files whose generated regions were refreshed for the new slug. */
+  updated: number;
+  error?: string;
+}
+
+/**
+ * Fills the new prototype's spec for its own slug: missing files are created
+ * and generated regions refreshed from its definition (child process). Never
+ * fails `new`: the prototype is usable without it, and
+ * `pnpm protoyard spec <slug> --write` can be re-run after `pnpm install`.
+ */
+export async function writeNewSpec(ctx: CommandContext, dir: string): Promise<NewSpecResult> {
+  try {
+    const facts = await inspectSpec(ctx.root, dir);
+    const result = await specForPrototype(dir, facts, { mode: 'write', init: true });
+    const invalid = result.files.find((f) => f.error);
+    if (invalid) return { ok: false, created: 0, updated: 0, error: invalid.error };
+    return {
+      ok: true,
+      created: result.files.filter((f) => f.created).length,
+      updated: result.files.filter((f) => f.updated).length,
+    };
+  } catch (error) {
+    return { ok: false, created: 0, updated: 0, error: toCliError(error).message };
   }
 }
 
@@ -218,6 +271,9 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
     };
   }
 
+  // After install, so the definition's workspace packages resolve.
+  const spec = await writeNewSpec(ctx, dest);
+
   const index = await buildIndex(ctx.paths);
   const rel = toPosixRelative(ctx.root, dest);
   const nextSteps = [
@@ -236,6 +292,7 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
       created,
       files,
       install,
+      spec,
       indexed: index.registry.entries.some((e) => e.slug === slug && e.kind === 'prototype'),
       nextSteps,
     },
@@ -252,6 +309,16 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
       else {
         out.warn(`${mark(c, 'warn')} pnpm install failed — run it manually before \`dev\`.`);
         if (install.log) out.warn(c.dim(install.log));
+      }
+      if (spec.ok)
+        out.info(
+          `${mark(c, 'pass')} Spec: AGENTS.md and docs/ filled for ${slug} (${spec.created} created, ${spec.updated} refreshed)`
+        );
+      else {
+        out.warn(`${mark(c, 'warn')} Spec regions not refreshed: ${spec.error ?? 'unknown error'}`);
+        out.warn(
+          c.dim(`  Run \`pnpm protoyard spec ${slug} --init --write\` once the prototype loads.`)
+        );
       }
       out.info('\nNext steps:');
       for (const step of nextSteps) out.info(`  ${c.cyan(step)}`);
