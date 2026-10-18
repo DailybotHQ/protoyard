@@ -105,6 +105,19 @@ export {
   RequestPasswordResetSchema,
 } from './reset.ts';
 export {
+  applySaasScenarioSession,
+  type GenerateSaasWorldOptions,
+  generateSaasWorld,
+  SAAS_DEMO_PASSWORD,
+  SAAS_GENERATOR_VERSION,
+  type SaasPlanPrice,
+  type SaasScenarioKnobs,
+  type SaasWorld,
+  saasFragments,
+  saasKnobs,
+  saasScenarioIntegrity,
+} from './scenarios.ts';
+export {
   HashHrefSchema,
   INBOX_KINDS,
   InboxActionSchema,

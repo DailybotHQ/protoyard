@@ -130,6 +130,23 @@ describe('createBilling', () => {
     expect(await runtime.db.rows('saas_inbox').count()).toBe(0);
   });
 
+  it('records a declined first checkout with no subscription id and no subscription', async () => {
+    const { runtime, billing } = await boot('billing-declined-first');
+    const before = runtime.session.principal()?.organization;
+    const result = await billing.checkout({ planId: 'pro', outcome: 'declined' });
+
+    expect(result.subscription).toBeNull();
+    expect(result.invoice).toMatchObject({ status: 'failed', subscriptionId: null });
+    expect(await billing.invoices()).toEqual([result.invoice]);
+    expect(await runtime.db.rows('saas_subscriptions').count()).toBe(0);
+    expect(runtime.session.principal()?.organization).toEqual(before);
+
+    // A later successful checkout still creates the subscription and links its invoice.
+    const paid = await billing.checkout({ planId: 'pro', outcome: 'success' });
+    expect(paid.subscription?.id).toBeTruthy();
+    expect(paid.invoice.subscriptionId).toBe(paid.subscription?.id);
+  });
+
   it('keeps a checkout requiring simulated action pending without activating the plan', async () => {
     const { runtime, billing } = await boot('billing-requires-action');
     const trial = await billing.startTrial({ planId: 'starter' });

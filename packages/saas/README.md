@@ -20,11 +20,12 @@ The table layout, row schemas and integrity rules, plus:
 - **OAuth** — `createOAuthSimulator(runtime, providers)`
 - **Onboarding** — `createOnboarding(runtime, { steps })`
 - **Workspaces** — `createWorkspaces(runtime)`
-
 - **Magic link** — `createMagicLinkServices(runtime)`
 - **MFA (simulated TOTP + recovery)** — `createMfaServices(runtime)`
 - **Password reset** — `createPasswordResetServices(runtime)`
 - **Workspace invitations** — `createInvitationServices(runtime)`
+- **Billing (plans, trial, checkout, invoices)** — `createBilling(runtime, plans)` + `billingTimeline`
+- **Scenario fragments + world generator** — `saasFragments`, `generateSaasWorld(ctx, { team })`
 
 ### Magic link (`createMagicLinkServices`)
 
@@ -125,10 +126,6 @@ email without a matching provider returns an account-link prompt. After the
 person signs in, start again with intent `link` to confirm linking. Consent
 states are deterministic, expire after ten simulated minutes and are
 single-use. No provider SDK, redirect or network request is used.
-- **Email/password auth** — `createAuthServices(runtime)`
-
-OAuth, magic links, MFA, invitations and billing services come in later
-PLAN_002 tasks.
 
 ### Inbox (`createInbox`)
 
@@ -208,24 +205,58 @@ await auth.signOut();
 - Password reset clears failed attempts and unlocks a locked account. Disabled
   accounts remain unavailable.
 
-### Workspaces (`createWorkspaces`)
+### Billing (`createBilling`)
+
+`createBilling(runtime, plans)` simulates plans, trials, checkout (`success`,
+`declined`, `requires-action`), upgrade or downgrade with prorations in integer
+cents, cancel and resume, and invoices. Add `billingTimeline(ctx)` to your
+prototype's `timeline` so trials expire on `scenarios.advance()`. A declined
+or unconfirmed **first** checkout (no subscription yet) records the attempt as
+a `failed` or `open` invoice with `subscriptionId: null`. No subscription is
+created and the organization is unchanged. No card data exists anywhere.
+
+### Scenario fragments (`saasFragments`, `generateSaasWorld`)
+
+Jump straight to any auth or billing state. Fragments only set knobs under
+`scenario.generators.saas`, and they compose like any other fragment:
 
 ```ts
-import { createWorkspaces, WORKSPACE_CAPABILITIES } from '@protoyard/saas';
+import { composeScenario, generateTeam, PRESETS } from '@protoyard/scenarios';
+import { generateSaasWorld, saasFragments, saasScenarioIntegrity } from '@protoyard/saas';
 
-// Policy roles should grant workspaces:create / rename / leave (or `*`).
-const workspaces = createWorkspaces(runtime);
-const { organization } = await workspaces.create({ name: 'Acme Labs' });
-await workspaces.switchTo(organization.id); // also happens automatically after create
-await workspaces.rename(organization.id, { name: 'Acme Cloud' });
-// Last owner cannot leave — transfer first via workspaces.transferOwnership(memberId)
-await workspaces.leave(organization.id);
+const scenarios = [
+  composeScenario(PRESETS['first-week'], { id: 'trial-ending', name: 'Trial ends soon' }, saasFragments.trialEnding(2)),
+  composeScenario(PRESETS['active-month'], { id: 'past-due', name: 'Payment failed' }, saasFragments.pastDue()),
+];
+
+definePrototype({
+  // …
+  integrity: mergeIntegrity(myIntegrity, saasScenarioIntegrity()),
+  generate(ctx) {
+    const saas = generateSaasWorld(ctx, { team: generateTeam(ctx) });
+    return { ...saas, tables: { ...myTables, ...saas.tables } };
+  },
+});
 ```
 
-- Creates the organization + owner membership in **one** `runtime.identity.write` transaction, then `session.switchOrganization`.
-- **`switchTo`** only allows organizations the persona already belongs to (control-state only, works offline).
-- **`leave`** refuses when the actor is the last `owner`; after a successful leave, switches to another membership when the active org was left.
-- **`transferOwnership`** delegates to `runtime.members.transferOwnership`.
+| Fragment | What the world contains |
+| --- | --- |
+| `signedOut()` | Knob only. Call `applySaasScenarioSession(runtime)` after boot and on scenario changes. It signs out once per load, and someone who signs in afterwards stays signed in. |
+| `unverifiedEmail()` | The actor's email is unconfirmed, with a live verify-email token and its inbox message |
+| `mfaEnrolled()` | An active simulated authenticator for the actor, with 8 recovery codes |
+| `pendingInvite(n)` | `n` pending invitations to fictional people, each with a token and an invite message |
+| `trialEnding(days)` | A trialing subscription ending `days` after the reference time, the org `trialing`, and a reminder when 3 days or fewer remain |
+| `pastDue()` | Paid history whose last invoice failed, the subscription and org `past_due`, and a payment-failed message |
+| `multiWorkspace(n)` | The actor belongs to `n` organizations (owner of the first extra, admin of the rest) |
+| `oauthLinked(...providers)` | Those providers linked to the actor's account |
+
+Every persona gets a verified account with the password `SAAS_DEMO_PASSWORD`
+(`demo-password`, simulated). Subscriptions follow
+`organization.subscription` (`free` has none, `pro`/`enterprise` get up to
+three paid invoices, `expired` lapses). Rows come from `ctx.ids`, `ctx.rng`,
+`ctx.faker` and `ctx.time` only, so the same seed rebuilds the same world.
+Bump `SAAS_GENERATOR_VERSION` (and your `generatorVersion`) when the output
+changes. Pass `tables` to generate only the kit tables you opted into.
 
 | Table | Holds | Indexes |
 | --- | --- | --- |
