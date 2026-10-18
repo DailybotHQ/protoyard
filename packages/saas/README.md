@@ -17,6 +17,33 @@ The table layout, row schemas and integrity rules, plus the onboarding
 wizard engine (below). The other services (sign-in, OAuth, magic links, MFA,
 invitations, workspaces, billing) come in later PLAN_002 tasks and are not in
 this package yet.
+The table layout, row schemas and integrity rules, plus the simulated
+**inbox service** (`createInbox(runtime)`). Sign-in, OAuth, magic links, MFA,
+invitations, workspaces, billing and onboarding services come in later
+PLAN_002 tasks.
+
+### Inbox (`createInbox`)
+
+```ts
+import { createInbox } from '@protoyard/saas';
+
+const inbox = createInbox(runtime);
+await inbox.deliver({
+  recipient: 'ada@example.com',
+  kind: 'magic-link',
+  subject: 'Sign in to Acme',
+  body: 'Use the button below (simulated).',
+  action: { label: 'Sign in', href: '#/auth/magic?token=…' }, // hash routes only
+});
+const messages = await inbox.list({ recipient: 'ada@example.com', unreadOnly: true });
+await inbox.markRead(messages[0]!.id);
+```
+
+- **Kinds:** `verify-email`, `magic-link`, `password-reset`, `invite`, `receipt`, `trial`, `notification`.
+- **Body** is plain text (never `{@html}`). **Action** links must match `#/…`.
+- **`deliver`** goes through `environment.run('inbox.deliver')` so offline writes nothing.
+- **`write`** is the same validation + insert for use **inside** an outer Dexie transaction (auth flows that commit a token and a message together).
+- **`list` / `get` / `markRead` / `archive`** are liveQuery-friendly async reads/writes (newest first).
 
 | Table | Holds | Indexes |
 | --- | --- | --- |

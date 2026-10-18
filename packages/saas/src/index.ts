@@ -12,6 +12,14 @@ export {
   type StepEffect,
   ValidationError,
 } from './onboarding.ts';
+  createInbox,
+  type DeliverInboxMessageInput,
+  DeliverInboxMessageSchema,
+  type InboxListOptions,
+  type InboxService,
+  isInboxEnvironmentError,
+  type SaasInboxDatabase,
+} from './inbox.ts';
 export {
   HashHrefSchema,
   INBOX_KINDS,
