@@ -6,6 +6,7 @@ import {
   ValidationError,
 } from '@protoyard/core';
 import { z } from 'zod';
+import { createNotificationWriter } from './notifications.ts';
 import {
   type Blueprint,
   type BlueprintEntity,
@@ -177,9 +178,18 @@ export function createEntityServices(
   const byName = new Map(blueprint.entities.map((e) => [e.name, e]));
   const tables = blueprint.entities.map(entityTable);
   const filesEnabled = blueprint.entities.some((e) => e.features.files);
-  const writeTables = filesEnabled
-    ? [...tables, FEATURE_TABLES.files, 'py_personas']
-    : [...tables, 'py_personas'];
+  const notificationsEnabled =
+    blueprint.notifications.length > 0 || blueprint.entities.some((e) => e.features.notifications);
+  const writeTables = [
+    ...tables,
+    ...(filesEnabled ? [FEATURE_TABLES.files] : []),
+    ...(notificationsEnabled ? [FEATURE_TABLES.notifications] : []),
+    'py_personas',
+    ...(blueprint.notifications.some((rule) => rule.notify.startsWith('role:'))
+      ? ['py_memberships']
+      : []),
+  ];
+  const notify = createNotificationWriter(runtime, blueprint);
 
   /** Relation fields (in any entity) that point at `target`. */
   const referencesTo = (target: string): Reference[] =>
@@ -426,6 +436,7 @@ export function createEntityServices(
               updatedAt: now,
             };
             await db.table(table).put(row);
+            await notify({ on: 'create', entity, row });
             return row;
           })
         );
@@ -441,6 +452,7 @@ export function createEntityServices(
             await assertReferences(entity, values);
             const row: Row = { ...current, ...values, id, updatedAt: clock.now().toISOString() };
             await db.table(table).put(row);
+            await notify({ on: 'update', entity, row, previous: current });
             return row;
           })
         );
@@ -565,6 +577,9 @@ export function createEntityServices(
             const current = await Promise.all(unique.map(load));
             const rows = current.map((row) => ({ ...row, ...values, id: row.id, updatedAt: now }));
             await putChunked(db.table(table), rows);
+            for (let i = 0; i < rows.length; i += 1) {
+              await notify({ on: 'update', entity, row: rows[i] as Row, previous: current[i] });
+            }
             return rows;
           })
         );
