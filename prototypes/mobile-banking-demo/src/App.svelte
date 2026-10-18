@@ -1,9 +1,10 @@
 <script lang="ts">
 import { ArrowLeftRight, House, ReceiptText, UserRound, Users } from '@lucide/svelte';
 import { createRouter, Router } from '@protoyard/renderer-svelte';
-import { BottomNav } from '@protoyard/ui';
+import { BottomNav, MobileAppShell } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { provideBank } from './lib/context.ts';
+import { provideShellLayout } from './lib/shell-layout.svelte.ts';
 import AccountDetail from './screens/AccountDetail.svelte';
 import Activity from './screens/Activity.svelte';
 import Home from './screens/Home.svelte';
@@ -12,6 +13,7 @@ import Profile from './screens/Profile.svelte';
 import Transfer from './screens/Transfer.svelte';
 
 const bank = provideBank();
+const shellLayout = provideShellLayout();
 
 const router = createRouter(
   [
@@ -46,13 +48,24 @@ const items = $derived(
 );
 </script>
 
-<div class="min-h-dvh bg-muted/40 md:py-6">
-  <div
-    class="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background md:min-h-[calc(100dvh-3rem)] md:overflow-hidden md:rounded-3xl md:border md:border-border md:shadow-xl"
-  >
-    <main id="main" class="flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
-      <Router {router} />
-    </main>
-  </div>
-  <BottomNav {items} label="Main" />
-</div>
+<!--
+  MobileAppShell fills the app viewport (h-app). Only <main> scrolls; BottomNav
+  and Transfer's stickyFooter stay visible. Device frames supply presentation —
+  no md: desktop-card chrome here.
+-->
+<MobileAppShell mainId="main" class="mx-auto w-full max-w-md">
+  {#snippet stickyFooter()}
+    {#if shellLayout.footer}
+      <div
+        class="shrink-0 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md"
+        data-shell-sticky-footer
+      >
+        {@render shellLayout.footer()}
+      </div>
+    {/if}
+  {/snippet}
+  {#snippet bottomNav()}
+    <BottomNav {items} label="Main" fixed={false} />
+  {/snippet}
+  <Router {router} />
+</MobileAppShell>

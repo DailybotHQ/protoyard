@@ -155,4 +155,34 @@ test.describe('Lumen Bank (static build)', () => {
     await expect(page.getByRole('button', { name: /devtools/i })).toHaveCount(0);
     expect(await page.evaluate(() => window.__protoyard?.storage().backend)).toBe('indexeddb');
   });
+
+  test('MobileAppShell keeps nav and Transfer submit in view without document scroll', async ({
+    page,
+  }) => {
+    await openApp(page, '#/transfer');
+    const nav = page.getByRole('navigation', { name: 'Main' });
+    await expect(nav).toBeVisible();
+    await expect(nav).toBeInViewport();
+
+    await page.getByRole('button', { name: /Everyday Checking/ }).click();
+    await page.getByRole('button', { name: /Rainy-day Savings/ }).click();
+    await page.getByLabel(/Amount/).fill('10.00');
+    // Primary action is pinned in the shell stickyFooter above BottomNav.
+    const review = page.getByRole('button', { name: 'Review transfer' });
+    await expect(review).toBeInViewport();
+    await review.click();
+    const send = page.getByRole('button', { name: /Send \$10\.00/ });
+    await expect(send).toBeInViewport();
+    await expect(nav).toBeInViewport();
+
+    // Document itself does not scroll — only the shell <main> does.
+    const scroll = await page.evaluate(() => ({
+      docTop: document.documentElement.scrollTop + document.body.scrollTop,
+      mainScrollable:
+        document.getElementById('main')?.classList.contains('overflow-y-auto') ?? false,
+      shellOverflow: document.querySelector('[class*="overflow-hidden"]') !== null,
+    }));
+    expect(scroll.docTop).toBe(0);
+    expect(scroll.mainScrollable).toBe(true);
+  });
 });

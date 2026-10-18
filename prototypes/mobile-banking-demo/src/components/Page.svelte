@@ -3,7 +3,11 @@ import { MobileHeader } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
 import ConditionBanners from './ConditionBanners.svelte';
 
-/** Every screen: sticky mobile header, condition banners, padded content. */
+/**
+ * Every screen: mobile header (sticky inside the shell's scrolling main),
+ * condition banners, padded content. Primary actions that must stay visible
+ * go through the shell stickyFooter (see shell-layout), not here.
+ */
 let {
   title,
   subtitle,
@@ -21,7 +25,7 @@ let {
 } = $props();
 </script>
 
-<MobileHeader {title} {subtitle} {backHref} {onBack} {actions} />
+<MobileHeader {title} {subtitle} {backHref} {onBack} {actions} sticky />
 <div class="flex flex-col gap-5 px-4 pt-4 pb-6">
   <ConditionBanners />
   {@render children()}

@@ -22,6 +22,7 @@ import { sortAccounts } from '../lib/derive.ts';
 import { describeError, type FriendlyError } from '../lib/errors.ts';
 import { notifyError } from '../lib/feedback.ts';
 import { formatDateTime, formatMoney, parseAmount } from '../lib/format.ts';
+import { useShellLayout } from '../lib/shell-layout.svelte.ts';
 
 let { query }: RouteProps = $props();
 
@@ -44,6 +45,8 @@ const { db, services } = useBank();
 const clock = useClock();
 const appearance = useAppearance();
 const principal = usePrincipal();
+const shellLayout = useShellLayout();
+const pinPrimaryAction = $derived(shellLayout !== null);
 
 const accounts = liveQuery(() => db.accounts.toArray());
 const payees = liveQuery(() => db.beneficiaries.orderBy('name').toArray());
@@ -173,7 +176,47 @@ function startOver() {
 }
 
 const quickAmounts = [20, 50, 100, 250];
+
+/** Primary CTA lives in MobileAppShell stickyFooter when the app shell is present. */
+$effect(() => {
+  if (!shellLayout) return;
+  if (canSend && (step === 'amount' || step === 'review')) {
+    shellLayout.setFooter(primaryAction);
+  } else {
+    shellLayout.setFooter(null);
+  }
+  return () => shellLayout.setFooter(null);
+});
 </script>
+
+{#snippet primaryAction()}
+  {#if step === 'amount'}
+    <Button
+      type="submit"
+      form="transfer-amount-form"
+      size="lg"
+      class="w-full"
+      disabled={amountText.length === 0}
+    >
+      Review transfer
+    </Button>
+  {:else if step === 'review' && amount !== null}
+    <div class="flex flex-col gap-2">
+      <Button
+        size="lg"
+        class="w-full"
+        onclick={confirm}
+        loading={submitting}
+        loadingLabel="Sending…"
+      >
+        Send {formatMoney(amountCents)}
+      </Button>
+      <Button variant="ghost" class="w-full" onclick={goBack} disabled={submitting}>
+        Edit amount
+      </Button>
+    </div>
+  {/if}
+{/snippet}
 
 <Page
   title={step === 'done' ? 'Transfer sent' : 'Send money'}
@@ -271,7 +314,12 @@ const quickAmounts = [20, 50, 100, 250];
           <p class="text-sm text-muted-foreground">
             From <strong class="text-foreground">{from.name}</strong> to <strong class="text-foreground">{to.name}</strong>
           </p>
-          <form class="flex flex-col gap-4" onsubmit={toReview} novalidate>
+          <form
+            id="transfer-amount-form"
+            class="flex flex-col gap-4"
+            onsubmit={toReview}
+            novalidate
+          >
             <FormField label="Amount (USD)" error={amountError} required description={`${formatMoney(from.balanceCents)} available`}>
               {#snippet children({ props })}
                 <div class="relative">
@@ -301,7 +349,9 @@ const quickAmounts = [20, 50, 100, 250];
                 <Input {...props} bind:value={memo} maxlength={80} placeholder="e.g. Dinner split" />
               {/snippet}
             </FormField>
-            <Button type="submit" size="lg" disabled={amountText.length === 0}>Review transfer</Button>
+            {#if !pinPrimaryAction}
+              <Button type="submit" size="lg" disabled={amountText.length === 0}>Review transfer</Button>
+            {/if}
           </form>
         {:else if step === 'review' && from && to && amount !== null}
           <h2 class="text-lg font-semibold">Review and send</h2>
@@ -320,10 +370,12 @@ const quickAmounts = [20, 50, 100, 250];
               <p class="mt-1 text-xs text-muted-foreground">No money moved.</p>
             </div>
           {/if}
-          <Button size="lg" onclick={confirm} loading={submitting} loadingLabel="Sending…">
-            Send {formatMoney(amountCents)}
-          </Button>
-          <Button variant="ghost" onclick={goBack} disabled={submitting}>Edit amount</Button>
+          {#if !pinPrimaryAction}
+            <Button size="lg" onclick={confirm} loading={submitting} loadingLabel="Sending…">
+              Send {formatMoney(amountCents)}
+            </Button>
+            <Button variant="ghost" onclick={goBack} disabled={submitting}>Edit amount</Button>
+          {/if}
         {:else if step === 'done' && receipt}
           <div class="flex flex-col items-center gap-2 pt-4 text-center">
             <span class="grid size-16 place-items-center rounded-full bg-success text-success-foreground" aria-hidden="true">
