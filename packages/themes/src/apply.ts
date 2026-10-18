@@ -1,4 +1,10 @@
-import { type ColorMode, type Theme, type ThemePalette, tokenToCssVar } from '@protoyard/core';
+import {
+  type ColorMode,
+  DEFAULT_THEME_STYLE,
+  type Theme,
+  type ThemePalette,
+  tokenToCssVar,
+} from '@protoyard/core';
 import { hoverFill } from './contrast.ts';
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from './presets.ts';
 
@@ -143,7 +149,66 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
   vars['--py-motion-base'] = input.reducedMotion ? '0ms' : `${style.motion.durations.base}ms`;
   vars['--py-motion-slow'] = input.reducedMotion ? '0ms' : `${style.motion.durations.slow}ms`;
   vars['--py-motion-easing'] = input.reducedMotion ? 'linear' : style.motion.easing;
+  vars['--py-focus-ring-width'] = style.focusRing.width;
+  vars['--py-focus-ring-offset'] = style.focusRing.offset;
   return vars;
+}
+
+/**
+ * The `@protoyard/ui` component profiles (`data-py-*-style`, see
+ * packages/ui/src/styles/variants.css) a theme's style implies. Only
+ * departures from today's look produce an attribute, so a theme without a
+ * `style` renders exactly as before:
+ * - `focusRing` → `focus-ring` when it differs from the default ring;
+ * - `surface: glass` → `card: glass`; `elevation: flat` → `card: bordered`;
+ * - a radius of 0 → `button: square`; a radius of 999px or more → `button: pill`.
+ * Input and navigation profiles have no theme field and stay consumer-set.
+ */
+export interface ComponentProfile {
+  button?: 'pill' | 'square';
+  card?: 'glass' | 'bordered';
+  focusRing?: Theme['style']['focusRing']['style'];
+}
+
+const PROFILE_ATTRIBUTES = {
+  button: 'pyButtonStyle',
+  card: 'pyCardStyle',
+  focusRing: 'pyFocusRingStyle',
+} as const satisfies Record<keyof ComponentProfile, string>;
+
+function radiusPx(radius: string): number | null {
+  const match = /^(\d+(?:\.\d+)?)(px|rem|em)?$/.exec(radius.trim());
+  if (!match) return null;
+  const value = Number(match[1]);
+  return match[2] === 'rem' || match[2] === 'em' ? value * 16 : value;
+}
+
+export function themeComponentProfile(theme: Theme): ComponentProfile {
+  const profile: ComponentProfile = {};
+  const ring = theme.style.focusRing;
+  const fallback = DEFAULT_THEME_STYLE.focusRing;
+  if (
+    ring.style !== fallback.style ||
+    ring.width !== fallback.width ||
+    ring.offset !== fallback.offset
+  ) {
+    profile.focusRing = ring.style;
+  }
+  if (theme.style.surface === 'glass') profile.card = 'glass';
+  else if (theme.style.elevation === 'flat') profile.card = 'bordered';
+  const px = radiusPx(theme.radius);
+  if (px === 0) profile.button = 'square';
+  else if (px !== null && px >= 999) profile.button = 'pill';
+  return profile;
+}
+
+/** Sets the profile attributes on `target` and removes the ones the theme does not imply. */
+function applyComponentProfile(target: HTMLElement, profile: ComponentProfile): void {
+  for (const [key, attribute] of Object.entries(PROFILE_ATTRIBUTES)) {
+    const value = profile[key as keyof ComponentProfile];
+    if (value) target.dataset[attribute] = value;
+    else delete target.dataset[attribute];
+  }
 }
 
 export interface AppliedAppearance {
@@ -153,6 +218,8 @@ export interface AppliedAppearance {
   density: number;
   /** Theme surface style (`solid` | `glass`) for no-flash replay. */
   surface: Theme['style']['surface'];
+  /** Component profile attributes written on the target (for no-flash replay). */
+  components: ComponentProfile;
   vars: Record<string, string>;
 }
 
@@ -169,6 +236,8 @@ export function applyAppearance(target: HTMLElement, input: AppearanceInput): Ap
   target.dataset.pyMode = input.resolvedMode;
   target.dataset.pyMotion = reducedMotion ? 'reduce' : 'full';
   target.dataset.pySurface = input.theme.style.surface;
+  const components = themeComponentProfile(input.theme);
+  applyComponentProfile(target, components);
   target.classList.toggle('dark', input.resolvedMode === 'dark');
   target.classList.toggle('light', input.resolvedMode === 'light');
   target.style.colorScheme = input.resolvedMode;
@@ -178,6 +247,7 @@ export function applyAppearance(target: HTMLElement, input: AppearanceInput): Ap
     reducedMotion,
     density: Number(vars['--py-density']),
     surface: input.theme.style.surface,
+    components,
     vars,
   };
 }
@@ -193,6 +263,7 @@ export function clearAppearance(target: HTMLElement): void {
   delete target.dataset.pyMode;
   delete target.dataset.pyMotion;
   delete target.dataset.pySurface;
+  applyComponentProfile(target, {});
   target.classList.remove('dark', 'light');
   target.style.removeProperty('color-scheme');
 }
