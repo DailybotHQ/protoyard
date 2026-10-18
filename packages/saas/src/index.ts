@@ -1,4 +1,18 @@
 export {
+  createOnboarding,
+  createOnboardingFlow,
+  DEFAULT_ONBOARDING_CAPABILITY,
+  DONE_STEP,
+  ONBOARDING_TABLE,
+  type Onboarding,
+  type OnboardingConfig,
+  type OnboardingFlow,
+  type OnboardingStepDefinition,
+  parseInput,
+  type StepEffect,
+  ValidationError,
+} from './onboarding.ts';
+export {
   HashHrefSchema,
   INBOX_KINDS,
   InboxActionSchema,

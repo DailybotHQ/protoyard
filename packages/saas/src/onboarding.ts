@@ -1,0 +1,335 @@
+import type { Persona, PrototypeRuntime } from '@protoyard/core';
+import type { z } from 'zod';
+import type { SaasOnboarding } from './schema.ts';
+
+/**
+ * The persisted onboarding wizard engine, generalised from
+ * `templates/onboarding` (steps.ts + the mutate/settle pattern in services.ts).
+ *
+ * A prototype declares its answer steps; the engine appends the final
+ * `done` step. Every mutation follows the service contract:
+ *   1. `session.assert(capability)` — enforced even if the UI is bypassed,
+ *   2. zod validation of the step's answer (`ValidationError.issues` per field),
+ *   3. `environment.run('<area>.<step>')` — latency / offline / failures,
+ *   4. ONE `db.transaction` that writes the answer AND the new wizard
+ *      position, so a reload always resumes exactly where the person left off.
+ *
+ * Rows live in the kit's `saas_onboarding` table (one per persona).
+ */
+
+export const DONE_STEP = 'done';
+export const ONBOARDING_TABLE = 'saas_onboarding';
+export const DEFAULT_ONBOARDING_CAPABILITY = 'onboarding:progress';
+
+/** Field path → first message, the shape `runService` shows inline. */
+export class ValidationError extends Error {
+  readonly issues: Record<string, string>;
+  constructor(issues: Record<string, string>) {
+    super(Object.values(issues)[0] ?? 'Invalid input');
+    this.name = 'ValidationError';
+    this.issues = issues;
+  }
+}
+
+export function parseInput<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
+  const result = schema.safeParse(input);
+  if (result.success) return result.data;
+  const issues: Record<string, string> = {};
+  for (const issue of result.error.issues) {
+    const key = issue.path.join('.') || 'form';
+    issues[key] ??= issue.message;
+  }
+  throw new ValidationError(issues);
+}
+
+/** Runs inside the step's transaction, after validation (e.g. write a workspace row). */
+export type StepEffect = (
+  answer: unknown,
+  ctx: { at: string; personaId: string; organizationId: string | null }
+) => void | Promise<void>;
+
+export interface OnboardingStepDefinition {
+  id: string;
+  label: string;
+  description?: string;
+  /** Optional steps can be skipped. */
+  optional?: boolean;
+  /** Validates the submitted answer; omit for steps without input (acknowledge only). */
+  schema?: z.ZodType;
+  /** Extra capability this step needs on top of the wizard's. */
+  capability?: string;
+  effect?: StepEffect;
+}
+
+export interface OnboardingConfig {
+  steps: readonly OnboardingStepDefinition[];
+  /** Capability for every wizard action (default `onboarding:progress`). */
+  capability?: string;
+  /** Prefix of environment operation names (default `onboarding`). */
+  area?: string;
+  /** Domain tables step effects write, so they join the wizard's transaction. */
+  tables?: readonly string[];
+}
+
+type Position = Pick<SaasOnboarding, 'currentStep' | 'completedSteps' | 'skippedSteps'>;
+
+/** Pure step logic: shared by the engine, generators and screens. No IO. */
+export function createOnboardingFlow(steps: readonly OnboardingStepDefinition[]) {
+  if (steps.length === 0) throw new Error('An onboarding flow needs at least one step.');
+  const ids = steps.map((s) => s.id);
+  if (new Set(ids).size !== ids.length) throw new Error('Onboarding step ids must be unique.');
+  if (ids.includes(DONE_STEP)) throw new Error(`"${DONE_STEP}" is added by the engine.`);
+
+  const all = [...ids, DONE_STEP];
+  const byId = new Map(steps.map((s) => [s.id, s]));
+  const indexOf = (step: string) => all.indexOf(step);
+  const known = (step: string) => {
+    if (indexOf(step) < 0)
+      throw new ValidationError({ form: `Unknown onboarding step "${step}".` });
+  };
+  const label = (step: string) => (step === DONE_STEP ? 'Done' : (byId.get(step)?.label ?? step));
+  const isOptional = (step: string) => byId.get(step)?.optional === true;
+
+  return {
+    /** Answer steps in order (without `done`). */
+    steps,
+    /** Every step id in order, ending with `done`. */
+    ids: all,
+    step: (id: string) => byId.get(id),
+    label,
+    known,
+    isOptional,
+    next: (step: string) => all[indexOf(step) + 1] ?? DONE_STEP,
+    previous: (step: string) => all[Math.max(0, indexOf(step) - 1)] ?? (all[0] as string),
+
+    /** A step is reachable once every step before it was completed or skipped. */
+    canVisit(state: Position, step: string): boolean {
+      if (step === state.currentStep) return true;
+      const settled = new Set([...state.completedSteps, ...state.skippedSteps]);
+      return all.slice(0, indexOf(step)).every((s) => settled.has(s));
+    },
+
+    /** Required steps still missing before onboarding can be finished. */
+    missingRequired: (state: Pick<Position, 'completedSteps'>) =>
+      ids.filter((s) => !isOptional(s) && !state.completedSteps.includes(s)),
+
+    /** Share of the wizard settled (answer steps completed or skipped, plus finishing), 0..1. */
+    progressOf(state: Pick<SaasOnboarding, 'completedSteps' | 'skippedSteps' | 'completedAt'>) {
+      if (state.completedAt) return 1;
+      const settled = new Set([...state.completedSteps, ...state.skippedSteps]);
+      return ids.filter((s) => settled.has(s)).length / all.length;
+    },
+
+    /**
+     * Maps a 0..1 progress (`scenario.actor.onboardingProgress`) to the steps
+     * already finished: 0.5 of 4 answer steps → 2 done, resume at step 3.
+     */
+    stepsForProgress(progress: number): { completed: string[]; current: string } {
+      const count = Math.max(0, Math.min(ids.length, Math.round(progress * ids.length)));
+      return { completed: ids.slice(0, count), current: ids[count] ?? DONE_STEP };
+    },
+
+    /** The state of someone who has not touched onboarding yet. */
+    freshState(
+      personaId: string,
+      at: string,
+      organizationId: string | null = null
+    ): SaasOnboarding {
+      return {
+        id: personaId,
+        personaId,
+        organizationId,
+        currentStep: all[0] as string,
+        completedSteps: [],
+        skippedSteps: [],
+        answers: {},
+        startedAt: null,
+        updatedAt: at,
+        completedAt: null,
+      };
+    },
+  };
+}
+
+export type OnboardingFlow = ReturnType<typeof createOnboardingFlow>;
+
+/** The slice of Dexie the engine needs; the default storage adapter provides it. */
+interface TableLike<T> {
+  get(id: string): Promise<T | undefined>;
+  put(row: T): Promise<unknown>;
+}
+interface DatabaseLike {
+  table<T>(name: string): TableLike<T>;
+  transaction<R>(mode: 'rw', tables: string[], scope: () => Promise<R>): Promise<R>;
+}
+
+export function createOnboarding(runtime: PrototypeRuntime<unknown>, config: OnboardingConfig) {
+  const flow = createOnboardingFlow(config.steps);
+  const { session, environment, clock } = runtime;
+  const db = runtime.db as DatabaseLike;
+  const capability = config.capability ?? DEFAULT_ONBOARDING_CAPABILITY;
+  const area = config.area ?? 'onboarding';
+  const tables = [ONBOARDING_TABLE, 'py_personas', ...(config.tables ?? [])];
+  const now = () => clock.now().toISOString();
+
+  const principal = () => {
+    const p = session.principal();
+    if (!p) throw new Error('No active persona. Sign in or load a scenario first.');
+    return p;
+  };
+  const read = async (personaId: string) =>
+    (await db.table<SaasOnboarding>(ONBOARDING_TABLE).get(personaId)) ??
+    flow.freshState(personaId, now(), session.principal()?.organization?.id ?? null);
+
+  /** Marks `step` completed or skipped and moves to the next one. */
+  const settle = (
+    state: SaasOnboarding,
+    step: string,
+    how: 'completed' | 'skipped',
+    at: string
+  ): SaasOnboarding => {
+    const without = (list: string[]) => list.filter((s) => s !== step);
+    return {
+      ...state,
+      completedSteps:
+        how === 'completed'
+          ? [...without(state.completedSteps), step]
+          : without(state.completedSteps),
+      skippedSteps:
+        how === 'skipped' ? [...without(state.skippedSteps), step] : without(state.skippedSteps),
+      currentStep: flow.next(step),
+      startedAt: state.startedAt ?? at,
+      updatedAt: at,
+    };
+  };
+
+  /** Read-modify-write of the actor's row inside one transaction. */
+  const mutate = (
+    operation: string,
+    change: (state: SaasOnboarding, at: string) => SaasOnboarding | Promise<SaasOnboarding>
+  ) => {
+    const personaId = principal().persona.id;
+    return environment.run(`${area}.${operation}`, () =>
+      db.transaction('rw', tables, async () => {
+        const at = now();
+        const next = await change(await read(personaId), at);
+        await db.table<SaasOnboarding>(ONBOARDING_TABLE).put(next);
+        return next;
+      })
+    );
+  };
+
+  const reachable = (state: SaasOnboarding, step: string) => {
+    if (!flow.canVisit(state, step)) {
+      throw new ValidationError({ form: `Finish the earlier steps before ${flow.label(step)}.` });
+    }
+  };
+
+  return {
+    flow,
+
+    /** Current state for a persona (default: the actor), or a fresh one. Read-only. */
+    state: (personaId: string = principal().persona.id) => read(personaId),
+
+    /**
+     * Saves a step's answer and moves on. Steps without a schema just confirm
+     * (e.g. a viewer acknowledging a workspace they may not change).
+     */
+    async submit(step: string, input?: unknown) {
+      session.assert(capability);
+      flow.known(step);
+      const definition = flow.step(step);
+      if (!definition)
+        throw new ValidationError({ form: 'The final step is finished with complete().' });
+      if (definition.capability) session.assert(definition.capability);
+      const answer = definition.schema ? parseInput(definition.schema, input) : undefined;
+      return mutate(step, async (state, at) => {
+        reachable(state, step);
+        await definition.effect?.(answer, {
+          at,
+          personaId: state.personaId,
+          organizationId: state.organizationId,
+        });
+        const answers = answer === undefined ? state.answers : { ...state.answers, [step]: answer };
+        return settle({ ...state, answers }, step, 'completed', at);
+      });
+    },
+
+    /** Skips an optional step. A step already answered keeps its answer and stays completed. */
+    async skip(step: string) {
+      session.assert(capability);
+      flow.known(step);
+      if (!flow.isOptional(step)) {
+        throw new ValidationError({
+          form: `${flow.label(step)} is required and can't be skipped.`,
+        });
+      }
+      return mutate(step, (state, at) => {
+        reachable(state, step);
+        return settle(
+          state,
+          step,
+          state.completedSteps.includes(step) ? 'completed' : 'skipped',
+          at
+        );
+      });
+    },
+
+    /** Back / jump to a step already reached. Persisted, so a reload lands there too. */
+    async goTo(step: string) {
+      session.assert(capability);
+      flow.known(step);
+      return mutate('navigate', (state, at) => {
+        reachable(state, step);
+        return { ...state, currentStep: step, startedAt: state.startedAt ?? at, updatedAt: at };
+      });
+    },
+
+    /** Finishes the wizard and marks the persona `onboardingComplete` in the same transaction. */
+    async complete() {
+      session.assert(capability);
+      const next = await mutate('complete', async (state, at) => {
+        const missing = flow.missingRequired(state);
+        if (missing.length > 0) {
+          throw new ValidationError({
+            form: `Finish ${missing.map(flow.label).join(' and ')} first.`,
+          });
+        }
+        await setOnboardingComplete(state.personaId, true);
+        return { ...state, currentStep: DONE_STEP, completedAt: at, updatedAt: at };
+      });
+      await session.refresh();
+      return next;
+    },
+
+    /** Starts over at step 1. Earlier answers stay as defaults; step effects are not undone. */
+    async restart() {
+      session.assert(capability);
+      const next = await mutate('restart', async (state, at) => {
+        await setOnboardingComplete(state.personaId, false);
+        return {
+          ...state,
+          currentStep: flow.ids[0] as string,
+          completedSteps: [],
+          skippedSteps: [],
+          startedAt: at,
+          completedAt: null,
+          updatedAt: at,
+        };
+      });
+      await session.refresh();
+      return next;
+    },
+  };
+
+  // Identity rows are platform tables; written inside the caller's transaction.
+  async function setOnboardingComplete(personaId: string, onboardingComplete: boolean) {
+    const personas = db.table<Persona>('py_personas');
+    const persona = await personas.get(personaId);
+    if (persona && persona.onboardingComplete !== onboardingComplete) {
+      await personas.put({ ...persona, onboardingComplete });
+    }
+  }
+}
+
+export type Onboarding = ReturnType<typeof createOnboarding>;
