@@ -17,6 +17,7 @@ exporting, previewing and putting it on a host. Design decisions: ADR-009
 | `pnpm protoyard publish <slug> --provider <p> --dry-run` | Build, verify, print the exact deploy command | No |
 | `pnpm protoyard publish <slug> --provider <p>` | Build, verify, deploy, print the provider's URL | Yes |
 | `pnpm protoyard publish <slug> <slug>… \| --all \| --tag <tag> --provider <p> [--dry-run]` | The same for several prototypes, one after another, with one summary | Only without `--dry-run` |
+| `pnpm protoyard publish --history [<slug>…] [--provider <p>] [--limit <n>]` | Print the last recorded publishes from the local ledger | No |
 
 `pnpm protoyard build --all` builds every prototype one after another (for CI
 smoke runs).
@@ -230,6 +231,38 @@ Unknown slugs and tags fail before anything is built. Each prototype uses its
 default project (`protoyard-<slug>`), so `--project` is refused when there is
 more than one target. `--production` still requires `--yes` and is checked
 once, up front. One slug keeps the single-publish output.
+
+### The deploy ledger
+
+Every publish that completes (a real deploy, a dry run or a static ZIP)
+appends one JSON line to `artifacts/publish/ledger.jsonl` (git-ignored,
+local to your checkout). Failed publishes are not recorded.
+
+```text
+$ pnpm protoyard publish --history
+2026-10-18T01:54:42.075Z  crm-demo                 cloudflare preview           dry run, nothing uploaded e2d7ba6+dirty
+```
+
+| Field | Meaning |
+| --- | --- |
+| `format`, `formatVersion` | `protoyard.publish-ledger`, `1` |
+| `at` | When the publish completed |
+| `slug`, `provider`, `target`, `branch`, `project` | What was published, where, and to which preview branch (`null` when none) |
+| `kind`, `dryRun` | `published`, `dry-run` or `static` |
+| `url`, `deploymentId` | Only for a real deploy, and only what the provider printed. Always `null` for dry runs and ZIPs. |
+| `commit`, `dirty` | `git rev-parse HEAD` of the workspace and whether tracked files had uncommitted changes (`null` outside git) |
+| `buildSha256`, `fileCount`, `totalBytes` | sha256 over the built files' paths and hashes (it identifies the exact build), plus its size |
+| `zip`, `zipSha256` | The static provider's ZIP |
+
+Each line is validated before it is written, and written in a single append,
+so concurrent publishes never interleave inside a line. The schema is
+strict: tokens, account ids and provider output are never recorded, and any
+field whose name looks like a credential is refused. `--history` shows the
+last 20 entries, oldest first. Filter with slugs or `--provider`, change the
+count with `--limit`, and add `--json` for `{ ledger, total, shown, skipped,
+entries }`. Lines that are not valid entries are skipped and counted. If the
+ledger cannot be written, the publish still reports its result, with a
+warning and `ledger: null`.
 
 ### Cloudflare Pages
 

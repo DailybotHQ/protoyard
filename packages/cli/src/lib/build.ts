@@ -79,6 +79,7 @@ export const RESERVED_ARTIFACT_NAMES: ReadonlySet<string> = new Set([
   'templates',
   'showcase',
   'showcase-builds',
+  'publish',
 ]);
 
 /**
