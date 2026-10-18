@@ -1,7 +1,8 @@
-@import "tailwindcss";
-@import "@protoyard/themes/base.css";
-@import "@protoyard/ui/styles.css";
 @import "@protoyard/ai-ui/styles.css";
+@import "@protoyard/renderer-svelte/app.css";
+
+/* Let Tailwind see this prototype's own markup. */
+@source "./";
 
 html,
 body,
