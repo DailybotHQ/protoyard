@@ -176,7 +176,9 @@ describe('DevTools panel', () => {
     // Deletions finish asynchronously; under load they can outlast settle(), so poll.
     await vi.waitFor(
       async () => {
-        const left = (await indexedDB.databases()).map((d) => d.name).filter((n) => n?.includes('~'));
+        const left = (await indexedDB.databases())
+          .map((d) => d.name)
+          .filter((n) => n?.includes('~'));
         expect(left).toEqual([]);
       },
       { timeout: 5000, interval: 25 }
@@ -219,5 +221,35 @@ describe('DevTools panel', () => {
     expect(reproducibleLink(runtime, { href: 'https://x.test/', presentation: true })).toContain(
       'devtools=0'
     );
+  });
+
+  it('selects a shell via setOverride and includes shell= in the share link', async () => {
+    const { runtime, panel } = await open();
+    const setOverride = vi.spyOn(runtime.theme, 'setOverride');
+
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Look' }));
+    await settle();
+
+    await fireEvent.click(within(panel).getByRole('radio', { name: 'Phone' }));
+    await settle();
+
+    expect(setOverride).toHaveBeenCalledWith(expect.objectContaining({ shell: 'phone' }));
+    expect(runtime.overrides.get().shell).toBe('phone');
+    expect(runtime.theme.appearance().shell).toEqual({ value: 'phone', source: 'override' });
+
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Share' }));
+    await settle();
+    const shareLinks = within(panel).getAllByTitle(/shell=phone/);
+    expect(shareLinks.length).toBeGreaterThan(0);
+    expect(shareLinks.every((el) => el.textContent?.includes('shell=phone'))).toBe(true);
+    expect(reproducibleLink(runtime, { href: 'https://x.test/app/#/' })).toContain('shell=phone');
+
+    // Device frame off forces full-bleed (shell none).
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Look' }));
+    await settle();
+    await fireEvent.click(within(panel).getByRole('switch', { name: 'Device frame' }));
+    await settle();
+    expect(runtime.overrides.get().shell).toBe('none');
+    expect(runtime.theme.appearance().shell.value).toBe('none');
   });
 });

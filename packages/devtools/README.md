@@ -15,7 +15,7 @@ await panel.destroy();
 | --- | --- |
 | `mountDevtools({ runtime, themes?, target? })` | Mounts the panel in its own `.py-devtools` host (default: appended to `<body>`); returns `{ destroy }` |
 | `isolateFromAppLayers(host)` | Keeps app focus traps / outside-dismiss listeners from reacting to the panel; returns a release function (used by `mountDevtools`) |
-| `reproducibleLink(runtime, { presentation?, href? })` | Current URL + `scenario`/`actor`/`seed` (+ `devtools=0`), dropping stale params |
+| `reproducibleLink(runtime, { presentation?, href? })` | Current URL + `scenario`/`actor`/`seed` (+ `shell` when overridden, + `devtools=0`), dropping stale params |
 | `DevtoolsPanel` | The Svelte component, for custom hosts |
 
 | Tab | What it does |
@@ -25,9 +25,9 @@ await panel.destroy();
 | Time | UI time vs committed vs reference; preview ±1/7/30 days or at an instant; clear preview; advance 1/7 days with applied/skipped counts; reset clock |
 | Data | Row counts per table, paginated read-only inspector, storage (world/sandbox, database name, backend, eviction protection, usage/quota, request persistence), sandboxes (discard the current one, or clear all others from the default world), reset scenario data |
 | Env | Network online/slow/offline, latency, failure mode + rate + scope prefixes, subscription, feature flags, and the mock API request log (`@protoyard/http`: method · url · status chip · duration, expandable route/request/response previews, Clear) |
-| Look | Theme swatches, light/dark/system, reduced motion, density slider (0.75–1.25, override only), viewport preset — as a temporary override or saved persona preference |
+| Look | Theme swatches, light/dark/system, reduced motion, density slider (0.75–1.25, override only), viewport preset, **shell** (platform-first + More), **device** (core catalog), **orientation**, **device frame** on/off — shell/device/orientation always temporary overrides |
 | Snaps | Save (name + notes), list, restore, download, delete; import a file with preview + warnings, then import or import & restore |
-| Share | Reproducible, presentation and fresh-sandbox (`?sandbox=try`) links, CLI commands (`pnpm protoyard dev/build/export/publish --dry-run`) — the browser never deploys |
+| Share | Reproducible, presentation and fresh-sandbox (`?sandbox=try`) links (includes `?shell=` when overridden), CLI commands (`pnpm protoyard dev/build/export/publish --dry-run`) — the browser never deploys |
 
 In a sandboxed world (`?sandbox=<name>`) the header shows a **Sandbox: name** badge.
 Every effective value shows a source badge (`override` / `preference` /
