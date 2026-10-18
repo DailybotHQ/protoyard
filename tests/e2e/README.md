@@ -48,6 +48,24 @@ attached to the report as `axe-<screen>.json`. The helper is `support/a11y.ts`
 (`expectAccessible(page, testInfo)`), so a domain spec can audit any screen, including one with an
 open dialog.
 
+## Shell layout matrix
+
+`shell-layout.spec.ts` opens the static Lumen Bank build (`mobile-banking-demo`) once per shell
+with `?shell=` (`phone`, `tablet`, `desktop-window`, `browser`, `widget-host`, `extension-popup`,
+`side-panel`).
+
+- **Desktop project, at 1440×900** (the panel shells need the 1280 px laptop device plus a
+  gutter): the shell's frame is drawn, the screen fits in the window, the bottom nav and the Home
+  quick action are inside the screen, every `position: fixed` element stays in the screen box, the
+  document does not scroll, and axe passes. Reduced motion is emulated, so axe measures the settled
+  page, not a panel mid-fade. The widget is opened through its launcher first.
+- **Mobile project (Pixel 7)**: the window is narrower than any device, so `auto` and every
+  explicit shell render full-bleed with no frame, and the actions stay inside the viewport.
+
+```bash
+PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo pnpm test:e2e tests/e2e/shell-layout.spec.ts
+```
+
 ## Known gaps
 
 - `ai-chat-demo`'s outage flow runs on desktop only, because its Home pane is hidden at `#/` on
