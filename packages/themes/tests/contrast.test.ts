@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   BUILTIN_THEMES,
   contrastRatio,
+  loadAllLibraryThemes,
   parseHex,
   relativeLuminance,
   TEXT_CONTRAST_PAIRS,
+  THEME_LIBRARY_META,
   themeVariables,
   UI_CONTRAST_PAIRS,
 } from '../src/index.ts';
@@ -49,6 +51,28 @@ describe('built-in themes', () => {
       });
     }
   }
+});
+
+describe('library themes (AA)', () => {
+  it('every library preset × mode meets WCAG AA', async () => {
+    expect(THEME_LIBRARY_META.length).toBeGreaterThanOrEqual(30);
+    const themes = await loadAllLibraryThemes();
+    const failures: string[] = [];
+    for (const theme of themes) {
+      for (const mode of ['light', 'dark'] as const) {
+        const palette = theme[mode];
+        for (const [fg, bg] of TEXT_CONTRAST_PAIRS) {
+          const ratio = contrastRatio(palette[fg], palette[bg]);
+          if (ratio < 4.5) failures.push(`${theme.id}/${mode}: ${fg}/${bg}=${ratio.toFixed(2)}`);
+        }
+        for (const [fg, bg] of UI_CONTRAST_PAIRS) {
+          const ratio = contrastRatio(palette[fg], palette[bg]);
+          if (ratio < 3) failures.push(`${theme.id}/${mode}: ${fg}/${bg}=${ratio.toFixed(2)} UI`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
 });
 
 describe('hover fills', () => {
