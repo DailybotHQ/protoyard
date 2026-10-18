@@ -123,7 +123,7 @@ These budgets are **enforced**:
 | --- | --- | --- |
 | `initialJsGzipKb`, `cssGzipKb` | `pnpm protoyard budget <slug\|--all> [--skip-build]` | exit 4 |
 | `indexColdMs` | `pnpm bench:index --runs 3 --check [--ci-factor 3]` | exit 1 |
-| `generateMs` | `pnpm protoyard scenario bench <slug> --check` | exit 4 |
+| `generateMs` | `pnpm protoyard scenario bench <slug> --check [--ci-factor 3]` (CI multiplies the budget by 3 for slower runners) | exit 4 |
 | `coldStartMs` | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --check` | report only while `null` |
 
 The `perf` job in [.github/workflows/ci.yml](../.github/workflows/ci.yml)

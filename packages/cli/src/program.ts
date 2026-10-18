@@ -289,6 +289,7 @@ export function createProgram(env: RunnerEnv): Command {
     .option('-s, --scenario <id>', 'only this scenario')
     .option('--runs <count>', 'runs per scenario', '3')
     .option('--check', 'fail when median generation plus validation exceeds the budget')
+    .option('--ci-factor <n>', 'multiply the generateMs budget on slower CI runners (default 1)')
     .action(def('scenario bench', scenarioBenchCommand));
 
   const theme = program.command('theme').description('create, list, export and import themes');

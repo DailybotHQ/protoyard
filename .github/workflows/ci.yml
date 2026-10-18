@@ -182,7 +182,7 @@ jobs:
           fi
           for slug in "${slugs[@]}"; do
             echo "::group::scenario bench ${slug}"
-            pnpm --silent protoyard scenario bench "$slug" --check --json \
+            pnpm --silent protoyard scenario bench "$slug" --check --ci-factor 3 --json \
               > "artifacts/perf/scenario-bench-${slug}.json"
             echo "::endgroup::"
           done

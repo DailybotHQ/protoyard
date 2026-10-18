@@ -98,6 +98,32 @@ describe('protoyard scenario bench', () => {
       data: { checked: true, results: [{ ok: false, withinBudget: false }] },
     });
   });
+
+  it('multiplies the budget by --ci-factor and refuses factors below 1', {
+    timeout: 60_000,
+  }, async () => {
+    ws = createBenchWorkspace();
+    ws.write('protoyard.budgets.json', {
+      ...DEFAULT_BUDGET_CONFIG,
+      overrides: { 'bench-fixture': { generateMs: 0.000001 } },
+    });
+    const args = [
+      '--root',
+      ws.root,
+      '--json',
+      'scenario',
+      'bench',
+      'bench-fixture',
+      '--scenario',
+      'steady',
+      '--runs',
+      '1',
+      '--check',
+    ];
+    // A large factor lifts the tiny budget above the measured time; the measurement is unchanged.
+    expect((await cli([...args, '--ci-factor', '100000000000'])).code).toBe(0);
+    expect((await cli([...args, '--ci-factor', '0.5'])).code).toBe(2);
+  });
 });
 
 function createBenchWorkspace(): TempWorkspace {

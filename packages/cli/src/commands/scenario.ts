@@ -134,6 +134,13 @@ export const scenarioBenchCommand: Handler = async (ctx, args, options): Promise
     throw new CliError('usage', '--runs must be a positive integer.');
   }
   const check = flag(options, 'check');
+  // Shared CI runners are slower than the machine the budgets were measured on (same idea as
+  // `bench:index --ci-factor`): the factor multiplies the budget, never the measurement.
+  const ciFactorText = opt(options, 'ciFactor') ?? '1';
+  const ciFactor = Number(ciFactorText);
+  if (!Number.isFinite(ciFactor) || ciFactor < 1) {
+    throw new CliError('usage', '--ci-factor must be a number >= 1.');
+  }
   const inspections: Inspection[] = [];
   for (let run = 0; run < runCount; run++) {
     inspections.push(await inspectPrototype(ctx.root, dir, 'generate', scenarioId));
@@ -150,7 +157,7 @@ export const scenarioBenchCommand: Handler = async (ctx, args, options): Promise
   }
 
   const config = await loadBudgets(ctx.root);
-  const budgetMs = resolveBudget(config, entry.slug).generateMs;
+  const budgetMs = resolveBudget(config, entry.slug).generateMs * ciFactor;
   const runResults = inspections.flatMap((result) => result.runs ?? []) as TimedScenarioRun[];
   const results = scenarios.map((scenario): ScenarioBenchResult => {
     const scenarioRuns = runResults.filter((run) => run.id === scenario.id);
