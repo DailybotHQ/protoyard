@@ -1,9 +1,10 @@
 import { getDevice, orient, safeAreaOf } from '@protoyard/core';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mountPrototype } from '../src/index.ts';
 import DesktopWindowFrame from '../src/shell/frames/DesktopWindowFrame.svelte';
+import ExtensionPopupFrame from '../src/shell/frames/ExtensionPopupFrame.svelte';
 import HomeIndicator from '../src/shell/frames/HomeIndicator.svelte';
 import PhoneFrame from '../src/shell/frames/PhoneFrame.svelte';
 import { activeFrame, FRAMES, screenInsetOf, windowVariant } from '../src/shell/frames/registry.ts';
@@ -21,12 +22,33 @@ import ProbeApp from './fixtures/ProbeApp.svelte';
 import SidePanelHarness from './fixtures/SidePanelHarness.svelte';
 import WidgetHostHarness from './fixtures/WidgetHostHarness.svelte';
 
+const runtimeMock = vi.hoisted(() => ({ current: null as unknown }));
+
+// Frames that read the runtime from context get this fake one; tests that mount
+// a real prototype clear it and fall back to the real context module.
+vi.mock('../src/context.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/context.ts')>();
+  return {
+    ...actual,
+    getRuntime: () => runtimeMock.current ?? actual.getRuntime(),
+  };
+});
+
 afterEach(() => {
   cleanup();
   // Home indicator may assign location.hash.
   if (typeof location !== 'undefined' && location.hash) location.hash = '';
   delete window.__protoyardWidget;
   localStorage.clear();
+  runtimeMock.current = null;
+});
+
+beforeEach(() => {
+  const runtime = createFakeRuntime();
+  runtimeMock.current = {
+    ...runtime,
+    manifest: { ...runtime.manifest, slug: 'demo-extension', name: 'Demo extension', icon: '🧪' },
+  };
 });
 
 describe('PhoneFrame', () => {
@@ -50,7 +72,7 @@ describe('PhoneFrame', () => {
     const expectedHeight = Math.max(spec.statusBar.height, insets.top);
     expect(status?.style.height).toBe(`${expectedHeight}px`);
     expect(status?.getAttribute('data-py-status-style')).toBe('split');
-    expect(screen.getByText('9:41').tagName).toBe('TIME');
+    expect(screen.getByRole('time').tagName).toBe('TIME');
 
     expect(container.querySelector('[data-py-home-indicator]')).not.toBeNull();
     expect(screen.getByRole('button', { name: 'Go home' })).toBeTruthy();
@@ -101,14 +123,49 @@ describe('HomeIndicator', () => {
   });
 });
 
-describe('StatusBar', () => {
+describe('status bar', () => {
   it('fills the top safe-area inset height', () => {
+    runtimeMock.current = createFakeRuntime();
     const spec = getDevice('phone-pill');
     if (!spec) return;
     const { container } = render(StatusBar, { spec });
     const bar = container.querySelector<HTMLElement>('[data-py-status-bar]');
     const insets = safeAreaOf(spec);
     expect(bar?.style.height).toBe(`${Math.max(spec.statusBar.height, insets.top)}px`);
+  });
+
+  it('updates its accessible clock and network glyph from the simulated runtime', async () => {
+    const runtime = createFakeRuntime();
+    runtimeMock.current = runtime;
+    const spec = getDevice('phone-pill');
+    if (!spec) return;
+
+    const { container } = render(StatusBar, { spec });
+    const time = screen.getByRole('time');
+    expect(time.textContent).toBe(
+      new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(
+        new Date('2026-10-16T10:00:00Z')
+      )
+    );
+    expect(time.getAttribute('datetime')).toBe('2026-10-16T10:00:00.000Z');
+    expect(screen.getByLabelText('Signal strong (simulated)')).toBeTruthy();
+
+    runtime.clock.setTime('2026-10-16T15:45:00Z');
+    await waitFor(() =>
+      expect(time.textContent).toBe(
+        new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(
+          new Date('2026-10-16T15:45:00Z')
+        )
+      )
+    );
+    expect(time.getAttribute('datetime')).toBe('2026-10-16T15:45:00.000Z');
+
+    runtime.environment.set({ network: 'offline' });
+    await waitFor(() => expect(screen.getByLabelText('Offline (simulated)')).toBeTruthy());
+    expect(container.querySelector('[data-py-signal="offline"]')).toBeTruthy();
+
+    runtime.environment.set({ network: 'online', latencyMs: 1_500 });
+    await waitFor(() => expect(screen.getByLabelText('Signal degraded (simulated)')).toBeTruthy());
   });
 });
 
@@ -120,6 +177,65 @@ describe('frame registry', () => {
     expect(mod.default).toBe(PhoneFrame);
   });
 
+  it('lazy-loads ExtensionPopupFrame for the extension-popup shell', async () => {
+    const entry = FRAMES['extension-popup'];
+    expect(entry).toBeDefined();
+    const mod = await entry!.load();
+    expect(mod.default).toBe(ExtensionPopupFrame);
+  });
+});
+
+describe('extension popup frame', () => {
+  const props = { spec: getDevice('laptop-window')!, shell: 'extension-popup' as const };
+
+  it('opens in review mode with the manifest name, icon and popup dimensions', () => {
+    const { container } = render(ExtensionPopupFrame, props);
+    const frame = container.querySelector<HTMLElement>('[data-py-frame="extension-popup"]');
+    const popup = container.querySelector<HTMLElement>('[data-py-extension-chrome]');
+
+    expect(frame?.dataset.open).toBe('true');
+    expect(popup?.className).toContain('w-[360px]');
+    expect(popup?.className).toContain('h-[688px]');
+    expect(screen.getByRole('button', { name: 'Open Demo extension' }).textContent).toContain('🧪');
+  });
+
+  it('toggles from the toolbar and closes on Escape or an outside click', async () => {
+    const { container } = render(ExtensionPopupFrame, props);
+    const frame = container.querySelector<HTMLElement>('[data-py-frame="extension-popup"]');
+    const trigger = screen.getByRole('button', { name: 'Open Demo extension' });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Toggle extensions menu' }));
+    expect(screen.getByRole('menu', { name: 'Browser extensions' })).toBeTruthy();
+    await fireEvent.click(screen.getByRole('menuitem', { name: 'Demo extension' }));
+    expect(screen.queryByRole('menu', { name: 'Browser extensions' })).toBeNull();
+    expect(frame?.dataset.open).toBe('true');
+
+    await fireEvent.click(trigger);
+    expect(frame?.dataset.open).toBe('false');
+    await fireEvent.click(trigger);
+    expect(frame?.dataset.open).toBe('true');
+    await fireEvent.keyDown(window, { key: 'Escape' });
+    expect(frame?.dataset.open).toBe('false');
+
+    await fireEvent.click(trigger);
+    await fireEvent.pointerDown(document.body);
+    expect(frame?.dataset.open).toBe('false');
+  });
+
+  it('stays open after an outside click while pinned', async () => {
+    const { container } = render(ExtensionPopupFrame, props);
+    const frame = container.querySelector<HTMLElement>('[data-py-frame="extension-popup"]');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Pin extension popup' }));
+    expect(
+      screen.getByRole('button', { name: 'Unpin extension popup' }).getAttribute('aria-pressed')
+    ).toBe('true');
+    await fireEvent.pointerDown(document.body);
+    expect(frame?.dataset.open).toBe('true');
+  });
+});
+
+describe('frame registry', () => {
   it('lazy-loads WidgetHostFrame for the widget-host shell', async () => {
     const entry = FRAMES['widget-host'];
     expect(entry).toBeDefined();
@@ -319,6 +435,9 @@ describe('desktop window frame', () => {
 
 describe('desktop window shell in ShellHost', () => {
   let destroy: (() => Promise<void>) | undefined;
+  beforeEach(() => {
+    runtimeMock.current = null;
+  });
   afterEach(async () => {
     await destroy?.();
     destroy = undefined;
@@ -370,6 +489,11 @@ describe('desktop window shell in ShellHost', () => {
 });
 
 describe('side panel shell', () => {
+  // The harness provides its own runtime through context; use the real module.
+  beforeEach(() => {
+    runtimeMock.current = null;
+  });
+
   it('resizes the plugin panel with arrow keys on the separator', async () => {
     render(SidePanelHarness);
     const screenEl = await waitFor(() => screen.getByTestId('side-panel-screen'));

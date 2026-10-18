@@ -65,7 +65,8 @@ The frame decoration is a lazily loaded chunk registered in
 `src/shell/frames/registry.ts`.
 
 - **`phone`** uses `PhoneFrame`: a bezel, side buttons, a pill or punch-hole cutout, a
-  status bar in `--py-safe-top`, and a home indicator that navigates to `#/`.
+  simulated clock and network status bar in `--py-safe-top`, and a home indicator that
+  navigates to `#/`.
 - **`widget-host`** draws a fictional customer site (`HostSite`, with the brand from
   `preview.chrome.hostName`) and a launcher that opens the prototype in an anchored panel
   (`--py-app-height` = panel height; fullscreen under 480px). Apps drive the unread badge
@@ -79,6 +80,9 @@ The frame decoration is a lazily loaded chunk registered in
 - **`side-panel`** embeds the prototype in a resizable right-hand plugin panel beside a
   mock host app (`preview.chrome.hostVariant`: `chat-workspace`, `design-canvas` or
   `code-editor`). The panel width persists in `localStorage`.
+- **`extension-popup`** reuses `BrowserChrome` for a fictional browser toolbar and shows
+  the app in a 360×600 popup (`--py-app-height: 600px`) anchored under the extension
+  icon. It opens for review, closes on an outside click or Escape, and can be pinned open.
 - **`tablet`** still uses a generic bezel until its detailed frame ships. Shells without a
   registered frame render full-bleed.
 

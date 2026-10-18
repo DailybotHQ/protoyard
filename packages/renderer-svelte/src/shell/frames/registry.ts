@@ -71,6 +71,7 @@ export interface FrameEntry {
 export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
   phone: { load: () => import('./PhoneFrame.svelte'), margin: 14 },
   tablet: { load: () => import('./DeviceFrame.svelte'), margin: 14 },
+  'extension-popup': { load: () => import('./ExtensionPopupFrame.svelte'), margin: 0 },
   'widget-host': { load: () => import('./WidgetHostFrame.svelte'), margin: 0 },
   'desktop-window': {
     load: () => import('./DesktopWindowFrame.svelte'),

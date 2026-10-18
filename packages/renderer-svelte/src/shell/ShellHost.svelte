@@ -42,11 +42,12 @@ const framed = $derived(shell !== 'none' && spec !== undefined && entry !== unde
 const insets = $derived(spec ? safeAreaOf(spec) : undefined);
 const inset = $derived(screenInsetOf(entry));
 /**
- * The widget-host and side-panel screens are panels that app.css positions and
- * their frames size (`--py-app-height` = panel height), so the host leaves their
- * inset, radius and tokens alone.
+ * Panel shells (widget-host, side-panel, extension-popup) position their screen
+ * in CSS and size it themselves (`--py-app-height` = panel height), so the host
+ * leaves their inset, radius and tokens alone.
  */
-const sizedScreen = $derived(shell !== 'widget-host' && shell !== 'side-panel');
+const PANEL_SHELLS: readonly string[] = ['widget-host', 'side-panel', 'extension-popup'];
+const sizedScreen = $derived(!PANEL_SHELLS.includes(shell));
 
 // Window-like frames can fill the stage or hide the screen (minimized, closed);
 // the app stays mounted either way.
