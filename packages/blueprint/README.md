@@ -16,7 +16,7 @@ Implemented: the blueprint schema (`src/schema.ts` + JSON Schema) and storage de
 | --- | --- | --- |
 | storage | Dexie store strings and integrity rules | done |
 | migrations | the next appended database version from a blueprint change | planned |
-| validation | create and update zod input schemas per entity | planned |
+| validation | create and update zod input schemas per entity | done |
 | policy | role capabilities (`<entity>:<action>`) and record rules | planned |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | planned |
@@ -95,6 +95,33 @@ const integrity = deriveIntegrity(blueprint);
 
 `deriveIntegrity` feeds `validateWorld` from `@protoyard/scenarios`: dangling foreign keys
 and out-of-range timestamps fail the scenario load.
+
+## Input validation
+
+```ts
+import { parseInput } from '@protoyard/core';
+import { deriveInputSchemas } from '@protoyard/blueprint';
+
+const { create, update } = deriveInputSchemas(entity); // built on first use, cached per entity
+const row = parseInput(create, formValues); // throws ValidationError { issues: { subject: 'Subject is required' } }
+const patch = parseInput(update, { status: 'solved' }); // only keys present are validated and returned
+```
+
+- **Keys** are row properties: relation, persona and file fields use `customerId`,
+  `relatedIds`, `assigneeId`, `attachmentsIds` (see `inputProperty`); other fields use
+  their name. Unknown keys are dropped.
+- **Coercion** of form strings: numbers and integers, money (`'12.34'`, `'$1,234.50'` →
+  integer cents; plain numbers are already cents and must be integers), booleans (`on`,
+  `true`, `1`, `yes`), dates (`YYYY-MM-DD`, real calendar dates), datetimes (ISO with an
+  offset, normalized to UTC), comma-separated tags (trimmed, de-duplicated) and JSON text.
+- **Checks:** text `minLength`/`maxLength`, number/integer/money `min`/`max`, enum values,
+  email, http(s) URLs, phone numbers, tag count and length, and non-empty ids for
+  relations, personas and files.
+- **Blanks:** on create, a blank or absent optional field becomes its `default`, `false`
+  for booleans, `[]` for lists, otherwise `null`. A blank required field fails with
+  "<Label> is required" unless it has a default. On update, blanks clear optional fields
+  (`null` or `[]`) and fail for required ones.
+- **Messages** use the field `label`, or the name in sentence case (`dueOn` → "Due on").
 
 ## Tests
 
