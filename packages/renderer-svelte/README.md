@@ -96,10 +96,20 @@ while generating/validating) for custom loading UIs.
 const router = createRouter([
   { path: '/', component: Home, title: 'Home' },
   { path: '/deals/:id', component: Deal },
+  // Own chunk — keeps multi-screen apps under the initial-JS budget:
+  { path: '/reports', title: 'Reports', load: () => import('./screens/Reports.svelte') },
 ]);
 ```
 
-`<Router {router} />` renders the match with `params`/`query`;
+`<Router {router} />` renders the match with `params`/`query`. Eager `component`
+routes mount immediately. Lazy `load` routes show `@protoyard/ui` `LoadingState`
+while the chunk downloads, then the screen; a failed download shows `ErrorState`
+with **Try again** (`invalidate` + re-`load`). Resolved modules are cached per
+route. `document.title` updates from the route's `title` as soon as the hash
+matches (before the chunk settles). After each successful mount the outlet
+receives focus (`data-py-router-outlet`, `tabindex="-1"`) so keyboard users land
+on the new screen.
+
 `<Link href="/deals/1" {router} activeClass="…">`, `navigate('/x', { replace })`,
 `back(fallback)`. Hash routing works on refresh/back/forward on any static host.
 
