@@ -11,6 +11,18 @@
 /** Version of the blueprint document format. Bumped only on breaking changes. */
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
+export {
+  appendMigration,
+  applyUpgradeOps,
+  type BlueprintMigration,
+  type DiffBlueprintsOptions,
+  defaultForField,
+  diffBlueprints,
+  fieldProperty,
+  MigrationError,
+  toDatabaseVersion,
+  type UpgradeOp,
+} from './migrations.ts';
 export { CAPABILITIES, derivePolicy, type EntityCapabilityMap } from './policy.ts';
 export {
   BLUEPRINT_SCHEMA_URL,
