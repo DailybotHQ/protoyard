@@ -83,13 +83,43 @@ export interface ScenarioController {
   subscribeProgress(listener: (progress: LoadProgress | null) => void): Unsubscribe;
 }
 
+/**
+ * Whether someone is acting in the prototype. This is UX simulation, NOT
+ * authentication: it decides whether the app shows its signed-in screens or
+ * its sign-in screen, and any script on the page can change it.
+ */
+export type SessionAuthState = 'signed-in' | 'signed-out';
+
 export interface SessionController {
+  /**
+   * The persona the UI and services act as. `null` when the world has no
+   * personas, or when the session is signed out (`signOut()`, or a prototype
+   * with `auth.signedOutByDefault`) and no DevTools actor override is set.
+   */
   principal(): Principal | null;
   personas(): readonly Persona[];
   organizations(): readonly Organization[];
   memberships(): readonly Membership[];
-  /** B. Non-destructive: records stay, visibility/permissions adapt. */
+  /**
+   * B. Non-destructive: records stay, visibility/permissions adapt. While
+   * signed out it only changes who `signIn` remembers; it never signs in.
+   */
   switchActor(personaId: string): Promise<void>;
+  /**
+   * Simulated sign-in: acts as `personaId` (throws for an unknown persona)
+   * and persists the signed-in state. A DevTools actor override is cleared.
+   */
+  signIn(personaId: string): Promise<void>;
+  /**
+   * Simulated sign-out: `principal()` becomes null until `signIn` (or a
+   * scenario load / snapshot restore that is signed in). Persisted, so it
+   * survives a reload. Records are untouched. A DevTools actor override is cleared.
+   */
+  signOut(): Promise<void>;
+  /** `true` when `principal()` resolves a persona. */
+  isSignedIn(): boolean;
+  /** `'signed-in'` when `principal()` resolves a persona, else `'signed-out'`. */
+  authState(): SessionAuthState;
   switchOrganization(organizationId: string): Promise<void>;
   can(capability: string, resource?: unknown): boolean;
   /** Throws PermissionDeniedError. Services call this, not only the UI. */

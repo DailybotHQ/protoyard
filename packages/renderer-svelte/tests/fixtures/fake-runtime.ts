@@ -93,6 +93,7 @@ export function createFakeRuntime(
 
   let overrides: Overrides = {};
   let actorId = 'user_0001';
+  let signedOut = false;
   let active: ActiveScenarioInfo | null = null;
   const listeners = {
     scenario: new Set<(info: ActiveScenarioInfo | null) => void>(),
@@ -105,6 +106,7 @@ export function createFakeRuntime(
   let saved: SnapshotSummary[] = [];
 
   const principal = (): Principal | null => {
+    if (signedOut && overrides.actorId === undefined) return null;
     const id = overrides.actorId ?? actorId;
     const p = personas.find((x) => x.id === id);
     if (!p) return null;
@@ -228,6 +230,19 @@ export function createFakeRuntime(
         overrides = { ...overrides, actorId: undefined };
         emit();
       },
+      signIn: async (id) => {
+        actorId = id;
+        signedOut = false;
+        overrides = { ...overrides, actorId: undefined };
+        emit();
+      },
+      signOut: async () => {
+        signedOut = true;
+        overrides = { ...overrides, actorId: undefined };
+        emit();
+      },
+      isSignedIn: () => principal() !== null,
+      authState: () => (principal() ? 'signed-in' : 'signed-out'),
       switchOrganization: async () => {},
       can: (cap, res) => policy.can(principal(), cap, res),
       assert: (cap, res) => policy.assert(principal(), cap, res),

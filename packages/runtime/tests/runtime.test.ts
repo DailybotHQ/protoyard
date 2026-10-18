@@ -830,3 +830,58 @@ describe('sandboxed worlds', () => {
     expect(() => sandboxNamespace('crm-demo', 'Bad Name')).toThrow(/Invalid sandbox/);
   });
 });
+
+describe('simulated sign-in (signed out sessions)', () => {
+  it('keeps existing prototypes signed in by default', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    expect(runtime.session.isSignedIn()).toBe(true);
+    expect(runtime.session.authState()).toBe('signed-in');
+    expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+  });
+
+  it('signs out to a null principal, never signs in on switch, and signs in explicitly', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const before = await dumpTables(runtime.db);
+    const seen: (string | null)[] = [];
+    runtime.session.subscribe((p) => seen.push(p?.persona.id ?? null));
+
+    await runtime.session.signOut();
+    expect(runtime.session.principal()).toBeNull();
+    expect(runtime.session.isSignedIn()).toBe(false);
+    expect(runtime.session.authState()).toBe('signed-out');
+    expect(runtime.session.personas().length).toBeGreaterThan(1);
+    expect(runtime.session.can('tasks:read')).toBe(false);
+    expect(() => runtime.session.assert('tasks:read')).toThrow(PermissionDeniedError);
+
+    const other = runtime.session.personas()[1]?.id as string;
+    await runtime.session.switchActor(other);
+    expect(runtime.session.principal()).toBeNull();
+
+    await runtime.session.signIn(other);
+    expect(runtime.session.principal()?.persona.id).toBe(other);
+    expect(runtime.session.isSignedIn()).toBe(true);
+    await expect(runtime.session.signIn('nobody')).rejects.toThrow(/Unknown persona/);
+    expect(seen).toEqual([null, other]);
+    expect(await dumpTables(runtime.db)).toEqual(before);
+  });
+
+  it('lets a DevTools actor override act while signed out; sign-in and sign-out clear it', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const other = runtime.session.personas()[1]?.id as string;
+    await runtime.session.signOut();
+    await runtime.overrides.set({ actorId: other });
+    expect(runtime.session.principal()?.persona.id).toBe(other);
+
+    await runtime.session.signOut();
+    expect(runtime.overrides.get().actorId).toBeUndefined();
+    expect(runtime.session.principal()).toBeNull();
+
+    await runtime.overrides.set({ actorId: other });
+    await runtime.session.signIn('user_0001');
+    expect(runtime.overrides.get().actorId).toBeUndefined();
+    expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+  });
+});
