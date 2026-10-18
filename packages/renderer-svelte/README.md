@@ -101,4 +101,5 @@ if (!result.ok && isValidationError(result.error)) errors = result.error.issues;
 ```
 
 `PermissionDeniedError` and `SimulatedServiceError` become toasts; errors with
-an `issues` object are returned for inline display.
+an `issues` object are returned for inline display. Services throw them with
+`parseInput(schema, input)` / `ValidationError` from `@protoyard/core`.
