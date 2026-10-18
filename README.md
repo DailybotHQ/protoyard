@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/logo.png" alt="Protoyard logo" width="520">
+
 # Protoyard
 
 ### Build prototypes that feel real.
