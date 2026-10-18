@@ -22,7 +22,7 @@ import {
   WorldIntegrityError,
 } from '@protoyard/scenarios';
 import { createEmitter } from './emitter.ts';
-import type { Kernel } from './kernel.ts';
+import { type Kernel, signedOutByDefault } from './kernel.ts';
 import { applyOverrides } from './overrides.ts';
 
 export class UnknownScenarioError extends Error {
@@ -235,12 +235,15 @@ export function createScenarioController(
       previewOffsetMs: 0,
       running: false,
     };
+    // A load starts a fresh session: signed in, unless the prototype opts out.
+    const signedOut = signedOutByDefault(k.definition);
     await k.writeControl({
       activeScenario: info,
       clock,
       overrides: null,
       actorId: scenario.actor.id,
       organizationId: scenario.organization.id,
+      signedOut: signedOut ? true : null,
       timelineCheckpoint: {
         committedOffsetMs: 0,
         at: new Date(Date.parse(scenario.referenceTime)).toISOString(),
@@ -251,6 +254,7 @@ export function createScenarioController(
     k.overrides = {};
     k.actorId = scenario.actor.id;
     k.organizationId = scenario.organization.id;
+    k.signedOut = signedOut;
     k.setClockSilently(clock);
     await k.reloadIdentity();
     k.refreshDerived();

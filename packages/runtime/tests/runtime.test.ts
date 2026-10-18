@@ -16,14 +16,17 @@ import {
 import {
   composeScenario,
   createGenerateContext,
+  GENERATOR_SDK_VERSION,
   PRESET_IDS,
   PRESETS,
   validateWorld,
 } from '@protoyard/scenarios';
 import { IDBFactory, IDBKeyRange, IDBObjectStore } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createHarness } from '../../../tests/support/runtime.ts';
 import {
   createPrototypeRuntime,
+  IdentityValidationError,
   type MatchMedia,
   type ProtoyardRuntime,
   type RuntimeOptions,
@@ -112,7 +115,7 @@ describe('1. deterministic generation', () => {
     expect(await dumpTables(r1.db)).toEqual(await dumpTables(r2.db));
     expect(r1.scenarios.active()).toMatchObject({
       seed: 42,
-      generatorVersion: 1,
+      generatorVersion: GENERATOR_SDK_VERSION,
       prototypeGeneratorVersion: 3,
     });
   });
@@ -971,5 +974,277 @@ describe('sandboxed worlds', () => {
     });
     expect(parseDatabaseName('other.db')).toBeNull();
     expect(() => sandboxNamespace('crm-demo', 'Bad Name')).toThrow(/Invalid sandbox/);
+  });
+});
+
+describe('simulated sign-in (signed out sessions)', () => {
+  it('keeps existing prototypes signed in by default', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    expect(runtime.session.isSignedIn()).toBe(true);
+    expect(runtime.session.authState()).toBe('signed-in');
+    expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+  });
+
+  it('signs out to a null principal, never signs in on switch, and signs in explicitly', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const before = await dumpTables(runtime.db);
+    const seen: (string | null)[] = [];
+    runtime.session.subscribe((p) => seen.push(p?.persona.id ?? null));
+
+    await runtime.session.signOut();
+    expect(runtime.session.principal()).toBeNull();
+    expect(runtime.session.isSignedIn()).toBe(false);
+    expect(runtime.session.authState()).toBe('signed-out');
+    expect(runtime.session.personas().length).toBeGreaterThan(1);
+    expect(runtime.session.can('tasks:read')).toBe(false);
+    expect(() => runtime.session.assert('tasks:read')).toThrow(PermissionDeniedError);
+
+    const other = runtime.session.personas()[1]?.id as string;
+    await runtime.session.switchActor(other);
+    expect(runtime.session.principal()).toBeNull();
+
+    await runtime.session.signIn(other);
+    expect(runtime.session.principal()?.persona.id).toBe(other);
+    expect(runtime.session.isSignedIn()).toBe(true);
+    await expect(runtime.session.signIn('nobody')).rejects.toThrow(/Unknown persona/);
+    expect(seen).toEqual([null, other]);
+    expect(await dumpTables(runtime.db)).toEqual(before);
+  });
+
+  it('stays signed out across reload and signed in after an explicit sign-in', async () => {
+    const store = backend();
+    const first = await start(createTasksDefinition(), store);
+    await first.scenarios.ensureSeeded();
+    const other = first.session.personas()[1]?.id as string;
+    await first.session.signOut();
+    first.close();
+
+    const second = await start(createTasksDefinition(), store);
+    await second.scenarios.ensureSeeded();
+    expect(second.session.principal()).toBeNull();
+    expect(second.session.authState()).toBe('signed-out');
+    // Switching persona while signed out must not sign back in, even after a reload.
+    await second.session.switchActor(other);
+    second.close();
+
+    const third = await start(createTasksDefinition(), store);
+    await third.scenarios.ensureSeeded();
+    expect(third.session.principal()).toBeNull();
+    await third.session.signIn(other);
+    third.close();
+
+    const fourth = await start(createTasksDefinition(), store);
+    await fourth.scenarios.ensureSeeded();
+    expect(fourth.session.principal()?.persona.id).toBe(other);
+    expect(fourth.session.isSignedIn()).toBe(true);
+  });
+
+  it('a scenario load signs the scenario actor back in unless the prototype opts out', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    await runtime.session.signOut();
+    await runtime.scenarios.load('viewer');
+    expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+    expect(runtime.session.principal()?.role).toBe('viewer');
+  });
+
+  it('starts signed out with auth.signedOutByDefault and keeps it through reload and reset', async () => {
+    const definition = { ...createTasksDefinition(), auth: { signedOutByDefault: true } };
+    const harness = createHarness(definition);
+    try {
+      const runtime = await harness.boot();
+      expect(runtime.session.personas().length).toBeGreaterThan(1);
+      expect(runtime.session.principal()).toBeNull();
+      expect(runtime.session.isSignedIn()).toBe(false);
+
+      const reloaded = await harness.reload(runtime);
+      expect(reloaded.session.principal()).toBeNull();
+      await reloaded.session.signIn('user_0001');
+      expect(reloaded.session.principal()?.persona.id).toBe('user_0001');
+
+      const again = await harness.reload(reloaded);
+      expect(again.session.principal()?.persona.id).toBe('user_0001');
+      await again.scenarios.reset();
+      expect(again.session.principal()).toBeNull();
+    } finally {
+      harness.closeAll();
+    }
+  });
+
+  it('snapshots capture the signed-out state; signed-in snapshots keep their old shape', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const signedIn = await runtime.snapshots.save({ name: 'Signed in' });
+    expect('signedOut' in signedIn).toBe(false);
+
+    await runtime.session.signOut();
+    const signedOut = await runtime.snapshots.save({ name: 'Signed out' });
+    expect(signedOut.signedOut).toBe(true);
+    const { json } = await runtime.snapshots.exportJson(signedOut.id);
+
+    await runtime.snapshots.restore(signedIn.id);
+    expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+    await runtime.snapshots.importJson(json, { restore: true });
+    expect(runtime.session.principal()).toBeNull();
+    await runtime.snapshots.restore(signedIn.id);
+    expect(runtime.session.isSignedIn()).toBe(true);
+  });
+
+  it('lets a DevTools actor override act while signed out; sign-in and sign-out clear it', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const other = runtime.session.personas()[1]?.id as string;
+    await runtime.session.signOut();
+    await runtime.overrides.set({ actorId: other });
+    expect(runtime.session.principal()?.persona.id).toBe(other);
+
+    await runtime.session.signOut();
+    expect(runtime.overrides.get().actorId).toBeUndefined();
+    expect(runtime.session.principal()).toBeNull();
+
+    await runtime.overrides.set({ actorId: other });
+    await runtime.session.signIn('user_0001');
+    expect(runtime.overrides.get().actorId).toBeUndefined();
+    expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+  });
+});
+
+describe('organization billing fields in snapshots', () => {
+  it('imports an older snapshot whose organizations lack the billing fields', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.load('active-month');
+    expect(runtime.session.principal()?.organization).toHaveProperty('seats');
+    const { json } = await runtime.snapshots.exportJson();
+    const legacy = JSON.parse(json) as {
+      tables: { name: string; rows: Record<string, unknown>[] }[];
+    };
+    for (const table of legacy.tables) {
+      if (table.name !== 'py_organizations') continue;
+      table.rows = table.rows.map(
+        ({ trialEndsAt: _t, seats: _s, billingInterval: _b, currentPeriodEnd: _c, ...row }) => row
+      );
+    }
+    await runtime.snapshots.importJson(JSON.stringify(legacy), { restore: true });
+    const organization = runtime.session.principal()?.organization;
+    expect(organization?.name).toBeTruthy();
+    expect(organization?.seats).toBeUndefined();
+    expect(organization?.seats ?? organization?.size).toBeGreaterThan(0);
+  });
+});
+
+describe('runtime identity writes', () => {
+  async function signUp(runtime: ProtoyardRuntime) {
+    return runtime.identity.write(
+      async (ops) => {
+        const organization = await ops.putOrganization({ name: 'Northwind Example' });
+        const persona = await ops.putPersona({
+          name: 'Robin Vega',
+          email: 'robin.vega@example.com',
+          onboardingComplete: false,
+        });
+        const membership = await ops.putMembership({
+          personaId: persona.id,
+          organizationId: organization.id,
+          role: 'owner',
+        });
+        await runtime.db.rows('projects').add({
+          id: 'project_signup',
+          name: 'First project',
+          organizationId: organization.id,
+          ownerId: persona.id,
+          createdAt: runtime.clock.now().toISOString(),
+        });
+        return { organization, persona, membership };
+      },
+      { tables: ['projects'] }
+    );
+  }
+
+  it('creates persona, organization and membership in one transaction and signs in as them', async () => {
+    const store = backend();
+    const runtime = await start(createTasksDefinition(), store);
+    await runtime.scenarios.ensureSeeded();
+    await runtime.session.signOut();
+    const { organization, persona, membership } = await signUp(runtime);
+
+    // Validated with the core schemas: ids, timestamps and defaults are filled.
+    expect(persona.id).toMatch(/^user_/);
+    expect(persona.joinedAt).toBe(runtime.clock.now().toISOString());
+    expect(persona.locale).toBe('en-US');
+    expect(organization.plan).toBe('free');
+    expect(membership.capabilities).toEqual([]);
+    // The session already sees them (refresh is part of write).
+    expect(runtime.session.personas().some((p) => p.id === persona.id)).toBe(true);
+    expect(runtime.session.principal()).toBeNull();
+
+    await runtime.session.signIn(persona.id);
+    expect(runtime.session.principal()?.persona.id).toBe(persona.id);
+    expect(runtime.session.principal()?.organization?.id).toBe(organization.id);
+    expect(runtime.session.principal()?.role).toBe('owner');
+    runtime.close();
+
+    const reopened = await start(createTasksDefinition(), store);
+    await reopened.scenarios.ensureSeeded();
+    expect(reopened.session.principal()?.persona.id).toBe(persona.id);
+    expect(reopened.session.principal()?.organization?.name).toBe('Northwind Example');
+    expect(await reopened.db.rows('projects').get('project_signup')).toBeDefined();
+  });
+
+  it('survives a snapshot round-trip after the scenario is reloaded', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const { persona, organization } = await signUp(runtime);
+    await runtime.session.switchActor(persona.id);
+    const saved = await runtime.snapshots.save({ name: 'After sign-up' });
+    const { json } = await runtime.snapshots.exportJson(saved.id);
+
+    await runtime.scenarios.load('active-month');
+    expect(runtime.session.personas().some((p) => p.id === persona.id)).toBe(false);
+
+    await runtime.snapshots.restore(saved.id);
+    expect(runtime.session.principal()?.persona.id).toBe(persona.id);
+    expect(runtime.session.organizations().some((o) => o.id === organization.id)).toBe(true);
+
+    await runtime.scenarios.load('active-month');
+    await runtime.snapshots.importJson(json, { restore: true });
+    expect(runtime.session.principal()?.persona.id).toBe(persona.id);
+  });
+
+  it('validates before writing and rolls back the whole transaction on failure', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const before = await dumpTables(runtime.db);
+
+    const invalid = runtime.identity.write((ops) => ops.putPersona({ name: '' }));
+    await expect(invalid).rejects.toBeInstanceOf(IdentityValidationError);
+    await expect(invalid).rejects.toMatchObject({ issues: { name: expect.any(String) } });
+
+    const orphan = runtime.identity.write(async (ops) => {
+      const organization = await ops.putOrganization({ name: 'Rolled back' });
+      return ops.putMembership({
+        personaId: 'nobody',
+        organizationId: organization.id,
+        role: 'member',
+      });
+    });
+    await expect(orphan).rejects.toMatchObject({ issues: { personaId: expect.any(String) } });
+
+    const actor = runtime.session.principal();
+    const duplicate = runtime.identity.write((ops) =>
+      ops.putMembership({
+        personaId: actor?.persona.id as string,
+        organizationId: actor?.organization?.id as string,
+        role: 'viewer',
+      })
+    );
+    await expect(duplicate).rejects.toMatchObject({
+      issues: { organizationId: expect.stringMatching(/already belongs/) },
+    });
+    await expect(runtime.identity.write(() => undefined, { tables: ['missing'] })).rejects.toThrow(
+      /Unknown table "missing"/
+    );
+    expect(await dumpTables(runtime.db)).toEqual(before);
   });
 });

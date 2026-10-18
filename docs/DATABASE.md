@@ -231,6 +231,45 @@ const result = await runService(() => services.create(input), { success: 'Create
 if (!result.ok && isValidationError(result.error)) errors = result.error.issues;
 ```
 
+### Runtime-created identities
+
+Sign-up, accepted invitations and new workspaces create real personas,
+organizations and memberships. Write them through `runtime.identity.write`
+(from `@protoyard/runtime`) instead of touching the `py_*` tables directly:
+
+```ts
+await environment.run('auth.signUp', () =>
+  runtime.identity.write(
+    async (ops) => {
+      const organization = await ops.putOrganization({ name: data.workspace });
+      const persona = await ops.putPersona({ name: data.name, email: data.email });
+      await ops.putMembership({ personaId: persona.id, organizationId: organization.id, role: 'owner' });
+      await db.workspaces.add({ id: organization.id /* … */ });
+      return persona;
+    },
+    { tables: ['workspaces'] } // domain tables written in the same transaction
+  )
+);
+await session.signIn(persona.id);
+```
+
+- Every row is validated with `PersonaSchema`, `OrganizationSchema` or
+  `MembershipSchema` before it is written; defaults are filled, `id` defaults
+  to a runtime id and timestamps to the simulated clock. A membership must
+  point at an existing persona and organization, once per pair. Invalid input
+  throws `IdentityValidationError` with an `issues` object (inline form
+  errors) and nothing is written.
+- The callback runs in one read-write transaction over the identity tables
+  plus `tables`; if it throws, nothing is written.
+- Afterwards the session re-reads identities, so `personas()`,
+  `memberships()` and `principal()` include the change without calling
+  `session.refresh()`.
+- `identity.write` does not check permissions (sign-up runs signed out).
+  Call `session.assert` first when a policy applies. Like personas, this is
+  UX simulation, not authentication.
+- Runtime-created identities are ordinary rows: they persist across reloads,
+  snapshots capture and restore them, and a scenario load replaces them.
+
 ## Reactive reads with `liveQuery`
 
 ```ts

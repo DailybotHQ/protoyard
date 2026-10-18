@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { Duration, SimulationClock } from './clock.ts';
 import type { DeviceId, Orientation } from './devices.ts';
 import type { EnvironmentState, SimulationEnvironment } from './environment.ts';
@@ -90,13 +91,43 @@ export interface ScenarioController {
   subscribeProgress(listener: (progress: LoadProgress | null) => void): Unsubscribe;
 }
 
+/**
+ * Whether someone is acting in the prototype. This is UX simulation, NOT
+ * authentication: it decides whether the app shows its signed-in screens or
+ * its sign-in screen, and any script on the page can change it.
+ */
+export type SessionAuthState = 'signed-in' | 'signed-out';
+
 export interface SessionController {
+  /**
+   * The persona the UI and services act as. `null` when the world has no
+   * personas, or when the session is signed out (`signOut()`, or a prototype
+   * with `auth.signedOutByDefault`) and no DevTools actor override is set.
+   */
   principal(): Principal | null;
   personas(): readonly Persona[];
   organizations(): readonly Organization[];
   memberships(): readonly Membership[];
-  /** B. Non-destructive: records stay, visibility/permissions adapt. */
+  /**
+   * B. Non-destructive: records stay, visibility/permissions adapt. While
+   * signed out it only changes who `signIn` remembers; it never signs in.
+   */
   switchActor(personaId: string): Promise<void>;
+  /**
+   * Simulated sign-in: acts as `personaId` (throws for an unknown persona)
+   * and persists the signed-in state. A DevTools actor override is cleared.
+   */
+  signIn(personaId: string): Promise<void>;
+  /**
+   * Simulated sign-out: `principal()` becomes null until `signIn` (or a
+   * scenario load / snapshot restore that is signed in). Persisted, so it
+   * survives a reload. Records are untouched. A DevTools actor override is cleared.
+   */
+  signOut(): Promise<void>;
+  /** `true` when `principal()` resolves a persona. */
+  isSignedIn(): boolean;
+  /** `'signed-in'` when `principal()` resolves a persona, else `'signed-out'`. */
+  authState(): SessionAuthState;
   switchOrganization(organizationId: string): Promise<void>;
   can(capability: string, resource?: unknown): boolean;
   /** Throws PermissionDeniedError. Services call this, not only the UI. */
@@ -104,6 +135,76 @@ export interface SessionController {
   /** Re-reads personas/orgs from the DB (after load/restore). */
   refresh(): Promise<void>;
   subscribe(listener: (principal: Principal | null) => void): Unsubscribe;
+}
+
+/** Capabilities the members services assert (simulated policy, not security). */
+export const MEMBER_CAPABILITIES = {
+  invite: 'members:invite',
+  update: 'members:update',
+  remove: 'members:remove',
+  /** Changing who owns an organization (promote to / demote from `owner`, transfer). */
+  transfer: 'members:transfer',
+} as const;
+
+/** The role the at-least-one-owner invariant protects. */
+export const OWNER_ROLE = 'owner';
+
+/** Reserved example domains (RFC 2606/6761): invited people are always fictional. */
+export function isExampleEmail(email: string): boolean {
+  const domain = email.slice(email.lastIndexOf('@') + 1).toLowerCase();
+  return (
+    ['example.com', 'example.org', 'example.net'].includes(domain) || domain.endsWith('.example')
+  );
+}
+
+export const InviteMemberInputSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Enter a name').max(120),
+    /** Must use an example domain; derived from the name when omitted. */
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .pipe(z.email('Enter a valid email'))
+      .refine(isExampleEmail, 'Use a fictional address at example.com')
+      .optional(),
+    role: z.string().trim().min(1, 'Choose a role'),
+    title: z.string().trim().max(120).optional(),
+    /** Defaults to the principal's organization. */
+    organizationId: z.string().min(1).optional(),
+  })
+  .strict();
+export type InviteMemberInput = z.input<typeof InviteMemberInputSchema>;
+
+export interface Member {
+  membership: Membership;
+  persona: Persona;
+}
+
+/**
+ * Team management on simulated identities. Every mutation follows the
+ * service path: `session.assert(members:*)` → validation → `environment.run`
+ * → one transaction over the identity tables, then the session re-resolves
+ * the principal. Invariant: an organization that has an owner never loses
+ * its last one. This is UX simulation, not security.
+ */
+export interface MembersController {
+  /** Members of an organization (default: the principal's), oldest first. */
+  list(organizationId?: string): readonly Member[];
+  /**
+   * Creates a persona (or reuses the one with that email) and a membership.
+   * Throws a validation error (`issues`) for unknown roles, non-example
+   * emails or someone who is already a member.
+   */
+  invite(input: InviteMemberInput): Promise<Member>;
+  changeRole(membershipId: string, role: string): Promise<Membership>;
+  /** Removes a membership; the persona and its records stay. */
+  remove(membershipId: string): Promise<void>;
+  /**
+   * Makes the target member the owner and gives the acting owner
+   * `formerOwnerRole` (default `admin`), in one transaction.
+   */
+  transferOwnership(membershipId: string, options?: { formerOwnerRole?: string }): Promise<void>;
 }
 
 export interface OverrideController {
@@ -197,6 +298,8 @@ export interface PrototypeRuntime<TDatabase = unknown> {
   readonly db: TDatabase;
   readonly scenarios: ScenarioController;
   readonly session: SessionController;
+  /** Invite members, change roles, remove members, transfer ownership. */
+  readonly members: MembersController;
   readonly clock: SimulationClock;
   readonly theme: ThemeController;
   readonly environment: SimulationEnvironment;

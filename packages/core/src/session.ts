@@ -21,8 +21,29 @@ export const OrganizationSchema = z.object({
   createdAt: z.string(),
   size: z.number().int().nonnegative().default(1),
   featureFlags: z.record(z.string(), z.boolean()).default({}),
+  // Simulated billing details (never a real payment processor). Rows written
+  // before these fields existed simply lack them: read `seats ?? size`.
+  /** ISO instant the trial ends (`billingStatus: 'trialing'`), else null. */
+  trialEndsAt: z.string().nullable().default(null),
+  /** Paid seats; may exceed `size` (people actually in the organization). */
+  seats: z.number().int().nonnegative().default(1),
+  /** Billing cadence of a paid or trial plan; null on free plans. */
+  billingInterval: z.enum(['month', 'year']).nullable().default(null),
+  /** ISO end of the current billing period (or trial); in the past when lapsed. */
+  currentPeriodEnd: z.string().nullable().default(null),
 });
-export type Organization = z.infer<typeof OrganizationSchema>;
+/** Billing fields added later: parsing fills defaults, but stored rows may lack them. */
+export const ORGANIZATION_BILLING_FIELDS = [
+  'trialEndsAt',
+  'seats',
+  'billingInterval',
+  'currentPeriodEnd',
+] as const;
+type OrganizationBillingField = (typeof ORGANIZATION_BILLING_FIELDS)[number];
+type ParsedOrganization = z.infer<typeof OrganizationSchema>;
+export type Organization = Omit<ParsedOrganization, OrganizationBillingField> &
+  Partial<Pick<ParsedOrganization, OrganizationBillingField>>;
+export type BillingInterval = NonNullable<ParsedOrganization['billingInterval']>;
 
 export const PersonaSchema = z.object({
   id: z.string().min(1),
