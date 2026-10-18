@@ -127,6 +127,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../scenarios
       zod:
         specifier: ^4.6.0
         version: 4.6.7
@@ -134,9 +137,6 @@ importers:
       '@protoyard/database':
         specifier: workspace:*
         version: link:../database
-      '@protoyard/scenarios':
-        specifier: workspace:*
-        version: link:../scenarios
 
   packages/cli:
     dependencies:
