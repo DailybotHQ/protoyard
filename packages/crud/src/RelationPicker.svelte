@@ -203,6 +203,9 @@ async function created(row: unknown) {
         <EntityForm
           entity={target}
           mode="create"
+          {runtime}
+          {blueprint}
+          {services}
           onSubmit={async (input) => {
             const row = await services[target.name]!.create(input);
             await created(row);

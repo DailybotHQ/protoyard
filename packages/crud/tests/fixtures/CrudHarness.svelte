@@ -15,6 +15,7 @@ let {
   mode = 'list',
   entityName = 'customer',
   initial = null,
+  detailHeadingLevel,
 }: {
   runtime: PrototypeRuntime;
   blueprint: Blueprint;
@@ -22,6 +23,7 @@ let {
   mode?: 'list' | 'form-create' | 'form-edit' | 'detail' | 'relation-picker';
   entityName?: string;
   initial?: Row | null;
+  detailHeadingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
 } = $props();
 
 // svelte-ignore state_referenced_locally
@@ -61,9 +63,16 @@ async function submitEdit(input: Record<string, unknown>) {
       }}
     />
   {:else if mode === 'form-create'}
-    <EntityForm {entity} mode="create" onSubmit={submitCreate} />
+    <EntityForm {entity} mode="create" {runtime} {blueprint} {services} onSubmit={submitCreate} />
   {:else if mode === 'detail'}
-    <EntityDetail {runtime} {blueprint} {entityName} recordId={String(initial?.id ?? '')} {services} />
+    <EntityDetail
+      {runtime}
+      {blueprint}
+      {entityName}
+      recordId={String(initial?.id ?? '')}
+      {services}
+      headingLevel={detailHeadingLevel}
+    />
   {:else if mode === 'relation-picker'}
     {#if relationField?.kind === 'relation'}
       <RelationPicker {runtime} {blueprint} field={relationField} {services} bind:value={relationValue} />
@@ -80,7 +89,7 @@ async function submitEdit(input: Record<string, unknown>) {
       >Save relation</button>
     {/if}
   {:else}
-    <EntityForm {entity} mode="edit" {initial} onSubmit={submitEdit} />
+    <EntityForm {entity} mode="edit" {initial} {runtime} {blueprint} {services} onSubmit={submitEdit} />
   {/if}
   {#if lastCreated}<p data-testid="created-id">{String(lastCreated.id)}</p>{/if}
   {#if lastEdited}<p data-testid="edited-id">{String(lastEdited.id)}</p>{/if}

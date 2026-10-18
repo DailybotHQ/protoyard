@@ -12,7 +12,7 @@ let {
   entityName: string;
 } = $props();
 
-const { blueprint, services } = useCrudApp();
+const { blueprint, services, runtime } = useCrudApp();
 const entity = $derived(blueprint.entities.find((e) => e.name === entityName));
 const listPath = $derived(entity ? `/${entity.plural}` : '/');
 
@@ -61,9 +61,6 @@ async function submitEdit(input: Record<string, unknown>) {
   <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
     <div>
       <h1 class="text-xl font-semibold">{formatEntityHeading(entity)}</h1>
-      <p class="text-sm text-muted-foreground">
-        Blueprint-driven list and forms. Mutations go through entity services.
-      </p>
     </div>
     {#if mode !== 'list'}
       <Button
@@ -96,8 +93,8 @@ async function submitEdit(input: Record<string, unknown>) {
       }}
     />
   {:else if mode === 'create'}
-    <EntityForm {entity} mode="create" onSubmit={submitCreate} />
+    <EntityForm {entity} mode="create" {runtime} {blueprint} {services} onSubmit={submitCreate} />
   {:else if editing}
-    <EntityForm {entity} mode="edit" initial={editing} onSubmit={submitEdit} />
+    <EntityForm {entity} mode="edit" initial={editing} {runtime} {blueprint} {services} onSubmit={submitEdit} />
   {/if}
 {/if}

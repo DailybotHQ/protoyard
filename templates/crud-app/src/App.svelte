@@ -1,7 +1,7 @@
 <script lang="ts">
 import { CheckSquare, FolderKanban, LayoutDashboard, Users } from '@lucide/svelte';
 import { createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
-import { AppShell, Avatar, Badge, Header, Sidebar, Toaster } from '@protoyard/ui';
+import { AppShell, Avatar, Badge, Header, Sidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import AppSearch from './components/AppSearch.svelte';
 import NotificationsBell from './components/NotificationsBell.svelte';
@@ -90,4 +90,3 @@ const nav = $derived([
     <Router {router} />
   </div>
 </AppShell>
-<Toaster />

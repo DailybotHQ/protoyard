@@ -1,10 +1,11 @@
 <script lang="ts">
-import type { BlueprintEntity, EntityInput } from '@protoyard/blueprint';
+import type { Blueprint, BlueprintEntity, EntityInput, EntityServices } from '@protoyard/blueprint';
 import { fieldLabel, inputProperty } from '@protoyard/blueprint';
-import type { Row } from '@protoyard/core';
+import type { PrototypeRuntime, Row } from '@protoyard/core';
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
-import { Button, FormField } from '@protoyard/ui';
+import { Button, FormField, Select } from '@protoyard/ui';
 import FieldControl from './fields/FieldControl.svelte';
+import RelationPicker from './RelationPicker.svelte';
 
 /**
  * Blueprint-driven create/edit form. Submits through `onSubmit` (usually an
@@ -14,6 +15,9 @@ let {
   entity,
   mode = 'create',
   initial = null,
+  runtime,
+  blueprint,
+  services,
   disabled = false,
   submitLabel,
   onSubmit,
@@ -22,6 +26,9 @@ let {
   entity: BlueprintEntity;
   mode?: 'create' | 'edit';
   initial?: Row | null;
+  runtime?: PrototypeRuntime;
+  blueprint?: Blueprint;
+  services?: EntityServices;
   disabled?: boolean;
   submitLabel?: string;
   onSubmit: (input: EntityInput) => Promise<unknown>;
@@ -49,6 +56,16 @@ let values = $state<Record<string, unknown>>(buildValues(entity, initial, mode))
 let errors = $state<Record<string, string>>({});
 let formError = $state<string | null>(null);
 let busy = $state(false);
+const personaItems = $derived(
+  runtime
+    ? [
+        { value: '', label: 'Unassigned' },
+        ...runtime.members
+          .list()
+          .map(({ persona }) => ({ value: persona.id, label: persona.name })),
+      ]
+    : []
+);
 // svelte-ignore state_referenced_locally
 let seededFor = $state(`${entity.name}:${mode}:${String(initial?.id ?? '')}`);
 
@@ -92,13 +109,35 @@ async function submit(event: SubmitEvent) {
       required={field.required}
     >
       {#snippet children({ props })}
-        <FieldControl
-          {field}
-          bind:value={values[key]}
-          error={errors[key]}
-          disabled={disabled || busy}
-          id={props.id}
-        />
+        {#if field.kind === 'relation' && runtime && blueprint && services}
+          <RelationPicker
+            {runtime}
+            {blueprint}
+            {services}
+            {field}
+            bind:value={values[key]}
+            disabled={disabled || busy}
+            id={props.id}
+          />
+        {:else if field.kind === 'persona' && runtime}
+          <Select
+            id={props.id}
+            items={personaItems}
+            value={typeof values[key] === 'string' ? values[key] : ''}
+            placeholder={`Select ${fieldLabel(field).toLowerCase()}`}
+            disabled={disabled || busy}
+            aria-invalid={errors[key] ? 'true' : undefined}
+            onValueChange={(next) => (values[key] = next || null)}
+          />
+        {:else}
+          <FieldControl
+            {field}
+            bind:value={values[key]}
+            error={errors[key]}
+            disabled={disabled || busy}
+            id={props.id}
+          />
+        {/if}
       {/snippet}
     </FormField>
   {/each}
