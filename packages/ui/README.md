@@ -53,6 +53,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
 | Data | `DataTable`, `Pagination`, `Kanban` |
 | Layout | `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid` |
+| Shells | `WindowChrome` |
 | Collaboration | `ChatThread`, `MessageList`, `Composer`, `TypingIndicator` |
 | Flows | `Stepper`, `Wizard` |
 | Mobile | `BottomNav`, `MobileHeader`, `BottomSheet`, `SafeArea` |
@@ -109,6 +110,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `BottomNav` | `items: { label, href, icon, badge?, active? }[]`, `fixed`, safe-area padding, 44px targets; marked `data-py-bottom-nav` so DevTools lifts its launcher above it |
 | `MobileHeader` | `title`, `titleAs`, `subtitle`, `backHref`/`onBack` + `backLabel`, `actions`, `sticky` |
 | `SafeArea` | `edges` (or `top`/`right`/`bottom`/`left`) padded with `env(safe-area-inset-*)`, `as` |
+| `WindowChrome` | Desktop-app title bar: `variant` mac-like·windows-like, `title`, `bind:state` open·minimized·closed, `bind:maximized`, optional `toolbar` snippet, children. Minimize → restore pill; maximize toggles fill (`aria-pressed`); close → “Window closed” + Reopen. Double-click the title bar toggles maximize. Purely visual (no `-webkit-app-region`). Generic chrome — no OS logos. |
 
 ## Conventions
 
