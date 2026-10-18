@@ -141,6 +141,58 @@ describe('protoyard generate', () => {
     expect(read('prototypes/help-desk/src/App.svelte')).not.toContain('NotificationsBell');
   });
 
+  it('wires an optional blueprint brand into the default theme (AA, hash-headed)', async () => {
+    const file = writeBlueprint(
+      blueprintInput({
+        brand: {
+          id: 'acme-teal',
+          name: 'Acme Teal',
+          seed: '#0f766e',
+          styleProfile: 'soft',
+          font: 'grotesk',
+        },
+      }),
+      'branded.json'
+    );
+    const run = await generate('branded-desk', '--blueprint', file, '--no-install');
+    expect(run.code).toBe(0);
+    const { data } = run.json<Envelope>();
+    expect(data.hashesIntact).toBe(true);
+    expect(data.generated as string[]).toContain('src/generated/brand-theme.ts');
+
+    const manifest = JSON.parse(read('prototypes/branded-desk/protoyard.json'));
+    expect(manifest.defaultTheme).toBe('acme-teal');
+
+    const themeModule = read('prototypes/branded-desk/src/generated/brand-theme.ts');
+    expect(checkHeader(themeModule)).toEqual({ generated: true, intact: true });
+    expect(themeModule).toContain('acmeTealTheme');
+    expect(themeModule).toContain('"id": "acme-teal"');
+
+    const prototype = read('prototypes/branded-desk/src/prototype.ts');
+    expect(prototype).toContain("from './generated/brand-theme.ts'");
+    expect(prototype).toContain('themes: [acmeTealTheme]');
+
+    // Same blueprint again is a no-op (hash guard).
+    const again = await generate('branded-desk', '--blueprint', file, '--no-install');
+    expect(again.code).toBe(0);
+    expect(again.json<Envelope>().data).toMatchObject({ created: false, unchanged: true });
+
+    // Without brand, the template default theme is left alone.
+    const plain = await generate(
+      'plain-desk',
+      '--blueprint',
+      writeBlueprint(blueprintInput(), 'plain.json'),
+      '--no-install'
+    );
+    expect(plain.code).toBe(0);
+    const plainManifest = JSON.parse(read('prototypes/plain-desk/protoyard.json'));
+    const templateManifest = JSON.parse(read('templates/crud-app/protoyard.json'));
+    expect(plainManifest.defaultTheme).toBe(templateManifest.defaultTheme);
+    expect(existsSync(join(ws.root, 'prototypes/plain-desk/src/generated/brand-theme.ts'))).toBe(
+      false
+    );
+  });
+
   it('is a no-op for the same blueprint and refuses hand-edited generated files', async () => {
     const file = writeBlueprint();
     expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(0);
@@ -197,10 +249,7 @@ describe('protoyard generate', () => {
     linkInstalled(ws, 'help-desk');
     // With dependencies resolvable, re-running generate refreshes the spec docs too.
     const refresh = await generate('help-desk', '--blueprint', writeBlueprint());
-    expect(refresh.json<Envelope>().data).toMatchObject({
-      unchanged: true,
-      spec: { refreshed: true },
-    });
+    expect(refresh.json<Envelope>().data).toMatchObject({ unchanged: true, spec: { ok: true } });
     const run = await cli(['--root', ws.root, '--json', 'validate', 'help-desk']);
     const { ok, data } = run.json<{
       ok: boolean;
@@ -225,10 +274,12 @@ describe('protoyard generate', () => {
     const appBefore = readFileSync(app, 'utf8');
 
     const next = blueprintInput();
-    next.entities[0]?.fields.push({ name: 'vip', kind: 'boolean', default: false });
+    (next.entities[0]?.fields as unknown[]).push({ name: 'vip', kind: 'boolean', default: false });
     const run = await generate('help-desk', '--blueprint', writeBlueprint(next, 'v2.json'));
     expect(run.code).toBe(0);
-    const { data } = run.json<Envelope & { data: { files: { path: string; status: string }[] } }>();
+    const { data } = run.json<{
+      data: Record<string, unknown> & { files: { path: string; status: string }[] };
+    }>();
     expect(data).toMatchObject({ regenerated: true, schemaVersion: { from: 1, to: 2, ops: 1 } });
     const status = Object.fromEntries(data.files.map((f) => [f.path, f.status]));
     expect(status).toMatchObject({

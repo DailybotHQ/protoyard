@@ -24,6 +24,18 @@ export {
   createAuditWriter,
 } from './audit.ts';
 export {
+  type BrandContrastFailure,
+  BrandThemeError,
+  brandThemeExportName,
+  brandThemeId,
+  emitBrandThemeModule,
+  getStyleProfile,
+  type ResolveBrandOptions,
+  resolveBlueprintBrand,
+  STYLE_PROFILES,
+  type StyleProfile,
+} from './brand.ts';
+export {
   type BlueprintFile,
   type BlueprintFileMetadata,
   createFileServices,
@@ -57,6 +69,9 @@ export { CAPABILITIES, derivePolicy, type EntityCapabilityMap } from './policy.t
 export {
   BLUEPRINT_SCHEMA_URL,
   type Blueprint,
+  type BlueprintBrand,
+  type BlueprintBrandInput,
+  BlueprintBrandSchema,
   type BlueprintEntity,
   type BlueprintField,
   type BlueprintHistoryEntry,

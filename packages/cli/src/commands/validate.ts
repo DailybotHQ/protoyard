@@ -89,6 +89,13 @@ export function schemaVersionsInSource(source: string): number[] {
 }
 
 async function checkSchemaVersion(dir: string, manifest: PrototypeManifest): Promise<Check> {
+  if (existsSync(join(dir, SNAPSHOT_PATH))) {
+    // Generated prototypes derive versions from blueprint.json history at runtime;
+    // the blueprint and database-versions checks compare them instead of a source scan.
+    return check('schema-version', 'storage.schemaVersion', 'skip', [
+      'versions are derived from blueprint.json (see the blueprint check)',
+    ]);
+  }
   const path = join(dir, 'src', 'database', 'schema.ts');
   if (!existsSync(path))
     return check('schema-version', 'storage.schemaVersion', 'skip', ['no src/database/schema.ts']);

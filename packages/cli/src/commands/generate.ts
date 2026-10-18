@@ -4,6 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { type Blueprint, safeParseBlueprint } from '@protoyard/blueprint';
 import { MANIFEST_FILENAME } from '@protoyard/core';
 import {
+  brandDefaultThemeId,
   type EmittedFile,
   emitPrototype,
   personalizeHtml,
@@ -11,6 +12,7 @@ import {
 } from '../lib/codegen/emit.ts';
 import { checkHeader } from '../lib/codegen/header.ts';
 import {
+  emitOrThrow,
   type FilePlan,
   planRegeneration,
   SNAPSHOT_PATH,
@@ -19,15 +21,13 @@ import {
 } from '../lib/codegen/regenerate.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
-import { inspectPrototype, toSpecFacts } from '../lib/inspect.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
 import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
 import { installWorkspace } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
 import type { CommandContext } from '../lib/workspace.ts';
 import { assertSlug, resolveTarget } from '../lib/workspace.ts';
-import { copyTemplate, listTemplateFiles, personalize } from './new.ts';
-import { specForPrototype } from './spec.ts';
+import { copyTemplate, listTemplateFiles, personalize, writeNewSpec } from './new.ts';
 
 /**
  * `protoyard generate <slug> --blueprint <file>`: validates a data-only
@@ -103,30 +103,6 @@ async function inspectDestination(dest: string, slug: string, template: string):
   }
 }
 
-/**
- * Rewrites the generated regions of the prototype spec (AGENTS.md, docs/) so
- * they describe this blueprint, not the template. It loads src/prototype.ts
- * through the inspector, so it needs the prototype's dependencies installed;
- * otherwise it reports why and `spec --write` stays a next step.
- */
-async function refreshSpec(
-  ctx: CommandContext,
-  dest: string
-): Promise<{ refreshed: boolean; reason?: string }> {
-  try {
-    const inspection = await inspectPrototype(ctx.root, dest, 'spec');
-    if (!inspection.spec)
-      return { refreshed: false, reason: 'the inspector returned no spec facts' };
-    await specForPrototype(dest, toSpecFacts(inspection.spec, inspection.schemaVersion), {
-      mode: 'write',
-      init: false,
-    });
-    return { refreshed: true };
-  } catch (error) {
-    return { refreshed: false, reason: toCliError(error).message };
-  }
-}
-
 /** A nested POSIX path under `dir`; every segment goes through `childPath`'s checks. */
 const nested = (dir: string, rel: string) => rel.split('/').reduce(childPath, dir);
 
@@ -195,7 +171,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
 
   // A first generation starts the history: the snapshot records what the code reflects.
   const files = [
-    ...emitPrototype(blueprint, slug, text),
+    ...emitOrThrow(blueprint, slug, text),
     {
       path: SNAPSHOT_PATH,
       content: snapshotText({ schemaVersion: 1, blueprint: withoutHistory(raw) }),
@@ -265,6 +241,8 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       const preview = { ...((manifest.preview as Record<string, unknown> | undefined) ?? {}) };
       delete preview.shell;
       manifest.preview = preview;
+      const brandTheme = brandDefaultThemeId(blueprint);
+      if (brandTheme) manifest.defaultTheme = brandTheme;
       await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
       const htmlPath = join(staging, 'index.html');
       if (existsSync(htmlPath)) {
@@ -297,10 +275,8 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     };
   }
 
-  const spec =
-    install.ok && !install.skipped
-      ? await refreshSpec(ctx, dest)
-      : { refreshed: false, reason: 'pnpm install was skipped' };
+  // After install, so the definition's workspace packages resolve (same as `new`).
+  const spec = await writeNewSpec(ctx, dest);
   const index = await buildIndex(ctx.paths);
   const generatedFiles = files.filter((f) => f.generated);
   const intact = await Promise.all(
@@ -308,7 +284,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   );
   const nextSteps = [
     ...(install.ok && !install.skipped ? [] : ['pnpm install']),
-    ...(spec.refreshed ? [] : [`pnpm protoyard spec ${slug} --write`]),
+    ...(spec.ok ? [] : [`pnpm protoyard spec ${slug} --write`]),
     `pnpm protoyard dev ${slug}`,
     `pnpm vitest run prototypes/${slug}`,
     `pnpm protoyard validate ${slug} --build`,
@@ -421,7 +397,8 @@ async function regenerate(
     }
     await buildIndex(ctx.paths);
   }
-  const spec = dryRun ? { refreshed: false, reason: 'dry run' } : await refreshSpec(ctx, dest);
+  // Spec regions describe the blueprint (tables, permissions…): refresh them after every write.
+  const spec = dryRun ? null : await writeNewSpec(ctx, dest);
   const durationMs = Math.round(performance.now() - input.started);
   return {
     data: {
@@ -447,9 +424,9 @@ async function regenerate(
     },
     render(out) {
       const { c } = out;
-      if (!dryRun && !spec.refreshed) {
+      if (spec && !spec.ok) {
         out.warn(
-          `${mark(c, 'warn')} Spec docs not refreshed (${spec.reason}). Run \`pnpm protoyard spec ${slug} --write\`.`
+          `${mark(c, 'warn')} Spec docs not refreshed (${spec.error ?? 'unknown error'}). Run \`pnpm protoyard spec ${slug} --write\`.`
         );
       }
       if (unchanged) {

@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   type Blueprint,
+  BrandThemeError,
   diffBlueprints,
   latestSchemaVersion,
   MigrationError,
@@ -59,6 +60,25 @@ function parseOrThrow(raw: unknown, label: string): Blueprint {
     'validation',
     `${label} is invalid: ${issue ? `${issue.path.map(String).join('.') || '(root)'} — ${issue.message}` : 'unknown error'}`
   );
+}
+
+/** `emitPrototype`, with brand-theme contrast failures reported as validation errors (exit 4). */
+export function emitOrThrow(
+  blueprint: Blueprint,
+  slug: string,
+  blueprintText: string
+): EmittedFile[] {
+  try {
+    return emitPrototype(blueprint, slug, blueprintText);
+  } catch (error) {
+    if (error instanceof BrandThemeError) {
+      throw new CliError('validation', error.message, {
+        hint: 'Adjust brand.seed / preset / styleProfile so text pairs reach WCAG AA 4.5:1.',
+        data: { failures: error.failures },
+      });
+    }
+    throw error;
+  }
 }
 
 export async function readSnapshot(dest: string): Promise<Snapshot | null> {
@@ -191,7 +211,7 @@ export async function planRegeneration(input: {
     );
   }
   const blueprintText = `${JSON.stringify(finalRaw, null, 2)}\n`;
-  const emitted = emitPrototype(blueprint, slug, blueprintText);
+  const emitted = emitOrThrow(blueprint, slug, blueprintText);
   const files = await planGeneratedFiles(dest, emitted);
   const nextSnapshot: Snapshot = { schemaVersion: toVersion, blueprint: nextRaw };
   const managed: [string, string][] = [
@@ -286,7 +306,7 @@ export async function checkBlueprintDrift(
       );
     }
   }
-  const files = await planGeneratedFiles(dir, emitPrototype(blueprint, slug, text ?? ''));
+  const files = await planGeneratedFiles(dir, emitOrThrow(blueprint, slug, text ?? ''));
   for (const file of files) {
     if (file.status === 'created') problems.push(`missing ${file.path}`);
     else if (file.status === 'conflicted')
