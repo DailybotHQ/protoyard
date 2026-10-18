@@ -9,6 +9,13 @@ export interface DataTableSort {
   direction: SortDirection;
 }
 
+export interface DataTableBulkActionContext<T> {
+  /** IDs of every selected row, including rows on other pages or outside the current search. */
+  selected: string[];
+  /** Selected rows in the same order as the source `rows` prop. */
+  rows: T[];
+}
+
 export interface DataTableColumn<T> {
   /** Unique column key; also the default property read from each row. */
   key: string;
