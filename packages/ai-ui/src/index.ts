@@ -10,3 +10,5 @@ export type {
   AssistantSendInput,
   FeedbackRating,
 } from './types.ts';
+/** Prefer `import('@protoyard/ai-ui/voice')` so voice stays a lazy chunk. */
+export { VoiceOrb, VoicePanel } from './voice/index.ts';

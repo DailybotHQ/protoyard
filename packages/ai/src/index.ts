@@ -71,3 +71,12 @@ export type {
   ResponsePack,
   StreamOptions,
 } from './types.ts';
+export {
+  createVoiceSession,
+  type SpeechBackend,
+  type VoiceMode,
+  type VoicePhase,
+  type VoiceSession,
+  type VoiceSessionOptions,
+  type VoiceUtterance,
+} from './voice.ts';

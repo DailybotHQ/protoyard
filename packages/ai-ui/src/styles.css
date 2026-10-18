@@ -1,2 +1,65 @@
 /* Import after Tailwind and the Protoyard theme/UI styles. */
 @source "./";
+
+/* Simulated voice orb — decorative levels only. */
+.py-voice-orb {
+  display: grid;
+  place-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+.py-voice-orb__glow {
+  position: absolute;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--py-color-primary, #6366f1) 18%, transparent);
+  filter: blur(18px);
+  opacity: 0.35;
+  transition: opacity 200ms ease;
+}
+.py-voice-orb__glow--active {
+  opacity: 0.85;
+}
+.py-voice-orb__core {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, var(--py-color-border, #e4e4e7) 80%, transparent);
+  background: color-mix(in oklab, var(--py-color-card, #fff) 88%, transparent);
+  padding: 1.1rem 1.25rem 1.25rem;
+  box-shadow: 0 10px 30px -18px rgb(0 0 0 / 0.35);
+}
+.py-voice-orb__bar {
+  display: block;
+  width: 0.35rem;
+  min-height: 18%;
+  border-radius: 9999px;
+  background: var(--py-color-primary, #6366f1);
+  transform-origin: bottom center;
+  transition: height 120ms ease;
+}
+.py-voice-orb__core[data-phase="listening"] .py-voice-orb__bar,
+.py-voice-orb__core[data-phase="speaking"] .py-voice-orb__bar {
+  animation: py-voice-bar 900ms ease-in-out infinite;
+}
+@keyframes py-voice-bar {
+  0%,
+  100% {
+    transform: scaleY(0.7);
+  }
+  50% {
+    transform: scaleY(1.15);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .py-voice-orb__core[data-phase="listening"] .py-voice-orb__bar,
+  .py-voice-orb__core[data-phase="speaking"] .py-voice-orb__bar {
+    animation: none;
+  }
+}

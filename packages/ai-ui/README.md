@@ -48,4 +48,15 @@ The composer supports Enter to send, Shift+Enter for a newline, Escape to stop a
 
 Conversation folder controls require `folders`, `onCreateFolder`, and `onMoveToFolder` callbacks. Features without a callback are disabled. The caller supplies `onRegenerate`, `onEditMessage`, `onBranchChange`, `onFeedback`, and `onShare` only when those operations are implemented.
 
+## Voice panel (lazy)
+
+```ts
+const { VoicePanel } = await import('@protoyard/ai-ui/voice');
+```
+
+`VoicePanel` binds a `VoiceSession` from `@protoyard/ai`: push-to-talk hold button or
+hands-free start, interrupt, mode toggle, animated orb/waveform, and always-visible
+captions. Set `enableMicMeter` only when the prototype explicitly opts into a local
+amplitude meter (never recorded). Copy labels the experience as simulated.
+
 All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
