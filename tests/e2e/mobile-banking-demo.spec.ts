@@ -144,9 +144,11 @@ test.describe('Lumen Bank (static build)', () => {
     const saved = await page.evaluate(() => window.__protoyard?.snapshots.save({ name: 'e2e' }));
     await page.getByRole('button', { name: /^Remove Casey/ }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Remove payee' }).click();
-    await expect(page.getByText('Casey', { exact: true })).toHaveCount(0);
+    // Scope to the app content: the removal toast also names the payee.
+    const payee = page.locator('#main').getByText('Casey', { exact: true });
+    await expect(payee).toHaveCount(0);
     await page.evaluate((id) => window.__protoyard?.snapshots.restore(id), saved?.id ?? '');
-    await expect(page.getByText('Casey', { exact: true })).toBeVisible();
+    await expect(payee).toBeVisible();
   });
 
   test('the standalone build ships without DevTools and uses IndexedDB', async ({ page }) => {
