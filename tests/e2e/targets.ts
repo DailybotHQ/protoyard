@@ -7,10 +7,13 @@ export const PROTOTYPE_TARGETS = (process.env.PROTOYARD_E2E_PROTOTYPES ?? '')
   .map((s) => s.trim())
   .filter(Boolean);
 
+/** First prototype port (default 4401). Override for private verification servers. */
+const PROTOTYPE_PORT_BASE = Number(process.env.PROTOYARD_E2E_PROTOTYPE_PORT_BASE ?? 4401);
+
 export function prototypeUrl(slug: string): string {
   const i = PROTOTYPE_TARGETS.indexOf(slug);
   if (i === -1) throw new Error(`${slug} is not in PROTOYARD_E2E_PROTOTYPES`);
-  return `http://127.0.0.1:${4401 + i}/`;
+  return `http://127.0.0.1:${PROTOTYPE_PORT_BASE + i}/`;
 }
 
 export interface RegistryEntryLite {
