@@ -1,0 +1,25 @@
+# GitHub Actions templates
+
+These versioned templates are starter workflows for teams using Protoyard in a
+GitHub repository. Copy a workflow into `.github/workflows/` and run the
+Protoyard CI initializer to replace `{{NODE_VERSION}}`, `{{PROTOTYPES}}`, and
+`{{PROVIDER}}`. The templates use the same 40-character SHA-pinned actions as
+the repository CI workflow.
+
+| Template | Triggers and work | Secrets | Expected cost |
+| --- | --- | --- | --- |
+| `protoyard-check.yml` | Pull requests, pushes to `main`, and manual runs; installs dependencies and runs workspace lint, typecheck, and tests. | None. | One full workspace install and test run per event; typically the broadest routine check. |
+| `protoyard-build.yml` | Pull requests validate and export only slugs returned by `protoyard affected`; pushes to `main` and manual runs use `build --all` and `export --all`. Enforces configured budgets and uploads generated ZIPs for seven days. | None. | Builds and exports each affected prototype on a PR, or every prototype on `main` and manual runs; may use significant runner time for large workspaces. |
+| `protoyard-e2e.yml` | Pull requests select affected prototypes, pushes to `main` select all prototypes, and manual runs use the rendered prototype list. Installs or reuses the Chromium browser cache and runs Playwright. | None. | Browser install on a cache miss and a 30-minute maximum Playwright job; actual duration depends on the E2E matrix. |
+| `protoyard-preview.yml` | Pull request open, synchronize, or reopen; publishes affected prototypes to Cloudflare preview branches named `pr-<number>`. Fork pull requests are skipped. | `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, configured as repository or environment secrets. | Builds and uploads each affected prototype; Cloudflare usage or billing depends on the account plan and deployment volume. |
+
+The check and build workflows are suitable for required status checks after a
+team installs them. Preview deployment is opt-in: add the workflow and its two
+Cloudflare secrets only when the repository is ready to publish previews. No
+workflow edits repository settings or deploys production.
+
+The build template calls `pnpm protoyard budget --all` as the performance gate.
+That command is part of the planned CLI CI surface and must be available in the
+installed Protoyard version before this workflow can pass. Until it lands,
+remove the budget step only if the team intentionally accepts builds without
+automated budget enforcement.
