@@ -267,7 +267,7 @@ describe('BlueprintSchema', () => {
       (bp: Mutable) => {
         (bp.roles[2] as { permissions: Record<string, string[]> }).permissions['*'] = ['approve'];
       },
-      'roles.2.permissions.*.0: Invalid option: expected one of "read"|"create"|"update"|"update:own"|"delete"|"delete:own"|"import"|"export"|"*"',
+      'roles.2.permissions.*.0: denials must name an exact capability such as "-ticket:delete"',
     ],
     [
       'board groupBy is not an enum',

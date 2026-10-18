@@ -17,7 +17,7 @@ Implemented: the blueprint schema (`src/schema.ts` + JSON Schema) and storage de
 | storage | Dexie store strings and integrity rules | done |
 | migrations | the next appended database version from a blueprint change | planned |
 | validation | create and update zod input schemas per entity | planned |
-| policy | role capabilities (`<entity>:<action>`) and record rules | planned |
+| policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | planned |
 
@@ -95,6 +95,20 @@ const integrity = deriveIntegrity(blueprint);
 
 `deriveIntegrity` feeds `validateWorld` from `@protoyard/scenarios`: dangling foreign keys
 and out-of-range timestamps fail the scenario load.
+
+## Policy derivation
+
+```ts
+import { CAPABILITIES, derivePolicy, parseBlueprint } from '@protoyard/blueprint';
+import { createPermissionPolicy } from '@protoyard/core';
+
+const blueprint = parseBlueprint(input);
+const policy = createPermissionPolicy(derivePolicy(blueprint));
+const caps = CAPABILITIES(blueprint);
+// UI and services use caps['support-ticket'].read / .deleteOwn / .updateOwn.
+```
+
+Role actions become `<entity>:<action>` capabilities. `*` grants are expanded or preserved for the runtime policy, and explicit `-capability` entries remain denials. `update:own` and `delete:own` use the persona id column derived from the entity's `ownerField`. Owner/admin roles receive the platform `members:*` capability for team-management services. These permissions are simulated UI behavior, not security.
 
 ## Tests
 

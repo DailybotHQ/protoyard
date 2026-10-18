@@ -11,6 +11,7 @@
 /** Version of the blueprint document format. Bumped only on breaking changes. */
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
+export { CAPABILITIES, derivePolicy, type EntityCapabilityMap } from './policy.ts';
 export {
   BLUEPRINT_SCHEMA_URL,
   type Blueprint,
@@ -30,6 +31,7 @@ export {
   FIELD_KINDS,
   type FieldKind,
   FieldSchema,
+  PermissionActionSchema,
   parseBlueprint,
   RESERVED_FIELD_NAMES,
   RoleSchema,

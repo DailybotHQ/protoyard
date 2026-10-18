@@ -902,17 +902,25 @@
             "additionalProperties": {
               "type": "array",
               "items": {
-                "type": "string",
-                "enum": [
-                  "read",
-                  "create",
-                  "update",
-                  "update:own",
-                  "delete",
-                  "delete:own",
-                  "import",
-                  "export",
-                  "*"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "read",
+                      "create",
+                      "update",
+                      "update:own",
+                      "delete",
+                      "delete:own",
+                      "import",
+                      "export",
+                      "*"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^-[a-z][a-z0-9-]*(?::[a-z][a-z0-9:*-]*)?$"
+                  }
                 ]
               }
             }

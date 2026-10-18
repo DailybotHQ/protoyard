@@ -178,12 +178,20 @@ export const ENTITY_ACTIONS = [
 ] as const;
 export type EntityAction = (typeof ENTITY_ACTIONS)[number];
 
+/** Exact capability denials are accepted for the runtime's `-capability` semantics. */
+export const PermissionActionSchema = z.union([
+  z.enum([...ENTITY_ACTIONS, '*']),
+  z.string().regex(/^-[a-z][a-z0-9-]*(?::[a-z][a-z0-9:*-]*)?$/, {
+    message: 'denials must name an exact capability such as "-ticket:delete"',
+  }),
+]);
+
 export const RoleSchema = z.strictObject({
   name: name('role name'),
   label: z.string().min(1).max(40).optional(),
   description: z.string().max(200).optional(),
   /** Entity name (or `*` for every entity) → allowed actions (`*` for all). */
-  permissions: z.record(z.string(), z.array(z.enum([...ENTITY_ACTIONS, '*']))),
+  permissions: z.record(z.string(), z.array(PermissionActionSchema)),
 });
 export type BlueprintRole = z.infer<typeof RoleSchema>;
 
