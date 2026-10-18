@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ResolvedShell, ViewportPreset } from './manifest.ts';
 
 /**
  * Brand-neutral device catalog: the single source of truth for device frames
@@ -199,4 +200,38 @@ export function orient(spec: DeviceSpec, orientation: Orientation): DeviceSpec {
 export function fitScale(available: number, width: number): number {
   if (!(available > 0) || !(width > 0)) return 1;
   return Math.min(1, available / width);
+}
+
+/** Device kinds each shell can frame. `none` renders full-bleed, so any device fits. */
+const SHELL_DEVICE_KINDS: Record<ResolvedShell, readonly DeviceKind[]> = {
+  none: ['phone', 'tablet', 'laptop', 'desktop'],
+  phone: ['phone'],
+  tablet: ['tablet'],
+  'desktop-window': ['laptop', 'desktop'],
+  browser: ['laptop', 'desktop'],
+  'widget-host': ['laptop', 'desktop'],
+  'extension-popup': ['laptop', 'desktop'],
+  'side-panel': ['laptop', 'desktop'],
+};
+
+/** Whether `deviceId` is a catalog device the shell can frame. */
+export function deviceFitsShell(deviceId: string, shell: ResolvedShell): boolean {
+  const device = getDevice(deviceId);
+  return device !== undefined && SHELL_DEVICE_KINDS[shell].includes(device.kind);
+}
+
+/**
+ * The device a shell uses when nothing chose one. The legacy viewport preset
+ * picks the phone style (`android` → punch-hole) and maps `none` to the closest
+ * form factor. Always returns a device that fits the shell.
+ */
+export function defaultDeviceFor(shell: ResolvedShell, viewport: ViewportPreset): DeviceId {
+  if (shell === 'phone') return viewport === 'android' ? 'phone-punch-hole' : 'phone-pill';
+  if (shell === 'tablet') return 'tablet';
+  if (shell === 'none') {
+    if (viewport === 'iphone') return 'phone-pill';
+    if (viewport === 'android') return 'phone-punch-hole';
+    if (viewport === 'tablet') return 'tablet';
+  }
+  return 'laptop-window';
 }

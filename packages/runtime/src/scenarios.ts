@@ -338,12 +338,14 @@ export function createScenarioController(
         const themeOk = link.theme && k.themes.some((t) => t.id === link.theme);
         if (
           (themeOk && link.theme !== k.overrides.themeId) ||
-          (link.mode && link.mode !== k.overrides.mode)
+          (link.mode && link.mode !== k.overrides.mode) ||
+          (link.shell && link.shell !== k.overrides.shell)
         ) {
           await applyOverrides(k, {
             ...k.overrides,
             ...(themeOk ? { themeId: link.theme } : {}),
             ...(link.mode ? { mode: link.mode } : {}),
+            ...(link.shell ? { shell: link.shell } : {}),
           });
         }
       }),

@@ -3,6 +3,8 @@ import {
   DEVICE_IDS,
   DEVICES,
   DeviceSpecSchema,
+  defaultDeviceFor,
+  deviceFitsShell,
   fitScale,
   getDevice,
   orient,
@@ -87,5 +89,40 @@ describe('device catalog', () => {
     expect(fitScale(0, 400)).toBe(1);
     expect(fitScale(Number.NaN, 400)).toBe(1);
     expect(fitScale(200, 0)).toBe(1);
+  });
+
+  it('defaultDeviceFor always returns a device that fits the shell', () => {
+    const shells = [
+      'none',
+      'phone',
+      'tablet',
+      'desktop-window',
+      'browser',
+      'widget-host',
+      'extension-popup',
+      'side-panel',
+    ] as const;
+    const viewports = ['desktop', 'tablet', 'iphone', 'android', 'custom'] as const;
+    for (const shell of shells) {
+      for (const viewport of viewports) {
+        expect(
+          deviceFitsShell(defaultDeviceFor(shell, viewport), shell),
+          `${shell}/${viewport}`
+        ).toBe(true);
+      }
+    }
+    expect(defaultDeviceFor('phone', 'android')).toBe('phone-punch-hole');
+    expect(defaultDeviceFor('phone', 'desktop')).toBe('phone-pill');
+    expect(defaultDeviceFor('none', 'tablet')).toBe('tablet');
+    expect(defaultDeviceFor('desktop-window', 'iphone')).toBe('laptop-window');
+  });
+
+  it('deviceFitsShell matches device kinds to shells and rejects unknown ids', () => {
+    expect(deviceFitsShell('phone-pill', 'phone')).toBe(true);
+    expect(deviceFitsShell('phone-pill', 'tablet')).toBe(false);
+    expect(deviceFitsShell('phone-pill', 'desktop-window')).toBe(false);
+    expect(deviceFitsShell('desktop-window', 'browser')).toBe(true);
+    expect(deviceFitsShell('tablet', 'none')).toBe(true);
+    expect(deviceFitsShell('nope', 'none')).toBe(false);
   });
 });

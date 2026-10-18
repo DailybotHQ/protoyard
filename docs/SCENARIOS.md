@@ -343,10 +343,10 @@ Every effective value reports its source, highest first:
 
 | Source | Set by | Cleared by |
 | --- | --- | --- |
-| `override` | DevTools toggles, link `theme`/`mode`, `overrides.set()` | DevTools **Reset N**, `overrides.clear()`, a scenario load |
+| `override` | DevTools toggles, link `theme`/`mode`/`shell`, `overrides.set()` | DevTools **Reset N**, `overrides.clear()`, a scenario load |
 | `preference` | The active persona's saved choice (`theme.setPreference()`), or `persona.preferences` from the generator | Changing it again |
 | `scenario` | The loaded scenario's `appearance` / `environment` | Loading another scenario |
-| `default` | `protoyard.json` (`defaultTheme`, `defaultMode`, `preview.viewport`) or the platform default | |
+| `default` | `protoyard.json` (`defaultTheme`, `defaultMode`, `preview.viewport`, `preview.shell`/`device`/`orientation`) or the platform default | |
 
 Preferences apply to appearance only (theme, mode, reduced motion). The
 environment resolves as defaults → scenario → overrides.
@@ -483,6 +483,7 @@ http://localhost:5173/?scenario=rep-view&actor=user_0003&seed=42&theme=ocean&mod
 | `actor` | `[A-Za-z0-9_-]{1,64}` | Switches to that persona if it exists; ignored otherwise |
 | `theme` | kebab-case id | Applied as a visible, clearable override if the theme exists |
 | `mode` | `light`, `dark`, `system` | Applied as an override |
+| `shell` | `auto`, `none`, `phone`, `tablet`, `desktop-window`, `browser`, `widget-host`, `extension-popup`, `side-panel` | Applied as a visible, clearable override; the runtime reports it as `appearance().shell` with source `override` |
 | `devtools` | `0` or `1` | `0` hides the panel (presentation mode). DevTools can only appear if the build includes them. |
 
 Invalid values are ignored, not reported. DevTools → Scenario → **Copy link**

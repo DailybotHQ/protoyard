@@ -91,7 +91,7 @@ truth (ADR-003).
 
 ```text
 mountPrototype()
-  ├─ parseScenarioLink(location.search)       ?scenario=&actor=&seed=&theme=&mode=&devtools=
+  ├─ parseScenarioLink(location.search)       ?scenario=&actor=&seed=&theme=&mode=&shell=&devtools=
   ├─ createPrototypeRuntime(definition, { themes: BUILTIN_THEMES + definition.themes, link })
   │    ├─ open protoyard.<ns>.data      (domain tables + py_organizations/personas/memberships/events)
   │    └─ open protoyard.<ns>.control   (state, preferences, snapshots)
