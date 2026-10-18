@@ -49,3 +49,13 @@ The composer supports Enter to send, Shift+Enter for a newline, Escape to stop a
 Conversation folder controls require `folders`, `onCreateFolder`, and `onMoveToFolder` callbacks. Features without a callback are disabled. The caller supplies `onRegenerate`, `onEditMessage`, `onBranchChange`, `onFeedback`, and `onShare` only when those operations are implemented.
 
 All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
+
+## Simulated voice mode
+
+Load the voice panel from its lazy subpath when the user opens voice mode:
+
+```ts
+const { VoiceMode } = await import('@protoyard/ai-ui/voice');
+```
+
+Pass the injected `AiClock`, scripted transcript options, the latest simulated assistant reply and an `onTranscript` handler. Captions are always visible. Browser `speechSynthesis` speaks replies locally when available; otherwise output stays muted and the reply caption remains visible. The panel does not request a microphone by default. A consumer may opt into showing the local mic level meter; enabling it asks for microphone permission and reads amplitude only with Web Audio, without recording, storing or uploading audio. Stop the meter to release its stream; component teardown also stops it.
