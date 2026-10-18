@@ -135,6 +135,31 @@ html[data-py-shell="widget-host"] [data-py-shell-part="screen"][data-py-widget-p
 }
 
 /*
+ * Side-panel shell: mock host app on the left; prototype in a right plugin panel.
+ * SidePanelFrame sets width / --py-app-height and data-py-side-panel.
+ */
+html[data-py-shell="side-panel"] [data-py-shell-part="screen"] {
+  inset: auto;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  width: var(--py-side-panel-width, 360px);
+  height: 100%;
+  border-radius: 0;
+  border-left: 1px solid rgb(15 23 42 / 0.12);
+  box-shadow: -8px 0 24px -12px rgb(15 23 42 / 0.25);
+  background: var(--color-background);
+}
+html[data-py-shell="side-panel"] [data-py-shell-part="screen"][data-py-side-panel="collapsed"] {
+  width: 0 !important;
+  border: 0;
+  box-shadow: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/*
  * Viewport presets narrow the app column (media queries still follow the real window).
  * They apply only while no shell frame is shown (`html[data-py-shell]`, see below).
  * #app is a viewport-tall box that never scrolls; `transform` makes it the containing

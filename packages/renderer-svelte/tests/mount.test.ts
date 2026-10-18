@@ -322,8 +322,8 @@ describe('shell frame decisions', () => {
     expect(activeFrame({ ...base, windowWidth: fits })).toBe('phone');
     expect(activeFrame({ ...base, spec: undefined })).toBe('none');
     // Shells whose frame has not shipped yet stay full-bleed.
-    expect(FRAMES['side-panel']).toBeUndefined();
-    expect(activeFrame({ ...base, shell: 'side-panel', spec: getDevice('laptop-window') })).toBe(
+    expect(FRAMES.browser).toBeUndefined();
+    expect(activeFrame({ ...base, shell: 'browser', spec: getDevice('laptop-window') })).toBe(
       'none'
     );
   });

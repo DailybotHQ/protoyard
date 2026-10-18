@@ -42,11 +42,11 @@ const framed = $derived(shell !== 'none' && spec !== undefined && entry !== unde
 const insets = $derived(spec ? safeAreaOf(spec) : undefined);
 const inset = $derived(screenInsetOf(entry));
 /**
- * The widget-host screen is a launcher panel that app.css positions and
- * WidgetHostFrame sizes (`--py-app-height` = panel height), so the host
- * leaves its inset, radius and tokens alone there.
+ * The widget-host and side-panel screens are panels that app.css positions and
+ * their frames size (`--py-app-height` = panel height), so the host leaves their
+ * inset, radius and tokens alone.
  */
-const sizedScreen = $derived(shell !== 'widget-host');
+const sizedScreen = $derived(shell !== 'widget-host' && shell !== 'side-panel');
 
 // Window-like frames can fill the stage or hide the screen (minimized, closed);
 // the app stays mounted either way.

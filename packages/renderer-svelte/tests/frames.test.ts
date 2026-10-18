@@ -7,10 +7,18 @@ import DesktopWindowFrame from '../src/shell/frames/DesktopWindowFrame.svelte';
 import HomeIndicator from '../src/shell/frames/HomeIndicator.svelte';
 import PhoneFrame from '../src/shell/frames/PhoneFrame.svelte';
 import { activeFrame, FRAMES, screenInsetOf, windowVariant } from '../src/shell/frames/registry.ts';
+import SidePanelFrame from '../src/shell/frames/SidePanelFrame.svelte';
 import StatusBar from '../src/shell/frames/StatusBar.svelte';
+import {
+  loadSidePanelWidth,
+  SIDE_PANEL_WIDTH_DEFAULT,
+  SIDE_PANEL_WIDTH_STEP,
+  sidePanelWidthKey,
+} from '../src/shell/frames/side-panel-prefs.ts';
 import WidgetHostFrame from '../src/shell/frames/WidgetHostFrame.svelte';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import ProbeApp from './fixtures/ProbeApp.svelte';
+import SidePanelHarness from './fixtures/SidePanelHarness.svelte';
 import WidgetHostHarness from './fixtures/WidgetHostHarness.svelte';
 
 afterEach(() => {
@@ -18,6 +26,7 @@ afterEach(() => {
   // Home indicator may assign location.hash.
   if (typeof location !== 'undefined' && location.hash) location.hash = '';
   delete window.__protoyardWidget;
+  localStorage.clear();
 });
 
 describe('PhoneFrame', () => {
@@ -116,6 +125,13 @@ describe('frame registry', () => {
     expect(entry).toBeDefined();
     const mod = await entry!.load();
     expect(mod.default).toBe(WidgetHostFrame);
+  });
+
+  it('lazy-loads SidePanelFrame for the side-panel shell', async () => {
+    const entry = FRAMES['side-panel'];
+    expect(entry).toBeDefined();
+    const mod = await entry!.load();
+    expect(mod.default).toBe(SidePanelFrame);
   });
 });
 
@@ -350,5 +366,82 @@ describe('desktop window shell in ShellHost', () => {
     await fireEvent.click(screen.getByRole('button', { name: /^Restore / }));
     expect(screenEl?.style.visibility).toBe('');
     expect(screen.getByTestId('who')).toBe(app);
+  });
+});
+
+describe('side panel shell', () => {
+  it('resizes the plugin panel with arrow keys on the separator', async () => {
+    render(SidePanelHarness);
+    const screenEl = await waitFor(() => screen.getByTestId('side-panel-screen'));
+    await waitFor(() => expect(screenEl.style.width).toBe(`${SIDE_PANEL_WIDTH_DEFAULT}px`));
+    const splitter = screen.getByRole('separator', { name: 'Resize plugin panel' });
+    expect(splitter.getAttribute('aria-valuenow')).toBe(String(SIDE_PANEL_WIDTH_DEFAULT));
+
+    await fireEvent.keyDown(splitter, { key: 'ArrowLeft' });
+    const wider = SIDE_PANEL_WIDTH_DEFAULT + SIDE_PANEL_WIDTH_STEP;
+    await waitFor(() => expect(splitter.getAttribute('aria-valuenow')).toBe(String(wider)));
+    expect(screenEl.style.width).toBe(`${wider}px`);
+    expect(screenEl.style.getPropertyValue('--py-app-height')).toMatch(/px$/);
+
+    await fireEvent.keyDown(splitter, { key: 'ArrowRight' });
+    await waitFor(() =>
+      expect(splitter.getAttribute('aria-valuenow')).toBe(String(SIDE_PANEL_WIDTH_DEFAULT))
+    );
+  });
+
+  it('collapses and expands the plugin panel', async () => {
+    render(SidePanelHarness);
+    const screenEl = await waitFor(() => screen.getByTestId('side-panel-screen'));
+    await waitFor(() => expect(screenEl.getAttribute('data-py-side-panel')).toBe('open'));
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse plugin' }));
+    await waitFor(() => expect(screenEl.getAttribute('data-py-side-panel')).toBe('collapsed'));
+    expect(screenEl.style.width).toBe('0px');
+    expect(
+      screen.getByRole('button', { name: 'Expand plugin' }).getAttribute('aria-expanded')
+    ).toBe('false');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Expand plugin' }));
+    await waitFor(() => expect(screenEl.getAttribute('data-py-side-panel')).toBe('open'));
+    expect(
+      screen.getByRole('button', { name: 'Collapse plugin' }).getAttribute('aria-expanded')
+    ).toBe('true');
+  });
+
+  it('switches host variants and lazy-loads each host chunk', async () => {
+    const { unmount } = render(SidePanelHarness, { hostVariant: 'chat-workspace' });
+    await waitFor(() =>
+      expect(document.querySelector('[data-py-side-host="chat-workspace"]')).not.toBeNull()
+    );
+    expect(
+      document
+        .querySelector('[data-py-frame="side-panel"]')
+        ?.getAttribute('data-py-side-host-variant')
+    ).toBe('chat-workspace');
+    unmount();
+
+    render(SidePanelHarness, { hostVariant: 'design-canvas' });
+    await waitFor(() =>
+      expect(document.querySelector('[data-py-side-host="design-canvas"]')).not.toBeNull()
+    );
+
+    cleanup();
+    render(SidePanelHarness, { hostVariant: 'code-editor' });
+    await waitFor(() =>
+      expect(document.querySelector('[data-py-side-host="code-editor"]')).not.toBeNull()
+    );
+  });
+
+  it('persists panel width as a local preference', async () => {
+    render(SidePanelHarness);
+    const splitter = await waitFor(() =>
+      screen.getByRole('separator', { name: 'Resize plugin panel' })
+    );
+    await fireEvent.keyDown(splitter, { key: 'ArrowLeft' });
+    const expected = SIDE_PANEL_WIDTH_DEFAULT + SIDE_PANEL_WIDTH_STEP;
+    await waitFor(() =>
+      expect(localStorage.getItem(sidePanelWidthKey('side-panel'))).toBe(String(expected))
+    );
+    expect(loadSidePanelWidth('side-panel')).toBe(expected);
   });
 });

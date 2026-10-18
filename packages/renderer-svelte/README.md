@@ -76,6 +76,9 @@ The frame decoration is a lazily loaded chunk registered in
   and every control works: minimize to the dock, restore or reopen from the dock, maximize
   to fill the stage, close and reopen. The app stays mounted while the window is minimized
   or closed.
+- **`side-panel`** embeds the prototype in a resizable right-hand plugin panel beside a
+  mock host app (`preview.chrome.hostVariant`: `chat-workspace`, `design-canvas` or
+  `code-editor`). The panel width persists in `localStorage`.
 - **`tablet`** still uses a generic bezel until its detailed frame ships. Shells without a
   registered frame render full-bleed.
 

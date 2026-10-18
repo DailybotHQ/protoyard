@@ -1,4 +1,10 @@
-import { type DeviceSpec, fitScale, type ResolvedShell, type ShellChrome } from '@protoyard/core';
+import {
+  type DeviceSpec,
+  fitScale,
+  type ResolvedShell,
+  type ShellChrome,
+  type ShellHostVariant,
+} from '@protoyard/core';
 import type { Component } from 'svelte';
 
 /**
@@ -27,6 +33,8 @@ export interface FrameProps {
   setMaximized?(value: boolean): void;
   /** Hide the screen without unmounting the app (minimized or closed windows). */
   setScreenHidden?(value: boolean): void;
+  /** Side-panel host override (tests); defaults to `preview.chrome.hostVariant`. */
+  hostVariant?: ShellHostVariant;
 }
 
 export type FrameComponent = Component<FrameProps>;
@@ -70,6 +78,7 @@ export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
     screenInset: { top: 40 },
     minWindowWidth: 768,
   },
+  'side-panel': { load: () => import('./SidePanelFrame.svelte'), margin: 0 },
 };
 
 /** Resolved inset of the app screen inside the device box. */
