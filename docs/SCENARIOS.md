@@ -527,6 +527,11 @@ A snapshot is the actual current world: every domain and reserved table,
 plus the scenario, seed, actor, organization, clock, overrides, effective
 environment and appearance. It reproduces edits no generator could.
 
+Snapshots are JSON, so uploaded file **contents** (ArrayBuffer or Blob fields)
+are not included: their rows keep the metadata and the binary field is `null`.
+Reading such a file after a restore reports that its contents are missing
+(DevTools → Snaps says so next to the Save button).
+
 | Action | DevTools → Snaps | API |
 | --- | --- | --- |
 | Save (name + notes) | Save | `snapshots.save({ name, notes })` |

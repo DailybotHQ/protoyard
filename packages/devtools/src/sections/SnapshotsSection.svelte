@@ -154,6 +154,9 @@ function rowTotal(stats: Record<string, number>): number {
         <Download class="size-3.5" aria-hidden="true" />Export current world
       </Btn>
     </div>
+    <p class="text-[11px] text-muted-foreground">
+      Snapshots are JSON: uploaded file contents are not included, only their details.
+    </p>
   </form>
 </Section>
 
