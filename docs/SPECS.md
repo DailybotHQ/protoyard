@@ -23,7 +23,7 @@ it qualifies for its own `AGENTS.md` and `docs/` folder.
 | `protoyard validate` spec check (`--strict-spec`) | Available. Missing spec files warn (fail with `--strict-spec`); stale generated regions and invalid markers always fail. |
 | Statically importable route table (`src/routes.ts`) for `SCREENS.md` | Available: `defineRoutes` in `@protoyard/renderer-svelte`; `crm-demo` and the `dashboard` template use it. Other prototypes still declare routes in `src/App.svelte`. |
 | Fact extraction for generated regions | Available: `inspectSpec()` in `packages/cli/src/lib/inspect.ts` runs the definition in a child process (inspect runner `spec` mode); `protoyard spec` renders from it. |
-| Spec skeletons in templates (`protoyard new`) | **Not implemented yet** |
+| Spec skeletons in templates (`protoyard new`) | Available. Every template ships `AGENTS.md` and `docs/` (TODO prompts, plus the template's description under Problem). `protoyard new` retitles them for the new prototype and refreshes the generated regions for its slug; if the definition cannot load yet (before `pnpm install`), `new` still succeeds and says to run `spec <slug> --init --write`. |
 
 Start a spec with `pnpm protoyard spec <slug> --init`, write the prose, and keep
 the facts current with `--write` (`--check` in CI or review). Update this

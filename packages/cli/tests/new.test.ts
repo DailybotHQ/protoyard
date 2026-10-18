@@ -1,6 +1,15 @@
 // @vitest-environment node
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { addTemplate, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
@@ -180,5 +189,84 @@ describe('protoyard new', () => {
     ]);
     expect(run.code).toBe(4);
     expect(existsSync(join(ws.root, 'prototypes/long-name'))).toBe(false);
+  });
+});
+
+describe('new: prototype spec', () => {
+  it('still creates the prototype when the spec cannot be filled, and says why', async () => {
+    // The fixture template has no src/prototype.ts and no node_modules, so its definition cannot load.
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'new',
+      'spec-less',
+      '--template',
+      'blank',
+      '--no-install',
+    ]);
+    expect(run.code).toBe(0);
+    const spec = run.json<{ data: { spec: { ok: boolean; error?: string } } }>().data.spec;
+    expect(spec.ok).toBe(false);
+    // Outside the repository even the runner (tsx) is missing; any reason is reported.
+    expect(spec.error).toEqual(expect.any(String));
+    expect(spec.error?.length).toBeGreaterThan(0);
+    expect(existsSync(join(ws.root, 'prototypes/spec-less/protoyard.json'))).toBe(true);
+  });
+
+  it('fills AGENTS.md and docs/ for the new slug from the real blank template', {
+    timeout: 120_000,
+  }, async () => {
+    // Inside the repository, so the template's @protoyard/* imports resolve from the root node_modules.
+    const repoRoot = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
+    const root = mkdtempSync(join(repoRoot, 'tmp', 'new-spec-'));
+    try {
+      writeFileSync(
+        join(root, 'pnpm-workspace.yaml'),
+        'packages:\n  - prototypes/*\n  - templates/*\n'
+      );
+      writeFileSync(join(root, 'package.json'), '{"name":"fixture-workspace","private":true}\n');
+      mkdirSync(join(root, 'prototypes'));
+      cpSync(join(repoRoot, 'templates/blank'), join(root, 'templates/blank'), {
+        recursive: true,
+        filter: (src) => !/[\\/](node_modules|dist)([\\/]|$)/.test(src),
+      });
+      const run = await cli([
+        '--root',
+        root,
+        '--json',
+        'new',
+        'my-notes',
+        '--template',
+        'blank',
+        '--name',
+        'My Notes',
+        '--no-install',
+      ]);
+      expect(run.code, run.stdout).toBe(0);
+      const spec = run.json<{ data: { spec: { ok: boolean; created: number; updated: number } } }>()
+        .data.spec;
+      expect(spec).toMatchObject({ ok: true, created: 0 });
+      expect(spec.updated).toBeGreaterThan(0);
+
+      const dir = join(root, 'prototypes/my-notes');
+      const read = (file: string) => readFileSync(join(dir, file), 'utf8');
+      expect(read('AGENTS.md').split('\n')[0]).toBe('# AGENTS.md — My Notes (`my-notes`)');
+      expect(read('docs/SPEC.md').split('\n')[0]).toBe('# My Notes: spec');
+      expect(read('docs/DATA_MODEL.md').split('\n')[0]).toBe('# My Notes: data model');
+      // Generated regions now describe the new prototype, not the template.
+      expect(read('AGENTS.md')).toContain('pnpm protoyard dev my-notes');
+      expect(read('docs/SPEC.md')).toContain('| id | `local.my-notes` |');
+      expect(read('docs/SPEC.md')).not.toContain('`template.blank`');
+      // Template prose prompts are kept for the author.
+      expect(read('docs/SPEC.md')).toContain('TODO: the product problem');
+
+      const check = await cli(['--root', root, '--json', 'spec', 'my-notes', '--check']);
+      expect(check.code, check.stdout).toBe(0);
+      // The template's own docs are untouched.
+      expect(readFileSync(join(root, 'templates/blank/AGENTS.md'), 'utf8')).toContain('`blank`');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
