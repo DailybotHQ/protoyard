@@ -68,8 +68,11 @@ navigates to `#/`). The `widget-host` shell draws a fictional customer site
 (`HostSite`, brand from `preview.chrome.hostName`) with a launcher that opens the
 prototype in an anchored panel (`--py-app-height` = panel height; fullscreen under
 480px). Apps drive the unread badge via `getWidgetHost().setUnread(n)` or
-`window.__protoyardWidget`. `tablet` still uses a generic bezel until its detailed
-frame ships; other shells render full-bleed. While framed, Bits UI dialogs and
+`window.__protoyardWidget`. The `side-panel` shell embeds the prototype in a
+resizable right-hand plugin panel beside a mock host (`preview.chrome.hostVariant`:
+`chat-workspace`, `design-canvas`, or `code-editor`); panel width persists in
+`localStorage`. `tablet` still uses a generic bezel until its detailed frame
+ships; other shells render full-bleed. While framed, Bits UI dialogs and
 sheets portal into the device screen (`setOverlayPortalTarget`) so overlays stay
 inside the bezel. The app goes full-bleed when the shell is `none`, inside an
 iframe (the gallery preview draws its own device), or when the window is too

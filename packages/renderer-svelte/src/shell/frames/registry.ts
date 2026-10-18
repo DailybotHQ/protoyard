@@ -1,4 +1,9 @@
-import { type DeviceSpec, fitScale, type ResolvedShell } from '@protoyard/core';
+import {
+  type DeviceSpec,
+  fitScale,
+  type ResolvedShell,
+  type ShellHostVariant,
+} from '@protoyard/core';
 import type { Component } from 'svelte';
 
 /**
@@ -13,6 +18,8 @@ export interface FrameProps {
   spec: DeviceSpec;
   /** The shell being drawn (one frame module may serve several shells). */
   shell: ResolvedShell;
+  /** Side-panel host override (tests); defaults to `preview.chrome.hostVariant`. */
+  hostVariant?: ShellHostVariant;
 }
 
 export type FrameComponent = Component<FrameProps>;
@@ -32,6 +39,7 @@ export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
   phone: { load: () => import('./PhoneFrame.svelte'), margin: 14 },
   tablet: { load: () => import('./DeviceFrame.svelte'), margin: 14 },
   'widget-host': { load: () => import('./WidgetHostFrame.svelte'), margin: 0 },
+  'side-panel': { load: () => import('./SidePanelFrame.svelte'), margin: 0 },
 };
 
 /** Gap kept between the frame and the window edge, in CSS px. */
