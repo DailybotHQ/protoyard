@@ -1,9 +1,9 @@
 # GitHub Actions templates
 
 These versioned templates are starter workflows for teams using Protoyard in a
-GitHub repository. Copy a workflow into `.github/workflows/` and run the
-Protoyard CI initializer to replace `{{NODE_VERSION}}`, `{{PROTOTYPES}}`, and
-`{{PROVIDER}}`. The templates use the same 40-character SHA-pinned actions as
+GitHub repository. `pnpm protoyard ci init --with <ids>` renders them into
+`.github/workflows/`, replacing `{{NODE_VERSION}}`, `{{PROTOTYPES}}` and
+`{{PROVIDER}}` (`--dry-run` first shows the diff). The templates use the same 40-character SHA-pinned actions as
 the repository CI workflow.
 
 | Template | Triggers and work | Secrets | Expected cost |
@@ -18,11 +18,9 @@ team installs them. Preview deployment is opt-in: add the workflow and its two
 Cloudflare secrets only when the repository is ready to publish previews. No
 workflow edits repository settings or deploys production.
 
-The build template calls `pnpm protoyard budget --all` as the performance gate.
-That command is part of the planned CLI CI surface and must be available in the
-installed Protoyard version before this workflow can pass. Until it lands,
-remove the budget step only if the team intentionally accepts builds without
-automated budget enforcement.
+The build template calls `pnpm protoyard budget` as the performance gate: it
+fails when a prototype's initial JS or CSS exceeds `protoyard.budgets.json`
+(see [docs/PERFORMANCE.md](../../../docs/PERFORMANCE.md#versioned-budgets)).
 
 ## Versions and drift
 
