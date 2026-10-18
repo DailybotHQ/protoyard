@@ -3,11 +3,17 @@ import { request } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { type ControlServer, startControlServer } from '../src/control-server.ts';
 import type { DevServerHandle } from '../src/lib/dev-server.ts';
-import { addPrototype, createWorkspace, type TempWorkspace } from './helpers.ts';
+import { templateDemoNamespace } from '../src/lib/registry.ts';
+import { addPrototype, addTemplate, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 let ws: TempWorkspace;
 let control: ControlServer;
-const started: string[] = [];
+const started: Array<{
+  slug: string;
+  kind: string;
+  storageNamespace?: string;
+  dir: string;
+}> = [];
 const ORIGIN = 'http://localhost:4321';
 
 function fakeHandle(slug: string, port: number): DevServerHandle {
@@ -60,11 +66,12 @@ function call(method: string, path: string, headers: Record<string, string> = {}
 beforeAll(async () => {
   ws = createWorkspace();
   addPrototype(ws, 'crm-app');
+  addTemplate(ws, 'blank');
   control = await startControlServer({
     root: ws.root,
     port: 0,
-    start: async ({ slug }) => {
-      started.push(slug);
+    start: async ({ slug, kind, storageNamespace, dir }) => {
+      started.push({ slug, kind, ...(storageNamespace ? { storageNamespace } : {}), dir });
       return fakeHandle(slug, 5200 + started.length);
     },
   });
@@ -105,16 +112,86 @@ describe('control server', () => {
     expect(first.body).toMatchObject({
       ok: true,
       slug: 'crm-app',
+      kind: 'prototype',
       url: 'http://localhost:5201/',
       reused: false,
     });
+    expect(first.body.storageNamespace).toBeUndefined();
     const again = await call('POST', '/api/dev/crm-app', { Origin: ORIGIN });
-    expect(again.body).toMatchObject({ reused: true, url: 'http://localhost:5201/' });
-    expect(started).toEqual(['crm-app']);
+    expect(again.body).toMatchObject({
+      reused: true,
+      url: 'http://localhost:5201/',
+      kind: 'prototype',
+    });
+    expect(started).toEqual([
+      expect.objectContaining({
+        slug: 'crm-app',
+        kind: 'prototype',
+        dir: expect.stringContaining('prototypes/crm-app'),
+      }),
+    ]);
     expect((await call('GET', '/api/status', { Origin: ORIGIN })).body.running).toHaveLength(1);
 
     const stop = await call('POST', '/api/stop/crm-app', { Origin: ORIGIN });
     expect(stop.body).toMatchObject({ ok: true, stopped: true });
     expect((await call('GET', '/api/status', { Origin: ORIGIN })).body.running).toEqual([]);
+  });
+
+  it('starts a template as a live demo under template-demo-<name> namespace', async () => {
+    started.length = 0;
+    const demoNs = templateDemoNamespace('blank');
+    expect(demoNs).toBe('template-demo-blank');
+
+    const first = await call('POST', '/api/dev/blank', { Origin: ORIGIN });
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({
+      ok: true,
+      slug: 'blank',
+      kind: 'template',
+      storageNamespace: demoNs,
+      reused: false,
+    });
+    expect(started).toEqual([
+      expect.objectContaining({
+        slug: 'blank',
+        kind: 'template',
+        storageNamespace: demoNs,
+        dir: expect.stringContaining('templates/blank'),
+      }),
+    ]);
+
+    const again = await call('POST', '/api/dev/blank', { Origin: ORIGIN });
+    expect(again.body).toMatchObject({
+      reused: true,
+      kind: 'template',
+      storageNamespace: demoNs,
+    });
+    expect(started).toHaveLength(1);
+
+    const status = await call('GET', '/api/status', { Origin: ORIGIN });
+    expect(status.body.running).toEqual([
+      expect.objectContaining({
+        slug: 'blank',
+        kind: 'template',
+        storageNamespace: demoNs,
+      }),
+    ]);
+
+    await call('POST', '/api/stop/blank', { Origin: ORIGIN });
+    expect((await call('GET', '/api/status', { Origin: ORIGIN })).body.running).toEqual([]);
+  });
+
+  it('refuses unknown templates the same way as unknown prototypes', async () => {
+    const res = await call('POST', '/api/dev/not-a-template', { Origin: ORIGIN });
+    expect(res.status).toBe(404);
+    expect(res.body).toMatchObject({ ok: false });
+    expect(String(res.body.error)).toMatch(/unknown prototype or template/i);
+  });
+});
+
+describe('templateDemoNamespace', () => {
+  it('builds a kebab-case demo namespace from the template slug', () => {
+    expect(templateDemoNamespace('blank')).toBe('template-demo-blank');
+    expect(templateDemoNamespace('task-manager')).toBe('template-demo-task-manager');
   });
 });

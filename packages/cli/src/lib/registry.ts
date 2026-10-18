@@ -352,6 +352,17 @@ export function filterEntries(
   return out;
 }
 
+/**
+ * Storage namespace used when a template is opened as a live demo
+ * (`protoyard dev <template>` or the gallery control server). Keeps demo
+ * IndexedDB data out of prototype namespaces and out of the template's own
+ * authoring namespace. Kebab-case only (manifest namespace rules); the task
+ * form `template-demo.<name>` maps to `template-demo-<name>`.
+ */
+export function templateDemoNamespace(templateSlug: string): string {
+  return `template-demo-${templateSlug}`;
+}
+
 export function findEntry(
   registry: Registry,
   slug: string,
