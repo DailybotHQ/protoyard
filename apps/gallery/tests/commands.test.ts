@@ -53,9 +53,17 @@ describe('gallery command palette commands', () => {
       type: 'navigate',
       href: '/#templates',
     });
+    expect(hosted.find((item) => item.id === 'page:themes')?.action).toEqual({
+      type: 'navigate',
+      href: '/themes/',
+    });
     expect(local.find((item) => item.id === 'page:create')?.action).toEqual({
       type: 'navigate',
       href: '/protoyard/new/',
+    });
+    expect(local.find((item) => item.id === 'page:themes')?.action).toEqual({
+      type: 'navigate',
+      href: '/protoyard/themes/',
     });
 
     const checking = paletteCommands([prototype], { controlAvailable: null });

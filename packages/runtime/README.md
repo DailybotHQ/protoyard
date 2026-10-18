@@ -97,6 +97,14 @@ and full numbers are in `docs/PERFORMANCE.md`.
   otherwise, and a device or orientation that cannot apply (a phone in a desktop window)
   falls back to the default with source `default`. `setOverride({ shell, device,
   orientation })` persists in the control DB only, and `?shell=` applies as an override.
+  **Custom themes** (the DevTools Theme Studio): `saveCustom(theme)`, `removeCustom(id)`,
+  `customThemes()`, `isCustom(id)`, `exportTheme(id)` (JSON with `format:
+  "protoyard-theme/v1"`) and `importTheme(json)`. They are stored in the control DB
+  (`customThemes`), validated with `ThemeSchema` on save, on import (64 KB cap, `JSON.parse`
+  only, untrusted input) and again on every boot, where invalid or clashing entries are
+  skipped and reported. Ids of built-in or prototype themes are refused, the list is capped at
+  24, and removing the active custom theme falls back to the default. Saving re-applies the
+  appearance even when the id stays the same.
 - **environment**: effective state = defaults + scenario environment + org subscription and
   feature flags + `overrides.environment`. `environment.set()` / `reset()` write overrides,
   so they persist and are reversible.

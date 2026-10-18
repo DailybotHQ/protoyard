@@ -41,6 +41,7 @@ import { PRESETS, resolveScenarios } from '@protoyard/scenarios';
 import { createEmitter, createSerialQueue, type Emitter } from './emitter.ts';
 import type { MatchMedia, RuntimeOptions } from './options.ts';
 import { normalizeOverrides } from './overrides.ts';
+import { loadCustomThemes } from './theme.ts';
 
 /**
  * Shared state behind every controller. Controllers mutate the persisted
@@ -57,6 +58,8 @@ export interface Kernel {
   readonly options: RuntimeOptions;
   readonly scenarios: readonly Scenario[];
   readonly themes: readonly Theme[];
+  /** Ids in `themes` that are Theme Studio custom themes (control DB). */
+  readonly customThemeIds: Set<string>;
   readonly policy: PermissionPolicy;
   readonly clock: SimulationClock;
   /** The raw environment; `runtime.environment` wraps it to persist changes. */
@@ -131,6 +134,7 @@ export async function createKernel(
   }
 
   const stored = await control.readState();
+  const customThemeIds = loadCustomThemes(stored.customThemes, themes, report);
   let storedOverrides: Overrides = {};
   try {
     storedOverrides = normalizeOverrides(stored.overrides ?? {});
@@ -168,6 +172,7 @@ export async function createKernel(
     options,
     scenarios: resolveScenarios(definition.scenarios, PRESETS),
     themes,
+    customThemeIds,
     policy: createPermissionPolicy(definition.policy ?? DEFAULT_POLICY),
     clock,
     env: createSimulationEnvironment(options.sleep ? { sleep: options.sleep } : {}),
