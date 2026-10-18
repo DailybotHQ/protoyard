@@ -79,13 +79,17 @@ UI until a kit route opens.
 | `/billing/checkout` | Simulated checkout — no card, no charge; outcome picker only when `billingShowOutcomePicker` | `requireAuth` |
 | `/billing/portal` | Current plan, seats, invoices, cancel/resume | `requireAuth` |
 | `/settings`, `/settings/:tab` | Profile, security, members and notification preferences | `requireAuth` |
+| `/invites/accept` (alias `/invite`) | Accept a workspace invitation from the simulated inbox | none (guests and signed-in people) |
 
-**Invitation acceptance is not a built-in route yet.** The engine can accept an
-invite token, but this route table has no acceptance screen. The default
-service-generated action (`#/invites/accept?token=…`) and `pendingInvite`
-scenario action (`#/invite?token=…`) are both currently unmatched. A prototype
-must supply a custom route and screen that calls the invitation service; the
-service does not sign the invitee in.
+**Invitation acceptance** (`?token=…`): the screen previews the link first.
+Expired, used, withdrawn and unknown links get a real error state with links to
+sign in and to the inbox. A valid link shows who invited whom, to which
+workspace and with which role. New invitees can set a name and an optional
+simulated password. Accepting joins the workspace, signs the invitee in and
+goes to the home path. If someone else is signed in, the screen says so before
+continuing as the invitee. Accounts with an active simulated authenticator
+join, then are sent to sign in with their code. Route group: `invites`
+(included by default).
 
 
 Mount `TrialBanner` in the app shell to show remaining trial days from the simulated clock. Use the exported `InboxDrawer` on a signed-out screen to open the simulated

@@ -112,21 +112,24 @@ component APIs.
 | Billing | Plans, trials, simulated checkout outcomes, subscriptions and integer-cent invoices. No card fields or charge. |
 | Scenario fragments | Reproducible states for signed-out, unverified, MFA, invitations, trial, past-due, multiple workspaces and linked providers. |
 
-### Invitation acceptance is currently service-only
+### Invitation acceptance
 
 `createInvitationServices` creates, resends, revokes and accepts invitation
-tokens. The acceptance service can match an existing account or create a
-persona and simulated account, then add the membership. It does not sign the
-invitee in or bypass MFA.
+tokens, and `preview(tokenId)` reports a link's state (`valid`, `expired`,
+`used`, `revoked` or `unknown`) without changing anything. Accepting matches
+an existing account by email, or creates a persona and simulated account. It
+then adds the membership with the invited role, signs the invitee in and
+switches to that workspace. Opening the link stands in for owning the
+mailbox. An account with an active simulated authenticator is never signed in
+this way: it joins the workspace and is sent to sign in with its code. Pass
+`{ signIn: false }` to only join.
 
-The SaaS UI package does not yet provide an invitation-accept screen or route.
-The service's default inbox action points to
-`#/invites/accept?token=…`, while the `pendingInvite` scenario fragment uses
-`#/invite?token=…`; neither path is currently registered by `saasRoutes`. Those
-actions therefore do not complete acceptance when clicked. A prototype that
-needs this journey must provide its own route and screen, read and validate the
-token, call `createInvitationServices(runtime).accept({ tokenId })`, and show
-service errors. It must handle sign-in separately after acceptance.
+`saasRoutes` registers the accept screen at `#/invites/accept?token=…`, the
+canonical form that service and scenario-fragment links use, and at the alias
+`#/invite?token=…`. It has no guard: guests and signed-in people can both open
+it, and the screen says so when someone else is signed in. Expired, used,
+withdrawn and unknown links show their own error state instead of an accept
+button.
 
 ## Honest boundaries
 
@@ -136,7 +139,7 @@ service errors. It must handle sign-in separately after acceptance.
 | OAuth / SSO | Provider-shaped consent and deterministic outcomes inside the prototype. | Contact with Google, GitHub or another provider; a real OAuth/OIDC flow. |
 | MFA | Codes derived from the simulated seed and clock, plus recovery-code UX. | A real authenticator, TOTP security or a second security factor. |
 | Roles and permissions | Services enforce capabilities so role-specific product behavior can be demonstrated. | An authorization boundary; users can alter browser state and same-origin scripts can access it. |
-| Inbox and invitations | Local messages and token-driven service operations. | Email delivery; the invitation acceptance UI is not yet included. |
+| Inbox and invitations | Local messages, invitation links and an accept screen that joins the workspace and signs the invitee in. | Email delivery or proof that someone owns the address. |
 | Checkout and billing | In-browser plan changes, checkout outcomes, subscriptions and invoices. | Payment processing, card collection or a charge. |
 
 All account, token, MFA, inbox and billing rows are fictional prototype data in

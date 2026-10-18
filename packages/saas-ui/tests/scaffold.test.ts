@@ -176,6 +176,7 @@ describe('saasRoutes', () => {
         'billingPlans',
         'billingPortal',
         'inbox',
+        'inviteAccept',
         'magicLink',
         'mfa',
         'oauthConsent',

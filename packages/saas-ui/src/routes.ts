@@ -8,7 +8,14 @@ import {
   type SaasSessionLike,
 } from './guards.ts';
 
-export type SaasRouteGroup = 'auth' | 'oauth' | 'inbox' | 'onboarding' | 'billing' | 'settings';
+export type SaasRouteGroup =
+  | 'auth'
+  | 'oauth'
+  | 'inbox'
+  | 'onboarding'
+  | 'billing'
+  | 'settings'
+  | 'invites';
 
 export interface SaasRoutesOptions extends SaasUiConfig, GuardPathOptions {
   /**
@@ -43,6 +50,7 @@ const LOADERS = {
   billingCheckout: () => import('./screens/billing/Checkout.svelte'),
   billingPortal: () => import('./screens/billing/Portal.svelte'),
   settings: () => import('./screens/settings/Settings.svelte'),
+  inviteAccept: () => import('./screens/invites/Accept.svelte'),
 } as const satisfies Record<string, ScreenLoader>;
 
 /**
@@ -74,7 +82,7 @@ export function saasRoutes(options: SaasRoutesOptions): RouteDefinition[] {
     ...(options.forbiddenPath !== undefined ? { forbiddenPath: options.forbiddenPath } : {}),
   };
   const groups = new Set<SaasRouteGroup>(
-    options.include ?? ['auth', 'oauth', 'inbox', 'onboarding', 'billing', 'settings']
+    options.include ?? ['auth', 'oauth', 'inbox', 'onboarding', 'billing', 'settings', 'invites']
   );
 
   const route = (
@@ -155,6 +163,16 @@ export function saasRoutes(options: SaasRoutesOptions): RouteDefinition[] {
   if (groups.has('settings')) {
     routes.push(
       route('/settings/:tab?', 'Settings', LOADERS.settings, requireAuth(session, guardOpts))
+    );
+  }
+
+  if (groups.has('invites')) {
+    // No guard on purpose: guests and signed-in people can both accept (the
+    // screen explains when someone else is signed in). `/invite` is the short
+    // alias some links use; `/invites/accept` is canonical.
+    routes.push(
+      route('/invites/accept', 'Accept invitation', LOADERS.inviteAccept),
+      route('/invite', 'Accept invitation', LOADERS.inviteAccept)
     );
   }
 

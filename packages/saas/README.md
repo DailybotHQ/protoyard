@@ -96,13 +96,15 @@ const accepted = await invites.accept({ tokenId: token.id });
 - Accepting an unexpired link consumes it and creates one membership. Existing accounts are
   matched by email; a new invitee gets a persona and simulated account. Optional `name` and
   `password` fields supply the new account details.
-- The inbox is local to the prototype. No email is sent, and accepting an invite does not sign
-  the person in or bypass MFA.
-- Invitation acceptance is currently service-only: `@protoyard/saas-ui` does not
-  include an acceptance screen or route. The default service action uses
-  `#/invites/accept?token=…`; the `pendingInvite` scenario action uses
-  `#/invite?token=…`. Neither path is registered by `saasRoutes`, so prototypes
-  need a custom screen and route to make these actions complete end to end.
+- Accepting signs the invitee in and switches to the workspace, standing in
+  for owning the mailbox (the result has `signedIn`). An account with an active
+  simulated authenticator is not signed in: `requiresMfa` is true and it should
+  go through sign-in. Pass `accept(input, { signIn: false })` to only join.
+- `preview(tokenId)` returns `{ status: 'valid' | 'expired' | 'used' | 'revoked' | 'unknown', email,
+  role, organizationName, inviterName, hasAccount }` without side effects, for the accept screen.
+- Links use `#/invites/accept?token=…` (the `pendingInvite` scenario fragment too). `@protoyard/saas-ui`
+  registers that route (and the `#/invite` alias) with a working accept screen.
+- The inbox is local to the prototype. No email is sent.
 
 ### OAuth (`createOAuthSimulator`)
 

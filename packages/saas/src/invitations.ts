@@ -8,12 +8,19 @@ import {
 import type { ProtoyardRuntime } from '@protoyard/runtime';
 import { z } from 'zod';
 import { createInbox } from './inbox.ts';
-import type { SaasAccount, SaasInboxMessage, SaasInvitation, SaasToken } from './schema.ts';
+import type {
+  SaasAccount,
+  SaasInboxMessage,
+  SaasInvitation,
+  SaasMfa,
+  SaasToken,
+} from './schema.ts';
 
 const ACCOUNTS = 'saas_accounts';
 const TOKENS = 'saas_tokens';
 const INVITATIONS = 'saas_invitations';
 const INBOX = 'saas_inbox';
+const MFA = 'saas_mfa';
 const INVITE_CAPABILITY = 'members:invite';
 
 interface TableLike<T> {
@@ -24,6 +31,7 @@ interface TableLike<T> {
 }
 interface DatabaseLike {
   table<T>(name: string): TableLike<T>;
+  hasTable?(name: string): boolean;
   transaction<R>(mode: 'rw', tables: string[], scope: () => Promise<R>): Promise<R>;
 }
 
@@ -47,6 +55,29 @@ export const AcceptInvitationSchema = z.object({
   password: z.string().min(8).max(128).optional(),
 });
 export type AcceptInvitationInput = z.input<typeof AcceptInvitationSchema>;
+
+/** What the accept screen can show before anyone clicks (read-only, no side effects). */
+export type InvitationPreviewStatus = 'valid' | 'expired' | 'used' | 'revoked' | 'unknown';
+
+export interface InvitationPreview {
+  status: InvitationPreviewStatus;
+  invitation?: SaasInvitation;
+  email?: string;
+  role?: string;
+  organizationName?: string;
+  inviterName?: string;
+  /** An account with the invited email already exists (no name or password needed). */
+  hasAccount?: boolean;
+}
+
+export interface AcceptInvitationOptions {
+  /**
+   * After joining, sign the invitee in and switch to the workspace (default
+   * true). Accounts with an active simulated authenticator are never signed in
+   * here: the result says `requiresMfa` and the screen sends them to sign in.
+   */
+  signIn?: boolean;
+}
 
 export interface InvitationOptions {
   ttlDays?: number;
@@ -235,11 +266,56 @@ export function createInvitationServices(
     );
   }
 
-  async function accept(input: AcceptInvitationInput): Promise<{
+  /** Read-only status of an invitation link, for the accept screen. */
+  async function preview(tokenId: string): Promise<InvitationPreview> {
+    const token = tokenId ? await tokens().get(tokenId) : undefined;
+    if (token?.kind !== 'invite') return { status: 'unknown' };
+    const invitation = await invitations().where('tokenId').equals(tokenId).first();
+    const invitationId = (token.payload as { invitationId?: unknown }).invitationId;
+    const byId =
+      invitation ??
+      (typeof invitationId === 'string' ? await invitations().get(invitationId) : undefined);
+    if (!byId) return { status: 'unknown' };
+    const organization = runtime.session.organizations().find((o) => o.id === byId.organizationId);
+    const inviter = runtime.session.personas().find((p) => p.id === byId.invitedBy);
+    const account = await accounts().where('email').equals(byId.email).first();
+    const base = {
+      invitation: byId,
+      email: byId.email,
+      role: byId.role,
+      ...(organization ? { organizationName: organization.name } : {}),
+      ...(inviter ? { inviterName: inviter.name } : {}),
+      hasAccount: Boolean(account),
+    };
+    // A resent link replaces the old token, so the old one reads as withdrawn.
+    let status: InvitationPreviewStatus = 'valid';
+    if (byId.status === 'accepted') status = 'used';
+    // An expired accept attempt also consumes the token, so check expiry first.
+    else if (byId.status === 'expired') status = 'expired';
+    else if (byId.status === 'revoked' || byId.tokenId !== tokenId) status = 'revoked';
+    else if (token.consumedAt) status = 'used';
+    else if (Date.parse(token.expiresAt) <= now().getTime()) status = 'expired';
+    return { status, ...base };
+  }
+
+  async function hasActiveMfa(accountId: string): Promise<boolean> {
+    if (db.hasTable && !db.hasTable(MFA)) return false;
+    const factor = await db.table<SaasMfa>(MFA).where('accountId').equals(accountId).first();
+    return factor?.status === 'active';
+  }
+
+  async function accept(
+    input: AcceptInvitationInput,
+    acceptOptions: AcceptInvitationOptions = {}
+  ): Promise<{
     invitation: SaasInvitation;
     account: SaasAccount;
     membership: Membership;
     createdAccount: boolean;
+    /** True when the invitee is now the signed-in persona. */
+    signedIn: boolean;
+    /** The account has an active simulated authenticator: send them to sign in. */
+    requiresMfa: boolean;
   }> {
     const data = parseInput(AcceptInvitationSchema, input);
     const result = await runtime.environment.run('invitations.accept', () =>
@@ -321,11 +397,19 @@ export function createInvitationServices(
     if (result.expired) {
       throw new ValidationError({ form: 'This invitation has expired. Ask for a new one.' });
     }
-    // Identity writes refresh the current session. Accepting an invite does not bypass MFA or sign in.
-    return result;
+    const { expired: _expired, ...accepted } = result;
+    // Opening the invite link proves the mailbox (simulated), so the invitee is
+    // signed in and lands in the workspace, unless their account requires MFA.
+    if (acceptOptions.signIn === false) return { ...accepted, signedIn: false, requiresMfa: false };
+    if (await hasActiveMfa(accepted.account.id)) {
+      return { ...accepted, signedIn: false, requiresMfa: true };
+    }
+    await runtime.session.signIn(accepted.account.personaId);
+    await runtime.session.switchOrganization(accepted.membership.organizationId);
+    return { ...accepted, signedIn: true, requiresMfa: false };
   }
 
-  return { create, resend, revoke, accept };
+  return { create, resend, revoke, accept, preview };
 }
 
 export type InvitationServices = ReturnType<typeof createInvitationServices>;
