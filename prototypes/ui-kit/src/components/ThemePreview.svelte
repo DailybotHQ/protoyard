@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { Theme } from '@protoyard/core';
 import { applyAppearance, clearAppearance, type Density } from '@protoyard/themes';
-import { Badge, Button, Input, Progress, Switch } from '@protoyard/ui';
+import { Badge, Button, Card, Input, Progress, Switch } from '@protoyard/ui';
 
 /**
  * A scoped theme sample: `applyAppearance` on this element only, so many
@@ -41,24 +41,29 @@ $effect(() => {
     </div>
   {/if}
   {#if !compact}
-    <div class="mt-3 rounded-lg border border-border bg-surface p-3 text-surface-foreground shadow-soft">
+    <Card class="mt-3 p-3">
       <p class="text-sm font-medium">Quarterly goals</p>
       <p class="text-xs text-muted-foreground">3 of 5 complete</p>
       <Progress class="mt-2" value={60} ariaLabel="Goals progress" />
-    </div>
+    </Card>
     <div class="mt-3"><Input aria-label={`${theme.name} ${mode} sample input`} placeholder="Search…" /></div>
   {/if}
   <div class="mt-3 flex flex-wrap items-center gap-2">
-    <Button size="sm">Save</Button>
-    <Button size="sm" variant="secondary">Cancel</Button>
+    <Button size="sm">Default</Button>
+    <Button size="sm" variant="secondary">Secondary</Button>
+    <Button size="sm" variant="destructive">Destructive</Button>
     <Button size="sm" variant="outline">Outline</Button>
-    {#if !compact}<Button size="sm" variant="destructive">Delete</Button>{/if}
+    <Button size="sm" variant="ghost">Ghost</Button>
+    <Button size="sm" variant="link">Link</Button>
   </div>
   <div class="mt-3 flex flex-wrap items-center gap-1.5">
-    <Badge variant="success">Paid</Badge>
-    <Badge variant="warning">Due</Badge>
-    <Badge variant="info">New</Badge>
-    <Badge variant="destructive">Failed</Badge>
+    <Badge>Default</Badge>
+    <Badge variant="secondary">Secondary</Badge>
+    <Badge variant="outline">Outline</Badge>
+    <Badge variant="success">Success</Badge>
+    <Badge variant="warning">Warning</Badge>
+    <Badge variant="info">Info</Badge>
+    <Badge variant="destructive">Destructive</Badge>
     {#if !compact}
       <span class="ml-auto text-xs"><Switch bind:checked={on} label="Alerts" /></span>
     {/if}
