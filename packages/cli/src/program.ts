@@ -1,4 +1,5 @@
 import { Command, CommanderError, Option } from 'commander';
+import { affectedCommand } from './commands/affected.ts';
 import { buildCommand } from './commands/build.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
@@ -26,6 +27,7 @@ Examples:
   $ pnpm protoyard validate my-crm --build
   $ pnpm protoyard export my-crm --base ./
   $ pnpm protoyard publish my-crm --provider cloudflare --dry-run
+  $ pnpm protoyard affected --since HEAD~1 --format csv
   $ pnpm protoyard list --json | jq '.data.entries[].slug'
 
 Every command accepts --json and returns { ok, command, data?, error? }.
@@ -84,6 +86,22 @@ export function createProgram(env: RunnerEnv): Command {
     .description('scan protoyard.json manifests (no code runs) and write .protoyard/registry.json')
     .option('--force', 'ignore the incremental cache')
     .action(def('index', indexCommand));
+
+  program
+    .command('affected')
+    .description(
+      'list prototype slugs affected by changes since a git ref (for selective CI builds)'
+    )
+    .requiredOption(
+      '--since <ref>',
+      'git ref to diff against (left side of <ref>...HEAD), e.g. HEAD~1 or origin/main'
+    )
+    .addOption(
+      new Option('--format <fmt>', 'text summary or bare csv of slugs for shell use')
+        .choices(['text', 'csv'])
+        .default('text')
+    )
+    .action(def('affected', affectedCommand));
 
   program
     .command('new')
