@@ -4,6 +4,7 @@ import {
   type BlueprintEntity,
   type BlueprintField,
   entityTable,
+  parseBlueprint,
 } from './schema.ts';
 import { deriveStores, relationProperty } from './storage.ts';
 
@@ -409,4 +410,41 @@ export function appendMigration(
 ): DatabaseVersion[] {
   if (!migration) return [...previous];
   return [...previous, toDatabaseVersion(migration)];
+}
+
+/**
+ * Every database version of a blueprint, rebuilt from its `history`: version 1
+ * holds the oldest entry's stores, then each step appends the diff against the
+ * previous blueprint (steps that change nothing add no version). Deterministic,
+ * so generated prototypes and `protoyard validate` agree without running code.
+ */
+export function deriveDatabaseVersions(blueprint: Blueprint): DatabaseVersion[] {
+  const chain = [
+    ...blueprint.history.map((entry) => ({
+      blueprint: parseBlueprint(entry.blueprint),
+      allowDrop: entry.migrateNext?.allowDrop === true,
+    })),
+    { blueprint, allowDrop: false },
+  ];
+  const first = chain[0] as (typeof chain)[number];
+  let versions: DatabaseVersion[] = [{ version: 1, stores: deriveStores(first.blueprint) }];
+  for (let i = 1; i < chain.length; i++) {
+    const prev = chain[i - 1] as (typeof chain)[number];
+    const migration = diffBlueprints(
+      prev.blueprint,
+      (chain[i] as (typeof chain)[number]).blueprint,
+      {
+        fromVersion: (versions[versions.length - 1] as DatabaseVersion).version,
+        allowDrop: prev.allowDrop,
+      }
+    );
+    versions = appendMigration(versions, migration);
+  }
+  return versions;
+}
+
+/** The latest schema version `deriveDatabaseVersions` produces. */
+export function latestSchemaVersion(blueprint: Blueprint): number {
+  const versions = deriveDatabaseVersions(blueprint);
+  return (versions[versions.length - 1] as DatabaseVersion).version;
 }

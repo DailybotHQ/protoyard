@@ -1,78 +1,29 @@
 // @vitest-environment node
-import { cpSync, existsSync, readFileSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseBlueprint } from '@protoyard/blueprint';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { emitPrototype, personalizeHtml } from '../src/lib/codegen/emit.ts';
 import { checkHeader, withHeader } from '../src/lib/codegen/header.ts';
-import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
-
-const REPO = fileURLToPath(new URL('../../../', import.meta.url));
-const TEMPLATE = join(REPO, 'templates/crud-app');
+import {
+  addCrudTemplate,
+  cli,
+  createWorkspace,
+  helpdeskBlueprint,
+  linkInstalled,
+  type TempWorkspace,
+} from './helpers.ts';
 
 let ws: TempWorkspace;
 beforeEach(() => {
   ws = createWorkspace();
-  // The real base template, without installs or build output.
-  cpSync(TEMPLATE, join(ws.root, 'templates/crud-app'), {
-    recursive: true,
-    filter: (src) => !/[/\\](node_modules|dist)([/\\]|$)/.test(src),
-  });
+  addCrudTemplate(ws);
 });
 afterEach(() => ws.cleanup());
 
 const read = (path: string) => readFileSync(join(ws.root, path), 'utf8');
 
-function blueprintInput(overrides: Record<string, unknown> = {}) {
-  return {
-    formatVersion: 1,
-    name: 'Help <desk> & "co"',
-    description: "Customers and tickets: it's fictional.",
-    entities: [
-      {
-        name: 'customer',
-        plural: 'customers',
-        fields: [
-          { name: 'name', kind: 'text', required: true, minLength: 2 },
-          { name: 'manager', kind: 'persona' },
-        ],
-        titleField: 'name',
-        ownerField: 'manager',
-      },
-      {
-        name: 'support-ticket',
-        plural: 'support-tickets',
-        label: 'Tickets "VIP" </script>',
-        fields: [
-          { name: 'subject', kind: 'text', required: true },
-          {
-            name: 'status',
-            kind: 'enum',
-            values: ['open', 'solved'],
-            default: 'open',
-            required: true,
-          },
-          {
-            name: 'customer',
-            kind: 'relation',
-            to: 'customer',
-            required: true,
-            onDelete: 'cascade',
-          },
-        ],
-        titleField: 'subject',
-      },
-    ],
-    roles: [
-      { name: 'owner', permissions: { '*': ['*'] } },
-      { name: 'admin', permissions: { '*': ['*'] } },
-      { name: 'member', permissions: { '*': ['read', 'create', 'update'] } },
-      { name: 'viewer', permissions: { '*': ['read'] } },
-    ],
-    ...overrides,
-  };
-}
+const blueprintInput = helpdeskBlueprint;
 
 function writeBlueprint(input: unknown = blueprintInput(), name = 'helpdesk.json') {
   ws.write(name, input as string | object);
@@ -241,7 +192,7 @@ describe('protoyard generate', () => {
     );
   });
 
-  it('is idempotent for the same blueprint and refuses to overwrite a different one', async () => {
+  it('is a no-op for the same blueprint and refuses hand-edited generated files', async () => {
     const file = writeBlueprint();
     expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(0);
     const routes = join(ws.root, 'prototypes/help-desk/src/generated/routes.ts');
@@ -252,18 +203,35 @@ describe('protoyard generate', () => {
     expect(again.json<Envelope>().data).toMatchObject({ created: false, unchanged: true });
     expect(statSync(routes).mtimeMs).toBe(before);
 
-    const changed = await generate(
-      'help-desk',
-      '--blueprint',
-      writeBlueprint(blueprintInput({ name: 'Another desk' }), 'other.json'),
-      '--no-install'
-    );
-    expect(changed.code).toBe(1);
-    expect(changed.json<Envelope>().error?.code).toBe('conflict');
-
     writeFileSync(routes, `${readFileSync(routes, 'utf8')}// edited\n`);
     expect(checkHeader(readFileSync(routes, 'utf8')).intact).toBe(false);
-    expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(1);
+    const blocked = await generate(
+      'help-desk',
+      '--blueprint',
+      writeBlueprint(blueprintInput({ name: 'Another desk' }), 'other.json')
+    );
+    expect(blocked.code).toBe(1);
+    const envelope = blocked.json<
+      Envelope & { data: { files: { path: string; status: string }[] } }
+    >();
+    expect(envelope.error?.code).toBe('conflict');
+    expect(envelope.data.files).toContainEqual({
+      path: 'src/generated/routes.ts',
+      status: 'conflicted',
+    });
+    // Blocked means nothing was written.
+    expect(JSON.parse(read('prototypes/help-desk/blueprint.json')).name).toBe('Help <desk> & "co"');
+    expect(read('prototypes/help-desk/src/generated/routes.ts')).toContain('// edited');
+
+    const forced = await generate(
+      'help-desk',
+      '--blueprint',
+      join(ws.root, 'other.json'),
+      '--force'
+    );
+    expect(forced.code).toBe(0);
+    expect(checkHeader(read('prototypes/help-desk/src/generated/routes.ts')).intact).toBe(true);
+    expect(JSON.parse(read('prototypes/help-desk/blueprint.json')).name).toBe('Another desk');
   });
 
   it('never writes over a prototype it did not generate', async () => {
@@ -277,21 +245,10 @@ describe('protoyard generate', () => {
     expect(
       (await generate('help-desk', '--blueprint', writeBlueprint(), '--no-install')).code
     ).toBe(0);
-    // Link installed dependencies instead of running pnpm install: the template's for the
-    // prototype, the repository's for the workspace root (tsx, svelte-check).
-    symlinkSync(join(REPO, 'node_modules'), join(ws.root, 'node_modules'), 'dir');
-    cpSync(join(REPO, 'tsconfig.base.json'), join(ws.root, 'tsconfig.base.json'));
-    cpSync(join(REPO, 'tests/support'), join(ws.root, 'tests/support'), { recursive: true });
-    symlinkSync(
-      join(TEMPLATE, 'node_modules'),
-      join(ws.root, 'prototypes/help-desk/node_modules'),
-      'dir'
-    );
-    // The template ships spec files; with dependencies linked now, refresh their
-    // generated regions as `generate` suggests (it could not load them before linking).
-    expect(
-      (await cli(['--root', ws.root, '--json', 'spec', 'help-desk', '--init', '--write'])).code
-    ).toBe(0);
+    linkInstalled(ws, 'help-desk');
+    // With dependencies resolvable, re-running generate refreshes the spec docs too.
+    const refresh = await generate('help-desk', '--blueprint', writeBlueprint());
+    expect(refresh.json<Envelope>().data).toMatchObject({ unchanged: true, spec: { ok: true } });
     const run = await cli(['--root', ws.root, '--json', 'validate', 'help-desk']);
     const { ok, data } = run.json<{
       ok: boolean;
@@ -302,7 +259,116 @@ describe('protoyard generate', () => {
     expect(ok).toBe(true);
     expect(data.checks.find((c) => c.id === 'typecheck')?.status).toBe('pass');
     expect(data.checks.find((c) => c.id === 'database-versions')?.status).toBe('pass');
+    expect(data.checks.find((c) => c.id === 'blueprint')?.status).toBe('pass');
   }, 120_000);
+
+  it('regenerates after an added field: appends schema v2, keeps owned files and passes validate', async () => {
+    expect(
+      (await generate('help-desk', '--blueprint', writeBlueprint(), '--no-install')).code
+    ).toBe(0);
+    linkInstalled(ws, 'help-desk');
+    // A person customizes owned files; regeneration must leave them alone.
+    const app = join(ws.root, 'prototypes/help-desk/src/App.svelte');
+    writeFileSync(app, `${readFileSync(app, 'utf8')}<!-- my change -->\n`);
+    const appBefore = readFileSync(app, 'utf8');
+
+    const next = blueprintInput();
+    const customer = next.entities[0];
+    if (!customer) throw new Error('fixture has no customer entity');
+    (customer.fields as unknown[]).push({ name: 'vip', kind: 'boolean', default: false });
+    const run = await generate('help-desk', '--blueprint', writeBlueprint(next, 'v2.json'));
+    expect(run.code).toBe(0);
+    const { data } = run.json<{
+      data: Record<string, unknown> & { files: { path: string; status: string }[] };
+    }>();
+    expect(data).toMatchObject({ regenerated: true, schemaVersion: { from: 1, to: 2, ops: 1 } });
+    const status = Object.fromEntries(data.files.map((f) => [f.path, f.status]));
+    expect(status).toMatchObject({
+      'blueprint.json': 'changed',
+      'src/generated/blueprint.snapshot.json': 'changed',
+      'src/generated/schema.ts': 'unchanged',
+      'src/App.svelte': 'skipped',
+      'README.md': 'skipped',
+    });
+    expect(readFileSync(app, 'utf8')).toBe(appBefore);
+
+    const saved = JSON.parse(read('prototypes/help-desk/blueprint.json'));
+    expect(saved.history).toEqual([{ schemaVersion: 1, blueprint: blueprintInput() }]);
+    expect(JSON.parse(read('prototypes/help-desk/protoyard.json')).storage.schemaVersion).toBe(2);
+    expect(JSON.parse(read('prototypes/help-desk/src/generated/blueprint.snapshot.json'))).toEqual({
+      schemaVersion: 2,
+      blueprint: next,
+    });
+
+    const validate = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'validate',
+      'help-desk',
+      '--skip-typecheck',
+    ]);
+    const checks = validate.json<{
+      data: { checks: { id: string; status: string; details: string[] }[] };
+    }>().data.checks;
+    expect(checks.filter((c) => c.status === 'fail')).toEqual([]);
+    expect(checks.find((c) => c.id === 'database-versions')?.details).toEqual(['v1, v2']);
+    expect(checks.find((c) => c.id === 'blueprint')?.status).toBe('pass');
+  }, 120_000);
+
+  it('supports editing blueprint.json in place, entity add/remove, --allow-drop and --dry-run', async () => {
+    expect(
+      (await generate('help-desk', '--blueprint', writeBlueprint(), '--no-install')).code
+    ).toBe(0);
+    const inPlace = join(ws.root, 'prototypes/help-desk/blueprint.json');
+    const withNote = { ...blueprintInput() } as ReturnType<typeof blueprintInput>;
+    withNote.entities = [
+      ...withNote.entities,
+      {
+        name: 'note',
+        plural: 'notes',
+        fields: [{ name: 'body', kind: 'text' }],
+        titleField: 'body',
+      } as never,
+    ];
+    writeFileSync(inPlace, `${JSON.stringify(withNote, null, 2)}\n`);
+
+    const dry = await generate('help-desk', '--blueprint', inPlace, '--dry-run', '--no-install');
+    expect(dry.json<Envelope>().data).toMatchObject({
+      dryRun: true,
+      schemaVersion: { from: 1, to: 2 },
+    });
+    expect(
+      existsSync(join(ws.root, 'prototypes/help-desk/src/generated/screens/NotePage.svelte'))
+    ).toBe(false);
+
+    const added = await generate('help-desk', '--blueprint', inPlace, '--no-install');
+    expect(added.code).toBe(0);
+    expect(read('prototypes/help-desk/src/generated/routes.ts')).toContain('"/notes"');
+    expect(
+      checkHeader(read('prototypes/help-desk/src/generated/screens/NotePage.svelte')).intact
+    ).toBe(true);
+
+    // Removing the entity drops a table: refused (exit 4) unless --allow-drop.
+    const refused = await generate('help-desk', '--blueprint', writeBlueprint(), '--no-install');
+    expect(refused.code).toBe(4);
+    expect(refused.json<Envelope>().error?.message).toContain('Regeneration would lose data');
+    const dropped = await generate(
+      'help-desk',
+      '--blueprint',
+      writeBlueprint(),
+      '--allow-drop',
+      '--no-install'
+    );
+    expect(dropped.code).toBe(0);
+    expect(dropped.json<Envelope>().data).toMatchObject({ schemaVersion: { from: 2, to: 3 } });
+    expect(
+      existsSync(join(ws.root, 'prototypes/help-desk/src/generated/screens/NotePage.svelte'))
+    ).toBe(false);
+    const history = JSON.parse(read('prototypes/help-desk/blueprint.json')).history;
+    expect(history.map((h: { schemaVersion: number }) => h.schemaVersion)).toEqual([1, 2]);
+    expect(history[1].migrateNext).toEqual({ allowDrop: true });
+  });
 
   it('generates a 10-entity blueprint in under 2 seconds (excluding pnpm install)', async () => {
     const entities = Array.from({ length: 10 }, (_, i) => ({

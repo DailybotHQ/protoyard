@@ -1,6 +1,15 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { vi } from 'vitest';
 import { runCli } from '../src/program.ts';
 
@@ -128,4 +137,84 @@ async function runInProcess(args: string[]): Promise<CliRun> {
     },
   });
   return { code, stdout, stderr, json: () => JSON.parse(stdout) };
+}
+
+const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+const CRUD_TEMPLATE = join(REPO_ROOT, 'templates/crud-app');
+
+/** Copies the real crud-app template (no installs or build output) for `generate` tests. */
+export function addCrudTemplate(ws: TempWorkspace) {
+  cpSync(CRUD_TEMPLATE, join(ws.root, 'templates/crud-app'), {
+    recursive: true,
+    filter: (src) => !/[/\\](node_modules|dist)([/\\]|$)/.test(src),
+  });
+}
+
+/**
+ * Makes a generated prototype loadable without `pnpm install`: links the
+ * template's installed dependencies into it and the repository's (tsx,
+ * svelte-check) into the workspace root, plus the shared tsconfig and test support.
+ */
+export function linkInstalled(ws: TempWorkspace, slug: string) {
+  if (!existsSync(join(ws.root, 'node_modules'))) {
+    symlinkSync(join(REPO_ROOT, 'node_modules'), join(ws.root, 'node_modules'), 'dir');
+    cpSync(join(REPO_ROOT, 'tsconfig.base.json'), join(ws.root, 'tsconfig.base.json'));
+    cpSync(join(REPO_ROOT, 'tests/support'), join(ws.root, 'tests/support'), { recursive: true });
+  }
+  symlinkSync(
+    join(CRUD_TEMPLATE, 'node_modules'),
+    join(ws.root, `prototypes/${slug}/node_modules`),
+    'dir'
+  );
+}
+
+/** A small fictional help desk blueprint used by the generate / blueprint tests. */
+export function helpdeskBlueprint(overrides: Record<string, unknown> = {}) {
+  return {
+    formatVersion: 1,
+    name: 'Help <desk> & "co"',
+    description: "Customers and tickets: it's fictional.",
+    entities: [
+      {
+        name: 'customer',
+        plural: 'customers',
+        fields: [
+          { name: 'name', kind: 'text', required: true, minLength: 2 },
+          { name: 'manager', kind: 'persona' },
+        ],
+        titleField: 'name',
+        ownerField: 'manager',
+      },
+      {
+        name: 'support-ticket',
+        plural: 'support-tickets',
+        label: 'Tickets "VIP" </script>',
+        fields: [
+          { name: 'subject', kind: 'text', required: true },
+          {
+            name: 'status',
+            kind: 'enum',
+            values: ['open', 'solved'],
+            default: 'open',
+            required: true,
+          },
+          {
+            name: 'customer',
+            kind: 'relation',
+            to: 'customer',
+            required: true,
+            onDelete: 'cascade',
+          },
+        ],
+        titleField: 'subject',
+      },
+    ],
+    roles: [
+      { name: 'owner', permissions: { '*': ['*'] } },
+      { name: 'admin', permissions: { '*': ['*'] } },
+      { name: 'member', permissions: { '*': ['read', 'create', 'update'] } },
+      { name: 'viewer', permissions: { '*': ['read'] } },
+    ],
+    ...overrides,
+  };
 }

@@ -56,13 +56,17 @@ export const blueprint: Blueprint = parseBlueprint(blueprintJson);
 }
 
 function schemaModule(): string {
-  return `import { deriveStores } from '@protoyard/blueprint';
+  return `import { deriveDatabaseVersions } from '@protoyard/blueprint';
 import type { DatabaseDefinition } from '@protoyard/core';
 import { blueprint } from './blueprint.ts';
 
-/** Dexie stores derived from the blueprint. Later blueprint changes append versions. */
+/**
+ * Every Dexie version, rebuilt from blueprint.json and its \`history\`: each
+ * regeneration that changes storage appends a version with data-only upgrade
+ * steps, so existing browser data migrates instead of being reset.
+ */
 export const database: DatabaseDefinition = {
-  versions: [{ version: 1, stores: deriveStores(blueprint) }],
+  versions: deriveDatabaseVersions(blueprint),
 };
 `;
 }

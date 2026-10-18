@@ -10,12 +10,10 @@ describe('@protoyard/blueprint package', () => {
   it('ships TypeScript source and stays framework-agnostic', () => {
     expect(pkg.name).toBe('@protoyard/blueprint');
     expect(pkg.exports['.']).toBe('./src/index.ts');
-    expect(Object.keys(pkg.dependencies).sort()).toEqual([
-      '@protoyard/core',
-      '@protoyard/scenarios',
-      '@protoyard/themes',
-      'zod',
-    ]);
+    // Only framework-agnostic engine packages (never ui, renderer or Svelte) plus zod (ADR-002).
+    const allowed = ['@protoyard/core', '@protoyard/scenarios', '@protoyard/themes', 'zod'];
+    for (const dep of Object.keys(pkg.dependencies)) expect(allowed, dep).toContain(dep);
+    expect(Object.keys(pkg.dependencies)).toContain('@protoyard/core');
     expect('peerDependencies' in pkg).toBe(false);
   });
 });

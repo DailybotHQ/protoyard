@@ -1,22 +1,30 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { type Blueprint, BrandThemeError, safeParseBlueprint } from '@protoyard/blueprint';
+import { type Blueprint, safeParseBlueprint } from '@protoyard/blueprint';
 import { MANIFEST_FILENAME } from '@protoyard/core';
 import {
   brandDefaultThemeId,
   type EmittedFile,
-  emitPrototype,
   personalizeHtml,
   TEMPLATE_FILES_REMOVED,
 } from '../lib/codegen/emit.ts';
 import { checkHeader } from '../lib/codegen/header.ts';
+import {
+  emitOrThrow,
+  type FilePlan,
+  planRegeneration,
+  SNAPSHOT_PATH,
+  snapshotText,
+  withoutHistory,
+} from '../lib/codegen/regenerate.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { CliError, mark } from '../lib/output.ts';
 import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
 import { installWorkspace } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
+import type { CommandContext } from '../lib/workspace.ts';
 import { assertSlug, resolveTarget } from '../lib/workspace.ts';
 import { copyTemplate, listTemplateFiles, personalize, writeNewSpec } from './new.ts';
 
@@ -32,7 +40,9 @@ import { copyTemplate, listTemplateFiles, personalize, writeNewSpec } from './ne
 const DEFAULT_TEMPLATE = 'crud-app';
 const MAX_BLUEPRINT_BYTES = 1024 * 1024;
 
-async function readBlueprint(file: string): Promise<{ blueprint: Blueprint; text: string }> {
+async function readBlueprint(
+  file: string
+): Promise<{ blueprint: Blueprint; raw: Record<string, unknown>; text: string }> {
   const path = resolve(process.cwd(), file);
   const info = await stat(path).catch(() => null);
   if (!info?.isFile()) {
@@ -65,18 +75,17 @@ async function readBlueprint(file: string): Promise<{ blueprint: Blueprint; text
       }
     );
   }
-  return { blueprint: parsed.data, text: `${JSON.stringify(raw, null, 2)}\n` };
+  return {
+    blueprint: parsed.data,
+    raw: raw as Record<string, unknown>,
+    text: `${JSON.stringify(raw, null, 2)}\n`,
+  };
 }
 
-type Existing = 'none' | 'empty' | 'same' | 'changed' | 'other';
+type Existing = 'none' | 'empty' | 'generated' | 'other';
 
-/** Classifies prototypes/<slug>: free, an empty folder, this exact generation, or something else. */
-async function inspectDestination(
-  dest: string,
-  slug: string,
-  template: string,
-  files: readonly EmittedFile[]
-): Promise<Existing> {
+/** Classifies prototypes/<slug>: free, an empty folder, generated from this template, or something else. */
+async function inspectDestination(dest: string, slug: string, template: string): Promise<Existing> {
   if (!existsSync(dest)) return 'none';
   const names = await readdir(dest).catch(() => null);
   if (names === null) return 'other';
@@ -87,14 +96,10 @@ async function inspectDestination(
       unknown
     >;
     if (manifest.id !== `local.${slug}` || manifest.template !== template) return 'other';
+    return existsSync(join(dest, 'blueprint.json')) ? 'generated' : 'other';
   } catch {
     return 'other';
   }
-  for (const file of files.filter((f) => f.generated || f.path === 'blueprint.json')) {
-    const current = await readFile(join(dest, file.path), 'utf8').catch(() => null);
-    if (current !== file.content) return 'changed';
-  }
-  return 'same';
 }
 
 /** A nested POSIX path under `dir`; every segment goes through `childPath`'s checks. */
@@ -117,25 +122,14 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       hint: 'Example: pnpm protoyard generate my-helpdesk --blueprint ./helpdesk.blueprint.json',
     });
   }
-  const { blueprint, text } = await readBlueprint(file);
+  const { blueprint, raw, text } = await readBlueprint(file);
   const templateName = opt(options, 'template') ?? DEFAULT_TEMPLATE;
   const {
     entry: template,
     dir: templateDir,
     registry,
   } = await resolveTarget(ctx, templateName, 'template');
-  let files: EmittedFile[];
-  try {
-    files = emitPrototype(blueprint, slug, text);
-  } catch (error) {
-    if (error instanceof BrandThemeError) {
-      throw new CliError('validation', error.message, {
-        hint: 'Adjust brand.seed / preset / styleProfile so text pairs reach WCAG AA 4.5:1.',
-        data: { failures: error.failures },
-      });
-    }
-    throw error;
-  }
+  const allowDrop = flag(options, 'allowDrop');
   const dryRun = flag(options, 'dryRun');
 
   await mkdir(ctx.paths.prototypes, { recursive: true });
@@ -147,7 +141,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   const clash = registry.entries.find((e) => e.id === `local.${slug}` && e.slug !== slug);
   if (clash) throw new CliError('conflict', `id "local.${slug}" is already used by ${clash.path}.`);
 
-  const existing = await inspectDestination(dest, slug, template.slug, files);
+  const existing = await inspectDestination(dest, slug, template.slug);
   if (existing === 'other') {
     throw new CliError(
       'conflict',
@@ -157,12 +151,16 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       }
     );
   }
-  if (existing === 'changed') {
-    throw new CliError(
-      'conflict',
-      `prototypes/${slug} was generated from a different blueprint (or its generated files were edited).`,
-      { hint: 'Generate into a new slug; regenerating an existing prototype is not supported yet.' }
-    );
+  if (existing === 'generated') {
+    return regenerate(ctx, {
+      dest,
+      slug,
+      raw,
+      dryRun,
+      allowDrop,
+      force: flag(options, 'force'),
+      started,
+    });
   }
   if (existing === 'empty' && !flag(options, 'force') && !dryRun) {
     throw new CliError('conflict', `prototypes/${slug} exists (empty).`, {
@@ -170,6 +168,20 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     });
   }
 
+  // A first generation starts the history: the snapshot records what the code reflects.
+  const files = [
+    ...emitOrThrow(blueprint, slug, text),
+    {
+      path: SNAPSHOT_PATH,
+      content: snapshotText({ schemaVersion: 1, blueprint: withoutHistory(raw) }),
+      generated: false,
+    },
+  ];
+  if (blueprint.history.length > 0) {
+    throw new CliError('validation', 'A new prototype starts without "history".', {
+      hint: 'Remove "history" from the blueprint; generate records it on later regenerations.',
+    });
+  }
   const rel = toPosixRelative(ctx.root, dest);
   const removed = new Set<string>(TEMPLATE_FILES_REMOVED);
   const emitted = new Set(files.map((f) => f.path));
@@ -206,8 +218,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     };
   }
 
-  const created = existing !== 'same';
-  if (created) {
+  {
     const staging = childPath(prototypesReal, `.${slug}.staging-${process.pid}`);
     await rm(staging, { recursive: true, force: true });
     try {
@@ -252,7 +263,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   }
 
   let install: { ok: boolean; skipped: boolean; mode?: string; log?: string };
-  if (!created || options.install === false) install = { ok: true, skipped: true };
+  if (options.install === false) install = { ok: true, skipped: true };
   else {
     const result = await installWorkspace(ctx.root, ctx.out.options.json ? 'pipe' : 'inherit');
     install = {
@@ -263,10 +274,8 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     };
   }
 
-  // The template ships spec files (AGENTS.md, docs/): refresh their generated
-  // regions for the new slug and its generated schema, like `protoyard new`.
-  const spec = created ? await writeNewSpec(ctx, dest) : null;
-
+  // After install, so the definition's workspace packages resolve (same as `new`).
+  const spec = await writeNewSpec(ctx, dest);
   const index = await buildIndex(ctx.paths);
   const generatedFiles = files.filter((f) => f.generated);
   const intact = await Promise.all(
@@ -274,8 +283,8 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   );
   const nextSteps = [
     ...(install.ok && !install.skipped ? [] : ['pnpm install']),
+    ...(spec.ok ? [] : [`pnpm protoyard spec ${slug} --init --write`]),
     `pnpm protoyard dev ${slug}`,
-    ...(spec?.ok === false ? [`pnpm protoyard spec ${slug} --init --write`] : []),
     `pnpm vitest run prototypes/${slug}`,
     `pnpm protoyard validate ${slug} --build`,
   ];
@@ -286,8 +295,8 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       id: `local.${slug}`,
       path: rel,
       template: template.slug,
-      created,
-      unchanged: !created,
+      created: true,
+      unchanged: false,
       entities,
       files: fileList,
       generated: generatedFiles.map((f) => f.path),
@@ -301,9 +310,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     render(out) {
       const { c } = out;
       out.always(
-        created
-          ? `${mark(c, 'pass')} Generated ${c.bold(rel)} from ${c.cyan(template.slug)}: ${entities.length} entities, ${generatedFiles.length} generated files`
-          : `${mark(c, 'pass')} ${c.bold(rel)} is already generated from this blueprint — nothing to do`
+        `${mark(c, 'pass')} Generated ${c.bold(rel)} from ${c.cyan(template.slug)}: ${entities.length} entities, ${generatedFiles.length} generated files`
       );
       if (install.skipped) out.info(`${mark(c, 'skip')} Skipped pnpm install`);
       else if (install.ok)
@@ -320,3 +327,126 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     },
   };
 };
+
+/**
+ * Regenerates an existing generated prototype: rewrites only generated files
+ * that are still untouched, appends a database version when storage changes,
+ * and never touches owned files. Hand-edited generated files block the run
+ * (exit 1) unless --force; nothing is written when it is blocked.
+ */
+async function regenerate(
+  ctx: CommandContext,
+  input: {
+    dest: string;
+    slug: string;
+    raw: Record<string, unknown>;
+    dryRun: boolean;
+    allowDrop: boolean;
+    force: boolean;
+    started: number;
+  }
+): Promise<CommandResult> {
+  const { dest, slug, dryRun, force } = input;
+  const manifestPath = join(dest, MANIFEST_FILENAME);
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Record<string, unknown> & {
+    storage: { schemaVersion: number };
+  };
+  const plan = await planRegeneration({
+    dest,
+    slug,
+    inputRaw: input.raw,
+    manifestSchemaVersion: manifest.storage.schemaVersion,
+    allowDrop: input.allowDrop,
+  });
+  const report = plan.files.map(({ path, status }) => ({ path, status }));
+  const count = (status: FilePlan['status']) =>
+    plan.files.filter((f) => f.status === status).length;
+  const conflicted = plan.files.filter((f) => f.status === 'conflicted').map((f) => f.path);
+  const rel = toPosixRelative(ctx.root, dest);
+  const schema = { from: plan.fromVersion, to: plan.toVersion, ops: plan.ops.length };
+  if (conflicted.length > 0 && !force) {
+    throw new CliError(
+      'conflict',
+      `${conflicted.length} generated file(s) in ${rel} were edited by hand: ${conflicted.join(', ')}`,
+      {
+        hint: 'Move hand-written code outside src/generated/, or re-run with --force to overwrite.',
+        data: { slug, files: report, schemaVersion: schema },
+      }
+    );
+  }
+  const writes = plan.files.filter(
+    (f) => f.content !== undefined && (f.status !== 'conflicted' || force)
+  );
+  const removals = plan.files.filter(
+    (f) => f.status === 'removed' || (f.status === 'conflicted' && force && f.content === undefined)
+  );
+  const unchanged = writes.length === 0 && removals.length === 0 && schema.from === schema.to;
+
+  if (!dryRun) {
+    for (const file of writes) {
+      const target = nested(dest, file.path);
+      await mkdir(dirname(target), { recursive: true });
+      // Write to a sibling and rename, so an interrupted run never leaves half a file.
+      const temp = `${target}.tmp-${process.pid}`;
+      await writeFile(temp, file.content as string);
+      await rename(temp, target);
+    }
+    for (const file of removals) await rm(nested(dest, file.path), { force: true });
+    if (schema.to !== schema.from) {
+      manifest.storage = { ...manifest.storage, schemaVersion: schema.to };
+      manifest.updatedAt = new Date().toISOString();
+      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    }
+    await buildIndex(ctx.paths);
+  }
+  // Spec regions describe the blueprint (tables, permissions…): refresh them after every write.
+  const spec = dryRun ? null : await writeNewSpec(ctx, dest);
+  const durationMs = Math.round(performance.now() - input.started);
+  return {
+    data: {
+      slug,
+      path: rel,
+      regenerated: !dryRun && !unchanged,
+      dryRun,
+      created: false,
+      unchanged,
+      schemaVersion: schema,
+      entities: plan.blueprint.entities.map((e) => e.name),
+      files: report,
+      counts: {
+        created: count('created'),
+        changed: count('changed'),
+        unchanged: count('unchanged'),
+        conflicted: count('conflicted'),
+        removed: count('removed'),
+        skipped: count('skipped'),
+      },
+      spec,
+      durationMs,
+    },
+    render(out) {
+      const { c } = out;
+      if (spec && !spec.ok) {
+        out.warn(
+          `${mark(c, 'warn')} Spec docs not refreshed (${spec.error ?? 'unknown error'}). Run \`pnpm protoyard spec ${slug} --init --write\`.`
+        );
+      }
+      if (unchanged) {
+        out.always(
+          `${mark(c, 'pass')} ${c.bold(rel)} already matches this blueprint — nothing to do`
+        );
+        return;
+      }
+      out.always(
+        `${mark(c, 'pass')} ${dryRun ? 'Dry run: would regenerate' : 'Regenerated'} ${c.bold(rel)}` +
+          (schema.to !== schema.from
+            ? ` (schema v${schema.from} → v${schema.to}, ${schema.ops} upgrade steps)`
+            : '')
+      );
+      for (const f of report.filter((r) => r.status !== 'unchanged' && r.status !== 'skipped')) {
+        out.info(`  ${c.dim(f.status.padEnd(10))} ${f.path}`);
+      }
+      out.info(c.dim(`  owned files left untouched: ${count('skipped')}`));
+    },
+  };
+}

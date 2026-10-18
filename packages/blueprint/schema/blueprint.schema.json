@@ -1178,6 +1178,38 @@
           }
         ]
       }
+    },
+    "history": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "blueprint": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "migrateNext": {
+            "type": "object",
+            "properties": {
+              "allowDrop": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["schemaVersion", "blueprint"],
+        "additionalProperties": false
+      }
     }
   },
   "required": ["formatVersion", "name", "entities", "roles"],
