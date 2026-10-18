@@ -10,4 +10,6 @@ export {
   inputProperty,
   readRowValue,
 } from './format.ts';
+export { default as MembersScreen } from './MembersScreen.svelte';
+export { default as NotificationsBell } from './NotificationsBell.svelte';
 export { default as RelationPicker } from './RelationPicker.svelte';
