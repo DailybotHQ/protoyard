@@ -21,7 +21,8 @@ it qualifies for its own `AGENTS.md` and `docs/` folder.
 | Hand-written spec files in a prototype | Can be written now, by hand, following this page |
 | `protoyard spec <slug>` (generate, refresh, `--check`) | **Not implemented yet** |
 | `protoyard validate` spec check (`--strict-spec`) | **Not implemented yet** |
-| Statically importable route table (`src/routes.ts`) for `SCREENS.md` | **Not implemented yet**: routes still live inside `src/App.svelte` |
+| Statically importable route table (`src/routes.ts`) for `SCREENS.md` | Available: `defineRoutes` in `@protoyard/renderer-svelte`; `crm-demo` and the `dashboard` template use it. Other prototypes still declare routes in `src/App.svelte`. |
+| Fact extraction for generated regions | Available as a library: `inspectSpec()` in `packages/cli/src/lib/inspect.ts` runs the definition in a child process (inspect runner `spec` mode) and returns sorted tables and indexes per version, roles × capabilities, rule names, default-scenario personas, scenarios with knobs, themes, timeline presence, `generatorVersion` and `src/routes.ts` routes. No CLI command uses it yet. |
 | Spec skeletons in templates (`protoyard new`) | **Not implemented yet** |
 
 Until the CLI lands, generated regions are written by hand from the sources
