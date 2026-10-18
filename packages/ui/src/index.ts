@@ -46,6 +46,12 @@ export type {
 } from './components/chat/types.ts';
 export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
 export { default as Combobox } from './components/combobox/Combobox.svelte';
+export { default as CommandPalette } from './components/command-palette/CommandPalette.svelte';
+export type {
+  CommandPaletteItem,
+  CommandPaletteSearch,
+  CommandPaletteSelect,
+} from './components/command-palette/types.ts';
 export { default as Composer } from './components/composer/Composer.svelte';
 // Data
 export { default as DataTable } from './components/data-table/DataTable.svelte';

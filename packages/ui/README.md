@@ -56,6 +56,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Shells | `WindowChrome` |
 | Collaboration | `ChatThread`, `MessageList`, `Composer`, `TypingIndicator` |
 | Flows | `Stepper`, `Wizard` |
+| Search | `CommandPalette` |
 | Mobile | `BottomNav`, `MobileHeader`, `BottomSheet`, `SafeArea` |
 
 ## Catalog
@@ -109,6 +110,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Composer` | `bind:value`, `onSubmit` (return `false`/reject to keep the draft), Enter sends, Shift+Enter newline |
 | `TypingIndicator` | `names: string[]`, `showLabel` (sr-only text otherwise; reduced-motion safe) |
 | `Stepper` / `Wizard` | `steps: { id, label, description? }[]`, `current`; Stepper `completed`, `orientation`, `onStepClick`; Wizard `bind:current`, `content(step)` snippet, `validate` (false or message), `canAdvance`, `onFinish`, `onStepChange` |
+| `CommandPalette` | `search(query)` async source, `recentItems`, `onSelect`; opens with ⌘K / Ctrl+K, groups results, and supports arrow-key selection. Dynamically import and mount it after the first shortcut press to keep it out of the initial bundle. |
 | `BottomNav` | `items: { label, href, icon, badge?, active? }[]`, `fixed`, safe-area padding, 44px targets; marked `data-py-bottom-nav` so DevTools lifts its launcher above it |
 | `MobileHeader` | `title`, `titleAs`, `subtitle`, `backHref`/`onBack` + `backLabel`, `actions`, `sticky` |
 | `SafeArea` | `edges` (or `top`/`right`/`bottom`/`left`) padded with `env(safe-area-inset-*)`, `as` |
