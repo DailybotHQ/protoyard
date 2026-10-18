@@ -15,6 +15,11 @@ export interface PublishInput {
   target: PublishTarget;
   /** Absolute path of the exported ZIP (static provider). */
   zipPath?: string;
+  /**
+   * Opt-in: create the provider project when missing (Cloudflare Pages today).
+   * Dry runs always list the setup argv; real publishes check existence first.
+   */
+  ensureProject?: boolean;
 }
 
 export interface PublishResult {

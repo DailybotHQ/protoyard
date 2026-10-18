@@ -6,11 +6,16 @@ import { createContext, resolveTarget } from '../src/lib/workspace.ts';
 import { formatCommand } from '../src/publish/cli-tool.ts';
 import {
   cloudflareArgs,
+  cloudflareEnsureProjectArgs,
+  ensureCloudflareProject,
+  isCloudflareProjectAlreadyExists,
   parseCloudflareOutput,
+  parseCloudflareProjectList,
   validateCloudflareProject,
 } from '../src/publish/cloudflare.ts';
 import { createProvider } from '../src/publish/index.ts';
 import { netlifyArgs, parseNetlifyOutput } from '../src/publish/netlify.ts';
+import type { PublishInput } from '../src/publish/types.ts';
 import { parseVercelOutput, vercelArgs, vercelLinkArgs } from '../src/publish/vercel.ts';
 import { addBuildablePrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
@@ -70,6 +75,124 @@ describe('publish adapters', () => {
     }
   });
 
+  it('ensure: builds create-project argv and parses project list / already-exists offline', () => {
+    expect(cloudflareEnsureProjectArgs('protoyard-crm')).toEqual([
+      'pages',
+      'project',
+      'create',
+      'protoyard-crm',
+      '--production-branch',
+      'main',
+    ]);
+
+    // Recorded-style wrangler list fixtures (names only; extra fields ignored).
+    const listFixture = `[
+  {"name":"protoyard-alpha","id":"acct-should-not-leak","account_id":"SECRET"},
+  {"name":"protoyard-crm","subdomain":"protoyard-crm.pages.dev"}
+]`;
+    expect(parseCloudflareProjectList(listFixture)).toEqual(['protoyard-alpha', 'protoyard-crm']);
+    expect(
+      parseCloudflareProjectList(
+        '🌀 Listing...\n{"result":[{"name":"protoyard-crm"},{"name":"other"}]}\n'
+      )
+    ).toEqual(['protoyard-crm', 'other']);
+    expect(parseCloudflareProjectList('not json')).toEqual([]);
+    expect(parseCloudflareProjectList('')).toEqual([]);
+
+    expect(
+      isCloudflareProjectAlreadyExists(
+        'Error: A project with this name already exists. Code: 8000004'
+      )
+    ).toBe(true);
+    expect(isCloudflareProjectAlreadyExists('project already exists')).toBe(true);
+    expect(isCloudflareProjectAlreadyExists('Deployed ok')).toBe(false);
+
+    const provider = createProvider('cloudflare', process.cwd());
+    const bare: PublishInput = { ...input, ensureProject: undefined };
+    expect(provider.setupCommands?.(bare) ?? []).toEqual([]);
+    const withEnsure: PublishInput = { ...input, ensureProject: true };
+    const setup = provider.setupCommands?.(withEnsure) ?? [];
+    expect(setup).toHaveLength(1);
+    expect(setup[0]?.slice(-6)).toEqual(cloudflareEnsureProjectArgs('protoyard-crm'));
+    expect(setup[0]?.includes('pages')).toBe(true);
+    expect(setup[0]?.includes('project')).toBe(true);
+    expect(setup[0]?.includes('create')).toBe(true);
+  });
+
+  it('ensure: skips create when list already contains the project (no network)', async () => {
+    const calls: string[][] = [];
+    const runFn = async (cmd: string, args: readonly string[]) => {
+      calls.push([cmd, ...args]);
+      if (args.includes('list')) {
+        return {
+          code: 0,
+          stdout: JSON.stringify([{ name: 'protoyard-crm', id: 'do-not-log' }, { name: 'other' }]),
+          stderr: '',
+        };
+      }
+      throw new Error(`unexpected run: ${cmd} ${args.join(' ')}`);
+    };
+    const result = await ensureCloudflareProject(['wrangler'], 'protoyard-crm', {
+      runFn: runFn as typeof import('../src/lib/process.ts').run,
+    });
+    expect(result).toEqual({ created: false, existed: true });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual(['wrangler', 'pages', 'project', 'list', '--json']);
+  });
+
+  it('ensure: creates when missing and treats already-exists create output as ok', async () => {
+    const calls: string[][] = [];
+    let listEmpty = true;
+    const runFn = async (_cmd: string, args: readonly string[]) => {
+      calls.push([...args]);
+      if (args.includes('list')) {
+        return {
+          code: 0,
+          stdout: listEmpty ? '[]' : JSON.stringify([{ name: 'protoyard-crm' }]),
+          stderr: '',
+        };
+      }
+      if (args.includes('create')) {
+        return {
+          code: 1,
+          stdout: '',
+          stderr: 'A project with this name already exists (code: 8000004)',
+        };
+      }
+      return { code: 1, stdout: '', stderr: 'nope' };
+    };
+    const raced = await ensureCloudflareProject(
+      ['npx', '--no-install', 'wrangler'],
+      'protoyard-crm',
+      {
+        runFn: runFn as typeof import('../src/lib/process.ts').run,
+      }
+    );
+    expect(raced).toEqual({ created: false, existed: true });
+    expect(calls[0]).toEqual(['--no-install', 'wrangler', 'pages', 'project', 'list', '--json']);
+    expect(calls[1]).toEqual([
+      '--no-install',
+      'wrangler',
+      'pages',
+      'project',
+      'create',
+      'protoyard-crm',
+      '--production-branch',
+      'main',
+    ]);
+
+    listEmpty = true;
+    const createOk = async (_cmd: string, args: readonly string[]) => {
+      if (args.includes('list')) return { code: 0, stdout: '[]', stderr: '' };
+      if (args.includes('create')) return { code: 0, stdout: 'Created protoyard-new', stderr: '' };
+      return { code: 1, stdout: '', stderr: '' };
+    };
+    const made = await ensureCloudflareProject(['wrangler'], 'protoyard-new', {
+      runFn: createOk as typeof import('../src/lib/process.ts').run,
+    });
+    expect(made).toEqual({ created: true, existed: false });
+  });
+
   it('parses only URLs the provider actually printed', () => {
     const wrangler =
       '\u001b[32m✨ Success!\u001b[0m Uploaded 4 files\n✨ Deployment complete! Take a peek over at https://1a2b3c4d.protoyard-crm.pages.dev\n';
@@ -117,11 +240,18 @@ describe('protoyard publish --dry-run', () => {
     ]);
     expect(run.code).toBe(0);
     const { data } = run.json<{
-      data: { dryRun: boolean; command: string[]; project: string; target: string };
+      data: {
+        dryRun: boolean;
+        command: string[];
+        setup?: string[][];
+        project: string;
+        target: string;
+      };
     }>();
     expect(data.dryRun).toBe(true);
     expect(data.project).toBe('protoyard-dry-app');
     expect(data.target).toBe('preview');
+    expect(data.setup ?? []).toEqual([]);
     const realDist = data.command[data.command.indexOf('deploy') + 1] ?? '';
     expect(realDist.endsWith('/artifacts/dry-app/dist')).toBe(true);
     expect(data.command.slice(data.command.indexOf('pages'))).toEqual([
@@ -135,6 +265,50 @@ describe('protoyard publish --dry-run', () => {
       '--commit-dirty=true',
     ]);
     expect(data.command).toContain('--project-name');
+  }, 60_000);
+
+  it('ensure: dry-run lists create-project setup argv before deploy', async () => {
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'publish',
+      'dry-app',
+      '--provider',
+      'cloudflare',
+      '--ensure-project',
+      '--dry-run',
+    ]);
+    expect(run.code).toBe(0);
+    const { data } = run.json<{
+      data: {
+        dryRun: boolean;
+        ensureProject?: boolean;
+        setup: string[][];
+        command: string[];
+        commandLine: string;
+        project: string;
+      };
+    }>();
+    expect(data.dryRun).toBe(true);
+    expect(data.ensureProject).toBe(true);
+    expect(data.project).toBe('protoyard-dry-app');
+    expect(data.setup).toHaveLength(1);
+    const setup = data.setup[0] ?? [];
+    expect(setup.slice(setup.indexOf('pages'))).toEqual([
+      'pages',
+      'project',
+      'create',
+      'protoyard-dry-app',
+      '--production-branch',
+      'main',
+    ]);
+    expect(data.command).toContain('deploy');
+    // Human/shell line: setup first, then deploy.
+    expect(data.commandLine.indexOf('project create')).toBeGreaterThanOrEqual(0);
+    expect(data.commandLine.indexOf('project create')).toBeLessThan(
+      data.commandLine.indexOf('pages deploy')
+    );
   }, 60_000);
 
   it('returns a structured dry-run result from publishPrototype', async () => {

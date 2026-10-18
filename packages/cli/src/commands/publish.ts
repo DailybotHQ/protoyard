@@ -20,6 +20,7 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
       project: opt(options, 'project'),
       base: opt(options, 'base'),
       includeDevtools: flag(options, 'includeDevtools'),
+      ensureProject: flag(options, 'ensureProject'),
     },
     registry
   );
@@ -33,6 +34,7 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
     distDir: result.distDir,
     fileCount: result.files,
     totalBytes: result.bytes,
+    ...(result.ensureProject ? { ensureProject: true as const } : {}),
   };
   if (result.kind === 'static') {
     return {
