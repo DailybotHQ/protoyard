@@ -1,5 +1,6 @@
 ---
 import '@/styles/global.css';
+import CommandPalette from '@/components/CommandPalette.svelte';
 import ThemeToggle from '@/components/ThemeToggle.svelte';
 import { withBase } from '@/lib/format';
 import { NO_FLASH_SCRIPT } from '@/lib/theme';
@@ -65,7 +66,8 @@ const nav = [
             ))
           }
         </nav>
-        <div class="ml-auto">
+        <div class="ml-auto flex items-center gap-2">
+          <CommandPalette client:idle homeUrl={withBase('/')} />
           <ThemeToggle client:load />
         </div>
       </div>
