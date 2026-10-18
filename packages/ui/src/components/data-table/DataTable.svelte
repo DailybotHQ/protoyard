@@ -2,11 +2,12 @@
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from '@lucide/svelte';
 import type { Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
+import Checkbox from '../checkbox/Checkbox.svelte';
 import EmptyState from '../empty-state/EmptyState.svelte';
 import Pagination from '../pagination/Pagination.svelte';
 import Skeleton from '../skeleton/Skeleton.svelte';
 import { formatValue, matchesQuery, readValue, sortRows } from './table-utils.ts';
-import type { DataTableColumn, DataTableSort } from './types.ts';
+import type { DataTableBulkActionContext, DataTableColumn, DataTableSort } from './types.ts';
 
 interface Props {
   columns: DataTableColumn<T>[];
@@ -36,6 +37,12 @@ interface Props {
   filters?: Snippet;
   /** Right-aligned toolbar actions (export, create…). */
   toolbar?: Snippet;
+  /** Enables row checkboxes and page-level selection. */
+  selectable?: boolean;
+  /** Selected row IDs. Selection is keyed by `getRowId` and can include rows on other pages. */
+  selected?: string[];
+  /** Rendered while rows are selected. Receives all selected IDs and their source rows. */
+  bulkActions?: Snippet<[DataTableBulkActionContext<T>]>;
   /** Accessible table name (rendered as a visually hidden caption). */
   caption?: string;
   class?: string;
@@ -61,6 +68,9 @@ let {
   emptyDescription,
   filters,
   toolbar,
+  selectable = false,
+  selected = $bindable([]),
+  bulkActions,
   caption,
   class: className,
 }: Props = $props();
@@ -85,6 +95,30 @@ const rangeEnd = $derived(
   pageSize > 0 ? Math.min(sorted.length, currentPage * pageSize) : sorted.length
 );
 const skeletonRows = $derived(Math.min(pageSize > 0 ? pageSize : 5, 8));
+let selection = $state(new Set(selected));
+let selectionAnchor = $state<string | null>(null);
+let pendingShiftClick = false;
+const visibleIds = $derived(visible.map((row) => getRowId(row, rows.indexOf(row))));
+const selectedOnPage = $derived(visibleIds.filter((id) => selection.has(id)).length);
+const pageFullySelected = $derived(visibleIds.length > 0 && selectedOnPage === visibleIds.length);
+const pagePartiallySelected = $derived(selectedOnPage > 0 && !pageFullySelected);
+const selectedRows = $derived(rows.filter((row, index) => selection.has(getRowId(row, index))));
+
+$effect(() => {
+  const availableIds = new Set(rows.map((row, index) => getRowId(row, index)));
+  const next = new Set(selected.filter((id) => availableIds.has(id)));
+  const unchanged = next.size === selection.size && [...next].every((id) => selection.has(id));
+  if (!unchanged) selection = next;
+
+  const selectedIds = [...next];
+  if (
+    selectedIds.length !== selected.length ||
+    selectedIds.some((id, index) => id !== selected[index])
+  ) {
+    selected = selectedIds;
+  }
+  if (selectionAnchor && !availableIds.has(selectionAnchor)) selectionAnchor = null;
+});
 
 $effect(() => {
   // Keep the bound page valid when filtering shrinks the result set.
@@ -135,6 +169,45 @@ function handleRowKeydown(event: KeyboardEvent, row: T): void {
     onRowClick(row);
   }
 }
+
+function commitSelection(next: Set<string>): void {
+  selection = next;
+  selected = [...next];
+}
+
+function captureShiftKey(event: Event): void {
+  pendingShiftClick = 'shiftKey' in event && Boolean(event.shiftKey);
+}
+
+function toggleRowSelection(id: string, checked: boolean, shiftKey: boolean): void {
+  const next = new Set(selection);
+  const anchorIndex = selectionAnchor ? visibleIds.indexOf(selectionAnchor) : -1;
+  const rowIndex = visibleIds.indexOf(id);
+  if (shiftKey && anchorIndex >= 0 && rowIndex >= 0) {
+    const start = Math.min(anchorIndex, rowIndex);
+    const end = Math.max(anchorIndex, rowIndex);
+    for (const rangeId of visibleIds.slice(start, end + 1)) {
+      if (checked) next.add(rangeId);
+      else next.delete(rangeId);
+    }
+  } else if (checked) {
+    next.add(id);
+  } else {
+    next.delete(id);
+  }
+  if (!shiftKey || anchorIndex < 0) selectionAnchor = id;
+  commitSelection(next);
+}
+
+function togglePageSelection(checked: boolean | 'indeterminate'): void {
+  const next = new Set(selection);
+  for (const id of visibleIds) {
+    if (checked === true) next.add(id);
+    else next.delete(id);
+  }
+  selectionAnchor = null;
+  commitSelection(next);
+}
 </script>
 
 <div class={cn('flex flex-col gap-3', className)}>
@@ -163,11 +236,28 @@ function handleRowKeydown(event: KeyboardEvent, row: T): void {
     </div>
   {/if}
 
+  {#if selectable && bulkActions && selection.size > 0}
+    <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+      {@render bulkActions({ selected: [...selected], rows: selectedRows })}
+    </div>
+  {/if}
+
   <div class="overflow-x-auto rounded-xl border border-border bg-surface shadow-soft">
     <table class="w-full border-collapse text-sm" aria-busy={loading || undefined}>
       {#if caption}<caption class="sr-only">{caption}</caption>{/if}
       <thead>
         <tr class="border-b border-border bg-muted/50">
+          {#if selectable}
+            <th scope="col" class="w-10 px-3 text-left">
+              <Checkbox
+                checked={pageFullySelected}
+                indeterminate={pagePartiallySelected}
+                disabled={loading || visibleIds.length === 0}
+                onCheckedChange={togglePageSelection}
+                aria-label="Select all rows on this page"
+              />
+            </th>
+          {/if}
           {#each columns as column (column.key)}
             <th
               scope="col"
@@ -218,7 +308,7 @@ function handleRowKeydown(event: KeyboardEvent, row: T): void {
           {/each}
         {:else if visible.length === 0}
           <tr>
-            <td colspan={columns.length}>
+            <td colspan={columns.length + (selectable ? 1 : 0)}>
               {#if empty}
                 {@render empty({ query: search })}
               {:else}
@@ -233,7 +323,7 @@ function handleRowKeydown(event: KeyboardEvent, row: T): void {
             </td>
           </tr>
         {:else}
-          {#each visible as row, index (getRowId(row, index))}
+          {#each visible as row (getRowId(row, rows.indexOf(row)))}
             <tr
               class={cn(
                 'border-b border-border transition-colors last:border-b-0',
@@ -246,6 +336,23 @@ function handleRowKeydown(event: KeyboardEvent, row: T): void {
               onclick={onRowClick ? (event) => handleRowClick(event, row) : undefined}
               onkeydown={onRowClick ? (event) => handleRowKeydown(event, row) : undefined}
             >
+              {#if selectable}
+                {@const id = getRowId(row, rows.indexOf(row))}
+                <td
+                  class="w-10 px-3 py-3 align-middle"
+                  onclickcapture={captureShiftKey}
+                  onkeydowncapture={captureShiftKey}
+                >
+                  <Checkbox
+                    checked={selection.has(id)}
+                    onCheckedChange={(checked) => {
+                      toggleRowSelection(id, checked, pendingShiftClick);
+                      pendingShiftClick = false;
+                    }}
+                    aria-label={`Select row ${rowLabel?.(row) ?? id}`}
+                  />
+                </td>
+              {/if}
               {#each columns as column (column.key)}
                 <td class={cn('px-4 py-3 align-middle', cellClass(column), column.class)}>
                   {#if column.cell}
