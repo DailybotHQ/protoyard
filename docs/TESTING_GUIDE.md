@@ -40,7 +40,20 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Index scale budget (1,000 manifests) | `pnpm bench:index --runs 3 --check` | full |
 | Scenario generation budget | `pnpm protoyard scenario bench <slug> --check` | scoped |
 | Cold-start bench (report; optional `--check`) | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --runs 3` | scoped |
+| Publish batch | `pnpm vitest run packages/cli/tests/publish-batch.test.ts` | scoped |
+| Publish ledger | `pnpm vitest run packages/cli/tests/publish-ledger.test.ts` | scoped |
+| Review index | `pnpm vitest run packages/cli/tests/review-index.test.ts` | scoped |
+| CI workflow init/check | `pnpm vitest run packages/cli/tests/ci-init.test.ts` | scoped |
+| Affected-prototype selection | `pnpm vitest run packages/cli/tests/affected.test.ts` | scoped |
+| Bundle budget command | `pnpm vitest run packages/cli/tests/budget-command.test.ts` | scoped |
+| Scenario benchmark command | `pnpm vitest run packages/cli/tests/scenario-bench.test.ts` | scoped |
+| All current CLI tests (includes the rows above) | `pnpm vitest run packages/cli` | scoped |
 | CI performance job (local mirror) | `pnpm protoyard build --all && pnpm protoyard budget --all --skip-build && pnpm bench:index --runs 3 --check` | full |
+
+`protoyard spec` extraction, generation and drift checks are not implemented on
+this revision. The source-to-test map for that surface is therefore pending the
+spec CLI tasks; `docs/SPECS.md` defines the hand-written contract in the meantime.
+Do not use `protoyard validate` as evidence that generated spec regions are fresh.
 
 ### CI performance job (`.github/workflows/ci.yml` → `perf`)
 
@@ -64,10 +77,20 @@ Repository settings are not changed by this workflow. Locally, run the mirror
 row in the table above before opening a PR that touches budgets, the index, or
 scenario generators.
 
-Run `pnpm test:e2e:install` once on a new machine to install Chromium.
-Run **one E2E session per machine at a time**: the Playwright web servers use
-fixed ports (gallery 4329, prototypes from 4401), so two concurrent runs
-collide with "port already used" or connection-refused errors.
+Run `pnpm test:e2e:install` once on a new machine to install Chromium. E2E
+targets are opt-in through environment variables:
+
+| Variable | Effect | Ports |
+| --- | --- | --- |
+| `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo` | Build and serve the listed prototypes for prototype and viewport tests | One server per slug from `4401`, in list order |
+| `PROTOYARD_E2E_SHOWCASE=1` | Include the combined gallery + prototype showcase | `4501`; `PROTOYARD_E2E_SHOWCASE_BASE=/path/` sets its public base |
+| `PROTOYARD_E2E_REVIEW=1` | Run the review-index page against the checked-in fixture ledger, with no deploy | `4502`; `PROTOYARD_E2E_REVIEW_PORT` overrides the port |
+
+The gallery uses port `4329`. The standalone CLI `review-index --serve`
+defaults to `4520` (or the next free port); `--strict-port` makes a collision
+an error. Example E2E invocations, including the review-index target, are in
+[tests/e2e/README.md](../tests/e2e/README.md). Run **one E2E session per
+machine at a time** because these web servers use fixed ports.
 
 ### Verified scoped runs (evidence, re-measured at the end of the foundation build, 2026-10-17)
 
@@ -78,6 +101,14 @@ collide with "port already used" or connection-refused errors.
 | `pnpm vitest run prototypes/crm-demo` | 3 files, 15 passed + 1 skipped (the benchmark) |
 | `pnpm vitest run packages/core/tests/core.test.ts` | 1 file, 11 tests, all pass |
 | `pnpm vitest run -t "idempotent"` | 2 tests selected (545 skipped), both pass |
+| `pnpm vitest run packages/cli/tests/publish-batch.test.ts` | 1 file, 9 passed |
+| `pnpm vitest run packages/cli/tests/publish-ledger.test.ts` | 1 file, 12 passed |
+| `pnpm vitest run packages/cli/tests/review-index.test.ts` | 1 file, 14 passed |
+| `pnpm vitest run packages/cli/tests/ci-init.test.ts` | 1 file, 15 passed |
+| `pnpm vitest run packages/cli/tests/affected.test.ts` | 1 file, 14 passed |
+| `pnpm vitest run packages/cli/tests/budget-command.test.ts` | 1 file, 3 passed |
+| `pnpm vitest run packages/cli/tests/scenario-bench.test.ts` | 1 file, 2 passed |
+| `pnpm vitest run packages/cli` | 20 files, 170 passed |
 
 Counts grow with the suite. Re-run the command and check the selection rather
 than trusting these numbers.
@@ -92,6 +123,14 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/<pkg>/src/**` | `packages/<pkg>/tests/*.test.ts` | unit / integration |
 | `packages/runtime/src/**` | `packages/runtime/tests/runtime.test.ts`, which uses the fixture `tests/fixtures/tasks-prototype.ts` | integration on fake IndexedDB |
 | `packages/cli/src/**` | `packages/cli/tests/*.test.ts` (temporary workspaces) | integration |
+| `packages/cli/src/commands/publish.ts`, publish batch helpers | `publish.test.ts`, `publish-batch.test.ts` | integration; batch command row above |
+| `packages/cli/src/lib/publish-ledger.ts` | `publish-ledger.test.ts`; ledger consumers in `publish-batch.test.ts` and `review-index.test.ts` | ledger persistence and consumers |
+| `packages/cli/src/commands/review-index.ts` | `review-index.test.ts` + `tests/e2e/review-index.spec.ts` | CLI integration + opt-in browser E2E |
+| `packages/cli/src/commands/ci.ts` | `ci-init.test.ts` | workflow init, drift and integrity checks |
+| `packages/cli/src/commands/affected.ts` | `affected.test.ts` | CLI integration |
+| `packages/cli/src/commands/budget.ts` | `budget-command.test.ts` + `budgets.test.ts` | CLI integration; build budgets are also gated in CI |
+| `packages/cli/src/commands/scenario.ts` (benchmark path) | `scenario-bench.test.ts` | CLI integration; CI checks each prototype's default scenarios |
+| Prototype spec docs / generated regions | `docs/SPECS.md` currently describes the manual contract; `protoyard spec` and its tests are pending | manual until the spec CLI tasks land |
 | `apps/gallery/src/**` | `apps/gallery/tests/*.test.ts` + `tests/e2e/gallery.spec.ts` | unit + E2E |
 | `prototypes/<slug>/src/scenarios/**` | `prototypes/<slug>/tests/generators.test.ts` (via `tests/support/generate-context.ts`) | unit |
 | `prototypes/<slug>/src/domain/**` | `prototypes/<slug>/tests/services.test.ts` (via `tests/support/runtime.ts`, the **real runtime**) | integration |
@@ -123,6 +162,12 @@ A command that exits 0 after selecting nothing is not evidence. Check the
   media queries need E2E.
 - Generated worlds can change silently when Faker or the SDK upgrades. That is
   what the determinism tests and `generatorVersion` exist for.
+- Provider deployments are not exercised by local tests or CI. Review-index
+  E2E reads a fixture ledger; validate real Cloudflare, Netlify or Vercel
+  behavior manually with authorized credentials and a dry run first.
+- GitHub-hosted runner timing varies. Cold-start numbers are uploaded as
+  reports, not a CI threshold, until a calibration run establishes a stable
+  baseline.
 
 **Fallback:** when unsure, run `pnpm lint && pnpm typecheck && pnpm test`.
 
