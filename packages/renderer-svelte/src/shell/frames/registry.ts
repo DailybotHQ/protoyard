@@ -29,7 +29,7 @@ export interface FrameEntry {
  * frame ships; the runtime still reports it as the effective shell.
  */
 export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
-  phone: { load: () => import('./DeviceFrame.svelte'), margin: 14 },
+  phone: { load: () => import('./PhoneFrame.svelte'), margin: 14 },
   tablet: { load: () => import('./DeviceFrame.svelte'), margin: 14 },
   /** Browser chrome overlays the screen; a light margin leaves room for the rounded card shadow. */
   browser: { load: () => import('./BrowserFrame.svelte'), margin: 12 },

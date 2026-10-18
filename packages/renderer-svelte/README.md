@@ -62,13 +62,17 @@ width), and sets `--py-app-height` and `--py-safe-*` from `@protoyard/core` `DEV
 Viewport-preset rules step aside while a frame is shown.
 
 The frame decoration is a lazily loaded chunk registered in
-`src/shell/frames/registry.ts`. `phone` and `tablet` use a generic bezel; `browser`
-draws `@protoyard/ui` `BrowserChrome` (tab + address bar) using
-`preview.chrome.origin` (default `https://<slug>.example`) and `document.title` as
-the tab label — back/forward follow the hash router. Other shells render full-bleed
-until their frame ships. The app goes full-bleed when the shell is `none`, inside an
-iframe (the gallery preview draws its own device), or when the window is too narrow
-for the device plus its frame (a real phone). The wrappers always exist, so changing
+`src/shell/frames/registry.ts`. The `phone` shell uses `PhoneFrame` (bezel, side
+buttons, pill/punch-hole cutout, status bar in `--py-safe-top`, home indicator that
+navigates to `#/`). `browser` draws `@protoyard/ui` `BrowserChrome` (tab + address
+bar) using `preview.chrome.origin` (default `https://<slug>.example`) and
+`document.title` as the tab label — back/forward follow the hash router. `tablet`
+still uses a generic bezel until its detailed frame ships; other shells render
+full-bleed. While framed, Bits UI dialogs and sheets portal into the device screen
+(`setOverlayPortalTarget`) so overlays stay inside the bezel. The app goes
+full-bleed when the shell is `none`, inside an iframe (the gallery preview draws
+its own device), or when the window is too narrow for the device plus its frame
+(a real phone). The wrappers always exist, so changing
 the shell never remounts the app; without a frame they are `display: contents`.
 
 ## Mount

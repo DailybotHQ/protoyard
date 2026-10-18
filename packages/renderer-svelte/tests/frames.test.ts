@@ -1,14 +1,114 @@
-import { getDevice } from '@protoyard/core';
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/svelte';
+import { getDevice, orient, safeAreaOf } from '@protoyard/core';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mountPrototype } from '../src/index.ts';
+import HomeIndicator from '../src/shell/frames/HomeIndicator.svelte';
+import PhoneFrame from '../src/shell/frames/PhoneFrame.svelte';
 import { activeFrame, FRAMES, STAGE_GUTTER } from '../src/shell/frames/registry.ts';
+import StatusBar from '../src/shell/frames/StatusBar.svelte';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import ProbeApp from './fixtures/ProbeApp.svelte';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const root = document.documentElement;
+
+afterEach(() => {
+  cleanup();
+  if (typeof location !== 'undefined' && location.hash) location.hash = '';
+});
+
+describe('PhoneFrame', () => {
+  it('matches catalog dimensions, safe-area CSS vars contract, and cutout for phone-pill', () => {
+    const spec = getDevice('phone-pill');
+    expect(spec).toBeDefined();
+    if (!spec) return;
+
+    const { container } = render(PhoneFrame, { spec, shell: 'phone' });
+    const frame = container.querySelector<HTMLElement>('[data-py-frame="phone"]');
+    expect(frame).not.toBeNull();
+    expect(frame?.style.width).toBe(`${spec.width}px`);
+    expect(frame?.style.height).toBe(`${spec.height}px`);
+    expect(frame?.getAttribute('data-py-device')).toBe('phone-pill');
+    expect(frame?.getAttribute('data-py-cutout')).toBe('pill');
+    expect(container.querySelector('[data-py-cutout-shape="pill"]')).not.toBeNull();
+
+    const status = container.querySelector<HTMLElement>('[data-py-status-bar]');
+    expect(status).not.toBeNull();
+    const insets = safeAreaOf(spec);
+    const expectedHeight = Math.max(spec.statusBar.height, insets.top);
+    expect(status?.style.height).toBe(`${expectedHeight}px`);
+    expect(status?.getAttribute('data-py-status-style')).toBe('split');
+    expect(screen.getByText('9:41').tagName).toBe('TIME');
+
+    expect(container.querySelector('[data-py-home-indicator]')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Go home' })).toBeTruthy();
+  });
+
+  it('draws a punch-hole cutout and standard status bar for phone-punch-hole', () => {
+    const spec = getDevice('phone-punch-hole');
+    expect(spec).toBeDefined();
+    if (!spec) return;
+
+    const { container } = render(PhoneFrame, { spec, shell: 'phone' });
+    expect(container.querySelector('[data-py-cutout-shape="punch-hole"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-py-status-bar]')?.getAttribute('data-py-status-style')
+    ).toBe('standard');
+  });
+
+  it('follows light and dark bezel classes from the document color mode tokens', () => {
+    const spec = getDevice('phone-pill');
+    if (!spec) return;
+    const { container } = render(PhoneFrame, { spec, shell: 'phone' });
+    // Bezel uses dark: Tailwind variants (zinc-800 / zinc-950) — class list carries both.
+    const bezel = container.querySelector('[data-py-frame="phone"] > div');
+    expect(bezel?.className).toMatch(/dark:bg-zinc-950/);
+    expect(bezel?.className).toMatch(/bg-zinc-800/);
+  });
+
+  it('keeps landscape orientation dimensions from orient()', () => {
+    const base = getDevice('phone-pill');
+    if (!base) return;
+    const spec = orient(base, 'landscape');
+    const { container } = render(PhoneFrame, { spec, shell: 'phone' });
+    const frame = container.querySelector<HTMLElement>('[data-py-frame="phone"]');
+    expect(frame?.style.width).toBe(`${spec.width}px`);
+    expect(frame?.style.height).toBe(`${spec.height}px`);
+    expect(spec.width).toBe(base.height);
+    expect(spec.height).toBe(base.width);
+  });
+});
+
+describe('HomeIndicator', () => {
+  it('navigates to the app root hash when activated', async () => {
+    const spec = getDevice('phone-pill');
+    if (!spec) return;
+    render(HomeIndicator, { spec });
+    await fireEvent.click(screen.getByRole('button', { name: 'Go home' }));
+    expect(location.hash).toBe('#/');
+  });
+});
+
+describe('StatusBar', () => {
+  it('fills the top safe-area inset height', () => {
+    const spec = getDevice('phone-pill');
+    if (!spec) return;
+    const { container } = render(StatusBar, { spec });
+    const bar = container.querySelector<HTMLElement>('[data-py-status-bar]');
+    const insets = safeAreaOf(spec);
+    expect(bar?.style.height).toBe(`${Math.max(spec.statusBar.height, insets.top)}px`);
+  });
+});
+
+describe('frame registry', () => {
+  it('lazy-loads PhoneFrame for the phone shell', async () => {
+    const entry = FRAMES.phone;
+    expect(entry).toBeDefined();
+    const mod = await entry!.load();
+    expect(mod.default).toBe(PhoneFrame);
+  });
+});
 
 describe('browser frame', () => {
   let destroy: (() => Promise<void>) | undefined;
@@ -32,13 +132,11 @@ describe('browser frame', () => {
     document.title = 'CRM Demo';
     const runtime = createFakeRuntime({ persistent: true });
     if (options.origin) {
-      // Manifest is frozen after parse; patch the chrome origin for this test.
       const preview = runtime.definition.manifest.preview as {
         chrome?: { origin?: string };
       };
       preview.chrome = { ...(preview.chrome ?? {}), origin: options.origin };
     }
-    // Wide enough that laptop-window + browser margin fits.
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1600 });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 1000 });
 
@@ -95,7 +193,6 @@ describe('browser frame', () => {
     expect(address.value).toBe('https://fake.example/#/home');
     expect(screen.getByRole('tab', { name: 'CRM Demo' })).toBeTruthy();
 
-    // Back/forward are wired to the real history API (hash router).
     const back = vi.spyOn(window.history, 'back').mockImplementation(() => {});
     const forward = vi.spyOn(window.history, 'forward').mockImplementation(() => {});
     expect(screen.getByRole('button', { name: 'Back' }).hasAttribute('disabled')).toBe(true);
@@ -108,10 +205,8 @@ describe('browser frame', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(back).toHaveBeenCalledOnce();
     await fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
-    // Forward stays disabled until we have gone back in chrome history; the button may still be disabled.
     void forward;
 
-    // Typing an address navigates only via the hash router.
     await fireEvent.input(address, { target: { value: 'https://fake.example/#/settings' } });
     await fireEvent.submit(address.closest('form') as HTMLFormElement);
     await waitFor(() => expect(window.location.hash).toBe('#/settings'));
