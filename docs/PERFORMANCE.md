@@ -26,8 +26,47 @@ every file in `artifacts/<slug>/dist`. DevTools excluded (the default).
 - Each artifact contains only its own prototype's code. `protoyard export`
   checks this.
 
-**Budget (guideline, not enforced in CI):** keep initial JS under 250 KB
-gzip per prototype, and keep generation-only dependencies lazy.
+## Versioned budgets
+
+Workspace targets live in the root `protoyard.budgets.json`, separate from
+prototype manifests. The file uses format `protoyard.budgets`, version `1`,
+and supports partial per-slug overrides. When the file is absent, the CLI
+loader uses the defaults below.
+
+| Field | Default | Meaning |
+| --- | ---: | --- |
+| `initialJsGzipKb` | 250 KB | Initial JavaScript transfer size after gzip |
+| `cssGzipKb` | 30 KB | CSS transfer size after gzip |
+| `coldStartMs` | `null` | No calibrated threshold yet; report-only until set |
+| `generateMs` | 50 ms | Scenario generation target |
+| `indexColdMs` | 100 ms | Cold metadata-index target |
+
+These are configured targets, not new measurements. The measured results
+above remain the source for observed performance. Loading and validating the
+budget file does not itself enforce these targets in builds or CI.
+
+For one prototype, set only the values that differ:
+
+```json
+{
+  "format": "protoyard.budgets",
+  "version": 1,
+  "defaults": {
+    "initialJsGzipKb": 250,
+    "cssGzipKb": 30,
+    "coldStartMs": null,
+    "generateMs": 50,
+    "indexColdMs": 100
+  },
+  "overrides": {
+    "crm-demo": { "initialJsGzipKb": 280 }
+  }
+}
+```
+
+The root file contains these defaults with an empty `overrides` object.
+Budgets stay out of `protoyard.json` so performance targets can evolve
+without changing the strict prototype manifest contract.
 
 **Route-level code splitting (available):** `@protoyard/renderer-svelte`
 `createRouter` accepts `load: () => import('./Screen.svelte')` per route.
