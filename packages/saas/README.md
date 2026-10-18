@@ -21,8 +21,51 @@ The table layout, row schemas and integrity rules, plus:
 - **Onboarding** — `createOnboarding(runtime, { steps })`
 - **Workspaces** — `createWorkspaces(runtime)`
 
-Magic links, MFA, invitations and billing services come in later PLAN_002
-tasks.
+- **Magic link** — `createMagicLinkServices(runtime)`
+- **MFA (simulated TOTP + recovery)** — `createMfaServices(runtime)`
+
+Invitations services come in later PLAN_002 tasks.
+
+### Magic link (`createMagicLinkServices`)
+
+```ts
+import { createMagicLinkServices, createMfaServices } from '@protoyard/saas';
+
+const magic = createMagicLinkServices(runtime, { ttlMinutes: 15, productName: 'Acme' });
+const { token, message } = await magic.issue({ email: 'ada@example.com' });
+// message.action.href → #/auth/magic?token=…
+const result = await magic.consume(token!.id);
+if (result.status === 'mfa-required') {
+  const mfa = createMfaServices(runtime);
+  const row = await mfa.get(result.account.id);
+  await mfa.completeChallenge(result.account.id, {
+    code: mfa.authenticatorPanel(row!.seed).code, // simulated panel only
+  });
+}
+```
+
+- Single-use tokens; expiry follows the **simulated clock** (`commitAdvance` in tests).
+- Delivers a plain-text inbox message with a hash-route action.
+- Unknown emails return `{ delivered: false }` (no account oracle).
+
+### MFA (`createMfaServices`)
+
+```ts
+const mfa = createMfaServices(runtime);
+const { currentCode, recoveryCodes, mfa: row } = await mfa.enroll();
+await mfa.confirmEnroll(currentCode);
+// Panel: mfa.authenticatorPanel(row.seed) → { code, secondsRemaining, simulated: true }
+
+const step = await mfa.signInWithPassword({ email, password });
+if (step.status === 'mfa-required') {
+  await mfa.completeChallenge(step.account.id, { code: mfa.authenticatorPanel(row.seed).code });
+  // or { recoveryCode: recoveryCodes[0] }
+}
+```
+
+- Codes are **deterministic** from the stored seed and a 30s window of `clock.now()` — not real TOTP.
+- Active MFA blocks password and magic-link sign-in until `completeChallenge`.
+- Recovery codes are single-use; `disable` requires a valid code or recovery code.
 
 ### OAuth (`createOAuthSimulator`)
 
