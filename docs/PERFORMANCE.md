@@ -153,6 +153,16 @@ search update in about 17 ms (headless Chromium).
 Nothing is compiled for listing: the gallery imports only the registry.
 Scaling past 1,000 prototypes was not measured.
 
+**Gate:** `pnpm bench:index --runs 3 --check` compares the cold and
+incremental index medians with `indexColdMs` from `protoyard.budgets.json`
+(100 ms), multiplied by `--ci-factor` (default 3, so 300 ms, because CI
+runners are slower than the M1 Max), and exits `1` when either is over. It
+requires the default 1,000 manifests. A check run on 2026-10-18 on the same
+M1 Max measured cold 65.8 ms and incremental 21.5 ms (3 runs). That is slower than
+the 40.6 ms in the table above; machine load was not controlled for.
+`--ci-factor 0.01` forces a 1 ms
+threshold and fails, which is how the gate itself was verified.
+
 ## Large worlds (scenario loads)
 
 Measured with the `crm-demo` **`enterprise-scale`** scenario: **16,075 rows**
