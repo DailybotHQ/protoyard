@@ -96,9 +96,19 @@
     }
   ],
   "screens": [
-    { "type": "list", "entity": "project", "path": "/projects", "columns": ["name", "status", "budget"] },
+    {
+      "type": "list",
+      "entity": "project",
+      "path": "/projects",
+      "columns": ["name", "status", "budget"]
+    },
     { "type": "form", "entity": "project", "path": "/projects/new" },
-    { "type": "list", "entity": "task", "path": "/tasks", "columns": ["title", "status", "priority"] },
+    {
+      "type": "list",
+      "entity": "task",
+      "path": "/tasks",
+      "columns": ["title", "status", "priority"]
+    },
     { "type": "form", "entity": "task", "path": "/tasks/new" }
   ]
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
-import { EntityForm, EntityList } from '@protoyard/crud';
 import type { Row } from '@protoyard/core';
+import { EntityForm, EntityList } from '@protoyard/crud';
 import { navigate, type RouteProps } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
 import { useCrudApp } from '../lib/context.ts';

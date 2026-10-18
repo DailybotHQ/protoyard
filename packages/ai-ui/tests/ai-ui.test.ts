@@ -134,7 +134,7 @@ describe('AssistantWorkspace', () => {
     );
   });
 
-  it('renders a bounded recent message window and loads older messages on demand', async () => {
+  it('renders a bounded, virtualized window of a long thread', async () => {
     const messages = Array.from({ length: 150 }, (_, index) => ({
       id: `message-${index}`,
       role: index % 2 ? ('assistant' as const) : ('user' as const),
@@ -147,10 +147,10 @@ describe('AssistantWorkspace', () => {
       selectedConversationId: 'chat-a',
       onSend: vi.fn(),
     });
-    expect(screen.queryByText('Earlier item 0')).toBeNull();
-    expect(screen.getByText('Earlier item 50')).toBeTruthy();
-    await fireEvent.click(screen.getByRole('button', { name: 'Load 50 earlier messages' }));
-    expect(screen.getByText('Earlier item 0')).toBeTruthy();
+    // MessageList virtualizes long threads (T-ai-virtual-thread): only a window of rows is in the DOM.
+    const rendered = screen.queryAllByText(/^Earlier item \d+$/);
+    expect(rendered.length).toBeGreaterThan(0);
+    expect(rendered.length).toBeLessThan(messages.length);
   });
 });
 

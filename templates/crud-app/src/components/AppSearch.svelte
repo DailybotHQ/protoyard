@@ -16,11 +16,7 @@ async function search(query: string): Promise<CommandPaletteItem[]> {
   const q = query.trim().toLowerCase();
   const out: CommandPaletteItem[] = [];
   for (const item of navItems) {
-    if (
-      !q ||
-      item.label.toLowerCase().includes(q) ||
-      item.keywords?.some((k) => k.includes(q))
-    ) {
+    if (!q || item.label.toLowerCase().includes(q) || item.keywords?.some((k) => k.includes(q))) {
       out.push(item);
     }
   }
@@ -54,9 +50,7 @@ function onSelect(item: CommandPaletteItem) {
 
 function openShortcut(event: MouseEvent) {
   event.preventDefault();
-  window.dispatchEvent(
-    new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })
-  );
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
 }
 </script>
 

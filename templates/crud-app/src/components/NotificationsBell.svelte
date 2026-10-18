@@ -1,6 +1,6 @@
 <script lang="ts">
-import { createNotificationService } from '@protoyard/blueprint';
 import { Bell } from '@lucide/svelte';
+import { createNotificationService } from '@protoyard/blueprint';
 import { liveQuery } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
 import { useCrudApp } from '../lib/context.ts';

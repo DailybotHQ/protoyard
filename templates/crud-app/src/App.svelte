@@ -1,10 +1,5 @@
 <script lang="ts">
-import {
-  CheckSquare,
-  FolderKanban,
-  LayoutDashboard,
-  Users,
-} from '@lucide/svelte';
+import { CheckSquare, FolderKanban, LayoutDashboard, Users } from '@lucide/svelte';
 import { createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { AppShell, Avatar, Badge, Header, Sidebar, Toaster } from '@protoyard/ui';
 import { onDestroy } from 'svelte';

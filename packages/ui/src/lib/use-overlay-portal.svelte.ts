@@ -1,7 +1,4 @@
-import {
-  getOverlayPortalTarget,
-  subscribeOverlayPortalTarget,
-} from './overlay-portal.ts';
+import { getOverlayPortalTarget, subscribeOverlayPortalTarget } from './overlay-portal.ts';
 
 /**
  * Reactive portal `to` for Bits UI: the framed device screen when set, else

@@ -10,7 +10,11 @@ describe('@protoyard/blueprint package', () => {
   it('ships TypeScript source and stays framework-agnostic', () => {
     expect(pkg.name).toBe('@protoyard/blueprint');
     expect(pkg.exports['.']).toBe('./src/index.ts');
-    expect(Object.keys(pkg.dependencies).sort()).toEqual(['@protoyard/core', 'zod']);
+    expect(Object.keys(pkg.dependencies).sort()).toEqual([
+      '@protoyard/core',
+      '@protoyard/scenarios',
+      'zod',
+    ]);
     expect('peerDependencies' in pkg).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
-@import 'tailwindcss';
-@import '@protoyard/themes/base.css';
-@import '@protoyard/ui/styles.css';
+@import "tailwindcss";
+@import "@protoyard/themes/base.css";
+@import "@protoyard/ui/styles.css";
 
 html,
 body,
