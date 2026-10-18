@@ -197,11 +197,21 @@ import { createEntityServices } from '@protoyard/blueprint';
 const services = createEntityServices(runtime, blueprint); // one service per entity name
 const ticket = await services.ticket.create({ subject: 'Printer jam', customerId });
 await services.ticket.update(ticket.id, { status: 'solved' });
-await services.customer.bulkRemove(selectedIds); // returns the number of rows deleted
+const undoToken = await services.customer.remove(customerId); // token only when softDelete is enabled
+if (undoToken) await services.customer.restore(undoToken); // restore within the simulated undo window
+await services.customer.purge(customerId); // permanently remove trashed rows
 ```
 
-Each entity gets `list`, `get`, `create`, `update`, `remove`, `bulkUpdate` and
-`bulkRemove`. Every mutation runs:
+Each entity gets `list`, `trash`, `get`, `create`, `update`, `remove`, `restore`, `purge`,
+`bulkUpdate` and `bulkRemove`. `list` hides soft-deleted rows; `trash` reads the indexed
+`deletedAt` values for review. When `features.softDelete` is enabled, `remove` marks the record
+and its cascade set with `deletedAt` / `deletedBy` and returns an undo token that works for 30
+seconds of simulated time, including after a reload. Restoring also reverses nullified relation
+fields. `purge` requires the full `<entity>:delete` capability and permanently removes the trashed
+record and its cascade dependents. Entities without soft delete keep hard-delete `remove`; the
+explicit `bulkRemove` operation is also permanent and returns the number of removed rows.
+
+Every mutation runs:
 
 1. `session.assert('<entity>:<action>')`. For update and delete, a role with only
    `update:own` / `delete:own` passes when the record's `ownerField` is the actor. A
@@ -213,9 +223,9 @@ Each entity gets `list`, `get`, `create`, `update`, `remove`, `bulkUpdate` and
 4. One `db.transaction('rw', …)` that checks referenced rows exist (relations,
    `py_personas`, files; a missing one fails as `customerId: 'Customer not found'`),
    writes the row with `createdAt`/`updatedAt` from the simulated clock, and applies every
-   `onDelete` rule: `cascade` deletes dependents (recursively), `nullify` clears single
-   references or removes the id from many-relations, and `restrict` refuses the whole delete
-   with `EntityInUseError`. A failure at any step writes nothing.
+   `onDelete` rule: `cascade` removes dependents recursively (softly for an undoable remove),
+   `nullify` clears single references or removes the id from many-relations, and `restrict`
+   refuses the whole delete with `EntityInUseError`. A failure at any step writes nothing.
 
 New rows get `createRuntimeId` ids (`support_ticket_u3f9…`) and the actor as owner when
 the entity has an `ownerField` and none was given. Updating or deleting a missing id

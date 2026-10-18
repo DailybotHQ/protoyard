@@ -71,6 +71,10 @@ The frame decoration is a lazily loaded chunk registered in
   `preview.chrome.hostName`) and a launcher that opens the prototype in an anchored panel
   (`--py-app-height` = panel height; fullscreen under 480px). Apps drive the unread badge
   through `getWidgetHost().setUnread(n)` or `window.__protoyardWidget`.
+- **`browser`** draws `@protoyard/ui` `BrowserChrome` (a tab and an address bar, 88 px,
+  reserved through `screenInset`) using `preview.chrome.origin` (default
+  `https://<slug>.example`), with `document.title` as the tab label. Back and forward
+  follow the hash router.
 - **`desktop-window`** draws the app in `@protoyard/ui` WindowChrome on a theme-token
   wallpaper, with a dock (mac-like) or a taskbar (windows-like). `preview.chrome.os` picks
   the style; without it the visitor's OS decides. The title bar follows `document.title`,
@@ -87,8 +91,8 @@ The frame decoration is a lazily loaded chunk registered in
   registered frame render full-bleed.
 
 A registry entry can reserve `screenInset` space inside the device box for its own chrome
-(the desktop window's 40 px title bar), and can set `minWindowWidth`. Windows use 768 px
-and scale down on smaller desktops, while phones need the device plus its frame. While
+(the desktop window's 40 px title bar, the browser's 88 px toolbar), and can set
+`minWindowWidth`. Window-like shells (desktop window, browser) use 768 px and scale down on smaller desktops, while phones need the device plus its frame. While
 framed, Bits UI dialogs and sheets portal into the device screen
 (`setOverlayPortalTarget`), so overlays stay inside the frame. The app goes full-bleed
 when the shell is `none`, inside an iframe (the gallery preview draws its own device), or

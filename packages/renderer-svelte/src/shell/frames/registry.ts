@@ -80,6 +80,16 @@ export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
     minWindowWidth: 768,
   },
   'side-panel': { load: () => import('./SidePanelFrame.svelte'), margin: 0 },
+  /*
+   * Browser chrome (40 px tab strip + 48 px address bar) sits above the app's
+   * screen; the light margin leaves room for the rounded card shadow.
+   */
+  browser: {
+    load: () => import('./BrowserFrame.svelte'),
+    margin: 12,
+    screenInset: { top: 88 },
+    minWindowWidth: 768,
+  },
 };
 
 /** Resolved inset of the app screen inside the device box. */

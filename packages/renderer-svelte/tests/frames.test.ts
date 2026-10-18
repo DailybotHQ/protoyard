@@ -34,6 +34,8 @@ vi.mock('../src/context.ts', async (importOriginal) => {
   };
 });
 
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
 afterEach(() => {
   cleanup();
   // Home indicator may assign location.hash.
@@ -567,5 +569,138 @@ describe('side panel shell', () => {
       expect(localStorage.getItem(sidePanelWidthKey('side-panel'))).toBe(String(expected))
     );
     expect(loadSidePanelWidth('side-panel')).toBe(expected);
+  });
+});
+
+describe('browser frame', () => {
+  let destroy: (() => Promise<void>) | undefined;
+  // BrowserFrame reads the mounted runtime; use the real context module.
+  beforeEach(() => {
+    runtimeMock.current = null;
+  });
+
+  afterEach(async () => {
+    await destroy?.();
+    destroy = undefined;
+    cleanup();
+    document.body.replaceChildren();
+    root.removeAttribute('style');
+    root.className = '';
+    root.removeAttribute('data-py-shell');
+    localStorage.clear();
+    window.history.replaceState(null, '', `${window.location.pathname}`);
+    document.title = '';
+  });
+
+  async function boot(options: { origin?: string } = {}) {
+    const target = document.body.appendChild(document.createElement('div'));
+    location.hash = '#/home';
+    document.title = 'CRM Demo';
+    const runtime = createFakeRuntime({ persistent: true });
+    if (options.origin) {
+      const preview = runtime.definition.manifest.preview as {
+        chrome?: { origin?: string };
+      };
+      preview.chrome = { ...(preview.chrome ?? {}), origin: options.origin };
+    }
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1600 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 1000 });
+
+    const mounted = await mountPrototype({
+      definition: runtime.definition,
+      App: ProbeApp,
+      target,
+      search: '',
+      devtools: false,
+      createRuntime: () => runtime,
+    });
+    destroy = mounted.destroy;
+    return { mounted, runtime, target };
+  }
+
+  it('registers the browser shell frame and frames it when the window fits', () => {
+    expect(FRAMES.browser).toBeDefined();
+    const laptop = getDevice('laptop-window');
+    expect(laptop).toBeDefined();
+    // Browser chrome sits above the app's screen (tab strip + address bar).
+    expect(screenInsetOf(FRAMES.browser).top).toBe(88);
+    // Like windows, it scales down on smaller desktops and needs only a fixed minimum width.
+    const fits = FRAMES.browser?.minWindowWidth ?? 0;
+    expect(fits).toBe(768);
+    for (const [windowWidth, expected] of [
+      [fits, 'browser'],
+      [1024, 'browser'],
+      [fits - 1, 'none'],
+    ] as const) {
+      expect(activeFrame({ shell: 'browser', spec: laptop, windowWidth, embedded: false })).toBe(
+        expected
+      );
+    }
+  });
+
+  it('shows the fictional origin and follows hash route changes', async () => {
+    const { runtime, target } = await boot();
+    await runtime.theme.setOverride({ shell: 'browser' });
+    flushSync();
+    await vi.waitFor(() =>
+      expect(target.querySelector('[data-py-frame="browser"]')).not.toBeNull()
+    );
+
+    expect(root.dataset.pyShell).toBe('browser');
+    expect(
+      target.querySelector('[data-py-browser-origin]')?.getAttribute('data-py-browser-origin')
+    ).toBe('https://fake.example');
+
+    const address = screen.getByRole('textbox', { name: 'Address' }) as HTMLInputElement;
+    expect(address.value).toBe('https://fake.example/#/home');
+    expect(screen.getByRole('tab', { name: 'CRM Demo' })).toBeTruthy();
+
+    const back = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+    const forward = vi.spyOn(window.history, 'forward').mockImplementation(() => {});
+    expect(screen.getByRole('button', { name: 'Back' }).hasAttribute('disabled')).toBe(true);
+
+    location.hash = '#/deals/42';
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await waitFor(() => expect(address.value).toBe('https://fake.example/#/deals/42'));
+    expect(screen.getByRole('button', { name: 'Back' }).hasAttribute('disabled')).toBe(false);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(back).toHaveBeenCalledOnce();
+    await fireEvent.click(screen.getByRole('button', { name: 'Forward' }));
+    void forward;
+
+    await fireEvent.input(address, { target: { value: 'https://fake.example/#/settings' } });
+    await fireEvent.submit(address.closest('form') as HTMLFormElement);
+    await waitFor(() => expect(window.location.hash).toBe('#/settings'));
+    await waitFor(() => expect(address.value).toBe('https://fake.example/#/settings'));
+
+    back.mockRestore();
+    forward.mockRestore();
+  });
+
+  it('uses preview.chrome.origin when the manifest sets one', async () => {
+    const { runtime, target } = await boot({ origin: 'https://acme.example' });
+    await runtime.theme.setOverride({ shell: 'browser' });
+    flushSync();
+    await vi.waitFor(() =>
+      expect(target.querySelector('[data-py-frame="browser"]')).not.toBeNull()
+    );
+    const address = screen.getByRole('textbox', { name: 'Address' }) as HTMLInputElement;
+    expect(address.value).toBe('https://acme.example/#/home');
+    expect(
+      target.querySelector('[data-py-browser-origin]')?.getAttribute('data-py-browser-origin')
+    ).toBe('https://acme.example');
+  });
+
+  it('does not remount the app when switching to the browser shell', async () => {
+    const { runtime, target } = await boot();
+    const before = screen.getByTestId('who');
+    await runtime.theme.setOverride({ shell: 'browser' });
+    flushSync();
+    await vi.waitFor(() =>
+      expect(target.querySelector('[data-py-frame="browser"]')).not.toBeNull()
+    );
+    expect(screen.getByTestId('who')).toBe(before);
+    await tick();
   });
 });
