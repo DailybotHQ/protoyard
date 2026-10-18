@@ -22,7 +22,15 @@ import type { DevtoolsState } from '../state.svelte.ts';
 let { dt }: { dt: DevtoolsState } = $props();
 const runtime = $derived(dt.runtime);
 const appearance = $derived(dt.appearance);
-const themes = $derived<readonly Theme[]>(dt.themes.length ? dt.themes : runtime.theme.themes());
+// The runtime's list also holds Theme Studio custom themes; re-read when appearance changes.
+const themes = $derived.by<readonly Theme[]>(() => {
+  void appearance;
+  const known = runtime.theme.themes();
+  return known.length ? [...known] : dt.themes;
+});
+/** The Studio is its own chunk: it loads only when someone opens it. */
+let studioOpen = $state(false);
+const loadStudio = () => import('./ThemeStudioSection.svelte');
 const platform = $derived(runtime.manifest.platform);
 const overrides = $derived(dt.overrides);
 
@@ -179,6 +187,22 @@ async function setFrame(on: boolean) {
   </div>
 </Section>
 
+<Section title="Theme Studio" description="Create a theme from a brand color, preview it live, save, export or import it.">
+  {#snippet actions()}
+    <Btn aria-expanded={studioOpen} onclick={() => (studioOpen = !studioOpen)}>
+      {studioOpen ? 'Close studio' : 'Open studio'}
+    </Btn>
+  {/snippet}
+  {#if studioOpen}
+    {#await loadStudio()}
+      <p class="text-xs text-muted-foreground" role="status">Loading Theme Studio…</p>
+    {:then { default: ThemeStudio }}
+      <ThemeStudio {dt} />
+    {:catch error}
+      <p class="text-xs text-destructive" role="alert">Theme Studio could not load: {error instanceof Error ? error.message : String(error)}</p>
+    {/await}
+  {/if}
+</Section>
 <Section title="Color mode">
   {#snippet actions()}<SourceBadge source={appearance.mode.source} />{/snippet}
   <Segmented

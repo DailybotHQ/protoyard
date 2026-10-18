@@ -19,6 +19,7 @@ import { createEnvironmentFacade, createOverrideController } from './overrides.t
 import { createScenarioController, type ScenarioControllerExtras } from './scenarios.ts';
 import { createSessionController, createThemeController } from './session.ts';
 import { createSnapshotController, type SnapshotControllerExtras } from './snapshots.ts';
+import { createThemeExtras, type ThemeControllerExtras } from './theme.ts';
 
 export const MAX_INSPECTOR_PAGE = 500;
 
@@ -28,6 +29,8 @@ export interface ProtoyardRuntime extends PrototypeRuntime<PrototypeDatabase> {
   readonly snapshots: PrototypeRuntime['snapshots'] & SnapshotControllerExtras;
   /** Runtime-created personas, organizations and memberships (sign-up, invites, workspaces). */
   readonly identity: IdentityController;
+  /** Theme controller plus Theme Studio custom themes (saved in the control DB). */
+  readonly theme: PrototypeRuntime['theme'] & ThemeControllerExtras;
   /** Present when running in a sandbox (`?sandbox=`). */
   readonly sandbox?: string;
   discardSandbox(): Promise<void>;
@@ -112,7 +115,7 @@ export async function createPrototypeRuntime(
     identity,
     members: createMembersController(kernel, identity),
     clock: kernel.clock,
-    theme: createThemeController(kernel),
+    theme: { ...createThemeController(kernel), ...createThemeExtras(kernel) },
     environment: createEnvironmentFacade(kernel),
     snapshots,
     overrides: createOverrideController(kernel),

@@ -30,3 +30,10 @@ export {
   SnapshotImportError,
   snapshotFilename,
 } from './snapshots.ts';
+export {
+  CUSTOM_THEMES_KEY,
+  MAX_CUSTOM_THEMES,
+  MAX_THEME_JSON_BYTES,
+  THEME_FILE_FORMAT,
+  type ThemeControllerExtras,
+} from './theme.ts';

@@ -18,8 +18,10 @@ export function bindAppearance(
   const namespace = runtime.manifest.storage.namespace;
   const apply = (): AppliedAppearance => {
     const state = runtime.theme.appearance();
+    // The runtime's list also holds Theme Studio custom themes saved after mount.
+    const known = runtime.theme.themes();
     const applied = applyAppearance(target, {
-      theme: getTheme(state.theme.value, themes),
+      theme: getTheme(state.theme.value, known.length ? known : themes),
       resolvedMode: state.resolvedMode,
       reducedMotion: state.reducedMotion.value,
       // Older runtimes (before the density override) fall back to the theme's own density.

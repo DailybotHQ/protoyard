@@ -209,6 +209,9 @@ importers:
       '@protoyard/http':
         specifier: workspace:*
         version: link:../http
+      '@protoyard/themes':
+        specifier: workspace:*
+        version: link:../themes
       '@protoyard/ui':
         specifier: workspace:*
         version: link:../ui
