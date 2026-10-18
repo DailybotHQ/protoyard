@@ -1,11 +1,14 @@
+import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { inspectPrototype } from '../lib/inspect.ts';
+import { untilSignal } from '../lib/network.ts';
 import { CliError, mark } from '../lib/output.ts';
 import { guardOutputDir } from '../lib/output-guard.ts';
 import { toPosixRelative } from '../lib/paths.ts';
+import { parsePort } from '../lib/ports.ts';
 import { type LedgerEntry, ledgerPath, readLedger } from '../lib/publish-ledger.ts';
 import { loadRegistry, type RegistryEntry, writeJsonAtomic } from '../lib/registry.ts';
 import {
@@ -17,6 +20,7 @@ import {
   renderReviewIndex,
   scenarioLinks,
 } from '../lib/review-index-html.ts';
+import { serveStatic } from '../lib/static-server.ts';
 import { normalizeBase } from '../lib/vite.ts';
 import type { CommandContext } from '../lib/workspace.ts';
 import { assertSlug } from '../lib/workspace.ts';
@@ -133,7 +137,13 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
   });
 
   const registry = await loadRegistry(ctx.paths);
-  const { entries: ledgerEntries, skipped } = await readLedger(ledgerPath(ctx.paths));
+  const ledgerOption = opt(options, 'ledger');
+  const ledgerFile =
+    ledgerOption === undefined ? ledgerPath(ctx.paths) : resolve(ctx.root, ledgerOption);
+  if (ledgerOption !== undefined && !existsSync(ledgerFile)) {
+    throw new CliError('not_found', `No ledger file at ${ledgerOption}.`);
+  }
+  const { entries: ledgerEntries, skipped } = await readLedger(ledgerFile);
   const deployments = latestDeployments(ledgerEntries);
   const selected = selectEntries(registry.entries, deployments, { fromLedger, slugs }).sort(
     (a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0)
@@ -174,8 +184,20 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
 
   const deployedCount = entries.filter((e) => e.deployment).length;
   const out = toPosixRelative(ctx.root, outDir);
+  const server = flag(options, 'serve')
+    ? await serveStatic({
+        dir: outDir,
+        base,
+        port: parsePort(opt(options, 'port'), 4520),
+        host: '127.0.0.1',
+        strictPort: flag(options, 'strictPort'),
+        spa: false,
+      })
+    : null;
   return {
     data: {
+      ...(server ? { url: server.url } : {}),
+      ledger: toPosixRelative(ctx.root, ledgerFile),
       outDir: out,
       index: `${out}/index.html`,
       manifest: `${out}/review-manifest.json`,
@@ -196,6 +218,8 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
         );
       }
       if (skipped > 0) o.always(c.yellow(`! Skipped ${skipped} unreadable ledger lines.`));
+      if (server) o.always(`  Serving at ${c.cyan(server.url)} (Ctrl+C to stop)`);
     },
+    ...(server ? { keepAlive: untilSignal(() => server.close()) } : {}),
   };
 };
