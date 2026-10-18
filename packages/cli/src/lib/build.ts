@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { analyzeBundle, type BundleReport } from './bundle-analysis.ts';
 import { digestDirectory, type FileDigest, listFiles } from './checksum.ts';
 import { findEscapingSymlinks } from './links.ts';
 import { type OfflineRecord, readOfflineRecord } from './offline.ts';
@@ -43,6 +44,11 @@ export interface BuildManifest {
   node: string;
   /** The opt-in service worker (dist/sw.js), or false when the build has none. */
   offline: OfflineRecord;
+  /**
+   * Initial vs lazy JS, CSS and whole-dist sizes (gzip level 9). Absent when
+   * the build wrote no Vite manifest (a config without defineProtoyardConfig).
+   */
+  bundle?: BundleReport;
 }
 
 export interface BuildOptions {
@@ -190,6 +196,8 @@ export async function buildPrototype(
     });
   }
 
+  // Reads and then deletes dist/.vite/manifest.json, before anything is digested.
+  const bundle = await analyzeBundle(outDir);
   const files = await digestDirectory(outDir);
   const viteVersion =
     readPackageJson(join(ctx.root, 'node_modules', 'vite', 'package.json'))?.version ?? null;
@@ -215,6 +223,7 @@ export async function buildPrototype(
     },
     node: process.versions.node,
     offline: await readOfflineRecord(ctx.root, outDir),
+    ...(bundle ? { bundle } : {}),
   };
   const wantsOffline = options.offline === true || manifestRaw.build?.offline === true;
   if (wantsOffline && manifest.offline === false) {

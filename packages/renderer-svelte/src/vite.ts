@@ -48,6 +48,14 @@ export interface ProtoyardBuildInfo {
 
 type Env = Record<string, string | undefined>;
 
+/**
+ * Where builds write Vite's chunk manifest, relative to the output folder.
+ * The CLI reads it to tell initial from lazy chunks (bundle budgets), then
+ * deletes it so it never ships. A dot-folder, so the offline precache skips it
+ * even in a plain `vite build`.
+ */
+export const VITE_MANIFEST_PATH = '.vite/manifest.json';
+
 export function readPrototypeManifest(root: string): PrototypeManifest {
   const file = resolve(root, MANIFEST_FILENAME);
   if (!existsSync(file)) {
@@ -191,6 +199,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
         target: 'es2022',
         sourcemap: false,
         reportCompressedSize: false,
+        manifest: VITE_MANIFEST_PATH,
       },
     };
     return mergeConfig(base, overrides) as UserConfig;
