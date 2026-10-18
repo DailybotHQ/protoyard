@@ -167,6 +167,31 @@ and some names are reserved (`app`, `docs`, `gallery`, `src`…).
 and viewer personas). Its [README](../templates/blank/README.md) shows how to
 add a table, a service, a screen and a scenario.
 
+### Other starting points
+
+Every template is a working app with scenarios, tests and a spec
+(`AGENTS.md` + `docs/`), and runs as a live demo with
+`pnpm protoyard dev <template>` (its own `template-demo-<name>` storage):
+
+| Template | Start here for |
+| --- | --- |
+| `blank`, `dashboard`, `mobile-app`, `onboarding`, `task-manager`, `ecommerce`, `chat` | The original starters: notes, a SaaS admin, a mobile app, a wizard, a board, a storefront, a chat with a scripted assistant |
+| `crud-app` | Blueprint-driven CRUD (the base of `protoyard generate`) |
+| `b2b-saas`, `marketplace`, `admin-console` | SaaS products: sign-in, SSO, onboarding, workspaces, billing; a two-sided marketplace; an internal admin with impersonation |
+| `desktop-app`, `chat-widget`, `plugin-panel` | Products in a shell: a desktop window, a widget on a fictional customer site, a side-panel plugin |
+| `ai-assistant`, `team-chat`, `agent-console` | AI-era products: an assistant workspace, Slack-like team chat with AI bots, an agent playground |
+
+Other ways to start:
+
+```bash
+pnpm protoyard new my-bank --from mobile-banking-demo          # remix a prototype (fresh id and storage)
+pnpm protoyard generate my-crm --blueprint blueprints/crm.json  # a CRUD app from a data-only blueprint
+```
+
+New prototypes start with a spec. After you change the schema, policy,
+scenarios or routes, run `pnpm protoyard spec my-idea --write` to refresh
+its generated regions ([SPECS.md](SPECS.md)).
+
 ## Check, build, export, preview
 
 ```bash
@@ -234,7 +259,11 @@ validation · `5` provider/auth. Details and agent workflows:
 | --- | --- |
 | Model data, migrations and services | [DATABASE.md](DATABASE.md) |
 | Write scenarios, generators, personas, time | [SCENARIOS.md](SCENARIOS.md) |
-| Change the look, add a theme | [THEMES.md](THEMES.md) |
-| Host or share a prototype | [PUBLISHING.md](PUBLISHING.md) |
+| Change the look, add a theme, use the Theme Studio | [THEMES.md](THEMES.md) |
+| Show the app in a phone, desktop window, browser, widget or side panel | [SHELLS.md](SHELLS.md) |
+| Add sign-in, SSO, onboarding, workspaces or billing (simulated) | [SAAS_KITS.md](SAAS_KITS.md) |
+| Build an assistant, agents, team chat or voice (simulated) | [AI_KITS.md](AI_KITS.md) |
+| Keep a spec that lets anyone rebuild the product | [SPECS.md](SPECS.md) |
+| Host or share a prototype, publish many, set up CI | [PUBLISHING.md](PUBLISHING.md) |
 | Have a coding agent build a prototype | [AGENT_GUIDE.md](AGENT_GUIDE.md) |
 | Understand the design | [ARCHITECTURE.md](ARCHITECTURE.md), [DECISIONS.md](DECISIONS.md) |

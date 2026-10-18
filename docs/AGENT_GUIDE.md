@@ -11,11 +11,11 @@ idea to a published static site in this repository. It assumes the
 | --- | --- | --- | --- |
 | 1 | Explore | `pnpm protoyard list --json`, `pnpm protoyard list --kind template`, read `templates/<t>/README.md` | You know which template fits and which slugs exist |
 | 2 | Choose a slug | Lowercase kebab-case, 2–48 chars, not reserved, not taken | `list --json` does not contain it |
-| 3 | Create | `pnpm protoyard new <slug> --template <t> --name "<Name>" --description "<one line>"` | `prototypes/<slug>/` exists and `new` printed next steps |
+| 3 | Create | `pnpm protoyard new <slug> --template <t> --name "<Name>" --description "<one line>"` (or `--from <prototype>` to remix, or `generate <slug> --blueprint <file>` for a CRUD product) | `prototypes/<slug>/` exists and the command printed next steps |
 | 4 | Domain | `src/database/schema.ts` → `src/domain/policy.ts` → `src/domain/*.ts` services → `src/scenarios/index.ts` + `protoyard.json → scenarios` → `src/scenarios/generators.ts` → `integrity` in `src/prototype.ts` | `pnpm protoyard scenario validate <slug>` passes |
 | 5 | UI | `src/screens/`, `src/components/`, routes in `src/App.svelte`; components from `@protoyard/ui`, bindings from `@protoyard/renderer-svelte` | Every primary control does something real; empty, loading and error states exist |
 | 6 | Tests | `prototypes/<slug>/tests/`: generator tests and service tests on the real runtime | `pnpm vitest run prototypes/<slug>` passes |
-| 7 | Validate | `pnpm protoyard validate <slug> --build` | Exit code `0` |
+| 7 | Spec + validate | `pnpm protoyard spec <slug> --write`, then `pnpm protoyard validate <slug> --build` | Exit code `0`, spec regions current |
 | 8 | Build / export | `pnpm protoyard export <slug>` | ZIP written, isolation check passed |
 | 9 | Publish | `pnpm protoyard publish <slug> --provider cloudflare --dry-run`, then a real publish **only if the user asked for it** | URL reported by the provider |
 
@@ -28,7 +28,13 @@ Read before writing code:
   personas, time, environment.
 - [packages/ui/README.md](../packages/ui/README.md) and
   [packages/renderer-svelte/README.md](../packages/renderer-svelte/README.md)
-  for components, routing and `runService()`.
+  for components, routing (including lazy routes and guards) and
+  `runService()`.
+- When the product needs them: [SHELLS.md](SHELLS.md) (device and host
+  frames), [SAAS_KITS.md](SAAS_KITS.md) (simulated SaaS kits, scenario
+  fragments and their security boundaries), [AI_KITS.md](AI_KITS.md)
+  (simulated assistants, agents, voice, widgets) and
+  [SPECS.md](SPECS.md) (the prototype's `AGENTS.md` and `docs/`).
 
 ## Step notes
 
@@ -41,6 +47,21 @@ patterns; do not copy their domain code into a new prototype.
 namespace, the package name `@prototype/<slug>`, and runs `pnpm install`. It
 never overwrites files. If it fails half-way, re-running the same command
 resumes. Use `--no-install` only when you will run `pnpm install` yourself.
+
+**Spec.** The new prototype already has `AGENTS.md` and `docs/` with
+generated regions. Replace the TODOs, and run
+`pnpm protoyard spec <slug> --write` after changing schema, policy, scenarios
+or routes. `validate` fails while a region is stale.
+
+**Generated prototypes.** For a CRUD product, write a `blueprint.json`
+(check it with `pnpm protoyard blueprint validate <file>`; examples in
+[blueprints/](../blueprints/README.md)) and run
+`pnpm protoyard generate <slug> --blueprint <file>`. To change it later, edit
+`prototypes/<slug>/blueprint.json`, re-run
+`pnpm protoyard generate <slug> --blueprint prototypes/<slug>/blueprint.json`
+and `validate`. Never edit `src/generated/**`; generated screens use
+`EntityList`, `EntityDetail` and `EntityForm` from
+[`@protoyard/crud`](../packages/crud/README.md).
 
 **Domain first, UI second.** A working domain layer can be tested without a
 browser:

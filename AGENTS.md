@@ -28,8 +28,12 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Agents | [AGENT_GUIDE](docs/AGENT_GUIDE.md) | The build loop for a new prototype, prompts, troubleshooting |
 | Database | [DATABASE](docs/DATABASE.md) | Schemas, migrations, services, `liveQuery`, storage caveats |
 | Scenarios | [SCENARIOS](docs/SCENARIOS.md) | Axes, presets, generators, personas/policy, time, environment, snapshots |
-| Themes | [THEMES](docs/THEMES.md) | Tokens, presets, light/dark/system, custom themes |
-| Publishing | [PUBLISHING](docs/PUBLISHING.md) | Build, export, preview, base paths, Cloudflare and other adapters |
+| Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 32-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
+| Shells | [SHELLS](docs/SHELLS.md) | Device and host shells, manifest preview fields, `?shell=`, layout inside frames |
+| SaaS kits | [SAAS_KITS](docs/SAAS_KITS.md) | Simulated auth, OAuth, MFA, onboarding, workspaces, billing, scenario fragments, honest limits |
+| AI kits | [AI_KITS](docs/AI_KITS.md) | Simulated assistants, agents and tools, voice, widgets, safe rich answers, honest limits |
+| Publishing | [PUBLISHING](docs/PUBLISHING.md) | Build, export, preview, base paths, Cloudflare and other adapters, batch publish, review index, CI templates |
+| Specs | [SPECS](docs/SPECS.md) | Per-prototype AGENTS.md + docs/ spec harness, generated regions, rebuild kit |
 | Standards | [STANDARDS](docs/STANDARDS.md) | TypeScript, Svelte 5, Biome, domain rules, naming, a11y |
 | Testing | [TESTING_GUIDE](docs/TESTING_GUIDE.md) | Full and scoped commands, source→test map, blind spots, posture |
 | Commands | [DEVELOPMENT_COMMANDS](docs/DEVELOPMENT_COMMANDS.md) | Every script and CLI command |
@@ -41,6 +45,9 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Kit | [.agents catalog](.agents/docs/skills_agents_catalog.md), [commands](.agents/docs/COMMANDS_REFERENCE.md) | Skills, agents, slash commands |
 | Index | [docs/README](docs/README.md) | All docs |
 
+<!-- PENDING (PLAN_002 Task 127): add the "Generator" row (blueprint → generate
+workflow guide) after the Specs row once docs/GENERATOR lands. -->
+
 ## Repository structure
 
 ```text
@@ -50,18 +57,28 @@ protoyard/
 │   ├── database/          Dexie: per-prototype data + control DBs, world I/O, storage errors       (README)
 │   ├── scenarios/         generator SDK, presets, integrity, timeline helpers                     (README)
 │   ├── runtime/           createPrototypeRuntime() — composes the engine                          (README)
-│   ├── themes/            six presets, appearance engine, no-flash, base.css                       (README)
-│   ├── ui/                Svelte 5 components (Bits UI + Tailwind 4 + Lucide)                      (README)
-│   ├── devtools/          in-browser control center                                               (README)
-│   ├── renderer-svelte/   Vite config factory, mountPrototype, bindings, hash router               (README)
-│   ├── http/              optional mock HTTP layer (fetch-compatible, no service worker)    (README)
-│   ├── offline/           optional service worker for exported prototypes (opt-in)          (README)
-│   └── cli/               `protoyard` CLI: index/new/dev/validate/build/export/preview/publish     (README)
+│   ├── themes/            6 built-ins + 32-theme library, palette engine, fonts, no-flash, base.css (README)
+│   ├── ui/                Svelte 5 components (Bits UI + Tailwind 4 + Lucide), shell frames         (README)
+│   ├── devtools/          in-browser control center (shell picker, Theme Studio)                  (README)
+│   ├── renderer-svelte/   Vite config factory, mountPrototype, ShellHost, bindings, hash router    (README)
+│   ├── http/              optional mock HTTP layer (fetch-compatible, no service worker)           (README)
+│   ├── offline/           optional service worker for exported prototypes (opt-in)                (README)
+│   ├── blueprint/         data-only blueprints: schema, derivations, entity services (no Svelte)   (README)
+│   ├── crud/              blueprint EntityList, EntityDetail, EntityForm and fields (Svelte)       (README)
+│   ├── saas/              simulated SaaS engine: auth, OAuth, MFA, inbox, onboarding, workspaces, billing (README)
+│   ├── saas-ui/           Svelte SaaS kit screens + saasRoutes/guards (simulation UX)              (README)
+│   ├── ai/                simulated AI engine: streaming, agents and tools, voice, safe markdown  (README)
+│   ├── ai-ui/             Svelte assistant workspace, safe rich answers, canvas, widget modes      (README)
+│   └── cli/               `protoyard` CLI: new/generate/dev/validate/build/export/publish/spec/ci… (README)
 ├── apps/gallery/          Astro static gallery (reads the registry only)                           (README)
-├── templates/<name>/      blank, dashboard, mobile-app, chat, onboarding, task-manager, ecommerce
-├── prototypes/<slug>/     crm-demo, mobile-banking-demo, ai-chat-demo, ui-kit, …your prototypes
+├── templates/<name>/      admin-console, agent-console, ai-assistant, b2b-saas, blank, chat,
+│                          chat-widget, crud-app, dashboard, desktop-app, ecommerce, marketplace,
+│                          mobile-app, onboarding, plugin-panel, task-manager, team-chat
+├── prototypes/<slug>/     ai-chat-demo, crm-demo, lattice-saas-demo, mobile-banking-demo,
+│                          nova-assistant-demo, relay-chat-demo, support-widget-demo, ui-kit, …yours
+├── blueprints/            20 data-only product blueprints for `protoyard generate`                (README)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/
-├── scripts/               bench-index.ts, generate-thumbnails.ts, check-public-hygiene.sh, changelog-section.sh
+├── scripts/               bench-index.ts, bench-cold-start.ts, generate-thumbnails.ts, check-public-hygiene.sh, changelog-section.sh
 ├── docs/                  the guides above
 ├── .agents/               skills, agents, commands (.claude and .cursor symlink here)
 ├── .review/extension.md   repo rules for the AI Diff Reviewer local review
@@ -80,7 +97,11 @@ protoyard/
 | Type check | `pnpm typecheck` | `pnpm --filter <package> typecheck` |
 | Unit + integration | `pnpm test` | `pnpm vitest run <path>` · `pnpm vitest run -t "<name>"` |
 | E2E | `pnpm test:e2e` (`pnpm test:e2e:install` once) | `PROTOYARD_E2E_PROTOTYPES=<slug> pnpm test:e2e` |
+| Generate from a blueprint | — | `pnpm protoyard generate <slug> --blueprint <file> [--dry-run]` |
 | Validate a prototype | — | `pnpm protoyard validate <slug> --build` |
+| Spec drift check | `pnpm protoyard spec --all --check` | `pnpm protoyard spec <slug> --check` |
+| Bundle budgets | `pnpm protoyard budget --all` | `pnpm protoyard budget <slug>` |
+| Affected prototypes | — | `pnpm protoyard affected --since HEAD~1 --format csv` |
 | Build / export | `pnpm protoyard build --all` | `pnpm protoyard build <slug>` · `pnpm protoyard export <slug>` |
 | Preview a build | — | `pnpm protoyard preview <slug>` |
 | Publish (needs authorization) | — | `pnpm protoyard publish <slug> --provider cloudflare --dry-run` |
@@ -95,7 +116,8 @@ Nothing requires Docker or CI-only tooling.
 1. **English only** in code, comments, UI copy, docs and commits.
 2. **Conventional Commits**: `type(scope): summary`. Scopes: `core`,
    `database`, `scenarios`, `runtime`, `themes`, `ui`, `devtools`, `renderer`,
-   `cli`, `gallery`, `http`, `offline`, `templates`, `<prototype-slug>`,
+   `cli`, `gallery`, `http`, `offline`, `blueprint`, `crud`, `saas`,
+   `saas-ui`, `ai`, `ai-ui`, `templates`, `<prototype-slug>`,
    `docs`, `ci`, `deps`, `dwp`. **Stage exact paths**, never `git add -A`.
 3. **Validation follows the touched surface.** Pick gates from the
    source→test map in [TESTING_GUIDE](docs/TESTING_GUIDE.md). Core or root
@@ -123,8 +145,8 @@ Nothing requires Docker or CI-only tooling.
    `vitest.config.ts`. Ask before changing them, and only the owner runs
    `pnpm install` ([AI_AGENT_COLLAB](docs/AI_AGENT_COLLAB.md)).
 10. **Honesty.** Docs describe what works today. Never invent deploy URLs,
-    benchmarks or check results. Simulated roles are never described as
-    security.
+    benchmarks or check results. Simulated roles, sign-in, SSO and MFA are
+    never described as security.
 11. **Scratch work** goes in `tmp/`. Plan artifacts go in
     `.dwp/plans/<plan>/analysis_results/`, never the repository root.
 12. **Progress reporting** (when a reporting tool is available) is
@@ -224,11 +246,17 @@ owner's credentials).
 ## Adding a prototype (the short version)
 
 ```bash
-pnpm protoyard new my-idea --template dashboard   # or blank, mobile-app, chat, onboarding, task-manager, ecommerce
+pnpm protoyard new my-idea --template dashboard   # any templates/<name>; or --from <template|prototype> to remix
 pnpm protoyard dev my-idea
 # edit src/database/schema.ts → src/domain/{policy,services}.ts → src/scenarios/* → screens
+pnpm protoyard spec my-idea --write               # refresh AGENTS.md + docs/ generated regions
 pnpm vitest run prototypes/my-idea && pnpm protoyard validate my-idea --build
 pnpm protoyard export my-idea
 ```
+
+A CRUD product can start from data instead: `pnpm protoyard generate my-crm
+--blueprint blueprints/crm.json`. Later, edit `prototypes/<slug>/blueprint.json`
+and re-run `generate <slug> --blueprint prototypes/<slug>/blueprint.json`, then
+`validate`. Never edit `src/generated/**` by hand.
 
 The full loop and copy-paste prompts are in [AGENT_GUIDE](docs/AGENT_GUIDE.md).
