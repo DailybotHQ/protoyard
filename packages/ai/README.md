@@ -42,3 +42,16 @@ const result = await run.done;
 ```
 
 Tools receive service functions, simulated time and a deterministic random stream. They do not receive database handles. Implement service-backed reads and writes through `serviceAiTool`; the domain service remains responsible for policy, validation, environment simulation and transactions. Approvals pause a run before the tool executes. A rejection returns a graceful answer, while `cancel()` ends a running or paused run. Tool failure branches are deterministic for the same seed, run id, call order and tool name. The built-in search, calendar, and CRM tools use fictional local fixtures; `code.run` reports a simulated result and never executes supplied code.
+
+## AI scenario fixtures
+
+Import scenario generation from the lazy subpath so its fixture generator is not part of the base AI entrypoint:
+
+```ts
+import { AI_SCENARIO_FRAGMENTS, generateAiScenario } from '@protoyard/ai/scenarios';
+
+const workspace = generateAiScenario(generateContext, AI_SCENARIO_FRAGMENTS.powerUser);
+// workspace contains a deterministic 600-message history.
+```
+
+Fragments cover fresh workspaces, long histories, slow models, rate limits, model outages, safety refusals, tool failures, and approval-heavy agent plans. Compose fragments with `composeAiScenarioFragments(...)` before passing them to the generator. The output includes fixture conversations plus settings for the simulated environment, response pack and agent plan. Bump `AI_SCENARIO_GENERATOR_VERSION` if output meaning changes.
