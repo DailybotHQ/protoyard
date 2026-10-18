@@ -140,6 +140,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../blueprint
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
