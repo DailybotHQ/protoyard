@@ -6,13 +6,15 @@ import { buildPrototype } from '../lib/build.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
 import { readManifest, statManifest } from '../lib/discovery.ts';
-import { inspectPrototype } from '../lib/inspect.ts';
+import { type Inspection, inspectPrototype, toSpecFacts } from '../lib/inspect.ts';
 import { findEscapingSymlinks, isSymlink } from '../lib/links.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
 import { childPath, toPosixRelative } from '../lib/paths.ts';
 import { resolvePackageBin, run, stripAnsi } from '../lib/process.ts';
 import { loadRegistry, toRegistryEntry } from '../lib/registry.ts';
+import { SPEC_FILES } from '../lib/spec-render.ts';
 import { assertSlug, type CommandContext, readPackageJson } from '../lib/workspace.ts';
+import { specForPrototype } from './spec.ts';
 
 export type CheckStatus = 'pass' | 'fail' | 'warn' | 'skip';
 
@@ -181,6 +183,53 @@ async function checkTypes(ctx: CommandContext, dir: string): Promise<Check> {
   );
 }
 
+/**
+ * The prototype spec (docs/SPECS.md): missing files warn (fail with
+ * `--strict-spec`); stale generated regions and invalid markers always fail.
+ * Uses the facts of the definition inspection validate already ran.
+ */
+export async function checkSpec(
+  dir: string,
+  slug: string,
+  inspection: Inspection | null,
+  strict: boolean
+): Promise<Check> {
+  const label = 'Prototype spec (AGENTS.md, docs/)';
+  if (!inspection?.spec) {
+    return check('spec', label, 'skip', ['needs a loadable src/prototype.ts']);
+  }
+  const result = await specForPrototype(
+    dir,
+    toSpecFacts(inspection.spec, inspection.schemaVersion),
+    { mode: 'check', init: false }
+  );
+  const missing = result.files.filter((f) => !f.exists).map((f) => f.path);
+  const invalid = result.files.filter((f) => f.error).map((f) => f.error as string);
+  const stale = result.files.flatMap((f) =>
+    f.regions.filter((r) => r.status === 'stale').map((r) => `${f.path}: region "${r.id}" is stale`)
+  );
+  const details = [
+    ...invalid,
+    ...stale,
+    ...missing.map((f) => `missing ${f}`),
+    ...(stale.length > 0 ? [`Run \`pnpm protoyard spec ${slug} --write\`.`] : []),
+    ...(missing.length > 0
+      ? [`Run \`pnpm protoyard spec ${slug} --init\` to create the missing files.`]
+      : []),
+  ];
+  if (invalid.length > 0 || stale.length > 0 || (strict && missing.length > 0)) {
+    return check('spec', label, 'fail', details);
+  }
+  if (missing.length > 0) return check('spec', label, 'warn', details);
+  const regions = result.files.reduce(
+    (n, f) => n + f.regions.filter((r) => r.status === 'fresh').length,
+    0
+  );
+  return check('spec', label, 'pass', [
+    `${SPEC_FILES.length} files, ${regions} generated regions current`,
+  ]);
+}
+
 export const validateCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const slug = assertSlug(args[0]);
   // Folder lookup (not the registry), so a broken manifest is still validated.
@@ -227,11 +276,14 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
   );
   checks.push(checkPackage(dir, slug, kind));
 
+  let inspection: Inspection | null = null;
   if (parsed.manifest) {
     checks.push(await checkSchemaVersion(dir, parsed.manifest));
     if (existsSync(join(dir, 'src', 'prototype.ts'))) {
       try {
-        checks.push(...definitionChecks(await inspectPrototype(ctx.root, dir, 'inspect')));
+        // `spec` mode is `inspect` plus the facts the spec check needs: one runner pass.
+        inspection = await inspectPrototype(ctx.root, dir, 'spec');
+        checks.push(...definitionChecks(inspection));
       } catch (error) {
         const err = toCliError(error);
         checks.push(
@@ -247,6 +299,8 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
       );
     }
   }
+
+  checks.push(await checkSpec(dir, slug, inspection, flag(options, 'strictSpec')));
 
   checks.push(
     flag(options, 'skipTypecheck')

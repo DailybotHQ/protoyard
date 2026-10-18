@@ -144,6 +144,7 @@ export function createProgram(env: RunnerEnv): Command {
     .argument('<slug>')
     .option('--skip-typecheck', 'skip svelte-check')
     .option('--build', 'also run a production build')
+    .option('--strict-spec', 'fail (not warn) when spec files are missing')
     .action(def('validate', validateCommand));
 
   const buildOptions = (cmd: Command) =>

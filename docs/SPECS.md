@@ -20,7 +20,7 @@ it qualifies for its own `AGENTS.md` and `docs/` folder.
 | This standard (files, sections, sources, markers) | Defined (this page) |
 | Hand-written spec files in a prototype | Can be written now, by hand, following this page |
 | `protoyard spec <slug\|--all> [--write\|--check] [--init]` | Available. `--init` creates missing files (never overwrites), `--write` refreshes generated regions, `--check` exits 4 on a stale region or an invalid marker. |
-| `protoyard validate` spec check (`--strict-spec`) | **Not implemented yet** |
+| `protoyard validate` spec check (`--strict-spec`) | Available. Missing spec files warn (fail with `--strict-spec`); stale generated regions and invalid markers always fail. |
 | Statically importable route table (`src/routes.ts`) for `SCREENS.md` | Available: `defineRoutes` in `@protoyard/renderer-svelte`; `crm-demo` and the `dashboard` template use it. Other prototypes still declare routes in `src/App.svelte`. |
 | Fact extraction for generated regions | Available: `inspectSpec()` in `packages/cli/src/lib/inspect.ts` runs the definition in a child process (inspect runner `spec` mode); `protoyard spec` renders from it. |
 | Spec skeletons in templates (`protoyard new`) | **Not implemented yet** |

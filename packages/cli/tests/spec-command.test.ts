@@ -5,7 +5,14 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { specForPrototype } from '../src/commands/spec.ts';
-import { inspectSpec, type SpecFacts } from '../src/lib/inspect.ts';
+import { checkSpec } from '../src/commands/validate.ts';
+import {
+  type Inspection,
+  inspectSpec,
+  type RawSpec,
+  type SpecFacts,
+  toSpecFacts,
+} from '../src/lib/inspect.ts';
 import {
   closeMarker,
   openMarker,
@@ -303,5 +310,84 @@ describe('protoyard spec (CLI)', { timeout: 120_000 }, () => {
     expect((await cli(['--root', ROOT, '--json', 'spec'])).code).toBe(2);
     expect((await cli(['--root', ROOT, '--json', 'spec', 'crm-demo', '--all'])).code).toBe(2);
     expect((await cli(['--root', ROOT, '--json', 'spec', 'no-such-app'])).code).toBe(3);
+  });
+});
+
+const toFacts = (spec: RawSpec) => toSpecFacts(spec, 1);
+
+describe('validate spec check', () => {
+  const raw: RawSpec = {
+    manifest: facts.manifest,
+    generatorVersion: 1,
+    versions: [{ version: 1, stores: { notes: 'id, ownerId' } }],
+    policy: { roles: { owner: ['*'] }, rules: [] },
+    personasScenario: 'empty',
+    personas: [{ id: 'user_0001', name: 'Ada Example', role: 'owner' }],
+    scenarios: [],
+    themes: [],
+    timeline: false,
+    routes: null,
+  };
+  const inspection = (spec: RawSpec) => ({ schemaVersion: 1, spec }) as unknown as Inspection;
+  let dir: string;
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), 'protoyard-spec-validate-'));
+  });
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  it('validate: missing spec files warn, and fail with --strict-spec', async () => {
+    const loose = await checkSpec(dir, 'notes-app', inspection(raw), false);
+    expect(loose.status).toBe('warn');
+    expect(loose.details).toContain('missing AGENTS.md');
+    expect(loose.details).toContain('missing docs/SPEC.md');
+    expect(loose.details.at(-1)).toContain('pnpm protoyard spec notes-app --init');
+    expect((await checkSpec(dir, 'notes-app', inspection(raw), true)).status).toBe('fail');
+  });
+
+  it('validate: current files pass, stale regions and invalid markers fail', async () => {
+    await specForPrototype(dir, toFacts(raw), { mode: 'write', init: true });
+    const fresh = await checkSpec(dir, 'notes-app', inspection(raw), true);
+    expect(fresh).toMatchObject({ status: 'pass' });
+    expect(fresh.details[0]).toMatch(/^6 files, \d+ generated regions current$/);
+
+    const changed: RawSpec = {
+      ...raw,
+      personas: [...raw.personas, { id: 'user_0002', name: 'Bo Example', role: 'owner' }],
+    };
+    const stale = await checkSpec(dir, 'notes-app', inspection(changed), false);
+    expect(stale.status).toBe('fail');
+    expect(stale.details).toContain('docs/PERMISSIONS.md: region "personas" is stale');
+    expect(stale.details).toContain('Run `pnpm protoyard spec notes-app --write`.');
+
+    writeFileSync(join(dir, 'docs/SCREENS.md'), `${openMarker('routes')}\n`);
+    const invalid = await checkSpec(dir, 'notes-app', inspection(raw), false);
+    expect(invalid.status).toBe('fail');
+    expect(invalid.details[0]).toMatch(/docs\/SCREENS\.md: region "routes" is never closed/);
+  });
+
+  it('validate: skips the spec check when the definition did not load', async () => {
+    expect((await checkSpec(dir, 'notes-app', null, true)).status).toBe('skip');
+  });
+
+  it('validate: crm-demo reports the spec check (warn today, fail with --strict-spec)', {
+    timeout: 120_000,
+  }, async () => {
+    const run = await cli(['--root', ROOT, '--json', 'validate', 'crm-demo', '--skip-typecheck']);
+    expect(run.code, run.stdout).toBe(0);
+    const checks = run.json<{ data: { checks: { id: string; status: string }[] } }>().data.checks;
+    expect(checks.map((c) => c.id)).toContain('scenarios');
+    expect(checks.find((c) => c.id === 'spec')?.status).toBe('warn');
+
+    const strict = await cli([
+      '--root',
+      ROOT,
+      '--json',
+      'validate',
+      'crm-demo',
+      '--skip-typecheck',
+      '--strict-spec',
+    ]);
+    expect(strict.code).toBe(4);
+    expect(strict.json<{ error: { hint: string } }>().error.hint).toContain('spec');
   });
 });
