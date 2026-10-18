@@ -21,7 +21,7 @@ const clockLabel = '9:41';
   <div
     data-py-status-bar
     data-py-status-style={style}
-    class="pointer-events-none absolute inset-x-0 top-0 z-[30] flex items-end px-5 pb-1.5 text-[12px] leading-none font-semibold tracking-tight text-foreground"
+    class="pointer-events-none absolute inset-x-0 top-0 z-[30] flex items-end bg-background px-5 pb-1.5 text-[12px] leading-none font-semibold tracking-tight text-foreground"
     style:height="{height}px"
     style:padding-top="{Math.max(0, insets.top - spec.statusBar.height)}px"
   >

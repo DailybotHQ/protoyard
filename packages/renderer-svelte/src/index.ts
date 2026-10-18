@@ -38,6 +38,7 @@ export { default as Router } from './router/Router.svelte';
 export {
   back,
   createRouter,
+  defineRoutes,
   fillParams,
   MAX_REDIRECTS,
   navigate,
@@ -45,6 +46,7 @@ export {
   type RouteDefinition,
   type RouteGuard,
   type RouteMatch,
+  type RouteMeta,
   type RouteProps,
   type Router as HashRouter,
   type RouterOptions,

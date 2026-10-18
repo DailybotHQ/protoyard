@@ -18,6 +18,8 @@ export interface ScenarioRun {
   id: string;
   ok: boolean;
   counts?: Record<string, number>;
+  /** Generated personas (first 50) with their first membership role. */
+  personas?: { id: string; name: string; role: string | null }[];
   violationCount?: number;
   violations?: { table: string; rowId: string; field?: string; message: string }[];
   error?: string;

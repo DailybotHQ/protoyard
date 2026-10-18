@@ -11,26 +11,13 @@ import { AppShell, Avatar, Badge, Header, Sidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideDashboard } from './lib/context.ts';
-import CustomerDetail from './screens/CustomerDetail.svelte';
-import Customers from './screens/Customers.svelte';
-import Orders from './screens/Orders.svelte';
-import Overview from './screens/Overview.svelte';
-import Settings from './screens/Settings.svelte';
+import { routes } from './routes.ts';
 
 const { runtime, settings } = provideDashboard();
 const principal = usePrincipal();
 
 /** Hash routes work on refresh and back/forward on any static host. Add screens here AND in `nav`. */
-const router = createRouter(
-  [
-    { path: '/', component: Overview, title: 'Overview' },
-    { path: '/customers', component: Customers, title: 'Customers' },
-    { path: '/customers/:id', component: CustomerDetail, title: 'Customer' },
-    { path: '/orders', component: Orders, title: 'Orders' },
-    { path: '/settings', component: Settings, title: 'Settings' },
-  ],
-  { titleSuffix: runtime.manifest.name }
-);
+const router = createRouter(routes, { titleSuffix: runtime.manifest.name });
 onDestroy(() => router.destroy());
 
 const nav = $derived([

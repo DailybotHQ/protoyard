@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CliError } from './output.ts';
@@ -245,7 +245,7 @@ export async function planCiInit(options: {
       id,
       templatesRoot
     );
-    const content = renderTemplate(source, options.placeholders);
+    const content = stampContent(renderTemplate(source, options.placeholders));
     assertShaPinnedUses(content, workflowFileName(id));
     const relativePath = workflowRelativePath(options.provider, id);
     const absolutePath = join(options.root, relativePath);
@@ -361,4 +361,131 @@ export function unifiedDiff(
 
 export function contentSha256(content: string): string {
   return createHash('sha256').update(content).digest('hex');
+}
+
+/** Line 2 of every scaffolded workflow: sha256 of the rendered file without this line. */
+export const CI_HASH_PREFIX = '# protoyard-ci-hash: ';
+const TEMPLATE_HEADER = /^# protoyard-ci-template: ([a-z0-9-]+) v(\d+)\s*$/;
+const HASH_LINE = /^# protoyard-ci-hash: ([0-9a-f]{64})\s*$/;
+
+function withFinalNewline(content: string): string {
+  return content.endsWith('\n') ? content : `${content}\n`;
+}
+
+/** `# protoyard-ci-template: <id> v<N>` on the first line, or null. */
+export function parseTemplateHeader(content: string): { id: string; version: number } | null {
+  const match = TEMPLATE_HEADER.exec(content.split('\n', 1)[0] ?? '');
+  return match ? { id: match[1] as string, version: Number(match[2]) } : null;
+}
+
+/**
+ * Inserts the hash line under the template header. The hash covers the
+ * rendered content exactly as written (final newline included), so any later
+ * edit — or a re-render with other placeholders — changes it.
+ */
+export function stampContent(rendered: string): string {
+  const body = withFinalNewline(rendered);
+  if (!parseTemplateHeader(body)) {
+    throw new CliError('failure', 'CI template is missing its "# protoyard-ci-template:" header.');
+  }
+  const newline = body.indexOf('\n');
+  return `${body.slice(0, newline + 1)}${CI_HASH_PREFIX}${contentSha256(body)}\n${body.slice(newline + 1)}`;
+}
+
+/** Splits a scaffolded file into the stored hash and the body it was computed over. */
+export function splitHashLine(content: string): { hash: string | null; body: string } {
+  const lines = withFinalNewline(content).split('\n');
+  const index = lines.findIndex((line) => HASH_LINE.test(line));
+  if (index === -1) return { hash: null, body: withFinalNewline(content) };
+  const hash = HASH_LINE.exec(lines[index] as string)?.[1] ?? null;
+  lines.splice(index, 1);
+  return { hash, body: lines.join('\n') };
+}
+
+/**
+ * - `up-to-date`: unchanged since `ci init`, and the packaged template has the same version.
+ * - `outdated`: unchanged, but Protoyard ships a newer template version.
+ * - `modified`: edited after `ci init` (the stored hash no longer matches).
+ * - `unhashed`: has our header but no hash line, so edits cannot be detected.
+ * - `unmanaged`: named protoyard-*.yml but not one of our templates; left alone.
+ */
+export type CiDriftStatus = 'up-to-date' | 'outdated' | 'modified' | 'unhashed' | 'unmanaged';
+
+export interface CiDriftReport {
+  path: string;
+  id: string | null;
+  version: number | null;
+  latestVersion: number | null;
+  status: CiDriftStatus;
+  /** True when the file was edited after `ci init`. */
+  modified: boolean;
+  /** True when a newer template version is packaged (independent of `modified`). */
+  outdated: boolean;
+}
+
+/** Statuses that `ci check --strict` fails on. */
+export const CI_DRIFT_STATUSES: ReadonlySet<CiDriftStatus> = new Set([
+  'outdated',
+  'modified',
+  'unhashed',
+]);
+
+export function driftStatus(
+  content: string,
+  latestVersion: (id: string) => number | null
+): Omit<CiDriftReport, 'path'> {
+  const header = parseTemplateHeader(content);
+  const latest = header ? latestVersion(header.id) : null;
+  if (!header || latest === null) {
+    return {
+      id: header?.id ?? null,
+      version: header?.version ?? null,
+      latestVersion: null,
+      status: 'unmanaged',
+      modified: false,
+      outdated: false,
+    };
+  }
+  const { hash, body } = splitHashLine(content);
+  const modified = hash !== null && contentSha256(body) !== hash;
+  const outdated = latest > header.version;
+  const status: CiDriftStatus =
+    hash === null ? 'unhashed' : modified ? 'modified' : outdated ? 'outdated' : 'up-to-date';
+  return {
+    id: header.id,
+    version: header.version,
+    latestVersion: latest,
+    status,
+    modified,
+    outdated,
+  };
+}
+
+/** Reads `.github/workflows/protoyard-*.yml` and reports drift against the packaged templates. */
+export async function checkCiDrift(options: {
+  root: string;
+  provider: CiProvider;
+  templatesRoot?: string;
+}): Promise<CiDriftReport[]> {
+  const templatesRoot = options.templatesRoot ?? ciTemplatesRoot();
+  const dir = join(options.root, '.github', 'workflows');
+  if (options.provider !== 'github' || !existsSync(dir)) return [];
+  const latest = new Map<string, number | null>();
+  for (const id of CI_WORKFLOW_IDS) {
+    const path = join(templatesRoot, options.provider, workflowFileName(id));
+    latest.set(
+      id,
+      existsSync(path) ? (parseTemplateHeader(await readFile(path, 'utf8'))?.version ?? null) : null
+    );
+  }
+  const names = (await readdir(dir)).filter((n) => /^protoyard-[a-z0-9-]+\.ya?ml$/.test(n)).sort();
+  const reports: CiDriftReport[] = [];
+  for (const name of names) {
+    const content = await readFile(join(dir, name), 'utf8');
+    reports.push({
+      path: `.github/workflows/${name}`,
+      ...driftStatus(content, (id) => latest.get(id) ?? null),
+    });
+  }
+  return reports;
 }

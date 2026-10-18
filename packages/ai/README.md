@@ -55,6 +55,20 @@ const workspace = generateAiScenario(generateContext, AI_SCENARIO_FRAGMENTS.powe
 ```
 
 Fragments cover fresh workspaces, long histories, slow models, rate limits, model outages, safety refusals, tool failures, and approval-heavy agent plans. Compose fragments with `composeAiScenarioFragments(...)` before passing them to the generator. The output includes fixture conversations plus settings for the simulated environment, response pack and agent plan. Bump `AI_SCENARIO_GENERATOR_VERSION` if output meaning changes.
+
+## Simulated voice
+
+Voice support is a lazy subpath so it does not add to the base engine entrypoint:
+
+```ts
+import { createVoiceSession } from '@protoyard/ai/voice';
+
+const voice = createVoiceSession({ clock: aiContext.clock, onTranscript: (caption) => handleCaption(caption) });
+voice.start('push-to-talk');
+await voice.finishListening(); // Emits a deterministic scripted caption after simulated time.
+```
+
+Voice input is simulated from scripted captions by default. The engine does not request a microphone, record audio, or call a cloud speech service.
 ## Rich answers (safe markdown)
 
 `parseMarkdown(text)` turns simulated model output into a plain-data AST (`MdDocument`:

@@ -1,15 +1,31 @@
 // @vitest-environment node
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   applyCiInit,
   assertShaPinnedUses,
   assertWritable,
+  CI_HASH_PREFIX,
+  checkCiDrift,
   ciTemplatesRoot,
+  contentSha256,
+  driftStatus,
+  parseTemplateHeader,
   parseWorkflowList,
   planCiInit,
   renderTemplate,
+  splitHashLine,
+  stampContent,
   unifiedDiff,
 } from '../src/lib/ci-templates.ts';
 import { CliError } from '../src/lib/output.ts';
@@ -226,5 +242,186 @@ describe('protoyard ci init', () => {
     const edit = unifiedDiff('a.yml', 'one\n', 'one\ntwo\n');
     expect(edit).toContain('--- a/a.yml');
     expect(edit).toContain('+two');
+  });
+});
+
+describe('drift detection (ci check)', () => {
+  const rendered =
+    '# protoyard-ci-template: check v1\nname: Protoyard check\non:\n  pull_request:\n';
+  const latestV1 = (id: string) => (id === 'check' ? 1 : null);
+
+  it('drift: ci init stamps a hash of the rendered body under the template header', () => {
+    const stamped = stampContent(rendered);
+    const lines = stamped.split('\n');
+    expect(lines[0]).toBe('# protoyard-ci-template: check v1');
+    expect(lines[1]).toBe(`${CI_HASH_PREFIX}${contentSha256(rendered)}`);
+    expect(splitHashLine(stamped)).toEqual({ hash: contentSha256(rendered), body: rendered });
+    expect(parseTemplateHeader(stamped)).toEqual({ id: 'check', version: 1 });
+    expect(() => stampContent('name: no header\n')).toThrow(/header/);
+  });
+
+  it('drift: classifies up-to-date, modified, outdated, unhashed and unmanaged files', () => {
+    const stamped = stampContent(rendered);
+    expect(driftStatus(stamped, latestV1)).toMatchObject({
+      status: 'up-to-date',
+      modified: false,
+      outdated: false,
+    });
+    expect(driftStatus(stamped.replace('Protoyard check', 'Our check'), latestV1)).toMatchObject({
+      status: 'modified',
+      modified: true,
+    });
+    expect(driftStatus(stamped, () => 2)).toMatchObject({
+      status: 'outdated',
+      version: 1,
+      latestVersion: 2,
+      outdated: true,
+      modified: false,
+    });
+    // Edited AND behind: reported as modified, with outdated still flagged.
+    expect(driftStatus(stamped.replace('pull_request', 'push'), () => 2)).toMatchObject({
+      status: 'modified',
+      outdated: true,
+    });
+    expect(driftStatus(rendered, latestV1).status).toBe('unhashed');
+    expect(driftStatus('name: hand written\n', latestV1).status).toBe('unmanaged');
+    expect(
+      driftStatus(stampContent(rendered.replace('check v1', 'custom v1')), latestV1).status
+    ).toBe('unmanaged');
+  });
+
+  it('drift: ci check reports scaffolded files and --strict exits 4 on a local edit', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'alpha-app');
+    expect(
+      (await cli(['--root', ws.root, '--json', 'ci', 'check'])).json<{
+        data: { files: unknown[] };
+      }>().data.files
+    ).toEqual([]);
+    await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'ci',
+      'init',
+      '--with',
+      'check,build',
+      '--prototypes',
+      'alpha-app',
+    ]);
+    const clean = await cli(['--root', ws.root, '--json', 'ci', 'check', '--strict']);
+    expect(clean.code).toBe(0);
+    expect(clean.json<{ data: { upToDate: number; drift: number } }>().data).toMatchObject({
+      upToDate: 2,
+      drift: 0,
+    });
+
+    const file = join(ws.root, '.github/workflows/protoyard-check.yml');
+    writeFileSync(
+      file,
+      readFileSync(file, 'utf8').replace('name: Protoyard check', 'name: Edited check')
+    );
+    writeFileSync(join(ws.root, '.github/workflows/protoyard-legacy.yml'), 'name: hand written\n');
+    const loose = await cli(['--root', ws.root, '--json', 'ci', 'check']);
+    expect(loose.code).toBe(0);
+    const files = loose.json<{
+      data: { files: { path: string; status: string }[]; drift: number };
+    }>().data;
+    expect(files.files.map((f) => [f.path, f.status])).toEqual([
+      ['.github/workflows/protoyard-build.yml', 'up-to-date'],
+      ['.github/workflows/protoyard-check.yml', 'modified'],
+      ['.github/workflows/protoyard-legacy.yml', 'unmanaged'],
+    ]);
+    expect(files.drift).toBe(1);
+    const strict = await cli(['--root', ws.root, '--json', 'ci', 'check', '--strict']);
+    expect(strict.code).toBe(4);
+    expect(strict.json<{ error: { hint: string } }>().error.hint).toContain(
+      'ci init --with check --dry-run'
+    );
+
+    // --force restores the template and its hash.
+    await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'ci',
+      'init',
+      '--with',
+      'check',
+      '--force',
+      '--prototypes',
+      'alpha-app',
+    ]);
+    expect((await cli(['--root', ws.root, '--json', 'ci', 'check', '--strict'])).code).toBe(0);
+  });
+
+  it('drift: a newer packaged template marks an untouched workflow outdated', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'alpha-app');
+    await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'ci',
+      'init',
+      '--with',
+      'check,e2e',
+      '--prototypes',
+      'alpha-app',
+    ]);
+    const templates = mkdtempSync(join(tmpdir(), 'protoyard-ci-templates-'));
+    try {
+      cpSync(ciTemplatesRoot(), templates, { recursive: true });
+      const check = join(templates, 'github', 'protoyard-check.yml');
+      writeFileSync(check, readFileSync(check, 'utf8').replace(/check v\d+/, 'check v99'));
+      const reports = await checkCiDrift({
+        root: ws.root,
+        provider: 'github',
+        templatesRoot: templates,
+      });
+      expect(reports.map((r) => [r.id, r.status, r.latestVersion])).toEqual([
+        ['check', 'outdated', 99],
+        ['e2e', 'up-to-date', 1],
+      ]);
+    } finally {
+      rmSync(templates, { recursive: true, force: true });
+    }
+  });
+
+  it('drift: doctor adds an informational line for outdated or unhashed workflows', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'alpha-app');
+    const doctorLine = async () =>
+      (await cli(['--root', ws?.root ?? '', '--json', 'doctor', '--offline']))
+        .json<{
+          data: { checks: { id: string; status: string; detail: string; required: boolean }[] };
+        }>()
+        .data.checks.find((c) => c.id === 'ci-templates');
+    expect(await doctorLine()).toBeUndefined();
+    await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'ci',
+      'init',
+      '--with',
+      'check',
+      '--prototypes',
+      'alpha-app',
+    ]);
+    expect(await doctorLine()).toMatchObject({
+      status: 'pass',
+      detail: '1 up to date',
+      required: false,
+    });
+    // A workflow scaffolded from an older template version (v0), untouched since.
+    const file = join(ws.root, '.github/workflows/protoyard-check.yml');
+    const { body } = splitHashLine(readFileSync(file, 'utf8'));
+    writeFileSync(file, stampContent(body.replace(/check v\d+/, 'check v0')));
+    expect(await doctorLine()).toMatchObject({
+      status: 'warn',
+      detail: '1 of 1 outdated: .github/workflows/protoyard-check.yml',
+      required: false,
+    });
   });
 });

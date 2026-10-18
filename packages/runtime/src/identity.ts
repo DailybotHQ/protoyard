@@ -195,7 +195,9 @@ export function createIdentityController(k: Kernel): IdentityController {
       for (const name of tables) {
         if (!k.db.hasTable(name)) throw new Error(`Unknown table "${name}".`);
       }
-      const result = await k.db.transaction('rw', tables, () => fn(ops));
+      // An async scope lets Dexie keep the transaction zone across the caller's
+      // own async helpers and awaited plain values (PrematureCommitError otherwise).
+      const result = await k.db.transaction('rw', tables, async () => fn(ops));
       await k.reloadIdentity();
       k.refreshDerived();
       return result;

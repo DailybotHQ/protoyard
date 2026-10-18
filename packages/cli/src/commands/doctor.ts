@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { checkCiDrift } from '../lib/ci-templates.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
 import { CliError, mark } from '../lib/output.ts';
@@ -195,6 +196,42 @@ function playwrightCheck(): DoctorCheck {
       );
 }
 
+/** Informational: scaffolded CI workflows that a newer template (or a local edit) left behind. */
+async function ciTemplatesCheck(ctx: CommandContext): Promise<DoctorCheck[]> {
+  let files: Awaited<ReturnType<typeof checkCiDrift>>;
+  try {
+    files = (await checkCiDrift({ root: ctx.root, provider: 'github' })).filter(
+      (f) => f.status !== 'unmanaged'
+    );
+  } catch {
+    return [];
+  }
+  if (files.length === 0) return [];
+  const outdated = files.filter((f) => f.outdated || f.status === 'unhashed');
+  const modified = files.filter((f) => f.modified).length;
+  const edits = modified > 0 ? ` (${modified} locally modified)` : '';
+  return outdated.length > 0
+    ? [
+        item(
+          'ci-templates',
+          'CI workflow templates',
+          'warn',
+          `${outdated.length} of ${files.length} outdated: ${outdated.map((f) => f.path).join(', ')}${edits}`,
+          false,
+          'Run `pnpm protoyard ci check` for details.'
+        ),
+      ]
+    : [
+        item(
+          'ci-templates',
+          'CI workflow templates',
+          'pass',
+          `${files.length} up to date${edits}`,
+          false
+        ),
+      ];
+}
+
 async function providerChecks(ctx: CommandContext, offline: boolean): Promise<DoctorCheck[]> {
   const checkAuth = !offline;
   const out: DoctorCheck[] = [];
@@ -279,6 +316,7 @@ export const doctorCommand: Handler = async (ctx, _args, options): Promise<Comma
   }
   checks.push(await gitCheck(ctx));
   checks.push(playwrightCheck());
+  checks.push(...(await ciTemplatesCheck(ctx)));
   checks.push(...(await providerChecks(ctx, flag(options, 'offline'))));
 
   const failed = checks.filter((c) => c.required && c.status === 'fail');
