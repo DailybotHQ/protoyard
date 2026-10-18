@@ -207,8 +207,11 @@ export function createProgram(env: RunnerEnv): Command {
   buildOptions(
     program
       .command('export')
-      .description('build and zip a prototype into artifacts/<slug>/<slug>.zip')
-      .argument('<slug>')
+      .description(
+        'build and zip a prototype into artifacts/<slug>/<slug>.zip (or every prototype with --all)'
+      )
+      .argument('[slug]', 'prototype slug (or use --all)')
+      .option('--all', 'export every prototype sequentially (continue past failures)')
       .option('--skip-build', 'zip the existing build (verified against build-manifest.json)')
   ).action(def('export', exportCommand));
 
