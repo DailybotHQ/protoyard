@@ -1,0 +1,31 @@
+{
+  "name": "@protoyard-template/ai-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A deterministic AI assistant workspace starter with projects, history, canvas, agents and voice.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/ai": "workspace:*",
+    "@protoyard/ai-ui": "workspace:*",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/themes": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "dexie": "^4.4.0",
+    "svelte": "^5.57.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@protoyard/runtime": "workspace:*",
+    "@protoyard/scenarios": "workspace:*",
+    "axe-core": "^4.13.0"
+  }
+}
