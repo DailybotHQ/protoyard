@@ -15,7 +15,7 @@ pnpm --filter @prototype/my-phone typecheck
 
 ```text
 src/
-├── App.svelte              router (hash routes) + phone-width shell + BottomNav
+├── App.svelte              router (hash routes) + MobileAppShell + in-flow BottomNav
 ├── prototype.ts            definePrototype: manifest + schema + policy + scenarios + generator
 ├── database/schema.ts      the `items` table (Dexie store syntax) and its row type
 ├── domain/items.ts         services: assert permission → validate → environment.run → write
@@ -33,7 +33,12 @@ src/
   `session.assert(...)`, so bypassing the UI still fails.
 - **Conditions:** offline, slow and failing-server modes from DevTools show a banner. Failed
   writes save nothing, and `runService` turns them into toasts.
-- **Mobile:** 44px touch targets, safe-area insets, and a centered phone column on desktop.
+- **Mobile:** `MobileAppShell` (from `@protoyard/ui`) is exactly one app height tall. Only
+  `<main>` scrolls, and the `BottomNav` sits in normal flow below it (`fixed={false}`), so the
+  nav is always visible and the page itself never scrolls. On a desktop window the renderer
+  frames the app as a phone (`platform: "mobile"`, ADR-016); on a real phone it is full-bleed.
+  Screen-level primary actions can go in the shell's `stickyFooter` snippet. The template
+  also has 44px touch targets and safe-area insets (simulated inside the frame).
   Light/dark/system is saved per persona from Profile.
 
 ## Extend it
