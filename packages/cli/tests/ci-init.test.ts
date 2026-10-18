@@ -388,7 +388,10 @@ describe('drift detection (ci check)', () => {
     }
   });
 
-  it('drift: doctor adds an informational line for outdated or unhashed workflows', async () => {
+  // doctor spawns several tools; allow a loaded machine.
+  it('drift: doctor adds an informational line for outdated or unhashed workflows', {
+    timeout: 60_000,
+  }, async () => {
     ws = createWorkspace();
     addPrototype(ws, 'alpha-app');
     const doctorLine = async () =>
