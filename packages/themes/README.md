@@ -23,7 +23,8 @@ applyAppearance(document.documentElement, {
 | `FONT_CATALOG`, `getFontPairing`, `loadVariableFont` | System-first font pairings (no network) |
 | `getTheme(id, extra?)` / `findTheme` / `mergeThemes` | Lookup with Violet fallback; prototype themes override by id |
 | `resolveMode(mode, matchMedia?)` | `system` → `light`/`dark` |
-| `applyAppearance(el, input)` / `clearAppearance(el)` | Writes `--py-*` vars, `data-py-theme`, `data-py-mode`, `data-py-motion`, `data-py-surface`, the `dark` class and `color-scheme` |
+| `applyAppearance(el, input)` / `clearAppearance(el)` | Writes `--py-*` vars (including `--py-focus-ring-width` / `--py-focus-ring-offset`), `data-py-theme`, `data-py-mode`, `data-py-motion`, `data-py-surface`, the `@protoyard/ui` component profiles from `themeComponentProfile`, the `dark` class and `color-scheme` |
+| `themeComponentProfile(theme)` | The `data-py-*-style` profiles a theme's style implies, only where it departs from today's look: a non-default focus ring → `focus-ring`, `surface: glass` → `card: glass`, `elevation: flat` → `card: bordered`, radius 0 → `button: square`, radius ≥ 999px → `button: pill`. Input and navigation profiles have no theme field and stay consumer-set. The no-flash script replays these (allowlisted values only) |
 | `themeVariables(input)` | The same variables as a plain object |
 | `cacheAppearance(namespace, applied)` / `readCachedAppearance` | localStorage cache at `protoyard.<namespace>.appearance` (try/catch) |
 | `noFlashScript(namespace)` | Inline `<head>` script body that replays the cache (including `data-py-surface`) before first paint |

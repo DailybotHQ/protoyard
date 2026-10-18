@@ -46,11 +46,12 @@ describe('compare scenarios', () => {
     );
     expect(state).toEqual({
       scenarios: ['mature-company', 'new-company', 'growing-team'],
-      device: 'iphone',
+      // Legacy viewport aliases normalize to the core catalog.
+      device: 'phone-pill',
       generation: 2,
     });
     expect(paramsFromState(state)).toBe(
-      '?a=mature-company&b=new-company&c=growing-team&device=iphone&gen=2'
+      '?a=mature-company&b=new-company&c=growing-team&device=phone-pill&gen=2'
     );
     const junk = stateFromParams(
       new URLSearchParams('a=nope&b=../x&device=watch&gen=-4'),
@@ -59,7 +60,7 @@ describe('compare scenarios', () => {
     );
     expect(junk).toEqual({
       scenarios: ['growing-team', 'new-company'],
-      device: 'desktop',
+      device: 'laptop-window',
       generation: 0,
     });
   });

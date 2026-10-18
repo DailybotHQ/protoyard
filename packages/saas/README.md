@@ -21,8 +21,51 @@ The table layout, row schemas and integrity rules, plus:
 - **Onboarding** — `createOnboarding(runtime, { steps })`
 - **Workspaces** — `createWorkspaces(runtime)`
 
-Magic links, MFA, invitations and billing services come in later PLAN_002
-tasks.
+- **Magic link** — `createMagicLinkServices(runtime)`
+- **MFA (simulated TOTP + recovery)** — `createMfaServices(runtime)`
+
+Invitations services come in later PLAN_002 tasks.
+
+### Magic link (`createMagicLinkServices`)
+
+```ts
+import { createMagicLinkServices, createMfaServices } from '@protoyard/saas';
+
+const magic = createMagicLinkServices(runtime, { ttlMinutes: 15, productName: 'Acme' });
+const { token, message } = await magic.issue({ email: 'ada@example.com' });
+// message.action.href → #/auth/magic?token=…
+const result = await magic.consume(token!.id);
+if (result.status === 'mfa-required') {
+  const mfa = createMfaServices(runtime);
+  const row = await mfa.get(result.account.id);
+  await mfa.completeChallenge(result.account.id, {
+    code: mfa.authenticatorPanel(row!.seed).code, // simulated panel only
+  });
+}
+```
+
+- Single-use tokens; expiry follows the **simulated clock** (`commitAdvance` in tests).
+- Delivers a plain-text inbox message with a hash-route action.
+- Unknown emails return `{ delivered: false }` (no account oracle).
+
+### MFA (`createMfaServices`)
+
+```ts
+const mfa = createMfaServices(runtime);
+const { currentCode, recoveryCodes, mfa: row } = await mfa.enroll();
+await mfa.confirmEnroll(currentCode);
+// Panel: mfa.authenticatorPanel(row.seed) → { code, secondsRemaining, simulated: true }
+
+const step = await mfa.signInWithPassword({ email, password });
+if (step.status === 'mfa-required') {
+  await mfa.completeChallenge(step.account.id, { code: mfa.authenticatorPanel(row.seed).code });
+  // or { recoveryCode: recoveryCodes[0] }
+}
+```
+
+- Codes are **deterministic** from the stored seed and a 30s window of `clock.now()` — not real TOTP.
+- Active MFA blocks password and magic-link sign-in until `completeChallenge`.
+- Recovery codes are single-use; `disable` requires a valid code or recovery code.
 
 ### OAuth (`createOAuthSimulator`)
 
@@ -53,6 +96,10 @@ email without a matching provider returns an account-link prompt. After the
 person signs in, start again with intent `link` to confirm linking. Consent
 states are deterministic, expire after ten simulated minutes and are
 single-use. No provider SDK, redirect or network request is used.
+- **Email/password auth** — `createAuthServices(runtime)`
+
+OAuth, magic links, MFA, invitations and billing services come in later
+PLAN_002 tasks.
 
 ### Inbox (`createInbox`)
 
@@ -131,6 +178,25 @@ await auth.signOut();
   credential.
 - A locked account has no unlock flow yet. Password reset comes in a later
   task.
+
+### Workspaces (`createWorkspaces`)
+
+```ts
+import { createWorkspaces, WORKSPACE_CAPABILITIES } from '@protoyard/saas';
+
+// Policy roles should grant workspaces:create / rename / leave (or `*`).
+const workspaces = createWorkspaces(runtime);
+const { organization } = await workspaces.create({ name: 'Acme Labs' });
+await workspaces.switchTo(organization.id); // also happens automatically after create
+await workspaces.rename(organization.id, { name: 'Acme Cloud' });
+// Last owner cannot leave — transfer first via workspaces.transferOwnership(memberId)
+await workspaces.leave(organization.id);
+```
+
+- Creates the organization + owner membership in **one** `runtime.identity.write` transaction, then `session.switchOrganization`.
+- **`switchTo`** only allows organizations the persona already belongs to (control-state only, works offline).
+- **`leave`** refuses when the actor is the last `owner`; after a successful leave, switches to another membership when the active org was left.
+- **`transferOwnership`** delegates to `runtime.members.transferOwnership`.
 
 | Table | Holds | Indexes |
 | --- | --- | --- |
