@@ -168,6 +168,68 @@ describe('manifest preview shell', () => {
   });
 });
 
+describe('manifest catalog block', () => {
+  const base = {
+    id: 'example.crm',
+    slug: 'crm-demo',
+    name: 'CRM',
+    version: '0.1.0',
+    storage: { namespace: 'crm-demo', schemaVersion: 1 },
+  };
+
+  it('is optional: manifests without it parse with no catalog key', () => {
+    const result = safeParseManifest(base);
+    expect(result.success).toBe(true);
+    if (result.success) expect('catalog' in result.data).toBe(false);
+  });
+
+  it('parses a full block and fills array defaults for a minimal one', () => {
+    const full = safeParseManifest({
+      ...base,
+      catalog: {
+        category: 'sales',
+        productType: 'CRM',
+        platforms: ['web', 'tablet'],
+        shell: 'browser',
+        features: ['auth', 'pipeline-board'],
+        highlights: ['Drag deals across stages'],
+        difficulty: 'intermediate',
+      },
+    });
+    expect(full.success).toBe(true);
+    if (full.success) expect(full.data.catalog?.platforms).toEqual(['web', 'tablet']);
+    const minimal = safeParseManifest({ ...base, catalog: { category: 'starter' } });
+    expect(minimal.success).toBe(true);
+    if (minimal.success) {
+      expect(minimal.data.catalog).toEqual({
+        category: 'starter',
+        platforms: [],
+        features: [],
+        highlights: [],
+      });
+    }
+  });
+
+  it('rejects free-form categories, duplicates, bad keys and unknown fields', () => {
+    for (const catalog of [
+      {},
+      { category: 'Sales' },
+      { category: 'fintech' },
+      { category: 'sales', platforms: ['web', 'web'] },
+      { category: 'sales', platforms: ['console'] },
+      { category: 'sales', features: ['Auth'] },
+      { category: 'sales', features: ['auth', 'auth'] },
+      { category: 'sales', shell: 'watch' },
+      { category: 'sales', difficulty: 'expert' },
+      { category: 'sales', productType: '' },
+      { category: 'sales', highlights: ['x'.repeat(121)] },
+      { category: 'sales', price: 10 },
+    ]) {
+      expect(safeParseManifest({ ...base, catalog }).success, JSON.stringify(catalog)).toBe(false);
+    }
+  });
+});
+
 describe('determinism', () => {
   it('produces the same stream for the same seed', () => {
     const a = createRng(42);

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync, utimesSync } from 'node:fs';
+import { readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { workspacePaths } from '../src/lib/paths.ts';
@@ -132,5 +132,81 @@ describe('discovery and registry', () => {
     );
     expect(ordered[0]).toBe('zeta-crm');
     expect(ordered[ordered.length - 1]).toBe('alpha-bank');
+  });
+
+  it('indexes the optional catalog block and searches its product type and features', async () => {
+    seed();
+    addPrototype(ws, 'help-desk', {
+      name: 'Help Desk',
+      platform: 'responsive',
+      catalog: {
+        category: 'support',
+        productType: 'Helpdesk',
+        platforms: ['web', 'widget'],
+        features: ['sla-timers', 'canned-replies'],
+        highlights: ['Tickets with SLA timers'],
+        difficulty: 'advanced',
+      },
+    });
+    addPrototype(ws, 'pocket-bank', {
+      name: 'Pocket Bank',
+      platform: 'mobile',
+      catalog: { category: 'finance' },
+    });
+    addPrototype(ws, 'side-kick', {
+      name: 'Side Kick',
+      platform: 'mobile',
+      catalog: { category: 'productivity', shell: 'side-panel' },
+    });
+    const { registry } = await buildIndex(workspacePaths(ws.root));
+    expect(findEntry(registry, 'help-desk')?.catalog).toEqual({
+      category: 'support',
+      productType: 'Helpdesk',
+      platforms: ['web', 'widget'],
+      shell: 'none',
+      features: ['sla-timers', 'canned-replies'],
+      highlights: ['Tickets with SLA timers'],
+      difficulty: 'advanced',
+    });
+    expect(findEntry(registry, 'pocket-bank')?.catalog).toEqual({
+      category: 'finance',
+      productType: null,
+      platforms: [],
+      shell: 'phone',
+      features: [],
+      highlights: [],
+      difficulty: null,
+    });
+    expect(findEntry(registry, 'side-kick')?.catalog?.shell).toBe('side-panel');
+    expect(findEntry(registry, 'zeta-crm')?.catalog).toBeNull();
+    const slugs = (search: string) =>
+      filterEntries(registry.entries, { search }).map((e) => e.slug);
+    expect(slugs('helpdesk')).toEqual(['help-desk']);
+    expect(slugs('sla-timers')).toEqual(['help-desk']);
+  });
+
+  it('reports an invalid catalog without failing the index', async () => {
+    seed();
+    addPrototype(ws, 'odd-one', { catalog: { category: 'not-a-category' } });
+    const { registry } = await buildIndex(workspacePaths(ws.root));
+    expect(findEntry(registry, 'odd-one')).toBeUndefined();
+    const issue = registry.invalid.find((i) => i.path === 'prototypes/odd-one');
+    expect(issue?.errors.join(' ')).toMatch(/catalog/);
+    expect(registry.entries).toHaveLength(4);
+  });
+
+  it('ignores an index cache from before catalog entries existed', async () => {
+    seed();
+    const paths = workspacePaths(ws.root);
+    const cold = await buildIndex(paths);
+    const cache = JSON.parse(readFileSync(paths.indexCache, 'utf8'));
+    for (const record of Object.values(cache.records) as { entry: Record<string, unknown> }[]) {
+      if (record.entry) delete record.entry.catalog;
+    }
+    cache.version = 1;
+    writeFileSync(paths.indexCache, JSON.stringify(cache));
+    const warm = await buildIndex(paths);
+    expect([warm.parsed, warm.cached]).toEqual([4, 0]);
+    expect(warm.registry.entries).toEqual(cold.registry.entries);
   });
 });

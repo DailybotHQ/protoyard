@@ -91,6 +91,88 @@ export const PreviewSchema = z.object({
 });
 export type PreviewSettings = z.infer<typeof PreviewSchema>;
 
+/**
+ * Marketplace categories: one shared list, so the gallery never shows two
+ * spellings of the same shelf. Add a value here instead of free-form text.
+ */
+export const CATALOG_CATEGORIES = [
+  'starter',
+  'productivity',
+  'communication',
+  'sales',
+  'marketing',
+  'support',
+  'finance',
+  'commerce',
+  'marketplace',
+  'ai',
+  'analytics',
+  'developer-tools',
+  'design',
+  'education',
+  'health',
+  'hr',
+  'operations',
+  'media',
+  'social',
+  'travel',
+  'real-estate',
+  'internal-tools',
+] as const;
+export const CatalogCategorySchema = z.enum(CATALOG_CATEGORIES);
+export type CatalogCategory = z.infer<typeof CatalogCategorySchema>;
+
+/** Where the product runs (a marketplace filter; distinct from the layout `platform`). */
+export const CatalogPlatformSchema = z.enum([
+  'web',
+  'mobile',
+  'tablet',
+  'desktop',
+  'widget',
+  'extension',
+  'plugin',
+]);
+export type CatalogPlatform = z.infer<typeof CatalogPlatformSchema>;
+
+export const CatalogDifficultySchema = z.enum(['beginner', 'intermediate', 'advanced']);
+export type CatalogDifficulty = z.infer<typeof CatalogDifficultySchema>;
+
+const unique = <T>(items: readonly T[]) => new Set(items).size === items.length;
+
+/**
+ * Optional marketplace metadata. Data only, like the rest of the manifest:
+ * the registry indexes it without running prototype code.
+ */
+export const CatalogSchema = z
+  .object({
+    category: CatalogCategorySchema,
+    /** Short product noun shown on cards, e.g. "CRM" or "Helpdesk". */
+    productType: z.string().trim().min(1).max(40).optional(),
+    platforms: z
+      .array(CatalogPlatformSchema)
+      .max(7)
+      .refine(unique, { message: 'platforms must not repeat' })
+      .default([]),
+    /** Shell the marketplace card frames the demo in (default: `preview.shell`). */
+    shell: ShellSchema.optional(),
+    /** Kebab-case feature keys used as filters, e.g. `auth`, `billing`, `offline`. */
+    features: z
+      .array(
+        z
+          .string()
+          .max(40)
+          .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, { message: 'feature must be kebab-case' })
+      )
+      .max(24)
+      .refine(unique, { message: 'features must not repeat' })
+      .default([]),
+    /** One-line selling points for the detail page. */
+    highlights: z.array(z.string().trim().min(1).max(120)).max(6).default([]),
+    difficulty: CatalogDifficultySchema.optional(),
+  })
+  .strict();
+export type Catalog = z.infer<typeof CatalogSchema>;
+
 export const ProjectKindSchema = z.enum(['prototype', 'template']);
 export type ProjectKind = z.infer<typeof ProjectKindSchema>;
 
@@ -164,6 +246,8 @@ export const PrototypeManifestSchema = z
         offline: z.boolean().default(false),
       })
       .default({ includeDevtools: false, demoBadge: true, base: './', offline: false }),
+    /** Marketplace metadata (optional; indexed by the registry). */
+    catalog: CatalogSchema.optional(),
     /** Scenario ids declared by the prototype (indexed for the gallery). */
     scenarios: z.array(z.string()).default([]),
     createdAt: z.string().optional(),

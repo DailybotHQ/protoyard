@@ -9,7 +9,7 @@ Nothing here imports Svelte, Dexie or Node APIs.
 
 | File | What it defines |
 | --- | --- |
-| `manifest.ts` | `PrototypeManifestSchema` for `protoyard.json` (id, slug, kind, platform, `preview` (viewport, `shell`, `device`, `orientation`, `chrome` with fictional-only origins), storage namespace + schemaVersion, build flags, scenario ids), `ShellSchema`, `resolveShell` (`auto` → `phone` for mobile, else `none`), `parseManifest`, `MANIFEST_FILENAME` |
+| `manifest.ts` | `PrototypeManifestSchema` for `protoyard.json` (id, slug, kind, platform, `preview` (viewport, `shell`, `device`, `orientation`, `chrome` with fictional-only origins), storage namespace + schemaVersion, build flags, scenario ids), `ShellSchema`, `resolveShell` (`auto` → `phone` for mobile, else `none`), the optional marketplace `catalog` block (`CatalogSchema`, `CATALOG_CATEGORIES`), `parseManifest`, `MANIFEST_FILENAME` |
 | `slug.ts` | `checkSlug` / `isValidSlug` / `slugify`, reserved slugs. This is the path-safety gate for the CLI. |
 | `prototype.ts` | `definePrototype` and `PrototypeDefinition` (manifest, `DatabaseDefinition` versions/migrations, scenarios, `generate`, `generatorVersion`, `policy`, `integrity`, `themes`, `timeline`, `applyEvent`), `WorldSeed`, `GenerateContext`, `RESERVED_TABLES` |
 | `scenario.ts` | `ScenarioSchema` and its independent axes (organization, actor, density, activity, environment, appearance, generator knobs), `defineScenario`, `parseScenarioLink` / `buildScenarioLink` for safe reproducible links (including `?shell=`) |
