@@ -1,0 +1,6 @@
+@import "@protoyard/renderer-svelte/app.css";
+/* RichAnswer markup from the assistant UI package. */
+@import "@protoyard/ai-ui/styles.css";
+
+/* Let Tailwind see this prototype's own markup. */
+@source "./";
