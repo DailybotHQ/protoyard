@@ -18,6 +18,19 @@ export {
   AiRateLimitError,
   createAiEngine,
 } from './engine.ts';
+export {
+  inlineText,
+  MARKDOWN_MAX_LENGTH,
+  type MdAlign,
+  type MdBlock,
+  type MdDocument,
+  type MdInline,
+  type MdListItem,
+  type MdSource,
+  parseMarkdown,
+  safeHref,
+  safeImageSrc,
+} from './markdown.ts';
 export { AI_MODELS } from './models.ts';
 export {
   DEFAULT_RESPONSE_PACKS,
