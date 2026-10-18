@@ -15,6 +15,7 @@ import {
 import {
   composeScenario,
   createGenerateContext,
+  GENERATOR_SDK_VERSION,
   PRESET_IDS,
   PRESETS,
   validateWorld,
@@ -113,7 +114,7 @@ describe('1. deterministic generation', () => {
     expect(await dumpTables(r1.db)).toEqual(await dumpTables(r2.db));
     expect(r1.scenarios.active()).toMatchObject({
       seed: 42,
-      generatorVersion: 1,
+      generatorVersion: GENERATOR_SDK_VERSION,
       prototypeGeneratorVersion: 3,
     });
   });
@@ -964,6 +965,29 @@ describe('simulated sign-in (signed out sessions)', () => {
     await runtime.session.signIn('user_0001');
     expect(runtime.overrides.get().actorId).toBeUndefined();
     expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+  });
+});
+
+describe('organization billing fields in snapshots', () => {
+  it('imports an older snapshot whose organizations lack the billing fields', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.load('active-month');
+    expect(runtime.session.principal()?.organization).toHaveProperty('seats');
+    const { json } = await runtime.snapshots.exportJson();
+    const legacy = JSON.parse(json) as {
+      tables: { name: string; rows: Record<string, unknown>[] }[];
+    };
+    for (const table of legacy.tables) {
+      if (table.name !== 'py_organizations') continue;
+      table.rows = table.rows.map(
+        ({ trialEndsAt: _t, seats: _s, billingInterval: _b, currentPeriodEnd: _c, ...row }) => row
+      );
+    }
+    await runtime.snapshots.importJson(JSON.stringify(legacy), { restore: true });
+    const organization = runtime.session.principal()?.organization;
+    expect(organization?.name).toBeTruthy();
+    expect(organization?.seats).toBeUndefined();
+    expect(organization?.seats ?? organization?.size).toBeGreaterThan(0);
   });
 });
 
