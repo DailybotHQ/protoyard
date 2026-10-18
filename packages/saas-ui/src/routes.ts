@@ -8,7 +8,7 @@ import {
   type SaasSessionLike,
 } from './guards.ts';
 
-export type SaasRouteGroup = 'auth' | 'oauth' | 'inbox' | 'onboarding';
+export type SaasRouteGroup = 'auth' | 'oauth' | 'inbox' | 'onboarding' | 'billing';
 
 export interface SaasRoutesOptions extends SaasUiConfig, GuardPathOptions {
   /**
@@ -38,6 +38,9 @@ const LOADERS = {
   oauthConsent: () => import('./screens/OAuthConsent.svelte'),
   inbox: () => import('./screens/inbox/Inbox.svelte'),
   onboarding: () => import('./screens/Onboarding.svelte'),
+  billingPlans: () => import('./screens/billing/Plans.svelte'),
+  billingCheckout: () => import('./screens/billing/Checkout.svelte'),
+  billingPortal: () => import('./screens/billing/Portal.svelte'),
 } as const satisfies Record<string, ScreenLoader>;
 
 /**
@@ -69,7 +72,7 @@ export function saasRoutes(options: SaasRoutesOptions): RouteDefinition[] {
     ...(options.forbiddenPath !== undefined ? { forbiddenPath: options.forbiddenPath } : {}),
   };
   const groups = new Set<SaasRouteGroup>(
-    options.include ?? ['auth', 'oauth', 'inbox', 'onboarding']
+    options.include ?? ['auth', 'oauth', 'inbox', 'onboarding', 'billing']
   );
 
   const route = (
@@ -115,6 +118,29 @@ export function saasRoutes(options: SaasRoutesOptions): RouteDefinition[] {
         config.onboardingPath,
         'Onboarding',
         LOADERS.onboarding,
+        requireAuth(session, guardOpts)
+      )
+    );
+  }
+
+  if (groups.has('billing')) {
+    routes.push(
+      route(
+        config.billingPlansPath,
+        'Plans',
+        LOADERS.billingPlans,
+        requireAuth(session, guardOpts)
+      ),
+      route(
+        config.billingCheckoutPath,
+        'Checkout',
+        LOADERS.billingCheckout,
+        requireAuth(session, guardOpts)
+      ),
+      route(
+        config.billingPortalPath,
+        'Billing portal',
+        LOADERS.billingPortal,
         requireAuth(session, guardOpts)
       )
     );

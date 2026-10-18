@@ -36,7 +36,7 @@ the drop-in UI layer on `@protoyard/ui` and `@protoyard/renderer-svelte`.
 
   let { runtime } = $props();
   provideRuntime(runtime);
-  provideSaas(runtime, { lazy: true });
+  provideSaas(runtime, { lazy: true, billing: createBilling(runtime, catalog) });
 </script>
 ```
 
@@ -72,8 +72,12 @@ UI until a kit route opens.
 | `/oauth/consent` | Simulated provider consent | — |
 | `/inbox` | Simulated inbox with read, archive and action links | `requireAuth` |
 | `/onboarding` | Onboarding wizard | `requireAuth` |
+| `/billing/plans` | Pricing cards (integer cents) | `requireAuth` |
+| `/billing/checkout` | Simulated checkout — no card, no charge; outcome picker only when `billingShowOutcomePicker` | `requireAuth` |
+| `/billing/portal` | Current plan, seats, invoices, cancel/resume | `requireAuth` |
 
-Use the exported `InboxDrawer` on a signed-out screen to open the simulated
+
+Mount `TrialBanner` in the app shell to show remaining trial days from the simulated clock. Use the exported `InboxDrawer` on a signed-out screen to open the simulated
 mailbox without changing routes. Pass a fictional `recipient` when no signed-in
 persona supplies one. `InboxBadge` is available for headers and displays the
 unread count. Inbox messages are plain text and action links stay in the
