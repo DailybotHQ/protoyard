@@ -1,0 +1,28 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "example.support-widget",
+  "slug": "support-widget-demo",
+  "kind": "prototype",
+  "name": "Northwind Help",
+  "description": "Flagship support chat widget for a fictional outdoor-gear store: order lookup, returns, human handoff and offline mode on the widget-host shell. Demo only — no real orders or money.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "support",
+  "tags": ["support", "chat", "widget", "orders", "returns", "flagship"],
+  "status": "ready",
+  "icon": "🛟",
+  "defaultScenario": "returning-customer",
+  "defaultTheme": "emerald",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "shell": "widget-host",
+    "chrome": { "hostName": "Northwind Outfitters (fictional)" }
+  },
+  "storage": { "namespace": "support-widget-demo", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["first-visit", "returning-customer", "open-return", "agent-offline", "outage"],
+  "createdAt": "2026-10-18T00:00:00.000Z",
+  "updatedAt": "2026-10-18T00:00:00.000Z"
+}

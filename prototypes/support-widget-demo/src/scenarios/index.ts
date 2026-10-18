@@ -1,0 +1,70 @@
+import type { ScenarioInput } from '@protoyard/core';
+
+const referenceTime = '2026-10-16T15:00:00.000Z';
+const organization = { id: 'org_0001', name: 'Northwind Outfitters', size: 2 } as const;
+
+/** Five showcase scenarios for the flagship widget. */
+export const scenarios: ScenarioInput[] = [
+  {
+    id: 'first-visit',
+    name: 'First visit',
+    description: 'Empty support thread with greeting; orders exist to look up.',
+    group: 'Lifecycle',
+    seed: 11,
+    referenceTime,
+    density: 'empty',
+    organization: { ...organization, ageDays: 0 },
+    actor: { id: 'user_visitor', role: 'visitor', joinedDaysAgo: 0 },
+    generators: { history: 0, orders: 3 },
+  },
+  {
+    id: 'returning-customer',
+    name: 'Returning customer',
+    description: 'Prior chat history plus delivered orders ready for returns.',
+    group: 'Lifecycle',
+    seed: 42,
+    referenceTime,
+    density: 'normal',
+    organization: { ...organization, ageDays: 45 },
+    actor: { id: 'user_visitor', role: 'visitor', joinedDaysAgo: 45 },
+    generators: { history: 2, orders: 4 },
+  },
+  {
+    id: 'open-return',
+    name: 'Open return',
+    description: 'A return is already in progress for a delivered order.',
+    group: 'Lifecycle',
+    seed: 77,
+    referenceTime,
+    density: 'normal',
+    organization: { ...organization, ageDays: 30 },
+    actor: { id: 'user_visitor', role: 'visitor', joinedDaysAgo: 30 },
+    generators: { history: 1, orders: 3, openReturn: 1 },
+  },
+  {
+    id: 'agent-offline',
+    name: 'Offline visitor',
+    description: 'Network offline — banner shows; sends and lookups fail (simulated).',
+    group: 'Conditions',
+    seed: 42,
+    referenceTime,
+    density: 'normal',
+    organization: { ...organization, ageDays: 14 },
+    actor: { id: 'user_visitor', role: 'visitor', joinedDaysAgo: 14 },
+    generators: { history: 1, orders: 2 },
+    environment: { network: 'offline' },
+  },
+  {
+    id: 'outage',
+    name: 'Assistant outage',
+    description: 'Assistant replies fail with simulated 500; retry after clearing failures.',
+    group: 'Conditions',
+    seed: 42,
+    referenceTime,
+    density: 'normal',
+    organization: { ...organization, ageDays: 7 },
+    actor: { id: 'user_visitor', role: 'visitor', joinedDaysAgo: 7 },
+    generators: { history: 1, orders: 2 },
+    environment: { failureMode: 'server-error', failureRate: 1, failureScope: ['assistant.'] },
+  },
+];
