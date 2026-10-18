@@ -24,7 +24,7 @@
     "biome:fix": "biome check --write",
     "lint": "biome check",
     "format": "biome format --write",
-    "typecheck": "pnpm -r --parallel --if-present typecheck",
+    "typecheck": "pnpm -r --workspace-concurrency=4 --if-present typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
