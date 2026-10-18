@@ -17,6 +17,27 @@ export {
   type SaasInboxDatabase,
 } from './inbox.ts';
 export {
+  createMagicLinkServices,
+  type IssueMagicLinkInput,
+  IssueMagicLinkSchema,
+  type MagicLinkConsumeResult,
+  type MagicLinkOptions,
+  type MagicLinkServices,
+} from './magic-link.ts';
+export {
+  createMfaServices,
+  MFA_WINDOW_MS,
+  MfaCodeSchema,
+  type MfaOptions,
+  type MfaServices,
+  type MfaSignInResult,
+  type PasswordSignInInput,
+  PasswordSignInSchema,
+  RecoveryCodeInputSchema,
+  simulatedTotpCode,
+  simulatedTotpSecondsRemaining,
+} from './mfa.ts';
+export {
   createOAuthSimulator,
   type OAuthIntent,
   OAuthIntentSchema,

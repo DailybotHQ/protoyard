@@ -76,6 +76,11 @@ export {
   EntityNotFoundError,
   type EntityService,
   type EntityServices,
+  type ExportCsvFilter,
+  ImportCsvError,
+  type ImportCsvOptions,
+  type ImportCsvResult,
+  UNDO_WINDOW_MS,
 } from './services.ts';
 export {
   deriveIntegrity,

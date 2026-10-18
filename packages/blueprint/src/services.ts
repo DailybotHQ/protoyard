@@ -7,6 +7,15 @@ import {
 } from '@protoyard/core';
 import { z } from 'zod';
 import { blueprintUsesAudit, createAuditWriter } from './audit.ts';
+import {
+  type CsvParseOptions,
+  type CsvRowError,
+  type CsvSerializeOptions,
+  type CsvValidationResult,
+  mapCsvHeaders,
+  parseCsv,
+  serializeEntityCsv,
+} from './csv.ts';
 import { createNotificationWriter } from './notifications.ts';
 import {
   type Blueprint,
@@ -94,6 +103,56 @@ export interface EntityService {
   bulkUpdate(ids: readonly string[], patch: EntityInput): Promise<Row[]>;
   /** Removes every id (with `onDelete` effects) and returns how many rows were deleted. */
   bulkRemove(ids: readonly string[]): Promise<number>;
+  /**
+   * Visible rows as CSV text (headers = field labels). Gated by `<entity>:export`.
+   * Optional filter narrows the listed set; relation cells are the stored ids.
+   */
+  exportCsv(filter?: ExportCsvFilter, options?: CsvSerializeOptions): Promise<string>;
+  /**
+   * CSV import: `mode: 'preview'` (default) validates only; `mode: 'commit'` writes
+   * in one transaction (chunks of {@link BULK_CHUNK}). Gated by `<entity>:import`.
+   * Relation cells accept a target id or its title. Without `skipInvalid`, any
+   * invalid row aborts the commit and writes nothing.
+   */
+  importCsv(text: string, options?: ImportCsvOptions): Promise<ImportCsvResult>;
+}
+
+/** Optional narrow of `list()` before export. */
+export interface ExportCsvFilter {
+  ids?: readonly string[];
+  where?: (row: Row) => boolean;
+}
+
+export interface ImportCsvOptions extends CsvParseOptions {
+  /** `preview` validates only; `commit` writes (default `preview`). */
+  mode?: 'preview' | 'commit';
+  /**
+   * On commit: write only valid rows when true; when false (default), any
+   * invalid row fails the whole import and nothing is written.
+   */
+  skipInvalid?: boolean;
+  serialize?: CsvSerializeOptions;
+}
+
+export interface ImportCsvResult extends CsvValidationResult {
+  mode: 'preview' | 'commit';
+  /** Rows written on a successful commit (empty on preview). */
+  created: Row[];
+  /** Audit entry ids written for this batch (when `features.audit` is on). */
+  auditIds: string[];
+}
+
+/** Thrown when commit is requested and invalid rows remain without `skipInvalid`. */
+export class ImportCsvError extends Error {
+  readonly code = 'import-invalid' as const;
+  readonly report: ImportCsvResult;
+  constructor(report: ImportCsvResult) {
+    super(
+      `CSV import has ${report.errors.length} invalid cell(s) across ${report.rowCount} row(s); nothing was written.`
+    );
+    this.name = 'ImportCsvError';
+    this.report = report;
+  }
 }
 
 export type EntityServices = Record<string, EntityService>;
@@ -210,6 +269,163 @@ export function createEntityServices(
     if (!principal) throw new Error('No active persona. Load a scenario first.');
     return principal.persona.id;
   };
+
+  /**
+   * Resolves a relation cell to a stored id: exact id match first, then a unique
+   * title-field match on the target entity (soft-deleted targets are ignored).
+   */
+  async function resolveRelationCell(
+    field: BlueprintField & { kind: 'relation' },
+    raw: string
+  ): Promise<string> {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      throw new ValidationError({
+        [inputProperty(field)]: `${fieldLabel(field)} is required`,
+      });
+    }
+    const target = byName.get(field.to);
+    if (!target) {
+      throw new ValidationError({
+        [inputProperty(field)]: `${fieldLabel(field)} target is unknown`,
+      });
+    }
+    const targetTable = entityTable(target);
+    const byId = await db.table(targetTable).get(trimmed);
+    if (byId && !byId.deletedAt) return byId.id;
+
+    const titleField = target.fields.find((f) => f.name === target.titleField);
+    const titleProp = titleField ? inputProperty(titleField) : 'id';
+    const matches = (await db.table(targetTable).toArray()).filter(
+      (row) => !row.deletedAt && String(row[titleProp] ?? '') === trimmed
+    );
+    if (matches.length === 1) return (matches[0] as Row).id;
+    if (matches.length === 0) {
+      throw new ValidationError({
+        [inputProperty(field)]: `${fieldLabel(field)} not found`,
+      });
+    }
+    throw new ValidationError({
+      [inputProperty(field)]: `${fieldLabel(field)} matches more than one ${target.name}`,
+    });
+  }
+
+  async function resolveImportCell(
+    field: BlueprintField | undefined,
+    raw: string
+  ): Promise<unknown> {
+    if (!field) return raw;
+    if (field.kind === 'relation') {
+      if (raw.trim() === '') return null;
+      if (field.cardinality === 'many') {
+        const parts = raw
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean);
+        const ids: string[] = [];
+        for (const part of parts) ids.push(await resolveRelationCell(field, part));
+        return ids;
+      }
+      return resolveRelationCell(field, raw);
+    }
+    if (field.kind === 'persona') {
+      if (raw.trim() === '') return null;
+      const trimmed = raw.trim();
+      const byId = await db.table('py_personas').get(trimmed);
+      if (byId) return byId.id;
+      const people = await db.table('py_personas').toArray();
+      const matches = people.filter(
+        (row) =>
+          String(row.name ?? '') === trimmed ||
+          String(row.displayName ?? '') === trimmed ||
+          String(row.email ?? '') === trimmed
+      );
+      if (matches.length === 1) return (matches[0] as Row).id;
+      if (matches.length === 0) {
+        throw new ValidationError({
+          [inputProperty(field)]: `${fieldLabel(field)} not found`,
+        });
+      }
+      throw new ValidationError({
+        [inputProperty(field)]: `${fieldLabel(field)} matches more than one persona`,
+      });
+    }
+    return raw;
+  }
+
+  /**
+   * Parse + resolve relations/personas by id or title, then validate each row
+   * against the create schema. Does not write.
+   */
+  async function previewImportCsv(
+    entity: BlueprintEntity,
+    text: string,
+    options: CsvParseOptions = {}
+  ): Promise<CsvValidationResult> {
+    const matrix = parseCsv(text, options);
+    const [headerRow, ...dataRows] = matrix;
+    if (!headerRow) {
+      return { headers: [], columns: [], valid: [], errors: [], rowCount: 0 };
+    }
+    const columns = mapCsvHeaders(headerRow, entity);
+    const { create } = deriveInputSchemas(entity);
+    const valid: EntityInput[] = [];
+    const errors: CsvRowError[] = [];
+    let rowCount = 0;
+
+    for (let index = 0; index < dataRows.length; index += 1) {
+      const cells = dataRows[index] as string[];
+      if (cells.every((c) => c.trim() === '')) continue;
+      rowCount += 1;
+      const rowNumber = index + 1;
+      const raw: EntityInput = {};
+      try {
+        for (let colIndex = 0; colIndex < columns.length; colIndex += 1) {
+          const col = columns[colIndex];
+          if (!col?.property) continue;
+          raw[col.property] = await resolveImportCell(col.field, cells[colIndex] ?? '');
+        }
+        valid.push(parseInput(create, raw));
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          for (const [field, message] of Object.entries(error.issues)) {
+            errors.push({ row: rowNumber, field, message });
+          }
+        } else {
+          errors.push({
+            row: rowNumber,
+            field: 'row',
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+
+    return { headers: headerRow, columns, valid, errors, rowCount };
+  }
+
+  async function writeAuditBatch(
+    entity: BlueprintEntity,
+    rows: readonly Row[],
+    action: string,
+    actor: string
+  ): Promise<string[]> {
+    if (!entity.features.audit || rows.length === 0) return [];
+    const at = clock.now().toISOString();
+    const entries = rows.map((row) => {
+      const id = createRuntimeId('audit');
+      return {
+        id,
+        entity: entity.name,
+        recordId: row.id,
+        actorId: actor,
+        action,
+        at,
+      } satisfies Row;
+    });
+    await putChunked(db.table(FEATURE_TABLES.audit), entries);
+    return entries.map((e) => e.id);
+  }
 
   /** Fails with a field-keyed ValidationError when a referenced row is missing. */
   async function assertReferences(entity: BlueprintEntity, values: EntityInput) {
@@ -655,6 +871,82 @@ export function createEntityServices(
               });
             }
             return typeof result === 'number' ? result : result.count;
+          })
+        );
+      },
+
+      async exportCsv(filter, options) {
+        session.assert(cap('export'));
+        let rows = await this.list();
+        if (filter?.ids && filter.ids.length > 0) {
+          const want = new Set(filter.ids);
+          rows = rows.filter((row) => want.has(row.id));
+        }
+        if (filter?.where) rows = rows.filter(filter.where);
+        const records = rows.map((row) => {
+          const input: EntityInput = {};
+          for (const field of entity.fields) {
+            const property = inputProperty(field);
+            if (property in row) input[property] = row[property];
+          }
+          return input;
+        });
+        return serializeEntityCsv(entity, records, options);
+      },
+
+      async importCsv(text, options = {}) {
+        session.assert(cap('import'));
+        const mode = options.mode ?? 'preview';
+        const skipInvalid = options.skipInvalid === true;
+        const preview = await previewImportCsv(entity, text, options);
+        const base: ImportCsvResult = {
+          ...preview,
+          mode,
+          created: [],
+          auditIds: [],
+        };
+
+        if (mode === 'preview') return base;
+
+        if (preview.errors.length > 0 && !skipInvalid) {
+          throw new ImportCsvError(base);
+        }
+        if (preview.valid.length === 0) {
+          return base;
+        }
+
+        return environment.run(op('import'), () =>
+          db.transaction('rw', writeTables, async () => {
+            const actor = actorId();
+            const now = clock.now().toISOString();
+            const created: Row[] = [];
+            for (const values of preview.valid) {
+              await assertReferences(entity, values);
+              const row: Row = {
+                ...values,
+                id: createRuntimeId(entity.name.replace(/-/g, '_')),
+                createdAt: now,
+                updatedAt: now,
+              };
+              if (
+                ownerProperty &&
+                (row[ownerProperty] === null || row[ownerProperty] === undefined)
+              ) {
+                row[ownerProperty] = actor;
+              }
+              created.push(row);
+            }
+            await putChunked(db.table(table), created);
+            const auditIds = await writeAuditBatch(entity, created, 'import', actor);
+            for (const row of created) {
+              await notify({ on: 'create', entity, row });
+            }
+            return {
+              ...base,
+              mode: 'commit' as const,
+              created,
+              auditIds,
+            };
           })
         );
       },
