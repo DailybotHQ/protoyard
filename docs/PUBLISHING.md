@@ -79,6 +79,7 @@ From a real `crm-demo` build (the `files` list is shortened):
 | `outDir` | Workspace-relative when inside the workspace, absolute otherwise |
 | `fileCount`, `totalBytes`, `files[]` | Every emitted file with size and SHA-256 |
 | `generator`, `sdk`, `node` | CLI, package, Vite and Node versions that produced it |
+| `bundle` | gzip (level 9) bytes: `initialJsGzip` (entry chunks and their static imports), `lazyJsGzip` (chunks loaded through `import()`, such as Faker), `cssGzip`, `totalGzip` (every file), and `chunks[]` (`file`, `kind`: `initial`, `lazy` or `css`, `gzip`). Computed from Vite's chunk manifest, which is then deleted from `dist`. Absent when the prototype's `vite.config.ts` does not use `defineProtoyardConfig`. `build` prints the same figures. |
 
 ## Base paths
 

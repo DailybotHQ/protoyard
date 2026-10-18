@@ -8,6 +8,7 @@ import {
   devFsAllow,
   envFlag,
   resolveProtoyardSettings,
+  VITE_MANIFEST_PATH,
 } from '../src/vite.ts';
 
 const manifest = parseManifest({
@@ -83,6 +84,8 @@ describe('defineProtoyardConfig', () => {
     expect(config.base).toBe('./');
     expect(config.build?.emptyOutDir).toBe(true);
     expect(config.build?.sourcemap).toBe(true);
+    // The CLI's bundle analysis reads this manifest and removes it from dist.
+    expect(config.build?.manifest).toBe(VITE_MANIFEST_PATH);
     expect(config.define?.__PROTOYARD_DEVTOOLS__).toBe('false');
     expect(JSON.parse(config.define?.__PROTOYARD_BUILD__ as string).slug).toBe('crm-demo');
     expect(config.server?.strictPort).toBe(false);

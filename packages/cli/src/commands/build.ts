@@ -38,6 +38,7 @@ export const buildCommand: Handler = async (ctx, args, options): Promise<Command
       includeDevtools: manifest.includeDevtools,
       fileCount: manifest.fileCount,
       totalBytes: manifest.totalBytes,
+      bundle: manifest.bundle ?? null,
       durationMs: Math.round(result.durationMs),
     },
     render(out) {
@@ -45,6 +46,12 @@ export const buildCommand: Handler = async (ctx, args, options): Promise<Command
       out.always(
         `${mark(c, 'pass')} Built ${c.bold(entry.slug)} → ${c.cyan(manifest.outDir)} (${manifest.fileCount} files, ${formatBytes(manifest.totalBytes)}, ${(result.durationMs / 1000).toFixed(1)} s)`
       );
+      if (manifest.bundle) {
+        const b = manifest.bundle;
+        out.always(
+          `  initial JS ${formatBytes(b.initialJsGzip)} gzip · lazy JS ${formatBytes(b.lazyJsGzip)} · CSS ${formatBytes(b.cssGzip)} · total ${formatBytes(b.totalGzip)} gzip`
+        );
+      }
       out.info(
         c.dim(
           `  base ${manifest.base} · devtools ${manifest.includeDevtools ? 'included' : 'excluded'}`
