@@ -27,6 +27,7 @@ let indexLoaded = $state(false);
 let indexError = $state(false);
 let dialog: HTMLDialogElement;
 let input: HTMLInputElement;
+let trigger: HTMLButtonElement;
 let returnFocusTo: HTMLElement | null = null;
 
 const commands = $derived(
@@ -75,7 +76,11 @@ onMount(() => {
 
 function show(): void {
   if (dialog.open) return;
-  returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const activeElement = document.activeElement;
+  returnFocusTo =
+    activeElement instanceof HTMLElement && activeElement !== document.body
+      ? activeElement
+      : trigger;
   query = '';
   activeIndex = 0;
   status = '';
@@ -89,7 +94,10 @@ function close(): void {
   open = false;
   const target = returnFocusTo;
   returnFocusTo = null;
-  if (target?.isConnected) queueMicrotask(() => target.focus());
+  // Let the browser finish native <dialog> focus restoration before overriding it.
+  requestAnimationFrame(() => {
+    if (target?.isConnected) target.focus({ preventScroll: true });
+  });
 }
 
 function handleInputKeydown(event: KeyboardEvent): void {
@@ -174,6 +182,7 @@ async function run(action: PaletteAction): Promise<void> {
 
 <div class="flex items-center" data-testid="command-palette" data-hydrated={hydrated}>
   <button
+    bind:this={trigger}
     type="button"
     class="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-sm text-muted hover:bg-surface-2 hover:text-fg sm:px-3"
     aria-haspopup="dialog"

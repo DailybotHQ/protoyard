@@ -62,19 +62,31 @@ width), and sets `--py-app-height` and `--py-safe-*` from `@protoyard/core` `DEV
 Viewport-preset rules step aside while a frame is shown.
 
 The frame decoration is a lazily loaded chunk registered in
-`src/shell/frames/registry.ts`. Today `phone` and `tablet` use a generic bezel and
-`desktop-window` draws the app in `@protoyard/ui` WindowChrome on a theme-token wallpaper
-with a dock (mac-like) or taskbar (windows-like). `preview.chrome.os` picks the style;
-without it the visitor's OS decides. The title bar follows `document.title`, and every
-control works: minimize to the dock, restore or reopen from the dock, maximize to fill the
-stage, close and reopen. The app stays mounted while the window is minimized or closed.
-Other shells render full-bleed until their frame ships.
+`src/shell/frames/registry.ts`.
+
+- **`phone`** uses `PhoneFrame`: a bezel, side buttons, a pill or punch-hole cutout, a
+  status bar in `--py-safe-top`, and a home indicator that navigates to `#/`.
+- **`widget-host`** draws a fictional customer site (`HostSite`, with the brand from
+  `preview.chrome.hostName`) and a launcher that opens the prototype in an anchored panel
+  (`--py-app-height` = panel height; fullscreen under 480px). Apps drive the unread badge
+  through `getWidgetHost().setUnread(n)` or `window.__protoyardWidget`.
+- **`desktop-window`** draws the app in `@protoyard/ui` WindowChrome on a theme-token
+  wallpaper, with a dock (mac-like) or a taskbar (windows-like). `preview.chrome.os` picks
+  the style; without it the visitor's OS decides. The title bar follows `document.title`,
+  and every control works: minimize to the dock, restore or reopen from the dock, maximize
+  to fill the stage, close and reopen. The app stays mounted while the window is minimized
+  or closed.
+- **`tablet`** still uses a generic bezel until its detailed frame ships. Shells without a
+  registered frame render full-bleed.
 
 A registry entry can reserve `screenInset` space inside the device box for its own chrome
-(the 40 px title bar), and can set `minWindowWidth`. Windows use 768 px and scale down on
-smaller desktops, while phones need the device plus its frame. The app goes full-bleed when the
-shell is `none`, inside an iframe (the gallery preview draws its own device), or when
-the window is too narrow for the device plus its frame (a real phone). The wrappers always exist, so
+(the desktop window's 40 px title bar), and can set `minWindowWidth`. Windows use 768 px
+and scale down on smaller desktops, while phones need the device plus its frame. While
+framed, Bits UI dialogs and sheets portal into the device screen
+(`setOverlayPortalTarget`), so overlays stay inside the frame. The app goes full-bleed
+when the shell is `none`, inside an iframe (the gallery preview draws its own device), or
+when the window is too narrow for the device plus its frame (a real phone). The wrappers
+always exist, so
 changing the shell never remounts the app; without a frame they are
 `display: contents`.
 
@@ -118,6 +130,26 @@ while generating/validating) for custom loading UIs.
 
 ## Router
 
+For screen maps that tools need to inspect, keep the route table in a
+data-only `src/routes.ts` module. `defineRoutes()` checks the lazy component
+loaders while preserving names, descriptions and optional capability metadata;
+the screen modules are imported only when their routes are visited.
+
+```ts
+// src/routes.ts
+import { defineRoutes } from '@protoyard/renderer-svelte';
+
+export const routes = defineRoutes([
+  {
+    path: '/reports',
+    name: 'Reports',
+    description: 'Review business reports.',
+    capability: 'reports:read',
+    load: () => import('./screens/Reports.svelte'),
+  },
+]);
+```
+
 ```ts
 const router = createRouter([
   { path: '/', component: Home, title: 'Home' },
@@ -126,6 +158,10 @@ const router = createRouter([
   { path: '/reports', title: 'Reports', load: () => import('./screens/Reports.svelte') },
 ]);
 ```
+
+Pass the exported table directly to `createRouter(routes, options)`; existing
+inline route definitions remain supported. A route's `name` supplies its
+document title when `title` is not set.
 
 `<Router {router} />` renders the match with `params`/`query`. Eager `component`
 routes mount immediately. Lazy `load` routes show `@protoyard/ui` `LoadingState`

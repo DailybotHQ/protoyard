@@ -11,7 +11,13 @@ import { type FrameProps, windowVariant } from './registry.ts';
  * restores or reopens it, maximize fills the stage, and close shows a
  * reopen prompt.
  */
-let { chrome, app, maximized, setMaximized, setScreenHidden }: FrameProps = $props();
+let {
+  chrome,
+  app = { name: 'App' },
+  maximized = false,
+  setMaximized = () => {},
+  setScreenHidden = () => {},
+}: FrameProps = $props();
 
 const variant = $derived(windowVariant(chrome?.os));
 let windowState = $state<WindowChromeState>('open');

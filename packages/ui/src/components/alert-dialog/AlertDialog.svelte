@@ -5,6 +5,7 @@ import type { Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
+import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import Button from '../button/Button.svelte';
 
 interface Props {
@@ -37,6 +38,8 @@ let {
   children,
   class: className,
 }: Props = $props();
+
+const portal = useOverlayPortalTarget();
 
 let pending = $state(false);
 let error = $state<string | null>(null);
@@ -78,7 +81,7 @@ function blockWhilePending(event: Event): void {
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
     </AlertDialogPrimitive.Trigger>
   {/if}
-  <AlertDialogPrimitive.Portal>
+  <AlertDialogPrimitive.Portal to={portal.current}>
     <AlertDialogPrimitive.Overlay class={overlayBackdrop} />
     <AlertDialogPrimitive.Content
       onEscapeKeydown={blockWhilePending}

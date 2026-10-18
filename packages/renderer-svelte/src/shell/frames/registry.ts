@@ -15,14 +15,18 @@ export interface FrameProps {
   shell: ResolvedShell;
   /** The manifest's `preview.chrome` (window style, origin, host…). */
   chrome?: ShellChrome | undefined;
+  /*
+   * Window-like frames only (ShellHost always passes them; device frames may
+   * ignore them).
+   */
   /** The prototype's name and icon, for docks, tabs and launchers. */
-  app: { name: string; icon?: string | undefined };
+  app?: { name: string; icon?: string | undefined };
   /** Whether the host currently fills the stage with the device box. */
-  maximized: boolean;
+  maximized?: boolean;
   /** Ask the host to fill the stage (or go back to the device size). */
-  setMaximized(value: boolean): void;
+  setMaximized?(value: boolean): void;
   /** Hide the screen without unmounting the app (minimized or closed windows). */
-  setScreenHidden(value: boolean): void;
+  setScreenHidden?(value: boolean): void;
 }
 
 export type FrameComponent = Component<FrameProps>;
@@ -57,8 +61,9 @@ export interface FrameEntry {
  * frame ships; the runtime still reports it as the effective shell.
  */
 export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
-  phone: { load: () => import('./DeviceFrame.svelte'), margin: 14 },
+  phone: { load: () => import('./PhoneFrame.svelte'), margin: 14 },
   tablet: { load: () => import('./DeviceFrame.svelte'), margin: 14 },
+  'widget-host': { load: () => import('./WidgetHostFrame.svelte'), margin: 0 },
   'desktop-window': {
     load: () => import('./DesktopWindowFrame.svelte'),
     margin: 64,

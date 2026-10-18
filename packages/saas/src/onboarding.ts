@@ -1,4 +1,5 @@
-import type { Persona, PrototypeRuntime } from '@protoyard/core';
+import { parseInput, ValidationError } from '@protoyard/core';
+import type { ProtoyardRuntime } from '@protoyard/runtime';
 import type { z } from 'zod';
 import type { SaasOnboarding } from './schema.ts';
 
@@ -21,26 +22,8 @@ export const DONE_STEP = 'done';
 export const ONBOARDING_TABLE = 'saas_onboarding';
 export const DEFAULT_ONBOARDING_CAPABILITY = 'onboarding:progress';
 
-/** Field path → first message, the shape `runService` shows inline. */
-export class ValidationError extends Error {
-  readonly issues: Record<string, string>;
-  constructor(issues: Record<string, string>) {
-    super(Object.values(issues)[0] ?? 'Invalid input');
-    this.name = 'ValidationError';
-    this.issues = issues;
-  }
-}
-
-export function parseInput<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
-  const result = schema.safeParse(input);
-  if (result.success) return result.data;
-  const issues: Record<string, string> = {};
-  for (const issue of result.error.issues) {
-    const key = issue.path.join('.') || 'form';
-    issues[key] ??= issue.message;
-  }
-  throw new ValidationError(issues);
-}
+/** Re-exported from core so kit consumers keep one import (field path → first message). */
+export { parseInput, ValidationError };
 
 /** Runs inside the step's transaction, after validation (e.g. write a workspace row). */
 export type StepEffect = (
@@ -163,13 +146,13 @@ interface DatabaseLike {
   transaction<R>(mode: 'rw', tables: string[], scope: () => Promise<R>): Promise<R>;
 }
 
-export function createOnboarding(runtime: PrototypeRuntime<unknown>, config: OnboardingConfig) {
+export function createOnboarding(runtime: ProtoyardRuntime, config: OnboardingConfig) {
   const flow = createOnboardingFlow(config.steps);
-  const { session, environment, clock } = runtime;
-  const db = runtime.db as DatabaseLike;
+  const { session, environment, clock, identity } = runtime;
+  const db = runtime.db as unknown as DatabaseLike;
   const capability = config.capability ?? DEFAULT_ONBOARDING_CAPABILITY;
   const area = config.area ?? 'onboarding';
-  const tables = [ONBOARDING_TABLE, 'py_personas', ...(config.tables ?? [])];
+  const tables = [ONBOARDING_TABLE, ...(config.tables ?? [])];
   const now = () => clock.now().toISOString();
 
   const principal = () => {
@@ -177,9 +160,15 @@ export function createOnboarding(runtime: PrototypeRuntime<unknown>, config: Onb
     if (!p) throw new Error('No active persona. Sign in or load a scenario first.');
     return p;
   };
-  const read = async (personaId: string) =>
-    (await db.table<SaasOnboarding>(ONBOARDING_TABLE).get(personaId)) ??
-    flow.freshState(personaId, now(), session.principal()?.organization?.id ?? null);
+  // A Dexie promise chain (no extra async layer) so it stays inside a transaction's zone.
+  const read = (personaId: string) =>
+    db
+      .table<SaasOnboarding>(ONBOARDING_TABLE)
+      .get(personaId)
+      .then(
+        (row) =>
+          row ?? flow.freshState(personaId, now(), session.principal()?.organization?.id ?? null)
+      );
 
   /** Marks `step` completed or skipped and moves to the next one. */
   const settle = (
@@ -216,6 +205,38 @@ export function createOnboarding(runtime: PrototypeRuntime<unknown>, config: Onb
         await db.table<SaasOnboarding>(ONBOARDING_TABLE).put(next);
         return next;
       })
+    );
+  };
+
+  /**
+   * Same as `mutate` for steps that also change the persona: runs through
+   * `runtime.identity.write` (identity tables in the same transaction, session
+   * refreshed after the commit). `change` is synchronous and the chain only
+   * awaits Dexie promises, which keeps Dexie's transaction zone alive.
+   */
+  const mutateIdentity = (
+    operation: string,
+    change: (state: SaasOnboarding, at: string) => SaasOnboarding,
+    onboardingComplete: boolean
+  ) => {
+    const personaId = principal().persona.id;
+    return environment.run(`${area}.${operation}`, () =>
+      identity.write(
+        (ops) =>
+          read(personaId).then((state) => {
+            const next = change(state, now());
+            return ops
+              .getPersona(personaId)
+              .then((persona) =>
+                persona && persona.onboardingComplete !== onboardingComplete
+                  ? ops.putPersona({ ...persona, onboardingComplete })
+                  : undefined
+              )
+              .then(() => db.table<SaasOnboarding>(ONBOARDING_TABLE).put(next))
+              .then(() => next);
+          }),
+        { tables }
+      )
     );
   };
 
@@ -288,26 +309,27 @@ export function createOnboarding(runtime: PrototypeRuntime<unknown>, config: Onb
     /** Finishes the wizard and marks the persona `onboardingComplete` in the same transaction. */
     async complete() {
       session.assert(capability);
-      const next = await mutate('complete', async (state, at) => {
-        const missing = flow.missingRequired(state);
-        if (missing.length > 0) {
-          throw new ValidationError({
-            form: `Finish ${missing.map(flow.label).join(' and ')} first.`,
-          });
-        }
-        await setOnboardingComplete(state.personaId, true);
-        return { ...state, currentStep: DONE_STEP, completedAt: at, updatedAt: at };
-      });
-      await session.refresh();
-      return next;
+      return mutateIdentity(
+        'complete',
+        (state, at) => {
+          const missing = flow.missingRequired(state);
+          if (missing.length > 0) {
+            throw new ValidationError({
+              form: `Finish ${missing.map(flow.label).join(' and ')} first.`,
+            });
+          }
+          return { ...state, currentStep: DONE_STEP, completedAt: at, updatedAt: at };
+        },
+        true
+      );
     },
 
     /** Starts over at step 1. Earlier answers stay as defaults; step effects are not undone. */
     async restart() {
       session.assert(capability);
-      const next = await mutate('restart', async (state, at) => {
-        await setOnboardingComplete(state.personaId, false);
-        return {
+      return mutateIdentity(
+        'restart',
+        (state, at) => ({
           ...state,
           currentStep: flow.ids[0] as string,
           completedSteps: [],
@@ -315,21 +337,11 @@ export function createOnboarding(runtime: PrototypeRuntime<unknown>, config: Onb
           startedAt: at,
           completedAt: null,
           updatedAt: at,
-        };
-      });
-      await session.refresh();
-      return next;
+        }),
+        false
+      );
     },
   };
-
-  // Identity rows are platform tables; written inside the caller's transaction.
-  async function setOnboardingComplete(personaId: string, onboardingComplete: boolean) {
-    const personas = db.table<Persona>('py_personas');
-    const persona = await personas.get(personaId);
-    if (persona && persona.onboardingComplete !== onboardingComplete) {
-      await personas.put({ ...persona, onboardingComplete });
-    }
-  }
 }
 
 export type Onboarding = ReturnType<typeof createOnboarding>;

@@ -115,17 +115,31 @@ async function main() {
     const runs = [];
     for (const scenario of scenarios) {
       if (only && scenario.id !== only) continue;
-      const started = performance.now();
+      let generateMs = 0;
+      let validateMs = 0;
       try {
-        const world = await definition.generate(tools.createGenerateContext(scenario));
-        const violations = tools.validateWorld(world, { referenceTime: scenario.referenceTime });
-        const actorExists = world.personas.some((p) => p.id === scenario.actor.id);
-        if (!actorExists) {
-          violations.unshift({
-            table: 'py_personas',
-            rowId: scenario.actor.id,
-            message: `scenario actor "${scenario.actor.id}" is not among the generated personas`,
-          });
+        const generateStarted = performance.now();
+        let world: WorldSeed;
+        try {
+          world = await definition.generate(tools.createGenerateContext(scenario));
+        } finally {
+          generateMs = performance.now() - generateStarted;
+        }
+
+        const validateStarted = performance.now();
+        let violations: ReturnType<ScenarioTools['validateWorld']>;
+        try {
+          violations = tools.validateWorld(world, { referenceTime: scenario.referenceTime });
+          const actorExists = world.personas.some((p) => p.id === scenario.actor.id);
+          if (!actorExists) {
+            violations.unshift({
+              table: 'py_personas',
+              rowId: scenario.actor.id,
+              message: `scenario actor "${scenario.actor.id}" is not among the generated personas`,
+            });
+          }
+        } finally {
+          validateMs = performance.now() - validateStarted;
         }
         const counts: Record<string, number> = {
           py_organizations: world.organizations.length,
@@ -134,20 +148,31 @@ async function main() {
           py_events: world.events?.length ?? 0,
         };
         for (const [table, rows] of Object.entries(world.tables)) counts[table] = rows.length;
+        // Fictional generated identities (id, name, first role) for `?actor=` links.
+        const personas = world.personas.slice(0, 50).map((p) => ({
+          id: p.id,
+          name: p.name,
+          role: world.memberships.find((m) => m.personaId === p.id)?.role ?? null,
+        }));
         runs.push({
           id: scenario.id,
           ok: violations.length === 0,
           counts,
+          personas,
           violationCount: violations.length,
           violations: violations.slice(0, 20),
-          durationMs: Math.round(performance.now() - started),
+          durationMs: generateMs + validateMs,
+          generateMs,
+          validateMs,
         });
       } catch (error) {
         runs.push({
           id: scenario.id,
           ok: false,
           error: (error as Error).message,
-          durationMs: Math.round(performance.now() - started),
+          durationMs: generateMs + validateMs,
+          generateMs,
+          validateMs,
         });
       }
     }

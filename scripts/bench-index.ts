@@ -11,7 +11,13 @@
  *
  * Results are printed and written to tmp/bench-index-<timestamp>.json.
  *
- *   pnpm bench:index [--count 1000] [--runs 5] [--gallery] [--keep]
+ *   pnpm bench:index [--count 1000] [--runs 5] [--gallery] [--keep] [--check [--ci-factor 3]]
+ *
+ * `--check` gates the cold and incremental index medians against
+ * `indexColdMs` from protoyard.budgets.json, multiplied by `--ci-factor`
+ * (default 3: CI runners are slower than the M1 Max the budget was set on),
+ * and exits 1 when either is over. The budget is defined for 1,000 manifests,
+ * so `--check` requires the default `--count`.
  */
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
@@ -19,6 +25,7 @@ import { cpus, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildIndex, filterEntries } from '../packages/cli/src/index.ts';
+import { loadBudgets } from '../packages/cli/src/lib/budgets.ts';
 import { workspacePaths } from '../packages/cli/src/lib/paths.ts';
 import { createRng } from '../packages/core/src/index.ts';
 
@@ -33,6 +40,38 @@ const COUNT = arg('count', 1000);
 const RUNS = arg('runs', 5);
 const WITH_GALLERY = process.argv.includes('--gallery');
 const KEEP = process.argv.includes('--keep');
+const CHECK = process.argv.includes('--check');
+/** Manifest count the index budget is defined for. */
+const BUDGET_COUNT = 1000;
+
+function ciFactor(): number {
+  const i = process.argv.indexOf('--ci-factor');
+  if (i === -1) return 3;
+  const value = Number(process.argv[i + 1]);
+  if (!Number.isFinite(value) || value <= 0) {
+    console.error(`✗ --ci-factor needs a positive number (got "${process.argv[i + 1] ?? ''}").`);
+    process.exit(2);
+  }
+  return value;
+}
+const CI_FACTOR = ciFactor();
+
+/** Loads indexColdMs before any work, so a bad budget file or count fails fast. */
+async function indexBudget(): Promise<number | null> {
+  if (!CHECK) return null;
+  if (COUNT !== BUDGET_COUNT) {
+    console.error(
+      `✗ --check compares against a budget defined for ${BUDGET_COUNT} manifests; drop --count ${COUNT}.`
+    );
+    process.exit(2);
+  }
+  try {
+    return (await loadBudgets(ROOT)).defaults.indexColdMs;
+  } catch (error) {
+    console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(2);
+  }
+}
 
 const CATEGORIES = ['sales', 'fintech', 'ai', 'health', 'education', 'ops', 'marketing', 'support'];
 const TAGS = [
@@ -133,6 +172,7 @@ async function time(fn: () => Promise<unknown> | unknown): Promise<number> {
 }
 
 async function main() {
+  const budgetMs = await indexBudget();
   const root = mkdtempSync(join(tmpdir(), 'protoyard-bench-'));
   const paths = workspacePaths(root);
   try {
@@ -255,6 +295,16 @@ async function main() {
         note: 'includes Node + tsx startup and an incremental re-index',
       },
       gallery,
+      check:
+        budgetMs === null
+          ? null
+          : {
+              indexColdMs: budgetMs,
+              ciFactor: CI_FACTOR,
+              thresholdMs: Math.round(budgetMs * CI_FACTOR * 100) / 100,
+              coldOk: stats(cold).medianMs <= budgetMs * CI_FACTOR,
+              incrementalOk: stats(incremental).medianMs <= budgetMs * CI_FACTOR,
+            },
     };
 
     const rows: [string, string][] = [
@@ -292,6 +342,20 @@ async function main() {
     writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`);
     console.log(`\nWrote ${file}`);
     if (!cliOk || (gallery && !gallery.ok)) process.exitCode = 1;
+    if (result.check) {
+      const { check } = result;
+      const verdict = (ok: boolean) => (ok ? '✓' : '✗');
+      console.log(
+        `\nCheck: indexColdMs ${check.indexColdMs} ms × ci-factor ${check.ciFactor} = ${check.thresholdMs} ms` +
+          ` · cold ${result.coldIndex.medianMs} ms ${verdict(check.coldOk)}` +
+          ` · incremental ${result.incrementalIndex.medianMs} ms ${verdict(check.incrementalOk)}`
+      );
+      if (check.coldOk && check.incrementalOk) console.log('✓ Index budget check passed.');
+      else {
+        console.error('✗ Index median over budget.');
+        process.exitCode = 1;
+      }
+    }
   } finally {
     if (KEEP) console.log(`Kept ${root}`);
     else rmSync(root, { recursive: true, force: true });

@@ -144,7 +144,7 @@ test.describe('gallery', () => {
 
     await page.keyboard.press('Control+k');
     await expect(dialog).toBeVisible();
-    await input.fill(target.slug);
+    await input.fill(`Open ${target.name}`);
     const openTarget = dialog
       .getByRole('option')
       .filter({ hasText: `Open ${target.name}` })

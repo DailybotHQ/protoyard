@@ -5,6 +5,7 @@ import type { Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
+import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 
 type Props = Omit<DialogPrimitive.ContentProps, 'children' | 'child' | 'title'> & {
   open?: boolean;
@@ -36,6 +37,8 @@ let {
   ...rest
 }: Props = $props();
 
+const portal = useOverlayPortalTarget();
+
 const widths = { sm: 'sm:max-w-sm', md: 'sm:max-w-md', lg: 'sm:max-w-xl', xl: 'sm:max-w-3xl' };
 </script>
 
@@ -45,7 +48,7 @@ const widths = { sm: 'sm:max-w-sm', md: 'sm:max-w-md', lg: 'sm:max-w-xl', xl: 's
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
     </DialogPrimitive.Trigger>
   {/if}
-  <DialogPrimitive.Portal>
+  <DialogPrimitive.Portal to={portal.current}>
     <DialogPrimitive.Overlay class={overlayBackdrop} />
     <DialogPrimitive.Content
       bind:ref

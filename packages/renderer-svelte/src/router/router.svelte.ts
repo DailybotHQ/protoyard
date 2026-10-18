@@ -28,6 +28,12 @@ export interface RouteDefinition {
   load?: () => Promise<{ default: AnyComponent }>;
   /** Used for `document.title` as `<title> · <prototype name>`. */
   title?: string;
+  /** Human-readable screen name for statically declared route metadata. */
+  name?: string;
+  /** Short screen summary for generated prototype specs. */
+  description?: string;
+  /** Optional simulated capability associated with the screen. */
+  capability?: string;
   /**
    * Runs before the screen renders: `true` lets it through, a path redirects
    * (`'/sign-in?next=…'`, see {@link redirectWithNext}). The URL is replaced,
@@ -35,6 +41,22 @@ export interface RouteDefinition {
    * gating on the simulated session is UX, not security.
    */
   guard?: RouteGuard;
+}
+
+/**
+ * A statically importable screen declaration. Keep this data-only: screen
+ * modules are loaded lazily so tools can inspect the table without compiling
+ * Svelte components.
+ */
+export interface RouteMeta extends RouteDefinition {
+  name: string;
+  description: string;
+  load: NonNullable<RouteDefinition['load']>;
+}
+
+/** Preserves literal route metadata while checking its lazy screen loaders. */
+export function defineRoutes<const TRoutes extends readonly RouteMeta[]>(routes: TRoutes): TRoutes {
+  return routes;
 }
 
 export type RouteGuard = (match: RouteMatch) => true | string;
@@ -205,7 +227,9 @@ export function createRouter(
     current = next;
     if (typeof document !== 'undefined') {
       const title =
-        next.route?.title ?? (next.route ? undefined : next.error ? 'Redirect loop' : 'Not found');
+        next.route?.title ??
+        next.route?.name ??
+        (next.route ? undefined : next.error ? 'Redirect loop' : 'Not found');
       document.title = title && baseTitle ? `${title} · ${baseTitle}` : (title ?? baseTitle);
     }
     if (options.scrollToTop !== false && typeof window.scrollTo === 'function') {

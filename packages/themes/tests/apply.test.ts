@@ -172,12 +172,18 @@ describe('no-flash cache', () => {
   });
 
   it('replays the cached appearance before the runtime boots', () => {
-    const applied = applyAppearance(root, { theme: oceanTheme, resolvedMode: 'dark' });
+    const glassTheme = {
+      ...oceanTheme,
+      style: { ...oceanTheme.style, surface: 'glass' as const },
+    };
+    const applied = applyAppearance(root, { theme: glassTheme, resolvedMode: 'dark' });
+    expect(applied.surface).toBe('glass');
     cacheAppearance('crm-demo', applied);
     resetRootStyleOnly();
     new Function(noFlashScript('crm-demo'))();
     expect(root.classList.contains('dark')).toBe(true);
     expect(root.dataset.pyTheme).toBe('ocean');
+    expect(root.dataset.pySurface).toBe('glass');
     expect(root.style.getPropertyValue('--py-primary')).toBe(oceanTheme.dark.primary);
   });
 

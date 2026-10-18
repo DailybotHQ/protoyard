@@ -13,13 +13,14 @@ framework-agnostic: it has no Svelte, and its only dependencies are
 
 ## What ships today
 
-The table layout, row schemas and integrity rules, plus the onboarding
-wizard engine (below). The other services (sign-in, OAuth, magic links, MFA,
-invitations, workspaces, billing) come in later PLAN_002 tasks and are not in
-this package yet.
-The table layout, row schemas and integrity rules, plus the simulated
-**inbox service** (`createInbox(runtime)`). Sign-in, OAuth, magic links, MFA,
-invitations, workspaces, billing and onboarding services come in later
+The table layout, row schemas and integrity rules, plus:
+
+- **Inbox** — `createInbox(runtime)`
+- **Email/password auth** — `createAuthServices(runtime, options)`
+- **Onboarding** — `createOnboarding(runtime, { steps })`
+- **Workspaces** — `createWorkspaces(runtime)`
+
+OAuth, magic links, MFA, invitations and billing services come in later
 PLAN_002 tasks.
 
 ### Inbox (`createInbox`)
@@ -44,6 +45,61 @@ await inbox.markRead(messages[0]!.id);
 - **`deliver`** goes through `environment.run('inbox.deliver')` so offline writes nothing.
 - **`write`** is the same validation + insert for use **inside** an outer Dexie transaction (auth flows that commit a token and a message together).
 - **`list` / `get` / `markRead` / `archive`** are liveQuery-friendly async reads/writes (newest first).
+
+### Workspaces (`createWorkspaces`)
+
+```ts
+import { createWorkspaces, WORKSPACE_CAPABILITIES } from '@protoyard/saas';
+
+// Policy roles should grant workspaces:create / rename / leave (or `*`).
+const workspaces = createWorkspaces(runtime);
+const { organization } = await workspaces.create({ name: 'Acme Labs' });
+await workspaces.switchTo(organization.id); // also happens automatically after create
+await workspaces.rename(organization.id, { name: 'Acme Cloud' });
+// Last owner cannot leave — transfer first via workspaces.transferOwnership(memberId)
+await workspaces.leave(organization.id);
+```
+
+- Creates the organization + owner membership in **one** `runtime.identity.write` transaction, then `session.switchOrganization`.
+- **`switchTo`** only allows organizations the persona already belongs to (control-state only, works offline).
+- **`leave`** refuses when the actor is the last `owner`; after a successful leave, switches to another membership when the active org was left.
+- **`transferOwnership`** delegates to `runtime.members.transferOwnership`.
+
+### Email/password auth (`createAuthServices`)
+
+```ts
+import { createAuthServices } from '@protoyard/saas';
+
+const auth = createAuthServices(runtime, { productName: 'Acme', lockoutThreshold: 5 });
+const { account, needsVerification } = await auth.signUp({
+  name: 'Olivia Hart', email: 'olivia@example.com', password: 'sup3r-simulated',
+  organizationName: 'Hart Studio',          // optional; default "<name>'s workspace"
+});
+await auth.verifyEmail(tokenId);              // from the verify-email message's action link
+await auth.signIn({ email: 'olivia@example.com', password: 'sup3r-simulated' });
+await auth.signOut();
+```
+
+- `signUp` creates the persona, the account, a workspace with the person as
+  `owner` (`createOrganization: false` skips it), a `verify-email` token and
+  its inbox message in **one** `runtime.identity.write` transaction. It signs
+  in right away only with `requireVerifiedEmail: false`.
+- `signIn` checks the stored simulated password. Unknown email, wrong
+  password (with "N attempts left"), unverified email, and locked or disabled
+  accounts come back as `ValidationError` issues for the form. The attempt is
+  recorded first: failed-attempt counter, lockout at `lockoutThreshold`, and a
+  `saas_sessions_log` row. A success resets the counter and calls
+  `session.signIn`.
+- Every action runs through `environment.run('auth.<action>')`, so DevTools
+  latency, offline and failure toggles apply, and an offline attempt writes
+  nothing.
+- Emails must use example domains (`example.com`, `*.example`), and are
+  lowercased.
+- **The password is stored as typed.** That is deliberate: this is UX
+  simulation, not security, and nothing here protects or transmits a real
+  credential.
+- A locked account has no unlock flow yet. Password reset comes in a later
+  task.
 
 | Table | Holds | Indexes |
 | --- | --- | --- |
@@ -137,8 +193,9 @@ await onboarding.restart();                // back to step 1, answers kept as de
   and writes the answer and the new position in **one transaction**. A reload
   resumes exactly where the person left off, and an offline failure writes
   nothing.
-- `complete()` also sets the persona's `onboardingComplete` in the same
-  transaction, then refreshes the session. `restart()` clears it again.
+- `complete()` also sets the persona's `onboardingComplete` through
+  `runtime.identity.write`, in the same transaction as the wizard row, and
+  the session refreshes after the commit. `restart()` clears it again.
   Step effects are not undone.
 - Rows live in `saas_onboarding`, one per persona, so add that table with
   `saasStores(1, { tables: ['saas_onboarding', …] })`.

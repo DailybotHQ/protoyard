@@ -20,7 +20,7 @@ derivations land in later PLAN_002 tasks:
 | policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
 | csv | RFC 4180 parse/serialize + row validation (`@protoyard/blueprint/csv`) | done |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
-| services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | planned |
+| services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | done |
 
 ## The schema
 
@@ -188,6 +188,45 @@ const { valid, errors } = validateCsv(entity, text);
 - Money and dates go through `deriveInputSchemas` create coercion (`12.50` → 1250 cents).
 - Export prefixes cells starting with `= + - @` with `'` (spreadsheet formula guard).
 - Hard limits: `CSV_MAX_BYTES` (2 MiB) and `CSV_MAX_ROWS` (10,000 data rows); override per call.
+
+## Entity services
+
+```ts
+import { createEntityServices } from '@protoyard/blueprint';
+
+const services = createEntityServices(runtime, blueprint); // one service per entity name
+const ticket = await services.ticket.create({ subject: 'Printer jam', customerId });
+await services.ticket.update(ticket.id, { status: 'solved' });
+await services.customer.bulkRemove(selectedIds); // returns the number of rows deleted
+```
+
+Each entity gets `list`, `get`, `create`, `update`, `remove`, `bulkUpdate` and
+`bulkRemove`. Every mutation runs:
+
+1. `session.assert('<entity>:<action>')`. For update and delete, a role with only
+   `update:own` / `delete:own` passes when the record's `ownerField` is the actor. A
+   denial names the full capability (`ticket:update`). This is simulated policy, not
+   security.
+2. zod through `deriveInputSchemas` and `parseInput` (field-keyed `ValidationError`).
+3. `environment.run('<entity>.<create|update|remove|bulkUpdate|bulkRemove>')`, so
+   DevTools latency, offline mode and scoped failures (`failureScope: ['ticket.']`) apply.
+4. One `db.transaction('rw', …)` that checks referenced rows exist (relations,
+   `py_personas`, files; a missing one fails as `customerId: 'Customer not found'`),
+   writes the row with `createdAt`/`updatedAt` from the simulated clock, and applies every
+   `onDelete` rule: `cascade` deletes dependents (recursively), `nullify` clears single
+   references or removes the id from many-relations, and `restrict` refuses the whole delete
+   with `EntityInUseError`. A failure at any step writes nothing.
+
+New rows get `createRuntimeId` ids (`support_ticket_u3f9…`) and the actor as owner when
+the entity has an `ownerField` and none was given. Updating or deleting a missing id
+throws `EntityNotFoundError`. Bulk writes go through `bulkPut` in chunks of `BULK_CHUNK`
+(1,000) rows inside the same transaction. Reads (`list`, `get`) need `<entity>:read`, hide
+rows with `deletedAt`, sort by `defaultSort` (else `createdAt`), and read IndexedDB
+directly without the simulated network, like `liveQuery` reads.
+
+Tests run on the real runtime with the help desk fixture in
+`tests/fixtures/blueprint-prototype.ts`, a prototype whose stores, policy and integrity
+are all derived from its blueprint.
 
 ## Tests
 
