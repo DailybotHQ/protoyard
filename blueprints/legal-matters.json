@@ -5,26 +5,13 @@
   "description": "Matters, time entries and documents for a fictional law desk.",
   "icon": "⚖️",
   "category": "internal-tools",
-  "tags": [
-    "legal",
-    "matters",
-    "billing"
-  ],
+  "tags": ["legal", "matters", "billing"],
   "catalog": {
     "category": "internal-tools",
     "productType": "Legal",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "timekeeping",
-      "documents"
-    ],
-    "highlights": [
-      "Matter docket",
-      "Billable time",
-      "Document list"
-    ],
+    "platforms": ["web"],
+    "features": ["timekeeping", "documents"],
+    "highlights": ["Matter docket", "Billable time", "Document list"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -47,12 +34,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "open",
-            "discovery",
-            "trial",
-            "closed"
-          ],
+          "values": ["open", "discovery", "trial", "closed"],
           "default": "open",
           "required": true
         },
@@ -68,10 +50,7 @@
       ],
       "titleField": "title",
       "ownerField": "leadAttorney",
-      "searchable": [
-        "title",
-        "clientName"
-      ]
+      "searchable": ["title", "clientName"]
     },
     {
       "name": "time-entry",
@@ -131,9 +110,7 @@
         {
           "name": "file",
           "kind": "file",
-          "accept": [
-            "application/pdf"
-          ]
+          "accept": ["application/pdf"]
         },
         {
           "name": "filedOn",
@@ -150,30 +127,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -181,11 +147,7 @@
     {
       "type": "list",
       "entity": "matter",
-      "columns": [
-        "title",
-        "status",
-        "clientName"
-      ]
+      "columns": ["title", "status", "clientName"]
     },
     {
       "type": "form",
@@ -194,11 +156,7 @@
     {
       "type": "list",
       "entity": "time-entry",
-      "columns": [
-        "matter",
-        "attorney",
-        "hours"
-      ]
+      "columns": ["matter", "attorney", "hours"]
     },
     {
       "type": "form",
@@ -207,11 +165,7 @@
     {
       "type": "list",
       "entity": "document",
-      "columns": [
-        "matter",
-        "title",
-        "file"
-      ]
+      "columns": ["matter", "title", "file"]
     },
     {
       "type": "form",

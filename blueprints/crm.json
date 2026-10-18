@@ -5,27 +5,13 @@
   "description": "Accounts, contacts and deals for a fictional B2B sales team.",
   "icon": "📇",
   "category": "sales",
-  "tags": [
-    "crm",
-    "sales",
-    "pipeline"
-  ],
+  "tags": ["crm", "sales", "pipeline"],
   "catalog": {
     "category": "sales",
     "productType": "CRM",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "pipeline",
-      "activities",
-      "csv"
-    ],
-    "highlights": [
-      "Deal stages",
-      "Account hierarchy",
-      "Activity log"
-    ],
+    "platforms": ["web"],
+    "features": ["pipeline", "activities", "csv"],
+    "highlights": ["Deal stages", "Account hierarchy", "Activity log"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -64,9 +50,7 @@
       ],
       "titleField": "name",
       "ownerField": "owner",
-      "searchable": [
-        "name"
-      ],
+      "searchable": ["name"],
       "features": {
         "csv": true
       }
@@ -100,10 +84,7 @@
         }
       ],
       "titleField": "fullName",
-      "searchable": [
-        "fullName",
-        "email"
-      ]
+      "searchable": ["fullName", "email"]
     },
     {
       "name": "deal",
@@ -117,13 +98,7 @@
         {
           "name": "stage",
           "kind": "enum",
-          "values": [
-            "qualify",
-            "proposal",
-            "negotiation",
-            "won",
-            "lost"
-          ],
+          "values": ["qualify", "proposal", "negotiation", "won", "lost"],
           "default": "qualify",
           "required": true
         },
@@ -152,9 +127,7 @@
       ],
       "titleField": "title",
       "ownerField": "owner",
-      "indexes": [
-        "stage"
-      ],
+      "indexes": ["stage"],
       "features": {
         "audit": true
       }
@@ -164,30 +137,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -195,11 +157,7 @@
     {
       "type": "list",
       "entity": "account",
-      "columns": [
-        "name",
-        "domain",
-        "industry"
-      ]
+      "columns": ["name", "domain", "industry"]
     },
     {
       "type": "form",
@@ -208,11 +166,7 @@
     {
       "type": "list",
       "entity": "contact",
-      "columns": [
-        "fullName",
-        "email",
-        "account"
-      ]
+      "columns": ["fullName", "email", "account"]
     },
     {
       "type": "form",
@@ -221,11 +175,7 @@
     {
       "type": "list",
       "entity": "deal",
-      "columns": [
-        "title",
-        "stage",
-        "amount"
-      ]
+      "columns": ["title", "stage", "amount"]
     },
     {
       "type": "form",

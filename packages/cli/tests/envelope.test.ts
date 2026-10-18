@@ -49,6 +49,14 @@ describe('JSON envelope', () => {
     expect(run.stderr).toBe('');
   });
 
+  it('list --kind blueprint is accepted (blueprints/ README documents it)', async () => {
+    const run = await cli(['--root', ws.root, '--json', 'list', '--kind', 'blueprint']);
+    expect(run.code).toBe(0);
+    const env = run.json<{ ok: boolean; data: { entries: { kind: string }[] } }>();
+    expect(env.ok).toBe(true);
+    expect(env.data.entries.every((entry) => entry.kind === 'blueprint')).toBe(true);
+  });
+
   it('maps commander usage errors to exit 2 with an envelope', async () => {
     const unknown = await cli(['--root', ws.root, '--json', 'list', '--kind', 'nope']);
     expect(unknown.code).toBe(2);

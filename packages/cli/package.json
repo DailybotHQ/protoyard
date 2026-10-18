@@ -30,7 +30,8 @@
   },
   "files": [
     "bin",
-    "src"
+    "src",
+    "ci-templates"
   ],
   "engines": {
     "node": ">=24.20.0"

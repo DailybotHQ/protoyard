@@ -5,26 +5,13 @@
   "description": "Listings, showings and offers for a fictional brokerage.",
   "icon": "🏠",
   "category": "real-estate",
-  "tags": [
-    "real-estate",
-    "listings",
-    "offers"
-  ],
+  "tags": ["real-estate", "listings", "offers"],
   "catalog": {
     "category": "real-estate",
     "productType": "Realty",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "showings",
-      "offers"
-    ],
-    "highlights": [
-      "MLS-style listings",
-      "Showing calendar",
-      "Offer tracker"
-    ],
+    "platforms": ["web"],
+    "features": ["showings", "offers"],
+    "highlights": ["MLS-style listings", "Showing calendar", "Offer tracker"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -60,12 +47,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "active",
-            "pending",
-            "sold",
-            "withdrawn"
-          ],
+          "values": ["active", "pending", "sold", "withdrawn"],
           "default": "active",
           "required": true
         },
@@ -76,10 +58,7 @@
       ],
       "titleField": "address",
       "ownerField": "agent",
-      "searchable": [
-        "address",
-        "city"
-      ]
+      "searchable": ["address", "city"]
     },
     {
       "name": "showing",
@@ -127,12 +106,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "submitted",
-            "countered",
-            "accepted",
-            "rejected"
-          ],
+          "values": ["submitted", "countered", "accepted", "rejected"],
           "default": "submitted",
           "required": true
         },
@@ -150,30 +124,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -181,11 +144,7 @@
     {
       "type": "list",
       "entity": "listing",
-      "columns": [
-        "address",
-        "city",
-        "price"
-      ]
+      "columns": ["address", "city", "price"]
     },
     {
       "type": "form",
@@ -194,11 +153,7 @@
     {
       "type": "list",
       "entity": "showing",
-      "columns": [
-        "listing",
-        "startsAt",
-        "clientName"
-      ]
+      "columns": ["listing", "startsAt", "clientName"]
     },
     {
       "type": "form",
@@ -207,11 +162,7 @@
     {
       "type": "list",
       "entity": "offer",
-      "columns": [
-        "listing",
-        "amount",
-        "status"
-      ]
+      "columns": ["listing", "amount", "status"]
     },
     {
       "type": "form",

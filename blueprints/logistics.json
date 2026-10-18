@@ -5,26 +5,13 @@
   "description": "Shipments, stops and carriers for a fictional 3PL desk.",
   "icon": "🚚",
   "category": "operations",
-  "tags": [
-    "logistics",
-    "shipping",
-    "fleet"
-  ],
+  "tags": ["logistics", "shipping", "fleet"],
   "catalog": {
     "category": "operations",
     "productType": "Logistics",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "tracking",
-      "carriers"
-    ],
-    "highlights": [
-      "Shipment tracker",
-      "Multi-stop routes",
-      "Carrier scores"
-    ],
+    "platforms": ["web"],
+    "features": ["tracking", "carriers"],
+    "highlights": ["Shipment tracker", "Multi-stop routes", "Carrier scores"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -77,12 +64,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "booked",
-            "in-transit",
-            "delivered",
-            "exception"
-          ],
+          "values": ["booked", "in-transit", "delivered", "exception"],
           "default": "booked",
           "required": true
         },
@@ -92,12 +74,8 @@
         }
       ],
       "titleField": "reference",
-      "searchable": [
-        "reference"
-      ],
-      "indexes": [
-        "status"
-      ]
+      "searchable": ["reference"],
+      "indexes": ["status"]
     },
     {
       "name": "stop",
@@ -113,10 +91,7 @@
         {
           "name": "kind",
           "kind": "enum",
-          "values": [
-            "pickup",
-            "delivery"
-          ],
+          "values": ["pickup", "delivery"],
           "default": "pickup",
           "required": true
         },
@@ -140,30 +115,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -171,11 +135,7 @@
     {
       "type": "list",
       "entity": "carrier",
-      "columns": [
-        "name",
-        "scac",
-        "score"
-      ]
+      "columns": ["name", "scac", "score"]
     },
     {
       "type": "form",
@@ -184,11 +144,7 @@
     {
       "type": "list",
       "entity": "shipment",
-      "columns": [
-        "reference",
-        "carrier",
-        "status"
-      ]
+      "columns": ["reference", "carrier", "status"]
     },
     {
       "type": "form",
@@ -197,11 +153,7 @@
     {
       "type": "list",
       "entity": "stop",
-      "columns": [
-        "shipment",
-        "kind",
-        "city"
-      ]
+      "columns": ["shipment", "kind", "city"]
     },
     {
       "type": "form",

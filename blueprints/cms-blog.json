@@ -5,26 +5,13 @@
   "description": "Posts, authors and tags for a fictional content studio.",
   "icon": "✍️",
   "category": "media",
-  "tags": [
-    "cms",
-    "blog",
-    "content"
-  ],
+  "tags": ["cms", "blog", "content"],
   "catalog": {
     "category": "media",
     "productType": "CMS",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "drafts",
-      "tags"
-    ],
-    "highlights": [
-      "Post drafts",
-      "Author personas",
-      "Tag cloud"
-    ],
+    "platforms": ["web"],
+    "features": ["drafts", "tags"],
+    "highlights": ["Post drafts", "Author personas", "Tag cloud"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -56,11 +43,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "draft",
-            "scheduled",
-            "published"
-          ],
+          "values": ["draft", "scheduled", "published"],
           "default": "draft",
           "required": true
         },
@@ -75,10 +58,7 @@
       ],
       "titleField": "title",
       "ownerField": "author",
-      "searchable": [
-        "title",
-        "slug"
-      ]
+      "searchable": ["title", "slug"]
     },
     {
       "name": "tag",
@@ -128,30 +108,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -159,11 +128,7 @@
     {
       "type": "list",
       "entity": "post",
-      "columns": [
-        "title",
-        "slug",
-        "body"
-      ]
+      "columns": ["title", "slug", "body"]
     },
     {
       "type": "form",
@@ -172,10 +137,7 @@
     {
       "type": "list",
       "entity": "tag",
-      "columns": [
-        "name",
-        "slug"
-      ]
+      "columns": ["name", "slug"]
     },
     {
       "type": "form",
@@ -184,10 +146,7 @@
     {
       "type": "list",
       "entity": "post-tag",
-      "columns": [
-        "post",
-        "tag"
-      ]
+      "columns": ["post", "tag"]
     },
     {
       "type": "form",

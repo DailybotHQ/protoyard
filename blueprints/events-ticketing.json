@@ -5,26 +5,13 @@
   "description": "Events, ticket types and orders for a fictional venue.",
   "icon": "🎫",
   "category": "media",
-  "tags": [
-    "events",
-    "tickets",
-    "venues"
-  ],
+  "tags": ["events", "tickets", "venues"],
   "catalog": {
     "category": "media",
     "productType": "Events",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "orders",
-      "check-in"
-    ],
-    "highlights": [
-      "Multi-tier tickets",
-      "Order totals",
-      "Door list"
-    ],
+    "platforms": ["web"],
+    "features": ["orders", "check-in"],
+    "highlights": ["Multi-tier tickets", "Order totals", "Door list"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -61,10 +48,7 @@
         }
       ],
       "titleField": "title",
-      "searchable": [
-        "title",
-        "venue"
-      ]
+      "searchable": ["title", "venue"]
     },
     {
       "name": "ticket-type",
@@ -128,11 +112,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "pending",
-            "paid",
-            "refunded"
-          ],
+          "values": ["pending", "paid", "refunded"],
           "default": "pending",
           "required": true
         }
@@ -144,30 +124,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -175,11 +144,7 @@
     {
       "type": "list",
       "entity": "event",
-      "columns": [
-        "title",
-        "venue",
-        "startsAt"
-      ]
+      "columns": ["title", "venue", "startsAt"]
     },
     {
       "type": "form",
@@ -188,11 +153,7 @@
     {
       "type": "list",
       "entity": "ticket-type",
-      "columns": [
-        "name",
-        "event",
-        "price"
-      ]
+      "columns": ["name", "event", "price"]
     },
     {
       "type": "form",
@@ -201,11 +162,7 @@
     {
       "type": "list",
       "entity": "order",
-      "columns": [
-        "ticketType",
-        "buyerName",
-        "buyerEmail"
-      ]
+      "columns": ["ticketType", "buyerName", "buyerEmail"]
     },
     {
       "type": "form",

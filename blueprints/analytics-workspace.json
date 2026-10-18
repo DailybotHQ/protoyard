@@ -5,26 +5,13 @@
   "description": "Datasets, charts and dashboards for a fictional analytics desk.",
   "icon": "📊",
   "category": "analytics",
-  "tags": [
-    "analytics",
-    "dashboards",
-    "metrics"
-  ],
+  "tags": ["analytics", "dashboards", "metrics"],
   "catalog": {
     "category": "analytics",
     "productType": "Analytics",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "dashboards",
-      "datasets"
-    ],
-    "highlights": [
-      "Dataset catalog",
-      "Chart specs",
-      "Shared boards"
-    ],
+    "platforms": ["web"],
+    "features": ["dashboards", "datasets"],
+    "highlights": ["Dataset catalog", "Chart specs", "Shared boards"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -60,9 +47,7 @@
       ],
       "titleField": "name",
       "ownerField": "owner",
-      "searchable": [
-        "name"
-      ]
+      "searchable": ["name"]
     },
     {
       "name": "chart",
@@ -83,12 +68,7 @@
         {
           "name": "kind",
           "kind": "enum",
-          "values": [
-            "line",
-            "bar",
-            "pie",
-            "table"
-          ],
+          "values": ["line", "bar", "pie", "table"],
           "default": "line",
           "required": true
         },
@@ -132,30 +112,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -163,11 +132,7 @@
     {
       "type": "list",
       "entity": "dataset",
-      "columns": [
-        "name",
-        "source",
-        "rowCount"
-      ]
+      "columns": ["name", "source", "rowCount"]
     },
     {
       "type": "form",
@@ -176,11 +141,7 @@
     {
       "type": "list",
       "entity": "chart",
-      "columns": [
-        "title",
-        "dataset",
-        "kind"
-      ]
+      "columns": ["title", "dataset", "kind"]
     },
     {
       "type": "form",
@@ -189,11 +150,7 @@
     {
       "type": "list",
       "entity": "dashboard",
-      "columns": [
-        "name",
-        "owner",
-        "published"
-      ]
+      "columns": ["name", "owner", "published"]
     },
     {
       "type": "form",

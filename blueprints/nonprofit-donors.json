@@ -5,26 +5,13 @@
   "description": "Donors, gifts and campaigns for a fictional nonprofit.",
   "icon": "💛",
   "category": "finance",
-  "tags": [
-    "nonprofit",
-    "donors",
-    "campaigns"
-  ],
+  "tags": ["nonprofit", "donors", "campaigns"],
   "catalog": {
     "category": "finance",
     "productType": "Nonprofit",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "gifts",
-      "campaigns"
-    ],
-    "highlights": [
-      "Donor CRM",
-      "Campaign goals",
-      "Gift receipts"
-    ],
+    "platforms": ["web"],
+    "features": ["gifts", "campaigns"],
+    "highlights": ["Donor CRM", "Campaign goals", "Gift receipts"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -57,10 +44,7 @@
         }
       ],
       "titleField": "fullName",
-      "searchable": [
-        "fullName",
-        "email"
-      ]
+      "searchable": ["fullName", "email"]
     },
     {
       "name": "campaign",
@@ -135,30 +119,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -166,11 +139,7 @@
     {
       "type": "list",
       "entity": "donor",
-      "columns": [
-        "fullName",
-        "email",
-        "city"
-      ]
+      "columns": ["fullName", "email", "city"]
     },
     {
       "type": "form",
@@ -179,11 +148,7 @@
     {
       "type": "list",
       "entity": "campaign",
-      "columns": [
-        "name",
-        "goal",
-        "startsOn"
-      ]
+      "columns": ["name", "goal", "startsOn"]
     },
     {
       "type": "form",
@@ -192,11 +157,7 @@
     {
       "type": "list",
       "entity": "gift",
-      "columns": [
-        "donor",
-        "campaign",
-        "amount"
-      ]
+      "columns": ["donor", "campaign", "amount"]
     },
     {
       "type": "form",

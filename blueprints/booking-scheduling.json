@@ -5,26 +5,13 @@
   "description": "Services, slots and appointments for a fictional booking desk.",
   "icon": "📅",
   "category": "operations",
-  "tags": [
-    "booking",
-    "calendar",
-    "appointments"
-  ],
+  "tags": ["booking", "calendar", "appointments"],
   "catalog": {
     "category": "operations",
     "productType": "Booking",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "slots",
-      "reminders"
-    ],
-    "highlights": [
-      "Service catalog",
-      "Time slots",
-      "Guest contacts"
-    ],
+    "platforms": ["web"],
+    "features": ["slots", "reminders"],
+    "highlights": ["Service catalog", "Time slots", "Guest contacts"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -109,11 +96,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "booked",
-            "checked-in",
-            "cancelled"
-          ],
+          "values": ["booked", "checked-in", "cancelled"],
           "default": "booked",
           "required": true
         }
@@ -128,30 +111,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -159,11 +131,7 @@
     {
       "type": "list",
       "entity": "service",
-      "columns": [
-        "name",
-        "durationMin",
-        "price"
-      ]
+      "columns": ["name", "durationMin", "price"]
     },
     {
       "type": "form",
@@ -172,11 +140,7 @@
     {
       "type": "list",
       "entity": "slot",
-      "columns": [
-        "service",
-        "startsAt",
-        "capacity"
-      ]
+      "columns": ["service", "startsAt", "capacity"]
     },
     {
       "type": "form",
@@ -185,11 +149,7 @@
     {
       "type": "list",
       "entity": "appointment",
-      "columns": [
-        "slot",
-        "guestName",
-        "guestEmail"
-      ]
+      "columns": ["slot", "guestName", "guestEmail"]
     },
     {
       "type": "form",
