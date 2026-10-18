@@ -69,7 +69,8 @@ UI until a kit route opens.
 | `/sign-in`, `/sign-up` | Sign in / up | guest-only |
 | `/auth/magic`, `/auth/reset`, `/auth/verify` | Magic link, reset, verify | — |
 | `/auth/mfa` | MFA challenge (pre-session) | — |
-| `/oauth/consent` | Simulated provider consent | — |
+| `/oauth/:provider/consent` | Simulated provider consent | — |
+| `/oauth/:provider/link` | Confirm and continue an account link | — |
 | `/inbox` | Simulated inbox with read, archive and action links | `requireAuth` |
 | `/onboarding` | Onboarding wizard | `requireAuth` |
 | `/billing/plans` | Pricing cards (integer cents) | `requireAuth` |
@@ -88,7 +89,21 @@ prototype's hash routes.
 Sign-in, sign-up, magic-link, MFA, reset and email-verification routes are
 working simulated flows. Password sign-in checks MFA before opening a session;
 magic links consume the inbox token and route MFA-enrolled accounts to the
-challenge. OAuth consent remains a placeholder until its UI task lands.
+challenge. OAuth consent uses the in-app provider simulator and never contacts
+an external provider. It displays requested scopes, supports deny and approve,
+and asks for confirmation before linking a matching existing account.
+
+Render `SsoButtons` on a sign-in or sign-up screen to start the simulated
+provider flow. It accepts an optional provider list, `sign-in` / `sign-up` /
+`link` intent, and per-provider scenario overrides:
+
+```svelte
+<script lang="ts">
+  import { SsoButtons } from '@protoyard/saas-ui';
+</script>
+
+<SsoButtons providers={['google', 'github']} intent="sign-in" />
+```
 
 ## Onboarding wizard
 

@@ -129,7 +129,8 @@ describe('saasRoutes', () => {
     expect(paths).toContain('/sign-in');
     expect(paths).toContain('/inbox');
     expect(paths).toContain('/onboarding');
-    expect(paths).toContain('/oauth/consent');
+    expect(paths).toContain('/oauth/:provider/consent');
+    expect(paths).toContain('/oauth/:provider/link');
   });
 
   it('guards inbox when signed out and allows it when signed in', async () => {
@@ -177,6 +178,7 @@ describe('saasRoutes', () => {
         'magicLink',
         'mfa',
         'oauthConsent',
+        'oauthLink',
         'onboarding',
         'resetPassword',
         'signIn',
