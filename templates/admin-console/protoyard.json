@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.admin-console",
+  "slug": "admin-console",
+  "kind": "template",
+  "name": "Admin Console",
+  "description": "An internal admin console: tenants with suspend and reactivate, users across tenants with simulated impersonation, subscriptions with cancel and resume, and an audit log of every staff action, with role-gated destructive actions behind confirmation.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "desktop",
+  "category": "starter",
+  "tags": ["starter", "admin", "internal-tool", "saas", "audit", "roles", "impersonation"],
+  "status": "ready",
+  "icon": "🛡️",
+  "defaultScenario": "operations",
+  "defaultTheme": "ocean",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-admin-console", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "operations", "incident", "support-agent", "auditor"]
+}
