@@ -16,7 +16,7 @@ import { flag, opt } from '../lib/command.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
 import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
-import { installWorkspace } from '../lib/pnpm.ts';
+import { installWorkspace, runPnpm } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
 import { SPEC_FILES } from '../lib/spec-render.ts';
 import {
@@ -86,7 +86,8 @@ export async function copyTemplate(source: string, destination: string): Promise
 
 export interface NewProjectInput {
   slug: string;
-  template: string;
+  /** The origin template; null when the copied prototype came from none. */
+  template: string | null;
   name: string;
   description?: string;
   now: string;
@@ -104,7 +105,7 @@ export async function personalize(dir: string, input: NewProjectInput) {
     kind: 'prototype',
     name: input.name,
     ...(input.description !== undefined ? { description: input.description } : {}),
-    template: input.template,
+    template: input.template ?? undefined,
     storage: { ...storage, namespace: input.slug },
     createdAt: input.now,
     updatedAt: input.now,
@@ -188,7 +189,11 @@ export async function writeNewSpec(ctx: CommandContext, dir: string): Promise<Ne
 
 type Existing = 'none' | 'empty' | 'same' | 'other';
 
-async function inspectDestination(dest: string, slug: string, template: string): Promise<Existing> {
+async function inspectDestination(
+  dest: string,
+  slug: string,
+  template: string | null
+): Promise<Existing> {
   if (!existsSync(dest)) return 'none';
   const names = await readdir(dest).catch(() => null);
   if (names === null) return 'other';
@@ -199,28 +204,70 @@ async function inspectDestination(dest: string, slug: string, template: string):
       unknown
     >;
     // A previous run of this exact command: safe to resume (retry-safe).
-    if (raw.id === `local.${slug}` && raw.slug === slug && raw.template === template) return 'same';
+    if (raw.id === `local.${slug}` && raw.slug === slug && (raw.template ?? null) === template)
+      return 'same';
   } catch {
     // unreadable → not ours
   }
   return 'other';
 }
 
-export const newCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
-  const slug = assertSlug(args[0]);
-  const templateName = opt(options, 'template');
-  if (!templateName) {
-    throw new CliError('usage', 'Missing --template <name>.', {
-      hint: 'Run `pnpm protoyard list --kind template` to see the available templates.',
-    });
-  }
+export interface CreateInput {
+  slug: string;
+  /** A template, or an existing prototype to remix (prototypes win, like `dev`). */
+  from: string;
+  /** Restrict `from` to templates (the historical `--template` flag). */
+  templatesOnly?: boolean;
+  name?: string;
+  description?: string;
+  /** Reuse an EXISTING EMPTY folder; never overwrites files. */
+  force?: boolean;
+  /**
+   * `auto`: `pnpm install --offline`, then a normal install (CLI default).
+   * `offline`: offline only; when it fails, report the command instead (control server).
+   * `skip`: do not link.
+   */
+  install: 'auto' | 'offline' | 'skip';
+  stdio: 'pipe' | 'inherit';
+}
+
+export interface CreateResult {
+  slug: string;
+  id: string;
+  name: string;
+  /** Kind and slug of the copied source. */
+  source: { kind: 'template' | 'prototype'; slug: string };
+  /** The manifest `template` of the new prototype (the template it ultimately comes from). */
+  template: string | null;
+  path: string;
+  dir: string;
+  created: boolean;
+  files: number;
+  install: { ok: boolean; skipped: boolean; mode?: string; log?: string; command?: string };
+  spec: NewSpecResult;
+  indexed: boolean;
+  nextSteps: string[];
+}
+
+/**
+ * Copies a template or an existing prototype into prototypes/<slug>: never
+ * over existing files, staged then renamed, with a fresh id, name and storage
+ * namespace. Shared by `protoyard new` and the control server's POST /api/new.
+ */
+export async function createPrototypeFrom(
+  ctx: CommandContext,
+  input: CreateInput
+): Promise<CreateResult> {
+  const slug = assertSlug(input.slug);
+  const fromSlug = assertSlug(input.from);
   const {
-    entry: template,
-    dir: templateDir,
+    entry: source,
+    dir: sourceDir,
     registry,
-  } = await resolveTarget(ctx, templateName, 'template');
-  const name = opt(options, 'name') ?? titleFromSlug(slug);
-  const description = opt(options, 'description');
+  } = await resolveTarget(ctx, fromSlug, input.templatesOnly ? 'template' : 'runnable');
+  // A prototype keeps the template it came from; a template is its own origin.
+  const origin = source.kind === 'template' ? source.slug : source.template;
+  const name = input.name ?? titleFromSlug(slug);
 
   await mkdir(ctx.paths.prototypes, { recursive: true });
   const prototypesReal = await realpath(ctx.paths.prototypes);
@@ -234,17 +281,17 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
     throw new CliError('conflict', `id "local.${slug}" is already used by ${clash.path}.`);
   }
 
-  const existing = await inspectDestination(dest, slug, template.slug);
+  const existing = await inspectDestination(dest, slug, origin);
   if (existing === 'other') {
     throw new CliError(
       'conflict',
-      `prototypes/${slug} already exists and was not created from "${template.slug}".`,
+      `prototypes/${slug} already exists and was not created from "${source.slug}".`,
       {
         hint: 'Choose another slug. --force only reuses an EMPTY folder; it never overwrites files.',
       }
     );
   }
-  if (existing === 'empty' && !flag(options, 'force')) {
+  if (existing === 'empty' && !input.force) {
     throw new CliError('conflict', `prototypes/${slug} exists (empty).`, {
       hint: 'Re-run with --force to use the empty folder.',
     });
@@ -258,12 +305,12 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
     const staging = childPath(prototypesReal, `.${slug}.staging-${process.pid}`);
     await rm(staging, { recursive: true, force: true });
     try {
-      files = await copyTemplate(templateDir, staging);
+      files = await copyTemplate(sourceDir, staging);
       await personalize(staging, {
         slug,
-        template: template.slug,
+        template: origin,
         name,
-        ...(description !== undefined ? { description } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
         now: new Date().toISOString(),
       });
       if (existing === 'empty') await rm(dest, { recursive: true, force: true });
@@ -274,15 +321,26 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
     }
   }
 
-  let install: { ok: boolean; skipped: boolean; mode?: string; log?: string };
-  if (options.install === false) install = { ok: true, skipped: true };
-  else {
-    const result = await installWorkspace(ctx.root, ctx.out.options.json ? 'pipe' : 'inherit');
+  let install: CreateResult['install'];
+  if (input.install === 'skip') install = { ok: true, skipped: true };
+  else if (input.install === 'offline') {
+    // Never reaches the network: links only when every dependency is already in the store.
+    const offline = await runPnpm(['install', '--offline'], {
+      cwd: ctx.root,
+      stdio: 'pipe',
+      timeoutMs: 300_000,
+    });
+    install =
+      offline.code === 0
+        ? { ok: true, skipped: false, mode: 'offline' }
+        : { ok: false, skipped: false, mode: 'offline', command: 'pnpm install' };
+  } else {
+    const result = await installWorkspace(ctx.root, input.stdio);
     install = {
       ok: result.ok,
       skipped: false,
       mode: result.mode,
-      ...(result.ok ? {} : { log: result.log }),
+      ...(result.ok ? {} : { log: result.log, command: 'pnpm install' }),
     };
   }
 
@@ -290,7 +348,6 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
   const spec = await writeNewSpec(ctx, dest);
 
   const index = await buildIndex(ctx.paths);
-  const rel = toPosixRelative(ctx.root, dest);
   const nextSteps = [
     ...(install.ok && !install.skipped ? [] : ['pnpm install']),
     `pnpm protoyard dev ${slug}`,
@@ -298,45 +355,83 @@ export const newCommand: Handler = async (ctx, args, options): Promise<CommandRe
     `pnpm protoyard build ${slug}`,
   ];
   return {
-    data: {
-      slug,
-      id: `local.${slug}`,
-      name,
-      template: template.slug,
-      path: rel,
-      created,
-      files,
-      install,
-      spec,
-      indexed: index.registry.entries.some((e) => e.slug === slug && e.kind === 'prototype'),
-      nextSteps,
-    },
+    slug,
+    id: `local.${slug}`,
+    name,
+    source: { kind: source.kind, slug: source.slug },
+    template: origin,
+    // dest is canonical (realpath), so the root must be too: /var vs /private/var on macOS.
+    path: toPosixRelative(await realpath(ctx.root), dest),
+    dir: dest,
+    created,
+    files,
+    install,
+    spec,
+    indexed: index.registry.entries.some((e) => e.slug === slug && e.kind === 'prototype'),
+    nextSteps,
+  };
+}
+
+export const newCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  const template = opt(options, 'template');
+  const from = opt(options, 'from');
+  if (template !== undefined && from !== undefined) {
+    throw new CliError('usage', 'Pass --template or --from, not both.');
+  }
+  if (template === undefined && from === undefined) {
+    throw new CliError('usage', 'Missing --template <name> or --from <template|prototype>.', {
+      hint: 'Run `pnpm protoyard list` to see the templates and prototypes you can start from.',
+    });
+  }
+  const name = opt(options, 'name');
+  const description = opt(options, 'description');
+  const result = await createPrototypeFrom(ctx, {
+    slug: args[0] ?? '',
+    from: (template ?? from) as string,
+    templatesOnly: template !== undefined,
+    ...(name !== undefined ? { name } : {}),
+    ...(description !== undefined ? { description } : {}),
+    force: flag(options, 'force'),
+    install: options.install === false ? 'skip' : 'auto',
+    stdio: ctx.out.options.json ? 'pipe' : 'inherit',
+  });
+  const { dir: _dir, ...data } = result;
+  return {
+    data,
     render(out) {
       const { c } = out;
+      const from = `${result.source.kind} ${c.cyan(result.source.slug)}`;
       out.always(
-        created
-          ? `${mark(c, 'pass')} Created ${c.bold(rel)} from template ${c.cyan(template.slug)} (${files} files)`
-          : `${mark(c, 'pass')} ${c.bold(rel)} already exists from ${c.cyan(template.slug)} — resumed`
+        result.created
+          ? `${mark(c, 'pass')} Created ${c.bold(result.path)} from ${from} (${result.files} files)`
+          : `${mark(c, 'pass')} ${c.bold(result.path)} already exists from ${from} — resumed`
       );
-      if (install.skipped) out.info(`${mark(c, 'skip')} Skipped pnpm install (--no-install)`);
-      else if (install.ok)
-        out.info(`${mark(c, 'pass')} Linked into the workspace (pnpm install --${install.mode})`);
-      else {
-        out.warn(`${mark(c, 'warn')} pnpm install failed — run it manually before \`dev\`.`);
-        if (install.log) out.warn(c.dim(install.log));
-      }
-      if (spec.ok)
+      if (result.install.skipped)
+        out.info(`${mark(c, 'skip')} Skipped pnpm install (--no-install)`);
+      else if (result.install.ok)
         out.info(
-          `${mark(c, 'pass')} Spec: AGENTS.md and docs/ filled for ${slug} (${spec.created} created, ${spec.updated} refreshed)`
+          `${mark(c, 'pass')} Linked into the workspace (pnpm install --${result.install.mode})`
         );
       else {
-        out.warn(`${mark(c, 'warn')} Spec regions not refreshed: ${spec.error ?? 'unknown error'}`);
+        out.warn(`${mark(c, 'warn')} pnpm install failed — run it manually before \`dev\`.`);
+        if (result.install.log) out.warn(c.dim(result.install.log));
+      }
+      if (result.spec.ok)
+        out.info(
+          `${mark(c, 'pass')} Spec: AGENTS.md and docs/ filled for ${result.slug} (${result.spec.created} created, ${result.spec.updated} refreshed)`
+        );
+      else {
         out.warn(
-          c.dim(`  Run \`pnpm protoyard spec ${slug} --init --write\` once the prototype loads.`)
+          `${mark(c, 'warn')} Spec regions not refreshed: ${result.spec.error ?? 'unknown error'}`
+        );
+        out.warn(
+          c.dim(
+            `  Run \`pnpm protoyard spec ${result.slug} --init --write\` once the prototype loads.`
+          )
         );
       }
       out.info('\nNext steps:');
-      for (const step of nextSteps) out.info(`  ${c.cyan(step)}`);
+      for (const step of result.nextSteps) out.info(`  ${c.cyan(step)}`);
     },
   };
 };

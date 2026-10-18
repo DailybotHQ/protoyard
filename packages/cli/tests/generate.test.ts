@@ -235,6 +235,11 @@ describe('protoyard generate', () => {
       join(ws.root, 'prototypes/help-desk/node_modules'),
       'dir'
     );
+    // The template ships spec files; with dependencies linked now, refresh their
+    // generated regions as `generate` suggests (it could not load them before linking).
+    expect(
+      (await cli(['--root', ws.root, '--json', 'spec', 'help-desk', '--init', '--write'])).code
+    ).toBe(0);
     const run = await cli(['--root', ws.root, '--json', 'validate', 'help-desk']);
     const { ok, data } = run.json<{
       ok: boolean;

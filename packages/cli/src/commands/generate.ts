@@ -17,7 +17,7 @@ import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
 import { installWorkspace } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
 import { assertSlug, resolveTarget } from '../lib/workspace.ts';
-import { copyTemplate, listTemplateFiles, personalize } from './new.ts';
+import { copyTemplate, listTemplateFiles, personalize, writeNewSpec } from './new.ts';
 
 /**
  * `protoyard generate <slug> --blueprint <file>`: validates a data-only
@@ -249,6 +249,10 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     };
   }
 
+  // The template ships spec files (AGENTS.md, docs/): refresh their generated
+  // regions for the new slug and its generated schema, like `protoyard new`.
+  const spec = created ? await writeNewSpec(ctx, dest) : null;
+
   const index = await buildIndex(ctx.paths);
   const generatedFiles = files.filter((f) => f.generated);
   const intact = await Promise.all(
@@ -257,7 +261,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   const nextSteps = [
     ...(install.ok && !install.skipped ? [] : ['pnpm install']),
     `pnpm protoyard dev ${slug}`,
-    `pnpm protoyard spec ${slug} --init`,
+    ...(spec?.ok === false ? [`pnpm protoyard spec ${slug} --init --write`] : []),
     `pnpm vitest run prototypes/${slug}`,
     `pnpm protoyard validate ${slug} --build`,
   ];
@@ -275,6 +279,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       generated: generatedFiles.map((f) => f.path),
       hashesIntact: intact.every(Boolean),
       install,
+      spec,
       indexed: index.registry.entries.some((e) => e.slug === slug && e.kind === 'prototype'),
       durationMs,
       nextSteps,
@@ -293,6 +298,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
         out.warn(`${mark(c, 'warn')} pnpm install failed — run it manually before \`dev\`.`);
         if (install.log) out.warn(c.dim(install.log));
       }
+      if (spec?.ok) out.info(`${mark(c, 'pass')} Spec: AGENTS.md and docs/ filled for ${slug}`);
+      else if (spec)
+        out.warn(`${mark(c, 'warn')} Spec regions not refreshed: ${spec.error ?? 'unknown error'}`);
       out.info('\nNext steps:');
       for (const step of nextSteps) out.info(`  ${c.cyan(step)}`);
     },
