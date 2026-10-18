@@ -1,7 +1,7 @@
 <script lang="ts">
 import { ListTodo, Plus, UserRound } from '@lucide/svelte';
 import { createRouter, Router } from '@protoyard/renderer-svelte';
-import { BottomNav } from '@protoyard/ui';
+import { BottomNav, MobileAppShell } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { provideApp } from './lib/context.ts';
 import ItemDetail from './screens/ItemDetail.svelte';
@@ -47,14 +47,15 @@ const items = $derived([
 ]);
 </script>
 
-<!-- A phone-width column: full screen on phones, centered on larger screens. -->
-<div class="min-h-dvh bg-muted/40 md:py-6">
-  <div
-    class="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-background md:min-h-[calc(100dvh-3rem)] md:overflow-hidden md:rounded-3xl md:border md:border-border md:shadow-xl"
-  >
-    <main class="flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))]">
-      <Router {router} />
-    </main>
-  </div>
-  <BottomNav {items} label="Main" />
-</div>
+<!--
+  The shell is exactly one app-height tall (--py-app-height: the window, or the
+  device screen inside a shell frame). Only <main> scrolls, and the bottom nav
+  sits in normal flow below it, so it is always visible. On a desktop window,
+  ShellHost frames the app as a phone (platform "mobile").
+-->
+<MobileAppShell mainId="main">
+  <Router {router} />
+  {#snippet bottomNav()}
+    <BottomNav {items} label="Main" fixed={false} />
+  {/snippet}
+</MobileAppShell>

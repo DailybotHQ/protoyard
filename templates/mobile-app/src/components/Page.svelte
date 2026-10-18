@@ -3,7 +3,10 @@ import { MobileHeader } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
 import ConditionBanners from './ConditionBanners.svelte';
 
-/** Every screen: sticky mobile header, condition banners, padded content. */
+/**
+ * Every screen: a mobile header that sticks inside the shell's scrolling `<main>`,
+ * condition banners and padded content.
+ */
 let {
   title,
   subtitle,

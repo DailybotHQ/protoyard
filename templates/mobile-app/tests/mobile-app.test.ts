@@ -1,11 +1,13 @@
 import { PermissionDeniedError, parseScenario } from '@protoyard/core';
 import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
+import { cleanup, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import type { AppDatabase } from '../src/database/schema.ts';
 import { createItemServices, ItemValidationError, sortItems } from '../src/domain/items.ts';
 import { definition } from '../src/prototype.ts';
 import { generateMobileWorld } from '../src/scenarios/generators.ts';
+import AppHost from './AppHost.svelte';
 
 const scenario = (id: string) => {
   const input = definition.scenarios.find((s) => s.id === id);
@@ -95,5 +97,37 @@ describe('item services on the real runtime', () => {
     const order = sortItems(await runtime.db.items.toArray()).map((i) => i.status);
     const rank = { doing: 0, todo: 1, done: 2 } as const;
     expect(order.map((s) => rank[s])).toEqual([...order.map((s) => rank[s])].sort());
+  });
+});
+
+describe('app shell', () => {
+  let harness = createHarness<AppDatabase>(definition);
+  afterEach(() => {
+    cleanup();
+    location.hash = '';
+    harness.closeAll();
+    harness = createHarness<AppDatabase>(definition);
+  });
+
+  it('renders the bottom nav in normal flow, after the only scrolling region', async () => {
+    const runtime = await harness.boot('active');
+    const { container } = render(AppHost, { runtime });
+    const nav = await screen.findByRole('navigation', { name: 'Main' });
+    const main = container.querySelector('main#main');
+
+    // In flow: not fixed to the window, so no viewport preset or frame can push it off screen.
+    expect(nav.className).not.toMatch(/\bfixed\b/);
+    expect(main?.className).toMatch(/\boverflow-y-auto\b/);
+    expect(main?.contains(nav)).toBe(false);
+    expect(main?.parentElement).toBe(nav.parentElement);
+    expect(
+      (main?.compareDocumentPosition(nav) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    // The shell is exactly one app-height tall; no desktop card or md: frame remains.
+    expect(main?.parentElement?.className).toMatch(/\bh-app\b/);
+    expect(container.innerHTML).not.toMatch(/md:rounded-3xl|min-h-dvh/);
+
+    expect(await screen.findByRole('heading', { name: 'Items', level: 1 })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Items' }).getAttribute('aria-current')).toBe('page');
   });
 });
