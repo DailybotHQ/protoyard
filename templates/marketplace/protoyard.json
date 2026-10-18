@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.marketplace",
+  "slug": "marketplace",
+  "kind": "template",
+  "name": "Marketplace",
+  "description": "A two-sided marketplace starter with seller onboarding, listing management, simulated checkout, orders, and cent-based payouts.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "marketplace", "commerce", "seller", "orders"],
+  "status": "ready",
+  "icon": "🛍️",
+  "defaultScenario": "marketplace",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-marketplace", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["marketplace", "seller-onboarding", "seller-active", "seller-orders"]
+}
