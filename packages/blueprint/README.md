@@ -9,13 +9,13 @@ Framework-agnostic: it depends only on `@protoyard/core` and zod and never impor
 
 ## Status
 
-Implemented: the blueprint schema (`src/schema.ts` + JSON Schema) and storage derivation
-(`src/storage.ts`). Remaining derivations land in later PLAN_002 tasks:
+Implemented: schema, storage, migrations and policy. Remaining derivations land in later
+PLAN_002 tasks:
 
 | Module | Derives | Status |
 | --- | --- | --- |
 | storage | Dexie store strings and integrity rules | done |
-| migrations | the next appended database version from a blueprint change | planned |
+| migrations | the next appended database version from a blueprint change | done |
 | validation | create and update zod input schemas per entity | planned |
 | policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
 | validation | create and update zod input schemas per entity | done |
@@ -97,6 +97,32 @@ const integrity = deriveIntegrity(blueprint);
 
 `deriveIntegrity` feeds `validateWorld` from `@protoyard/scenarios`: dangling foreign keys
 and out-of-range timestamps fail the scenario load.
+
+## Migrations
+
+```ts
+import {
+  deriveStores,
+  diffBlueprints,
+  appendMigration,
+  toDatabaseVersion,
+} from '@protoyard/blueprint';
+
+const v1 = { version: 1, stores: deriveStores(prev) };
+const migration = diffBlueprints(prev, next, {
+  fromVersion: 1,
+  // allowDrop: true, // required to drop a table or field
+  // renamedFrom: { fields: { 'notes.headline': 'title' }, tables: { clients: 'customers' } },
+});
+// null when nothing changed; otherwise version 2 + stores + serializable ops
+const versions = appendMigration([v1], migration);
+```
+
+`diffBlueprints` classifies add entity, add field (backfill default), add index, rename via
+`renamedFrom`, and drop (`allowDrop` → Dexie store `null`). Upgrade steps are **data**
+(`backfill`, `renameField`, `copyTable`) so blueprint history stays JSON; `toDatabaseVersion`
+turns them into a Dexie `upgrade` callback. Drops without `allowDrop` throw `MigrationError`
+— migrations never delete user data silently.
 
 ## Policy derivation
 
