@@ -76,7 +76,13 @@ function focusOutlet(node: HTMLElement): void {
       data-py-router-outlet=""
       {@attach focusOutlet}
     >
-      <Page params={match.params} query={match.query} path={match.path} {...rest} />
+      <Page
+        params={match.params}
+        query={match.query}
+        path={match.path}
+        {...rest}
+        {...(match.error ? { error: match.error } : {})}
+      />
     </div>
   {/if}
 {/key}

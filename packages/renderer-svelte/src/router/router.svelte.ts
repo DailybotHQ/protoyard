@@ -28,13 +28,29 @@ export interface RouteDefinition {
   load?: () => Promise<{ default: AnyComponent }>;
   /** Used for `document.title` as `<title> · <prototype name>`. */
   title?: string;
+  /**
+   * Runs before the screen renders: `true` lets it through, a path redirects
+   * (`'/sign-in?next=…'`, see {@link redirectWithNext}). The URL is replaced,
+   * so Back never returns to the blocked screen. Guards must be synchronous;
+   * gating on the simulated session is UX, not security.
+   */
+  guard?: RouteGuard;
 }
+
+export type RouteGuard = (match: RouteMatch) => true | string;
+
+/** A guard chain longer than this is treated as a loop. */
+export const MAX_REDIRECTS = 5;
 
 export interface RouteMatch {
   route: RouteDefinition | null;
   params: RouteParams;
   path: string;
   query: URLSearchParams;
+  /** The originally requested path when guards redirected here. */
+  redirectedFrom?: string;
+  /** Set when guards looped: the router renders not-found with this message. */
+  error?: string;
 }
 
 export interface RouterOptions {
@@ -44,6 +60,12 @@ export interface RouterOptions {
   titleSuffix?: string;
   /** Scroll to top after navigating (default true). */
   scrollToTop?: boolean;
+  /**
+   * Re-runs guards when something they read changes, e.g. the simulated
+   * session: `revalidateOn: (refresh) => runtime.session.subscribe(refresh)`.
+   * Returns an unsubscribe function, called by `destroy()`.
+   */
+  revalidateOn?: (refresh: () => void) => () => void;
 }
 
 export interface Router {
@@ -62,6 +84,8 @@ export interface Router {
    * (used by `<Router>` retry after a failed chunk).
    */
   invalidate(route: RouteDefinition): void;
+  /** Re-evaluates the current location and its guards (e.g. after sign-in or sign-out). */
+  refresh(): void;
   destroy(): void;
 }
 
@@ -79,6 +103,29 @@ export function navigate(path: string, options: { replace?: boolean } = {}): voi
 export function back(fallback = '/'): void {
   if (history.length > 1) history.back();
   else navigate(fallback, { replace: true });
+}
+
+/**
+ * A redirect target that remembers where the person was going:
+ * `redirectWithNext('/sign-in', match)` → `/sign-in?next=%2Fsettings%3Ftab%3Dteam`.
+ */
+export function redirectWithNext(target: string, match: RouteMatch): string {
+  const query = match.query.toString();
+  const next = `${match.path}${query ? `?${query}` : ''}`;
+  const separator = target.includes('?') ? '&' : '?';
+  return `${target}${separator}next=${encodeURIComponent(next)}`;
+}
+
+/**
+ * The in-app path to continue to after a redirect (`?next=`), or `fallback`.
+ * Only same-app paths are accepted, so a crafted link can't send anyone away.
+ */
+export function nextPath(query: URLSearchParams, fallback = '/'): string {
+  const next = query.get('next');
+  if (!next?.startsWith('/') || next.startsWith('//') || /[\\\s]/.test(next)) {
+    return fallback;
+  }
+  return next;
 }
 
 export function fillParams(path: string, params: RouteParams = {}): string {
@@ -110,13 +157,55 @@ export function createRouter(
     return { route: null, params: {}, path, query };
   };
 
-  let current = $state<RouteMatch>(match(typeof location !== 'undefined' ? location.hash : ''));
+  /** Follows guard redirects from `hash`; stops at MAX_REDIRECTS. */
+  const resolveGuards = (hash: string): RouteMatch => {
+    const requested = match(hash);
+    let result = requested;
+    for (let hops = 0; result.route?.guard; hops++) {
+      const verdict = result.route.guard(result);
+      if (verdict === true) break;
+      if (hops >= MAX_REDIRECTS) {
+        return {
+          route: null,
+          params: {},
+          path: requested.path,
+          query: requested.query,
+          error: `Too many redirects starting at ${requested.path}. Check the route guards.`,
+        };
+      }
+      result = { ...match(verdict), redirectedFrom: requested.path };
+    }
+    return result;
+  };
+
+  const hrefOf = (m: RouteMatch) => {
+    const query = m.query.toString();
+    return toHref(`${m.path}${query ? `?${query}` : ''}`);
+  };
+  /** `current` is a `$state` proxy, so compare by value, never by identity. */
+  const sameOutcome = (a: RouteMatch, b: RouteMatch) =>
+    a.route?.path === b.route?.path && hrefOf(a) === hrefOf(b) && a.error === b.error;
+
+  /** Rewrites the address bar to the final match without adding a history entry. */
+  const replaceUrl = (resolved: RouteMatch) => {
+    if (resolved.redirectedFrom === undefined || typeof location === 'undefined') return;
+    const href = hrefOf(resolved);
+    if (location.hash !== href) {
+      history.replaceState(history.state, '', `${location.pathname}${location.search}${href}`);
+    }
+  };
+
+  const initial = resolveGuards(typeof location !== 'undefined' ? location.hash : '');
+  replaceUrl(initial);
+  let current = $state<RouteMatch>(initial);
 
   const update = () => {
-    const next = match(location.hash);
+    const next = resolveGuards(location.hash);
+    replaceUrl(next);
     current = next;
     if (typeof document !== 'undefined') {
-      const title = next.route?.title ?? (next.route ? undefined : 'Not found');
+      const title =
+        next.route?.title ?? (next.route ? undefined : next.error ? 'Redirect loop' : 'Not found');
       document.title = title && baseTitle ? `${title} · ${baseTitle}` : (title ?? baseTitle);
     }
     if (options.scrollToTop !== false && typeof window.scrollTo === 'function') {
@@ -132,7 +221,20 @@ export function createRouter(
   };
 
   const loaded = new Map<RouteDefinition, Promise<AnyComponent>>();
-  const off = typeof window !== 'undefined' ? on(window, 'hashchange', update) : () => {};
+  const onHashChange = () => {
+    // Some engines fire hashchange for our own replaceState; the redirect is already shown.
+    if (current.redirectedFrom !== undefined && location.hash === hrefOf(current)) return;
+    update();
+  };
+  const offHash = typeof window !== 'undefined' ? on(window, 'hashchange', onHashChange) : () => {};
+  const refresh = () => {
+    if (typeof location === 'undefined') return;
+    const next = resolveGuards(location.hash);
+    // Only a changed outcome re-renders; a session event on an allowed screen is a no-op.
+    if (sameOutcome(next, current)) return;
+    update();
+  };
+  const offRevalidate = options.revalidateOn?.(refresh) ?? (() => {});
 
   return {
     get current() {
@@ -166,6 +268,10 @@ export function createRouter(
     invalidate(route) {
       loaded.delete(route);
     },
-    destroy: off,
+    refresh,
+    destroy() {
+      offHash();
+      offRevalidate();
+    },
   };
 }
