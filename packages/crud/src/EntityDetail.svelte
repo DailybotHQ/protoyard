@@ -32,6 +32,7 @@ let {
   recordId,
   services = createEntityServices(runtime, blueprint),
   onEdit,
+  headingLevel = 2,
 }: {
   runtime: PrototypeRuntime;
   blueprint: Blueprint;
@@ -39,6 +40,7 @@ let {
   recordId: string;
   services?: EntityServices;
   onEdit?: (row: Row) => void;
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
 } = $props();
 
 const entity = $derived(blueprint.entities.find((candidate) => candidate.name === entityName));
@@ -177,7 +179,9 @@ function changeLabel(entry: AuditEntry, name: string): string {
     <header class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <p class="text-sm text-muted-foreground">{entity.label ?? entity.name}</p>
-        <h1 class="text-2xl font-semibold">{displayTitle(entity, record)}</h1>
+        <svelte:element this={`h${headingLevel}`} class="text-2xl font-semibold">
+          {displayTitle(entity, record)}
+        </svelte:element>
       </div>
       {#if onEdit && runtime.session.can(`${entity.name}:update`, record)}
         <Button type="button" variant="outline" onclick={() => onEdit?.(record!)}>Edit</Button>

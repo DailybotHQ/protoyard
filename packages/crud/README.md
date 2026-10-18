@@ -4,8 +4,12 @@ Blueprint-driven list, detail and form screens for Protoyard. `EntityList` wraps
 `DataTable` + selection + bulk actions + CSV + trash; `EntityDetail` shows a
 record, indexed related records, attachments and audit history; `EntityForm`
 renders a `FormField` per blueprint field with inline zod errors via `runService`.
-`RelationPicker` searches indexed relation/persona options and can create a
-related record inline when the current persona has create permission.
+`RelationPicker` searches indexed relation options and can create a related
+record inline when the current persona has create permission. Persona fields
+use a select of the runtime's team personas.
+Pass `runtime`, `blueprint` and `services` to `EntityForm` to render relation
+and persona fields with pickers. `EntityDetail` uses an `h2` record heading by
+default and accepts `headingLevel` when embedded under a different page heading.
 List columns resolve related records and personas in batches, and format money
 fields from integer cents with the blueprint currency. Entity headings use the
 blueprint label or a title-cased plural name.

@@ -107,6 +107,35 @@ describe('EntityForm', () => {
     const stored = await services.customer!.get(screen.getByTestId('created-id').textContent!);
     expect(stored?.name).toBe('Northwind Co');
   });
+
+  it('uses relation pickers for relation and persona fields in entity forms', async () => {
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, helpdeskBlueprint);
+    const customer = await services.customer!.create({ name: 'Form relation customer' });
+    const ticket = await services.ticket!.create({
+      subject: 'Form relation ticket',
+      customerId: customer.id,
+    });
+
+    render(CrudHarness, {
+      runtime,
+      blueprint: helpdeskBlueprint,
+      services,
+      mode: 'form-edit',
+      entityName: 'ticket',
+      initial: ticket,
+    });
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-relation-picker="customer"]')).toBeTruthy();
+      expect(document.querySelectorAll('[data-select-trigger]')).toHaveLength(2);
+    });
+    const assigneeLabel = screen.getByText('Assignee').closest('label');
+    const assigneeControl = assigneeLabel ? document.getElementById(assigneeLabel.htmlFor) : null;
+    expect(assigneeControl?.hasAttribute('data-select-trigger')).toBe(true);
+    expect(document.querySelector('[data-relation-picker="assignee"]')).toBeNull();
+    expect(document.querySelector('input[placeholder="id"]')).toBeNull();
+  });
 });
 
 describe('EntityDetail and RelationPicker', () => {
@@ -129,10 +158,30 @@ describe('EntityDetail and RelationPicker', () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'Northwind Detail' })).toBeTruthy()
+      expect(screen.getByRole('heading', { name: 'Northwind Detail', level: 2 })).toBeTruthy()
     );
     const link = await screen.findByRole('link', { name: 'Detail relation' });
     expect(link.getAttribute('href')).toBe(`#/tickets/${encodeURIComponent(String(ticket.id))}`);
+  });
+
+  it('allows the detail heading level to be configured', async () => {
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, helpdeskBlueprint);
+    const customer = await services.customer!.create({ name: 'Level three detail' });
+
+    render(CrudHarness, {
+      runtime,
+      blueprint: helpdeskBlueprint,
+      services,
+      mode: 'detail',
+      entityName: 'customer',
+      initial: customer,
+      detailHeadingLevel: 3,
+    });
+
+    expect(
+      await screen.findByRole('heading', { name: 'Level three detail', level: 3 })
+    ).toBeTruthy();
   });
 
   it('persists the selected relation through the entity service', async () => {
