@@ -25,3 +25,18 @@ export {
   type SaasRoutesOptions,
   saasRoutes,
 } from './routes.ts';
+export {
+  default as OnboardingWizard,
+  type OnboardingStepSnippet,
+  type OnboardingStepSnippetArgs,
+} from './screens/onboarding/OnboardingWizard.svelte';
+export {
+  defaultOnboardingSteps,
+  type OnboardingField,
+  type OnboardingRuntime,
+  type OnboardingSelectOption,
+  type OnboardingStepContext,
+  type OnboardingUiStep,
+  stepInput,
+  stepValues,
+} from './screens/onboarding/steps.ts';
