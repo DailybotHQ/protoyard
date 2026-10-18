@@ -1,0 +1,50 @@
+# protoyard-ci-template: preview v1
+name: Protoyard Cloudflare preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protoyard-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '{{NODE_VERSION}}'
+
+jobs:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Publish affected prototypes to preview
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          targets="$(pnpm protoyard affected --since "origin/${GITHUB_BASE_REF}" --format csv)"
+          if [[ -z "$targets" ]]; then
+            echo 'No affected prototypes to preview.'
+            exit 0
+          fi
+          IFS=',' read -r -a slugs <<< "$targets"
+          for slug in "${slugs[@]}"; do
+            pnpm protoyard publish "$slug" --provider {{PROVIDER}} --branch "pr-${PULL_REQUEST_NUMBER}" --yes
+          done

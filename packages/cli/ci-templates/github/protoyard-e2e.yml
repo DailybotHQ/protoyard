@@ -1,0 +1,65 @@
+# protoyard-ci-template: e2e v1
+name: Protoyard end-to-end
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protoyard-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '{{NODE_VERSION}}'
+  PROTOYARD_E2E_PROTOTYPES: '{{PROTOTYPES}}'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Resolve affected prototypes
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == 'push' && "$GITHUB_REF" == 'refs/heads/main' ]]; then
+            targets="$(pnpm protoyard list --kind prototype --json | node -e 'let s="";process.stdin.on("data",c=>s+=c).on("end",()=>process.stdout.write(JSON.parse(s).data.entries.map(x=>x.slug).join(",")))')"
+          elif [[ "$GITHUB_EVENT_NAME" == 'pull_request' ]]; then
+            targets="$(pnpm protoyard affected --since "origin/${GITHUB_BASE_REF}" --format csv)"
+          else
+            targets='{{PROTOTYPES}}'
+          fi
+          echo "PROTOYARD_E2E_PROTOTYPES=$targets" >> "$GITHUB_ENV"
+          echo "E2E prototypes: ${targets:-none}"
+      - name: Resolve the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - name: Install Chromium
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Chromium system dependencies (cached browser)
+        if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+      - name: Run Playwright
+        run: pnpm test:e2e
