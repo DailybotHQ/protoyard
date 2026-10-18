@@ -14,13 +14,22 @@ export interface ZipResult {
   files: number;
 }
 
-/** Zips a directory's contents (entries relative to it) with deterministic order and times. */
-export async function zipDirectory(source: string, destination: string): Promise<ZipResult> {
-  const files = await listFiles(source);
+export interface ZipEntry {
+  /** POSIX path inside the archive. */
+  name: string;
+  data: Uint8Array;
+}
+
+/**
+ * Zips the entries in the given order with fixed times: the same entries in
+ * the same order give the same bytes. Callers pass a stable order.
+ */
+export async function zipEntries(
+  entries: readonly ZipEntry[],
+  destination: string
+): Promise<ZipResult> {
   const tree: Zippable = {};
-  for (const file of files) {
-    const name = relative(source, file).split(sep).join('/');
-    const data = new Uint8Array(await readFile(file));
+  for (const { name, data } of entries) {
     // Already-compressed formats are stored; deflating them wastes time for no gain.
     tree[name] = [data, { level: STORE_EXTENSIONS.test(name) ? 0 : 9, mtime: ZIP_EPOCH }];
   }
@@ -30,6 +39,18 @@ export async function zipDirectory(source: string, destination: string): Promise
     path: destination,
     size: zipped.byteLength,
     sha256: sha256Text(zipped),
-    files: files.length,
+    files: entries.length,
   };
+}
+
+/** Zips a directory's contents (entries relative to it) with deterministic order and times. */
+export async function zipDirectory(source: string, destination: string): Promise<ZipResult> {
+  const entries: ZipEntry[] = [];
+  for (const file of await listFiles(source)) {
+    entries.push({
+      name: relative(source, file).split(sep).join('/'),
+      data: new Uint8Array(await readFile(file)),
+    });
+  }
+  return zipEntries(entries, destination);
 }

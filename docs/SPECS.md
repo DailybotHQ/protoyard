@@ -164,6 +164,27 @@ Region ids:
 | `routes` | `SCREENS.md` | the route table, once it is importable outside Svelte |
 | `commands` | `AGENTS.md` | the slug (the standard command list) |
 
+## Rebuild kit
+
+`pnpm protoyard spec <slug> --bundle` writes
+`artifacts/<slug>/<slug>-rebuild-kit.zip`: one file to hand to a team or an
+agent building the prototype as a real app. It contains a generated
+`REBUILD.md` (contents with sizes and sha256, how to use the kit, and a
+starting prompt that asks before choosing any vendor), then `AGENTS.md`,
+`README.md`, `docs/**/*.md`, `protoyard.json`, `src/prototype.ts`,
+`src/routes.ts`, `src/database/schema.ts`, and the `.ts`, `.md` and `.json`
+files under `src/domain/` and `src/scenarios/` (tests excluded). Nothing
+outside that allow-list is read: no screens, components, assets, tests or
+environment files. The command prints the ZIP's sha256. The same files give
+the same bytes.
+
+The kit is refused, and nothing is written, when the spec is missing or
+stale, when a symlink leaves the prototype folder or sits on the allow-list,
+or when a file matches the repository's public-hygiene rules (secret shapes,
+personal paths, private emails). Findings are reported as `path:line rule`,
+never with the matched text. The kit lives under `artifacts/`, never in
+`dist/`, so it is not part of any hosted build.
+
 ## Honest boundaries
 
 `SPEC.md` names every simulated part plainly. A prototype has no backend:
