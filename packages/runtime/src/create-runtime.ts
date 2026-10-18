@@ -13,6 +13,7 @@ import {
 } from '@protoyard/database';
 import { createIdentityController, type IdentityController } from './identity.ts';
 import { createKernel, type Kernel } from './kernel.ts';
+import { createMembersController } from './members.ts';
 import type { RuntimeOptions } from './options.ts';
 import { createEnvironmentFacade, createOverrideController } from './overrides.ts';
 import { createScenarioController, type ScenarioControllerExtras } from './scenarios.ts';
@@ -89,6 +90,7 @@ export async function createPrototypeRuntime(
   const scenarios = createScenarioController(kernel, (name) =>
     snapshots.save({ name, notes: 'Saved automatically before replacing the world.' })
   );
+  const identity = createIdentityController(kernel);
   let closed = false;
 
   const close = () => {
@@ -107,7 +109,8 @@ export async function createPrototypeRuntime(
     db: kernel.db,
     scenarios,
     session: createSessionController(kernel),
-    identity: createIdentityController(kernel),
+    identity,
+    members: createMembersController(kernel, identity),
     clock: kernel.clock,
     theme: createThemeController(kernel),
     environment: createEnvironmentFacade(kernel),

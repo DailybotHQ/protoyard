@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { Duration, SimulationClock } from './clock.ts';
 import type { EnvironmentState, SimulationEnvironment } from './environment.ts';
 import type { ColorMode, PrototypeManifest, ViewportPreset } from './manifest.ts';
@@ -129,6 +130,76 @@ export interface SessionController {
   subscribe(listener: (principal: Principal | null) => void): Unsubscribe;
 }
 
+/** Capabilities the members services assert (simulated policy, not security). */
+export const MEMBER_CAPABILITIES = {
+  invite: 'members:invite',
+  update: 'members:update',
+  remove: 'members:remove',
+  /** Changing who owns an organization (promote to / demote from `owner`, transfer). */
+  transfer: 'members:transfer',
+} as const;
+
+/** The role the at-least-one-owner invariant protects. */
+export const OWNER_ROLE = 'owner';
+
+/** Reserved example domains (RFC 2606/6761): invited people are always fictional. */
+export function isExampleEmail(email: string): boolean {
+  const domain = email.slice(email.lastIndexOf('@') + 1).toLowerCase();
+  return (
+    ['example.com', 'example.org', 'example.net'].includes(domain) || domain.endsWith('.example')
+  );
+}
+
+export const InviteMemberInputSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Enter a name').max(120),
+    /** Must use an example domain; derived from the name when omitted. */
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .pipe(z.email('Enter a valid email'))
+      .refine(isExampleEmail, 'Use a fictional address at example.com')
+      .optional(),
+    role: z.string().trim().min(1, 'Choose a role'),
+    title: z.string().trim().max(120).optional(),
+    /** Defaults to the principal's organization. */
+    organizationId: z.string().min(1).optional(),
+  })
+  .strict();
+export type InviteMemberInput = z.input<typeof InviteMemberInputSchema>;
+
+export interface Member {
+  membership: Membership;
+  persona: Persona;
+}
+
+/**
+ * Team management on simulated identities. Every mutation follows the
+ * service path: `session.assert(members:*)` → validation → `environment.run`
+ * → one transaction over the identity tables, then the session re-resolves
+ * the principal. Invariant: an organization that has an owner never loses
+ * its last one. This is UX simulation, not security.
+ */
+export interface MembersController {
+  /** Members of an organization (default: the principal's), oldest first. */
+  list(organizationId?: string): readonly Member[];
+  /**
+   * Creates a persona (or reuses the one with that email) and a membership.
+   * Throws a validation error (`issues`) for unknown roles, non-example
+   * emails or someone who is already a member.
+   */
+  invite(input: InviteMemberInput): Promise<Member>;
+  changeRole(membershipId: string, role: string): Promise<Membership>;
+  /** Removes a membership; the persona and its records stay. */
+  remove(membershipId: string): Promise<void>;
+  /**
+   * Makes the target member the owner and gives the acting owner
+   * `formerOwnerRole` (default `admin`), in one transaction.
+   */
+  transferOwnership(membershipId: string, options?: { formerOwnerRole?: string }): Promise<void>;
+}
+
 export interface OverrideController {
   get(): Overrides;
   set(patch: Overrides): Promise<void>;
@@ -207,6 +278,8 @@ export interface PrototypeRuntime<TDatabase = unknown> {
   readonly db: TDatabase;
   readonly scenarios: ScenarioController;
   readonly session: SessionController;
+  /** Invite members, change roles, remove members, transfer ownership. */
+  readonly members: MembersController;
   readonly clock: SimulationClock;
   readonly theme: ThemeController;
   readonly environment: SimulationEnvironment;

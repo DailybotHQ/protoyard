@@ -249,6 +249,18 @@ export function createFakeRuntime(
       refresh: async () => {},
       subscribe: (l) => sub(listeners.session, l),
     },
+    members: {
+      list: () =>
+        memberships.flatMap((membership) => {
+          const persona = personas.find((p) => p.id === membership.personaId);
+          return persona ? [{ membership, persona }] : [];
+        }),
+      invite: () => Promise.reject(new Error('The fake runtime does not manage members.')),
+      changeRole: () => Promise.reject(new Error('The fake runtime does not manage members.')),
+      remove: () => Promise.reject(new Error('The fake runtime does not manage members.')),
+      transferOwnership: () =>
+        Promise.reject(new Error('The fake runtime does not manage members.')),
+    },
     overrides: {
       get: () => overrides,
       set: async (patch) => {

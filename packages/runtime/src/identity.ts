@@ -161,25 +161,29 @@ export function createIdentityController(k: Kernel): IdentityController {
       return membership;
     },
 
-    getPersona: async (id) => (await personas().get(id)) as Persona | undefined,
-    getOrganization: async (id) => (await organizations().get(id)) as Organization | undefined,
-    getMembership: async (id) => (await memberships().get(id)) as Membership | undefined,
+    // Plain Dexie promises (no extra async layer) keep the transaction zone intact.
+    getPersona: (id) => personas().get(id) as Promise<Persona | undefined>,
+    getOrganization: (id) => organizations().get(id) as Promise<Organization | undefined>,
+    getMembership: (id) => memberships().get(id) as Promise<Membership | undefined>,
 
-    async listMemberships(filter = {}) {
-      const rows = (
+    listMemberships(filter = {}) {
+      const query =
         filter.personaId !== undefined
-          ? await memberships().where('personaId').equals(filter.personaId).toArray()
+          ? memberships().where('personaId').equals(filter.personaId)
           : filter.organizationId !== undefined
-            ? await memberships().where('organizationId').equals(filter.organizationId).toArray()
-            : await memberships().toArray()
-      ) as Membership[];
-      return rows
-        .filter(
-          (m) =>
-            (filter.personaId === undefined || m.personaId === filter.personaId) &&
-            (filter.organizationId === undefined || m.organizationId === filter.organizationId)
-        )
-        .sort((a, b) => a.joinedAt.localeCompare(b.joinedAt) || a.id.localeCompare(b.id));
+            ? memberships().where('organizationId').equals(filter.organizationId)
+            : memberships().toCollection();
+      return query
+        .toArray()
+        .then((rows) =>
+          (rows as Membership[])
+            .filter(
+              (m) =>
+                (filter.personaId === undefined || m.personaId === filter.personaId) &&
+                (filter.organizationId === undefined || m.organizationId === filter.organizationId)
+            )
+            .sort((a, b) => a.joinedAt.localeCompare(b.joinedAt) || a.id.localeCompare(b.id))
+        );
     },
 
     removeMembership: (id) => memberships().delete(id),
