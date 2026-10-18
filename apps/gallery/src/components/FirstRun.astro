@@ -1,4 +1,5 @@
 ---
+import { withBase } from '@/lib/format';
 import CommandBlock from './CommandBlock.svelte';
 
 interface Props {
@@ -8,7 +9,11 @@ interface Props {
 const { reason, error } = Astro.props;
 ---
 
-<section class="rounded-2xl border border-dashed border-line bg-surface p-8 sm:p-12" data-testid="first-run">
+<section
+  class="rounded-2xl border border-dashed border-line bg-surface p-8 sm:p-12"
+  data-testid="first-run"
+  data-reason={reason}
+>
   <p class="text-sm font-medium text-accent-fg">
     {reason === 'missing' ? 'First run' : reason === 'empty' ? 'Nothing here yet' : 'Registry problem'}
   </p>
@@ -28,14 +33,59 @@ const { reason, error } = Astro.props;
         : 'The gallery only reads .protoyard/registry.json, the metadata index the CLI writes from each protoyard.json. It never runs prototype code.'
     }
   </p>
+
+  <div class="mt-6 flex flex-wrap gap-2" data-testid="first-run-actions">
+    {
+      reason === 'empty' ? (
+        <a
+          href={withBase('/new/')}
+          class="inline-flex items-center rounded-md bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+          data-testid="first-run-create"
+        >
+          Create prototype
+        </a>
+      ) : null
+    }
+    <a
+      href="#templates"
+      class="inline-flex items-center rounded-md border border-line bg-bg px-3 py-2 text-sm font-medium text-fg hover:bg-surface-2"
+      data-testid="first-run-templates"
+    >
+      Browse templates
+    </a>
+    {
+      reason !== 'empty' ? (
+        <a
+          href={withBase('/')}
+          class="inline-flex items-center rounded-md border border-line bg-bg px-3 py-2 text-sm font-medium text-fg hover:bg-surface-2"
+          data-testid="first-run-reload-hint"
+        >
+          Reload gallery
+        </a>
+      ) : null
+    }
+  </div>
+
   <div class="mt-6 grid max-w-2xl gap-3">
     {
       reason === 'empty' ? (
-        <CommandBlock client:visible label="Scaffold one from a template" command="pnpm protoyard new my-app --template blank" />
+        <CommandBlock
+          client:visible
+          label="Scaffold one from a template"
+          command="pnpm protoyard new my-app --template blank"
+        />
       ) : (
-        <CommandBlock client:visible label="Build the registry (then reload)" command="pnpm protoyard index" />
+        <CommandBlock
+          client:visible
+          label="Build the registry (then reload)"
+          command="pnpm protoyard index"
+        />
       )
     }
-    <CommandBlock client:visible label="Or run everything (gallery + local control server)" command="pnpm dev" />
+    <CommandBlock
+      client:visible
+      label="Or run everything (gallery + local control server)"
+      command="pnpm dev"
+    />
   </div>
 </section>

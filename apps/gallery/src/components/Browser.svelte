@@ -14,6 +14,7 @@ import {
   queryFromParams,
 } from '@/lib/search';
 import type { CompactEntry } from '@/lib/types';
+import EmptyBrowseState from './EmptyBrowseState.svelte';
 import ProjectCard from './ProjectCard.svelte';
 
 interface Props {
@@ -205,14 +206,17 @@ const views = [
       {/each}
     </ul>
   {:else}
-    <div class="mt-3 rounded-xl border border-dashed border-line p-10 text-center">
-      <p class="font-medium">
-        {#if query.view === 'favorites'}No favorites yet{:else if query.view === 'recent'}Nothing opened yet{:else}Nothing matches these filters{/if}
-      </p>
-      <p class="mt-1 text-sm text-muted">
-        {#if query.view === 'favorites'}Star a prototype to keep it here (stored in this browser only).{:else if query.view === 'recent'}Prototypes you open appear here.{:else}Try fewer words or clear the filters.{/if}
-      </p>
-    </div>
+    <EmptyBrowseState
+      kind={query.view === 'favorites'
+        ? 'favorites'
+        : query.view === 'recent'
+          ? 'recent'
+          : filtered
+            ? 'filters'
+            : 'none'}
+      onClearFilters={reset}
+      onBrowseAll={() => update({ view: 'all' })}
+    />
   {/if}
 
   {#if pageCount > 1}
