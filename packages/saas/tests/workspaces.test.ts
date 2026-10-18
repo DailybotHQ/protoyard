@@ -10,7 +10,11 @@ import type { ProtoyardRuntime } from '@protoyard/runtime';
 import { generateTeam, PRESETS } from '@protoyard/scenarios';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
-import { createWorkspaces, WORKSPACE_CAPABILITIES } from '../src/workspaces.ts';
+import {
+  createWorkspaces,
+  WORKSPACE_CAPABILITIES,
+  type WorkspacesRuntime,
+} from '../src/workspaces.ts';
 
 const REFERENCE_TIME = '2026-06-01T09:00:00.000Z';
 
@@ -90,8 +94,13 @@ afterEach(() => {
 async function boot(namespace: string, scenario = 'active-month') {
   const harness = createHarness<Db>(createWorkspacesDefinition(namespace));
   harnesses.push(harness);
-  const runtime = await harness.boot(scenario);
-  return { harness, runtime, workspaces: createWorkspaces(runtime) };
+  // createPrototypeRuntime returns ProtoyardRuntime (with identity); the harness type is the core contract.
+  const runtime = (await harness.boot(scenario)) as ProtoyardRuntime;
+  return {
+    harness,
+    runtime,
+    workspaces: createWorkspaces(runtime as WorkspacesRuntime),
+  };
 }
 
 describe('createWorkspaces', () => {
@@ -109,8 +118,8 @@ describe('createWorkspaces', () => {
     expect(runtime.session.principal()?.role).toBe('owner');
     expect(workspaces.list().some((w) => w.organization.id === created.organization.id)).toBe(true);
 
-    const reloaded = await harness.reload(runtime);
-    const again = createWorkspaces(reloaded);
+    const reloaded = (await harness.reload(runtime)) as ProtoyardRuntime;
+    const again = createWorkspaces(reloaded as WorkspacesRuntime);
     expect(reloaded.session.principal()?.organization?.id).toBe(created.organization.id);
     expect(reloaded.session.principal()?.organization?.name).toBe('Acme Labs');
     expect(again.list().map((w) => w.organization.id)).toContain(created.organization.id);
