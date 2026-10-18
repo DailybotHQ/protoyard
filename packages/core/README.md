@@ -20,7 +20,8 @@ Nothing here imports Svelte, Dexie or Node APIs.
 | `events.ts` | `DomainEvent` envelope and deterministic `eventId()` |
 | `overrides.ts` | `OverridesSchema`, `resolveEffective` and the value sources (override › preference › scenario › default) |
 | `snapshot.ts` | `SnapshotSchema`, `validateSnapshot` and `parseSnapshotText` (size limit, wrong-prototype rejection, schema-version checks). These never throw on untrusted input. |
-| `theme.ts` | `ThemeSchema`, the token palette, `defineTheme`, `tokenToCssVar` (`--py-*`) |
+| `theme.ts` | `ThemeSchema`, the token palette, the optional `style` profile (`ThemeStyleSchema`, `DEFAULT_THEME_STYLE`, `resolveThemeStyle`: typography, shape, elevation, surface, motion, focus ring), `defineTheme`, `tokenToCssVar` (`--py-*`) |
+| `validation.ts` | `ValidationError` (`issues`: field path → first message, `form` for root issues) and `parseInput(schema, input)` for service inputs; `runService` in `@protoyard/renderer-svelte` leaves these errors to the form |
 | `runtime.ts` | `PrototypeRuntime` and its controllers (scenarios, session, overrides, theme, snapshots, data inspector), implemented by `@protoyard/runtime` |
 
 ## Example
@@ -46,6 +47,6 @@ const policy = createPermissionPolicy({
   Contracts are shared by all packages and prototypes.
 - Erasable TypeScript only (`erasableSyntaxOnly`): no parameter properties,
   enums or namespaces. Vite loads configs through Node's type stripping.
-- Tests live in `tests/core.test.ts`. Run them with
+- Tests live in `tests/*.test.ts` (`core.test.ts`, `theme.test.ts`, `validation.test.ts`). Run them with
   `pnpm vitest run packages/core` and type-check with
   `pnpm --filter @protoyard/core typecheck`.

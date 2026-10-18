@@ -36,7 +36,8 @@ All presets pass the contrast checks below, in both modes.
 
 A theme is a `Theme` (`packages/core/src/theme.ts`): `id`, `name`,
 `description`, `fontFamily`, `fontFamilyHeading?`, `fontFamilyMono`, `radius`,
-`density`, and a `light` and `dark` `ThemePalette`.
+`density`, a `light` and `dark` `ThemePalette`, and an optional `style`
+profile (below).
 
 `applyAppearance()` writes each palette token as a `--py-*` custom property on
 `<html>` (`tokenToCssVar('primaryForeground')` → `--py-primary-foreground`).
@@ -86,6 +87,32 @@ That file imports Tailwind, `@protoyard/themes/base.css` and
 
 **Use tokens, not raw colors.** `bg-primary text-primary-foreground` follows
 every theme and both modes; `bg-violet-600` does not.
+
+### Style profile (contract only)
+
+`theme.style` describes the dimensions beyond color. Every field is optional
+and defaults to today's rendering, so a theme without `style` (every built-in
+preset) parses to `DEFAULT_THEME_STYLE`. Values are validated strictly
+(lengths in `px`/`rem`/`em`, easing keywords or `cubic-bezier(…)`), because
+they are meant to become CSS.
+
+| Field | Values | Default (today) |
+| --- | --- | --- |
+| `typography.scaleRatio` | `1`–`1.75`, or `null` | `null` (Tailwind's built-in steps) |
+| `typography.weights` | `body`, `medium`, `heading`, `bold`: 100–900 | `400`, `500`, `600`, `700` |
+| `typography.tracking` | `body`, `heading`: `0`, `normal` or an `em` value | `0`, `0` |
+| `shape.radiusScale` | `0`–`4`, multiplies the steps around `radius` | `1` |
+| `shape.borderWidth` | a length | `1px` |
+| `elevation` | `flat`, `soft`, `crisp`, `glow` | `soft` |
+| `surface` | `solid`, `glass` | `solid` |
+| `motion.durations` | `fast`, `base`, `slow`: 0–2000 ms | `150`, `200`, `300` |
+| `motion.easing` | CSS keyword or `cubic-bezier(a, b, c, d)` | `cubic-bezier(0.4, 0, 0.2, 1)` |
+| `focusRing` | `style`: `ring`, `outline`, `glow`, `inset`; `width`, `offset`: lengths | `ring`, `2px`, `2px` |
+
+Font stacks stay on `fontFamily`, `fontFamilyHeading` and `fontFamilyMono`.
+`resolveThemeStyle(partial)` fills a partial profile with the defaults.
+Today this is the contract only: `applyAppearance()` and `base.css` do not
+read `style` yet, so setting it does not change the rendering.
 
 ## Mode, reduced motion and density
 
