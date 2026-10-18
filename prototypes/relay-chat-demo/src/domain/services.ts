@@ -296,9 +296,10 @@ export function createTeamChatServices(runtime: PrototypeRuntime<TeamChatDatabas
             reply = botReply(bot.id, data.body, seed());
           }
           // Stream the reply in chunks so the UI can show progressive body updates.
+          // Stay in the open thread when the user is already threading; otherwise
+          // post at channel level so @bot / slash replies are visible in the log.
           const replyId = createRuntimeId('msg');
           const at = now();
-          const thread = data.threadId ?? message.id;
           botMessage = {
             id: replyId,
             channelId,
@@ -306,7 +307,7 @@ export function createTeamChatServices(runtime: PrototypeRuntime<TeamChatDatabas
             authorKind: 'bot',
             body: '',
             at,
-            threadId: thread,
+            threadId: data.threadId ?? null,
             fileId: null,
           };
           await db.messages.put(botMessage);

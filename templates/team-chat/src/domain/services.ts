@@ -288,7 +288,8 @@ export function createTeamChatServices(runtime: PrototypeRuntime<TeamChatDatabas
           botMessage = await postMessage(channelId, reply, {
             authorId: bot.id,
             authorKind: 'bot',
-            threadId: data.threadId ?? message.id,
+            // Channel-level when the user is not in a thread so @bot replies show in the log.
+            threadId: data.threadId ?? null,
           });
         }
         return { message, bot: botMessage, huddle: null as Huddle | null };
