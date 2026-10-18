@@ -109,6 +109,7 @@ export type { KanbanColumn } from './components/kanban/types.ts';
 export { default as Kbd } from './components/kbd/Kbd.svelte';
 export { default as Label } from './components/label/Label.svelte';
 export { default as LoadingState } from './components/loading-state/LoadingState.svelte';
+export { default as MobileAppShell } from './components/mobile-app-shell/MobileAppShell.svelte';
 export { default as MobileHeader } from './components/mobile-header/MobileHeader.svelte';
 export { default as Pagination } from './components/pagination/Pagination.svelte';
 export { getPageTokens, type PageToken } from './components/pagination/pages.ts';

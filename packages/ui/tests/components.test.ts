@@ -10,6 +10,7 @@ import TypingIndicator from '../src/components/typing-indicator/TypingIndicator.
 import UserPicker from '../src/components/user-picker/UserPicker.svelte';
 import FormHarness from './fixtures/FormHarness.svelte';
 import KanbanHarness from './fixtures/KanbanHarness.svelte';
+import MobileShellHarness from './fixtures/MobileShellHarness.svelte';
 import ShellHarness from './fixtures/ShellHarness.svelte';
 import WizardHarness from './fixtures/WizardHarness.svelte';
 
@@ -110,6 +111,33 @@ describe('AppShell + Sidebar + Header', () => {
     expect(link.hasAttribute('type')).toBe(false);
     await fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
     expect(screen.getByRole('button', { name: /Collapse/ })).toBeTruthy();
+  });
+});
+
+describe('MobileAppShell', () => {
+  it('keeps the header, primary actions and non-fixed navigation around one scrollable main landmark', () => {
+    render(MobileShellHarness);
+
+    const main = screen.getByRole('main');
+    const navigation = screen.getByRole('navigation', { name: 'Primary' });
+    expect(screen.getByRole('banner')).toBeTruthy();
+    expect(main.getAttribute('tabindex')).toBe('-1');
+    expect(main.className).toContain('overflow-y-auto');
+    expect(main.className).toContain('min-h-0');
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeTruthy();
+    expect(navigation.className).not.toContain('fixed');
+    expect(navigation.className).toContain('pb-safe');
+    expect(
+      main.compareDocumentPosition(navigation) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('resets the main scroll position when the hash route changes', async () => {
+    render(MobileShellHarness);
+    const main = screen.getByRole('main');
+    main.scrollTop = 120;
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    await waitFor(() => expect(main.scrollTop).toBe(0));
   });
 });
 
