@@ -151,7 +151,8 @@ async function shareDemoFile() {
     </div>
     <div class="border-t border-border px-3 py-2">
       <p class="text-xs font-semibold text-muted-foreground">Presence</p>
-      <ul class="mt-1 max-h-28 space-y-0.5 overflow-y-auto text-xs">
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+      <ul class="mt-1 max-h-28 space-y-0.5 overflow-y-auto text-xs focus-visible:outline-2 focus-visible:outline-ring" tabindex="0" aria-label="Presence">
         {#each presence.current ?? [] as p}
           <li class="flex justify-between gap-2">
             <span class="truncate">{p.personaId}</span>
