@@ -24,7 +24,10 @@ const groups = $derived(groupByMonth(transactions));
 <div class="flex flex-col gap-5">
   {#each groups as group (group.key)}
     <section aria-labelledby={`month-${group.key}`}>
-      <div class="sticky top-14 z-10 -mx-4 flex items-baseline justify-between bg-background/95 px-4 py-1.5 backdrop-blur">
+      <!-- Offset clears MobileHeader (min-h-14 + safe-area top) inside the shell scroll main. -->
+      <div
+        class="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] z-10 -mx-4 flex items-baseline justify-between bg-background/95 px-4 py-1.5 backdrop-blur"
+      >
         <svelte:element this={`h${headingLevel}`} id={`month-${group.key}`} class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           {formatMonth(group.key)}
         </svelte:element>
