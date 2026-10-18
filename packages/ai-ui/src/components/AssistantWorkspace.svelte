@@ -1,10 +1,7 @@
 <script lang="ts">
 import {
   ArrowDown,
-  ArrowLeft,
-  ArrowRight,
   Check,
-  ChevronUp,
   Copy,
   FileText,
   FolderPlus,
@@ -12,15 +9,13 @@ import {
   MessageSquarePlus,
   MoreHorizontal,
   Pin,
-  RefreshCw,
   Search,
   Share2,
-  ThumbsDown,
-  ThumbsUp,
   X,
 } from '@lucide/svelte';
 import { AI_MODELS, type AiModel } from '@protoyard/ai';
 import { onMount } from 'svelte';
+import MessageList from '../MessageList.svelte';
 import type {
   AssistantCanvas,
   AssistantConversation,
@@ -30,7 +25,6 @@ import type {
 } from '../types.ts';
 import AssistantComposer from './AssistantComposer.svelte';
 import CanvasPanel from './CanvasPanel.svelte';
-import RichAnswer from './RichAnswer.svelte';
 
 interface Props {
   conversations: readonly AssistantConversation[];
@@ -103,7 +97,6 @@ let copiedShare = $state(false);
 let editingId = $state('');
 let editDraft = $state('');
 let searchInput = $state<HTMLInputElement | null>(null);
-let visibleMessageCount = $state(100);
 const activeConversation = $derived(
   conversations.find((conversation) => conversation.id === activeId)
 );
@@ -122,20 +115,13 @@ const sortedConversations = $derived.by(() => {
         right.updatedAt.localeCompare(left.updatedAt)
     );
 });
-const lastAssistant = $derived(
-  [...messages].reverse().find((message) => message.role === 'assistant')
-);
-const visibleMessages = $derived(messages.slice(-visibleMessageCount));
-const earlierMessageCount = $derived(messages.length - visibleMessages.length);
 const activeModel = $derived(models.find((model) => model.id === modelId));
 
 $effect(() => {
   if (selectedConversationId !== undefined && selectedConversationId !== activeId) {
     activeId = selectedConversationId;
-    visibleMessageCount = 100;
   } else if (!conversations.some((conversation) => conversation.id === activeId)) {
     activeId = conversations[0]?.id ?? '';
-    visibleMessageCount = 100;
   }
 });
 
@@ -159,7 +145,6 @@ onMount(() => {
 
 function selectConversation(id: string): void {
   activeId = id;
-  visibleMessageCount = 100;
   sidebarOpen = false;
   shareUrl = '';
   onSelectConversation?.(id);
@@ -301,7 +286,18 @@ function formatDate(date: string): string {
     {#if streaming}<p role="status" class="border-b border-border px-5 py-2 text-xs text-primary">Generating a simulated response… Press Esc to stop.</p>{/if}
     <div class="flex min-h-0 flex-1">
       <div class="flex min-w-0 flex-1 flex-col">
-        <div class="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-8">
+        {#if messages.length > 0}
+          <MessageList
+            {messages}
+            conversationId={activeId}
+            {streaming}
+            {onRegenerate}
+            {onEditMessage}
+            {onBranchChange}
+            {onFeedback}
+          />
+        {:else}
+          <div class="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-8">
           {#if messages.length === 0}
             <div class="mx-auto flex min-h-full max-w-2xl flex-col justify-center py-8">
               <div class="mb-8 text-center">
@@ -315,43 +311,9 @@ function formatDate(date: string): string {
                 {/each}
               </div>
             </div>
-          {:else}
-            <div class="mx-auto max-w-3xl space-y-8 pb-6">
-              {#if earlierMessageCount > 0}
-                <div class="flex justify-center pb-2">
-                  <button type="button" class="min-h-10 rounded-full border border-border bg-surface px-4 text-xs text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onclick={() => (visibleMessageCount += 100)}>Load {Math.min(100, earlierMessageCount)} earlier messages</button>
-                </div>
-              {/if}
-              {#each visibleMessages as message, index (message.id)}
-                <article class={`group min-w-0 ${message.role === 'user' ? 'ml-auto max-w-[92%] sm:max-w-[85%]' : 'max-w-full'}`} aria-label={message.role === 'user' ? 'Your message' : 'Assistant message'}>
-                  <div class="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span class="font-medium text-foreground">{message.role === 'user' ? 'You' : 'Assistant'}</span>
-                    {#if message.role === 'assistant'}<span class="rounded-full border border-border px-2 py-0.5 text-[0.62rem]">Simulated</span>{/if}
-                    <time class="ml-auto" datetime={message.createdAt}>{formatDate(message.createdAt)}</time>
-                  </div>
-                  {#if editingId === message.id}
-                    <form class="space-y-2" onsubmit={(event) => { event.preventDefault(); onEditMessage?.(message.id, editDraft); editingId = ''; }}>
-                      <label for={`edit-${message.id}`} class="sr-only">Edit your message</label>
-                      <textarea id={`edit-${message.id}`} bind:value={editDraft} rows="4" class="w-full rounded-xl border border-border bg-surface p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"></textarea>
-                      <div class="flex justify-end gap-2"><button type="button" class="min-h-10 rounded-lg px-3 text-xs hover:bg-muted" onclick={() => (editingId = '')}>Cancel</button><button type="submit" class="min-h-10 rounded-lg bg-primary px-3 text-xs text-primary-foreground disabled:opacity-40" disabled={!onEditMessage || !editDraft.trim()}>Save and resend</button></div>
-                    </form>
-                  {:else if message.role === 'user'}
-                    <div class="rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground whitespace-pre-wrap">{message.content}</div>
-                    {#if onEditMessage}<button type="button" class="mt-1 min-h-9 rounded-lg px-2 text-xs text-muted-foreground opacity-100 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100" aria-label="Edit your message" onclick={() => { editingId = message.id; editDraft = message.content; }}><span class="inline-flex items-center gap-1"><ChevronUp class="size-3" aria-hidden="true" /> Edit</span></button>{/if}
-                  {:else}
-                    <RichAnswer content={message.content} />
-                    <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-muted-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
-                      {#if onFeedback}<button type="button" class={`inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${message.feedback === 'up' ? 'text-primary' : ''}`} aria-label="Helpful response" aria-pressed={message.feedback === 'up'} onclick={() => onFeedback?.(message.id, 'up')}><ThumbsUp class="size-3.5" aria-hidden="true" />Helpful</button><button type="button" class={`inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${message.feedback === 'down' ? 'text-primary' : ''}`} aria-label="Unhelpful response" aria-pressed={message.feedback === 'down'} onclick={() => onFeedback?.(message.id, 'down')}><ThumbsDown class="size-3.5" aria-hidden="true" />Not helpful</button>{/if}
-                      {#if message.branchCount && message.branchCount > 1}<span class="ml-1 inline-flex items-center gap-1"><button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40" aria-label="Previous response version" disabled={message.branchIndex === 0 || !onBranchChange} onclick={() => onBranchChange?.(message.id, -1)}><ArrowLeft class="size-3.5" aria-hidden="true" /></button><span>{(message.branchIndex ?? 0) + 1} / {message.branchCount}</span><button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40" aria-label="Next response version" disabled={(message.branchIndex ?? 0) >= message.branchCount - 1 || !onBranchChange} onclick={() => onBranchChange?.(message.id, 1)}><ArrowRight class="size-3.5" aria-hidden="true" /></button></span>{/if}
-                      {#if lastAssistant?.id === message.id && onRegenerate}<button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={streaming} aria-label="Regenerate response" onclick={onRegenerate}><RefreshCw class="size-3.5" aria-hidden="true" /> Regenerate</button>{/if}
-                    </div>
-                  {/if}
-                  {#if message.role === 'assistant' && index === visibleMessages.length - 1 && streaming}<p class="mt-2 text-xs text-muted-foreground" aria-live="polite">Writing…</p>{/if}
-                </article>
-              {/each}
-            </div>
           {/if}
-        </div>
+          </div>
+        {/if}
         <footer class="space-y-2 border-t border-border bg-background/90 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
           <AssistantComposer models={models} modelId={modelId} streaming={streaming} disabled={!activeId} onModelChange={(id) => (modelId = id)} onStop={onStop} onSubmit={(input) => activeId ? onSend(activeId, input) : false} />
           <p class="text-center text-[0.65rem] text-muted-foreground">AI responses are generated by local deterministic simulation and may be inaccurate.</p>
