@@ -20,6 +20,7 @@ import {
 import { controlServerCommand, galleryCommand } from './commands/serve.ts';
 import { showcaseCommand } from './commands/showcase.ts';
 import { snapshotListCommand } from './commands/snapshot.ts';
+import { specCommand } from './commands/spec.ts';
 import {
   themeCreateCommand,
   themeExportCommand,
@@ -308,6 +309,18 @@ export function createProgram(env: RunnerEnv): Command {
     .command('snapshot')
     .description('snapshot files committed with a prototype');
   snapshot.command('list').argument('<slug>').action(def('snapshot list', snapshotListCommand));
+
+  program
+    .command('spec')
+    .description(
+      "keep a prototype's AGENTS.md and docs/ generated regions in sync with its definition (runs local code)"
+    )
+    .argument('[slug]')
+    .option('--all', 'every prototype')
+    .option('--write', 'refresh the generated regions (prose outside the markers is untouched)')
+    .option('--check', 'exit 4 when a generated region is stale or a marker is invalid')
+    .option('--init', 'create missing AGENTS.md and docs/* skeletons (never overwrites)')
+    .action(def('spec', specCommand));
 
   program
     .command('review-index')

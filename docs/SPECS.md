@@ -19,14 +19,15 @@ it qualifies for its own `AGENTS.md` and `docs/` folder.
 | --- | --- |
 | This standard (files, sections, sources, markers) | Defined (this page) |
 | Hand-written spec files in a prototype | Can be written now, by hand, following this page |
-| `protoyard spec <slug>` (generate, refresh, `--check`) | **Not implemented yet** |
+| `protoyard spec <slug\|--all> [--write\|--check] [--init]` | Available. `--init` creates missing files (never overwrites), `--write` refreshes generated regions, `--check` exits 4 on a stale region or an invalid marker. |
 | `protoyard validate` spec check (`--strict-spec`) | **Not implemented yet** |
 | Statically importable route table (`src/routes.ts`) for `SCREENS.md` | Available: `defineRoutes` in `@protoyard/renderer-svelte`; `crm-demo` and the `dashboard` template use it. Other prototypes still declare routes in `src/App.svelte`. |
-| Fact extraction for generated regions | Available as a library: `inspectSpec()` in `packages/cli/src/lib/inspect.ts` runs the definition in a child process (inspect runner `spec` mode) and returns sorted tables and indexes per version, roles × capabilities, rule names, default-scenario personas, scenarios with knobs, themes, timeline presence, `generatorVersion` and `src/routes.ts` routes. No CLI command uses it yet. |
+| Fact extraction for generated regions | Available: `inspectSpec()` in `packages/cli/src/lib/inspect.ts` runs the definition in a child process (inspect runner `spec` mode); `protoyard spec` renders from it. |
 | Spec skeletons in templates (`protoyard new`) | **Not implemented yet** |
 
-Until the CLI lands, generated regions are written by hand from the sources
-listed below. Update this table when the tooling ships.
+Start a spec with `pnpm protoyard spec <slug> --init`, write the prose, and keep
+the facts current with `--write` (`--check` in CI or review). Update this
+table when the remaining tooling ships.
 
 ## The files
 
@@ -154,7 +155,8 @@ Region ids:
 | --- | --- | --- |
 | `manifest` | `SPEC.md` | `protoyard.json` |
 | `scenarios` | `SPEC.md` | `definition.scenarios` (resolved against presets) |
-| `tables` | `DATA_MODEL.md` | latest entry of `definition.database.versions` |
+| `tables` | `DATA_MODEL.md` | the live store set after every entry of `definition.database.versions` |
+| `er-diagram` | `DATA_MODEL.md` | the same tables as a Mermaid `erDiagram`; relations inferred from indexed `…Id` fields that match a table name |
 | `versions` | `DATA_MODEL.md` | every entry of `definition.database.versions` |
 | `capability-matrix` | `PERMISSIONS.md` | `definition.policy.roles` |
 | `rules` | `PERMISSIONS.md` | keys of `definition.policy.rules` |
@@ -193,16 +195,16 @@ already chosen:
 | Scenarios and generators | Seed data for staging, demo accounts and test fixtures |
 | Screens and flows | The UI to keep. The states listed in `SCREENS.md` are the acceptance list. |
 
-## Writing a spec today
+## Writing a spec
 
-1. Create `AGENTS.md` and `docs/` in the prototype folder with the files
-   above.
-2. Fill the generated regions by hand from the sources in the tables (for
-   example, copy the role lists from `src/domain/policy.ts` into the
-   capability matrix), inside the markers, so the future `protoyard spec`
-   command can take them over.
-3. Write the hand-written sections. Move long tables out of `README.md` into
-   `docs/` and link to them.
+1. `pnpm protoyard spec <slug> --init` creates `AGENTS.md` and the `docs/`
+   files that are missing (existing files are never overwritten), with TODO
+   prompts for the prose and the generated regions already filled.
+2. Replace the TODOs. Move long tables out of `README.md` into `docs/` and
+   link to them.
+3. After changing the schema, policy, scenarios or routes, run
+   `pnpm protoyard spec <slug> --write`; `--check` fails (exit 4) while a
+   region is stale.
 4. Check that every relative link resolves and every command shown runs.
 
 The [crm-demo README](../prototypes/crm-demo/README.md) already contains
