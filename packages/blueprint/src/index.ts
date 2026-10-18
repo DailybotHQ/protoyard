@@ -51,6 +51,14 @@ export {
   safeParseBlueprint,
 } from './schema.ts';
 export {
+  BULK_CHUNK,
+  createEntityServices,
+  EntityInUseError,
+  EntityNotFoundError,
+  type EntityService,
+  type EntityServices,
+} from './services.ts';
+export {
   deriveIntegrity,
   deriveStores,
   entityStoreString,
