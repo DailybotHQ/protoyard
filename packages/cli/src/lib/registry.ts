@@ -1,6 +1,11 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import type { PrototypeManifest } from '@protoyard/core';
+import {
+  type Catalog,
+  type PrototypeManifest,
+  type ResolvedShell,
+  resolveShell,
+} from '@protoyard/core';
 import {
   type FolderKind,
   listManifestLocations,
@@ -18,7 +23,20 @@ import type { WorkspacePaths } from './paths.ts';
 
 export const REGISTRY_FORMAT = 'protoyard.registry';
 export const REGISTRY_VERSION = 1;
-const CACHE_VERSION = 1;
+/** v2: entries gained `catalog`; older caches would serve entries without it. */
+const CACHE_VERSION = 2;
+
+/** The manifest's catalog block as indexed: `shell` resolved for card framing. */
+export interface RegistryCatalog {
+  category: Catalog['category'];
+  productType: string | null;
+  platforms: Catalog['platforms'];
+  /** `catalog.shell`, else `preview.shell`, with `auto` resolved from the platform. */
+  shell: ResolvedShell;
+  features: string[];
+  highlights: string[];
+  difficulty: Catalog['difficulty'] | null;
+}
 
 export interface RegistryEntry {
   kind: FolderKind;
@@ -48,6 +66,8 @@ export interface RegistryEntry {
   modifiedAt: string;
   createdAt: string | null;
   updatedAt: string | null;
+  /** Marketplace metadata, or null when the manifest has no catalog block. */
+  catalog: RegistryCatalog | null;
 }
 
 export interface RegistryIssue {
@@ -115,6 +135,21 @@ export function toRegistryEntry(
     modifiedAt: new Date(mtimeMs).toISOString(),
     createdAt: manifest.createdAt ?? null,
     updatedAt: manifest.updatedAt ?? null,
+    catalog: toRegistryCatalog(manifest),
+  };
+}
+
+function toRegistryCatalog(manifest: PrototypeManifest): RegistryCatalog | null {
+  const catalog = manifest.catalog;
+  if (!catalog) return null;
+  return {
+    category: catalog.category,
+    productType: catalog.productType ?? null,
+    platforms: catalog.platforms,
+    shell: resolveShell(catalog.shell ?? manifest.preview.shell, manifest.platform),
+    features: catalog.features,
+    highlights: catalog.highlights,
+    difficulty: catalog.difficulty ?? null,
   };
 }
 
@@ -283,6 +318,9 @@ export function searchableText(entry: RegistryEntry): string {
       entry.template ?? '',
       entry.platform,
       ...entry.tags,
+      entry.catalog?.category ?? '',
+      entry.catalog?.productType ?? '',
+      ...(entry.catalog?.features ?? []),
     ].join(' ')
   );
 }

@@ -51,7 +51,7 @@ const widths = { sm: 'sm:max-w-sm', md: 'sm:max-w-md', lg: 'sm:max-w-xl', xl: 's
       bind:ref
       class={cn(
         // Phone: near full-screen bottom sheet. Larger screens: right-hand side panel.
-        'fixed inset-x-0 bottom-0 z-50 flex h-[calc(100dvh-1.5rem)] flex-col rounded-t-2xl border border-border bg-elevated text-foreground shadow-float outline-none ui-anim-panel',
+        'fixed inset-x-0 bottom-0 z-50 flex h-[calc(var(--py-app-height)-1.5rem)] flex-col rounded-t-2xl border border-border bg-elevated text-foreground shadow-float outline-none ui-anim-panel',
         'sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:w-full sm:rounded-none sm:rounded-l-2xl sm:border-y-0 sm:border-r-0',
         widths[size],
         className

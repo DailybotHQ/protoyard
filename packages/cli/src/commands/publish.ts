@@ -18,6 +18,7 @@ function runOptions(options: Record<string, unknown>): PublishRunOptions {
     production: flag(options, 'production'),
     dryRun: flag(options, 'dryRun'),
     project: opt(options, 'project'),
+    branch: opt(options, 'branch'),
     base: opt(options, 'base'),
     includeDevtools: flag(options, 'includeDevtools'),
   };

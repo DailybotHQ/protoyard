@@ -4,6 +4,8 @@ import {
   createPermissionPolicy,
   createSimulationClock,
   createSimulationEnvironment,
+  defaultDeviceFor,
+  getDevice,
   type LoadProgress,
   type Membership,
   type Organization,
@@ -16,6 +18,7 @@ import {
   parseScenario,
   resolveEffective,
   resolvePrincipal,
+  resolveShell,
   type Scenario,
   type SnapshotSummary,
 } from '@protoyard/core';
@@ -138,6 +141,24 @@ export function createFakeRuntime(
       ),
       viewport: resolveEffective({ override: overrides.viewport }, manifest.preview.viewport),
       density: resolveEffective({ override: overrides.density }, 1),
+      ...fakeShell(),
+    };
+  };
+  // Simplified mirror of the kernel's shell resolution (no fit fallbacks).
+  const fakeShell = (): Pick<AppearanceState, 'shell' | 'device' | 'orientation'> => {
+    const requested = resolveEffective({ override: overrides.shell }, manifest.preview.shell);
+    const shell = resolveShell(requested.value, manifest.platform);
+    const device = resolveEffective(
+      { override: overrides.device },
+      manifest.preview.device ?? defaultDeviceFor(shell, manifest.preview.viewport)
+    );
+    return {
+      shell: { value: shell, source: requested.source },
+      device,
+      orientation: resolveEffective(
+        { override: overrides.orientation },
+        manifest.preview.orientation ?? getDevice(device.value)?.orientation ?? 'portrait'
+      ),
     };
   };
   const emit = () => {

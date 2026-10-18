@@ -36,3 +36,12 @@ export {
   ScreenSchema,
   safeParseBlueprint,
 } from './schema.ts';
+export {
+  deriveIntegrity,
+  deriveStores,
+  entityStoreString,
+  FEATURE_STORE_STRINGS,
+  FEATURE_TABLES,
+  relationProperty,
+  storeIndexForField,
+} from './storage.ts';

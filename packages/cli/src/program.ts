@@ -183,6 +183,7 @@ export function createProgram(env: RunnerEnv): Command {
           .makeOptionMandatory()
       )
       .option('--project <name>', 'provider project/site name (default protoyard-<slug>)')
+      .option('--branch <name>', 'Cloudflare preview branch (lowercase letters, digits and dashes)')
       .option('--preview', 'preview deployment (default)')
       .option('--production', 'production deployment (requires --yes)')
       .option('--dry-run', 'build and verify, print the exact command, contact no provider')

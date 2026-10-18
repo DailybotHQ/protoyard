@@ -132,6 +132,24 @@ describe('publish batch selection and partial failure', { timeout: 120_000 }, ()
     ]);
   });
 
+  it('passes --branch to every prototype in the batch', async () => {
+    const run = await publish(
+      'alpha-app',
+      'beta-app',
+      '--provider',
+      'cloudflare',
+      '--branch',
+      'pr-42',
+      '--dry-run'
+    );
+    expect(run.code).toBe(0);
+    const { data } = run.json<{ data: BatchData }>();
+    expect(data.results.map((r) => r.commandLine?.includes('--branch pr-42'))).toEqual([
+      true,
+      true,
+    ]);
+  });
+
   it('keeps the single-slug envelope for one slug', async () => {
     const run = await publish('alpha-app', '--provider', 'cloudflare', '--dry-run');
     expect(run.code).toBe(0);

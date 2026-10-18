@@ -1,6 +1,7 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { formatCommand } from '../publish/cli-tool.ts';
+import { validateCloudflareBranch } from '../publish/cloudflare.ts';
 import { STATIC_INSTRUCTIONS } from '../publish/static.ts';
 import type { PublishProvider, PublishTarget } from '../publish/types.ts';
 import { ProviderError } from '../publish/types.ts';
@@ -17,6 +18,7 @@ export interface PublishRunOptions {
   production?: boolean;
   dryRun?: boolean;
   project?: string;
+  branch?: string;
   base?: string;
   includeDevtools?: boolean;
 }
@@ -66,6 +68,16 @@ export async function publishPrototype(
   }
   const target: PublishTarget = options.production ? 'production' : 'preview';
   const dryRun = options.dryRun === true;
+  if (options.branch !== undefined) {
+    if (provider.id !== 'cloudflare') {
+      throw new CliError('usage', `--branch is not supported by the ${provider.label} adapter.`);
+    }
+    if (target === 'production') {
+      throw new CliError('usage', '--branch can only be used with preview deployments.');
+    }
+    const invalidBranch = validateCloudflareBranch(options.branch);
+    if (invalidBranch) throw new CliError('usage', invalidBranch);
+  }
   if (target === 'production' && !dryRun && !ctx.yes && provider.id !== 'static') {
     throw new CliError('usage', 'Publishing to production needs explicit confirmation.', {
       hint: 'Re-run with --yes (or try --dry-run first to see the exact command).',
@@ -93,7 +105,13 @@ export async function publishPrototype(
 
   // The build marker is local bookkeeping and must never reach a provider.
   await rm(join(build.outDir, BUILD_MARKER), { force: true });
-  const input = { slug: entry.slug, distDir: build.outDir, project, target };
+  const input = {
+    slug: entry.slug,
+    distDir: build.outDir,
+    project,
+    target,
+    ...(options.branch !== undefined ? { branch: options.branch } : {}),
+  };
   const common = {
     slug: entry.slug,
     provider: provider.id,

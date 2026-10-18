@@ -1,16 +1,19 @@
 <script lang="ts">
 import Layers from '@lucide/svelte/icons/layers';
 import { PLATFORM_LABEL, STATUS_LABEL, withBase } from '@/lib/format';
+import { transitionName } from '@/lib/transitions';
 import type { CompactEntry } from '@/lib/types';
 import FavoriteButton from './FavoriteButton.svelte';
 import ProjectIcon from './ProjectIcon.svelte';
 
 let { entry }: { entry: CompactEntry } = $props();
 const href = $derived(withBase(entry.k === 'template' ? `/t/${entry.s}/` : `/p/${entry.s}/`));
+// Only prototype cards morph into their detail page (see lib/transitions.ts).
+const morph = $derived(entry.k === 'prototype');
 </script>
 
 <article
-  class="group relative flex h-full flex-col rounded-xl border border-line bg-surface p-4 transition-shadow focus-within:ring-2 focus-within:ring-accent hover:shadow-md"
+  class="group relative flex h-full flex-col rounded-xl border border-line bg-surface p-4 transition-[box-shadow,translate,scale] duration-200 ease-out focus-within:ring-2 focus-within:ring-accent hover:shadow-md motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0 motion-safe:active:scale-[0.99] motion-reduce:transition-none"
   data-testid="project-card"
   data-slug={entry.s}
 >
@@ -27,9 +30,11 @@ const href = $derived(withBase(entry.k === 'template' ? `/t/${entry.s}/` : `/p/$
     />
   {/if}
   <div class="flex items-start gap-3">
-    <ProjectIcon icon={entry.i} name={entry.n} />
+    <span class="shrink-0 rounded-xl" style:view-transition-name={morph ? transitionName('icon', entry.s) : undefined}>
+      <ProjectIcon icon={entry.i} name={entry.n} />
+    </span>
     <div class="min-w-0 flex-1">
-      <h3 class="truncate font-medium">
+      <h3 class="w-fit max-w-full truncate font-medium" style:view-transition-name={morph ? transitionName('title', entry.s) : undefined}>
         <!-- The stretched link makes the whole card clickable while keeping one tab stop. -->
         <a {href} class="after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none">{entry.n}</a>
       </h3>

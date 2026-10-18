@@ -17,6 +17,15 @@ export function validateCloudflareProject(project: string): string | null {
     : 'Cloudflare Pages project names use lowercase letters, digits and dashes (max 58).';
 }
 
+/** Safe Cloudflare Pages preview branch slugs exclude the production branch. */
+export function validateCloudflareBranch(branch: string): string | null {
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(branch)) {
+    return 'Preview branches must be lowercase letters, digits and dashes (max 63).';
+  }
+  if (branch === 'main') return 'The main branch is reserved for production deployments.';
+  return null;
+}
+
 export function cloudflareArgs(input: PublishInput): string[] {
   return [
     'pages',
@@ -27,7 +36,7 @@ export function cloudflareArgs(input: PublishInput): string[] {
     // Pages treats the production branch (main by default) as production;
     // any other branch name becomes a preview deployment with its own URL.
     '--branch',
-    input.target === 'production' ? 'main' : 'preview',
+    input.target === 'production' ? 'main' : (input.branch ?? 'preview'),
     '--commit-dirty=true',
   ];
 }

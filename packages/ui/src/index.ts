@@ -46,6 +46,12 @@ export type {
 } from './components/chat/types.ts';
 export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
 export { default as Combobox } from './components/combobox/Combobox.svelte';
+export { default as CommandPalette } from './components/command-palette/CommandPalette.svelte';
+export type {
+  CommandPaletteItem,
+  CommandPaletteSearch,
+  CommandPaletteSelect,
+} from './components/command-palette/types.ts';
 export { default as Composer } from './components/composer/Composer.svelte';
 // Data
 export { default as DataTable } from './components/data-table/DataTable.svelte';
@@ -68,6 +74,9 @@ export type {
 } from './components/dropdown-menu/types.ts';
 export { default as EmptyState } from './components/empty-state/EmptyState.svelte';
 export { default as ErrorState } from './components/error-state/ErrorState.svelte';
+export { formatBytes, matchesAccept, validateFiles } from './components/file-dropzone/accept.ts';
+export { default as FileDropzone } from './components/file-dropzone/FileDropzone.svelte';
+export type { DropzoneFile, DropzoneReject } from './components/file-dropzone/types.ts';
 export {
   applyFilters,
   buildFilterChips,

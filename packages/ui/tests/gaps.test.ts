@@ -4,8 +4,50 @@ import { shouldDismissSwipe } from '../src/components/bottom-sheet/swipe.ts';
 import KanbanHarness from './fixtures/KanbanHarness.svelte';
 import PickersHarness from './fixtures/PickersHarness.svelte';
 import SheetHarness from './fixtures/SheetHarness.svelte';
+import ShellHarness from './fixtures/ShellHarness.svelte';
+import Showcase from './fixtures/Showcase.svelte';
 
 afterEach(() => cleanup());
+
+describe('app-height layout tokens (no raw dvh)', () => {
+  it('AppShell sizes the frame and desktop sidebar with min-h-app / h-app', () => {
+    const { container } = render(ShellHarness);
+    const root = container.querySelector('.min-h-app');
+    expect(root).toBeTruthy();
+    expect(root?.className).toContain('min-h-app');
+    expect(root?.className).not.toMatch(/dvh/);
+
+    const sidebar = screen.getByRole('complementary', { name: 'Navigation' });
+    expect(sidebar.className).toContain('h-app');
+    expect(sidebar.className).not.toMatch(/dvh/);
+
+    // Sidebar fills the app-height column via h-full (no raw dvh of its own).
+    const sidebarRoot = sidebar.firstElementChild as HTMLElement | null;
+    expect(sidebarRoot?.className).toContain('h-full');
+    expect(sidebarRoot?.className ?? '').not.toMatch(/dvh/);
+  });
+
+  it('BottomSheet max-height uses --py-app-height', async () => {
+    render(SheetHarness);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.className).toContain('max-h-[calc(var(--py-app-height)*0.9)]');
+    expect(dialog.className).not.toMatch(/dvh/);
+  });
+
+  it('Dialog max-height uses --py-app-height', async () => {
+    render(Showcase, { overlay: 'dialog' });
+    const dialog = await screen.findByRole('dialog', { name: 'Edit profile' });
+    expect(dialog.className).toContain('max-h-[calc(var(--py-app-height)-2rem)]');
+    expect(dialog.className).not.toMatch(/dvh/);
+  });
+
+  it('DetailPanel phone height uses --py-app-height', async () => {
+    render(Showcase, { overlay: 'panel' });
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.className).toContain('h-[calc(var(--py-app-height)-1.5rem)]');
+    expect(dialog.className).not.toMatch(/dvh/);
+  });
+});
 
 describe('Select', () => {
   it('keeps the label as the accessible name and exposes the value as description', () => {

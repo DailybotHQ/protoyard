@@ -83,6 +83,31 @@ body {
   border-radius: 4px;
 }
 
+/*
+ * Cross-document view transitions (zero JS): pages cross-fade, and a prototype
+ * card's icon and title morph into its detail header (shared
+ * `view-transition-name`s, see lib/transitions.ts). Browsers without support
+ * navigate normally; with reduced motion the opt-in is never declared, so
+ * navigation stays instant.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 220ms;
+    animation-timing-function: ease-out;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 160ms;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,0 +1,22 @@
+{
+  "name": "@protoyard/saas",
+  "version": "0.1.0",
+  "description": "Simulated SaaS kit engine for Protoyard prototypes: tables, row schemas and integrity rules for accounts, sign-in history, tokens, MFA, invitations, an inbox, subscriptions, invoices and onboarding. Simulation for UX, never security.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@protoyard/core": "workspace:*",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@protoyard/runtime": "workspace:*",
+    "@protoyard/scenarios": "workspace:*"
+  }
+}
