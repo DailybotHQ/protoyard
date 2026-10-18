@@ -148,7 +148,10 @@ afterEach(() => {
 
 const boot = async (scenario: string) => {
   const runtime = await harness.boot(scenario);
-  return { runtime, onboarding: createOnboarding(runtime, { steps: STEPS }) };
+  return {
+    runtime,
+    onboarding: createOnboarding(runtime as unknown as ProtoyardRuntime, { steps: STEPS }),
+  };
 };
 
 describe('createOnboardingFlow', () => {
@@ -184,7 +187,7 @@ describe('createOnboarding on the real runtime', () => {
 
     await onboarding.submit('profile', { fullName: 'Olivia Hart' });
     runtime = await harness.reload(runtime);
-    onboarding = createOnboarding(runtime, { steps: STEPS });
+    onboarding = createOnboarding(runtime as unknown as ProtoyardRuntime, { steps: STEPS });
     expect(await onboarding.state()).toMatchObject({
       currentStep: 'workspace',
       completedSteps: ['profile'],
@@ -200,7 +203,7 @@ describe('createOnboarding on the real runtime', () => {
     // Back is persisted too.
     await onboarding.goTo('profile');
     runtime = await harness.reload(runtime);
-    onboarding = createOnboarding(runtime, { steps: STEPS });
+    onboarding = createOnboarding(runtime as unknown as ProtoyardRuntime, { steps: STEPS });
     expect((await onboarding.state()).currentStep).toBe('profile');
     await onboarding.goTo('invite');
 
@@ -218,7 +221,7 @@ describe('createOnboarding on the real runtime', () => {
     expect(runtime.session.principal()?.persona.onboardingComplete).toBe(true);
 
     runtime = await harness.reload(runtime);
-    onboarding = createOnboarding(runtime, { steps: STEPS });
+    onboarding = createOnboarding(runtime as unknown as ProtoyardRuntime, { steps: STEPS });
     expect((await onboarding.state()).completedAt).not.toBeNull();
     expect(runtime.session.principal()?.persona.onboardingComplete).toBe(true);
   });
@@ -233,7 +236,7 @@ describe('createOnboarding on the real runtime', () => {
 
     await onboarding.restart();
     runtime = await harness.reload(runtime);
-    onboarding = createOnboarding(runtime, { steps: STEPS });
+    onboarding = createOnboarding(runtime as unknown as ProtoyardRuntime, { steps: STEPS });
     expect(await onboarding.state()).toMatchObject({
       currentStep: 'profile',
       completedSteps: [],
@@ -292,7 +295,7 @@ describe('createOnboarding on the real runtime', () => {
     expect(workspaceWrites).toEqual([]);
     const viewerSteps = STEPS.map((s) => (s.id === 'workspace' ? { id: s.id, label: s.label } : s));
     const { runtime } = await boot('viewer');
-    const ack = createOnboarding(runtime, { steps: viewerSteps });
+    const ack = createOnboarding(runtime as unknown as ProtoyardRuntime, { steps: viewerSteps });
     expect((await ack.submit('workspace')).currentStep).toBe('invite');
   });
 

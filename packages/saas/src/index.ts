@@ -1,4 +1,22 @@
 export {
+  type AuthOptions,
+  type AuthServices,
+  createAuthServices,
+  type SignInInput,
+  SignInSchema,
+  type SignUpInput,
+  SignUpSchema,
+} from './auth.ts';
+export {
+  createInbox,
+  type DeliverInboxMessageInput,
+  DeliverInboxMessageSchema,
+  type InboxListOptions,
+  type InboxService,
+  isInboxEnvironmentError,
+  type SaasInboxDatabase,
+} from './inbox.ts';
+export {
   createOnboarding,
   createOnboardingFlow,
   DEFAULT_ONBOARDING_CAPABILITY,
@@ -12,15 +30,6 @@ export {
   type StepEffect,
   ValidationError,
 } from './onboarding.ts';
-export {
-  createInbox,
-  type DeliverInboxMessageInput,
-  DeliverInboxMessageSchema,
-  type InboxListOptions,
-  type InboxService,
-  isInboxEnvironmentError,
-  type SaasInboxDatabase,
-} from './inbox.ts';
 export {
   HashHrefSchema,
   INBOX_KINDS,
