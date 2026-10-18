@@ -113,6 +113,40 @@ on the new screen.
 `<Link href="/deals/1" {router} activeClass="…">`, `navigate('/x', { replace })`,
 `back(fallback)`. Hash routing works on refresh/back/forward on any static host.
 
+### Route guards
+
+A route's `guard(match)` runs before its screen renders. It returns `true` to
+let the screen through or a path to redirect to. The redirect replaces the
+history entry, so Back never lands on the blocked screen, and the protected
+screen never mounts, not even for a frame.
+
+```ts
+const router = createRouter(
+  [
+    { path: '/settings', component: Settings,
+      guard: (m) => runtime.session.isSignedIn() || redirectWithNext('/sign-in', m) },
+    // Guest-only: once signed in, continue to where the person was going.
+    { path: '/sign-in', component: SignIn,
+      guard: (m) => !runtime.session.isSignedIn() || nextPath(m.query) },
+  ],
+  { revalidateOn: (refresh) => runtime.session.subscribe(refresh) },
+);
+```
+
+- Guards run on the first location, on every hash change, and whenever
+  `revalidateOn` calls `refresh` (sign-in, sign-out, persona switch). You can
+  also call `router.refresh()` yourself. A refresh that doesn't change the
+  outcome does nothing.
+- `redirectWithNext(target, match)` appends `next=<path?query>`.
+  `nextPath(query, fallback)` reads it back and accepts only in-app paths
+  (`/…`, not `//host`, backslashes or whitespace).
+- `router.current.redirectedFrom` holds the originally requested path.
+- More than `MAX_REDIRECTS` (5) hops counts as a loop. The router renders the
+  not-found screen with the message in `current.error` ("This page keeps
+  redirecting"), and the title becomes "Redirect loop".
+- Guards are synchronous. Gating on the simulated session is UX, not
+  security (ADR-008, ADR-018).
+
 ## Services
 
 ```ts

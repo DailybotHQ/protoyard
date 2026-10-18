@@ -39,12 +39,16 @@ export {
   back,
   createRouter,
   fillParams,
+  MAX_REDIRECTS,
   navigate,
+  nextPath,
   type RouteDefinition,
+  type RouteGuard,
   type RouteMatch,
   type RouteProps,
   type Router as HashRouter,
   type RouterOptions,
+  redirectWithNext,
 } from './router/router.svelte.ts';
 export {
   isValidationError,
