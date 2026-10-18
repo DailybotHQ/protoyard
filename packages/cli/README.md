@@ -7,6 +7,7 @@ and publishes **one prototype at a time**. Inside the repository, run it with `p
 ```bash
 pnpm protoyard doctor                       # environment check with actionable hints
 pnpm protoyard list --kind template         # what can I start from?
+pnpm protoyard affected --since HEAD~1 --format csv  # which prototypes this diff touches
 pnpm protoyard new my-crm --template blank  # scaffold prototypes/my-crm and link it
 pnpm protoyard dev my-crm --host            # Vite for ONLY this prototype (+ LAN URL for phones)
 pnpm protoyard validate my-crm --build      # contract, scenarios, schema version, types, build
@@ -26,6 +27,7 @@ prototype of the same name. `build --all` builds prototypes only.
 | `doctor [--offline]` | Node ≥ 24.20, pnpm, installed deps, workspace layout, templates, git, Playwright browsers, provider CLIs and their auth (never prints tokens). |
 | `list [--kind] [--tag] [--category] [--platform] [--search] [--sort name\|modified]` | Table from the registry: name, slug, kind, category, template, platform, status, scenario count. |
 | `index [--force]` | Scans `prototypes/*/protoyard.json` and `templates/*/protoyard.json` (one level deep, 256 KB cap, parsed as data, no code runs). Writes `.protoyard/registry.json` and an incremental cache keyed by path + mtime + size. Invalid manifests are reported, not fatal. |
+| `affected --since <ref> [--format text\|csv]` | Maps `git diff --name-only <ref>...HEAD` to prototype slugs: `prototypes/<slug>/**` → that slug; `packages/**`, `templates/**`, root configs → all prototypes; docs/meta-only → none. `--format csv` prints a bare comma-joined list for shell/CI. |
 | `new <slug> --template <t> [--name] [--description] [--force] [--no-install]` | Validates the slug, refuses paths outside `prototypes/`, copies the template through a hidden staging folder and renames it into place (no `node_modules`/`dist`/symlinks), and rewrites `protoyard.json` (`id: local.<slug>`, namespace, timestamps), `package.json` and the README title. Then runs `pnpm install --offline` (falling back to `pnpm install`) and re-indexes. Re-running the same command resumes. `--force` only reuses an **empty** folder. |
 | `dev <slug> [--port] [--host]` | Starts Vite with that prototype's own `vite.config.ts` on a free port and prints the real URL. |
 | `validate <slug> [--skip-typecheck] [--build]` | Each check passes or fails: manifest schema, folder contract, package name, schema version (static), scenario ids (unique, listed, default exists), database versions, `svelte-check`, optional build. |
