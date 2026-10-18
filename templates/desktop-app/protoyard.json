@@ -1,0 +1,22 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.desktop-app",
+  "slug": "desktop-app",
+  "kind": "template",
+  "name": "Desktop App",
+  "description": "A desktop-app starter: a notes workspace with folders, tags, a working menu bar, a three-pane document view, keyboard shortcuts and owner/editor/viewer personas, framed in a desktop window.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "desktop",
+  "category": "starter",
+  "tags": ["starter", "desktop", "notes", "documents", "shortcuts", "crud"],
+  "status": "ready",
+  "icon": "🗂️",
+  "defaultScenario": "active",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop", "shell": "desktop-window", "device": "laptop-window" },
+  "storage": { "namespace": "template-desktop-app", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "large"]
+}
