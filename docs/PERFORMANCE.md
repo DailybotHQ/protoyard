@@ -12,22 +12,25 @@ build records its sizes in `build-manifest.json` under `bundle`, gzip level 9
 per file: **initial JS** is the entry chunk plus everything it imports
 statically (what a first page load downloads), **lazy JS** is every chunk
 reached only through `import()`. `pnpm protoyard budget --all --skip-build`
-reads those numbers and checks them. Measured 2026-10-18 (Vite 8.3.4):
+reads those numbers and checks them. Measured 2026-10-18, after the merge of the eighth prototype (Vite 8.3.4):
 
 | Prototype | Initial JS (gzip) | CSS (gzip) | Lazy JS (gzip, all chunks) | Largest lazy chunk (Faker) | Whole `dist` (raw / gzip) |
 | --- | ---: | ---: | ---: | ---: | --- |
-| `crm-demo` | 202 KB | 16 KB | 212 KB (32 chunks) | 150 KB | 1,445 KB / 548 KB |
-| `mobile-banking-demo` | 199 KB | 16 KB | 181 KB (14 chunks) | 150 KB | 1,319 KB / 473 KB |
-| `ai-chat-demo` | 199 KB | 16 KB | 181 KB (13 chunks) | 150 KB | 1,344 KB / 502 KB |
-| `nova-assistant-demo` | 165 KB | 18 KB | 195 KB (19 chunks) | 150 KB | 1,157 KB / 379 KB |
-| `support-widget-demo` | 147 KB | 15 KB | 181 KB (14 chunks) | 150 KB | 1,052 KB / 344 KB |
-| `ui-kit` | 229 KB | 16 KB | 284 KB (91 chunks) | 150 KB | 1,617 KB / 531 KB |
+| `crm-demo` | 166 KB | 16 KB | 261 KB (40 chunks) | 150 KB | 1,452 KB / 561 KB |
+| `mobile-banking-demo` | 197 KB | 16 KB | 185 KB (14 chunks) | 150 KB | 1,318 KB / 474 KB |
+| `ai-chat-demo` | 196 KB | 16 KB | 185 KB (14 chunks) | 150 KB | 1,343 KB / 503 KB |
+| `nova-assistant-demo` | 162 KB | 18 KB | 199 KB (20 chunks) | 150 KB | 1,157 KB / 380 KB |
+| `support-widget-demo` | 144 KB | 15 KB | 185 KB (14 chunks) | 150 KB | 1,052 KB / 345 KB |
+| `lattice-saas-demo` | 198 KB | 16 KB | 235 KB (38 chunks) | 150 KB | 1,361 KB / 450 KB |
+| `relay-chat-demo` | 143 KB | 16 KB | 185 KB (14 chunks) | 150 KB | 1,054 KB / 345 KB |
+| `ui-kit` | 182 KB | 16 KB | 375 KB (140 chunks) | 150 KB | 1,647 KB / 575 KB |
 
 Every prototype is inside the 250 KB initial-JS and 30 KB CSS budgets
-(`ui-kit` has the least headroom, about 21 KB). The table of 2026-10-17
-counted a 14 KB chunk as "shared initial"; the build analysis shows it is
-loaded through `import()`, so it is lazy. The CRM initial JS moved from
-194 KB to 202 KB as features landed.
+(`lattice-saas-demo` has the least headroom, about 52 KB). The table of
+2026-10-17 counted a 14 KB chunk as "shared initial"; the build analysis
+shows it is loaded through `import()`, so it is lazy. Earlier on 2026-10-18
+`crm-demo` measured 202 KB initial; it is 166 KB after its screens moved to
+lazy routes (`src/routes.ts`).
 
 AI-era flagships (Nova, Relay) and refreshed kit builds are recorded under
 [AI kits](#ai-kits). The `ai-chat-demo` row above is the 2026-10-17 baseline;
@@ -130,17 +133,17 @@ The `perf` job in [.github/workflows/ci.yml](../.github/workflows/ci.yml)
 runs the first three on every pull request and push to `main`, and reports
 cold start without gating it (see
 [TESTING_GUIDE](TESTING_GUIDE.md#ci-performance-job-githubworkflowsciyml--perf)).
-The bundle gate on this repository (2026-10-18, abridged to two of the six
+The bundle gate on this repository (2026-10-18, abridged to two of the eight
 prototypes):
 
 ```text
-$ pnpm protoyard budget --all --skip-build
-Prototype            Metric         Value                                     Budget              Headroom   Result
-───────────────────  ─────────────  ────────────────────────────────────────  ──────────────────  ─────────  ──────
-crm-demo             initialJsGzip  202 KB (202.04 KB)                        250 KB (250.00 KB)  +47.96 KB  PASS
-crm-demo             cssGzip        16 KB (15.95 KB)                          30 KB (30.00 KB)    +14.05 KB  PASS
-ui-kit               initialJsGzip  229 KB (229.06 KB)                        250 KB (250.00 KB)  +20.94 KB  PASS
-ui-kit               cssGzip        16 KB (16.24 KB)                          30 KB (30.00 KB)    +13.76 KB  PASS
+$ pnpm protoyard budget --all
+Prototype            Metric         Value               Budget              Headroom    Result
+───────────────────  ─────────────  ──────────────────  ──────────────────  ──────────  ──────
+lattice-saas-demo    initialJsGzip  198 KB (197.70 KB)  250 KB (250.00 KB)  +52.30 KB   PASS
+lattice-saas-demo    cssGzip        16 KB (15.95 KB)    30 KB (30.00 KB)    +14.05 KB   PASS
+crm-demo             initialJsGzip  166 KB (165.64 KB)  250 KB (250.00 KB)  +84.36 KB   PASS
+crm-demo             cssGzip        16 KB (15.93 KB)    30 KB (30.00 KB)    +14.07 KB   PASS
 ```
 
 For one prototype, set only the values that differ:
@@ -230,6 +233,48 @@ than this machine.
 pnpm protoyard build crm-demo
 pnpm exec tsx scripts/bench-cold-start.ts crm-demo --runs 5 --check
 ```
+
+## Themes: library, palette engine and Theme Studio
+
+Budget: the theme work (palette engine, font catalog, 32-theme library,
+Theme Studio) may add at most **2 KB gzip** to any prototype's initial JS.
+Measured 2026-10-18 on `crm-demo`, with the method of
+[Prototype bundles](#prototype-bundles-production-builds) plus a sourcemap
+attribution:
+
+1. `vite build --sourcemap` of `prototypes/crm-demo` into a scratch folder,
+   with the same renderer config as `protoyard build`. Its initial JS
+   (165.9 KB gzip) matches the regular build's 165.6 KB within the
+   sourcemap comments.
+2. Every byte of the initial chunks is attributed to its source file through
+   the sourcemaps.
+3. The same build with `packages/themes/src/apply.ts` and `no-flash.ts`
+   restored to their state before the theme work (the parent of the
+   palette-engine commit `add3536`). They are the only theme files in the
+   initial chunks that changed since then; the files were restored afterwards.
+
+| Measure | Before the theme work | Now | Delta |
+| --- | ---: | ---: | ---: |
+| Initial JS, gzip (all initial chunks) | 169,598 B | 169,926 B | **+328 B** |
+| Theme code inside the initial chunks, raw | 10,623 B | 11,429 B | +806 B |
+
+In `crm-demo`, the attribution shows that the theme code in the initial
+chunks is only the always-loaded engine: `apply.ts`, `presets.ts`,
+`scales.ts`, `contrast.ts` and `no-flash.ts`. No byte comes from
+`palette.ts`, `oklch.ts`, `fonts.ts` or `library/`. For all eight prototypes
+built on 2026-10-18, a string check found no library theme id, no palette
+error text and no Studio label in any initial chunk. That check covers the
+library, the palette engine and the Studio, not the font catalog.
+
+Lazy chunks, loaded only when used (gzip):
+
+| Chunk | When it loads | Size |
+| --- | --- | ---: |
+| Theme Studio section (Studio UI + palette engine) | opening Theme Studio in DevTools (builds with DevTools only; `crm-demo --include-devtools`) | 7.2 KB |
+| Library theme builder (`loadLibraryTheme` → `import('./build.ts')`) | applying a library theme (`ui-kit`) | 0.3 KB |
+| `ui-kit` Theme Lab page (32 library definitions, palette, UI) | opening that route | 11.3 KB |
+
+Builds without DevTools (the default) do not contain the Studio at all.
 
 ## Scenario generation
 
