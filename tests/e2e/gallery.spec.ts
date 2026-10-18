@@ -116,6 +116,51 @@ test.describe('gallery', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   });
 
+  for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+    test(`card opens its detail page with shared transition names (motion: ${reducedMotion})`, async ({
+      page,
+    }) => {
+      test.skip(prototypes.length === 0, 'no prototypes indexed');
+      const target = prototypes[0];
+      if (!target) return;
+      await page.emulateMedia({ reducedMotion });
+      await page.goto('/');
+      await hydrated(page, '#browse');
+
+      // Names are unique on the page (a duplicate would cancel the whole transition).
+      const names = await page.evaluate(() =>
+        [...document.querySelectorAll<HTMLElement>('[style*="view-transition-name"]')].map(
+          (el) => getComputedStyle(el).viewTransitionName
+        )
+      );
+      expect(names.length).toBeGreaterThan(0);
+      expect(new Set(names).size).toBe(names.length);
+
+      const card = page.locator(`[data-testid="results"] [data-slug="${target.slug}"]`);
+      const cardNames = await card.evaluate((el) =>
+        [...el.querySelectorAll<HTMLElement>('[style*="view-transition-name"]')].map(
+          (n) => getComputedStyle(n).viewTransitionName
+        )
+      );
+      expect(cardNames).toEqual([`py-icon-${target.slug}`, `py-title-${target.slug}`]);
+
+      // Card motion is skipped entirely with reduced motion.
+      await card.hover();
+      const translate = await card.evaluate((el) => getComputedStyle(el).translate);
+      if (reducedMotion === 'reduce') expect(translate).toBe('none');
+
+      await card.getByRole('link', { name: target.name, exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/p/${target.slug}/?$`));
+      await expect(page.getByTestId('detail-title')).toHaveText(target.name);
+      const detailNames = await page.evaluate(() =>
+        [...document.querySelectorAll<HTMLElement>('[style*="view-transition-name"]')].map(
+          (el) => getComputedStyle(el).viewTransitionName
+        )
+      );
+      expect(detailNames).toEqual(cardNames);
+    });
+  }
+
   test('templates are listed separately and feed the create builder', async ({ page }) => {
     test.skip(templates.length === 0, 'no templates indexed');
     const template = templates[0];
