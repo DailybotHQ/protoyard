@@ -7,10 +7,16 @@
  * own workspace (the same trust level as `pnpm test`). Discovery and indexing
  * never use it. Output: one marker line followed by JSON on stdout.
  *
- *   tsx inspect-prototype.ts <prototypeDir> <workspaceRoot> [inspect|generate] [scenarioId]
+ *   tsx inspect-prototype.ts <prototypeDir> <workspaceRoot> [inspect|generate|spec] [scenarioId]
+ *
+ * `spec` adds raw facts for generated prototype docs: database store strings
+ * per version, policy roles and rule names, the default scenario's personas,
+ * scenario descriptions and generator knobs, themes, timeline presence,
+ * generatorVersion and the `src/routes.ts` table. The CLI parses and sorts
+ * them (lib/inspect.ts).
  */
 import { existsSync } from 'node:fs';
-import { createRequire } from 'node:module';
+import { createRequire, register } from 'node:module';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { PrototypeDefinition, Scenario, WorldSeed } from '@protoyard/core';
@@ -63,6 +69,42 @@ async function loadScenarioTools(dir: string, root: string): Promise<ScenarioToo
     validateWorld: integrity?.validateWorld as ScenarioTools['validateWorld'],
     source: 'packages/scenarios/src',
   };
+}
+
+/**
+ * `src/routes.ts` imports `defineRoutes` from @protoyard/renderer-svelte, whose
+ * entry pulls in Svelte components Node cannot load. While loading that one
+ * file, the specifier resolves to an identity `defineRoutes`; the screens are
+ * lazy `load()` functions and never run here.
+ */
+async function loadRoutes(dir: string): Promise<{ routes: unknown[] | null; error?: string }> {
+  const file = join(dir, 'src', 'routes.ts');
+  if (!existsSync(file)) return { routes: null };
+  const routesUrl = pathToFileURL(file).href;
+  const shim = 'data:text/javascript,export%20const%20defineRoutes%3D(r)%3D%3Er%3B';
+  const hooks = `export async function resolve(specifier, context, next) {
+    if (specifier === '@protoyard/renderer-svelte' && context.parentURL === ${JSON.stringify(routesUrl)}) {
+      return { url: ${JSON.stringify(shim)}, shortCircuit: true };
+    }
+    return next(specifier, context);
+  }`;
+  register(`data:text/javascript,${encodeURIComponent(hooks)}`);
+  try {
+    const mod = await importFile(file);
+    const routes = mod.routes ?? mod.default;
+    if (!Array.isArray(routes))
+      return { routes: null, error: 'src/routes.ts does not export `routes`' };
+    return {
+      routes: routes.map((r: Record<string, unknown>) => ({
+        path: r.path,
+        name: r.name ?? r.title ?? null,
+        description: r.description ?? null,
+        capability: r.capability ?? null,
+      })),
+    };
+  } catch (error) {
+    return { routes: null, error: (error as Error).message };
+  }
 }
 
 async function main() {
@@ -177,6 +219,62 @@ async function main() {
       }
     }
     result.runs = runs;
+  }
+  if (mode === 'spec') {
+    const scenario =
+      scenarios.find((s) => s.id === definition.manifest.defaultScenario) ?? scenarios[0];
+    let personas: { id: string; name: string; role: string | null }[] = [];
+    let personasError: string | undefined;
+    if (scenario) {
+      try {
+        // In memory only: the generator's output, never written anywhere.
+        const world = await definition.generate(tools.createGenerateContext(scenario));
+        personas = world.personas.map((p) => ({
+          id: p.id,
+          name: p.name,
+          role: world.memberships.find((m) => m.personaId === p.id)?.role ?? null,
+        }));
+      } catch (error) {
+        personasError = (error as Error).message;
+      }
+    }
+    const routes = await loadRoutes(dir);
+    result.spec = {
+      manifest: {
+        id: definition.manifest.id,
+        slug: definition.manifest.slug,
+        name: definition.manifest.name,
+        version: definition.manifest.version,
+        platform: definition.manifest.platform,
+        category: definition.manifest.category,
+        defaultTheme: definition.manifest.defaultTheme,
+        namespace: definition.manifest.storage.namespace,
+      },
+      generatorVersion: definition.generatorVersion ?? null,
+      versions: definition.database.versions.map((v) => ({ version: v.version, stores: v.stores })),
+      policy: definition.policy
+        ? { roles: definition.policy.roles, rules: Object.keys(definition.policy.rules ?? {}) }
+        : null,
+      personasScenario: scenario?.id ?? null,
+      personas,
+      ...(personasError ? { personasError } : {}),
+      scenarios: scenarios.map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        group: s.group,
+        version: s.version,
+        seed: s.seed,
+        density: s.density,
+        tags: s.tags,
+        // Knobs are data passed to the generator; round-trip to keep them JSON-safe.
+        knobs: JSON.parse(JSON.stringify(s.generators ?? {})) as Record<string, unknown>,
+      })),
+      themes: (definition.themes ?? []).map((t) => ({ id: t.id, name: t.name })),
+      timeline: typeof definition.timeline === 'function',
+      routes: routes.routes,
+      ...(routes.error ? { routesError: routes.error } : {}),
+    };
   }
   process.stdout.write(`\n${RESULT_MARKER}${JSON.stringify(result)}\n`);
 }
