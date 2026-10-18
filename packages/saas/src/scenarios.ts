@@ -295,7 +295,7 @@ export function generateSaasWorld(
       kind: 'invite',
       subject: `${actor.name} invited you to ${primary.name}`,
       body: `${actor.name} invited you to join ${primary.name}. This is a simulated message: nothing was sent.`,
-      action: { label: 'Accept invitation', href: `#/invite?token=${token.id}` },
+      action: { label: 'Accept invitation', href: `#/invites/accept?token=${token.id}` },
       at: createdAt,
       readAt: null,
       archivedAt: null,

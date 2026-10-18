@@ -33,11 +33,14 @@ export {
 } from './inbox.ts';
 export {
   type AcceptInvitationInput,
+  type AcceptInvitationOptions,
   AcceptInvitationSchema,
   type CreateInvitationInput,
   CreateInvitationSchema,
   createInvitationServices,
   type InvitationOptions,
+  type InvitationPreview,
+  type InvitationPreviewStatus,
   type InvitationServices,
 } from './invitations.ts';
 export {

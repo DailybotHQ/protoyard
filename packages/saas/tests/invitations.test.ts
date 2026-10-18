@@ -15,6 +15,7 @@ import {
   createPasswordResetServices,
   mergeIntegrity,
   type SaasAccount,
+  type SaasInvitation,
   saasIntegrity,
   saasStores,
   saasTables,
@@ -206,5 +207,94 @@ describe('workspace invitations', () => {
     await expect(
       invites.create({ email: 'alan@example.com', role: 'member' })
     ).rejects.toBeInstanceOf(PermissionDeniedError);
+  });
+
+  it('accept signs the invitee in and switches to the workspace with the invited role', async () => {
+    const runtime = await signedInRuntime();
+    const owner = runtime.session.principal()?.persona.id;
+    const invites = createInvitationServices(runtime);
+    const invite = await invites.create({ email: 'hedy@example.com', role: 'admin' });
+    const orgId = invite.invitation.organizationId;
+
+    const accepted = await invites.accept({ tokenId: invite.token.id, name: 'Hedy Lamarr' });
+    expect(accepted).toMatchObject({ signedIn: true, requiresMfa: false, createdAccount: true });
+    expect(runtime.session.principal()).toMatchObject({
+      persona: { id: accepted.account.personaId, name: 'Hedy Lamarr' },
+      organization: { id: orgId },
+      role: 'admin',
+    });
+    expect(runtime.session.principal()?.persona.id).not.toBe(owner);
+  });
+
+  it('accept never signs in an account with an active authenticator, or when asked not to', async () => {
+    const runtime = await signedInRuntime();
+    const owner = runtime.session.principal()?.persona.id;
+    const persona = await runtime.identity.write((ops) =>
+      ops.putPersona({ name: 'Grace Hopper', email: 'grace@example.com' })
+    );
+    await runtime.db.rows<SaasAccount>('saas_accounts').add({
+      id: 'acct_mfa_grace',
+      personaId: persona.id,
+      email: 'grace@example.com',
+      emailVerified: true,
+      simulatedPassword: 'simulated password',
+      providers: [],
+      status: 'active',
+      failedAttempts: 0,
+      createdAt: REFERENCE_TIME,
+      lastSignInAt: null,
+    });
+    await runtime.db.rows('saas_mfa').add({
+      id: 'mfa_grace',
+      accountId: 'acct_mfa_grace',
+      method: 'totp-sim',
+      seed: 'ABCDEFGHJKLMNPQR',
+      status: 'active',
+      enrolledAt: REFERENCE_TIME,
+      recoveryCodes: [],
+    });
+    const invites = createInvitationServices(runtime);
+    const invite = await invites.create({ email: 'grace@example.com', role: 'member' });
+    const accepted = await invites.accept({ tokenId: invite.token.id });
+    expect(accepted).toMatchObject({ signedIn: false, requiresMfa: true });
+    expect(runtime.session.principal()?.persona.id).toBe(owner);
+
+    const second = await invites.create({ email: 'linus@example.com', role: 'member' });
+    const quiet = await invites.accept({ tokenId: second.token.id }, { signIn: false });
+    expect(quiet).toMatchObject({ signedIn: false, requiresMfa: false });
+    expect(runtime.session.principal()?.persona.id).toBe(owner);
+  });
+
+  it('preview reports valid, used, revoked, expired and unknown links without side effects', async () => {
+    const runtime = await signedInRuntime();
+    const invites = createInvitationServices(runtime, { ttlDays: 1 });
+    const fresh = await invites.create({ email: 'hedy@example.com', role: 'member' });
+    expect(await invites.preview(fresh.token.id)).toMatchObject({
+      status: 'valid',
+      email: 'hedy@example.com',
+      role: 'member',
+      hasAccount: false,
+      inviterName: runtime.session.principal()?.persona.name,
+      organizationName: runtime.session.principal()?.organization?.name,
+    });
+    expect(await invites.preview('nope')).toEqual({ status: 'unknown' });
+    expect(await invites.preview('')).toEqual({ status: 'unknown' });
+
+    const resent = await invites.resend(fresh.invitation.id);
+    expect((await invites.preview(fresh.token.id)).status).toBe('revoked');
+    const revoked = await invites.create({ email: 'grace@example.com', role: 'member' });
+    await invites.revoke(revoked.invitation.id);
+    expect((await invites.preview(revoked.token.id)).status).toBe('revoked');
+
+    await invites.accept({ tokenId: resent.token.id }, { signIn: false });
+    expect((await invites.preview(resent.token.id)).status).toBe('used');
+
+    const late = await invites.create({ email: 'katherine@example.com', role: 'member' });
+    runtime.clock.commitAdvance({ days: 2 });
+    expect((await invites.preview(late.token.id)).status).toBe('expired');
+    // Preview never changes anything: the invitation is still pending until someone tries to accept.
+    expect(
+      (await runtime.db.rows<SaasInvitation>('saas_invitations').get(late.invitation.id))?.status
+    ).toBe('pending');
   });
 });
