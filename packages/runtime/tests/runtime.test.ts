@@ -2,6 +2,7 @@ import {
   defineTheme,
   PermissionDeniedError,
   type PrototypeDefinition,
+  parseManifest,
   parseScenario,
   ThemePaletteSchema,
 } from '@protoyard/core';
@@ -483,6 +484,148 @@ describe('10. reopening', () => {
     expect(runtime.session.principal()?.persona.id).toBe('user_0002');
     expect(runtime.overrides.get()).toEqual({ themeId: 'ocean', mode: 'dark' });
     expect(runtime.theme.appearance().resolvedMode).toBe('dark');
+  });
+});
+
+function shellDefinition(
+  preview: Record<string, unknown>,
+  platform: 'desktop' | 'mobile' | 'responsive' = 'responsive',
+  appearance?: Record<string, unknown>
+): PrototypeDefinition {
+  const def = createTasksDefinition();
+  return {
+    ...def,
+    manifest: parseManifest({
+      ...def.manifest,
+      platform,
+      preview: { ...def.manifest.preview, ...preview },
+    }),
+    scenarios: (def.scenarios ?? []).map((s) =>
+      appearance && s.id === 'active-month' ? { ...s, appearance } : s
+    ),
+  };
+}
+
+const shellOf = (runtime: ProtoyardRuntime) => {
+  const { shell, device, orientation } = runtime.theme.appearance();
+  return { shell, device, orientation };
+};
+
+describe('presentation shell', () => {
+  it('defaults from the manifest: auto resolves from the platform', async () => {
+    const responsive = await start(createTasksDefinition(), backend());
+    expect(shellOf(responsive)).toEqual({
+      shell: { value: 'none', source: 'default' },
+      device: { value: 'laptop-window', source: 'default' },
+      orientation: { value: 'landscape', source: 'default' },
+    });
+    const mobile = await start(shellDefinition({ viewport: 'android' }, 'mobile'), backend());
+    expect(shellOf(mobile)).toEqual({
+      shell: { value: 'phone', source: 'default' },
+      device: { value: 'phone-punch-hole', source: 'default' },
+      orientation: { value: 'portrait', source: 'default' },
+    });
+    const declared = await start(
+      shellDefinition({ shell: 'tablet', orientation: 'landscape' }),
+      backend()
+    );
+    expect(shellOf(declared)).toEqual({
+      shell: { value: 'tablet', source: 'default' },
+      device: { value: 'tablet', source: 'default' },
+      orientation: { value: 'landscape', source: 'default' },
+    });
+  });
+
+  it('resolves override › scenario › manifest and notifies subscribers', async () => {
+    const runtime = await start(
+      shellDefinition({ shell: 'desktop-window' }, 'responsive', {
+        shell: 'phone',
+        device: 'phone-pill',
+        orientation: 'landscape',
+      }),
+      backend()
+    );
+    expect(shellOf(runtime).shell).toEqual({ value: 'desktop-window', source: 'default' });
+    await runtime.scenarios.ensureSeeded();
+    expect(shellOf(runtime)).toEqual({
+      shell: { value: 'phone', source: 'scenario' },
+      device: { value: 'phone-pill', source: 'scenario' },
+      orientation: { value: 'landscape', source: 'scenario' },
+    });
+
+    const seen: string[] = [];
+    runtime.theme.subscribe((state) => seen.push(`${state.shell.value}/${state.device.value}`));
+    await runtime.theme.setOverride({ shell: 'tablet', orientation: 'portrait' });
+    expect(shellOf(runtime)).toEqual({
+      shell: { value: 'tablet', source: 'override' },
+      // The scenario's phone cannot sit in a tablet frame: visible fallback.
+      device: { value: 'tablet', source: 'default' },
+      orientation: { value: 'portrait', source: 'override' },
+    });
+    expect(runtime.overrides.get()).toEqual({ shell: 'tablet', orientation: 'portrait' });
+    expect(seen).toEqual(['tablet/tablet']);
+
+    await runtime.theme.setOverride({ shell: 'auto' });
+    expect(shellOf(runtime).shell).toEqual({ value: 'none', source: 'override' });
+
+    await runtime.theme.clearOverride();
+    expect(runtime.overrides.get()).toEqual({});
+    expect(shellOf(runtime).shell).toEqual({ value: 'phone', source: 'scenario' });
+
+    await runtime.scenarios.load('viewer');
+    expect(shellOf(runtime).shell).toEqual({ value: 'desktop-window', source: 'default' });
+  });
+
+  it('falls back visibly when the device or orientation cannot apply', async () => {
+    const runtime = await start(shellDefinition({ shell: 'desktop-window' }), backend());
+    await runtime.theme.setOverride({ device: 'phone-pill', orientation: 'portrait' });
+    expect(shellOf(runtime)).toEqual({
+      shell: { value: 'desktop-window', source: 'default' },
+      device: { value: 'laptop-window', source: 'default' },
+      orientation: { value: 'landscape', source: 'default' },
+    });
+    await runtime.theme.setOverride({ device: 'desktop-window' });
+    expect(shellOf(runtime).device).toEqual({ value: 'desktop-window', source: 'override' });
+    await expect(runtime.theme.setOverride({ shell: 'watch' as never })).rejects.toThrow(
+      /Invalid override/
+    );
+    await expect(runtime.overrides.set({ device: 'iphone' as never })).rejects.toThrow(
+      /Invalid override/
+    );
+  });
+
+  it('persists across a reload and never writes the data DB', async () => {
+    const store = backend();
+    const definition = shellDefinition({}, 'mobile');
+    const first = await start(definition, store);
+    await first.scenarios.ensureSeeded();
+    const before = await dumpTables(first.db);
+    const counts = await first.data.counts();
+
+    await first.theme.setOverride({ shell: 'tablet', orientation: 'landscape' });
+    await first.overrides.set({ device: 'tablet' });
+    expect(await dumpTables(first.db)).toEqual(before);
+    first.close();
+
+    const second = await start(definition, store);
+    expect(shellOf(second)).toEqual({
+      shell: { value: 'tablet', source: 'override' },
+      device: { value: 'tablet', source: 'override' },
+      orientation: { value: 'landscape', source: 'override' },
+    });
+    expect(await dumpTables(second.db)).toEqual(before);
+    expect(await second.data.counts()).toEqual(counts);
+  });
+
+  it('applies ?shell= from a link as a clearable override', async () => {
+    const runtime = await start(createTasksDefinition(), backend(), {
+      link: { shell: 'browser' },
+    });
+    await runtime.scenarios.ensureSeeded();
+    expect(runtime.overrides.get()).toEqual({ shell: 'browser' });
+    expect(shellOf(runtime).shell).toEqual({ value: 'browser', source: 'override' });
+    await runtime.overrides.clear(['shell']);
+    expect(shellOf(runtime).shell).toEqual({ value: 'none', source: 'default' });
   });
 });
 

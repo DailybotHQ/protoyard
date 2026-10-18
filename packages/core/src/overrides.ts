@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { DeviceIdSchema, OrientationSchema } from './devices.ts';
 import { EnvironmentPatchSchema } from './environment.ts';
-import { ColorModeSchema, ViewportPresetSchema } from './manifest.ts';
+import { ColorModeSchema, ShellSchema, ViewportPresetSchema } from './manifest.ts';
 
 /**
  * State overrides are NON-destructive toggles layered on top of the loaded
@@ -27,6 +28,10 @@ export const OverridesSchema = z
     /** Spacing multiplier preview (compact 0.75 … comfortable 1.25). */
     density: z.number().min(0.75).max(1.25).optional(),
     viewport: ViewportPresetSchema.optional(),
+    /** Presentation shell, device and orientation (ADR-016); never touch data. */
+    shell: ShellSchema.optional(),
+    device: DeviceIdSchema.optional(),
+    orientation: OrientationSchema.optional(),
     environment: EnvironmentPatchSchema.optional(),
   })
   .strict();

@@ -1,6 +1,13 @@
 import type { Duration, SimulationClock } from './clock.ts';
+import type { DeviceId, Orientation } from './devices.ts';
 import type { EnvironmentState, SimulationEnvironment } from './environment.ts';
-import type { ColorMode, PrototypeManifest, ViewportPreset } from './manifest.ts';
+import type {
+  ColorMode,
+  PrototypeManifest,
+  ResolvedShell,
+  Shell,
+  ViewportPreset,
+} from './manifest.ts';
 import type { Effective, Overrides } from './overrides.ts';
 import type { PrototypeDefinition } from './prototype.ts';
 import type { Scenario } from './scenario.ts';
@@ -115,6 +122,16 @@ export interface AppearanceState {
   /** Spacing multiplier: override, else the active theme's `density`. */
   density: Effective<number>;
   viewport: Effective<ViewportPreset>;
+  /**
+   * Presentation shell (ADR-016): override › scenario › `preview.shell`, with
+   * `auto` resolved from the platform. Renderers may still go full-bleed
+   * (embedded, or a window narrower than the device).
+   */
+  shell: Effective<ResolvedShell>;
+  /** Catalog device for the shell; one that does not fit the shell falls back with source `default`. */
+  device: Effective<DeviceId>;
+  /** Device orientation; non-rotatable devices always report their own. */
+  orientation: Effective<Orientation>;
 }
 
 export interface ThemeController {
@@ -134,6 +151,9 @@ export interface ThemeController {
     reducedMotion?: boolean;
     density?: number;
     viewport?: ViewportPreset;
+    shell?: Shell;
+    device?: DeviceId;
+    orientation?: Orientation;
   }): Promise<void>;
   clearOverride(): Promise<void>;
   subscribe(listener: (state: AppearanceState) => void): Unsubscribe;

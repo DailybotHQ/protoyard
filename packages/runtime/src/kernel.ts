@@ -6,7 +6,11 @@ import {
   createSimulationEnvironment,
   DEFAULT_ENVIRONMENT,
   DEFAULT_POLICY,
+  type DeviceSpec,
+  defaultDeviceFor,
+  deviceFitsShell,
   type EnvironmentState,
+  getDevice,
   type Membership,
   type Organization,
   type Overrides,
@@ -14,8 +18,10 @@ import {
   type Persona,
   type Principal,
   type PrototypeDefinition,
+  type PrototypeManifest,
   resolveEffective,
   resolvePrincipal,
+  resolveShell,
   type Scenario,
   type SimulationClock,
   type SimulationEnvironment,
@@ -355,5 +361,44 @@ function computeAppearance(
       { override: o.viewport, scenario: scenario.viewport },
       manifest.preview.viewport
     ),
+    ...computeShell(manifest, scenario, o),
   };
+}
+
+/**
+ * Shell, device and orientation resolve like viewport (override › scenario ›
+ * manifest). Inputs that cannot apply (a phone in a desktop window, landscape
+ * for a window) fall back visibly to the default rather than failing.
+ */
+function computeShell(
+  manifest: PrototypeManifest,
+  scenario: Scenario['appearance'],
+  o: Overrides
+): Pick<AppearanceState, 'shell' | 'device' | 'orientation'> {
+  const preview = manifest.preview;
+  const requested = resolveEffective(
+    { override: o.shell, scenario: scenario.shell },
+    preview.shell ?? 'auto'
+  );
+  const shell = {
+    value: resolveShell(requested.value, manifest.platform),
+    source: requested.source,
+  };
+  const fallbackDevice =
+    preview.device && deviceFitsShell(preview.device, shell.value)
+      ? preview.device
+      : defaultDeviceFor(shell.value, preview.viewport);
+  let device = resolveEffective({ override: o.device, scenario: scenario.device }, fallbackDevice);
+  if (!deviceFitsShell(device.value, shell.value)) {
+    device = { value: fallbackDevice, source: 'default' };
+  }
+  const spec = getDevice(device.value) as DeviceSpec;
+  let orientation = resolveEffective(
+    { override: o.orientation, scenario: scenario.orientation },
+    preview.orientation ?? spec.orientation
+  );
+  if (!spec.rotatable && orientation.value !== spec.orientation) {
+    orientation = { value: spec.orientation, source: 'default' };
+  }
+  return { shell, device, orientation };
 }

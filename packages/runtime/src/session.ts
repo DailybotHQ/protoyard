@@ -99,6 +99,9 @@ export function createThemeController(k: Kernel): ThemeController {
         reducedMotion: _r,
         density: _d,
         viewport: _v,
+        shell: _s,
+        device: _dv,
+        orientation: _o,
         ...rest
       } = k.overrides;
       await applyOverrides(k, rest);

@@ -1,6 +1,7 @@
 import { z } from 'zod';
+import { DeviceIdSchema, OrientationSchema } from './devices.ts';
 import { EnvironmentPatchSchema, SubscriptionStatusSchema } from './environment.ts';
-import { ColorModeSchema, ViewportPresetSchema } from './manifest.ts';
+import { ColorModeSchema, type Shell, ShellSchema, ViewportPresetSchema } from './manifest.ts';
 
 /**
  * A scenario answers: "what does this app look like for THIS actor, in THIS
@@ -52,6 +53,9 @@ export const ScenarioAppearanceSchema = z.object({
   mode: ColorModeSchema.optional(),
   reducedMotion: z.boolean().optional(),
   viewport: ViewportPresetSchema.optional(),
+  shell: ShellSchema.optional(),
+  device: DeviceIdSchema.optional(),
+  orientation: OrientationSchema.optional(),
 });
 
 export const ScenarioSchema = z.object({
@@ -129,6 +133,8 @@ export interface ScenarioLinkParams {
   theme?: string;
   mode?: 'light' | 'dark' | 'system';
   devtools?: boolean;
+  /** Presentation shell (`?shell=phone`); applied as a visible, clearable override. */
+  shell?: Shell;
   /**
    * Isolated, disposable world: the runtime suffixes the storage namespace
    * (`<namespace>~<sandbox>`) so two views of the same prototype on one
@@ -152,6 +158,8 @@ export function parseScenarioLink(search: string): ScenarioLinkParams {
   if (theme && /^[a-z][a-z0-9-]*$/.test(theme)) out.theme = theme;
   const mode = params.get('mode');
   if (mode === 'light' || mode === 'dark' || mode === 'system') out.mode = mode;
+  const shell = ShellSchema.safeParse(params.get('shell'));
+  if (shell.success) out.shell = shell.data;
   const sandbox = params.get('sandbox');
   if (sandbox && SANDBOX_PATTERN.test(sandbox)) out.sandbox = sandbox;
   const devtools = params.get('devtools');
