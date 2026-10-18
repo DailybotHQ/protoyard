@@ -1,5 +1,6 @@
 import { Command, CommanderError, Option } from 'commander';
 import { affectedCommand } from './commands/affected.ts';
+import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
@@ -152,6 +153,14 @@ export function createProgram(env: RunnerEnv): Command {
         'permit an --out outside the workspace (must be new or empty)'
       )
   ).action(def('build', buildCommand));
+
+  program
+    .command('budget')
+    .description('check initial JavaScript and CSS bundle sizes against configured budgets')
+    .argument('[slug]', 'prototype slug (or use --all)')
+    .option('--all', 'check every prototype sequentially')
+    .option('--skip-build', 'read the existing build-manifest.json')
+    .action(def('budget', budgetCommand));
 
   buildOptions(
     program
