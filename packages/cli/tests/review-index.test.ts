@@ -281,6 +281,67 @@ describe('protoyard review-index (CLI)', () => {
     expect(html).toContain('href="/review/review-manifest.json"');
   });
 
+  it('dry-runs publishing the review directory without uploading its ownership marker', async () => {
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'review-index',
+      '--no-personas',
+      '--out',
+      'artifacts/review-published',
+      '--publish',
+      'cloudflare',
+      '--dry-run',
+    ]);
+    expect(run.code, run.stdout).toBe(0);
+    const data = run.json<{
+      data: {
+        publication: {
+          project: string;
+          dryRun: boolean;
+          fileCount: number;
+          command: string[];
+          commandLine: string;
+        };
+      };
+    }>().data;
+    expect(data.publication).toMatchObject({
+      project: 'protoyard-review',
+      dryRun: true,
+      fileCount: 2,
+    });
+    expect(data.publication.command).toContain('deploy');
+    expect(data.publication.command).toContain('protoyard-review');
+    expect(
+      data.publication.command.some((argument) => argument.endsWith('/artifacts/review-published'))
+    ).toBe(true);
+    expect(data.publication.commandLine).toContain('wrangler');
+    const marker = join(ws.root, 'artifacts/review-published/.protoyard-review');
+    expect(existsSync(marker)).toBe(true);
+    expect(readFileSync(marker, 'utf8')).toBe('');
+  });
+
+  it('requires --yes before a real production review deploy', async () => {
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'review-index',
+      '--no-personas',
+      '--out',
+      'artifacts/review-production',
+      '--publish',
+      'cloudflare',
+      '--production',
+    ]);
+    expect(run.code).toBe(2);
+    expect(run.json<{ error: { message: string } }>().error.message).toMatch(
+      /production needs explicit confirmation/
+    );
+    expect(existsSync(join(ws.root, 'artifacts/review-production/.protoyard-review'))).toBe(true);
+  });
+
   it('refuses bad selections and unsafe output folders', async () => {
     const base = ['--root', ws.root, '--json', 'review-index', '--no-personas'];
     expect((await cli([...base, '--from-ledger', '--slugs', 'alpha-app'])).code).toBe(2);

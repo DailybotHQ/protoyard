@@ -19,6 +19,8 @@ exporting, previewing and putting it on a host. Design decisions: ADR-009
 | `pnpm protoyard publish <slug> <slug>… \| --all \| --tag <tag> --provider <p> [--dry-run]` | The same for several prototypes, one after another, with one summary | Only without `--dry-run` |
 | `pnpm protoyard publish --history [<slug>…] [--provider <p>] [--limit <n>]` | Print the last recorded publishes from the local ledger | No |
 | `pnpm protoyard review-index [--from-ledger \| --slugs a,b]` | One static page linking every real deployment, with scenario and persona links | No |
+| `pnpm protoyard review-index --publish <p> [--project <name>] --dry-run` | Generates the review page and prints the provider command for that directory | No |
+| `pnpm protoyard review-index --publish <p> [--project <name>]` | Generates and deploys the review page through the provider adapter | Yes |
 
 `pnpm protoyard build --all` builds every prototype one after another (for CI
 smoke runs).
@@ -294,7 +296,18 @@ pnpm protoyard review-index --slugs crm-demo,mobile-banking-demo --title "Sprint
 The page has no JavaScript and no external requests: plain HTML with inline
 CSS using the default theme's tokens, light and dark. All text is escaped. The
 same ledger and registry produce the same bytes, so the page can be committed
-or diffed. Publishing the page itself is a separate step.
+or diffed. Publishing the page is optional. Use `--publish cloudflare --dry-run`
+to inspect the exact upload command without contacting Cloudflare, then omit
+`--dry-run` only when you intend to deploy. The default Pages project is
+`protoyard-review`; an explicit `--project` overrides it. `--production`
+targets the production branch and requires `--yes`. The local empty
+`.protoyard-review` ownership marker is temporarily removed for upload and
+restored afterward. Add `--no-personas` to skip generator runs when a faster
+index is more useful than persona deep links.
+
+```bash
+pnpm protoyard review-index --publish cloudflare --dry-run --no-personas
+```
 
 ### Cloudflare Pages
 ### Cloudflare Pages

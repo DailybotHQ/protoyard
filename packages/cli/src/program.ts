@@ -277,6 +277,10 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--slugs <list>', 'only these prototypes (comma-separated)')
     .option('--base <path>', "public base of the review page ('./' or /sub/path/)")
     .option('--title <text>', 'page title (default "Prototype review")')
+    .option('--publish <provider>', 'publish the review site with cloudflare, netlify or vercel')
+    .option('--project <name>', 'provider project name (default protoyard-review)')
+    .option('--dry-run', 'print the provider command without contacting or deploying')
+    .option('--production', 'deploy to the provider production target (requires --yes)')
     .option(
       '--provider <id>',
       'provider named in the publish command for undeployed prototypes (default cloudflare)'

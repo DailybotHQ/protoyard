@@ -1,12 +1,17 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { inspectPrototype } from '../lib/inspect.ts';
-import { CliError, mark } from '../lib/output.ts';
+import { CliError, formatBytes, mark } from '../lib/output.ts';
 import { guardOutputDir } from '../lib/output-guard.ts';
 import { toPosixRelative } from '../lib/paths.ts';
 import { type LedgerEntry, ledgerPath, readLedger } from '../lib/publish-ledger.ts';
+import {
+  type PublishRunOptions,
+  type PublishRunResult,
+  publishDirectory,
+} from '../lib/publish-run.ts';
 import { loadRegistry, type RegistryEntry, writeJsonAtomic } from '../lib/registry.ts';
 import {
   personaLinks,
@@ -20,7 +25,8 @@ import {
 import { normalizeBase } from '../lib/vite.ts';
 import type { CommandContext } from '../lib/workspace.ts';
 import { assertSlug } from '../lib/workspace.ts';
-import { PROVIDER_IDS } from '../publish/index.ts';
+import { formatCommand } from '../publish/cli-tool.ts';
+import { createProvider, PROVIDER_IDS } from '../publish/index.ts';
 
 /** Persona links per prototype: the first generated personas, enough for every role in practice. */
 const MAX_PERSONAS = 12;
@@ -116,6 +122,17 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
           ),
         ].map((s) => assertSlug(s));
   if (slugs?.length === 0) throw new CliError('usage', '--slugs needs at least one slug.');
+  const publishId = opt(options, 'publish');
+  const requestedProject = opt(options, 'project');
+  const dryRun = flag(options, 'dryRun');
+  const production = flag(options, 'production');
+  if (publishId === undefined && (requestedProject !== undefined || dryRun || production)) {
+    throw new CliError('usage', '--project, --dry-run and --production require --publish.');
+  }
+  const publishProvider = publishId === undefined ? undefined : createProvider(publishId, ctx.root);
+  if (publishProvider?.id === 'static') {
+    throw new CliError('usage', '--publish supports cloudflare, netlify or vercel, not static.');
+  }
   const provider = opt(options, 'provider') ?? 'cloudflare';
   if (!(PROVIDER_IDS as readonly string[]).includes(provider) || provider === 'static') {
     throw new CliError(
@@ -170,7 +187,29 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
   await mkdir(outDir, { recursive: true });
   await writeFile(join(outDir, 'index.html'), html, 'utf8');
   await writeJsonAtomic(join(outDir, 'review-manifest.json'), model);
-  await writeFile(join(outDir, REVIEW_MARKER), '', 'utf8');
+  const markerPath = join(outDir, REVIEW_MARKER);
+  await writeFile(markerPath, '', 'utf8');
+
+  let publication: PublishRunResult | undefined;
+  if (publishProvider) {
+    // This marker protects future local regeneration; it is not part of the site.
+    await rm(markerPath, { force: true });
+    try {
+      const publishOptions: PublishRunOptions = {
+        dryRun,
+        production,
+        ...(requestedProject !== undefined ? { project: requestedProject } : {}),
+      };
+      publication = await publishDirectory(
+        ctx,
+        { slug: 'review', distDir: outDir },
+        publishProvider,
+        publishOptions
+      );
+    } finally {
+      await writeFile(markerPath, '', 'utf8');
+    }
+  }
 
   const deployedCount = entries.filter((e) => e.deployment).length;
   const out = toPosixRelative(ctx.root, outDir);
@@ -184,6 +223,27 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
       deployed: deployedCount,
       notDeployed: entries.filter((e) => !e.deployment).map((e) => e.slug),
       ledgerSkipped: skipped,
+      ...(publication
+        ? {
+            publication: {
+              provider: publication.provider,
+              experimental: publication.experimental,
+              target: publication.target,
+              project: publication.project,
+              dryRun: publication.dryRun,
+              distDir: publication.distDir,
+              fileCount: publication.files,
+              totalBytes: publication.bytes,
+              ...(publication.kind === 'dry-run'
+                ? {
+                    command: publication.command,
+                    commandLine: publication.commandLine,
+                    toolAvailable: publication.toolAvailable,
+                  }
+                : { url: publication.url }),
+            },
+          }
+        : {}),
     },
     render(o) {
       const { c } = o;
@@ -196,6 +256,36 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
         );
       }
       if (skipped > 0) o.always(c.yellow(`! Skipped ${skipped} unreadable ledger lines.`));
+      if (publication?.kind === 'dry-run') {
+        o.always(
+          `${mark(c, 'pass')} Dry run: review index ready (${publication.files} files, ${formatBytes(publication.bytes)}).`
+        );
+        o.always(
+          `Would run:\n  ${c.cyan(publication.commandLine ?? formatCommand(publication.command ?? []))}`
+        );
+        if (publication.experimental)
+          o.always(
+            c.yellow(
+              `! The ${publishProvider?.label} adapter is experimental and untested against the live service.`
+            )
+          );
+        if (!publication.toolAvailable && publication.toolHint)
+          o.always(
+            c.yellow(`! ${publishProvider?.label} CLI not found locally. ${publication.toolHint}`)
+          );
+        o.info(c.dim('Nothing was uploaded.'));
+      } else if (publication?.kind === 'published') {
+        if (publication.experimental)
+          o.always(
+            c.yellow(
+              `! The ${publishProvider?.label} adapter is experimental and untested against the live service.`
+            )
+          );
+        o.always(
+          `${mark(c, 'pass')} Published review index to ${publishProvider?.label} (${publication.target})`
+        );
+        if (publication.url) o.always(`  ${c.cyan(publication.url)}`);
+      }
     },
   };
 };
