@@ -321,6 +321,10 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--write', 'refresh the generated regions (prose outside the markers is untouched)')
     .option('--check', 'exit 4 when a generated region is stale or a marker is invalid')
     .option('--init', 'create missing AGENTS.md and docs/* skeletons (never overwrites)')
+    .option(
+      '--bundle',
+      'write artifacts/<slug>/<slug>-rebuild-kit.zip (spec + schema, domain, scenarios + REBUILD.md) from a current spec'
+    )
     .action(def('spec', specCommand));
 
   program

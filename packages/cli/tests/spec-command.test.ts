@@ -1,11 +1,26 @@
 // @vitest-environment node
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { unzipSync } from 'fflate';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { specForPrototype } from '../src/commands/spec.ts';
+import {
+  buildRebuildKit,
+  kitFiles,
+  rebuildPrompt,
+  specForPrototype,
+} from '../src/commands/spec.ts';
 import { checkSpec } from '../src/commands/validate.ts';
+import { scanText } from '../src/lib/hygiene.ts';
 import {
   type Inspection,
   inspectSpec,
@@ -13,6 +28,8 @@ import {
   type SpecFacts,
   toSpecFacts,
 } from '../src/lib/inspect.ts';
+import { workspacePaths } from '../src/lib/paths.ts';
+import type { RegistryEntry } from '../src/lib/registry.ts';
 import {
   closeMarker,
   openMarker,
@@ -24,6 +41,7 @@ import {
   SpecMarkerError,
   skeleton,
 } from '../src/lib/spec-render.ts';
+import type { CommandContext } from '../src/lib/workspace.ts';
 import { cli } from './helpers.ts';
 
 const ROOT = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
@@ -369,25 +387,176 @@ describe('validate spec check', () => {
     expect((await checkSpec(dir, 'notes-app', null, true)).status).toBe('skip');
   });
 
-  it('validate: crm-demo reports the spec check (warn today, fail with --strict-spec)', {
+  it('validate: real prototypes: crm-demo passes --strict-spec, ui-kit (no spec yet) warns or fails', {
     timeout: 120_000,
   }, async () => {
-    const run = await cli(['--root', ROOT, '--json', 'validate', 'crm-demo', '--skip-typecheck']);
-    expect(run.code, run.stdout).toBe(0);
-    const checks = run.json<{ data: { checks: { id: string; status: string }[] } }>().data.checks;
-    expect(checks.map((c) => c.id)).toContain('scenarios');
-    expect(checks.find((c) => c.id === 'spec')?.status).toBe('warn');
+    const validate = (slug: string, ...extra: string[]) =>
+      cli(['--root', ROOT, '--json', 'validate', slug, '--skip-typecheck', ...extra]);
+    const specOf = (run: Awaited<ReturnType<typeof validate>>) =>
+      run
+        .json<{ data: { checks: { id: string; status: string }[] } }>()
+        .data.checks.find((c) => c.id === 'spec');
 
-    const strict = await cli([
-      '--root',
-      ROOT,
-      '--json',
-      'validate',
-      'crm-demo',
-      '--skip-typecheck',
-      '--strict-spec',
-    ]);
+    const crm = await validate('crm-demo', '--strict-spec');
+    expect(crm.code, crm.stdout).toBe(0);
+    expect(specOf(crm)?.status).toBe('pass');
+
+    const kit = await validate('ui-kit');
+    expect(kit.code, kit.stdout).toBe(0);
+    expect(specOf(kit)?.status).toBe('warn');
+    const strict = await validate('ui-kit', '--strict-spec');
     expect(strict.code).toBe(4);
     expect(strict.json<{ error: { hint: string } }>().error.hint).toContain('spec');
+  });
+});
+
+describe('rebuild kit (spec --bundle)', () => {
+  let ws: string;
+  const write = (rel: string, text: string) => {
+    mkdirSync(join(ws, rel, '..'), { recursive: true });
+    writeFileSync(join(ws, rel), text);
+  };
+  const dir = () => join(ws, 'prototypes', 'tasks-app');
+  const ctx = () => ({ root: ws, paths: workspacePaths(ws) }) as unknown as CommandContext;
+  const entry = { kind: 'prototype', slug: 'tasks-app' } as RegistryEntry;
+  const kitPath = () => join(ws, 'artifacts', 'tasks-app', 'tasks-app-rebuild-kit.zip');
+
+  beforeAll(async () => {
+    ws = mkdtempSync(join(tmpdir(), 'protoyard-kit-'));
+    const p = 'prototypes/tasks-app';
+    for (const [rel, text] of Object.entries({
+      'protoyard.json': '{"slug":"tasks-app"}\n',
+      'src/prototype.ts': 'export const definition = {};\n',
+      'src/database/schema.ts': 'export const schema = 1;\n',
+      'src/domain/services.ts': 'export const services = {};\n',
+      'src/domain/policy.ts': 'export const policy = {};\n',
+      'src/scenarios/index.ts': 'export const scenarios = [];\n',
+      'src/scenarios/nested/presets.ts': 'export const presets = [];\n',
+      // Never bundled: not on the allow-list, a test, other extensions, secrets files.
+      'src/App.svelte': '<p>app</p>\n',
+      'src/screens/Home.svelte': '<p>home</p>\n',
+      'src/domain/services.test.ts': 'test\n',
+      'src/database/seed.ts': 'export {};\n',
+      'docs/notes.txt': 'notes\n',
+      'tests/services.test.ts': 'test\n',
+      '.env': 'TOKEN=x\n',
+      'public/thumbnail.png': 'png',
+    })) {
+      write(`${p}/${rel}`, text);
+    }
+    await specForPrototype(dir(), facts, { mode: 'write', init: true });
+  });
+  afterAll(() => rmSync(ws, { recursive: true, force: true }));
+
+  it('bundle: kitFiles returns only allow-listed spec and domain files, sorted', async () => {
+    expect(await kitFiles(dir())).toEqual([
+      'AGENTS.md',
+      'docs/DATA_MODEL.md',
+      'docs/FLOWS.md',
+      'docs/PERMISSIONS.md',
+      'docs/SCREENS.md',
+      'docs/SPEC.md',
+      'protoyard.json',
+      'src/database/schema.ts',
+      'src/domain/policy.ts',
+      'src/domain/services.ts',
+      'src/prototype.ts',
+      'src/scenarios/index.ts',
+      'src/scenarios/nested/presets.ts',
+    ]);
+  });
+
+  it('bundle: writes a deterministic ZIP with REBUILD.md first and the listed hashes', async () => {
+    const spec = await specForPrototype(dir(), facts, { mode: 'check', init: false });
+    const first = await buildRebuildKit(ctx(), entry, dir(), facts, spec);
+    expect(first.path).toBe('artifacts/tasks-app/tasks-app-rebuild-kit.zip');
+    const zip = unzipSync(new Uint8Array(readFileSync(kitPath())));
+    expect(Object.keys(zip)).toEqual(['REBUILD.md', ...(await kitFiles(dir()))]);
+    expect(
+      Object.keys(zip).some((name) =>
+        /\.svelte$|\.test\.ts$|\.env|\.png$|seed\.ts|notes\.txt/.test(name)
+      )
+    ).toBe(false);
+    const prompt = new TextDecoder().decode(zip['REBUILD.md']);
+    expect(prompt).toBe(rebuildPrompt(facts, first.files.slice(1)));
+    expect(prompt).toContain('# Rebuild kit: Tasks | App (`tasks-app` v0.1.0)');
+    expect(prompt).toContain('| `src/domain/services.ts` |');
+    expect(prompt).toContain('ask before choosing any external vendor');
+    const second = await buildRebuildKit(ctx(), entry, dir(), facts, spec);
+    expect(second.sha256).toBe(first.sha256);
+  });
+
+  it('bundle: refuses a missing or stale spec', async () => {
+    const stale = await specForPrototype(
+      dir(),
+      {
+        ...facts,
+        personas: [...facts.personas, { id: 'user_0009', name: 'Zed Example', role: 'viewer' }],
+      },
+      { mode: 'check', init: false }
+    );
+    await expect(buildRebuildKit(ctx(), entry, dir(), facts, stale)).rejects.toThrow(/not current/);
+    const missing = {
+      ...stale,
+      stale: 0,
+      files: stale.files.map((f) => (f.path === 'docs/SPEC.md' ? { ...f, exists: false } : f)),
+    };
+    await expect(buildRebuildKit(ctx(), entry, dir(), facts, missing)).rejects.toThrow(
+      /missing docs\/SPEC\.md/
+    );
+  });
+
+  it('bundle: refuses symlinks and hygiene findings without echoing the matched text', async () => {
+    const spec = await specForPrototype(dir(), facts, { mode: 'check', init: false });
+    rmSync(kitPath(), { force: true });
+    const secret = `AKIA${'Q'.repeat(16)}`;
+    const notes = join(dir(), 'src/domain/notes.ts');
+    writeFileSync(notes, `// planted for the test\nexport const key = '${secret}';\n`);
+    const error = await buildRebuildKit(ctx(), entry, dir(), facts, spec).catch(
+      (e: { message: string; hint?: string }) => e
+    );
+    expect((error as { message: string }).message).toMatch(/public-hygiene/);
+    expect((error as { hint: string }).hint).toBe('src/domain/notes.ts:2 secret-aws');
+    expect(JSON.stringify(error)).not.toContain(secret);
+    expect(existsSync(kitPath())).toBe(false);
+    rmSync(notes);
+
+    symlinkSync(join(ws, 'outside.ts'), join(dir(), 'src/domain/link.ts'));
+    await expect(buildRebuildKit(ctx(), entry, dir(), facts, spec)).rejects.toThrow(/symlink/);
+    rmSync(join(dir(), 'src/domain/link.ts'));
+  });
+
+  it('bundle: scanText applies the hygiene rules and their exceptions', () => {
+    expect(
+      scanText('a.md', 'path /home/runner/work is fine\nsupport@dailybot.com is public')
+    ).toEqual([]);
+    // Built at runtime so this test file itself stays clean for the repository's hygiene check.
+    const homePath = ['', 'Users', 'someone', 'x'].join('/');
+    const privateEmail = ['alex', 'dailybot.com'].join('@');
+    expect(
+      scanText('a.md', `see ${homePath}\nmail ${privateEmail}`).map((f) => `${f.line} ${f.rule}`)
+    ).toEqual(['1 personal-path', '2 private-email']);
+  });
+
+  it('bundle: crm-demo kit is produced from its real spec', { timeout: 120_000 }, async () => {
+    const run = await cli(['--root', ROOT, '--json', 'spec', 'crm-demo', '--bundle']);
+    expect(run.code, run.stdout).toBe(0);
+    const kit = run.json<{
+      data: { results: { bundle: { path: string; sha256: string; files: { path: string }[] } }[] };
+    }>().data.results[0]?.bundle;
+    expect(kit?.path).toBe('artifacts/crm-demo/crm-demo-rebuild-kit.zip');
+    expect(kit?.sha256).toMatch(/^[0-9a-f]{64}$/);
+    const names = kit?.files.map((f) => f.path) ?? [];
+    expect(names[0]).toBe('REBUILD.md');
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'AGENTS.md',
+        'docs/SPEC.md',
+        'src/database/schema.ts',
+        'src/domain/services.ts',
+        'src/routes.ts',
+      ])
+    );
+    expect(names.some((n) => n.endsWith('.svelte') || n.startsWith('tests/'))).toBe(false);
   });
 });
