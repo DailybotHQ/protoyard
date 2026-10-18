@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DeviceIdSchema, OrientationSchema } from './devices.ts';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from './slug.ts';
 
 /**
@@ -22,6 +23,73 @@ export type ColorMode = z.infer<typeof ColorModeSchema>;
 
 export const ViewportPresetSchema = z.enum(['desktop', 'tablet', 'iphone', 'android', 'custom']);
 export type ViewportPreset = z.infer<typeof ViewportPresetSchema>;
+
+/**
+ * How a prototype is presented (ADR-016). `auto` resolves from the platform
+ * (`mobile` → `phone`, anything else → `none`); `none` renders full-bleed.
+ */
+export const ShellSchema = z.enum([
+  'auto',
+  'none',
+  'phone',
+  'tablet',
+  'desktop-window',
+  'browser',
+  'widget-host',
+  'extension-popup',
+  'side-panel',
+]);
+export type Shell = z.infer<typeof ShellSchema>;
+/** A shell after `auto` has been resolved. */
+export type ResolvedShell = Exclude<Shell, 'auto'>;
+
+/** `auto` → `phone` for mobile prototypes, `none` otherwise; concrete shells pass through. */
+export function resolveShell(shell: Shell, platform: Platform): ResolvedShell {
+  if (shell !== 'auto') return shell;
+  return platform === 'mobile' ? 'phone' : 'none';
+}
+
+const ORIGIN_LABEL = '[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?';
+/**
+ * Only reserved, fictional origins: `https://<label>.example` (any depth) or
+ * `https://example.com` and its subdomains. No port, path, query or userinfo,
+ * so a shell can never display a real domain.
+ */
+export const FICTIONAL_ORIGIN_PATTERN = new RegExp(
+  `^https://(?:(?:${ORIGIN_LABEL}\\.)+example|(?:${ORIGIN_LABEL}\\.)*example\\.com)$`
+);
+export const FictionalOriginSchema = z.string().max(253).regex(FICTIONAL_ORIGIN_PATTERN, {
+  message: 'origin must be https://<name>.example or https://<sub>.example.com',
+});
+
+/** Host apps the side-panel shell can draw (generic, unbranded mocks). */
+export const ShellHostVariantSchema = z.enum(['chat-workspace', 'design-canvas', 'code-editor']);
+export type ShellHostVariant = z.infer<typeof ShellHostVariantSchema>;
+
+/** Per-shell presentation details. Every field is optional. */
+export const ShellChromeSchema = z
+  .object({
+    /** Window-control layout for desktop-window frames (absent: follow the visitor's OS). */
+    os: z.enum(['mac', 'windows']).optional(),
+    /** Address shown by browser-like shells (default `https://<slug>.example`). */
+    origin: FictionalOriginSchema.optional(),
+    /** Fictional brand of the widget-host page. */
+    hostName: z.string().min(1).max(60).optional(),
+    /** Host app drawn around a side panel. */
+    hostVariant: ShellHostVariantSchema.optional(),
+  })
+  .strict();
+export type ShellChrome = z.infer<typeof ShellChromeSchema>;
+
+export const PreviewSchema = z.object({
+  viewport: ViewportPresetSchema.default('desktop'),
+  shell: ShellSchema.default('auto'),
+  /** Device catalog id (`@protoyard/core` DEVICES); absent: the shell's default. */
+  device: DeviceIdSchema.optional(),
+  orientation: OrientationSchema.optional(),
+  chrome: ShellChromeSchema.optional(),
+});
+export type PreviewSettings = z.infer<typeof PreviewSchema>;
 
 export const ProjectKindSchema = z.enum(['prototype', 'template']);
 export type ProjectKind = z.infer<typeof ProjectKindSchema>;
@@ -76,11 +144,7 @@ export const PrototypeManifestSchema = z
     defaultScenario: z.string().min(1).optional(),
     defaultTheme: z.string().min(1).default('violet'),
     defaultMode: ColorModeSchema.default('system'),
-    preview: z
-      .object({
-        viewport: ViewportPresetSchema.default('desktop'),
-      })
-      .default({ viewport: 'desktop' }),
+    preview: PreviewSchema.default({ viewport: 'desktop', shell: 'auto' }),
     storage: z.object({
       namespace: NamespaceSchema,
       schemaVersion: z.number().int().positive(),

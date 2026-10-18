@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildScenarioLink,
   checkSlug,
   createIdFactory,
   createPermissionPolicy,
   createRng,
   createSimulationClock,
   createSimulationEnvironment,
+  OverridesSchema,
   parseScenarioLink,
   resolveEffective,
+  resolveShell,
+  ScenarioSchema,
   safeParseManifest,
   slugify,
   utf8ByteLengthExceeds,
@@ -45,6 +49,122 @@ describe('manifest', () => {
     expect(ok.success).toBe(true);
     if (ok.success) expect(ok.data.build.includeDevtools).toBe(false);
     expect(safeParseManifest({ id: 'x', slug: 'crm' }).success).toBe(false);
+  });
+});
+
+describe('manifest preview shell', () => {
+  const base = {
+    id: 'example.crm',
+    slug: 'crm-demo',
+    name: 'CRM',
+    version: '0.1.0',
+    storage: { namespace: 'crm-demo', schemaVersion: 1 },
+  };
+  const parse = (preview: unknown, extra: object = {}) =>
+    safeParseManifest({ ...base, ...extra, ...(preview === undefined ? {} : { preview }) });
+
+  it('parses existing manifests unchanged except for the auto shell default', () => {
+    for (const [preview, viewport] of [
+      [undefined, 'desktop'],
+      [{ viewport: 'desktop' }, 'desktop'],
+      [{ viewport: 'iphone' }, 'iphone'],
+    ] as const) {
+      const result = parse(preview);
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.preview).toEqual({ viewport, shell: 'auto' });
+    }
+  });
+
+  it('resolves auto from the platform and passes concrete shells through', () => {
+    expect(resolveShell('auto', 'mobile')).toBe('phone');
+    expect(resolveShell('auto', 'desktop')).toBe('none');
+    expect(resolveShell('auto', 'responsive')).toBe('none');
+    expect(resolveShell('browser', 'mobile')).toBe('browser');
+    expect(resolveShell('none', 'mobile')).toBe('none');
+  });
+
+  it('accepts every shell, catalog devices, orientations and fictional chrome', () => {
+    for (const shell of [
+      'auto',
+      'none',
+      'phone',
+      'tablet',
+      'desktop-window',
+      'browser',
+      'widget-host',
+      'extension-popup',
+      'side-panel',
+    ]) {
+      expect(parse({ shell }).success, shell).toBe(true);
+    }
+    const full = parse({
+      viewport: 'iphone',
+      shell: 'side-panel',
+      device: 'phone-punch-hole',
+      orientation: 'landscape',
+      chrome: {
+        os: 'windows',
+        origin: 'https://app.northwind.example',
+        hostName: 'Northwind Outfitters (fictional)',
+        hostVariant: 'code-editor',
+      },
+    });
+    expect(full.success).toBe(true);
+    for (const origin of [
+      'https://crm.example',
+      'https://example.com',
+      'https://help.example.com',
+      'https://a.b.example',
+    ]) {
+      expect(parse({ chrome: { origin } }).success, origin).toBe(true);
+    }
+  });
+
+  it('rejects bad shells, devices, orientations and real or unsafe origins', () => {
+    expect(parse({ shell: 'watch' }).success).toBe(false);
+    expect(parse({ shell: 'PHONE' }).success).toBe(false);
+    expect(parse({ device: 'iphone' }).success).toBe(false);
+    expect(parse({ orientation: 'sideways' }).success).toBe(false);
+    expect(parse({ chrome: { os: 'linux' } }).success).toBe(false);
+    expect(parse({ chrome: { hostVariant: 'spreadsheet' } }).success).toBe(false);
+    expect(parse({ chrome: { unknown: true } }).success).toBe(false);
+    for (const origin of [
+      'https://dailybot.com',
+      'http://crm.example',
+      'https://example.com.evil.io',
+      'https://notexample.com',
+      'https://crm.example/path',
+      'https://crm.example:8080',
+      'https://user@crm.example',
+      'https://.example',
+      'https://-x.example',
+      'https://CRM.example',
+      'javascript:alert(1)//.example',
+      'https://crm.example\n',
+    ]) {
+      expect(parse({ chrome: { origin } }).success, origin).toBe(false);
+    }
+  });
+
+  it('lets scenarios and overrides carry shell, device and orientation', () => {
+    const scenario = ScenarioSchema.parse({
+      id: 'phone-view',
+      name: 'Phone view',
+      seed: 1,
+      referenceTime: '2026-10-16T10:00:00Z',
+      appearance: { shell: 'phone', device: 'phone-pill', orientation: 'landscape' },
+    });
+    expect(scenario.appearance).toEqual({
+      shell: 'phone',
+      device: 'phone-pill',
+      orientation: 'landscape',
+    });
+    expect(OverridesSchema.parse({ shell: 'tablet', device: 'tablet' })).toEqual({
+      shell: 'tablet',
+      device: 'tablet',
+    });
+    expect(OverridesSchema.safeParse({ shell: 'watch' }).success).toBe(false);
+    expect(OverridesSchema.safeParse({ device: 'nope' }).success).toBe(false);
   });
 });
 
@@ -129,6 +249,20 @@ describe('links, overrides and snapshots', () => {
     expect(parseScenarioLink('?scenario=<script>&seed=-1')).toEqual({});
     expect(parseScenarioLink('?sandbox=compare-a').sandbox).toBe('compare-a');
     expect(parseScenarioLink('?sandbox=../x').sandbox).toBeUndefined();
+  });
+
+  it('accepts ?shell= from the enum only and round-trips it', () => {
+    expect(parseScenarioLink('?shell=phone').shell).toBe('phone');
+    expect(parseScenarioLink('?shell=side-panel').shell).toBe('side-panel');
+    for (const bad of ['watch', 'Phone', '', '<script>', 'phone%00']) {
+      expect(parseScenarioLink(`?shell=${bad}`).shell, bad).toBeUndefined();
+    }
+    const link = buildScenarioLink('/p/crm-demo/', { scenario: 'active-month', shell: 'tablet' });
+    expect(link).toBe('/p/crm-demo/?scenario=active-month&shell=tablet');
+    expect(parseScenarioLink(new URL(link, 'http://x.example').search)).toEqual({
+      scenario: 'active-month',
+      shell: 'tablet',
+    });
   });
 
   it('resolves effective values by precedence', () => {
