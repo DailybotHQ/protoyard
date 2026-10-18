@@ -713,6 +713,40 @@ importers:
         specifier: workspace:*
         version: link:../../packages/runtime
 
+  templates/desktop-app:
+    dependencies:
+      '@lucide/svelte':
+        specifier: ^1.50.0
+        version: 1.57.0(svelte@5.57.2)
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../../packages/scenarios
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      dexie:
+        specifier: ^4.4.0
+        version: 4.4.6
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.2
+      zod:
+        specifier: ^4.6.0
+        version: 4.6.7
+    devDependencies:
+      '@faker-js/faker':
+        specifier: ^10.6.0
+        version: 10.6.0
+      '@protoyard/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+
   templates/ecommerce:
     dependencies:
       '@lucide/svelte':
