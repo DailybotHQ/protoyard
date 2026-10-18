@@ -413,6 +413,26 @@ because a showcase is a demo site. Preview it with
 `pnpm protoyard showcase --base /protoyard/ --serve`, then open
 `http://127.0.0.1:4500/protoyard/`.
 
+### Publish the showcase to Cloudflare Pages
+
+Publish the built gallery and its prototype demos as one Pages project:
+
+```bash
+pnpm protoyard showcase --publish cloudflare --dry-run
+pnpm protoyard showcase --publish cloudflare --project protoyard-showcase --branch team-review
+```
+
+The first command builds and verifies the showcase, then prints the exact
+Wrangler command without contacting Cloudflare. Review it before running the
+second command with authorized Wrangler credentials. Deploys use the preview
+branch by default; `--branch` selects a named preview. The build refuses to
+publish if any selected prototype or template fails to build or fails its
+isolation check.
+The local `.protoyard-showcase` ownership marker is restored after publishing
+and is never included in the uploaded site. This one-project option is useful
+for team review; per-prototype projects remain available through `protoyard
+publish --all`.
+
 ### Hosting the showcase on GitHub Pages
 
 1. One time: **Settings → Pages → Source: GitHub Actions**.

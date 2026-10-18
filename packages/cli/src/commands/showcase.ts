@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, rename, rm } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { buildPrototype, scanForForeignCode } from '../lib/build.ts';
 import { digestDirectory } from '../lib/checksum.ts';
@@ -12,10 +12,17 @@ import { BUILD_MARKER, guardOutputDir, SHOWCASE_MARKER } from '../lib/output-gua
 import { toPosixRelative } from '../lib/paths.ts';
 import { parsePort } from '../lib/ports.ts';
 import { resolvePackageBin } from '../lib/process.ts';
+import {
+  type PublishRunOptions,
+  type PublishRunResult,
+  publishDirectory,
+} from '../lib/publish-run.ts';
 import { buildIndex, type Registry, type RegistryEntry, writeJsonAtomic } from '../lib/registry.ts';
 import { serveStatic } from '../lib/static-server.ts';
 import { normalizeBase } from '../lib/vite.ts';
 import type { CommandContext } from '../lib/workspace.ts';
+import { createProvider } from '../publish/index.ts';
+import type { PublishProvider } from '../publish/types.ts';
 
 /**
  * `protoyard showcase` builds ONE static site: the gallery plus every
@@ -41,6 +48,34 @@ export interface ShowcaseTarget {
 
 export function appPathFor(entry: Pick<RegistryEntry, 'kind' | 'slug'>): string {
   return `${entry.kind === 'template' ? 't' : 'p'}/${entry.slug}/app/`;
+}
+
+/** Do not upload a partial showcase; every selected app must have built cleanly. */
+export function assertShowcasePublishable(targets: readonly ShowcaseTarget[]): void {
+  const failed = targets.filter((target) => !target.ok);
+  if (failed.length > 0) {
+    throw new CliError(
+      'failure',
+      `${failed.length} of ${targets.length} showcase target(s) failed; refusing to publish.`
+    );
+  }
+}
+
+/** Publishes the already-built showcase without including its local ownership marker. */
+export async function publishShowcaseDirectory(
+  ctx: CommandContext,
+  out: string,
+  provider: PublishProvider,
+  options: PublishRunOptions
+): Promise<PublishRunResult> {
+  const markerPath = join(out, SHOWCASE_MARKER);
+  const marker = existsSync(markerPath) ? await readFile(markerPath, 'utf8') : undefined;
+  await rm(markerPath, { force: true });
+  try {
+    return await publishDirectory(ctx, { slug: 'showcase', distDir: out }, provider, options);
+  } finally {
+    if (marker !== undefined) await writeFile(markerPath, marker, 'utf8');
+  }
 }
 
 /** The registry the showcase gallery is built from: only successful builds are marked embedded. */
@@ -127,6 +162,23 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
       'usage',
       'A showcase needs an absolute --base such as "/" or "/protoyard/".'
     );
+  }
+  const publishId = opt(options, 'publish');
+  const requestedProject = opt(options, 'project');
+  const branch = opt(options, 'branch');
+  const dryRun = flag(options, 'dryRun');
+  if (
+    publishId === undefined &&
+    (requestedProject !== undefined || branch !== undefined || dryRun)
+  ) {
+    throw new CliError('usage', '--project, --branch and --dry-run require --publish.');
+  }
+  if (publishId !== undefined && publishId !== 'cloudflare') {
+    throw new CliError('usage', '--publish currently supports Cloudflare Pages only.');
+  }
+  const publishProvider = publishId === undefined ? undefined : createProvider(publishId, ctx.root);
+  if (publishProvider && flag(options, 'skipBuild')) {
+    throw new CliError('usage', 'Publishing requires a fresh showcase build; remove --skip-build.');
   }
   const allowExternal = flag(options, 'allowExternalOut');
   const out = resolveShowcaseOut(ctx, opt(options, 'out'), allowExternal);
@@ -258,13 +310,47 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   });
 
   const failed = targets.filter((t) => !t.ok);
+  let publication: PublishRunResult | undefined;
+  if (publishProvider) {
+    assertShowcasePublishable(targets);
+    publication = await publishShowcaseDirectory(ctx, out, publishProvider, {
+      dryRun,
+      ...(requestedProject !== undefined ? { project: requestedProject } : {}),
+      ...(branch !== undefined ? { branch } : {}),
+    });
+  }
   const server = flag(options, 'serve') ? await serve(out, base, options) : null;
   const lan =
     server && flag(options, 'host')
       ? lanAddresses().map((ip) => `http://${ip}:${server.port}${base}`)
       : [];
   return {
-    data: { ...summary, ...(server ? { url: server.url, lan } : {}) },
+    data: {
+      ...summary,
+      ...(server ? { url: server.url, lan } : {}),
+      ...(publication
+        ? {
+            publication: {
+              provider: publication.provider,
+              target: publication.target,
+              project: publication.project,
+              dryRun: publication.dryRun,
+              branch: publication.branch ?? null,
+              distDir: publication.distDir,
+              fileCount: publication.files,
+              totalBytes: publication.bytes,
+              ...(publication.kind === 'dry-run'
+                ? {
+                    command: publication.command,
+                    commandLine: publication.commandLine,
+                    toolAvailable: publication.toolAvailable,
+                    toolHint: publication.toolHint,
+                  }
+                : { url: publication.url }),
+            },
+          }
+        : {}),
+    },
     ...(failed.length > 0
       ? {
           failure: new CliError(
@@ -293,6 +379,20 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
         o.info(
           c.dim('  Upload the folder to any static host that serves it at the same base path.')
         );
+      }
+      if (publication?.kind === 'dry-run') {
+        o.always(
+          `${mark(c, 'pass')} Dry run: showcase ready (${publication.files} files, ${formatBytes(publication.bytes)}).`
+        );
+        o.always(
+          `Would run:\n  ${c.cyan(publication.commandLine ?? publication.command?.join(' ') ?? 'Wrangler command unavailable')}`
+        );
+        o.info(c.dim('Nothing was uploaded.'));
+      } else if (publication?.kind === 'published') {
+        o.always(
+          `${mark(c, 'pass')} Published showcase to Cloudflare Pages (${publication.target}).`
+        );
+        if (publication.url) o.always(`  ${c.cyan(publication.url)}`);
       }
     },
     ...(server ? { keepAlive: untilSignal(() => server.close()) } : {}),
