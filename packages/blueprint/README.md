@@ -22,7 +22,7 @@ services and CSV codec. Remaining work lands in later PLAN_002 tasks:
 | audit | per-mutation `auditEntries` rows (diff + sensitive redaction) and history reads | done |
 | files | size/type/quota checked Blob uploads, metadata listing, on-demand reads and removal | done |
 | csv | RFC 4180 parse/serialize + row validation (`@protoyard/blueprint/csv`) | done |
-| generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
+| generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | done |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | done |
 
 ## The schema
@@ -195,6 +195,25 @@ const { valid, errors } = validateCsv(entity, text);
 - Money and dates go through `deriveInputSchemas` create coercion (`12.50` → 1250 cents).
 - Export prefixes cells starting with `= + - @` with `'` (spreadsheet formula guard).
 - Hard limits: `CSV_MAX_BYTES` (2 MiB) and `CSV_MAX_ROWS` (10,000 data rows); override per call.
+
+## World generator
+
+Lazy entry so Faker stays out of the initial chunk:
+
+```ts
+import { createBlueprintGenerator } from '@protoyard/blueprint/generator';
+import { createGenerateContext } from '@protoyard/scenarios';
+
+const { generate, generatorVersion } = createBlueprintGenerator(blueprint);
+const world = generate(createGenerateContext(scenario));
+// team + entity rows × ctx.scale(), relations in topological order, optional
+// auditEntries / notifications history when features are on
+```
+
+- Field values use `ctx.faker` / `ctx.rng` / `ctx.time` / `ctx.ids` only (no `Math.random` / `Date.now`).
+- Optional `field.fake` must be an allow-listed path such as `company.name` or `person.fullName`.
+- Emails always use `example.com` / `example.org`.
+- `generatorVersion` mixes a blueprint content hash with the generator SDK and scenarios SDK versions.
 
 ## Audit log
 
