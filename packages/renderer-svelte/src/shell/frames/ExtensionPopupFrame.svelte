@@ -1,5 +1,6 @@
 <script lang="ts">
-import { type Component, onMount } from 'svelte';
+import { BrowserChrome } from '@protoyard/ui';
+import { onMount } from 'svelte';
 import { getRuntime } from '../../context.ts';
 import type { FrameProps } from './registry.ts';
 
@@ -8,12 +9,10 @@ const manifest = getRuntime().manifest;
 const origin = `https://${manifest.slug}.example`;
 const extensionName = manifest.name;
 const extensionIcon = manifest.icon ?? '🧩';
-type BrowserChromeProps = { origin: string; title?: string; class?: string };
 
 let open = $state(true);
 let pinned = $state(false);
 let menuOpen = $state(false);
-let BrowserChromeComponent = $state.raw<Component<BrowserChromeProps> | null>(null);
 let chromeHost: HTMLElement | undefined;
 let controls: HTMLElement | undefined;
 
@@ -25,16 +24,10 @@ $effect(() => {
   };
 });
 
+// BrowserChrome is a static import: this frame is already a lazy chunk. Importing
+// the ui barrel dynamically would turn it (the entry loads it) into a shared chunk
+// and pull BrowserChrome into every prototype's initial JS (tests/bundle-hygiene).
 onMount(() => {
-  let cancelled = false;
-  void import('@protoyard/ui')
-    .then(({ BrowserChrome }) => {
-      if (!cancelled) BrowserChromeComponent = BrowserChrome;
-    })
-    .catch((error: unknown) => {
-      console.error('[protoyard] extension popup browser chrome failed to load', error);
-    });
-
   const onPointerDown = (event: PointerEvent) => {
     const target = event.target;
     if (!(target instanceof Node)) return;
@@ -53,7 +46,6 @@ onMount(() => {
   document.addEventListener('pointerdown', onPointerDown, true);
   window.addEventListener('keydown', onKeyDown);
   return () => {
-    cancelled = true;
     document.removeEventListener('pointerdown', onPointerDown, true);
     window.removeEventListener('keydown', onKeyDown);
   };
@@ -89,9 +81,7 @@ function openFromMenu(): void {
     data-py-extension-chrome
     class="pointer-events-auto absolute top-0 right-4 z-[1] h-[688px] w-[360px]"
   >
-    {#if BrowserChromeComponent}
-      <BrowserChromeComponent origin={origin} title={extensionName} class="h-full w-full" />
-    {/if}
+    <BrowserChrome {origin} title={extensionName} class="h-full w-full" />
   </div>
 
   <div bind:this={controls} class="contents">

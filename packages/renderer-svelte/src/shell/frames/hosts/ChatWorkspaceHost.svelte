@@ -1,3 +1,6 @@
+<!-- Static markup with no runes would compile in legacy mode and pull legacy helpers into the shared runtime. -->
+<svelte:options runes />
+
 <script lang="ts">
 /** Fictional team-chat workspace mock — no real product brands or logos. */
 const channels = ['# general', '# design-review', '# ship-it', '# random'];

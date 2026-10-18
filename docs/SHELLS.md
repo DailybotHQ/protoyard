@@ -114,8 +114,9 @@ and the gallery preview. Sizes are CSS pixels, portrait first for rotatable devi
 ## Performance
 
 `ShellHost` is in every prototype's initial bundle, and each frame is a separate lazy
-chunk, loaded only when a prototype is shown in that shell. Measured sizes, and a known
-issue where shared ui code from the frames lands in the initial chunk, are in
+chunk, loaded only when a prototype is shown in that shell. Inside a frame, import ui
+components statically: a dynamic import of `@protoyard/ui` would pull them into every
+prototype's initial JS, and a test blocks it. Measured sizes are in
 [PERFORMANCE.md → Shells](PERFORMANCE.md#shells).
 
 ## Adding a frame
