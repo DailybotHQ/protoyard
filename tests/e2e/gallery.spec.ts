@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
+import { expectAccessible } from './support/a11y.ts';
 import { readRegistry } from './targets.ts';
 
 const registry = readRegistry();
@@ -114,6 +115,43 @@ test.describe('gallery', () => {
     await page.reload();
     // Set by the inline head script before paint, i.e. no flash of light theme.
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  });
+
+  test('command palette opens from the shortcut, searches and navigates by keyboard', async ({
+    page,
+  }, testInfo) => {
+    test.skip(prototypes.length === 0, 'no prototypes indexed');
+    const target = prototypes[0];
+    if (!target) return;
+    await page.goto('/');
+    const trigger = page.getByRole('button', {
+      name: 'Open command palette (Command or Control K)',
+    });
+    await expect(trigger).toBeVisible();
+    await expect(page.getByTestId('command-palette')).toHaveAttribute('data-hydrated', 'true');
+    await page.keyboard.press('Control+k');
+    const dialog = page.getByRole('dialog', { name: 'Command palette' });
+    await expect(dialog).toBeVisible();
+    await expectAccessible(page, testInfo, { label: 'gallery-command-palette' });
+
+    const input = dialog.getByRole('combobox', {
+      name: 'Search prototypes, templates, and actions',
+    });
+    await expect(input).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
+    await expect(trigger).toBeFocused();
+
+    await page.keyboard.press('Control+k');
+    await expect(dialog).toBeVisible();
+    await input.fill(target.slug);
+    const openTarget = dialog
+      .getByRole('option')
+      .filter({ hasText: `Open ${target.name}` })
+      .first();
+    await expect(openTarget).toBeVisible();
+    await input.press('Enter');
+    await expect(page).toHaveURL(new RegExp(`/p/${target.slug}/?$`));
   });
 
   for (const reducedMotion of ['no-preference', 'reduce'] as const) {
