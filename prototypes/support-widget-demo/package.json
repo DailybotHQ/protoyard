@@ -1,0 +1,26 @@
+{
+  "name": "@prototype/support-widget-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Flagship support widget demo: Northwind Outfitters help chat with orders, returns, handoff and offline mode on the widget-host shell.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "dexie": "^4.4.0",
+    "svelte": "^5.57.0"
+  },
+  "devDependencies": {
+    "@protoyard/runtime": "workspace:*",
+    "@protoyard/scenarios": "workspace:*"
+  }
+}
