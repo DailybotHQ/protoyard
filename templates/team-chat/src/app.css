@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@import "@protoyard/themes/base.css";
+@import "@protoyard/ui/styles.css";
+@import "@protoyard/ai-ui/styles.css";
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+}
