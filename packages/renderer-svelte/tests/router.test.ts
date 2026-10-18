@@ -49,6 +49,24 @@ describe('createRouter', () => {
     router.destroy();
   });
 
+  it('resets the renderer scroll root on navigation (viewport presets scroll there)', async () => {
+    const Dummy = (() => {}) as never;
+    location.hash = '';
+    const scrollRoot = document.body.appendChild(document.createElement('div'));
+    scrollRoot.setAttribute('data-py-scroll-root', '');
+    scrollRoot.scrollTop = 120;
+    const router = createRouter([
+      { path: '/', component: Dummy },
+      { path: '/activity', component: Dummy },
+    ]);
+    navigate('/activity');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(router.current.route?.path).toBe('/activity');
+    expect(scrollRoot.scrollTop).toBe(0);
+    router.destroy();
+    scrollRoot.remove();
+  });
+
   it('prefers a static route over an optional param for the same path', () => {
     const Dummy = (() => {}) as never;
     const router = createRouter([

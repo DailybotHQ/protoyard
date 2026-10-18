@@ -42,6 +42,16 @@ Globals are typed in `@protoyard/renderer-svelte/env`.
 @source './';
 ```
 
+**Viewport presets** (`tablet`, `iphone`, `android`, from the manifest's
+`preview.viewport`, a scenario or a DevTools override) set
+`<html data-py-viewport>`. `#app` then becomes a narrow, viewport-tall column that never
+scrolls, and is the containing block for `position: fixed` descendants, so a bottom
+nav, toasts and the demo badge stay pinned inside the visible column. The app scrolls
+inside `[data-py-scroll-root]`, the wrapper the renderer puts around `<App />`, and the
+router resets it to the top on navigation. With the desktop preset that wrapper is
+`display: contents` and the document scrolls as usual. Media queries still follow the
+real window.
+
 ## Mount
 
 ```ts

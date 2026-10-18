@@ -30,7 +30,10 @@ const storage = runtime.storage();
 {/if}
 <LoadProgressBar {runtime} />
 <PendingLinkPrompt {runtime} />
-<App />
+<!-- Scroll root: `display: contents` normally, the scrolling region under viewport presets (app.css). -->
+<div data-py-scroll-root>
+  <App />
+</div>
 <Toaster />
 {#if demoBadge}
   <DemoBadge name={runtime.manifest.name} />
