@@ -15,7 +15,10 @@ describe('protoyard scenario bench', () => {
     ws = undefined;
   });
 
-  it('reports median timings and deterministic row counts for repeated fixture runs', async () => {
+  // Real generation runs in child processes; allow for a loaded machine (the default 5 s timed out in CI-like runs).
+  it('reports median timings and deterministic row counts for repeated fixture runs', {
+    timeout: 60_000,
+  }, async () => {
     ws = createBenchWorkspace();
 
     const run = await cli([
@@ -62,7 +65,9 @@ describe('protoyard scenario bench', () => {
     );
   });
 
-  it('fails with validation exit code 4 when --check exceeds the generation budget', async () => {
+  it('fails with validation exit code 4 when --check exceeds the generation budget', {
+    timeout: 60_000,
+  }, async () => {
     ws = createBenchWorkspace();
     ws.write('protoyard.budgets.json', {
       ...DEFAULT_BUDGET_CONFIG,
