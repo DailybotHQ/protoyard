@@ -1,0 +1,209 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Harbor Clinic",
+  "description": "Patients, visits and prescriptions for a fictional clinic.",
+  "icon": "🏥",
+  "category": "health",
+  "tags": [
+    "health",
+    "clinic",
+    "patients"
+  ],
+  "catalog": {
+    "category": "health",
+    "productType": "Clinic",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "visits",
+      "rx"
+    ],
+    "highlights": [
+      "Patient chart",
+      "Visit notes",
+      "Rx list"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "clinic-brand",
+    "name": "Harbor Clinic",
+    "seed": "#059669",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "patient",
+      "plural": "patients",
+      "fields": [
+        {
+          "name": "fullName",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "email",
+          "kind": "email",
+          "fake": "internet.email"
+        },
+        {
+          "name": "phone",
+          "kind": "phone"
+        },
+        {
+          "name": "dob",
+          "kind": "date"
+        }
+      ],
+      "titleField": "fullName",
+      "searchable": [
+        "fullName",
+        "email"
+      ]
+    },
+    {
+      "name": "visit",
+      "plural": "visits",
+      "fields": [
+        {
+          "name": "patient",
+          "kind": "relation",
+          "to": "patient",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "clinician",
+          "kind": "persona"
+        },
+        {
+          "name": "visitedAt",
+          "kind": "datetime",
+          "required": true
+        },
+        {
+          "name": "reason",
+          "kind": "text"
+        },
+        {
+          "name": "notes",
+          "kind": "longText"
+        }
+      ],
+      "titleField": "reason",
+      "features": {
+        "audit": true
+      }
+    },
+    {
+      "name": "prescription",
+      "plural": "prescriptions",
+      "fields": [
+        {
+          "name": "visit",
+          "kind": "relation",
+          "to": "visit",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "medication",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "dose",
+          "kind": "text"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "active",
+            "completed",
+            "stopped"
+          ],
+          "default": "active",
+          "required": true
+        }
+      ],
+      "titleField": "medication"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "patient",
+      "columns": [
+        "fullName",
+        "email",
+        "phone"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "patient"
+    },
+    {
+      "type": "list",
+      "entity": "visit",
+      "columns": [
+        "patient",
+        "clinician",
+        "visitedAt"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "visit"
+    },
+    {
+      "type": "list",
+      "entity": "prescription",
+      "columns": [
+        "visit",
+        "medication",
+        "dose"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "prescription"
+    }
+  ]
+}

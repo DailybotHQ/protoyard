@@ -1,0 +1,211 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Routeline Logistics",
+  "description": "Shipments, stops and carriers for a fictional 3PL desk.",
+  "icon": "🚚",
+  "category": "operations",
+  "tags": [
+    "logistics",
+    "shipping",
+    "fleet"
+  ],
+  "catalog": {
+    "category": "operations",
+    "productType": "Logistics",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "tracking",
+      "carriers"
+    ],
+    "highlights": [
+      "Shipment tracker",
+      "Multi-stop routes",
+      "Carrier scores"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "logistics-brand",
+    "name": "Routeline Logistics",
+    "seed": "#1e3a8a",
+    "styleProfile": "crisp",
+    "font": "grotesk"
+  },
+  "entities": [
+    {
+      "name": "carrier",
+      "plural": "carriers",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "company.name"
+        },
+        {
+          "name": "scac",
+          "kind": "text"
+        },
+        {
+          "name": "score",
+          "kind": "number",
+          "min": 0,
+          "max": 5
+        }
+      ],
+      "titleField": "name"
+    },
+    {
+      "name": "shipment",
+      "plural": "shipments",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "carrier",
+          "kind": "relation",
+          "to": "carrier",
+          "required": true,
+          "onDelete": "restrict"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "booked",
+            "in-transit",
+            "delivered",
+            "exception"
+          ],
+          "default": "booked",
+          "required": true
+        },
+        {
+          "name": "eta",
+          "kind": "datetime"
+        }
+      ],
+      "titleField": "reference",
+      "searchable": [
+        "reference"
+      ],
+      "indexes": [
+        "status"
+      ]
+    },
+    {
+      "name": "stop",
+      "plural": "stops",
+      "fields": [
+        {
+          "name": "shipment",
+          "kind": "relation",
+          "to": "shipment",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "kind",
+          "kind": "enum",
+          "values": [
+            "pickup",
+            "delivery"
+          ],
+          "default": "pickup",
+          "required": true
+        },
+        {
+          "name": "city",
+          "kind": "text",
+          "required": true,
+          "fake": "location.city"
+        },
+        {
+          "name": "sequence",
+          "kind": "integer",
+          "min": 1,
+          "required": true
+        }
+      ],
+      "titleField": "city"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "carrier",
+      "columns": [
+        "name",
+        "scac",
+        "score"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "carrier"
+    },
+    {
+      "type": "list",
+      "entity": "shipment",
+      "columns": [
+        "reference",
+        "carrier",
+        "status"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "shipment"
+    },
+    {
+      "type": "list",
+      "entity": "stop",
+      "columns": [
+        "shipment",
+        "kind",
+        "city"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "stop"
+    }
+  ]
+}

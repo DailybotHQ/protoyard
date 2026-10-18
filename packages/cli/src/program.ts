@@ -87,7 +87,7 @@ export function createProgram(env: RunnerEnv): Command {
     .command('list')
     .description('list prototypes and templates from the registry')
     .addOption(
-      new Option('--kind <kind>', 'prototype, template or all')
+      new Option('--kind <kind>', 'prototype, template, blueprint or all')
         .choices(['prototype', 'template', 'all'])
         .default('all')
     )

@@ -7,6 +7,8 @@ export interface WorkspacePaths {
   root: string;
   prototypes: string;
   templates: string;
+  /** Data-only product blueprints (`blueprints/*.json`) for the marketplace catalog. */
+  blueprints: string;
   artifacts: string;
   /** Git-ignored generated state (`.protoyard/`). */
   state: string;
@@ -20,6 +22,7 @@ export function workspacePaths(root: string): WorkspacePaths {
     root,
     prototypes: join(root, 'prototypes'),
     templates: join(root, 'templates'),
+    blueprints: join(root, 'blueprints'),
     artifacts: join(root, 'artifacts'),
     state,
     registry: join(state, 'registry.json'),

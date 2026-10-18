@@ -1,0 +1,215 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Gatepass Events",
+  "description": "Events, ticket types and orders for a fictional venue.",
+  "icon": "🎫",
+  "category": "media",
+  "tags": [
+    "events",
+    "tickets",
+    "venues"
+  ],
+  "catalog": {
+    "category": "media",
+    "productType": "Events",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "orders",
+      "check-in"
+    ],
+    "highlights": [
+      "Multi-tier tickets",
+      "Order totals",
+      "Door list"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "events-ticketing-brand",
+    "name": "Gatepass Events",
+    "seed": "#db2777",
+    "styleProfile": "rounded",
+    "font": "geometric"
+  },
+  "entities": [
+    {
+      "name": "event",
+      "plural": "events",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "venue",
+          "kind": "text",
+          "fake": "company.name"
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "required": true
+        },
+        {
+          "name": "capacity",
+          "kind": "integer",
+          "min": 1
+        }
+      ],
+      "titleField": "title",
+      "searchable": [
+        "title",
+        "venue"
+      ]
+    },
+    {
+      "name": "ticket-type",
+      "plural": "ticket-types",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "event",
+          "kind": "relation",
+          "to": "event",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "price",
+          "kind": "money",
+          "currency": "USD",
+          "min": 0,
+          "required": true
+        },
+        {
+          "name": "quota",
+          "kind": "integer",
+          "min": 1
+        }
+      ],
+      "titleField": "name"
+    },
+    {
+      "name": "order",
+      "plural": "orders",
+      "fields": [
+        {
+          "name": "ticketType",
+          "kind": "relation",
+          "to": "ticket-type",
+          "required": true,
+          "onDelete": "restrict"
+        },
+        {
+          "name": "buyerName",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "buyerEmail",
+          "kind": "email",
+          "fake": "internet.email"
+        },
+        {
+          "name": "quantity",
+          "kind": "integer",
+          "min": 1,
+          "default": 1
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "pending",
+            "paid",
+            "refunded"
+          ],
+          "default": "pending",
+          "required": true
+        }
+      ],
+      "titleField": "buyerName"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "event",
+      "columns": [
+        "title",
+        "venue",
+        "startsAt"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "event"
+    },
+    {
+      "type": "list",
+      "entity": "ticket-type",
+      "columns": [
+        "name",
+        "event",
+        "price"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "ticket-type"
+    },
+    {
+      "type": "list",
+      "entity": "order",
+      "columns": [
+        "ticketType",
+        "buyerName",
+        "buyerEmail"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "order"
+    }
+  ]
+}

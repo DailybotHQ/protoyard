@@ -1,0 +1,209 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Launchpad Projects",
+  "description": "Projects, tasks and milestones for a fictional product studio.",
+  "icon": "🗂️",
+  "category": "productivity",
+  "tags": [
+    "projects",
+    "tasks",
+    "pm"
+  ],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Projects",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "boards",
+      "milestones"
+    ],
+    "highlights": [
+      "Task boards",
+      "Owners",
+      "Due dates"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "project-management-brand",
+    "name": "Launchpad Projects",
+    "seed": "#2563eb",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "project",
+      "plural": "projects",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "planned",
+            "active",
+            "done"
+          ],
+          "default": "planned",
+          "required": true
+        },
+        {
+          "name": "lead",
+          "kind": "persona"
+        },
+        {
+          "name": "startsOn",
+          "kind": "date"
+        }
+      ],
+      "titleField": "name",
+      "ownerField": "lead"
+    },
+    {
+      "name": "task",
+      "plural": "tasks",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "todo",
+            "doing",
+            "done"
+          ],
+          "default": "todo",
+          "required": true
+        },
+        {
+          "name": "project",
+          "kind": "relation",
+          "to": "project",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "assignee",
+          "kind": "persona"
+        },
+        {
+          "name": "dueOn",
+          "kind": "date"
+        }
+      ],
+      "titleField": "title",
+      "ownerField": "assignee",
+      "indexes": [
+        "status"
+      ]
+    },
+    {
+      "name": "milestone",
+      "plural": "milestones",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "project",
+          "kind": "relation",
+          "to": "project",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "targetOn",
+          "kind": "date",
+          "required": true
+        }
+      ],
+      "titleField": "name"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "project",
+      "columns": [
+        "name",
+        "status",
+        "lead"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "project"
+    },
+    {
+      "type": "list",
+      "entity": "task",
+      "columns": [
+        "title",
+        "status",
+        "project"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "task"
+    },
+    {
+      "type": "list",
+      "entity": "milestone",
+      "columns": [
+        "name",
+        "project",
+        "targetOn"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "milestone"
+    }
+  ]
+}

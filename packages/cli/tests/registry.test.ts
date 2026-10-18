@@ -1,16 +1,22 @@
 // @vitest-environment node
-import { readFileSync, utimesSync, writeFileSync } from 'node:fs';
+import { cpSync, readFileSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { workspacePaths } from '../src/lib/paths.ts';
 import { buildIndex, filterEntries, findEntry, readRegistry } from '../src/lib/registry.ts';
 import {
   addPrototype,
   addTemplate,
+  cli,
   createWorkspace,
   manifest,
   type TempWorkspace,
 } from './helpers.ts';
+
+const REPO = fileURLToPath(new URL('../../../', import.meta.url));
+const TEMPLATE = join(REPO, 'templates/crud-app');
+const CATALOG_SAMPLE = ['crm', 'lms', 'inventory'] as const;
 
 let ws: TempWorkspace;
 beforeEach(() => {
@@ -52,7 +58,13 @@ describe('discovery and registry', () => {
       'zeta-crm',
       'blank',
     ]);
-    expect(registry.stats).toEqual({ total: 4, prototypes: 3, templates: 1, invalid: 4 });
+    expect(registry.stats).toEqual({
+      total: 4,
+      prototypes: 3,
+      templates: 1,
+      blueprints: 0,
+      invalid: 4,
+    });
     const invalid = Object.fromEntries(registry.invalid.map((i) => [i.path, i.errors.join(' ')]));
     expect(invalid['prototypes/broken-json']).toMatch(/not valid JSON/);
     expect(invalid['prototypes/wrong-folder']).toMatch(/must match its folder/);
@@ -134,6 +146,54 @@ describe('discovery and registry', () => {
     expect(ordered[ordered.length - 1]).toBe('alpha-bank');
   });
 
+  it('indexes catalog blueprints from blueprints/*.json with brand and catalog', async () => {
+    seed();
+    ws.write('blueprints/crm.json', {
+      formatVersion: 1,
+      name: 'Catalog CRM',
+      description: 'A fictional CRM blueprint for the marketplace.',
+      icon: '📇',
+      category: 'sales',
+      tags: ['crm', 'pipeline'],
+      catalog: {
+        category: 'sales',
+        productType: 'CRM',
+        platforms: ['web'],
+        features: ['pipeline'],
+        highlights: ['Deals and accounts'],
+        difficulty: 'beginner',
+      },
+      brand: { seed: '#1d4ed8', id: 'crm-brand', name: 'Catalog CRM' },
+      entities: [
+        {
+          name: 'account',
+          plural: 'accounts',
+          fields: [{ name: 'name', kind: 'text', required: true }],
+          titleField: 'name',
+        },
+      ],
+      roles: [{ name: 'owner', permissions: { '*': ['*'] } }],
+    });
+    ws.write('blueprints/broken.json', { formatVersion: 1, name: 'Nope' });
+    const { registry } = await buildIndex(workspacePaths(ws.root));
+    expect(registry.stats.blueprints).toBe(1);
+    const entry = findEntry(registry, 'crm', 'blueprint');
+    expect(entry).toMatchObject({
+      kind: 'blueprint',
+      id: 'local.blueprint.crm',
+      slug: 'crm',
+      name: 'Catalog CRM',
+      path: 'blueprints/crm.json',
+      defaultTheme: 'crm-brand',
+      template: 'crud-app',
+    });
+    expect(entry?.catalog?.productType).toBe('CRM');
+    expect(filterEntries(registry.entries, { kind: 'blueprint' }).map((e) => e.slug)).toEqual([
+      'crm',
+    ]);
+    expect(registry.invalid.some((i) => i.path === 'blueprints/broken.json')).toBe(true);
+  });
+
   it('indexes the optional catalog block and searches its product type and features', async () => {
     seed();
     addPrototype(ws, 'help-desk', {
@@ -209,4 +269,66 @@ describe('discovery and registry', () => {
     expect([warm.parsed, warm.cached]).toEqual([4, 0]);
     expect(warm.registry.entries).toEqual(cold.registry.entries);
   });
+
+  it('generates three catalog blueprints into a workspace and type-checks them', async () => {
+    cpSync(TEMPLATE, join(ws.root, 'templates/crud-app'), {
+      recursive: true,
+      filter: (src) => !/[/\\](node_modules|dist)([/\\]|$)/.test(src),
+    });
+    for (const slug of CATALOG_SAMPLE) {
+      const file = join(REPO, 'blueprints', `${slug}.json`);
+      const run = await cli([
+        '--root',
+        ws.root,
+        '--json',
+        'generate',
+        `from-${slug}`,
+        '--blueprint',
+        file,
+        '--no-install',
+      ]);
+      expect(run.code, slug).toBe(0);
+      const entry = JSON.parse(
+        readFileSync(join(ws.root, 'prototypes', `from-${slug}`, 'protoyard.json'), 'utf8')
+      );
+      expect(entry.defaultTheme, slug).toBeTruthy();
+      expect(
+        readFileSync(
+          join(ws.root, 'prototypes', `from-${slug}`, 'src/generated/brand-theme.ts'),
+          'utf8'
+        )
+      ).toContain('defineTheme');
+    }
+
+    symlinkSync(join(REPO, 'node_modules'), join(ws.root, 'node_modules'), 'dir');
+    cpSync(join(REPO, 'tsconfig.base.json'), join(ws.root, 'tsconfig.base.json'));
+    cpSync(join(REPO, 'tests/support'), join(ws.root, 'tests/support'), { recursive: true });
+    for (const slug of CATALOG_SAMPLE) {
+      symlinkSync(
+        join(TEMPLATE, 'node_modules'),
+        join(ws.root, 'prototypes', `from-${slug}`, 'node_modules'),
+        'dir'
+      );
+      const validate = await cli([
+        '--root',
+        ws.root,
+        '--json',
+        'validate',
+        `from-${slug}`,
+        '--skip-typecheck',
+      ]);
+      // Spec markers may be stale until write; refresh then re-validate with typecheck.
+      await cli(['--root', ws.root, '--json', 'spec', `from-${slug}`, '--write']);
+      const typed = await cli(['--root', ws.root, '--json', 'validate', `from-${slug}`]);
+      const { ok, data } = typed.json<{
+        ok: boolean;
+        data: { checks: { id: string; status: string; details: string[] }[] };
+      }>();
+      const failed = data.checks.filter((c) => c.status === 'fail');
+      expect(failed, slug).toEqual([]);
+      expect(ok, slug).toBe(true);
+      expect(data.checks.find((c) => c.id === 'typecheck')?.status, slug).toBe('pass');
+      expect(validate.code).toBeDefined();
+    }
+  }, 180_000);
 });

@@ -1,0 +1,231 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Hirepath ATS",
+  "description": "Jobs, candidates and interviews for a fictional recruiting team.",
+  "icon": "🧭",
+  "category": "hr",
+  "tags": [
+    "recruiting",
+    "hr",
+    "jobs"
+  ],
+  "catalog": {
+    "category": "hr",
+    "productType": "ATS",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "pipeline",
+      "interviews"
+    ],
+    "highlights": [
+      "Job reqs",
+      "Candidate stages",
+      "Interview scorecards"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "ats-recruiting-brand",
+    "name": "Hirepath ATS",
+    "seed": "#7c3aed",
+    "styleProfile": "crisp",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "job",
+      "plural": "jobs",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true,
+          "fake": "person.jobTitle"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "open",
+            "paused",
+            "closed"
+          ],
+          "default": "open",
+          "required": true
+        },
+        {
+          "name": "location",
+          "kind": "text",
+          "fake": "location.city"
+        },
+        {
+          "name": "hiringManager",
+          "kind": "persona"
+        }
+      ],
+      "titleField": "title",
+      "ownerField": "hiringManager"
+    },
+    {
+      "name": "candidate",
+      "plural": "candidates",
+      "fields": [
+        {
+          "name": "fullName",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "email",
+          "kind": "email",
+          "fake": "internet.email"
+        },
+        {
+          "name": "stage",
+          "kind": "enum",
+          "values": [
+            "applied",
+            "screen",
+            "onsite",
+            "offer",
+            "hired",
+            "rejected"
+          ],
+          "default": "applied",
+          "required": true
+        },
+        {
+          "name": "job",
+          "kind": "relation",
+          "to": "job",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "resume",
+          "kind": "file",
+          "accept": [
+            "application/pdf"
+          ]
+        }
+      ],
+      "titleField": "fullName",
+      "searchable": [
+        "fullName",
+        "email"
+      ],
+      "features": {
+        "files": true
+      }
+    },
+    {
+      "name": "interview",
+      "plural": "interviews",
+      "fields": [
+        {
+          "name": "candidate",
+          "kind": "relation",
+          "to": "candidate",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "scheduledAt",
+          "kind": "datetime",
+          "required": true
+        },
+        {
+          "name": "interviewer",
+          "kind": "persona"
+        },
+        {
+          "name": "score",
+          "kind": "integer",
+          "min": 1,
+          "max": 5
+        },
+        {
+          "name": "notes",
+          "kind": "longText"
+        }
+      ],
+      "titleField": "score"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "job",
+      "columns": [
+        "title",
+        "status",
+        "location"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "job"
+    },
+    {
+      "type": "list",
+      "entity": "candidate",
+      "columns": [
+        "fullName",
+        "email",
+        "stage"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "candidate"
+    },
+    {
+      "type": "list",
+      "entity": "interview",
+      "columns": [
+        "candidate",
+        "scheduledAt",
+        "interviewer"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "interview"
+    }
+  ]
+}

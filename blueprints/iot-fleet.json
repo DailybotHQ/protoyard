@@ -1,0 +1,223 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Fleetpulse IoT",
+  "description": "Devices, telemetry and alerts for a fictional IoT fleet.",
+  "icon": "📡",
+  "category": "operations",
+  "tags": [
+    "iot",
+    "fleet",
+    "devices"
+  ],
+  "catalog": {
+    "category": "operations",
+    "productType": "IoT",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "telemetry",
+      "alerts"
+    ],
+    "highlights": [
+      "Device registry",
+      "Last-seen",
+      "Alert rules"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "iot-fleet-brand",
+    "name": "Fleetpulse IoT",
+    "seed": "#4338ca",
+    "styleProfile": "mono",
+    "font": "mono"
+  },
+  "entities": [
+    {
+      "name": "device",
+      "plural": "devices",
+      "fields": [
+        {
+          "name": "serial",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "online",
+            "offline",
+            "maintenance"
+          ],
+          "default": "online",
+          "required": true
+        },
+        {
+          "name": "lastSeenAt",
+          "kind": "datetime"
+        }
+      ],
+      "titleField": "name",
+      "searchable": [
+        "serial",
+        "name"
+      ],
+      "indexes": [
+        "status"
+      ]
+    },
+    {
+      "name": "telemetry",
+      "plural": "telemetry",
+      "fields": [
+        {
+          "name": "device",
+          "kind": "relation",
+          "to": "device",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "metric",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "value",
+          "kind": "number",
+          "required": true
+        },
+        {
+          "name": "recordedAt",
+          "kind": "datetime",
+          "required": true
+        }
+      ],
+      "titleField": "metric"
+    },
+    {
+      "name": "alert",
+      "plural": "alerts",
+      "fields": [
+        {
+          "name": "device",
+          "kind": "relation",
+          "to": "device",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "message",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "severity",
+          "kind": "enum",
+          "values": [
+            "info",
+            "warn",
+            "critical"
+          ],
+          "default": "info",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "open",
+            "acked",
+            "resolved"
+          ],
+          "default": "open",
+          "required": true
+        }
+      ],
+      "titleField": "message",
+      "features": {
+        "notifications": true
+      }
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "device",
+      "columns": [
+        "serial",
+        "name",
+        "status"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "device"
+    },
+    {
+      "type": "list",
+      "entity": "telemetry",
+      "columns": [
+        "device",
+        "metric",
+        "value"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "telemetry"
+    },
+    {
+      "type": "list",
+      "entity": "alert",
+      "columns": [
+        "device",
+        "message",
+        "severity"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "alert"
+    }
+  ]
+}

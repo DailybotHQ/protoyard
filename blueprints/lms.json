@@ -1,0 +1,213 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Campus LMS",
+  "description": "Courses, enrollments and lessons for a fictional learning platform.",
+  "icon": "🎓",
+  "category": "education",
+  "tags": [
+    "education",
+    "courses",
+    "learning"
+  ],
+  "catalog": {
+    "category": "education",
+    "productType": "LMS",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "enrollments",
+      "progress"
+    ],
+    "highlights": [
+      "Course catalog",
+      "Lesson outlines",
+      "Enrollment status"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "lms-brand",
+    "name": "Campus LMS",
+    "seed": "#1d4ed8",
+    "secondary": "#0f766e",
+    "styleProfile": "rounded",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "course",
+      "plural": "courses",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "summary",
+          "kind": "longText"
+        },
+        {
+          "name": "level",
+          "kind": "enum",
+          "values": [
+            "intro",
+            "intermediate",
+            "advanced"
+          ],
+          "default": "intro",
+          "required": true
+        },
+        {
+          "name": "instructor",
+          "kind": "persona"
+        }
+      ],
+      "titleField": "title",
+      "searchable": [
+        "title"
+      ]
+    },
+    {
+      "name": "lesson",
+      "plural": "lessons",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "course",
+          "kind": "relation",
+          "to": "course",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "order",
+          "kind": "integer",
+          "min": 1,
+          "required": true
+        },
+        {
+          "name": "durationMin",
+          "kind": "integer",
+          "min": 1
+        }
+      ],
+      "titleField": "title"
+    },
+    {
+      "name": "enrollment",
+      "plural": "enrollments",
+      "fields": [
+        {
+          "name": "course",
+          "kind": "relation",
+          "to": "course",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "student",
+          "kind": "persona",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "active",
+            "completed",
+            "dropped"
+          ],
+          "default": "active",
+          "required": true
+        },
+        {
+          "name": "progress",
+          "kind": "number",
+          "min": 0,
+          "max": 1,
+          "default": 0
+        }
+      ],
+      "titleField": "status"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "course",
+      "columns": [
+        "title",
+        "summary",
+        "level"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "course"
+    },
+    {
+      "type": "list",
+      "entity": "lesson",
+      "columns": [
+        "title",
+        "course",
+        "order"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "lesson"
+    },
+    {
+      "type": "list",
+      "entity": "enrollment",
+      "columns": [
+        "course",
+        "student",
+        "status"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "enrollment"
+    }
+  ]
+}

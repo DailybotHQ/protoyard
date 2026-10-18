@@ -1,0 +1,221 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Casebook Legal",
+  "description": "Matters, time entries and documents for a fictional law desk.",
+  "icon": "⚖️",
+  "category": "internal-tools",
+  "tags": [
+    "legal",
+    "matters",
+    "billing"
+  ],
+  "catalog": {
+    "category": "internal-tools",
+    "productType": "Legal",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "timekeeping",
+      "documents"
+    ],
+    "highlights": [
+      "Matter docket",
+      "Billable time",
+      "Document list"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "legal-matters-brand",
+    "name": "Casebook Legal",
+    "seed": "#334155",
+    "styleProfile": "flat",
+    "font": "system"
+  },
+  "entities": [
+    {
+      "name": "matter",
+      "plural": "matters",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "open",
+            "discovery",
+            "trial",
+            "closed"
+          ],
+          "default": "open",
+          "required": true
+        },
+        {
+          "name": "clientName",
+          "kind": "text",
+          "fake": "company.name"
+        },
+        {
+          "name": "leadAttorney",
+          "kind": "persona"
+        }
+      ],
+      "titleField": "title",
+      "ownerField": "leadAttorney",
+      "searchable": [
+        "title",
+        "clientName"
+      ]
+    },
+    {
+      "name": "time-entry",
+      "plural": "time-entries",
+      "fields": [
+        {
+          "name": "label",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "matter",
+          "kind": "relation",
+          "to": "matter",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "attorney",
+          "kind": "persona",
+          "required": true
+        },
+        {
+          "name": "hours",
+          "kind": "number",
+          "min": 0.1,
+          "required": true
+        },
+        {
+          "name": "workedOn",
+          "kind": "date",
+          "required": true
+        },
+        {
+          "name": "narrative",
+          "kind": "longText"
+        }
+      ],
+      "titleField": "label"
+    },
+    {
+      "name": "document",
+      "plural": "documents",
+      "fields": [
+        {
+          "name": "matter",
+          "kind": "relation",
+          "to": "matter",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "file",
+          "kind": "file",
+          "accept": [
+            "application/pdf"
+          ]
+        },
+        {
+          "name": "filedOn",
+          "kind": "date"
+        }
+      ],
+      "titleField": "title",
+      "features": {
+        "files": true
+      }
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "matter",
+      "columns": [
+        "title",
+        "status",
+        "clientName"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "matter"
+    },
+    {
+      "type": "list",
+      "entity": "time-entry",
+      "columns": [
+        "matter",
+        "attorney",
+        "hours"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "time-entry"
+    },
+    {
+      "type": "list",
+      "entity": "document",
+      "columns": [
+        "matter",
+        "title",
+        "file"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "document"
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Stride Fitness",
+  "description": "Workouts, sets and goals for a fictional fitness mobile app.",
+  "icon": "🏃",
+  "category": "health",
+  "tags": [
+    "fitness",
+    "mobile",
+    "workouts"
+  ],
+  "catalog": {
+    "category": "health",
+    "productType": "Fitness",
+    "platforms": [
+      "mobile"
+    ],
+    "features": [
+      "workouts",
+      "goals"
+    ],
+    "highlights": [
+      "Workout log",
+      "Set tracking",
+      "Weekly goals"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "fitness-mobile-brand",
+    "name": "Stride Fitness",
+    "seed": "#ea580c",
+    "styleProfile": "rounded",
+    "font": "geometric"
+  },
+  "entities": [
+    {
+      "name": "workout",
+      "plural": "workouts",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "athlete",
+          "kind": "persona",
+          "required": true
+        },
+        {
+          "name": "performedOn",
+          "kind": "date",
+          "required": true
+        },
+        {
+          "name": "durationMin",
+          "kind": "integer",
+          "min": 1
+        }
+      ],
+      "titleField": "title",
+      "ownerField": "athlete"
+    },
+    {
+      "name": "set",
+      "plural": "sets",
+      "fields": [
+        {
+          "name": "workout",
+          "kind": "relation",
+          "to": "workout",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "exercise",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "reps",
+          "kind": "integer",
+          "min": 1
+        },
+        {
+          "name": "weightKg",
+          "kind": "number",
+          "min": 0
+        }
+      ],
+      "titleField": "exercise"
+    },
+    {
+      "name": "goal",
+      "plural": "goals",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "athlete",
+          "kind": "persona",
+          "required": true
+        },
+        {
+          "name": "target",
+          "kind": "number",
+          "required": true
+        },
+        {
+          "name": "unit",
+          "kind": "enum",
+          "values": [
+            "km",
+            "kg",
+            "sessions"
+          ],
+          "default": "km",
+          "required": true
+        },
+        {
+          "name": "dueOn",
+          "kind": "date"
+        }
+      ],
+      "titleField": "title",
+      "ownerField": "athlete"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "workout",
+      "columns": [
+        "title",
+        "athlete",
+        "performedOn"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "workout"
+    },
+    {
+      "type": "list",
+      "entity": "set",
+      "columns": [
+        "workout",
+        "exercise",
+        "reps"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "set"
+    },
+    {
+      "type": "list",
+      "entity": "goal",
+      "columns": [
+        "title",
+        "athlete",
+        "target"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "goal"
+    }
+  ]
+}

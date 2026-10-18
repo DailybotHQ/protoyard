@@ -1,0 +1,235 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Northstar CRM",
+  "description": "Accounts, contacts and deals for a fictional B2B sales team.",
+  "icon": "📇",
+  "category": "sales",
+  "tags": [
+    "crm",
+    "sales",
+    "pipeline"
+  ],
+  "catalog": {
+    "category": "sales",
+    "productType": "CRM",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "pipeline",
+      "activities",
+      "csv"
+    ],
+    "highlights": [
+      "Deal stages",
+      "Account hierarchy",
+      "Activity log"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "crm-brand",
+    "name": "Northstar CRM",
+    "seed": "#1d4ed8",
+    "secondary": "#0f766e",
+    "styleProfile": "soft",
+    "font": "grotesk"
+  },
+  "entities": [
+    {
+      "name": "account",
+      "plural": "accounts",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "company.name"
+        },
+        {
+          "name": "domain",
+          "kind": "url",
+          "fake": "internet.url"
+        },
+        {
+          "name": "industry",
+          "kind": "text",
+          "fake": "commerce.productName"
+        },
+        {
+          "name": "owner",
+          "kind": "persona"
+        }
+      ],
+      "titleField": "name",
+      "ownerField": "owner",
+      "searchable": [
+        "name"
+      ],
+      "features": {
+        "csv": true
+      }
+    },
+    {
+      "name": "contact",
+      "plural": "contacts",
+      "fields": [
+        {
+          "name": "fullName",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "email",
+          "kind": "email",
+          "fake": "internet.email"
+        },
+        {
+          "name": "account",
+          "kind": "relation",
+          "to": "account",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "title",
+          "kind": "text",
+          "fake": "person.jobTitle"
+        }
+      ],
+      "titleField": "fullName",
+      "searchable": [
+        "fullName",
+        "email"
+      ]
+    },
+    {
+      "name": "deal",
+      "plural": "deals",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "stage",
+          "kind": "enum",
+          "values": [
+            "qualify",
+            "proposal",
+            "negotiation",
+            "won",
+            "lost"
+          ],
+          "default": "qualify",
+          "required": true
+        },
+        {
+          "name": "amount",
+          "kind": "money",
+          "currency": "USD",
+          "min": 0,
+          "required": true
+        },
+        {
+          "name": "account",
+          "kind": "relation",
+          "to": "account",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "owner",
+          "kind": "persona"
+        },
+        {
+          "name": "closeOn",
+          "kind": "date"
+        }
+      ],
+      "titleField": "title",
+      "ownerField": "owner",
+      "indexes": [
+        "stage"
+      ],
+      "features": {
+        "audit": true
+      }
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "account",
+      "columns": [
+        "name",
+        "domain",
+        "industry"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "account"
+    },
+    {
+      "type": "list",
+      "entity": "contact",
+      "columns": [
+        "fullName",
+        "email",
+        "account"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "contact"
+    },
+    {
+      "type": "list",
+      "entity": "deal",
+      "columns": [
+        "title",
+        "stage",
+        "amount"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "deal"
+    }
+  ]
+}

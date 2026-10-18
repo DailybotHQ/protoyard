@@ -1,0 +1,197 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Quill CMS",
+  "description": "Posts, authors and tags for a fictional content studio.",
+  "icon": "✍️",
+  "category": "media",
+  "tags": [
+    "cms",
+    "blog",
+    "content"
+  ],
+  "catalog": {
+    "category": "media",
+    "productType": "CMS",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "drafts",
+      "tags"
+    ],
+    "highlights": [
+      "Post drafts",
+      "Author personas",
+      "Tag cloud"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "cms-blog-brand",
+    "name": "Quill CMS",
+    "seed": "#6b21a8",
+    "styleProfile": "editorial",
+    "font": "editorial"
+  },
+  "entities": [
+    {
+      "name": "post",
+      "plural": "posts",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "slug",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "body",
+          "kind": "longText"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "draft",
+            "scheduled",
+            "published"
+          ],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "author",
+          "kind": "persona"
+        },
+        {
+          "name": "publishedAt",
+          "kind": "datetime"
+        }
+      ],
+      "titleField": "title",
+      "ownerField": "author",
+      "searchable": [
+        "title",
+        "slug"
+      ]
+    },
+    {
+      "name": "tag",
+      "plural": "tags",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "slug",
+          "kind": "text",
+          "required": true
+        }
+      ],
+      "titleField": "name"
+    },
+    {
+      "name": "post-tag",
+      "plural": "post-tags",
+      "fields": [
+        {
+          "name": "label",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "post",
+          "kind": "relation",
+          "to": "post",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "tag",
+          "kind": "relation",
+          "to": "tag",
+          "required": true,
+          "onDelete": "cascade"
+        }
+      ],
+      "titleField": "label"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "post",
+      "columns": [
+        "title",
+        "slug",
+        "body"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "post"
+    },
+    {
+      "type": "list",
+      "entity": "tag",
+      "columns": [
+        "name",
+        "slug"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "tag"
+    },
+    {
+      "type": "list",
+      "entity": "post-tag",
+      "columns": [
+        "post",
+        "tag"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "post-tag"
+    }
+  ]
+}

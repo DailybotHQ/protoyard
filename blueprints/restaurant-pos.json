@@ -1,0 +1,210 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Tablefire POS",
+  "description": "Menus, tickets and payments for a fictional restaurant floor.",
+  "icon": "🍽️",
+  "category": "commerce",
+  "tags": [
+    "restaurant",
+    "pos",
+    "orders"
+  ],
+  "catalog": {
+    "category": "commerce",
+    "productType": "POS",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "tickets",
+      "payments"
+    ],
+    "highlights": [
+      "Floor tickets",
+      "Menu items",
+      "Tips in cents"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "restaurant-pos-brand",
+    "name": "Tablefire POS",
+    "seed": "#c2410c",
+    "styleProfile": "rounded",
+    "font": "rounded"
+  },
+  "entities": [
+    {
+      "name": "menu-item",
+      "plural": "menu-items",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "commerce.productName"
+        },
+        {
+          "name": "price",
+          "kind": "money",
+          "currency": "USD",
+          "min": 0,
+          "required": true
+        },
+        {
+          "name": "course",
+          "kind": "enum",
+          "values": [
+            "starter",
+            "main",
+            "dessert",
+            "drink"
+          ],
+          "default": "starter",
+          "required": true
+        }
+      ],
+      "titleField": "name",
+      "features": {
+        "csv": true
+      }
+    },
+    {
+      "name": "ticket",
+      "plural": "tickets",
+      "fields": [
+        {
+          "name": "table",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "open",
+            "sent",
+            "paid",
+            "void"
+          ],
+          "default": "open",
+          "required": true
+        },
+        {
+          "name": "server",
+          "kind": "persona"
+        },
+        {
+          "name": "openedAt",
+          "kind": "datetime"
+        }
+      ],
+      "titleField": "table",
+      "ownerField": "server"
+    },
+    {
+      "name": "ticket-line",
+      "plural": "ticket-lines",
+      "fields": [
+        {
+          "name": "ticket",
+          "kind": "relation",
+          "to": "ticket",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "menuItem",
+          "kind": "relation",
+          "to": "menu-item",
+          "required": true,
+          "onDelete": "restrict"
+        },
+        {
+          "name": "quantity",
+          "kind": "integer",
+          "min": 1,
+          "default": 1
+        },
+        {
+          "name": "note",
+          "kind": "text"
+        }
+      ],
+      "titleField": "note"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "menu-item",
+      "columns": [
+        "name",
+        "price",
+        "course"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "menu-item"
+    },
+    {
+      "type": "list",
+      "entity": "ticket",
+      "columns": [
+        "table",
+        "status",
+        "server"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "ticket"
+    },
+    {
+      "type": "list",
+      "entity": "ticket-line",
+      "columns": [
+        "ticket",
+        "menuItem",
+        "quantity"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "ticket-line"
+    }
+  ]
+}

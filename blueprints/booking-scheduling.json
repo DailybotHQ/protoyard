@@ -1,0 +1,199 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Calendar Booking",
+  "description": "Services, slots and appointments for a fictional booking desk.",
+  "icon": "📅",
+  "category": "operations",
+  "tags": [
+    "booking",
+    "calendar",
+    "appointments"
+  ],
+  "catalog": {
+    "category": "operations",
+    "productType": "Booking",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "slots",
+      "reminders"
+    ],
+    "highlights": [
+      "Service catalog",
+      "Time slots",
+      "Guest contacts"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "booking-scheduling-brand",
+    "name": "Calendar Booking",
+    "seed": "#0891b2",
+    "styleProfile": "soft",
+    "font": "system"
+  },
+  "entities": [
+    {
+      "name": "service",
+      "plural": "services",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "durationMin",
+          "kind": "integer",
+          "min": 15,
+          "required": true
+        },
+        {
+          "name": "price",
+          "kind": "money",
+          "currency": "USD",
+          "min": 0
+        }
+      ],
+      "titleField": "name"
+    },
+    {
+      "name": "slot",
+      "plural": "slots",
+      "fields": [
+        {
+          "name": "service",
+          "kind": "relation",
+          "to": "service",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "required": true
+        },
+        {
+          "name": "capacity",
+          "kind": "integer",
+          "min": 1,
+          "default": 1
+        }
+      ],
+      "titleField": "capacity"
+    },
+    {
+      "name": "appointment",
+      "plural": "appointments",
+      "fields": [
+        {
+          "name": "slot",
+          "kind": "relation",
+          "to": "slot",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "guestName",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "guestEmail",
+          "kind": "email",
+          "fake": "internet.email"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "booked",
+            "checked-in",
+            "cancelled"
+          ],
+          "default": "booked",
+          "required": true
+        }
+      ],
+      "titleField": "guestName",
+      "features": {
+        "notifications": true
+      }
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "service",
+      "columns": [
+        "name",
+        "durationMin",
+        "price"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "service"
+    },
+    {
+      "type": "list",
+      "entity": "slot",
+      "columns": [
+        "service",
+        "startsAt",
+        "capacity"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "slot"
+    },
+    {
+      "type": "list",
+      "entity": "appointment",
+      "columns": [
+        "slot",
+        "guestName",
+        "guestEmail"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "appointment"
+    }
+  ]
+}

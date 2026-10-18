@@ -1,0 +1,223 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Ledgerly Finance",
+  "description": "Accounts, transactions and budgets for fictional household money.",
+  "icon": "💸",
+  "category": "finance",
+  "tags": [
+    "finance",
+    "budget",
+    "ledger"
+  ],
+  "catalog": {
+    "category": "finance",
+    "productType": "Finance",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "budgets",
+      "categories"
+    ],
+    "highlights": [
+      "Cash accounts",
+      "Txn categories",
+      "Monthly budgets"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "personal-finance-brand",
+    "name": "Ledgerly Finance",
+    "seed": "#15803d",
+    "styleProfile": "crisp",
+    "font": "grotesk"
+  },
+  "entities": [
+    {
+      "name": "account",
+      "plural": "accounts",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "kind",
+          "kind": "enum",
+          "values": [
+            "checking",
+            "savings",
+            "credit",
+            "cash"
+          ],
+          "default": "checking",
+          "required": true
+        },
+        {
+          "name": "currency",
+          "kind": "text",
+          "default": "USD"
+        }
+      ],
+      "titleField": "name"
+    },
+    {
+      "name": "transaction",
+      "plural": "transactions",
+      "fields": [
+        {
+          "name": "account",
+          "kind": "relation",
+          "to": "account",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "payee",
+          "kind": "text",
+          "required": true,
+          "fake": "company.name"
+        },
+        {
+          "name": "amount",
+          "kind": "money",
+          "currency": "USD",
+          "required": true
+        },
+        {
+          "name": "category",
+          "kind": "enum",
+          "values": [
+            "income",
+            "housing",
+            "food",
+            "transport",
+            "fun",
+            "other"
+          ],
+          "default": "income",
+          "required": true
+        },
+        {
+          "name": "bookedOn",
+          "kind": "date",
+          "required": true
+        }
+      ],
+      "titleField": "payee",
+      "indexes": [
+        "category"
+      ],
+      "features": {
+        "csv": true
+      }
+    },
+    {
+      "name": "budget",
+      "plural": "budgets",
+      "fields": [
+        {
+          "name": "category",
+          "kind": "enum",
+          "values": [
+            "housing",
+            "food",
+            "transport",
+            "fun",
+            "other"
+          ],
+          "default": "housing",
+          "required": true
+        },
+        {
+          "name": "limit",
+          "kind": "money",
+          "currency": "USD",
+          "min": 0,
+          "required": true
+        },
+        {
+          "name": "month",
+          "kind": "text",
+          "required": true
+        }
+      ],
+      "titleField": "category"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "account",
+      "columns": [
+        "name",
+        "kind",
+        "currency"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "account"
+    },
+    {
+      "type": "list",
+      "entity": "transaction",
+      "columns": [
+        "account",
+        "payee",
+        "amount"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "transaction"
+    },
+    {
+      "type": "list",
+      "entity": "budget",
+      "columns": [
+        "category",
+        "limit",
+        "month"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "budget"
+    }
+  ]
+}

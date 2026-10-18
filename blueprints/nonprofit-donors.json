@@ -1,0 +1,206 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Kindling Donors",
+  "description": "Donors, gifts and campaigns for a fictional nonprofit.",
+  "icon": "💛",
+  "category": "finance",
+  "tags": [
+    "nonprofit",
+    "donors",
+    "campaigns"
+  ],
+  "catalog": {
+    "category": "finance",
+    "productType": "Nonprofit",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "gifts",
+      "campaigns"
+    ],
+    "highlights": [
+      "Donor CRM",
+      "Campaign goals",
+      "Gift receipts"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "nonprofit-donors-brand",
+    "name": "Kindling Donors",
+    "seed": "#be123c",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "donor",
+      "plural": "donors",
+      "fields": [
+        {
+          "name": "fullName",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "email",
+          "kind": "email",
+          "fake": "internet.email"
+        },
+        {
+          "name": "city",
+          "kind": "text",
+          "fake": "location.city"
+        }
+      ],
+      "titleField": "fullName",
+      "searchable": [
+        "fullName",
+        "email"
+      ]
+    },
+    {
+      "name": "campaign",
+      "plural": "campaigns",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "goal",
+          "kind": "money",
+          "currency": "USD",
+          "min": 0,
+          "required": true
+        },
+        {
+          "name": "startsOn",
+          "kind": "date"
+        },
+        {
+          "name": "endsOn",
+          "kind": "date"
+        }
+      ],
+      "titleField": "name"
+    },
+    {
+      "name": "gift",
+      "plural": "gifts",
+      "fields": [
+        {
+          "name": "label",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "donor",
+          "kind": "relation",
+          "to": "donor",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "campaign",
+          "kind": "relation",
+          "to": "campaign",
+          "required": true,
+          "onDelete": "restrict"
+        },
+        {
+          "name": "amount",
+          "kind": "money",
+          "currency": "USD",
+          "min": 1,
+          "required": true
+        },
+        {
+          "name": "givenOn",
+          "kind": "date",
+          "required": true
+        }
+      ],
+      "titleField": "label",
+      "features": {
+        "audit": true
+      }
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "donor",
+      "columns": [
+        "fullName",
+        "email",
+        "city"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "donor"
+    },
+    {
+      "type": "list",
+      "entity": "campaign",
+      "columns": [
+        "name",
+        "goal",
+        "startsOn"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "campaign"
+    },
+    {
+      "type": "list",
+      "entity": "gift",
+      "columns": [
+        "donor",
+        "campaign",
+        "amount"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "gift"
+    }
+  ]
+}

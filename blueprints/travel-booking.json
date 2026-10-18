@@ -1,0 +1,216 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Waypoint Travel",
+  "description": "Trips, segments and travelers for a fictional travel desk.",
+  "icon": "✈️",
+  "category": "travel",
+  "tags": [
+    "travel",
+    "trips",
+    "booking"
+  ],
+  "catalog": {
+    "category": "travel",
+    "productType": "Travel",
+    "platforms": [
+      "web"
+    ],
+    "features": [
+      "itineraries",
+      "travelers"
+    ],
+    "highlights": [
+      "Multi-segment trips",
+      "Traveler list",
+      "PNR codes"
+    ],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "travel-booking-brand",
+    "name": "Waypoint Travel",
+    "seed": "#0284c7",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "trip",
+      "plural": "trips",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "pnr",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": [
+            "planned",
+            "booked",
+            "completed",
+            "cancelled"
+          ],
+          "default": "planned",
+          "required": true
+        },
+        {
+          "name": "agent",
+          "kind": "persona"
+        }
+      ],
+      "titleField": "name",
+      "ownerField": "agent",
+      "searchable": [
+        "name",
+        "pnr"
+      ]
+    },
+    {
+      "name": "segment",
+      "plural": "segments",
+      "fields": [
+        {
+          "name": "trip",
+          "kind": "relation",
+          "to": "trip",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "kind",
+          "kind": "enum",
+          "values": [
+            "flight",
+            "hotel",
+            "rail",
+            "car"
+          ],
+          "default": "flight",
+          "required": true
+        },
+        {
+          "name": "origin",
+          "kind": "text",
+          "required": true,
+          "fake": "location.city"
+        },
+        {
+          "name": "destination",
+          "kind": "text",
+          "required": true,
+          "fake": "location.city"
+        },
+        {
+          "name": "departsAt",
+          "kind": "datetime"
+        }
+      ],
+      "titleField": "kind"
+    },
+    {
+      "name": "traveler",
+      "plural": "travelers",
+      "fields": [
+        {
+          "name": "trip",
+          "kind": "relation",
+          "to": "trip",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "fullName",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "email",
+          "kind": "email",
+          "fake": "internet.email"
+        }
+      ],
+      "titleField": "fullName"
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": [
+          "*"
+        ]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": [
+          "read",
+          "create",
+          "update",
+          "delete",
+          "import",
+          "export"
+        ]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": [
+          "read"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "trip",
+      "columns": [
+        "name",
+        "pnr",
+        "status"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "trip"
+    },
+    {
+      "type": "list",
+      "entity": "segment",
+      "columns": [
+        "trip",
+        "kind",
+        "origin"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "segment"
+    },
+    {
+      "type": "list",
+      "entity": "traveler",
+      "columns": [
+        "trip",
+        "fullName",
+        "email"
+      ]
+    },
+    {
+      "type": "form",
+      "entity": "traveler"
+    }
+  ]
+}
