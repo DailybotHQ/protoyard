@@ -6,6 +6,7 @@ import { ciCheckCommand, ciInitCommand } from './commands/ci.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { exportCommand } from './commands/export.ts';
+import { generateCommand } from './commands/generate.ts';
 import { indexCommand } from './commands/index-cmd.ts';
 import { listCommand } from './commands/list.ts';
 import { newCommand } from './commands/new.ts';
@@ -37,6 +38,7 @@ const EXAMPLES = `
 Examples:
   $ pnpm protoyard list --kind template
   $ pnpm protoyard new my-crm --template blank --name "My CRM"
+  $ pnpm protoyard generate my-helpdesk --blueprint ./helpdesk.blueprint.json --dry-run
   $ pnpm protoyard dev my-crm --host
   $ pnpm protoyard validate my-crm --build
   $ pnpm protoyard export my-crm --base ./
@@ -129,6 +131,19 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--force', 'reuse an EXISTING EMPTY folder (never overwrites files)')
     .option('--no-install', 'skip `pnpm install` (link the package later)')
     .action(def('new', newCommand));
+
+  program
+    .command('generate')
+    .description('create prototypes/<slug> from a data-only blueprint (crud-app template)')
+    .argument('<slug>', 'lowercase kebab-case folder name')
+    .requiredOption('-b, --blueprint <file>', 'blueprint JSON file (see packages/blueprint)')
+    .option('-t, --template <name>', 'base template', 'crud-app')
+    .option('--name <name>', 'display name (default: the blueprint name)')
+    .option('--description <text>', 'one-line description (default: the blueprint description)')
+    .option('--dry-run', 'validate and list the files without writing anything')
+    .option('--force', 'reuse an EXISTING EMPTY folder (never overwrites files)')
+    .option('--no-install', 'skip `pnpm install` (link the package later)')
+    .action(def('generate', generateCommand));
 
   program
     .command('dev')

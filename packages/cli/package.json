@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/offline": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
