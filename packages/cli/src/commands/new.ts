@@ -44,12 +44,27 @@ export function titleFromSlug(slug: string): string {
     .join(' ');
 }
 
+const skipped = (name: string) => SKIP_NAMES.has(name) || /^\.env\.(?!example$)/.test(name);
+
+/** POSIX paths `copyTemplate` would copy, in walk order (used by `generate --dry-run`). */
+export async function listTemplateFiles(source: string, prefix = ''): Promise<string[]> {
+  const files: string[] = [];
+  for (const entry of await readdir(source, { withFileTypes: true })) {
+    if (skipped(entry.name)) continue;
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory())
+      files.push(...(await listTemplateFiles(join(source, entry.name), rel)));
+    else if (entry.isFile()) files.push(rel);
+  }
+  return files;
+}
+
 /** Copies regular files and folders only; symlinks are skipped so a template cannot point outside. */
 export async function copyTemplate(source: string, destination: string): Promise<number> {
   let count = 0;
   await mkdir(destination, { recursive: true });
   for (const entry of await readdir(source, { withFileTypes: true })) {
-    if (SKIP_NAMES.has(entry.name) || /^\.env\.(?!example$)/.test(entry.name)) continue;
+    if (skipped(entry.name)) continue;
     const from = join(source, entry.name);
     const to = join(destination, entry.name);
     if (entry.isDirectory()) count += await copyTemplate(from, to);
