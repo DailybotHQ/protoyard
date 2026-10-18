@@ -1,4 +1,13 @@
 export {
+  createInbox,
+  type DeliverInboxMessageInput,
+  DeliverInboxMessageSchema,
+  type InboxListOptions,
+  type InboxService,
+  isInboxEnvironmentError,
+  type SaasInboxDatabase,
+} from './inbox.ts';
+export {
   createOnboarding,
   createOnboardingFlow,
   DEFAULT_ONBOARDING_CAPABILITY,
@@ -12,14 +21,6 @@ export {
   type StepEffect,
   ValidationError,
 } from './onboarding.ts';
-  createInbox,
-  type DeliverInboxMessageInput,
-  DeliverInboxMessageSchema,
-  type InboxListOptions,
-  type InboxService,
-  isInboxEnvironmentError,
-  type SaasInboxDatabase,
-} from './inbox.ts';
 export {
   HashHrefSchema,
   INBOX_KINDS,
@@ -62,3 +63,16 @@ export {
   saasTables,
   TOKEN_KINDS,
 } from './schema.ts';
+export {
+  type CreateWorkspaceInput,
+  CreateWorkspaceSchema,
+  createWorkspaces,
+  type RenameWorkspaceInput,
+  RenameWorkspaceSchema,
+  WORKSPACE_CAPABILITIES,
+  type WorkspaceIdentity,
+  type WorkspaceIdentityOps,
+  type WorkspaceMember,
+  type WorkspacesRuntime,
+  type WorkspacesService,
+} from './workspaces.ts';
