@@ -29,12 +29,12 @@ export interface SaasRoutesOptions extends SaasUiConfig, GuardPathOptions {
 type ScreenLoader = () => Promise<{ default: NonNullable<RouteDefinition['component']> }>;
 
 const LOADERS = {
-  signIn: () => import('./screens/SignIn.svelte'),
-  signUp: () => import('./screens/SignUp.svelte'),
-  magicLink: () => import('./screens/MagicLink.svelte'),
-  mfa: () => import('./screens/Mfa.svelte'),
-  resetPassword: () => import('./screens/ResetPassword.svelte'),
-  verifyEmail: () => import('./screens/VerifyEmail.svelte'),
+  signIn: () => import('./screens/auth/SignIn.svelte'),
+  signUp: () => import('./screens/auth/SignUp.svelte'),
+  magicLink: () => import('./screens/auth/MagicLink.svelte'),
+  mfa: () => import('./screens/auth/Mfa.svelte'),
+  resetPassword: () => import('./screens/auth/ResetPassword.svelte'),
+  verifyEmail: () => import('./screens/auth/VerifyEmail.svelte'),
   oauthConsent: () => import('./screens/OAuthConsent.svelte'),
   inbox: () => import('./screens/inbox/Inbox.svelte'),
   onboarding: () => import('./screens/Onboarding.svelte'),
@@ -98,7 +98,8 @@ export function saasRoutes(options: SaasRoutesOptions): RouteDefinition[] {
       route(config.signInPath, 'Sign in', LOADERS.signIn, requireGuest(session, guardOpts)),
       route(config.signUpPath, 'Sign up', LOADERS.signUp, requireGuest(session, guardOpts)),
       route('/auth/magic', 'Magic link', LOADERS.magicLink),
-      route('/auth/mfa', 'Multi-factor', LOADERS.mfa, requireAuth(session, guardOpts)),
+      // MFA challenge must remain available before the session opens.
+      route('/auth/mfa', 'Multi-factor', LOADERS.mfa),
       route('/auth/reset', 'Reset password', LOADERS.resetPassword),
       route('/auth/verify', 'Verify email', LOADERS.verifyEmail)
     );
