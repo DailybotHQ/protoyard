@@ -1,0 +1,35 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.relay-chat-demo",
+  "slug": "relay-chat-demo",
+  "kind": "prototype",
+  "name": "Relay Chat",
+  "description": "Fictional company team chat with channels, threads, an AI teammate, slash commands and simulated huddles. Simulated AI only.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "ai",
+  "tags": ["ai", "chat", "team", "slack", "bots", "voice", "huddle", "flagship"],
+  "status": "active",
+  "icon": "📡",
+  "defaultScenario": "busy-day",
+  "defaultTheme": "ocean",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "shell": "browser"
+  },
+  "storage": {
+    "namespace": "relay-chat-demo",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": ["empty", "busy-day", "quiet-night", "viewer"],
+  "template": "team-chat",
+  "createdAt": "2026-10-18T14:57:24.946Z",
+  "updatedAt": "2026-10-18T14:57:24.946Z"
+}
