@@ -1,0 +1,115 @@
+# Relay — team AI chat: spec
+
+## Problem
+
+Teams increasingly ask AI agents for summaries, drafts and status checks, but
+those answers usually live in a separate tool, away from the conversation
+where the decision is made. Relay explores a team chat where people and AI
+agents share the same threads: you @mention an agent, its reply streams into
+the thread, and everyone sees it, including when the agent fails and has to
+be retried.
+
+## Users
+
+Roles are defined in [PERMISSIONS.md](PERMISSIONS.md).
+
+| User | Role | What they need |
+| --- | --- | --- |
+| Workspace owner (for example the new user in `empty-new-user`) | `owner` | Everything, including managing any conversation |
+| Team lead or support lead | `admin` | Everything; same capabilities as `owner` |
+| Teammate (product manager, engineer) | `member` | Chat, invoke agents and start conversations; rename, archive or delete only the conversations they created |
+| External guest (agency partner) | `viewer` | Read history and search; cannot post, pin or invoke agents |
+
+The three AI agents (Atlas, Quill, Beacon) are rows in the `agents` table, not
+personas, and never sign in.
+
+## Capabilities
+
+- Start a conversation with chosen agents and teammates, or with one click ("Ask Atlas"): [Start a conversation](FLOWS.md#start-a-conversation).
+- Send a message and get a streamed, scripted agent reply: [Send a message and receive an agent reply](FLOWS.md#send-a-message-and-receive-an-agent-reply).
+- Stop a reply while it streams, or close one cut off by a reload: [Stop a streaming reply](FLOWS.md#stop-a-streaming-reply).
+- Retry a failed or interrupted reply: [Retry a failed or interrupted reply](FLOWS.md#retry-a-failed-or-interrupted-reply).
+- See unread badges and clear them by reading a thread: [Read a thread and clear its unread badge](FLOWS.md#read-a-thread-and-clear-its-unread-badge).
+- Pin or unpin a conversation: [Pin or unpin a conversation](FLOWS.md#pin-or-unpin-a-conversation).
+- Rename a conversation: [Rename a conversation](FLOWS.md#rename-a-conversation).
+- Archive or unarchive a conversation: [Archive or unarchive a conversation](FLOWS.md#archive-or-unarchive-a-conversation).
+- Delete a conversation with everything in it: [Delete a conversation](FLOWS.md#delete-a-conversation).
+- Search every message you can see: [Search messages](FLOWS.md#search-messages).
+
+## Non-goals
+
+- No real model or AI API. Replies are scripted text chosen by keyword, not generated.
+- No real network calls, websockets or push: nothing leaves the browser.
+- No real multi-user chat. Other people's messages exist only as generated
+  history; nobody else receives what you send.
+- No attachments, reactions, message edits or message deletion, threads inside
+  threads, or notifications outside the page.
+- No agent tools or actions: an agent only writes text into the thread.
+- No authentication, accounts or invitations: personas are switched in DevTools.
+
+## Scenarios
+
+<!-- protoyard:generated:scenarios -->
+| Scenario | Name | Group | Density | Seed | Generator knobs | Description |
+| --- | --- | --- | --- | --- | --- | --- |
+| `active-team` | Active team with history | Lifecycle | normal | 31 | `{"chat":{"conversations":8,"messagesPerConversation":[6,18],"unreadShare":0.25}}` | Six people and three agents, two months of conversations, a few unread threads waiting for you. |
+| `agent-outage` | Agent outage | Conditions | normal | 31 | `{"chat":{"conversations":8,"messagesPerConversation":[6,18],"unreadShare":0.25}}` | Chat works, but every agent request fails with a simulated 500 — check failed-reply and retry UX. |
+| `empty-new-user` | New user, empty workspace | Lifecycle | empty | 3 | `{"chat":{"conversations":0,"messagesPerConversation":[0,0]}}` | Just signed up: no conversations yet. The empty state invites you to ask an agent. |
+| `long-thread` | Very long conversation | Data density | dense | 31 | `{"chat":{"conversations":4,"longThread":600,"messagesPerConversation":[4,10],"unreadShare":0.1}}` | One thread with 600 messages for scroll, search and rendering performance. |
+| `member-view` | Member | Roles | normal | 31 | `{"chat":{"conversations":8,"messagesPerConversation":[6,18],"unreadShare":0.25}}` | A member can chat and invoke agents but can only manage conversations they created. |
+| `viewer-view` | Read-only guest | Roles | normal | 31 | `{"chat":{"conversations":8,"messagesPerConversation":[6,18],"unreadShare":0.25}}` | An external guest who can read history but cannot post or invoke agents. |
+<!-- /protoyard:generated:scenarios -->
+
+## Honest boundaries
+
+See [docs/SPECS.md](../../../docs/SPECS.md#honest-boundaries) for the standard.
+
+| Concern | In this prototype |
+| --- | --- |
+| Data | IndexedDB in the visitor's browser (namespace `ai-chat-demo`). Nothing is shared between visitors or devices. Deleting a conversation "for everyone" only affects this browser. |
+| Identity | Personas generated by the scenario, switched in DevTools. There is no sign-in and no account security. |
+| Permissions | Simulated roles checked in services with `session.assert` (and `session.can` before invoking agents). UX only, not security: anyone with the browser console can edit IndexedDB directly. |
+| AI assistant | Simulated. `scriptedReply` in `src/domain/agents.ts` picks a canned reply by keyword (summary, release notes, status, comparison) or a fallback, seeded by a hash of the agent id and prompt, so the same question always gets the same answer. `chunkReply` splits it into chunks of three to six words that are written into the message row about every 45 ms. The token count on a run is `ceil(length / 4)` of the text, not a real token count. |
+| Network | Simulated by `environment.run`: latency, offline mode and failure modes set by the scenario or in DevTools. `agent-outage` makes every `agents.*` call fail with a simulated server error. |
+| Payments | None. The organization's plan (`pro`, `trial`) is scenario data only. |
+| Time | The simulation clock. Scenarios share a fixed reference time (`2026-10-16T10:00:00-05:00`); new messages are stamped from that clock, never from wall-clock time. There are no background jobs. |
+
+## Rebuild as a real app
+
+See [docs/SPECS.md](../../../docs/SPECS.md#rebuild-as-a-real-app) for the standard.
+No vendor below has been chosen.
+
+| Prototype piece | Real counterpart to design |
+| --- | --- |
+| `src/database/schema.ts` (`agents`, `conversations`, `participants`, `messages`, `runs`) | Server database schema. Keep the ids, the `[conversationId+at]` ordering index, per-participant `lastReadAt` and the run-to-message link. |
+| Schema version 1 | The first server migration |
+| `src/domain/services.ts` (`createConversation`, `send`, `retry`, `cancel`, `markRead`, `rename`, `togglePin`, `archive`, `remove`, `search`) | API endpoints or server actions with the same inputs, checks and transaction boundaries. Inputs are validated with inline checks today; a real API needs schema validation. `cancel` and `markRead` have no capability check today and need one. |
+| `scriptedReply` and `chunkReply` in `src/domain/agents.ts` | A model provider integration with streaming responses, server-side prompt assembly from thread context, safety filtering, rate limits, cost and token accounting, timeouts and cancellation. Still to design. |
+| `runs` rows streamed by the page | A server-side job per reply that streams to every participant (for example over a persistent connection) and survives the author closing the tab. |
+| `policy.roles` and the `conversations:manage` rule | Server-side authorization on every request, including membership checks (today any persona can open any conversation id by URL, and search reads every message before the UI filters it). |
+| Personas | A real identity provider, session management and workspace invitations |
+| `environment.run` failure modes (offline, server errors, latency) | The failed-reply, Retry, offline banner and kept-draft states the real UI must still handle |
+| Scenarios and `generateChatWorld` | Seed data for staging, demo workspaces and test fixtures |
+| Screens and flows | The UI to keep. The states in [SCREENS.md](SCREENS.md) are the acceptance list. |
+| Unread counts computed in the page | Server-maintained counters or queries, and real notifications |
+| Search by substring over all messages | A real search index scoped to the conversations the user belongs to |
+
+## Manifest facts
+
+<!-- protoyard:generated:manifest -->
+| Field | Value |
+| --- | --- |
+| id | `example.ai-chat` |
+| slug | `ai-chat-demo` |
+| name | Relay — team AI chat |
+| version | 0.1.0 |
+| platform | responsive |
+| category | ai |
+| default scenario | `active-team` |
+| default theme | `ocean` |
+| storage namespace | `ai-chat-demo` |
+| schema version | 1 |
+| generator version | 1 |
+| timeline | no |
+| themes | built-in presets only |
+<!-- /protoyard:generated:manifest -->
