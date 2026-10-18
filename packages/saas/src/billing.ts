@@ -142,7 +142,7 @@ function proratedCents(amount: number, from: string, to: string, at: string): nu
 
 function buildInvoice(input: {
   organizationId: string;
-  subscriptionId: string;
+  subscriptionId: string | null;
   status: SaasInvoice['status'];
   amountCents: number;
   currency: string;
@@ -349,11 +349,6 @@ export function createBilling(
         if (direction === 'downgrade' && targetAnnual >= currentAnnual) {
           throw new Error('The selected plan is not a downgrade.');
         }
-        if (data.outcome !== 'success' && !current) {
-          throw new Error(
-            'A failed checkout attempt requires an existing subscription for its invoice.'
-          );
-        }
 
         const seats = current?.seats ?? organization.seats ?? organization.size;
         const trialConversion = current?.status === 'trialing';
@@ -388,9 +383,13 @@ export function createBilling(
           throw new RangeError('The invoice exceeds safe integer cents.');
         const invoiceStatus: SaasInvoice['status'] =
           data.outcome === 'success' ? 'paid' : data.outcome === 'declined' ? 'failed' : 'open';
+        // A declined or unconfirmed first checkout creates no subscription: its
+        // invoice records the attempt with `subscriptionId: null`.
+        const subscriptionId =
+          current?.id ?? (data.outcome === 'success' ? createRuntimeId('sub') : null);
         const invoice = buildInvoice({
           organizationId: orgId,
-          subscriptionId: current?.id ?? createRuntimeId('sub'),
+          subscriptionId,
           status: invoiceStatus,
           amountCents,
           currency: selected.currency,
@@ -422,7 +421,7 @@ export function createBilling(
               cancelAtPeriodEnd: false,
             })
           : SaasSubscriptionSchema.parse({
-              id: invoice.subscriptionId,
+              id: subscriptionId,
               organizationId: orgId,
               planId: selected.id,
               status: 'active',

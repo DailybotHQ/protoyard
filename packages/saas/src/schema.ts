@@ -188,7 +188,11 @@ export const InvoiceLineSchema = z.object({
 export const SaasInvoiceSchema = z.object({
   id: z.string().min(1),
   organizationId: z.string().min(1),
-  subscriptionId: z.string().min(1),
+  /**
+   * The subscription this invoice belongs to; `null` for a failed first
+   * checkout, where no subscription was ever created.
+   */
+  subscriptionId: z.string().min(1).nullable(),
   status: z.enum(['paid', 'open', 'void', 'failed']),
   amountCents: z.number().int(),
   currency: z.string().length(3).default('USD'),
