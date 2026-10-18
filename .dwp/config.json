@@ -1,5 +1,9 @@
 {
   "addons": {
+    "agentkit": {
+      "enabled": true,
+      "version": "v1.0.1"
+    },
     "ai-diff-reviewer": {
       "enabled": true,
       "note": "required local review: vendored skill (checksum-verified v3.3.14 release archive) + repo-tailored .review/extension.md; Flow A (local) only \u2014 Flow B CI not installed",
