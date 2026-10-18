@@ -1,4 +1,5 @@
 export { default as InboxBadge } from './components/InboxBadge.svelte';
+export { default as SsoButtons } from './components/SsoButtons.svelte';
 export { default as TrialBanner } from './components/TrialBanner.svelte';
 export { default as WorkspaceSwitcher } from './components/WorkspaceSwitcher.svelte';
 export {

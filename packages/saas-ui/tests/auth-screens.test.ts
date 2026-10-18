@@ -13,6 +13,7 @@ import {
   createMagicLinkServices,
   createMfaServices,
   createPasswordResetServices,
+  type OAuthProviderScenarios,
   type SaasAccount,
   saasIntegrity,
   saasStores,
@@ -89,6 +90,90 @@ const type = (label: string, value: string) =>
 const submit = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 
 describe('auth screens', () => {
+  it('completes the sso round trip and signs the simulated account in', async () => {
+    const runtime = await boot();
+    const scenarios: OAuthProviderScenarios = {
+      google: {
+        identity: { subject: 'google_ada', name: 'Ada Lovelace', email: EMAIL, emailShared: true },
+        outcome: 'success',
+      },
+    };
+    const existing = await runtime.db
+      .rows<SaasAccount>('saas_accounts')
+      .where('email')
+      .equals(EMAIL)
+      .first();
+    if (!existing) throw new Error('The auth fixture account was not created');
+    await runtime.db.rows<SaasAccount>('saas_accounts').put({
+      ...existing,
+      providers: [
+        { provider: 'google', subject: 'google_ada', email: EMAIL, linkedAt: REFERENCE_TIME },
+      ],
+    });
+    render(AuthHarness, { props: { runtime, screen: 'sso', scenarios } });
+    await submit('Continue with Google');
+    await waitFor(() => expect(location.hash).toContain('#/oauth/google/consent?state='));
+
+    cleanup();
+    render(AuthHarness, { props: { runtime, screen: 'oauth-consent', scenarios } });
+    expect(screen.getByText(/nothing leaves your browser/i)).toBeTruthy();
+    await submit('Approve');
+    expect(await screen.findByRole('status')).toBeTruthy();
+    await waitFor(() => expect(location.hash).toBe('#/'), { timeout: 2000 });
+    expect(runtime.session.isSignedIn()).toBe(true);
+  });
+
+  it('denies sso consent and returns to sign in with an honest status', async () => {
+    const runtime = await boot();
+    render(AuthHarness, { props: { runtime, screen: 'sso' } });
+    await submit('Continue with Google');
+    await waitFor(() => expect(location.hash).toContain('#/oauth/google/consent?state='));
+
+    cleanup();
+    render(AuthHarness, { props: { runtime, screen: 'oauth-consent' } });
+    await submit('Deny');
+    expect(await screen.findByRole('status')).toBeTruthy();
+    await waitFor(() => expect(location.hash).toBe('#/sign-in'), { timeout: 2000 });
+    expect(runtime.session.isSignedIn()).toBe(false);
+  });
+
+  it('confirms an sso account link after the matching user signs in', async () => {
+    const runtime = await boot();
+    const account = await runtime.db
+      .rows<SaasAccount>('saas_accounts')
+      .where('email')
+      .equals(EMAIL)
+      .first();
+    if (!account) throw new Error('The auth fixture account was not created');
+    const scenarios: OAuthProviderScenarios = {
+      google: {
+        identity: { subject: 'google_ada', name: 'Ada Lovelace', email: EMAIL, emailShared: true },
+        outcome: 'success',
+      },
+    };
+    render(AuthHarness, { props: { runtime, screen: 'sso', scenarios } });
+    await submit('Continue with Google');
+    await waitFor(() => expect(location.hash).toContain('#/oauth/google/consent?state='));
+    cleanup();
+    render(AuthHarness, { props: { runtime, screen: 'oauth-consent', scenarios } });
+    await submit('Approve');
+    await waitFor(() => expect(location.hash).toContain('#/oauth/google/link?email='));
+
+    await runtime.session.signIn(account.personaId);
+    cleanup();
+    render(AuthHarness, { props: { runtime, screen: 'oauth-link', scenarios } });
+    expect(screen.getByText(EMAIL)).toBeTruthy();
+    await submit('Continue to consent');
+    await waitFor(() => expect(location.hash).toContain('#/oauth/google/consent?state='));
+    cleanup();
+    render(AuthHarness, { props: { runtime, screen: 'oauth-consent', scenarios } });
+    await submit('Approve');
+    await waitFor(async () => {
+      const linked = await runtime.db.rows<SaasAccount>('saas_accounts').get(account.id);
+      expect(linked?.providers.some((item) => item.provider === 'google')).toBe(true);
+    });
+  });
+
   it('shows inline sign-up validation, then hands off to the simulated inbox', async () => {
     const runtime = await boot();
     render(AuthHarness, { props: { runtime, screen: 'sign-up' } });

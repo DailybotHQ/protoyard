@@ -35,7 +35,8 @@ const LOADERS = {
   mfa: () => import('./screens/auth/Mfa.svelte'),
   resetPassword: () => import('./screens/auth/ResetPassword.svelte'),
   verifyEmail: () => import('./screens/auth/VerifyEmail.svelte'),
-  oauthConsent: () => import('./screens/OAuthConsent.svelte'),
+  oauthConsent: () => import('./screens/oauth/Consent.svelte'),
+  oauthLink: () => import('./screens/oauth/Link.svelte'),
   inbox: () => import('./screens/inbox/Inbox.svelte'),
   onboarding: () => import('./screens/Onboarding.svelte'),
   billingPlans: () => import('./screens/billing/Plans.svelte'),
@@ -106,7 +107,10 @@ export function saasRoutes(options: SaasRoutesOptions): RouteDefinition[] {
   }
 
   if (groups.has('oauth')) {
-    routes.push(route('/oauth/consent', 'Provider consent', LOADERS.oauthConsent));
+    routes.push(
+      route('/oauth/:provider/consent', 'Provider consent', LOADERS.oauthConsent),
+      route('/oauth/:provider/link', 'Link provider account', LOADERS.oauthLink)
+    );
   }
 
   if (groups.has('inbox')) {
