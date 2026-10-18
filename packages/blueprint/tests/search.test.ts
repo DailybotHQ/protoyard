@@ -154,7 +154,10 @@ describe('global blueprint entity search', () => {
     expect(matches.map((match) => match.recordId)).toEqual(['customer_visible']);
   });
 
-  it('reports the median search time for a dense 16,000-row world', async () => {
+  // Seeding 16,000 rows dominates the runtime; the search budget itself is the median assertion below.
+  it('reports the median search time for a dense 16,000-row world', {
+    timeout: 60_000,
+  }, async () => {
     const runtime = await boot();
     const denseRows = Array.from({ length: 16_000 }, (_, index) =>
       customer(
