@@ -1,0 +1,43 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.lattice-saas-demo",
+  "slug": "lattice-saas-demo",
+  "kind": "prototype",
+  "name": "Lattice",
+  "description": "A fictional team planning workspace for project portfolios, delivery health, team collaboration, and simulated SaaS journeys.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "productivity",
+  "tags": ["productivity", "saas", "b2b", "workspace", "billing", "projects", "team-planning"],
+  "status": "ready",
+  "icon": "◈",
+  "defaultScenario": "signed-out",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop"
+  },
+  "storage": {
+    "namespace": "lattice-saas-demo",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": [
+    "signed-out",
+    "mid-onboarding",
+    "trial-ending",
+    "past-due",
+    "multi-workspace-admin",
+    "viewer",
+    "mfa-enrolled",
+    "pending-invite"
+  ],
+  "template": "b2b-saas",
+  "createdAt": "2026-10-18T15:04:03.910Z",
+  "updatedAt": "2026-10-18T15:04:03.910Z"
+}
