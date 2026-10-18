@@ -65,7 +65,10 @@ The frame decoration is a lazily loaded chunk registered in
 `src/shell/frames/registry.ts`. The `phone` shell uses `PhoneFrame` (bezel, side
 buttons, pill/punch-hole cutout, status bar in `--py-safe-top`, home indicator that
 navigates to `#/`). `tablet` still uses a generic bezel until its detailed frame
-ships; other shells render full-bleed. While framed, Bits UI dialogs and sheets
+ships. The `extension-popup` shell reuses `BrowserChrome` for a fictional browser
+toolbar and positions the app in a 360×600 popup anchored under the extension icon;
+it opens for review, closes on outside click or Escape, and can be pinned open.
+Other shells render full-bleed until their frame ships. While framed, Bits UI dialogs and sheets
 portal into the device screen (`setOverlayPortalTarget`) so overlays stay inside
 the bezel. The app goes full-bleed when the shell is `none`, inside an iframe
 (the gallery preview draws its own device), or when the window is too narrow for

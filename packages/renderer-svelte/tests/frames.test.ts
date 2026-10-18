@@ -1,10 +1,17 @@
 import { getDevice, orient, safeAreaOf } from '@protoyard/core';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import ExtensionPopupFrame from '../src/shell/frames/ExtensionPopupFrame.svelte';
 import HomeIndicator from '../src/shell/frames/HomeIndicator.svelte';
 import PhoneFrame from '../src/shell/frames/PhoneFrame.svelte';
 import { FRAMES } from '../src/shell/frames/registry.ts';
 import StatusBar from '../src/shell/frames/StatusBar.svelte';
+
+vi.mock('../src/context.ts', () => ({
+  getRuntime: () => ({
+    manifest: { slug: 'demo-extension', name: 'Demo extension', icon: '🧪' },
+  }),
+}));
 
 afterEach(() => {
   cleanup();
@@ -101,5 +108,62 @@ describe('frame registry', () => {
     expect(entry).toBeDefined();
     const mod = await entry!.load();
     expect(mod.default).toBe(PhoneFrame);
+  });
+
+  it('lazy-loads ExtensionPopupFrame for the extension-popup shell', async () => {
+    const entry = FRAMES['extension-popup'];
+    expect(entry).toBeDefined();
+    const mod = await entry!.load();
+    expect(mod.default).toBe(ExtensionPopupFrame);
+  });
+});
+
+describe('extension popup frame', () => {
+  const props = { spec: getDevice('laptop-window')!, shell: 'extension-popup' as const };
+
+  it('opens in review mode with the manifest name, icon and popup dimensions', () => {
+    const { container } = render(ExtensionPopupFrame, props);
+    const frame = container.querySelector<HTMLElement>('[data-py-frame="extension-popup"]');
+    const popup = container.querySelector<HTMLElement>('[data-py-extension-chrome]');
+
+    expect(frame?.dataset.open).toBe('true');
+    expect(popup?.className).toContain('w-[360px]');
+    expect(popup?.className).toContain('h-[688px]');
+    expect(screen.getByRole('button', { name: 'Open Demo extension' }).textContent).toContain('🧪');
+  });
+
+  it('toggles from the toolbar and closes on Escape or an outside click', async () => {
+    const { container } = render(ExtensionPopupFrame, props);
+    const frame = container.querySelector<HTMLElement>('[data-py-frame="extension-popup"]');
+    const trigger = screen.getByRole('button', { name: 'Open Demo extension' });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Toggle extensions menu' }));
+    expect(screen.getByRole('menu', { name: 'Browser extensions' })).toBeTruthy();
+    await fireEvent.click(screen.getByRole('menuitem', { name: 'Demo extension' }));
+    expect(screen.queryByRole('menu', { name: 'Browser extensions' })).toBeNull();
+    expect(frame?.dataset.open).toBe('true');
+
+    await fireEvent.click(trigger);
+    expect(frame?.dataset.open).toBe('false');
+    await fireEvent.click(trigger);
+    expect(frame?.dataset.open).toBe('true');
+    await fireEvent.keyDown(window, { key: 'Escape' });
+    expect(frame?.dataset.open).toBe('false');
+
+    await fireEvent.click(trigger);
+    await fireEvent.pointerDown(document.body);
+    expect(frame?.dataset.open).toBe('false');
+  });
+
+  it('stays open after an outside click while pinned', async () => {
+    const { container } = render(ExtensionPopupFrame, props);
+    const frame = container.querySelector<HTMLElement>('[data-py-frame="extension-popup"]');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Pin extension popup' }));
+    expect(
+      screen.getByRole('button', { name: 'Unpin extension popup' }).getAttribute('aria-pressed')
+    ).toBe('true');
+    await fireEvent.pointerDown(document.body);
+    expect(frame?.dataset.open).toBe('true');
   });
 });
