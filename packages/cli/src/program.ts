@@ -178,10 +178,12 @@ export function createProgram(env: RunnerEnv): Command {
       .option('--all', 'every prototype, one after another')
       .option('--tag <tag>', 'every prototype with this tag')
       .addOption(
-        new Option('--provider <id>', 'hosting provider')
-          .choices([...PROVIDER_IDS])
-          .makeOptionMandatory()
+        new Option('--provider <id>', 'hosting provider (required unless --history)').choices([
+          ...PROVIDER_IDS,
+        ])
       )
+      .option('--history', 'print the last recorded publishes (artifacts/publish/ledger.jsonl)')
+      .option('--limit <n>', 'with --history: how many entries (default 20)')
       .option('--project <name>', 'provider project/site name (default protoyard-<slug>)')
       .option('--branch <name>', 'Cloudflare preview branch (lowercase letters, digits and dashes)')
       .option('--preview', 'preview deployment (default)')

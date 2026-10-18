@@ -9,6 +9,13 @@ import { artifactDir, buildPrototype, scanForForeignCode } from './build.ts';
 import { CliError } from './output.ts';
 import { BUILD_MARKER } from './output-guard.ts';
 import { toPosixRelative } from './paths.ts';
+import {
+  appendLedgerEntry,
+  buildDigest,
+  gitState,
+  LEDGER_FORMAT,
+  ledgerPath,
+} from './publish-ledger.ts';
 import { loadRegistry, type Registry, type RegistryEntry } from './registry.ts';
 import type { CommandContext } from './workspace.ts';
 import { zipDirectory } from './zip.ts';
@@ -36,6 +43,12 @@ export interface PublishRunResult {
   experimental: boolean;
   distDir: string;
   kind: 'static' | 'dry-run' | 'published';
+  /** sha256 over the built files' paths and hashes (see publish-ledger.ts). */
+  buildSha256: string;
+  /** Cloudflare preview branch, when one was passed. */
+  branch?: string;
+  /** Workspace-relative ledger file the result was recorded in; null if recording failed. */
+  ledger?: string | null;
   /** Present when `--ensure-project` was requested (Cloudflare). */
   ensureProject?: boolean;
   zip?: string;
@@ -59,8 +72,53 @@ function providerFailure(error: unknown): never {
   throw error;
 }
 
-/** Builds, verifies and publishes one registry entry through the selected provider. */
+/**
+ * Builds, verifies and publishes one registry entry through the selected
+ * provider, then records the completed result in the deploy ledger. A ledger
+ * failure is reported but never undoes or hides a deploy that happened.
+ */
 export async function publishPrototype(
+  ctx: CommandContext,
+  entry: RegistryEntry,
+  provider: PublishProvider,
+  options: PublishRunOptions,
+  registry?: Registry
+): Promise<PublishRunResult> {
+  const result = await publishUnrecorded(ctx, entry, provider, options, registry);
+  const path = ledgerPath(ctx.paths);
+  try {
+    const git = await gitState(ctx.root);
+    await appendLedgerEntry(path, {
+      format: LEDGER_FORMAT,
+      formatVersion: 1,
+      at: new Date().toISOString(),
+      slug: result.slug,
+      provider: result.provider,
+      kind: result.kind,
+      dryRun: result.dryRun,
+      target: result.target,
+      branch: result.branch ?? null,
+      project: result.project,
+      url: result.kind === 'published' ? (result.url ?? null) : null,
+      deploymentId: result.kind === 'published' ? (result.deploymentId ?? null) : null,
+      commit: git.commit,
+      dirty: git.dirty,
+      buildSha256: result.buildSha256,
+      fileCount: result.files,
+      totalBytes: result.bytes,
+      zip: result.zip ?? null,
+      zipSha256: result.kind === 'static' ? (result.sha256 ?? null) : null,
+    });
+    return { ...result, ledger: toPosixRelative(ctx.root, path) };
+  } catch (error) {
+    ctx.out.warn(
+      `! Could not record ${result.slug} in ${toPosixRelative(ctx.root, path)}: ${error instanceof Error ? error.message : String(error)}`
+    );
+    return { ...result, ledger: null };
+  }
+}
+
+async function publishUnrecorded(
   ctx: CommandContext,
   entry: RegistryEntry,
   provider: PublishProvider,
@@ -126,6 +184,8 @@ export async function publishPrototype(
     distDir: toPosixRelative(ctx.root, build.outDir),
     files: build.manifest.fileCount,
     bytes: build.manifest.totalBytes,
+    buildSha256: buildDigest(build.manifest.files),
+    ...(options.branch !== undefined ? { branch: options.branch } : {}),
     ...(options.ensureProject ? { ensureProject: true as const } : {}),
   };
 

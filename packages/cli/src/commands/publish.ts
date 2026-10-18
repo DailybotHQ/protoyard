@@ -1,6 +1,8 @@
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { CliError, formatBytes, mark, toCliError } from '../lib/output.ts';
+import { toPosixRelative } from '../lib/paths.ts';
+import { type LedgerEntry, ledgerPath, readLedger } from '../lib/publish-ledger.ts';
 import {
   type PublishRunOptions,
   type PublishRunResult,
@@ -31,6 +33,7 @@ function runOptions(options: Record<string, unknown>): PublishRunOptions {
  * after another, continuing past failures, with one summary envelope.
  */
 export const publishCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  if (flag(options, 'history')) return publishHistory(ctx, args, options);
   const all = flag(options, 'all');
   const tag = opt(options, 'tag');
   if (all && tag !== undefined) throw new CliError('usage', 'Pass --all or --tag, not both.');
@@ -41,6 +44,9 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
     throw new CliError('usage', 'Pass a slug, several slugs, --all or --tag <tag>.', {
       hint: 'Example: pnpm protoyard publish --all --provider cloudflare --dry-run',
     });
+  }
+  if (opt(options, 'provider') === undefined) {
+    throw new CliError('usage', 'Pass --provider cloudflare, netlify, vercel or static.');
   }
   const provider = createProvider(opt(options, 'provider'), ctx.root);
   if (!all && tag === undefined && args.length === 1) {
@@ -89,6 +95,7 @@ interface BatchItem {
   toolAvailable?: boolean;
   zip?: string;
   sha256?: string;
+  ledger?: string | null;
   error?: string;
   hint?: string;
 }
@@ -138,6 +145,7 @@ async function publishBatch(
           ? { command: r.command, commandLine: r.commandLine, toolAvailable: r.toolAvailable }
           : {}),
         ...(r.zip !== undefined ? { zip: r.zip, sha256: r.sha256 } : {}),
+        ledger: r.ledger ?? null,
       });
     } catch (error) {
       const err = toCliError(error);
@@ -225,6 +233,7 @@ async function publishOne(
     fileCount: result.files,
     totalBytes: result.bytes,
     ...(result.ensureProject ? { ensureProject: true as const } : {}),
+    ledger: result.ledger ?? null,
   };
   if (result.kind === 'static') {
     return {
@@ -296,4 +305,73 @@ async function publishOne(
         out.always(c.yellow('  The adapter is experimental: please verify the URL loads.'));
     },
   };
+}
+
+/**
+ * `publish --history [slug…] [--provider p] [--limit n]`: the last entries of
+ * the local deploy ledger, oldest first (like `tail`). Reads only.
+ */
+async function publishHistory(
+  ctx: CommandContext,
+  slugs: readonly string[],
+  options: Record<string, unknown>
+): Promise<CommandResult> {
+  if (flag(options, 'all') || opt(options, 'tag') !== undefined) {
+    throw new CliError('usage', '--history filters by slug and --provider only.');
+  }
+  const rawLimit = opt(options, 'limit') ?? '20';
+  const limit = Number(rawLimit);
+  if (!/^\d+$/.test(rawLimit) || limit < 1) {
+    throw new CliError('usage', `--limit must be a positive integer (got "${rawLimit}").`);
+  }
+  const provider = opt(options, 'provider');
+  const path = ledgerPath(ctx.paths);
+  const { entries, skipped } = await readLedger(path);
+  const wanted = new Set(slugs);
+  const matching = entries.filter(
+    (e) =>
+      (wanted.size === 0 || wanted.has(e.slug)) &&
+      (provider === undefined || e.provider === provider)
+  );
+  const shown = matching.slice(-limit);
+  return {
+    data: {
+      ledger: toPosixRelative(ctx.root, path),
+      total: matching.length,
+      shown: shown.length,
+      skipped,
+      entries: shown,
+    },
+    render(out) {
+      const { c } = out;
+      if (shown.length === 0) {
+        out.always(
+          entries.length === 0
+            ? `No publishes recorded yet (${toPosixRelative(ctx.root, path)}).`
+            : 'No recorded publish matches.'
+        );
+      }
+      for (const e of shown) out.always(historyLine(c, e));
+      if (matching.length > shown.length)
+        out.info(
+          c.dim(`  ${matching.length - shown.length} older entries hidden (--limit ${limit}).`)
+        );
+      if (skipped > 0) out.always(c.yellow(`! Skipped ${skipped} unreadable ledger lines.`));
+    },
+  };
+}
+
+function historyLine(
+  c: Parameters<NonNullable<CommandResult['render']>>[0]['c'],
+  e: LedgerEntry
+): string {
+  const where = `${e.provider} ${e.target}${e.branch ? `:${e.branch}` : ''}`;
+  const what =
+    e.kind === 'published'
+      ? c.cyan(e.url ?? '')
+      : e.kind === 'dry-run'
+        ? c.dim('dry run, nothing uploaded')
+        : `ZIP ${c.cyan(e.zip ?? '')}`;
+  const commit = e.commit ? ` ${e.commit.slice(0, 7)}${e.dirty ? '+dirty' : ''}` : '';
+  return `${e.at}  ${e.slug.padEnd(24)} ${where.padEnd(28)} ${what}${c.dim(commit)}`;
 }
