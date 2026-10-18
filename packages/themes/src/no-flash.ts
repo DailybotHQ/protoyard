@@ -54,5 +54,7 @@ export function readCachedAppearance(
  */
 export function noFlashScript(namespace: string): string {
   const key = JSON.stringify(appearanceCacheKey(namespace));
-  return `(function(){var d=document.documentElement;try{var c=JSON.parse(localStorage.getItem(${key})||'null');if(c&&c.v===${APPEARANCE_CACHE_VERSION}&&c.vars){for(var k in c.vars){if(/^--py-[a-z0-9-]+$/.test(k)&&typeof c.vars[k]==='string')d.style.setProperty(k,c.vars[k]);}var m=c.mode==='dark'?'dark':'light';d.classList.add(m);d.dataset.pyMode=m;d.style.colorScheme=m;if(typeof c.themeId==='string')d.dataset.pyTheme=c.themeId;d.dataset.pyMotion=c.reducedMotion?'reduce':'full';return;}}catch(e){}try{if(matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark');d.dataset.pyMode='dark';d.style.colorScheme='dark';}}catch(e){}})();`;
+  // Replays --py-* vars, mode class, theme id, motion, and data-py-surface
+  // (glass/solid) so first paint matches the last applied appearance.
+  return `(function(){var d=document.documentElement;try{var c=JSON.parse(localStorage.getItem(${key})||'null');if(c&&c.v===${APPEARANCE_CACHE_VERSION}&&c.vars){for(var k in c.vars){if(/^--py-[a-z0-9-]+$/.test(k)&&typeof c.vars[k]==='string')d.style.setProperty(k,c.vars[k]);}var m=c.mode==='dark'?'dark':'light';d.classList.add(m);d.dataset.pyMode=m;d.style.colorScheme=m;if(typeof c.themeId==='string')d.dataset.pyTheme=c.themeId;d.dataset.pyMotion=c.reducedMotion?'reduce':'full';var s=typeof c.surface==='string'?c.surface:(c.vars&&c.vars['--py-surface-style']);if(s==='glass'||s==='solid')d.dataset.pySurface=s;return;}}catch(e){}try{if(matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark');d.dataset.pyMode='dark';d.style.colorScheme='dark';}}catch(e){}})();`;
 }

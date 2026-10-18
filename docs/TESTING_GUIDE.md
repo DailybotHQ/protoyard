@@ -36,6 +36,33 @@ All commands run from the repository root. Labels: **full** runs everything;
 | E2E (gallery) | `pnpm test:e2e` | full |
 | E2E incl. prototypes | `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e` | full |
 | One prototype end to end | `pnpm protoyard validate crm-demo --build` | scoped |
+| Bundle size budgets (after build) | `pnpm protoyard budget --all --skip-build` | full |
+| Index scale budget (1,000 manifests) | `pnpm bench:index --runs 3 --check` | full |
+| Scenario generation budget | `pnpm protoyard scenario bench <slug> --check` | scoped |
+| Cold-start bench (report; optional `--check`) | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --runs 3` | scoped |
+| CI performance job (local mirror) | `pnpm protoyard build --all && pnpm protoyard budget --all --skip-build && pnpm bench:index --runs 3 --check` | full |
+
+### CI performance job (`.github/workflows/ci.yml` → `perf`)
+
+On every pull request and push to `main`, the **performance budgets** job
+(timeout 20 minutes, same Node and SHA-pinned actions as the other jobs):
+
+1. Builds every prototype (`pnpm protoyard build --all`).
+2. Enforces bundle budgets from `protoyard.budgets.json`
+   (`pnpm protoyard budget --all --skip-build`).
+3. Enforces the 1,000-manifest index budget
+   (`pnpm bench:index --runs 3 --check`, with the default `--ci-factor 3`).
+4. Enforces scenario generation budgets for each indexed prototype’s default
+   scenarios (`pnpm protoyard scenario bench <slug> --check`).
+5. Runs the cold-start bench for every prototype and **reports** the numbers.
+   Cold-start is **not a gate** yet (runner variance is unknown; gate after a
+   calibration run).
+6. Uploads JSON/text reports under `artifacts/perf/` and `tmp/bench-*.json` as
+   the `perf-reports-<run_id>` artifact (14-day retention).
+
+Repository settings are not changed by this workflow. Locally, run the mirror
+row in the table above before opening a PR that touches budgets, the index, or
+scenario generators.
 
 Run `pnpm test:e2e:install` once on a new machine to install Chromium.
 Run **one E2E session per machine at a time**: the Playwright web servers use

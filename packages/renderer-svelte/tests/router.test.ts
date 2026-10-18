@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { compilePattern, parseHash, toHref } from '../src/router/match.ts';
-import { createRouter, fillParams, navigate } from '../src/router/router.svelte.ts';
+import { createRouter, defineRoutes, fillParams, navigate } from '../src/router/router.svelte.ts';
 
 describe('hash route matching', () => {
   it('normalizes hashes and keeps hash queries', () => {
@@ -75,6 +75,29 @@ describe('createRouter', () => {
     ]);
     expect(router.match('#/notes').route?.title).toBe('static');
     expect(router.match('#/notes/n1').route?.title).toBe('optional');
+    router.destroy();
+  });
+
+  it('preserves statically declared route metadata and accepts it unchanged', () => {
+    const Dummy = (() => {}) as never;
+    const routes = defineRoutes([
+      {
+        path: '/reports',
+        name: 'Reports',
+        description: 'Review business reports.',
+        capability: 'reports:read',
+        load: async () => ({ default: Dummy }),
+      },
+    ]);
+    const router = createRouter(routes, { titleSuffix: 'Workspace' });
+
+    expect(router.routes).toBe(routes);
+    expect(router.match('/reports').route).toMatchObject({
+      name: 'Reports',
+      description: 'Review business reports.',
+      capability: 'reports:read',
+    });
+    expect(router.resolve(routes[0]!)).toBeInstanceOf(Promise);
     router.destroy();
   });
 });

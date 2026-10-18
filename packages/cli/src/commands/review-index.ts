@@ -1,0 +1,225 @@
+import { existsSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import type { CommandResult, Handler } from '../lib/command.ts';
+import { flag, opt } from '../lib/command.ts';
+import { inspectPrototype } from '../lib/inspect.ts';
+import { untilSignal } from '../lib/network.ts';
+import { CliError, mark } from '../lib/output.ts';
+import { guardOutputDir } from '../lib/output-guard.ts';
+import { toPosixRelative } from '../lib/paths.ts';
+import { parsePort } from '../lib/ports.ts';
+import { type LedgerEntry, ledgerPath, readLedger } from '../lib/publish-ledger.ts';
+import { loadRegistry, type RegistryEntry, writeJsonAtomic } from '../lib/registry.ts';
+import {
+  personaLinks,
+  REVIEW_FORMAT,
+  type ReviewDeployment,
+  type ReviewEntry,
+  type ReviewModel,
+  renderReviewIndex,
+  scenarioLinks,
+} from '../lib/review-index-html.ts';
+import { serveStatic } from '../lib/static-server.ts';
+import { normalizeBase } from '../lib/vite.ts';
+import type { CommandContext } from '../lib/workspace.ts';
+import { assertSlug } from '../lib/workspace.ts';
+import { PROVIDER_IDS } from '../publish/index.ts';
+
+/** Persona links per prototype: the first generated personas, enough for every role in practice. */
+const MAX_PERSONAS = 12;
+
+/** Written into the review folder; required before an existing folder is reused. */
+export const REVIEW_MARKER = '.protoyard-review';
+
+/** The latest REAL deploy per slug (dry runs and ZIPs carry no URL). */
+export function latestDeployments(entries: readonly LedgerEntry[]): Map<string, LedgerEntry> {
+  const latest = new Map<string, LedgerEntry>();
+  for (const entry of entries) {
+    if (entry.kind === 'published' && entry.url) latest.set(entry.slug, entry);
+  }
+  return latest;
+}
+
+function toDeployment(entry: LedgerEntry): ReviewDeployment {
+  return {
+    url: entry.url as string,
+    target: entry.target,
+    branch: entry.branch,
+    provider: entry.provider,
+    at: entry.at,
+    commit: entry.commit,
+    dirty: entry.dirty,
+  };
+}
+
+function selectEntries(
+  registry: RegistryEntry[],
+  deployments: Map<string, LedgerEntry>,
+  options: { fromLedger: boolean; slugs: string[] | null }
+): RegistryEntry[] {
+  const prototypes = registry.filter((e) => e.kind === 'prototype');
+  if (options.slugs) {
+    return options.slugs.map((slug) => {
+      const found = prototypes.find((e) => e.slug === slug);
+      if (!found) {
+        throw new CliError('not_found', `No prototype "${slug}" in this workspace.`, {
+          hint: 'Run `pnpm protoyard list --kind prototype`.',
+        });
+      }
+      return found;
+    });
+  }
+  return options.fromLedger ? prototypes.filter((e) => deployments.has(e.slug)) : prototypes;
+}
+
+/** Personas of the default scenario, generated in a child process (fictional data). */
+async function personasFor(
+  ctx: CommandContext,
+  entry: RegistryEntry
+): Promise<{ id: string; name: string; role: string | null }[]> {
+  const scenario = entry.defaultScenario ?? entry.scenarios[0];
+  if (!scenario) return [];
+  try {
+    const inspection = await inspectPrototype(
+      ctx.root,
+      join(ctx.root, entry.path),
+      'generate',
+      scenario
+    );
+    return inspection.runs?.find((r) => r.id === scenario)?.personas ?? [];
+  } catch (error) {
+    ctx.out.warn(
+      `! No persona links for ${entry.slug}: ${error instanceof Error ? error.message : String(error)}`
+    );
+    return [];
+  }
+}
+
+/**
+ * `protoyard review-index`: one static page for reviewers that links every
+ * prototype's real deployment (from the deploy ledger) with scenario and
+ * persona deep links. Prototypes without a recorded deploy are listed as
+ * "not deployed" with the command to publish them; no URL is ever guessed.
+ */
+export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
+  const fromLedger = flag(options, 'fromLedger');
+  const rawSlugs = opt(options, 'slugs');
+  if (fromLedger && rawSlugs !== undefined) {
+    throw new CliError('usage', 'Pass --from-ledger or --slugs, not both.');
+  }
+  const slugs =
+    rawSlugs === undefined
+      ? null
+      : [
+          ...new Set(
+            rawSlugs
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
+          ),
+        ].map((s) => assertSlug(s));
+  if (slugs?.length === 0) throw new CliError('usage', '--slugs needs at least one slug.');
+  const provider = opt(options, 'provider') ?? 'cloudflare';
+  if (!(PROVIDER_IDS as readonly string[]).includes(provider) || provider === 'static') {
+    throw new CliError(
+      'usage',
+      `--provider must be cloudflare, netlify or vercel (got "${provider}").`
+    );
+  }
+  const base = normalizeBase(opt(options, 'base'));
+  const outDir = guardOutputDir({
+    root: ctx.root,
+    paths: ctx.paths,
+    requested: opt(options, 'out') ?? join('artifacts', 'review'),
+    marker: REVIEW_MARKER,
+    ...(flag(options, 'allowExternalOut') ? { allowExternal: true } : {}),
+  });
+
+  const registry = await loadRegistry(ctx.paths);
+  const ledgerOption = opt(options, 'ledger');
+  const ledgerFile =
+    ledgerOption === undefined ? ledgerPath(ctx.paths) : resolve(ctx.root, ledgerOption);
+  if (ledgerOption !== undefined && !existsSync(ledgerFile)) {
+    throw new CliError('not_found', `No ledger file at ${ledgerOption}.`);
+  }
+  const { entries: ledgerEntries, skipped } = await readLedger(ledgerFile);
+  const deployments = latestDeployments(ledgerEntries);
+  const selected = selectEntries(registry.entries, deployments, { fromLedger, slugs }).sort(
+    (a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0)
+  );
+  const withPersonas = options.personas !== false;
+
+  const entries: ReviewEntry[] = [];
+  for (const entry of selected) {
+    const deployed = deployments.get(entry.slug);
+    const deployment = deployed ? toDeployment(deployed) : null;
+    entries.push({
+      slug: entry.slug,
+      name: entry.name,
+      description: entry.description,
+      icon: entry.icon,
+      deployment,
+      scenarioLinks: deployment ? scenarioLinks(deployment.url, entry.scenarios) : [],
+      personaLinks:
+        deployment && withPersonas
+          ? personaLinks(deployment.url, (await personasFor(ctx, entry)).slice(0, MAX_PERSONAS))
+          : [],
+      publishCommand: `pnpm protoyard publish ${entry.slug} --provider ${provider}`,
+    });
+  }
+
+  const model: ReviewModel = {
+    format: REVIEW_FORMAT,
+    formatVersion: 1,
+    title: opt(options, 'title') ?? 'Prototype review',
+    base,
+    entries,
+  };
+  const html = renderReviewIndex(model);
+  await mkdir(outDir, { recursive: true });
+  await writeFile(join(outDir, 'index.html'), html, 'utf8');
+  await writeJsonAtomic(join(outDir, 'review-manifest.json'), model);
+  await writeFile(join(outDir, REVIEW_MARKER), '', 'utf8');
+
+  const deployedCount = entries.filter((e) => e.deployment).length;
+  const out = toPosixRelative(ctx.root, outDir);
+  const server = flag(options, 'serve')
+    ? await serveStatic({
+        dir: outDir,
+        base,
+        port: parsePort(opt(options, 'port'), 4520),
+        host: '127.0.0.1',
+        strictPort: flag(options, 'strictPort'),
+        spa: false,
+      })
+    : null;
+  return {
+    data: {
+      ...(server ? { url: server.url } : {}),
+      ledger: toPosixRelative(ctx.root, ledgerFile),
+      outDir: out,
+      index: `${out}/index.html`,
+      manifest: `${out}/review-manifest.json`,
+      bytes: Buffer.byteLength(html),
+      total: entries.length,
+      deployed: deployedCount,
+      notDeployed: entries.filter((e) => !e.deployment).map((e) => e.slug),
+      ledgerSkipped: skipped,
+    },
+    render(o) {
+      const { c } = o;
+      o.always(
+        `${mark(c, 'pass')} Review index → ${c.cyan(`${out}/index.html`)} (${deployedCount} of ${entries.length} deployed)`
+      );
+      for (const e of entries) {
+        o.info(
+          `  ${e.slug.padEnd(28)} ${e.deployment ? c.cyan(e.deployment.url) : c.dim(`not deployed: ${e.publishCommand}`)}`
+        );
+      }
+      if (skipped > 0) o.always(c.yellow(`! Skipped ${skipped} unreadable ledger lines.`));
+      if (server) o.always(`  Serving at ${c.cyan(server.url)} (Ctrl+C to stop)`);
+    },
+    ...(server ? { keepAlive: untilSignal(() => server.close()) } : {}),
+  };
+};

@@ -2,6 +2,7 @@ import { Command, CommanderError, Option } from 'commander';
 import { affectedCommand } from './commands/affected.ts';
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
+import { ciCheckCommand, ciInitCommand } from './commands/ci.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { exportCommand } from './commands/export.ts';
@@ -10,10 +11,21 @@ import { listCommand } from './commands/list.ts';
 import { newCommand } from './commands/new.ts';
 import { previewCommand } from './commands/preview.ts';
 import { publishCommand } from './commands/publish.ts';
-import { scenarioListCommand, scenarioValidateCommand } from './commands/scenario.ts';
+import { reviewIndexCommand } from './commands/review-index.ts';
+import {
+  scenarioBenchCommand,
+  scenarioListCommand,
+  scenarioValidateCommand,
+} from './commands/scenario.ts';
 import { controlServerCommand, galleryCommand } from './commands/serve.ts';
 import { showcaseCommand } from './commands/showcase.ts';
 import { snapshotListCommand } from './commands/snapshot.ts';
+import {
+  themeCreateCommand,
+  themeExportCommand,
+  themeImportCommand,
+  themeListCommand,
+} from './commands/theme.ts';
 import { validateCommand } from './commands/validate.ts';
 import { action, type RunnerEnv } from './lib/command.ts';
 import { CliError, ExitCode, errorEnvelope, processStreams } from './lib/output.ts';
@@ -30,6 +42,7 @@ Examples:
   $ pnpm protoyard publish my-crm --provider cloudflare --dry-run
   $ pnpm protoyard publish --all --provider cloudflare --dry-run
   $ pnpm protoyard affected --since HEAD~1 --format csv
+  $ pnpm protoyard ci init --with check,build --dry-run
   $ pnpm protoyard list --json | jq '.data.entries[].slug'
 
 Every command accepts --json and returns { ok, command, data?, error? }.
@@ -162,6 +175,33 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--skip-build', 'read the existing build-manifest.json')
     .action(def('budget', budgetCommand));
 
+  const ci = program.command('ci').description('scaffold and manage CI workflow templates');
+  ci.command('init')
+    .description(
+      'render versioned workflow templates into .github/workflows/ (never changes repository settings)'
+    )
+    .addOption(new Option('--provider <id>', 'CI host').choices(['github']).default('github'))
+    .option(
+      '--with <list>',
+      'comma-separated workflows: check,build,e2e,preview (default check,build)',
+      'check,build'
+    )
+    .option('--deploy <target>', 'preview deploy target (sets {{PROVIDER}}; cloudflare)')
+    .option(
+      '--prototypes <csv>',
+      'comma-separated prototype slugs for {{PROTOTYPES}} (default: all indexed prototypes)'
+    )
+    .option('--dry-run', 'print paths and unified diffs; write nothing')
+    .option('--force', 'overwrite existing workflow files')
+    .action(def('ci init', ciInitCommand));
+  ci.command('check')
+    .description(
+      'report scaffolded workflows that are outdated or edited since `ci init` (reads only)'
+    )
+    .addOption(new Option('--provider <id>', 'CI host').choices(['github']).default('github'))
+    .option('--strict', 'exit 4 when any workflow drifted')
+    .action(def('ci check', ciCheckCommand));
+
   buildOptions(
     program
       .command('export')
@@ -218,11 +258,78 @@ export function createProgram(env: RunnerEnv): Command {
     .argument('<slug>')
     .option('-s, --scenario <id>', 'only this scenario')
     .action(def('scenario validate', scenarioValidateCommand));
+  scenario
+    .command('bench')
+    .description('benchmark generation and integrity validation for one or all scenarios')
+    .argument('<slug>')
+    .option('-s, --scenario <id>', 'only this scenario')
+    .option('--runs <count>', 'runs per scenario', '3')
+    .option('--check', 'fail when median generation plus validation exceeds the budget')
+    .action(def('scenario bench', scenarioBenchCommand));
+
+  const theme = program.command('theme').description('create, list, export and import themes');
+  theme
+    .command('list')
+    .description('list built-in and library themes')
+    .action(def('theme list', themeListCommand));
+  theme
+    .command('create')
+    .description('write a typed theme into a prototype from a seed or JSON file')
+    .argument('<slug>', 'prototype slug')
+    .option('--id <id>', 'theme id (lowercase kebab-case; required with --seed)')
+    .option('--name <name>', 'theme display name')
+    .option('--seed <hex>', 'brand color seed (#rgb or #rrggbb)')
+    .option('--secondary <hex>', 'optional secondary brand color')
+    .option('--from <file>', 'theme JSON file to import')
+    .option('--force', 'overwrite src/theme.ts')
+    .option('--dry-run', 'show the generated file without writing')
+    .action(def('theme create', themeCreateCommand));
+  theme
+    .command('export')
+    .description('export a theme as CSS variables, Tailwind tokens or W3C design tokens')
+    .argument('[id]', 'built-in or library theme id; use --from for custom JSON themes')
+    .option('--from <file>', 'custom theme JSON file')
+    .addOption(
+      new Option('--format <format>', 'css, tailwind or tokens')
+        .choices(['css', 'tailwind', 'tokens'])
+        .default('css')
+    )
+    .action(def('theme export', themeExportCommand));
+  theme
+    .command('import')
+    .description('write a validated JSON theme into a prototype')
+    .argument('<slug>', 'prototype slug')
+    .argument('<file>', 'path to a theme JSON file')
+    .option('--force', 'overwrite src/theme.ts')
+    .option('--dry-run', 'show the generated file without writing')
+    .action(def('theme import', themeImportCommand));
 
   const snapshot = program
     .command('snapshot')
     .description('snapshot files committed with a prototype');
   snapshot.command('list').argument('<slug>').action(def('snapshot list', snapshotListCommand));
+
+  program
+    .command('review-index')
+    .description(
+      'one static page for reviewers: every published prototype with scenario and persona links'
+    )
+    .option('--out <dir>', 'output folder (default artifacts/review)')
+    .option('--allow-external-out', 'permit an --out outside the workspace (must be new or empty)')
+    .option('--from-ledger', 'only prototypes with a recorded real deploy')
+    .option('--slugs <list>', 'only these prototypes (comma-separated)')
+    .option('--base <path>', "public base of the review page ('./' or /sub/path/)")
+    .option('--title <text>', 'page title (default "Prototype review")')
+    .option(
+      '--provider <id>',
+      'provider named in the publish command for undeployed prototypes (default cloudflare)'
+    )
+    .option('--no-personas', 'skip persona links (they run each generator in a child process)')
+    .option('--ledger <file>', 'read this deploy ledger instead of artifacts/publish/ledger.jsonl')
+    .option('--serve', 'serve the page on 127.0.0.1 after writing it')
+    .option('--port <n>', 'with --serve: port (default 4520, or the next free one)')
+    .option('--strict-port', 'with --serve: fail instead of picking another port')
+    .action(def('review-index', reviewIndexCommand));
 
   program
     .command('showcase')

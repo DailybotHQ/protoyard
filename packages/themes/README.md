@@ -1,7 +1,8 @@
 # @protoyard/themes
 
-Theme engine for Protoyard prototypes: six AA-checked presets, light/dark/system
-resolution, scoped CSS-variable application and a no-flash boot script.
+Theme engine for Protoyard prototypes: six AA-checked built-in presets, a 30+
+product-category **theme library**, light/dark/system resolution, scoped
+CSS-variable application and a no-flash boot script.
 
 ```ts
 import { applyAppearance, BUILTIN_THEMES, getTheme, resolveMode } from '@protoyard/themes';
@@ -16,20 +17,23 @@ applyAppearance(document.documentElement, {
 
 | Export | Purpose |
 | --- | --- |
-| `BUILTIN_THEMES`, `violetTheme` … `monochromeTheme` | Presets (core `Theme`), every token for light and dark |
+| `BUILTIN_THEMES`, `violetTheme` … `monochromeTheme` | Core six presets (every token for light and dark) |
+| `THEME_LIBRARY_META`, `listThemeLibrary`, `loadLibraryTheme(id)` | 30+ category presets: eager metadata, lazy token load via the palette engine |
+| `createThemeFromSeed({ id, name, seed, secondary?, style? })` | Build an AA light/dark theme from brand hex colors |
+| `FONT_CATALOG`, `getFontPairing`, `loadVariableFont` | System-first font pairings (no network) |
 | `getTheme(id, extra?)` / `findTheme` / `mergeThemes` | Lookup with Violet fallback; prototype themes override by id |
 | `resolveMode(mode, matchMedia?)` | `system` → `light`/`dark` |
-| `applyAppearance(el, input)` / `clearAppearance(el)` | Writes `--py-*` vars, `data-py-theme`, `data-py-mode`, `data-py-motion`, the `dark` class and `color-scheme`. Works on `<html>` or any element (scoped previews) |
+| `applyAppearance(el, input)` / `clearAppearance(el)` | Writes `--py-*` vars, `data-py-theme`, `data-py-mode`, `data-py-motion`, `data-py-surface`, the `dark` class and `color-scheme` |
 | `themeVariables(input)` | The same variables as a plain object |
 | `cacheAppearance(namespace, applied)` / `readCachedAppearance` | localStorage cache at `protoyard.<namespace>.appearance` (try/catch) |
-| `noFlashScript(namespace)` | Inline `<head>` script body that replays the cache before first paint |
+| `noFlashScript(namespace)` | Inline `<head>` script body that replays the cache (including `data-py-surface`) before first paint |
 | `contrastRatio`, `relativeLuminance`, `parseHex`, `TEXT_CONTRAST_PAIRS`, `UI_CONTRAST_PAIRS` | WCAG helpers used by the preset tests and the UI Kit theme lab |
 | `DEFAULT_THEME_ID`, `prefersDark(matchMedia?)`, `densityScale(density, theme?)` | Small helpers behind `getTheme` / `resolveMode` / `applyAppearance` |
 | `appearanceCacheKey(namespace)`, `APPEARANCE_CACHE_VERSION` | Cache key/version shared by `cacheAppearance` and the inline script |
 
-Subpath exports: `@protoyard/themes/presets` (presets only), `@protoyard/themes/no-flash`
-(cache + inline script, erasable-only TypeScript so Vite configs can import it under Node type
-stripping) and `@protoyard/themes/base.css`.
+Subpath exports: `@protoyard/themes/presets`, `@protoyard/themes/no-flash`,
+`@protoyard/themes/base.css`, `@protoyard/themes/fonts.css` (optional font-stack
+variables).
 
 ## CSS
 

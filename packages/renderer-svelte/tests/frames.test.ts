@@ -7,8 +7,10 @@ import HomeIndicator from '../src/shell/frames/HomeIndicator.svelte';
 import PhoneFrame from '../src/shell/frames/PhoneFrame.svelte';
 import { activeFrame, FRAMES, STAGE_GUTTER } from '../src/shell/frames/registry.ts';
 import StatusBar from '../src/shell/frames/StatusBar.svelte';
+import WidgetHostFrame from '../src/shell/frames/WidgetHostFrame.svelte';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 import ProbeApp from './fixtures/ProbeApp.svelte';
+import WidgetHostHarness from './fixtures/WidgetHostHarness.svelte';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const root = document.documentElement;
@@ -16,6 +18,7 @@ const root = document.documentElement;
 afterEach(() => {
   cleanup();
   if (typeof location !== 'undefined' && location.hash) location.hash = '';
+  delete window.__protoyardWidget;
 });
 
 describe('PhoneFrame', () => {
@@ -107,6 +110,74 @@ describe('frame registry', () => {
     expect(entry).toBeDefined();
     const mod = await entry!.load();
     expect(mod.default).toBe(PhoneFrame);
+  });
+
+  it('lazy-loads WidgetHostFrame for the widget-host shell', async () => {
+    const entry = FRAMES['widget-host'];
+    expect(entry).toBeDefined();
+    const mod = await entry!.load();
+    expect(mod.default).toBe(WidgetHostFrame);
+  });
+});
+
+describe('widget host shell', () => {
+  it('opens and closes the panel from the launcher with aria-expanded', async () => {
+    render(WidgetHostHarness);
+    const launcher = screen.getByRole('button', { name: 'Open chat' });
+    const panel = screen.getByTestId('widget-screen');
+    expect(launcher.getAttribute('aria-expanded')).toBe('false');
+    expect(panel.getAttribute('data-py-widget-panel')).toBe('closed');
+
+    await fireEvent.click(launcher);
+    expect(screen.getByRole('button', { name: 'Close chat' }).getAttribute('aria-expanded')).toBe(
+      'true'
+    );
+    expect(panel.getAttribute('data-py-widget-panel')).toBe('open');
+    expect(panel.getAttribute('role')).toBe('dialog');
+    expect(panel.style.getPropertyValue('--py-app-height')).toMatch(/px$/);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Close chat' }));
+    expect(screen.getByRole('button', { name: 'Open chat' }).getAttribute('aria-expanded')).toBe(
+      'false'
+    );
+    expect(panel.getAttribute('data-py-widget-panel')).toBe('closed');
+  });
+
+  it('closes on Escape and returns focus to the launcher', async () => {
+    render(WidgetHostHarness);
+    const launcher = screen.getByRole('button', { name: 'Open chat' });
+    await fireEvent.click(launcher);
+    expect(screen.getByTestId('widget-screen').getAttribute('data-py-widget-panel')).toBe('open');
+
+    await fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.getByTestId('widget-screen').getAttribute('data-py-widget-panel')).toBe(
+        'closed'
+      )
+    );
+    await waitFor(() => expect(document.activeElement).toBe(launcher));
+  });
+
+  it('drives the unread badge through window.__protoyardWidget.setUnread', async () => {
+    render(WidgetHostHarness);
+    expect(window.__protoyardWidget).toBeDefined();
+    expect(screen.queryByLabelText(/unread/)).toBeNull();
+
+    window.__protoyardWidget?.setUnread(3);
+    await waitFor(() => expect(screen.getByLabelText('3 unread')).toBeTruthy());
+    expect(
+      screen.getByTestId('widget-screen').ownerDocument.querySelector('[data-py-widget-badge]')
+        ?.textContent
+    ).toBe('3');
+
+    window.__protoyardWidget?.setUnread(0);
+    await waitFor(() => expect(screen.queryByLabelText(/unread/)).toBeNull());
+  });
+
+  it('renders the fictional host brand on the customer site', () => {
+    render(WidgetHostHarness);
+    expect(screen.getByText(/Northwind Outfitters \(fictional\)/)).toBeTruthy();
+    expect(document.querySelector('[data-py-host-site]')?.getAttribute('data-theme')).toBe('light');
   });
 });
 

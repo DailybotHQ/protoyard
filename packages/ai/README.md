@@ -55,33 +55,20 @@ const workspace = generateAiScenario(generateContext, AI_SCENARIO_FRAGMENTS.powe
 ```
 
 Fragments cover fresh workspaces, long histories, slow models, rate limits, model outages, safety refusals, tool failures, and approval-heavy agent plans. Compose fragments with `composeAiScenarioFragments(...)` before passing them to the generator. The output includes fixture conversations plus settings for the simulated environment, response pack and agent plan. Bump `AI_SCENARIO_GENERATOR_VERSION` if output meaning changes.
-## Voice (simulated)
+
+## Simulated voice
+
+Voice support is a lazy subpath so it does not add to the base engine entrypoint:
 
 ```ts
-import { createVoiceSession } from '@protoyard/ai/voice'; // lazy entry preferred
+import { createVoiceSession } from '@protoyard/ai/voice';
 
-const voice = createVoiceSession({
-  context: aiContext,
-  mode: 'push-to-talk', // or 'hands-free'
-  utterances: ['Summarize my pipeline'], // fictional STT scripts
-  reply: async (transcript) => {
-    const stream = engine.stream(chatId, transcript);
-    let text = '';
-    for await (const chunk of stream) text += chunk.token;
-    return text;
-  },
-});
-await voice.startListening(); // PTT press
-await voice.stopListening(); // PTT release → STT captions → reply → speak/captions
-voice.interrupt();
+const voice = createVoiceSession({ clock: aiContext.clock, onTranscript: (caption) => handleCaption(caption) });
+voice.start('push-to-talk');
+await voice.finishListening(); // Emits a deterministic scripted caption after simulated time.
 ```
 
-Default path never opens the microphone and never calls a cloud speech API. Transcripts are
-deterministic (seed + turn) and timed with the simulated clock. Assistant audio uses the
-browser's local `speechSynthesis` when available; otherwise captions only. **Captions are
-always produced** for accessibility. Optional `enableMicLevelMeter()` may call
-`getUserMedia` for a local amplitude meter only — it does not record or upload audio.
-
+Voice input is simulated from scripted captions by default. The engine does not request a microphone, record audio, or call a cloud speech service.
 ## Rich answers (safe markdown)
 
 `parseMarkdown(text)` turns simulated model output into a plain-data AST (`MdDocument`:

@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./presets": "./src/presets.ts",
     "./no-flash": "./src/no-flash.ts",
-    "./base.css": "./src/base.css"
+    "./base.css": "./src/base.css",
+    "./fonts.css": "./src/fonts.css"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

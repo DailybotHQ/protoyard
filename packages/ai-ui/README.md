@@ -48,15 +48,14 @@ The composer supports Enter to send, Shift+Enter for a newline, Escape to stop a
 
 Conversation folder controls require `folders`, `onCreateFolder`, and `onMoveToFolder` callbacks. Features without a callback are disabled. The caller supplies `onRegenerate`, `onEditMessage`, `onBranchChange`, `onFeedback`, and `onShare` only when those operations are implemented.
 
-## Voice panel (lazy)
+All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
+
+## Simulated voice mode
+
+Load the voice panel from its lazy subpath when the user opens voice mode:
 
 ```ts
-const { VoicePanel } = await import('@protoyard/ai-ui/voice');
+const { VoiceMode } = await import('@protoyard/ai-ui/voice');
 ```
 
-`VoicePanel` binds a `VoiceSession` from `@protoyard/ai`: push-to-talk hold button or
-hands-free start, interrupt, mode toggle, animated orb/waveform, and always-visible
-captions. Set `enableMicMeter` only when the prototype explicitly opts into a local
-amplitude meter (never recorded). Copy labels the experience as simulated.
-
-All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
+Pass the injected `AiClock`, scripted transcript options, the latest simulated assistant reply and an `onTranscript` handler. Captions are always visible. Browser `speechSynthesis` speaks replies locally when available; otherwise output stays muted and the reply caption remains visible. The panel does not request a microphone by default. A consumer may opt into showing the local mic level meter; enabling it asks for microphone permission and reads amplitude only with Web Audio, without recording, storing or uploading audio. Stop the meter to release its stream; component teardown also stops it.
