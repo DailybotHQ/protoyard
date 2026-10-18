@@ -59,6 +59,8 @@ html[data-py-shell] [data-py-shell-part="device"] {
   top: 0;
   left: 0;
   transform-origin: top left;
+  /* Frames may paint behind the screen (a desktop wallpaper) without escaping the stage. */
+  isolation: isolate;
 }
 html[data-py-shell] [data-py-shell-part="screen"] {
   display: block;

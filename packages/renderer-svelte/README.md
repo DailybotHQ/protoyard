@@ -62,8 +62,17 @@ width), and sets `--py-app-height` and `--py-safe-*` from `@protoyard/core` `DEV
 Viewport-preset rules step aside while a frame is shown.
 
 The frame decoration is a lazily loaded chunk registered in
-`src/shell/frames/registry.ts`. Today `phone` and `tablet` use a generic bezel; other
-shells render full-bleed until their frame ships. The app goes full-bleed when the
+`src/shell/frames/registry.ts`. Today `phone` and `tablet` use a generic bezel and
+`desktop-window` draws the app in `@protoyard/ui` WindowChrome on a theme-token wallpaper
+with a dock (mac-like) or taskbar (windows-like). `preview.chrome.os` picks the style;
+without it the visitor's OS decides. The title bar follows `document.title`, and every
+control works: minimize to the dock, restore or reopen from the dock, maximize to fill the
+stage, close and reopen. The app stays mounted while the window is minimized or closed.
+Other shells render full-bleed until their frame ships.
+
+A registry entry can reserve `screenInset` space inside the device box for its own chrome
+(the 40 px title bar), and can set `minWindowWidth`. Windows use 768 px and scale down on
+smaller desktops, while phones need the device plus its frame. The app goes full-bleed when the
 shell is `none`, inside an iframe (the gallery preview draws its own device), or when
 the window is too narrow for the device plus its frame (a real phone). The wrappers always exist, so
 changing the shell never remounts the app; without a frame they are
