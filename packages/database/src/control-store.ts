@@ -5,6 +5,7 @@ import type {
   Overrides,
   Snapshot,
   SnapshotSummary,
+  Theme,
 } from '@protoyard/core';
 import { Dexie, type Table } from 'dexie';
 import { dexieBackendOptions, resolveFactory, type StorageBackend } from './backend.ts';
@@ -34,6 +35,8 @@ export interface ControlState {
   /** Simulated sign-out (stored only while signed out). */
   signedOut: boolean;
   timelineCheckpoint: TimelineCheckpoint;
+  /** Theme Studio themes; re-validated with `ThemeSchema` on every boot. */
+  customThemes: Theme[];
 }
 
 export type ControlStateKey = keyof ControlState;
