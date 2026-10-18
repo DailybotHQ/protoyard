@@ -64,11 +64,11 @@ Each kit screen uses router `load: () => import(...)` so it is its own chunk.
 Guards stay in the main bundle (&lt; 1 KB). Initial JS gains **0 KB** of screen
 UI until a kit route opens.
 
-| Path | Screen (scaffold) | Guard |
+| Path | Screen | Guard |
 | --- | --- | --- |
 | `/sign-in`, `/sign-up` | Sign in / up | guest-only |
 | `/auth/magic`, `/auth/reset`, `/auth/verify` | Magic link, reset, verify | — |
-| `/auth/mfa` | MFA challenge | `requireAuth` |
+| `/auth/mfa` | MFA challenge (pre-session) | — |
 | `/oauth/consent` | Simulated provider consent | — |
 | `/inbox` | Simulated inbox with read, archive and action links | `requireAuth` |
 | `/onboarding` | Onboarding wizard | `requireAuth` |
@@ -85,8 +85,10 @@ prototype's hash routes.
 | `/inbox` | Simulated inbox | `requireAuth` |
 | `/onboarding` | Onboarding wizard (**working**, see below) | `requireAuth` |
 
-The other screens are still accessible placeholders; their full UI lands in later
-PLAN_002 tasks. Routes and guards are real today.
+Sign-in, sign-up, magic-link, MFA, reset and email-verification routes are
+working simulated flows. Password sign-in checks MFA before opening a session;
+magic links consume the inbox token and route MFA-enrolled accounts to the
+challenge. OAuth consent remains a placeholder until its UI task lands.
 
 ## Onboarding wizard
 
