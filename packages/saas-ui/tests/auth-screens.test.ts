@@ -223,7 +223,9 @@ describe('auth screens', () => {
     cleanup();
     render(AuthHarness, { props: { runtime, screen: 'oauth-consent' } });
     await submit('Deny');
-    expect(await screen.findByRole('status')).toBeTruthy();
+    expect(
+      await screen.findByText('Access was denied. No account changes were made.')
+    ).toBeTruthy();
     await waitFor(() => expect(location.hash).toBe('#/sign-in'), { timeout: 2000 });
     expect(runtime.session.isSignedIn()).toBe(false);
   });

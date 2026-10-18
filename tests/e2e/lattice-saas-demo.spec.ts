@@ -36,6 +36,7 @@ interface Table<T> {
 interface Runtime {
   db: { table<T>(name: string): Table<T> };
   clock: { now(): Date };
+  session: { isSignedIn(): boolean };
 }
 
 declare global {
@@ -143,7 +144,7 @@ test.describe('Lattice flagship SaaS journeys', () => {
     await checkAuthA11y(page, testInfo, '[data-testid="auth-sign-up"]', 'lattice-sign-up');
     await page.getByLabel('Name').fill('Jordan Example');
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill('throwaway-demo-password');
+    await page.getByLabel('Password').fill('demo-password');
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByTestId('auth-handoff')).toContainText('Check your simulated inbox');
 
@@ -192,8 +193,12 @@ test.describe('Lattice flagship SaaS journeys', () => {
     await page.goto(`${prototypeUrl(LATTICE_SAAS_DEMO)}?scenario=signed-out${href}`);
     await checkAuthA11y(page, testInfo, '[data-testid="oauth-consent"]', 'lattice-sso-deny');
     await page.getByRole('button', { name: 'Deny' }).click();
-    await expect(page.getByRole('status')).toContainText('Access was denied');
+    await expect(page.getByRole('status').filter({ hasText: 'Access was denied' })).toBeVisible();
     await expect(page).toHaveURL(/#\/sign-in$/, { timeout: 10_000 });
+    await expect(page.getByTestId('auth-sign-in')).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => window.__protoyard?.session.isSignedIn() ?? true))
+      .toBe(false);
   });
 
   test('magic-link inbox action signs in to the existing account', async ({ page }, testInfo) => {
@@ -210,7 +215,7 @@ test.describe('Lattice flagship SaaS journeys', () => {
     if (!href) throw new Error('The simulated inbox has no magic-link action.');
     await page.goto(`${prototypeUrl(LATTICE_SAAS_DEMO)}?scenario=trial-ending${href}`);
     await expect(page).toHaveURL(/#\/app$/, { timeout: 10_000 });
-    await expect(page.getByRole('link', { name: 'Projects' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Projects', exact: true })).toBeVisible();
   });
 
   test('MFA challenge completes password sign-in with the simulated authenticator code', async ({

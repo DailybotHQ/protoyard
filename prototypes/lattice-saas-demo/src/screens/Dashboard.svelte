@@ -129,7 +129,7 @@ const firstName = $derived(principal.current?.persona.name.split(' ')[0] ?? 'the
     </div>
     <div class="rounded-3xl border border-border bg-surface p-3 shadow-xl shadow-primary/5">
       <div class="rounded-2xl bg-muted/50 p-5 sm:p-7">
-        <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-medium text-muted-foreground">NORTHSTAR STUDIO</p><h2 class="mt-1 text-lg font-semibold">Team overview</h2></div><span class="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700">On track</span></div>
+        <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-medium text-muted-foreground">NORTHSTAR STUDIO</p><h2 class="mt-1 text-lg font-semibold">Team overview</h2></div><span class="rounded-full bg-success px-3 py-1 text-xs font-medium text-success-foreground">On track</span></div>
         <div class="mt-6 grid grid-cols-3 gap-3">
           <div class="rounded-xl border border-border bg-surface p-3"><p class="text-xs text-muted-foreground">Projects</p><p class="mt-2 text-2xl font-semibold">04</p></div>
           <div class="rounded-xl border border-border bg-surface p-3"><p class="text-xs text-muted-foreground">In motion</p><p class="mt-2 text-2xl font-semibold">02</p></div>
