@@ -26,6 +26,52 @@ every file in `artifacts/<slug>/dist`. DevTools excluded (the default).
 - Each artifact contains only its own prototype's code. `protoyard export`
   checks this.
 
+## Shells
+
+Method: `pnpm protoyard build <slug>` at revision `d17bf47` (2026-10-18, same machine,
+Node 26.11.1, pnpm 11.23.0, Vite 8.3.4 / Rolldown 1.2.13). Each file is gzipped at level 9
+with Node's zlib (no file name in the header, so a few bytes smaller than `gzip -9`).
+"Initial" is the entry script plus everything it imports statically, which is what a page
+open downloads. `pnpm protoyard budget crm-demo` reports 202.03 KiB (206,881 B) on the
+same build, which agrees. The comparison builds were local edits that were reverted
+afterwards: `Root.svelte` without `ShellHost`, then `ShellHost` with an empty frame
+registry.
+
+| Prototype (its shell) | No `ShellHost` | `ShellHost`, no frames | Current (7 frames registered) |
+| --- | ---: | ---: | ---: |
+| `crm-demo` (none) | 164,895 B | 166,684 B (+1,789) | 206,868 B (+41,973) |
+| `mobile-banking-demo` (phone) | 197,202 B | 198,655 B (+1,453) | 204,170 B (+6,968) |
+| `support-widget-demo` (widget-host) | 143,567 B | 145,148 B (+1,581) | 150,532 B (+6,965) |
+
+- **Every prototype stays under the 250 KB initial-JS budget.**
+- **The shell host itself costs 1.5–1.8 KB gzip.** That is just over the 1.5 KB target the
+  shells work set for `crm-demo` (1,789 B) and `support-widget-demo` (1,581 B).
+- **Registering the frames costs far more than their own chunks**, and it is not met by
+  the target. No frame chunk is preloaded, but the bundler places code that the lazy
+  frames share with the rest of `@protoyard/ui` (WindowChrome and BrowserChrome are both
+  in the initial chunk of all three builds) into chunks the entry loads. On `crm-demo`, which
+  also has lazy routes, the shared-chunk shift is about 40 KB. An experiment that marked
+  only CSS as side-effectful in `@protoyard/ui` cut `crm-demo` to 175,875 B, but made
+  `mobile-banking-demo` slightly larger (205,064 B in 8 files), so the fix needs its own
+  task (chunking rules in the Vite config factory, or how ui declares side effects). It is
+  not done.
+
+Lazy frame chunks (`crm-demo`; the other two builds are within ±60 B). A frame's cost
+when it is first shown is its chunk plus any lazy chunk it imports:
+
+| Shell | Frame chunk | With its lazy imports |
+| --- | ---: | ---: |
+| `phone` (`PhoneFrame`) | 1,519 B | 3,318 B (+ `StatusBar`) |
+| `tablet` (`TabletFrame`) | 1,136 B | 2,935 B (+ `StatusBar`) |
+| `desktop-window` (`DesktopWindowFrame`) | 1,468 B | 1,468 B |
+| `browser` (`BrowserFrame`) | 762 B | 762 B |
+| `widget-host` (`WidgetHostFrame`) | 3,565 B | 3,565 B |
+| `extension-popup` (`ExtensionPopupFrame`) | 1,799 B | 1,799 B |
+| `side-panel` (`SidePanelFrame`) | 2,426 B | 2,426 B, plus one host chunk: 1,144 B chat workspace, 976 B code editor, 769 B design canvas |
+
+`desktop-window`, `browser` and `extension-popup` look small only because their chrome
+components already sit in the initial chunk (see above).
+
 ## Versioned budgets
 
 Workspace targets live in the root `protoyard.budgets.json`, separate from

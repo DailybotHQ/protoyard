@@ -122,6 +122,7 @@ read `style` yet, so setting it does not change the rendering.
 | Reduced motion | `true` / `false` | Falls back to the OS `prefers-reduced-motion`. `base.css` disables transitions and animations when either the OS or `data-py-motion="reduce"` asks for it. |
 | Density | `theme.density`, a number 0.75–1.25 (default 1) | Part of the theme. The renderer does not offer a separate density toggle; `applyAppearance(el, { density: 'compact' \| 'comfortable' \| number })` accepts one if you call it yourself. |
 | Viewport | `desktop`, `tablet`, `iphone`, `android`, `custom` | Not a theme setting, but resolved the same way. Narrows the app column (`data-py-viewport`); media queries still follow the real window. |
+| Shell, device, orientation | `auto`, `none`, `phone`, `tablet`, `desktop-window`, `browser`, `widget-host`, `extension-popup`, `side-panel`; a catalog device; `portrait` / `landscape` | Not theme settings, but resolved the same way (override › scenario › manifest `preview`). The frame drawn around the app follows the theme and mode. See [SHELLS.md](SHELLS.md). |
 
 ## Precedence
 
