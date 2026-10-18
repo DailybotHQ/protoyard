@@ -44,6 +44,15 @@ describe('mountPrototype', () => {
     return { mounted, runtime, target };
   }
 
+  it('renders the app inside the scroll root, with overlays outside it', async () => {
+    const { target } = await boot();
+    const scrollRoot = target.querySelector('[data-py-scroll-root]');
+    expect(scrollRoot?.parentElement).toBe(target);
+    expect(scrollRoot?.contains(screen.getByTestId('who'))).toBe(true);
+    // Fixed overlays (toasts, badge, progress) stay siblings, so the scroll root never moves them.
+    expect(target.querySelectorAll(':scope > [data-py-scroll-root]')).toHaveLength(1);
+  });
+
   it('seeds, mounts the app with reactive bindings and applies the appearance', async () => {
     const { runtime } = await boot();
     expect(runtime.scenarios.active()?.scenario.id).toBe('empty');

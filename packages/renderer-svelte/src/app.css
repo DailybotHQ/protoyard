@@ -13,17 +13,52 @@
 @source "../../devtools/src";
 @source "./";
 
-/* Viewport presets narrow the app column (media queries still follow the real window). */
+/*
+ * The app's scroll root. With the desktop preset it is `display: contents`, so the
+ * document scrolls exactly as before.
+ */
+[data-py-scroll-root] {
+  display: contents;
+}
+
+/*
+ * Viewport presets narrow the app column (media queries still follow the real window).
+ * #app is a viewport-tall box that never scrolls; `transform` makes it the containing
+ * block for fixed descendants (bottom nav, toasts, demo badge), so they stay pinned to
+ * the visible column. The app scrolls inside [data-py-scroll-root] instead, which does
+ * not move those fixed descendants because their containing block is its ancestor.
+ */
+html[data-py-viewport="iphone"],
+html[data-py-viewport="android"],
+html[data-py-viewport="tablet"],
+html[data-py-viewport="iphone"] body,
+html[data-py-viewport="android"] body,
+html[data-py-viewport="tablet"] body {
+  height: 100%;
+  overflow: hidden;
+}
 html[data-py-viewport="iphone"] #app,
 html[data-py-viewport="android"] #app,
 html[data-py-viewport="tablet"] #app {
+  display: flex;
+  flex-direction: column;
   margin-inline: auto;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
   box-shadow:
     0 0 0 1px var(--color-border),
     0 20px 60px -20px var(--color-shadow);
-  overflow-x: hidden;
   transform: translateZ(0);
+}
+html[data-py-viewport="iphone"] [data-py-scroll-root],
+html[data-py-viewport="android"] [data-py-scroll-root],
+html[data-py-viewport="tablet"] [data-py-scroll-root] {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 html[data-py-viewport="iphone"] #app {
   max-width: 390px;

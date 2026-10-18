@@ -120,6 +120,9 @@ export function createRouter(
       } catch {
         // happy-dom and older engines may not implement scrollTo options.
       }
+      // Under viewport presets the app scrolls inside the renderer's scroll root, not the window.
+      const scrollRoot = document.querySelector<HTMLElement>('[data-py-scroll-root]');
+      if (scrollRoot) scrollRoot.scrollTop = 0;
     }
   };
 
