@@ -3,6 +3,16 @@ export {
   MAX_INSPECTOR_PAGE,
   type ProtoyardRuntime,
 } from './create-runtime.ts';
+export {
+  IDENTITY_TABLES,
+  type IdentityController,
+  type IdentityOps,
+  IdentityValidationError,
+  type IdentityWriteOptions,
+  type MembershipInput,
+  type OrganizationInput,
+  type PersonaInput,
+} from './identity.ts';
 export type { MatchMedia, RuntimeOptions } from './options.ts';
 export { InvalidOverrideError } from './overrides.ts';
 export {

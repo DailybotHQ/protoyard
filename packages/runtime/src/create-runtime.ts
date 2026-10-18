@@ -11,6 +11,7 @@ import {
   type PrototypeDatabase,
   sandboxNamespace,
 } from '@protoyard/database';
+import { createIdentityController, type IdentityController } from './identity.ts';
 import { createKernel, type Kernel } from './kernel.ts';
 import type { RuntimeOptions } from './options.ts';
 import { createEnvironmentFacade, createOverrideController } from './overrides.ts';
@@ -24,6 +25,8 @@ export const MAX_INSPECTOR_PAGE = 500;
 export interface ProtoyardRuntime extends PrototypeRuntime<PrototypeDatabase> {
   readonly scenarios: PrototypeRuntime['scenarios'] & ScenarioControllerExtras;
   readonly snapshots: PrototypeRuntime['snapshots'] & SnapshotControllerExtras;
+  /** Runtime-created personas, organizations and memberships (sign-up, invites, workspaces). */
+  readonly identity: IdentityController;
   /** Present when running in a sandbox (`?sandbox=`). */
   readonly sandbox?: string;
   discardSandbox(): Promise<void>;
@@ -104,6 +107,7 @@ export async function createPrototypeRuntime(
     db: kernel.db,
     scenarios,
     session: createSessionController(kernel),
+    identity: createIdentityController(kernel),
     clock: kernel.clock,
     theme: createThemeController(kernel),
     environment: createEnvironmentFacade(kernel),

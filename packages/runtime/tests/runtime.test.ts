@@ -24,6 +24,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
   createPrototypeRuntime,
+  IdentityValidationError,
   type MatchMedia,
   type ProtoyardRuntime,
   type RuntimeOptions,
@@ -963,5 +964,120 @@ describe('simulated sign-in (signed out sessions)', () => {
     await runtime.session.signIn('user_0001');
     expect(runtime.overrides.get().actorId).toBeUndefined();
     expect(runtime.session.principal()?.persona.id).toBe('user_0001');
+  });
+});
+
+describe('runtime identity writes', () => {
+  async function signUp(runtime: ProtoyardRuntime) {
+    return runtime.identity.write(
+      async (ops) => {
+        const organization = await ops.putOrganization({ name: 'Northwind Example' });
+        const persona = await ops.putPersona({
+          name: 'Robin Vega',
+          email: 'robin.vega@example.com',
+          onboardingComplete: false,
+        });
+        const membership = await ops.putMembership({
+          personaId: persona.id,
+          organizationId: organization.id,
+          role: 'owner',
+        });
+        await runtime.db.rows('projects').add({
+          id: 'project_signup',
+          name: 'First project',
+          organizationId: organization.id,
+          ownerId: persona.id,
+          createdAt: runtime.clock.now().toISOString(),
+        });
+        return { organization, persona, membership };
+      },
+      { tables: ['projects'] }
+    );
+  }
+
+  it('creates persona, organization and membership in one transaction and signs in as them', async () => {
+    const store = backend();
+    const runtime = await start(createTasksDefinition(), store);
+    await runtime.scenarios.ensureSeeded();
+    await runtime.session.signOut();
+    const { organization, persona, membership } = await signUp(runtime);
+
+    // Validated with the core schemas: ids, timestamps and defaults are filled.
+    expect(persona.id).toMatch(/^user_/);
+    expect(persona.joinedAt).toBe(runtime.clock.now().toISOString());
+    expect(persona.locale).toBe('en-US');
+    expect(organization.plan).toBe('free');
+    expect(membership.capabilities).toEqual([]);
+    // The session already sees them (refresh is part of write).
+    expect(runtime.session.personas().some((p) => p.id === persona.id)).toBe(true);
+    expect(runtime.session.principal()).toBeNull();
+
+    await runtime.session.signIn(persona.id);
+    expect(runtime.session.principal()?.persona.id).toBe(persona.id);
+    expect(runtime.session.principal()?.organization?.id).toBe(organization.id);
+    expect(runtime.session.principal()?.role).toBe('owner');
+    runtime.close();
+
+    const reopened = await start(createTasksDefinition(), store);
+    await reopened.scenarios.ensureSeeded();
+    expect(reopened.session.principal()?.persona.id).toBe(persona.id);
+    expect(reopened.session.principal()?.organization?.name).toBe('Northwind Example');
+    expect(await reopened.db.rows('projects').get('project_signup')).toBeDefined();
+  });
+
+  it('survives a snapshot round-trip after the scenario is reloaded', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const { persona, organization } = await signUp(runtime);
+    await runtime.session.switchActor(persona.id);
+    const saved = await runtime.snapshots.save({ name: 'After sign-up' });
+    const { json } = await runtime.snapshots.exportJson(saved.id);
+
+    await runtime.scenarios.load('active-month');
+    expect(runtime.session.personas().some((p) => p.id === persona.id)).toBe(false);
+
+    await runtime.snapshots.restore(saved.id);
+    expect(runtime.session.principal()?.persona.id).toBe(persona.id);
+    expect(runtime.session.organizations().some((o) => o.id === organization.id)).toBe(true);
+
+    await runtime.scenarios.load('active-month');
+    await runtime.snapshots.importJson(json, { restore: true });
+    expect(runtime.session.principal()?.persona.id).toBe(persona.id);
+  });
+
+  it('validates before writing and rolls back the whole transaction on failure', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const before = await dumpTables(runtime.db);
+
+    const invalid = runtime.identity.write((ops) => ops.putPersona({ name: '' }));
+    await expect(invalid).rejects.toBeInstanceOf(IdentityValidationError);
+    await expect(invalid).rejects.toMatchObject({ issues: { name: expect.any(String) } });
+
+    const orphan = runtime.identity.write(async (ops) => {
+      const organization = await ops.putOrganization({ name: 'Rolled back' });
+      return ops.putMembership({
+        personaId: 'nobody',
+        organizationId: organization.id,
+        role: 'member',
+      });
+    });
+    await expect(orphan).rejects.toMatchObject({ issues: { personaId: expect.any(String) } });
+
+    const actor = runtime.session.principal();
+    const duplicate = runtime.identity.write((ops) =>
+      ops.putMembership({
+        personaId: actor?.persona.id as string,
+        organizationId: actor?.organization?.id as string,
+        role: 'viewer',
+      })
+    );
+    await expect(duplicate).rejects.toMatchObject({
+      issues: { organizationId: expect.stringMatching(/already belongs/) },
+    });
+    await expect(runtime.identity.write(() => undefined, { tables: ['missing'] })).rejects.toThrow(
+      /Unknown table "missing"/
+    );
+    expect(await dumpTables(runtime.db)).toEqual(before);
   });
 });
