@@ -16,6 +16,7 @@ exporting, previewing and putting it on a host. Design decisions: ADR-009
 | `pnpm protoyard publish <slug> --provider static` | Build, isolation check, ZIP, upload instructions | No |
 | `pnpm protoyard publish <slug> --provider <p> --dry-run` | Build, verify, print the exact deploy command | No |
 | `pnpm protoyard publish <slug> --provider <p>` | Build, verify, deploy, print the provider's URL | Yes |
+| `pnpm protoyard publish <slug> <slug>… \| --all \| --tag <tag> --provider <p> [--dry-run]` | The same for several prototypes, one after another, with one summary | Only without `--dry-run` |
 
 `pnpm protoyard build --all` builds every prototype one after another (for CI
 smoke runs).
@@ -204,6 +205,31 @@ for you. `pnpm protoyard doctor` shows which ones are available; add
 | `--preview` | Preview deployment (the default) |
 | `--production` | Production deployment. Requires `--yes` (or `CI=1`), unless combined with `--dry-run`. |
 | `--dry-run` | Build and verify, print the exact command, contact nobody |
+
+### Publishing several prototypes
+
+Pass several slugs, `--all` (every prototype) or `--tag <tag>` (every
+prototype with that tag). Templates are never included. Each prototype is
+built, checked for isolation and handed to the provider in turn, exactly as a
+single publish, and the batch continues past a failure:
+
+```bash
+pnpm protoyard publish --all --provider cloudflare --dry-run
+pnpm protoyard publish crm-demo mobile-banking-demo --provider static
+pnpm protoyard publish --tag review --provider cloudflare            # real deploys: your credentials
+```
+
+The output is one line per prototype (time, then the URL the provider
+printed, the command a dry run would run, the ZIP, or the error), and the
+exit code is `1` if any prototype failed. With `--json`, `data` is
+`{ provider, target, dryRun, total, failed, results[] }`, with one
+`{ slug, ok, durationMs, project, kind, url | command | zip, error }` entry
+per prototype.
+
+Unknown slugs and tags fail before anything is built. Each prototype uses its
+default project (`protoyard-<slug>`), so `--project` is refused when there is
+more than one target. `--production` still requires `--yes` and is checked
+once, up front. One slug keeps the single-publish output.
 
 ### Cloudflare Pages
 

@@ -27,6 +27,7 @@ Examples:
   $ pnpm protoyard validate my-crm --build
   $ pnpm protoyard export my-crm --base ./
   $ pnpm protoyard publish my-crm --provider cloudflare --dry-run
+  $ pnpm protoyard publish --all --provider cloudflare --dry-run
   $ pnpm protoyard affected --since HEAD~1 --format csv
   $ pnpm protoyard list --json | jq '.data.entries[].slug'
 
@@ -172,8 +173,10 @@ export function createProgram(env: RunnerEnv): Command {
   buildOptions(
     program
       .command('publish')
-      .description('build, verify and deploy a prototype to a static host')
-      .argument('<slug>')
+      .description('build, verify and deploy one or many prototypes to a static host')
+      .argument('[slugs...]', 'one or more prototypes (or use --all / --tag)')
+      .option('--all', 'every prototype, one after another')
+      .option('--tag <tag>', 'every prototype with this tag')
       .addOption(
         new Option('--provider <id>', 'hosting provider')
           .choices([...PROVIDER_IDS])
