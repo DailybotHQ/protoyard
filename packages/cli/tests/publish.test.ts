@@ -11,6 +11,7 @@ import {
   isCloudflareProjectAlreadyExists,
   parseCloudflareOutput,
   parseCloudflareProjectList,
+  validateCloudflareBranch,
   validateCloudflareProject,
 } from '../src/publish/cloudflare.ts';
 import { createProvider } from '../src/publish/index.ts';
@@ -27,6 +28,28 @@ const input = {
 };
 
 describe('publish adapters', () => {
+  it('uses a named branch for Cloudflare preview argv', () => {
+    expect(cloudflareArgs({ ...input, branch: 'pr-42' })).toContain('pr-42');
+    expect(cloudflareArgs({ ...input, branch: 'pr-42' })).toEqual([
+      'pages',
+      'deploy',
+      '/w/artifacts/crm/dist',
+      '--project-name',
+      'protoyard-crm',
+      '--branch',
+      'pr-42',
+      '--commit-dirty=true',
+    ]);
+    expect(cloudflareArgs({ ...input, target: 'production', branch: 'pr-42' })).toContain('main');
+  });
+
+  it('validates Cloudflare preview branch slugs', () => {
+    expect(validateCloudflareBranch('pr-42')).toBeNull();
+    for (const bad of ['main', 'Upper', '-lead', 'trail-', 'a_b', 'x'.repeat(64)]) {
+      expect(validateCloudflareBranch(bad), bad).not.toBeNull();
+    }
+  });
+
   it('builds exact provider argv arrays', () => {
     expect(cloudflareArgs(input)).toEqual([
       'pages',
@@ -338,6 +361,70 @@ describe('protoyard publish --dry-run', () => {
     expect(result.files).toBeGreaterThan(0);
     expect(result.bytes).toBeGreaterThan(0);
   }, 60_000);
+
+  it('prints a named Cloudflare branch in the dry-run command', async () => {
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'publish',
+      'dry-app',
+      '--provider',
+      'cloudflare',
+      '--branch',
+      'pr-42',
+      '--dry-run',
+    ]);
+    expect(run.code).toBe(0);
+    const { data } = run.json<{ data: { command: string[] } }>();
+    expect(
+      data.command.slice(data.command.indexOf('--branch'), data.command.indexOf('--branch') + 2)
+    ).toEqual(['--branch', 'pr-42']);
+  }, 60_000);
+
+  it('rejects invalid, production, and unsupported branch options', async () => {
+    const runPublish = (provider: string, ...extra: string[]) =>
+      cli([
+        '--root',
+        ws.root,
+        '--json',
+        'publish',
+        'dry-app',
+        '--provider',
+        provider,
+        '--branch',
+        'Bad_Name',
+        '--dry-run',
+        ...extra,
+      ]);
+    const invalid = await runPublish('cloudflare');
+    expect(invalid.code).toBe(2);
+    expect(invalid.json<{ error: { message: string } }>().error.message).toContain('lowercase');
+
+    const production = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'publish',
+      'dry-app',
+      '--provider',
+      'cloudflare',
+      '--branch',
+      'pr-42',
+      '--production',
+      '--dry-run',
+    ]);
+    expect(production.code).toBe(2);
+    expect(production.json<{ error: { message: string } }>().error.message).toContain('preview');
+
+    for (const provider of ['netlify', 'vercel']) {
+      const unsupported = await runPublish(provider);
+      expect(unsupported.code).toBe(2);
+      expect(unsupported.json<{ error: { message: string } }>().error.message).toContain(
+        'not supported by the'
+      );
+    }
+  });
 
   it('requires --yes for production deploys and rejects bad project names', async () => {
     const prod = await cli([

@@ -7,7 +7,8 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./packs": "./src/packs.ts"
+    "./packs": "./src/packs.ts",
+    "./scenarios": "./src/scenarios.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

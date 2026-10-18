@@ -173,9 +173,14 @@ describe('DevTools panel', () => {
     await settle();
     await fireEvent.click(within(panel).getByRole('button', { name: 'Clear 2 sandboxes' }));
     await fireEvent.click(within(panel).getByRole('button', { name: 'Delete sandboxes' }));
-    await settle();
-    const left = (await indexedDB.databases()).map((d) => d.name).filter((n) => n?.includes('~'));
-    expect(left).toEqual([]);
+    // Deletions finish asynchronously; under load they can outlast settle(), so poll.
+    await vi.waitFor(
+      async () => {
+        const left = (await indexedDB.databases()).map((d) => d.name).filter((n) => n?.includes('~'));
+        expect(left).toEqual([]);
+      },
+      { timeout: 5000, interval: 25 }
+    );
   });
 
   it('lists mock API requests with status chips and expandable previews', async () => {

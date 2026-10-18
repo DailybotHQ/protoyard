@@ -92,6 +92,11 @@ and full numbers are in `docs/PERFORMANCE.md`.
 - **theme**: `appearance()` resolves theme, mode, reduced motion and viewport through
   override → persona preference → scenario → manifest default, each with its `source`.
   `resolvedMode` follows `prefers-color-scheme` live. `setPreference` is stored per persona.
+  It also resolves the presentation `shell`, `device` and `orientation` (ADR-016) through
+  override → scenario → `preview.*`; `auto` becomes `phone` for mobile prototypes and `none`
+  otherwise, and a device or orientation that cannot apply (a phone in a desktop window)
+  falls back to the default with source `default`. `setOverride({ shell, device,
+  orientation })` persists in the control DB only, and `?shell=` applies as an override.
 - **environment**: effective state = defaults + scenario environment + org subscription and
   feature flags + `overrides.environment`. `environment.set()` / `reset()` write overrides,
   so they persist and are reversible.
@@ -119,4 +124,4 @@ transactions: await only the provided context or Dexie calls there, never `fetch
 `pnpm vitest run packages/runtime` uses the fixture in `tests/fixtures/tasks-prototype.ts`
 and covers determinism, integrity across all presets, permissions, non-destructive
 overrides, snapshot round-trips and rejections, v1→v2 migration, appearance isolation,
-idempotent advance (7×1 == 1×7), cross-prototype isolation and reopen safety.
+shell precedence/persistence, idempotent advance (7×1 == 1×7), cross-prototype isolation and reopen safety.

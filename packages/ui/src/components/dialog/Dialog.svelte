@@ -50,7 +50,7 @@ const widths = { sm: 'sm:max-w-sm', md: 'sm:max-w-lg', lg: 'sm:max-w-2xl', xl: '
     <DialogPrimitive.Content
       bind:ref
       class={cn(
-        'fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col',
+        'fixed top-1/2 left-1/2 z-50 flex max-h-[calc(var(--py-app-height)-2rem)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col',
         'rounded-xl border border-border bg-elevated text-foreground shadow-float outline-none ui-anim-pop',
         widths[size],
         className

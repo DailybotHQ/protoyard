@@ -9,17 +9,17 @@ Framework-agnostic: it depends only on `@protoyard/core` and zod and never impor
 
 ## Status
 
-Implemented: the blueprint schema (`src/schema.ts`) and its JSON Schema. The derivations are
-added by the next PLAN_002 tasks:
+Implemented: the blueprint schema (`src/schema.ts` + JSON Schema) and storage derivation
+(`src/storage.ts`). Remaining derivations land in later PLAN_002 tasks:
 
-| Planned module | Derives |
-| --- | --- |
-| storage | Dexie store strings and integrity rules |
-| migrations | the next appended database version from a blueprint change |
-| validation | create and update zod input schemas per entity |
-| policy | role capabilities (`<entity>:<action>`) and record rules |
-| generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) |
-| services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` |
+| Module | Derives | Status |
+| --- | --- | --- |
+| storage | Dexie store strings and integrity rules | done |
+| migrations | the next appended database version from a blueprint change | planned |
+| validation | create and update zod input schemas per entity | planned |
+| policy | role capabilities (`<entity>:<action>`) and record rules | planned |
+| generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | planned |
+| services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | planned |
 
 ## The schema
 
@@ -67,6 +67,34 @@ pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/
 **Size:** measured with esbuild (minified, zod external) and gzip -9: about 3.0 KB for
 parsing (`parseBlueprint`, `entityTable`) and 3.2 KB for the whole module including
 `blueprintJsonSchema`, which tree-shakes away when unused.
+
+## Storage derivation
+
+```ts
+import { deriveStores, deriveIntegrity, parseBlueprint } from '@protoyard/blueprint';
+
+const blueprint = parseBlueprint(JSON.parse(text));
+const stores = deriveStores(blueprint);
+// { customers: 'id, *tags, name, createdAt, updatedAt', supportTickets: 'id, customerId, …', … }
+const integrity = deriveIntegrity(blueprint);
+// { relations: { supportTickets: { customerId: 'customers', assigneeId: 'py_personas' } },
+//   timestamps: { supportTickets: ['createdAt', 'updatedAt', 'dueOn', 'deletedAt'] } }
+```
+
+`deriveStores` is deterministic (same blueprint → byte-identical JSON) and matches what
+`PrototypeDatabase` accepts as Dexie store strings:
+
+- every table starts with `id`
+- relation `one` → indexed `<field>Id`; `many` → multi-entry `*<field>Ids`
+- persona → indexed `<field>Id` (integrity target `py_personas`)
+- tags → multi-entry `*<field>`; file fields → `<field>Id` / `*<field>Ids`
+- `indexes`, `titleField` and `defaultSort` add plain indexes when needed
+- `createdAt` / `updatedAt` always; `deletedAt` when `features.softDelete`
+- when any entity enables `audit` / `notifications` / `files`, shared domain tables
+  `auditEntries`, `notifications` and `files` are appended (not `py_*`)
+
+`deriveIntegrity` feeds `validateWorld` from `@protoyard/scenarios`: dangling foreign keys
+and out-of-range timestamps fail the scenario load.
 
 ## Tests
 

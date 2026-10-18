@@ -15,9 +15,9 @@
 @theme inline {
   --color-background: var(--py-background);
   --color-foreground: var(--py-foreground);
-  --color-surface: var(--py-surface);
+  --color-surface: var(--py-surface-fill, var(--py-surface));
   --color-surface-foreground: var(--py-surface-foreground);
-  --color-elevated: var(--py-elevated);
+  --color-elevated: var(--py-elevated-fill, var(--py-elevated));
   --color-muted: var(--py-muted);
   --color-muted-foreground: var(--py-muted-foreground);
   --color-border: var(--py-border);
@@ -51,22 +51,57 @@
   --color-primary-hover: var(--py-primary-hover);
   --color-destructive-hover: var(--py-destructive-hover);
 
-  --radius-xs: calc(var(--py-radius) - 6px);
-  --radius-sm: calc(var(--py-radius) - 4px);
-  --radius-md: calc(var(--py-radius) - 2px);
+  --radius-xs: calc(var(--py-radius) - var(--py-radius-step-6, 6px));
+  --radius-sm: calc(var(--py-radius) - var(--py-radius-step-4, 4px));
+  --radius-md: calc(var(--py-radius) - var(--py-radius-step-2, 2px));
   --radius-lg: var(--py-radius);
-  --radius-xl: calc(var(--py-radius) + 4px);
-  --radius-2xl: calc(var(--py-radius) + 8px);
+  --radius-xl: calc(var(--py-radius) + var(--py-radius-step-4, 4px));
+  --radius-2xl: calc(
+    var(--py-radius) +
+    var(--py-radius-step-6, 6px) +
+    var(--py-radius-step-2, 2px)
+  );
 
   --font-sans: var(--py-font-sans);
   --font-heading: var(--py-font-heading);
   --font-mono: var(--py-font-mono);
+  --font-weight-normal: var(--py-font-weight-body, 400);
+  --font-weight-medium: var(--py-font-weight-medium, 500);
+  --font-weight-semibold: var(--py-font-weight-heading, 600);
+  --font-weight-bold: var(--py-font-weight-bold, 700);
+  --tracking-body: var(--py-letter-spacing-body, 0);
+  --tracking-heading: var(--py-letter-spacing-heading, 0);
+
+  --text-xs: var(--py-font-size-xs, 0.75rem);
+  --text-sm: var(--py-font-size-sm, 0.875rem);
+  --text-base: var(--py-font-size-base, 1rem);
+  --text-lg: var(--py-font-size-lg, 1.125rem);
+  --text-xl: var(--py-font-size-xl, 1.25rem);
+  --text-2xl: var(--py-font-size-2xl, 1.5rem);
+  --text-3xl: var(--py-font-size-3xl, 1.875rem);
+  --text-4xl: var(--py-font-size-4xl, 2.25rem);
+  --text-5xl: var(--py-font-size-5xl, 3rem);
+  --text-6xl: var(--py-font-size-6xl, 3.75rem);
+  --text-7xl: var(--py-font-size-7xl, 4.5rem);
+  --text-8xl: var(--py-font-size-8xl, 6rem);
+  --text-9xl: var(--py-font-size-9xl, 8rem);
 
   /* Density scales the whole spacing system (compact 0.875 … comfortable 1.125). */
   --spacing: calc(0.25rem * var(--py-density));
 
-  --shadow-soft: 0 1px 2px 0 var(--py-shadow), 0 1px 3px 0 var(--py-shadow);
-  --shadow-float: 0 10px 30px -8px var(--py-shadow), 0 4px 10px -4px var(--py-shadow);
+  --default-border-width: var(--py-border-width, 1px);
+  --duration-fast: var(--py-motion-fast, 150ms);
+  --duration-base: var(--py-motion-base, 200ms);
+  --duration-slow: var(--py-motion-slow, 300ms);
+  --default-transition-duration: var(--py-motion-base, 200ms);
+  --default-transition-timing-function: var(--py-motion-easing, cubic-bezier(0.4, 0, 0.2, 1));
+
+  --shadow-soft: var(--py-shadow-soft, 0 1px 2px 0 var(--py-shadow), 0 1px 3px 0 var(--py-shadow));
+  --shadow-float: var(
+    --py-shadow-float,
+    0 10px 30px -8px var(--py-shadow),
+    0 4px 10px -4px var(--py-shadow)
+  );
 }
 
 @layer base {
@@ -171,6 +206,8 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-weight: var(--py-font-weight-body, 400);
+    letter-spacing: var(--py-letter-spacing-body, 0);
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -182,6 +219,8 @@
   h3,
   h4 {
     font-family: var(--font-heading);
+    font-weight: var(--py-font-weight-heading, 600);
+    letter-spacing: var(--py-letter-spacing-heading, 0);
     text-wrap: balance;
   }
 
@@ -217,6 +256,10 @@
   *,
   ::before,
   ::after {
+    --py-motion-fast: 0ms !important;
+    --py-motion-base: 0ms !important;
+    --py-motion-slow: 0ms !important;
+    --py-motion-easing: linear !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -232,6 +275,27 @@
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
+}
+
+/* Glass is progressive enhancement: browsers without backdrop-filter keep solid fills. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  [data-py-surface="glass"] {
+    --py-surface-fill: color-mix(
+      in srgb,
+      var(--py-surface) var(--py-glass-opacity, 82%),
+      transparent
+    );
+    --py-elevated-fill: color-mix(
+      in srgb,
+      var(--py-elevated) var(--py-glass-opacity, 82%),
+      transparent
+    );
+  }
+
+  [data-py-surface="glass"] :is(.bg-surface, .bg-elevated) {
+    backdrop-filter: blur(var(--py-glass-blur, 16px));
+    -webkit-backdrop-filter: blur(var(--py-glass-blur, 16px));
+  }
 }
 
 /* Safe-area helpers for notched phones (pair with viewport-fit=cover). */

@@ -18,6 +18,7 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
       production: flag(options, 'production'),
       dryRun: flag(options, 'dryRun'),
       project: opt(options, 'project'),
+      branch: opt(options, 'branch'),
       base: opt(options, 'base'),
       includeDevtools: flag(options, 'includeDevtools'),
       ensureProject: flag(options, 'ensureProject'),

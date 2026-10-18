@@ -13,6 +13,8 @@ export interface PublishInput {
   /** Provider project/site name. */
   project: string;
   target: PublishTarget;
+  /** Cloudflare Pages preview branch; unsupported by other adapters. */
+  branch?: string;
   /** Absolute path of the exported ZIP (static provider). */
   zipPath?: string;
   /**
