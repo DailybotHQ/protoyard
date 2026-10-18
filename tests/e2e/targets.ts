@@ -7,6 +7,9 @@ export const PROTOTYPE_TARGETS = (process.env.PROTOYARD_E2E_PROTOTYPES ?? '')
   .map((s) => s.trim())
   .filter(Boolean);
 
+/** PLAN_002 flagship SaaS browser journey. */
+export const LATTICE_SAAS_DEMO = 'lattice-saas-demo';
+
 /** First prototype port (default 4401). Override for private verification servers. */
 const PROTOTYPE_PORT_BASE = Number(process.env.PROTOYARD_E2E_PROTOTYPE_PORT_BASE ?? 4401);
 
