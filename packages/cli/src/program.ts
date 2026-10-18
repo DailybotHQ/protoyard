@@ -2,6 +2,7 @@ import { Command, CommanderError, Option } from 'commander';
 import { affectedCommand } from './commands/affected.ts';
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
+import { ciInitCommand } from './commands/ci.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { exportCommand } from './commands/export.ts';
@@ -30,6 +31,7 @@ Examples:
   $ pnpm protoyard publish my-crm --provider cloudflare --dry-run
   $ pnpm protoyard publish --all --provider cloudflare --dry-run
   $ pnpm protoyard affected --since HEAD~1 --format csv
+  $ pnpm protoyard ci init --with check,build --dry-run
   $ pnpm protoyard list --json | jq '.data.entries[].slug'
 
 Every command accepts --json and returns { ok, command, data?, error? }.
@@ -161,6 +163,26 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--all', 'check every prototype sequentially')
     .option('--skip-build', 'read the existing build-manifest.json')
     .action(def('budget', budgetCommand));
+
+  const ci = program.command('ci').description('scaffold and manage CI workflow templates');
+  ci.command('init')
+    .description(
+      'render versioned workflow templates into .github/workflows/ (never changes repository settings)'
+    )
+    .addOption(new Option('--provider <id>', 'CI host').choices(['github']).default('github'))
+    .option(
+      '--with <list>',
+      'comma-separated workflows: check,build,e2e,preview (default check,build)',
+      'check,build'
+    )
+    .option('--deploy <target>', 'preview deploy target (sets {{PROVIDER}}; cloudflare)')
+    .option(
+      '--prototypes <csv>',
+      'comma-separated prototype slugs for {{PROTOTYPES}} (default: all indexed prototypes)'
+    )
+    .option('--dry-run', 'print paths and unified diffs; write nothing')
+    .option('--force', 'overwrite existing workflow files')
+    .action(def('ci init', ciInitCommand));
 
   buildOptions(
     program
