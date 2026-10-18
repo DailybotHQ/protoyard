@@ -4,6 +4,7 @@ import { Command, Dialog as DialogPrimitive } from 'bits-ui';
 import { onMount } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
+import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import type { CommandPaletteItem, CommandPaletteSearch, CommandPaletteSelect } from './types.ts';
 
 interface Props {
@@ -23,6 +24,8 @@ let {
   placeholder = 'Search pages, people, and actions…',
   class: className,
 }: Props = $props();
+
+const portal = useOverlayPortalTarget();
 
 let open = $state(false);
 let query = $state('');
@@ -129,7 +132,7 @@ onMount(() => {
 </script>
 
 <DialogPrimitive.Root bind:open onOpenChange={setOpen}>
-  <DialogPrimitive.Portal>
+  <DialogPrimitive.Portal to={portal.current}>
     <DialogPrimitive.Overlay class={overlayBackdrop} />
     <DialogPrimitive.Content
       class={cn(

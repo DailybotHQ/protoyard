@@ -4,6 +4,7 @@ import type { Snippet } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
+import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import { prefersReducedMotion, shouldDismissSwipe } from './swipe.ts';
 
 type Props = Omit<DialogPrimitive.ContentProps, 'children' | 'child' | 'title'> & {
@@ -34,6 +35,8 @@ let {
   ref = $bindable(null),
   ...rest
 }: Props = $props();
+
+const portal = useOverlayPortalTarget();
 
 let drag = $state<{ id: number; startY: number; startAt: number; dy: number } | null>(null);
 let settling = $state(false);
@@ -80,7 +83,7 @@ const dragStyle = $derived(
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
     </DialogPrimitive.Trigger>
   {/if}
-  <DialogPrimitive.Portal>
+  <DialogPrimitive.Portal to={portal.current}>
     <DialogPrimitive.Overlay class={overlayBackdrop} />
     <DialogPrimitive.Content
       bind:ref
