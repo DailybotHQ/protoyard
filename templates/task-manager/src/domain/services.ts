@@ -1,4 +1,9 @@
-import { createRuntimeId, type PrototypeRuntime } from '@protoyard/core';
+import {
+  createRuntimeId,
+  type PrototypeRuntime,
+  parseInput,
+  ValidationError,
+} from '@protoyard/core';
 import { z } from 'zod';
 import {
   type Activity,
@@ -15,6 +20,8 @@ import {
 } from '../database/schema.ts';
 import { CAPABILITIES } from './policy.ts';
 import { STATUS_LABELS } from './tasks.ts';
+
+export { ValidationError };
 
 /**
  * Domain services: the ONLY way the UI changes data. Each mutation
@@ -63,31 +70,11 @@ export const CommentInputSchema = z.object({
     .max(2000, 'Keep it under 2,000 characters'),
 });
 
-export class ValidationError extends Error {
-  readonly issues: Record<string, string>;
-  constructor(issues: Record<string, string>) {
-    super(Object.values(issues)[0] ?? 'Invalid input');
-    this.issues = issues;
-    this.name = 'ValidationError';
-  }
-}
-
 export class NotFoundError extends Error {
   constructor(what: string) {
     super(`${what} no longer exists. It may have been deleted.`);
     this.name = 'NotFoundError';
   }
-}
-
-function parse<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
-  const result = schema.safeParse(input);
-  if (result.success) return result.data;
-  const issues: Record<string, string> = {};
-  for (const issue of result.error.issues) {
-    const key = issue.path.join('.') || 'form';
-    issues[key] ??= issue.message;
-  }
-  throw new ValidationError(issues);
 }
 
 type PersonaRow = { id: string; name: string };
@@ -148,7 +135,7 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
     projects: {
       async create(input: ProjectInput): Promise<Project> {
         session.assert(CAPABILITIES.projectsManage);
-        const data = parse(ProjectInputSchema, input);
+        const data = parseInput(ProjectInputSchema, input);
         return environment.run('projects.create', () =>
           db.transaction('rw', db.projects, async () => {
             if (await db.projects.filter((p) => p.key === data.key).count()) {
@@ -170,7 +157,7 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
 
       async update(id: string, input: ProjectInput): Promise<void> {
         session.assert(CAPABILITIES.projectsManage);
-        const data = parse(ProjectInputSchema, input);
+        const data = parseInput(ProjectInputSchema, input);
         await environment.run('projects.update', () =>
           db.transaction('rw', db.projects, async () => {
             if (await db.projects.filter((p) => p.key === data.key && p.id !== id).count()) {
@@ -200,7 +187,7 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
     tasks: {
       async create(input: TaskInput): Promise<Task> {
         session.assert(CAPABILITIES.tasksCreate);
-        const data = parse(TaskInputSchema, input);
+        const data = parseInput(TaskInputSchema, input);
         const assigneeId = await assertAssignable(data.assigneeId);
         return environment.run('tasks.create', () =>
           db.transaction('rw', db.projects, db.tasks, db.activity, async () => {
@@ -239,7 +226,7 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
         const existing = await db.tasks.get(id);
         if (!existing) throw new NotFoundError('This task');
         session.assert(CAPABILITIES.tasksUpdate, existing);
-        const data = parse(TaskInputSchema, input);
+        const data = parseInput(TaskInputSchema, input);
         const assigneeId = await assertAssignable(data.assigneeId);
         const assigneeName = await personName(assigneeId);
         await environment.run('tasks.update', () =>
@@ -357,7 +344,7 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
     comments: {
       async add(taskId: string, body: string): Promise<Comment> {
         session.assert(CAPABILITIES.commentsCreate);
-        const data = parse(CommentInputSchema, { body });
+        const data = parseInput(CommentInputSchema, { body });
         return environment.run('comments.create', () =>
           db.transaction('rw', db.tasks, db.comments, db.activity, async () => {
             const task = await db.tasks.get(taskId);
