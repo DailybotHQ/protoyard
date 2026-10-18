@@ -23,3 +23,14 @@ That command is part of the planned CLI CI surface and must be available in the
 installed Protoyard version before this workflow can pass. Until it lands,
 remove the budget step only if the team intentionally accepts builds without
 automated budget enforcement.
+
+## Versions and drift
+
+Line 1 of every template is `# protoyard-ci-template: <id> v<N>`. Bump `N`
+whenever a template changes in a way teams should pick up (action pins,
+steps, triggers). `protoyard ci init` adds a second line,
+`# protoyard-ci-hash: <sha256>`, the hash of the rendered file without that
+line. `protoyard ci check` uses both: a hash mismatch means the file was
+edited after `ci init`, and a lower `vN` than the packaged template means an
+update is available. Updating is explicit: `ci init --with <ids> --dry-run`,
+then `--force`.
