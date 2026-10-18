@@ -86,6 +86,22 @@ accessible placeholders so routes and guards are real today.
 | `requireGuest(session)` | Signed-in → `?next=` or home |
 | `requireSaasApp(session)` | Alias of `requireOnboarded` for app shells |
 
+## Workspace switcher
+
+```svelte
+<script lang="ts">
+  import { WorkspaceSwitcher } from '@protoyard/saas-ui';
+  let { runtime } = $props();
+</script>
+
+<WorkspaceSwitcher {runtime} />
+```
+
+Dropdown (Bits UI) lists the signed-in persona's organizations, marks the
+active one, switches via `createWorkspaces(runtime).switchTo`, and opens a
+create dialog that calls `workspaces.create` (owner membership + switch).
+Requires the prototype policy to grant `workspaces:create` (or `*`).
+
 ## Checks
 
 ```bash
