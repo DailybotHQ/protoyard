@@ -282,6 +282,10 @@ export function createProgram(env: RunnerEnv): Command {
       'provider named in the publish command for undeployed prototypes (default cloudflare)'
     )
     .option('--no-personas', 'skip persona links (they run each generator in a child process)')
+    .option('--ledger <file>', 'read this deploy ledger instead of artifacts/publish/ledger.jsonl')
+    .option('--serve', 'serve the page on 127.0.0.1 after writing it')
+    .option('--port <n>', 'with --serve: port (default 4520, or the next free one)')
+    .option('--strict-port', 'with --serve: fail instead of picking another port')
     .action(def('review-index', reviewIndexCommand));
 
   program
