@@ -1,0 +1,12 @@
+{
+  "format": "protoyard.budgets",
+  "version": 1,
+  "defaults": {
+    "initialJsGzipKb": 250,
+    "cssGzipKb": 30,
+    "coldStartMs": null,
+    "generateMs": 50,
+    "indexColdMs": 100
+  },
+  "overrides": {}
+}
