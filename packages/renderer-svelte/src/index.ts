@@ -57,3 +57,8 @@ export {
   runService,
   type ServiceResult,
 } from './services.ts';
+export {
+  getWidgetHost,
+  tryGetWidgetHost,
+  type WidgetHostApi,
+} from './shell/frames/widget-api.ts';

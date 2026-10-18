@@ -31,6 +31,7 @@ export interface FrameEntry {
 export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
   phone: { load: () => import('./PhoneFrame.svelte'), margin: 14 },
   tablet: { load: () => import('./DeviceFrame.svelte'), margin: 14 },
+  'widget-host': { load: () => import('./WidgetHostFrame.svelte'), margin: 0 },
 };
 
 /** Gap kept between the frame and the window edge, in CSS px. */

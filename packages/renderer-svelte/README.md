@@ -64,13 +64,18 @@ Viewport-preset rules step aside while a frame is shown.
 The frame decoration is a lazily loaded chunk registered in
 `src/shell/frames/registry.ts`. The `phone` shell uses `PhoneFrame` (bezel, side
 buttons, pill/punch-hole cutout, status bar in `--py-safe-top`, home indicator that
-navigates to `#/`). `tablet` still uses a generic bezel until its detailed frame
-ships; other shells render full-bleed. While framed, Bits UI dialogs and sheets
-portal into the device screen (`setOverlayPortalTarget`) so overlays stay inside
-the bezel. The app goes full-bleed when the shell is `none`, inside an iframe
-(the gallery preview draws its own device), or when the window is too narrow for
-the device plus its frame (a real phone). The wrappers always exist, so changing
-the shell never remounts the app; without a frame they are `display: contents`.
+navigates to `#/`). The `widget-host` shell draws a fictional customer site
+(`HostSite`, brand from `preview.chrome.hostName`) with a launcher that opens the
+prototype in an anchored panel (`--py-app-height` = panel height; fullscreen under
+480px). Apps drive the unread badge via `getWidgetHost().setUnread(n)` or
+`window.__protoyardWidget`. `tablet` still uses a generic bezel until its detailed
+frame ships; other shells render full-bleed. While framed, Bits UI dialogs and
+sheets portal into the device screen (`setOverlayPortalTarget`) so overlays stay
+inside the bezel. The app goes full-bleed when the shell is `none`, inside an
+iframe (the gallery preview draws its own device), or when the window is too
+narrow for the device plus its frame (a real phone). The wrappers always exist, so
+changing the shell never remounts the app; without a frame they are
+`display: contents`.
 
 ## Mount
 
