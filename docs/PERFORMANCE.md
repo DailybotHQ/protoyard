@@ -2,19 +2,32 @@
 
 All numbers on this page were **measured in this repository**, with the
 method stated. Nothing is extrapolated. Machine for every measurement below:
-Apple M1 Max MacBook Pro (64 GB, macOS 27.0), Node 26.11.1, pnpm 11.23.0,
-2026-10-17.
+Apple M1 Max MacBook Pro (10 cores, 64 GB, macOS 27.0), Node 26.11.1,
+pnpm 11.23.0. Each section states its date (2026-10-17 or 2026-10-18).
 
 ## Prototype bundles (production builds)
 
-Method: `pnpm protoyard build <slug>`, then raw and gzip (level 9) sizes of
-every file in `artifacts/<slug>/dist`. DevTools excluded (the default).
+Method: `pnpm protoyard build --all` (DevTools excluded, the default). Every
+build records its sizes in `build-manifest.json` under `bundle`, gzip level 9
+per file: **initial JS** is the entry chunk plus everything it imports
+statically (what a first page load downloads), **lazy JS** is every chunk
+reached only through `import()`. `pnpm protoyard budget --all --skip-build`
+reads those numbers and checks them. Measured 2026-10-18 (Vite 8.3.4):
 
-| Prototype | Initial JS (gzip) | CSS (gzip) | Lazy Faker chunk (gzip) | Whole `dist` (raw / gzip) |
-| --- | --- | --- | --- | --- |
-| `crm-demo` | 194 KB (+14 KB shared chunk) | 12 KB | 150 KB | 1,185 KB / 371 KB |
-| `mobile-banking-demo` | 181 KB (+14 KB) | 12 KB | 150 KB | 1,123 KB / 358 KB |
-| `ai-chat-demo` | 182 KB (+14 KB) | 12 KB | 150 KB | 1,121 KB / 358 KB |
+| Prototype | Initial JS (gzip) | CSS (gzip) | Lazy JS (gzip, all chunks) | Largest lazy chunk (Faker) | Whole `dist` (raw / gzip) |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `crm-demo` | 202 KB | 16 KB | 212 KB (32 chunks) | 150 KB | 1,445 KB / 548 KB |
+| `mobile-banking-demo` | 199 KB | 16 KB | 181 KB (14 chunks) | 150 KB | 1,319 KB / 473 KB |
+| `ai-chat-demo` | 199 KB | 16 KB | 181 KB (13 chunks) | 150 KB | 1,344 KB / 502 KB |
+| `nova-assistant-demo` | 165 KB | 18 KB | 195 KB (19 chunks) | 150 KB | 1,157 KB / 379 KB |
+| `support-widget-demo` | 147 KB | 15 KB | 181 KB (14 chunks) | 150 KB | 1,052 KB / 344 KB |
+| `ui-kit` | 229 KB | 16 KB | 284 KB (91 chunks) | 150 KB | 1,617 KB / 531 KB |
+
+Every prototype is inside the 250 KB initial-JS and 30 KB CSS budgets
+(`ui-kit` has the least headroom, about 21 KB). The table of 2026-10-17
+counted a 14 KB chunk as "shared initial"; the build analysis shows it is
+loaded through `import()`, so it is lazy. The CRM initial JS moved from
+194 KB to 202 KB as features landed.
 
 - **Faker loads only when a world is generated** (first seed, scenario load,
   reset or time advance) through a dynamic `import()`. Ordinary page opens
@@ -87,9 +100,31 @@ loader uses the defaults below.
 | `generateMs` | 50 ms | Scenario generation target |
 | `indexColdMs` | 100 ms | Cold metadata-index target |
 
-These are configured targets, not new measurements. The measured results
-above remain the source for observed performance. Loading and validating the
-budget file does not itself enforce these targets in builds or CI.
+These budgets are **enforced**:
+
+| Budget | Gate | Fails with |
+| --- | --- | --- |
+| `initialJsGzipKb`, `cssGzipKb` | `pnpm protoyard budget <slug\|--all> [--skip-build]` | exit 4 |
+| `indexColdMs` | `pnpm bench:index --runs 3 --check [--ci-factor 3]` | exit 1 |
+| `generateMs` | `pnpm protoyard scenario bench <slug> --check` | exit 4 |
+| `coldStartMs` | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --check` | report only while `null` |
+
+The `perf` job in [.github/workflows/ci.yml](../.github/workflows/ci.yml)
+runs the first three on every pull request and push to `main`, and reports
+cold start without gating it (see
+[TESTING_GUIDE](TESTING_GUIDE.md#ci-performance-job-githubworkflowsciyml--perf)).
+The bundle gate on this repository (2026-10-18, abridged to two of the six
+prototypes):
+
+```text
+$ pnpm protoyard budget --all --skip-build
+Prototype            Metric         Value                                     Budget              Headroom   Result
+───────────────────  ─────────────  ────────────────────────────────────────  ──────────────────  ─────────  ──────
+crm-demo             initialJsGzip  202 KB (202.04 KB)                        250 KB (250.00 KB)  +47.96 KB  PASS
+crm-demo             cssGzip        16 KB (15.95 KB)                          30 KB (30.00 KB)    +14.05 KB  PASS
+ui-kit               initialJsGzip  229 KB (229.06 KB)                        250 KB (250.00 KB)  +20.94 KB  PASS
+ui-kit               cssGzip        16 KB (16.24 KB)                          30 KB (30.00 KB)    +13.76 KB  PASS
+```
 
 For one prototype, set only the values that differ:
 
@@ -147,15 +182,24 @@ with every sample and the machine.
 
 Medians of 5 runs on 2026-10-18 (Apple M1 Max, 10 cores, 64 GB, macOS 27.0,
 Node 26.11.1, headless Chromium 156.0.8078.4, a local static server, no
-network throttling, production builds without DevTools):
+network throttling, production builds without DevTools), after the build of
+the bundle table above:
 
 | Prototype | First visit: ready (world ready) | Range | Repeat visit: ready (world ready) | Range |
 | --- | --- | --- | --- | --- |
-| `crm-demo` | **141 ms** (105 ms) | 139–148 ms | **44 ms** (34 ms) | 41–45 ms |
-| `mobile-banking-demo` | **132 ms** (106 ms) | 130–137 ms | **38 ms** (31 ms) | 37–43 ms |
+| `crm-demo` | **115 ms** (95 ms) | 110–170 ms | **43 ms** (36 ms) | 41–44 ms |
+| `mobile-banking-demo` | **130 ms** (101 ms) | 125–134 ms | **40 ms** (33 ms) | 39–42 ms |
+| `ai-chat-demo` | **125 ms** (95 ms) | 122–129 ms | **39 ms** (32 ms) | 37–45 ms |
+| `nova-assistant-demo` | **108 ms** (74 ms) | 106–114 ms | **39 ms** (32 ms) | 38–42 ms |
+| `support-widget-demo` | **104 ms** (76 ms) | 101–110 ms | **39 ms** (30 ms) | 36–40 ms |
+| `ui-kit` | **117 ms** (76 ms) | 115–125 ms | **45 ms** (34 ms) | 41–48 ms |
 
 - Most of a first visit is building the world (generate, validate, write),
-  not rendering: `ready` follows `world ready` by about 26 to 36 ms.
+  not rendering: `ready` follows `world ready` by about 20 to 41 ms.
+- An earlier run the same day measured crm-demo at 141 ms and
+  mobile-banking-demo at 132 ms on first visit. Runs vary by a few tens of
+  milliseconds on this machine, which is one reason the threshold is not
+  set yet.
 - **Not measured:** real phones, throttled CPU or network, a remote host, or
   a cold HTTP cache on repeat visits. No claim is made beyond this table.
 
@@ -169,6 +213,24 @@ than this machine.
 pnpm protoyard build crm-demo
 pnpm exec tsx scripts/bench-cold-start.ts crm-demo --runs 5 --check
 ```
+
+## Scenario generation
+
+Method: `pnpm protoyard scenario bench <slug> [--check]` runs the generator
+and the integrity validation for each scenario in a child process, three
+times, and reports the medians and the row counts. `--check` compares
+generate + validate with `generateMs` (50 ms). Measured 2026-10-18; the
+heaviest scenario per prototype:
+
+| Prototype | Scenario | Rows | Generate | Validate | Total |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `crm-demo` | `enterprise-scale` | 16,075 | 24.4 ms | 5.3 ms | **29.6 ms** |
+| `mobile-banking-demo` | `active-customer` | 328 | 10.6 ms | 0.2 ms | **10.8 ms** |
+| `ai-chat-demo` | `agent-outage` | 175 | 1.9 ms | 0.1 ms | **2.0 ms** |
+
+All 22 scenarios of these three prototypes pass the 50 ms budget. Generation
+is only part of a scenario load; writing the rows to IndexedDB dominates (see
+[Large worlds](#large-worlds-scenario-loads)).
 
 ## Metadata index and gallery at 1,000 prototypes
 

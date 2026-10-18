@@ -209,6 +209,9 @@ for you. `pnpm protoyard doctor` shows which ones are available; add
 | `--preview` | Preview deployment (the default) |
 | `--production` | Production deployment. Requires `--yes` (or `CI=1`), unless combined with `--dry-run`. |
 | `--dry-run` | Build and verify, print the exact command, contact nobody |
+| `--branch <name>` | Cloudflare only: a named preview branch (lowercase letters, digits and dashes; `main` is reserved), so each pull request or reviewer gets its own preview URL. Refused with `--production` and by the other adapters. |
+| `--ensure-project` | Cloudflare only: create the Pages project when it is missing. A dry run lists the `wrangler pages project create` command first. A real publish runs `wrangler pages project list --json` and creates the project only when its name is absent. |
+| `--history [<slug>…] [--limit <n>]` | Print the deploy ledger instead of publishing (see below) |
 
 ### Publishing several prototypes
 
@@ -221,6 +224,21 @@ single publish, and the batch continues past a failure:
 pnpm protoyard publish --all --provider cloudflare --dry-run
 pnpm protoyard publish crm-demo mobile-banking-demo --provider static
 pnpm protoyard publish --tag review --provider cloudflare            # real deploys: your credentials
+```
+
+A dry run over every prototype (2026-10-18, Vite's build lines omitted):
+
+```text
+$ pnpm protoyard publish --all --provider cloudflare --dry-run
+✓ mobile-banking-demo             3.1 s  would run npx --no-install wrangler pages deploy /…/artifacts/mobile-banking-demo/dist --project-name protoyard-mobile-banking-demo --branch preview --commit-dirty=true
+✓ support-widget-demo             3.0 s  would run npx --no-install wrangler pages deploy /…/artifacts/support-widget-demo/dist --project-name protoyard-support-widget-demo --branch preview --commit-dirty=true
+✓ nova-assistant-demo             3.0 s  would run npx --no-install wrangler pages deploy /…/artifacts/nova-assistant-demo/dist --project-name protoyard-nova-assistant-demo --branch preview --commit-dirty=true
+✓ crm-demo                        3.2 s  would run npx --no-install wrangler pages deploy /…/artifacts/crm-demo/dist --project-name protoyard-crm-demo --branch preview --commit-dirty=true
+✓ ui-kit                          3.2 s  would run npx --no-install wrangler pages deploy /…/artifacts/ui-kit/dist --project-name protoyard-ui-kit --branch preview --commit-dirty=true
+✓ ai-chat-demo                    2.9 s  would run npx --no-install wrangler pages deploy /…/artifacts/ai-chat-demo/dist --project-name protoyard-ai-chat-demo --branch preview --commit-dirty=true
+! Cloudflare Pages CLI not found locally. Install Wrangler (`pnpm add -D wrangler` in your own fork, or `npm i -g wrangler`).
+Nothing was uploaded.
+All 6 prototypes verified.
 ```
 
 The output is one line per prototype (time, then the URL the provider
@@ -310,15 +328,27 @@ pnpm protoyard review-index --publish cloudflare --dry-run --no-personas
 ```
 
 ### Cloudflare Pages
-### Cloudflare Pages
 
-Dry run first. It needs no account and does not require Wrangler:
+Dry run first. It needs no account and does not require Wrangler (output of
+2026-10-18; Vite's build lines omitted):
 
 ```text
 $ pnpm protoyard publish crm-demo --provider cloudflare --dry-run
-✓ Dry run: crm-demo built and verified (6 files, 1.2 MB).
+✓ Dry run: crm-demo built and verified (46 files, 1.4 MB).
 Would run:
   npx --no-install wrangler pages deploy /…/artifacts/crm-demo/dist --project-name protoyard-crm-demo --branch preview --commit-dirty=true
+! Cloudflare Pages CLI not found locally. Install Wrangler (`pnpm add -D wrangler` in your own fork, or `npm i -g wrangler`).
+Nothing was uploaded.
+```
+
+A named preview branch and the project setup, in one dry run:
+
+```text
+$ pnpm protoyard publish crm-demo --provider cloudflare --branch pr-42 --ensure-project --dry-run
+✓ Dry run: crm-demo built and verified (46 files, 1.4 MB).
+Would run:
+  npx --no-install wrangler pages project create protoyard-crm-demo --production-branch main
+  npx --no-install wrangler pages deploy /…/artifacts/crm-demo/dist --project-name protoyard-crm-demo --branch pr-42 --commit-dirty=true
 ! Cloudflare Pages CLI not found locally. Install Wrangler (`pnpm add -D wrangler` in your own fork, or `npm i -g wrangler`).
 Nothing was uploaded.
 ```
@@ -332,14 +362,19 @@ A real deploy **requires your Cloudflare credentials**:
    The CLI checks login with `wrangler whoami` (or the presence of
    `CLOUDFLARE_API_TOKEN`) and reports only "logged in" or "not logged in".
 3. Create the Pages project once:
-   `npx wrangler pages project create protoyard-crm-demo --production-branch main`.
-   If it is missing, the deploy fails with exactly this hint.
+   `npx wrangler pages project create protoyard-crm-demo --production-branch main`,
+   or pass `--ensure-project` to let `publish` create it when it is missing.
+   Without either, a deploy to a missing project fails with exactly this hint.
 4. Deploy:
 
 ```bash
 pnpm protoyard publish crm-demo --provider cloudflare                       # preview (branch "preview")
 pnpm protoyard publish crm-demo --provider cloudflare --production --yes    # production (branch "main")
+pnpm protoyard publish crm-demo --provider cloudflare --branch pr-42         # preview with its own alias
 ```
+
+These real deploys have not been run in this repository's own checks: they
+need the owner's Cloudflare credentials. Only dry runs are verified here.
 
 Preview and production differ only in the branch passed to Wrangler: Pages
 treats `main` (the production branch) as production and any other branch as
@@ -385,6 +420,72 @@ For GitHub Pages, copy the contents of `artifacts/<slug>/dist` into the
 folder your Pages site serves (for example a sub-folder per prototype). The
 default `./` base works under `https://<user>.github.io/<repo>/<any-folder>/`,
 and hash routing means no `404.html` trick is needed.
+
+## CI/CD templates for prototype teams
+
+`protoyard ci init` copies versioned GitHub Actions workflows from
+`packages/cli/ci-templates/github/` into `.github/workflows/` of your
+repository. It only writes files: repository settings, secrets and branch
+protection are never changed, and it prints secret **names**, never values.
+The templates and what each one costs are described in
+[packages/cli/ci-templates/README.md](../packages/cli/ci-templates/README.md).
+
+| Workflow | `--with` | What it runs |
+| --- | --- | --- |
+| `protoyard-check.yml` | `check` | lint, typecheck and tests |
+| `protoyard-build.yml` | `build` | `validate`, `export` and `budget` for the prototypes a pull request affects |
+| `protoyard-e2e.yml` | `e2e` | Playwright on the affected prototypes |
+| `protoyard-preview.yml` | `preview` | Cloudflare preview per pull request (`--branch pr-<number>`), skipped for forks; needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` |
+
+```text
+$ pnpm protoyard ci init --with check --dry-run
+✓ CI init dry run: 1 file(s) for github
+  create .github/workflows/protoyard-check.yml
+
+Required secrets (names only — never values):
+  (none for the selected workflows)
+
+Manual one-time steps:
+  • Settings are not changed by this command.
+  • Review the generated workflow files, then commit them on a branch.
+  • Ensure GitHub Actions is enabled for the repository (Settings → Actions).
+  • Optionally mark the check/build workflows as required status checks after the first green run.
+
+Nothing was written (--dry-run).
+```
+
+`--dry-run` also prints a unified diff per file (omitted above). Existing
+files are refused without `--force`. Each scaffolded file carries
+`# protoyard-ci-template: <id> v<N>` and `# protoyard-ci-hash: <sha256>`, so
+`pnpm protoyard ci check` can report each workflow as up-to-date, outdated
+(a newer template ships), modified (edited since `ci init`), unhashed or
+unmanaged. `--strict` exits 4 on drift; `pnpm protoyard doctor` mentions
+outdated workflows. In this repository, which has no scaffolded workflows:
+
+```text
+$ pnpm protoyard ci check
+No scaffolded workflows (.github/workflows/protoyard-*.yml). Run `pnpm protoyard ci init`.
+```
+
+The build, e2e and preview templates select prototypes with
+`protoyard affected`, which maps `git diff --name-only <ref>...HEAD` to
+slugs: a change under `prototypes/<slug>/` affects that prototype, and a
+change to shared code (`packages/`, `templates/`, root configuration)
+affects all of them:
+
+```text
+$ pnpm protoyard affected --since HEAD~1
+✓ Affected all prototypes (shared change) since HEAD~1 (7 path(s), 32.5 ms)
+  ai-chat-demo  (packages)
+  crm-demo  (packages)
+  mobile-banking-demo  (packages)
+  nova-assistant-demo  (packages)
+  support-widget-demo  (packages)
+  ui-kit  (packages)
+  csv: ai-chat-demo,crm-demo,mobile-banking-demo,nova-assistant-demo,support-widget-demo,ui-kit
+$ pnpm protoyard affected --since HEAD~1 --format csv
+ai-chat-demo,crm-demo,mobile-banking-demo,nova-assistant-demo,support-widget-demo,ui-kit
+```
 
 ## Deploying the gallery
 
