@@ -1,0 +1,1091 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/DailybotHQ/protoyard/schema/blueprint/v1",
+  "title": "Protoyard blueprint",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "formatVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 280
+    },
+    "entities": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "plural": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "table": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9_]*$"
+          },
+          "fields": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "text"
+                    },
+                    "minLength": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "maxLength": {
+                      "default": 200,
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 200
+                    },
+                    "default": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "longText"
+                    },
+                    "minLength": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "maxLength": {
+                      "default": 10000,
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 10000
+                    },
+                    "default": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "number"
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    },
+                    "default": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "integer"
+                    },
+                    "min": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "max": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "default": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "money"
+                    },
+                    "currency": {
+                      "default": "USD",
+                      "type": "string",
+                      "pattern": "^[A-Z]{3}$"
+                    },
+                    "min": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "max": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "default": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "boolean"
+                    },
+                    "default": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "date"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "datetime"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "enum"
+                    },
+                    "values": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9_-]*$"
+                      }
+                    },
+                    "labels": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "default": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name", "kind", "values"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "email"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "url"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "phone"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "tags"
+                    },
+                    "maxItems": {
+                      "default": 8,
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 64
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "relation"
+                    },
+                    "to": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "cardinality": {
+                      "default": "one",
+                      "type": "string",
+                      "enum": ["one", "many"]
+                    },
+                    "onDelete": {
+                      "default": "restrict",
+                      "type": "string",
+                      "enum": ["restrict", "cascade", "nullify"]
+                    }
+                  },
+                  "required": ["name", "kind", "to"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "persona"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "file"
+                    },
+                    "accept": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[a-z]+\\/(?:\\*|[a-z0-9.+-]+)$"
+                      }
+                    },
+                    "maxSizeBytes": {
+                      "default": 5242880,
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 52428800
+                    },
+                    "multiple": {
+                      "default": false,
+                      "type": "boolean"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "json"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "titleField": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]*$"
+          },
+          "searchable": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-zA-Z0-9]*$"
+            }
+          },
+          "ownerField": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9]*$"
+          },
+          "indexes": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-zA-Z0-9]*$"
+            }
+          },
+          "defaultSort": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "direction": {
+                "default": "asc",
+                "type": "string",
+                "enum": ["asc", "desc"]
+              }
+            },
+            "required": ["field"],
+            "additionalProperties": false
+          },
+          "features": {
+            "default": {
+              "softDelete": false,
+              "audit": false,
+              "notifications": false,
+              "files": false,
+              "csv": false
+            },
+            "type": "object",
+            "properties": {
+              "softDelete": {
+                "default": false,
+                "type": "boolean"
+              },
+              "audit": {
+                "default": false,
+                "type": "boolean"
+              },
+              "notifications": {
+                "default": false,
+                "type": "boolean"
+              },
+              "files": {
+                "default": false,
+                "type": "boolean"
+              },
+              "csv": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["name", "plural", "fields", "titleField"],
+        "additionalProperties": false
+      }
+    },
+    "roles": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "permissions": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "read",
+                  "create",
+                  "update",
+                  "update:own",
+                  "delete",
+                  "delete:own",
+                  "import",
+                  "export",
+                  "*"
+                ]
+              }
+            }
+          }
+        },
+        "required": ["name", "permissions"],
+        "additionalProperties": false
+      }
+    },
+    "screens": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "type": {
+                "type": "string",
+                "const": "list"
+              },
+              "entity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "columns": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-zA-Z0-9]*$"
+                }
+              }
+            },
+            "required": ["type", "entity"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "type": {
+                "type": "string",
+                "const": "detail"
+              },
+              "entity": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": ["type", "entity"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "type": {
+                "type": "string",
+                "const": "form"
+              },
+              "entity": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": ["type", "entity"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "type": {
+                "type": "string",
+                "const": "board"
+              },
+              "entity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "groupBy": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              }
+            },
+            "required": ["type", "entity", "groupBy"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "type": {
+                "type": "string",
+                "const": "dashboard"
+              },
+              "metrics": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "entity": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "aggregate": {
+                      "type": "string",
+                      "enum": ["count", "sum"]
+                    },
+                    "field": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    }
+                  },
+                  "required": ["label", "entity", "aggregate"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": ["formatVersion", "name", "entities", "roles"],
+  "additionalProperties": false
+}

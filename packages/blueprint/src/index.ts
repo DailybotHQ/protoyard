@@ -5,8 +5,34 @@
  * prototype needs from it.
  *
  * Framework-agnostic: it depends only on `@protoyard/core` and zod and never
- * imports Svelte (ADR-002). The schema and derivations land in later tasks.
+ * imports Svelte (ADR-002).
  */
 
 /** Version of the blueprint document format. Bumped only on breaking changes. */
 export const BLUEPRINT_FORMAT_VERSION = 1;
+
+export {
+  BLUEPRINT_SCHEMA_URL,
+  type Blueprint,
+  type BlueprintEntity,
+  type BlueprintField,
+  type BlueprintInput,
+  type BlueprintRole,
+  BlueprintSchema,
+  type BlueprintScreen,
+  blueprintIssues,
+  blueprintJsonSchema,
+  ENTITY_ACTIONS,
+  type EntityAction,
+  EntityFeaturesSchema,
+  EntitySchema,
+  entityTable,
+  FIELD_KINDS,
+  type FieldKind,
+  FieldSchema,
+  parseBlueprint,
+  RESERVED_FIELD_NAMES,
+  RoleSchema,
+  ScreenSchema,
+  safeParseBlueprint,
+} from './schema.ts';
