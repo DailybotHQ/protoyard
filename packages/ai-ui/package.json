@@ -19,6 +19,11 @@
       "svelte": "./src/voice/index.ts",
       "default": "./src/voice/index.ts"
     },
+    "./widget": {
+      "types": "./src/widget/index.ts",
+      "svelte": "./src/widget/index.ts",
+      "default": "./src/widget/index.ts"
+    },
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
