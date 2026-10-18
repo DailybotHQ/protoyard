@@ -12,6 +12,7 @@ import SignUp from '../../src/screens/auth/SignUp.svelte';
 import VerifyEmail from '../../src/screens/auth/VerifyEmail.svelte';
 import OAuthConsent from '../../src/screens/oauth/Consent.svelte';
 import OAuthLink from '../../src/screens/oauth/Link.svelte';
+import Settings from '../../src/screens/settings/Settings.svelte';
 
 type AuthScreen =
   | 'magic'
@@ -22,17 +23,20 @@ type AuthScreen =
   | 'verify'
   | 'sso'
   | 'oauth-consent'
-  | 'oauth-link';
+  | 'oauth-link'
+  | 'settings';
 let {
   runtime,
   screen,
   scenarios,
   provider = 'google',
+  tab = 'profile',
 }: {
   runtime: PrototypeRuntime;
   screen: AuthScreen;
   scenarios?: OAuthProviderScenarios;
   provider?: SaasProvider;
+  tab?: string;
 } = $props();
 provideSaas(untrack(() => runtime));
 </script>
@@ -53,6 +57,8 @@ provideSaas(untrack(() => runtime));
   <OAuthConsent params={{ provider }} {scenarios} />
 {:else if screen === 'oauth-link'}
   <OAuthLink params={{ provider }} {scenarios} />
+{:else if screen === 'settings'}
+  <Settings params={{ tab }} />
 {:else}
   <VerifyEmail />
 {/if}

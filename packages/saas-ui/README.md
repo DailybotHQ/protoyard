@@ -76,6 +76,7 @@ UI until a kit route opens.
 | `/billing/plans` | Pricing cards (integer cents) | `requireAuth` |
 | `/billing/checkout` | Simulated checkout — no card, no charge; outcome picker only when `billingShowOutcomePicker` | `requireAuth` |
 | `/billing/portal` | Current plan, seats, invoices, cancel/resume | `requireAuth` |
+| `/settings`, `/settings/:tab` | Profile, security, members and notification preferences | `requireAuth` |
 
 
 Mount `TrialBanner` in the app shell to show remaining trial days from the simulated clock. Use the exported `InboxDrawer` on a signed-out screen to open the simulated
@@ -92,6 +93,12 @@ magic links consume the inbox token and route MFA-enrolled accounts to the
 challenge. OAuth consent uses the in-app provider simulator and never contacts
 an external provider. It displays requested scopes, supports deny and approve,
 and asks for confirmation before linking a matching existing account.
+
+`/settings` opens the lazy settings screen. Its tabs update the signed-in
+persona profile, simulated password and MFA, team membership and invitations,
+linked providers, and inbox notification preferences. Controls are disabled
+when the current simulated role lacks their capability; services enforce the
+same checks.
 
 Render `SsoButtons` on a sign-in or sign-up screen to start the simulated
 provider flow. It accepts an optional provider list, `sign-in` / `sign-up` /

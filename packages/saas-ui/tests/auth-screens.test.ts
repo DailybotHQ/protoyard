@@ -13,6 +13,7 @@ import {
   createMagicLinkServices,
   createMfaServices,
   createPasswordResetServices,
+  createSettingsServices,
   type OAuthProviderScenarios,
   type SaasAccount,
   saasIntegrity,
@@ -69,7 +70,9 @@ const definition: PrototypeDefinition = definePrototype({
     return {
       organizations: team.organizations,
       personas: team.personas,
-      memberships: team.memberships,
+      memberships: team.memberships.map((membership, index) =>
+        index === 0 ? { ...membership, role: 'owner' } : membership
+      ),
       tables: saasTables({ saas_accounts: [account] }),
     };
   },
@@ -85,11 +88,99 @@ afterEach(() => {
 });
 
 const boot = async () => (await harness.boot('active')) as ProtoyardRuntime;
+async function signInFixture(runtime: ProtoyardRuntime): Promise<SaasAccount> {
+  const account = await runtime.db
+    .rows<SaasAccount>('saas_accounts')
+    .where('email')
+    .equals(EMAIL)
+    .first();
+  if (!account) throw new Error('The auth fixture account was not created');
+  await runtime.session.signIn(account.personaId);
+  return account;
+}
 const type = (label: string, value: string) =>
   fireEvent.input(screen.getByLabelText(new RegExp(`^${label}`)), { target: { value } });
 const submit = (name: string) => fireEvent.click(screen.getByRole('button', { name }));
 
 describe('auth screens', () => {
+  it('settings profile tab validates and saves persona details', async () => {
+    const runtime = await boot();
+    await signInFixture(runtime);
+    render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'profile' } });
+    await type('Display name', 'Ada Byron');
+    await type('Time zone', 'America/Bogota');
+    await fireEvent.input(screen.getByLabelText('Avatar color'), { target: { value: '#123456' } });
+    await submit('Save profile');
+    await waitFor(() => expect(runtime.session.principal()?.persona.name).toBe('Ada Byron'));
+    expect(runtime.session.principal()?.persona.timezone).toBe('America/Bogota');
+    expect(runtime.session.principal()?.persona.avatarColor).toBe('#123456');
+  });
+
+  it('settings security tab changes a password through the settings service', async () => {
+    const runtime = await boot();
+    await signInFixture(runtime);
+    render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'security' } });
+    await type('Current simulated password', PASSWORD);
+    await type('New simulated password', 'changed simulated password');
+    await submit('Change password');
+    await waitFor(async () => {
+      const updated = await createAuthServices(runtime).account();
+      expect(updated?.simulatedPassword).toBe('changed simulated password');
+    });
+  });
+
+  it('settings members tab creates and revokes a simulated invitation', async () => {
+    const runtime = await boot();
+    await signInFixture(runtime);
+    const principal = runtime.session.principal();
+    if (!principal) throw new Error('The members settings test needs a signed-in principal');
+    if (!principal.membership || !principal.organization) {
+      throw new Error('The members settings test needs an organization membership');
+    }
+    expect(principal.membership.role).toBe('owner');
+    expect(
+      runtime.session.can('members:invite', { organizationId: principal.organization.id })
+    ).toBe(true);
+    render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'members' } });
+    await type('Invite email', 'settings-member@example.com');
+    await submit('Invite');
+    await screen.findByRole('status');
+    await screen.findByText(/settings-member@example.com · member/);
+    const revokeButton = screen.getByRole('button', { name: 'Revoke' });
+    await waitFor(() => expect((revokeButton as HTMLButtonElement).disabled).toBe(false));
+    await fireEvent.click(revokeButton);
+    await waitFor(async () => {
+      const stored = await runtime.db
+        .rows('saas_invitations')
+        .where('email')
+        .equals('settings-member@example.com')
+        .first();
+      expect(stored?.status).toBe('revoked');
+    });
+    await waitFor(() =>
+      expect(screen.queryByText(/settings-member@example.com · member/)).toBeNull()
+    );
+    const stored = await runtime.db
+      .rows('saas_invitations')
+      .where('email')
+      .equals('settings-member@example.com')
+      .first();
+    expect(stored?.status).toBe('revoked');
+  });
+
+  it('settings notification tab persists preferences through the settings service', async () => {
+    const runtime = await boot();
+    await signInFixture(runtime);
+    render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'notifications' } });
+    const productUpdates = await screen.findByLabelText(/Product updates/);
+    await fireEvent.click(productUpdates);
+    await submit('Save preferences');
+    await waitFor(async () => {
+      const account = await createSettingsServices(runtime).account();
+      expect(account.notificationPreferences?.productUpdates).toBe(true);
+    });
+  });
+
   it('completes the sso round trip and signs the simulated account in', async () => {
     const runtime = await boot();
     const scenarios: OAuthProviderScenarios = {
@@ -230,6 +321,38 @@ describe('auth screens', () => {
     await type('Authenticator code', mfa.authenticatorPanel(enrollment.mfa.seed).code);
     await submit('Verify and sign in');
     await waitFor(() => expect(runtime.session.isSignedIn()).toBe(true));
+  });
+
+  it('preserves settings next paths through password sign-in and its MFA challenge', async () => {
+    const runtime = await boot();
+    const account = await runtime.db
+      .rows<SaasAccount>('saas_accounts')
+      .where('email')
+      .equals(EMAIL)
+      .first();
+    if (!account) throw new Error('The auth fixture account was not created');
+    await runtime.session.signIn(account.personaId);
+    const mfa = createMfaServices(runtime);
+    const enrollment = await mfa.enroll();
+    await mfa.confirmEnroll(enrollment.currentCode);
+    await runtime.session.signOut();
+
+    const linkPath = `/oauth/google/link?email=${encodeURIComponent(EMAIL)}`;
+    location.hash = `#/sign-in?next=${encodeURIComponent(linkPath)}`;
+    render(AuthHarness, { props: { runtime, screen: 'sign-in' } });
+    await type('Email', EMAIL);
+    await type('Password', PASSWORD);
+    await submit('Sign in');
+    await waitFor(() => expect(location.hash).toContain('#/auth/mfa?account='));
+    expect(new URLSearchParams(location.hash.split('?')[1]).get('next')).toBe(linkPath);
+
+    cleanup();
+    render(AuthHarness, { props: { runtime, screen: 'mfa' } });
+    await screen.findByTestId('auth-simulated-code');
+    await type('Authenticator code', mfa.authenticatorPanel(enrollment.mfa.seed).code);
+    await submit('Verify and sign in');
+    await waitFor(() => expect(location.hash).toContain('#/oauth/google/link?email='));
+    expect(runtime.session.isSignedIn()).toBe(true);
   });
 
   it('consumes the inbox magic-link token and signs the account in', async () => {

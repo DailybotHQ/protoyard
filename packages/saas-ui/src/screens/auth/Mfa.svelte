@@ -1,5 +1,5 @@
 <script lang="ts">
-import { navigate, runService } from '@protoyard/renderer-svelte';
+import { navigate, nextPath, runService } from '@protoyard/renderer-svelte';
 import { createMfaServices, MfaCodeSchema, RecoveryCodeInputSchema } from '@protoyard/saas';
 import {
   Button,
@@ -55,7 +55,7 @@ async function complete() {
     );
     return;
   }
-  navigate(config.homePath);
+  navigate(nextPath(new URLSearchParams(location.hash.split('?')[1] ?? ''), config.homePath));
 }
 
 onMount(() => {
