@@ -1,0 +1,104 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/blueprint/v1",
+  "formatVersion": 1,
+  "name": "CRUD starter",
+  "entities": [
+    {
+      "name": "project",
+      "plural": "projects",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "minLength": 2,
+          "maxLength": 80,
+          "fake": "commerce.productName"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "done"],
+          "default": "planned",
+          "required": true
+        },
+        { "name": "owner", "kind": "persona" },
+        { "name": "budget", "kind": "money", "min": 0, "max": 50000000 },
+        { "name": "tags", "kind": "tags" }
+      ],
+      "titleField": "name",
+      "ownerField": "owner",
+      "indexes": ["status"],
+      "features": { "softDelete": true, "audit": true, "csv": true, "notifications": true }
+    },
+    {
+      "name": "task",
+      "plural": "tasks",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true,
+          "minLength": 3,
+          "maxLength": 120,
+          "fake": "lorem.sentence"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["todo", "doing", "done"],
+          "default": "todo",
+          "required": true
+        },
+        {
+          "name": "project",
+          "kind": "relation",
+          "to": "project",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "dueOn", "kind": "date" },
+        { "name": "priority", "kind": "integer", "min": 1, "max": 5, "default": 3 }
+      ],
+      "titleField": "title",
+      "ownerField": "assignee",
+      "indexes": ["status"],
+      "defaultSort": { "field": "title", "direction": "asc" },
+      "features": { "softDelete": true, "csv": true }
+    }
+  ],
+  "roles": [
+    { "name": "owner", "permissions": { "*": ["*"] } },
+    { "name": "admin", "permissions": { "*": ["*"] } },
+    {
+      "name": "member",
+      "permissions": {
+        "project": ["read", "create", "update", "export", "import"],
+        "task": ["read", "create", "update:own", "delete:own", "export"]
+      }
+    },
+    { "name": "viewer", "permissions": { "*": ["read"] } }
+  ],
+  "notifications": [
+    {
+      "on": "create",
+      "entity": "project",
+      "notify": "owner",
+      "title": "New project {name}"
+    },
+    {
+      "on": "assign",
+      "entity": "task",
+      "field": "assignee",
+      "notify": "assignee",
+      "title": "Task assigned: {title}"
+    }
+  ],
+  "screens": [
+    { "type": "list", "entity": "project", "path": "/projects", "columns": ["name", "status", "budget"] },
+    { "type": "form", "entity": "project", "path": "/projects/new" },
+    { "type": "list", "entity": "task", "path": "/tasks", "columns": ["title", "status", "priority"] },
+    { "type": "form", "entity": "task", "path": "/tasks/new" }
+  ]
+}
