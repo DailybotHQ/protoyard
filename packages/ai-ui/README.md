@@ -17,6 +17,8 @@ Add `"@protoyard/ai-ui": "workspace:*"` to the prototype dependencies. Import th
 
 `AssistantWorkspace` accepts conversation summaries and the active branch's messages. Send, stop, rename, pin, folder, feedback, branch, regenerate, edit and share operations are callbacks. The component does not persist changes. `onShare` must return a URL created by the consuming prototype; the UI then offers a copy action.
 
+The workspace renders its conversation through `MessageList`, which virtualizes rows using measured heights and a small overscan window. It keeps the visible message anchored as streamed content changes and restores that message and offset from session storage when the same conversation is reopened in the tab. The saved position is presentation state; conversation messages remain owned by the prototype.
+
 ```svelte
 <script lang="ts">
   import { AssistantWorkspace, type AssistantConversation, type AssistantMessage, type AssistantSendInput } from '@protoyard/ai-ui';
