@@ -13,14 +13,14 @@ framework-agnostic: it has no Svelte, and its only dependencies are
 
 ## What ships today
 
-The table layout, row schemas and integrity rules, plus the onboarding
-wizard engine (below). The other services (sign-in, OAuth, magic links, MFA,
-invitations, workspaces, billing) come in later PLAN_002 tasks and are not in
-this package yet.
-The table layout, row schemas and integrity rules, plus the simulated
-**inbox service** (`createInbox(runtime)`). Sign-in, OAuth, magic links, MFA,
-invitations, workspaces, billing and onboarding services come in later
-PLAN_002 tasks.
+The table layout, row schemas and integrity rules, plus:
+
+- **Inbox** — `createInbox(runtime)`
+- **Onboarding** — `createOnboarding(runtime, { steps })`
+- **Workspaces** — `createWorkspaces(runtime)`
+
+Sign-in, OAuth, magic links, MFA, invitations and billing services come in
+later PLAN_002 tasks.
 
 ### Inbox (`createInbox`)
 
@@ -44,6 +44,25 @@ await inbox.markRead(messages[0]!.id);
 - **`deliver`** goes through `environment.run('inbox.deliver')` so offline writes nothing.
 - **`write`** is the same validation + insert for use **inside** an outer Dexie transaction (auth flows that commit a token and a message together).
 - **`list` / `get` / `markRead` / `archive`** are liveQuery-friendly async reads/writes (newest first).
+
+### Workspaces (`createWorkspaces`)
+
+```ts
+import { createWorkspaces, WORKSPACE_CAPABILITIES } from '@protoyard/saas';
+
+// Policy roles should grant workspaces:create / rename / leave (or `*`).
+const workspaces = createWorkspaces(runtime);
+const { organization } = await workspaces.create({ name: 'Acme Labs' });
+await workspaces.switchTo(organization.id); // also happens automatically after create
+await workspaces.rename(organization.id, { name: 'Acme Cloud' });
+// Last owner cannot leave — transfer first via workspaces.transferOwnership(memberId)
+await workspaces.leave(organization.id);
+```
+
+- Creates the organization + owner membership in **one** `runtime.identity.write` transaction, then `session.switchOrganization`.
+- **`switchTo`** only allows organizations the persona already belongs to (control-state only, works offline).
+- **`leave`** refuses when the actor is the last `owner`; after a successful leave, switches to another membership when the active org was left.
+- **`transferOwnership`** delegates to `runtime.members.transferOwnership`.
 
 | Table | Holds | Indexes |
 | --- | --- | --- |
