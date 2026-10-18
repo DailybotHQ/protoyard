@@ -251,7 +251,22 @@ are all derived from its blueprint.
 
 ## Tests
 
-```bash
+```
+
+CSV import/export live on the same service object (capabilities `<entity>:export` /
+`<entity>:import`):
+
+```ts
+const csv = await services.ticket.exportCsv(); // visible rows, formula-safe
+const preview = await services.ticket.importCsv(text); // mode defaults to preview
+const committed = await services.ticket.importCsv(text, {
+  mode: 'commit',
+  skipInvalid: true, // otherwise any invalid row aborts and writes nothing
+});
+// Relation cells accept a target id or its title. Commit is one transaction
+// (bulk chunks of 1,000). Audit rows are written when features.audit is on.
+```
+bash
 pnpm vitest run packages/blueprint
 pnpm --filter @protoyard/blueprint typecheck
 ```
