@@ -53,14 +53,19 @@ describe('mountPrototype', () => {
     expect(target.querySelectorAll(':scope > [data-py-scroll-root]')).toHaveLength(1);
   });
 
-  it('seeds, mounts the app with reactive bindings and applies the appearance', async () => {
+  it('signals ready after seeding and mounts the app with reactive bindings', async () => {
+    const mark = vi.spyOn(performance, 'mark');
     const { runtime } = await boot();
     expect(runtime.scenarios.active()?.scenario.id).toBe('empty');
     expect(screen.getByTestId('who').textContent).toBe('Olivia Owner');
     expect(screen.getByTestId('can-create').textContent).toBe('yes');
     expect(root.dataset.pyReady).toBe('true');
+    expect(root.dataset.protoyardReady).toBe('1');
+    expect(mark).toHaveBeenCalledWith('protoyard:world-ready', { detail: { seeded: true } });
+    expect(mark).toHaveBeenCalledWith('protoyard:ready');
     expect(root.dataset.pyTheme).toBe('violet');
     expect(window.__protoyard).toBe(runtime);
+    mark.mockRestore();
 
     await runtime.session.switchActor('user_0002');
     flushSync();

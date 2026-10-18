@@ -9,7 +9,7 @@ import {
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import { BUILTIN_THEMES, mergeThemes } from '@protoyard/themes';
 import { toast } from '@protoyard/ui';
-import { type Component, mount, unmount } from 'svelte';
+import { type Component, mount, tick, unmount } from 'svelte';
 import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
 import { DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
@@ -62,6 +62,7 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   const link = parseScenarioLink(options.search ?? location.search);
   const themes = mergeThemes(BUILTIN_THEMES, definition.themes);
   const root = document.documentElement;
+  delete root.dataset.protoyardReady;
   const cleanups: (() => void | Promise<void>)[] = [];
 
   const showBootError = (error: unknown): MountedPrototype => {
@@ -89,7 +90,16 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   try {
     const create = options.createRuntime ?? createPrototypeRuntime;
     runtime = await create(definition, { themes, link });
-    await runtime.scenarios.ensureSeeded();
+    let seeded = false;
+    const unsubscribeProgress = runtime.scenarios.subscribeProgress((progress) => {
+      if (progress?.phase === 'generate') seeded = true;
+    });
+    try {
+      await runtime.scenarios.ensureSeeded();
+    } finally {
+      unsubscribeProgress();
+    }
+    performance.mark('protoyard:world-ready', { detail: { seeded } });
   } catch (error) {
     runtime?.close();
     return showBootError(error);
@@ -118,6 +128,10 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   }
   cleanups.push(() => unmount(app));
 
+  await tick();
+  root.dataset.protoyardReady = '1';
+  performance.mark('protoyard:ready');
+
   // The define is read inline (not via flags.ts) so the minifier can fold it
   // and drop the DevTools chunk entirely from builds without DevTools.
   // Undeclared (tests, foreign bundlers) means "allowed when asked".
@@ -145,6 +159,7 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
       setMountedRuntime(null);
       if (window.__protoyard === rt) delete window.__protoyard;
       delete root.dataset.pyReady;
+      delete root.dataset.protoyardReady;
       rt.close();
     },
   };
