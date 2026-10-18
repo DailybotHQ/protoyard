@@ -59,12 +59,14 @@ export interface FrameDecisionInput {
 
 /**
  * The shell actually framed, or `none` for full-bleed: no shell, embedded,
- * a window narrower than the device (a real phone), or no frame yet.
+ * no frame yet, or a window too narrow for the device plus its frame and
+ * gutter (a real phone, even one slightly wider than the catalog device).
  */
 export function activeFrame(input: FrameDecisionInput): ResolvedShell {
   const { shell, spec, windowWidth, embedded } = input;
-  if (shell === 'none' || embedded || !spec || !FRAMES[shell]) return 'none';
-  return windowWidth < spec.width ? 'none' : shell;
+  const entry = shell === 'none' ? undefined : FRAMES[shell];
+  if (!entry || embedded || !spec) return 'none';
+  return windowWidth < spec.width + 2 * (entry.margin + STAGE_GUTTER) ? 'none' : shell;
 }
 
 /** Scale that fits the device (plus its frame margin) into the stage on both axes; never upscales. */

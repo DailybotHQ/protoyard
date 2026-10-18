@@ -306,8 +306,12 @@ describe('shell frame decisions', () => {
     expect(activeFrame(base)).toBe('phone');
     expect(activeFrame({ ...base, shell: 'none' })).toBe('none');
     expect(activeFrame({ ...base, embedded: true })).toBe('none');
-    // A real phone (window narrower than the device) gets full-bleed.
+    // A real phone gets full-bleed, even one a little wider than the catalog device.
     expect(activeFrame({ ...base, windowWidth: 390 })).toBe('none');
+    expect(activeFrame({ ...base, windowWidth: 412 })).toBe('none');
+    const fits = (phone?.width ?? 0) + 2 * ((FRAMES.phone?.margin ?? 0) + STAGE_GUTTER);
+    expect(activeFrame({ ...base, windowWidth: fits - 1 })).toBe('none');
+    expect(activeFrame({ ...base, windowWidth: fits })).toBe('phone');
     expect(activeFrame({ ...base, spec: undefined })).toBe('none');
     // Shells whose frame has not shipped yet stay full-bleed.
     expect(FRAMES['side-panel']).toBeUndefined();

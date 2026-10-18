@@ -65,7 +65,7 @@ The frame decoration is a lazily loaded chunk registered in
 `src/shell/frames/registry.ts`. Today `phone` and `tablet` use a generic bezel; other
 shells render full-bleed until their frame ships. The app goes full-bleed when the
 shell is `none`, inside an iframe (the gallery preview draws its own device), or when
-the window is narrower than the device (a real phone). The wrappers always exist, so
+the window is too narrow for the device plus its frame (a real phone). The wrappers always exist, so
 changing the shell never remounts the app; without a frame they are
 `display: contents`.
 
