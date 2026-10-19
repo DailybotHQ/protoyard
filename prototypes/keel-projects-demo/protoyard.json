@@ -1,0 +1,76 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.keel-projects-demo",
+  "slug": "keel-projects-demo",
+  "kind": "prototype",
+  "name": "Keel Projects",
+  "description": "Keel Studio's project hub (fictional product studio): a board with swimlanes, sprint rituals on a calendar, a critical-path timeline, a 10,000-task grid with saved views, comments with mentions, a notifications center and a command palette.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "productivity",
+  "tags": [
+    "projects",
+    "sprints",
+    "kanban",
+    "calendar",
+    "gantt",
+    "grid",
+    "notifications",
+    "productivity"
+  ],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Project management",
+    "platforms": ["web"],
+    "features": [
+      "projects",
+      "sprints",
+      "kanban",
+      "swimlanes",
+      "calendar",
+      "gantt",
+      "critical-path",
+      "grid",
+      "saved-views",
+      "comments",
+      "mentions",
+      "notifications",
+      "command-palette",
+      "roles"
+    ],
+    "highlights": [
+      "Board with swimlanes by assignee or priority, mouse and keyboard moves",
+      "Sprint rituals on a calendar: daily standup, planning, review and retro",
+      "Gantt timeline with dependencies, critical path and successors that shift",
+      "A 10,000-task grid with saved views in the massive scenario",
+      "Comments with mentions, activity, a notifications center and a command palette"
+    ],
+    "difficulty": "advanced"
+  },
+  "status": "ready",
+  "icon": "\ud83e\udded",
+  "defaultScenario": "sprint-in-flight",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "layout": {
+      "id": "sidebar",
+      "supported": ["sidebar", "rail", "top-nav"]
+    }
+  },
+  "storage": {
+    "namespace": "keel-projects-demo",
+    "schemaVersion": 4
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": ["empty", "sprint-in-flight", "overdue-crunch", "massive", "viewer"],
+  "template": "project-management",
+  "createdAt": "2026-10-19T23:10:20.537Z",
+  "updatedAt": "2026-10-19T23:10:20.537Z"
+}

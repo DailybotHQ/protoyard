@@ -2,6 +2,7 @@ import type { Dependency, ScheduleTask, TaskChange } from '@protoyard/views/time
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { dateAtOffset, dateOffset, TimelineView, timelineRange } from '../src/timeline/index.ts';
+import { durationLabel } from '../src/timeline/model.ts';
 
 afterEach(() => cleanup());
 
@@ -37,6 +38,16 @@ function setup(props: Record<string, unknown> = {}) {
     ...props,
   } as never);
 }
+
+describe('durationLabel', () => {
+  it('counts a same-day task as one day (end is inclusive); only a milestone takes none', () => {
+    expect(durationLabel({ id: 'a', start: '2026-10-06', end: '2026-10-06' })).toBe('1 day');
+    expect(
+      durationLabel({ id: 'b', start: '2026-10-06', end: '2026-10-06', milestone: true })
+    ).toBe('Milestone');
+    expect(durationLabel({ id: 'c', start: '2026-10-05', end: '2026-10-09' })).toBe('5 days');
+  });
+});
 
 describe('TimelineView', () => {
   it('calculates a padded range and converts civil dates to offsets', () => {
