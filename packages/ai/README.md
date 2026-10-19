@@ -73,12 +73,18 @@ await voice.finishListening(); // Emits a deterministic scripted caption after s
 Voice input is simulated from scripted captions by default. The engine does not request a microphone, record audio, or call a cloud speech service.
 ## Rich answers (safe markdown)
 
+The parser has no dependencies and is also published as the `@protoyard/ai/markdown`
+subpath, so non-AI kits reuse this one audited implementation without pulling in the
+AI engine (ADR-022).
+
 `parseMarkdown(text)` turns simulated model output into a plain-data AST (`MdDocument`:
 `blocks` plus numbered `sources`). UI packages render it with components and text nodes;
 the AST never contains HTML and must never be rendered with `{@html}`.
 
 ```ts
 import { inlineText, parseMarkdown } from '@protoyard/ai';
+// Or, outside AI prototypes (the views kit editor, comments), the parser alone:
+// import { parseMarkdown, safeHref } from '@protoyard/ai/markdown';
 
 const doc = parseMarkdown(message.text);
 // doc.blocks: paragraph, heading, code { lang, text, closed }, list { ordered, start, items },
