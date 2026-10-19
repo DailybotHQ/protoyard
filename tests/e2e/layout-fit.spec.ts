@@ -68,6 +68,19 @@ const FIT_TARGETS: Record<string, FitTarget> = {
   'crm-demo': { scenario: 'enterprise-scale', hash: '#/', layout: 'document' },
   'lattice-saas-demo': { scenario: 'multi-workspace-admin', hash: '#/app', layout: 'document' },
   'ui-kit': { hash: '#/', layout: 'document' },
+  // The analytics flagship at its densest (rollups + a 5 % sample) and the template it came from.
+  'pebblestat-analytics-demo': {
+    scenario: 'enterprise-scale',
+    hash: '#/',
+    layout: 'document',
+    ready: 'figure[data-py-chart]',
+  },
+  analytics: {
+    scenario: 'massive',
+    hash: '#/',
+    layout: 'document',
+    ready: 'figure[data-py-chart]',
+  },
 };
 
 const DESKTOP = { width: 1920, height: 1080 } as const;
