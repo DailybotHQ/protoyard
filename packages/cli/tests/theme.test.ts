@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { symlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import type { Theme } from '@protoyard/core';
 import { afterEach, describe, expect, it } from 'vitest';
+import { exportTheme } from '../src/lib/theme-export.ts';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 const repositoryRoot = process.cwd();
@@ -106,6 +108,41 @@ describe('protoyard theme', () => {
       written: false,
       dryRun: true,
     });
+  });
+
+  it('refuses to export a theme whose values would inject CSS', async () => {
+    ws = createThemeWorkspace();
+    for (const [name, theme] of [
+      [
+        'font',
+        {
+          ...validTheme,
+          fontFamily: 'x;} body{background:url(https://tracker.example/p)} :root{a:b',
+        },
+      ],
+      ['color', { ...validTheme, light: { ...validTheme.light, primary: 'url(https://x)' } }],
+      ['radius', { ...validTheme, radius: '1rem;}body{display:none' }],
+      ['markup', { ...validTheme, dark: { ...validTheme.dark, ring: '</style>' } }],
+    ] as const) {
+      ws.write(`${name}.json`, theme);
+      const exported = await cli([
+        '--root',
+        ws.root,
+        '--json',
+        'theme',
+        'export',
+        '--from',
+        `${name}.json`,
+        '--format',
+        'css',
+      ]);
+      expect(exported.code, name).toBe(4);
+      expect(exported.stdout, name).not.toContain('tracker.example');
+      // A caller that skips the schema still cannot write the value into CSS.
+      expect(() => exportTheme(theme as unknown as Theme, 'css'), name).toThrow(
+        /Refusing to export/
+      );
+    }
   });
 
   it('rejects unknown prototypes and reports AA failing pairs for imported JSON', async () => {
