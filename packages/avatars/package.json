@@ -1,0 +1,24 @@
+{
+  "name": "@protoyard/avatars",
+  "version": "0.1.0",
+  "description": "Data-only avatar library for Protoyard: 175 portraits of fictional people as optimized square WebP (64 and 128 px) with a verified manifest.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./manifest.json": "./src/manifest.json",
+    "./assets/*": "./assets/*"
+  },
+  "files": [
+    "src",
+    "assets",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  }
+}
