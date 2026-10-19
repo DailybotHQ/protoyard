@@ -1,0 +1,53 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.analytics",
+  "slug": "analytics",
+  "kind": "template",
+  "name": "Product Analytics",
+  "description": "A product analytics starter: an editable dashboard grid with KPIs, trends with filters, breakdowns and saved segments, funnels, cohort retention and a live counter, all computed from simulated events with role-gated editing.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": [
+    "starter",
+    "analytics",
+    "dashboard",
+    "charts",
+    "funnels",
+    "retention",
+    "segments",
+    "roles"
+  ],
+  "catalog": {
+    "category": "analytics",
+    "productType": "Product analytics",
+    "platforms": ["web"],
+    "features": [
+      "dashboard",
+      "charts",
+      "filters",
+      "segments",
+      "funnels",
+      "retention",
+      "realtime",
+      "roles"
+    ],
+    "highlights": [
+      "Editable dashboard grid with KPIs",
+      "Trends with filters, breakdowns and saved segments",
+      "Funnels and cohort retention",
+      "Launch spike, outage and massive scenarios"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "📈",
+  "defaultScenario": "active",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-analytics", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "launch-spike", "outage", "massive", "viewer"]
+}
