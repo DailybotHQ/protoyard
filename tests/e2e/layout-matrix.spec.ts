@@ -137,6 +137,13 @@ test.describe('layout × viewport × color-mode matrix', () => {
               await page.goto(urlFor(target.primaryRoute));
               await waitForPrototypeReady(page, { slug: target.slug });
               const primaryInput = page.locator(target.primaryInput).first();
+              // On a phone relay-chat opens on its channel list; open the current channel first.
+              if (target.navigation === 'relay-channels' && !(await primaryInput.isVisible())) {
+                await page
+                  .getByRole('navigation', { name: 'Channels' })
+                  .locator('[aria-current="page"]')
+                  .click();
+              }
               await expect(primaryInput, 'primary input is visible').toBeVisible();
               const inputBox = await primaryInput.boundingBox();
               const viewportSize = page.viewportSize();
