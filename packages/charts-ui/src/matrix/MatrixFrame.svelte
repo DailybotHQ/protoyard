@@ -3,7 +3,6 @@ import type { Rect } from '@protoyard/charts';
 import type { Snippet } from 'svelte';
 import ChartFrame from '../frame/ChartFrame.svelte';
 import type { ChartFormatters, PlotSeries } from '../interaction/model.ts';
-import TableToggle from '../interaction/TableToggle.svelte';
 import RampLegend from './RampLegend.svelte';
 
 type Props = {
@@ -74,7 +73,9 @@ let tableShown = $state(false);
   {#snippet footer()}
     <div class="flex flex-wrap items-center justify-between gap-2">
       <RampLegend {...ramp} label="{title} scale" />
-      <TableToggle bind:showing={tableShown} controls="{uid}-table" />
+      {#await import('../interaction/TableToggle.svelte') then { default: TableToggle }}
+        <TableToggle bind:showing={tableShown} controls="{uid}-table" />
+      {/await}
     </div>
   {/snippet}
 </ChartFrame>

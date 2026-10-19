@@ -72,6 +72,7 @@ describe('@protoyard/charts package exports', () => {
       './downsample',
       './layout',
       './palette',
+      './palette/derive',
     ]);
     for (const target of Object.values(pkg.exports)) {
       expect(existsSync(join(root, target))).toBe(true);

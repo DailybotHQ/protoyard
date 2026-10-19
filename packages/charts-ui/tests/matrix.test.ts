@@ -133,7 +133,7 @@ describe('Heatmap', () => {
 
   it('offers the same data as a table', async () => {
     render(Heatmap, { title: 'Activity', rows, cols, values });
-    await fireEvent.click(screen.getByRole('button', { name: 'View as table' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'View as table' }));
     const table = await screen.findByRole('table', { name: 'Activity' });
     expect(table.querySelectorAll('tbody tr')).toHaveLength(3);
     expect(table.querySelectorAll('thead th')).toHaveLength(5);

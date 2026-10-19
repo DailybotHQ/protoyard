@@ -150,8 +150,9 @@ describe('ChartFrame', () => {
   it('applies the validated chart palette from the theme variables, and follows mode changes', async () => {
     render(FrameProbe);
     const figure = screen.getByRole('figure');
+    // Without a theme chart block the palette is derived by a lazily loaded builder.
+    await waitFor(() => expect(figure.getAttribute('style')).toContain('--py-chart1: #7c3aed'));
     const style = figure.getAttribute('style') ?? '';
-    expect(style).toContain('--py-chart1: #7c3aed');
     expect(style).toMatch(/--py-chart8: #[0-9a-f]{6}/);
     expect(style).toMatch(/--py-seq-9: #[0-9a-f]{6}/);
     expect(style).toMatch(/--py-div-1: #[0-9a-f]{6}/);
@@ -163,8 +164,11 @@ describe('ChartFrame', () => {
     html.dataset.pyMode = 'dark';
     await waitFor(() => expect(screen.getByTestId('context').dataset.mode).toBe('dark'));
     // #4c1d95 is about 1.6:1 on #18181b, so the frame publishes a repaired, lighter chart1.
-    await waitFor(() => expect(figure.getAttribute('style')).toMatch(/--py-chart1: #[0-9a-f]{6}/));
-    expect(figure.getAttribute('style')).not.toContain('--py-chart1: #4c1d95');
+    await waitFor(() => {
+      expect(figure.getAttribute('style')).toMatch(/--py-chart1: #[0-9a-f]{6}/);
+      expect(figure.getAttribute('style')).not.toContain('--py-chart1: #4c1d95');
+      expect(figure.getAttribute('style')).not.toContain('--py-chart1: #7c3aed');
+    });
   });
 
   it('uses the chart block a theme ships instead of deriving one', () => {

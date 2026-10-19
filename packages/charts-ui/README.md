@@ -69,12 +69,20 @@ as table" toggle whose table loads on demand. Values are formatted by `unit`:
 All charts take `onselect({ series, index, datum })` for drill-down,
 `loading`, `error` + `onretry`, `emptyMessage` and a bindable `hidden` set.
 
-Size, measured with esbuild (minify + gzip -9, splitting, `svelte` external):
-LineChart + BarChart is a 17.4 KB entry chunk, and the table loads lazily
-(about 1.3 KB). The shared frame and interaction layer account for 10.6 KB of
-that and the chart math (scales, shapes, downsampling, palette) for 7.0 KB,
-so each further chart adds 1–3 KB. This is over the 10 KB target; see the
-PLAN_003 report for the planned reductions.
+Size, measured by the bundle guard (`pnpm vitest run packages/cli/tests/charts-bundle.test.ts`,
+a real Vite production build of a fixture app): opening a LineChart + BarChart
+view downloads 15,959 B gzip. Before the reductions below it was 17,833 B:
+
+| Change | Line + bar view |
+| --- | ---: |
+| Before | 17,833 B |
+| Palette builder loads only for themes without a chart block | 16,650 B |
+| Legend and TableToggle load after the plot | 16,148 B |
+| Unit formatters from one `Intl` table; Canvas pixel reduction moved into the lazy Canvas chunk | 15,959 B |
+
+A Sparkline on a first screen adds 2,549 B. The guard fails above 2,750 B and
+17,000 B. The plan's 10 KB target for line + bar is not met; the rest is chart
+code. See [docs/PERFORMANCE.md → Charts](../../docs/PERFORMANCE.md#charts-and-analytics-kits).
 
 ## Dense data: the Canvas renderer (`./canvas`)
 
@@ -196,8 +204,10 @@ stays free of component code.
   class, inline variables) once per appearance change. Themes that ship a
   validated chart block (library and generated themes) already publish
   `--py-chart1…8`, `--py-seq-*` and `--py-div-*`; the frame uses those as
-  they are and sets nothing. For other themes it builds the validated
-  palette from `chart1…5` and sets those variables on the frame. When the
+  they are and sets nothing. For other themes it loads the palette builder
+  on demand (`@protoyard/charts/palette/derive`), then builds the validated
+  palette from `chart1…5` and sets those variables on the frame. Until it
+  arrives, charts use the raw theme tokens. When the
   tokens are not hex, charts fall back to the raw `--py-chart*` tokens.
 - **Motion:** `data-py-motion="reduce"` or `prefers-reduced-motion` sets
   `data-motion="reduce"` and `--py-chart-duration: 0ms` on the frame and
