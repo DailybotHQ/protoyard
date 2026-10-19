@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { BillingService, SaasInvoice, SaasSubscription } from '@protoyard/saas';
 import {
+  AlertDialog,
   Badge,
   Button,
   Card,
@@ -27,6 +28,8 @@ let planName = $state<string | null>(null);
 let error = $state<string | null>(null);
 let busy = $state(false);
 let notice = $state<string | null>(null);
+// Cancelling is destructive: the button opens a confirmation first.
+let cancelOpen = $state(false);
 
 async function refresh() {
   if (!billing) {
@@ -153,7 +156,7 @@ function statusBadge(status: string): string {
               Resume subscription
             </Button>
           {:else if subscription.status === 'active' || subscription.status === 'trialing'}
-            <Button disabled={busy} loading={busy} onclick={() => void cancel()} variant="destructive">
+            <Button disabled={busy} loading={busy} onclick={() => (cancelOpen = true)} variant="destructive">
               Cancel at period end
             </Button>
           {/if}
@@ -191,3 +194,15 @@ function statusBadge(status: string): string {
     </CardContent>
   </Card>
 </div>
+
+<AlertDialog
+  bind:open={cancelOpen}
+  title={`Cancel the ${planName ?? 'current'} plan at period end?`}
+  description={subscription
+    ? `The subscription stays active until ${subscription.currentPeriodEnd.slice(0, 10)}, then ends. You can resume it before then. Simulated: no payment provider is contacted.`
+    : 'The subscription ends at the close of the current period.'}
+  confirmLabel="Schedule cancellation"
+  cancelLabel="Keep subscription"
+  destructive
+  onConfirm={cancel}
+/>

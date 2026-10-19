@@ -19,6 +19,14 @@ describe('AlertDialog', () => {
     expect(screen.getByTestId('state').textContent).toBe('open');
   });
 
+  it('focuses Cancel, the safe default, when it opens', async () => {
+    render(AlertDialogHarness, {});
+    await openDialog();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }))
+    );
+  });
+
   it('cancel closes without calling onConfirm', async () => {
     const onConfirm = vi.fn();
     const onCancel = vi.fn();

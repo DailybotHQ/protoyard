@@ -88,12 +88,12 @@ onMount(() => {
         <form class="grid gap-4" onsubmit={(event) => { event.preventDefault(); void consume(); }}>
           <FormField label="New password" required error={issues.password}>
             {#snippet children(control)}
-              <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="new-password" bind:value={password} required />
+              <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="off" bind:value={password} required />
             {/snippet}
           </FormField>
           <FormField label="Confirm password" required error={issues.confirmPassword}>
             {#snippet children(control)}
-              <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="new-password" bind:value={confirmPassword} required />
+              <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="off" bind:value={confirmPassword} required />
             {/snippet}
           </FormField>
           <Button variant="ghost" size="sm" onclick={() => (showPassword = !showPassword)} aria-pressed={showPassword}>{showPassword ? 'Hide password' : 'Show password'}</Button>
@@ -114,5 +114,5 @@ onMount(() => {
     </CardContent>
     <CardFooter><Button href={routeHref(config.signInPath)} variant="ghost">Back to sign in</Button></CardFooter>
   </Card>
-  <p class="mt-4 text-center text-xs text-muted-foreground">Simulation only — no email is sent and no real credential is stored.</p>
+  <p class="mt-4 text-center text-xs text-muted-foreground" data-testid="simulated-password-notice">Simulation only — do not use a real password. What you type is kept as plain text in this browser and in exported snapshots.</p>
 </main>

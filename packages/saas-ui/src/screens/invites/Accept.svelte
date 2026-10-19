@@ -149,10 +149,10 @@ const ERRORS: Record<
           <FormField
             label="Password (optional)"
             error={issues.password ?? null}
-            description="Simulated, stored as typed in this browser. Never use a real password."
+            description="Simulation only — do not use a real password. What you type is kept as plain text in this browser and in exported snapshots."
           >
             {#snippet children(control)}
-              <Input {...control.props} type="password" bind:value={password} autocomplete="new-password" />
+              <Input {...control.props} type="password" bind:value={password} autocomplete="off" />
             {/snippet}
           </FormField>
         {:else}

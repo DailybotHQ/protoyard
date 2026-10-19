@@ -103,11 +103,12 @@ onMount(() => {
   <form class="grid max-w-xl gap-4" onsubmit={(event) => { event.preventDefault(); void changePassword(); }}>
     <h3 class="font-medium">Change password</h3>
     <FormField label="Current simulated password" required>
-      {#snippet children(control)}<Input {...control.props} type="password" autocomplete="current-password" bind:value={currentPassword} required disabled={!allowed || busy} />{/snippet}
+      {#snippet children(control)}<Input {...control.props} type="password" autocomplete="off" bind:value={currentPassword} required disabled={!allowed || busy} />{/snippet}
     </FormField>
     <FormField label="New simulated password" required>
-      {#snippet children(control)}<Input {...control.props} type="password" autocomplete="new-password" bind:value={newPassword} minlength={8} required disabled={!allowed || busy} />{/snippet}
+      {#snippet children(control)}<Input {...control.props} type="password" autocomplete="off" bind:value={newPassword} minlength={8} required disabled={!allowed || busy} />{/snippet}
     </FormField>
+    <p class="text-xs text-muted-foreground" data-testid="simulated-password-notice">Simulation only — do not use a real password. What you type is kept as plain text in this browser and in exported snapshots.</p>
     <Button type="submit" disabled={!allowed || busy} loading={busy} loadingLabel="Changing password">Change password</Button>
   </form>
   <div class="grid max-w-xl gap-3">
