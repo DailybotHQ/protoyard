@@ -87,8 +87,8 @@ integrated the work after its lane gates passed.
 - [x] UI: DataTable selection, `FilterBar`, `FileDropzone`, `CommandPalette`; lazy routes [`5cb0be4`, `f1bfc0a`, `66999ce`, `21b52a3`, `76e9c9c`]
 - [x] `@protoyard/crud` (`EntityList`, `EntityDetail`, `EntityForm`, notifications, members), global search, `crud-app` template [`cc22917`, `7b40e9b`, `0dfc9f6`, `4d67506`, `ead0fcb`]
 - [x] `protoyard generate` and safe regeneration, `blueprint validate` [`33f4112`, `c8431e6`]
-- [ ] `helpdesk-demo` flagship generated from a blueprint (Task 126)
-- [ ] `docs/GENERATOR.md`, the blueprint and generate guide (Task 127)
+- [x] `helpdesk-demo` flagship generated from a blueprint, with a Playwright spec (`tests/e2e/helpdesk-demo.spec.ts`) [`e8d00db`]; crud template polish (search, forms, headings, pickers) [`e3bddab`]
+- [x] [GENERATOR.md](GENERATOR.md), the blueprint and generate guide [`a0ea876`]
 
 **Phase 4, SaaS kits.** See [SAAS_KITS.md](SAAS_KITS.md).
 
@@ -119,8 +119,8 @@ integrated the work after its lane gates passed.
 
 - [x] Templates run as live demos from `dev` and the control server [`e751ad2`]
 - [x] `new --from` remixes a template or prototype [`7adbe60`]
-- [x] 20 product blueprints in `blueprints/`, indexed as `kind: blueprint` [`11b602d`]
-- [ ] Catalog metadata for every template and flagship (Task 157)
+- [x] 20 product blueprints in `blueprints/`, indexed as `kind: blueprint`; `list --kind blueprint` [`11b602d`, `3775759`]
+- [x] Catalog metadata for every template and flagship; `validate` reports the catalog block [`253b473`]
 - [ ] The marketplace in the gallery (Task 158)
 - [ ] Marketplace showcase with live demos of every base product (Task 159)
 - [ ] Marketplace E2E and performance proof (Task 160)

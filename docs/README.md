@@ -11,6 +11,7 @@ These docs describe what works in this repository today. Start with the
 | [Quickstart](QUICKSTART.md) | Clone, open the gallery, create and export a prototype |
 | [Agent guide](AGENT_GUIDE.md) | The build loop and copy-paste prompts for coding agents |
 | [Database](DATABASE.md) | Schemas, migrations, services, reactive queries, storage caveats |
+| [Generator](GENERATOR.md) | Blueprints to prototypes: format, `protoyard generate`, regeneration, migrations and drift checks |
 | [Scenarios](SCENARIOS.md) | Scenario axes, generators, personas and permissions, time, environment, snapshots |
 | [Themes](THEMES.md) | Style model, palette engine, the 32-theme library, Theme Studio, the `theme` CLI, brand blocks |
 | [Shells](SHELLS.md) | Device and host shells (phone, tablet, desktop window, browser, widget host, extension popup, side panel) |
@@ -40,9 +41,6 @@ These docs describe what works in this repository today. Start with the
 | [AI agent collaboration](AI_AGENT_COLLAB.md) | Ownership, lockfile, commits, handoffs |
 | [Implementation plan](IMPLEMENTATION_PLAN.md) | What is verified and what is deferred |
 
-<!-- PENDING (PLAN_002 Task 127): add a "Generator" row to "Use it" (the
-blueprint → generate workflow guide) once docs/GENERATOR lands. -->
-
 Package and app references live next to the code: each `packages/*/README.md`,
 `apps/gallery/README.md`, `templates/*/README.md` and
 `prototypes/*/README.md`. The PLAN_002 packages:
@@ -57,4 +55,7 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [ai-ui](../packages/ai-ui/README.md) | Assistant workspace, composer, safe rich answers, canvas and widget modes |
 
 Product blueprints for `protoyard generate` live in
-[blueprints/](../blueprints/README.md).
+[blueprints/](../blueprints/README.md) (`pnpm protoyard list --kind blueprint`).
+`helpdesk-demo` (Beacon Help Desk) is the `protoyard generate` flagship:
+`blueprint.json` → CRUD + SLA dashboard + ticket workspace
+([README](../prototypes/helpdesk-demo/README.md)).

@@ -28,6 +28,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Agents | [AGENT_GUIDE](docs/AGENT_GUIDE.md) | The build loop for a new prototype, prompts, troubleshooting |
 | Database | [DATABASE](docs/DATABASE.md) | Schemas, migrations, services, `liveQuery`, storage caveats |
 | Scenarios | [SCENARIOS](docs/SCENARIOS.md) | Axes, presets, generators, personas/policy, time, environment, snapshots |
+| Generator | [GENERATOR](docs/GENERATOR.md) | Blueprints → prototypes: format, generate/regenerate, ownership, migrations, drift |
 | Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 32-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
 | Shells | [SHELLS](docs/SHELLS.md) | Device and host shells, manifest preview fields, `?shell=`, layout inside frames |
 | SaaS kits | [SAAS_KITS](docs/SAAS_KITS.md) | Simulated auth, OAuth, MFA, onboarding, workspaces, billing, scenario fragments, honest limits |
@@ -44,9 +45,6 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Plan log | [IMPLEMENTATION_PLAN](docs/IMPLEMENTATION_PLAN.md) | What is verified vs deferred |
 | Kit | [.agents catalog](.agents/docs/skills_agents_catalog.md), [commands](.agents/docs/COMMANDS_REFERENCE.md) | Skills, agents, slash commands |
 | Index | [docs/README](docs/README.md) | All docs |
-
-<!-- PENDING (PLAN_002 Task 127): add the "Generator" row (blueprint → generate
-workflow guide) after the Specs row once docs/GENERATOR lands. -->
 
 ## Repository structure
 
@@ -74,8 +72,9 @@ protoyard/
 ├── templates/<name>/      admin-console, agent-console, ai-assistant, b2b-saas, blank, chat,
 │                          chat-widget, crud-app, dashboard, desktop-app, ecommerce, marketplace,
 │                          mobile-app, onboarding, plugin-panel, task-manager, team-chat
-├── prototypes/<slug>/     ai-chat-demo, crm-demo, lattice-saas-demo, mobile-banking-demo,
-│                          nova-assistant-demo, relay-chat-demo, support-widget-demo, ui-kit, …yours
+├── prototypes/<slug>/     ai-chat-demo, crm-demo, helpdesk-demo (generated from a blueprint),
+│                          lattice-saas-demo, mobile-banking-demo, nova-assistant-demo,
+│                          relay-chat-demo, support-widget-demo, ui-kit, …yours
 ├── blueprints/            20 data-only product blueprints for `protoyard generate`                (README)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/
 ├── scripts/               bench-index.ts, bench-cold-start.ts, generate-thumbnails.ts, check-public-hygiene.sh, changelog-section.sh
@@ -97,7 +96,7 @@ protoyard/
 | Type check | `pnpm typecheck` | `pnpm --filter <package> typecheck` |
 | Unit + integration | `pnpm test` | `pnpm vitest run <path>` · `pnpm vitest run -t "<name>"` |
 | E2E | `pnpm test:e2e` (`pnpm test:e2e:install` once) | `PROTOYARD_E2E_PROTOTYPES=<slug> pnpm test:e2e` |
-| Generate from a blueprint | — | `pnpm protoyard generate <slug> --blueprint <file> [--dry-run]` |
+| Generate from a blueprint | — | `pnpm protoyard blueprint validate <file>` · `pnpm protoyard generate <slug> --blueprint <file> [--dry-run]` |
 | Validate a prototype | — | `pnpm protoyard validate <slug> --build` |
 | Spec drift check | `pnpm protoyard spec --all --check` | `pnpm protoyard spec <slug> --check` |
 | Bundle budgets | `pnpm protoyard budget --all` | `pnpm protoyard budget <slug>` |
@@ -247,6 +246,7 @@ owner's credentials).
 
 ```bash
 pnpm protoyard new my-idea --template dashboard   # any templates/<name>; or --from <template|prototype> to remix
+pnpm protoyard generate my-idea --blueprint path/to/blueprint.json   # from a data-only blueprint (docs/GENERATOR.md)
 pnpm protoyard dev my-idea
 # edit src/database/schema.ts → src/domain/{policy,services}.ts → src/scenarios/* → screens
 pnpm protoyard spec my-idea --write               # refresh AGENTS.md + docs/ generated regions
@@ -254,8 +254,8 @@ pnpm vitest run prototypes/my-idea && pnpm protoyard validate my-idea --build
 pnpm protoyard export my-idea
 ```
 
-A CRUD product can start from data instead: `pnpm protoyard generate my-crm
---blueprint blueprints/crm.json`. Later, edit `prototypes/<slug>/blueprint.json`
+A generated prototype (start from `blueprints/*.json`, listed by
+`pnpm protoyard list --kind blueprint`) changes through its data: edit `prototypes/<slug>/blueprint.json`
 and re-run `generate <slug> --blueprint prototypes/<slug>/blueprint.json`, then
 `validate`. Never edit `src/generated/**` by hand.
 

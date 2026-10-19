@@ -61,7 +61,16 @@ or routes. `validate` fails while a region is stale.
 `pnpm protoyard generate <slug> --blueprint prototypes/<slug>/blueprint.json`
 and `validate`. Never edit `src/generated/**`; generated screens use
 `EntityList`, `EntityDetail` and `EntityForm` from
-[`@protoyard/crud`](../packages/crud/README.md).
+[`@protoyard/crud`](../packages/crud/README.md). Generated CRUD search, forms
+and record headings follow the blueprint; relation fields use indexed
+pickers and persona fields use team-persona selects. Details and limits:
+[GENERATOR.md](GENERATOR.md); the reference is `helpdesk-demo`.
+
+**Catalog.** Each manifest's optional `catalog` block (`CatalogSchema` in
+`@protoyard/core`: a category from `CATALOG_CATEGORIES`, `productType`,
+`platforms`, `features`, `highlights`, `difficulty`) shelves the prototype in
+the gallery. `protoyard new` copies the template's block, so adjust it for
+your product; `validate` reports it.
 
 **Domain first, UI second.** A working domain layer can be tested without a
 browser:
@@ -111,6 +120,27 @@ are complete examples.
 it uses the user's provider account and creates something public. Run
 `--dry-run` and show the command. Deploy only when the user explicitly asked,
 never with `--production` unless they asked for production.
+
+## From a brief to a blueprint
+
+For a CRUD-shaped product, let the generator build the data layer and the
+standard screens, then add the product-specific parts in owned files. The
+full workflow is in [GENERATOR.md](GENERATOR.md); `helpdesk-demo` is the
+reference. Give an agent this prompt (from GENERATOR.md):
+
+```text
+Build a Protoyard prototype for <product> from a blueprint.
+1. Write prototypes/<slug>/blueprint.json (formatVersion 1). Use docs/GENERATOR.md and
+   prototypes/helpdesk-demo/blueprint.json as the reference. Define the roles owner,
+   admin, member and viewer. Use fictional data only.
+2. Run `pnpm protoyard blueprint validate prototypes/<slug>/blueprint.json` until it passes.
+3. Run `pnpm protoyard generate <slug> --blueprint prototypes/<slug>/blueprint.json`.
+4. Never edit src/generated/**. Add the product-specific screens in owned files
+   (src/screens, src/App.svelte routes) and call the generated entity services.
+5. Run `pnpm vitest run prototypes/<slug>` and `pnpm protoyard validate <slug> --build`.
+6. To change the data model, edit blueprint.json and run step 3 again. Report the
+   schema version change.
+```
 
 ## Rules
 

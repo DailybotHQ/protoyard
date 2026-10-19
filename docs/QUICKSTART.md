@@ -185,8 +185,13 @@ Other ways to start:
 
 ```bash
 pnpm protoyard new my-bank --from mobile-banking-demo          # remix a prototype (fresh id and storage)
+pnpm protoyard list --kind blueprint                           # the 20 product blueprints
 pnpm protoyard generate my-crm --blueprint blueprints/crm.json  # a CRUD app from a data-only blueprint
 ```
+
+`helpdesk-demo` shows where a generated prototype can go: a blueprint-built
+CRUD core plus an owned SLA dashboard and ticket workspace
+([GENERATOR.md](GENERATOR.md)).
 
 New prototypes start with a spec. After you change the schema, policy,
 scenarios or routes, run `pnpm protoyard spec my-idea --write` to refresh
@@ -263,6 +268,7 @@ validation · `5` provider/auth. Details and agent workflows:
 | Show the app in a phone, desktop window, browser, widget or side panel | [SHELLS.md](SHELLS.md) |
 | Add sign-in, SSO, onboarding, workspaces or billing (simulated) | [SAAS_KITS.md](SAAS_KITS.md) |
 | Build an assistant, agents, team chat or voice (simulated) | [AI_KITS.md](AI_KITS.md) |
+| Generate a CRUD prototype from a blueprint, and regenerate it | [GENERATOR.md](GENERATOR.md) |
 | Keep a spec that lets anyone rebuild the product | [SPECS.md](SPECS.md) |
 | Host or share a prototype, publish many, set up CI | [PUBLISHING.md](PUBLISHING.md) |
 | Have a coding agent build a prototype | [AGENT_GUIDE.md](AGENT_GUIDE.md) |

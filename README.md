@@ -88,7 +88,9 @@ pnpm protoyard export my-idea                      # → artifacts/my-idea/my-id
 | ![UI kit](docs/assets/screenshots/ui-kit.png) | **UI Kit** · `ui-kit` | Every component in every state, plus a theme lab with live tokens and contrast. |
 
 Newer flagships (no screenshots yet): **Lattice** · `lattice-saas-demo`
-(SaaS onboarding, workspaces, invitations and billing), **Nova Assistant** ·
+(SaaS onboarding, workspaces, invitations and billing), **Beacon Help Desk** ·
+`helpdesk-demo` (generated from a blueprint: CRUD, an SLA dashboard and a
+ticket workspace), **Nova Assistant** ·
 `nova-assistant-demo` (assistant with voice, agent tools, a widget and a
 5,000-message history), **Relay Chat** · `relay-chat-demo` (Slack-like team
 chat with an AI teammate and huddles) and **Northwind Help** ·
