@@ -1,6 +1,6 @@
 import { Command, CommanderError, Option } from 'commander';
 import { affectedCommand } from './commands/affected.ts';
-import { blueprintValidateCommand } from './commands/blueprint.ts';
+import { blueprintNewCommand, blueprintValidateCommand } from './commands/blueprint.ts';
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
 import { ciCheckCommand, ciInitCommand } from './commands/ci.ts';
@@ -40,6 +40,7 @@ Examples:
   $ pnpm protoyard list --kind template
   $ pnpm protoyard new my-crm --template blank --name "My CRM"
   $ pnpm protoyard generate my-helpdesk --blueprint ./helpdesk.blueprint.json --dry-run
+  $ echo "A salon that books appointments" | pnpm protoyard blueprint new salon.json --from-brief -
   $ pnpm protoyard dev my-crm --host
   $ pnpm protoyard validate my-crm --build
   $ pnpm protoyard export my-crm --base ./
@@ -167,6 +168,24 @@ export function createProgram(env: RunnerEnv): Command {
     .description('validate a blueprint JSON file (exit 4 with path-specific issues)')
     .argument('<file>', 'blueprint JSON file')
     .action(def('blueprint validate', blueprintValidateCommand));
+  blueprintCmd
+    .command('new')
+    .description(
+      'write a validated blueprint from a product brief (offline, deterministic) and optionally generate it'
+    )
+    .argument('<file>', 'blueprint JSON file to write (inside the workspace)')
+    .option('--from-brief <file>', 'brief text file, or - to read stdin')
+    .option('-i, --interactive', 'answer a few questions on a terminal instead')
+    .option(
+      '--archetype <id>',
+      'force an archetype (helpdesk, crm, booking, logistics, …, tracker)'
+    )
+    .option('--name <name>', 'product name (default: a fictional name)')
+    .option('--force', 'replace an existing file')
+    .option('--generate <slug>', 'then run `generate <slug>` with the new blueprint')
+    .option('--dry-run', 'write nothing; with --generate, plan the prototype only')
+    .option('--no-install', 'with --generate: skip `pnpm install`')
+    .action(def('blueprint new', blueprintNewCommand));
 
   program
     .command('dev')

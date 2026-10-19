@@ -24,6 +24,10 @@ The decision is recorded in [ADR-017](DECISIONS.md#adr-017--data-only-blueprints
 ## The loop
 
 ```bash
+# 0. (Optional) Start from a product brief instead of writing JSON by hand
+echo "A salon that books appointments and tracks invoices with amount" \
+  | pnpm protoyard blueprint new prototypes/my-desk.blueprint.json --from-brief -
+
 # 1. Check the blueprint (exit 4 lists every issue with its path)
 pnpm protoyard blueprint validate prototypes/helpdesk-demo/blueprint.json
 
@@ -41,6 +45,15 @@ pnpm protoyard validate my-desk --build
 # 5. Change the blueprint in place, then regenerate
 pnpm protoyard generate my-desk --blueprint prototypes/my-desk/blueprint.json
 ```
+
+`blueprint new <file>` writes a validated blueprint from a brief, offline and
+deterministically (`blueprintFromBrief` in `@protoyard/blueprint`), and prints
+why it chose each archetype, entity, field and screen. The brief comes from
+`--from-brief <file>`, from stdin with `--from-brief -`, or from seven questions
+with `--interactive` (terminal only). `--archetype <id>` and `--name` steer it;
+`--generate <slug>` chains into `generate` (add `--dry-run` to plan only: then
+nothing is written at all). It never overwrites a file without `--force` and
+never writes outside the workspace.
 
 Every command accepts `--json` and returns `{ ok, command, data?, error? }`.
 `generate` exits with 0 on success, 1 on a conflict (an existing prototype it did
