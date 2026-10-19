@@ -57,6 +57,9 @@ html[data-py-shell] #app {
   flex-direction: column;
   height: 100dvh;
 }
+html[data-py-shell] #app {
+  background: color-mix(in oklab, var(--color-muted) 70%, var(--color-background));
+}
 html[data-py-shell] [data-py-shell-part="stage"] {
   display: flex;
   flex: 1 1 auto;
@@ -65,6 +68,18 @@ html[data-py-shell] [data-py-shell-part="stage"] {
   justify-content: center;
   overflow: hidden;
   background: color-mix(in oklab, var(--color-muted) 70%, var(--color-background));
+}
+/*
+ * The "Prototype · simulated data" badge never covers the app: in a frame it is a
+ * row below the stage (the stage shrinks to make room), outside the screen and the
+ * frame's controls, maximized windows included. Full-bleed, DemoBadge picks a corner.
+ */
+html[data-py-shell] [data-py-demo-badge] {
+  position: static;
+  flex: none;
+  align-self: flex-start;
+  margin: 2px 12px 8px;
+  padding-bottom: 0.25rem;
 }
 html[data-py-shell] [data-py-shell-part="sizer"] {
   display: block;

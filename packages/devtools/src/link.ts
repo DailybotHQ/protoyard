@@ -11,7 +11,7 @@ export function reproducibleLink(
 ): string {
   const href = options.href ?? location.href;
   const url = new URL(href);
-  for (const key of ['scenario', 'actor', 'seed', 'theme', 'mode', 'devtools', 'shell']) {
+  for (const key of ['scenario', 'actor', 'seed', 'theme', 'mode', 'devtools', 'shell', 'frame']) {
     url.searchParams.delete(key);
   }
   const active = runtime.scenarios.active();

@@ -64,6 +64,17 @@ export interface FrameEntry {
    * minimum instead and scale down on smaller desktops.
    */
   minWindowWidth?: number;
+  /**
+   * Window-like frames (browser, desktop window) grow with the stage: the box
+   * fills the stage minus margin and gutter, and the catalog size is only its
+   * minimum (below it, the box scales down like a device). Default: false.
+   */
+  fluid?: boolean;
+  /**
+   * Decoration drawn outside the device box on each side (a bezel ring), in
+   * CSS px. Controls beside the frame (rotate, full screen) start past it.
+   */
+  bezel?: number;
 }
 
 /**
@@ -72,29 +83,50 @@ export interface FrameEntry {
  */
 export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
   /*
-   * Phone and tablet margins hold the bezel (12 / 22 px) plus the rotate
-   * control beside it (8 px gap + 32 px button), which never covers the screen.
+   * Margins hold the decoration plus the controls beside it (rotate, full
+   * screen: an 8 px gap and a 32 px button), which never cover the screen.
+   * Phone and tablet: bezel 12 / 22 px + 44.
    */
-  phone: { load: () => import('./PhoneFrame.svelte'), margin: 56 },
-  tablet: { load: () => import('./TabletFrame.svelte'), margin: 66 },
-  'extension-popup': { load: () => import('./ExtensionPopupFrame.svelte'), margin: 0 },
-  'widget-host': { load: () => import('./WidgetHostFrame.svelte'), margin: 0 },
+  phone: { load: () => import('./PhoneFrame.svelte'), margin: 56, bezel: 12 },
+  tablet: { load: () => import('./TabletFrame.svelte'), margin: 66, bezel: 22 },
+  /*
+   * Panel shells draw a host page on the catalog laptop. Their 48 px margin
+   * holds the full-screen control; they keep the old 1328 px threshold and
+   * scale down slightly up to the 1424 px they need at full size.
+   */
+  'extension-popup': {
+    load: () => import('./ExtensionPopupFrame.svelte'),
+    margin: 48,
+    minWindowWidth: 1328,
+  },
+  'widget-host': {
+    load: () => import('./WidgetHostFrame.svelte'),
+    margin: 48,
+    minWindowWidth: 1328,
+  },
+  /* The dock or taskbar hangs 14 + 48 px below the window, inside the margin. */
   'desktop-window': {
     load: () => import('./DesktopWindowFrame.svelte'),
     margin: 64,
     screenInset: { top: 40 },
     minWindowWidth: 768,
+    fluid: true,
   },
-  'side-panel': { load: () => import('./SidePanelFrame.svelte'), margin: 0 },
+  'side-panel': {
+    load: () => import('./SidePanelFrame.svelte'),
+    margin: 48,
+    minWindowWidth: 1328,
+  },
   /*
    * Browser chrome (40 px tab strip + 48 px address bar) sits above the app's
-   * screen; the light margin leaves room for the rounded card shadow.
+   * screen; the margin holds the full-screen control beside the window.
    */
   browser: {
     load: () => import('./BrowserFrame.svelte'),
-    margin: 12,
+    margin: 48,
     screenInset: { top: 88 },
     minWindowWidth: 768,
+    fluid: true,
   },
 };
 
@@ -227,4 +259,52 @@ export function stageScale(
   const outerWidth = spec.width + 2 * (margin + STAGE_GUTTER);
   const outerHeight = spec.height + 2 * (margin + STAGE_GUTTER);
   return Math.min(fitScale(available.width, outerWidth), fitScale(available.height, outerHeight));
+}
+
+export interface FrameBox {
+  /** Unscaled device box, in CSS px. */
+  width: number;
+  height: number;
+  /** Corner radius of the box (0 when it fills the stage). */
+  radius: number;
+  /** Scale applied to the box so it fits the stage (never above 1). */
+  scale: number;
+}
+
+/**
+ * The device box ShellHost draws for a frame in a stage of `available` size.
+ *
+ * - Maximized: the whole stage, unscaled and square.
+ * - Fluid frames (browser, desktop window): the stage minus margin and gutter
+ *   on each side, never smaller than the catalog size; below that size the box
+ *   keeps the catalog size on that axis and scales down to fit.
+ * - Devices (phone, tablet, panel hosts): the catalog size, scaled down to fit.
+ *
+ * An unmeasured stage (0 × 0, before the first resize observation or without
+ * a layout engine) gets the catalog size at scale 1.
+ */
+export function frameBox(
+  available: { width: number; height: number },
+  spec: Pick<DeviceSpec, 'width' | 'height' | 'cornerRadius'>,
+  entry: Pick<FrameEntry, 'margin' | 'fluid'>,
+  maximized = false
+): FrameBox {
+  const measured = available.width > 0 && available.height > 0;
+  if (maximized && measured) {
+    return {
+      width: Math.floor(available.width),
+      height: Math.floor(available.height),
+      radius: 0,
+      scale: 1,
+    };
+  }
+  const room = 2 * (entry.margin + STAGE_GUTTER);
+  const size =
+    entry.fluid && measured
+      ? {
+          width: Math.max(spec.width, Math.floor(available.width - room)),
+          height: Math.max(spec.height, Math.floor(available.height - room)),
+        }
+      : { width: spec.width, height: spec.height };
+  return { ...size, radius: spec.cornerRadius, scale: stageScale(available, size, entry.margin) };
 }

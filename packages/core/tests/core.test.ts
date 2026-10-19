@@ -327,6 +327,19 @@ describe('links, overrides and snapshots', () => {
     });
   });
 
+  it('reads ?frame=none as a full-screen (shell none) link, below an explicit ?shell=', () => {
+    expect(parseScenarioLink('?frame=none').shell).toBe('none');
+    expect(parseScenarioLink('?scenario=active-month&frame=none')).toEqual({
+      scenario: 'active-month',
+      shell: 'none',
+    });
+    expect(parseScenarioLink('?frame=none&shell=browser').shell).toBe('browser');
+    expect(parseScenarioLink('?frame=none&shell=watch').shell).toBe('none');
+    for (const other of ['device', 'NONE', '', 'phone']) {
+      expect(parseScenarioLink(`?frame=${other}`).shell, other).toBeUndefined();
+    }
+  });
+
   it('resolves effective values by precedence', () => {
     expect(resolveEffective({ preference: 'ocean', scenario: 'violet' }, 'mono')).toEqual({
       value: 'ocean',

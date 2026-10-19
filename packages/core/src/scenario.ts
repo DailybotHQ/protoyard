@@ -133,7 +133,11 @@ export interface ScenarioLinkParams {
   theme?: string;
   mode?: 'light' | 'dark' | 'system';
   devtools?: boolean;
-  /** Presentation shell (`?shell=phone`); applied as a visible, clearable override. */
+  /**
+   * Presentation shell (`?shell=phone`); applied as a visible, clearable
+   * override. `?frame=none` is an alias for `?shell=none` (open full screen,
+   * without the frame); an explicit valid `shell` wins.
+   */
   shell?: Shell;
   /**
    * Isolated, disposable world: the runtime suffixes the storage namespace
@@ -160,6 +164,7 @@ export function parseScenarioLink(search: string): ScenarioLinkParams {
   if (mode === 'light' || mode === 'dark' || mode === 'system') out.mode = mode;
   const shell = ShellSchema.safeParse(params.get('shell'));
   if (shell.success) out.shell = shell.data;
+  else if (params.get('frame') === 'none') out.shell = 'none';
   const sandbox = params.get('sandbox');
   if (sandbox && SANDBOX_PATTERN.test(sandbox)) out.sandbox = sandbox;
   const devtools = params.get('devtools');

@@ -3,15 +3,18 @@ import { getDevice, orient, type PrototypeRuntime } from '@protoyard/core';
 import { setOverlayPortalTarget } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
 import { useAppearance } from '../bindings.svelte.ts';
+import FullScreenExit from './FullScreenExit.svelte';
+import FullScreenToggle from './FullScreenToggle.svelte';
+import { enterFullScreen, exitFullScreen, frameToRestore } from './frame-mode.ts';
 import {
   activeFrame,
   FRAMES,
   type FrameComponent,
+  frameBox,
   hasShellCss,
   isEmbedded,
   screenInsetOf,
   screenLayoutOf,
-  stageScale,
 } from './frames/registry.ts';
 
 /**
@@ -67,23 +70,18 @@ $effect(() => {
   screenHidden = false;
 });
 
-/** The device box: catalog size scaled to fit, or the whole stage when maximized. */
-const box = $derived.by(() => {
-  if (!framed || !spec || !entry) return undefined;
-  if (maximized && available.width > 0 && available.height > 0) {
-    return {
-      width: Math.floor(available.width),
-      height: Math.floor(available.height),
-      radius: 0,
-      scale: 1,
-    };
-  }
-  return {
-    width: spec.width,
-    height: spec.height,
-    radius: spec.cornerRadius,
-    scale: stageScale(available, spec, entry.margin),
-  };
+/**
+ * The device box (registry.ts `frameBox`): catalog size scaled to fit, the
+ * stage minus its margin for fluid window frames, or the whole stage when
+ * maximized.
+ */
+const box = $derived(
+  framed && spec && entry ? frameBox(available, spec, entry, maximized) : undefined
+);
+/** Full screen mode (a `none` override) and the frame "Show in frame" brings back. */
+const restoreTo = $derived.by(() => {
+  void appearance.current;
+  return frameToRestore(runtime, { windowWidth, embedded, cssReady });
 });
 /** Corners touching chrome (a title bar) stay square. */
 const screenRadius = $derived.by(() => {
@@ -153,6 +151,9 @@ $effect(() => {
 
 <svelte:window bind:innerWidth={windowWidth} />
 
+{#if restoreTo}
+  <FullScreenExit onexit={() => void exitFullScreen(runtime).catch(console.error)} />
+{/if}
 <div bind:this={stage} data-py-shell-part="stage">
   <div
     data-py-shell-part="sizer"
@@ -196,6 +197,13 @@ $effect(() => {
           {maximized}
           setMaximized={(value: boolean) => (maximized = value)}
           setScreenHidden={(value: boolean) => (screenHidden = value)}
+        />
+      {/if}
+      <!-- Beside the frame, never over the screen; a maximized window has no room outside. -->
+      {#if box && entry && !maximized}
+        <FullScreenToggle
+          offset={entry.bezel ?? 0}
+          onenter={(options) => void enterFullScreen(runtime, options).catch(console.error)}
         />
       {/if}
     </div>

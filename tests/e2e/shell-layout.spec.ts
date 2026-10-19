@@ -12,7 +12,9 @@ import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
  * renderer's scroll root).
  */
 const SLUG = 'mobile-banking-demo';
-test.skip(!PROTOTYPE_TARGETS.includes(SLUG), `set PROTOYARD_E2E_PROTOTYPES to include ${SLUG}`);
+/** Lumen Bank suites skip unless it is a target; the Nova suites below have their own guard. */
+const skipWithoutBanking = () =>
+  test.skip(!PROTOTYPE_TARGETS.includes(SLUG), `set PROTOYARD_E2E_PROTOTYPES to include ${SLUG}`);
 
 async function openApp(page: Page, hash = '') {
   await page.goto(`${prototypeUrl(SLUG)}?scenario=active-customer${hash}`);
@@ -26,6 +28,7 @@ const viewportHeight = (page: Page) => page.evaluate(() => window.innerHeight);
 const appScroller = (page: Page) => page.locator('[data-py-scroll-root] main#main');
 
 test.describe('viewport preset layout (Lumen Bank)', () => {
+  skipWithoutBanking();
   test.use({ viewport: { width: 1280, height: 800 } });
 
   test('the document does not scroll and the bottom nav is fully visible', async ({ page }) => {
@@ -219,6 +222,7 @@ async function expectActionsInside(page: Page, bounds: Box, label: string) {
 }
 
 test.describe('shell matrix: framed on desktop', () => {
+  skipWithoutBanking();
   for (const { shell, frame, open } of FRAMED_SHELLS) {
     test(`${shell}: framed, actions and fixed children inside the screen, no document scroll, axe`, async ({
       page,
@@ -273,6 +277,7 @@ test.describe('shell matrix: framed on desktop', () => {
 });
 
 test.describe('shell matrix: full-bleed on a phone', () => {
+  skipWithoutBanking();
   for (const shell of [null, ...FRAMED_SHELLS.map((s) => s.shell)]) {
     test(`${shell ?? 'auto'}: no frame, actions inside the viewport, no document scroll`, async ({
       page,
@@ -298,6 +303,7 @@ function intersects(a: Box, b: Box): boolean {
 }
 
 test.describe('shell matrix: the rotate control stays off the screen', () => {
+  skipWithoutBanking();
   for (const shell of ['phone', 'tablet'] as const) {
     test(`${shell}: rotate button outside the screen, in the viewport, last tab hit-testable`, async ({
       page,
@@ -367,6 +373,7 @@ test.describe('shell matrix: the rotate control stays off the screen', () => {
  * bezel; in landscape the app kept a 448 px column and the status bar covered its header.
  */
 test.describe('phone shell: rounded glass and landscape layout', () => {
+  skipWithoutBanking();
   test.beforeEach(async ({ isMobile }) => {
     test.skip(isMobile, 'frames need a window wider than the device');
   });
@@ -516,5 +523,248 @@ test.describe('phone shell: rounded glass and landscape layout', () => {
     await main.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
     await expectDocumentDoesNotScroll(page);
     expect((await boxOf(page, '[data-py-bottom-nav]')).y).toBeCloseTo(nav.y, 0);
+  });
+});
+
+/**
+ * Window-like frames fill the stage, and every frame has a full-screen toggle
+ * (ADR-016). Nova Assistant ships in the `browser` shell: it used to render as a
+ * fixed 1280×800 window centred in a 1920 px screen, with the demo badge over its
+ * sidebar and the "Simulation only" footer over the last message.
+ */
+const NOVA = 'nova-assistant-demo';
+const FRAME_PARTS =
+  '[data-py-frame], [data-py-wallpaper], [data-py-frame-toggle][aria-pressed="false"]';
+
+async function openNova(page: Page, query = '') {
+  await page.goto(`${prototypeUrl(NOVA)}?scenario=active-workspace${query}`);
+  await waitForPrototypeReady(page, { slug: NOVA });
+  await expect(page.getByRole('log', { name: 'Conversation messages' })).toBeVisible();
+}
+
+/** Visible interactive elements the demo badge overlaps (none expected). */
+async function badgeOverlaps(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const badge = document.querySelector('[data-py-demo-badge]');
+    if (!badge) return ['no demo badge'];
+    const b = badge.getBoundingClientRect();
+    const selector =
+      'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [role="tab"], [tabindex]:not([tabindex="-1"])';
+    const out: string[] = [];
+    for (const el of document.querySelectorAll<HTMLElement>(selector)) {
+      if (el.closest('[aria-hidden="true"], [inert]')) continue;
+      const r = el.getBoundingClientRect();
+      // Skip links and other visually hidden controls (1 px clip) are not covered.
+      if (r.width < 4 || r.height < 4 || getComputedStyle(el).visibility === 'hidden') continue;
+      const cs = getComputedStyle(el);
+      if (cs.opacity === '0') continue;
+      // Visually hidden (sr-only skip links: clipped to nothing).
+      if (cs.clipPath.startsWith('inset(50%') || cs.clip === 'rect(0px, 0px, 0px, 0px)') continue;
+      if (r.left < b.right && b.left < r.right && r.top < b.bottom && b.top < r.bottom) {
+        out.push(
+          `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') ?? el.textContent ?? '').trim().slice(0, 40)}"`
+        );
+      }
+    }
+    return out;
+  });
+}
+
+/** Nova's footer sits below the thread and the composer, never over them. */
+async function expectFooterClear(page: Page) {
+  const footer = await boxOf(page, 'main > footer');
+  const log = (await page.getByRole('log', { name: 'Conversation messages' }).boundingBox()) as Box;
+  const composer = (await page
+    .getByRole('textbox', { name: 'Message the simulated assistant' })
+    .boundingBox()) as Box;
+  expect(log.y + log.height, 'thread ends above the footer').toBeLessThanOrEqual(footer.y + 0.5);
+  expect(composer.y + composer.height, 'composer above the footer').toBeLessThanOrEqual(
+    footer.y + 0.5
+  );
+  // The last rendered message is clipped by the thread, never painted under the footer.
+  const lastBottom = await page.evaluate(() => {
+    const log = document.querySelector('[role="log"]') as HTMLElement;
+    const items = log.querySelectorAll('article');
+    const last = items[items.length - 1];
+    if (!last) return 0;
+    return Math.min(last.getBoundingClientRect().bottom, log.getBoundingClientRect().bottom);
+  });
+  expect(lastBottom, 'last message above the footer').toBeLessThanOrEqual(footer.y + 0.5);
+  const settings = page.getByRole('link', { name: 'Settings', exact: true }).first();
+  if (await settings.isVisible()) {
+    const box = (await settings.boundingBox()) as Box;
+    const screenEl = page.locator('[data-py-shell-part="screen"]');
+    const bounds = (await page.locator('html').getAttribute('data-py-shell'))
+      ? ((await screenEl.boundingBox()) as Box)
+      : await viewportBox(page);
+    expectInside(box, bounds, 'sidebar Settings link');
+    const onTop = await settings.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return top !== null && (el === top || el.contains(top));
+    });
+    expect(onTop, 'Settings link hit-testable').toBe(true);
+  }
+}
+
+test.describe('Nova browser frame: fluid size and full screen', () => {
+  test.skip(!PROTOTYPE_TARGETS.includes(NOVA), `set PROTOYARD_E2E_PROTOTYPES to include ${NOVA}`);
+  test.beforeEach(async ({ isMobile, page }) => {
+    test.skip(isMobile, 'frames need a window wider than the device');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+  });
+
+  // At 1440×900 the window's catalog height (800 px) is the minimum, so the box scales
+  // down a little to fit the height; at 1920×1080 it grows on both axes.
+  for (const { minShare, ...size } of [
+    { width: 1920, height: 1080, minShare: 0.85 },
+    { width: 1440, height: 900, minShare: 0.8 },
+  ]) {
+    test(`${size.width}×${size.height}: the browser window fills the stage; badge and footer stay clear`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize(size);
+      await openNova(page);
+      await expect(page.locator('html')).toHaveAttribute('data-py-shell', 'browser');
+      const screen = await boxOf(page, '[data-py-shell-part="screen"]');
+      expect(screen.width / size.width, 'screen width / viewport').toBeGreaterThanOrEqual(minShare);
+      expectInside(screen, await viewportBox(page), 'screen');
+      await expect(page.getByRole('button', { name: 'Show full screen' })).toBeVisible();
+      const toggle = (await page
+        .getByRole('button', { name: 'Show full screen' })
+        .boundingBox()) as Box;
+      expect(intersects(toggle, screen), 'toggle over the screen').toBe(false);
+      expectInside(toggle, await viewportBox(page), 'toggle');
+      expect(await badgeOverlaps(page), 'badge over controls').toEqual([]);
+      const badge = await boxOf(page, '[data-py-demo-badge]');
+      expect(intersects(badge, screen), 'badge over the screen').toBe(false);
+      await expectFooterClear(page);
+      await expectDocumentDoesNotScroll(page);
+      await expectAccessible(page, testInfo, { label: `nova-framed-${size.width}` });
+    });
+  }
+
+  test('full screen: the app fills the viewport without frame parts, Escape restores the frame', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await openNova(page);
+    await page.getByRole('button', { name: 'Show full screen' }).click();
+    await expect(page.locator('html')).not.toHaveAttribute('data-py-shell', /.*/);
+    await expect(page.locator(FRAME_PARTS)).toHaveCount(0);
+    const app = await boxOf(page, '[data-py-scroll-root] > *');
+    const viewport = await viewportBox(page);
+    expect(app.x).toBeLessThanOrEqual(0.5);
+    expect(app.y).toBeLessThanOrEqual(0.5);
+    expect(app.width).toBeGreaterThanOrEqual(viewport.width - 1);
+    expect(app.height).toBeGreaterThanOrEqual(viewport.height - 1);
+    const exit = page.getByRole('button', { name: 'Show in frame' });
+    await expect(exit).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => badgeOverlaps(page), { message: 'badge over controls' }).toEqual([]);
+    await expectFooterClear(page);
+    await expectDocumentDoesNotScroll(page);
+    await expect(page.locator('[data-py-frame-hint]')).toHaveCount(0, { timeout: 6000 });
+    await expectAccessible(page, testInfo, { label: 'nova-full-screen' });
+
+    // The state persists per prototype: a reload stays full screen.
+    await page.reload();
+    await waitForPrototypeReady(page, { slug: NOVA });
+    await expect(page.locator('html')).not.toHaveAttribute('data-py-shell', /.*/);
+
+    await page.locator('body').press('Escape');
+    await expect(page.locator('html')).toHaveAttribute('data-py-shell', 'browser');
+    await expect(page.locator('[data-py-frame="browser"]')).toBeVisible();
+    await page.reload();
+    await waitForPrototypeReady(page, { slug: NOVA });
+    await expect(page.locator('html')).toHaveAttribute('data-py-shell', 'browser');
+  });
+
+  test('?frame=none opens frameless; the keyboard reaches "Show in frame" and the link param is dropped', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openNova(page, '&frame=none');
+    await expect(page.locator('html')).not.toHaveAttribute('data-py-shell', /.*/);
+    await expect(page.locator(FRAME_PARTS)).toHaveCount(0);
+    // Invisible and click-through until it has keyboard focus, like a skip link.
+    const exit = page.getByRole('button', { name: 'Show in frame' });
+    await expect(exit).toHaveCSS('opacity', '0');
+    await page.keyboard.press('Tab');
+    await exit.focus();
+    await expect(exit).toBeFocused();
+    await expect(exit).toHaveCSS('opacity', '1');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('html')).toHaveAttribute('data-py-shell', 'browser');
+    expect(new URL(page.url()).searchParams.get('frame')).toBeNull();
+  });
+
+  test('widget sidebar: single column, the composer is wide and fully visible', async ({
+    page,
+  }) => {
+    for (const size of [
+      { width: 1920, height: 1080 },
+      { width: 1440, height: 900 },
+    ]) {
+      await page.setViewportSize(size);
+      await openNova(page);
+      await page.getByRole('button', { name: 'Widget demo' }).click();
+      const launcher = page.getByRole('button', { name: 'Open simulated assistant' });
+      await expect(launcher).toBeVisible();
+      await launcher.click();
+      const panel = page.locator('[data-widget-panel]');
+      await expect(panel).toHaveAttribute('data-widget-fullscreen', 'false');
+      const prompt = panel.getByRole('textbox', { name: 'Message the simulated assistant' });
+      await expect(prompt).toBeVisible();
+      const box = (await prompt.boundingBox()) as Box;
+      expect(box.width, `${size.width}: composer width`).toBeGreaterThanOrEqual(240);
+      expectInside(box, (await panel.boundingBox()) as Box, `${size.width}: composer in panel`);
+      expectInside(
+        box,
+        await boxOf(page, '[data-py-shell-part="screen"]'),
+        `${size.width}: composer on screen`
+      );
+      // The whole panel body fits: the disclaimer under the composer is not clipped.
+      const disclaimer = (await panel
+        .getByText('AI responses are generated by local deterministic simulation')
+        .boundingBox()) as Box;
+      expectInside(disclaimer, (await panel.boundingBox()) as Box, `${size.width}: disclaimer`);
+      // The history list is off-canvas until its toggle opens it.
+      await expect(panel.getByRole('button', { name: 'Open conversation history' })).toBeVisible();
+      const history = (await panel
+        .getByRole('complementary', { name: 'Conversation history' })
+        .boundingBox()) as Box;
+      const panelBox = (await panel.boundingBox()) as Box;
+      // Off-canvas: translated out of the workspace's left edge (clipped by it).
+      const workspace = await boxOf(page, '[data-widget-panel] .\\@container');
+      expect(history.x + history.width, 'history hidden').toBeLessThanOrEqual(workspace.x + 1);
+      expect(panelBox.width).toBeGreaterThan(0);
+      // Leave the widget closed for the next size.
+      await panel.getByRole('button', { name: 'Close assistant' }).click();
+    }
+  });
+});
+
+test.describe('full screen toggle on a phone frame (Lumen Bank)', () => {
+  skipWithoutBanking();
+  test('enter, then Escape back to the phone; nothing covers the bottom nav', async ({
+    page,
+    isMobile,
+  }, testInfo) => {
+    test.skip(isMobile, 'frames need a window wider than the device');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openShell(page, null);
+    await expect(page.locator('html')).toHaveAttribute('data-py-shell', 'phone');
+    const toggle = page.getByRole('button', { name: 'Show full screen' });
+    const screen = await boxOf(page, '[data-py-shell-part="screen"]');
+    expect(intersects((await toggle.boundingBox()) as Box, screen)).toBe(false);
+    expect(intersects(await boxOf(page, '[data-py-demo-badge]'), screen)).toBe(false);
+    await toggle.click();
+    await expect(page.locator('html')).not.toHaveAttribute('data-py-shell', /.*/);
+    await expect(page.locator(FRAME_PARTS)).toHaveCount(0);
+    await expectActionsInside(page, await viewportBox(page), 'full screen');
+    await expect.poll(() => badgeOverlaps(page), { message: 'badge over controls' }).toEqual([]);
+    await expectAccessible(page, testInfo, { label: 'banking-full-screen' });
+    await page.locator('body').press('Escape');
+    await expect(page.locator('html')).toHaveAttribute('data-py-shell', 'phone');
   });
 });
