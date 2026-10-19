@@ -1,0 +1,41 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.logistics-map",
+  "slug": "logistics-map",
+  "kind": "template",
+  "name": "Logistics Map",
+  "description": "Coordinate depots, vehicles and shipments on a fictional offline map with route timelines and simulated-time ETAs.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "operations",
+  "tags": ["logistics", "dispatch", "map", "shipments", "routes"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Logistics dispatch",
+    "platforms": ["web"],
+    "features": ["offline-map", "dispatch", "route-timeline", "simulated-eta"],
+    "highlights": [
+      "A fully fictional offline map with depots and vehicle routes",
+      "Dispatch and reassign persisted shipments",
+      "ETAs and vehicle positions follow simulated time",
+      "An offline-network scenario shows service failures"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "🚚",
+  "defaultScenario": "active-dispatch",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "layout": {
+      "id": "sidebar",
+      "supported": ["sidebar", "rail", "top-nav", "mobile-tabs", "mobile-drawer"]
+    }
+  },
+  "storage": { "namespace": "template-logistics-map", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["active-dispatch", "empty", "network-offline"]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@protoyard-template/logistics-map",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline logistics dispatch template with depots, vehicles, shipments, route timelines and simulated ETAs.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/scenarios": "workspace:*",
+    "@protoyard/themes": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "@protoyard/views": "workspace:*",
+    "@protoyard/views-ui": "workspace:*",
+    "dexie": "^4.4.0",
+    "svelte": "^5.57.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "@protoyard/runtime": "workspace:*"
+  }
+}
