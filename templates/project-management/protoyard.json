@@ -1,0 +1,39 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.project-management",
+  "slug": "project-management",
+  "kind": "template",
+  "name": "Project Management",
+  "description": "Projects with sprints, a service-backed board, a reschedulable timeline and workload by persona.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "productivity",
+  "tags": ["projects", "sprints", "kanban", "timeline", "workload", "productivity"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Project management",
+    "platforms": ["web"],
+    "features": ["projects", "sprints", "kanban", "timeline", "workload", "roles"],
+    "highlights": [
+      "Projects and sprints with deterministic sample data",
+      "A board with drag, keyboard moves and saved column order",
+      "A timeline with saved date changes",
+      "Workload grouped by persona with assignment controls",
+      "Owner, admin, member and viewer permissions"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "✅",
+  "defaultScenario": "active-team",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "layout": { "id": "sidebar", "supported": ["sidebar", "rail", "top-nav"] }
+  },
+  "storage": { "namespace": "template-project-management", "schemaVersion": 3 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active-team", "overdue-crunch", "viewer"]
+}
