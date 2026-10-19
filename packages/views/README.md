@@ -7,8 +7,9 @@ scenario generators run in Node tests, in services and in generators, so this
 package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
-> **Status:** `./activity`, `./board`, `./calendar`, `./grid`, `./map`,
-> `./editor`, `./scenarios`, `./timeline` and `./tree` are implemented; the other
+> **Status:** `./activity`, `./board`, `./calendar`, `./files`, `./grid`,
+> `./map`, `./editor`, `./scenarios`, `./timeline` and `./tree` are
+> implemented; the other
 > subpaths exist and are empty until their PLAN_003 task lands, and this
 > README documents each one then.
 
@@ -377,3 +378,28 @@ Comments and history without a framework.
   mutating the old one. `CommentInputSchema` validates `{ body, parentId }`
   and trims the body; the body is 1 to 5,000 characters.
 - **Size:** 2.9 KB gzip minified, with zod external.
+
+## Files (`@protoyard/views/files`)
+
+A flat file tree (`FileEntry`: `{ id, parentId, name, kind, type?, size?,
+updatedAt?, hasBlob? }`).
+
+- **Listing and paths:** `childrenOf` lists folders first, in natural order
+  ("Notes 2" before "Notes 10"). `breadcrumbs` gives the root-to-folder
+  path, stopping at a broken chain or a cycle. `descendantIds` lists
+  everything inside a folder.
+- **Checks for services and UI:**
+  - `nameProblem(name, siblings, selfId?)` rejects an empty name, `/` or
+    `\`, `.` or `..`, more than 255 characters, and case-insensitive
+    duplicates.
+  - `moveProblem(entries, ids, targetId)` rejects a folder into itself or a
+    subfolder, a target that is not a folder, a move to the current folder,
+    and name clashes.
+  - `uniqueName` suggests "Untitled folder 2".
+- **Display:** `categoryOf` (image, video, audio, pdf, text, archive,
+  other), `extensionOf` and `formatSize`.
+- **Thumbnails:** `thumbnailSvg(entry, { hue?, size? })` and `thumbnailUrl`
+  (a `data:` URL) are pure functions of the id: the same picture on every
+  reload and seed, with no network. They draw a landscape for images, a
+  folder, or a page labeled with the sanitized extension.
+- **Size:** 2.0 KB gzip minified.

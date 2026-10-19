@@ -352,6 +352,27 @@ Be honest with the people using a prototype:
 - **Export snapshots of anything worth keeping.** A downloaded snapshot file
   is the only copy that survives the browser.
 
+### Uploaded files (blobs)
+
+Blueprint file fields store each upload as a row in the shared `files` table,
+with the bytes in a `blob` column (`@protoyard/blueprint` `createFileServices`;
+50 MB per prototype by default, enforced by the service).
+
+- **Blobs use the same origin storage** as the rest of the data. An upload
+  over the prototype's file quota fails with `FileUploadError` code
+  `quota-exceeded`. Full origin storage is the `quota-exceeded` storage error
+  above.
+- **Snapshots leave the bytes out.** Snapshots are JSON, so binary fields are
+  set to `null` and only the metadata is kept (`stripBinaryFields` in the
+  runtime). A restored snapshot lists the files without their contents.
+- **Showing a blob** goes through `URL.createObjectURL`. Revoke the URL when
+  the screen goes away. `@protoyard/views-ui/files` (`FileManager`) reads
+  blobs through its `getBlob` prop and revokes every URL it created when it
+  is destroyed.
+- **Files without bytes**, such as seeded files or files restored from a
+  snapshot, get a generated SVG thumbnail. It is made from the id alone
+  (`@protoyard/views/files` `thumbnailSvg`), with no network and no storage.
+
 ## Same origin is not a security boundary
 
 Separate database names keep prototypes from touching each other's data by

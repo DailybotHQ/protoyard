@@ -12,7 +12,9 @@ import { describe, expect, it } from 'vitest';
  *    shared chunk the entry loads (docs/PERFORMANCE.md, Shells);
  *  - a root `.` export that re-exports every view.
  * `lib/` (helpers) and `states/` (the QueryState boundary every view renders)
- * are the only folders a view may share.
+ * are the only folders a view may share. A view built on another one declares
+ * it in `DEPENDS`: the bundler then shares that
+ * view's chunk instead of copying it, and nothing else pulls it in.
  */
 const PKG = join(import.meta.dirname, '..');
 const SRC = join(PKG, 'src');
@@ -33,6 +35,8 @@ const VIEWS = [
   'scenarios',
 ] as const;
 const SHARED = new Set(['lib', 'states']);
+/** Declared view → view edges: the file manager's folder tree is the TreeView. */
+const DEPENDS: Record<string, readonly string[]> = { files: ['tree'] };
 const SOURCE = /\.(ts|svelte|js)$/;
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
@@ -59,10 +63,18 @@ export function crossViewImports(ownView: string, text: string): string[] {
   const hits: string[] = [];
   for (const spec of specifiers(text)) {
     const pkg = /^@protoyard\/views-ui\/([^/]+)/.exec(spec)?.[1];
-    if (pkg && pkg !== ownView && !SHARED.has(pkg)) hits.push(spec);
+    if (pkg && pkg !== ownView && !SHARED.has(pkg) && !DEPENDS[ownView]?.includes(pkg)) {
+      hits.push(spec);
+    }
     // Relative paths that climb out of the view folder into a sibling view.
     const rel = /^(?:\.\.\/)+([^/.][^/]*)/.exec(spec)?.[1];
-    if (rel && rel !== ownView && !SHARED.has(rel) && (VIEWS as readonly string[]).includes(rel)) {
+    if (
+      rel &&
+      rel !== ownView &&
+      !SHARED.has(rel) &&
+      !DEPENDS[ownView]?.includes(rel) &&
+      (VIEWS as readonly string[]).includes(rel)
+    ) {
       hits.push(spec);
     }
   }
@@ -149,6 +161,16 @@ describe('views-ui bundle hygiene', () => {
       []
     );
     expect(crossViewImports('board', "import { cn } from '../lib/cn.ts';")).toEqual([]);
+    // Declared edges only: files may use the tree, the tree may not use files.
+    expect(crossViewImports('files', "import TreeView from '../tree/TreeView.svelte';")).toEqual(
+      []
+    );
+    expect(crossViewImports('files', "import { DataGrid } from '../grid/index.ts';")).toEqual([
+      '../grid/index.ts',
+    ]);
+    expect(crossViewImports('tree', "import X from '../files/index.ts';")).toEqual([
+      '../files/index.ts',
+    ]);
     expect(crossViewImports('board', "import Card from './Card.svelte';")).toEqual([]);
     expect(dynamicUiBarrelImport("await import('@protoyard/ui')")).toBe(true);
     expect(dynamicUiBarrelImport("import { Button } from '@protoyard/ui';")).toBe(false);

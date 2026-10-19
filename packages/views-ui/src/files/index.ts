@@ -1,6 +1,9 @@
 /**
- * `@protoyard/views-ui/files` — Svelte 5 components for the files view.
- * Import this subpath only from a lazy route screen. Filled by the PLAN_003
- * task file-manager; empty until then.
+ * `@protoyard/views-ui/files` — `FileManager` (folder tree, breadcrumbs,
+ * grid or list with multi-select and roving focus, rename, move, delete, new
+ * folder, upload and a preview lightbox) and `FilePreview`, on the
+ * `@protoyard/views/files` engine. Import this subpath only from a lazy route
+ * screen; it shares the tree view's chunk.
  */
-export {};
+export { default as FileManager } from './FileManager.svelte';
+export { default as FilePreview } from './FilePreview.svelte';
