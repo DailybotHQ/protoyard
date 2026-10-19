@@ -511,6 +511,66 @@ throttled mobile CPUs, or first-visit cold start for Nova/Relay (use
 `scripts/bench-cold-start.ts` when calibrating those slugs). No claim is made
 beyond the table.
 
+## DevTools switching and pending feedback
+
+Measured 2026-10-19 on Apple Silicon, headless Chromium (Playwright),
+1280×900, on the production build of `mobile-banking-demo` with DevTools
+(`pnpm protoyard build mobile-banking-demo --include-devtools`, then
+`pnpm protoyard preview mobile-banking-demo --port 4777`). Times are measured
+in the page, from `pointerdown` to the first animation frame where the
+expected DOM is present: the app greeting and the DevTools header for a
+persona; the new active scenario with the app re-rendered; the changed theme
+token; the committed clock plus the status line; the checked network option.
+They are medians of 10 runs (5 for scenario pairs and advances), with
+rAF-frame resolution (about 16 ms). The scenario load keeps "Snapshot first"
+on (the default).
+
+**Root cause of "switching takes a long time".** It was not the runtime.
+`session.switchActor` updates the principal synchronously and persists in
+about 16 ms. The panel was dropping clicks.
+`isolateFromAppLayers` stopped bubbling `click` events on the same element
+Svelte used as its delegation root, and it was registered first. So Svelte's
+walk from the event target stopped at the target itself. A click on a
+persona's name or avatar (most of the row) never reached the row's
+`onclick`, and only the row's bare padding worked. Users clicked again until
+they hit it, with no feedback in between. The panel now mounts into a child
+of the isolated host (`perf(devtools)` commit). No scenario reload, `liveQuery`
+storm or long task was involved: none were observed for any control.
+
+| Control (DevTools) | Before: normal click | Before: click on bare padding | After: normal click | After, 4× CPU throttle |
+| --- | --- | --- | --- | --- |
+| Persona switch, click → visible | **no response** (click dropped) | 13 ms | **14 ms** (first feedback 14 ms) | 10 ms |
+| Scenario switch, confirm → first feedback | 13 ms ("Working…" label) | — | **13 ms** (spinner + header strip) | 10 ms |
+| Scenario switch, confirm → new world visible | 47 ms | — | **47 ms** | 110 ms |
+| Theme swatch, click → tokens applied | 14 ms (when the click hit the button between its spans) | 14 ms | **14 ms** | 27 ms |
+| Advance 1 day, click → committed + status | 28 ms | — | **30 ms** (spinner from 13 ms) | 58 ms |
+| Network toggle, click → applied | 13 ms | — | **14 ms** | 10 ms |
+
+Targets: a persona switch under 100 ms to a visible change (met: 14 ms), and a
+scenario switch with first feedback under 50 ms (met: 13 ms). "Before" scenario
+feedback was only the confirm label changing to "Working…". Now the button,
+the header strip and (past 150 ms) the app's global bar show it.
+`tests/e2e/pending-feedback.spec.ts` asserts the same path with CI-safe bounds
+(persona visible < 250 ms, first feedback < 100 ms).
+
+**Bundle cost** of the pending system (runtime tracker, global indicator,
+`usePending`, Button auto-loading). Initial JS and CSS, gzip, from
+`pnpm protoyard budget --all` on the base commit and on this change:
+
+| Prototype | Initial JS before | after | Δ | CSS before | after | Δ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `helpdesk-demo` | 201.0 KB | 201.8 KB | +0.83 KB | 15.82 KB | 16.06 KB | +0.24 KB |
+| `lattice-saas-demo` | 201.8 KB | 202.8 KB | +0.92 KB | 15.98 KB | 16.23 KB | +0.24 KB |
+| `mobile-banking-demo` | 197.3 KB | 198.1 KB | +0.84 KB | 15.69 KB | 15.98 KB | +0.29 KB |
+| `support-widget-demo` | 145.7 KB | 146.5 KB | +0.89 KB | 15.49 KB | 15.73 KB | +0.24 KB |
+| `nova-assistant-demo` | 162.8 KB | 163.8 KB | +0.97 KB | 16.91 KB | 17.15 KB | +0.24 KB |
+| `crm-demo` | 166.3 KB | 167.1 KB | +0.88 KB | 15.95 KB | 16.19 KB | +0.24 KB |
+| `ui-kit` | 182.8 KB | 183.7 KB | +0.89 KB | 16.24 KB | 16.48 KB | +0.23 KB |
+| `ai-chat-demo` | 197.1 KB | 198.0 KB | +0.92 KB | 15.86 KB | 16.11 KB | +0.25 KB |
+| `relay-chat-demo` | 145.4 KB | 146.3 KB | +0.87 KB | 16.22 KB | 16.47 KB | +0.24 KB |
+
+Every prototype stays under the 250 KB initial-JS budget.
+
 ## Runtime behavior worth knowing
 
 - **Reads are reactive and scoped.** `liveQuery` re-runs only when the tables

@@ -127,7 +127,12 @@ Nothing requires Docker or CI-only tooling.
    slugs (`pnpm protoyard new`).
 5. **Real behavior.** No dead buttons, fake success or placeholder screens.
    Mutations go **UI → service → `session.assert` → zod → `environment.run`
-   → `db.transaction`**. Components never write tables directly.
+   → `db.transaction`**. Components never write tables directly. Every async
+   action shows pending feedback: wire it to a `@protoyard/ui` `Button` whose
+   `onclick` returns the promise (`onclick={() => runService(…)}`, or pass
+   `loading`), never `() => void work()`. The renderer's global bar already
+   covers runtime operations (`environment.run`, scenario loads, persona
+   switches).
 6. **Determinism.** Generators and timelines use only `ctx.rng`, `ctx.faker`,
    `ctx.ids` and `ctx.time`, never `Math.random()` or `Date.now()`. Timeline
    events depend only on the day and stable ids. Bump `generatorVersion` when

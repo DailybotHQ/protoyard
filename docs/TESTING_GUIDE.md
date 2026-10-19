@@ -53,6 +53,7 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Spec command and extraction | `pnpm vitest run packages/cli/tests/spec-command.test.ts packages/cli/tests/spec-extract.test.ts` | scoped |
 | Safe AI markdown | `pnpm vitest run packages/ai/tests/markdown.test.ts` | scoped |
 | Generator flagship | `pnpm vitest run prototypes/helpdesk-demo` · `PROTOYARD_E2E_PROTOTYPES=helpdesk-demo pnpm test:e2e` | scoped |
+| Pending feedback (runtime signal, global bar, Button loading, DevTools busy state) | `pnpm vitest run packages/runtime/tests/pending.test.ts packages/renderer-svelte/tests/pending.test.ts packages/ui/tests/button.test.ts packages/devtools/tests/panel.test.ts` · `PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo,crm-demo,helpdesk-demo PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo pnpm test:e2e tests/e2e/pending-feedback.spec.ts` | scoped |
 | Shell matrix (every shell framed on desktop with axe, full-bleed on Pixel 7) | `PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo pnpm test:e2e tests/e2e/shell-layout.spec.ts` | scoped |
 | Marketplace (unit + E2E) | `pnpm vitest run apps/gallery` · `pnpm test:e2e tests/e2e/marketplace.spec.ts` (`PROTOYARD_E2E_SHOWCASE=1` adds the bundled-demo Try it test) | scoped |
 | Marketplace performance | `pnpm bench:index --marketplace --check` (needs `pnpm test:e2e:install`) | full |
@@ -97,6 +98,7 @@ targets are opt-in through environment variables:
 | --- | --- | --- |
 | `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo` | Build and serve the listed prototypes for prototype and viewport tests | One server per slug from `4401`, in list order |
 | `PROTOYARD_E2E_SHOWCASE=1` | Include the combined gallery + prototype showcase | `4501`; `PROTOYARD_E2E_SHOWCASE_BASE=/path/` sets its public base |
+| `PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo` | Also build the listed prototypes WITH DevTools into `tmp/e2e-devtools/<slug>` and serve them, for `tests/e2e/pending-feedback.spec.ts` (the standard builds stay DevTools-free) | One server per slug from `4451` (`PROTOYARD_E2E_DEVTOOLS_PORT_BASE` overrides it) |
 | `PROTOYARD_E2E_REVIEW=1` | Run the review-index page against the checked-in fixture ledger, with no deploy | `4502`; `PROTOYARD_E2E_REVIEW_PORT` overrides the port |
 
 The gallery uses port `4329`. The standalone CLI `review-index --serve`

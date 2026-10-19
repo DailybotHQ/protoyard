@@ -67,7 +67,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 
 | Component | Key props / behavior |
 | --- | --- |
-| `Button` | `variant` default·secondary·outline·ghost·destructive·link, `size` sm·md·lg·icon, `loading` (+`loadingLabel`, sets `aria-busy`, disables), `href` → `<a>`, `bind:ref` |
+| `Button` | `variant` default·secondary·outline·ghost·destructive·link, `size` sm·md·lg·icon (the icon button), `loading` (+`loadingLabel`): spinner over the kept, invisible label so the width never changes, `aria-busy`, disabled. An `onclick` that returns a promise sets `loading` until it settles (`autoLoading={false}` opts out). `href` → `<a>`, `bind:ref` |
 | `Input` / `Textarea` | native attributes, `bind:value`, `aria-invalid` styling |
 | `Label` | `for` |
 | `FileDropzone` | `accept`, `maxSize`, `maxFiles`, `multiple`, `bind:files` (`DropzoneFile[]` with real `File`s), `bind:rejects`, drag-and-drop + keyboard file input, image previews via `URL.createObjectURL` (revoked on remove/destroy), per-file `Progress`, inline limit errors. Never reads file contents as HTML. |
@@ -135,6 +135,11 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
   spread replaces it.
 - Async callbacks (`AlertDialog.onConfirm`, `ErrorState.onRetry`, `Wizard.validate` / `onFinish`,
   `Composer.onSubmit`, `Kanban.onMove`) show a loading state until they settle.
+- `Button` does the same for its own `onclick`. Return the promise
+  (`onclick={() => runService(() => save())}`, or `onclick={save}` for an async function),
+  and the button spins, sets `aria-busy` and ignores further clicks until it settles. Writing
+  `onclick={() => void save()}` throws that feedback away. This applies to icon buttons
+  (`size="icon"`) and the `AlertDialog` confirm action too.
 
 ## Toasts
 

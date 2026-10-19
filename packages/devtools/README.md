@@ -34,6 +34,24 @@ Every effective value shows a source badge (`override` / `preference` /
 `scenario` / `default`); the header's **Reset N** clears all overrides.
 Destructive actions use inline two-step confirmation.
 
+**Pending feedback.** Every control reacts in the frame it is clicked. The
+clicked persona row, theme swatch, segmented option or button shows a spinner
+and `aria-busy`. The header shows a progress strip (`[data-dt-working]`,
+header `aria-busy`) while any panel action, runtime operation
+(`runtime.pending`) or scenario load is in flight. The control's group
+(persona list and role selectors, scenario picker and reset, theme swatches
+and appearance segments, environment controls, advance buttons) is disabled
+until the change settles, so nothing can be triggered twice. A failure shows
+inline in its section (`role="alert"`) as well as in the footer status.
+Internally, `dt.run('group:item', fn)`, `dt.isBusy('group')` and
+`dt.errorFor('group')` drive this, in `state.svelte.ts`.
+
+**Clicks reach their controls.** The panel mounts into a child of the
+isolated `.py-devtools` host. Svelte delegates events to its mount point,
+and the isolation listeners stop propagation, so on the same element they
+would cut Svelte's walk short and drop clicks on a button's inner text or
+icon.
+
 Keyboard: **Ctrl/⌘ + .** toggles from anywhere; **Esc** closes and returns
 focus to the launcher; tabs use arrow keys / Home / End. The open state and
 tab are remembered per prototype in `localStorage` (`protoyard.<namespace>.devtools`,

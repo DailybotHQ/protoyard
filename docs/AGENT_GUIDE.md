@@ -88,7 +88,11 @@ browser:
    date column.
 
 **UI.** Read with `liveQuery(fn, { initial, deps })`, write through services
-wrapped in `runService()`, hide or disable controls with `can()`. Use hash
+wrapped in `runService()`, hide or disable controls with `can()`. Every async
+action shows pending feedback: give the `Button` the promise
+(`onclick={() => runService(…)}`, never `() => void …`) and it spins and
+blocks double clicks by itself. The renderer's global bar covers slow
+runtime operations. Use hash
 routes (`createRouter`, `<Router>`, `<Link>`). Style with theme tokens
 (`bg-primary`, `text-muted-foreground`), never raw palette colors (see
 [THEMES.md](THEMES.md)).
@@ -153,6 +157,7 @@ Build a Protoyard prototype for <product> from a blueprint.
 | No real data: no real people, companies, emails, phone numbers, account numbers, secrets or API keys | Demos are public and fictional. Use `example.com` / `example.org` or `.example` domains. |
 | Enforce permissions in services, not only in the UI | `session.assert()` makes the rule hold from the console too. Still say it is simulated, not security. |
 | Honest states | A failed save must look failed. Show empty, loading and error states. Never fake success. |
+| Pending feedback on every async action | Return the promise to `Button` (`onclick={() => runService(…)}`) or pass `loading`. The user must always see that something is processing ([STANDARDS](STANDARDS.md#errors-and-feedback)). |
 | `erasableSyntaxOnly` | `tsconfig.base.json` forbids enums, namespaces and constructor parameter properties. Use `as const` objects and explicit fields. |
 | `liveQuery` needs `deps` for every reactive input | Dexie runs the query outside Svelte's tracking ([why](DATABASE.md#reactive-reads-with-livequery)) |
 | In `upgrade()` and `applyEvent()`, await only Dexie / `ctx` calls | They run inside IndexedDB transactions |
