@@ -73,7 +73,22 @@ describe('mapChangedPaths', () => {
       slugs: ['alpha-app'],
       reasons: { 'alpha-app': 'prototype' },
       all: false,
+      skipped: [],
     });
+  });
+
+  it('drops changed folders that are not indexed prototypes (deleted, renamed, unknown)', () => {
+    const result = mapChangedPaths(
+      [
+        'prototypes/alpha-app/src/App.svelte',
+        'prototypes/old-demo/protoyard.json',
+        'prototypes/not,a-slug/README.md',
+      ],
+      registry
+    );
+    expect(result.slugs).toEqual(['alpha-app']);
+    expect(result.skipped).toEqual(['not,a-slug', 'old-demo']);
+    expect(result.reasons).toEqual({ 'alpha-app': 'prototype' });
   });
 
   it('returns every prototype when packages change', () => {
@@ -94,7 +109,7 @@ describe('mapChangedPaths', () => {
       ['docs/PRODUCT_SPEC.md', 'README.md', 'AGENTS.md', '.agents/skills/x/SKILL.md'],
       registry
     );
-    expect(result).toEqual({ slugs: [], reasons: {}, all: false });
+    expect(result).toEqual({ slugs: [], reasons: {}, all: false, skipped: [] });
   });
 
   it('shared paths win over individual prototype paths', () => {
@@ -208,6 +223,38 @@ describe('protoyard affected (git integration)', () => {
     expect(body.data.reasons['alpha-app']).toBe('prototype');
     expect(body.data.durationMs).toBeLessThan(1000);
     expect(ms).toBeLessThan(5000);
+  });
+
+  it('never selects a prototype deleted in the range', async () => {
+    const temp = createWorkspace();
+    ws = temp;
+    addPrototype(ws, 'alpha-app');
+    addPrototype(ws, 'old-demo');
+
+    await git(temp.root, ['init']);
+    await git(temp.root, ['config', 'user.email', 'affected@example.com']);
+    await git(temp.root, ['config', 'user.name', 'Affected Fixture']);
+    await git(temp.root, ['add', '-A']);
+    await git(temp.root, ['commit', '-m', 'base']);
+
+    await git(temp.root, ['rm', '-r', '-q', 'prototypes/old-demo']);
+    await git(temp.root, ['commit', '-m', 'remove old-demo']);
+
+    const csv = await cli([
+      'affected',
+      '--since',
+      'HEAD~1',
+      '--format',
+      'csv',
+      '--root',
+      temp.root,
+    ]);
+    expect(csv.code).toBe(0);
+    expect(csv.stdout.trim()).toBe('');
+    const json = await cli(['affected', '--since', 'HEAD~1', '--json', '--root', temp.root]);
+    const body = json.json<{ data: { slugs: string[]; skipped: string[] } }>();
+    expect(body.data.slugs).toEqual([]);
+    expect(body.data.skipped).toEqual(['old-demo']);
   });
 
   it('returns empty csv for a docs-only commit', async () => {

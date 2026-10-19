@@ -479,7 +479,10 @@ The build, e2e and preview templates select prototypes with
 `protoyard affected`, which maps `git diff --name-only <ref>...HEAD` to
 slugs: a change under `prototypes/<slug>/` affects that prototype, and a
 change to shared code (`packages/`, `templates/`, root configuration)
-affects all of them:
+affects all of them. Only indexed prototypes are selected: a changed
+`prototypes/<name>/` folder that is not in the registry (deleted, renamed, or
+without a valid manifest) is listed under `skipped` in `--json` and never
+appears in the CSV, so a pull request that deletes a prototype stays green:
 
 ```text
 $ pnpm protoyard affected --since HEAD~1

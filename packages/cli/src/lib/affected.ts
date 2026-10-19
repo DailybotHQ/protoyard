@@ -24,6 +24,11 @@ export interface MapChangedPathsResult {
   reasons: Record<string, string>;
   /** True when a shared path forced every prototype. */
   all: boolean;
+  /**
+   * Changed `prototypes/<name>/` folders that are not indexed prototypes
+   * (deleted, renamed, or without a valid manifest). Never run.
+   */
+  skipped: string[];
 }
 
 export type PathEffect =
@@ -193,17 +198,18 @@ export function mapChangedPaths(
   if (sharedReason) {
     const reasons: Record<string, string> = {};
     for (const slug of sortedKnown) reasons[slug] = sharedReason;
-    return { slugs: sortedKnown, reasons, all: true };
+    return { slugs: sortedKnown, reasons, all: true, skipped: [] };
   }
 
-  // Prefer registry slugs; keep unknown folder names so a brand-new prototype
-  // folder still appears before the next index run.
-  const slugs = [...individual].sort((a, b) => a.localeCompare(b));
+  // Only indexed prototypes can be validated or built. `git diff` also lists
+  // deleted and renamed folders, and the registry is re-indexed on every
+  // load, so a new folder with a valid manifest is already in it.
+  const changed = [...individual].sort((a, b) => a.localeCompare(b));
+  const slugs = changed.filter((slug) => knownSet.has(slug));
+  const skipped = changed.filter((slug) => !knownSet.has(slug));
   const reasons: Record<string, string> = {};
-  for (const slug of slugs) {
-    reasons[slug] = knownSet.has(slug) || knownSet.size === 0 ? 'prototype' : 'prototype';
-  }
-  return { slugs, reasons, all: false };
+  for (const slug of slugs) reasons[slug] = 'prototype';
+  return { slugs, reasons, all: false, skipped };
 }
 
 export interface GitDiffPathsResult {

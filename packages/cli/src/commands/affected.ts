@@ -48,6 +48,7 @@ export const affectedCommand: Handler = async (ctx, _args, options): Promise<Com
     slugs: mapped.slugs,
     reasons: mapped.reasons,
     all: mapped.all,
+    skipped: mapped.skipped,
     durationMs,
     csv,
   };
@@ -71,6 +72,11 @@ export const affectedCommand: Handler = async (ctx, _args, options): Promise<Com
           `(${diff.paths.length} path(s), ${durationMs.toFixed(1)} ms)`
         )}`
       );
+      if (mapped.skipped.length > 0) {
+        out.info(
+          c.dim(`  Skipped (not an indexed prototype, e.g. deleted): ${mapped.skipped.join(', ')}`)
+        );
+      }
       if (mapped.slugs.length === 0) {
         out.info(c.dim('  Nothing to build — docs/meta-only diff or empty range.'));
         return;
