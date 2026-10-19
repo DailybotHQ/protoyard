@@ -1137,6 +1137,9 @@ importers:
       '@lucide/svelte':
         specifier: ^1.50.0
         version: 1.57.0(svelte@5.57.2)
+      '@protoyard/charts-ui':
+        specifier: workspace:*
+        version: link:../../packages/charts-ui
       '@protoyard/core':
         specifier: workspace:*
         version: link:../../packages/core
