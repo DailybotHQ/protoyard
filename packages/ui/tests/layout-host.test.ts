@@ -6,10 +6,16 @@ import LayoutHostHarness from './fixtures/LayoutHostHarness.svelte';
 import TestRailLayout from './fixtures/TestRailLayout.svelte';
 import TestSidebarLayout from './fixtures/TestSidebarLayout.svelte';
 
+// Tests swap in fixture layouts; put the real lazy entries back afterwards.
+const realSidebar = LAYOUT_REGISTRY.sidebar;
+const realRail = LAYOUT_REGISTRY.rail;
+
 afterEach(() => {
   cleanup();
-  delete LAYOUT_REGISTRY.sidebar;
-  delete LAYOUT_REGISTRY.rail;
+  if (realSidebar) LAYOUT_REGISTRY.sidebar = realSidebar;
+  else delete LAYOUT_REGISTRY.sidebar;
+  if (realRail) LAYOUT_REGISTRY.rail = realRail;
+  else delete LAYOUT_REGISTRY.rail;
 });
 
 describe('LayoutHost', () => {

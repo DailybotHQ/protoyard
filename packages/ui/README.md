@@ -101,7 +101,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
 | `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok), `canMove`, `card` snippet; HTML5 drag and drop + a keyboard "Move to…" menu per card |
 | `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link; frame uses `min-h-app` / sidebar column `h-app` (`--py-app-height`) so framed shells match the device screen |
-| `LayoutHost` | `layout: LayoutId`, routed screen snippet, `class`; measures its own container, applies the core layout fallback below its breakpoint, and lazy-loads the registered module with a skeleton while loading. Layout modules call `mountScreen(target)` to place the stable routed-screen outlet without remounting its local state. Unregistered layouts leave the screen in the host's default content frame. |
+| `LayoutHost` | `layout: LayoutId`, routed screen snippet, `nav` (NavModel), `path`, `options`, `storageKey`, `aside` snippet, `class`; measures its own container, applies the core layout fallback below its breakpoint, and lazy-loads the registered module with a skeleton while loading. Layout modules call `mountScreen(target)` to place the stable routed-screen outlet without remounting its local state. Unregistered layouts leave the screen in the host's default content frame. |
 | `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter`, and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
 | `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
 | `Header` | `title`, `titleAs` (default `h1`; use `p` when the page has its own `h1`), `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
@@ -205,6 +205,35 @@ share a preference between routes.
 one. It uses `MutationObserver` to rebuild the TOC and `IntersectionObserver`
 to mark the current section; when intersection observation is unavailable, the
 TOC remains usable as a set of fragment links.
+## Desktop layouts
+
+Four layouts are registered (`sidebar`, `rail`, `top-nav`, `dual-sidebar`).
+Each one is its own lazy module, measured at 1.3 to 2.8 KB gzip, and they
+share one chunk of about 7.5 KB gzip (the drawer, the chrome and the
+`NavIcon` table). They all render the `nav` the host passes, follow
+`location.hash` unless the host passes `path`, put the screen in a `<main>`
+that the **Skip to content** link focuses, and use theme tokens only.
+Breakpoints are container queries on the layout itself, so they follow a
+shell's inner width. Below its breakpoint a layout shows a menu button that
+opens a drawer. Escape, the close button, following a link or any in-app
+navigation closes the drawer, and it also closes if the layout grows wide.
+
+```svelte
+<LayoutHost layout="sidebar" nav={navFromSidebar(items, { brand: { label: 'Pipeline CRM' } })} storageKey={manifest.storage.namespace}>
+  {#snippet children()}<Router {routes} />{/snippet}
+</LayoutHost>
+```
+
+| Layout | Breakpoint | What it renders |
+| `sidebar` | 48rem | `<Sidebar>` column: brand, sections, actions and user in the footer |
+| `rail` | 40rem | the same `<Sidebar>` collapsed to icons with tooltips. Its toggle expands it to labels, and the choice is saved per prototype in localStorage (`protoyard:layout:<storageKey or page path>:rail-expanded`, best effort) |
+| `top-nav` | 48rem | brand, primary links (the first `options.visibleItems`, default 5) and a **More** menu for the rest, actions and user, then the current item's `children` as secondary tabs |
+| `dual-sidebar` | 64rem | a switcher column with one button per nav section (arrow keys, Home and End move between them; it follows the current page until another section is picked), the section's pages with one level of children, and the `aside` snippet as a right context panel |
+
+Only the exact current page gets `aria-current="page"`. Its parents are
+tinted (`data-trail`), and in a collapsed or one-level list the visible
+parent carries the mark. `Sidebar` shows one level, so `sidebar` and `rail`
+mark the parent of a current child page.
 
 ## Toasts
 
