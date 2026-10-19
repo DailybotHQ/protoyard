@@ -150,6 +150,14 @@ every style field the selection does not touch, and validates the result with
 The default presets (`default`, `default`, `soft`, `standard`) reproduce
 `DEFAULT_THEME_STYLE` exactly.
 
+**Live in DevTools.** DevTools → Look has a control per dimension: density
+presets plus a fine slider, corner radius, elevation and motion as segmented
+choices, and the font pairing as a list. Each choice is a temporary
+override (`theme.setOverride({ radius: 'round' })` and so on) applied on top
+of the active theme, with a source badge. **Theme** clears that one override,
+and **Clear appearance overrides** clears them all; it is enabled as soon as
+any style override is set.
+
 ```ts
 import { applyStylePresets, violetTheme } from '@protoyard/themes';
 
@@ -817,7 +825,7 @@ export const harborTheme = defineTheme({
 | --- | --- | --- |
 | Mode | `light`, `dark`, `system` | `system` uses `prefers-color-scheme` and updates live when the OS changes |
 | Reduced motion | `true` / `false` | Falls back to the OS `prefers-reduced-motion`. When reduced, the motion variables become `0ms` / `linear`, and `base.css` disables transitions and animations when either the OS or `data-py-motion="reduce"` asks for it. |
-| Density | `theme.density`, 0.75–1.25 (default 1) | Part of the theme. DevTools → Look has a density slider (0.75–1.25) that is always a temporary override. `applyAppearance(el, { density: 'compact' \| 'comfortable' \| number })` accepts one too (`compact` = 0.875, `comfortable` = 1.125). |
+| Density | `theme.density`, 0.75–1.25 (default 1) | Part of the theme. DevTools → Look has density presets (compact, default, comfortable, spacious) and a fine slider (0.75–1.25 in 0.025 steps); both are always a temporary override, and **Theme** returns to the theme's own density. `applyAppearance(el, { density: 'compact' \| 'comfortable' \| number })` accepts one too (`compact` = 0.875, `comfortable` = 1.125). |
 | Viewport | `desktop`, `tablet`, `iphone`, `android`, `custom` | Not a theme setting, but resolved the same way. Narrows the app column (`data-py-viewport`); media queries still follow the real window. |
 | Shell, device, orientation | `auto`, `none`, `phone`, `tablet`, `desktop-window`, `browser`, `widget-host`, `extension-popup`, `side-panel`; a catalog device; `portrait` / `landscape` | Not theme settings, but resolved the same way (override › scenario › manifest `preview`). The frame drawn around the app follows the theme and mode. See [SHELLS.md](SHELLS.md). |
 

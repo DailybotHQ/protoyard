@@ -9,6 +9,7 @@ import {
   type Orientation,
   type Platform,
   type Shell,
+  STYLE_OVERRIDE_KEYS,
   type Theme,
   type ViewportPreset,
 } from '@protoyard/core';
@@ -19,6 +20,7 @@ import Segmented from '../primitives/Segmented.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
 import Toggle from '../primitives/Toggle.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
+import StyleControls from './StyleControls.svelte';
 import ThemeBrowser from './ThemeBrowser.svelte';
 
 let { dt }: { dt: DevtoolsState } = $props();
@@ -52,6 +54,8 @@ const hasOverride = $derived(
     'shell',
     'device',
     'orientation',
+    'layout',
+    ...STYLE_OVERRIDE_KEYS,
   ].some((key) => overrides[key as keyof typeof overrides] !== undefined)
 );
 
@@ -212,27 +216,7 @@ async function setFrame(on: boolean) {
   </div>
 </Section>
 
-<Section title="Density" description="Scales the whole spacing system. Always a temporary override.">
-  {#snippet actions()}{#if appearance.density}<SourceBadge source={appearance.density.source} />{/if}{/snippet}
-  {@const current = appearance.density?.value ?? 1}
-  <label class="block text-[11px] text-muted-foreground">
-    <span class="flex justify-between"><span>Compact</span><span class="font-mono text-foreground">{current.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}×</span><span>Comfortable</span></span>
-    <input
-      type="range"
-      min="0.75"
-      max="1.25"
-      step="0.125"
-      class="mt-1 w-full accent-primary"
-      value={current}
-      aria-label="Density"
-      aria-valuetext={`${current} times`}
-      onchange={(e) =>
-        dt.run('appearance', () =>
-          runtime.theme.setOverride({ density: Number((e.currentTarget as HTMLInputElement).value) })
-        )}
-    />
-  </label>
-</Section>
+<StyleControls {dt} />
 
 <Section title="Viewport preset" description="Narrows the app column. Media queries still follow the real window — use the gallery device preview for true breakpoints.">
   {#snippet actions()}<SourceBadge source={appearance.viewport.source} />{/snippet}
