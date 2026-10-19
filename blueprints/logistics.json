@@ -40,7 +40,13 @@
           "name": "score",
           "kind": "number",
           "min": 0,
-          "max": 5
+          "max": 5,
+          "trend": "seasonal"
+        },
+        {
+          "name": "location",
+          "kind": "geo",
+          "region": "harbor-bay"
         }
       ],
       "titleField": "name"
@@ -66,11 +72,13 @@
           "kind": "enum",
           "values": ["booked", "in-transit", "delivered", "exception"],
           "default": "booked",
-          "required": true
+          "required": true,
+          "weights": [4, 3, 2, 1]
         },
         {
           "name": "eta",
-          "kind": "datetime"
+          "kind": "datetime",
+          "window": "around"
         }
       ],
       "titleField": "reference",
@@ -93,7 +101,8 @@
           "kind": "enum",
           "values": ["pickup", "delivery"],
           "default": "pickup",
-          "required": true
+          "required": true,
+          "weights": [2, 1]
         },
         {
           "name": "city",
@@ -105,10 +114,51 @@
           "name": "sequence",
           "kind": "integer",
           "min": 1,
-          "required": true
+          "required": true,
+          "trend": "seasonal"
         }
       ],
       "titleField": "city"
+    },
+    {
+      "name": "route",
+      "plural": "routes",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "shipment",
+          "kind": "relation",
+          "to": "shipment",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "growth"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -132,6 +182,38 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Routeline Logistics overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total carriers",
+          "entity": "carrier",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "carriers over time",
+          "entity": "carrier",
+          "aggregate": "sum",
+          "field": "score",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "carrier",
@@ -158,6 +240,41 @@
     {
       "type": "form",
       "entity": "stop"
+    },
+    {
+      "type": "map",
+      "entity": "carrier",
+      "geoField": "location",
+      "path": "/carriers/map",
+      "title": "Carriers map",
+      "nav": {
+        "label": "Map",
+        "icon": "map",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "carrier",
+      "tabs": ["overview"],
+      "path": "/carriers/:id",
+      "title": "Carrier details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

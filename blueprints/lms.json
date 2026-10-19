@@ -41,7 +41,8 @@
           "kind": "enum",
           "values": ["intro", "intermediate", "advanced"],
           "default": "intro",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         },
         {
           "name": "instructor",
@@ -71,12 +72,14 @@
           "name": "order",
           "kind": "integer",
           "min": 1,
-          "required": true
+          "required": true,
+          "trend": "seasonal"
         },
         {
           "name": "durationMin",
           "kind": "integer",
-          "min": 1
+          "min": 1,
+          "trend": "seasonal"
         }
       ],
       "titleField": "title"
@@ -102,17 +105,59 @@
           "kind": "enum",
           "values": ["active", "completed", "dropped"],
           "default": "active",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         },
         {
           "name": "progress",
           "kind": "number",
           "min": 0,
           "max": 1,
-          "default": 0
+          "default": 0,
+          "trend": "seasonal"
         }
       ],
       "titleField": "status"
+    },
+    {
+      "name": "instructor",
+      "plural": "instructors",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "course",
+          "kind": "relation",
+          "to": "course",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "growth"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -136,6 +181,44 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Campus LMS overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total courses",
+          "entity": "course",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "courses over time",
+          "entity": "course",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "courses by status",
+          "entity": "course",
+          "groupBy": "level",
+          "span": 2
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "course",
@@ -162,6 +245,42 @@
     {
       "type": "form",
       "entity": "enrollment"
+    },
+    {
+      "type": "board",
+      "entity": "course",
+      "groupBy": "level",
+      "cardFields": ["title"],
+      "path": "/courses/board",
+      "title": "Courses board",
+      "nav": {
+        "label": "Board",
+        "icon": "kanban",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "course",
+      "tabs": ["overview"],
+      "path": "/courses/:id",
+      "title": "Course details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

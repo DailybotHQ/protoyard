@@ -39,12 +39,24 @@
         {
           "name": "performedOn",
           "kind": "date",
-          "required": true
+          "required": true,
+          "window": "past"
         },
         {
           "name": "durationMin",
           "kind": "integer",
-          "min": 1
+          "min": 1,
+          "trend": "decline"
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "past"
+        },
+        {
+          "name": "endsAt",
+          "kind": "datetime",
+          "window": "around"
         }
       ],
       "titleField": "title",
@@ -69,12 +81,14 @@
         {
           "name": "reps",
           "kind": "integer",
-          "min": 1
+          "min": 1,
+          "trend": "decline"
         },
         {
           "name": "weightKg",
           "kind": "number",
-          "min": 0
+          "min": 0,
+          "trend": "decline"
         }
       ],
       "titleField": "exercise"
@@ -96,22 +110,65 @@
         {
           "name": "target",
           "kind": "number",
-          "required": true
+          "required": true,
+          "trend": "decline"
         },
         {
           "name": "unit",
           "kind": "enum",
           "values": ["km", "kg", "sessions"],
           "default": "km",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         },
         {
           "name": "dueOn",
-          "kind": "date"
+          "kind": "date",
+          "window": "around"
         }
       ],
       "titleField": "title",
       "ownerField": "athlete"
+    },
+    {
+      "name": "training-plan",
+      "plural": "training-plans",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "workout",
+          "kind": "relation",
+          "to": "workout",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "seasonal"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -135,6 +192,38 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Stride Fitness overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total workouts",
+          "entity": "workout",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "workouts over time",
+          "entity": "workout",
+          "aggregate": "sum",
+          "field": "durationMin",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "workout",
@@ -161,6 +250,43 @@
     {
       "type": "form",
       "entity": "goal"
+    },
+    {
+      "type": "timeline",
+      "entity": "workout",
+      "startField": "startsAt",
+      "endField": "endsAt",
+      "zoom": "month",
+      "path": "/workouts/timeline",
+      "title": "Workouts timeline",
+      "nav": {
+        "label": "Timeline",
+        "icon": "clock",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "workout",
+      "tabs": ["overview"],
+      "path": "/workouts/:id",
+      "title": "Workout details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

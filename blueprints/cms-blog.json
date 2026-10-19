@@ -45,7 +45,8 @@
           "kind": "enum",
           "values": ["draft", "scheduled", "published"],
           "default": "draft",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         },
         {
           "name": "author",
@@ -53,7 +54,15 @@
         },
         {
           "name": "publishedAt",
-          "kind": "datetime"
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "number",
+          "min": 0,
+          "max": 100,
+          "trend": "growth"
         }
       ],
       "titleField": "title",
@@ -102,6 +111,46 @@
         }
       ],
       "titleField": "label"
+    },
+    {
+      "name": "author",
+      "plural": "authors",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "post",
+          "kind": "relation",
+          "to": "post",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "seasonal"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -125,6 +174,45 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Quill CMS overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total posts",
+          "entity": "post",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "posts over time",
+          "entity": "post",
+          "aggregate": "sum",
+          "field": "value",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "posts by status",
+          "entity": "post",
+          "groupBy": "status",
+          "span": 2
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "post",
@@ -151,6 +239,49 @@
     {
       "type": "form",
       "entity": "post-tag"
+    },
+    {
+      "type": "analytics",
+      "entity": "post",
+      "dateField": "createdAt",
+      "measures": [
+        {
+          "label": "Total value",
+          "aggregate": "sum",
+          "field": "value"
+        }
+      ],
+      "dimensions": ["status"],
+      "path": "/posts/analytics",
+      "title": "Posts analytics",
+      "nav": {
+        "label": "Analytics",
+        "icon": "chart-line",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "post",
+      "tabs": ["overview"],
+      "path": "/posts/:id",
+      "title": "Post details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

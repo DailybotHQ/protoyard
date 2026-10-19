@@ -36,7 +36,8 @@
           "kind": "enum",
           "values": ["open", "discovery", "trial", "closed"],
           "default": "open",
-          "required": true
+          "required": true,
+          "weights": [4, 3, 2, 1]
         },
         {
           "name": "clientName",
@@ -46,6 +47,16 @@
         {
           "name": "leadAttorney",
           "kind": "persona"
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "past"
+        },
+        {
+          "name": "endsAt",
+          "kind": "datetime",
+          "window": "around"
         }
       ],
       "titleField": "title",
@@ -77,12 +88,14 @@
           "name": "hours",
           "kind": "number",
           "min": 0.1,
-          "required": true
+          "required": true,
+          "trend": "growth"
         },
         {
           "name": "workedOn",
           "kind": "date",
-          "required": true
+          "required": true,
+          "window": "past"
         },
         {
           "name": "narrative",
@@ -114,13 +127,54 @@
         },
         {
           "name": "filedOn",
-          "kind": "date"
+          "kind": "date",
+          "window": "past"
         }
       ],
       "titleField": "title",
       "features": {
         "files": true
       }
+    },
+    {
+      "name": "hearing",
+      "plural": "hearings",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "matter",
+          "kind": "relation",
+          "to": "matter",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "growth"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -144,6 +198,44 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Casebook Legal overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total matters",
+          "entity": "matter",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "matters over time",
+          "entity": "matter",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "matters by status",
+          "entity": "matter",
+          "groupBy": "status",
+          "span": 2
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "matter",
@@ -170,6 +262,44 @@
     {
       "type": "form",
       "entity": "document"
+    },
+    {
+      "type": "timeline",
+      "entity": "matter",
+      "startField": "startsAt",
+      "endField": "endsAt",
+      "groupBy": "status",
+      "zoom": "month",
+      "path": "/matters/timeline",
+      "title": "Matters timeline",
+      "nav": {
+        "label": "Timeline",
+        "icon": "clock",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "matter",
+      "tabs": ["overview"],
+      "path": "/matters/:id",
+      "title": "Matter details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

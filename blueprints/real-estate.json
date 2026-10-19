@@ -42,18 +42,25 @@
           "kind": "money",
           "currency": "USD",
           "min": 0,
-          "required": true
+          "required": true,
+          "trend": "growth"
         },
         {
           "name": "status",
           "kind": "enum",
           "values": ["active", "pending", "sold", "withdrawn"],
           "default": "active",
-          "required": true
+          "required": true,
+          "weights": [4, 3, 2, 1]
         },
         {
           "name": "agent",
           "kind": "persona"
+        },
+        {
+          "name": "location",
+          "kind": "geo",
+          "region": "harbor-bay"
         }
       ],
       "titleField": "address",
@@ -74,7 +81,8 @@
         {
           "name": "startsAt",
           "kind": "datetime",
-          "required": true
+          "required": true,
+          "window": "around"
         },
         {
           "name": "clientName",
@@ -101,14 +109,16 @@
           "kind": "money",
           "currency": "USD",
           "min": 0,
-          "required": true
+          "required": true,
+          "trend": "growth"
         },
         {
           "name": "status",
           "kind": "enum",
           "values": ["submitted", "countered", "accepted", "rejected"],
           "default": "submitted",
-          "required": true
+          "required": true,
+          "weights": [4, 3, 2, 1]
         },
         {
           "name": "buyerName",
@@ -118,6 +128,46 @@
         }
       ],
       "titleField": "buyerName"
+    },
+    {
+      "name": "neighborhood",
+      "plural": "neighborhoods",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "listing",
+          "kind": "relation",
+          "to": "listing",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "growth"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -141,6 +191,45 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Lotline Realty overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total listings",
+          "entity": "listing",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "listings over time",
+          "entity": "listing",
+          "aggregate": "sum",
+          "field": "price",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "listings by status",
+          "entity": "listing",
+          "groupBy": "status",
+          "span": 2
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "listing",
@@ -167,6 +256,42 @@
     {
       "type": "form",
       "entity": "offer"
+    },
+    {
+      "type": "map",
+      "entity": "listing",
+      "geoField": "location",
+      "colorBy": "status",
+      "path": "/listings/map",
+      "title": "Listings map",
+      "nav": {
+        "label": "Map",
+        "icon": "map",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "listing",
+      "tabs": ["overview"],
+      "path": "/listings/:id",
+      "title": "Listing details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }
