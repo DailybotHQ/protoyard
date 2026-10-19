@@ -292,7 +292,7 @@ async function onImportFile(event: Event) {
             </Button>
           {/if}
           {#if csvEnabled && canExport}
-            <Button size="sm" variant="outline" onclick={() => void exportCsv()}>
+            <Button size="sm" variant="outline" onclick={() => exportCsv()}>
               <Download class="size-3.5" aria-hidden="true" /> Export CSV
             </Button>
           {/if}
@@ -312,7 +312,7 @@ async function onImportFile(event: Event) {
       {/snippet}
       {#snippet bulkActions({ selected: ids })}
         {#if view === 'trash'}
-          <Button size="sm" onclick={() => void restoreSelected(ids)}>
+          <Button size="sm" onclick={() => restoreSelected(ids)}>
             Restore {ids.length}
           </Button>
         {:else}

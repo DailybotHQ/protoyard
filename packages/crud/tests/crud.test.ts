@@ -138,6 +138,36 @@ describe('EntityList', () => {
     });
   });
 
+  it('keeps the delete dialog open with a busy confirm button until the service settles', async () => {
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, crudBlueprint);
+    const row = await services.customer!.create({ name: 'Slow delete' });
+    const remove = services.customer!.remove;
+    let release!: () => void;
+    services.customer!.remove = (id) =>
+      new Promise<void>((r) => (release = r)).then(() => remove(id));
+
+    render(CrudHarness, {
+      runtime,
+      blueprint: crudBlueprint,
+      services,
+      mode: 'list',
+      entityName: 'customer',
+    });
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Select row Open Slow delete' })
+    );
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    const dialog = screen.getByRole('alertdialog');
+    await waitFor(() =>
+      expect(dialog.querySelector('button[aria-busy="true"]')?.textContent).toContain('Delete')
+    );
+    release();
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect((await services.customer!.trash()).map((r) => r.id)).toContain(row.id);
+  });
+
   it('restores selected trash rows through the entity service', async () => {
     const runtime = await harness.boot('owner');
     const services = createEntityServices(runtime, crudBlueprint);
@@ -160,6 +190,35 @@ describe('EntityList', () => {
 
     await waitFor(async () => expect(await services.customer!.get(customer.id)).toBeTruthy());
     expect(screen.getAllByText('Restored 1 record').length).toBeGreaterThan(0);
+  });
+
+  it('shows loading on the Restore button while the restore runs', async () => {
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, crudBlueprint);
+    const customer = await services.customer!.create({ name: 'Slow restore' });
+    await services.customer!.remove(customer.id);
+    const restoreTrashed = services.customer!.restoreTrashed;
+    let release!: () => void;
+    services.customer!.restoreTrashed = (id) =>
+      new Promise<void>((r) => (release = r)).then(() => restoreTrashed(id));
+
+    render(CrudHarness, {
+      runtime,
+      blueprint: crudBlueprint,
+      services,
+      mode: 'list',
+      entityName: 'customer',
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Trash' }));
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Select row Open Slow restore' })
+    );
+    const restore = screen.getByRole('button', { name: 'Restore 1' }) as HTMLButtonElement;
+    await fireEvent.click(restore);
+    expect(restore.getAttribute('aria-busy')).toBe('true');
+    expect(restore.disabled).toBe(true);
+    release();
+    await waitFor(async () => expect(await services.customer!.get(customer.id)).toBeTruthy());
   });
 
   it('passes each row to :own delete checks and only deletes records owned by the agent', async () => {

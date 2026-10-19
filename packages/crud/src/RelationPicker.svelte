@@ -192,7 +192,7 @@ async function created(row: unknown) {
     </ul>
   {/if}
   {#if hasMore}
-    <Button type="button" variant="outline" size="sm" disabled={loading} onclick={() => void load()}>
+    <Button type="button" variant="outline" size="sm" disabled={loading} onclick={() => load()}>
       {loading ? 'Loading…' : 'Load more'}
     </Button>
   {/if}

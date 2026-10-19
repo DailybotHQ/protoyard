@@ -114,7 +114,7 @@ function whenOf(row: Row): string {
           class="h-8 text-xs"
           disabled={unread === 0}
           data-testid="notifications-mark-all"
-          onclick={() => void markAll()}
+          onclick={() => markAll()}
         >
           Mark all read
         </Button>
