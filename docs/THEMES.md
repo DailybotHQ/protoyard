@@ -150,6 +150,14 @@ every style field the selection does not touch, and validates the result with
 The default presets (`default`, `default`, `soft`, `standard`) reproduce
 `DEFAULT_THEME_STYLE` exactly.
 
+**Live in DevTools.** DevTools → Look has a control per dimension: density
+presets plus a fine slider, corner radius, elevation and motion as segmented
+choices, and the font pairing as a list. Each choice is a temporary
+override (`theme.setOverride({ radius: 'round' })` and so on) applied on top
+of the active theme, with a source badge. **Theme** clears that one override,
+and **Clear appearance overrides** clears them all; it is enabled as soon as
+any style override is set.
+
 ```ts
 import { applyStylePresets, violetTheme } from '@protoyard/themes';
 
@@ -532,9 +540,27 @@ registered once and applied like any other theme. The no-flash cache then
 replays it before the next boot, and a stored override keeps it across
 reloads. An id the library does not know falls back visibly to the manifest
 default. The gallery's Themes page (`apps/gallery/src/pages/themes.astro`),
-the UI Kit prototype's Theme Lab and the CLI list them too. DevTools → Look
-still shows only the presets, the prototype's own themes and saved custom
-themes; the searchable library browser is a separate task.
+the UI Kit prototype's Theme Lab and the CLI list them too.
+
+**DevTools → Look → Theme** is a theme browser
+(`packages/devtools/src/sections/ThemeBrowser.svelte`). It groups the
+prototype's own themes, the built-in presets and saved custom themes, with
+the whole library collapsed behind **Browse N more themes**:
+
+- **Search** matches name, id, description, tags, mood, category and
+  collection across every group (`searchThemeLibrary` for the library). A
+  status line announces how many themes match. Searching or filtering shows
+  library matches without expanding it.
+- **Collection chips** (industry, brand-like, high-contrast,
+  colorblind-safe, seasonal, mono, with counts) and a **tag** filter narrow
+  the library.
+- **Library cards** show the seed and secondary colors until the theme is
+  loaded, then its primary, accent, surface and foreground. Choosing one
+  loads it through the runtime's resolver; the card shows a spinner until it
+  applies.
+- The choice is a temporary override or the persona's preference, per "Apply
+  changes as" above. Each group is a radio group: arrow keys, Home and End
+  move within it, and Tab moves between groups.
 
 ## Custom themes per prototype
 
@@ -799,7 +825,7 @@ export const harborTheme = defineTheme({
 | --- | --- | --- |
 | Mode | `light`, `dark`, `system` | `system` uses `prefers-color-scheme` and updates live when the OS changes |
 | Reduced motion | `true` / `false` | Falls back to the OS `prefers-reduced-motion`. When reduced, the motion variables become `0ms` / `linear`, and `base.css` disables transitions and animations when either the OS or `data-py-motion="reduce"` asks for it. |
-| Density | `theme.density`, 0.75–1.25 (default 1) | Part of the theme. DevTools → Look has a density slider (0.75–1.25) that is always a temporary override. `applyAppearance(el, { density: 'compact' \| 'comfortable' \| number })` accepts one too (`compact` = 0.875, `comfortable` = 1.125). |
+| Density | `theme.density`, 0.75–1.25 (default 1) | Part of the theme. DevTools → Look has density presets (compact, default, comfortable, spacious) and a fine slider (0.75–1.25 in 0.025 steps); both are always a temporary override, and **Theme** returns to the theme's own density. `applyAppearance(el, { density: 'compact' \| 'comfortable' \| number })` accepts one too (`compact` = 0.875, `comfortable` = 1.125). |
 | Viewport | `desktop`, `tablet`, `iphone`, `android`, `custom` | Not a theme setting, but resolved the same way. Narrows the app column (`data-py-viewport`); media queries still follow the real window. |
 | Shell, device, orientation | `auto`, `none`, `phone`, `tablet`, `desktop-window`, `browser`, `widget-host`, `extension-popup`, `side-panel`; a catalog device; `portrait` / `landscape` | Not theme settings, but resolved the same way (override › scenario › manifest `preview`). The frame drawn around the app follows the theme and mode. See [SHELLS.md](SHELLS.md). |
 

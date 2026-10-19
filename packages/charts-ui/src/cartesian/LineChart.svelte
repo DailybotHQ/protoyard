@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Margin } from '@protoyard/charts';
 import type { Curve } from '@protoyard/charts/shapes';
+import type { Renderer } from '../canvas/model.ts';
 import type { ChartSelection } from '../interaction/model.ts';
 import ChartShell from './ChartShell.svelte';
 import LinePlot from './LinePlot.svelte';
@@ -26,6 +27,8 @@ type Props = {
   /** Stack areas on top of each other (implies `area`). */
   stacked?: boolean;
   curve?: Curve;
+  /** `auto` (default) draws on Canvas above 5,000 visible points after downsampling. */
+  renderer?: Renderer;
   height?: number;
   margin?: Partial<Margin>;
   xHeader?: string;
@@ -51,6 +54,7 @@ let {
   area = false,
   stacked = false,
   curve = 'monotone-x',
+  renderer = 'auto',
   height = 260,
   margin,
   xHeader,
@@ -98,6 +102,7 @@ const tickFormat = $derived(tickFormatter(units));
       {curve}
       area={area || stacked}
       {stacked}
+      {renderer}
       {onselect}
     />
   {/snippet}

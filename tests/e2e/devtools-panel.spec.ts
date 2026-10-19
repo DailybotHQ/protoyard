@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
+import { expectAccessible } from './support/a11y.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
 
 /**
@@ -89,4 +90,31 @@ test.describe('DevTools panel open and close', () => {
       });
     });
   }
+});
+
+test.describe('DevTools theme browser', () => {
+  test.skip(process.env.PROTOYARD_E2E_SHOWCASE !== '1', 'set PROTOYARD_E2E_SHOWCASE=1');
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('finds a library theme by search and applies it; the panel passes axe', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'chromium project only');
+    await openApp(page);
+    await openPanel(page);
+    await panel(page).getByRole('tab', { name: 'Look' }).click();
+
+    const browser = panel(page).getByTestId('theme-browser');
+    await expect(browser.getByRole('button', { name: /^Browse \d+ more themes$/ })).toBeVisible();
+    await browser.getByLabel('Search themes').fill('fintech ledger');
+    await expect(browser.getByRole('status')).toHaveText(/\d+ themes? match/);
+
+    const card = browser.getByRole('radio', { name: /Fintech Ledger/ });
+    await card.click();
+    // The library chunk and the theme builder load on first use, then the page switches.
+    await expect(page.locator('html')).toHaveAttribute('data-py-theme', 'fintech-ledger');
+    await expect(card).toHaveAttribute('aria-checked', 'true');
+
+    await expectAccessible(page, testInfo, { include: '.py-devtools', label: 'devtools-look' });
+  });
 });

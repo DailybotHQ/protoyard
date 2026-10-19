@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, ChevronDown } from '@lucide/svelte';
+import { ChevronDown } from '@lucide/svelte';
 import {
   type ColorMode,
   DEVICES,
@@ -9,6 +9,7 @@ import {
   type Orientation,
   type Platform,
   type Shell,
+  STYLE_OVERRIDE_KEYS,
   type Theme,
   type ViewportPreset,
 } from '@protoyard/core';
@@ -17,9 +18,10 @@ import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
 import Segmented from '../primitives/Segmented.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
-import Spinner from '../primitives/Spinner.svelte';
 import Toggle from '../primitives/Toggle.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
+import StyleControls from './StyleControls.svelte';
+import ThemeBrowser from './ThemeBrowser.svelte';
 
 let { dt }: { dt: DevtoolsState } = $props();
 const runtime = $derived(dt.runtime);
@@ -52,6 +54,8 @@ const hasOverride = $derived(
     'shell',
     'device',
     'orientation',
+    'layout',
+    ...STYLE_OVERRIDE_KEYS,
   ].some((key) => overrides[key as keyof typeof overrides] !== undefined)
 );
 
@@ -166,38 +170,7 @@ async function setFrame(on: boolean) {
 
 <Section title="Theme">
   {#snippet actions()}<SourceBadge source={appearance.theme.source} />{/snippet}
-  <div class="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Theme">
-    {#each themes as theme (theme.id)}
-      {@const selected = appearance.theme.value === theme.id}
-      {@const pending = dt.isBusy(`appearance:theme:${theme.id}`)}
-      {@const palette = appearance.resolvedMode === 'dark' ? theme.dark : theme.light}
-      <button
-        type="button"
-        role="radio"
-        aria-checked={selected}
-        aria-busy={pending || undefined}
-        disabled={applying && !pending}
-        title={theme.description}
-        class="group flex min-h-touch flex-col items-start gap-1.5 rounded-md border p-2 text-left focus-visible:outline-2 focus-visible:outline-ring {selected
-          ? 'border-primary ring-1 ring-primary'
-          : 'border-border hover:bg-muted/60'} disabled:opacity-60"
-        onclick={() => {
-          if (!applying) void set({ themeId: theme.id }, `appearance:theme:${theme.id}`);
-        }}
-      >
-        <span class="flex w-full overflow-hidden rounded" style:background-color={palette.background} aria-hidden="true">
-          <span class="h-5 flex-1" style:background-color={palette.primary}></span>
-          <span class="h-5 flex-1" style:background-color={palette.accent}></span>
-          <span class="h-5 flex-1" style:background-color={palette.surface}></span>
-          <span class="h-5 flex-1" style:background-color={palette.foreground}></span>
-        </span>
-        <span class="flex w-full items-center justify-between text-[11px] font-medium">
-          {theme.name}
-          {#if pending}<Spinner class="text-primary" />{:else if selected}<Check class="size-3 text-primary" aria-hidden="true" />{/if}
-        </span>
-      </button>
-    {/each}
-  </div>
+  <ThemeBrowser {dt} {themes} select={(themeId) => set({ themeId }, `appearance:theme:${themeId}`)} />
   <InlineError message={dt.errorFor('appearance')} />
 </Section>
 
@@ -243,27 +216,7 @@ async function setFrame(on: boolean) {
   </div>
 </Section>
 
-<Section title="Density" description="Scales the whole spacing system. Always a temporary override.">
-  {#snippet actions()}{#if appearance.density}<SourceBadge source={appearance.density.source} />{/if}{/snippet}
-  {@const current = appearance.density?.value ?? 1}
-  <label class="block text-[11px] text-muted-foreground">
-    <span class="flex justify-between"><span>Compact</span><span class="font-mono text-foreground">{current.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}×</span><span>Comfortable</span></span>
-    <input
-      type="range"
-      min="0.75"
-      max="1.25"
-      step="0.125"
-      class="mt-1 w-full accent-primary"
-      value={current}
-      aria-label="Density"
-      aria-valuetext={`${current} times`}
-      onchange={(e) =>
-        dt.run('appearance', () =>
-          runtime.theme.setOverride({ density: Number((e.currentTarget as HTMLInputElement).value) })
-        )}
-    />
-  </label>
-</Section>
+<StyleControls {dt} />
 
 <Section title="Viewport preset" description="Narrows the app column. Media queries still follow the real window — use the gallery device preview for true breakpoints.">
   {#snippet actions()}<SourceBadge source={appearance.viewport.source} />{/snippet}

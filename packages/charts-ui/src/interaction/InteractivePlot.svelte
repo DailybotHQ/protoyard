@@ -34,6 +34,8 @@ type Props = {
    * `y`: points run top to bottom (horizontal bars) and the pointer picks the nearest y.
    */
   orientation?: 'x' | 'y';
+  /** Custom pointer lookup (e.g. a scatter grid index); return null for "nothing here". */
+  hitTest?: (x: number, y: number) => ActivePoint | null;
   tooltip?: boolean;
   /** The chart's marks (bars, lines…) in the same pixel space. */
   children?: Snippet;
@@ -50,6 +52,7 @@ let {
   onselect,
   crosshair = 'x',
   orientation = 'x',
+  hitTest,
   tooltip = true,
   children,
 }: Props = $props();
@@ -177,6 +180,11 @@ function onpointermove(event: PointerEvent) {
   const rect = svg.getBoundingClientRect();
   const px = event.clientX - rect.left;
   const py = event.clientY - rect.top;
+  if (hitTest) {
+    hover = hitTest(px, py);
+    dismissed = false;
+    return;
+  }
   const [x, y] = orientation === 'y' ? [py, px] : [px, py];
   // Nearest position along the axis first, then the series whose point is closest across it.
   let best: ActivePoint | null = null;

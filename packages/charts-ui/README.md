@@ -33,7 +33,8 @@ import the styles after Tailwind and the theme/UI styles:
 **Status:** `./cartesian` ships LineChart, AreaChart, BarChart, ComboChart and
 ScatterChart; `./part-whole` ships DonutChart, PieChart, FunnelChart, Treemap
 and SankeyChart; `./matrix` ships Heatmap, CalendarHeatmap and Histogram;
-`./geo` ships TileMap; `./compact` ships Sparkline, Gauge and RadialProgress. The other
+`./geo` ships TileMap; `./canvas` holds the Canvas renderer used by the
+dense line and scatter charts; `./compact` ships Sparkline, Gauge and RadialProgress. The other
 family subpaths currently export only their `FAMILY` name; their components
 are added by the following PLAN_003 charts tasks. `sideEffects` lists only CSS,
 so a bundler keeps just the components a screen imports from a subpath. Load a family from a lazy route (`load: () => import('./Screen.svelte')`)
@@ -74,6 +75,34 @@ LineChart + BarChart is a 17.4 KB entry chunk, and the table loads lazily
 that and the chart math (scales, shapes, downsampling, palette) for 7.0 KB,
 so each further chart adds 1–3 KB. This is over the 10 KB target; see the
 PLAN_003 report for the planned reductions.
+
+## Dense data: the Canvas renderer (`./canvas`)
+
+`LineChart`, `AreaChart` and `ScatterChart` take `renderer: 'auto' | 'svg' |
+'canvas'`. With `auto` (the default), lines switch to Canvas above 5,000
+visible points after LTTB downsampling (several dense series), and scatter
+charts above 2,000 visible points. On Canvas:
+
+- Marks are painted on a DPR-aware `<canvas>` under the SVG, which still holds
+  the axes, grid, crosshair, focus marker and tooltip. The keyboard layer,
+  live region and "View as table" (50 rows per page) work exactly as on SVG.
+- Lines keep the first, lowest, highest and last point per pixel column
+  (`reduceForPixels`, built on `minMaxBuckets`), so they look the same as
+  drawing every point. Spikes and gaps survive, and hover and keys use every
+  point.
+- Scatter hover uses a uniform grid index (`ScatterIndex`) for a true 2-D
+  nearest point. Canvas draws circles; SVG keeps a symbol per series.
+- It redraws once per animation frame, only when the data, the size or the
+  theme (palette, mode) change. Theme colors (`var(--py-chart…)`) are resolved
+  from computed styles (`resolveColor`).
+- The drawing component loads lazily: charts that stay on SVG never download
+  it.
+
+Measured in Node (Apple M1 Max, load average 15–34): reducing 10k points to
+pixel columns takes 0.7–2.0 ms and 100k points 3.6–9.2 ms. Indexing 20k scatter
+points takes about 5 ms, and a nearest lookup 2–9 µs. Browser paint time is
+measured by charts-bench. Size: the `./canvas` entry is 2.0 KB gzip, and it is
+lazy from the charts.
 
 ## Part-whole and flow charts (`./part-whole`)
 

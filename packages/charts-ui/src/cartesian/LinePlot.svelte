@@ -2,6 +2,7 @@
 import type { Rect } from '@protoyard/charts';
 import { downsampleThreshold, largestTriangleThreeBuckets } from '@protoyard/charts/downsample';
 import { areaPath, type Curve, linePath, stack } from '@protoyard/charts/shapes';
+import { type CanvasLine, type Renderer, reduceForPixels, useCanvas } from '../canvas/model.ts';
 import Axis from '../interaction/Axis.svelte';
 import Grid from '../interaction/Grid.svelte';
 import InteractivePlot from '../interaction/InteractivePlot.svelte';
@@ -35,6 +36,7 @@ type Props = {
   curve: Curve;
   area: boolean;
   stacked: boolean;
+  renderer: Renderer;
   onselect?: (selection: ChartSelection) => void;
 };
 
@@ -51,6 +53,7 @@ let {
   curve,
   area,
   stacked,
+  renderer,
   onselect,
 }: Props = $props();
 
@@ -106,9 +109,7 @@ const layout = $derived.by(() => {
   const base = y.scale(Math.max(y.scale.domain[0], Math.min(0, y.scale.domain[1])));
   const threshold = downsampleThreshold(plot.width);
 
-  const plotted: PlotSeries[] = [];
-  const paths: { id: string; line: string; area: string; color: string; dashed: boolean }[] = [];
-  series.forEach((s, i) => {
+  const built = series.map((s, i) => {
     const sp = spans.get(s.id);
     const points: Px[] = s.points.map((p) => {
       const span = sp?.get(p.x);
@@ -125,8 +126,36 @@ const layout = $derived.by(() => {
     // Dense lines: keep the shape with a fraction of the points (LTTB keeps gaps and extremes).
     const drawn =
       points.length > threshold ? largestTriangleThreeBuckets(points, threshold) : points;
-    plotted.push({ id: s.id, label: s.label, color: colorFor(s, i), points: drawn });
-    if (hidden.has(s.id)) return;
+    return { s, i, points, drawn };
+  });
+  const visibleDrawn = built
+    .filter((b) => !hidden.has(b.s.id))
+    .reduce((n, b) => n + b.drawn.length, 0);
+  const canvas = useCanvas(renderer, 'line', visibleDrawn);
+
+  const plotted: PlotSeries[] = [];
+  const paths: { id: string; line: string; area: string; color: string; dashed: boolean }[] = [];
+  const canvasLines: CanvasLine[] = [];
+  for (const { s, i, points, drawn } of built) {
+    // On Canvas, hover and keys use every point (bisect stays O(log n)); pixels get min/max per column.
+    plotted.push({
+      id: s.id,
+      label: s.label,
+      color: colorFor(s, i),
+      points: canvas ? points : drawn,
+    });
+    if (hidden.has(s.id)) continue;
+    if (canvas) {
+      const reduced = reduceForPixels(points, plot.width);
+      canvasLines.push({
+        id: s.id,
+        color: colorFor(s, i),
+        dashed: s.comparison === true,
+        points: reduced,
+        ...(area ? { area: reduced.map((p) => p.y0) } : {}),
+      });
+      continue;
+    }
     paths.push({
       id: s.id,
       color: colorFor(s, i),
@@ -139,11 +168,17 @@ const layout = $derived.by(() => {
           )
         : '',
     });
-  });
-  return { xTicks, yTicks: y.ticks, plotted, paths };
+  }
+  return { xTicks, yTicks: y.ticks, plotted, paths, canvasLines, canvas };
 });
 </script>
 
+{#if layout.canvas}
+  <!-- Loaded only for dense data: SVG-only charts never download the Canvas code. -->
+  {#await import('../canvas/CanvasMarks.svelte') then { default: CanvasMarks }}
+    <CanvasMarks {width} {height} lines={layout.canvasLines} />
+  {/await}
+{/if}
 <InteractivePlot {label} series={layout.plotted} {hidden} {width} {height} {plot} {formatters} {onselect}>
   <Grid positions={layout.yTicks.map((t) => t.position)} {plot} />
   <Axis orientation="left" ticks={layout.yTicks} {plot} />
