@@ -346,6 +346,7 @@ describe('protoyard generate', () => {
     expect(JSON.parse(read('prototypes/help-desk/src/generated/blueprint.snapshot.json'))).toEqual({
       schemaVersion: 2,
       blueprint: next,
+      codegenFormat: 2,
     });
 
     const validate = await cli([
@@ -510,17 +511,19 @@ describe('codegen emitters', () => {
 
     expect(byPath['src/generated/routes.ts']).toContain("path: '/dashboard'");
     expect(byPath['src/generated/routes.ts']).toContain(
-      "load: () => import('./screens/Dashboard1.svelte')"
+      "load: () => import('./screens/Dashboard1Screen.svelte')"
     );
     expect(byPath['src/generated/routes.ts']).toContain("label: 'Sales overview'");
-    expect(byPath['src/generated/screens/Dashboard1.svelte']).toContain(
+    expect(byPath['src/generated/screens/Dashboard1Screen.svelte']).toContain(
       "import { DashboardScreen } from '@protoyard/crud/screens/dashboard';"
     );
     // The screen reads the parsed spec from the app context (src/generated/screens → src/lib).
-    expect(byPath['src/generated/screens/Dashboard1.svelte']).toContain(
+    expect(byPath['src/generated/screens/Dashboard1Screen.svelte']).toContain(
       "import { useCrudApp } from '../../lib/context.ts';"
     );
-    expect(byPath['src/generated/screens/Dashboard1.svelte']).toContain('blueprint.screens[0]');
+    expect(byPath['src/generated/screens/Dashboard1Screen.svelte']).toContain(
+      'blueprint.screens[0]'
+    );
   });
 
   it('formats JSON like Biome: short primitive arrays inline, objects expanded', () => {

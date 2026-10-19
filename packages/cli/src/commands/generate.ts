@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { type Blueprint, safeParseBlueprint } from '@protoyard/blueprint';
+import { type Blueprint, safeParseBlueprint, screenPath } from '@protoyard/blueprint';
 import { MANIFEST_FILENAME } from '@protoyard/core';
 import {
   brandDefaultThemeId,
@@ -12,6 +12,7 @@ import {
 import { formatJson } from '../lib/codegen/format.ts';
 import { checkHeader } from '../lib/codegen/header.ts';
 import {
+  CODEGEN_FORMAT_VERSION,
   emitOrThrow,
   type FilePlan,
   planRegeneration,
@@ -174,7 +175,11 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     ...emitOrThrow(blueprint, slug, text),
     {
       path: SNAPSHOT_PATH,
-      content: snapshotText({ schemaVersion: 1, blueprint: withoutHistory(raw) }),
+      content: snapshotText({
+        schemaVersion: 1,
+        blueprint: withoutHistory(raw),
+        codegenFormat: CODEGEN_FORMAT_VERSION,
+      }),
       generated: false,
     },
   ];
@@ -199,6 +204,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     })),
   ].sort((a, b) => a.path.localeCompare(b.path));
   const entities = blueprint.entities.map((e) => e.name);
+  const rootDashboard = blueprint.screens.find(
+    (screen) => screen.type === 'dashboard' && screenPath(screen, blueprint.entities) === '/'
+  );
 
   if (dryRun) {
     return {
@@ -208,6 +216,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
         dryRun: true,
         template: template.slug,
         entities,
+        homeRoute: rootDashboard
+          ? { screen: 'dashboard', title: rootDashboard.title ?? 'Dashboard' }
+          : { screen: 'home', title: 'Home' },
         files: fileList,
         existing,
       },
@@ -216,6 +227,10 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
         out.always(
           `${mark(c, 'skip')} Dry run: would write ${c.bold(rel)} (${fileList.length} files, nothing written)`
         );
+        if (rootDashboard)
+          out.info(
+            `${mark(c, 'pass')} Home route would use dashboard "${rootDashboard.title ?? 'Dashboard'}"; generated Home.svelte would not be routed.`
+          );
         for (const f of fileList) out.info(`  ${c.dim(f.source.padEnd(9))} ${f.path}`);
       },
     };
@@ -304,6 +319,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       entities,
       files: fileList,
       generated: generatedFiles.map((f) => f.path),
+      homeRoute: rootDashboard
+        ? { screen: 'dashboard', title: rootDashboard.title ?? 'Dashboard' }
+        : { screen: 'home', title: 'Home' },
       hashesIntact: intact.every(Boolean),
       install,
       spec,
@@ -316,6 +334,10 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       out.always(
         `${mark(c, 'pass')} Generated ${c.bold(rel)} from ${c.cyan(template.slug)}: ${entities.length} entities, ${generatedFiles.length} generated files`
       );
+      if (rootDashboard)
+        out.info(
+          `${mark(c, 'pass')} Home route: dashboard "${rootDashboard.title ?? 'Dashboard'}"; generated Home.svelte is not routed.`
+        );
       if (install.skipped) out.info(`${mark(c, 'skip')} Skipped pnpm install`);
       else if (install.ok)
         out.info(`${mark(c, 'pass')} Linked into the workspace (pnpm install --${install.mode})`);

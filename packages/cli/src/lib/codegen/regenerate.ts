@@ -25,9 +25,12 @@ import { checkHeader } from './header.ts';
  */
 
 export const SNAPSHOT_PATH = 'src/generated/blueprint.snapshot.json';
+export const CODEGEN_FORMAT_VERSION = 2;
 const SCREENS_DIR = 'src/generated/screens';
 
 export interface Snapshot {
+  /** Generated source layout version; absent snapshots predate screen codegen. */
+  codegenFormat?: number;
   schemaVersion: number;
   blueprint: Record<string, unknown>;
 }
@@ -225,6 +228,7 @@ export async function planRegeneration(input: {
   const emitted = emitOrThrow(blueprint, slug, blueprintText);
   const files = await planGeneratedFiles(dest, emitted);
   const nextSnapshot: Snapshot = { schemaVersion: toVersion, blueprint: nextRaw };
+  nextSnapshot.codegenFormat = CODEGEN_FORMAT_VERSION;
   const managed: [string, string][] = [
     ['blueprint.json', blueprintText],
     [SNAPSHOT_PATH, snapshotText(nextSnapshot)],
@@ -307,6 +311,18 @@ export async function checkBlueprintDrift(
     return null;
   });
   if (snapshot) {
+    if ((snapshot.codegenFormat ?? 1) < CODEGEN_FORMAT_VERSION) {
+      return {
+        ok: false,
+        problems: [
+          `Generated code format ${snapshot.codegenFormat ?? 1} is outdated; run \`pnpm protoyard generate ${slug} --blueprint prototypes/${slug}/blueprint.json\` to regenerate and get screen routes.`,
+        ],
+        summary: '',
+      };
+    }
+    if (snapshot.codegenFormat !== CODEGEN_FORMAT_VERSION) {
+      problems.push(`${SNAPSHOT_PATH} uses unsupported codegen format ${snapshot.codegenFormat}`);
+    }
     if (!sameJson(snapshot.blueprint, withoutHistory(raw))) {
       problems.push(
         `blueprint.json changed since the last generation: run \`pnpm protoyard generate ${slug} --blueprint prototypes/${slug}/blueprint.json\``
