@@ -69,8 +69,12 @@ export interface FrameEntry {
  * frame ships; the runtime still reports it as the effective shell.
  */
 export const FRAMES: Partial<Record<ResolvedShell, FrameEntry>> = {
-  phone: { load: () => import('./PhoneFrame.svelte'), margin: 14 },
-  tablet: { load: () => import('./TabletFrame.svelte'), margin: 22 },
+  /*
+   * Phone and tablet margins hold the bezel (12 / 22 px) plus the rotate
+   * control beside it (8 px gap + 32 px button), which never covers the screen.
+   */
+  phone: { load: () => import('./PhoneFrame.svelte'), margin: 56 },
+  tablet: { load: () => import('./TabletFrame.svelte'), margin: 66 },
   'extension-popup': { load: () => import('./ExtensionPopupFrame.svelte'), margin: 0 },
   'widget-host': { load: () => import('./WidgetHostFrame.svelte'), margin: 0 },
   'desktop-window': {

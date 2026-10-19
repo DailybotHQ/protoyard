@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_THEME_STYLE,
   defineTheme,
+  isSafeCssColor,
+  isSafeFontFamily,
   resolveThemeStyle,
   ThemePaletteSchema,
   ThemeSchema,
@@ -112,5 +114,96 @@ describe('theme style model', () => {
   ])('rejects %s', (_label, style) => {
     expect(ThemeSchema.safeParse({ ...base, style }).success).toBe(false);
     expect(() => resolveThemeStyle(style as never)).toThrow();
+  });
+});
+
+describe('theme value injection guards', () => {
+  const MALICIOUS = [
+    'url(https://x)',
+    'url(https://tracker.example/p)',
+    'red;}body{display:none',
+    '</style>',
+    '<script>',
+    'image(https://x)',
+    'rgb(1 2 3) url(x)',
+    'color-mix(in oklab, url(x) 10%, red)',
+    'red !important',
+    'u\\72l(https://x)',
+    'rgb(1 2 3',
+    'rgb(1 2 3))',
+    'expression(alert(1))',
+    'var(--x);color:red',
+  ];
+
+  it('accepts the color syntaxes themes use', () => {
+    for (const value of [
+      '#fff',
+      '#ffffffaa',
+      '#0A1b2C',
+      'transparent',
+      'currentColor',
+      'rgb(15 23 42 / 0.08)',
+      'rgba(0, 0, 0, 0.5)',
+      'hsl(220 14% 96%)',
+      'hsla(220, 14%, 96%, 0.4)',
+      'oklch(0.62 0.19 264)',
+      'oklab(0.5 -0.1 0.1 / 50%)',
+      'color(display-p3 1 0 0)',
+      'color-mix(in oklab, #7c3aed 25%, transparent)',
+      'color-mix(in oklab, var(--py-primary) 20%, white)',
+    ]) {
+      expect(isSafeCssColor(value), value).toBe(true);
+    }
+  });
+
+  it('refuses colors that load resources or break out of a declaration', () => {
+    for (const value of MALICIOUS) {
+      expect(isSafeCssColor(value), value).toBe(false);
+      const theme = { ...base, light: { ...palette, primary: value } };
+      expect(ThemeSchema.safeParse(theme).success, value).toBe(false);
+    }
+  });
+
+  it('accepts font stacks with quotes and var() fallbacks', () => {
+    for (const value of [
+      "'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif",
+      'var(--py-font-stack-system-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',
+      '"Iowan Old Style", "Palatino Linotype", Georgia, serif',
+      'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace',
+    ]) {
+      expect(isSafeFontFamily(value), value).toBe(true);
+    }
+  });
+
+  it('refuses font stacks that inject rules, load resources or leave a string open', () => {
+    for (const value of [
+      ...MALICIOUS,
+      'x;} body{background:url(https://tracker.example/p)} :root{a:b',
+      '"Inter, sans-serif',
+      "Inter', sans-serif",
+      'local(Inter)',
+      'Inter, sans-serif\nbody{}',
+    ]) {
+      expect(isSafeFontFamily(value), value).toBe(false);
+    }
+    for (const field of ['fontFamily', 'fontFamilyHeading', 'fontFamilyMono'] as const) {
+      const result = ThemeSchema.safeParse({ ...base, [field]: 'x;}body{display:none' });
+      expect(result.success, field).toBe(false);
+    }
+  });
+
+  it('accepts only a CSS length as the radius', () => {
+    for (const radius of ['0', '0px', '0.625rem', '12px', '1em', '9999px', '62.5rem']) {
+      expect(ThemeSchema.safeParse({ ...base, radius }).success, radius).toBe(true);
+    }
+    for (const radius of [
+      'url(https://x)',
+      '1rem;}body{display:none',
+      '</style>',
+      'calc(1px)',
+      '',
+    ]) {
+      expect(ThemeSchema.safeParse({ ...base, radius }).success, radius).toBe(false);
+    }
   });
 });

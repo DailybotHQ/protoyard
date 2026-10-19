@@ -89,6 +89,36 @@ describe('device bezels never paint over the app', () => {
   });
 });
 
+describe('the rotate control never covers the screen', () => {
+  // jsdom has no layout, so check the geometry contract: the button is placed
+  // beyond the right edge of the device (past its bezel), and the frame margin
+  // reserves room for it. shell-layout.spec.ts measures the real rects.
+  it('places the phone and tablet rotate buttons beside the bezel, inside the frame margin', () => {
+    const phone = getDevice('phone-pill');
+    const tablet = getDevice('tablet');
+    if (!phone || !tablet) throw new Error('catalog devices missing');
+    runtimeMock.current = createFakeRuntime();
+    for (const [Frame, spec, shell, bezel] of [
+      [PhoneFrame, phone, 'phone', 12],
+      [TabletFrame, tablet, 'tablet', 22],
+    ] as const) {
+      const { container } = render(Frame, { spec, shell });
+      const button = container.querySelector<HTMLElement>('[data-py-orientation-toggle]');
+      expect(button, shell).not.toBeNull();
+      const left = button?.style.left ?? '';
+      const offset = Number(/^calc\(100% \+ (\d+)px\)$/.exec(left)?.[1] ?? Number.NaN);
+      // Starts past the device edge and its bezel ring.
+      expect(offset, `${shell} left: ${left}`).toBeGreaterThan(bezel);
+      // No class pins it back inside the device (right-*, inset-*).
+      expect(button?.className, shell).not.toMatch(/(^|\s)(right|inset|left)-/);
+      // size-8 = 32 px; the margin used for fit scaling covers bezel + gap + button.
+      expect(button?.className, shell).toMatch(/(^|\s)size-8(\s|$)/);
+      expect(FRAMES[shell]?.margin ?? 0, `${shell} margin`).toBeGreaterThanOrEqual(offset + 32);
+      cleanup();
+    }
+  });
+});
+
 describe('PhoneFrame', () => {
   it('matches catalog dimensions, safe-area CSS vars contract, and cutout for phone-pill', () => {
     const spec = getDevice('phone-pill');
@@ -200,6 +230,22 @@ describe('tablet frame', () => {
 });
 
 describe('HomeIndicator', () => {
+  it('keeps its hit area inside the bottom safe-area inset in both orientations', () => {
+    const base = getDevice('phone-pill');
+    if (!base) throw new Error('missing phone-pill');
+    for (const spec of [base, orient(base, 'landscape')]) {
+      const { container } = render(HomeIndicator, { spec });
+      const host = container.querySelector<HTMLElement>('[data-py-home-indicator]');
+      // Landscape: 21 px inset although the indicator spec says 34 px.
+      expect(host?.style.height, spec.orientation).toBe(`${safeAreaOf(spec).bottom}px`);
+      // The button fills that strip and never grows past it.
+      const button = screen.getByRole('button', { name: 'Go home' });
+      expect(button.className).toMatch(/(^|\s)h-full(\s|$)/);
+      expect(button.className).not.toMatch(/(^|\s)p(y|t)?-[1-9]/);
+      cleanup();
+    }
+  });
+
   it('navigates to the app root hash when activated', async () => {
     const spec = getDevice('phone-pill');
     if (!spec) return;
@@ -512,6 +558,30 @@ describe('desktop window frame', () => {
     expect(setMaximized).toHaveBeenLastCalledWith(false);
   });
 
+  it('desktop window: minimizing a maximized window keeps the dock reachable and restores it maximized', async () => {
+    const { setMaximized, setScreenHidden, container, rerender } = renderWindow({ os: 'mac' });
+    await fireEvent.click(screen.getByRole('button', { name: 'Maximize' }));
+    expect(setMaximized).toHaveBeenLastCalledWith(true);
+    await rerender({ maximized: true });
+    expect(container.querySelector('[data-py-dock]')).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Minimize' }));
+    expect(setScreenHidden).toHaveBeenLastCalledWith(true);
+    // The frame hands the stage back so the dock is on screen again…
+    expect(setMaximized).toHaveBeenLastCalledWith(false);
+    // …and the dock renders even before the host applies that change.
+    const dock = screen.getByRole('button', { name: 'Restore Fake Prototype' });
+    expect(container.querySelector('[data-py-dock]')).not.toBeNull();
+    await rerender({ maximized: false });
+
+    await fireEvent.click(dock);
+    expect(setScreenHidden).toHaveBeenLastCalledWith(false);
+    expect(setMaximized).toHaveBeenLastCalledWith(true);
+    expect(container.querySelector('[data-window-chrome]')?.getAttribute('data-state')).toBe(
+      'open'
+    );
+  });
+
   it('desktop window: registers a lazy frame with a title-bar inset and a fixed minimum width', async () => {
     const entry = FRAMES['desktop-window'];
     expect(entry).toBeDefined();
@@ -579,6 +649,41 @@ describe('desktop window shell in ShellHost', () => {
     expect(screenEl?.style.visibility).toBe('');
     expect(screen.getByTestId('who')).toBe(app);
   });
+  it('desktop window: maximize, minimize, then restore from the dock in the mounted shell', async () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const runtime = createFakeRuntime();
+    const mounted = await mountPrototype({
+      definition: runtime.definition,
+      App: ProbeApp,
+      target,
+      search: '',
+      devtools: false,
+      createRuntime: () => runtime,
+    });
+    destroy = mounted.destroy;
+    await runtime.theme.setOverride({ shell: 'desktop-window' });
+    flushSync();
+    await vi.waitFor(() => expect(target.querySelector('[data-window-chrome]')).not.toBeNull());
+    const device = target.querySelector<HTMLElement>('[data-py-shell-part="device"]');
+    const screenEl = target.querySelector<HTMLElement>('[data-py-shell-part="screen"]');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Maximize' }));
+    expect(device?.hasAttribute('data-py-maximized')).toBe(true);
+    expect(target.querySelector('[data-py-dock]')).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Minimize' }));
+    expect(screenEl?.style.visibility).toBe('hidden');
+    // Never stranded: the stage is handed back and the dock can restore the window.
+    expect(device?.hasAttribute('data-py-maximized')).toBe(false);
+    const dock = target.querySelector<HTMLButtonElement>('[data-py-dock-app]');
+    expect(dock).not.toBeNull();
+    expect(dock?.getAttribute('aria-label')).toMatch(/^Restore /);
+
+    await fireEvent.click(dock as HTMLButtonElement);
+    expect(screenEl?.style.visibility).toBe('');
+    expect(device?.hasAttribute('data-py-maximized')).toBe(true);
+    expect(target.querySelector('[data-window-chrome]')?.getAttribute('data-state')).toBe('open');
+  });
 });
 
 describe('side panel shell', () => {
@@ -614,12 +719,15 @@ describe('side panel shell', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Collapse plugin' }));
     await waitFor(() => expect(screenEl.getAttribute('data-py-side-panel')).toBe('collapsed'));
     expect(screenEl.style.width).toBe('0px');
+    // Out of the tab order and the accessibility tree while collapsed.
+    expect(screenEl.hasAttribute('inert')).toBe(true);
     expect(
       screen.getByRole('button', { name: 'Expand plugin' }).getAttribute('aria-expanded')
     ).toBe('false');
 
     await fireEvent.click(screen.getByRole('button', { name: 'Expand plugin' }));
     await waitFor(() => expect(screenEl.getAttribute('data-py-side-panel')).toBe('open'));
+    expect(screenEl.hasAttribute('inert')).toBe(false);
     expect(
       screen.getByRole('button', { name: 'Collapse plugin' }).getAttribute('aria-expanded')
     ).toBe('true');

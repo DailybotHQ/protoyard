@@ -28,6 +28,16 @@ const shelved = ((readRegistry()?.entries ?? []) as unknown as Shelved[]).filter
 const categories = new Set(shelved.map((e) => e.catalog?.category));
 const first = (kind: Shelved['kind']) => shelved.find((e) => e.kind === kind);
 
+/**
+ * The repository ships prototypes, templates and blueprints on the shelf. Assert
+ * it, so a test never passes without exercising the kind it names.
+ */
+function requireFirst(kind: Shelved['kind']): Shelved {
+  const entry = first(kind);
+  expect(entry, `the registry shelves at least one ${kind}`).toBeDefined();
+  return entry as Shelved;
+}
+
 async function openMarketplace(page: Page, search = '') {
   await page.goto(`/marketplace/${search}`);
   await expect(
@@ -64,14 +74,21 @@ test.describe('marketplace', () => {
     page,
   }) => {
     await openMarketplace(page);
-    // Only the most common features get a chip: filter by the first one shown.
-    const chip = page.getByRole('group', { name: 'Features' }).getByRole('button').first();
-    const feature = ((await chip.textContent()) ?? '').trim().split(/\s+/)[0] ?? '';
+    // Only the most common features get a chip: use the first one a template has.
+    const chips = page.getByRole('group', { name: 'Features' }).getByRole('button');
+    const labels = (await chips.allTextContents()).map((t) => t.trim().split(/\s+/)[0] ?? '');
+    const index = labels.findIndex((label) =>
+      shelved.some((e) => e.kind === 'template' && e.catalog?.features?.includes(label))
+    );
+    expect(
+      index,
+      `a feature chip shared by a template (chips: ${labels.join(', ')})`
+    ).toBeGreaterThanOrEqual(0);
+    const chip = chips.nth(index);
+    const feature = labels[index] ?? '';
     const target = shelved.find(
       (e) => e.kind === 'template' && e.catalog?.features?.includes(feature)
-    );
-    test.skip(!target, `no template with feature ${feature}`);
-    if (!target) return;
+    ) as Shelved;
 
     await chip.click();
     await expect(page).toHaveURL(new RegExp(`[?&]feature=${feature}`));
@@ -112,8 +129,7 @@ test.describe('marketplace', () => {
 
   test('opens a detail page for a prototype, a template and a blueprint', async ({ page }) => {
     for (const kind of ['prototype', 'template', 'blueprint'] as const) {
-      const entry = first(kind);
-      if (!entry) continue;
+      const entry = requireFirst(kind);
       await openMarketplace(page, `?kind=${kind}`);
       await page.getByTestId('market-results').locator(`[data-slug="${entry.slug}"] a`).click();
       await expect(page).toHaveURL(new RegExp(`/marketplace/${kind}/${entry.slug}/?$`));
@@ -133,9 +149,7 @@ test.describe('marketplace', () => {
   test('read-only: Try it shows the dev command and Use this template the exact CLI command', async ({
     page,
   }) => {
-    const template = first('template');
-    test.skip(!template, 'no template indexed');
-    if (!template) return;
+    const template = requireFirst('template');
     await page.goto(`/marketplace/template/${template.slug}/`);
     await expect(
       page.locator('section[aria-labelledby="create-title"][data-hydrated="true"]')
@@ -168,8 +182,7 @@ test.describe('marketplace', () => {
       await expect(page.locator('html')).toHaveAttribute('data-theme', scheme);
       await expectAccessible(page, testInfo, { label: `marketplace-${scheme}` });
 
-      const template = first('template');
-      if (!template) return;
+      const template = requireFirst('template');
       await page.goto(`/marketplace/template/${template.slug}/`);
       await expect(
         page.locator('section[aria-labelledby="create-title"][data-hydrated="true"]')
@@ -182,8 +195,7 @@ test.describe('marketplace', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openMarketplace(page);
     await expectNoHorizontalOverflow(page, '/marketplace/');
-    const template = first('template');
-    if (!template) return;
+    const template = requireFirst('template');
     await page.goto(`/marketplace/template/${template.slug}/`);
     await expect(page.getByTestId('market-detail-title')).toBeVisible();
     await expectNoHorizontalOverflow(page, `/marketplace/template/${template.slug}/`);
@@ -197,9 +209,8 @@ test.describe('marketplace on the showcase site', () => {
 
   test('Try it plays the bundled template demo inside its frame', async ({ page }) => {
     const template =
-      shelved.find((e) => e.kind === 'template' && e.slug === 'chat-widget') ?? first('template');
-    test.skip(!template, 'no template indexed');
-    if (!template) return;
+      shelved.find((e) => e.kind === 'template' && e.slug === 'chat-widget') ??
+      requireFirst('template');
     await page.goto(`${origin}${base}marketplace/template/${template.slug}/`);
     const preview = page.locator('section[aria-labelledby="preview-title"]');
     await preview.scrollIntoViewIfNeeded();

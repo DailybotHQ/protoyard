@@ -1,5 +1,6 @@
 <script lang="ts">
 import { WindowChrome, type WindowChromeState } from '@protoyard/ui';
+import { untrack } from 'svelte';
 import { type FrameProps, windowVariant } from './registry.ts';
 
 /**
@@ -9,7 +10,9 @@ import { type FrameProps, windowVariant } from './registry.ts';
  * and keeps the app mounted while the window is minimized or closed. Every
  * control works: minimize hides the window to the dock, the dock button
  * restores or reopens it, maximize fills the stage, and close shows a
- * reopen prompt.
+ * reopen prompt. Minimizing a maximized window gives the stage back (so the
+ * dock is on screen again) and restoring it maximizes it again, like a real
+ * desktop.
  */
 let {
   chrome,
@@ -42,6 +45,25 @@ $effect(() => {
   setScreenHidden(windowState !== 'open');
 });
 $effect(() => () => setScreenHidden(false));
+
+// A maximized device box fills the stage, which would push the dock out of
+// view. While minimized the window leaves the stage to the dock, and it comes
+// back maximized on restore. Plain variable: only the effect reads it.
+let restoreMaximized = false;
+$effect(() => {
+  const state = windowState;
+  untrack(() => {
+    if (state === 'minimized' && maximized) {
+      restoreMaximized = true;
+      setMaximized(false);
+    } else if (state === 'open' && restoreMaximized) {
+      restoreMaximized = false;
+      setMaximized(true);
+    } else if (state === 'closed') {
+      restoreMaximized = false;
+    }
+  });
+});
 
 const appLabel = $derived(app.name);
 const dockLabel = $derived(
@@ -76,7 +98,8 @@ function toggleFromDock(): void {
   />
 {/if}
 
-{#if !maximized}
+<!-- The dock is the only way back from a minimized window, so it never hides then. -->
+{#if !maximized || windowState === 'minimized'}
   <div
     data-py-dock={variant === 'mac-like' ? 'dock' : 'taskbar'}
     class={[

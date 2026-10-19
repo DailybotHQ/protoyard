@@ -157,10 +157,9 @@ test.describe('Lumen Bank (static build)', () => {
     expect(await page.evaluate(() => window.__protoyard?.storage().backend)).toBe('indexeddb');
   });
 
-  // Viewport-fit regression for Transfer + bottom nav. Kept in fixme until the
-  // shells phone-frame / full-viewport fix is confirmed on main; see also
+  // Viewport-fit regression for Transfer + bottom nav; see also
   // tests/e2e/viewport-fit.spec.ts (desktop 1280×800 + Pixel 7).
-  test.fixme('MobileAppShell keeps nav and Transfer submit in view without document scroll', async ({
+  test('MobileAppShell keeps nav and Transfer submit in view without document scroll', async ({
     page,
   }) => {
     await openApp(page, '#/transfer');

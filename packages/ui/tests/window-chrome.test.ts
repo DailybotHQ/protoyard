@@ -75,6 +75,21 @@ describe('WindowChrome', () => {
     );
   });
 
+  it('maximize, minimize and restore keeps a reachable pill and returns maximized', async () => {
+    render(WindowChromeHarness, { variant: 'windows-like', title: 'Editor' });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Maximize' }));
+    expect(screen.getByTestId('maximized').textContent).toBe('true');
+    await fireEvent.click(screen.getByRole('button', { name: 'Minimize' }));
+    expect(chromeRoot().getAttribute('data-state')).toBe('minimized');
+    expect(chromeRoot().getAttribute('data-maximized')).toBe('true');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Restore Editor' }));
+    expect(screen.getByTestId('state').textContent).toBe('open');
+    expect(chromeRoot().getAttribute('data-maximized')).toBe('true');
+    expect(screen.getByTestId('body').textContent).toBe('Window body');
+  });
+
   it('double-clicking the title bar toggles maximize without -webkit-app-region', async () => {
     render(WindowChromeHarness, { variant: 'mac-like', title: 'Notes' });
 
