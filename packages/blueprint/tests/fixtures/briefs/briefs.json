@@ -1,0 +1,208 @@
+[
+  {
+    "id": "it-helpdesk",
+    "brief": "An internal IT help desk: employees open tickets, agents work them by priority and SLA due time.",
+    "archetype": "helpdesk",
+    "layout": "sidebar",
+    "entities": ["ticket", "customer"],
+    "screens": ["board", "calendar", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "agency-crm",
+    "brief": "A CRM for a small design agency to track leads, deals by stage and contacts at client companies.",
+    "archetype": "crm",
+    "layout": "sidebar",
+    "entities": ["deal", "company", "contact", "lead"],
+    "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "salon-booking",
+    "brief": "A dog grooming salon that books appointments, tracks groomers and invoices with amount and due date.",
+    "archetype": "booking",
+    "layout": "sidebar",
+    "entities": ["appointment", "client", "groomer", "invoice"],
+    "screens": [
+      "analytics",
+      "board",
+      "calendar",
+      "dashboard",
+      "detail",
+      "list",
+      "settings",
+      "timeline"
+    ]
+  },
+  {
+    "id": "courier-dispatch",
+    "brief": "Dispatch for a bike courier service: track shipments and drivers across the city with delivery locations.",
+    "archetype": "logistics",
+    "layout": "sidebar",
+    "entities": ["shipment", "driver"],
+    "screens": [
+      "analytics",
+      "board",
+      "calendar",
+      "dashboard",
+      "detail",
+      "list",
+      "map",
+      "settings",
+      "timeline"
+    ]
+  },
+  {
+    "id": "growth-analytics",
+    "brief": "Product analytics dashboard with signup metrics, retention KPIs and weekly reports for the growth team.",
+    "archetype": "analytics",
+    "layout": "sidebar",
+    "entities": ["metric", "report"],
+    "screens": ["analytics", "board", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "sprint-board",
+    "brief": "A sprint board for a dev team: tasks move through a kanban, with milestones and a roadmap.",
+    "archetype": "pm",
+    "layout": "sidebar",
+    "entities": ["task", "project"],
+    "screens": [
+      "analytics",
+      "board",
+      "calendar",
+      "dashboard",
+      "detail",
+      "list",
+      "settings",
+      "timeline"
+    ]
+  },
+  {
+    "id": "online-academy",
+    "brief": "An online academy where students enroll in courses, finish lessons and take quizzes.",
+    "archetype": "lms",
+    "layout": "sidebar",
+    "entities": ["enrollment", "course"],
+    "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "vet-clinic",
+    "brief": "A veterinary clinic that manages patients and visits with doctors and nurses.",
+    "archetype": "clinic",
+    "layout": "sidebar",
+    "entities": ["visit", "patient"],
+    "screens": ["board", "calendar", "dashboard", "detail", "list", "settings", "timeline"]
+  },
+  {
+    "id": "household-finance",
+    "brief": "Personal finance app to log expenses and transactions against a monthly budget.",
+    "archetype": "fintech",
+    "layout": "sidebar",
+    "entities": ["transaction", "account", "expense"],
+    "screens": ["analytics", "board", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "team-wiki",
+    "brief": "A team wiki with docs, guides and an onboarding handbook organized in spaces.",
+    "archetype": "wiki",
+    "layout": "sidebar",
+    "entities": ["page", "space"],
+    "screens": ["board", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "greenhouse-iot",
+    "brief": "Greenhouse monitoring: sensors report telemetry, devices raise alerts when humidity drops.",
+    "archetype": "iot",
+    "layout": "sidebar",
+    "entities": ["device", "alert"],
+    "screens": ["analytics", "board", "dashboard", "detail", "list", "map", "settings"]
+  },
+  {
+    "id": "creator-feed",
+    "brief": "A social feed for local creators to share posts, gather followers and comments.",
+    "archetype": "social",
+    "layout": "sidebar",
+    "entities": ["post", "comment", "follower"],
+    "screens": ["analytics", "board", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "craft-marketplace",
+    "brief": "A marketplace where sellers list handmade products and buyers place orders.",
+    "archetype": "marketplace",
+    "layout": "sidebar",
+    "entities": ["order", "listing", "product"],
+    "screens": ["analytics", "board", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "plant-tracker",
+    "brief": "A tool to keep track of plants with watering date, location and health status.",
+    "archetype": "tracker",
+    "layout": "sidebar",
+    "entities": ["plant"],
+    "screens": ["board", "calendar", "dashboard", "detail", "list", "map", "settings"]
+  },
+  {
+    "id": "book-club-mobile",
+    "brief": "Mobile app for a book club: members log books with rating and finish date.",
+    "archetype": "tracker",
+    "layout": "mobile-tabs",
+    "entities": ["book"],
+    "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "equipment-rental",
+    "brief": "Rent out camera equipment: manage rentals with start date, end date, price and status.",
+    "archetype": "tracker",
+    "layout": "sidebar",
+    "entities": ["rental"],
+    "screens": [
+      "analytics",
+      "board",
+      "calendar",
+      "dashboard",
+      "detail",
+      "list",
+      "settings",
+      "timeline"
+    ]
+  },
+  {
+    "id": "field-inspections",
+    "brief": "Track inspections of building sites with address, inspector, deadline and severity.",
+    "archetype": "tracker",
+    "layout": "sidebar",
+    "entities": ["inspection"],
+    "screens": ["board", "calendar", "dashboard", "detail", "list", "map", "settings"]
+  },
+  {
+    "id": "food-truck-schedule",
+    "brief": "A food truck crew needs to schedule shifts and track locations on a map with prices.",
+    "archetype": "tracker",
+    "layout": "sidebar",
+    "entities": ["shift"],
+    "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "map", "settings"]
+  },
+  {
+    "id": "nonprofit-volunteers",
+    "brief": "A nonprofit manages volunteers and events with event date and capacity.",
+    "archetype": "tracker",
+    "layout": "sidebar",
+    "entities": ["volunteer", "event"],
+    "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "settings"]
+  },
+  {
+    "id": "studio-reservations",
+    "brief": "A recording studio takes reservations for rooms; clients pay a fee per session slot.",
+    "archetype": "booking",
+    "layout": "sidebar",
+    "entities": ["appointment", "client"],
+    "screens": [
+      "analytics",
+      "board",
+      "calendar",
+      "dashboard",
+      "detail",
+      "list",
+      "settings",
+      "timeline"
+    ]
+  }
+]
