@@ -6,15 +6,14 @@ thread in one list. This package has no Svelte; the UI is
 [`@protoyard/review-ui`](../review-ui/README.md). The comment schemas live in
 `@protoyard/core/review`.
 
-> **Status:** `./anchors`, `./store` and `./adapters/artifact` are implemented. The other subpaths
-> exist and are empty; each one is filled by its PLAN_003 task, and this README documents
-> it when it lands.
+> **Status:** `./anchors`, `./store`, `./adapters/local`, `./adapters/http`, `./adapters/artifact` and `./server` are implemented.
+> The remaining subpaths are filled by their PLAN_003 tasks and documented here when they land.
 
-| Subpath | What it will hold | Task |
+| Subpath | Purpose | Task |
 | --- | --- | --- |
 | `./anchors` | Pin anchors: route, element locator ladder, offset inside the element, context | T-review-anchoring |
 | `./store` | The small `ReviewAdapter` contract and its conformance suite | T-review-adapter-contract |
-| `./adapters/local` | IndexedDB adapter (its own database, untouched by scenario loads) with export / import | T-review-adapter-local |
+| `./adapters/local` | Namespaced IndexedDB adapter (its own database, untouched by scenario loads) with validated export / import | T-review-adapter-local |
 | `./adapters/http` | Adapter for any endpoint with the comments REST shape (also the Cloudflare mode) | T-review-adapter-http |
 | `./adapters/artifact` | Adapter on a Claude Artifact's shared database (`db` + `user` capabilities), falling back to a local adapter | T-art-review-artifact-adapter |
 | `./server` | The comments API handler on plain `Request` / `Response` | T-review-server-handler |
@@ -35,6 +34,44 @@ thread in one list. This package has no Svelte; the UI is
 pnpm --filter @protoyard/review typecheck
 pnpm vitest run packages/review-ui/tests/bundle-hygiene.test.ts
 ```
+
+## Local adapter (`@protoyard/review/adapters/local`)
+
+`createLocalReviewAdapter({ namespace, slug, clientId })` stores comments in
+`protoyard.<namespace>.review`, separate from the prototype data and control
+databases. The optional `slug` defaults to `namespace` and scopes exported
+files. `exportComments()` returns a JSON `Blob`; `importComments(file)` validates
+the whole file, its namespace and slug, and every comment before writing. Files
+larger than 5 MB are rejected. Imports merge by comment id and only replace an
+existing comment when the incoming `updatedAt` is newer. The adapter allows edits
+and deletes only when the stored author `clientId` matches its configured
+`clientId`; this is a browser UX rule, not authentication or a security boundary.
+
+Call `close()` when the adapter is no longer needed. A host can supply
+`indexedDB` and `IDBKeyRange` to isolate the adapter storage factory.
+
+## Server handler (`@protoyard/review/server`)
+
+`handleCommentsRequest(request, env, store)` is a Web API-only handler for
+`GET /api/comments/<slug>[?since=]`, `GET /api/comments/<slug>/summary`,
+`PUT /api/comments/<slug>/<id>`, and `DELETE /api/comments/<slug>/<id>`. It
+returns JSON with `nosniff` and `no-referrer` headers, validates slugs and
+comments, caps request bodies at 16 KB, and leaves comment bodies as plain text.
+Writes require a same-origin `Origin`; configure `REVIEW_KEY` to discourage
+casual access (it is not authentication). Per-client and per-IP limits use
+fixed windows and respond with `429 Retry-After` when exceeded. Defaults are
+30 requests per `x-review-client-id` and 120 per `CF-Connecting-IP` (or the
+first `X-Forwarded-For` value) per 60 seconds; pass handler env overrides to
+change the limits. The summary reports comment and root-thread counts, with
+open/resolved counts calculated from root comments.
+
+Use `createD1CommentsStore(db)` for shared deployments: D1 upserts and rate
+buckets are strongly consistent. Apply [`schema/d1.sql`](schema/d1.sql)
+manually to the database; the CLI never runs it. `createKvCommentsStore(kv)`
+is easier to bind but KV reads, writes, scans, and rate limits are eventually
+consistent. `createMemoryCommentsStore()` is intended for tests and one
+process. Reviewer names, client ids, and the optional review key do not provide
+authentication.
 
 ## Store (`@protoyard/review/store`)
 
@@ -105,6 +142,43 @@ pnpm vitest run packages/review/tests/adapter-contract.test.ts
 
 **Size:** the contract helpers are 0.55 KB gzip, and 0.8 KB with the memory
 adapter. zod and the `@protoyard/core/review` schemas are external.
+
+## HTTP adapter (`@protoyard/review/adapters/http`)
+
+`createHttpReviewAdapter({ endpoint, clientId, localAdapter })` connects the
+review UI to an endpoint that implements the comments REST shape. Relative
+endpoints resolve from the host site's origin, so an embedded showcase page
+under `/p/<slug>/app/` still calls `/api/comments`. The adapter sends the
+client id on each request. A `?review=<key>` query value is moved to
+`sessionStorage` and removed from the address bar before network requests; the
+key is sent as `x-review-key`. This deters casual access and is not
+authentication.
+
+Network failures, HTTP 429 and server errors queue writes in memory and persist
+comment bodies through the supplied local adapter. The adapter retries queued
+idempotent writes when subscribed and exposes `pendingCount()`,
+`pendingWrites()` and `subscribePending()` for an integration to show pending
+status. Call `retryPending(slug?)` to retry explicitly. While a subscriber is
+active, the adapter polls immediately, on window focus and every 30 seconds by
+default; unsubscribe to stop polling.
+
+```ts
+import { createHttpReviewAdapter } from '@protoyard/review/adapters/http';
+
+const adapter = createHttpReviewAdapter({
+  endpoint: '/api/comments',
+  clientId,
+  localAdapter,
+});
+const unsubscribePending = adapter.subscribePending(() => {
+  showPendingCount(adapter.pendingCount());
+});
+```
+
+The local adapter must use the same client identity as the review author for
+locally queued edits and deletes. Queue metadata itself is in memory; comments
+remain in IndexedDB, but queued operations are not automatically restored
+after a page reload.
 
 ## Anchors (`@protoyard/review/anchors`)
 
@@ -211,3 +285,13 @@ const adapter = await createArtifactReviewAdapter(localAdapter);
   Claude capability surface (`tests/fixtures/fake-claude.ts`).
 - **Not live-verified:** no real Artifact runtime has exercised it yet; that
   happens in T-art-real-private-publish.
+
+## Claude shell composer fallback (`@protoyard/review/adapters/artifact-shell`)
+
+`createArtifactShellReviewAdapter(fallback, claude)` prefers the shared
+`db` + `user` adapter. If those capabilities are unavailable and the shell
+grants `comments` with `composer_only: true`, it returns the local adapter in
+`composer_only` mode plus an `openComposer(element)` action. Call that action
+only from a viewer gesture; it opens Claude's composer anchored to the chosen
+element. Claude owns those threads, so Protoyard cannot list or synchronize
+them. The review panel can show `ClaudeComposerNotice` in this mode.

@@ -12,9 +12,17 @@ import {
   primaryAvatarField,
 } from '@protoyard/blueprint';
 import type { PrototypeRuntime, Row } from '@protoyard/core';
-import { Button } from '@protoyard/ui';
+import { navigate, parseHash } from '@protoyard/renderer-svelte';
+import { Button, type TabItem, Tabs } from '@protoyard/ui';
+import { onMount } from 'svelte';
 import RecordAvatar from './fields/RecordAvatar.svelte';
-import { formatFieldValue } from './format.ts';
+import { formatEntityHeading, formatFieldValue } from './format.ts';
+import {
+  detailTabHref,
+  detailTabsFor,
+  readDetailTab,
+  visibleDetailTabs,
+} from './screens/detail-tabs/model.ts';
 
 interface Collection {
   toArray(): Promise<Row[]>;
@@ -47,6 +55,39 @@ let {
 
 const entity = $derived(blueprint.entities.find((candidate) => candidate.name === entityName));
 const avatarField = $derived(entity ? primaryAvatarField(entity) : undefined);
+const declaredTabs = $derived(detailTabsFor(blueprint, entityName));
+const tabValues = $derived(declaredTabs && entity ? visibleDetailTabs(declaredTabs, entity) : []);
+const tabItems: TabItem[] = $derived(
+  tabValues.map((value) => {
+    if (value.startsWith('related:')) {
+      const relatedEntity = blueprint.entities.find(
+        (candidate) => candidate.name === value.slice(8)
+      );
+      return {
+        value,
+        label: relatedEntity ? formatEntityHeading(relatedEntity) : value.slice(8),
+      };
+    }
+    const labels: Record<string, string> = {
+      overview: 'Overview',
+      activity: 'Activity',
+      files: 'Files',
+      audit: 'Change history',
+    };
+    return { value, label: labels[value] ?? value };
+  })
+);
+let activeTab = $state('overview');
+let tabsMounted = $state(false);
+function syncDetailTab() {
+  if (typeof location !== 'undefined')
+    activeTab = readDetailTab(tabValues, parseHash(location.hash));
+}
+const selectedRelatedEntity = $derived(
+  activeTab.startsWith('related:')
+    ? blueprint.entities.find((candidate) => candidate.name === activeTab.slice(8))
+    : undefined
+);
 let record = $state<Row | null>(null);
 let related = $state<Array<{ entity: BlueprintEntity; field: string; rows: Row[] }>>([]);
 let attachments = $state<Row[]>([]);
@@ -65,6 +106,20 @@ $effect(() => {
   notFound = false;
   loadError = null;
   void load(currentEntity, id);
+});
+
+$effect(() => {
+  const tab = activeTab;
+  if (!tabsMounted || !tabValues.includes(tab) || typeof location === 'undefined') return;
+  const current = parseHash(location.hash);
+  if (current.query.get('tab') !== tab) navigate(detailTabHref(current, tab), { replace: true });
+});
+
+onMount(() => {
+  tabsMounted = true;
+  syncDetailTab();
+  window.addEventListener('hashchange', syncDetailTab);
+  return () => window.removeEventListener('hashchange', syncDetailTab);
 });
 
 async function load(currentEntity: BlueprintEntity, id: string) {
@@ -168,6 +223,26 @@ function changeLabel(entry: AuditEntry, name: string): string {
 }
 </script>
 
+{#snippet overviewContent(currentEntity: BlueprintEntity, currentRecord: Row)}
+  <dl class="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
+    {#each currentEntity.fields as field (field.name)}
+      {#if field.kind !== 'file'}
+        <div class="min-w-0">
+          <dt class="text-sm text-muted-foreground">{fieldLabel(field)}</dt>
+          {#if field.kind === 'avatar'}
+            <dd class="mt-1 flex items-center gap-2 text-sm">
+              <RecordAvatar avatar={valueFor(field, currentRecord)} name={displayTitle(currentEntity, currentRecord)} size="md" />
+              <span>{formatFieldValue(field, valueFor(field, currentRecord))}</span>
+            </dd>
+          {:else}
+            <dd class="mt-1 break-words text-sm">{formatFieldValue(field, valueFor(field, currentRecord))}</dd>
+          {/if}
+        </div>
+      {/if}
+    {/each}
+  </dl>
+{/snippet}
+
 <section class="grid gap-6" data-entity-detail={entityName} data-record-id={recordId}>
   {#if notFound}
     <div role="status" class="rounded-md border p-6 text-center">
@@ -196,76 +271,95 @@ function changeLabel(entry: AuditEntry, name: string): string {
       {/if}
     </header>
 
-    <dl class="grid gap-4 rounded-lg border p-4 sm:grid-cols-2">
-      {#each entity.fields as field (field.name)}
-        {#if field.kind !== 'file'}
-          <div class="min-w-0">
-            <dt class="text-sm text-muted-foreground">{fieldLabel(field)}</dt>
-            {#if field.kind === 'avatar'}
-              <dd class="mt-1 flex items-center gap-2 text-sm">
-                <RecordAvatar avatar={valueFor(field, record)} name={displayTitle(entity, record)} size="md" />
-                <span>{formatFieldValue(field, valueFor(field, record))}</span>
-              </dd>
-            {:else}
-              <dd class="mt-1 break-words text-sm">{formatFieldValue(field, valueFor(field, record))}</dd>
+    {#if declaredTabs}
+      {#if tabItems.length > 0}
+        <Tabs bind:value={activeTab} items={tabItems} label="Record sections" variant="underline">
+          {#snippet content(item)}
+            {#if item.value === 'overview'}
+              {@render overviewContent(entity, record!)}
+            {:else if selectedRelatedEntity && item.value.startsWith('related:')}
+              {#await import('./screens/detail-tabs/RelatedPanel.svelte') then { default: RelatedPanel }}
+                <RelatedPanel {runtime} {blueprint} {services} parent={record!} parentEntity={entity} relatedEntity={selectedRelatedEntity} />
+              {:catch}
+                <p role="alert">Related records could not be loaded.</p>
+              {/await}
+            {:else if item.value === 'activity'}
+              {#await import('./screens/detail-tabs/ActivityFeed.svelte') then { default: ActivityFeed }}
+                <ActivityFeed {runtime} entries={history} />
+              {:catch}
+                <p role="alert">Activity could not be loaded.</p>
+              {/await}
+            {:else if item.value === 'files'}
+              {#await import('./screens/detail-tabs/FilesPanel.svelte') then { default: FilesPanel }}
+                <FilesPanel {attachments} />
+              {:catch}
+                <p role="alert">Files could not be loaded.</p>
+              {/await}
+            {:else if item.value === 'audit'}
+              {#await import('./screens/detail-tabs/AuditHistory.svelte') then { default: AuditHistory }}
+                <AuditHistory {blueprint} entries={history} />
+              {:catch}
+                <p role="alert">Change history could not be loaded.</p>
+              {/await}
             {/if}
-          </div>
-        {/if}
+          {/snippet}
+        </Tabs>
+      {:else}
+        <p class="text-sm text-muted-foreground">No detail sections are enabled.</p>
+      {/if}
+    {:else}
+      {@render overviewContent(entity, record!)}
+      {#each related as group (`${group.entity.name}:${group.field}`)}
+        <section aria-label={`${group.entity.label ?? group.entity.plural} related to ${displayTitle(entity, record)}`} class="grid gap-2">
+          <h2 class="text-lg font-semibold">{group.entity.label ?? group.entity.plural}</h2>
+          {#if group.rows.length === 0}
+            <p class="text-sm text-muted-foreground">No related {group.entity.plural}.</p>
+          {:else}
+            <ul class="divide-y rounded-lg border">
+              {#each group.rows as row (String(row.id))}
+                <li><a class="block px-4 py-3 text-sm text-primary underline-offset-4 hover:underline" href={href(group.entity, row)}>{displayTitle(group.entity, row)}</a></li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
       {/each}
-    </dl>
-
-    {#each related as group (`${group.entity.name}:${group.field}`)}
-      <section aria-label={`${group.entity.label ?? group.entity.plural} related to ${displayTitle(entity, record)}`} class="grid gap-2">
-        <h2 class="text-lg font-semibold">{group.entity.label ?? group.entity.plural}</h2>
-        {#if group.rows.length === 0}
-          <p class="text-sm text-muted-foreground">No related {group.entity.plural}.</p>
-        {:else}
-          <ul class="divide-y rounded-lg border">
-            {#each group.rows as row (String(row.id))}
-              <li><a class="block px-4 py-3 text-sm text-primary underline-offset-4 hover:underline" href={href(group.entity, row)}>{displayTitle(group.entity, row)}</a></li>
-            {/each}
-          </ul>
-        {/if}
-      </section>
-    {/each}
-
-    {#if entity.features.files}
-      <section class="grid gap-2" aria-label="Attachments">
-        <h2 class="text-lg font-semibold">Attachments</h2>
-        {#if attachments.length === 0}
-          <p class="text-sm text-muted-foreground">No attachments.</p>
-        {:else}
-          <ul class="divide-y rounded-lg border">
-            {#each attachments as file (String(file.id))}
-              <li class="flex flex-wrap justify-between gap-2 px-4 py-3 text-sm"><span>{String(file.name ?? file.id)}</span><span class="text-muted-foreground">{typeof file.size === 'number' ? `${Math.ceil(file.size / 1024)} KB` : ''}</span></li>
-            {/each}
-          </ul>
-        {/if}
-      </section>
-    {/if}
-
-    {#if entity.features.audit}
-      <section class="grid gap-2" aria-label="Change history">
-        <h2 class="text-lg font-semibold">Change history</h2>
-        {#if history.length === 0}
-          <p class="text-sm text-muted-foreground">No history yet.</p>
-        {:else}
-          <ol class="grid gap-3">
-            {#each history as entry (String(entry.id))}
-              <li class="rounded-lg border p-4">
-                <p class="text-sm font-medium">{entry.action} <time class="font-normal text-muted-foreground" datetime={entry.at}>{entry.at}</time></p>
-                {#if Object.keys(entry.changes).length > 0}
-                  <ul class="mt-2 grid gap-1 text-sm">
-                    {#each Object.entries(entry.changes) as [name, change] (name)}
-                      <li><span class="font-medium">{changeLabel(entry, name)}:</span> {changedValue(change.before)} → {changedValue(change.after)}</li>
-                    {/each}
-                  </ul>
-                {/if}
-              </li>
-            {/each}
-          </ol>
-        {/if}
-      </section>
+      {#if entity.features.files}
+        <section class="grid gap-2" aria-label="Attachments">
+          <h2 class="text-lg font-semibold">Attachments</h2>
+          {#if attachments.length === 0}
+            <p class="text-sm text-muted-foreground">No attachments.</p>
+          {:else}
+            <ul class="divide-y rounded-lg border">
+              {#each attachments as file (String(file.id))}
+                <li class="flex flex-wrap justify-between gap-2 px-4 py-3 text-sm"><span>{String(file.name ?? file.id)}</span><span class="text-muted-foreground">{typeof file.size === 'number' ? `${Math.ceil(file.size / 1024)} KB` : ''}</span></li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
+      {/if}
+      {#if entity.features.audit}
+        <section class="grid gap-2" aria-label="Change history">
+          <h2 class="text-lg font-semibold">Change history</h2>
+          {#if history.length === 0}
+            <p class="text-sm text-muted-foreground">No history yet.</p>
+          {:else}
+            <ol class="grid gap-3">
+              {#each history as entry (String(entry.id))}
+                <li class="rounded-lg border p-4">
+                  <p class="text-sm font-medium">{entry.action} <time class="font-normal text-muted-foreground" datetime={entry.at}>{entry.at}</time></p>
+                  {#if Object.keys(entry.changes).length > 0}
+                    <ul class="mt-2 grid gap-1 text-sm">
+                      {#each Object.entries(entry.changes) as [name, change] (name)}
+                        <li><span class="font-medium">{changeLabel(entry, name)}:</span> {changedValue(change.before)} → {changedValue(change.after)}</li>
+                      {/each}
+                    </ul>
+                  {/if}
+                </li>
+              {/each}
+            </ol>
+          {/if}
+        </section>
+      {/if}
     {/if}
   {/if}
 </section>

@@ -1,5 +1,5 @@
 export type { Table, Transaction } from 'dexie';
-export { liveQuery } from 'dexie';
+export { Dexie, liveQuery } from 'dexie';
 export { loadMemoryBackend, type StorageBackend } from './backend.ts';
 export {
   type ControlState,
@@ -28,6 +28,7 @@ export {
   parseDatabaseName,
   RESERVED_PREFIX,
   RESERVED_TABLE_NAMES,
+  reviewDatabaseName,
   SANDBOX_SEPARATOR,
   sandboxNamespace,
 } from './names.ts';

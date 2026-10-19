@@ -162,6 +162,7 @@ describe('protoyard export --target artifact', () => {
     const { data } = run.json<{ data: ArtifactData }>();
     expect(data.capabilities).toEqual(ARTIFACT_COMMENT_CAPABILITIES);
     expect(data.publish[0]?.capabilities).toEqual(ARTIFACT_COMMENT_CAPABILITIES);
+    expect(data.capabilities).toMatchObject({ comments: { composer_only: true } });
   }, 120_000);
 
   it('refuses offline builds and a non-relative base before building', async () => {

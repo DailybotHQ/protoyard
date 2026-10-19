@@ -11,6 +11,7 @@
     "./adapters/local": "./src/adapters/local/index.ts",
     "./adapters/http": "./src/adapters/http/index.ts",
     "./adapters/artifact": "./src/adapters/artifact.ts",
+    "./adapters/artifact-shell": "./src/adapters/artifact-shell.ts",
     "./server": "./src/server/index.ts",
     "./report": "./src/report/index.ts"
   },

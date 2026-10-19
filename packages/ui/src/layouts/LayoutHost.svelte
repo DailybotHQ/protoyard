@@ -1,16 +1,26 @@
 <script lang="ts">
-import { type LayoutId, layoutForWidth } from '@protoyard/core';
+import { type LayoutId, type LayoutOptions, layoutForWidth } from '@protoyard/core';
 import type { Snippet } from 'svelte';
+import type { NavModel } from './nav-model.ts';
 import { LAYOUT_REGISTRY, type LayoutComponent } from './registry.ts';
 import ScreenOutlet from './ScreenOutlet.svelte';
 
 interface Props {
   layout: LayoutId;
   children: Snippet;
+  /** Navigation the layout renders (`navFromSidebar(nav)` migrates a Sidebar list). */
+  nav?: NavModel;
+  /** Current hash path; absent: layouts follow `location.hash`. */
+  path?: string;
+  options?: LayoutOptions;
+  /** Scope for persisted layout state, usually the manifest's storage namespace. */
+  storageKey?: string;
+  /** Context panel for layouts that have one (dual-sidebar). */
+  aside?: Snippet;
   class?: string;
 }
 
-let { layout, children, class: className }: Props = $props();
+let { layout, children, nav, path, options, storageKey, aside, class: className }: Props = $props();
 let host: HTMLDivElement | undefined = $state();
 let width = $state(typeof window === 'undefined' ? 0 : window.innerWidth);
 let outlet: HTMLDivElement | undefined = $state();
@@ -87,7 +97,7 @@ $effect(() => {
   style:container-type="inline-size"
 >
   {#if Layout && loadedFor === effectiveLayout}
-    <Layout {mountScreen} />
+    <Layout {mountScreen} {nav} {path} {options} {storageKey} {aside} />
   {:else}
     <div bind:this={fallbackTarget} class="min-h-app min-w-0" data-py-layout-fallback></div>
   {/if}

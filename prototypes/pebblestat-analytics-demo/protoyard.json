@@ -1,0 +1,74 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "example.pebblestat-analytics",
+  "slug": "pebblestat-analytics-demo",
+  "kind": "prototype",
+  "name": "Pebblestat Analytics",
+  "description": "Fictional product analytics in the spirit of Mixpanel: projects, tracked events and users, saved reports, an editable dashboard, segments, metric alerts that fire as simulated time advances, and release annotations, with owner, analyst and viewer personas.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "analytics",
+  "tags": [
+    "analytics",
+    "product-analytics",
+    "dashboard",
+    "charts",
+    "funnels",
+    "retention",
+    "alerts",
+    "large-dataset"
+  ],
+  "catalog": {
+    "category": "analytics",
+    "productType": "Product analytics",
+    "platforms": ["web"],
+    "features": [
+      "dashboard",
+      "charts",
+      "filters",
+      "segments",
+      "funnels",
+      "retention",
+      "alerts",
+      "realtime",
+      "roles",
+      "large-dataset"
+    ],
+    "highlights": [
+      "Projects with dashboards, trends, funnels and retention",
+      "Saved reports and segments for analysts",
+      "Metric alerts that fire as simulated time advances",
+      "An enterprise-scale project: ~100k events as daily rollups plus a 20k raw sample"
+    ],
+    "difficulty": "advanced"
+  },
+  "status": "ready",
+  "icon": "📊",
+  "defaultScenario": "healthy-growth",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop"
+  },
+  "storage": {
+    "namespace": "pebblestat-analytics-demo",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": [
+    "new-project",
+    "healthy-growth",
+    "launch-day",
+    "outage-incident",
+    "churn-risk",
+    "enterprise-scale"
+  ],
+  "template": "analytics",
+  "createdAt": "2026-10-19T00:00:00.000Z",
+  "updatedAt": "2026-10-19T00:00:00.000Z"
+}

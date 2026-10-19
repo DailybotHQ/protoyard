@@ -40,6 +40,13 @@ blueprint's entity services and `runtime.members` (`session.assert` → zod →
 Lists lay out as a single `minmax(0, 1fr)` grid column, so a wide table scrolls inside its
 card instead of widening the page on phones.
 
+When a matching blueprint `detail` screen declares `tabs`, `EntityDetail` renders those
+sections as hash-shareable tabs. The overview keeps the same field display; `related:<entity>`
+shows the child list filtered to the record and creates children with the back-relation fixed to
+the parent. `activity`, `files`, and `audit` appear only when their entity feature is enabled,
+and their panel components load on demand. Without declared tabs, the existing `EntityDetail`
+layout and API remain unchanged.
+
 ## Board screen (`@protoyard/crud/screens/board`)
 
 A blueprint `board` screen (`entity`, enum `groupBy`, optional `cardFields` and numeric or
@@ -159,6 +166,31 @@ import { AnalyticsScreen } from '@protoyard/crud/screens/analytics';
   entity's export capability. The export is generated locally from the same aggregate result.
 - Reads use entity services and `liveQuery`; denied reads get a permission state, and no external
   data service is contacted.
+
+## Timeline screen (`@protoyard/crud/screens/timeline`)
+
+A blueprint `timeline` screen (`entity`, `startField`, `endField`, optional `groupBy` and `zoom`)
+renders dated records with `TimelineView` from `@protoyard/views-ui/timeline`, in its own lazy entry:
+
+```svelte
+<script lang="ts">
+import { TimelineScreen } from '@protoyard/crud/screens/timeline';
+</script>
+
+<TimelineScreen {runtime} {blueprint} {services} screen={timelineScreen} />
+```
+
+- Enum groups use the blueprint's declared value order and labels; relation and persona groups are
+  sorted by their stored value. Tasks within a group sort by start date, title and id. Records with
+  no valid start date are reported below the timeline. A missing or invalid end date becomes a
+  one-day milestone.
+- Week, month and quarter zoom are available. The today line follows the runtime clock, and each
+  timeline keeps horizontal scrolling inside its own canvas.
+- Keyboard and pointer rescheduling moves dates one day at a time; the task menu shifts a record by
+  one week. Both update through the entity service and show pending feedback. The view restores its
+  optimistic dates if a save fails. Viewers get a read-only timeline.
+- Prototypes using the screen add `@source` for `@protoyard/views-ui` in their CSS so Tailwind sees
+  the view classes.
 
 ## Settings screen (`@protoyard/crud/screens/settings`)
 

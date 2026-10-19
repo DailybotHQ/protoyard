@@ -135,14 +135,73 @@ export function placeBadge(
   size: { width: number; height: number },
   hit: (x: number, y: number) => Element | null
 ): BadgeCorner {
-  return pickCorner((corner) => {
-    let cost = 0;
-    for (const [x, y] of samplePoints(cornerRect(corner, container, size))) {
-      const el = hit(x, y);
-      if (!el) continue;
-      if (el.closest(INTERACTIVE_SELECTOR)) cost += CONTROL_COST;
-      else if (textAt(el, x, y)) cost += 1;
+  return pickCorner((corner) => spotCost(cornerRect(corner, container, size), hit));
+}
+
+type Hit = (x: number, y: number) => Element | null;
+
+/** What covering `rect` costs: CONTROL_COST per sample point on a control, 1 per point on text. */
+export function spotCost(rect: Rect, hit: Hit, step = 16): number {
+  let cost = 0;
+  for (const [x, y] of samplePoints(rect, step)) {
+    const el = hit(x, y);
+    if (!el) continue;
+    if (el.closest(INTERACTIVE_SELECTOR)) cost += CONTROL_COST;
+    else if (textAt(el, x, y)) cost += 1;
+  }
+  return cost;
+}
+
+/** True when the full badge would sit on a control in every corner. */
+export function everyCornerBlocked(
+  container: Rect,
+  size: { width: number; height: number },
+  hit: Hit
+) {
+  return BADGE_CORNERS.every(
+    (corner) => spotCost(cornerRect(corner, container, size), hit) >= CONTROL_COST
+  );
+}
+
+/** Size of the compact badge (the info dot), in CSS px. */
+export const COMPACT_SIZE = 20;
+/** Distance of the compact badge from the container edges. */
+export const COMPACT_INSET = 4;
+
+/**
+ * Where the info dot may go, in order: the four corners, then every `step`
+ * px along the bottom edge, then along the top edge (left to right). Phone
+ * apps put controls in the corners (back, menu, more actions) but leave gaps
+ * between them.
+ */
+export function compactSpots(container: Rect, step = 8): Rect[] {
+  const size = { width: COMPACT_SIZE, height: COMPACT_SIZE };
+  const spots = BADGE_CORNERS.map((corner) => cornerRect(corner, container, size, COMPACT_INSET));
+  const minX = container.left + COMPACT_INSET;
+  const maxX = container.left + container.width - COMPACT_INSET - COMPACT_SIZE;
+  for (const top of [
+    container.top + container.height - COMPACT_INSET - COMPACT_SIZE,
+    container.top + COMPACT_INSET,
+  ]) {
+    for (let left = minX + step; left < maxX; left += step) spots.push({ left, top, ...size });
+  }
+  return spots;
+}
+
+/**
+ * The first spot for the info dot that covers nothing, else the least
+ * covered one (text before controls, by `spotCost`'s weights).
+ */
+export function placeCompact(container: Rect, hit: Hit): Rect {
+  let best: Rect | undefined;
+  let bestCost = Number.POSITIVE_INFINITY;
+  for (const spot of compactSpots(container)) {
+    const cost = spotCost(spot, hit, 6);
+    if (cost === 0) return spot;
+    if (cost < bestCost) {
+      best = spot;
+      bestCost = cost;
     }
-    return cost;
-  });
+  }
+  return best as Rect;
 }

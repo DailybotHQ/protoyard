@@ -1,7 +1,7 @@
 import { type DatabaseDefinition, RESERVED_TABLES, SANDBOX_PATTERN } from '@protoyard/core';
 
 /**
- * Every prototype owns exactly two IndexedDB databases. Names are derived
+ * Every prototype owns separate data, control, and review IndexedDB databases. Names are derived
  * from the manifest namespace so prototypes on the same origin (the gallery
  * serves them all from one host) never see each other's data.
  */
@@ -14,6 +14,11 @@ export function dataDatabaseName(namespace: string): string {
 
 export function controlDatabaseName(namespace: string): string {
   return `${DATABASE_PREFIX}.${namespace}.control`;
+}
+
+/** The prototype's local review comments live outside snapshots and scenario data. */
+export function reviewDatabaseName(namespace: string): string {
+  return `${DATABASE_PREFIX}.${namespace}.review`;
 }
 
 /**

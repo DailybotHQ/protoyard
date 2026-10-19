@@ -71,6 +71,7 @@ const ENGINE_PARTS = [
   'adapters/local',
   'adapters/http',
   'adapters/artifact',
+  'adapters/artifact-shell',
   'server',
   'report',
 ] as const;
@@ -108,7 +109,7 @@ describe('review packages: exports', () => {
     expect(readFileSync(join(UI, 'src/styles.css'), 'utf8')).toContain('@source "./"');
   });
 
-  it('review exposes its seven subpaths, and no root barrel', () => {
+  it('review exposes its eight subpaths, and no root barrel', () => {
     const pkg = JSON.parse(readFileSync(join(ENGINE, 'package.json'), 'utf8')) as {
       exports: Record<string, string>;
       sideEffects: boolean;

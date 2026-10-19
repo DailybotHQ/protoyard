@@ -101,7 +101,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
 | `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok), `canMove`, `card` snippet; HTML5 drag and drop + a keyboard "Move to…" menu per card |
 | `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link; frame uses `min-h-app` / sidebar column `h-app` (`--py-app-height`) so framed shells match the device screen |
-| `LayoutHost` | `layout: LayoutId`, routed screen snippet, `class`; measures its own container, applies the core layout fallback below its breakpoint, and lazy-loads the registered module with a skeleton while loading. Layout modules call `mountScreen(target)` to place the stable routed-screen outlet without remounting its local state. Unregistered layouts leave the screen in the host's default content frame. |
+| `LayoutHost` | `layout: LayoutId`, routed screen snippet, `nav` (NavModel), `path`, `options`, `storageKey`, `aside` snippet, `class`; measures its own container, applies the core layout fallback below its breakpoint, and lazy-loads the registered module with a skeleton while loading. Layout modules call `mountScreen(target)` to place the stable routed-screen outlet without remounting its local state. Unregistered layouts leave the screen in the host's default content frame. |
 | `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter`, and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
 | `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
 | `Header` | `title`, `titleAs` (default `h1`; use `p` when the page has its own `h1`), `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
@@ -179,9 +179,91 @@ Each registered layout is loaded through its own relative dynamic import in
 `src/layouts/registry.ts`. A layout provides a target with `mountScreen(target)`;
 the host moves one stable screen outlet between targets, preserving the route's
 component state while the layout chrome changes. While the selected module is
-loading, the current screen stays mounted under a chrome skeleton. Until a
-layout has registered its loader, the screen renders in the host's default
-content frame.
+loading, the current screen stays mounted under a chrome skeleton. The registry
+currently includes `sidebar`, `rail`, `top-nav`, `dual-sidebar`,
+`master-detail`, `dashboard-grid`, `docs`, `marketing`, `wizard` and
+`auth-split`. Layout modules stay out of the `@protoyard/ui` barrel, so a
+prototype loads a layout only when its host selects it. If a layout has no
+registered loader, the screen renders in the host's default content frame.
+
+### Content layouts
+
+Three content layouts are available for product screens that need more than an
+application sidebar:
+
+| Component | Content | Responsive behavior |
+| --- | --- | --- |
+| `MasterDetailLayout` | `list` and `detail` snippets; bind `detailActive` to the selected route | Two panes with a keyboard- and pointer-resizable list on wide containers; one pane at a time on narrow containers. The list stays mounted while details change, and its width is stored in `localStorage` (override the key with `storageKey`). |
+| `DashboardGridLayout` | Child widgets; set `data-span="1"` through `data-span="4"` on each direct widget element | Uses one, two, three, then four columns as its container grows. Spans clamp to the current column count. It is a static grid with no drag-and-drop. |
+| `DocsLayout` | `navigation` snippet and documentation child content | Shows section navigation, the content, and a generated h2/h3 table of contents. The TOC follows visible headings and refreshes when headings are added or removed. |
+
+These layouts also accept the host's `mountScreen` outlet when selected through
+`LayoutHost`; their existing snippet props remain available for standalone use.
+
+`MasterDetailLayout` exposes the splitter as a vertical separator: Left/Right
+arrows resize it by 16 pixels, while Home and End select the minimum and maximum
+list widths. Bind `detailActive` to route selection so narrow screens show the
+matching detail; the built-in Back to list control clears it. The default width
+key is scoped to the current app pathname, so callers can pass `storageKey` to
+share a preference between routes.
+
+`DocsLayout` assigns stable fragment ids to headings that do not already have
+one. It uses `MutationObserver` to rebuild the TOC and `IntersectionObserver`
+to mark the current section; when intersection observation is unavailable, the
+TOC remains usable as a set of fragment links.
+## Desktop layouts
+
+Four desktop navigation layouts are registered (`sidebar`, `rail`,
+`top-nav`, `dual-sidebar`), plus the two mobile ones below. Each one is its
+own lazy module, measured at 1.3 to 2.8 KB gzip, and they
+share one chunk of about 7.5 KB gzip (the drawer, the chrome and the
+`NavIcon` table). They all render the `nav` the host passes, follow
+`location.hash` unless the host passes `path`, put the screen in a `<main>`
+that the **Skip to content** link focuses, and use theme tokens only.
+Breakpoints are container queries on the layout itself, so they follow a
+shell's inner width. Below its breakpoint a layout shows a menu button that
+opens a drawer. Escape, the close button, following a link or any in-app
+navigation closes the drawer, and it also closes if the layout grows wide.
+
+```svelte
+<LayoutHost layout="sidebar" nav={navFromSidebar(items, { brand: { label: 'Pipeline CRM' } })} storageKey={manifest.storage.namespace}>
+  {#snippet children()}<Router {routes} />{/snippet}
+</LayoutHost>
+```
+
+| Layout | Breakpoint | What it renders |
+| `sidebar` | 48rem | `<Sidebar>` column: brand, sections, actions and user in the footer |
+| `rail` | 40rem | the same `<Sidebar>` collapsed to icons with tooltips. Its toggle expands it to labels, and the choice is saved per prototype in localStorage (`protoyard:layout:<storageKey or page path>:rail-expanded`, best effort) |
+| `top-nav` | 48rem | brand, primary links (the first `options.visibleItems`, default 5) and a **More** menu for the rest, actions and user, then the current item's `children` as secondary tabs |
+| `dual-sidebar` | 64rem | a switcher column with one button per nav section (arrow keys, Home and End move between them; it follows the current page until another section is picked), the section's pages with one level of children, and the `aside` snippet as a right context panel |
+
+### Mobile layouts
+
+`mobile-tabs` (2.1 KB gzip of its own) and `mobile-drawer` (1.2 KB, both
+plus the shared layout chunk) are where the host falls back for every desktop layout
+below its breakpoint. They also work as a prototype's own layout
+(`platform: mobile`).
+
+| Layout | What it renders |
+| --- | --- |
+| `mobile-tabs` | `MobileAppShell` with a `MobileHeader` (the current page's name and compact actions) and a `BottomNav` of the top-level items. Five or fewer fit. With more, the first four stay and a **More** tab opens a `BottomSheet` with the rest and the user; the tab is marked when it holds the current page. |
+| `mobile-drawer` | `MobileAppShell` with a `MobileHeader` (the current page's name, actions and a menu button) and the whole nav model (brand, sections, actions, user) in a side drawer. There is no bottom bar. |
+
+The tab bar sits in normal flow below the scroll region, so a screen's
+composer stays above it (the layout-fit rule). The header and bar pad for
+the safe area (`pt-safe`, `pb-safe`, `px-safe`), and both use `h-app`. On a
+wide window the layout is a centred column (`max-w-2xl`), which
+`device-frame:max-w-none` lifts inside a phone or tablet frame. Drawers and
+sheets open on the device screen inside a frame (`useOverlayPortalTarget`).
+The host registry also includes six layouts for other product frames:
+`master-detail`, `dashboard-grid` and `docs` for content; `marketing`,
+`wizard` and `auth-split` for flow pages. Each is loaded from its own lazy
+module and stays out of the package barrel.
+
+Only the exact current page gets `aria-current="page"`. Its parents are
+tinted (`data-trail`), and in a collapsed or one-level list the visible
+parent carries the mark. `Sidebar` shows one level, so `sidebar` and `rail`
+mark the parent of a current child page.
 
 ## Toasts
 
