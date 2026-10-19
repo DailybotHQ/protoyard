@@ -1,8 +1,8 @@
 // @vitest-environment node
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrototypeManifestSchema } from '@protoyard/core';
-import { listThemeLibrary } from '@protoyard/themes';
+import { listThemeLibrary, violetTheme } from '@protoyard/themes';
 import { afterEach, describe, expect, it } from 'vitest';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
@@ -107,5 +107,46 @@ describe('protoyard theme list, show and use', () => {
     ]);
     expect(unknownCollection.code).toBe(2);
     expect(unknownCollection.json<{ error: { code: string } }>().error.code).toBe('usage');
+  });
+
+  it('imports bare themes and creates from the protoyard-theme/v1 wrapper', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'theme-bare');
+    addPrototype(ws, 'theme-wrapped');
+    const bareFile = join(ws.root, 'bare.theme.json');
+    const wrappedFile = join(ws.root, 'wrapped.theme.json');
+    writeFileSync(bareFile, JSON.stringify(violetTheme), 'utf8');
+    writeFileSync(
+      wrappedFile,
+      JSON.stringify({ format: 'protoyard-theme/v1', theme: violetTheme }),
+      'utf8'
+    );
+
+    const imported = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'theme',
+      'import',
+      'theme-bare',
+      bareFile,
+    ]);
+    expect(imported.code).toBe(0);
+    expect(existsSync(join(ws.root, 'prototypes/theme-bare/src/theme.ts'))).toBe(true);
+
+    const created = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'theme',
+      'create',
+      'theme-wrapped',
+      '--from',
+      wrappedFile,
+    ]);
+    expect(created.code).toBe(0);
+    expect(readFileSync(join(ws.root, 'prototypes/theme-wrapped/src/theme.ts'), 'utf8')).toContain(
+      'violetTheme'
+    );
   });
 });
