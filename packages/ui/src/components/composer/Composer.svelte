@@ -97,6 +97,7 @@ function handleKeydown(event: KeyboardEvent): void {
     bind:this={textarea}
     bind:value
     id={`composer-${uid}`}
+    data-py-composer=""
     rows="1"
     {placeholder}
     {disabled}
