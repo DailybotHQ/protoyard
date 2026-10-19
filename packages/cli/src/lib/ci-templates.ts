@@ -217,7 +217,9 @@ export function manualStepsForInit(options: {
     steps.push('Ensure GitHub Actions is enabled for the repository (Settings → Actions).');
     if (options.secrets.length > 0) {
       steps.push(
-        `Configure repository secrets (Settings → Secrets and variables → Actions): ${options.secrets.join(', ')}.`
+        options.workflows.includes('preview')
+          ? `Configure these secrets in the "protoyard-preview" environment (Settings → Environments), not as repository secrets: ${options.secrets.join(', ')}.`
+          : `Configure repository secrets (Settings → Secrets and variables → Actions): ${options.secrets.join(', ')}.`
       );
       steps.push('Never commit secret values; only the secret names are printed by this command.');
     }

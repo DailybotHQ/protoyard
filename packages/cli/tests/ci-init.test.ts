@@ -115,6 +115,7 @@ describe('ci template rendering', () => {
     expect(steps).toContain(`wrangler@${CI_WRANGLER_VERSION}`);
     expect(steps).toContain('--ensure-project');
     expect(steps).toMatch(/environment.*required reviewers/);
+    expect(steps).not.toContain('Configure repository secrets');
   });
 
   it('build builds each prototype once and checks budgets on the same build', async () => {
