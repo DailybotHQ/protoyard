@@ -1,6 +1,6 @@
-import { createEntityServices, parseBlueprint } from '@protoyard/blueprint';
+import { createEntityServices, deriveStores, parseBlueprint } from '@protoyard/blueprint';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createBlueprintDefinition,
   helpdeskBlueprint,
@@ -8,9 +8,31 @@ import {
 import { createHarness } from '../../../tests/support/runtime.ts';
 import CrudHarness from './fixtures/CrudHarness.svelte';
 
-let harness = createHarness(createBlueprintDefinition('crud-fixture'));
+const crudBlueprint = structuredClone(helpdeskBlueprint);
+crudBlueprint.entities.find((entity) => entity.name === 'customer')!.features = {
+  softDelete: true,
+  audit: false,
+  notifications: false,
+  files: false,
+  csv: true,
+};
+crudBlueprint.entities.find((entity) => entity.name === 'ticket')!.features.softDelete = true;
+function createCrudDefinition() {
+  const definition = createBlueprintDefinition('crud-fixture');
+  return {
+    ...definition,
+    database: {
+      ...definition.database,
+      versions: definition.database.versions.map((version, index) =>
+        index === 0 ? { ...version, stores: deriveStores(crudBlueprint) } : version
+      ),
+    },
+  };
+}
+
+let harness = createHarness(createCrudDefinition());
 beforeEach(() => {
-  harness = createHarness(createBlueprintDefinition('crud-fixture'));
+  harness = createHarness(createCrudDefinition());
 });
 afterEach(() => {
   cleanup();
@@ -81,6 +103,124 @@ describe('EntityList', () => {
     expect(screen.queryByText(customer.id)).toBeNull();
     expect(screen.queryByText(persona.id)).toBeNull();
     expect(screen.getByRole('table', { name: 'Tickets' })).toBeTruthy();
+  });
+
+  it('soft-deletes selected rows to Trash and can undo the batch', async () => {
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, crudBlueprint);
+    const first = await services.customer!.create({ name: 'Bulk soft one' });
+    const second = await services.customer!.create({ name: 'Bulk soft two' });
+
+    render(CrudHarness, {
+      runtime,
+      blueprint: crudBlueprint,
+      services,
+      mode: 'list',
+      entityName: 'customer',
+    });
+
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Select row Open Bulk soft one' })
+    );
+    await fireEvent.click(screen.getByRole('checkbox', { name: 'Select row Open Bulk soft two' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete 2' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(async () =>
+      expect(new Set((await services.customer!.trash()).map((row) => row.id))).toEqual(
+        new Set([first.id, second.id])
+      )
+    );
+    await fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(async () => {
+      expect(await services.customer!.get(first.id)).toBeTruthy();
+      expect(await services.customer!.get(second.id)).toBeTruthy();
+    });
+  });
+
+  it('restores selected trash rows through the entity service', async () => {
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, crudBlueprint);
+    const customer = await services.customer!.create({ name: 'Restore from trash' });
+    await services.customer!.remove(customer.id);
+
+    render(CrudHarness, {
+      runtime,
+      blueprint: crudBlueprint,
+      services,
+      mode: 'list',
+      entityName: 'customer',
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Trash' }));
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Select row Open Restore from trash' })
+    );
+    await fireEvent.click(screen.getByRole('button', { name: 'Restore 1' }));
+
+    await waitFor(async () => expect(await services.customer!.get(customer.id)).toBeTruthy());
+    expect(screen.getAllByText('Restored 1 record').length).toBeGreaterThan(0);
+  });
+
+  it('passes each row to :own delete checks and only deletes records owned by the agent', async () => {
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, crudBlueprint);
+    const memberships = runtime.members.list();
+    const memberId = memberships.find(
+      (membership) => membership.persona.id !== runtime.session.principal()?.persona.id
+    )!.persona.id;
+    const notOwned = await services.ticket!.create({
+      subject: 'Not assigned to member',
+      customerId: 'customer_0001',
+    });
+    const owned = await services.ticket!.create({
+      subject: 'Assigned to member',
+      customerId: 'customer_0001',
+      assigneeId: memberId,
+    });
+    await runtime.session.switchActor(memberId);
+
+    render(CrudHarness, {
+      runtime,
+      blueprint: crudBlueprint,
+      services,
+      mode: 'list',
+      entityName: 'ticket',
+    });
+
+    await fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Select row Open Assigned to member' })
+    );
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete 1' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(async () => expect(await services.ticket!.get(owned.id)).toBeUndefined());
+    expect(await services.ticket!.get(notOwned.id)).toBeTruthy();
+    expect((await services.ticket!.trash()).map((row) => row.id)).toContain(owned.id);
+  });
+
+  it('delegates CSV uploads to the atomic import service operation', async () => {
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, crudBlueprint);
+    render(CrudHarness, {
+      runtime,
+      blueprint: crudBlueprint,
+      services,
+      mode: 'list',
+      entityName: 'customer',
+    });
+    const before = (await services.customer!.list()).length;
+    const csv = 'Name\nAtomic valid\nSecond valid\n';
+    const importCsv = vi.spyOn(services.customer!, 'importCsv');
+    const file = new File([csv], 'customers.csv', {
+      type: 'text/csv',
+    });
+    await fireEvent.change(document.querySelector<HTMLInputElement>('input[type="file"]')!, {
+      target: { files: [file] },
+    });
+
+    await waitFor(() => expect(importCsv).toHaveBeenCalledWith(csv, { mode: 'commit' }));
+    await waitFor(async () => expect((await services.customer!.list()).length).toBe(before + 2));
   });
 });
 

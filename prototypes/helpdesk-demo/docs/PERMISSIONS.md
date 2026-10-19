@@ -43,7 +43,58 @@ Simulated permissions: UX only, not security. Services enforce them with
 - `ticket:update:own`
 <!-- /protoyard:generated:rules -->
 
-TODO: what each rule means (rules are functions, so only their names are generated).
+The policy is not hand-written: `src/generated/policy.ts` calls
+`derivePolicy(blueprint)` (`packages/blueprint/src/policy.ts`). Each blueprint
+role's `permissions` become `<entity>:<action>` capabilities; `owner` and
+`admin` declare `* : *` and so hold `*`. `owner` and `admin` also get
+`members:*`, which no screen or service in this prototype uses.
+
+`derivePolicy` writes the same two rules for every entity with an
+`ownerField`, using that field's persona column:
+
+| Rule | Owner column |
+| --- | --- |
+| `customer:update:own`, `customer:delete:own` | `customers.accountManagerId` |
+| `ticket:update:own`, `ticket:delete:own` | `tickets.assigneeId` |
+| `reply:update:own`, `reply:delete:own` | `replies.authorId` |
+
+A rule runs only after the role already holds the capability. It passes for
+`owner` and `admin`; for any other role it passes only when a record is given
+and its owner column equals the persona id. Unlike a rule that allows the
+"no record" case, `can('ticket:delete:own')` without a record is **false**
+for a member.
+
+How the services use them: `update`, `remove`, `restore`, `restoreTrashed`,
+`bulkUpdate` and `bulkRemove` first try `<entity>:<action>` and fall back to
+`<entity>:<action>:own` with the stored record; the file service does the
+same for uploads with `ticket:update`. `purge` checks only `<entity>:delete`.
+
+What that means per role:
+
+- **member (Agent):** edits any customer or ticket (`customer:update`,
+  `ticket:update`); cannot delete customers; deletes a ticket only when it is
+  assigned to them (`ticket:delete:own`); edits and deletes only replies they
+  wrote (`reply:update:own`, `reply:delete:own`). Lists evaluate per-record
+  delete capability before exposing selection actions, and services recheck
+  every selected record; editing their own reply works through the form.
+- **viewer:** holds only the `:read` capabilities; every write fails.
+- **owner, admin (Support lead):** everything.
+
+Capabilities defined but not named by any role (owner and admin hold them
+through `*`): `customer:delete`, `customer:import`, `ticket:delete`,
+`reply:update`, `reply:delete`, `reply:import`, `reply:export`.
+`ticket:import` gates the "Import CSV" button and the atomic import service.
+`ticket:export` and `customer:export` gate only the
+"Export CSV" button (the screen does not call the `exportCsv` service).
+Notification reads and mark-read calls have no capability: they are scoped to
+the acting persona's own rows.
+
+## Boundary
+
+Simulated permissions: UX only, not security. The roles, rules and personas
+run in the visitor's browser, and anyone can switch persona or edit
+IndexedDB. A real help desk needs server-side authorization on every
+request.
 
 ## Personas
 

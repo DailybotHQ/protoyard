@@ -118,6 +118,45 @@ class ControlClient {
     }
   }
 
+  /**
+   * POST /api/new: copy a template or prototype into a new slug, link it and
+   * start it (control server). Returns the raw response for the caller to
+   * interpret (marketplace `interpretCreate`). A started prototype joins
+   * `running`, so its own detail page and the palette see it.
+   */
+  async create(request: { slug: string; from: string; name?: string }) {
+    try {
+      const result = await fetchJson(`${this.baseUrl}/api/new`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(request),
+        timeoutMs: 180_000,
+      });
+      const url = localDevUrl(String(result.body.url ?? ''));
+      if (result.ok && url) {
+        const slug = String(result.body.slug ?? request.slug);
+        const server: RunningServer = {
+          slug,
+          url,
+          port: Number(result.body.port),
+          startedAt: new Date().toISOString(),
+        };
+        this.running = [...this.running.filter((r) => r.slug !== slug), server];
+      }
+      return result;
+    } catch (error) {
+      const message =
+        (error as Error).name === 'AbortError'
+          ? 'Timed out creating the prototype.'
+          : (error as Error).message;
+      return {
+        ok: false,
+        status: 0,
+        body: { ok: false, error: message } as Record<string, unknown>,
+      };
+    }
+  }
+
   async stop(slug: string) {
     this.busy = { ...this.busy, [slug]: 'stopping' };
     try {

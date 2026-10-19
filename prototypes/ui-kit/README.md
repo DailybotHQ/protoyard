@@ -1,52 +1,31 @@
 # Protoyard UI Kit
 
 A living showcase of `@protoyard/ui` — itself a normal Protoyard prototype.
+Every component and pattern has a live demo, copyable usage and
+accessibility notes; the Theme lab compares built-in and library themes,
+tunes custom ones and shows live tokens with contrast ratios. Its only
+stored data is each persona's **favorites** (starred entries, in IndexedDB).
 
 ```bash
 pnpm protoyard dev ui-kit
 pnpm protoyard build ui-kit
+pnpm vitest run prototypes/ui-kit
 ```
 
-| Page | Route |
-| --- | --- |
-| Overview (stats, groups, recently starred) | `#/` |
-| Component groups — every component in its states, with copyable usage and a11y notes | `#/components/<group>` |
-| One component (prev/next navigation) | `#/c/<id>` |
-| Theme lab — built-in and product-category theme library, category filtering, side-by-side light/dark and component-variant previews, adjacent theme studio, token export/copy, and live contrast ratios | `#/themes` |
-| Forms with validation | `#/forms` |
-| Patterns — dashboard, task board, team chat, mobile app | `#/components/patterns` |
-| Accessibility — live contrast audit of the active theme, guarantees, keyboard map | `#/a11y` |
-| Favorites | `#/favorites` |
-
-## Domain
-
-A deliberately tiny one: **favorites**, starred catalog entries persisted per persona in
-IndexedDB (`favorites` table). Services follow the usual chain — `session.assert` →
-validate → `environment.run` → Dexie transaction — so offline/failure simulation and
-permissions apply.
-
-| Scenario | Actor | What it shows |
-| --- | --- | --- |
-| `default` | Dana Reyes, designer | six favorites |
-| `dark-viewer` | Sam Ito, viewer | dark mode; stars visible but locked (service-level `PermissionDeniedError`) |
-| `empty` | Dana Reyes, designer | empty states |
-
-## Structure
-
-```text
-src/catalog/entries.ts    catalog metadata (no Svelte imports; used by the generator)
-src/catalog/registry.ts   id → live demo component + usage snippet + a11y notes
-src/demos/*Demo.svelte    one self-contained interactive demo per entry
-src/screens/              routed pages      src/components/  CodeBlock, ShowcaseEntry, ThemePreview…
-src/domain/               policy + favorites services
-src/scenarios/            scenarios + deterministic generator
-tests/                    catalog/generator/service tests and a render test for every demo
-```
+Pages: Overview (`#/`), component groups (`#/components/<group>`), one
+component (`#/c/<id>`), Theme lab (`#/themes`), Forms (`#/forms`),
+patterns (`#/components/patterns`), Accessibility (`#/a11y`) and Favorites
+(`#/favorites`). Scenarios: `default` (designer with favorites),
+`dark-viewer` (read-only viewer in dark mode) and `empty`.
 
 To add a component to the kit: add an entry to `src/catalog/entries.ts`, a
-`src/demos/<Name>Demo.svelte`, and its `DEMOS` record in `src/catalog/registry.ts`
-(the test fails if the two lists disagree).
+`src/demos/<Name>Demo.svelte`, and its `DEMOS` record in
+`src/catalog/registry.ts` (the test fails if the two lists disagree).
 
-Theme-library metadata is available without palette generation. The theme lab
-loads palette tokens only for the active category, and its copy action uses the
-runtime theme export format so copied JSON can be imported by Theme Studio.
+## Docs
+
+- [AGENTS.md](AGENTS.md): rules and folder layout for agents working on the kit
+- [docs/SPEC.md](docs/SPEC.md): what the kit demonstrates, who uses it, honest boundaries, design-system mapping
+- [docs/SCREENS.md](docs/SCREENS.md): every page and its states
+- [docs/FLOWS.md](docs/FLOWS.md): favorites, Theme lab, forms and demo interactions
+- [docs/DATA_MODEL.md](docs/DATA_MODEL.md) · [docs/PERMISSIONS.md](docs/PERMISSIONS.md)

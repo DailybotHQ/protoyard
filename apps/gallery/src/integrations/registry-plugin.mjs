@@ -65,7 +65,10 @@ function readRegistry(registryPath) {
 
 /** Mirrors core SLUG_PATTERN; a registry file is untrusted input (PROTOYARD_REGISTRY). */
 const SLUG_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-const KINDS = new Set(['prototype', 'template']);
+/** Kinds the gallery loads (blueprints feed the marketplace). */
+const KINDS = new Set(['prototype', 'template', 'blueprint']);
+/** Kinds whose folder may publish a thumbnail (a blueprint's path is a JSON file, not a folder). */
+const THUMBNAIL_KINDS = new Set(['prototype', 'template']);
 
 /**
  * @param {string} parent
@@ -102,7 +105,7 @@ export function resolveThumbnails(workspaceRoot, entries) {
   for (const entry of entries) {
     if (typeof entry.thumbnail !== 'string' || entry.thumbnail === '') continue;
     if (typeof entry.slug !== 'string' || !SLUG_PATTERN.test(entry.slug)) continue;
-    if (!KINDS.has(entry.kind) || typeof entry.path !== 'string') continue;
+    if (!THUMBNAIL_KINDS.has(entry.kind) || typeof entry.path !== 'string') continue;
     const folder = resolve(workspaceRoot, entry.path);
     const source = resolve(folder, entry.thumbnail);
     if (!contains(folder, source)) continue;

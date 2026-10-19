@@ -1,0 +1,191 @@
+---
+import CommandBlock from '@/components/CommandBlock.svelte';
+import LivePreview from '@/components/LivePreview.svelte';
+import CreatedPreview from '@/components/marketplace/CreatedPreview.svelte';
+import CreateFlow from '@/components/marketplace/CreateFlow.svelte';
+import DeviceThumb from '@/components/marketplace/DeviceThumb.svelte';
+import { label } from '@/components/marketplace/model';
+import { type ShelfItem, SPEC_KIT, shelf } from '@/components/marketplace/shelf';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { devCommand } from '@/lib/commands';
+import { withBase } from '@/lib/format';
+
+export function getStaticPaths() {
+  return shelf().map((item) => ({
+    params: { kind: item.entry.k, slug: item.entry.s },
+    props: { item },
+  }));
+}
+
+const { item } = Astro.props as { item: ShelfItem };
+const { entry, source } = item;
+const highlights = source.catalog?.highlights ?? [];
+const thumbnail = entry.th ? withBase(`/${entry.th}`) : null;
+const embeddedUrl = source.embedded ? withBase(`/${source.embedded.url}`) : null;
+const runnable = entry.k !== 'blueprint';
+const kindNote =
+  entry.k === 'prototype'
+    ? 'A flagship prototype: complete and ready to try.'
+    : entry.k === 'template'
+      ? 'A starting point: runs as a live demo, and copies into a new prototype.'
+      : 'A data-only blueprint: `protoyard generate` turns it into a new prototype.';
+---
+
+<BaseLayout title={entry.n} description={entry.d} active="marketplace">
+  <a href={withBase('/marketplace/')} class="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
+    <span aria-hidden="true">←</span> Marketplace
+  </a>
+
+  <header class="mt-4 flex flex-wrap items-start gap-4">
+    <span aria-hidden="true" class="grid size-14 shrink-0 place-items-center rounded-xl border border-line bg-surface-2 text-2xl">
+      {entry.i ?? '◻︎'}
+    </span>
+    <div class="min-w-0 flex-1">
+      <p class="flex flex-wrap items-center gap-2 text-sm text-muted">
+        <span class={entry.k === 'prototype' ? 'rounded-full bg-accent-soft px-2 py-0.5 font-medium text-accent-fg' : 'rounded-full border border-line px-2 py-0.5'}>{label(entry.k)}</span>
+        <a class="hover:text-fg hover:underline" href={withBase(`/marketplace/?category=${encodeURIComponent(entry.c)}`)}>{label(entry.c)}</a>
+        {entry.pt && <span>· {entry.pt}</span>}
+      </p>
+      <h1 class="mt-1 text-3xl font-semibold tracking-tight" data-testid="market-detail-title">{entry.n}</h1>
+      <p class="mt-1 max-w-3xl text-muted">{entry.d}</p>
+      <p class="mt-2 text-sm text-muted">{kindNote}</p>
+    </div>
+  </header>
+
+  {/* Full width: the post-create frame needs room to render at a readable scale. */}
+  <CreatedPreview client:load />
+
+  <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+    <div class="min-w-0 space-y-6">
+      <section aria-labelledby="screenshot-title" class="overflow-hidden rounded-xl border border-line bg-surface">
+        <h2 id="screenshot-title" class="border-b border-line p-3 font-medium">
+          {thumbnail ? 'Screenshot' : 'At a glance'}
+          <span class="text-sm font-normal text-muted">· shown in its {label(entry.sh).toLowerCase()} shell</span>
+        </h2>
+        <DeviceThumb shell={entry.sh} src={thumbnail} icon={entry.i} name={entry.n} size="lg" />
+      </section>
+
+      {
+        runnable ? (
+          <LivePreview
+            client:visible
+            slug={entry.s}
+            name={entry.n}
+            defaultViewport={source.viewport}
+            defaultShell={source.catalog?.shell ?? null}
+            platform={source.platform}
+            devCommand={devCommand(entry.s)}
+            embeddedUrl={embeddedUrl}
+            scenarios={source.scenarios}
+            defaultScenario={source.defaultScenario}
+            thumbnail={thumbnail}
+          />
+        ) : (
+          <section aria-labelledby="blueprint-try-title" class="rounded-xl border border-line bg-surface p-4">
+            <h2 id="blueprint-try-title" class="font-medium">Try it</h2>
+            <p class="mt-1 text-sm text-muted">
+              A blueprint has no running app until it is generated. Generate it, then start it like any prototype.
+            </p>
+            <div class="mt-3 space-y-2">
+              <CommandBlock client:visible command={`pnpm protoyard generate my-${entry.s} --blueprint ${source.path}`} />
+              <CommandBlock client:visible command={`pnpm protoyard dev my-${entry.s}`} />
+            </div>
+          </section>
+        )
+      }
+
+      {
+        highlights.length > 0 && (
+          <section aria-labelledby="highlights-title">
+            <h2 id="highlights-title" class="text-lg font-semibold">Highlights</h2>
+            <ul class="mt-3 grid gap-2 sm:grid-cols-2">
+              {highlights.map((line) => (
+                <li class="rounded-lg border border-line bg-surface px-3 py-2 text-sm">{line}</li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      {
+        runnable && (
+          <section aria-labelledby="scenarios-title">
+            <h2 id="scenarios-title" class="text-lg font-semibold">
+              Scenarios <span class="text-sm font-normal text-muted">{source.scenarioCount}</span>
+            </h2>
+            {source.scenarios.length > 0 ? (
+              <ul class="mt-3 flex flex-wrap gap-2" data-testid="market-scenarios">
+                {source.scenarios.map((id) => (
+                  <li class="rounded-lg border border-line bg-surface px-3 py-1.5 font-mono text-xs">
+                    {id}
+                    {id === source.defaultScenario && <span class="ml-1.5 rounded bg-accent-soft px-1 text-accent-fg">default</span>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="mt-3 text-sm text-muted">No scenarios declared.</p>
+            )}
+            <p class="mt-2 text-sm text-muted">
+              Each scenario rebuilds a deterministic world. Open one with <code class="font-mono">?scenario=&lt;id&gt;</code>.
+            </p>
+          </section>
+        )
+      }
+
+      {
+        runnable && (
+          <section aria-labelledby="spec-title">
+            <h2 id="spec-title" class="text-lg font-semibold">Spec kit</h2>
+            <p class="mt-1 text-sm text-muted">
+              Every prototype carries a spec any agent can follow to rebuild it in a real app: the files below, in{' '}
+              <code class="font-mono">{source.path}/</code>, with generated regions kept in sync with the code.
+            </p>
+            <ul class="mt-3 flex flex-wrap gap-2 font-mono text-xs">
+              {SPEC_KIT.map((file) => (
+                <li class="rounded-md bg-surface-2 px-2 py-1">{file}</li>
+              ))}
+            </ul>
+            <div class="mt-3 space-y-2">
+              <CommandBlock client:visible label="Check that the spec is current" command={`pnpm protoyard spec ${entry.s} --check`} />
+              <CommandBlock client:visible label="Rebuild kit (ZIP)" command={`pnpm protoyard spec ${entry.s} --bundle`} />
+            </div>
+          </section>
+        )
+      }
+    </div>
+
+    <aside class="space-y-6">
+      <CreateFlow client:load kind={entry.k} slug={entry.s} name={entry.n} shell={entry.sh} platform={source.platform} />
+
+      <section aria-labelledby="facts-title" class="rounded-xl border border-line bg-surface p-4">
+        <h2 id="facts-title" class="font-medium">Details</h2>
+        <dl class="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+          <dt class="text-muted">Runs on</dt>
+          <dd>{entry.pf.map(label).join(', ') || '—'}</dd>
+          <dt class="text-muted">Shell</dt>
+          <dd>{label(entry.sh)}</dd>
+          {entry.df && <dt class="text-muted">Difficulty</dt>}
+          {entry.df && <dd>{label(entry.df)}</dd>}
+          <dt class="text-muted">Slug</dt>
+          <dd class="font-mono text-xs">{entry.s}</dd>
+        </dl>
+        {
+          entry.f.length > 0 && (
+            <ul class="mt-4 flex flex-wrap gap-1.5" aria-label="Features">
+              {entry.f.map((feature) => (
+                <li>
+                  <a
+                    class="inline-block rounded-full border border-line px-2.5 py-1 text-xs text-muted hover:border-accent hover:text-fg"
+                    href={withBase(`/marketplace/?feature=${encodeURIComponent(feature)}`)}
+                  >
+                    {feature}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </section>
+    </aside>
+  </div>
+</BaseLayout>

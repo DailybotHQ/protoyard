@@ -46,14 +46,14 @@ function modelFor(conversationId: string) {
 }
 </script>
 
-<section class="relative h-full min-h-[32rem] overflow-hidden rounded-2xl border border-[#e9e6ef] bg-[#f6f8fc] p-5 sm:p-8" aria-label="Nova widget demo">
-  <div class="mx-auto max-w-3xl rounded-2xl border border-[#e5e8ef] bg-white p-6 shadow-sm sm:p-10">
-    <p class="text-xs font-semibold uppercase tracking-[0.15em] text-[#7460c7]">Northstar Journal · fictional host site</p>
-    <h1 class="mt-3 text-2xl font-semibold tracking-tight text-[#26243a] sm:text-3xl">Ideas move further when they have a place to land.</h1>
-    <p class="mt-3 max-w-2xl text-sm leading-6 text-[#696779]">Explore notes from the Nova product studio. The launcher in the corner opens a simulated assistant sidebar; expand it to see the full-screen experience.</p>
+<section class="relative h-full min-h-[32rem] overflow-hidden rounded-2xl border border-border bg-background p-5 sm:p-8" aria-label="Nova widget demo">
+  <div class="mx-auto max-w-3xl rounded-2xl border border-border bg-surface p-6 shadow-sm sm:p-10">
+    <p class="text-xs font-semibold uppercase tracking-[0.15em] text-primary">Northstar Journal · fictional host site</p>
+    <h1 class="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Ideas move further when they have a place to land.</h1>
+    <p class="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Explore notes from the Nova product studio. The launcher in the corner opens a simulated assistant sidebar; expand it to see the full-screen experience.</p>
     <div class="mt-8 grid gap-4 sm:grid-cols-2">
-      <article class="rounded-xl bg-[#f7f5fb] p-4"><h2 class="text-sm font-semibold text-[#373348]">A quieter planning ritual</h2><p class="mt-2 text-xs leading-5 text-[#777386]">Collect the useful questions before turning a rough thought into a plan.</p></article>
-      <article class="rounded-xl bg-[#f7f5fb] p-4"><h2 class="text-sm font-semibold text-[#373348]">Make room for review</h2><p class="mt-2 text-xs leading-5 text-[#777386]">Keep every suggestion local, inspectable, and easy to reshape.</p></article>
+      <article class="rounded-xl bg-muted p-4"><h2 class="text-sm font-semibold text-foreground">A quieter planning ritual</h2><p class="mt-2 text-xs leading-5 text-muted-foreground">Collect the useful questions before turning a rough thought into a plan.</p></article>
+      <article class="rounded-xl bg-muted p-4"><h2 class="text-sm font-semibold text-foreground">Make room for review</h2><p class="mt-2 text-xs leading-5 text-muted-foreground">Keep every suggestion local, inspectable, and easy to reshape.</p></article>
     </div>
   </div>
 

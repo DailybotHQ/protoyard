@@ -25,7 +25,6 @@
       "Bash(bash scripts/check-public-hygiene.sh:*)"
     ],
     "ask": [
-      "Bash(pnpm install:*)",
       "Bash(pnpm protoyard publish:*)",
       "Bash(git push:*)",
       "Bash(npx wrangler:*)"

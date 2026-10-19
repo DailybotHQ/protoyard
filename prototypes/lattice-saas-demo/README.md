@@ -1,44 +1,33 @@
-# Lattice
+# Lattice — `lattice-saas-demo`
 
-Lattice is a fictional team-planning SaaS workspace for coordinating project
-portfolios, delivery health, and team collaboration. It is built from the
-`b2b-saas` template and showcases the SaaS kits inside a complete product
-experience.
-
-## Run locally
+Lattice is a fictional team-planning SaaS workspace: a project portfolio per
+workspace wrapped in the full product journey around it (landing page,
+sign-up and sign-in, magic links, password reset, simulated MFA, onboarding,
+workspaces, members and invitations, an inbox, plans, checkout and a billing
+portal). It is built from the `b2b-saas` template and is the flagship for the
+[SaaS kits](../../docs/SAAS_KITS.md). Every action persists in the browser
+(IndexedDB). All people and organizations are fictional; authentication,
+email, invitations, roles and billing are local simulations, not security.
 
 ```bash
-pnpm protoyard dev lattice-saas-demo
+pnpm protoyard dev lattice-saas-demo                  # run it (DevTools included in dev)
+pnpm vitest run prototypes/lattice-saas-demo          # unit + integration tests
 pnpm protoyard scenario list lattice-saas-demo
 pnpm protoyard scenario validate lattice-saas-demo
 pnpm protoyard validate lattice-saas-demo --build
 ```
 
-Start with the signed-out visitor scenario to walk through sign-up or simulated
-Google SSO and consent, then continue into the onboarding wizard. In the
-workspace, create and update projects, switch workspaces, invite teammates,
-review the inbox, choose a simulated plan, and manage profile and security
-settings.
+Start with the default `signed-out` scenario: sign in as `owner@example.com`
+with the simulated password `demo-password`, finish onboarding, then work
+with projects, members, the inbox, plans and settings. Seven more scenarios
+cover mid-onboarding, a trial ending, past-due billing, a multi-workspace
+admin, a viewer, MFA and a pending invitation.
 
-## Walkthrough scenarios
+## Spec
 
-- `signed-out` — public Lattice landing page and simulated sign-in / sign-up.
-- `mid-onboarding` — a workspace owner halfway through setup.
-- `trial-ending` — two days remain in the simulated trial; compare plans or
-  continue into checkout.
-- `past-due` — review a failed invoice and the simulated billing portal.
-- `multi-workspace-admin` — an admin with three workspaces and project access.
-- `viewer` — a read-only role for the project portfolio.
-- `mfa-enrolled` — an account with simulated multi-factor authentication.
-- `pending-invite` — a workspace with a pending teammate invitation.
-
-The project portfolio is stored in this prototype's IndexedDB database.
-Project writes go through validated, permission-checked services; onboarding,
-workspace membership, invitations, billing and settings use the SaaS kits.
-
-## Simulation boundaries
-
-All people and organizations are fictional. Authentication, Google SSO, email,
-invitations, roles, and billing are local simulations: no provider, mailbox,
-payment method, or external service is contacted. Simulated roles demonstrate
-the product experience and are not a security boundary.
+- [AGENTS.md](AGENTS.md): rules for agents working on this prototype
+- [docs/SPEC.md](docs/SPEC.md): problem, users, capabilities, scenarios, honest boundaries, rebuild path
+- [docs/SCREENS.md](docs/SCREENS.md): every route, its guard and its states
+- [docs/FLOWS.md](docs/FLOWS.md): user flows mapped to services, capabilities and tables
+- [docs/DATA_MODEL.md](docs/DATA_MODEL.md): `projects` and the `saas_*` kit tables
+- [docs/PERMISSIONS.md](docs/PERMISSIONS.md): roles × capabilities, personas

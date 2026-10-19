@@ -506,17 +506,35 @@ dev servers (ADR-013).
 ## The showcase: gallery + live demos as one site
 
 `pnpm build:showcase` (that is, `pnpm protoyard showcase`) builds **one static
-site**: the gallery plus each prototype's own static build at
-`<base>p/<slug>/app/`, written to `artifacts/showcase/`. Live preview iframes,
-**Open** links and `?scenario=<id>` links work with no local control server.
-Every prototype still passes its own isolation check. DevTools are included,
+site**, written to `artifacts/showcase/`. It contains the gallery and its
+marketplace, plus a live, read-only demo of every product type:
+
+- every prototype's own static build at `<base>p/<slug>/app/`;
+- every template as a demo at `<base>t/<name>/app/`, built with the same
+  `template-demo-<name>` storage namespace as `protoyard dev <template>`, so
+  visitors' demo data never shares the template's own namespace.
+  `--no-templates` leaves the templates out (`--include-templates` is still
+  accepted and changes nothing, since templates are bundled by default).
+
+Blueprints are listed in the marketplace with their `protoyard generate`
+command, but they have no app until they are generated, so they are not
+bundled. In the published site, each marketplace page
+(`<base>marketplace/<kind>/<slug>/`) plays its bundled demo under **Try it**.
+Live preview iframes, **Open** links and `?scenario=<id>` links work with no
+local control server. **Use this template** and **Remix** show the exact CLI
+command, because the hosted site is read-only. Every demo still passes its own
+isolation check and keeps its own performance budget. DevTools are included,
 because a showcase is a demo site. Preview it with
 `pnpm protoyard showcase --base /protoyard/ --serve`, then open
 `http://127.0.0.1:4500/protoyard/`.
 
+The `--json` result lists every demo in `targets`: kind, slug, `appPath`, its
+`marketplacePath`, the `storageNamespace` of template demos, and whether it
+built (`ok`) with its size.
+
 ### Publish the showcase to Cloudflare Pages
 
-Publish the built gallery and its prototype demos as one Pages project:
+Publish the built gallery and every prototype and template demo as one Pages project:
 
 ```bash
 pnpm protoyard showcase --publish cloudflare --dry-run

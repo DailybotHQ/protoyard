@@ -58,7 +58,12 @@ export function templatedPack(id: string, template: string): ResponsePack {
   };
 }
 
-/** Stable pack choice: only the seed and normalized prompt affect the selected pack. */
+/**
+ * Stable pack choice from seed + normalized prompt.
+ * The safety-refusal pack is returned only when `REFUSAL` matches the prompt;
+ * ordinary prompts pick deterministically among the **non-refusal** packs so a
+ * two-pack catalog never returns the refusal text for "hello".
+ */
 export function selectResponsePack(
   packs: readonly ResponsePack[],
   seed: number | string,
@@ -69,8 +74,10 @@ export function selectResponsePack(
     const safety = packs.find((pack) => pack.id === refusalPack.id);
     if (safety) return safety;
   }
+  const candidates = packs.filter((pack) => pack.id !== refusalPack.id);
+  const pool = candidates.length > 0 ? candidates : packs;
   const key = `${String(seed)}:${prompt.trim().toLowerCase().replace(/\s+/g, ' ')}`;
-  return packs[createRng(hashString(key)).int(0, packs.length - 1)] as ResponsePack;
+  return pool[createRng(hashString(key)).int(0, pool.length - 1)] as ResponsePack;
 }
 
 export function responseRng(seed: number | string, prompt: string) {

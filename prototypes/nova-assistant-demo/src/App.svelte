@@ -132,53 +132,53 @@ function messageOf(error: unknown) {
 }
 </script>
 
-<div class="flex h-[var(--py-app-height,100dvh)] min-h-0 bg-[#f5f4f8] text-[#242235]">
-  <aside class="hidden w-64 shrink-0 flex-col border-r border-[#e8e6ed] bg-[#faf9fc] p-4 lg:flex" aria-label="Assistant workspace navigation">
+<div class="flex h-[var(--py-app-height,100dvh)] min-h-0 bg-background text-foreground">
+  <aside class="hidden w-64 shrink-0 flex-col border-r border-border bg-surface p-4 lg:flex" aria-label="Assistant workspace navigation">
     <a href="#/" class="mb-6 flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-semibold">
-      <span class="flex size-9 items-center justify-center rounded-xl bg-[#272255] text-[#ded2ff]"><Sparkles class="size-5" aria-hidden="true" /></span>
-      <span>Nova <span class="font-normal text-[#858194]">Assistant</span></span>
+      <span class="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Sparkles class="size-5" aria-hidden="true" /></span>
+      <span>Nova <span class="font-normal text-muted-foreground">Assistant</span></span>
     </a>
-    <button type="button" class="mb-5 flex min-h-11 items-center gap-2 rounded-xl border border-[#e6e2ed] bg-white px-3 text-left text-sm font-medium shadow-sm hover:bg-[#f6f3fc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8370db]" onclick={createConversation}>
-      <MessageSquarePlus class="size-4" aria-hidden="true" /> New conversation <span class="ml-auto text-xs text-[#686477]">⌘ K</span>
+    <button type="button" class="mb-5 flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-3 text-left text-sm font-medium shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onclick={createConversation}>
+      <MessageSquarePlus class="size-4" aria-hidden="true" /> New conversation <span class="ml-auto text-xs text-muted-foreground">⌘ K</span>
     </button>
-    <p class="px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-[#686477]">Projects</p>
+    <p class="px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground">Projects</p>
     <nav class="space-y-1" aria-label="Projects">
       {#each projects.current ?? [] as project (project.id)}
-        <button type="button" class={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-sm hover:bg-[#efedf4] ${activeProjectId === project.id ? 'bg-[#efedf4] font-medium' : 'text-[#5d596c]'}`} aria-pressed={activeProjectId === project.id} onclick={() => (activeProjectId = activeProjectId === project.id ? '' : project.id)}>
+        <button type="button" class={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-sm hover:bg-muted ${activeProjectId === project.id ? 'bg-muted font-medium' : 'text-muted-foreground'}`} aria-pressed={activeProjectId === project.id} onclick={() => (activeProjectId = activeProjectId === project.id ? '' : project.id)}>
           <span class="size-2 rounded-full" style={`background:${project.color}`}></span><span class="truncate">{project.name}</span>
         </button>
       {/each}
     </nav>
-    <div class="mt-6 flex items-center gap-2 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-[#686477]"><Folder class="size-3.5" aria-hidden="true" /> History</div>
+    <div class="mt-6 flex items-center gap-2 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground"><Folder class="size-3.5" aria-hidden="true" /> History</div>
     <div class="min-h-0 flex-1 overflow-y-auto">
       {#each projectConversations.slice(0, 10) as conversation (conversation.id)}
-        <button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs hover:bg-[#efedf4] ${conversation.id === activeConversation?.id ? 'bg-[#efedf4] text-[#37314e]' : 'text-[#777386]'}`} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</button>
+        <button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs hover:bg-muted ${conversation.id === activeConversation?.id ? 'bg-muted text-foreground' : 'text-muted-foreground'}`} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</button>
       {/each}
     </div>
-    <div class="mt-3 rounded-xl border border-[#e9e6ef] bg-white p-3">
+    <div class="mt-3 rounded-xl border border-border bg-surface p-3">
       <div class="flex items-center justify-between text-xs"><span>Monthly usage</span><span class="tabular-nums">{Math.min(100, Math.round((usedTokens / monthlyLimit) * 100))}%</span></div>
-      <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-[#eeebf4]" role="meter" aria-label="Simulated monthly token usage" aria-valuemin="0" aria-valuemax={monthlyLimit} aria-valuenow={usedTokens}><div class="h-full rounded-full bg-[#7e6bd3]" style={`width:${Math.min(100, (usedTokens / monthlyLimit) * 100)}%`}></div></div>
-      <p class="mt-1 text-[0.65rem] text-[#686477]">{usedTokens.toLocaleString()} / {monthlyLimit.toLocaleString()} tokens · simulated</p>
+      <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" role="meter" aria-label="Simulated monthly token usage" aria-valuemin="0" aria-valuemax={monthlyLimit} aria-valuenow={usedTokens}><div class="h-full rounded-full bg-primary" style={`width:${Math.min(100, (usedTokens / monthlyLimit) * 100)}%`}></div></div>
+      <p class="mt-1 text-[0.65rem] text-muted-foreground">{usedTokens.toLocaleString()} / {monthlyLimit.toLocaleString()} tokens · simulated</p>
     </div>
-    <a href="#/settings" class="mt-3 flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm text-[#6b677a] hover:bg-[#efedf4]"><Settings2 class="size-4" aria-hidden="true" /> Settings</a>
+    <a href="#/settings" class="mt-3 flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm text-muted-foreground hover:bg-muted"><Settings2 class="size-4" aria-hidden="true" /> Settings</a>
   </aside>
 
   <main class="flex min-w-0 flex-1 flex-col p-2 sm:p-4 lg:p-6">
-    <header class="mb-3 flex items-center justify-between rounded-2xl border border-[#e9e6ef] bg-white/90 px-4 py-3 shadow-sm">
-      <div><p class="text-sm font-semibold">{router.current.route?.title ?? 'Assistant'}</p><p class="text-[0.68rem] text-[#686477]">A calm place to think, build, and explore</p></div>
+    <header class="mb-3 flex items-center justify-between rounded-2xl border border-border bg-surface/90 px-4 py-3 shadow-sm">
+      <div><p class="text-sm font-semibold">{router.current.route?.title ?? 'Assistant'}</p><p class="text-[0.68rem] text-muted-foreground">A calm place to think, build, and explore</p></div>
       <div class="flex items-center gap-2">
-        <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'assistant' ? 'bg-[#f0edf8] text-[#5545a4]' : 'text-[#716d7f] hover:bg-[#f7f5fa]'}`} aria-pressed={activeTab === 'assistant'} onclick={() => (activeTab = 'assistant')}><Bot class="size-4" aria-hidden="true" /> Assistant</button>
-        <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'voice' ? 'bg-[#f0edf8] text-[#5545a4]' : 'text-[#716d7f] hover:bg-[#f7f5fa]'}`} aria-pressed={activeTab === 'voice'} onclick={() => void loadVoice()}><AudioLines class="size-4" aria-hidden="true" /> Voice</button>
-        <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'widget' ? 'bg-[#f0edf8] text-[#5545a4]' : 'text-[#716d7f] hover:bg-[#f7f5fa]'}`} aria-pressed={activeTab === 'widget'} onclick={() => void loadWidgetDemo()}><MessageSquarePlus class="size-4" aria-hidden="true" /> Widget demo</button>
-        <a href="#/settings" class="inline-flex size-10 items-center justify-center rounded-lg text-[#716d7f] hover:bg-[#f7f5fa] lg:hidden" aria-label="Settings"><Settings2 class="size-4" aria-hidden="true" /></a>
+        <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'assistant' ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'assistant'} onclick={() => (activeTab = 'assistant')}><Bot class="size-4" aria-hidden="true" /> Assistant</button>
+        <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'voice' ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'voice'} onclick={() => void loadVoice()}><AudioLines class="size-4" aria-hidden="true" /> Voice</button>
+        <button type="button" class={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs ${activeTab === 'widget' ? 'bg-muted text-primary' : 'text-muted-foreground hover:bg-muted'}`} aria-pressed={activeTab === 'widget'} onclick={() => void loadWidgetDemo()}><MessageSquarePlus class="size-4" aria-hidden="true" /> Widget demo</button>
+        <a href="#/settings" class="inline-flex size-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden" aria-label="Settings"><Settings2 class="size-4" aria-hidden="true" /></a>
       </div>
     </header>
-    {#if alertText}<p class="mb-3 rounded-xl border border-[#e9b2a9] bg-[#fff1ee] px-4 py-3 text-sm text-[#8a3125]" role="alert">{alertText}</p>{/if}
+    {#if alertText}<p class="mb-3 rounded-xl border border-destructive bg-surface px-4 py-3 text-sm text-destructive" role="alert">{alertText}</p>{/if}
     {#if activeTab === 'voice'}
-      <section class="mx-auto my-auto w-full max-w-xl rounded-2xl border border-[#e9e6ef] bg-white p-5 shadow-sm">
+      <section class="mx-auto my-auto w-full max-w-xl rounded-2xl border border-border bg-surface p-5 shadow-sm">
         {#if VoiceMode}
           <VoiceMode clock={{ now: () => runtime.clock.now(), nowMs: () => runtime.clock.nowMs(), sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)) }} onTranscript={(text) => void sendVoiceTranscript(text)} reply={latestAssistantReply} />
-        {:else}<div class="py-10 text-center text-sm text-[#817c90]" role="status">Loading voice mode…</div>{/if}
+        {:else}<div class="py-10 text-center text-sm text-muted-foreground" role="status">Loading voice mode…</div>{/if}
       </section>
     {:else if activeTab === 'widget'}
       <div class="min-h-0 flex-1"><WidgetDemo /></div>
@@ -187,6 +187,6 @@ function messageOf(error: unknown) {
         <Router {router} />
       </div>
     {/if}
-    <footer class="flex items-center justify-center gap-1 pt-2 text-[0.65rem] text-[#686477]"><Archive class="size-3" aria-hidden="true" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Check class="size-3" aria-hidden="true" /></footer>
+    <footer class="flex items-center justify-center gap-1 pt-2 text-[0.65rem] text-muted-foreground"><Archive class="size-3" aria-hidden="true" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Check class="size-3" aria-hidden="true" /></footer>
   </main>
 </div>

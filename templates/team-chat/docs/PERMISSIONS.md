@@ -29,7 +29,12 @@ Simulated permissions: UX only, not security. Services enforce them with
 _No record-level rules._
 <!-- /protoyard:generated:rules -->
 
-TODO: what each rule means (rules are functions, so only their names are generated).
+No ownership rules on rows. Channel **membership** is enforced in services:
+public channels are readable without joining; private channels and DMs require
+a membership row for reads and search. All writes require membership. Public
+channels need an explicit `joinChannel` before posting (UI **Join**). Write
+controls are disabled for roles that lack the capability, with a tooltip and
+toast.
 
 ## Personas
 

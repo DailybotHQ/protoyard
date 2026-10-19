@@ -15,6 +15,7 @@ import {
 } from '@protoyard/themes';
 import { Badge, Button } from '@protoyard/ui';
 import ThemePreview from '../components/ThemePreview.svelte';
+import { themeLabService } from '../lib/services.ts';
 import {
   ALL_THEME_CATEGORIES,
   activateTheme,
@@ -26,6 +27,7 @@ import {
 const runtime = getRuntime();
 const appearance = useAppearance();
 const themeExtras = runtime.theme as typeof runtime.theme & ThemeControllerExtras;
+const themeServices = themeLabService();
 let selectedId = $state(appearance.current.theme.value);
 let tableMode = $state<'light' | 'dark'>(appearance.current.resolvedMode);
 let category = $state(ALL_THEME_CATEGORIES);
@@ -155,21 +157,29 @@ $effect(() => {
 });
 
 async function useTheme(theme: Theme) {
-  await runService(() => activateTheme(theme, runtime.theme, themeExtras.saveCustom), {
+  const result = await runService(() => activateTheme(theme, themeServices), {
     success: `Prototype theme set to ${theme.name}`,
+    silentValidation: false,
+    errorTitle: 'Could not apply theme',
   });
-  themeRevision++;
+  if (result.ok) themeRevision++;
 }
 
 async function saveStudioTheme() {
-  await runService(
+  const result = await runService(
     async () => {
-      const saved = await themeExtras.saveCustom(studioTheme);
+      const saved = await themeServices.saveCustom(studioTheme);
       await runtime.theme.setOverride({ themeId: saved.id });
+      return saved;
     },
-    { success: `Saved and previewing “${studioTheme.name}”` }
+    {
+      success: `Saved and previewing “${studioTheme.name}”`,
+      // Surface the 24-theme limit and schema issues as toasts, not silent fails.
+      silentValidation: false,
+      errorTitle: 'Could not save theme',
+    }
   );
-  themeRevision++;
+  if (result.ok) themeRevision++;
 }
 
 async function copyTokens(theme: Theme) {
