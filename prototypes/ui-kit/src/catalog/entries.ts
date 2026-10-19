@@ -15,6 +15,7 @@ export const CATALOG_GROUPS = [
     name: 'Charts',
     description: 'Every @protoyard/charts-ui family, states and a stress test.',
   },
+  { id: 'views', name: 'Views', description: 'Rich, interactive product views.' },
   { id: 'layout', name: 'Layout', description: 'App shell, sidebar and header.' },
   { id: 'chat', name: 'Chat', description: 'Threads, composer and people pickers.' },
   { id: 'flows', name: 'Flows', description: 'Steppers and wizards.' },
@@ -37,6 +38,24 @@ const e = (group: CatalogGroupId, id: string, name: string, summary: string): Ca
   group,
   summary,
 });
+
+const viewEntries: CatalogEntryMeta[] = (
+  [
+    ['board', 'Board'],
+    ['calendar', 'Calendar'],
+    ['timeline', 'Timeline'],
+    ['grid', 'Data grid'],
+    ['tree', 'Tree and outline'],
+    ['map', 'Map'],
+    ['editor', 'Markdown editor'],
+    ['activity', 'Comments and activity'],
+    ['notifications', 'Notifications'],
+    ['files', 'Files'],
+    ['settings', 'Settings'],
+    ['states', 'Query states'],
+    ['commands', 'Command palette'],
+  ] as const
+).map(([id, name]) => e('views', id, name, 'Interactive rich view demo.'));
 
 export const CATALOG: readonly CatalogEntryMeta[] = [
   e('forms', 'button', 'Button', 'Six variants, four sizes, loading and link rendering.'),
@@ -88,6 +107,7 @@ export const CATALOG: readonly CatalogEntryMeta[] = [
     'Loading, empty, error, light/dark and reduced motion.'
   ),
   e('charts', 'chart-stress', 'Chart stress test', '10,000 points with an SVG/Canvas toggle.'),
+  ...viewEntries,
   e('layout', 'app-shell', 'AppShell', 'Sidebar + header + main with a mobile drawer.'),
   e('layout', 'sidebar', 'Sidebar', 'Collapsible navigation with sections and badges.'),
   e('layout', 'header', 'Header', 'Page title, description and actions.'),

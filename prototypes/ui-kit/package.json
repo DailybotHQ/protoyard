@@ -18,6 +18,8 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/themes": "workspace:*",
     "@protoyard/ui": "workspace:*",
+    "@protoyard/views": "workspace:*",
+    "@protoyard/views-ui": "workspace:*",
     "dexie": "^4.4.0",
     "svelte": "^5.57.0"
   },

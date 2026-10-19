@@ -4,10 +4,17 @@ import type { CatalogDemo } from './types.ts';
 // Every demo is its own lazily loaded chunk: the shell (and the snippets
 // below) stay small, and a group page fetches only the demos it shows.
 const modules = import.meta.glob<{ default: Component }>('../demos/*Demo.svelte');
+const viewModules = import.meta.glob<{ default: Component }>('../demos/views/*.svelte');
 
 function demo(name: string): CatalogDemo['load'] {
   const loader = modules[`../demos/${name}.svelte`];
   if (!loader) throw new Error(`Missing demo module ${name}.svelte`);
+  return async () => (await loader()).default;
+}
+
+function viewDemo(name: string): CatalogDemo['load'] {
+  const loader = viewModules[`../demos/views/${name}.svelte`];
+  if (!loader) throw new Error(`Missing view demo ${name}.svelte`);
   return async () => (await loader()).default;
 }
 
@@ -743,6 +750,110 @@ export const DEMOS: Record<string, CatalogDemo> = {
       'SVG draws a downsampled line (LTTB keeps the shape); Canvas draws every point. auto switches above a threshold.',
       'Keyboard, tooltip and table always use the full data, whichever renderer draws the pixels.',
       'The Canvas element is decorative (aria-hidden); the focusable SVG layer on top keeps the chart accessible.',
+    ],
+  },
+  board: {
+    load: viewDemo('BoardDemo'),
+    snippet: `import { BoardView } from '@protoyard/views-ui/board';\n<BoardView query={tasks} {columns} getId={(task) => task.id} getColumn={(task) => task.status} getRank={(task) => task.rank} getLabel={(task) => task.title} onMove={services.moveTask}>…</BoardView>`,
+    a11y: [
+      'Use the card move menu or keyboard controls as well as drag and drop.',
+      'Moves are pending and roll back when the service rejects them.',
+    ],
+  },
+  calendar: {
+    load: viewDemo('CalendarDemo'),
+    snippet: `import { CalendarView } from '@protoyard/views-ui/calendar';\n<CalendarView query={events} timeZone="UTC" onChange={services.applyCalendarChange} />`,
+    a11y: [
+      'Month, week, day and agenda modes are keyboard accessible.',
+      'The agenda is the compact-screen default.',
+    ],
+  },
+  timeline: {
+    load: viewDemo('TimelineDemo'),
+    snippet: `import { TimelineView } from '@protoyard/views-ui/timeline';\n<TimelineView query={tasks} dependencies={dependencies} onReschedule={services.reschedule} />`,
+    a11y: [
+      'Task rows expose keyboard controls for moving and resizing.',
+      'Dependency and critical path information is rendered in the timeline.',
+    ],
+  },
+  grid: {
+    load: viewDemo('GridDemo'),
+    snippet: `import { DataGrid } from '@protoyard/views-ui/grid';\n<DataGrid query={rows} columns={columns} getRowId={(row) => row.id} onCommit={services.updateCell} />`,
+    a11y: [
+      'The grid uses roving focus and supports keyboard sorting and editing.',
+      'Large data sets are virtualized.',
+    ],
+  },
+  tree: {
+    load: viewDemo('TreeDemo'),
+    snippet: `import { OutlineEditor, TreeView } from '@protoyard/views-ui/tree';\n<TreeView query={nodes} getId={(node) => node.id} getParentId={(node) => node.parentId} getRank={(node) => node.rank} getLabel={(node) => node.title} />`,
+    a11y: [
+      'Arrow keys, Home and End navigate the tree; typeahead finds nodes.',
+      'The outline editor supports keyboard reparenting.',
+    ],
+  },
+  map: {
+    load: viewDemo('MapDemo'),
+    snippet: `import { SimulatedMap } from '@protoyard/views-ui/map';\n<SimulatedMap {markers} {routes} onSelect={services.selectSite} />`,
+    a11y: [
+      'Map markers are focusable and have a synchronized accessible list.',
+      'The basemap and data are fictional and work offline.',
+    ],
+  },
+  editor: {
+    load: viewDemo('EditorDemo'),
+    snippet: `import { MarkdownEditor } from '@protoyard/views-ui/editor';\n<MarkdownEditor bind:value label="Description" layout="split" />`,
+    a11y: [
+      'The preview parses Markdown into safe elements; it never renders raw HTML.',
+      'Toolbar controls and keyboard shortcuts are available.',
+    ],
+  },
+  activity: {
+    load: viewDemo('ActivityDemo'),
+    snippet: `import { CommentThread, ActivityFeed } from '@protoyard/views-ui/activity';\n<CommentThread query={comments} people={people} onCreate={services.addComment} />`,
+    a11y: [
+      'Comments announce pending and failure states.',
+      'Mentions and reactions have accessible names and state.',
+    ],
+  },
+  notifications: {
+    load: viewDemo('NotificationsDemo'),
+    snippet: `import { NotificationCenter } from '@protoyard/views-ui/notifications';\n<NotificationCenter query={notifications} onMarkRead={services.markRead} />`,
+    a11y: [
+      'Unread state is announced and rows can be opened from the keyboard.',
+      'The panel adapts to a sheet on narrow screens.',
+    ],
+  },
+  files: {
+    load: viewDemo('FilesDemo'),
+    snippet: `import { FileManager } from '@protoyard/views-ui/files';\n<FileManager query={files} onRename={services.renameFile} onCreateFolder={services.createFolder} />`,
+    a11y: [
+      'The file list supports roving focus, multiselect, keyboard open and rename.',
+      'Delete is confirmed before the service runs.',
+    ],
+  },
+  settings: {
+    load: viewDemo('SettingsDemo'),
+    snippet: `import { SettingsLayout, SettingsSection, SaveBar } from '@protoyard/views-ui/settings';\n<SettingsLayout items={items}><SettingsSection title="Preferences">…</SettingsSection></SettingsLayout>`,
+    a11y: [
+      'Unsaved changes are visible and guarded when navigating away.',
+      'Destructive actions require typed confirmation.',
+    ],
+  },
+  states: {
+    load: viewDemo('StatesDemo'),
+    snippet: `import { QueryState } from '@protoyard/views-ui/states';\n<QueryState query={result} onRetry={reload}>{data => <Results rows={data} />}</QueryState>`,
+    a11y: [
+      'Every query state has a clear status announcement.',
+      'Retry is available only when recovery is meaningful.',
+    ],
+  },
+  commands: {
+    load: viewDemo('CommandsDemo'),
+    snippet: `import { AppCommandPalette, createCommands } from '@protoyard/views-ui/commands';\n<AppCommandPalette registry={registry} />`,
+    a11y: [
+      'Open with Ctrl/⌘+K; the dialog supports search and standard keyboard navigation.',
+      'Commands are filtered by the current capability set.',
     ],
   },
   'app-shell': {

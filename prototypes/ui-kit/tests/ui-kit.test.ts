@@ -17,7 +17,8 @@ describe('catalog', () => {
   it('has unique kebab-case ids covering every group', () => {
     expect(new Set(CATALOG_IDS).size).toBe(CATALOG_IDS.length);
     for (const id of CATALOG_IDS) expect(id).toMatch(/^[a-z0-9-]+$/);
-    expect(new Set(CATALOG.map((e) => e.group)).size).toBe(12);
+    expect(new Set(CATALOG.map((e) => e.group)).size).toBe(13);
+    expect(CATALOG.filter((entry) => entry.group === 'views')).toHaveLength(13);
   });
 });
 
