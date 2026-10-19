@@ -191,6 +191,52 @@ test.describe('marketplace', () => {
     });
   }
 
+  test('cards show their default theme; the Theme facet filters by collection through the URL', async ({
+    page,
+  }) => {
+    await openMarketplace(page);
+    await expect(page.getByTestId('market-theme').first()).toContainText('Theme:');
+    const select = page.getByTestId('market-collection');
+    const options = await select
+      .locator('option')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => [(node as HTMLOptionElement).value, node.textContent ?? ''])
+      );
+    const [value, text] = options.find(([v]) => v !== '') ?? ['', ''];
+    expect(value, 'at least one theme collection is shelved').not.toBe('');
+    const count = Number(/\((\d+)\)/.exec(text)?.[1]);
+    await select.selectOption(value);
+    await expect(page).toHaveURL(new RegExp(`collection=${value}`));
+    await expect(page.getByTestId('market-results').getByTestId('market-card')).toHaveCount(count);
+    await page.reload();
+    await expect(page.getByTestId('market-collection')).toHaveValue(value);
+    await expect(page.getByTestId('market-results').getByTestId('market-card')).toHaveCount(count);
+  });
+
+  test('Try in theme opens the detail page with the demo in that theme', async ({ page }) => {
+    const template = requireFirst('template');
+    await openMarketplace(page, `?kind=template&q=${encodeURIComponent(template.name)}`);
+    const card = page.getByTestId('market-results').locator(`[data-slug="${template.slug}"]`);
+    await card.getByText('Try in theme').click();
+    const option = card
+      .getByRole('list', { name: /in another theme/ })
+      .getByRole('link')
+      .first();
+    const href = (await option.getAttribute('href')) ?? '';
+    const themeId = /[?&]theme=([a-z0-9-]+)/.exec(href)?.[1] ?? '';
+    expect(themeId, 'a library theme id in the link').not.toBe('');
+    await option.click();
+    await expect(page).toHaveURL(
+      new RegExp(`/marketplace/template/${template.slug}/\\?theme=${themeId}$`)
+    );
+    // The live preview hydrates when visible (client:visible).
+    await page.locator('section[aria-labelledby="preview-title"]').scrollIntoViewIfNeeded();
+    await expect(page.getByTestId('preview-theme')).toContainText(themeId);
+    await page.getByRole('link', { name: 'Use its default theme' }).click();
+    await expect(page).toHaveURL(new RegExp(`/marketplace/template/${template.slug}/$`));
+    await expect(page.getByTestId('preview-theme')).toHaveCount(0);
+  });
+
   test('has no horizontal overflow at 390 px', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openMarketplace(page);
@@ -224,5 +270,22 @@ test.describe('marketplace on the showcase site', () => {
       (await indexedDB.databases()).map((d) => d.name)
     );
     expect(databases).toContain(`protoyard.template-demo-${template.slug}.data`);
+  });
+
+  test('a ?theme= link plays the bundled demo in that library theme', async ({ page }) => {
+    const template =
+      shelved.find((e) => e.kind === 'template' && e.slug === 'chat-widget') ??
+      requireFirst('template');
+    await page.goto(`${origin}${base}marketplace/template/${template.slug}/?theme=gaming-neon`);
+    await page.locator('section[aria-labelledby="preview-title"]').scrollIntoViewIfNeeded();
+    await expect(page.getByTestId('preview-theme')).toContainText('gaming-neon');
+    const iframe = page.locator(`iframe[title^="${template.name} preview"]`);
+    await expect(iframe).toHaveAttribute('src', /[?&]theme=gaming-neon/);
+    const frame = page.frameLocator(`iframe[title^="${template.name} preview"]`);
+    await waitForPrototypeReady(page, { slug: template.slug, root: frame, timeoutMs: 20_000 });
+    await expect(frame.locator('[data-py-theme]').first()).toHaveAttribute(
+      'data-py-theme',
+      'gaming-neon'
+    );
   });
 });

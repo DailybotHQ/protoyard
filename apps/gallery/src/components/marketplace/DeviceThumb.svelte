@@ -1,5 +1,5 @@
 <script lang="ts">
-import { monogram } from '@/lib/format';
+import { monogram } from '../../lib/format';
 
 /**
  * A screenshot (or the product's icon) inside a small CSS frame for its shell:
