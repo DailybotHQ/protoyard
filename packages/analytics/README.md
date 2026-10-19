@@ -20,13 +20,36 @@ tested in Node. The Svelte kit is [`@protoyard/analytics-ui`](../analytics-ui/RE
 | `@protoyard/analytics` (filters) | `FilterSchema` / `SegmentSchema` (data-only AND/OR trees, up to 4 levels), 14 operators with `OPERATORS_BY_TYPE`, `filterSchemaFor(catalog)` (unknown properties and type-mismatched operators become field errors), `compileFilter(filter)` → `(row) => boolean`, `readProperty` |
 | `@protoyard/analytics` (layouts) | `DashboardWidgetSchema` / `DashboardLayoutSchema` (`{ id, widget, title?, x, y, w, h }` on 12 columns), `compactLayout` (no overlaps, upward gravity), `moveWidget(layout, id, 'up' \| 'down' \| 'left' \| 'right')`, `resizeWidget(layout, id, { dw, dh })`, `readingOrder`, `layoutRows` |
 | `@protoyard/analytics/generators` | `ANALYTICS_GENERATOR_VERSION` |
-| `@protoyard/analytics/funnel` | `FunnelStepSchema`, `FunnelDefinitionSchema` (2–12 steps, unique ids) |
-| `@protoyard/analytics/cohort` | `RetentionIntervalSchema`, `RetentionPeriodsSchema` |
+| `@protoyard/analytics/funnel` | `FunnelStepSchema`, `FunnelDefinitionSchema` (2–12 steps, unique ids); `computeFunnel(events, steps, { window, breakdown, range })` → per-step `count`, `conversion`, `stepConversion`, `dropOff`, `medianTimeToConvert`, plus a `breakdown` per property value; `eventsByUser` |
+| `@protoyard/analytics/cohort` | `RetentionIntervalSchema`, `RetentionPeriodsSchema`; `computeRetention(events, { cohortEvent, returnEvent, interval, periods, now, mode })` → cohorts × periods with `count`, `rate`, `incomplete`, plus size-weighted `average` |
 
-**Status:** the engine (ranges, buckets, aggregates, deltas, filters) is
-complete (`T-analytics-engine`). Funnel and cohort computations and the
-generators come with the following PLAN_003 analytics tasks; this table lists
-only what exists.
+**Status:** the engine (ranges, buckets, aggregates, deltas, filters,
+layouts) and the funnel and retention computations are complete
+(`T-analytics-engine`, `T-analytics-funnel-cohort`). The generators come with
+the analytics-generators task; this table lists only what exists.
+
+Funnels and retention, precisely:
+
+- **Funnel:** a user enters at their earliest first-step event. Each later
+  step must be a later event (in time order) within `window` ms of
+  entering; steps out of order do not count. `medianTimeToConvert` is the
+  median time from the previous step. `breakdown` reads a property path on
+  the entry event; users without it fall in `(none)`.
+- **Retention:** a user's cohort is the UTC bucket (day, week from
+  `weekStartsOn`, or month) of their `cohortEvent`, or of their first
+  event. Period N is the Nth bucket after it.
+  - `bounded` (the default) counts users active during period N.
+  - `unbounded` counts users active in period N or any later one (not
+    churned yet), so rates never rise.
+  - A period that has not finished at `now` is `incomplete`. One that has
+    not started has `count: null`.
+  - `average` weighs complete cells by cohort size.
+
+Speed: a funnel over 100k events from 10k users (with a breakdown) takes a
+median of 27–45 ms, and weekly retention over the same events 30–32 ms, in
+Node on the Apple M1 Max under heavy machine load. `PROTOYARD_BENCH=1`
+asserts the 50 ms funnel budget. Size: `computeFunnel` 1.9 KB,
+`computeRetention` 1.6 KB gzip (zod external).
 
 Semantics worth knowing:
 
