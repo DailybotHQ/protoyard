@@ -8,7 +8,7 @@ import {
   subscribeOverlayPortalTarget,
 } from '@protoyard/ui';
 import { Command, Dialog as DialogPrimitive } from 'bits-ui';
-import { shortcutKeys, shortcutLabel } from './platform.ts';
+import { shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import type { CommandEntry, CommandRegistry } from './registry.ts';
 
 interface Props {

@@ -1,5 +1,21 @@
 /**
- * `@protoyard/views/editor` — framework-free engine for the editor view.
- * Filled by the PLAN_003 task editor-view; empty until then.
+ * `@protoyard/views/editor` — markdown text commands for the textarea editor
+ * in `@protoyard/views-ui/editor`: bold/italic/code/strike, links, headings,
+ * lists and quotes, code blocks, list continuation and `@`/`#` completion.
+ * Pure functions over `{ text, start, end }`.
  */
-export {};
+export {
+  applyCompletion,
+  continueList,
+  type InlineMark,
+  insertCodeBlock,
+  insertLink,
+  type LineFormat,
+  replaceSelection,
+  setHeading,
+  type TextState,
+  type TriggerMatch,
+  toggleInline,
+  toggleLines,
+  triggerAt,
+} from './commands.ts';

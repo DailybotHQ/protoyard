@@ -1,6 +1,9 @@
 /**
- * `@protoyard/views-ui/editor` — Svelte 5 components for the editor view.
- * Import this subpath only from a lazy route screen. Filled by the PLAN_003
- * task editor-view; empty until then.
+ * `@protoyard/views-ui/editor` — a lightweight Markdown editor on a textarea
+ * (no contenteditable library): toolbar and shortcuts, Write / Preview tabs or
+ * a split view, `@` and `#` completion, a character limit and draft autosave.
+ * The preview renders the shared safe parser's AST as elements, never HTML.
  */
-export {};
+export { default as MarkdownEditor } from './MarkdownEditor.svelte';
+export { default as MarkdownPreview } from './MarkdownPreview.svelte';
+export type { EditorSuggestion } from './types.ts';

@@ -1,7 +1,7 @@
 <script lang="ts">
 import { runService } from '@protoyard/renderer-svelte';
 import type { Component, Snippet } from 'svelte';
-import { isMacPlatform, shortcutKeys } from './platform.ts';
+import { isMacPlatform, shortcutKeys } from '../lib/platform.ts';
 import type { CommandRegistry } from './registry.ts';
 
 interface Props {
