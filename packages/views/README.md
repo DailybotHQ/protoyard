@@ -7,9 +7,9 @@ scenario generators run in Node tests, in services and in generators, so this
 package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
-> **Status:** `./board`, `./calendar` and `./grid` are implemented; the other
-> subpaths exist and are empty until their PLAN_003 task lands, and this
-> README documents each one then.
+> **Status:** `./board`, `./calendar`, `./grid` and `./map` are implemented;
+> the other subpaths exist and are empty until their PLAN_003 task lands, and
+> this README documents each one then.
 
 ## Subpaths
 
@@ -187,4 +187,55 @@ const visible = windowGrid({ rows: createAxis({ count: rows.length, size: 36 }),
   T-grid-perf-bench.
 - **Size** (esbuild, minified, gzip -9, zod excluded): the whole subpath is
   4.6 KB; what a grid view imports is 4.0 KB; the virtualizer alone 0.6 KB.
+
+## Map (`@protoyard/views/map`)
+
+An offline, **simulated** map: no tiles, no network, no geocoding, no real
+geography. The bundled basemap is **Port Meridian**, a fictional coastal city
+drawn as data. Its box is the `harbor-bay` region of `@protoyard/scenarios`
+geo (open South Atlantic, far from any coast) and its districts sit on that
+region's anchors, so `geoPoints({ region: 'harbor-bay' })` lands on it.
+
+```ts
+import { basemapPaths, cluster, fenceTransitions, fitBounds, PORT_MERIDIAN, zoomAround } from '@protoyard/views/map';
+
+let view = fitBounds(PORT_MERIDIAN.bbox, size); // { center, zoom }
+const paths = basemapPaths(PORT_MERIDIAN, view, size); // [{ id, kind, d, label }] for <path d={…}>
+const items = cluster(jobs, view.zoom, 64); // points and clusters (with bbox for "zoom in")
+view = zoomAround(view, 1, size, pointer); // wheel / pinch / + key
+const events = fenceTransitions(track, fences); // enter / exit per fence
+```
+
+- **Basemap data** (`BasemapSchema`, `PORT_MERIDIAN`): features (`land`,
+  `water`, `park`, `district`, `road`, `rail`) with flat `[lng, lat, …]`
+  arrays. Prototypes may pass their own basemap for another fictional place;
+  it is validated (pairs, ranges, kinds, strict keys, at most 2,000
+  features). `basemapPaths` returns SVG path data built only from numbers and
+  `M`/`L`/`Z`, culled to the view, so data can never inject markup (render
+  with `<path d={path.d}>`, never `{@html}`). Its attribution says the place is
+  fictional; the UI must show it.
+- **Views** (`fitBounds`, `project`, `unproject`, `zoomAround`, `panBy`,
+  `viewBounds`): Web Mercator with a center and a fractional zoom (a 256 px
+  world at zoom 0). Zooming keeps the point under the pointer fixed.
+- **Clustering** (`cluster(points, zoom, cellPx)`): buckets in the zoom's
+  world grid (stable while panning), deterministic (sorted by id), single
+  points stay points, and each cluster has a stable id, its member ids and a
+  box for "zoom to cluster".
+- **Geofences** (`GeofenceSchema`, `pointInRing`, `ringContains`,
+  `ringSelfIntersects`, `fencesAt`, `fenceTransitions`): polygons (planar
+  even-odd, edges count as inside) and circles (haversine radius), and enter
+  and exit events for a moving point (a track that starts inside does not
+  "enter" unless `initiallyInside` says it was outside).
+- **Distances** (`haversine`, `routeLength`, `etaSeconds`, `pointAlong`,
+  `nearest`): great-circle meters, route length, a simulated ETA (constant
+  speed, no traffic model), the position a given distance along a route (to
+  move markers by simulated time), and nearest points (ties by id).
+- **Size** (esbuild, minified, gzip -9, zod excluded; 2026-10-19): the whole
+  subpath is 3.9 KB, the Port Meridian data alone 0.9 KB (under 20 KB raw),
+  the engine without the basemap 2.6 KB. Clustering 5,000 points took 3.4 ms
+  (best of three on a loaded machine; the test budget is 10 ms with a
+  same-process calibration).
+- **Limits:** planar polygon math (fine for city-sized areas away from the
+  antimeridian and poles); no polygon holes; no routing on roads (routes are
+  the stops you give).
 
