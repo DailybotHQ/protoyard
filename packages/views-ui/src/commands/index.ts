@@ -5,8 +5,9 @@
  * `AppCommandPalette` adds ⌘K / Ctrl+K and action shortcuts, and loads its
  * dialog lazily on first open. DevTools keep Ctrl/⌘ + `.`.
  */
+
+export { isMacPlatform, shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 export { default as AppCommandPalette } from './AppCommandPalette.svelte';
-export { isMacPlatform, shortcutKeys, shortcutLabel } from './platform.ts';
 export {
   type CommandAction,
   type CommandEntry,

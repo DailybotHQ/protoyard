@@ -6,9 +6,9 @@ files, settings, states and an app command palette. They are built on
 `@protoyard/ui` tokens, and the engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status:** `./settings`, `./states` and `./commands` are implemented; the
-> other subpaths exist and are empty until their PLAN_003 task lands, and
-> this README documents each view then.
+> **Status:** `./settings`, `./states`, `./commands` and `./editor` are
+> implemented; the other subpaths exist and are empty until their PLAN_003
+> task lands, and this README documents each view then.
 
 ## Install
 
@@ -222,4 +222,57 @@ and `mod+.` cannot be registered as action shortcuts.
   2026-10-19): the static listener component is 0.8 KB plus a 0.3 KB shared
   platform helper; `createCommands` is 1.2 KB; the dialog is a separate
   2.4 KB chunk fetched on the first open.
+
+## Editor (`@protoyard/views-ui/editor`)
+
+A lightweight Markdown editor on a plain `<textarea>` (no contenteditable
+library). Text commands are the pure functions of `@protoyard/views/editor`.
+
+```svelte
+<script lang="ts">
+  import { MarkdownEditor } from '@protoyard/views-ui/editor';
+  let body = $state(draft?.body ?? '');
+</script>
+
+<MarkdownEditor
+  bind:value={body}
+  label="Comment"
+  mentions={people.map((p) => ({ id: p.id, value: p.handle, label: p.name }))}
+  references={deals.map((d) => ({ id: d.id, value: d.code, label: d.name }))}
+  maxLength={2000}
+  onDraft={(text) => services.saveDraft(text)}
+/>
+```
+
+- **Toolbar and shortcuts** (`mod` is ⌘ on Mac, Ctrl elsewhere; matched on
+  `event.code`): bold `mod+B`, italic `mod+I`, strikethrough `mod+Shift+X`,
+  inline code `mod+E`, link `mod+K` (it does not reach the app command
+  palette), heading `mod+Alt+2`, bulleted `mod+Shift+8`, numbered
+  `mod+Shift+7`, task `mod+Shift+9` and quote `mod+Shift+.` lists, code
+  block `mod+Alt+C`. The toolbar is one tab stop with arrow-key focus. Enter
+  continues lists, and Enter on an empty item ends them.
+- **Completion:** typing `@` or `#` (after a space or at the start) offers
+  `mentions` or `references` in a listbox anchored at the caret (mirror-div
+  measurement). The textarea keeps its textbox role and points at the list
+  with `aria-autocomplete`, `aria-controls` and `aria-activedescendant` (the
+  textbox-with-popup form of the ARIA combobox pattern; a textarea may not
+  take the `combobox` role). Arrow keys move, Enter or Tab inserts
+  `@value `, Escape closes only the list.
+- **Preview:** Write / Preview tabs (default) or `layout="split"`. The
+  preview renders the safe parser's AST (`@protoyard/ai/markdown`) as
+  elements and text only, never `{@html}`; links pass `safeHref` and images
+  `safeImageSrc` again, so `javascript:` links render as text and remote or
+  `data:` images as their alt text. Headings start at `h2` because the
+  preview sits inside a page. `MarkdownPreview` is also exported for showing
+  saved Markdown.
+- **Limits and drafts:** `maxLength` (default 5,000) sets the textarea limit
+  and a counter, and a command that would pass it is refused with a polite
+  announcement. `onDraft` runs after typing pauses (`draftDelayMs`, default
+  800 ms), on blur and on unmount.
+- **Size** (Svelte 5 client output, esbuild minified with code splitting,
+  gzip -9; svelte, core, ui, renderer, lucide and Bits UI external;
+  2026-10-19): the editor chunk is 6.0 KB; the preview and the shared parser
+  load as a separate 4.5 KB chunk on the first preview (at once in `split`).
+- **Limits:** toolbar commands set the textarea value directly, so the
+  browser's undo history does not include them.
 

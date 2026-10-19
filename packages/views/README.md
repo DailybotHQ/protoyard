@@ -7,9 +7,9 @@ scenario generators run in Node tests, in services and in generators, so this
 package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
-> **Status:** `./board`, `./calendar`, `./grid` and `./map` are implemented;
-> the other subpaths exist and are empty until their PLAN_003 task lands, and
-> this README documents each one then.
+> **Status:** `./board`, `./calendar`, `./grid`, `./map` and `./editor` are
+> implemented; the other subpaths exist and are empty until their PLAN_003
+> task lands, and this README documents each one then.
 
 ## Subpaths
 
@@ -238,4 +238,14 @@ const events = fenceTransitions(track, fences); // enter / exit per fence
 - **Limits:** planar polygon math (fine for city-sized areas away from the
   antimeridian and poles); no polygon holes; no routing on roads (routes are
   the stops you give).
+
+## Editor commands (`@protoyard/views/editor`)
+
+Pure Markdown text transforms over `{ text, start, end }` (selection in, new
+text and selection out), used by `@protoyard/views-ui/editor`:
+`toggleInline` (bold, italic, strike, code; unwraps when already wrapped),
+`insertLink` (the URL selected), `toggleLines` (bullet, numbered, task,
+quote, for every selected line), `setHeading`, `insertCodeBlock`,
+`continueList` (Enter in a list), `triggerAt` (the `@`/`#` being typed,
+never inside an email or a word) and `applyCompletion`.
 
