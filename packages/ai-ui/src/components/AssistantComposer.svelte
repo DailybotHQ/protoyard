@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ArrowUp, Paperclip, Square } from '@lucide/svelte';
+import { ArrowUp, LoaderCircle, Paperclip, Square } from '@lucide/svelte';
 import { AI_MODELS, type AiModel } from '@protoyard/ai';
 import type { AssistantSendInput } from '../types.ts';
 
@@ -33,6 +33,9 @@ let {
 
 let files = $state<File[]>([]);
 let error = $state('');
+/** `onSubmit` is in flight (simulated latency before the stream starts): show it, block resends. */
+let sending = $state(false);
+const waiting = $derived(sending && !streaming);
 let activeSuggestion = $state(0);
 let textarea = $state<HTMLTextAreaElement | null>(null);
 const trigger = $derived(/(?:^|\s)([/@][\w-]*)$/.exec(value));
@@ -67,8 +70,9 @@ async function submit(): Promise<void> {
     return;
   }
   const prompt = value.trim();
-  if (!prompt || !selectedModel || disabled) return;
+  if (!prompt || !selectedModel || disabled || sending) return;
   error = '';
+  sending = true;
   try {
     const result = await onSubmit({ prompt, model: selectedModel, attachments: files });
     if (result !== false) {
@@ -77,6 +81,8 @@ async function submit(): Promise<void> {
     }
   } catch {
     error = 'The message could not be sent. Your draft is still here.';
+  } finally {
+    sending = false;
   }
 }
 
@@ -160,8 +166,8 @@ function addFiles(event: Event): void {
       {/each}
     </select>
     <span class="ml-auto hidden text-[0.7rem] text-muted-foreground sm:inline">Simulated AI · no provider connection</span>
-  <button type="button" class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40" disabled={streaming ? !onStop : !value.trim() || disabled || !selectedModel} aria-label={streaming ? 'Stop response' : 'Send message'} onclick={() => void submit()}>
-      {#if streaming}<Square class="size-4 fill-current" aria-hidden="true" />{:else}<ArrowUp class="size-5" aria-hidden="true" />{/if}
+  <button type="button" class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40" disabled={streaming ? !onStop : waiting || !value.trim() || disabled || !selectedModel} aria-busy={waiting || undefined} aria-label={streaming ? 'Stop response' : waiting ? 'Sending message' : 'Send message'} onclick={() => void submit()}>
+      {#if streaming}<Square class="size-4 fill-current" aria-hidden="true" />{:else if waiting}<LoaderCircle class="size-5 motion-safe:animate-spin" aria-hidden="true" data-composer-sending />{:else}<ArrowUp class="size-5" aria-hidden="true" />{/if}
     </button>
   </div>
   {#if error}<p class="px-5 pb-3 text-xs text-destructive" role="alert">{error}</p>{/if}

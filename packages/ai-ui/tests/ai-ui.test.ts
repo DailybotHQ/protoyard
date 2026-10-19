@@ -33,6 +33,25 @@ describe('AssistantComposer', () => {
     await waitFor(() => expect((prompt as HTMLTextAreaElement).value).toBe(''));
   });
 
+  it('shows a sending state while onSubmit is in flight and never sends twice', async () => {
+    let release!: () => void;
+    const onSubmit = vi.fn(() => new Promise<void>((r) => (release = r)));
+    render(AssistantComposer, { onSubmit });
+    const prompt = screen.getByRole('textbox', { name: 'Message the simulated assistant' });
+    await fireEvent.input(prompt, { target: { value: 'Draft a launch plan' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+    const sending = await screen.findByRole('button', { name: 'Sending message' });
+    expect(sending.getAttribute('aria-busy')).toBe('true');
+    expect((sending as HTMLButtonElement).disabled).toBe(true);
+    expect(sending.querySelector('[data-composer-sending]')).not.toBeNull();
+    await fireEvent.keyDown(prompt, { key: 'Enter' });
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    release();
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Sending message' })).toBeNull()
+    );
+  });
+
   it('offers slash commands and inserts the selected command without submitting', async () => {
     const onSubmit = vi.fn();
     render(AssistantComposer, { onSubmit, slashCommands: ['/summarize', '/search'] });
