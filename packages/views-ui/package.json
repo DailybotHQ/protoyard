@@ -1,0 +1,101 @@
+{
+  "name": "@protoyard/views-ui",
+  "version": "0.1.0",
+  "description": "Svelte 5 components for Protoyard's rich views kit (board, calendar, timeline, data grid, tree, simulated map, editor, activity, notifications, files, settings, states, command palette). One lazy subpath per view, never re-exported from @protoyard/ui.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.svelte"
+  ],
+  "exports": {
+    "./board": {
+      "types": "./src/board/index.ts",
+      "svelte": "./src/board/index.ts",
+      "default": "./src/board/index.ts"
+    },
+    "./calendar": {
+      "types": "./src/calendar/index.ts",
+      "svelte": "./src/calendar/index.ts",
+      "default": "./src/calendar/index.ts"
+    },
+    "./timeline": {
+      "types": "./src/timeline/index.ts",
+      "svelte": "./src/timeline/index.ts",
+      "default": "./src/timeline/index.ts"
+    },
+    "./grid": {
+      "types": "./src/grid/index.ts",
+      "svelte": "./src/grid/index.ts",
+      "default": "./src/grid/index.ts"
+    },
+    "./tree": {
+      "types": "./src/tree/index.ts",
+      "svelte": "./src/tree/index.ts",
+      "default": "./src/tree/index.ts"
+    },
+    "./map": {
+      "types": "./src/map/index.ts",
+      "svelte": "./src/map/index.ts",
+      "default": "./src/map/index.ts"
+    },
+    "./editor": {
+      "types": "./src/editor/index.ts",
+      "svelte": "./src/editor/index.ts",
+      "default": "./src/editor/index.ts"
+    },
+    "./activity": {
+      "types": "./src/activity/index.ts",
+      "svelte": "./src/activity/index.ts",
+      "default": "./src/activity/index.ts"
+    },
+    "./notifications": {
+      "types": "./src/notifications/index.ts",
+      "svelte": "./src/notifications/index.ts",
+      "default": "./src/notifications/index.ts"
+    },
+    "./files": {
+      "types": "./src/files/index.ts",
+      "svelte": "./src/files/index.ts",
+      "default": "./src/files/index.ts"
+    },
+    "./settings": {
+      "types": "./src/settings/index.ts",
+      "svelte": "./src/settings/index.ts",
+      "default": "./src/settings/index.ts"
+    },
+    "./states": {
+      "types": "./src/states/index.ts",
+      "svelte": "./src/states/index.ts",
+      "default": "./src/states/index.ts"
+    },
+    "./commands": {
+      "types": "./src/commands/index.ts",
+      "svelte": "./src/commands/index.ts",
+      "default": "./src/commands/index.ts"
+    },
+    "./scenarios": {
+      "types": "./src/scenarios/index.ts",
+      "svelte": "./src/scenarios/index.ts",
+      "default": "./src/scenarios/index.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "@protoyard/views": "workspace:*",
+    "bits-ui": "^2.19.0"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  }
+}
