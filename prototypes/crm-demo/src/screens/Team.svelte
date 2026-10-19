@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Lock, ShieldCheck } from '@lucide/svelte';
-import { can, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
+import { avatarImage, can, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Badge, Card } from '@protoyard/ui';
 import PageHeader from '../components/PageHeader.svelte';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
@@ -29,6 +29,7 @@ const team = liveQuery(
         name: (person?.name as string) ?? 'Unknown',
         title: (person?.title as string) ?? '',
         email: (person?.email as string) ?? '',
+        avatar: person?.avatar as string | undefined,
         role: m.role as string,
         joinedAt: m.joinedAt as string,
         won: owned.filter((d) => d.stage === 'won').reduce((s, d) => s + d.amount, 0),
@@ -50,7 +51,7 @@ const org = $derived(principal.current?.organization);
     <ul class="mt-3 divide-y divide-border">
       {#each team.current ?? [] as member (member.id)}
         <li class="flex items-center gap-3 py-3">
-          <Avatar name={member.name} size="md" />
+          <Avatar name={member.name} {...avatarImage(member.avatar)} size="md" />
           <div class="min-w-0 flex-1 text-sm">
             <p class="truncate font-medium">
               {member.name}

@@ -57,6 +57,11 @@ export interface Contact {
   email: string;
   phone: string;
   title: string;
+  /**
+   * Library avatar id (`av-NNN`) from the generator; resolve it with
+   * `avatarImage`. Contacts added in the UI have none and show initials.
+   */
+  avatar?: string;
   ownerId: string;
   createdAt: string;
   updatedAt: string;

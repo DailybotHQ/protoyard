@@ -1,7 +1,15 @@
 <script lang="ts">
 import { ArrowLeft, Globe, MapPin, Pencil, Plus, Trash2, Users } from '@lucide/svelte';
 import type { RouteProps } from '@protoyard/renderer-svelte';
-import { back, can, Link, liveQuery, navigate, runService } from '@protoyard/renderer-svelte';
+import {
+  avatarImage,
+  back,
+  can,
+  Link,
+  liveQuery,
+  navigate,
+  runService,
+} from '@protoyard/renderer-svelte';
 import { AlertDialog, Avatar, Badge, Button, Card, EmptyState, LoadingState } from '@protoyard/ui';
 import CompanyDialog from '../components/CompanyDialog.svelte';
 import ContactDialog from '../components/ContactDialog.svelte';
@@ -98,7 +106,7 @@ let deleteOpen = $state(false);
       <ul class="mt-3 divide-y divide-border">
         {#each contacts.current ?? [] as person (person.id)}
           <li class="flex items-center gap-3 py-3">
-            <Avatar name={`${person.firstName} ${person.lastName}`} size="sm" decorative />
+            <Avatar name={`${person.firstName} ${person.lastName}`} {...avatarImage(person.avatar)} size="sm" decorative />
             <div class="min-w-0 text-sm">
               <p class="truncate font-medium">{person.firstName} {person.lastName}</p>
               <p class="truncate text-muted-foreground">{person.title} · {person.email}</p>

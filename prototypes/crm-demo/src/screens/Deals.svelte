@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Plus } from '@lucide/svelte';
-import { can, liveQuery, navigate, useClock } from '@protoyard/renderer-svelte';
+import { avatarImage, can, liveQuery, navigate, useClock } from '@protoyard/renderer-svelte';
 import { Avatar, Button, DataTable, type DataTableColumn, Select } from '@protoyard/ui';
 import DealDialog from '../components/DealDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -11,7 +11,7 @@ import { STAGE_LABELS } from '../domain/services.ts';
 import { useCrm } from '../lib/context.ts';
 import { formatDate, fromNow, money } from '../lib/format.ts';
 
-type Row = Deal & { companyName: string; ownerName: string };
+type Row = Deal & { companyName: string; ownerName: string; ownerAvatar?: string };
 
 const { db, services } = useCrm();
 const clock = useClock();
@@ -25,10 +25,12 @@ const rows = liveQuery(
     ]);
     const companyName = new Map(companies.map((c) => [c.id, c.name]));
     const personName = new Map(people.map((p) => [p.id as string, p.name as string]));
+    const personAvatar = new Map(people.map((p) => [p.id as string, p.avatar as string]));
     return deals.map((d) => ({
       ...d,
       companyName: companyName.get(d.companyId) ?? '—',
       ownerName: personName.get(d.ownerId) ?? 'Unknown',
+      ownerAvatar: personAvatar.get(d.ownerId),
     }));
   },
   { initial: [] }
@@ -74,7 +76,7 @@ const columns: DataTableColumn<Row>[] = [
 {#snippet stageCell(deal: Row)}<StageBadge stage={deal.stage} />{/snippet}
 {#snippet amountCell(deal: Row)}<span class="tabular-nums">{money(deal.amount)}</span>{/snippet}
 {#snippet ownerCell(deal: Row)}
-  <span class="flex items-center gap-2"><Avatar name={deal.ownerName} size="xs" decorative /> {deal.ownerName}</span>
+  <span class="flex items-center gap-2"><Avatar name={deal.ownerName} {...avatarImage(deal.ownerAvatar)} size="xs" decorative /> {deal.ownerName}</span>
 {/snippet}
 {#snippet closeCell(deal: Row)}
   <span title={formatDate(deal.closeDate)}>{fromNow(deal.closeDate, clock.now)}</span>

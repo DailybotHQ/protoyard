@@ -8,7 +8,7 @@ import {
   Settings,
   Users,
 } from '@lucide/svelte';
-import { createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
+import { avatarImage, createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { AppShell, Avatar, Badge, Header } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import SidebarNav from './components/SidebarNav.svelte';
@@ -42,7 +42,7 @@ const plan = $derived(org?.billingStatus === 'expired' ? 'expired' : (org?.plan 
     <Header title={org?.name ?? 'Pipeline'} titleAs="p" class="lg:hidden">
       {#snippet actions()}
         {#if principal.current}
-          <Avatar name={principal.current.persona.name} size="sm" />
+          <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" />
         {/if}
       {/snippet}
     </Header>
@@ -67,7 +67,7 @@ const plan = $derived(org?.billingStatus === 'expired' ? 'expired' : (org?.plan 
       {#if principal.current}
         <div class="mt-auto rounded-lg border border-sidebar-border bg-surface p-3">
           <div class="flex items-center gap-3">
-            <Avatar name={principal.current.persona.name} size="sm" />
+            <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" />
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-medium">{principal.current.persona.name}</p>
               <p class="truncate text-xs text-muted-foreground">

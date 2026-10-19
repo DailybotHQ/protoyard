@@ -1,6 +1,13 @@
 <script lang="ts">
 import { GripVertical, MoveRight, Plus } from '@lucide/svelte';
-import { can, Link, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  avatarImage,
+  can,
+  Link,
+  liveQuery,
+  runService,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import { Avatar, Button, Card, DropdownMenu, Input } from '@protoyard/ui';
 import DealDialog from '../components/DealDialog.svelte';
 import LostReasonDialog from '../components/LostReasonDialog.svelte';
@@ -26,8 +33,13 @@ const companies = liveQuery(
 );
 const people = liveQuery(
   async () =>
-    new Map((await db.table('py_personas').toArray()).map((p) => [p.id, p.name as string])),
-  { initial: new Map() }
+    new Map(
+      (await db.table('py_personas').toArray()).map((p) => [
+        p.id as string,
+        { name: p.name as string, avatar: p.avatar as string | undefined },
+      ])
+    ),
+  { initial: new Map<string, { name: string; avatar: string | undefined }>() }
 );
 
 let query = $state('');
@@ -177,7 +189,7 @@ function onDrop(stage: DealStage) {
                   <span class="text-sm font-semibold tabular-nums">{moneyCompact(deal.amount)}</span>
                   <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
                     {deal.probability}%
-                    <Avatar name={people.current?.get(deal.ownerId) ?? '?'} size="xs" />
+                    <Avatar name={people.current?.get(deal.ownerId)?.name ?? '?'} {...avatarImage(people.current?.get(deal.ownerId)?.avatar)} size="xs" />
                   </span>
                 </div>
               </Card>

@@ -64,4 +64,25 @@ describe('crm-demo generator', () => {
     const world = await generateCrmWorld(contextFor('rep-view'));
     expect(rows<Deal>(world, 'deals').some((d) => d.ownerId === 'user_0003')).toBe(true);
   });
+
+  it('gives every teammate and contact a library avatar, stable for a seed', async () => {
+    expect(definition.generatorVersion).toBe(4);
+    const AVATAR = /^av-\d{3}$/;
+    const faces = (world: WorldSeed) => ({
+      team: world.personas.map((p) => p.avatar),
+      contacts: rows<Contact>(world, 'contacts').map((c) => c.avatar),
+    });
+    for (const scenario of definition.scenarios) {
+      const world = await generateCrmWorld(contextFor(scenario.id));
+      const { team, contacts } = faces(world);
+      expect(team.length).toBeGreaterThan(0);
+      for (const id of [...team, ...contacts]) expect(id).toMatch(AVATAR);
+      // No face repeats until the 175-face library is used up.
+      const all = [...team, ...contacts];
+      expect(new Set(all).size).toBe(Math.min(all.length, 175));
+      expect(faces(await generateCrmWorld(contextFor(scenario.id)))).toEqual(faces(world));
+    }
+    const other = faces(await generateCrmWorld(contextFor('growing-team', 77)));
+    expect(other.team).not.toEqual(faces(await generateCrmWorld(contextFor('growing-team'))).team);
+  });
 });
