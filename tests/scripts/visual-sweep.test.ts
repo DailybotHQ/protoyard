@@ -1,5 +1,6 @@
 import { deflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { THEME_COLLECTIONS, THEME_LIBRARY_META } from '../../packages/themes/src/library/index.ts';
 import { changedPixels, decodePng, optimizePng } from '../../scripts/lib/png.ts';
 import {
   buildMatrix,
@@ -9,10 +10,12 @@ import {
   layoutsFor,
   parseSweepArgs,
   renderContactSheet,
+  resolveThemes,
   type ShotResult,
   type SweepTarget,
   shellsFor,
   shotQuery,
+  shotUrl,
   summarize,
 } from '../../scripts/lib/sweep.ts';
 
@@ -37,6 +40,7 @@ describe('arguments', () => {
       only: [],
       shells: null,
       themes: [],
+      route: null,
       skipBuild: false,
       templates: false,
       axe: true,
@@ -52,6 +56,8 @@ describe('arguments', () => {
         'none,browser',
         '--themes',
         'violet,fintech-ledger',
+        '--route',
+        '#/settings/profile',
         '--concurrency',
         '4',
         '--compare',
@@ -66,6 +72,7 @@ describe('arguments', () => {
       only: ['crm-demo', 'mobile-banking-demo'],
       shells: ['none', 'browser'],
       themes: ['violet', 'fintech-ledger'],
+      route: '/settings/profile',
       skipBuild: true,
       templates: true,
       axe: false,
@@ -158,6 +165,79 @@ describe('matrix', () => {
     );
     const [plain] = buildMatrix([CRM], { shells: ['none'], themes: [] });
     expect(plain && shotQuery(plain).has('layout')).toBe(false);
+  });
+});
+
+describe('theme review', () => {
+  const LIBRARY = [
+    { id: 'fintech-ledger', collection: 'industry' },
+    { id: 'summit-crm', collection: 'brand-like' },
+    { id: 'accessible-high-contrast', collection: 'high-contrast' },
+  ];
+  const COLLECTIONS = ['industry', 'brand-like', 'high-contrast'];
+
+  it('expands all, collections and explicit ids, in library order without repeats', () => {
+    expect(resolveThemes([], LIBRARY, COLLECTIONS)).toEqual({ ids: [], review: false });
+    expect(resolveThemes(['violet', 'ocean'], LIBRARY, COLLECTIONS)).toEqual({
+      ids: ['violet', 'ocean'],
+      review: false,
+    });
+    expect(resolveThemes(['all'], LIBRARY, COLLECTIONS)).toEqual({
+      ids: ['fintech-ledger', 'summit-crm', 'accessible-high-contrast'],
+      review: true,
+    });
+    expect(resolveThemes(['high-contrast', 'violet', 'all'], LIBRARY, COLLECTIONS)).toEqual({
+      ids: ['accessible-high-contrast', 'violet', 'fintech-ledger', 'summit-crm'],
+      review: true,
+    });
+    expect(() => resolveThemes(['seasonal'], LIBRARY, [...COLLECTIONS, 'seasonal'])).toThrow(
+      /no such themes/
+    );
+  });
+
+  it('covers the real library: all is every theme, every collection is non-empty', () => {
+    const all = resolveThemes(['all'], THEME_LIBRARY_META, THEME_COLLECTIONS);
+    expect(all.ids).toHaveLength(THEME_LIBRARY_META.length);
+    expect(THEME_LIBRARY_META.length).toBeGreaterThanOrEqual(64);
+    for (const collection of THEME_COLLECTIONS) {
+      expect(resolveThemes([collection], THEME_LIBRARY_META, THEME_COLLECTIONS).ids.length).toBe(
+        THEME_LIBRARY_META.filter((meta) => meta.collection === collection).length
+      );
+    }
+  });
+
+  it('captures one representative screen per target: 2 × themes shots', () => {
+    const ids = THEME_LIBRARY_META.map((meta) => meta.id);
+    const target = { ...CRM, layout: { id: 'rail', supported: ['sidebar', 'top-nav'] } };
+    const shots = buildMatrix([target, BANKING], {
+      shells: ['none', 'browser'],
+      themes: ids,
+      review: true,
+      route: '/settings',
+    });
+    expect(shots).toHaveLength(2 * 2 * ids.length);
+    expect(new Set(shots.map((shot) => shot.key)).size).toBe(shots.length);
+    const crm = shots.filter((shot) => shot.slug === 'crm-demo');
+    expect(new Set(crm.map((shot) => `${shot.viewport}/${shot.shell}/${shot.layout}`))).toEqual(
+      new Set(['desktop/none/rail'])
+    );
+    expect(crm.slice(0, 2).map((shot) => [shot.theme, shot.mode])).toEqual([
+      [ids[0], 'light'],
+      [ids[0], 'dark'],
+    ]);
+    const [first] = crm;
+    expect(first && shotUrl('/', first)).toBe(
+      `/?devtools=0&scenario=enterprise-scale&shell=none&layout=rail&mode=light&theme=${ids[0]}#/settings`
+    );
+    // Without --shells the manifest's own shell is used.
+    const [own] = buildMatrix([BANKING], { shells: null, themes: ['ocean'], review: true });
+    expect(own).toMatchObject({ viewport: 'desktop', shell: 'auto', theme: 'ocean' });
+    expect(own && shotUrl('/t/x/app/', own)).not.toContain('#');
+  });
+
+  it('rejects a route that is not a hash path', () => {
+    expect(() => parseSweepArgs(['--route', 'https://example.com'])).toThrow(/hash path/);
+    expect(() => parseSweepArgs(['--route'])).toThrow(/needs a value/);
   });
 });
 
