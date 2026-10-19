@@ -1,25 +1,41 @@
-# Nova Assistant
+# Nova Assistant — `nova-assistant-demo`
 
-Nova is a polished assistant-product flagship built from the `ai-assistant` template. It includes project-scoped conversation history, simulated model selection and agent tools, an editable canvas, lazy voice mode, and an embedded widget that opens as a sidebar and expands to full screen. The `long-history` scenario seeds one deterministic 5,000-message conversation to exercise the virtualized thread.
+An AI assistant product built from the `ai-assistant` template:
+project-scoped conversation history, a choice of simulated models with
+usage and cost, an agent that asks for approval before using a local tool,
+an editable canvas, voice mode with captions, and an embeddable widget on a
+fictional host page that opens as a sidebar and expands to full screen.
+There is **no real model or AI API**: replies come from deterministic local
+response packs and a scripted agent, voice transcripts are scripted, and
+only file names of attachments are kept. Everything persists in the
+browser (IndexedDB). Roles are simulated: UX only, not security.
 
 ```bash
-pnpm protoyard dev nova-assistant-demo
+pnpm protoyard dev nova-assistant-demo        # run it (DevTools included in dev)
 pnpm vitest run prototypes/nova-assistant-demo
 pnpm --filter @prototype/nova-assistant-demo typecheck
 pnpm protoyard validate nova-assistant-demo --build
 pnpm protoyard budget nova-assistant-demo
 ```
 
-## Scenarios
+Eight scenarios, from `fresh-workspace` to `long-history` (one thread of
+5,000 messages on a virtualized list) and the `slow-model`, `rate-limited`,
+`assistant-outage` and `agent-approval` conditions, are described in
+[docs/SPEC.md](docs/SPEC.md#scenarios). Canvas, voice and the widget demo
+are loaded only when opened.
 
-- `fresh-workspace` — first visit with no conversations.
-- `active-workspace` — the default project workspace with folders and conversation history.
-- `power-user` — a wider saved-history workspace.
-- `long-history` — one thread containing 5,000 generated messages; the assistant view uses the virtualized `MessageList` from `@protoyard/ai-ui`.
-- `slow-model`, `rate-limited`, `assistant-outage`, and `agent-approval` — simulated service states for latency, quotas, failures, and explicit local-tool approval.
+## Spec
 
-## Honest boundaries
+- [AGENTS.md](AGENTS.md): rules for agents working on this prototype
+- [docs/SPEC.md](docs/SPEC.md): problem, users, capabilities, scenarios, honest boundaries, known gaps, rebuild path
+- [docs/FLOWS.md](docs/FLOWS.md): each user flow mapped to a service, capability and tables
+- [docs/SCREENS.md](docs/SCREENS.md): routes, tabs and their states
+- [docs/DATA_MODEL.md](docs/DATA_MODEL.md): tables, relations, field notes
+- [docs/PERMISSIONS.md](docs/PERMISSIONS.md): roles, capabilities, personas
 
-Every model and agent run is a local deterministic simulation. There are no provider SDKs, credentials, network model calls, real accounts, or external search. The voice mode uses scripted transcripts and visible captions; local speech synthesis is optional, and the microphone is not requested by default. The widget is a demo hosted on a fictional Northstar Journal page. Prototype personas and capability checks are for UX simulation, not security.
+## Tests
 
-Canvas, voice and the widget demo are dynamically loaded when opened. Data is stored in this prototype's IndexedDB namespace and can be explored through DevTools. No data leaves the browser.
+`tests/ai-assistant.test.ts`: deterministic workspaces and the 5,000-message
+thread, persisted replies with usage, stopping a stream, memory and privacy
+controls, the monthly budget, role checks and a local agent run, and the
+request limit and agent approval scenarios.
