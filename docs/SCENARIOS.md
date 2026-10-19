@@ -194,8 +194,32 @@ export function generateBlankWorld(ctx: GenerateContext): WorldSeed {
 `generateTeam(ctx, options?)` from `@protoyard/scenarios` builds an
 organization, the scenario actor and teammates with memberships, if you do
 not need a fixed cast. Every persona gets a seeded library avatar
-(`av-NNN`, from `@protoyard/avatars`); use `createAvatarPool(ctx.rng.fork('<key>'))`
-for people your own generator creates. See its section in the package README.
+(`av-NNN`, from `@protoyard/avatars`). See its section in the package README.
+
+### Avatars in generators
+
+People look real when they have faces. The library holds 175 portraits of
+fictional people (`av-001` … `av-175`), and `@protoyard/scenarios`
+re-exports its seeded pickers:
+
+```ts
+import { createAvatarPool } from '@protoyard/scenarios';
+
+// A stable fork key: these draws never shift any other seeded value.
+const avatars = createAvatarPool(ctx.rng.fork('my-app:avatars:customers'), {
+  avoid: team.personas.map((p) => p.avatar), // the team's faces are dealt last
+});
+const customers = rows.map((row) => ({ ...row, avatar: avatars.next() }));
+```
+
+A pool deals every face once before it reshuffles. `generateTeam`,
+`generateSaasWorld`, the views `defaultPeople` and blueprint `avatar` fields
+already do this on their own forks. Store the id (or an `https://` URL or a
+root-relative path, per `PersonaAvatarSchema`), never image bytes. Render it
+with `<Avatar name={p.name} {...avatarImage(p.avatar)} />`, and initials show
+when there is no face. Adding faces to a generator changes its output for
+the same seed, so bump its `generatorVersion`. Provenance, rendering, sizes
+and re-import are in [AVATARS](AVATARS.md).
 
 Faker is the largest dependency, so the runtime loads it lazily with
 `createGenerateContextAsync()` only when a world is generated (first seed,
@@ -227,7 +251,7 @@ DevTools:
 | Version | Where | Bump when |
 | --- | --- | --- |
 | `generatorVersion` | `GENERATOR_SDK_VERSION` in `@protoyard/scenarios` (currently `3`) | SDK helper output changes (faker upgrade, density mapping) |
-| `prototypeGeneratorVersion` | `generatorVersion` in your `definePrototype()` (CRM: `CRM_GENERATOR_VERSION = 2`) | Your generator would produce a different world for the same seed |
+| `prototypeGeneratorVersion` | `generatorVersion` in your `definePrototype()` (CRM: `CRM_GENERATOR_VERSION = 4`) | Your generator would produce a different world for the same seed |
 
 Protoyard promises reproducibility for the same versions, not identical output
 across generator changes. The version makes the change explicit.
