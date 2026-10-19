@@ -7,8 +7,8 @@ import {
   toDrillQuery,
 } from '@protoyard/analytics-ui/drill';
 import { BarChart } from '@protoyard/charts-ui/cartesian';
-import { Link, liveQuery, navigate, useClock } from '@protoyard/renderer-svelte';
-import { Badge, EmptyState, Skeleton } from '@protoyard/ui';
+import { avatarImage, Link, liveQuery, navigate, useClock } from '@protoyard/renderer-svelte';
+import { Avatar, Badge, EmptyState, Skeleton } from '@protoyard/ui';
 import PageHeader from '../components/PageHeader.svelte';
 import { countBy } from '../domain/metrics.ts';
 import { useAnalytics } from '../lib/context.ts';
@@ -29,6 +29,7 @@ type UserRow = {
   createdAt: string;
   lastSeen: string;
   events: number;
+  avatar?: string;
 };
 
 const DIMENSIONS = [
@@ -61,6 +62,7 @@ const data = liveQuery(
       createdAt: u.createdAt,
       lastSeen: stats.get(u.id)?.last || u.createdAt,
       events: stats.get(u.id)?.events ?? 0,
+      ...(u.avatar ? { avatar: u.avatar } : {}),
     }));
     return { rows, rate: project?.sampleRate ?? 1 };
   },
@@ -77,7 +79,10 @@ const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 </script>
 
 {#snippet userCell(row: UserRow)}
-  <Link href={`/users/${encodeURIComponent(row.id)}`} class="font-medium text-primary underline-offset-2 hover:underline">{row.id}</Link>
+  <span class="flex items-center gap-2">
+    <Avatar name={row.id} {...avatarImage(row.avatar)} size="xs" decorative />
+    <Link href={`/users/${encodeURIComponent(row.id)}`} class="font-medium text-primary underline-offset-2 hover:underline">{row.id}</Link>
+  </span>
 {/snippet}
 
 <PageHeader title="Users" description="Tracked users of this project. Select a bar to drill into a slice; select a user to see their events.">

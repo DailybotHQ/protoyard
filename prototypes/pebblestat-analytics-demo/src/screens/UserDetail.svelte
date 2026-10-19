@@ -1,7 +1,7 @@
 <script lang="ts">
 import { ArrowLeft } from '@lucide/svelte';
-import { Link, liveQuery, useClock } from '@protoyard/renderer-svelte';
-import { Badge, Card, DataTable, EmptyState, Skeleton } from '@protoyard/ui';
+import { avatarImage, Link, liveQuery, useClock } from '@protoyard/renderer-svelte';
+import { Avatar, Badge, Card, DataTable, EmptyState, Skeleton } from '@protoyard/ui';
 import PageHeader from '../components/PageHeader.svelte';
 import type { TrackedEvent } from '../database/schema.ts';
 import { ACTIVATION_FUNNEL, EVENT_LABELS } from '../domain/catalog.ts';
@@ -41,6 +41,9 @@ const time = (iso: string) => new Date(iso).toISOString().slice(11, 16);
   {@const user = data.current.user}
   {@const events = data.current.events}
   <PageHeader title={user.id} description={`First seen ${fromNow(user.createdAt, clock.now)} · ${events.length} events`}>
+    {#snippet leading()}
+      <Avatar name={user.id} {...avatarImage(user.avatar)} size="lg" decorative />
+    {/snippet}
     {#snippet actions()}
       {#each Object.entries(user.properties) as [key, value] (key)}
         <Badge variant="outline">{key}: {String(value)}</Badge>

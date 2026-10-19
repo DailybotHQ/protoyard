@@ -67,6 +67,11 @@ export type TrackedUser = {
   /** ISO instant of the first event. */
   createdAt: string;
   properties: Record<string, EventPropertyValue>;
+  /**
+   * Library avatar id (`av-NNN`) from the generator; resolve it with
+   * `avatarImage`. Users without one (older worlds) show initials.
+   */
+  avatar?: string;
 };
 
 /** One tracked product event (`@protoyard/analytics` shape) in a project. */

@@ -16,6 +16,7 @@ import {
   type TimelineContext,
   type WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import type {
   AlertCheck,
   Annotation,
@@ -39,8 +40,11 @@ import { DEFAULT_LAYOUT, defaultReports, defaultSegments, releaseAnnotations } f
  * shape (launch wave, outage, churn) → rollups → saved objects → alerts.
  */
 
-/** Bump when the same seed would produce a different world. */
-export const PEBBLESTAT_GENERATOR_VERSION = 1;
+/**
+ * Bump when the same seed would produce a different world.
+ * v2: personas and tracked users carry library avatars (`av-NNN`), shown as photos.
+ */
+export const PEBBLESTAT_GENERATOR_VERSION = 2;
 
 /** Fixed people, so links like `?actor=user_0003` always mean the same person. */
 const PEOPLE = [
@@ -135,6 +139,8 @@ function identities(ctx: GenerateContext) {
     size: PEOPLE.length,
     featureFlags: { ...scenario.organization.featureFlags },
   };
+  // Library faces from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('pebblestat-analytics-demo:avatars:team'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   PEOPLE.forEach((p, index) => {
@@ -157,6 +163,7 @@ function identities(ctx: GenerateContext) {
         .replace(/[^a-z]/g, '')}@example.com`,
       title: p.title,
       avatarColor: p.color,
+      avatar: faces.next(),
       locale: 'en-US',
       timezone: 'UTC',
       joinedAt,
@@ -457,6 +464,11 @@ export function generatePebblestatWorld(ctx: GenerateContext): WorldSeed {
   }
   const events = mergeByTime(streams);
   const hasData = users.length > 0;
+  // Tracked users get faces too (team faces dealt last), in their stable generation order.
+  const userFaces = createAvatarPool(ctx.rng.fork('pebblestat-analytics-demo:avatars:users'), {
+    avoid: personas.map((p) => p.avatar),
+  });
+  for (const user of users) user.avatar = userFaces.next();
 
   const dashboards: SavedDashboard[] = PROJECTS.map((p) => ({
     id: `dashboard_${p.id}`,
