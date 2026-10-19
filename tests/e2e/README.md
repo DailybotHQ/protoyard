@@ -83,8 +83,37 @@ PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo \
 pnpm test:e2e tests/e2e/pending-feedback.spec.ts
 ```
 
+## Rich views kit
+
+`views.spec.ts` runs on the ui-kit build (desktop and Pixel 7, a fresh context
+per test) with real mouse moves and the keyboard, never synthetic drag events:
+
+- **Board:** a mouse drag across columns on desktop (a reorder inside the one
+  visible column on Pixel 7), then a keyboard move (Space, arrow, Space) with
+  its live-region message.
+- **Calendar:** a mouse drag moves a week-view event one hour later. A
+  repeating event confirms with Save.
+- **Timeline:** the end handle of a bar is dragged three days longer on
+  desktop. On Pixel 7 the canvas is hidden on purpose, and the test asserts the
+  task table instead.
+- **Grid:** Enter edits a cell. The editor's box must be inside the viewport;
+  `fill()` would scroll it into view and prove nothing. Then 100,000 rows
+  scroll to `Record 100000` with at most 80 DOM rows. On Pixel 7 it checks the
+  capped card list.
+- **Map:** pan by drag, zoom by button and wheel, and 5,000 places painted
+  under 100 ms (measured in the page). A cluster opens, and the virtualized
+  place list reaches the last of 5,000 places with End.
+- **Axe:** every view demo in light and dark.
+
+```bash
+PROTOYARD_E2E_PROTOTYPES=ui-kit pnpm test:e2e tests/e2e/views.spec.ts
+```
+
 ## Known gaps
 
+- `views.spec.ts`: the timeline cannot be rescheduled below `md` (its canvas is hidden; only
+  the task table shows), and the grid cannot be edited there (its card list is read-only in
+  the ui-kit demo). Both are asserted as layouts, not as missing tests.
 - `ai-chat-demo`'s outage flow runs on desktop only, because its Home pane is hidden at `#/` on
   phones.
 - E2E found and got fixed: crm-demo had no phone navigation (`f52cd89`; now asserted by *section
