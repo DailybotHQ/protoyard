@@ -98,6 +98,8 @@ export interface EntityService {
   remove(id: string): Promise<string | undefined>;
   /** Restores the complete row set affected by a soft remove before its simulated deadline. */
   restore(undoToken: string): Promise<number>;
+  /** Restores a trashed row and the soft-delete cascade recorded for it. */
+  restoreTrashed(id: string): Promise<number>;
   /** Permanently removes a trashed row and its cascade dependents. */
   purge(id: string): Promise<number>;
   bulkUpdate(ids: readonly string[], patch: EntityInput): Promise<Row[]>;
@@ -533,11 +535,23 @@ export function createEntityServices(
     entity: BlueprintEntity,
     ids: readonly string[],
     softDeleteAt?: string,
-    deletedBy?: string
+    deletedBy?: string,
+    deleteGroupId?: string
   ): Promise<number | SoftDeleteResult> {
     const effects = await collectDeleteEffects(entity, ids, softDeleteAt !== undefined);
-    for (const [table, rows] of effects.nullified)
-      await putChunked(db.table(table), [...rows.values()]);
+    for (const [table, rows] of effects.nullified) {
+      const originals = effects.originalReferences.get(table);
+      const updated = [...rows.values()].map((row) =>
+        softDeleteAt && deleteGroupId
+          ? {
+              ...row,
+              deleteGroupId,
+              deleteGroupReferences: originals?.get(row.id) ?? {},
+            }
+          : row
+      );
+      await putChunked(db.table(table), updated);
+    }
     let count = 0;
     const undoRows: SoftDeleteResult['rows'] = [];
     if (softDeleteAt !== undefined) {
@@ -549,7 +563,13 @@ export function createEntityServices(
         for (const id of idsToDelete) {
           const row = await targetTable.get(id);
           if (!row || row.deletedAt) continue;
-          updated.push({ ...row, deletedAt: softDeleteAt, deletedBy, updatedAt: softDeleteAt });
+          updated.push({
+            ...row,
+            deletedAt: softDeleteAt,
+            deletedBy,
+            ...(deleteGroupId ? { deleteGroupId } : {}),
+            updatedAt: softDeleteAt,
+          });
         }
         if (updated.length > 0) {
           await putChunked(targetTable, updated);
@@ -692,7 +712,14 @@ export function createEntityServices(
             db.transaction('rw', writeTables, async () => {
               const current = await load(id);
               const deletedAt = clock.now().toISOString();
-              const result = await deleteWithEffects(entity, [id], deletedAt, actorId());
+              const deleteGroupId = createRuntimeId('delete_group');
+              const result = await deleteWithEffects(
+                entity,
+                [id],
+                deletedAt,
+                actorId(),
+                deleteGroupId
+              );
               if (typeof result === 'number')
                 throw new Error('Soft delete did not create an undo set.');
               await audit({
@@ -700,7 +727,7 @@ export function createEntityServices(
                 entity,
                 recordId: id,
                 before: current,
-                after: { ...current, deletedAt, deletedBy: actorId() },
+                after: { ...current, deletedAt, deletedBy: actorId(), deleteGroupId },
               });
               const payload: UndoPayload = {
                 version: 1,
@@ -761,6 +788,7 @@ export function createEntityServices(
                   ...(row as Row),
                   deletedAt: null,
                   deletedBy: null,
+                  deleteGroupId: null,
                   updatedAt: clock.now().toISOString(),
                 }))
               );
@@ -774,7 +802,13 @@ export function createEntityServices(
               if (!row || row.deletedAt) throw new EntityNotFoundError(target.name, item.id);
               await assertReferences(target, item.fields as EntityInput);
               const rows = restoredNullifications.get(targetTable) ?? new Map<string, Row>();
-              rows.set(item.id, { ...row, ...item.fields, updatedAt: clock.now().toISOString() });
+              rows.set(item.id, {
+                ...row,
+                ...item.fields,
+                deleteGroupId: null,
+                deleteGroupReferences: null,
+                updatedAt: clock.now().toISOString(),
+              });
               restoredNullifications.set(targetTable, rows);
             }
             for (const [targetTable, rows] of restoredNullifications) {
@@ -795,6 +829,79 @@ export function createEntityServices(
                 after: restoredRoot,
               });
             }
+            return count;
+          })
+        );
+      },
+
+      async restoreTrashed(id) {
+        const recordId = parseInput(z.string().min(1), id);
+        if (!entity.features.softDelete) throw new EntityNotFoundError(entity.name, recordId);
+        const existing = await db.table(table).get(recordId);
+        if (!existing?.deletedAt) throw new EntityNotFoundError(entity.name, recordId);
+        assertOn('delete', existing);
+        return environment.run(op('restore'), () =>
+          db.transaction('rw', writeTables, async () => {
+            const root = await db.table(table).get(recordId);
+            if (!root?.deletedAt) throw new EntityNotFoundError(entity.name, recordId);
+            assertOn('delete', root);
+            const groupId = root.deleteGroupId;
+            const restored: Array<{ entity: BlueprintEntity; row: Row }> = [];
+            for (const target of blueprint.entities) {
+              const targetTable = db.table(entityTable(target));
+              const candidates = await targetTable.toArray();
+              for (const row of candidates) {
+                if (row.id === recordId && target.name === entity.name) {
+                  restored.push({ entity: target, row });
+                } else if (
+                  typeof groupId === 'string' &&
+                  row.deleteGroupId === groupId &&
+                  (Boolean(row.deletedAt) || Boolean(row.deleteGroupReferences))
+                ) {
+                  restored.push({ entity: target, row });
+                }
+              }
+            }
+            if (
+              !restored.some((item) => item.entity.name === entity.name && item.row.id === recordId)
+            ) {
+              throw new EntityNotFoundError(entity.name, recordId);
+            }
+            const now = clock.now().toISOString();
+            let count = 0;
+            for (const item of restored) {
+              const references = item.row.deleteGroupReferences;
+              if (references && typeof references === 'object' && !Array.isArray(references)) {
+                await assertReferences(item.entity, references as EntityInput);
+              }
+              const row = {
+                ...item.row,
+                ...(references && typeof references === 'object' && !Array.isArray(references)
+                  ? references
+                  : {}),
+                deletedAt: null,
+                deletedBy: null,
+                deleteGroupId: null,
+                deleteGroupReferences: null,
+                updatedAt: now,
+              };
+              await db.table(entityTable(item.entity)).put(row);
+              if (item.row.deletedAt) count += 1;
+            }
+            await audit({
+              action: 'restore',
+              entity,
+              recordId,
+              before: root,
+              after: {
+                ...root,
+                deletedAt: null,
+                deletedBy: null,
+                deleteGroupId: null,
+                deleteGroupReferences: null,
+                updatedAt: now,
+              },
+            });
             return count;
           })
         );

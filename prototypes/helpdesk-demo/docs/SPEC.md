@@ -25,7 +25,7 @@ role labels come from blueprint.json.
 | --- | --- | --- |
 | Founder or head of support who set up the desk | `owner` (Owner) | Everything (`*`) |
 | Support lead | `admin` (Support lead) | Everything (`*`); receives the "New ticket" notification for tickets other people create |
-| Support agent | `member` (Agent) | Reads, creates and updates customers and tickets, imports and exports tickets, exports customers, writes replies; edits and deletes only their own replies and (in the service) deletes only tickets assigned to them; cannot delete customers |
+| Support agent | `member` (Agent) | Reads, creates and updates customers and tickets, imports and exports tickets, exports customers, writes replies; edits and deletes only their own replies, deletes tickets assigned to them, and cannot delete customers |
 | Stakeholder reading along | `viewer` (Viewer) | Reads every list, ticket and history entry; every write is blocked |
 
 ## Capabilities
@@ -55,8 +55,8 @@ role labels come from blueprint.json.
   capability is not used by any screen or service in this prototype.
 - No attachment preview, download or removal in the UI (only upload and the
   file list).
-- No restore or permanent delete from the Trash view (only the Undo toast
-  right after a delete).
+- No permanent delete from the Trash view; records can be restored there or
+  recovered with Undo for the simulated 30-second window.
 - No sign-in: the active persona comes from the scenario or DevTools.
 
 ## Scenarios
@@ -109,7 +109,7 @@ chosen here. See
 | --- | --- |
 | blueprint.json entities and the derived stores (`customers`, `tickets`, `replies`, plus `auditEntries`, `files`, `notifications`; [DATA_MODEL.md](DATA_MODEL.md)) | Server database tables with the same ids, foreign keys, indexes (status, priority, SLA due, assignee, tags) and soft-delete columns |
 | `deriveDatabaseVersions` and the blueprint `history` (none yet: schema v1) | Server migrations generated or written from the same history |
-| Generated entity services (zod from the field rules, `session.assert`, one transaction per mutation, cascade on delete, audit and notification writes in the same transaction) | API endpoints or server actions with the same inputs, checks and transaction boundaries ([FLOWS.md](FLOWS.md)); bulk delete should keep the soft-delete semantics the dialog promises |
+| Generated entity services (zod from the field rules, `session.assert`, one transaction per mutation, cascade on delete, audit and notification writes in the same transaction) | API endpoints or server actions with the same inputs, checks and transaction boundaries ([FLOWS.md](FLOWS.md)); bulk delete keeps the soft-delete semantics the dialog promises |
 | `derivePolicy` roles and the `:own` rules | Server-side authorization on every request, including "agents delete only tickets assigned to them" and "authors edit only their own replies" ([PERMISSIONS.md](PERMISSIONS.md)) |
 | Personas and the DevTools persona switch | A real identity provider, sessions and team memberships |
 | `slaDueAt` from the generator only | A real SLA policy service: compute the due time on create and on priority change, pause it on pending or on hold, and alert before a breach |

@@ -91,16 +91,52 @@ const loading = $derived(rowsQuery.loading);
 
 const canRead = $derived(Boolean(caps && can(caps.read)));
 const canCreate = $derived(Boolean(caps && can(caps.create)));
-const canDelete = $derived(Boolean(caps && (can(caps.delete) || can(caps.deleteOwn))));
+const deletableIds = $derived(
+  new Set(
+    caps
+      ? rows
+          .filter((row) => can(caps.delete, row) || can(caps.deleteOwn, row))
+          .map((row) => String(row.id))
+      : []
+  )
+);
+function canDeleteRow(row: Row): boolean {
+  return deletableIds.has(String(row.id));
+}
+const canDelete = $derived(rows.some(canDeleteRow));
 const canExport = $derived(Boolean(caps && can(caps.export)));
 const canImport = $derived(Boolean(caps && can(caps.import)));
 const softDelete = $derived(Boolean(entity?.features.softDelete));
 const csvEnabled = $derived(Boolean(entity?.features.csv));
 
 function askDelete(ids: string[]) {
-  if (!ids.length || !canDelete) return;
-  pendingIds = ids;
+  const permittedIds = ids.filter((id) => {
+    const row = rows.find((item) => String(item.id) === id);
+    return row ? canDeleteRow(row) : false;
+  });
+  if (!permittedIds.length) return;
+  pendingIds = permittedIds;
   confirmOpen = true;
+}
+
+async function restoreSelected(ids: string[]) {
+  const svc = service;
+  if (!svc) return;
+  const permittedIds = ids.filter((id) => {
+    const row = rows.find((item) => String(item.id) === id);
+    return row ? canDeleteRow(row) : false;
+  });
+  if (!permittedIds.length) return;
+  let restored = 0;
+  for (const id of permittedIds) {
+    const result = await runService(() => svc.restoreTrashed(id), {
+      errorTitle: 'Could not restore',
+    });
+    if (!result.ok) return;
+    restored += result.value;
+  }
+  selected = [];
+  toast.success(`Restored ${restored} record${restored === 1 ? '' : 's'}`);
 }
 
 async function confirmDelete() {
@@ -110,6 +146,29 @@ async function confirmDelete() {
   confirmOpen = false;
   pendingIds = [];
   if (!svc || !ent || !ids.length) return;
+
+  if (softDelete) {
+    const tokens: string[] = [];
+    for (const id of ids) {
+      const result = await runService(() => svc.remove(id), {
+        errorTitle: 'Could not delete selection',
+      });
+      if (!result.ok) return;
+      if (typeof result.value === 'string') tokens.push(result.value);
+    }
+    selected = [];
+    toast.success(`Moved ${ids.length} record${ids.length === 1 ? '' : 's'} to trash`, {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          for (const token of tokens) {
+            void runService(() => svc.restore(token), { errorTitle: 'Could not undo' });
+          }
+        },
+      },
+    });
+    return;
+  }
 
   if (ids.length === 1) {
     const id = ids[0] as string;
@@ -160,20 +219,13 @@ async function onImportFile(event: Event) {
   input.value = '';
   if (!file || !entity || !service || !canImport) return;
   const text = await file.text();
-  const { validateCsv } = await import('@protoyard/blueprint/csv');
-  const result = validateCsv(entity, text);
-  if (result.errors.length) {
-    toast.error(`CSV has ${result.errors.length} error(s)`, {
-      description: result.errors[0]?.message,
-    });
-    return;
-  }
-  let created = 0;
-  for (const row of result.valid) {
-    const r = await runService(() => service.create(row), { errorTitle: 'Import row failed' });
-    if (r.ok) created += 1;
-  }
-  toast.success(`Imported ${created} row${created === 1 ? '' : 's'}`);
+  const result = await runService(() => service.importCsv(text, { mode: 'commit' }), {
+    errorTitle: 'Could not import CSV',
+  });
+  if (result.ok)
+    toast.success(
+      `Imported ${result.value.created.length} row${result.value.created.length === 1 ? '' : 's'}`
+    );
 }
 </script>
 
@@ -220,7 +272,7 @@ async function onImportFile(event: Event) {
       bind:page
       bind:selected
       {searchKeys}
-      selectable={canDelete && view === 'active'}
+      selectable={canDelete}
       loading={loading}
       caption={entityListHeading(entity)}
       emptyTitle={view === 'trash' ? 'Trash is empty' : `No ${entityListHeading(entity)} yet`}
@@ -259,9 +311,15 @@ async function onImportFile(event: Event) {
         </div>
       {/snippet}
       {#snippet bulkActions({ selected: ids })}
-        <Button size="sm" variant="destructive" onclick={() => askDelete(ids)}>
-          <Trash2 class="size-3.5" aria-hidden="true" /> Delete {ids.length}
-        </Button>
+        {#if view === 'trash'}
+          <Button size="sm" onclick={() => void restoreSelected(ids)}>
+            Restore {ids.length}
+          </Button>
+        {:else}
+          <Button size="sm" variant="destructive" onclick={() => askDelete(ids)}>
+            <Trash2 class="size-3.5" aria-hidden="true" /> Delete {ids.length}
+          </Button>
+        {/if}
       {/snippet}
     </DataTable>
   </div>
