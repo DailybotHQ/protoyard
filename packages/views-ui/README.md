@@ -7,10 +7,9 @@ files, settings, states and an app command palette. They are built on
 [`@protoyard/views`](../views/README.md).
 
 > **Status:** `./board`, `./calendar`, `./commands`, `./editor`, `./map`,
-> `./settings` and `./states` are implemented; `./activity`, `./files`,
-> `./grid`, `./notifications`, `./scenarios`, `./timeline` and `./tree` are
-> empty until their PLAN_003 task lands, and this README documents each view
-> then.
+> `./settings`, `./states` and `./tree` are implemented; the other subpaths
+> are empty until their PLAN_003 task lands, and this README documents each
+> view then.
 
 ## Install
 
@@ -466,4 +465,54 @@ without ranks, lanes or WIP limits.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
   ui, renderer, lucide, Bits UI and zod external; 2026-10-19): 9.3 KB with
   the board engine (6.6 KB component, 3.1 KB engine).
+
+## Tree (`@protoyard/views-ui/tree`)
+
+`TreeView` (page trees, folders, org charts) and `OutlineEditor` (an outline
+of inline titles), on the `@protoyard/views/tree` engine over
+`{ id, parentId, rank }` rows.
+
+```svelte
+<TreeView
+  query={pages} label="Pages" bind:expanded bind:selected
+  getId={(p) => p.id} getParentId={(p) => p.parentId} getRank={(p) => p.rank} getLabel={(p) => p.title}
+  onSelect={(p) => navigate(`/pages/${p.id}`)}
+  onMove={(move) => services.movePage(move)}
+/>
+
+<OutlineEditor
+  query={items} label="Plan"
+  getId={(i) => i.id} getParentId={(i) => i.parentId} getRank={(i) => i.rank} getTitle={(i) => i.title}
+  onCreate={(input) => services.createItem(input)}
+  onRename={(item, title) => services.renameItem(item.id, title)}
+  onMove={(move) => services.moveItem(move)}
+  onDelete={(item) => services.deleteItem(item.id)}
+/>
+```
+
+- **TreeView** is an ARIA tree with roving focus:
+  - ↑/↓, Home and End move; → opens a node or goes to its first child; ←
+    closes it or goes to its parent; `*` opens all siblings; typing jumps by
+    label; Enter or Space selects. Rows carry `aria-level`, `aria-posinset`,
+    `aria-setsize` and `aria-expanded`.
+  - **Lazy children:** pass `hasChildren` and `loadChildren`; opening such a
+    node loads once, with `aria-busy` while loading.
+  - Above 500 rows (`virtualizeAbove`) it renders only the visible window, in
+    a fixed `height`, and scrolls a focused row into view.
+- **OutlineEditor:** Enter adds a sibling (focus follows the new item when
+  `onCreate` resolves with its id), Tab and Shift+Tab indent and outdent,
+  Alt+↑/↓ move among siblings, ↑/↓ change item, Escape reverts an edit,
+  Backspace on an empty item deletes it (with `onDelete`). Titles save on
+  blur or Enter and go back to the saved title if saving fails.
+- **Moving** (both): drag a row (on touch, from the grip) and drop it before,
+  inside or after another, or open **"Move to…"** with Shift+F10 (or the
+  context-menu key), which lists only valid parents. A node can never move
+  into its own subtree. Moves go through `onMove`, show at once with
+  `aria-busy`, open the new parent so the node stays visible, and roll back
+  when they fail. `move.rerank` carries fresh sibling ranks when older data
+  needed them.
+- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
+  ui, renderer, lucide, Bits UI and zod external; 2026-10-19): `TreeView`
+  8.2 KB and `OutlineEditor` 7.3 KB, each including the tree engine, ranks
+  and (for TreeView) the virtualizer; 10.7 KB for the whole subpath.
 
