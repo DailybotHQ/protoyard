@@ -7,7 +7,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./scales": "./src/scales.ts",
+    "./scales": "./src/scales/index.ts",
     "./shapes": "./src/shapes.ts",
     "./downsample": "./src/downsample.ts",
     "./layout": "./src/layout.ts",

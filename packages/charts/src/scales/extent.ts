@@ -1,4 +1,4 @@
-import type { Extent } from './types.ts';
+import type { Extent } from '../types.ts';
 
 /**
  * `[min, max]` of the finite values, ignoring `null`, `NaN` and infinities.

@@ -45,7 +45,7 @@ describe('@protoyard/charts scaffold', () => {
 
   it('every subpath export resolves to a module', async () => {
     const subpaths = await Promise.all([
-      import('../src/scales.ts'),
+      import('../src/scales/index.ts'),
       import('../src/shapes.ts'),
       import('../src/downsample.ts'),
       import('../src/layout.ts'),
