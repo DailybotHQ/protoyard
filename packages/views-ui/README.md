@@ -6,9 +6,9 @@ files, settings, states and an app command palette. They are built on
 `@protoyard/ui` tokens, and the engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status:** `./settings` is implemented; the other subpaths exist and are
-> empty until their PLAN_003 task lands, and this README documents each view
-> then.
+> **Status:** `./settings` and `./states` are implemented; the other subpaths
+> exist and are empty until their PLAN_003 task lands, and this README
+> documents each view then.
 
 ## Install
 
@@ -130,4 +130,43 @@ its own settings page, build it from these patterns on top of the same
   per component SettingsLayout 1.7, SaveBar 1.7, DangerZone 1.3, each row or
   SettingsSection about 0.6, the guard 0.4. A typical screen (layout, a
   section, the save bar, a few rows) is about 4.5 KB. Lazy, 0 KB initial.
+
+## States (`@protoyard/views-ui/states`)
+
+`QueryState` is the one boundary for a `liveQuery` result, so no screen shows
+a blank or a fake success. Every view in this kit uses it for its own
+data-less states.
+
+```svelte
+<script lang="ts">
+  import { liveQuery } from '@protoyard/renderer-svelte';
+  import { QueryState } from '@protoyard/views-ui/states';
+
+  let attempt = $state(0);
+  const deals = liveQuery(() => services.listDeals(), { initial: [], deps: () => [attempt] });
+</script>
+
+<QueryState query={deals} label="Loading deals" emptyTitle="No deals yet" onRetry={() => attempt++}>
+  {#snippet children(list)}<DealTable rows={list} />{/snippet}
+  {#snippet emptyAction()}<Button onclick={() => runService(() => services.createDeal(draft))}>New deal</Button>{/snippet}
+</QueryState>
+```
+
+| State | When | Shows |
+| --- | --- | --- |
+| loading | before the first result | nothing for 150 ms (like the renderer's pending bar), then a skeleton (`role="status"` named by `label`), or your `loading` snippet |
+| reloading | `loading` again with data on screen | the data, with `aria-busy` |
+| empty | `isEmpty(current)` (default: undefined, null or `[]`) | `EmptyState` named by `emptyTitle`, with `emptyAction` |
+| offline | `SimulatedServiceError` with code `offline` | an alert that says the simulated network is off, with retry |
+| denied | `PermissionDeniedError` | an alert naming the missing capability and saying roles are simulated (switch persona in DevTools); no retry, since retrying cannot help |
+| failed | any other error | an alert with the error message and retry |
+
+- Errors are sorted by class (`classifyQueryError`, exported), never by
+  message text; a class with the same `name` also counts, because a
+  duplicated core copy breaks `instanceof` (the renderer's `runService` does
+  the same).
+- `onRetry` should re-run the query, e.g. by bumping a value in its `deps`.
+- **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
+  core, `@protoyard/ui`, the renderer and lucide external): 1.4 KB, small
+  enough for route screens to import statically.
 
