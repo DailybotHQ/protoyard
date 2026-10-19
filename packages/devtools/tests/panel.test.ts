@@ -407,6 +407,27 @@ describe('DevTools panel', () => {
     );
   });
 
+  it('includes the theme, mode and layout overrides in the share link', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.load('busy');
+    await runtime.overrides.set({ themeId: 'ocean', mode: 'dark', layout: 'rail' });
+    const link = reproducibleLink(runtime, {
+      href: 'https://x.test/crm/?theme=old&mode=light&layout=sidebar&foo=1#/deals',
+    });
+    const params = new URL(link).searchParams;
+    expect(params.getAll('theme')).toEqual(['ocean']);
+    expect(params.getAll('mode')).toEqual(['dark']);
+    expect(params.getAll('layout')).toEqual(['rail']);
+    expect(params.get('foo')).toBe('1');
+    expect(new URL(link).hash).toBe('#/deals');
+
+    await runtime.overrides.clear(['themeId', 'mode', 'layout']);
+    const cleared = new URL(
+      reproducibleLink(runtime, { href: 'https://x.test/crm/?theme=old&mode=light&layout=sidebar' })
+    ).searchParams;
+    expect(['theme', 'mode', 'layout'].some((key) => cleared.has(key))).toBe(false);
+  });
+
   it('includes the style preset overrides in the share link', async () => {
     const runtime = createFakeRuntime();
     await runtime.scenarios.load('busy');

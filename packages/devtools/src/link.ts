@@ -6,9 +6,11 @@ import {
 } from '@protoyard/core';
 
 /**
- * A reproducible link carries scenario coordinates (scenario, actor, seed),
- * the presentation shell override (`shell`) and the style preset overrides
- * (`radius`, `elevation`, `font`, `motion`) on top of the current page URL.
+ * A reproducible link carries scenario coordinates (scenario, actor, seed)
+ * and the active look overrides on top of the current page URL: theme and
+ * mode (`theme`, `mode`), the presentation shell (`shell`), the app layout
+ * (`layout`) and the style presets (`radius`, `elevation`, `font`, `motion`).
+ * Stale values for any of them in the page URL are replaced.
  * Manual data edits never go into a URL — use snapshots for those.
  */
 export function reproducibleLink(
@@ -26,6 +28,7 @@ export function reproducibleLink(
     'devtools',
     'shell',
     'frame',
+    'layout',
     ...STYLE_OVERRIDE_KEYS,
   ]) {
     url.searchParams.delete(key);
@@ -43,6 +46,10 @@ export function reproducibleLink(
     ...(active ? { scenario: active.scenario.id } : {}),
     ...(principal && principal.persona.id !== defaultActor ? { actor: principal.persona.id } : {}),
     ...(active && active.seed !== active.scenario.seed ? { seed: active.seed } : {}),
+    // Visible, clearable look overrides (?theme= ?mode= ?layout=).
+    ...(overrides.themeId ? { theme: overrides.themeId } : {}),
+    ...(overrides.mode ? { mode: overrides.mode } : {}),
+    ...(overrides.layout ? { layout: overrides.layout } : {}),
     // Visible, clearable presentation override (ADR-016 / ?shell=).
     ...(shellOverride ? { shell: shellOverride } : {}),
     // Visible, clearable style preset overrides (?radius= ?elevation= ?font= ?motion=).

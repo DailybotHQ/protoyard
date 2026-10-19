@@ -203,7 +203,8 @@ await runtime.theme.clearOverride(); // back to the scenario, then the theme
   applies the same presets as clearable overrides (source `override`,
   persisted like a DevTools choice). Values outside the preset ids are
   ignored. DevTools' share link (`reproducibleLink`) carries any active style
-  override, so a reviewer can send the exact look.
+  override together with the theme, mode, shell and layout overrides, so a
+  reviewer can send the exact look.
 
 ### Fonts
 
