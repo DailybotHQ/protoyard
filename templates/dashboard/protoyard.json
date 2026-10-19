@@ -28,7 +28,10 @@
   "defaultScenario": "active",
   "defaultTheme": "violet",
   "defaultMode": "system",
-  "preview": { "viewport": "desktop" },
+  "preview": {
+    "viewport": "desktop",
+    "layout": { "id": "sidebar", "supported": ["sidebar", "rail", "top-nav", "dashboard-grid"] }
+  },
   "storage": { "namespace": "template-dashboard", "schemaVersion": 2 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["empty", "active", "power-user", "viewer"]
