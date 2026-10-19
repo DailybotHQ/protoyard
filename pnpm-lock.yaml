@@ -158,6 +158,9 @@ importers:
 
   packages/avatars:
     devDependencies:
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
       sharp:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@24.19.2)
@@ -426,6 +429,9 @@ importers:
 
   packages/saas:
     dependencies:
+      '@protoyard/avatars':
+        specifier: workspace:*
+        version: link:../avatars
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
@@ -470,6 +476,9 @@ importers:
       '@faker-js/faker':
         specifier: ^10.6.0
         version: 10.6.0
+      '@protoyard/avatars':
+        specifier: workspace:*
+        version: link:../avatars
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
@@ -504,6 +513,9 @@ importers:
 
   packages/views:
     dependencies:
+      '@protoyard/avatars':
+        specifier: workspace:*
+        version: link:../avatars
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
