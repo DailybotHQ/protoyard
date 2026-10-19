@@ -253,6 +253,12 @@ importers:
       '@protoyard/ui':
         specifier: workspace:*
         version: link:../ui
+      '@protoyard/views':
+        specifier: workspace:*
+        version: link:../views
+      '@protoyard/views-ui':
+        specifier: workspace:*
+        version: link:../views-ui
       zod:
         specifier: ^4.6.0
         version: 4.6.7
