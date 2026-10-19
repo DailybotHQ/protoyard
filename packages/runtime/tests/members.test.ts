@@ -2,7 +2,7 @@ import { MEMBER_CAPABILITIES, PermissionDeniedError, type PrototypeRuntime } fro
 import { dumpTables, type PrototypeDatabase } from '@protoyard/database';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
-import { IdentityValidationError } from '../src/index.ts';
+import { IdentityValidationError, type ProtoyardRuntime } from '../src/index.ts';
 import { createTasksDefinition } from './fixtures/tasks-prototype.ts';
 
 type Runtime = PrototypeRuntime<PrototypeDatabase>;
@@ -177,6 +177,34 @@ describe('members services', () => {
 
     await runtime.session.signOut();
     await expect(runtime.members.invite({ name: 'Anyone', role: 'member' })).rejects.toBeInstanceOf(
+      PermissionDeniedError
+    );
+  });
+
+  it('cannot invite into or mutate a different organization', async () => {
+    const { runtime } = await boot();
+    const target = await (runtime as unknown as ProtoyardRuntime).identity.write(async (ops) => {
+      const organization = await ops.putOrganization({ name: 'Other Organization' });
+      const persona = await ops.putPersona({ name: 'Other Member' });
+      const membership = await ops.putMembership({
+        personaId: persona.id,
+        organizationId: organization.id,
+        role: 'viewer',
+      });
+      return { organization, membership };
+    });
+
+    await expect(
+      runtime.members.invite({
+        name: 'Cross Organization Invite',
+        role: 'viewer',
+        organizationId: target.organization.id,
+      })
+    ).rejects.toBeInstanceOf(PermissionDeniedError);
+    await expect(runtime.members.changeRole(target.membership.id, 'member')).rejects.toBeInstanceOf(
+      PermissionDeniedError
+    );
+    await expect(runtime.members.remove(target.membership.id)).rejects.toBeInstanceOf(
       PermissionDeniedError
     );
   });

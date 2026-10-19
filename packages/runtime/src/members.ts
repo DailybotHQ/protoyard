@@ -78,6 +78,14 @@ export function createMembersController(
     });
   }
 
+  // Team changes stay inside the actor's own organization (only transferOwnership checked this before).
+  const assertActorOrganization = (organizationId: string, capability: string) => {
+    const principal = k.principal;
+    if (!principal?.organization || principal.organization.id !== organizationId) {
+      throw new PermissionDeniedError(capability, principal?.role ?? null);
+    }
+  };
+
   return {
     list(organizationId) {
       const orgId = organizationId ?? k.principal?.organization?.id;
@@ -91,6 +99,7 @@ export function createMembersController(
 
     async invite(input) {
       const organizationId = input.organizationId ?? k.principal?.organization?.id;
+      if (organizationId) assertActorOrganization(organizationId, MEMBER_CAPABILITIES.invite);
       assert(MEMBER_CAPABILITIES.invite, { organizationId, role: input.role });
       if (input.role === OWNER_ROLE) assert(MEMBER_CAPABILITIES.transfer, { organizationId });
       const parsed = InviteMemberInputSchema.safeParse(input);
@@ -113,6 +122,7 @@ export function createMembersController(
           if (!(await ops.getOrganization(organizationId))) {
             throw invalid({ organizationId: `Unknown organization "${organizationId}"` });
           }
+          assertActorOrganization(organizationId, MEMBER_CAPABILITIES.invite);
           const existing = ((await k.db.table('py_personas').toArray()) as Persona[]).find(
             (p) => p.email?.toLowerCase() === email
           );
@@ -141,6 +151,7 @@ export function createMembersController(
 
     async changeRole(membershipId, role) {
       const target = await load(membershipId);
+      assertActorOrganization(target.organizationId, MEMBER_CAPABILITIES.update);
       assert(MEMBER_CAPABILITIES.update, { membership: target, role });
       if (role === OWNER_ROLE || target.role === OWNER_ROLE) {
         assert(MEMBER_CAPABILITIES.transfer, { membership: target, role });
@@ -149,6 +160,7 @@ export function createMembersController(
       return k.env.run('members.changeRole', () =>
         identity.write(async (ops) => {
           const membership = await current(ops, membershipId);
+          assertActorOrganization(membership.organizationId, MEMBER_CAPABILITIES.update);
           if (
             membership.role === OWNER_ROLE &&
             role !== OWNER_ROLE &&
@@ -163,11 +175,13 @@ export function createMembersController(
 
     async remove(membershipId) {
       const target = await load(membershipId);
+      assertActorOrganization(target.organizationId, MEMBER_CAPABILITIES.remove);
       assert(MEMBER_CAPABILITIES.remove, { membership: target });
       if (target.role === OWNER_ROLE) assert(MEMBER_CAPABILITIES.transfer, { membership: target });
       await k.env.run('members.remove', () =>
         identity.write(async (ops) => {
           const membership = await current(ops, membershipId);
+          assertActorOrganization(membership.organizationId, MEMBER_CAPABILITIES.remove);
           if (
             membership.role === OWNER_ROLE &&
             (await ownersAfter(ops, membership.organizationId, membership.id)) === 0
