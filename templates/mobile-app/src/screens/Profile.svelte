@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { ColorMode } from '@protoyard/core';
-import { runService, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
+import { avatarImage, runService, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Badge } from '@protoyard/ui';
 import Page from '../components/Page.svelte';
 import Segmented from '../components/Segmented.svelte';
@@ -34,7 +34,7 @@ function setMode(next: ColorMode) {
 <Page title="Profile" subtitle={me?.organization?.name}>
   {#if me}
     <section class="flex items-center gap-4 rounded-2xl bg-surface p-4 shadow-soft" aria-label="You">
-      <Avatar name={me.persona.name} size="lg" decorative />
+      <Avatar name={me.persona.name} {...avatarImage(me.persona.avatar)} size="lg" decorative />
       <div class="min-w-0 flex-1">
         <p class="truncate text-lg font-semibold">{me.persona.name}</p>
         <p class="truncate text-sm text-muted-foreground">{me.persona.email}</p>
@@ -62,7 +62,7 @@ function setMode(next: ColorMode) {
     <ul class="divide-y divide-border rounded-2xl bg-surface px-4 shadow-soft">
       {#each people as entry (entry.membership.id)}
         <li class="flex min-h-14 items-center gap-3 py-2.5">
-          <Avatar name={entry.persona?.name ?? '?'} size="sm" decorative />
+          <Avatar name={entry.persona?.name ?? '?'} {...avatarImage(entry.persona?.avatar)} size="sm" decorative />
           <span class="min-w-0 flex-1 truncate text-sm font-medium">
             {entry.persona?.name}{entry.persona?.id === me?.persona.id ? ' (you)' : ''}
           </span>

@@ -2,6 +2,7 @@
 import { Lock, ShieldCheck } from '@lucide/svelte';
 import type { ColorMode } from '@protoyard/core';
 import {
+  avatarImage,
   can,
   isValidationError,
   liveQuery,
@@ -50,6 +51,7 @@ const team = liveQuery(
         name: (person?.name as string) ?? 'Unknown',
         email: (person?.email as string) ?? '',
         title: (person?.title as string) ?? '',
+        avatar: person?.avatar as string | undefined,
         role: m.role as string,
       };
     });
@@ -197,7 +199,7 @@ const updatedByName = $derived(
       <ul class="mt-3 divide-y divide-border">
         {#each team.current ?? [] as member (member.id)}
           <li class="flex items-center gap-3 py-3">
-            <Avatar name={member.name} size="sm" />
+            <Avatar name={member.name} {...avatarImage(member.avatar)} size="sm" />
             <div class="min-w-0 flex-1 text-sm">
               <p class="truncate font-medium">
                 {member.name}

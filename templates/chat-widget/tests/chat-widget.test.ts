@@ -6,6 +6,7 @@ import type { ChatDatabase, Message } from '../src/database/schema.ts';
 import { SUPPORT_THREAD_ID } from '../src/database/schema.ts';
 import { ASSISTANT, chunkReply, GREETING, scriptedReply } from '../src/domain/assistant.ts';
 import { ChatValidationError, createChatServices } from '../src/domain/chat.ts';
+import { authorOf } from '../src/lib/context.ts';
 import { definition } from '../src/prototype.ts';
 import { generateChatWorld } from '../src/scenarios/generators.ts';
 
@@ -130,5 +131,26 @@ describe('chat-widget services on the real runtime', () => {
       .equals(SUPPORT_THREAD_ID)
       .count();
     expect(count).toBeGreaterThan(3);
+  });
+});
+
+describe('authorOf faces', () => {
+  const person = (id: string, avatar?: string) =>
+    ({ id, name: `Person ${id}`, avatarColor: '#2563eb', ...(avatar ? { avatar } : {}) }) as never;
+
+  it('resolves a persona avatar to the photo, and gives the assistant none', () => {
+    const people = new Map([
+      ['p1', person('p1', 'av-021')],
+      ['p2', person('p2')],
+      ['p3', person('p3', 'javascript:alert(1)')],
+    ]);
+    expect(authorOf(people, 'p1').image).toEqual({
+      src: './avatars/64/av-021.webp',
+      srcset: './avatars/64/av-021.webp 1x, ./avatars/128/av-021.webp 2x',
+    });
+    expect(authorOf(people, 'p2').image).toEqual({});
+    expect(authorOf(people, 'p3').image).toEqual({});
+    expect(authorOf(people, 'gone').image).toEqual({});
+    expect(authorOf(people, ASSISTANT.id)).toMatchObject({ isAssistant: true, image: {} });
   });
 });

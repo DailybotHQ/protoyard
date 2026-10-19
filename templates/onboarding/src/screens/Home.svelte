@@ -1,6 +1,13 @@
 <script lang="ts">
 import { MailPlus, Settings2, UserRound, Users } from '@lucide/svelte';
-import { can, liveQuery, navigate, runService, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  avatarImage,
+  can,
+  liveQuery,
+  navigate,
+  runService,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import { Avatar, Badge, Button, Card, LoadingState } from '@protoyard/ui';
 import RestartOnboarding from '../components/RestartOnboarding.svelte';
 import { CAPABILITIES, ROLE_LABELS } from '../domain/policy.ts';
@@ -28,6 +35,7 @@ const team = liveQuery(
       members: memberships.map((m) => ({
         id: m.personaId as string,
         name: (people.find((p) => p.id === m.personaId)?.name as string) ?? 'Unknown',
+        avatar: people.find((p) => p.id === m.personaId)?.avatar as string | undefined,
         role: m.role as string,
       })),
       invitations: invitations.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -98,7 +106,7 @@ const firstName = $derived(
         <ul class="mt-3 divide-y divide-border">
           {#each team.current?.members ?? [] as member (member.id)}
             <li class="flex items-center gap-3 py-2.5 text-sm">
-              <Avatar name={member.name} size="sm" decorative />
+              <Avatar name={member.name} {...avatarImage(member.avatar)} size="sm" decorative />
               <span class="min-w-0 flex-1 truncate font-medium">
                 {member.name}{#if member.id === principal.current?.persona.id}<span class="ml-1 font-normal text-muted-foreground">(you)</span>{/if}
               </span>

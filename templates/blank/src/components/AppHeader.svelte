@@ -1,6 +1,6 @@
 <script lang="ts">
 import { NotebookPen } from '@lucide/svelte';
-import { can, usePrincipal } from '@protoyard/renderer-svelte';
+import { avatarImage, can, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Badge } from '@protoyard/ui';
 import { CAPABILITIES } from '../domain/policy.ts';
 
@@ -23,7 +23,7 @@ const readOnly = $derived(principal.current ? !can(CAPABILITIES.create) : false)
           <p class="truncate text-sm font-medium">{principal.current.persona.name}</p>
           <p class="truncate text-xs text-muted-foreground">{principal.current.role}</p>
         </div>
-        <Avatar name={principal.current.persona.name} size="sm" />
+        <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" />
       {/if}
     </div>
   </div>
