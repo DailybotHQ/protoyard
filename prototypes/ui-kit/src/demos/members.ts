@@ -1,3 +1,5 @@
+import { sampleImageFields } from './faces.ts';
+
 /** Deterministic fictional people shared by the data demos (no randomness, no real persons). */
 export interface Member {
   id: string;
@@ -38,10 +40,40 @@ export function makeMembers(count: number): Member[] {
 }
 
 export const PEOPLE = [
-  { id: 'u-ana', name: 'Ana Lee', subtitle: 'ana@example.com · Design' },
-  { id: 'u-omar', name: 'Omar Diaz', subtitle: 'omar@example.com · Engineering' },
-  { id: 'u-kai', name: 'Kai Moreno', subtitle: 'kai@example.com · Support' },
-  { id: 'u-priya', name: 'Priya Shah', subtitle: 'priya@example.com · Product' },
-  { id: 'u-lena', name: 'Lena Novak', subtitle: 'lena@example.com · Marketing' },
-  { id: 'u-tomas', name: 'Tomás Ruiz', subtitle: 'tomas@example.com · Finance' },
+  {
+    id: 'u-ana',
+    name: 'Ana Lee',
+    subtitle: 'ana@example.com · Design',
+    ...sampleImageFields('Ana Lee'),
+  },
+  {
+    id: 'u-omar',
+    name: 'Omar Diaz',
+    subtitle: 'omar@example.com · Engineering',
+    ...sampleImageFields('Omar Diaz'),
+  },
+  {
+    id: 'u-kai',
+    name: 'Kai Moreno',
+    subtitle: 'kai@example.com · Support',
+    ...sampleImageFields('Kai Moreno'),
+  },
+  {
+    id: 'u-priya',
+    name: 'Priya Shah',
+    subtitle: 'priya@example.com · Product',
+    ...sampleImageFields('Priya Shah'),
+  },
+  {
+    id: 'u-lena',
+    name: 'Lena Novak',
+    subtitle: 'lena@example.com · Marketing',
+    ...sampleImageFields('Lena Novak'),
+  },
+  {
+    id: 'u-tomas',
+    name: 'Tomás Ruiz',
+    subtitle: 'tomas@example.com · Finance',
+    ...sampleImageFields('Tomás Ruiz'),
+  },
 ];

@@ -17,6 +17,7 @@ import {
   toast,
   UserPicker,
 } from '@protoyard/ui';
+import { sampleFace } from './faces.ts';
 import { PEOPLE } from './members.ts';
 
 type Priority = 'low' | 'medium' | 'high';
@@ -177,7 +178,7 @@ function remove(): void {
         >
           <span class="font-medium">{task.title}</span>
           <span class="flex items-center justify-between gap-2">
-            <Avatar name={nameOf(task.assignee)} size="xs" decorative />
+            <Avatar name={nameOf(task.assignee)} {...sampleFace(nameOf(task.assignee))} size="xs" decorative />
             <Badge variant={priorityTone[task.priority]}>{task.priority}</Badge>
           </span>
         </button>

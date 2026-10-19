@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Avatar, Input, Label } from '@protoyard/ui';
+import { sampleFace } from './faces.ts';
 
 const team = ['Ana Lee', 'Omar Diaz', 'Kai Moreno', 'Priya Shah', 'Lena Novak', 'Tomás Ruiz'];
 const sizes = ['xs', 'sm', 'md', 'lg'] as const;
@@ -9,14 +10,14 @@ let name = $state('Jordan Example');
 <div class="grid gap-5">
   <div class="flex flex-wrap items-end gap-3">
     {#each sizes as size (size)}
-      <Avatar name="Ana Lee" {size} />
+      <Avatar name="Ana Lee" {...sampleFace('Ana Lee')} {size} />
     {/each}
     <span class="text-xs text-muted-foreground">xs · sm · md · lg</span>
   </div>
 
   <div class="flex items-center">
     {#each team as member (member)}
-      <Avatar name={member} class="-ml-2 ring-2 ring-background first:ml-0" />
+      <Avatar name={member} {...sampleFace(member)} class="-ml-2 ring-2 ring-background first:ml-0" />
     {/each}
     <span class="ml-3 text-sm text-muted-foreground">{team.length} members</span>
   </div>

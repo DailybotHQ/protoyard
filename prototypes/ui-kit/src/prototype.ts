@@ -11,6 +11,8 @@ export const definition = definePrototype({
   scenarios,
   policy,
   generate: generateUiKitWorld,
+  /** v2: personas carry library avatars (`av-NNN`), shown as photos. (v1 was implicit.) */
+  generatorVersion: 2,
   integrity: {
     relations: { favorites: { personaId: 'py_personas' } },
     timestamps: { favorites: ['createdAt'] },

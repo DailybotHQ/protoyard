@@ -8,7 +8,7 @@ import {
   Shapes,
   Star,
 } from '@lucide/svelte';
-import { createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
+import { avatarImage, createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { AppShell, Avatar, Badge, Header, Sidebar, type SidebarSection } from '@protoyard/ui';
 import { CATALOG, CATALOG_GROUPS } from './catalog/entries.ts';
 import { useFavorites } from './lib/favorites.svelte.ts';
@@ -109,7 +109,7 @@ const pageTitle = $derived(router.current.route?.title ?? 'Not found');
         {#if principal.current}
           {#if principal.current.role === 'viewer'}<Badge variant="secondary">Read-only</Badge>{/if}
           <span class="hidden text-sm text-muted-foreground sm:inline">{principal.current.persona.name}</span>
-          <Avatar name={principal.current.persona.name} size="sm" decorative />
+          <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" decorative />
         {/if}
       {/snippet}
     </Header>
