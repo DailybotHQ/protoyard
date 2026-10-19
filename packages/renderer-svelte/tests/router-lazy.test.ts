@@ -172,6 +172,20 @@ describe('<Router> lazy screens', () => {
     router.destroy();
   });
 
+  it('keeps the outlet in the height chain so h-full / flex-1 screens fit the app', async () => {
+    // Layout is not computed in jsdom: assert the contract the E2E layout-fit guard measures.
+    const router = createRouter([{ path: '/', component: LazyScreen, title: 'Home' }]);
+    location.hash = '#/';
+    render(RouterHarness, { router });
+    await waitFor(() => expect(screen.getByTestId('lazy-screen')).toBeTruthy());
+    const outlet = document.querySelector<HTMLElement>('[data-py-router-outlet]');
+    const classes = outlet?.className.split(/\s+/) ?? [];
+    for (const cls of ['block', 'h-full', 'min-h-0', 'min-w-0', 'flex-auto']) {
+      expect(classes).toContain(cls);
+    }
+    router.destroy();
+  });
+
   it('focuses the outlet when navigating between eager routes', async () => {
     const router = createRouter([
       { path: '/', component: LazyScreen, title: 'Home' },

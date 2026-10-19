@@ -35,6 +35,17 @@ function retryLoad(): void {
   loadAttempt += 1;
 }
 
+/**
+ * The focus outlet wraps every screen, so it must not break the app's height
+ * chain: a screen whose root is `h-full` / `flex-1` (a chat thread with its
+ * composer pinned under a scrolling list) needs a definite height from here.
+ * The outlet stays a block (screens keep normal flow and `mx-auto` widths) but
+ * fills a definite parent, flexes inside a flex parent, and may shrink so the
+ * screen's own scroll region scrolls instead of growing past the viewport.
+ * In a parent with auto height `h-full` resolves to auto, as before.
+ */
+const OUTLET_CLASS = 'block h-full min-h-0 min-w-0 flex-auto outline-none';
+
 /** Move keyboard focus into the outlet after a screen (or not-found) mounts. */
 function focusOutlet(node: HTMLElement): void {
   const path = routeKey;
@@ -53,7 +64,7 @@ function focusOutlet(node: HTMLElement): void {
       <LoadingState label="Loading screen" class="py-16" />
     {:then Page}
       <div
-        class="outline-none"
+        class={OUTLET_CLASS}
         tabindex="-1"
         data-py-router-outlet=""
         {@attach focusOutlet}
@@ -71,7 +82,7 @@ function focusOutlet(node: HTMLElement): void {
   {:else}
     {@const Page = page}
     <div
-      class="outline-none"
+      class={OUTLET_CLASS}
       tabindex="-1"
       data-py-router-outlet=""
       {@attach focusOutlet}
