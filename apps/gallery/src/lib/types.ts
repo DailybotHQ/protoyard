@@ -1,11 +1,17 @@
 /**
- * Mirror of the registry format written by `protoyard index`
- * (packages/cli/src/lib/registry.ts). The gallery depends only on this data
- * shape, never on CLI or prototype code.
+ * Gallery registry shape: the format written by `protoyard index`
+ * (packages/cli/src/lib/registry.ts), with optional build-time review counts.
+ * The gallery depends only on metadata, never on prototype code.
  */
 
 export type ProjectKind = 'prototype' | 'template';
 export type Platform = 'desktop' | 'mobile' | 'responsive';
+
+export interface ReviewCounts {
+  open: number;
+  resolved: number;
+  pulledAt: string;
+}
 
 export interface RegistryEntry {
   kind: ProjectKind;
@@ -51,6 +57,8 @@ export interface RegistryEntry {
    * this site, so previews work without a local control server.
    */
   embedded?: { url: string; scenarioLinks: boolean } | null;
+  /** Build-time counts from a validated pulled comments file, when available. */
+  reviewCounts?: ReviewCounts;
 }
 
 export interface Registry {
@@ -80,4 +88,6 @@ export interface CompactEntry {
   th: string | null;
   /** Base-relative URL of a bundled build (showcase sites), else null. */
   e: string | null;
+  /** Open/resolved review thread counts; absent when no pulled file exists. */
+  rv?: ReviewCounts;
 }

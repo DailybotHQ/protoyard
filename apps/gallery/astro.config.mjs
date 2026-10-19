@@ -9,10 +9,11 @@ import { protoyardRegistry } from './src/integrations/registry-plugin.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = resolve(__dirname, '../..');
 
-// The gallery is a static site. It reads ONLY the generated metadata registry
+// The gallery is a static site. It reads the generated metadata registry
 // (`.protoyard/registry.json`, or PROTOYARD_REGISTRY for benchmarks and
-// showcase builds) through a virtual module, and never imports prototype code.
-// Manifest thumbnails are copied as plain files.
+// showcase builds) plus optional pulled review summaries at build time through
+// a virtual module, and never imports prototype code. Manifest thumbnails are
+// copied as plain files.
 export default defineConfig({
   // Hosting the gallery under a sub-path: GALLERY_BASE=/protoyard/ pnpm build
   base: process.env.GALLERY_BASE ?? '/',
