@@ -30,7 +30,7 @@ const blueprint = parseBlueprint({
               multiple: true,
             },
           ],
-          features: { ...entity.features, files: true },
+          features: { ...entity.features, files: true, softDelete: true },
         }
       : entity
   ),
@@ -181,7 +181,7 @@ describe('blueprint file services', () => {
     expect((await table(runtime, 'tickets').get('ticket_0001'))?.attachmentsIds).toEqual([]);
   });
 
-  it('hard-deleting an entity removes its attachments and releases stored quota', async () => {
+  it('purging a trashed entity removes its attachments and releases stored quota', async () => {
     const runtime = await harness.boot('owner');
     const files = createFileServices(runtime, blueprint, { prototypeQuotaBytes: 5 }).ticket!;
     const file = await files.upload({
@@ -191,15 +191,19 @@ describe('blueprint file services', () => {
       file: new Blob(['quota'], { type: 'text/plain' }),
     });
     expect((await table(runtime, 'files').toArray()).map((row) => row.id)).toContain(file.id);
-    await createEntityServices(runtime, blueprint).ticket!.remove('ticket_0001');
+    const tickets = createEntityServices(runtime, blueprint).ticket!;
+    await tickets.remove('ticket_0001');
+    expect((await table(runtime, 'files').toArray()).map((row) => row.id)).toContain(file.id);
+    await tickets.purge('ticket_0001');
     expect(await table(runtime, 'files').toArray()).toEqual([]);
-    await expect(
-      files.upload({
-        entity: 'ticket',
-        recordId: 'ticket_0002',
-        field: 'attachments',
-        file: new Blob(['quota'], { type: 'text/plain' }),
-      })
-    ).resolves.toMatchObject({ size: 5 });
+    const secondFile = await files.upload({
+      entity: 'ticket',
+      recordId: 'ticket_0002',
+      field: 'attachments',
+      file: new Blob(['quota'], { type: 'text/plain' }),
+    });
+    expect(secondFile.size).toBe(5);
+    await tickets.bulkRemove(['ticket_0002']);
+    expect(await table(runtime, 'files').toArray()).toEqual([]);
   });
 });
