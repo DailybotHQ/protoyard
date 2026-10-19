@@ -449,6 +449,36 @@ Reproduce the workspace gate with
 `bash -c 'pnpm protoyard build --all && pnpm protoyard budget --all --skip-build'`.
 The fixture test prints the chunk measurements with `--silent=false`.
 
+## Avatar library (measured 2026-10-19)
+
+Method: `stat` byte sizes of `packages/avatars/assets/**` (cross-checked by
+`pnpm exec tsx scripts/import-avatars.ts --check`), `pnpm protoyard build
+crm-demo` followed by `find` + `stat` over `artifacts/crm-demo/dist`, and
+`pnpm protoyard export crm-demo --target artifact --dry-run --json` (its
+`avatars` summary). Gzip is level 9.
+
+| Measure | Value |
+| --- | ---: |
+| 64 px WebP: 175 files, total / average / largest | 156,810 B / 896 B / 1,100 B |
+| 128 px WebP: 175 files, total / average / largest | 356,386 B / 2,037 B / 2,818 B |
+| Whole library (350 files) | 513,196 B (501.2 KB) |
+| `src/manifest.json` (tooling only, never bundled) | 120,030 B (26,035 B gzip) |
+| `crm-demo` `dist`: avatar files / all files | 350 of 413 files, 513,196 of 2,151,178 B (about 24%) |
+| The same 350 files gzip -9 | 525,446 B (WebP does not compress further) |
+| Artifact pack (`--target artifact`) | 128 px only: 175 files, 356,386 B |
+
+Every standalone build copies the whole library (the renderer's Vite plugin
+emits all 350 files, not only referenced faces), so `dist` grows by about
+501 KB. That is why the `crm-demo` row in the bundle table above (measured
+2026-10-18, before avatars) is smaller. The images add nothing to initial or
+lazy JavaScript: no script imports them, and no `crm-demo` chunk contains the
+manifest. A visitor downloads only the faces on screen, because every
+`<img>` is lazy, at about 0.9 KB (1x) or 2 KB (2x) per face. A showcase
+copies the library once for all its apps. The per-file and total budgets live
+in `packages/avatars/tests/manifest.test.ts` (64 px ≤ 4 KB, 128 px ≤ 12 KB,
+128 px average ≤ 6 KB, all assets ≤ 1.2 MB). Details:
+[AVATARS](AVATARS.md#sizes-and-budgets).
+
 ## Scenario generation
 
 Method: `pnpm protoyard scenario bench <slug> [--check]` runs the generator
