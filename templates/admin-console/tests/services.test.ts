@@ -180,6 +180,15 @@ describe('admin console services on the real runtime', () => {
 });
 
 describe('admin console UI', () => {
+  it('renders the manifest default through LayoutHost', async () => {
+    const runtime = await harness.boot('operations');
+    const { container } = render(AppHost, { runtime });
+    await waitFor(() => expect(container.querySelector('[data-py-layout="sidebar"]')).toBeTruthy());
+    expect(container.querySelector('[data-py-layout-host]')?.getAttribute('data-layout')).toBe(
+      'sidebar'
+    );
+  });
+
   it('labels impersonation clearly and returns to the console on stop', async () => {
     const runtime = await harness.boot('support-agent');
     const person = (await runtime.db.user_access.toArray()).find((a) => !a.disabled);

@@ -28,7 +28,10 @@
   "defaultScenario": "operations",
   "defaultTheme": "ocean",
   "defaultMode": "system",
-  "preview": { "viewport": "desktop" },
+  "preview": {
+    "viewport": "desktop",
+    "layout": { "id": "sidebar", "supported": ["sidebar", "rail", "top-nav", "dual-sidebar"] }
+  },
   "storage": { "namespace": "template-admin-console", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["empty", "operations", "incident", "support-agent", "auditor"]
