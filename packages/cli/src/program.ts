@@ -448,7 +448,7 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--out <dir>', 'output folder (default artifacts/review)')
     .option('--allow-external-out', 'permit an --out outside the workspace (must be new or empty)')
-    .option('--from-ledger', 'only prototypes with a recorded real deploy')
+    .option('--from-ledger', 'only prototypes with a recorded real deploy or Claude artifact share')
     .option('--slugs <list>', 'only these prototypes (comma-separated)')
     .option('--base <path>', "public base of the review page ('./' or /sub/path/)")
     .option('--title <text>', 'page title (default "Prototype review")')
