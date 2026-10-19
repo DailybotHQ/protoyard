@@ -30,6 +30,7 @@ import {
   type SimulationEnvironment,
   type StorageStatus,
   type Theme,
+  ThemeSchema,
 } from '@protoyard/core';
 import {
   type ControlStatePatch,
@@ -62,6 +63,8 @@ export interface Kernel {
   readonly themes: readonly Theme[];
   /** Ids in `themes` that are Theme Studio custom themes (control DB). */
   readonly customThemeIds: Set<string>;
+  /** Ids in `themes` registered by `options.resolveTheme` (library origin). */
+  readonly libraryThemeIds: Set<string>;
   readonly policy: PermissionPolicy;
   readonly clock: SimulationClock;
   /**
@@ -97,6 +100,12 @@ export interface Kernel {
 
   /** Re-reads personas, organizations and memberships from the data DB. */
   reloadIdentity(): Promise<void>;
+  /**
+   * Returns a known theme or loads `id` through `options.resolveTheme`
+   * (pending while it loads), validates it and registers it. Never rejects:
+   * failures are reported and resolve `undefined`.
+   */
+  ensureTheme(id: string): Promise<Theme | undefined>;
   /** Recomputes principal, environment and appearance; emits what changed. */
   refreshDerived(): void;
   /** Writes control state without echoing the clock subscription. */
@@ -180,6 +189,35 @@ export async function createKernel(
       pending.track({ kind: 'service', label: operation }, () => rawEnv.run(operation, fn)),
   };
 
+  const libraryThemeIds = new Set<string>();
+  const loadingThemes = new Map<string, Promise<Theme | undefined>>();
+  // Ids that failed: background healing skips them; an explicit ensure retries.
+  const failedThemes = new Set<string>();
+
+  /** Loads, validates and registers one theme; failures are reported, never thrown. */
+  const resolveTheme = async (id: string): Promise<Theme | undefined> => {
+    try {
+      const result = await (options.resolveTheme as NonNullable<RuntimeOptions['resolveTheme']>)(
+        id
+      );
+      if (result) {
+        const theme = ThemeSchema.parse(result);
+        if (theme.id !== id) throw new Error(`Theme resolver: got "${theme.id}" for "${id}".`);
+        if (!themes.some((t) => t.id === id)) {
+          themes.push(theme);
+          libraryThemeIds.add(id);
+        }
+        return themes.find((t) => t.id === id);
+      }
+    } catch (error) {
+      report(error);
+    }
+    failedThemes.add(id);
+    return undefined;
+  };
+  // The latest background theme load (awaited once at boot).
+  let healing: Promise<void> | undefined;
+
   const kernel: Kernel = {
     definition,
     db,
@@ -190,6 +228,7 @@ export async function createKernel(
     scenarios: resolveScenarios(definition.scenarios, PRESETS),
     themes,
     customThemeIds,
+    libraryThemeIds,
     policy: createPermissionPolicy(definition.policy ?? DEFAULT_POLICY),
     clock,
     env,
@@ -234,6 +273,19 @@ export async function createKernel(
       kernel.memberships = memberships as Membership[];
     },
 
+    async ensureTheme(id) {
+      const known = themes.find((t) => t.id === id);
+      if (known || !options.resolveTheme) return known;
+      let job = loadingThemes.get(id);
+      if (!job) {
+        job = pending
+          .track({ kind: 'other', label: `Loading theme “${id}”…` }, () => resolveTheme(id))
+          .finally(() => loadingThemes.delete(id));
+        loadingThemes.set(id, job);
+      }
+      return job;
+    },
+
     refreshDerived() {
       kernel.principal = computePrincipal(kernel);
       const key = principalKey(kernel.principal);
@@ -257,6 +309,22 @@ export async function createKernel(
 
       if (sessionChanged) kernel.events.session.emit(kernel.principal);
       if (appearanceChanged) kernel.events.appearance.emit(kernel.appearance);
+
+      // A requested id nobody has loaded yet (stored state at boot, a persona
+      // switch, a data-defined preference): load it and re-apply once it arrives.
+      const wanted = requestedTheme(kernel).value;
+      if (
+        options.resolveTheme &&
+        !failedThemes.has(wanted) &&
+        !themes.some((t) => t.id === wanted)
+      ) {
+        healing = kernel
+          .ensureTheme(wanted)
+          .then((theme) => {
+            if (theme) kernel.refreshDerived();
+          })
+          .catch(report);
+      }
     },
 
     writeControl: (patch) => control.writeState(patch),
@@ -289,6 +357,9 @@ export async function createKernel(
 
   await kernel.reloadIdentity();
   kernel.refreshDerived();
+  // A stored library theme loads before anyone can observe the appearance,
+  // so a reload never flashes the default.
+  await healing;
   return kernel;
 }
 
@@ -350,21 +421,36 @@ function computeEnvironment(k: Kernel): EnvironmentState {
   return state;
 }
 
+/** The active persona's preferences: data-defined, then saved in the control DB. */
+function preferenceOf(k: Kernel) {
+  const persona = k.principal?.persona;
+  const stored = persona ? k.preferences.get(persona.id) : undefined;
+  return { ...persona?.preferences, ...stored };
+}
+
+/** The theme id asked for (override › preference › scenario › manifest), before any fallback. */
+function requestedTheme(k: Kernel) {
+  const preference = preferenceOf(k);
+  return resolveEffective(
+    {
+      override: k.overrides.themeId,
+      preference: preference.themeId,
+      scenario: k.active?.scenario.appearance?.themeId,
+    },
+    k.definition.manifest.defaultTheme
+  );
+}
+
 function computeAppearance(
   k: Kernel,
   media: { prefersDark: boolean; prefersReducedMotion: boolean }
 ): AppearanceState {
   const manifest = k.definition.manifest;
   const scenario = k.active?.scenario.appearance ?? {};
-  const persona = k.principal?.persona;
-  const stored = persona ? k.preferences.get(persona.id) : undefined;
-  const preference = { ...persona?.preferences, ...stored };
+  const preference = preferenceOf(k);
   const o = k.overrides;
 
-  let theme = resolveEffective(
-    { override: o.themeId, preference: preference.themeId, scenario: scenario.themeId },
-    manifest.defaultTheme
-  );
+  let theme = requestedTheme(k);
   // Unknown theme ids (a deleted custom theme, a bad link) fall back visibly.
   if (k.themes.length > 0 && !k.themes.some((t) => t.id === theme.value)) {
     const fallback = k.themes.some((t) => t.id === manifest.defaultTheme)

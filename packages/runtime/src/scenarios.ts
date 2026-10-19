@@ -257,6 +257,7 @@ export function createScenarioController(
     k.signedOut = signedOut;
     k.setClockSilently(clock);
     await k.reloadIdentity();
+    if (scenario.appearance.themeId) await k.ensureTheme(scenario.appearance.themeId);
     k.refreshDerived();
     k.events.overrides.emit(k.overrides);
     k.events.scenario.emit(info);
@@ -339,7 +340,8 @@ export function createScenarioController(
           }
         }
         // Link appearance is a visible, clearable override — never a persona preference.
-        const themeOk = link.theme && k.themes.some((t) => t.id === link.theme);
+        // An unknown id may be a library theme: load it first (ADR-023).
+        const themeOk = link.theme ? (await k.ensureTheme(link.theme)) !== undefined : false;
         if (
           (themeOk && link.theme !== k.overrides.themeId) ||
           (link.mode && link.mode !== k.overrides.mode) ||

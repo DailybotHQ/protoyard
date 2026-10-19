@@ -275,7 +275,7 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
     const captured = snapshot.appearance;
     const pin: Record<string, unknown> = {};
     if (captured.themeId && captured.themeId !== k.appearance.theme.value) {
-      if (k.themes.some((t) => t.id === captured.themeId)) pin.themeId = captured.themeId;
+      if (await k.ensureTheme(captured.themeId)) pin.themeId = captured.themeId;
       else notes.push(`Theme "${captured.themeId}" is not available here; kept the current theme.`);
     }
     if (captured.mode && captured.mode !== k.appearance.mode.value) pin.mode = captured.mode;

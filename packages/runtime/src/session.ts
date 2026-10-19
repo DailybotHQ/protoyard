@@ -106,12 +106,14 @@ export function createThemeController(k: Kernel): ThemeController {
       const persona = k.principal?.persona;
       if (!persona)
         throw new Error('No active persona: load a scenario before saving preferences.');
+      if (patch.themeId !== undefined) await k.ensureTheme(patch.themeId);
       const saved = await k.control.setPreference(persona.id, patch);
       k.preferences.set(persona.id, saved);
       k.refreshDerived();
     },
 
     async setOverride(patch) {
+      if (patch.themeId !== undefined) await k.ensureTheme(patch.themeId);
       const next: Record<string, unknown> = { ...k.overrides };
       for (const [key, value] of Object.entries(patch)) {
         if (value === undefined) delete next[key];

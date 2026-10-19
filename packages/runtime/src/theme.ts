@@ -28,6 +28,14 @@ export const MAX_CUSTOM_THEMES = 24;
 export const THEME_FILE_FORMAT = 'protoyard-theme/v1';
 
 export interface ThemeControllerExtras {
+  /**
+   * Returns a known theme or loads it through `RuntimeOptions.resolveTheme`
+   * and registers it (library origin). Resolves `undefined` for ids nobody
+   * can provide; never rejects.
+   */
+  ensure(id: string): Promise<Theme | undefined>;
+  /** True for themes registered through the async theme resolver (library origin). */
+  isLibrary(id: string): boolean;
   /** Saved custom themes, oldest first. */
   customThemes(): readonly Theme[];
   isCustom(id: string): boolean;
@@ -123,6 +131,8 @@ export function createThemeExtras(k: Kernel): ThemeControllerExtras {
   };
 
   return {
+    ensure: (id) => k.ensureTheme(id),
+    isLibrary: (id) => k.libraryThemeIds.has(id),
     customThemes: custom,
     isCustom: (id) => k.customThemeIds.has(id),
     saveCustom: (input) => save(input),

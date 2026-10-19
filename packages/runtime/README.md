@@ -19,7 +19,8 @@ await runtime.scenarios.ensureSeeded(); // first visit seeds; reopening never re
 Options: `themes`, `link`, `indexedDB` / `IDBKeyRange` (tests), `allowMemoryFallback`
 (default `true`), `matchMedia`, `sleep`, `now` (wall clock for metadata only), `integrity`
 (defaults to `definition.integrity`), `validation: 'throw' | 'warn' | 'off'` (default
-`throw`), `onError`.
+`throw`), `onError`, `resolveTheme` (async loader for theme ids that are not in `themes`,
+see below).
 
 `createPrototypeRuntime` can throw `StorageError` (`version-newer`, `quota-exceeded`,
 `blocked`, `unknown`). When IndexedDB is unavailable it falls back to memory and
@@ -105,6 +106,16 @@ and full numbers are in `docs/PERFORMANCE.md`.
   skipped and reported. Ids of built-in or prototype themes are refused, the list is capped at
   24, and removing the active custom theme falls back to the default. Saving re-applies the
   appearance even when the id stays the same.
+  **Library themes on demand** (ADR-023): with `resolveTheme(id)` set, an unknown theme id
+  from `setOverride`, `setPreference`, a scenario's `appearance.themeId`, a `?theme=` link, a
+  restored snapshot or a stored preference at boot is loaded first (shown in `pending` as
+  `Loading theme “<id>”…`), validated with `ThemeSchema`, required to carry the requested
+  id and registered once; `themes()` then lists it and `isLibrary(id)` is `true`. Boot
+  awaits the stored id, so a reload never flashes the default. `theme.ensure(id)` loads one
+  explicitly and resolves `undefined` instead of rejecting. A resolver that returns
+  `undefined`, throws or returns an invalid theme is reported through `onError` and the
+  appearance keeps the visible fallback to the manifest default (source `default`).
+  Without `resolveTheme`, behavior is unchanged.
 - **environment**: effective state = defaults + scenario environment + org subscription and
   feature flags + `overrides.environment`. `environment.set()` / `reset()` write overrides,
   so they persist and are reversible.
