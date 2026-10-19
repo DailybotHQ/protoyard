@@ -5,8 +5,7 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": [
-    "**/*.css",
-    "**/*.svelte"
+    "**/*.css"
   ],
   "exports": {
     ".": {

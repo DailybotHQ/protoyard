@@ -26,7 +26,7 @@ and import the styles after Tailwind and the theme, UI and charts styles:
 | --- | --- |
 | `@protoyard/analytics-ui` | `ANALYTICS_VIEWS` and the data contract types (imports no view); KPI tiles will live here |
 | `@protoyard/analytics-ui/date-range` | `DateRangePicker`, `DateRangePanel`, `MonthGrid`; `toDateRangeQuery` / `fromDateRangeQuery`, `allowedGranularities`, `fitGranularity`, `describeDateRange` |
-| `@protoyard/analytics-ui/filters` | Filter builder, segment picker, breakdown selector |
+| `@protoyard/analytics-ui/filters` | `FilterBuilder`, `FilterGroupEditor`, `SegmentPicker`, `BreakdownSelect`; `describeFilter`, `validateFilter`, `saveErrorOf` |
 | `@protoyard/analytics-ui/cohort` | Cohort retention table |
 | `@protoyard/analytics-ui/funnel` | Funnel analysis |
 | `@protoyard/analytics-ui/grid` | `DashboardGrid`, `WidgetCard` (and the layout helpers from `@protoyard/analytics`) |
@@ -36,6 +36,53 @@ exports only its `VIEW` name; components arrive with the following PLAN_003
 analytics tasks. Every mutation (save a segment, move a widget) will be a
 callback that returns the prototype's service promise, so a `Button` shows
 pending feedback; the kit never writes to the database itself.
+
+## Filters and segments (`./filters`)
+
+Filters are data: `FilterBuilder` edits and emits a `FilterGroup` (the
+`FilterSchema` of `@protoyard/analytics`). The prototype stores it and runs
+`compileFilter(filter)` over its rows. Properties come from a catalog that
+the prototype declares:
+
+```ts
+const properties: FilterProperty[] = [
+  { path: 'properties.plan', label: 'Plan', type: 'string', options: [{ value: 'pro', label: 'Pro' }] },
+  { path: 'properties.seats', label: 'Seats', type: 'number' },
+];
+```
+
+- **`FilterBuilder`:** match All/Any, rows of property / operator / value,
+  and nested groups up to three levels deep. Operators follow the property
+  type. Values use native inputs: number, date, true/false, a choice or a
+  multi-select for known options, comma-separated text for lists, two
+  inputs for "between".
+  - "Apply filters" validates against the catalog: unknown properties,
+    operators that do not fit the type and missing values show inline next
+    to the field (`aria-invalid` and `aria-describedby`). Only valid data
+    reaches `onchange`.
+  - A one-line summary reads "Plan is Pro and Seats at least 5".
+- **`SegmentPicker`:** saved segments as `aria-pressed` chips ("Everyone"
+  clears) and a "Save current filter as a segment" form.
+  - `onsave({ name, filter })` must return the service promise, for example
+    `runService(() => saveSegment(runtime, input))`. The `Button` shows
+    pending feedback until it settles.
+  - A resolved `{ ok: false, error }` or a rejection shows inline: field
+    issues next to the name, a permission error as "Your role can't save
+    segments". `runService` still shows its toast.
+- **`BreakdownSelect`:** "Break down by" over string and boolean
+  properties, or None.
+
+**Why not `@protoyard/ui` `FilterBar`?** FilterBar filters list rows by flat
+per-field values (`FilterValues`) for CRUD screens. Analytics filters are
+nested AND/OR trees that are saved as segments and validated against a
+property catalog, so they need this data-first builder. Use FilterBar for
+entity lists and FilterBuilder for analytics queries.
+
+Size (esbuild minify + gzip -9; svelte, @protoyard/ui, @protoyard/analytics
+and zod external), each imported from the subpath: FilterBuilder 4.6 KB (5.5 KB
+with the analytics filter code it validates with), SegmentPicker 2.0 KB,
+BreakdownSelect 0.7 KB. Like charts-ui, analytics-ui marks only CSS as
+side-effectful, so a screen pays only for the components it imports.
 
 ## Date range (`./date-range`)
 
