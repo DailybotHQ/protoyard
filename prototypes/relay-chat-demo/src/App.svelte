@@ -223,7 +223,9 @@ const needsJoin = $derived(
 );
 </script>
 
-<div class="flex h-dvh max-h-dvh min-h-0 overflow-hidden bg-background text-foreground">
+<!-- `data-py-scroll-root` is reserved for the renderer's own wrapper: the message log
+     uses `data-message-log`, or the renderer's layout rules would flatten it. -->
+<div class="flex h-app max-h-app min-h-0 overflow-hidden bg-background text-foreground">
   <aside class="flex w-60 shrink-0 flex-col border-r border-border bg-muted/30">
     <div class="border-b border-border px-3 py-3">
       <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workspace</p>
@@ -392,7 +394,7 @@ const needsJoin = $derived(
 
     <div
       class="min-h-0 flex-1 overflow-y-auto px-4 py-3"
-      data-py-scroll-root=""
+      data-message-log=""
       role="log"
       aria-label="Messages"
     >
@@ -516,6 +518,7 @@ const needsJoin = $derived(
             : 'Message #channel — try @relay, /summarize or /huddle'}
           bind:value={draft}
           aria-label="Message composer"
+          data-py-composer=""
           disabled={!canPost || (Boolean(activeChannel) && !memberOfChannel)}
           title={canPost
             ? memberOfChannel || !activeChannel
