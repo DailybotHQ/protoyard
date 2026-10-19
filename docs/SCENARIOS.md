@@ -563,11 +563,16 @@ http://localhost:5173/?scenario=rep-view&actor=user_0003&seed=42&theme=ocean&mod
 | `theme` | kebab-case id | Applied as a visible, clearable override if the theme exists |
 | `mode` | `light`, `dark`, `system` | Applied as an override |
 | `shell` | `auto`, `none`, `phone`, `tablet`, `desktop-window`, `browser`, `widget-host`, `extension-popup`, `side-panel` | Applied as a visible, clearable override; the runtime reports it as `appearance().shell` with source `override` |
+| `layout` | a layout id the prototype supports (`preview.layout`) | Applied as a visible, clearable override; unsupported ids are ignored |
+| `radius`, `elevation`, `font`, `motion` | the style preset ids (`RADIUS_PRESET_IDS`, `ELEVATION_STYLES`, `FONT_PAIRING_IDS`, `MOTION_PRESET_IDS`) | Applied as visible, clearable style overrides ([THEMES](THEMES.md#live-style-overrides)) |
 | `devtools` | `0` or `1` | `0` hides the panel (presentation mode). DevTools can only appear if the build includes them. |
 
 Invalid values are ignored, not reported. DevTools → Scenario → **Copy link**
 builds a link with `scenario`, plus `actor` and `seed` only when they differ
-from the scenario's defaults. Share → presentation link adds `devtools=0`.
+from the scenario's defaults, and any active look override (`theme`, `mode`,
+`shell`, `layout`, `radius`, `elevation`, `font`, `motion`), replacing stale
+values in the page URL. Share → presentation link adds
+`devtools=0`.
 
 Edits are never in a URL. To share a world with edits, share a snapshot.
 

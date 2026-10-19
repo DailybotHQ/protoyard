@@ -134,3 +134,41 @@ describe('style preset overrides', () => {
     third.close();
   });
 });
+
+describe('style preset link params', () => {
+  it('apply as clearable overrides that persist across a reload', async () => {
+    const store = backend();
+    const link = { radius: 'round', elevation: 'crisp', font: 'mono', motion: 'none' } as const;
+    const first = await createPrototypeRuntime(createTasksDefinition(), {
+      themes: BUILTIN_THEMES,
+      sleep: async () => {},
+      ...store,
+      link,
+    });
+    await first.scenarios.ensureSeeded();
+    expect(first.overrides.get()).toEqual(link);
+    const state = first.theme.appearance();
+    expect(state.radius).toEqual({ value: 'round', source: 'override' });
+    expect(state.elevation).toEqual({ value: 'crisp', source: 'override' });
+    expect(state.font).toEqual({ value: 'mono', source: 'override' });
+    expect(state.motion).toEqual({ value: 'none', source: 'override' });
+    first.close();
+
+    // Reloaded without the link: the override is still there.
+    const second = await start(createTasksDefinition(), store);
+    await second.scenarios.ensureSeeded();
+    expect(second.theme.appearance().radius).toEqual({ value: 'round', source: 'override' });
+    expect(second.theme.appearance().motion).toEqual({ value: 'none', source: 'override' });
+
+    await second.theme.clearOverride();
+    expect(second.overrides.get()).toEqual({});
+    expect(second.theme.appearance().radius).toEqual(THEME_DEFAULT);
+    expect(second.theme.appearance().font).toEqual(THEME_DEFAULT);
+    second.close();
+
+    const third = await start(createTasksDefinition(), store);
+    await third.scenarios.ensureSeeded();
+    expect(third.overrides.get()).toEqual({});
+    third.close();
+  });
+});
