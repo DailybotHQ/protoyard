@@ -4,7 +4,8 @@ Framework-agnostic chart math for Protoyard prototypes: scales, shapes,
 downsampling, layouts and theme-token palettes. No Svelte and no third-party
 chart library ([ADR-021](../../docs/DECISIONS.md)), so everything here is
 plain TypeScript tested in Node. Svelte components live in
-[`@protoyard/charts-ui`](../charts-ui/README.md).
+[`@protoyard/charts-ui`](../charts-ui/README.md); the platform guide is
+[docs/CHARTS.md](../../docs/CHARTS.md).
 
 ## Entry points
 

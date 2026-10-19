@@ -163,6 +163,12 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `apps/gallery/src/**` | `apps/gallery/tests/*.test.ts` + `tests/e2e/gallery.spec.ts` | unit + E2E |
 | `apps/gallery/src/components/marketplace/**`, `apps/gallery/src/pages/marketplace/**` | `pnpm vitest run apps/gallery` + `tests/e2e/marketplace.spec.ts` (`PROTOYARD_E2E_SHOWCASE=1` adds the bundled-demo Try it test); perf: `pnpm bench:index --marketplace --check` | unit + E2E + perf |
 | `packages/renderer-svelte/src/shell/**`, viewport presets | `tests/e2e/shell-layout.spec.ts`, `tests/e2e/viewport-fit.spec.ts` | E2E (layout + axe) |
+| `packages/charts/src/**` | `pnpm vitest run packages/charts` (scales, shapes, downsample, layouts, palette; `PROTOYARD_BENCH=1` adds the LTTB and min-max timings) | unit (Node) |
+| `packages/charts-ui/src/**` | `pnpm vitest run packages/charts-ui` (happy-dom) + `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` (real Vite build: no chart code in initial JS, size ceilings) + `tests/e2e/charts.spec.ts` (`PROTOYARD_E2E_PROTOTYPES=ui-kit`: axe, keyboard, table, dark, reduced motion, 10k Canvas, touch, resize) | unit + bundle guard + E2E |
+| `packages/analytics/src/**` | `pnpm vitest run packages/analytics` (`PROTOYARD_BENCH=1` asserts the funnel and generation budgets) | unit (Node) |
+| `packages/analytics-ui/src/**` | `pnpm vitest run packages/analytics-ui`; consumers `templates/analytics` and `prototypes/pebblestat-analytics-demo` | component (happy-dom) |
+| Chart performance (any of the four packages above, or the ui-kit chart demos) | `pnpm protoyard build ui-kit && pnpm exec tsx scripts/bench-charts.ts --runs 3 --check` (Node LTTB, Chromium 10k render, hover p95, long tasks, subpath sizes; writes `tmp/bench-charts.json`) | perf gate |
+| `prototypes/pebblestat-analytics-demo/**`, `templates/analytics/**` | their `tests/` + `pnpm protoyard scenario bench <slug> --check` (prototype only) + `pnpm protoyard budget <slug>` + `tests/e2e/pebblestat-analytics-demo.spec.ts` and `tests/e2e/layout-fit.spec.ts` (`PROTOYARD_E2E_PROTOTYPES=pebblestat-analytics-demo,analytics`) | unit + integration + bench + E2E |
 | `prototypes/<slug>/src/scenarios/**` | `prototypes/<slug>/tests/generators.test.ts` (via `tests/support/generate-context.ts`) | unit |
 | `prototypes/<slug>/src/domain/**` | `prototypes/<slug>/tests/services.test.ts` (via `tests/support/runtime.ts`, the **real runtime**) | integration |
 | `prototypes/<slug>/src/**/*.svelte` | component tests in `prototypes/<slug>/tests/` where present + `tests/e2e/prototypes.spec.ts` | component + E2E |
@@ -191,6 +197,10 @@ A command that exits 0 after selecting nothing is not evidence. Check the
   Tailwind `@source` scanning, and template copies made by `protoyard new`.
 - Unit tests run in happy-dom. Layout, real drag-and-drop, focus traps and
   media queries need E2E.
+- Charts in happy-dom have no layout: tests stub `ResizeObserver` with a fixed
+  width. Some behavior was only caught in the browser (`tests/e2e/charts.spec.ts`):
+  a chart that did not shrink with its container, taps that did not select,
+  and Canvas sizing.
 - Generated worlds can change silently when Faker or the SDK upgrades. That is
   what the determinism tests and `generatorVersion` exist for.
 - Provider deployments are not exercised by local tests or CI. Review-index

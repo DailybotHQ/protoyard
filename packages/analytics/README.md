@@ -1,10 +1,11 @@
 # @protoyard/analytics
 
 Framework-agnostic analytics engine for Protoyard prototypes
-([ADR-021](../../docs/DECISIONS.md)): event and metric contracts, and (as the
-PLAN_003 analytics tasks land) date ranges with comparison, bucketing,
-aggregations, filters and segments, funnels, cohorts and deterministic
-analytics generators. No Svelte; everything is plain TypeScript and zod,
+([ADR-021](../../docs/DECISIONS.md)): event and metric contracts, date ranges
+with comparison, bucketing, aggregations, filters and segments, dashboard
+layouts, funnels, cohorts and deterministic analytics generators. The
+platform guide (data flow, template, flagship, measured numbers, limits) is
+[docs/ANALYTICS.md](../../docs/ANALYTICS.md). No Svelte; everything is plain TypeScript and zod,
 tested in Node. The Svelte kit is [`@protoyard/analytics-ui`](../analytics-ui/README.md).
 
 ## Entry points
@@ -23,10 +24,7 @@ tested in Node. The Svelte kit is [`@protoyard/analytics-ui`](../analytics-ui/RE
 | `@protoyard/analytics/funnel` | `FunnelStepSchema`, `FunnelDefinitionSchema` (2–12 steps, unique ids); `computeFunnel(events, steps, { window, breakdown, range })` → per-step `count`, `conversion`, `stepConversion`, `dropOff`, `medianTimeToConvert`, plus a `breakdown` per property value; `eventsByUser` |
 | `@protoyard/analytics/cohort` | `RetentionIntervalSchema`, `RetentionPeriodsSchema`; `computeRetention(events, { cohortEvent, returnEvent, interval, periods, now, mode })` → cohorts × periods with `count`, `rate`, `incomplete`, plus size-weighted `average` |
 
-**Status:** the engine (ranges, buckets, aggregates, deltas, filters,
-layouts) and the funnel and retention computations are complete
-(`T-analytics-engine`, `T-analytics-funnel-cohort`). The deterministic generators are complete
-too (`T-analytics-generators`); this table lists only what exists.
+Every entry in this table exists and is tested.
 
 Funnels and retention, precisely:
 
