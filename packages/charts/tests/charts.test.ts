@@ -47,7 +47,7 @@ describe('@protoyard/charts scaffold', () => {
     const subpaths = await Promise.all([
       import('../src/scales/index.ts'),
       import('../src/shapes.ts'),
-      import('../src/downsample.ts'),
+      import('../src/downsample/index.ts'),
       import('../src/layout.ts'),
       import('../src/palette.ts'),
     ]);

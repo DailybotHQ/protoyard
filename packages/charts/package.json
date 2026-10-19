@@ -9,7 +9,7 @@
     ".": "./src/index.ts",
     "./scales": "./src/scales/index.ts",
     "./shapes": "./src/shapes.ts",
-    "./downsample": "./src/downsample.ts",
+    "./downsample": "./src/downsample/index.ts",
     "./layout": "./src/layout.ts",
     "./palette": "./src/palette.ts"
   },
