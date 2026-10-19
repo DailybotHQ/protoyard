@@ -122,6 +122,37 @@ importers:
         specifier: ^5.57.0
         version: 5.57.2
 
+  packages/analytics:
+    dependencies:
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../scenarios
+      zod:
+        specifier: ^4.6.0
+        version: 4.6.7
+
+  packages/analytics-ui:
+    dependencies:
+      '@protoyard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
+      '@protoyard/charts-ui':
+        specifier: workspace:*
+        version: link:../charts-ui
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../renderer-svelte
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.2
+
   packages/blueprint:
     dependencies:
       '@protoyard/core':
