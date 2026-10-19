@@ -2,8 +2,10 @@ import type { GenerateContext, WorldSeed } from '@protoyard/core';
 import { generateSaasWorld } from '@protoyard/saas';
 import { generateTeam } from '@protoyard/scenarios';
 import type { Project } from '../database/schema.ts';
+import { seededPlanPrices } from '../domain/plans.ts';
 
-export const B2B_SAAS_GENERATOR_VERSION = 1;
+/** v2: seeded subscriptions and invoices use the Lattice plan catalog prices. */
+export const B2B_SAAS_GENERATOR_VERSION = 2;
 
 const PROJECT_NAMES = [
   'Website relaunch',
@@ -21,7 +23,7 @@ export function generateB2bSaasWorld(ctx: GenerateContext): WorldSeed {
     persona.id === actor.id ? actor : persona
   );
   const team = { ...generatedTeam, actor, personas };
-  const saas = generateSaasWorld(ctx, { team });
+  const saas = generateSaasWorld(ctx, { team, plans: seededPlanPrices() });
   const organization = saas.organizations.find(
     (candidate) => candidate.id === team.organization.id
   );

@@ -19,7 +19,10 @@ pnpm protoyard validate lattice-saas-demo --build
 
 Start with the default `signed-out` scenario: sign in as `owner@example.com`
 with the simulated password `demo-password`, finish onboarding, then work
-with projects, members, the inbox, plans and settings. Seven more scenarios
+with projects, members, the inbox, plans and settings. You can also create
+an account (its confirmation message opens from "Open simulated inbox") or
+use a simulated "Continue with …" provider, which lands a new account in
+onboarding. Every role signs out from the header. Seven more scenarios
 cover mid-onboarding, a trial ending, past-due billing, a multi-workspace
 admin, a viewer, MFA and a pending invitation.
 

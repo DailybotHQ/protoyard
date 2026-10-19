@@ -26,20 +26,21 @@ All roles are simulated personas; see [PERMISSIONS.md](PERMISSIONS.md).
 | Visitor evaluating the product | signed out (no role) | Reads the landing page, signs up, signs in, uses a magic link or resets a password |
 | Team lead who created the workspace | `owner` | Everything (`*`): projects, members and roles, invitations, workspaces, billing, profile and security settings |
 | Operations lead | `admin` | Everything (`*`), the same as `owner` in this policy |
-| Teammate | `member` | Creates projects and changes their status, invites people, renames the workspace, moves through onboarding. Cannot delete projects, manage roles, create workspaces, change billing or edit profile, security or notification settings |
-| Stakeholder | `viewer` | Reads the portfolio and moves through onboarding; every other write is blocked |
+| Teammate | `member` | Creates projects and changes their status, invites people, renames the workspace, moves through onboarding, signs out. Cannot delete projects, manage roles, create workspaces, change billing or edit profile, security or notification settings |
+| Stakeholder | `viewer` | Reads the portfolio, moves through onboarding (without renaming the workspace or inviting) and signs out; every other write is blocked |
 
 ## Capabilities
 
 - Create a project, move it between planning, active and complete, and delete it: [Create a project](FLOWS.md#create-a-project), [Change a project's status](FLOWS.md#change-a-projects-status), [Delete a project](FLOWS.md#delete-a-project).
-- Sign up, confirm the email and sign in with a password, a magic link or an MFA code; reset a password: [Sign up](FLOWS.md#sign-up), [Confirm an email address](FLOWS.md#confirm-an-email-address), [Sign in with a password](FLOWS.md#sign-in-with-a-password), [Complete an MFA challenge](FLOWS.md#complete-an-mfa-challenge), [Sign in with a magic link](FLOWS.md#sign-in-with-a-magic-link), [Reset a password](FLOWS.md#reset-a-password).
+- Sign up, open the new account's own inbox and confirm the email, and sign in with a password, a magic link or an MFA code; reset a password: [Sign up](FLOWS.md#sign-up), [Confirm an email address](FLOWS.md#confirm-an-email-address), [Sign in with a password](FLOWS.md#sign-in-with-a-password), [Complete an MFA challenge](FLOWS.md#complete-an-mfa-challenge), [Sign in with a magic link](FLOWS.md#sign-in-with-a-magic-link), [Reset a password](FLOWS.md#reset-a-password).
 - Finish the onboarding wizard (profile, workspace name, teammates, color mode): [Complete onboarding](FLOWS.md#complete-onboarding).
 - Switch between workspaces or create a new one: [Switch or create a workspace](FLOWS.md#switch-or-create-a-workspace).
 - Invite teammates, accept an invitation, change roles and remove members: [Invite a teammate](FLOWS.md#invite-a-teammate), [Accept an invitation](FLOWS.md#accept-an-invitation), [Change a member's role or remove a member](FLOWS.md#change-a-members-role-or-remove-a-member).
 - Read, archive and follow inbox messages: [Read the simulated inbox](FLOWS.md#read-the-simulated-inbox).
 - Choose a plan, check out and cancel or resume the subscription: [Choose a plan and check out](FLOWS.md#choose-a-plan-and-check-out), [Cancel or resume the subscription](FLOWS.md#cancel-or-resume-the-subscription).
-- Edit profile, password, MFA and notification preferences, and sign out: [Edit profile settings](FLOWS.md#edit-profile-settings), [Change password, set up MFA or sign out](FLOWS.md#change-password-set-up-mfa-or-sign-out), [Edit notification preferences](FLOWS.md#edit-notification-preferences).
-- Confirm or deny a provider consent screen (reachable only by URL here): [Approve or deny simulated provider consent](FLOWS.md#approve-or-deny-simulated-provider-consent).
+- Sign out from the header with any role: [Sign out](FLOWS.md#sign-out).
+- Edit profile, password, MFA and notification preferences: [Edit profile settings](FLOWS.md#edit-profile-settings), [Change password, set up MFA or sign out from Security](FLOWS.md#change-password-set-up-mfa-or-sign-out-from-security), [Edit notification preferences](FLOWS.md#edit-notification-preferences).
+- Sign in or sign up with a simulated provider ("Continue with Google, Microsoft or GitHub", labelled Simulated), approve or deny the in-app consent, and land a new account in onboarding: [Sign in or sign up with a simulated provider](FLOWS.md#sign-in-or-sign-up-with-a-simulated-provider).
 - Read the overview and the portfolio (described in [SCREENS.md](SCREENS.md)).
 
 ## Non-goals
@@ -50,10 +51,9 @@ All roles are simulated personas; see [PERMISSIONS.md](PERMISSIONS.md).
 - No real identity: no password security, no email delivery, no OAuth
   provider, no real authenticator app.
 - No payments: no card fields, no charge, no tax, no payment provider.
-- No "Sign in with Google" button: the kit's `SsoButtons` component is not
-  mounted on any Lattice screen, so the OAuth consent and link screens are
-  reachable only by URL (the `google` provider is still shown as linked in
-  Security for the scenarios that seed it).
+- No real provider sign-in: the "Continue with …" buttons start the kit's
+  in-app OAuth simulation, never a provider. Apple and Slack are not
+  offered (the kit supports them).
 - No plan downgrade: the checkout screen calls `upgrade` or `checkout` only.
 - No collaboration between people: everyone is a persona in one browser.
 
@@ -83,10 +83,10 @@ Everything below is a simulation. See
 | Data | Stored in IndexedDB in the visitor's browser (namespace `lattice-saas-demo`). Nothing is shared between visitors or devices; there is no sync, collaboration or backup. |
 | Identity | Simulated sign-up, sign-in, magic links, password reset, email verification and MFA from the SaaS kit ([ADR-018](../../../docs/DECISIONS.md#adr-018--simulated-authentication-oauth-mfa-and-billing-kits)). The prototype boots signed out (`auth.signedOutByDefault`). Passwords are stored as typed in `saas_accounts.simulatedPassword` (every seeded persona uses `demo-password`; the scenario actor is `owner@example.com`). This is not authentication and protects nothing. Personas can also be switched in DevTools, which is part of `pnpm protoyard dev` but not of the static build (`build.includeDevtools: false`). |
 | MFA | Six-digit codes derived from a stored seed and the simulated clock, shown on screen ("Simulated authenticator code"); recovery codes are stored in plain text. Not TOTP and not a second factor. |
-| OAuth | A provider-shaped consent screen inside the app; no provider is contacted. |
-| Email | The inbox is the `saas_inbox` table. Verification, magic-link, reset, invitation, receipt and trial messages are rows with an in-app `#/…` action; nothing is sent, and opening a link stands for owning the mailbox. |
+| OAuth | "Continue with Google / Microsoft / GitHub" on sign-in and sign-up (neutral icon, a persistent "Simulated" label) opens a provider-shaped consent screen inside the app; no provider is contacted and the identities are fictional (`google.user@example.com`). |
+| Email | The inbox is the `saas_inbox` table. Verification, magic-link, reset, invitation, receipt and trial messages are rows with an in-app `#/…` action; nothing is sent, and opening a link stands for owning the mailbox. A pending sign-up opens its own inbox from `#/inbox?account=<id>`; anyone with that id could, which is acceptable only because it is a simulation. |
 | Permissions | Capabilities in `src/domain/policy.ts`, checked by `session.assert` in the project services and the kit services, and by route guards (signed in, onboarded). They shape the UX and make forbidden calls fail even from the browser console, but they are not authorization or security. |
-| Payments | Plans, trials, checkout outcomes, subscriptions and invoices in integer cents (`Pro` 1900 and `Team` 4900 cents per seat per month in `src/App.svelte`). The checkout screen always uses the `success` outcome; nobody is charged and no card data exists. |
+| Payments | Plans, trials, checkout outcomes, subscriptions and invoices in integer cents (`Pro` 1900 and `Team` 4900 cents per seat per month in `LATTICE_PLANS`, `src/domain/plans.ts`, the single price source for the billing engine and the seeded subscriptions). The checkout screen always uses the `success` outcome; nobody is charged and no card data exists. |
 | Network | No network calls. Mutations run through `environment.run` (`projects.create`, `auth.signUp`, `billing.checkout`, …), which can add latency, fail as offline or inject errors from DevTools. |
 | Time | A simulated clock set to the scenario reference time (for example `2026-10-18T09:00:00.000Z` for `signed-out`). Token expiry, MFA codes, the trial banner and the trial countdown use it. Advancing time in DevTools applies `billingTimeline`: a trial whose end passes expires (subscription and organization `expired`, a "trial ended" inbox message). Nothing runs in the background. |
 | People and workspaces | Generated, fictional data (`example.com` addresses; the workspace "Northstar Studio"). The generator is deterministic: the same seed, reference time and versions produce the same world. |
@@ -128,7 +128,7 @@ chosen here. See
 | default theme | `violet` |
 | storage namespace | `lattice-saas-demo` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

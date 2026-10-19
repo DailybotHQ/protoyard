@@ -1,70 +1,22 @@
 <script lang="ts">
 import { createRouter, getRuntime, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { applySaasScenarioSession, createBilling } from '@protoyard/saas';
-import {
-  InboxDrawer,
-  provideSaas,
-  requireSaasApp,
-  saasRoutes,
-  TrialBanner,
-  WorkspaceSwitcher,
-} from '@protoyard/saas-ui';
+import { InboxDrawer, provideSaas, TrialBanner, WorkspaceSwitcher } from '@protoyard/saas-ui';
 import { onDestroy, onMount } from 'svelte';
+import SignOutButton from './components/SignOutButton.svelte';
+import { LATTICE_PLANS } from './domain/plans.ts';
+import { LATTICE_PATHS, LATTICE_SAAS_UI, latticeRoutes } from './saas.ts';
 import Dashboard from './screens/Dashboard.svelte';
 import Projects from './screens/Projects.svelte';
 
 const runtime = getRuntime();
 const principal = usePrincipal(runtime);
-const billing = createBilling(runtime, [
-  {
-    id: 'pro',
-    name: 'Pro',
-    unitAmountCents: 1900,
-    currency: 'USD',
-    interval: 'month',
-    trialDays: 14,
-  },
-  {
-    id: 'team',
-    name: 'Team',
-    unitAmountCents: 4900,
-    currency: 'USD',
-    interval: 'month',
-    trialDays: 14,
-  },
-]);
-provideSaas(runtime, { billing, homePath: '/app', onboardingPath: '/onboarding' });
+// The plan catalog is the single price source (seeded subscriptions read it too).
+const billing = createBilling(runtime, LATTICE_PLANS);
+provideSaas(runtime, { billing, ...LATTICE_SAAS_UI });
 
 const router = createRouter(
-  [
-    { path: '/', component: Dashboard, title: 'Plan your work' },
-    ...saasRoutes({
-      session: runtime.session,
-      homePath: '/app',
-      onboardingPath: '/onboarding',
-      lazy: true,
-    }),
-    {
-      path: '/app',
-      component: Dashboard,
-      title: 'Overview',
-      guard: requireSaasApp(runtime.session, {
-        signInPath: '/sign-in',
-        onboardingPath: '/onboarding',
-        homePath: '/app',
-      }),
-    },
-    {
-      path: '/projects',
-      component: Projects,
-      title: 'Projects',
-      guard: requireSaasApp(runtime.session, {
-        signInPath: '/sign-in',
-        onboardingPath: '/onboarding',
-        homePath: '/app',
-      }),
-    },
-  ],
+  latticeRoutes(runtime.session, { dashboard: Dashboard, projects: Projects }),
   {
     titleSuffix: runtime.manifest.name,
     revalidateOn: (refresh) => runtime.session.subscribe(refresh),
@@ -101,6 +53,7 @@ const signedIn = $derived(principal.current !== null);
           <a class="rounded-md px-3 py-2 hover:bg-muted" href="#/settings">Settings</a>
         </div>
         <InboxDrawer />
+        <SignOutButton {runtime} signInPath={LATTICE_PATHS.signInPath} />
       {:else}
         <span class="hidden rounded-full border border-border px-3 py-1 text-xs text-muted-foreground sm:inline-flex">Interactive product simulation</span>
         <a class="rounded-md px-3 py-2 text-sm font-medium hover:bg-muted" href="#/sign-in">Sign in</a>

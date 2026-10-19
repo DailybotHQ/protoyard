@@ -164,11 +164,14 @@ and inbox rows in place.
 - **Money (integer cents):** `saas_subscriptions.unitAmountCents` is the
   price per seat per interval; `saas_invoices.amountCents` and each
   `lines[].amountCents` are integers, and proration credits are negative
-  lines. The Lattice catalog (in `src/App.svelte`) is `pro` (Pro, 1900 USD
-  cents per seat per month) and `team` (Team, 4900), both with a 14-day
-  trial. Seeded subscriptions come from the kit's default prices instead
-  (`pro` at 1200 cents per seat), so a seeded Pro trial or past-due
-  subscription shows a different price than the Pro plan card.
+  lines. The Lattice catalog (`LATTICE_PLANS` in `src/domain/plans.ts`) is
+  `pro` (Pro, 1900 USD cents per seat per month) and `team` (Team, 4900),
+  both with a 14-day trial. It is the only price source: `createBilling`
+  reads it, and the generator passes `seededPlanPrices()` to the kit, so a
+  seeded Pro trial, active or past-due subscription and its invoices use
+  1900 cents per seat, the price on the Pro plan card (the kit's
+  `enterprise` status would seed the Team plan; no Lattice scenario uses it).
+  Generator version 2 introduced these seeded prices.
 - **`saas_subscriptions.status`:** `trialing`, `active`, `past_due`,
   `canceled`, `expired`; `cancelAtPeriodEnd` marks a scheduled cancellation.
   **`saas_invoices.status`:** `paid`, `open`, `void`, `failed`.
@@ -191,6 +194,11 @@ and inbox rows in place.
 - **`saas_sessions_log.method`:** `password`, `oauth`, `magic-link`, `mfa`,
   `invite`, `sign-up`, `sign-out`; `outcome` `success` or `failure` with a
   `reason`.
+- **`saas_onboarding`:** `currentStep`, `completedSteps`, `skippedSteps`,
+  `answers` (per step) and timestamps. Each Lattice step's answer is written
+  in the same transaction as its data changes (`py_personas` name and
+  title, `py_organizations` name, invited `py_personas` and
+  `py_memberships`).
 
 ## Schema history
 

@@ -257,4 +257,26 @@ describe('onboarding wizard screen', () => {
     }).state();
     expect(saved.answers).toEqual({ goal: { goal: 'ship' } });
   });
+
+  it('runs afterSubmit only once the answer is saved', async () => {
+    const runtime = (await harness.boot('not-started')) as PrototypeRuntime;
+    const calls: unknown[] = [];
+    const steps = defaultOnboardingSteps().map((step) =>
+      step.id === 'profile'
+        ? { ...step, apply: undefined, afterSubmit: (answer: unknown) => void calls.push(answer) }
+        : step
+    );
+    render(OnboardingHarness, { runtime, steps });
+    await expectStep('Step 1 of 5: Profile');
+    await type('Full name', 'Olivia Hart');
+    runtime.environment.set({ network: 'offline' });
+    await next();
+    expect(await screen.findByText(/offline/i)).toBeTruthy();
+    expect(calls).toEqual([]);
+
+    runtime.environment.set({ network: 'online' });
+    await next();
+    await expectStep('Step 2 of 5: Workspace');
+    expect(calls).toEqual([expect.objectContaining({ fullName: 'Olivia Hart' })]);
+  });
 });

@@ -21,23 +21,32 @@ Simulated permissions: UX only, not security. Services enforce them with
 ## Record-level rules
 
 <!-- protoyard:generated:rules -->
-_No record-level rules._
+- `orders:lookup`
+- `returns:create`
 <!-- /protoyard:generated:rules -->
 
-There are none: `rules` in `src/domain/policy.ts` is empty, so no service
-passes a record to `session.assert` and every check is role-wide.
+Both rules are `ownsOrder` in `src/domain/policy.ts`: with an order (or
+any record with an `email`) it passes only when the record's email matches
+the active persona's email, case-insensitively, or when the role is
+`agent`. Without a record (the UI's role-wide `can(...)`) it passes.
 
 What this means today:
 
 - `visitor` holds the six listed capabilities and `agent` holds `*`, so
-  both roles can do everything the widget offers. The denied states in
+  both roles can use everything the widget offers. The denied states in
   [SCREENS.md](SCREENS.md) only appear if the policy changes.
-- Nothing scopes records to their owner: any persona can look up any order
-  and see every return in the browser.
+- A visitor sees only their own orders. The services apply the rule, so it
+  holds even when the UI is bypassed: `lookupOrder` and `latestOrder`
+  search only the persona's orders (someone else's order is "No order
+  matching … on your account."), `requestReturn` refuses someone else's
+  order with "Order not found on your account.", `listOrdersForEmail`
+  refuses another email with "You can only list the orders on your own
+  email.", and `listReturns` (which feeds the on-screen returns list) keeps
+  only returns on the persona's orders. A support agent sees every order
+  and return.
 - `cancel` and `markRead` have no capability check; `createConversation`
-  checks `messages:send`; the on-screen returns list reads the table
-  directly, so `returns:read` is checked only by the unused
-  `listReturns` service.
+  checks `messages:send`; `latestOrder` checks `orders:lookup` with `can`
+  and returns `null` without it.
 - `chat:read` is checked only by `ensureSupportThread`.
 
 Role labels in the UI code come from `ROLE_LABELS` (`visitor` → "Customer",

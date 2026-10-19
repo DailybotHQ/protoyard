@@ -359,6 +359,14 @@ await onboarding.restart();                // back to step 1, answers kept as de
   and writes the answer and the new position in **one transaction**. A reload
   resumes exactly where the person left off, and an offline failure writes
   nothing.
+- A step with an `effect` runs it inside that same transaction, opened with
+  `runtime.identity.write` over the identity tables plus `tables`. The effect
+  receives `{ at, personaId, organizationId, identity }`; write personas,
+  organizations or memberships through `identity` (the `IdentityOps` of
+  `runtime.identity.write`). The effect's writes, the answer and the position
+  commit together or not at all: if the effect throws (validation, a
+  `session.assert`) or the environment fails, nothing is written. The session
+  refreshes after the commit.
 - `complete()` also sets the persona's `onboardingComplete` through
   `runtime.identity.write`, in the same transaction as the wizard row, and
   the session refreshes after the commit. `restart()` clears it again.

@@ -65,6 +65,26 @@ describe('Inbox UI', () => {
     expect(service.markRead).toHaveBeenCalledWith('message-1');
   });
 
+  it('locks the inbox to one recipient when lockRecipient is set', async () => {
+    const service = inboxService();
+    render(ProvideInboxHarness, {
+      props: { service, recipient: 'ada@example.com', embedded: true, lockRecipient: true },
+    });
+    await screen.findByText('Your simulated sign-in link');
+    expect(screen.queryByLabelText('Fictional inbox email')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Open inbox' })).toBeNull();
+    expect(screen.getByTestId('inbox-locked-recipient').textContent).toContain('ada@example.com');
+  });
+
+  it('keeps the address form by default', async () => {
+    render(ProvideInboxHarness, {
+      props: { service: inboxService(), recipient: 'ada@example.com', embedded: true },
+    });
+    await screen.findByText('Your simulated sign-in link');
+    expect(screen.getByLabelText('Fictional inbox email')).toBeTruthy();
+    expect(screen.queryByTestId('inbox-locked-recipient')).toBeNull();
+  });
+
   it('renders message bodies as text rather than interpreting markup', async () => {
     const service = inboxService({ body: '<img src=x onerror=alert(1)>' });
     render(ProvideInboxHarness, {

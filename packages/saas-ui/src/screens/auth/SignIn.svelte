@@ -12,7 +12,8 @@ import {
   FormField,
   Input,
 } from '@protoyard/ui';
-import { applyServiceError, authServices } from './helpers.ts';
+import SsoButtons from '../../components/SsoButtons.svelte';
+import { applyServiceError, authServices, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
 const mfa = createMfaServices(runtime);
@@ -72,13 +73,19 @@ async function submit() {
         {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
         <Button type="submit" loading={busy} loadingLabel="Signing in" disabled={busy}>Sign in</Button>
       </form>
+      {#if config.ssoProviders.length > 0}
+        <div class="mt-6 grid gap-3" data-testid="auth-sso">
+          <p class="flex items-center gap-3 text-xs text-muted-foreground" aria-hidden="true"><span class="h-px flex-1 bg-border"></span>or<span class="h-px flex-1 bg-border"></span></p>
+          <SsoButtons providers={config.ssoProviders} intent="sign-in" />
+        </div>
+      {/if}
     </CardContent>
     <CardFooter class="flex flex-wrap justify-between gap-2">
-      <Button href={config.signUpPath} variant="ghost">Create account</Button>
+      <Button href={routeHref(config.signUpPath)} variant="ghost">Create account</Button>
       <Button href="#/auth/magic" variant="outline">Use a magic link</Button>
     </CardFooter>
     <CardFooter>
-      <Button href="/auth/reset" variant="link">Forgot password?</Button>
+      <Button href="#/auth/reset" variant="link">Forgot password?</Button>
     </CardFooter>
   </Card>
   <p class="mt-4 text-center text-xs text-muted-foreground">Simulation only — never enter a real password.</p>

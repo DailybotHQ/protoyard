@@ -8,11 +8,16 @@ _No `src/routes.ts`: this prototype declares its routes in `src/App.svelte`. Lis
 
 ## Screens
 
-The routes are declared in `src/App.svelte`: `/`, then the SaaS kit's
-`saasRoutes({ homePath: '/app', onboardingPath: '/onboarding', lazy: true })`,
-then `/app` and `/projects`. The kit screens are lazy chunks from
-`@protoyard/saas-ui`; Overview and Projects are this prototype's own
-screens. The router revalidates guards whenever the session changes.
+The routes are declared in `latticeRoutes` (`src/saas.ts`, used by
+`src/App.svelte`): `/`, then the SaaS kit's `saasRoutes({ homePath: '/app',
+onboardingPath: '/onboarding', lazy: true })` without its `inbox` and
+`onboarding` groups, then Lattice's own `/inbox` and `/onboarding`, then
+`/app` and `/projects`. The kit screens are lazy chunks from
+`@protoyard/saas-ui`; Overview, Projects, Inbox and Onboarding are this
+prototype's own screens (Inbox and Onboarding wrap the kit's `InboxDrawer`
+and `OnboardingWizard`). `LATTICE_SAAS_UI` configures the kit screens: the
+SSO providers on sign-in and sign-up and the sign-up hand-off to the
+pending inbox. The router revalidates guards whenever the session changes.
 
 | Route | Screen | Source | Guard |
 | --- | --- | --- | --- |
@@ -27,8 +32,8 @@ screens. The router revalidates guards whenever the session changes.
 | `#/auth/verify` | Verify email | kit | — |
 | `#/oauth/:provider/consent` | Provider consent | kit | — |
 | `#/oauth/:provider/link` | Link provider account | kit | — |
-| `#/inbox` | Inbox | kit | signed in |
-| `#/onboarding` | Onboarding | kit | signed in |
+| `#/inbox` | Inbox (signed in), or the pending sign-up inbox with `?account=` | `src/screens/Inbox.svelte` | signed in, or `?account=` present |
+| `#/onboarding` | Onboarding | `src/screens/Onboarding.svelte` | signed in |
 | `#/billing/plans` | Plans | kit | signed in |
 | `#/billing/checkout` | Checkout | kit | signed in |
 | `#/billing/portal` | Billing portal | kit | signed in |
@@ -99,7 +104,12 @@ States that apply to every screen:
 - **Purpose:** the simulated account journeys ([FLOWS.md](FLOWS.md#sign-in-with-a-password)).
 - **Data and actions:** email and password forms with "Show password";
   Sign in links to "Create account", "Use a magic link" and "Forgot
-  password?"; Sign up ends on "Check your simulated inbox"; Multi-factor
+  password?"; Sign in and Sign up show, under an "or" divider, "Continue
+  with Google", "Continue with Microsoft" and "Continue with GitHub", each
+  with a neutral key icon and a "Simulated" label, under the note
+  "Simulated sign-in: no provider is contacted and nothing leaves this
+  browser."; Sign up ends on "Check your simulated inbox" with "Open
+  simulated inbox" (`#/inbox?account=…`) and "Return to sign in"; Multi-factor
   shows the simulated authenticator code and accepts a code or a recovery
   code; Verify email confirms the token from the link; Magic link and Reset
   password send a link and then consume it from `?token=`.
@@ -107,12 +117,11 @@ States that apply to every screen:
   email first. Check your simulated inbox.", "This sign-in link was already
   used."), busy buttons ("Signing in", "Creating account"), "Open the
   confirmation action from your simulated inbox." without a token.
-- **Gaps:** "Create account", "Forgot password?" and the "Return to sign
-  in" / "Back to sign in" / "I already have an account" buttons link to
-  `/sign-up`, `/auth/reset` or `/sign-in` without `#`, so they leave this
-  hash-routed app instead of opening the kit screen (not verified in a
-  browser). Verification, magic-link and reset messages land in the inbox,
-  which a signed-out visitor cannot open.
+- **Links:** every link on these screens is an in-app `#/…` route
+  (`#/sign-up`, `#/auth/reset`, `#/sign-in`).
+- **Limit:** a signed-out visitor can open only the inbox of a pending
+  (unverified) sign-up; magic-link and reset messages for a confirmed
+  account are not reachable while signed out.
 
 ### Provider consent and Link provider account (`#/oauth/:provider/…`)
 
@@ -121,17 +130,22 @@ States that apply to every screen:
 - **States:** "This provider is not supported by the simulator.", a
   missing-state message, "Redirecting…"; linking while signed out goes to
   sign in with `?next=`.
-- **Reachability:** nothing in Lattice starts a consent, so these open only
-  by URL.
+- **Reachability:** the "Continue with …" buttons on Sign in and Sign up
+  start a consent. Approving a new identity goes to `#/onboarding`, a
+  linked one to `#/`; Deny returns to `#/sign-in`.
 
 ### Onboarding (`#/onboarding`)
 
-- **Purpose:** the four-step setup wizard (Profile, Workspace, Invite
-  teammates, Preferences, then Done) with a progress bar.
-- **Actions:** Next (validates, applies and saves), Back, Skip (optional
-  steps), Finish ("Go to the app"), Restart (confirmed).
+- **Purpose:** "Set up your Lattice workspace": the four-step setup wizard
+  (Profile, Workspace, Invite teammates, Preferences, then Done) with a
+  progress bar.
+- **Actions:** Next (validates, then saves the answer and its changes in one
+  transaction), Back, Skip (optional steps), Finish ("Go to the app"),
+  Restart (confirmed).
 - **Loading / errors:** a loading state while the saved position loads;
-  field errors inline; a form message for other failures.
+  field errors inline; a form message for other failures (for example the
+  simulated offline message). A failed Next changes nothing and keeps the
+  person on the step.
 - **Denied:** the Workspace step is read-only without `workspaces:rename`
   ("Only people who manage the workspace can rename it. Review it and
   continue."); the Invite step refuses addresses without `members:invite`.
@@ -143,9 +157,16 @@ States that apply to every screen:
   time, body, "Unread" badge.
 - **Actions:** type a fictional `@example.com` address and "Open inbox";
   per message "Open <action>", "Mark as read", "Archive".
+- **Pending sign-up (signed out, `?account=`):** "You are not signed in yet.
+  Open the confirmation message to verify your email, then sign in.", then
+  "Messages for <address>" without the address form, and only that
+  account's messages.
 - **States:** "Loading simulated messages…"; "Enter the address used by
   this prototype to view its simulated messages."; "No messages for
-  <address>."; "The simulated inbox could not load. Try again."
+  <address>."; "The simulated inbox could not load. Try again."; signed out
+  with an unknown, verified, locked or disabled account: "This inbox link
+  only works for an account waiting for email confirmation. Sign in to read
+  your inbox." with "Go to sign in"
 
 ### Plans, Checkout and Billing portal (`#/billing/…`)
 
@@ -209,7 +230,8 @@ screens (the navigation wraps and scrolls horizontally). It does not use
 "lattice" logo. Signed in, it shows the trial banner above the header (only
 while the subscription is trialing, with days left on the simulated clock
 and "View plans"), the workspace switcher, links to Overview, Projects,
-Team, Inbox, Plans and Settings, and the inbox drawer. Signed out, it shows
+Team, Inbox, Plans and Settings, the inbox drawer and "Sign out" (every
+role; it goes to `#/sign-in`). Signed out, it shows
 an "Interactive product simulation" chip, "Sign in" and "Start your
 workspace". Content is centered with a maximum width of `max-w-7xl`, and a
 footer says that authentication, invitations, plans and billing are

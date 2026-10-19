@@ -23,7 +23,7 @@ export { SUPPORT_THREAD_ID };
  * Assistant replies stream chunk by chunk INTO a persisted message, so a
  * reload mid-stream shows exactly what had arrived. The "model call" runs as
  * the environment operation `assistant.reply`, which is how the
- * `assistant-outage` scenario (failureScope ['assistant.']) makes it fail.
+ * `outage` scenario (failureScope ['assistant.']) makes it fail.
  */
 
 /** `issues` per field lets forms show errors inline (`runService` leaves it to you). */
@@ -75,9 +75,8 @@ export function createChatServices(
     return new Date(at).toISOString();
   }
 
-  async function reply(prompt: Message): Promise<Message> {
-    const at = await nextAt(prompt.conversationId);
-    const message: Message = {
+  function newReply(prompt: Message, at: string): Message {
+    return {
       id: createRuntimeId('msg'),
       conversationId: prompt.conversationId,
       authorId: ASSISTANT.id,
@@ -88,29 +87,48 @@ export function createChatServices(
       promptId: prompt.id,
       error: null,
     };
+  }
+
+  /** Writes a fresh reply row, then asks the simulated assistant; a failure marks the row `failed`. */
+  async function reply(prompt: Message): Promise<Message> {
+    const at = await nextAt(prompt.conversationId);
+    const message = newReply(prompt, at);
     live.add(message.id);
-    await db.transaction('rw', db.messages, db.conversations, async () => {
-      await db.messages.add(message);
-      await db.conversations.update(prompt.conversationId, { lastMessageAt: at });
-    });
     try {
-      const text = await environment.run('assistant.reply', () => scriptedReply(prompt.body));
-      let body = '';
-      for (const chunk of chunkReply(text)) {
-        if (stopRequested.has(message.id)) return finish(message, { body, status: 'stopped' });
-        body += chunk;
-        await db.messages.update(message.id, { body });
-        await sleep(chunkDelay);
+      await db.transaction('rw', db.messages, db.conversations, async () => {
+        await db.messages.add(message);
+        await db.conversations.update(prompt.conversationId, { lastMessageAt: at });
+      });
+      try {
+        const text = await environment.run('assistant.reply', () => scriptedReply(prompt.body));
+        return await stream(message, text);
+      } catch (error) {
+        const reason =
+          error instanceof SimulatedServiceError ? error.message : 'The assistant could not reply.';
+        return await finish(message, { body: '', status: 'failed', error: reason });
       }
-      return finish(message, { body, status: 'sent' });
-    } catch (error) {
-      const reason =
-        error instanceof SimulatedServiceError ? error.message : 'The assistant could not reply.';
-      return finish(message, { body: '', status: 'failed', error: reason });
     } finally {
       live.delete(message.id);
       stopRequested.delete(message.id);
     }
+  }
+
+  /** Writes `text` into an existing reply row chunk by chunk, honouring Stop. */
+  async function stream(message: Message, text: string): Promise<Message> {
+    let body = '';
+    for (const chunk of chunkReply(text)) {
+      if (stopRequested.has(message.id)) return finish(message, { body, status: 'stopped' });
+      body += chunk;
+      await db.messages.update(message.id, { body });
+      await sleep(chunkDelay);
+    }
+    return finish(message, { body, status: 'sent' });
+  }
+
+  /** Orders the active persona may see (the record-level `orders:lookup` rule). */
+  async function visibleOrders(): Promise<Order[]> {
+    const all = await db.orders.toArray();
+    return all.filter((o) => session.can(CAPABILITIES.lookupOrder, o));
   }
 
   async function finish(message: Message, patch: Partial<Message>): Promise<Message> {
@@ -179,14 +197,35 @@ export function createChatServices(
       return { message, reply: reply(message) };
     },
 
-    /** Replaces a failed or stopped reply with a fresh attempt at the same prompt. */
+    /**
+     * Replaces a failed or stopped reply with a fresh attempt at the same prompt.
+     * The old reply is deleted in the same `environment.run('assistant.reply')`
+     * and transaction that writes the new one, so a simulated failure (offline,
+     * outage) rejects and leaves the old reply exactly as it was.
+     */
     async retry(replyId: string): Promise<Message | null> {
       session.assert(CAPABILITIES.send);
-      const failed = await db.messages.get(replyId);
-      const prompt = failed?.promptId ? await db.messages.get(failed.promptId) : undefined;
-      if (!failed || !prompt) return null;
-      await db.messages.delete(replyId);
-      return reply(prompt);
+      const old = await db.messages.get(replyId);
+      const prompt = old?.promptId ? await db.messages.get(old.promptId) : undefined;
+      if (!old || !prompt || live.has(replyId)) return null;
+      const at = await nextAt(prompt.conversationId);
+      const message = newReply(prompt, at);
+      live.add(message.id);
+      try {
+        const text = await environment.run('assistant.reply', async () => {
+          const text = scriptedReply(prompt.body);
+          await db.transaction('rw', db.messages, db.conversations, async () => {
+            await db.messages.delete(replyId);
+            await db.messages.add(message);
+            await db.conversations.update(prompt.conversationId, { lastMessageAt: at });
+          });
+          return text;
+        });
+        return await stream(message, text);
+      } finally {
+        live.delete(message.id);
+        stopRequested.delete(message.id);
+      }
     },
 
     /** Stops a streaming reply. One orphaned by a reload is closed directly. */
@@ -277,27 +316,46 @@ export function createChatServices(
       });
     },
 
+    /**
+     * Finds one of the active persona's orders by number or id. Visitors only
+     * see orders on their own email (the `orders:lookup` rule in policy.ts);
+     * someone else's order is reported as not found on your account.
+     */
     async lookupOrder(numberOrId: string): Promise<Order> {
       session.assert(CAPABILITIES.lookupOrder);
       const q = numberOrId.trim().toUpperCase();
       if (q.length < 3)
-        throw new ChatValidationError({ order: 'Enter an order number like NW-10042.' });
+        throw new ChatValidationError({ order: 'Enter an order number like NW-10040.' });
       return environment.run('orders.lookup', async () => {
-        const all = await db.orders.toArray();
+        const mine = await visibleOrders();
         const order =
-          all.find((o) => o.number.toUpperCase() === q || o.id.toUpperCase() === q) ??
-          all.find((o) => o.number.toUpperCase().includes(q));
+          mine.find((o) => o.number.toUpperCase() === q || o.id.toUpperCase() === q) ??
+          mine.find((o) => o.number.toUpperCase().includes(q));
         if (!order)
           throw new ChatValidationError({
-            order: `No fictional order matches "${numberOrId.trim()}".`,
+            order: `No order matching "${numberOrId.trim()}" on your account.`,
           });
         return order;
       });
     },
 
+    /**
+     * The active persona's most recent order (by `orderedAt`), or `null`.
+     * Prefills the order input, so the default lookup always exists in the
+     * current world. Read only and local, like `listReturns`.
+     */
+    async latestOrder(): Promise<Order | null> {
+      if (!session.can(CAPABILITIES.lookupOrder)) return null;
+      const mine = await visibleOrders();
+      mine.sort((a, b) => b.orderedAt.localeCompare(a.orderedAt) || b.id.localeCompare(a.id));
+      return mine[0] ?? null;
+    },
+
     async listOrdersForEmail(email: string): Promise<Order[]> {
       session.assert(CAPABILITIES.lookupOrder);
       const key = email.trim().toLowerCase();
+      if (!session.can(CAPABILITIES.lookupOrder, { email: key }))
+        throw new ChatValidationError({ email: 'You can only list the orders on your own email.' });
       return environment.run('orders.listByEmail', async () => {
         const all = await db.orders.toArray();
         return all.filter((o) => o.email.toLowerCase() === key);
@@ -317,7 +375,9 @@ export function createChatServices(
         throw new ChatValidationError({ reason: 'Keep the reason under 200 characters.' });
       return environment.run('returns.create', async () => {
         const order = await db.orders.get(input.orderId);
-        if (!order) throw new ChatValidationError({ order: 'Order not found.' });
+        // Someone else's order reads exactly like a missing one.
+        if (!order || !session.can(CAPABILITIES.requestReturn, order))
+          throw new ChatValidationError({ order: 'Order not found on your account.' });
         if (order.status === 'cancelled')
           throw new ChatValidationError({ order: 'Cancelled orders cannot be returned.' });
         const existing = await db.returns.where('orderId').equals(order.id).first();
@@ -360,9 +420,12 @@ export function createChatServices(
       });
     },
 
+    /** Returns on the orders the active persona can see, newest first. */
     async listReturns(): Promise<ReturnRequest[]> {
       session.assert(CAPABILITIES.readReturns);
-      return db.returns.orderBy('createdAt').reverse().toArray();
+      const ids = new Set((await visibleOrders()).map((o) => o.id));
+      const rows = await db.returns.orderBy('createdAt').reverse().toArray();
+      return rows.filter((r) => ids.has(r.orderId));
     },
   };
 }

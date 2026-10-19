@@ -1,4 +1,4 @@
-import { definePolicy } from '@protoyard/core';
+import { definePolicy, type Principal } from '@protoyard/core';
 
 /** Simulated capabilities — not a security boundary. */
 export const CAPABILITIES = {
@@ -15,6 +15,18 @@ export const ROLE_LABELS: Record<string, string> = {
   agent: 'Support agent',
 };
 
+/**
+ * Record-level rule for orders: a visitor sees only orders on their own
+ * persona email; a support agent sees every order. Without a record (a
+ * role-wide check such as `can('orders:lookup')` in the UI) it passes.
+ */
+export function ownsOrder(principal: Principal, resource: unknown): boolean {
+  if (resource === undefined || principal.role === 'agent') return true;
+  const email = (resource as { email?: unknown } | null)?.email;
+  const mine = principal.persona.email?.trim().toLowerCase();
+  return typeof email === 'string' && !!mine && email.trim().toLowerCase() === mine;
+}
+
 export const policy = definePolicy({
   roles: {
     visitor: [
@@ -27,5 +39,8 @@ export const policy = definePolicy({
     ],
     agent: ['*'],
   },
-  rules: {},
+  rules: {
+    [CAPABILITIES.lookupOrder]: ownsOrder,
+    [CAPABILITIES.requestReturn]: ownsOrder,
+  },
 });

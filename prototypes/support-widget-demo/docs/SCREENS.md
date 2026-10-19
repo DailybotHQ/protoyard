@@ -31,12 +31,14 @@ launcher.
     in `outage`) or "Service problems.", followed by "Some requests will
     fail (simulated <mode>)."
   - **Order tools** (shown only with `orders:lookup`): an "Order number"
-    input prefilled with `NW-10042` and **Look up order**; the order card
+    input prefilled with the persona's most recent order number (placeholder
+    `NW-10040`) and **Look up order**; the order card
     (number, item summary, ordered date, status, tracking code when present,
     total formatted from integer cents); on the card, "Return reason"
     (prefilled "Wrong size") and **Start return** (only with
-    `returns:create` and when the order is not cancelled); a list of every
-    return in the browser (id, status, amount, reason), newest first.
+    `returns:create` and when the order is not cancelled); a list of the
+    returns on the persona's own orders (every return for an `agent`; id,
+    status, amount, reason), newest first.
   - **Messages** (`src/components/MessageList.svelte`): grouped by
     consecutive author and by day, with avatars (`Avatar.svelte`); your own
     messages are tinted and marked "(you)"; the assistant is shown as
@@ -88,7 +90,10 @@ chat launcher in the bottom-right corner. The launcher ("Open chat" /
 screen below 480 px wide; Escape closes it and returns focus to the
 launcher. The panel starts closed, but the app is mounted from page load.
 The app drives the launcher's unread badge (hidden at 0, "9+" above nine)
-through `tryGetWidgetHost()?.setUnread(n)`.
+through the widget host's `setUnread(n)`: messages that arrive while the
+panel is closed raise it, and opening the panel marks the thread read and
+clears it (see
+[FLOWS.md](FLOWS.md#read-the-thread-and-update-the-launcher-badge)).
 
 The default appearance is the `emerald` theme in `system` mode. DevTools are
 not included in builds (`build.includeDevtools: false`); in
