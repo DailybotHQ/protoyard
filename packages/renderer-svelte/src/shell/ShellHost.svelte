@@ -1,5 +1,5 @@
 <script lang="ts">
-import { getDevice, orient, type PrototypeRuntime, safeAreaOf } from '@protoyard/core';
+import { getDevice, orient, type PrototypeRuntime } from '@protoyard/core';
 import { setOverlayPortalTarget } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
 import { useAppearance } from '../bindings.svelte.ts';
@@ -10,6 +10,7 @@ import {
   hasShellCss,
   isEmbedded,
   screenInsetOf,
+  screenLayoutOf,
   stageScale,
 } from './frames/registry.ts';
 
@@ -44,8 +45,10 @@ const shell = $derived(
 );
 const entry = $derived(shell === 'none' ? undefined : FRAMES[shell]);
 const framed = $derived(shell !== 'none' && spec !== undefined && entry !== undefined);
-const insets = $derived(spec ? safeAreaOf(spec) : undefined);
-const inset = $derived(screenInsetOf(entry));
+/** Screen position in the device box and the safe-area tokens the app sees (registry.ts). */
+const layout = $derived(spec ? screenLayoutOf(spec, entry) : undefined);
+const inset = $derived(layout?.inset ?? screenInsetOf(entry));
+const insets = $derived(layout?.safe);
 /**
  * Panel shells (widget-host, side-panel, extension-popup) position their screen
  * in CSS and size it themselves (`--py-app-height` = panel height), so the host
@@ -159,6 +162,7 @@ $effect(() => {
     <div
       data-py-shell-part="device"
       data-py-maximized={box && maximized ? '' : undefined}
+      style:--py-device-radius={box ? `${box.radius}px` : undefined}
       style:width={box ? `${box.width}px` : undefined}
       style:height={box ? `${box.height}px` : undefined}
       style:transform={box && box.scale < 1 ? `scale(${box.scale})` : undefined}

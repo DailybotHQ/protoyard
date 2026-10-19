@@ -91,7 +91,18 @@ frame:
   panel height. `MobileAppShell` and the other `@protoyard/ui` layouts already use it.
 - **Safe areas:** `pt-safe`, `pb-safe`, `pl-safe`, `pr-safe` and `px-safe` combine the real
   `env(safe-area-inset-*)` with the frame's simulated insets (`--py-safe-*`), so content
-  clears the status bar and home indicator.
+  clears the status bar and home indicator. `--py-safe-top` is never shorter than the
+  status bar the frame paints, in landscape too.
+- **Landscape phones:** the screen is letterboxed between the side insets (the cutout
+  side), as a mobile browser does for a page without `viewport-fit=cover`. The app, its
+  fixed elements and its overlays fill the width between them, so `--py-safe-left` and
+  `--py-safe-right` are `0`; the gutters show the app's background color.
+- **Width caps:** a mobile app that caps its width for wide windows (`max-w-md`) should
+  lift the cap inside a phone or tablet frame with the renderer's `device-frame:` variant
+  (`max-w-md device-frame:max-w-none`), or the app stays a narrow column on a landscape
+  phone or a tablet.
+- **Rounded glass:** the screen and the frame's status bar and home indicator are clipped
+  to the device's corner radius.
 - **Breakpoints:** the device screen is a size container, so container-query variants
   (`@md:`, `@max-2xl:` and so on) follow the device width.
 - **Fixed elements:** `position: fixed` (a bottom nav, toasts, the demo badge) is pinned to

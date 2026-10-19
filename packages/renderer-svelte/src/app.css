@@ -14,6 +14,15 @@
 @source "./";
 
 /*
+ * `device-frame:` applies while the app is shown in a phone or tablet frame. A mobile
+ * app that caps its width for wide windows (`max-w-md`) lifts the cap there, so it
+ * fills the device screen in both orientations: `max-w-md device-frame:max-w-none`.
+ */
+@custom-variant device-frame (
+  &:where(html[data-py-shell="phone"] *, html[data-py-shell="tablet"] *)
+);
+
+/*
  * Marker ShellHost reads to know these layout rules are loaded. A prototype whose
  * stylesheet skips this file renders full-bleed (with a console warning) instead of
  * a collapsed frame.
@@ -70,6 +79,16 @@ html[data-py-shell] [data-py-shell-part="device"] {
   transform-origin: top left;
   /* Frames may paint behind the screen (a desktop wallpaper) without escaping the stage. */
   isolation: isolate;
+}
+/*
+ * Phone and tablet glass: the screen may be letterboxed between a landscape phone's
+ * side insets (ShellHost), so the device box paints those gutters in the app's
+ * background, clipped to the device's corner radius.
+ */
+html[data-py-shell="phone"] [data-py-shell-part="device"],
+html[data-py-shell="tablet"] [data-py-shell-part="device"] {
+  border-radius: var(--py-device-radius, 0);
+  background: var(--color-background);
 }
 html[data-py-shell] [data-py-shell-part="screen"] {
   display: block;

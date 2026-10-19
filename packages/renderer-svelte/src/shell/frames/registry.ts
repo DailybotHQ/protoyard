@@ -2,8 +2,10 @@ import {
   type DeviceSpec,
   fitScale,
   type ResolvedShell,
+  type SafeAreaInsets,
   type ShellChrome,
   type ShellHostVariant,
+  safeAreaOf,
 } from '@protoyard/core';
 import type { Component } from 'svelte';
 
@@ -111,6 +113,54 @@ export function hasShellCss(root: HTMLElement = document.documentElement): boole
 /** Resolved inset of the app screen inside the device box. */
 export function screenInsetOf(entry: FrameEntry | undefined): ScreenInset {
   return { top: 0, right: 0, bottom: 0, left: 0, ...entry?.screenInset };
+}
+
+/**
+ * Height of the simulated status bar a device frame paints over the top of the
+ * screen: the bar's own height or the top safe-area inset, whichever is taller.
+ * Zero for devices without one (windows).
+ */
+export function statusBarHeightOf(spec: DeviceSpec): number {
+  if (spec.statusBar.style === 'none') return 0;
+  return Math.max(spec.statusBar.height, safeAreaOf(spec).top);
+}
+
+export interface ScreenLayout {
+  /** Where the app's screen sits inside the device box. */
+  inset: ScreenInset;
+  /** The insets the app still has to clear itself (`--py-safe-*`). */
+  safe: SafeAreaInsets;
+}
+
+/**
+ * The app's screen inside a sized (device or window) shell.
+ *
+ * - Top: the app clears the status bar the frame paints, not only the catalog
+ *   inset. A landscape phone has no top inset but still shows the bar, which
+ *   used to cover the app's header.
+ * - Sides: the side insets of a landscape phone (the cutout side) letterbox the
+ *   screen, as a mobile browser does for a page without `viewport-fit=cover`.
+ *   The app, its fixed descendants and portaled overlays fill the width between
+ *   them, so the side tokens the app sees are zero. The device box paints the
+ *   gutters in the app's background color.
+ */
+export function screenLayoutOf(spec: DeviceSpec, entry: FrameEntry | undefined): ScreenLayout {
+  const chrome = screenInsetOf(entry);
+  const device = safeAreaOf(spec);
+  return {
+    inset: {
+      top: chrome.top,
+      right: chrome.right + device.right,
+      bottom: chrome.bottom,
+      left: chrome.left + device.left,
+    },
+    safe: {
+      top: Math.max(device.top, statusBarHeightOf(spec)),
+      right: 0,
+      bottom: device.bottom,
+      left: 0,
+    },
+  };
 }
 
 /** Gap kept between the frame and the window edge, in CSS px. */

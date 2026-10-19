@@ -44,8 +44,18 @@ async function toggleOrientation(): Promise<void> {
     aria-hidden="true"
   ></div>
 
-  <StatusBar {spec} />
-  <HomeIndicator {spec} />
+  <!--
+    The status bar and home indicator paint inside the screen's rounded glass: square
+    corners here stuck out past the bezel's inner radius.
+  -->
+  <div
+    data-py-screen-clip
+    class="pointer-events-none absolute inset-0 z-[30] overflow-hidden"
+    style:border-radius="{spec.cornerRadius}px"
+  >
+    <StatusBar {spec} />
+    <HomeIndicator {spec} />
+  </div>
   <!-- Beside the bezel, never over the screen: app tabs and sheets keep every pixel. -->
   <button
     type="button"

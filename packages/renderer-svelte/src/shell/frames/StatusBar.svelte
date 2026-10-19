@@ -2,6 +2,7 @@
 import type { DeviceSpec } from '@protoyard/core';
 import { safeAreaOf } from '@protoyard/core';
 import { useClock, useEnvironment, usePrincipal } from '../../bindings.svelte.ts';
+import { statusBarHeightOf } from './registry.ts';
 
 /** Brand-neutral device chrome driven by the prototype's simulated runtime. */
 let { spec }: { spec: DeviceSpec } = $props();
@@ -11,7 +12,8 @@ const environment = useEnvironment();
 const principal = usePrincipal();
 
 const insets = $derived(safeAreaOf(spec));
-const height = $derived(Math.max(spec.statusBar.height, insets.top));
+/** The app's `--py-safe-top` is at least this tall (screenLayoutOf), so it never covers the app. */
+const height = $derived(statusBarHeightOf(spec));
 const style = $derived(spec.statusBar.style);
 const now = $derived(clock.now);
 const locale = $derived(

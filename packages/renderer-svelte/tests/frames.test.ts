@@ -12,6 +12,8 @@ import {
   FRAMES,
   SHELL_CSS_MARKER,
   screenInsetOf,
+  screenLayoutOf,
+  statusBarHeightOf,
   windowVariant,
 } from '../src/shell/frames/registry.ts';
 import SidePanelFrame from '../src/shell/frames/SidePanelFrame.svelte';
@@ -116,6 +118,72 @@ describe('the rotate control never covers the screen', () => {
       expect(FRAMES[shell]?.margin ?? 0, `${shell} margin`).toBeGreaterThanOrEqual(offset + 32);
       cleanup();
     }
+  });
+});
+
+describe('device chrome stays inside the rounded screen', () => {
+  // The status bar was a plain rectangle in the frame overlay, painted above the bezel
+  // ring: its square top corners stuck out past the ring's inner radius.
+  it('clips the phone and tablet status bar and home indicator to the corner radius', () => {
+    const phone = getDevice('phone-pill');
+    const tablet = getDevice('tablet');
+    if (!phone || !tablet) throw new Error('catalog devices missing');
+    runtimeMock.current = createFakeRuntime();
+    for (const [Frame, spec, shell] of [
+      [PhoneFrame, phone, 'phone'],
+      [PhoneFrame, orient(phone, 'landscape'), 'phone'],
+      [TabletFrame, tablet, 'tablet'],
+    ] as const) {
+      const { container } = render(Frame, { spec, shell });
+      const label = `${shell} ${spec.orientation}`;
+      const clip = container.querySelector<HTMLElement>('[data-py-screen-clip]');
+      expect(clip, label).not.toBeNull();
+      expect(clip?.className, label).toMatch(/(^|\s)overflow-hidden(\s|$)/);
+      expect(clip?.className, label).toMatch(/(^|\s)inset-0(\s|$)/);
+      expect(clip?.style.borderRadius, label).toBe(`${spec.cornerRadius}px`);
+      expect(clip?.querySelector('[data-py-status-bar]'), label).not.toBeNull();
+      expect(clip?.querySelector('[data-py-home-indicator]'), label).not.toBeNull();
+      // The rotate control sits outside the device, so it must not be clipped.
+      expect(clip?.querySelector('[data-py-orientation-toggle]'), label).toBeNull();
+      cleanup();
+    }
+  });
+});
+
+describe('screenLayoutOf', () => {
+  it('keeps a portrait phone screen edge to edge and clears the status bar', () => {
+    const phone = getDevice('phone-pill');
+    if (!phone) throw new Error('missing phone-pill');
+    expect(screenLayoutOf(phone, FRAMES.phone)).toEqual({
+      inset: { top: 0, right: 0, bottom: 0, left: 0 },
+      safe: { top: 59, right: 0, bottom: 34, left: 0 },
+    });
+  });
+
+  it('letterboxes a landscape phone between its side insets, below the status bar', () => {
+    const phone = getDevice('phone-pill');
+    const punch = getDevice('phone-punch-hole');
+    if (!phone || !punch) throw new Error('catalog devices missing');
+    // No top inset in landscape, but the 54 px status bar is still painted.
+    expect(screenLayoutOf(orient(phone, 'landscape'), FRAMES.phone)).toEqual({
+      inset: { top: 0, right: 59, bottom: 0, left: 59 },
+      safe: { top: 54, right: 0, bottom: 21, left: 0 },
+    });
+    expect(screenLayoutOf(orient(punch, 'landscape'), FRAMES.phone)).toEqual({
+      inset: { top: 0, right: 0, bottom: 0, left: 32 },
+      safe: { top: 32, right: 0, bottom: 24, left: 0 },
+    });
+    expect(statusBarHeightOf(orient(phone, 'landscape'))).toBe(54);
+  });
+
+  it('leaves window shells to their chrome inset', () => {
+    const laptop = getDevice('laptop-window');
+    if (!laptop) throw new Error('missing laptop-window');
+    expect(statusBarHeightOf(laptop)).toBe(0);
+    expect(screenLayoutOf(laptop, FRAMES.browser)).toEqual({
+      inset: { top: 88, right: 0, bottom: 0, left: 0 },
+      safe: { top: 0, right: 0, bottom: 0, left: 0 },
+    });
   });
 });
 
@@ -836,6 +904,33 @@ describe('browser frame', () => {
     expect(device?.style.height).toBe('820px');
     expect(screen?.style.getPropertyValue('--py-safe-top')).toBe('24px');
     expect(runtime.theme.appearance().orientation.value).toBe('landscape');
+  });
+
+  it('rotates the mounted phone shell into a letterboxed screen below the status bar', async () => {
+    const { runtime, target } = await boot();
+    await runtime.theme.setOverride({ shell: 'phone', device: 'phone-pill' });
+    flushSync();
+    await vi.waitFor(() => expect(target.querySelector('[data-py-frame="phone"]')).not.toBeNull());
+
+    const device = target.querySelector<HTMLElement>('[data-py-shell-part="device"]');
+    const screen = target.querySelector<HTMLElement>('[data-py-shell-part="screen"]');
+    // Portrait: the screen fills the device and keeps the device radius on every corner.
+    expect(screen?.style.inset).toBe('0px 0px 0px 0px');
+    expect(screen?.style.borderRadius).toBe('55px');
+    expect(device?.style.getPropertyValue('--py-device-radius')).toBe('55px');
+
+    await fireEvent.click(
+      target.querySelector('[data-py-orientation-toggle]') as HTMLButtonElement
+    );
+    await vi.waitFor(() => expect(device?.style.width).toBe('852px'));
+    // Landscape: the app sits between the cutout-side insets, never under them.
+    expect(screen?.style.inset).toBe('0px 59px 0px 59px');
+    expect(screen?.style.getPropertyValue('--py-app-height')).toBe('393px');
+    // The status bar (54 px) stays visible, so the app's header clears it.
+    expect(screen?.style.getPropertyValue('--py-safe-top')).toBe('54px');
+    expect(screen?.style.getPropertyValue('--py-safe-bottom')).toBe('21px');
+    expect(screen?.style.getPropertyValue('--py-safe-left')).toBe('0px');
+    expect(screen?.style.getPropertyValue('--py-safe-right')).toBe('0px');
   });
 
   it('registers the browser shell frame and frames it when the window fits', () => {
