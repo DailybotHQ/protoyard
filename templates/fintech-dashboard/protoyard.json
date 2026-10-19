@@ -1,0 +1,41 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.fintech-dashboard",
+  "slug": "fintech-dashboard",
+  "kind": "template",
+  "name": "Fintech Dashboard",
+  "description": "A personal-finance workspace with linked accounts, categorized transactions, payday cash flow, monthly budget alerts and validated transfers.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "finance",
+  "tags": ["finance", "fintech", "accounts", "cash-flow", "budgets", "transfers"],
+  "catalog": {
+    "category": "finance",
+    "productType": "Personal finance dashboard",
+    "platforms": ["web", "mobile"],
+    "features": ["accounts", "transactions", "cash-flow", "budgets", "transfers"],
+    "highlights": [
+      "Checking and savings balances with generated payday history",
+      "Cash-flow and categorized spending charts loaded on demand",
+      "Monthly category budgets with threshold alerts",
+      "Permission-checked transfers with insufficient-funds and offline states"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "💳",
+  "defaultScenario": "active",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "layout": {
+      "id": "sidebar",
+      "supported": ["sidebar", "rail", "top-nav", "mobile-tabs", "mobile-drawer"]
+    }
+  },
+  "storage": { "namespace": "template-fintech-dashboard", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["active", "empty", "viewer", "network-offline"]
+}
