@@ -196,7 +196,10 @@ describe('neutral families', () => {
     expect(theme.dark).toEqual(ORIGINAL_FINTECH_LEDGER.dark);
   });
 
-  it('meets WCAG AA for every family across 500 deterministic seeds in both modes', () => {
+  // Several families × 500 seeds × 2 modes is ~15 s on a laptop: give it room under parallel load.
+  it('meets WCAG AA for every family across 500 deterministic seeds in both modes', {
+    timeout: 120_000,
+  }, () => {
     const failures: string[] = [];
     for (const neutral of NEUTRAL_FAMILIES) {
       for (const [index, seed] of FIXED_SEEDS.entries()) {
