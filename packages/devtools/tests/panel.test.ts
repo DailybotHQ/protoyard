@@ -42,6 +42,26 @@ describe('DevTools panel', () => {
     expect(screen.getByRole('button', { name: /Open Protoyard DevTools/ })).toBeTruthy();
   });
 
+  it('docks the launcher to the right edge on phone widths so it never covers bottom controls', async () => {
+    const width = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    try {
+      const runtime = createFakeRuntime();
+      await runtime.scenarios.ensureSeeded();
+      handle = mountDevtools({ runtime, themes: BUILTIN_THEMES });
+      flushSync();
+      await settle();
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+      await settle();
+      const launcher = screen.getByRole('button', { name: /Open Protoyard DevTools/ });
+      expect(launcher.className).toContain('right-0');
+      expect(launcher.className).toContain('top-1/2');
+      expect(launcher.textContent?.trim()).toBe('');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+    }
+  });
+
   it('opens and closes when the pointer lands on a button icon, not the button box', async () => {
     // Real clicks on an icon-only button target the inner <svg>/<path>. The host's
     // app-layer isolation must not stop Svelte's delegated handler from seeing them.

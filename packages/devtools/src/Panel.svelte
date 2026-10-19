@@ -76,6 +76,8 @@ $effect(() => {
  */
 let navOffset = $state(0);
 let appModalOpen = $state(false);
+/** Phone-width windows: a bottom pill covers composers, send buttons and tab bars. */
+let narrow = $state(false);
 $effect(() => {
   let frame = 0;
   const measure = () => {
@@ -90,6 +92,7 @@ $effect(() => {
         }
       }
       navOffset = offset;
+      narrow = window.innerWidth < 640;
       appModalOpen = [
         ...document.querySelectorAll('[role="dialog"][aria-modal="true"], [role="alertdialog"]'),
       ].some((el) => !el.closest('.py-devtools'));
@@ -165,8 +168,8 @@ function presentationMode() {
 
 <div class="py-devtools-root pointer-events-auto font-sans text-[13px] leading-normal text-foreground antialiased">
   {#if !open}
-    {#if appModalOpen}
-      <!-- Docked to the right edge so it never covers an app dialog's actions. -->
+    {#if appModalOpen || narrow}
+      <!-- Docked to the right edge so it never covers an app dialog's actions or a phone's bottom controls. -->
       <button
         bind:this={launcher}
         type="button"
