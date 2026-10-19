@@ -265,7 +265,9 @@ export function createProgram(env: RunnerEnv): Command {
   buildOptions(
     program
       .command('publish')
-      .description('build, verify and deploy one or many prototypes to a static host')
+      .description(
+        'build, verify and deploy one or many prototypes to a static host. Without --dry-run it uploads a preview immediately, with no prompt (also with --all/--tag); only --production asks for --yes'
+      )
       .argument('[slugs...]', 'one or more prototypes (or use --all / --tag)')
       .option('--all', 'every prototype, one after another')
       .option('--tag <tag>', 'every prototype with this tag')
@@ -280,7 +282,10 @@ export function createProgram(env: RunnerEnv): Command {
       .option('--branch <name>', 'Cloudflare preview branch (lowercase letters, digits and dashes)')
       .option('--preview', 'preview deployment (default)')
       .option('--production', 'production deployment (requires --yes)')
-      .option('--dry-run', 'build and verify, print the exact command, contact no provider')
+      .option(
+        '--dry-run',
+        'build and verify, print the exact command, contact no provider (without it, publish deploys)'
+      )
       .option(
         '--ensure-project',
         'Cloudflare: create the Pages project when missing (shown on dry-run; run on real publish)'

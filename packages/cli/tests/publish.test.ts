@@ -469,3 +469,13 @@ describe('protoyard publish --dry-run', () => {
     expect(data.instructions.length).toBeGreaterThan(2);
   }, 60_000);
 });
+
+describe('publish --help', () => {
+  it('says that publishing without --dry-run deploys immediately', async () => {
+    const run = await cli(['publish', '--help']);
+    expect(run.code).toBe(0);
+    const help = run.stdout.replace(/\s+/g, ' ');
+    expect(help).toContain('Without --dry-run it uploads a preview immediately, with no prompt');
+    expect(help).toContain('(without it, publish deploys)');
+  });
+});

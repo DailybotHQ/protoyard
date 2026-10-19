@@ -1,4 +1,4 @@
-# protoyard-ci-template: build v2
+# protoyard-ci-template: build v3
 name: Protoyard affected builds
 
 on:
@@ -33,7 +33,8 @@ jobs:
         run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Validate and export affected prototypes
+      # Each prototype is built once; export and budget reuse that build.
+      - name: Validate, export and check budgets of affected prototypes
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
@@ -45,15 +46,15 @@ jobs:
           IFS=',' read -r -a slugs <<< "$targets"
           for slug in "${slugs[@]}"; do
             pnpm protoyard validate "$slug" --build
-            pnpm protoyard export "$slug"
+            pnpm protoyard export "$slug" --skip-build
+            pnpm protoyard budget "$slug" --skip-build
           done
-      - name: Validate and export all prototypes on main
+      - name: Build, export and check budgets of all prototypes on main
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         run: |
           pnpm protoyard build --all
-          pnpm protoyard export --all
-      - name: Enforce performance budgets
-        run: pnpm protoyard budget --all
+          pnpm protoyard export --all --skip-build
+          pnpm protoyard budget --all --skip-build
       - name: Upload exported ZIPs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

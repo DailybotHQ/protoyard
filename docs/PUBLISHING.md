@@ -15,7 +15,7 @@ exporting, previewing and putting it on a host. Design decisions: ADR-009
 | `pnpm protoyard preview <slug>` | Serves `artifacts/<slug>/dist` like a static host | No |
 | `pnpm protoyard publish <slug> --provider static` | Build, isolation check, ZIP, upload instructions | No |
 | `pnpm protoyard publish <slug> --provider <p> --dry-run` | Build, verify, print the exact deploy command | No |
-| `pnpm protoyard publish <slug> --provider <p>` | Build, verify, deploy, print the provider's URL | Yes |
+| `pnpm protoyard publish <slug> --provider <p>` | Build, verify, **deploy a preview immediately** (no prompt), print the provider's URL | Yes |
 | `pnpm protoyard publish <slug> <slug>… \| --all \| --tag <tag> --provider <p> [--dry-run]` | The same for several prototypes, one after another, with one summary | Only without `--dry-run` |
 | `pnpm protoyard publish --history [<slug>…] [--provider <p>] [--limit <n>]` | Print the last recorded publishes from the local ledger | No |
 | `pnpm protoyard review-index [--from-ledger \| --slugs a,b]` | One static page linking every real deployment, with scenario and persona links | No |
@@ -208,7 +208,7 @@ for you. `pnpm protoyard doctor` shows which ones are available; add
 | `--project <name>` | Provider project or site name. Default `protoyard-<slug>`. |
 | `--preview` | Preview deployment (the default) |
 | `--production` | Production deployment. Requires `--yes` (or `CI=1`), unless combined with `--dry-run`. |
-| `--dry-run` | Build and verify, print the exact command, contact nobody |
+| `--dry-run` | Build and verify, print the exact command, contact nobody. **Without it, `publish` uploads immediately**: a preview needs no confirmation, also with `--all` or `--tag`; only `--production` asks for `--yes`. Run `--dry-run` first when you only want to check. |
 | `--branch <name>` | Cloudflare only: a named preview branch (lowercase letters, digits and dashes; `main` is reserved), so each pull request or reviewer gets its own preview URL. Refused with `--production` and by the other adapters. |
 | `--ensure-project` | Cloudflare only: create the Pages project when it is missing. A dry run lists the `wrangler pages project create` command first. A real publish runs `wrangler pages project list --json` and creates the project only when its name is absent. |
 | `--history [<slug>…] [--limit <n>]` | Print the deploy ledger instead of publishing (see below) |
@@ -433,9 +433,9 @@ The templates and what each one costs are described in
 | Workflow | `--with` | What it runs |
 | --- | --- | --- |
 | `protoyard-check.yml` | `check` | lint, typecheck and tests |
-| `protoyard-build.yml` | `build` | `validate`, `export` and `budget` for the prototypes a pull request affects |
+| `protoyard-build.yml` | `build` | `validate --build`, then `export` and `budget` on that same build (`--skip-build`), for the prototypes a pull request affects; all prototypes on `main` |
 | `protoyard-e2e.yml` | `e2e` | Playwright on the affected prototypes |
-| `protoyard-preview.yml` | `preview` | Cloudflare preview per pull request (`--branch pr-<number>`), skipped for forks; needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` |
+| `protoyard-preview.yml` | `preview` | Installs Wrangler at a pinned version, then publishes a Cloudflare preview per pull request (`--branch pr-<number> --ensure-project`), skipped for forks. It uploads on every run. It needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in the `protoyard-preview` environment (see below). |
 
 ```text
 $ pnpm protoyard ci init --with check --dry-run
@@ -453,6 +453,14 @@ Manual one-time steps:
 
 Nothing was written (--dry-run).
 ```
+
+**Preview secrets.** The preview job builds pull request code while the
+Cloudflare token is in its environment, so anyone who can push a branch can
+read it. Create a token limited to **Account → Cloudflare Pages: Edit** on one
+account, store both values as secrets of the `protoyard-preview`
+**environment** (Settings → Environments) with **required reviewers**, so each
+preview run waits for approval, and rotate the token when collaborators
+change. `ci init --with preview` prints these steps; it never configures them.
 
 `--dry-run` also prints a unified diff per file (omitted above). Existing
 files are refused without `--force`. Each scaffolded file carries

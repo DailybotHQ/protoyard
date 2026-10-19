@@ -1,4 +1,16 @@
-# protoyard-ci-template: preview v1
+# protoyard-ci-template: preview v2
+#
+# Every run uploads a public *.pages.dev PREVIEW for each affected prototype
+# (publish without --dry-run deploys immediately; production is never used).
+#
+# Secrets: the publish step builds this pull request's own code with the token
+# in its environment, so anyone who can push a branch here can read it.
+#   - Use a Cloudflare API token limited to "Account > Cloudflare Pages: Edit"
+#     on one account, never a global key.
+#   - Store CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as secrets of the
+#     "protoyard-preview" environment (Settings > Environments) with required
+#     reviewers, so each run waits for approval before it sees them.
+#   - Rotate the token when collaborators change.
 name: Protoyard Cloudflare preview
 
 on:
@@ -19,6 +31,7 @@ jobs:
   preview:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    environment: protoyard-preview
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -32,6 +45,10 @@ jobs:
         run: corepack enable
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Install Wrangler (pinned)
+        run: |
+          npm install --global wrangler@4.146.0
+          wrangler --version
       - name: Publish affected prototypes to preview
         shell: bash
         env:
@@ -46,5 +63,5 @@ jobs:
           fi
           IFS=',' read -r -a slugs <<< "$targets"
           for slug in "${slugs[@]}"; do
-            pnpm protoyard publish "$slug" --provider {{PROVIDER}} --branch "pr-${PULL_REQUEST_NUMBER}" --yes
+            pnpm protoyard publish "$slug" --provider {{PROVIDER}} --branch "pr-${PULL_REQUEST_NUMBER}" --ensure-project --yes
           done
