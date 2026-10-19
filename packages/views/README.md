@@ -7,8 +7,9 @@ scenario generators run in Node tests, in services and in generators, so this
 package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
-> **Status:** `./board` is implemented; the other subpaths exist and are
-> empty until their PLAN_003 task lands, and this README documents each one then.
+> **Status:** `./board` and `./calendar` are implemented; the other subpaths
+> exist and are empty until their PLAN_003 task lands, and this README
+> documents each one then.
 
 ## Subpaths
 
@@ -80,3 +81,53 @@ pnpm --filter @protoyard/views typecheck
 
 `tests/package-shape.test.ts` fails if a source file imports Svelte or a UI
 package, if the root entry gains a runtime export, or if a subpath is missing.
+
+## Calendar (`@protoyard/views/calendar`)
+
+Hand-written date math (no date library) in an **explicit IANA time zone**:
+pass the persona's `timezone` (core `PersonaSchema`, default `UTC`) and
+`today` from the runtime clock. Nothing reads `Date.now()` or the system zone.
+
+```ts
+import { expandAll, layoutDay, monthGrid, splitSeries, visibleRange, weekStartFor } from '@protoyard/views/calendar';
+
+const weekStartsOn = weekStartFor(persona.locale); // en-US → 0 (Sunday), fr-FR → 1
+const range = visibleRange('week', today, { weekStartsOn, timeZone });
+const { occurrences, truncated } = expandAll(series, range, { timeZone }); // ≤ 1,000 per call
+const columns = layoutDay(occurrences.map(toTimedEvent), { date: today, timeZone });
+const writes = splitSeries(series, occurrenceId, 'following', { start }, { newId: () => ids.next() });
+// writes.put / writes.delete go to the service, in one transaction
+```
+
+- **Grids:** `monthGrid` (six weeks × seven days, `inMonth`, `isToday`),
+  `weekDates`, `visibleRange` for month/week/day/agenda (dates plus the
+  instants to query), `stepAnchor`, `weekStartFor(locale)`.
+- **Recurrence** (`expandSeries`, `expandAll`, `RecurrenceRuleSchema`,
+  `parseRRule`, `formatRRule`): an RFC 5545 subset (FREQ DAILY/WEEKLY/MONTHLY/
+  YEARLY, INTERVAL, BYDAY with ordinals such as `2TU` or `-1FR`, BYMONTHDAY
+  including negatives, COUNT, inclusive UNTIL), EXDATE and per-occurrence
+  overrides (an override can move an occurrence into or out of the window).
+  Occurrences repeat at the series' wall-clock time in its zone, so 09:00
+  stays 09:00 across DST. COUNT counts EXDATEs, as the RFC does. Dates a rule
+  cannot hit (the 31st, Feb 29) are skipped. Results are capped at 1,000 and
+  ordered by start, series id, occurrence id. Occurrence ids are the original
+  start, so they stay stable when an occurrence moves.
+- **DST:** a skipped wall time (02:30 on a spring-forward night) moves forward
+  by the jump; a repeated one takes the earlier instant.
+- **Edits** (`splitSeries`): `this` writes an override (or an EXDATE for a
+  delete); `all` moves the series and re-keys its exceptions; `following`
+  ends the series one second before the occurrence (or splits COUNT) and
+  starts a new series there (on the first occurrence it is `all`). Unknown or
+  excluded occurrences throw a `RangeError`.
+- **Day layout** (`layoutDay`): side-by-side columns for overlapping timed
+  events, positioned in wall-clock minutes so they line up with hour labels
+  on 23- and 25-hour days; multi-day events are clipped (`continuesBefore`,
+  `continuesAfter`); all-day events are skipped (they go in the all-day row).
+- **Size** (esbuild, minified, gzip -9, zod excluded because every prototype
+  already loads it; 2026-10-19): the whole subpath is 4.9 KB; what a calendar
+  view imports (grid, expansion, split, layout, rule schema) is 4.3 KB;
+  `monthGrid` + `visibleRange` alone 1.2 KB.
+- **Limits:** no BYMONTH, BYSETPOS, BYHOUR or BYWEEKNO; weekly rules use WKST
+  Monday; a "this and following" edit that changes the time of day keeps the
+  later exceptions shifted by the same amount.
+
