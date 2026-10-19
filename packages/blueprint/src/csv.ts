@@ -52,6 +52,8 @@ export interface CsvColumn {
   /** Header text written on export / matched on import. */
   header: string;
   field?: BlueprintField;
+  /** Geo fields export as two columns, `<name>Lat` and `<name>Lng`. */
+  part?: 'lat' | 'lng';
 }
 
 export interface CsvRowError {
@@ -225,12 +227,30 @@ export function formatCsvValue(value: unknown, field?: BlueprintField): string {
 
 /** Columns for an entity: header is label (or name), property is the input key. */
 export function entityCsvColumns(entity: BlueprintEntity): CsvColumn[] {
-  return entity.fields.map((field) => ({
-    property: inputProperty(field),
-    header: fieldLabel(field),
-    field,
-  }));
+  return entity.fields.flatMap((field): CsvColumn[] =>
+    field.kind === 'geo'
+      ? (['lat', 'lng'] as const).map((part) => ({
+          property: inputProperty(field),
+          header: `${field.name}${part === 'lat' ? 'Lat' : 'Lng'}`,
+          field,
+          part,
+        }))
+      : [{ property: inputProperty(field), header: fieldLabel(field), field }]
+  );
 }
+
+/** Header keys a column answers to (case-insensitive). */
+function columnKeys(col: CsvColumn): string[] {
+  if (col.part && col.field) {
+    const suffix = col.part === 'lat' ? 'lat' : 'lng';
+    return [col.header, `${col.field.name} ${suffix}`, `${fieldLabel(col.field)} ${suffix}`];
+  }
+  return [col.property, col.header, col.field?.name, col.field?.label].filter(
+    (k): k is string => typeof k === 'string' && k.length > 0
+  );
+}
+
+const columnId = (col: CsvColumn) => (col.part ? `${col.property}.${col.part}` : col.property);
 
 /**
  * Map header cells to entity columns by case-insensitive match on field name,
@@ -243,11 +263,7 @@ export function mapCsvHeaders(headers: string[], entity: BlueprintEntity): CsvCo
   const columns = entityCsvColumns(entity);
   const byKey = new Map<string, CsvColumn>();
   for (const col of columns) {
-    const field = col.field;
-    const keys = [col.property, col.header, field?.name, field?.label].filter(
-      (k): k is string => typeof k === 'string' && k.length > 0
-    );
-    for (const key of keys) {
+    for (const key of columnKeys(col)) {
       byKey.set(key.trim().toLowerCase(), col);
     }
   }
@@ -270,10 +286,10 @@ export function mapCsvHeaders(headers: string[], entity: BlueprintEntity): CsvCo
           .join(', ')}`
       );
     }
-    if (seen.has(col.property)) {
+    if (seen.has(columnId(col))) {
       throw new CsvError('header', `Duplicate CSV column for "${col.header}"`);
     }
-    seen.add(col.property);
+    seen.add(columnId(col));
     mapped.push({ ...col, header });
   }
   return mapped;
@@ -288,7 +304,12 @@ export function serializeEntityCsv(
   const columns = entityCsvColumns(entity);
   const header = columns.map((c) => c.header);
   const body = records.map((record) =>
-    columns.map((col) => formatCsvValue(record[col.property], col.field))
+    columns.map((col) => {
+      const value = record[col.property];
+      if (!col.part) return formatCsvValue(value, col.field);
+      const point = value as { lat?: unknown; lng?: unknown } | null | undefined;
+      return formatCsvValue(point?.[col.part]);
+    })
   );
   return serializeCsv([header, ...body], options);
 }
@@ -321,7 +342,13 @@ export function validateCsv(
     columns.forEach((col, colIndex) => {
       if (!col.property) return;
       const raw = cells[colIndex] ?? '';
-      input[col.property] = raw;
+      if (col.part) {
+        // Both halves of a geo point land in one `{ lat, lng }` input.
+        const point = (input[col.property] ?? {}) as Record<string, string>;
+        input[col.property] = { ...point, [col.part]: raw };
+      } else {
+        input[col.property] = raw;
+      }
     });
 
     try {

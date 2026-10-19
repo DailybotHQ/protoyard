@@ -59,7 +59,8 @@ optional `screens` and optional `brand`. Every object is strict, so unknown keys
   ISO 4217 `currency`, default `USD`), `boolean`, `date`, `datetime`, `enum` (`values`),
   `email`, `url`, `phone`, `tags`, `relation` (`to`, `cardinality` `one|many`, `onDelete`
   `restrict|cascade|nullify`), `persona` (a `py_personas` row), `file` (`accept`,
-  `maxSizeBytes`, `multiple`) and `json`. `id`, `createdAt`, `updatedAt`, `deletedAt` and
+  `maxSizeBytes`, `multiple`), `json` and `geo` (`region`; stored as `{ lat, lng }` with 5
+  decimals, accepted as an object or `"lat, lng"` text, never indexed, searched or sorted). `id`, `createdAt`, `updatedAt`, `deletedAt` and
   `deletedBy` are managed by the platform and cannot be declared.
 - **Roles:** `permissions` maps an entity name (or `*`) to actions: `read`, `create`,
   `update`, `update:own`, `delete`, `delete:own`, `import`, `export` or `*`.
@@ -231,6 +232,8 @@ const { valid, errors } = validateCsv(entity, text);
 ```
 
 - Headers match field **name**, input **property** (`customerId`) or **label** (case-insensitive).
+- A `geo` field is two columns, `<name>Lat` and `<name>Lng` (also matched as `<label> lat` /
+  `<label> lng`); import needs both halves or neither.
 - Money and dates go through `deriveInputSchemas` create coercion (`12.50` → 1250 cents).
 - Export prefixes cells starting with `= + - @` with `'` (spreadsheet formula guard).
 - Hard limits: `CSV_MAX_BYTES` (2 MiB) and `CSV_MAX_ROWS` (10,000 data rows); override per call.
@@ -253,6 +256,8 @@ const world = generate(createGenerateContext(scenario));
 - Optional `field.fake` must be an allow-listed path such as `company.name` or `person.fullName`.
 - Emails always use `example.com` / `example.org`.
 - `generatorVersion` mixes a blueprint content hash with the generator SDK and scenarios SDK versions.
+- `geo` fields get points from `geoPoints()` inside their `region` (default `metro-grid`), one
+  point set per entity field, so the same seed gives the same points (generator SDK 2).
 
 ## Audit log
 

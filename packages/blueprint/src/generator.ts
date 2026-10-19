@@ -1,5 +1,10 @@
 import { type GenerateContext, hashString, type Row, type WorldSeed } from '@protoyard/core';
-import { GENERATOR_SDK_VERSION, generateTeam } from '@protoyard/scenarios';
+import {
+  GENERATOR_SDK_VERSION,
+  type GeoRegionId,
+  generateTeam,
+  geoPoints,
+} from '@protoyard/scenarios';
 import type { Blueprint, BlueprintEntity, BlueprintField } from './schema.ts';
 import { entityTable } from './schema.ts';
 import { FEATURE_TABLES } from './storage.ts';
@@ -13,7 +18,10 @@ import { inputProperty } from './validation.ts';
  */
 
 /** Bump when the same blueprint + seed can produce a different world shape. */
-export const BLUEPRINT_GENERATOR_SDK = 1;
+export const BLUEPRINT_GENERATOR_SDK = 2;
+
+/** Region for geo fields that do not name one. */
+export const DEFAULT_GEO_REGION: GeoRegionId = 'metro-grid';
 
 /** Faker paths blueprints may name in `field.fake` (everything else is ignored). */
 export const ALLOWED_FAKE_PATHS = [
@@ -72,6 +80,7 @@ export function hashBlueprint(blueprint: Blueprint): number {
           ? { minLength: field.minLength ?? null, maxLength: field.maxLength ?? null }
           : {}),
         ...('cardinality' in field ? { to: field.to, cardinality: field.cardinality } : {}),
+        ...(field.kind === 'geo' ? { region: field.region ?? null } : {}),
         ...('default' in field ? { default: field.default ?? null } : {}),
       })),
     })),
@@ -367,6 +376,23 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
       const count = ctx.scale(baseCountFor(entity, blueprint));
       const rows: Row[] = [];
       const rng = ctx.rng.fork(`entity:${entity.name}`);
+      // One point set per geo field: point i belongs to row i, and more rows keep earlier points.
+      const geo = entity.fields.flatMap((field) =>
+        field.kind === 'geo'
+          ? [
+              {
+                prop: inputProperty(field),
+                required: field.required,
+                points: geoPoints({
+                  ctx,
+                  region: field.region ?? DEFAULT_GEO_REGION,
+                  count,
+                  key: `${entity.name}.${field.name}`,
+                }),
+              },
+            ]
+          : []
+      );
       for (let i = 0; i < count; i++) {
         const fieldCtx: GenerateContext = {
           ...ctx,
@@ -382,6 +408,13 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
             byName,
             orgCreatedAt
           );
+        }
+        for (const { prop, required, points } of geo) {
+          const point = points[i];
+          values[prop] =
+            point && (required || fieldCtx.rng.chance(0.9))
+              ? { lat: point.lat, lng: point.lng }
+              : null;
         }
         const stamps = stampRow(fieldCtx, orgCreatedAt);
         rows.push({

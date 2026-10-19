@@ -1,4 +1,5 @@
 import { CatalogSchema } from '@protoyard/core';
+import { GEO_REGIONS, type GeoRegionId } from '@protoyard/scenarios';
 import { z } from 'zod';
 
 /**
@@ -126,6 +127,13 @@ export const FieldSchema = z.discriminatedUnion('kind', [
     multiple: z.boolean().default(false),
   }),
   field('json'),
+  /**
+   * A point stored as `{ lat, lng }` (5 decimals). `region` names a fictional
+   * region from `@protoyard/scenarios` that generated points fall inside.
+   */
+  field('geo', {
+    region: z.enum(Object.keys(GEO_REGIONS) as [GeoRegionId, ...GeoRegionId[]]).optional(),
+  }),
 ]);
 export type BlueprintField = z.infer<typeof FieldSchema>;
 export type FieldKind = BlueprintField['kind'];
@@ -721,11 +729,21 @@ function checkEntity(entity: BlueprintEntity, at: number, names: Set<string>, ad
     entity[key].forEach((ref, i) => {
       if (!fields.has(ref)) {
         add([...base, key, i], `unknown field "${ref}"`);
+      } else if (fields.get(ref)?.kind === 'geo') {
+        add(
+          [...base, key, i],
+          `geo field "${ref}" cannot be ${key === 'indexes' ? 'indexed' : 'searched'}`
+        );
       }
     });
   }
   if (entity.defaultSort && !fields.has(entity.defaultSort.field)) {
     add([...base, 'defaultSort', 'field'], `unknown field "${entity.defaultSort.field}"`);
+  } else if (entity.defaultSort && fields.get(entity.defaultSort.field)?.kind === 'geo') {
+    add(
+      [...base, 'defaultSort', 'field'],
+      `geo field "${entity.defaultSort.field}" cannot sort a list`
+    );
   }
   if (entity.features.files && !entity.fields.some((f) => f.kind === 'file')) {
     add(
@@ -844,11 +862,8 @@ const MANAGED_DATE_FIELDS = new Set(['createdAt', 'updatedAt']);
 const DATE_KINDS = new Set<FieldKind>(['date', 'datetime']);
 const GROUP_KINDS = new Set<FieldKind>(['enum', 'relation', 'persona', 'boolean']);
 const MIN_MAX_KINDS = new Set<FieldKind>([...SUM_KINDS, ...DATE_KINDS]);
-/**
- * Field kinds a map screen can plot. Held as strings so the check is ready
- * before the `geo` field kind lands in FieldSchema.
- */
-const GEO_KINDS = new Set<string>(['geo']);
+/** Field kinds a map screen can plot. */
+const GEO_KINDS = new Set<FieldKind>(['geo']);
 
 /** `a number, integer or money` / `an enum`: the kinds as an English list with its article. */
 function kindList(kinds: Iterable<string>): string {

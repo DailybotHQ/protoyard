@@ -49,6 +49,7 @@ const blueprint = parseBlueprint({
         { name: 'assignee', kind: 'persona' },
         { name: 'attachments', kind: 'file', multiple: true },
         { name: 'metadata', kind: 'json' },
+        { name: 'location', kind: 'geo', region: 'harbor-bay' },
       ],
       titleField: 'subject',
     },
@@ -99,6 +100,7 @@ describe('deriveInputSchemas', () => {
       assigneeId: null,
       attachmentsIds: [],
       metadata: null,
+      location: null,
     });
   });
 
@@ -281,6 +283,22 @@ const cases: Record<string, [string, [unknown, unknown][], [unknown, string][]]>
       [{ seats: 3 }, { seats: 3 }],
     ],
     [['{not json', 'Metadata must be valid JSON']],
+  ],
+  geo: [
+    'location',
+    [
+      [
+        { lat: -30.1234567, lng: '-18.5' },
+        { lat: -30.12346, lng: -18.5 },
+      ],
+      [' 12.5 , -45 ', { lat: 12.5, lng: -45 }],
+    ],
+    [
+      [{ lat: 91, lng: 0 }, 'Location latitude must be between -90 and 90'],
+      [{ lat: 0, lng: -180.5 }, 'Location longitude must be between -180 and 180'],
+      [{ lat: '12', lng: '' }, 'Location needs a latitude and a longitude'],
+      ['north', 'Location needs a latitude and a longitude'],
+    ],
   ],
 };
 

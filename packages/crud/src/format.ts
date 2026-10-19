@@ -35,6 +35,12 @@ export function formatFieldValue(
       return (Array.isArray(value) ? value : [value])
         .map((id) => displayNames?.get(String(id)) ?? String(id))
         .join(', ');
+    case 'geo': {
+      const { lat, lng } = value as { lat?: unknown; lng?: unknown };
+      return typeof lat === 'number' && typeof lng === 'number'
+        ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+        : '—';
+    }
     case 'json':
       try {
         return JSON.stringify(value);

@@ -2,6 +2,7 @@
 import type { BlueprintField } from '@protoyard/blueprint';
 import { fieldLabel, parseMoneyText } from '@protoyard/blueprint';
 import { Input, Select, Textarea } from '@protoyard/ui';
+import GeoField from './GeoField.svelte';
 
 /**
  * One control for a blueprint field. Binds a string/number/boolean/array value
@@ -89,6 +90,8 @@ const enumItems = $derived(
       } else value = text;
     }}
   />
+{:else if field.kind === 'geo'}
+  <GeoField bind:value {label} {error} {disabled} {id} />
 {:else if field.kind === 'enum'}
   <Select
     {id}
