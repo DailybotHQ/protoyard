@@ -13,6 +13,8 @@ export interface ReviewOverlayOptions {
   comments?: readonly ReviewComment[];
   /** Persist the new anchor through the caller's review service. */
   onPlace: (anchor: ReviewAnchor) => void | Promise<void>;
+  /** Open the host comment composer for the clicked element in composer-only mode. */
+  onCommentInClaude?: (element: Element) => void | Promise<void>;
   /** Open the thread from a pin. */
   onOpen?: (threadId: string) => void;
   /** An optional root comment to pulse and bring into view. */
@@ -346,11 +348,18 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
     if (placing) return;
     const anchor = createAnchor(element, point, { root });
     placing = true;
-    status.textContent = 'Saving comment location…';
+    status.textContent = options.onCommentInClaude
+      ? 'Opening Claude comment composer…'
+      : 'Saving comment location…';
     render();
     try {
-      await options.onPlace(anchor);
-      status.textContent = 'Comment location saved.';
+      if (options.onCommentInClaude) {
+        await options.onCommentInClaude(element);
+        status.textContent = 'Claude comment composer opened.';
+      } else {
+        await options.onPlace(anchor);
+        status.textContent = 'Comment location saved.';
+      }
       setActive(false);
     } catch (error) {
       status.textContent =

@@ -31,6 +31,12 @@ a comment on the focused prototype element. Resolved comments stay hidden by
 default; orphaned anchors are left to the comments list. Nearby pins cluster
 into a count button that expands to the individual threads.
 
+When the host grants only Claude's composer capability, pass its
+`openComposer(element)` action as `onCommentInClaude`. Placement gestures open
+the Claude composer on the selected element instead of saving a Protoyard
+thread. Render `ClaudeComposerNotice` in the panel to tell viewers that threads
+live in Claude's comment panel.
+
 ## 0 bytes until review is enabled
 
 There is no root entry. The renderer reaches this package through one dynamic
