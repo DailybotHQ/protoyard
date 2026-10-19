@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RetentionIntervalSchema, RetentionPeriodsSchema } from '../src/cohort.ts';
 import { FunnelDefinitionSchema } from '../src/funnel.ts';
-import { ANALYTICS_GENERATOR_VERSION } from '../src/generators.ts';
+import { ANALYTICS_GENERATOR_VERSION } from '../src/generators/index.ts';
 import { AnalyticsEventSchema, GranularitySchema } from '../src/index.ts';
 
 const root = join(import.meta.dirname, '..');
