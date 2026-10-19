@@ -82,9 +82,8 @@ test.describe('viewport fit', () => {
   test.describe('desktop 1280×800', () => {
     test.use({ viewport: DESKTOP });
 
-    // Owning shells lane must land the phone-frame / full-viewport fix first.
-    // Remove test.fixme when mobile-banking-demo no longer scrolls the document on desktop.
-    test.fixme('mobile-banking-demo fills the viewport without document scroll; bottom nav visible', async ({
+    // Guards the ShellHost full-viewport layout (ADR-016): never a document scroll.
+    test('mobile-banking-demo fills the viewport without document scroll; bottom nav visible', async ({
       page,
     }, testInfo) => {
       test.skip(testInfo.project.name === 'mobile', 'desktop viewport case');
@@ -101,7 +100,7 @@ test.describe('viewport fit', () => {
   });
 
   test.describe('Pixel 7', () => {
-    test.fixme('mobile-banking-demo fills the viewport without document scroll; bottom nav visible', async ({
+    test('mobile-banking-demo fills the viewport without document scroll; bottom nav visible', async ({
       page,
     }, testInfo) => {
       test.skip(testInfo.project.name !== 'mobile', 'Pixel 7 project only');
