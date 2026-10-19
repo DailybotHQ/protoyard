@@ -6,15 +6,14 @@ thread in one list. This package has no Svelte; the UI is
 [`@protoyard/review-ui`](../review-ui/README.md). The comment schemas live in
 `@protoyard/core/review`.
 
-> **Status:** `./anchors`, `./store` and `./adapters/artifact` are implemented. The other subpaths
-> exist and are empty; each one is filled by its PLAN_003 task, and this README documents
-> it when it lands.
+> **Status:** `./anchors`, `./store`, `./adapters/local` and `./adapters/artifact` are implemented.
+> The remaining subpaths are filled by their PLAN_003 tasks and documented here when they land.
 
 | Subpath | What it will hold | Task |
 | --- | --- | --- |
 | `./anchors` | Pin anchors: route, element locator ladder, offset inside the element, context | T-review-anchoring |
 | `./store` | The small `ReviewAdapter` contract and its conformance suite | T-review-adapter-contract |
-| `./adapters/local` | IndexedDB adapter (its own database, untouched by scenario loads) with export / import | T-review-adapter-local |
+| `./adapters/local` | Namespaced IndexedDB adapter (its own database, untouched by scenario loads) with validated export / import | T-review-adapter-local |
 | `./adapters/http` | Adapter for any endpoint with the comments REST shape (also the Cloudflare mode) | T-review-adapter-http |
 | `./adapters/artifact` | Adapter on a Claude Artifact's shared database (`db` + `user` capabilities), falling back to a local adapter | T-art-review-artifact-adapter |
 | `./server` | The comments API handler on plain `Request` / `Response` | T-review-server-handler |
@@ -35,6 +34,21 @@ thread in one list. This package has no Svelte; the UI is
 pnpm --filter @protoyard/review typecheck
 pnpm vitest run packages/review-ui/tests/bundle-hygiene.test.ts
 ```
+
+## Local adapter (`@protoyard/review/adapters/local`)
+
+`createLocalReviewAdapter({ namespace, slug, clientId })` stores comments in
+`protoyard.<namespace>.review`, separate from the prototype data and control
+databases. The optional `slug` defaults to `namespace` and scopes exported
+files. `exportComments()` returns a JSON `Blob`; `importComments(file)` validates
+the whole file, its namespace and slug, and every comment before writing. Files
+larger than 5 MB are rejected. Imports merge by comment id and only replace an
+existing comment when the incoming `updatedAt` is newer. The adapter allows edits
+and deletes only when the stored author `clientId` matches its configured
+`clientId`; this is a browser UX rule, not authentication or a security boundary.
+
+Call `close()` when the adapter is no longer needed. A host can supply
+`indexedDB` and `IDBKeyRange` to isolate the adapter storage factory.
 
 ## Store (`@protoyard/review/store`)
 
