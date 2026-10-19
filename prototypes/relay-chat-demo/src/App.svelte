@@ -81,10 +81,12 @@ $effect(() => {
 });
 
 $effect(() => {
+  const personaId = principal.current?.persona.id;
   if (!channelId) {
     memberOfChannel = false;
     return;
   }
+  void personaId;
   void services.isMember(channelId).then((ok) => {
     memberOfChannel = ok;
   });

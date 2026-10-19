@@ -100,10 +100,16 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
     return branch;
   };
 
+  type HistoryOp =
+    | { kind: 'append' }
+    | { kind: 'regenerate'; attempt: number }
+    | { kind: 'edit'; fromIndex: number };
+
   const stream = (
     conversationId: string,
     prompt: string,
-    streamOptions: StreamOptions = {}
+    streamOptions: StreamOptions = {},
+    historyOp: HistoryOp = { kind: 'append' }
   ): AiStream => {
     const branch = findConversation(conversationId);
     const model = findModel(streamOptions.model);
@@ -114,61 +120,86 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
       stopped.add(streamId);
     };
     const iterator = async function* (): AsyncGenerator<AiChunk> {
+      // Preconditions first — never mutate history until rate limit allows.
       enforceRateLimit();
-      const userMessage: AiMessage = {
-        id: messageId(),
-        role: 'user',
-        content: prompt,
-        createdAt: ctx.clock.now().toISOString(),
-      };
-      branch.messages.push(userMessage);
-      const promptTokens = branch.messages.reduce(
-        (sum, message) => sum + estimateTokens(message.content),
-        0
-      );
-      if (promptTokens > model.contextWindow) {
-        branch.messages.pop();
-        throw new AiContextWindowError(promptTokens, model.contextWindow);
-      }
-      const responsePack = selectResponsePack(packs, ctx.seed, prompt);
-      const rng = responseRng(ctx.seed, prompt);
-      const input: ResponseInput = { prompt, history: branch.messages, model, rng };
-      // Environment latency, offline mode, and deterministic failures are evaluated once per response.
-      const response = await ctx.environment.run('ai.generate', () => responsePack.generate(input));
-      const answer = tokenize(response)
-        .slice(0, streamOptions.maxTokens ?? Number.POSITIVE_INFINITY)
-        .join('');
-      const tokens = tokenize(answer);
-      const cadence = Math.max(0, streamOptions.cadenceMs ?? defaultCadenceMs);
-      let partial = '';
-      for (let index = 0; index < tokens.length; index++) {
-        if (localStopped || stopped.has(streamId)) break;
-        if (cadence > 0) await ctx.clock.sleep(cadence);
-        if (localStopped || stopped.has(streamId)) break;
-        partial += tokens[index];
-        yield { streamId, token: tokens[index] as string, index };
-      }
-      if (partial) {
-        const completionTokens = estimateTokens(partial);
-        const used: AiUsage = {
-          promptTokens,
-          completionTokens,
-          totalTokens: promptTokens + completionTokens,
-          costUsd:
-            (promptTokens * model.inputCostPerMillion +
-              completionTokens * model.outputCostPerMillion) /
-            1_000_000,
-        };
-        branch.messages.push({
+      const snapshot = branch.messages.slice();
+      try {
+        if (historyOp.kind === 'regenerate') {
+          const last = branch.messages.at(-1);
+          if (last?.role === 'assistant') branch.messages.pop();
+          const user = branch.messages.at(-1);
+          if (user?.role !== 'user') {
+            throw new RangeError('No user message is available to regenerate.');
+          }
+          // Keep the existing user message; only the assistant reply is replaced.
+        } else if (historyOp.kind === 'edit') {
+          branch.messages.splice(historyOp.fromIndex);
+        }
+
+        const attempt = historyOp.kind === 'regenerate' ? historyOp.attempt : 0;
+        const userMessage: AiMessage = {
           id: messageId(),
-          role: 'assistant',
-          content: partial,
+          role: 'user',
+          content: prompt,
           createdAt: ctx.clock.now().toISOString(),
-          model: model.id,
-          usage: used,
-        });
+        };
+        // Regenerate reuses the trailing user message already on the branch.
+        if (historyOp.kind !== 'regenerate') {
+          branch.messages.push(userMessage);
+        }
+        const promptTokens = branch.messages.reduce(
+          (sum, message) => sum + estimateTokens(message.content),
+          0
+        );
+        if (promptTokens > model.contextWindow) {
+          throw new AiContextWindowError(promptTokens, model.contextWindow);
+        }
+        const responsePack = selectResponsePack(packs, ctx.seed, prompt, attempt);
+        const rng = responseRng(ctx.seed, prompt, attempt);
+        const input: ResponseInput = { prompt, history: branch.messages, model, rng };
+        const response = await ctx.environment.run('ai.generate', () =>
+          responsePack.generate(input)
+        );
+        const answer = tokenize(response)
+          .slice(0, streamOptions.maxTokens ?? Number.POSITIVE_INFINITY)
+          .join('');
+        const tokens = tokenize(answer);
+        const cadence = Math.max(0, streamOptions.cadenceMs ?? defaultCadenceMs);
+        let partial = '';
+        for (let index = 0; index < tokens.length; index++) {
+          if (localStopped || stopped.has(streamId)) break;
+          if (cadence > 0) await ctx.clock.sleep(cadence);
+          if (localStopped || stopped.has(streamId)) break;
+          partial += tokens[index];
+          yield { streamId, token: tokens[index] as string, index };
+        }
+        if (partial) {
+          const completionTokens = estimateTokens(partial);
+          const used: AiUsage = {
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+            costUsd:
+              (promptTokens * model.inputCostPerMillion +
+                completionTokens * model.outputCostPerMillion) /
+              1_000_000,
+          };
+          branch.messages.push({
+            id: messageId(),
+            role: 'assistant',
+            content: partial,
+            createdAt: ctx.clock.now().toISOString(),
+            model: model.id,
+            usage: used,
+          });
+        }
+      } catch (error) {
+        // Restore history when the stream fails before producing a reply.
+        branch.messages.splice(0, branch.messages.length, ...snapshot);
+        throw error;
+      } finally {
+        stopped.delete(streamId);
       }
-      stopped.delete(streamId);
     };
     return {
       id: streamId,
@@ -183,12 +214,15 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
 
   const regenerate = (conversationId: string, streamOptions: StreamOptions = {}) => {
     const branch = findConversation(conversationId);
+    const attempt = branch.messages.filter((message) => message.role === 'assistant').length;
     const last = branch.messages.at(-1);
-    if (last?.role === 'assistant') branch.messages.pop();
-    const user = branch.messages.at(-1);
+    const user = last?.role === 'assistant' ? branch.messages.at(-2) : branch.messages.at(-1);
     if (user?.role !== 'user') throw new RangeError('No user message is available to regenerate.');
-    branch.messages.pop();
-    return stream(conversationId, user.content, streamOptions);
+    // History mutation happens inside the stream iterator after rate-limit checks.
+    return stream(conversationId, user.content, streamOptions, {
+      kind: 'regenerate',
+      attempt,
+    });
   };
 
   const editAndResend = (
@@ -202,8 +236,7 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
       (message) => message.id === userMessageId && message.role === 'user'
     );
     if (index < 0) throw new RangeError(`Unknown user message: ${userMessageId}`);
-    branch.messages.splice(index);
-    return stream(conversationId, prompt, streamOptions);
+    return stream(conversationId, prompt, streamOptions, { kind: 'edit', fromIndex: index });
   };
 
   const branchConversation = (conversationId: string, throughMessageId?: string, id?: string) => {
@@ -272,4 +305,4 @@ export function createAiEngine(options: AiEngineOptions): AiEngine {
   };
 }
 
-export const AI_ENGINE_VERSION = '1.0.0';
+export const AI_ENGINE_VERSION = '1.1.0';

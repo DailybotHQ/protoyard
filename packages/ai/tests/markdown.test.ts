@@ -235,6 +235,7 @@ describe('sanitization', () => {
     'file:///etc/hosts',
     '//evil.example',
     '/\\evil.example',
+    '\\/evil.example',
     '\\\\evil.example',
   ])('rejects the link target %j', (url) => {
     expect(safeHref(url)).toBeNull();

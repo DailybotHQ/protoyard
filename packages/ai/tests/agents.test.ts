@@ -209,3 +209,28 @@ describe('simulated agent runs', () => {
     ]);
   });
 });
+
+describe('agent approval floor', () => {
+  it('cannot disable requiresApproval on a tool that requires it', async () => {
+    const tool = defineAiTool({
+      name: 'crm.note',
+      description: 'Add a note',
+      requiresApproval: true,
+      execute: async () => ({ ok: true }),
+    });
+    const runner = createAiAgentRunner({
+      context: context(1),
+      tools: [tool],
+      planner: () => ({
+        goal: 'note',
+        calls: [{ tool: 'crm.note', input: {}, reason: 'x', requiresApproval: false }],
+      }),
+    });
+    const run = runner.start('add a note');
+    await waitFor(() => run.status === 'awaiting-approval');
+    run.reject('no');
+    const result = await run.done;
+    expect(result.status).toBe('completed');
+    expect(result.answer).toMatch(/did not run|declined/i);
+  });
+});

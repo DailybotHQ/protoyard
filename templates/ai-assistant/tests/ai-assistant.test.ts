@@ -169,4 +169,45 @@ describe('AI assistant template', () => {
       ).some((message) => message.content.includes('simulated local search'))
     ).toBe(true);
   });
+
+  it('regenerate keeps a single user message after three clicks', async () => {
+    const runtime = await harness.boot('fresh-workspace');
+    const services = createAssistantServices(runtime, { chunkDelayMs: 0 });
+    const [project] = await runtime.db.projects.toArray();
+    const conversationId = await services.createConversation(project?.id);
+    await services.send(conversationId, 'Draft a launch checklist.', AI_MODELS[0]!);
+    for (let i = 0; i < 3; i++) {
+      await services.regenerate(conversationId);
+    }
+    const rows = await runtime.db.messages
+      .where('conversationId')
+      .equals(conversationId)
+      .sortBy('createdAt');
+    expect(rows.filter((row) => row.role === 'user')).toHaveLength(1);
+    expect(rows.filter((row) => row.role === 'assistant').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('edit and regenerate leave messages unchanged when rate-limited or offline', async () => {
+    const runtime = await harness.boot('rate-limited');
+    const services = createAssistantServices(runtime, { chunkDelayMs: 0 });
+    const [project] = await runtime.db.projects.toArray();
+    const conversationId = await services.createConversation(project?.id);
+    await services.send(conversationId, 'First prompt.', AI_MODELS[0]!);
+    await services.send(conversationId, 'Second prompt.', AI_MODELS[0]!);
+    const before = await runtime.db.messages.where('conversationId').equals(conversationId).count();
+    const user = (
+      await runtime.db.messages.where('conversationId').equals(conversationId).sortBy('createdAt')
+    ).find((row) => row.role === 'user');
+    await expect(
+      services.editMessage(conversationId, user!.id, 'Edited while limited.', AI_MODELS[0]!)
+    ).rejects.toThrow(/request limit/i);
+    expect(await runtime.db.messages.where('conversationId').equals(conversationId).count()).toBe(
+      before
+    );
+    runtime.environment.set({ failureMode: 'server-error', failureRate: 1, failureScope: ['ai.'] });
+    await expect(services.regenerate(conversationId)).rejects.toBeTruthy();
+    expect(await runtime.db.messages.where('conversationId').equals(conversationId).count()).toBe(
+      before
+    );
+  });
 });

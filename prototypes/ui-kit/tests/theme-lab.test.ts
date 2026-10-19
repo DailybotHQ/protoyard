@@ -137,6 +137,17 @@ describe('theme lab services', () => {
       )
     ).rejects.toBeInstanceOf(PermissionDeniedError);
   });
+
+  it('lets a viewer apply a library theme that is not yet registered', async () => {
+    const runtime = await harness.boot('dark-viewer');
+    const extras = runtime.theme as typeof runtime.theme & ThemeControllerExtras;
+    const services = createThemeLabServices(runtime, extras);
+    const library = await loadLibraryTheme(THEME_LIBRARY_META[0]!.id);
+    expect(runtime.theme.themes().some((theme) => theme.id === library.id)).toBe(false);
+    const applied = await services.activate(library);
+    expect(applied.id).toBe(library.id);
+    expect(runtime.theme.appearance().theme.value).toBe(library.id);
+  });
 });
 
 describe('theme previews', () => {
