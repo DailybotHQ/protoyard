@@ -59,6 +59,9 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Marketplace performance | `pnpm bench:index --marketplace --check` (needs `pnpm test:e2e:install`) | full |
 | All current CLI tests (includes the rows above) | `pnpm vitest run packages/cli` | scoped |
 | CI performance job (local mirror) | `pnpm protoyard build --all && pnpm protoyard budget --all --skip-build && pnpm bench:index --runs 3 --check` | full |
+| Visual QA sweep (contact sheet, see below) | `pnpm exec tsx scripts/visual-sweep.ts --only crm-demo,mobile-banking-demo` | scoped |
+| Visual sweep logic (matrix, flags, PNG decode, contact sheet) | `pnpm vitest run tests/unit/visual-sweep.test.ts` | scoped |
+| Thumbnails stay deterministic | `pnpm exec tsx scripts/generate-thumbnails.ts crm-demo --check` | scoped |
 
 `protoyard spec <slug> --check` (or `spec --all --check`) is the drift check
 for generated spec regions, and `validate` fails while a region is stale
@@ -221,8 +224,63 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 No coverage quotas or test-count targets. A behavior change comes with a test
 that would have failed before it.
 
+## Visual QA sweep
+
+`scripts/visual-sweep.ts` screenshots prototypes in every applicable
+combination and writes a contact sheet for a human to review. It complements
+the E2E checks; it is not a gate.
+
+```bash
+pnpm exec tsx scripts/visual-sweep.ts --only crm-demo,mobile-banking-demo   # build, capture, write the sheet
+pnpm exec tsx scripts/visual-sweep.ts --skip-build --out tmp/visual-sweep-after --compare tmp/visual-sweep
+open tmp/visual-sweep/index.html
+```
+
+| Dimension | Values |
+| --- | --- |
+| Viewport | desktop 1440×900; phone 390×844 (mobile context) |
+| Shell (desktop) | the manifest's `preview.shell`, then the platform's shells (`mobile`: auto, phone, tablet, none; `desktop`: auto, none, desktop-window, browser; `responsive`: auto, none, phone, desktop-window, browser), one per resolved picture (`auto` that resolves to `none` is not captured twice). `--shells a,b` replaces the list. |
+| Shell (phone) | only the manifest's own shell: every frame is full-bleed at 390 px ([SHELLS.md](SHELLS.md)) |
+| Layout | the manifest's `preview.layout` id and its `supported` list; `custom` (no `?layout=`) when it has none |
+| Mode | light and dark (`?mode=` and the browser color scheme) |
+| Theme | off by default; `--themes a,b` adds `?theme=` per id |
+| Scenario | the densest by name (`massive`, `scale`, `long-`, `multi-`, `power`, `busy`, `mature`, in that order), else the manifest default: the scenarios `layout-fit.spec.ts` uses |
+
+Every shot opens `?devtools=0&scenario=…&shell=…&mode=…` in a fresh browser
+context with the thumbnails' readiness wait (`scripts/lib/capture.ts`:
+`data-py-ready`, fonts, network idle, a quiet DOM, reduced motion, UTC,
+`en-US`). It then records:
+
+- the axe violation count (WCAG 2.1 A and AA; `--no-axe` skips it);
+- layout flags from the `layout-fit` rules that hold for every app:
+  `input-off-screen` (a primary input outside the viewport that the page
+  cannot scroll to), `region-does-not-scroll`, `page-overflow-stuck`;
+- with `--compare <earlier sweep>`, the changed pixels per shot (both PNGs
+  are decoded by `scripts/lib/png.ts`, no image dependency), `new` or
+  `resized`.
+
+The output goes to `tmp/visual-sweep/` (`--out` must be inside `tmp/`):
+`index.html` (static, no external assets, light and dark, filters for every
+dimension plus "problems only" and "changed only", lazy images), `sweep.json`
+and `shots/`. A shot that fails to boot is listed with its error and the run
+exits 1; flags and axe findings never fail it. `--templates` adds every
+template demo, served from the showcase build (`pnpm build:showcase`, run
+unless `--skip-build`). `--concurrency N` (default 2) sets parallel shots.
+
+Measured 2026-10-19 on the lane-D machine (Apple M1 Max) under heavy
+parallel load (load average about 150):
+
+| Run | Shots | Time |
+| --- | ---: | ---: |
+| `--only mobile-banking-demo,crm-demo` (2 builds, axe on) | 18 | 51.4 s |
+| `--only crm-demo --skip-build --no-axe --concurrency 3 --compare …` | 10 | 17.0 s, 0 changed pixels against the first run |
+
+Without `--only`, today's 9 prototypes make 90 shots and `--templates` adds
+166 for the 17 templates (counted from the manifests on 2026-10-19; layouts
+and themes multiply these). A full run has not been timed yet.
+
 ## Proposed (not yet verified)
 
-- Visual regression snapshots of the demos with Playwright. Not set up.
+- Visual regression gating of the demos. The visual sweep above produces and diffs screenshots for review, but no baseline is committed and nothing fails on a pixel change.
 - Per-package coverage thresholds. `pnpm test:coverage` runs (v8) but no
   floor is enforced.
