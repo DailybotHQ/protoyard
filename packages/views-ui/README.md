@@ -6,7 +6,7 @@ files, settings, states and an app command palette. They are built on
 `@protoyard/ui` tokens, and the engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status:** `./settings` and `./states` are implemented; the other subpaths
+> **Status:** `./calendar`, `./settings` and `./states` are implemented; the other subpaths
 > exist and are empty until their PLAN_003 task lands, and this README
 > documents each view then.
 
@@ -62,6 +62,72 @@ re-exported from `@protoyard/ui`.
 ```bash
 pnpm vitest run packages/views-ui
 pnpm --filter @protoyard/views-ui typecheck
+```
+
+## Calendar (`@protoyard/views-ui/calendar`)
+
+`CalendarView` shows calendar series (with recurrence, from
+[`@protoyard/views/calendar`](../views/README.md#calendar-protoyardviewscalendar))
+as a month, week, day or agenda view. It never writes data itself: moves and
+new slots go out through `onChange` / `onCreate`, which call the prototype's
+services.
+
+```svelte
+<script lang="ts">
+  import { getRuntime, liveQuery } from '@protoyard/renderer-svelte';
+  import { CalendarView, type CalendarChange } from '@protoyard/views-ui/calendar';
+
+  const runtime = getRuntime();
+  const persona = runtime.session.principal()?.persona;
+  const bookings = liveQuery(() => services.listSeries(), { initial: undefined });
+
+  // writes.put / writes.delete in one transaction (session.assert → zod → environment.run → db.transaction)
+  const save = (change: CalendarChange<Booking>) => services.applySeriesWrites(change.writes);
+</script>
+
+<CalendarView
+  query={bookings}
+  timeZone={persona?.timezone ?? 'UTC'}
+  locale={persona?.locale ?? 'en-US'}
+  getTitle={(o) => o.data?.title ?? 'Booking'}
+  getTone={(o) => (o.data?.status === 'cancelled' ? 'neutral' : 'primary')}
+  onChange={save}
+  onCreate={(slot) => services.createBooking({ start: slot.start, end: slot.end })}
+  onOpen={(o) => navigate(`/bookings/${o.seriesId}`)}
+/>
+```
+
+- **Views:** month (6 × 7 with up to three events a day and a "+N more"
+  popover), week and day (a time grid that only draws the hours in view, with
+  an all-day row and a now-line), agenda (a grouped list; the default below
+  `sm`, and the most screen-reader-friendly). `view` and `anchor` are
+  bindable; M / W / D / A switch views.
+- **Time:** "now" comes from the runtime clock (`useClock`), so DevTools time
+  travel moves the now-line and today; pass `now` for a fixed time. Dates,
+  hours and the now-line follow `timeZone`; the week starts from `locale`.
+- **Keyboard:** arrows move a focus slot (a day in month and agenda, a
+  15-minute slot in week and day); Enter on a slot creates, Enter on an event
+  opens it. Space grabs an event: arrows move it (15 minutes up/down, a day
+  left/right; a week up/down in month), Shift + up/down changes its length,
+  Enter saves, Escape cancels. A live region describes each step.
+- **Pointer:** drag an event to move it (days across, 15-minute steps down) or
+  its bottom edge to resize; click an empty slot or a month day to create.
+- **Saving:** the event moves at once and shows as busy until the `onChange`
+  promise settles (run through `runService`, so the global bar and error
+  toasts apply); a failed save puts it back. A repeating event first asks
+  "This event / This and following events / All events" (ui `AlertDialog`);
+  `change.writes` is `splitSeries` output for that scope (`newId` names the
+  series a "following" edit creates).
+- **Read-only** without `onChange` (nothing to drag or grab); no create
+  without `onCreate`. Data states (loading, offline, denied, failed) come from
+  `QueryState`.
+- **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
+  core, `@protoyard/ui`, the renderer, lucide, Bits UI and zod external;
+  2026-10-19): the view is 10.9 KB; with the calendar engine it imports, the
+  chunk is 14.6 KB. Lazy, 0 KB initial.
+
+```bash
+pnpm vitest run packages/views-ui/tests/calendar.test.ts
 ```
 
 ## Settings (`@protoyard/views-ui/settings`)
