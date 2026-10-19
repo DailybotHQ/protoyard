@@ -1,7 +1,8 @@
 <script lang="ts">
 import { Package, UserRound } from '@lucide/svelte';
-import { can, liveQuery, navigate, usePrincipal } from '@protoyard/renderer-svelte';
+import { avatarImage, can, liveQuery, navigate, usePrincipal } from '@protoyard/renderer-svelte';
 import {
+  Avatar,
   Button,
   DataTable,
   type DataTableColumn,
@@ -17,7 +18,7 @@ import { CAPABILITIES } from '../domain/policy.ts';
 import { useShop } from '../lib/context.ts';
 import { formatDate, money } from '../lib/format.ts';
 
-type Row = Order & { customerName: string };
+type Row = Order & { customerName: string; customerAvatar?: string };
 
 const { db } = useShop();
 const principal = usePrincipal();
@@ -33,12 +34,13 @@ const rows = liveQuery(
       scope === 'all' && staff
         ? db.orders.toArray()
         : db.orders.where('customerId').equals(me).toArray(),
-      db.table('py_personas').toArray() as Promise<{ id: string; name: string }[]>,
+      db.table('py_personas').toArray() as Promise<{ id: string; name: string; avatar?: string }[]>,
     ]);
-    const names = new Map(people.map((p) => [p.id, p.name]));
+    const byId = new Map(people.map((p) => [p.id, p]));
     return orders.map((o) => ({
       ...o,
-      customerName: names.get(o.customerId) ?? 'Unknown customer',
+      customerName: byId.get(o.customerId)?.name ?? 'Unknown customer',
+      customerAvatar: byId.get(o.customerId)?.avatar,
     }));
   },
   { initial: [], deps: () => [me, scope, staff] }
@@ -55,7 +57,15 @@ const columns: DataTableColumn<Row>[] = $derived([
     cell: dateCell,
   },
   ...(scope === 'all'
-    ? [{ key: 'customerName', header: 'Customer', sortable: true, hideBelow: 'md' as const }]
+    ? [
+        {
+          key: 'customerName',
+          header: 'Customer',
+          sortable: true,
+          hideBelow: 'md' as const,
+          cell: customerCell,
+        },
+      ]
     : []),
   { key: 'itemCount', header: 'Items', align: 'right' as const, hideBelow: 'sm' as const },
   { key: 'totalCents', header: 'Total', sortable: true, align: 'right' as const, cell: totalCell },
@@ -64,6 +74,12 @@ const columns: DataTableColumn<Row>[] = $derived([
 </script>
 
 {#snippet numberCell(order: Row)}<span class="font-mono font-medium">{order.number}</span>{/snippet}
+{#snippet customerCell(order: Row)}
+  <span class="flex items-center gap-2">
+    <Avatar name={order.customerName} {...avatarImage(order.customerAvatar)} size="xs" decorative />
+    {order.customerName}
+  </span>
+{/snippet}
 {#snippet dateCell(order: Row)}{formatDate(order.placedAt)}{/snippet}
 {#snippet totalCell(order: Row)}<span class="tabular-nums">{money(order.totalCents)}</span>{/snippet}
 {#snippet statusCell(order: Row)}<OrderStatusBadge status={order.status} />{/snippet}

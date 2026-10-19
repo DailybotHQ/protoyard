@@ -5,6 +5,7 @@ import type {
   Persona,
   WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import { ITEM_STATUSES, type Item } from '../database/schema.ts';
 
 /**
@@ -62,9 +63,12 @@ function identities(
       joined: Math.min(7, scenario.organization.ageDays),
     },
   ];
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('mobile-app:avatars:people'));
   const personas: Persona[] = people.map((p) => ({
     id: p.id,
     name: p.name,
+    avatar: faces.next(),
     email: `${p.name.split(' ')[0]?.toLowerCase()}@example.com`,
     title: p.title,
     avatarColor: p.color,

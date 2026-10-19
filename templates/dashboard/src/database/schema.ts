@@ -37,6 +37,11 @@ export type Customer = {
   plan: Plan;
   status: CustomerStatus;
   country: string;
+  /**
+   * Library avatar id (`av-NNN`) from the generator; resolve it with
+   * `avatarImage`. Customers added in the app have none and show initials.
+   */
+  avatar?: string;
   /** Persona id (`py_personas`) of the account owner on our side. */
   ownerId: string;
   createdAt: string;

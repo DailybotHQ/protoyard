@@ -1,6 +1,6 @@
 <script lang="ts">
 import { SearchX, UserPlus, Users } from '@lucide/svelte';
-import { can, liveQuery, navigate, useClock } from '@protoyard/renderer-svelte';
+import { avatarImage, can, liveQuery, navigate, useClock } from '@protoyard/renderer-svelte';
 import {
   Avatar,
   Button,
@@ -63,7 +63,7 @@ const columns: DataTableColumn<Row>[] = [
 
 {#snippet nameCell(c: Row)}
   <span class="flex items-center gap-3">
-    <Avatar name={c.name} size="sm" decorative />
+    <Avatar name={c.name} {...avatarImage(c.avatar)} size="sm" decorative />
     <span class="min-w-0">
       <span class="block truncate font-medium">{c.name}</span>
       <span class="block truncate text-xs text-muted-foreground">{c.email}</span>

@@ -1,7 +1,7 @@
 <script lang="ts">
 import { AlarmClock, ArrowLeft, ArrowRight, Flame, Inbox, TriangleAlert } from '@lucide/svelte';
 import type { Persona } from '@protoyard/core';
-import { can, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
+import { avatarImage, can, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import { Avatar, Badge, Button, EmptyState, Skeleton, StatCard } from '@protoyard/ui';
 import { useCrudApp } from '../lib/context.ts';
 import {
@@ -32,6 +32,9 @@ const metrics = $derived(helpdeskMetrics(tickets.current ?? [], clock.now));
 const canMove = $derived(can('ticket:update'));
 const nameOf = (id: unknown) =>
   (personas.current ?? []).find((p) => p.id === id)?.name ?? 'Unassigned';
+/** The persona's face (or `{}`: initials show). */
+const faceOf = (id: unknown) =>
+  avatarImage((personas.current ?? []).find((p) => p.id === id)?.avatar);
 
 const PRIORITY_VARIANT: Record<string, 'destructive' | 'warning' | 'secondary' | 'outline'> = {
   urgent: 'destructive',
@@ -98,7 +101,7 @@ function move(id: string, subject: string, status: TicketStatus) {
                     </div>
                     <div class="mt-2 flex items-center justify-between gap-2">
                       <span class="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                        <Avatar name={nameOf(ticket.assigneeId)} size="xs" />
+                        <Avatar name={nameOf(ticket.assigneeId)} {...faceOf(ticket.assigneeId)} size="xs" />
                         <span class="truncate">{nameOf(ticket.assigneeId)}</span>
                       </span>
                       {#if canMove}
@@ -135,7 +138,7 @@ function move(id: string, subject: string, status: TicketStatus) {
       <ul class="mt-3 divide-y divide-border">
         {#each metrics.agentLoad as agent (agent.personaId ?? 'unassigned')}
           <li class="flex items-center gap-3 py-2 text-sm">
-            <Avatar name={nameOf(agent.personaId)} size="sm" />
+            <Avatar name={nameOf(agent.personaId)} {...faceOf(agent.personaId)} size="sm" />
             <span class="min-w-0 flex-1 truncate">{nameOf(agent.personaId)}</span>
             <span class="tabular-nums">{agent.open} open</span>
             {#if agent.breached > 0}<Badge variant="destructive">{agent.breached} breached</Badge>{/if}

@@ -79,7 +79,7 @@ Pebblestat is a fictional product analytics company in the spirit of Mixpanel. I
 | default theme | `violet` |
 | storage namespace | `pebblestat-analytics-demo` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

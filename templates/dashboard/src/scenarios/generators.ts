@@ -7,6 +7,7 @@ import {
   type Persona,
   type WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import type {
   AppEvent,
   Customer,
@@ -26,9 +27,12 @@ import type { DashboardGeneratorOptions } from './index.ts';
  * every machine. Order matters: people → customers → orders → events.
  */
 
-/** Bump when the same seed would produce a different world. */
-/** v2: orders carry `amountCents` instead of `amount`. */
-export const DASHBOARD_GENERATOR_VERSION = 2;
+/**
+ * Bump when the same seed would produce a different world.
+ * v2: orders carry `amountCents` instead of `amount`.
+ * v3: personas carry library avatars (`av-NNN`), shown as photos.
+ */
+export const DASHBOARD_GENERATOR_VERSION = 3;
 
 /** Fixed people, so links like `?actor=user_0004` always mean the same person. */
 const PEOPLE = [
@@ -119,6 +123,8 @@ function identities(ctx: GenerateContext) {
     // The founder joined on day one; everyone else joined in order afterwards.
     return index === 0 ? ageDays : Math.round(ageDays * (1 - index / (PEOPLE.length + 1)));
   };
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('dashboard:avatars:people'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   PEOPLE.forEach((p, index) => {
@@ -129,6 +135,7 @@ function identities(ctx: GenerateContext) {
     personas.push({
       id: p.id,
       name: p.name,
+      avatar: faces.next(),
       email: `${p.name.split(' ')[0]?.toLowerCase()}@example.com`,
       title: p.title,
       avatarColor: p.color,
@@ -201,6 +208,10 @@ export function generateDashboardWorld(ctx: GenerateContext): WorldSeed {
   const authors = memberships.filter((m) => m.role !== 'viewer');
 
   const customers: Customer[] = [];
+  // Customers get faces the team does not use (until the library runs out).
+  const customerFaces = createAvatarPool(ctx.rng.fork('dashboard:avatars:customers'), {
+    avoid: personas.map((p) => p.avatar),
+  });
   const draftOrders: Omit<Order, 'id' | 'reference'>[] = [];
   const createdAts = Array.from({ length: opts.customers }, () =>
     time.between(new Date(orgCreatedMs), time.now, rng.next).getTime()
@@ -223,6 +234,7 @@ export function generateDashboardWorld(ctx: GenerateContext): WorldSeed {
         .email({ firstName: first, lastName: last, provider: 'example.com' })
         .toLowerCase(),
       company: faker.company.name(),
+      avatar: customerFaces.next(),
       plan,
       status,
       country: rng.pick(COUNTRIES),

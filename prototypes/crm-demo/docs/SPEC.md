@@ -110,7 +110,7 @@ chosen here. See
 | default theme | `violet` |
 | storage namespace | `crm-demo` |
 | schema version | 2 |
-| generator version | 3 |
+| generator version | 4 |
 | timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { FolderKanban, House, Inbox, Settings } from '@lucide/svelte';
 import { AppShell, Avatar, Header, Sidebar, type SidebarSection } from '@protoyard/ui';
+import { sampleFace } from './faces.ts';
 import { interceptDemoNav } from './nav.ts';
 
 const pages: Record<string, { title: string; body: string }> = {
@@ -80,7 +81,7 @@ const sections: SidebarSection[] = $derived([
     {#snippet header()}
       <Header titleAs="p" title={page.title} description="AppShell demo">
         {#snippet actions()}
-          <Avatar name="Jordan Example" size="sm" />
+          <Avatar name="Jordan Example" {...sampleFace('Jordan Example')} size="sm" />
         {/snippet}
       </Header>
     {/snippet}

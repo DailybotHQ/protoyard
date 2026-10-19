@@ -3,7 +3,8 @@ import { generateSaasWorld } from '@protoyard/saas';
 import { generateTeam } from '@protoyard/scenarios';
 import type { Project } from '../database/schema.ts';
 
-export const B2B_SAAS_GENERATOR_VERSION = 1;
+/** v2: personas carry library avatars (`generateTeam`), shown as photos. */
+export const B2B_SAAS_GENERATOR_VERSION = 2;
 
 const PROJECT_NAMES = [
   'Customer portal',

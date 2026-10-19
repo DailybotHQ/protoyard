@@ -11,7 +11,8 @@ export const definition = definePrototype({
   scenarios,
   policy,
   generate: generateChatWorld,
-  generatorVersion: 1,
+  /** v2: personas carry library avatars (`av-NNN`), shown as photos. */
+  generatorVersion: 2,
   integrity: {
     relations: {
       conversations: { createdBy: 'py_personas' },

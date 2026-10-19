@@ -4,6 +4,7 @@ import { createFileServices } from '@protoyard/blueprint';
 import type { Persona, Row } from '@protoyard/core';
 import { EntityDetail } from '@protoyard/crud';
 import {
+  avatarImage,
   can,
   isValidationError,
   liveQuery,
@@ -67,6 +68,9 @@ const customer = liveQuery(
 );
 const nameOf = (pid: unknown) =>
   (personas.current ?? []).find((p) => p.id === pid)?.name ?? 'Someone';
+/** The persona's face (or `{}`: initials show). */
+const faceOf = (pid: unknown) =>
+  avatarImage((personas.current ?? []).find((p) => p.id === pid)?.avatar);
 
 const canUpdate = $derived(can('ticket:update'));
 const canReply = $derived(can('reply:create'));
@@ -138,7 +142,7 @@ function markSolved(row: Row) {
         <span class="capitalize">{t.priority} priority</span>·
         <span class={sla.kind === 'breached' ? 'font-medium text-destructive' : ''}>{slaLabel(sla)}</span>
         {#if customer.current}·
-          <span>for <span class="font-medium text-foreground">{customer.current.name}</span> ({customer.current.plan})</span>
+          <span class="inline-flex items-center gap-1.5">for <Avatar name={String(customer.current.name)} {...avatarImage(customer.current.avatar)} size="xs" decorative /><span class="font-medium text-foreground">{customer.current.name}</span> ({customer.current.plan})</span>
         {/if}
       </p>
     </div>
@@ -164,7 +168,7 @@ function markSolved(row: Row) {
           {#each replies.current ?? [] as reply (reply.id)}
             <li class={reply.internal ? 'rounded-lg border border-warning/40 bg-warning/10 p-3' : 'rounded-lg border border-border p-3'}>
               <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                <Avatar name={nameOf(reply.authorId)} size="xs" />
+                <Avatar name={nameOf(reply.authorId)} {...faceOf(reply.authorId)} size="xs" />
                 <span class="font-medium text-foreground">{nameOf(reply.authorId)}</span>
                 <span>{formatDay(String(reply.createdAt))} {formatTime(String(reply.createdAt))}</span>
                 {#if reply.internal}<Badge variant="warning"><Lock aria-hidden="true" />Internal</Badge>{/if}

@@ -5,6 +5,7 @@ import type {
   Persona,
   WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import type { ConnectedItem, PluginSettings, Provider } from '../database/schema.ts';
 
 const PEOPLE = [
@@ -34,9 +35,12 @@ export function generatePluginWorld(ctx: GenerateContext): WorldSeed {
     scenario.organization.ageDays === 0
       ? PEOPLE.filter((person) => person.id === scenario.actor.id)
       : PEOPLE;
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('plugin-panel:avatars:people'));
   const personas: Persona[] = people.map((person) => ({
     id: person.id,
     name: person.name,
+    avatar: faces.next(),
     email: person.email,
     title: person.role === 'owner' ? 'Workspace owner' : 'Team member',
     avatarColor: person.id === 'user_0001' ? '#d98165' : '#5c8d89',

@@ -110,7 +110,7 @@ See [docs/SPECS.md](../../../docs/SPECS.md#rebuild-as-a-real-app).
 | default theme | `violet` |
 | storage namespace | `ui-kit` |
 | schema version | 1 |
-| generator version | — |
+| generator version | 2 |
 | timeline | no |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

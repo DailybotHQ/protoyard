@@ -13,7 +13,8 @@ export const definition = definePrototype({
   policy,
   generate: generateChatWorld,
   // Bump when generators.ts changes what a seed produces.
-  generatorVersion: 1,
+  /** v2: personas carry library avatars (`av-NNN`), shown as photos. */
+  generatorVersion: 2,
   integrity: {
     relations: {
       conversations: { createdBy: 'py_personas' },

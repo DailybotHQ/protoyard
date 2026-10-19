@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Avatar, type ChatMessage, ChatThread } from '@protoyard/ui';
 import { ANA, ME, messageId, scriptedReply, seedThread } from './chat.ts';
+import { sampleFace } from './faces.ts';
 import { wait } from './nav.ts';
 
 let messages = $state<ChatMessage[]>(seedThread());
@@ -32,7 +33,7 @@ async function reply(): Promise<void> {
   <ChatThread {messages} currentUserId={ME.id} {typing} bind:draft onSend={send} placeholder="Message Ana…">
     {#snippet header()}
       <div class="flex items-center gap-3 border-b border-border px-4 py-3">
-        <Avatar name={ANA.name} size="sm" decorative />
+        <Avatar name={ANA.name} {...sampleFace(ANA.name)} size="sm" decorative />
         <div class="grid">
           <p class="text-sm font-medium">{ANA.name}</p>
           <p class="text-xs text-muted-foreground">Replies in about a second (scripted)</p>

@@ -7,6 +7,7 @@ import {
   type Row,
   type WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import type {
   Account,
   AccountStatus,
@@ -22,7 +23,8 @@ import type { BankGeneratorOptions } from './index.ts';
  * holds for every account in every scenario.
  */
 
-export const BANK_GENERATOR_VERSION = 1;
+/** v2: the household and the person payees carry library avatars (`av-NNN`). */
+export const BANK_GENERATOR_VERSION = 2;
 
 const PEOPLE = [
   {
@@ -74,6 +76,8 @@ export function generateBankWorld(ctx: GenerateContext): WorldSeed {
     featureFlags: { instantTransfers: true, ...scenario.organization.featureFlags },
   };
 
+  // Faces come from their own forks, so they shift no other seeded value.
+  const householdAvatars = createAvatarPool(rng.fork('mobile-banking-demo:avatars:household'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   PEOPLE.forEach((person, index) => {
@@ -85,6 +89,7 @@ export function generateBankWorld(ctx: GenerateContext): WorldSeed {
       name: person.name,
       email: `${person.name.split(' ')[0]?.toLowerCase()}@rivera.example`,
       avatarColor: person.color,
+      avatar: householdAvatars.next(),
       title: person.title,
       locale: 'en-US',
       timezone: 'America/Bogota',
@@ -274,19 +279,26 @@ export function generateBankWorld(ctx: GenerateContext): WorldSeed {
       .reduce((s, t) => s + t.amountCents, 0);
   }
 
+  // People get a face the household does not use; the landlord (a business) gets none.
+  const payeeAvatars = createAvatarPool(rng.fork('mobile-banking-demo:avatars:payees'), {
+    avoid: personas.map((p) => p.avatar),
+  });
   const beneficiaries: Beneficiary[] =
     opts.months > 0
-      ? [
-          ['Casey Morgan', 'Casey', 'Harborline Credit Union'],
-          ['Maple Court Apartments', 'Landlord', 'Northgate Savings'],
-          ['Riley Chen', 'Riley', 'Summit Mutual'],
-        ].map(([name, nickname, institution]) => ({
+      ? (
+          [
+            ['Casey Morgan', 'Casey', 'Harborline Credit Union', true],
+            ['Maple Court Apartments', 'Landlord', 'Northgate Savings', false],
+            ['Riley Chen', 'Riley', 'Summit Mutual', true],
+          ] as const
+        ).map(([name, nickname, institution, person]) => ({
           id: ids.next('payee'),
           ownerId: 'user_0001',
-          name: name as string,
-          nickname: nickname as string,
-          institution: institution as string,
+          name,
+          nickname,
+          institution,
           masked: `•••• ${digits()}`,
+          ...(person ? { avatar: payeeAvatars.next() } : {}),
           createdAt: iso(between(opened, now, rng.next())),
         }))
       : [];

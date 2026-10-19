@@ -137,10 +137,10 @@ No vendor below has been chosen.
 | platform | responsive |
 | category | ai |
 | default scenario | `active-workspace` |
-| default theme | `amethyst` |
+| default theme | `ai-lab` |
 | storage namespace | `nova-assistant-demo` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | no |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

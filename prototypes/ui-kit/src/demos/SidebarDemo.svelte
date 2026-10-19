@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Calendar, FileText, House, Inbox, LifeBuoy, Users } from '@lucide/svelte';
 import { Avatar, Sidebar, type SidebarSection } from '@protoyard/ui';
+import { sampleFace } from './faces.ts';
 import { interceptDemoNav } from './nav.ts';
 
 let current = $state('#demo/side/home');
@@ -70,7 +71,7 @@ function navigate(href: string): void {
       Click items to change the active page. Collapse for icons-only mode with tooltips.
     </p>
     <div class="flex items-center gap-2 text-xs text-muted-foreground">
-      <Avatar name="Jordan Example" size="xs" decorative /> Signed in as Jordan · {collapsed ? 'collapsed' : 'expanded'}
+      <Avatar name="Jordan Example" {...sampleFace('Jordan Example')} size="xs" decorative /> Signed in as Jordan · {collapsed ? 'collapsed' : 'expanded'}
     </div>
     <button
       type="button"

@@ -11,6 +11,7 @@ import {
   type TimelineContext,
   type WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import {
   type Activity,
   type Company,
@@ -30,8 +31,11 @@ import type { CrmGeneratorOptions } from './index.ts';
  * `ctx.faker` (seeded) and all time from `ctx.time` (fixed reference).
  */
 
-/** Bump when generated output for the same seed changes. */
-export const CRM_GENERATOR_VERSION = 3;
+/**
+ * Bump when generated output for the same seed changes.
+ * v4: teammates and contacts carry library avatars (`av-NNN`), shown as photos.
+ */
+export const CRM_GENERATOR_VERSION = 4;
 
 /** Named core cast, so every scenario shares recognizable people. */
 const CAST = [
@@ -113,6 +117,8 @@ export function generateCrmWorld(ctx: GenerateContext): WorldSeed {
   };
 
   // ── People & memberships ───────────────────────────────────────────────
+  // Faces come from their own forks, so they shift no other seeded value.
+  const teamAvatars = createAvatarPool(rng.fork('crm-demo:avatars:team'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   const addPerson = (p: {
@@ -133,6 +139,7 @@ export function generateCrmWorld(ctx: GenerateContext): WorldSeed {
       name: p.name,
       email: emailFor(p.name, 'northwind.example'),
       avatarColor: p.color,
+      avatar: teamAvatars.next(),
       title: p.title,
       locale: 'en-US',
       timezone: 'America/Bogota',
@@ -189,6 +196,10 @@ export function generateCrmWorld(ctx: GenerateContext): WorldSeed {
   const activityCeiling = level === 'dormant' ? time.daysAgo(Math.min(45, orgAge)) : now;
 
   const activity = (a: Omit<Activity, 'id'>) => activities.push({ id: ids.next('activity'), ...a });
+  // Contacts get faces the team does not use (until the library runs out).
+  const contactAvatars = createAvatarPool(rng.fork('crm-demo:avatars:contacts'), {
+    avoid: personas.map((p) => p.avatar),
+  });
 
   for (let c = 0; c < opts.companies; c++) {
     const name = faker.company.name().replace(/,/g, '');
@@ -237,6 +248,7 @@ export function generateCrmWorld(ctx: GenerateContext): WorldSeed {
         email: emailFor(`${firstName} ${lastName}`, company.domain),
         phone: `+1 555 01${String(rng.int(0, 99)).padStart(2, '0')}`,
         title: faker.person.jobTitle(),
+        avatar: contactAvatars.next(),
         ownerId,
         createdAt: iso(contactCreated),
         updatedAt: iso(contactCreated),

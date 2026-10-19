@@ -1,9 +1,18 @@
 import type { ChatAuthor, ChatMessage } from '@protoyard/ui';
+import { sampleImageFields } from './faces.ts';
 
 export const ME: ChatAuthor = { id: 'me', name: 'You' };
-export const ANA: ChatAuthor = { id: 'ana', name: 'Ana Lee' };
-export const OMAR: ChatAuthor = { id: 'omar', name: 'Omar Diaz' };
-export const KAI: ChatAuthor = { id: 'kai', name: 'Kai Moreno' };
+export const ANA: ChatAuthor = { id: 'ana', name: 'Ana Lee', ...sampleImageFields('Ana Lee') };
+export const OMAR: ChatAuthor = {
+  id: 'omar',
+  name: 'Omar Diaz',
+  ...sampleImageFields('Omar Diaz'),
+};
+export const KAI: ChatAuthor = {
+  id: 'kai',
+  name: 'Kai Moreno',
+  ...sampleImageFields('Kai Moreno'),
+};
 
 /** Today at the given local time, so seeded threads read as "this morning". */
 export function today(hours: number, minutes: number): Date {

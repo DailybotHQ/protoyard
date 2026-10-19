@@ -10,7 +10,7 @@ import {
   type TimelineContext,
   type WorldSeed,
 } from '@protoyard/core';
-import { dailyEvents } from '@protoyard/scenarios';
+import { createAvatarPool, dailyEvents } from '@protoyard/scenarios';
 import {
   type Activity,
   type Comment,
@@ -32,8 +32,11 @@ import type { TaskGeneratorOptions } from './index.ts';
  * same scenario renders the same world on every machine.
  */
 
-/** Bump when the same seed can produce a different world. */
-export const TASKS_GENERATOR_VERSION = 1;
+/**
+ * Bump when the same seed can produce a different world.
+ * v2: personas carry library avatars (`av-NNN`), shown as photos.
+ */
+export const TASKS_GENERATOR_VERSION = 2;
 
 /**
  * Fixed cast, so `?actor=user_0003` always means Priya. Join offsets are
@@ -244,6 +247,8 @@ function identities(ctx: GenerateContext) {
     size: scenario.organization.size,
     featureFlags: { ...scenario.organization.featureFlags },
   };
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('task-manager:avatars:people'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   const size = Math.max(1, scenario.organization.size);
@@ -258,6 +263,7 @@ function identities(ctx: GenerateContext) {
     personas.push({
       id: member.id,
       name: member.name,
+      avatar: faces.next(),
       email: `${member.name.split(' ')[0]?.toLowerCase()}@example.com`,
       avatarColor: member.color,
       title: member.title,

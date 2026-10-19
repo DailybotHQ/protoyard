@@ -7,6 +7,7 @@ import {
   type Row,
   type WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import type {
   CartItem,
   Category,
@@ -25,8 +26,11 @@ import type { ShopGeneratorOptions } from './index.ts';
  * comes only from `ctx.rng` / `ctx.faker` and dates only from `ctx.time`.
  */
 
-/** Bump when the same seed can produce a different world. */
-export const SHOP_GENERATOR_VERSION = 1;
+/**
+ * Bump when the same seed can produce a different world.
+ * v2: personas carry library avatars (`av-NNN`), shown as photos.
+ */
+export const SHOP_GENERATOR_VERSION = 2;
 
 export const FEATURED_CUSTOMER_ID = 'user_0003';
 
@@ -160,6 +164,8 @@ export function generateShopWorld(ctx: GenerateContext): WorldSeed {
     size: CAST.length + opts.otherCustomers,
     featureFlags: { ...scenario.organization.featureFlags },
   };
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('ecommerce:avatars:people'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   const addPerson = (p: {
@@ -176,6 +182,7 @@ export function generateShopWorld(ctx: GenerateContext): WorldSeed {
     personas.push({
       id: p.id,
       name: p.name,
+      avatar: faces.next(),
       email: `${p.name.toLowerCase().replace(/[^a-z]+/g, '.')}@example.com`,
       title: p.title,
       locale: 'en-US',

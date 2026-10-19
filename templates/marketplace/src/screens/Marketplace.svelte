@@ -1,6 +1,8 @@
 <script lang="ts">
-import { getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
+import type { Persona } from '@protoyard/core';
+import { avatarImage, getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { SsoButtons } from '@protoyard/saas-ui';
+import { Avatar } from '@protoyard/ui';
 import type { MarketplaceDatabase } from '../database/schema.ts';
 
 const runtime = getRuntime<MarketplaceDatabase>();
@@ -11,6 +13,30 @@ const listings = liveQuery(
       .filter((listing) => listing.status === 'active')
       .sort((a, b) => a.title.localeCompare(b.title)),
   { initial: [] }
+);
+/** Sellers by persona id: the shop name and the maker's face for each listing. */
+const sellers = liveQuery(
+  async () => {
+    const [profiles, people] = await Promise.all([
+      runtime.db.seller_profiles.toArray(),
+      runtime.db.table('py_personas').toArray() as Promise<Persona[]>,
+    ]);
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return new Map(
+      profiles.map((s) => [
+        s.personaId,
+        {
+          store: s.storeName,
+          name: byId.get(s.personaId)?.name ?? s.storeName,
+          avatar: byId.get(s.personaId)?.avatar,
+        },
+      ])
+    );
+  },
+  {
+    initial: new Map<string, { store: string; name: string; avatar: string | undefined }>(),
+    deps: () => [],
+  }
 );
 const isSignedIn = $derived(principal.current !== null);
 </script>
@@ -31,9 +57,10 @@ const isSignedIn = $derived(principal.current !== null);
   {/if}
   <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
     {#each listings.current ?? [] as listing (listing.id)}
+      {@const seller = sellers.current?.get(listing.sellerPersonaId)}
       <article class="overflow-hidden rounded-xl border border-border bg-surface">
         <div class="grid aspect-[4/3] place-items-center bg-primary/5 text-5xl" aria-hidden="true">✳</div>
-        <div class="space-y-3 p-4"><p class="text-xs font-medium uppercase tracking-wide text-primary">{listing.category}</p><div><h2 class="font-semibold">{listing.title}</h2><p class="mt-1 line-clamp-2 text-sm text-muted-foreground">{listing.description}</p></div><div class="flex items-center justify-between"><span class="font-semibold tabular-nums">${(listing.priceCents / 100).toFixed(2)}</span><a class="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground" href={`#/checkout/${listing.id}`}>{isSignedIn ? 'Buy' : 'Sign in to buy'}</a></div></div>
+        <div class="space-y-3 p-4"><p class="text-xs font-medium uppercase tracking-wide text-primary">{listing.category}</p>{#if seller}<p class="flex items-center gap-2 text-sm text-muted-foreground" data-listing-seller=""><Avatar name={seller.name} {...avatarImage(seller.avatar)} size="xs" decorative /><span class="truncate">{seller.store}</span></p>{/if}<div><h2 class="font-semibold">{listing.title}</h2><p class="mt-1 line-clamp-2 text-sm text-muted-foreground">{listing.description}</p></div><div class="flex items-center justify-between"><span class="font-semibold tabular-nums">${(listing.priceCents / 100).toFixed(2)}</span><a class="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground" href={`#/checkout/${listing.id}`}>{isSignedIn ? 'Buy' : 'Sign in to buy'}</a></div></div>
       </article>
     {/each}
   </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { CircleCheck, Lock } from '@lucide/svelte';
 import {
+  avatarImage,
   can,
   liveQuery,
   navigate,
@@ -32,6 +33,8 @@ interface Recipient {
   kind: 'account' | 'payee';
   name: string;
   detail: string;
+  /** Payee face (`avatar` id); accounts have none. */
+  avatar?: string;
 }
 
 const STEPS: { id: Exclude<Step, 'done'>; label: string }[] = [
@@ -79,6 +82,7 @@ const recipients = $derived<Recipient[]>([
     kind: 'payee' as const,
     name: p.nickname ? `${p.nickname} (${p.name})` : p.name,
     detail: `${p.institution} · ${p.masked}`,
+    avatar: p.avatar,
   })),
 ]);
 const from = $derived<Account | undefined>(accountList.find((a) => a.id === fromId));
@@ -299,7 +303,7 @@ $effect(() => {
             >
               {#snippet row(r)}
                 <span class="flex items-center gap-3">
-                  <Avatar name={r.name} size="sm" decorative />
+                  <Avatar name={r.name} {...avatarImage(r.avatar)} size="sm" decorative />
                   <span class="min-w-0">
                     <span class="block truncate font-medium">{r.name}</span>
                     <span class="block truncate text-sm text-muted-foreground">{r.detail}</span>

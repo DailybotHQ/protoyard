@@ -29,6 +29,7 @@ import {
   StatCard,
   toast,
 } from '@protoyard/ui';
+import { sampleFace } from './faces.ts';
 import { interceptDemoNav } from './nav.ts';
 
 interface Deal {
@@ -165,7 +166,7 @@ function createDeal(event: SubmitEvent): void {
           {/snippet}
           {#snippet footer({ collapsed })}
             <div class="flex items-center gap-2 px-2 py-1 text-sm">
-              <Avatar name="Jordan Example" size="sm" decorative />
+              <Avatar name="Jordan Example" {...sampleFace('Jordan Example')} size="sm" decorative />
               {#if !collapsed}<span class="truncate">Jordan Example</span>{/if}
             </div>
           {/snippet}

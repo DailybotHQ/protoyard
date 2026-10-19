@@ -53,7 +53,7 @@ TODO: for each prototype piece (schema, services, policy, personas, environment 
 | default theme | `ocean` |
 | storage namespace | `template-admin-console` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | no |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Plus } from '@lucide/svelte';
 import { Avatar, Badge, Button, Kanban, type KanbanColumn } from '@protoyard/ui';
+import { sampleFace } from './faces.ts';
 
 interface Task {
   id: string;
@@ -59,7 +60,7 @@ function add(columnId: string): void {
     <div class="grid gap-2">
       <p class="font-medium">{task.title}</p>
       <div class="flex items-center justify-between gap-2">
-        <Avatar name={task.assignee} size="xs" />
+        <Avatar name={task.assignee} {...sampleFace(task.assignee)} size="xs" />
         {#if task.blocked}<Badge variant="warning">Blocked</Badge>{/if}
       </div>
     </div>

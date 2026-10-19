@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Pencil, Plus, Trash2 } from '@lucide/svelte';
-import { can, Link, liveQuery, runService } from '@protoyard/renderer-svelte';
+import { avatarImage, can, Link, liveQuery, runService } from '@protoyard/renderer-svelte';
 import { AlertDialog, Avatar, Button, DataTable, type DataTableColumn } from '@protoyard/ui';
 import ContactDialog from '../components/ContactDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
@@ -44,7 +44,7 @@ const columns: DataTableColumn<Row>[] = [
 
 {#snippet nameCell(c: Row)}
   <span class="flex items-center gap-3">
-    <Avatar name={c.name} size="sm" decorative />
+    <Avatar name={c.name} {...avatarImage(c.avatar)} size="sm" decorative />
     <span><span class="block font-medium">{c.name}</span><span class="block text-xs text-muted-foreground">{c.title}</span></span>
   </span>
 {/snippet}

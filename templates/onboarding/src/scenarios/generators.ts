@@ -5,6 +5,7 @@ import type {
   Persona,
   WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import type { Invitation, OnboardingState, Workspace } from '../database/schema.ts';
 import { stepsForProgress } from '../domain/steps.ts';
 import { slugify } from '../domain/validation.ts';
@@ -19,7 +20,8 @@ import { slugify } from '../domain/validation.ts';
  * lifecycle stage.
  */
 
-export const ONBOARDING_GENERATOR_VERSION = 1;
+/** v2: personas carry library avatars (`av-NNN`), shown as photos. */
+export const ONBOARDING_GENERATOR_VERSION = 2;
 
 /** Fixed people, so links like `?actor=user_0004` always mean the same person. */
 const PEOPLE = [
@@ -68,6 +70,8 @@ export function generateOnboardingWorld(ctx: GenerateContext): WorldSeed {
   // A brand-new workspace has only its founder; an older one has the whole team.
   const people = ageDays === 0 ? PEOPLE.filter((p) => p.id === scenario.actor.id) : PEOPLE;
 
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('onboarding:avatars:people'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   people.forEach((p, index) => {
@@ -82,6 +86,7 @@ export function generateOnboardingWorld(ctx: GenerateContext): WorldSeed {
     personas.push({
       id: p.id,
       name: p.name,
+      avatar: faces.next(),
       email: `${p.name.split(' ')[0]?.toLowerCase()}@example.com`,
       title: p.title,
       avatarColor: p.color,

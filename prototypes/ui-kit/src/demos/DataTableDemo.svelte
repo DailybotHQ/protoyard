@@ -10,6 +10,7 @@ import {
   Select,
   toast,
 } from '@protoyard/ui';
+import { sampleFace } from './faces.ts';
 import { type Member, makeMembers } from './members.ts';
 import { wait } from './nav.ts';
 
@@ -52,7 +53,7 @@ async function reload(): Promise<void> {
 
 {#snippet nameCell(member: Member)}
   <span class="flex items-center gap-2.5">
-    <Avatar name={member.name} size="sm" decorative />
+    <Avatar name={member.name} {...sampleFace(member.name)} size="sm" decorative />
     <span class="grid min-w-0">
       <span class="truncate font-medium">{member.name}</span>
       <span class="truncate text-xs text-muted-foreground">{member.email}</span>

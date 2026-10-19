@@ -2,6 +2,7 @@
 import { ChevronLeft, Hash } from '@lucide/svelte';
 import { Avatar, Badge, type ChatAuthor, type ChatMessage, ChatThread, cn } from '@protoyard/ui';
 import { ANA, KAI, ME, messageId, OMAR, scriptedReply, today } from './chat.ts';
+import { sampleFace } from './faces.ts';
 import { wait } from './nav.ts';
 
 interface Conversation {
@@ -116,7 +117,7 @@ async function reply(conversation: Conversation): Promise<void> {
             {#if conversation.kind === 'channel'}
               <Hash class="size-4 shrink-0" aria-hidden="true" />
             {:else}
-              <Avatar name={conversation.name} size="xs" decorative />
+              <Avatar name={conversation.name} {...sampleFace(conversation.name)} size="xs" decorative />
             {/if}
             <span class="flex-1 truncate">{conversation.name}</span>
             {#if conversation.unread > 0}

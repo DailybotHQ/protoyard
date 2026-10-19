@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Avatar, Button, Skeleton } from '@protoyard/ui';
+import { sampleFace } from './faces.ts';
 import { wait } from './nav.ts';
 
 let loading = $state(true);
@@ -32,7 +33,7 @@ async function reload(): Promise<void> {
       </div>
     {:else}
       <div class="flex items-center gap-3">
-        <Avatar name="Rosa Example" size="lg" decorative />
+        <Avatar name="Rosa Example" {...sampleFace('Rosa Example')} size="lg" decorative />
         <div class="grid">
           <p class="font-medium">Rosa Example</p>
           <p class="text-xs text-muted-foreground">Head of Support · rosa@example.com</p>

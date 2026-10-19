@@ -2,6 +2,7 @@
 import { ArrowLeft, Mail, MessageSquare, Pencil, Phone, Trash2, Users } from '@lucide/svelte';
 import type { RouteProps } from '@protoyard/renderer-svelte';
 import {
+  avatarImage,
   back,
   can,
   Link,
@@ -212,7 +213,7 @@ const ICONS = { note: MessageSquare, call: Phone, email: Mail, meeting: Users } 
           {:else if contact.current}
             {@const c = contact.current}
             <div class="flex items-center gap-3">
-              <Avatar name={`${c.firstName} ${c.lastName}`} size="lg" />
+              <Avatar name={`${c.firstName} ${c.lastName}`} {...avatarImage(c.avatar)} size="lg" />
               <div>
                 <p class="font-medium">{c.firstName} {c.lastName}</p>
                 <p class="text-sm text-muted-foreground">{c.title}</p>
