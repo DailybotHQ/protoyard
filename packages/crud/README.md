@@ -38,7 +38,34 @@ blueprint's entity services and `runtime.members` (`session.assert` → zod →
 Lists lay out as a single `minmax(0, 1fr)` grid column, so a wide table scrolls inside its
 card instead of widening the page on phones.
 
+## Settings screen (`@protoyard/crud/screens/settings`)
+
+A separate entry, so the screen loads only with its route. Sections come from a blueprint
+`settings` screen (`profile`, `workspace`, `appearance`, `notifications`, `danger`).
+
+```svelte
+<script lang="ts">
+import { SettingsScreen } from '@protoyard/crud/screens/settings';
+</script>
+
+<SettingsScreen {runtime} {blueprint} sections={['profile', 'workspace', 'appearance', 'danger']} />
+```
+
+| Section | What it does | Who |
+| --- | --- | --- |
+| Profile | Renames the signed-in persona and sets its avatar color (`py_personas`) | Every signed-in persona, own profile only |
+| Workspace | Renames the active organization (`py_organizations`) | Owners and admins (`members:update`); read-only otherwise |
+| Appearance | Theme and color mode through `runtime.theme.setPreference` (per persona); `library` adds themes loaded on demand | Everyone |
+| Notifications | The blueprint rules that reach your role, the unread count and Mark all as read | Everyone |
+| Danger zone | Resets the active scenario from its seed after an `AlertDialog` confirmation | Owners and admins; read-only otherwise |
+
+`createSettingsServices(runtime)` backs the screen: zod input schemas, `session.assert` for
+the role-gated actions, and `environment.run` around the identity writes (the runtime's
+identity writer, which refreshes the session). Runtimes without an identity writer render
+profile and workspace read-only. Roles here are a simulation, not security.
+
 ```bash
 pnpm vitest run packages/crud
+pnpm vitest run packages/crud/tests/settings-screen.test.ts
 pnpm --filter @protoyard/crud typecheck
 ```
