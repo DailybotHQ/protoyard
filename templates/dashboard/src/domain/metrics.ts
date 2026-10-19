@@ -69,6 +69,40 @@ export function dailyRevenue(orders: readonly Order[], now: Date, days = 14): Da
   return buckets;
 }
 
+/** How many timestamps fall on each UTC day of the last `days` days (oldest first), up to the simulated now. */
+export function dailyCounts(isoTimes: readonly string[], now: Date, days = 30): number[] {
+  const today = Math.floor(now.getTime() / MS_PER_DAY);
+  const counts = new Array<number>(days).fill(0);
+  for (const iso of isoTimes) {
+    const at = Date.parse(iso);
+    if (!(at <= now.getTime())) continue;
+    const i = days - 1 - (today - Math.floor(at / MS_PER_DAY));
+    if (i >= 0) counts[i] = (counts[i] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/** Daily series behind the stat-card sparklines (last 30 days, oldest first). */
+export function overviewTrends(
+  customers: readonly Customer[],
+  orders: readonly Order[],
+  now: Date
+) {
+  return {
+    revenue: dailyRevenue(orders, now, 30).map((d) => d.total),
+    orders: dailyCounts(
+      orders.map((o) => o.createdAt),
+      now,
+      30
+    ),
+    newCustomers: dailyCounts(
+      customers.map((c) => c.createdAt),
+      now,
+      30
+    ),
+  };
+}
+
 /** Lifetime value and order count per customer id. */
 export function customerTotals(orders: readonly Order[]) {
   const totals = new Map<string, { orders: number; value: number }>();

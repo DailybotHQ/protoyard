@@ -1,7 +1,9 @@
 # SaaS Dashboard
 
 A Protoyard starter for admin-style SaaS apps: a sidebar shell, an **Overview**
-with stat cards and a revenue chart computed from stored rows, a **Customers**
+with stat cards (30-day sparklines) and a revenue bar chart computed from
+stored rows (`@protoyard/charts-ui`: keyboard navigation, tooltips and a data
+table toggle), a **Customers**
 table (search, status/plan filters, sorting, pagination) with detail pages and
 create / edit / delete, **Orders** whose status changes are written together
 with an audit event in one transaction, and a **Settings** page whose sections
@@ -47,10 +49,11 @@ src/lib/context.ts           provideDashboard()/useDashboard(): runtime, db, ser
 src/lib/format.ts            money (integer cents → currency from settings), dates relative to the SIMULATED clock
 src/App.svelte               AppShell + Sidebar + hash routes
 src/screens/*.svelte         Overview, Customers, CustomerDetail, Orders, Settings
-src/components/*.svelte      dialogs, status badge/menu, bar chart, page header
+src/components/*.svelte      dialogs, status badge/menu, MetricCard (StatCard + Sparkline), page header
 tests/generators.test.ts     determinism, integrity, density, viewer = active world
 tests/services.test.ts       CRUD + reload persistence, status transitions, roles, offline
 tests/money.test.ts          exact cents parsing, integer storage, the v1 → v2 migration
+tests/overview-charts.test.ts  daily trend series (cents, UTC days, simulated now), MetricCard sparkline
 ```
 
 ## Add a table
