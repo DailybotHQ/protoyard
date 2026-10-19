@@ -74,7 +74,7 @@ test('creates and edits a ticket through the generated forms', async ({ page }) 
   await expect(page.getByRole('row', { name: 'Open Printer queue stuck (floor 3)' })).toBeVisible();
 });
 
-test('bulk-deletes tickets and undoes a single delete', async ({ page }) => {
+test('bulk-moves tickets to trash, undoes it, and undoes a single delete', async ({ page }) => {
   await open(page, '/tickets');
   await expect(rowCheckboxes(page).first()).toBeVisible();
   const labels = await Promise.all(
@@ -83,10 +83,15 @@ test('bulk-deletes tickets and undoes a single delete', async ({ page }) => {
   for (const name of labels) await page.getByRole('checkbox', { name, exact: true }).check();
   await page.getByRole('button', { name: 'Delete 2' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
-  // Replies cascade with their tickets, so the toast counts every deleted record.
-  await expect(page.getByText(/^Deleted \d+ records$/).first()).toBeVisible();
+  // Soft delete is on for tickets, so a bulk delete moves them to Trash with an Undo.
+  const bulkToast = page.locator('li', { hasText: 'Moved 2 records to trash' });
+  await expect(bulkToast).toBeVisible();
   for (const name of labels) {
     await expect(page.getByRole('checkbox', { name, exact: true })).toHaveCount(0);
+  }
+  await bulkToast.getByRole('button', { name: 'Undo' }).click();
+  for (const name of labels) {
+    await expect(page.getByRole('checkbox', { name, exact: true })).toBeVisible();
   }
 
   const label = (await rowCheckboxes(page).first().getAttribute('aria-label')) ?? '';
@@ -94,7 +99,10 @@ test('bulk-deletes tickets and undoes a single delete', async ({ page }) => {
   await page.getByRole('button', { name: 'Delete 1' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByRole('checkbox', { name: label, exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Undo' }).click();
+  await page
+    .locator('li', { hasText: 'Moved 1 record to trash' })
+    .getByRole('button', { name: 'Undo' })
+    .click();
   await expect(page.getByRole('checkbox', { name: label, exact: true })).toBeVisible();
 });
 
