@@ -83,6 +83,14 @@ const FIT_TARGETS: Record<string, FitTarget> = {
   },
   // The busiest booking world on the calendar screen (week view on desktop, agenda on phones).
   'booking-calendar': { scenario: 'busy-week', hash: '#/', layout: 'document' },
+  // The windowed feed bound to the window: the composer stays on screen, the feed list scrolls.
+  'social-feed': {
+    scenario: 'massive',
+    hash: '#/',
+    layout: 'viewport',
+    ready: '[data-py-composer]',
+    mustScroll: { desktop: true, phone: true },
+  },
 };
 
 const DESKTOP = { width: 1920, height: 1080 } as const;
