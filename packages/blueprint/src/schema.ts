@@ -58,6 +58,41 @@ const lengths = (max: number) => ({
   maxLength: z.number().int().positive().max(max).default(max),
 });
 
+/**
+ * How generated values of a number, integer or money field evolve with the
+ * row's `createdAt`: `growth` and `decline` trend over time, `seasonal` adds
+ * weekly and yearly rhythm. Generation hint only; inputs are not affected.
+ */
+export const FIELD_TRENDS = ['flat', 'growth', 'decline', 'seasonal'] as const;
+const trend = z.enum(FIELD_TRENDS).optional();
+
+/**
+ * Where generated dates fall, relative to the scenario's now: `past` (since
+ * the organization started, the default), `future` (the next 30 days),
+ * `around` (14 days either side), or `{ from, to }` in days (negative is past).
+ * Past dates never precede the organization; dates after now are allowed and
+ * are therefore left out of the "nothing in the future" integrity check.
+ */
+export const DateWindowSchema = z.union([
+  z.enum(['past', 'future', 'around']),
+  z.strictObject({
+    from: z.number().int().min(-3650).max(3650),
+    to: z.number().int().min(-3650).max(3650),
+  }),
+]);
+export type DateWindow = z.infer<typeof DateWindowSchema>;
+
+/** A window as day offsets from now; `null` from means "since the organization started". */
+export function dateWindowDays(window: DateWindow | undefined): {
+  from: number | null;
+  to: number;
+} {
+  if (window === undefined || window === 'past') return { from: null, to: 0 };
+  if (window === 'future') return { from: 0, to: 30 };
+  if (window === 'around') return { from: -14, to: 14 };
+  return window;
+}
+
 const field = <K extends string, S extends z.ZodRawShape = Record<never, never>>(
   kind: K,
   extra?: S
@@ -76,11 +111,13 @@ export const FieldSchema = z.discriminatedUnion('kind', [
     min: z.number().optional(),
     max: z.number().optional(),
     default: z.number().optional(),
+    trend,
   }),
   field('integer', {
     min: z.number().int().optional(),
     max: z.number().int().optional(),
     default: z.number().int().optional(),
+    trend,
   }),
   field('money', {
     currency: z
@@ -90,16 +127,19 @@ export const FieldSchema = z.discriminatedUnion('kind', [
     min: cents.optional(),
     max: cents.optional(),
     default: cents.optional(),
+    trend,
   }),
   field('boolean', { default: z.boolean().optional() }),
-  field('date'),
-  field('datetime'),
+  field('date', { window: DateWindowSchema.optional() }),
+  field('datetime', { window: DateWindowSchema.optional() }),
   field('enum', {
     values: z
       .array(z.string().regex(/^[a-z0-9][a-z0-9_-]*$/, { message: 'enum values are lowercase' }))
       .min(1, { message: 'enum fields need at least one value' }),
     labels: z.record(z.string(), z.string().min(1)).optional(),
     default: z.string().optional(),
+    /** Relative generation weights, one per value (default: equal). */
+    weights: z.array(z.number().nonnegative()).optional(),
   }),
   field('email'),
   field('url'),
@@ -165,6 +205,8 @@ export const EntitySchema = z.strictObject({
   defaultSort: z
     .strictObject({ field: fieldName, direction: z.enum(['asc', 'desc']).default('asc') })
     .optional(),
+  /** Rows to generate at `normal` density (scaled by density); default 4 for roots, 8 for dependents. */
+  seedCount: z.number().int().min(1).max(500).optional(),
   features: EntityFeaturesSchema.default({
     softDelete: false,
     audit: false,
@@ -698,6 +740,18 @@ function checkEntity(entity: BlueprintEntity, at: number, names: Set<string>, ad
           [...path, 'default'],
           `default "${field.default}" is not one of ${field.values.join(', ')}`
         );
+      }
+      if (field.weights !== undefined) {
+        if (field.weights.length !== field.values.length) {
+          add([...path, 'weights'], `weights needs one entry per value (${field.values.length})`);
+        } else if (!field.weights.some((w) => w > 0)) {
+          add([...path, 'weights'], 'weights needs at least one positive entry');
+        }
+      }
+    }
+    if ((field.kind === 'date' || field.kind === 'datetime') && typeof field.window === 'object') {
+      if (field.window.from > field.window.to) {
+        add([...path, 'window'], 'window.from must not be after window.to');
       }
     }
     if ('min' in field && field.min !== undefined && field.max !== undefined) {

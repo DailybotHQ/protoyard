@@ -95,6 +95,7 @@ A blueprint is strict: an unknown key anywhere fails validation.
 | `ownerField` | A `persona` field. It enables `update:own` / `delete:own` and defaults to the acting persona on create. |
 | `indexes` | Extra Dexie indexes. Relations, personas, tags and files are always indexed. |
 | `defaultSort` | `{ "field": "slaDueAt", "direction": "asc" }`. |
+| `seedCount` | Rows the generic generator seeds at `normal` density (1–500, scaled by density). Default 4 for entities nothing points at, 8 otherwise. |
 | `features` | `softDelete`, `audit`, `notifications`, `files` and `csv`, all `false` by default. |
 
 ### Field kinds
@@ -102,20 +103,21 @@ A blueprint is strict: an unknown key anywhere fails validation.
 Every field has a lowerCamelCase `name` and a `kind`, plus these optional keys:
 `label`, `description`, `required` (default `false`), `sensitive` (redacted from
 audit diffs) and `fake`, a generator hint taken from an allow-list such as
-`company.name`, `person.fullName`, `lorem.sentence`, `internet.email` or
-`commerce.productName`.
+`company.name`, `person.fullName`, `lorem.sentence`, `internet.email`,
+`commerce.productName`, `commerce.department`, `company.buzzPhrase`,
+`location.streetAddress` or `word.words` (`ALLOWED_FAKE_PATHS`).
 
 | Kind | Options | Stored as |
 | --- | --- | --- |
 | `text` | `minLength`, `maxLength` (default and maximum 200), `default` | string, trimmed |
 | `longText` | `minLength`, `maxLength` (default and maximum 10,000), `default` | string |
-| `number` | `min`, `max`, `default` | number |
-| `integer` | `min`, `max`, `default` (integers) | number |
-| `money` | `currency` (ISO 4217, default `USD`), `min`, `max`, `default` in **integer cents** | integer cents (`"12.34"` → `1234`) |
+| `number` | `min`, `max`, `default`, `trend` | number |
+| `integer` | `min`, `max`, `default` (integers), `trend` | number |
+| `money` | `currency` (ISO 4217, default `USD`), `min`, `max`, `default` in **integer cents**, `trend` | integer cents (`"12.34"` → `1234`) |
 | `boolean` | `default` | boolean |
-| `date` | — | `YYYY-MM-DD` |
-| `datetime` | — | ISO instant in UTC |
-| `enum` | `values` (lowercase, at least one), `labels`, `default` (one of the values) | string |
+| `date` | `window` | `YYYY-MM-DD` |
+| `datetime` | `window` | ISO instant in UTC |
+| `enum` | `values` (lowercase, at least one), `labels`, `default` (one of the values), `weights` (one per value) | string |
 | `email` | — | lowercased string |
 | `url` | — | http(s) URL |
 | `phone` | — | string |
@@ -134,6 +136,25 @@ Relation behavior on delete:
 
 All three run in the same transaction as the delete. A `required` relation
 cannot use `nullify`.
+
+### Generation hints
+
+The generic world generator (generator SDK 3) reads these hints. They change
+only seeded data, never validation:
+
+- `enum.weights`: relative weights, one per value (`[6, 3, 0]` never picks the
+  third). Without weights every value is equally likely; an optional enum's
+  `default` is still used for about 15 % of rows.
+- `date` / `datetime` `window`: `past` (since the organization started, the
+  default), `future` (the next 30 days), `around` (14 days either side) or
+  `{ "from": -10, "to": 10 }` in days. Datetimes in a window fall in business
+  hours (09:00–17:00 UTC, quarter hours). Dates never precede the organization.
+  A window that reaches past now is left out of the "nothing after the
+  reference time" integrity check, so due dates and bookings can be upcoming.
+- `number` / `integer` / `money` `trend`: `growth`, `decline`, `seasonal`
+  (weekly and yearly rhythm) or `flat`. A row's value follows its `createdAt`
+  day, centered on the middle of `min`–`max`, so charts over time show it.
+- `seedCount` on the entity: rows at `normal` density.
 
 ### Features
 
@@ -353,9 +374,9 @@ Build a Protoyard prototype for <product> from a blueprint.
 
 ## Limits today
 
-- The generic world generator fills fields from enum defaults and allow-listed
-  Faker paths. For believable data, wrap it in an owned generator, as the help
-  desk does.
+- The generic world generator fills fields from allow-listed Faker paths and
+  the distribution hints below. For domain-specific data, wrap it in an owned
+  generator, as the help desk does.
 - Boards, calendars, timelines, maps, analytics, dashboards and settings
   declared in `screens` are not generated yet; build them in owned files.
 - Renames are a drop plus an add. The prototype's `generatorVersion` in
