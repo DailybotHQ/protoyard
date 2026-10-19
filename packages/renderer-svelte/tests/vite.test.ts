@@ -58,7 +58,12 @@ describe('resolveProtoyardSettings', () => {
       builtAt: '2026-10-17T00:00:00.000Z',
       mode: 'build',
       offline: false,
+      frameWhenEmbedded: false,
     });
+    expect(
+      resolveProtoyardSettings(manifest, 'build', { PROTOYARD_FRAME_WHEN_EMBEDDED: '1' }, '/proj')
+        .build.frameWhenEmbedded
+    ).toBe(true);
     expect(
       resolveProtoyardSettings(manifest, 'build', { PROTOYARD_OFFLINE: '1' }, '/proj').offline
     ).toBe(true);

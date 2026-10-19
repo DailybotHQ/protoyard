@@ -12,6 +12,7 @@ exporting, previewing and putting it on a host. Design decisions: ADR-009
 | --- | --- | --- |
 | `pnpm protoyard build <slug>` | Production build → `artifacts/<slug>/dist` + `build-manifest.json` | No |
 | `pnpm protoyard export <slug>` | Build, isolation check, ZIP → `artifacts/<slug>/<slug>.zip` | No |
+| `pnpm protoyard export <slug> --target artifact [--dry-run]` | Build for a Claude artifact, isolation check, pack → `artifacts/<slug>/artifact/` | No |
 | `pnpm protoyard preview <slug>` | Serves `artifacts/<slug>/dist` like a static host | No |
 | `pnpm protoyard publish <slug> --provider static` | Build, isolation check, ZIP, upload instructions | No |
 | `pnpm protoyard publish <slug> --provider <p> --dry-run` | Build, verify, print the exact deploy command | No |
@@ -172,6 +173,46 @@ The ZIP contains the contents of `dist/` (no wrapping folder). To use it:
   example `python3 -m http.server 8080` inside the unzipped folder.
 - **Upload the contents, not the ZIP**, to the host.
 - A build with a custom `--base` must be served from that path.
+
+### A Claude artifact pack
+
+`export <slug> --target artifact` prepares a folder an agent can publish with
+the Claude Artifact tool unchanged (ADR-026). It builds a separate copy in
+`artifacts/<slug>/artifact-dist/` (manifest `artifact-build.json`), so the
+plain build in `dist/` is untouched:
+
+- DevTools included (viewers can switch scenarios and personas in the
+  page); `--no-devtools` leaves them out;
+- `build.frameWhenEmbedded` on, so an explicit shell (phone, tablet,
+  browser, widget) keeps its frame inside the artifact viewer
+  ([SHELLS.md](SHELLS.md#when-the-app-goes-full-bleed));
+- always the relative base `./`; `--base` with another path, `--offline`
+  and `"build": { "offline": true }` are refused (exit 2 and 4).
+
+It then runs the isolation check and the pack step
+(`packages/cli/src/lib/artifact-pack.ts`), which writes
+`artifacts/<slug>/artifact/`:
+
+| File | Content |
+| --- | --- |
+| `page.html` | The page as body content: the Artifact tool adds its own document skeleton |
+| `assets/…` and the other build files | Every file at the path the page references |
+| `artifact-manifest.json` | Sizes, sha256 and content types, publish batches, the build sha256, the icon and description |
+
+Every Artifact rule is checked, and the export fails with exit 4 and each
+reason: external scripts outside the allowed CDNs, stylesheets other than
+Google Fonts, network fetches and imports, service workers, non-web file
+types (source maps are refused), the 16 MB / 15 MB file limits, 255 files and
+64 MB per publish, 511 files and 256 MB per version, and a missing `<title>`.
+A title longer than four words is a warning. `--dry-run` checks everything
+without writing the pack, and `--skip-build` reuses the last artifact build
+when it was made with the same settings. `--comments` declares the shared
+review-comment capabilities and needs `"build": { "review": { "enabled":
+true } }`. `--json` adds the manifest and the exact Artifact tool arguments
+per batch (`file_path`, `files`, `icon`, `description`, `capabilities`).
+Measured on 2026-10-19: `relay-chat-demo` packs into 31 files plus the page,
+1.25 MB, in one batch; its artifact build loads 158,065 B gzip of initial JS
+(DevTools stay lazy) against 152.75 KB for the plain build.
 
 ## Preview locally
 

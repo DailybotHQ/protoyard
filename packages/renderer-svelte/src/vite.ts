@@ -49,6 +49,12 @@ export interface ProtoyardBuildInfo {
   mode: 'dev' | 'build';
   /** True when the build ships the offline service worker. */
   offline: boolean;
+  /**
+   * Keep an explicit shell frame when embedded in an iframe (ADR-026):
+   * `PROTOYARD_FRAME_WHEN_EMBEDDED`, else the manifest's `build.frameWhenEmbedded`.
+   * The CLI's Claude artifact target sets it.
+   */
+  frameWhenEmbedded: boolean;
 }
 
 type Env = Record<string, string | undefined>;
@@ -154,6 +160,9 @@ export function resolveProtoyardSettings(
       builtAt: env.PROTOYARD_BUILT_AT || new Date().toISOString(),
       mode: isBuild ? 'build' : 'dev',
       offline,
+      frameWhenEmbedded: isBuild
+        ? (envFlag(env.PROTOYARD_FRAME_WHEN_EMBEDDED) ?? manifest.build.frameWhenEmbedded)
+        : manifest.build.frameWhenEmbedded,
     },
   };
 }

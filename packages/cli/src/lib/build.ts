@@ -44,6 +44,8 @@ export interface BuildManifest {
   node: string;
   /** The opt-in service worker (dist/sw.js), or false when the build has none. */
   offline: OfflineRecord;
+  /** Keeps an explicit shell frame when embedded (ADR-026); absent in older manifests. */
+  frameWhenEmbedded?: boolean;
   /**
    * Initial vs lazy JS, CSS and whole-dist sizes (gzip level 9). Absent when
    * the build wrote no Vite manifest (a config without defineProtoyardConfig).
@@ -65,6 +67,8 @@ export interface BuildOptions {
   allowExternalOut?: boolean;
   /** Force the offline service worker on (PROTOYARD_OFFLINE=1). */
   offline?: boolean;
+  /** Keep an explicit shell frame when embedded (the Claude artifact target). */
+  frameWhenEmbedded?: boolean;
   /** Bake this storage namespace in instead of the manifest's (template demos). */
   storageNamespace?: string;
 }
@@ -160,10 +164,17 @@ export async function buildPrototype(
 ): Promise<BuildResult> {
   const started = performance.now();
   const manifestRaw = JSON.parse(await readFile(join(dir, 'protoyard.json'), 'utf8')) as {
-    build?: { base?: string; includeDevtools?: boolean; offline?: boolean };
+    build?: {
+      base?: string;
+      includeDevtools?: boolean;
+      offline?: boolean;
+      frameWhenEmbedded?: boolean;
+    };
   };
   const base = normalizeBase(options.base, manifestRaw.build?.base ?? './');
   const includeDevtools = options.includeDevtools ?? manifestRaw.build?.includeDevtools ?? false;
+  const frameWhenEmbedded =
+    options.frameWhenEmbedded ?? manifestRaw.build?.frameWhenEmbedded ?? false;
   const outDir = resolveOutDir(ctx, entry, options.out, {
     allowExternal: options.allowExternalOut,
   });
@@ -187,6 +198,7 @@ export async function buildPrototype(
     includeDevtools,
     offline: options.offline === true,
     ...(options.storageNamespace ? { storageNamespace: options.storageNamespace } : {}),
+    ...(options.frameWhenEmbedded ? { frameWhenEmbedded: true } : {}),
     quiet: ctx.out.options.json || ctx.out.options.quiet,
   });
   if (code !== 0) {
@@ -228,6 +240,7 @@ export async function buildPrototype(
     },
     node: process.versions.node,
     offline: await readOfflineRecord(ctx.root, outDir),
+    frameWhenEmbedded,
     ...(bundle ? { bundle } : {}),
   };
   const wantsOffline = options.offline === true || manifestRaw.build?.offline === true;
