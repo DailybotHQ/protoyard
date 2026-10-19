@@ -1,7 +1,8 @@
 <script lang="ts">
 import { ChevronLeft, Ellipsis } from '@lucide/svelte';
-import { getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button, Input } from '@protoyard/ui';
+import type { Persona } from '@protoyard/core';
+import { avatarImage, getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
+import { Avatar, Button, Input } from '@protoyard/ui';
 import { tick } from 'svelte';
 import HuddlePanel from './components/HuddlePanel.svelte';
 import type { Channel, Message, TeamChatDatabase, Workspace } from './database/schema.ts';
@@ -70,6 +71,13 @@ const presence = liveQuery(() => services.listPresence(), {
   deps: () => [],
 });
 const bots = services.listBots();
+/** Workspace people by id, for names and faces on messages and presence. */
+const people = liveQuery(
+  async () =>
+    new Map(((await runtime.db.table('py_personas').toArray()) as Persona[]).map((p) => [p.id, p])),
+  { initial: new Map<string, Persona>(), deps: () => [] }
+);
+const personOf = (id: string) => people.current?.get(id);
 
 const reactionsByMessage = $derived.by(() => {
   const map = new Map<string, ReactionSummary[]>();
@@ -356,8 +364,12 @@ function closeToolsOnEscape(event: KeyboardEvent) {
         aria-label="Presence"
       >
         {#each presence.current ?? [] as p}
-          <li class="flex justify-between gap-2">
-            <span class="truncate">{p.personaId}</span>
+          {@const who = personOf(p.personaId)}
+          <li class="flex items-center justify-between gap-2">
+            <span class="flex min-w-0 items-center gap-1.5">
+              <Avatar name={who?.name ?? p.personaId} {...avatarImage(who?.avatar)} size="xs" decorative />
+              <span class="truncate">{who?.name ?? p.personaId}</span>
+            </span>
             <span class="text-muted-foreground">{p.status}</span>
           </li>
         {/each}
@@ -551,12 +563,16 @@ function closeToolsOnEscape(event: KeyboardEvent) {
             data-author-kind={msg.authorKind}
             data-author-id={msg.authorId}
           >
-            <div class="flex items-baseline gap-2 text-xs text-muted-foreground">
-              <span class="font-semibold text-foreground">
-                {msg.authorKind === 'bot'
-                  ? (bots.find((b) => b.id === msg.authorId)?.name ?? msg.authorId)
-                  : msg.authorId}
-              </span>
+            <div class="flex items-center gap-2 text-xs text-muted-foreground">
+              {#if msg.authorKind === 'bot'}
+                <span class="font-semibold text-foreground">
+                  {bots.find((b) => b.id === msg.authorId)?.name ?? msg.authorId}
+                </span>
+              {:else}
+                {@const author = personOf(msg.authorId)}
+                <Avatar name={author?.name ?? msg.authorId} {...avatarImage(author?.avatar)} size="xs" decorative />
+                <span class="font-semibold text-foreground">{author?.name ?? msg.authorId}</span>
+              {/if}
               <time datetime={msg.at}>{formatTime(msg.at)}</time>
               {#if msg.authorKind === 'bot'}
                 <span
