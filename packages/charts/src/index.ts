@@ -1,8 +1,4 @@
-export {
-  downsampleThreshold,
-  MAX_DOWNSAMPLE_POINTS,
-  MIN_DOWNSAMPLE_POINTS,
-} from './downsample.ts';
+export * from './downsample/index.ts';
 export { plotArea } from './layout.ts';
 export { CHART_TOKENS, seriesColor } from './palette.ts';
 export * from './scales/index.ts';
