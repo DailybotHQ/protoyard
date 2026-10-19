@@ -8,7 +8,7 @@ import { NO_FLASH_SCRIPT } from '@/lib/theme';
 interface Props {
   title?: string;
   description?: string;
-  active?: 'home' | 'templates' | 'themes' | 'new';
+  active?: 'home' | 'templates' | 'marketplace' | 'themes' | 'new';
 }
 
 const {
@@ -20,6 +20,7 @@ const fullTitle = title ? `${title} · Protoyard` : 'Protoyard — Build prototy
 const nav = [
   { href: withBase('/'), label: 'Prototypes', id: 'home' },
   { href: withBase('/#templates'), label: 'Templates', id: 'templates' },
+  { href: withBase('/marketplace/'), label: 'Marketplace', id: 'marketplace' },
   { href: withBase('/themes/'), label: 'Themes', id: 'themes' },
   { href: withBase('/new/'), label: 'Create', id: 'new' },
 ];

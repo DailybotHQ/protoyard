@@ -36,6 +36,8 @@ interface Props {
   defaultScenario?: string | null;
   /** Shown while nothing is previewed (already base-prefixed). */
   thumbnail?: string | null;
+  /** Heading id; set it when a page shows more than one preview. */
+  titleId?: string;
 }
 let {
   slug,
@@ -49,6 +51,7 @@ let {
   scenarios = [],
   defaultScenario = null,
   thumbnail = null,
+  titleId = 'preview-title',
 }: Props = $props();
 let scenario = $state('');
 
@@ -205,9 +208,9 @@ async function openManual(event: SubmitEvent) {
 }
 </script>
 
-<section aria-labelledby="preview-title" class="rounded-xl border border-line bg-surface" data-hydrated={hydrated}>
+<section aria-labelledby={titleId} class="rounded-xl border border-line bg-surface" data-hydrated={hydrated}>
   <div class="flex flex-wrap items-center gap-3 border-b border-line p-3">
-    <h2 id="preview-title" class="font-medium">Live preview</h2>
+    <h2 id={titleId} class="font-medium">Live preview</h2>
     <div role="group" aria-label="Device" class="flex flex-wrap rounded-lg border border-line bg-bg p-0.5" data-testid="devices">
       {#each DEVICES as d (d.id)}
         <button
