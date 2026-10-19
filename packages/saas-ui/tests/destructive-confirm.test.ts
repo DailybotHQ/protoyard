@@ -175,3 +175,35 @@ describe('members: destructive actions confirm first', () => {
     );
   });
 });
+
+describe('members and profile: people show their faces', () => {
+  it('renders each member avatar as a decorative photo, initials for an invitee without one', async () => {
+    const { runtime, target } = await openMembers();
+    const row = screen.getByText(target.persona.name).closest('li');
+    const face = row?.querySelector('img');
+    expect(target.persona.avatar).toMatch(/^av-\d{3}$/);
+    expect(face?.getAttribute('src')).toBe(`./avatars/64/${target.persona.avatar}.webp`);
+    expect(face?.getAttribute('srcset')).toContain(
+      `./avatars/128/${target.persona.avatar}.webp 2x`
+    );
+    expect(face?.getAttribute('alt')).toBe('');
+    expect(face?.getAttribute('loading')).toBe('lazy');
+    const invite = screen.getByText(/pending-invitee@example.com · member/).closest('li');
+    expect(invite?.querySelector('img')).toBeNull();
+    expect(invite?.querySelector('[data-avatar="initials"]')).not.toBeNull();
+    expect(runtime.members.list().length).toBeGreaterThan(1);
+  });
+
+  it('shows the signed-in persona face on the profile tab, named by its alt', async () => {
+    const runtime = (await harness.boot('active')) as ProtoyardRuntime;
+    const owner = runtime.members.list().find((member) => member.membership.role === 'owner');
+    if (!owner) throw new Error('The fixture needs an owner');
+    await runtime.session.signIn(owner.persona.id);
+    render(AuthHarness, { props: { runtime, screen: 'settings', tab: 'profile' } });
+    const avatar = await screen.findByTestId('settings-profile-avatar');
+    const face = avatar.querySelector('img');
+    expect(face?.getAttribute('src')).toBe(`./avatars/64/${owner.persona.avatar}.webp`);
+    expect(face?.getAttribute('alt')).toBe(owner.persona.name);
+    expect(face?.getAttribute('width')).toBe('48');
+  });
+});

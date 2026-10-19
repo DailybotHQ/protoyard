@@ -14,4 +14,5 @@ export {
   directAvatar,
   type EditorLoader,
   handleOf,
+  personImage,
 } from './types.ts';

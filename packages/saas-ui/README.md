@@ -112,7 +112,9 @@ and asks for confirmation before linking a matching existing account.
 persona profile, simulated password and MFA, team membership and invitations,
 linked providers, and inbox notification preferences. Controls are disabled
 when the current simulated role lacks their capability; services enforce the
-same checks.
+same checks. Members, pending invitations, the profile header and the
+invite accept card show each person's `avatar` photo through the renderer's
+`avatarImage` (initials when there is none, it is unsafe or it fails to load).
 
 Set `ssoProviders` in `provideSaas(runtime, { ssoProviders: ['google', 'github'] })`
 to show "Continue with …" buttons on the kit's sign-in and sign-up screens

@@ -1,10 +1,11 @@
+import { type AvatarImage, avatarImage } from '@protoyard/renderer-svelte';
 import type { Component } from 'svelte';
 
 /** Someone who comments or acts: a persona, usually. */
 export interface ActivityPerson {
   id: string;
   name: string;
-  /** `persona.avatar`: a URL or path is shown as is; resolve library ids (`av-001`) with `avatarSrc`. */
+  /** `persona.avatar`: a library id (`av-001`), an https URL or a root-relative path. Unsafe values show initials. */
   avatar?: string | null;
   /** Typed after `@` in the composer (default: the name, lowercased, dots for spaces). */
   handle?: string;
@@ -40,4 +41,21 @@ export function handleOf(person: ActivityPerson): string {
 export function directAvatar(person: ActivityPerson | undefined): string | undefined {
   const avatar = person?.avatar;
   return avatar && /^(https:\/\/|\/)/.test(avatar) ? avatar : undefined;
+}
+
+/**
+ * Image props for a person's `Avatar`: the `avatarSrc` override when one is
+ * given (a custom resolver), else `persona.avatar` resolved and re-checked by
+ * the renderer's `avatarImage` (library id → 64/128 px srcset).
+ */
+export function personImage(
+  person: ActivityPerson | undefined,
+  override?: (person: ActivityPerson) => string | null | undefined
+): AvatarImage {
+  if (!person) return {};
+  if (override) {
+    const src = override(person);
+    return src ? { src } : {};
+  }
+  return avatarImage(person.avatar);
 }

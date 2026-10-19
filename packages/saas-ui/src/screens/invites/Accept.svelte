@@ -1,7 +1,8 @@
 <script lang="ts">
-import { navigate, runService, usePrincipal } from '@protoyard/renderer-svelte';
+import { avatarImage, navigate, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { createInvitationServices, type InvitationPreview } from '@protoyard/saas';
 import {
+  Avatar,
   Button,
   Card,
   CardContent,
@@ -127,11 +128,14 @@ const ERRORS: Record<
     </Card>
   {:else}
     <Card>
-      <CardHeader>
-        <CardTitle>Join {workspace}</CardTitle>
-        <CardDescription>
-          {preview.inviterName ?? 'A teammate'} invited {preview.email} to join as <strong>{preview.role}</strong>.
-        </CardDescription>
+      <CardHeader class="flex flex-row items-center gap-3">
+        <Avatar name={preview.email ?? 'Invitee'} {...avatarImage(preview.invitation?.avatar)} size="lg" decorative data-testid="invite-avatar" />
+        <div class="grid gap-1.5">
+          <CardTitle>Join {workspace}</CardTitle>
+          <CardDescription>
+            {preview.inviterName ?? 'A teammate'} invited {preview.email} to join as <strong>{preview.role}</strong>.
+          </CardDescription>
+        </div>
       </CardHeader>
       <CardContent class="grid gap-4">
         {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}

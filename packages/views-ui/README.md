@@ -649,9 +649,10 @@ comments as `kind: 'comment'` items with their `body`).
   - **Filters:** by kind (all activity, comments, changes) and by person.
   - **Paging:** `pageSize` items at a time with **Show more**. On the last
     page, `hasMore` with `onLoadMore` adds a **Load older activity** button.
-- **Avatars:** a persona's `avatar` is passed to `Avatar` when it is a URL
-  or a root-relative path. Resolve library ids (`av-001`) with `avatarSrc`.
-  Initials stay the fallback.
+- **Avatars:** a person's `avatar` (a library id such as `av-001`, an
+  `https://` URL or a root-relative path) shows as a photo through the
+  renderer's `avatarImage` (64 px, 128 px at 2x, lazy). `avatarSrc` overrides
+  the resolution when given. Missing, unsafe or broken images show initials.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
   ui, renderer, lucide, Bits UI and zod external; 2026-10-19):
   - `CommentThread`: 7.9 KB with the engine, 6.4 KB without.

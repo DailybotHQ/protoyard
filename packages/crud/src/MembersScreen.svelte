@@ -1,8 +1,8 @@
 <script lang="ts">
 import { UserPlus } from '@lucide/svelte';
 import { MEMBER_CAPABILITIES, OWNER_ROLE, type PrototypeRuntime } from '@protoyard/core';
-import { can, runService, usePrincipal } from '@protoyard/renderer-svelte';
-import { Button, FormField, Input, Select, toast } from '@protoyard/ui';
+import { avatarImage, can, runService, usePrincipal } from '@protoyard/renderer-svelte';
+import { Avatar, Button, FormField, Input, Select, toast } from '@protoyard/ui';
 
 /**
  * Team members for the active organization: invite, change role, remove.
@@ -194,8 +194,13 @@ function roleDisabled(targetRole: string, currentRole: string): boolean {
           {@const isSelf = member.persona.id === principal.current?.persona.id}
           <tr data-testid="member-row" data-membership-id={member.membership.id}>
             <td class="px-3 py-2 font-medium text-foreground">
-              {member.persona.name}
-              {#if isSelf}<span class="text-muted-foreground"> (you)</span>{/if}
+              <span class="flex items-center gap-2">
+                <Avatar name={member.persona.name} {...avatarImage(member.persona.avatar)} size="sm" decorative />
+                <span>
+                  {member.persona.name}
+                  {#if isSelf}<span class="text-muted-foreground"> (you)</span>{/if}
+                </span>
+              </span>
             </td>
             <td class="px-3 py-2 text-muted-foreground">{member.persona.email ?? '—'}</td>
             <td class="px-3 py-2">
