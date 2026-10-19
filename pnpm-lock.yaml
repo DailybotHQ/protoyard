@@ -141,6 +141,22 @@ importers:
         specifier: workspace:*
         version: link:../database
 
+  packages/charts:
+    dependencies:
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/charts-ui:
+    dependencies:
+      '@protoyard/charts':
+        specifier: workspace:*
+        version: link:../charts
+    devDependencies:
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.2
+
   packages/cli:
     dependencies:
       '@protoyard/blueprint':
