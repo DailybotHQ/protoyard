@@ -8,7 +8,9 @@ _No `src/routes.ts`: this prototype declares its routes in `src/App.svelte`. Lis
 
 ## Screens
 
-TODO: for each screen, its purpose, the data shown, the actions, and the empty, loading, error and denied states.
+Single-screen `App.svelte` (same shell as Relay Chat): sidebar channels, message
+log with reaction chips and counts, Join on public channels when not a member,
+composer disabled for viewers / non-members, read-only toast + disabled tooltips.
 
 ## Shell
 

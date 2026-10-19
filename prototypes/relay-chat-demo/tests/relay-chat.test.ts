@@ -1,10 +1,10 @@
-import { parseScenario } from '@protoyard/core';
+import { PermissionDeniedError, parseScenario } from '@protoyard/core';
 import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import type { TeamChatDatabase } from '../src/database/schema.ts';
 import { botReply, matchBot, summarizeChannel } from '../src/domain/bots.ts';
-import { createTeamChatServices } from '../src/domain/services.ts';
+import { createTeamChatServices, TeamChatValidationError } from '../src/domain/services.ts';
 import { definition } from '../src/prototype.ts';
 import { generateTeamChatWorld } from '../src/scenarios/generators.ts';
 
@@ -79,5 +79,64 @@ describe('relay services', () => {
     await voice.finishListening();
     voice.stop();
     await chat.endHuddle(huddle.id);
+
+    const summaries = await chat.listReactionSummaries(general.id);
+    expect(
+      summaries.some((s) => s.messageId === message.id && s.emoji === '👍' && s.count >= 1)
+    ).toBe(true);
+  });
+
+  it('refuses send without membership and allows join on public channels', async () => {
+    const runtime = await harness.boot('empty');
+    const chat = createTeamChatServices(runtime);
+    const [ws] = await chat.listWorkspaces();
+    const channel = await chat.createChannel(ws!.id, { name: 'announce', kind: 'public' });
+    // Creator is a member. Remove membership to simulate a non-member reader.
+    const me = runtime.session.principal()!.persona.id;
+    await runtime.db.channelMembers.delete(`${channel.id}:${me}`);
+    expect(await chat.isMember(channel.id)).toBe(false);
+    await expect(chat.sendMessage(channel.id, { body: 'hello' })).rejects.toBeInstanceOf(
+      TeamChatValidationError
+    );
+    await chat.joinChannel(channel.id);
+    expect(await chat.isMember(channel.id)).toBe(true);
+    const { message } = await chat.sendMessage(channel.id, { body: 'hello after join' });
+    expect(message.body).toBe('hello after join');
+  });
+
+  it('hides private channel and DM messages from non-members in list and search', async () => {
+    const runtime = await harness.boot('busy-day');
+    const chat = createTeamChatServices(runtime);
+    const [ws] = await chat.listWorkspaces();
+    const privateCh = await chat.createChannel(ws!.id, {
+      name: 'exec-only',
+      kind: 'private',
+    });
+    await chat.sendMessage(privateCh.id, { body: 'secret roadmap' });
+
+    const people = (await runtime.db.table('py_personas').toArray()) as Array<{
+      id: string;
+    }>;
+    const outsider = people.find((p) => p.id !== runtime.session.principal()!.persona.id);
+    expect(outsider).toBeTruthy();
+    await runtime.session.signIn(outsider!.id);
+
+    const outsiderChat = createTeamChatServices(runtime);
+    await expect(outsiderChat.listMessages(privateCh.id)).rejects.toBeInstanceOf(
+      TeamChatValidationError
+    );
+    const hits = await outsiderChat.search(ws!.id, 'secret roadmap');
+    expect(hits.some((m) => m.body.includes('secret roadmap'))).toBe(false);
+  });
+
+  it('denies a viewer from posting with PermissionDeniedError', async () => {
+    const runtime = await harness.boot('viewer');
+    const chat = createTeamChatServices(runtime);
+    expect(chat.can('message:create')).toBe(false);
+    const [ws] = await chat.listWorkspaces();
+    const channels = await chat.listChannels(ws!.id);
+    await expect(chat.sendMessage(channels[0]!.id, { body: 'Nope' })).rejects.toBeInstanceOf(
+      PermissionDeniedError
+    );
   });
 });

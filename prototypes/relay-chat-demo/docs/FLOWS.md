@@ -7,20 +7,15 @@ Each flow ends in the service layer: UI → service → `session.assert` → zod
 All services are created by `createTeamChatServices(runtime)` in
 src/domain/services.ts; below they are written as `services.<method>`.
 
-Common failure behavior (current code): only two UI handlers catch errors,
-`send()` (the composer) and `createChannel()` (the "+ New" form). They show
-the error message as red text above the composer (`role="alert"`), for
-example `Permission denied: role "viewer" lacks "message:create".
-(Simulated policy — not real security.)` or the simulated offline message.
-The other handlers (React, Share file, Huddle, Search, Leave) do not catch:
-a denial or a simulated failure becomes an unhandled promise rejection and
-nothing is shown on screen. Buttons are never hidden or disabled by role.
+Common failure behavior: write handlers catch errors and show them above
+the composer (`role="alert"`). Roles without a write capability see disabled
+controls with a tooltip and a short toast ("Read-only role…"). Membership
+errors ("Join this channel before posting") use the same alert path.
 
-Pipeline deviations are named in each flow. In short: `sendMessage`,
-`shareFile`, `startHuddle` and `endHuddle` write some rows outside a
-`db.transaction`; `markRead` and `setPresence` skip `environment.run`; only
-`createChannel` and `sendMessage` validate with zod (the others check by
-hand).
+Mutations run UI → service → `session.assert` → zod (where defined) →
+`environment.run` → `db.transaction`. Public-channel **Join** is
+`joinChannel`; reactions are listed via `listReactionSummaries` and shown
+as chips with counts.
 
 ## Post a message
 
@@ -29,16 +24,11 @@ hand).
    appears in the log.
 2. Service: `services.sendMessage(channelId, { body, threadId: null })` in src/domain/services.ts
 3. Capability: `message:create` (owner, admin, member). No record-level rule.
-4. Writes: `channelMembers` (the actor is added as `member` of the channel
-   if not already, outside the transaction, even for a private channel or a
-   DM), then one transaction over `messages` (new row: id, channelId,
-   authorId = acting persona, authorKind `person`, body (trimmed), at,
-   threadId `null`, fileId `null`), `channels` (lastMessageAt) and `reads`
-   (the author's marker, lastReadAt = at).
-5. Failure states: permission denied, validation ("Write a message" for an
-   empty body, at most 4,000 characters), "Channel not found", simulated
-   offline or failure (nothing written). Validation and the channel check run
-   before `environment.run`.
+4. Writes: membership is required first (public channels: Join). One
+   transaction over `messages` (new row), `channels` (lastMessageAt) and
+   `reads` (author marker). Bot replies stream in the same transaction.
+5. Failure states: permission denied, "Join this channel before posting",
+   validation ("Write a message"), "Channel not found", simulated offline.
 
 ## Reply in a thread
 
@@ -151,14 +141,12 @@ hand).
 1. On any message → "👍 React". Clicking again removes the reaction.
 2. Service: `services.toggleReaction(messageId, '👍')` in src/domain/services.ts
 3. Capability: `message:react` (owner, admin, member)
-4. Writes (single write, no zod): `reactions` (a row with id
-   `messageId:personaId:emoji`, emoji, personaId, at is added, or the
-   existing row with that id is deleted).
-5. Failure states: permission denied, "Pick an emoji" (empty emoji after
-   trimming; the emoji is cut to 16 characters), "Message not found",
-   simulated offline or failure. None of them are shown on screen. Note that
-   the screen does not display reactions at all today, so a successful toggle
-   has no visible effect either.
+4. Writes: one transaction on `reactions` (upsert or delete by
+   `messageId:personaId:emoji`). Membership on the message's channel is
+   required. The UI lists chips via `listReactionSummaries` (count + mine).
+5. Failure states: permission denied, "Join this channel before posting",
+   "Pick an emoji", "Message not found", simulated offline — shown above the
+   composer or as a read-only toast.
 
 ## Share a file
 
@@ -167,14 +155,10 @@ hand).
    A "Shared notes.example.txt" message with "Attachment id …" appears.
 2. Service: `services.shareFile(channelId, { name, sizeBytes, mimeType })` in src/domain/services.ts
 3. Capability: `file:share` (owner, admin, member)
-4. Writes: `files` (new row: id, channelId, name (trimmed), sizeBytes
-   (floored), mimeType (default `application/octet-stream`), uploadedBy =
-   acting persona, at), then, in a separate transaction, `messages` (body
-   "Shared <name>", fileId), `channels` (lastMessageAt) and `reads` (the
-   actor's marker). The `files` write is not in that transaction.
-5. Failure states: permission denied, "File name is required", "File size
-   must be under 25 MB" (negative, non-finite or above 25,000,000), simulated
-   offline or failure. None are shown on screen.
+4. Writes: one transaction over `files`, `messages`, `channels` and
+   `reads` after membership is checked.
+5. Failure states: permission denied, membership, validation, simulated
+   offline — shown above the composer.
 
 ## Create a channel
 
@@ -241,10 +225,10 @@ hand).
 2. Service: `services.search(workspaceId, query)` in src/domain/services.ts
 3. Capability: `search:run` (every role)
 4. Writes: none. Returns up to 50 messages, newest first, whose body
-   contains the query (case-insensitive) in any channel of the workspace.
-   Queries shorter than 2 characters return nothing. Private channels and
-   DMs the actor is not a member of are not filtered out.
-5. Failure states: permission denied (not shown). Zero hits show nothing
+   contains the query (case-insensitive) in **accessible** channels only
+   (every public channel plus private channels and DMs the actor belongs to).
+   Queries shorter than 2 characters return nothing.
+5. Failure states: permission denied (alert). Zero hits show nothing
    (no "no results" message), and an earlier result panel is not cleared
    when a later search finds nothing.
 
