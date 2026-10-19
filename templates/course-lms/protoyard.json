@@ -1,0 +1,40 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.course-lms",
+  "slug": "course-lms",
+  "kind": "template",
+  "name": "Course LMS",
+  "description": "A course catalog and lesson player with graded quizzes, learner progress, cohort schedules and instructor analytics.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "education",
+  "tags": ["education", "courses", "lessons", "quizzes", "cohorts"],
+  "catalog": {
+    "category": "education",
+    "productType": "Learning management system",
+    "platforms": ["web"],
+    "features": [
+      "course-catalog",
+      "lesson-progress",
+      "graded-quizzes",
+      "cohort-schedule",
+      "instructor-analytics"
+    ],
+    "highlights": [
+      "Student course catalog with persisted lesson completion",
+      "Validated quizzes graded through permission-checked services",
+      "Cohort schedules and a lazy instructor progress chart"
+    ],
+    "difficulty": "beginner"
+  },
+  "status": "ready",
+  "icon": "🎓",
+  "defaultScenario": "student-active",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-course-lms", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty-catalog", "student-active", "instructor-cohort", "network-offline"]
+}

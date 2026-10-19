@@ -1,0 +1,5 @@
+@import "@protoyard/renderer-svelte/app.css";
+@import "@protoyard/charts-ui/styles.css";
+
+/* Let Tailwind scan this prototype while charts remain lazy JavaScript. */
+@source "./";
