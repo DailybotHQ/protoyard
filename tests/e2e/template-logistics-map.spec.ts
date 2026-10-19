@@ -5,7 +5,6 @@ import { prototypeUrl } from './targets.ts';
 test('dispatch persists and the offline map exposes an accessible marker list', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${prototypeUrl('logistics-map')}?scenario=active-dispatch`);
   await waitForPrototypeReady(page, { slug: 'logistics-map' });
 
@@ -14,13 +13,15 @@ test('dispatch persists and the offline map exposes an accessible marker list', 
   await expect(mapList.getByRole('list')).toBeVisible();
   await expect(mapList.getByRole('button', { name: /North Pier depot/ })).toBeVisible();
 
-  const dispatchButtons = page.getByRole('button', { name: 'Dispatch shipment' });
-  const before = await dispatchButtons.count();
-  const dispatch = dispatchButtons.first();
+  const dispatch = page.getByRole('button', { name: 'Dispatch shipment HB-4100', exact: true });
+  await expect(dispatch).toHaveCount(1);
   await expect(dispatch).toBeVisible();
   await dispatch.click();
+  await expect(dispatch).toHaveCount(0);
   await page.reload();
   await waitForPrototypeReady(page, { slug: 'logistics-map' });
   await expect(mapList.getByRole('list')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Dispatch shipment' })).toHaveCount(before - 1);
+  await expect(
+    page.getByRole('button', { name: 'Dispatch shipment HB-4100', exact: true })
+  ).toHaveCount(0);
 });

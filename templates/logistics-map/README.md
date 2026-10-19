@@ -20,11 +20,14 @@ pnpm protoyard dev my-dispatch
   mutation in a Dexie transaction.
 - **Simulated movement** — active vehicle positions interpolate along route
   stops from dispatch time to ETA. Remaining route distance drives the ETA; both
-  update when simulated time advances.
+  update when simulated time advances. Reaching an ETA records a deterministic
+  delivery event, changes the shipment to `delivered`, and persists the event
+  time in `deliveredAt`.
 - **Route timeline** — shipment windows and progress are shown in a read-only
   schedule timeline.
 - **Scenarios** — active dispatch, empty desk and network offline. Offline
-  dispatch attempts surface the runtime environment error without changing data.
+  dispatch and reassignment attempts surface the runtime environment error
+  without changing data.
 
 ## Checks
 

@@ -149,7 +149,7 @@ async function reassign(shipmentId: string) {
         <Card class="space-y-3 p-4">
           <div class="flex justify-between gap-3"><div><p class="font-semibold">{shipment.reference}</p><p class="text-sm text-muted-foreground">{shipment.description}</p></div><span class="h-fit rounded-full bg-muted px-2 py-1 text-xs">{shipment.status === 'ready' ? 'Ready' : 'In transit'}</span></div>
           <p class="text-xs text-muted-foreground">{vehicle?.name ?? 'Vehicle unassigned'} · ETA {eta === null ? 'Awaiting dispatch' : `${Math.ceil(eta / 60)} min`}</p>
-          {#if canDispatch && shipment.status === 'ready'}<Button size="sm" onclick={() => dispatch(shipment.id)}>Dispatch shipment</Button>{/if}
+          {#if canDispatch && shipment.status === 'ready'}<Button size="sm" aria-label={`Dispatch shipment ${shipment.reference}`} onclick={() => dispatch(shipment.id)}>Dispatch shipment</Button>{/if}
           {#if canDispatch && shipment.status === 'in-transit'}
             <div class="flex flex-wrap items-center gap-2">
               <label class="sr-only" for={`vehicle-${shipment.id}`}>Replacement vehicle for {shipment.reference}</label>

@@ -142,7 +142,10 @@ export function generateLogisticsWorld(ctx: GenerateContext): WorldSeed {
       status: dispatched ? 'in-transit' : 'ready',
       createdAt: ctx.time.iso(ctx.time.daysAgo(1 + (i % 5))),
       dispatchedAt: dispatched ? started.toISOString() : null,
-      dueAt: ctx.time.now.toISOString(),
+      dueAt: new Date(
+        ctx.time.now.getTime() + (dispatched ? travelMs * 0.75 : travelMs)
+      ).toISOString(),
+      deliveredAt: null,
     };
   });
   return {

@@ -36,6 +36,7 @@ export function createLogisticsServices(runtime: PrototypeRuntime<LogisticsDatab
             status: 'in-transit',
             dispatchedAt: dispatchedAt.toISOString(),
             dueAt: new Date(dispatchedAt.getTime() + travelMs).toISOString(),
+            deliveredAt: null,
           });
         })
       );

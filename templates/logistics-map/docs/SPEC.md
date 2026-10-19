@@ -63,6 +63,6 @@ controls. Keep offline behavior and stale-location handling explicit.
 | storage namespace | `template-logistics-map` |
 | schema version | 1 |
 | generator version | 1 |
-| timeline | no |
+| timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

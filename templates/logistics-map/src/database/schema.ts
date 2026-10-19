@@ -23,6 +23,7 @@ export type Shipment = {
   createdAt: string;
   dispatchedAt: string | null;
   dueAt: string;
+  deliveredAt: string | null;
 };
 export type LogisticsDatabase = Dexie & {
   depots: EntityTable<Depot, 'id'>;
