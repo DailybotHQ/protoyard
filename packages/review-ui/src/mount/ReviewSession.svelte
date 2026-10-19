@@ -1,0 +1,304 @@
+<script lang="ts">
+import type { PrototypeRuntime } from '@protoyard/core';
+import type {
+  ReviewAnchor,
+  ReviewAuthor,
+  ReviewComment,
+  ReviewCommentInput,
+  ReviewContext,
+} from '@protoyard/core/review';
+import { ReviewAuthorSchema, ReviewCommentSchema } from '@protoyard/core/review';
+import type { ReviewAdapter } from '@protoyard/review/store';
+import { mount, onMount, unmount } from 'svelte';
+import { createReviewOverlay, type ReviewOverlayHandle } from '../overlay/index.ts';
+import type { ReviewPanelProps } from '../panel/types.ts';
+import { ReviewToolbar } from '../toolbar/index.ts';
+
+let {
+  adapter,
+  runtime,
+  root,
+  slug,
+  clientId,
+  composerOnly = false,
+  openComposer = async () => false,
+}: {
+  adapter: ReviewAdapter;
+  runtime: PrototypeRuntime;
+  root: HTMLElement;
+  slug: string;
+  clientId: string;
+  composerOnly?: boolean;
+  openComposer?: (element: Element) => Promise<boolean>;
+} = $props();
+
+let comments = $state<ReviewComment[]>([]);
+let overlay: ReviewOverlayHandle | undefined;
+let panelOpen = $state(false);
+let commentMode = $state(false);
+let selectedThreadId = $state<string | undefined>();
+let status = $state('');
+let busy = $state(false);
+let panelHost: HTMLElement;
+let panelInstance: ReturnType<typeof mount> | undefined;
+let panelProps = $state<ReviewPanelProps>({
+  comments: [],
+  focusThread: (threadId) => {
+    overlay?.focusThread(threadId);
+    void showThread(threadId);
+  },
+  setShowResolved: (show) => overlay?.setShowResolved(show),
+});
+const roots = $derived(comments.filter((comment) => comment.id === comment.threadId));
+const selectedThread = $derived(comments.find((comment) => comment.id === selectedThreadId));
+const selectedRoot = $derived(
+  selectedThread
+    ? comments.find(
+        (comment) => comment.id === selectedThread.threadId && comment.id === comment.threadId
+      )
+    : undefined
+);
+const selectedComments = $derived(
+  selectedRoot ? comments.filter((comment) => comment.threadId === selectedRoot.id) : []
+);
+let replyBody = $state('');
+let threadBusy = $state(false);
+
+async function refresh(): Promise<void> {
+  try {
+    comments = await adapter.list(slug);
+    panelProps.comments = comments;
+    overlay?.setComments(comments);
+    status = '';
+  } catch (error) {
+    status = error instanceof Error ? error.message : 'Could not load review comments.';
+  }
+}
+
+function authorForReview(): ReviewAuthor | undefined {
+  const stored = (() => {
+    try {
+      return localStorage.getItem(`py-review-author:${slug}`);
+    } catch {
+      return null;
+    }
+  })();
+  if (stored) {
+    try {
+      const author = ReviewAuthorSchema.safeParse(JSON.parse(stored));
+      if (author.success) return author.data;
+    } catch {
+      // Ask for a name when local storage contains invalid data.
+    }
+  }
+  const name = window.prompt('Name shown on your review comment (not a login):')?.trim();
+  const author = ReviewAuthorSchema.safeParse({ name, clientId });
+  if (!author.success) return undefined;
+  try {
+    localStorage.setItem(`py-review-author:${slug}`, JSON.stringify(author.data));
+  } catch {
+    // Review remains available for this action even when storage is blocked.
+  }
+  return author.data;
+}
+
+function captureContext(): ReviewContext {
+  const appearance = runtime.theme.appearance();
+  const scenario = runtime.scenarios.active()?.scenario.id;
+  const persona = runtime.session.principal()?.persona.id;
+  return {
+    viewport: { width: window.innerWidth, height: window.innerHeight },
+    shell: appearance.shell.value as ReviewContext['shell'],
+    theme: appearance.theme.value,
+    mode: appearance.mode.value as ReviewContext['mode'],
+    ...(scenario ? { scenario } : {}),
+    ...(persona ? { persona } : {}),
+  };
+}
+
+async function save(input: ReviewCommentInput): Promise<boolean> {
+  busy = true;
+  status = '';
+  try {
+    await adapter.put(input);
+    await refresh();
+    return true;
+  } catch (error) {
+    status = error instanceof Error ? error.message : 'Could not save this review comment.';
+    return false;
+  } finally {
+    busy = false;
+  }
+}
+
+async function place(anchor: ReviewAnchor): Promise<void> {
+  if (composerOnly) return;
+  const author = authorForReview();
+  if (!author) return;
+  const body = window.prompt('What should be changed?')?.trim();
+  if (!body) return;
+  const now = new Date().toISOString();
+  const id = `review_${crypto.randomUUID().replaceAll('-', '')}`;
+  await save(
+    ReviewCommentSchema.parse({
+      id,
+      threadId: id,
+      slug,
+      body,
+      author,
+      createdAt: now,
+      anchor,
+      context: captureContext(),
+    })
+  );
+}
+
+function reviewInput(input: ReviewCommentInput): ReviewCommentInput {
+  return ReviewCommentSchema.parse(input);
+}
+
+async function reply(input: {
+  body: string;
+  threadId: string;
+  author: ReviewAuthor;
+}): Promise<boolean> {
+  const now = new Date().toISOString();
+  const id = `review_${crypto.randomUUID().replaceAll('-', '')}`;
+  return save(
+    reviewInput({
+      id,
+      threadId: input.threadId,
+      slug,
+      body: input.body,
+      author: input.author,
+      createdAt: now,
+    })
+  );
+}
+
+async function resolve(
+  comment: ReviewComment,
+  author: ReviewAuthor,
+  resolved: boolean
+): Promise<void> {
+  await save(
+    reviewInput({
+      ...comment,
+      ...(resolved
+        ? { resolvedAt: new Date().toISOString(), resolvedBy: author }
+        : { resolvedAt: undefined, resolvedBy: undefined }),
+    })
+  );
+}
+
+async function setPanelOpen(open: boolean): Promise<void> {
+  panelOpen = open;
+  if (open && !panelInstance) {
+    const { default: Panel } = await import('../panel/ReviewPanel.svelte');
+    panelProps.comments = comments;
+    panelProps.runtime = runtime;
+    panelProps.root = root;
+    panelInstance = mount(Panel, { target: panelHost, props: panelProps });
+  } else if (!open && panelInstance) {
+    await unmount(panelInstance);
+    panelInstance = undefined;
+  }
+}
+
+async function showThread(threadId: string): Promise<void> {
+  selectedThreadId = threadId;
+  panelOpen = true;
+  if (!panelInstance) {
+    const { default: Panel } = await import('../panel/ReviewPanel.svelte');
+    panelProps.comments = comments;
+    panelProps.runtime = runtime;
+    panelProps.root = root;
+    panelInstance = mount(Panel, { target: panelHost, props: panelProps });
+  }
+}
+
+function closeThread(): void {
+  selectedThreadId = undefined;
+  replyBody = '';
+}
+
+async function sendReply(event: SubmitEvent): Promise<void> {
+  event.preventDefault();
+  if (!selectedRoot || threadBusy || !replyBody.trim()) return;
+  const author = authorForReview();
+  if (!author) return;
+  threadBusy = true;
+  try {
+    if (await reply({ body: replyBody, threadId: selectedRoot.id, author })) replyBody = '';
+  } finally {
+    threadBusy = false;
+  }
+}
+
+function setCommentMode(active: boolean): void {
+  commentMode = active;
+  overlay?.setActive(active);
+}
+
+onMount(() => {
+  const unsubscribe = adapter.subscribe?.(slug, () => void refresh());
+  overlay = createReviewOverlay({
+    root,
+    comments,
+    onPlace: place,
+    ...(composerOnly
+      ? {
+          onCommentInClaude: async (element: Element) => {
+            await openComposer(element);
+          },
+        }
+      : {}),
+    onOpen: (threadId) => {
+      void showThread(threadId);
+    },
+  });
+  void refresh();
+  return () => {
+    unsubscribe?.();
+    overlay?.destroy();
+    overlay = undefined;
+    if (panelInstance) void unmount(panelInstance);
+  };
+});
+</script>
+
+<ReviewToolbar
+  {adapter}
+  count={roots.length}
+  {commentMode}
+  {panelOpen}
+  onCommentModeChange={setCommentMode}
+  onPanelChange={setPanelOpen}
+/>
+
+<aside class="review-panel-host" class:open={panelOpen} aria-busy={busy} bind:this={panelHost}></aside>
+
+{#if selectedRoot}
+  <section class="review-thread-host" aria-label="Comment thread">
+    <header><h2>Thread on {selectedRoot.anchor?.route.path ?? 'this screen'}</h2><button type="button" onclick={closeThread}>Close</button></header>
+    <ol>{#each selectedComments as comment (comment.id)}<li><strong>{comment.author.name}</strong><p>{comment.body}</p><time datetime={comment.createdAt}>{comment.createdAt}</time></li>{/each}</ol>
+    {#if selectedRoot.author.clientId === clientId}
+      <button type="button" disabled={threadBusy} aria-busy={threadBusy} onclick={() => { const author = authorForReview(); if (author) void resolve(selectedRoot as ReviewComment, author, !selectedRoot?.resolvedAt); }}>
+        {selectedRoot.resolvedAt ? 'Reopen thread' : 'Resolve thread'}
+      </button>
+    {/if}
+    <form onsubmit={sendReply}>
+      <label for="review-reply-body">Reply</label><textarea id="review-reply-body" bind:value={replyBody} maxlength="2000" required></textarea>
+      <button type="submit" disabled={threadBusy || !replyBody.trim()} aria-busy={threadBusy}>{threadBusy ? 'Sending…' : 'Send reply'}</button>
+    </form>
+  </section>
+{/if}
+
+{#if status}<p class="review-status" role="alert">{status}</p>{/if}
+
+<style>
+  .review-panel-host,.review-thread-host{display:none}.review-panel-host.open{position:fixed;z-index:2147482999;top:4.25rem;right:.75rem;bottom:.75rem;display:block;width:min(28rem,calc(100vw - 1.5rem));overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);box-shadow:0 8px 32px rgb(0 0 0 / .24)}
+  .review-thread-host{position:fixed;z-index:2147483001;right:1rem;bottom:1rem;width:min(30rem,calc(100vw - 2rem));max-height:80vh;overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);padding:.75rem;color:var(--py-foreground,#18181b);box-shadow:0 8px 32px rgb(0 0 0 / .24);font:inherit}.review-thread-host header{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.review-thread-host h2{font-size:1rem}.review-thread-host ol{display:grid;gap:.5rem;padding:0;list-style:none}.review-thread-host li{border:1px solid var(--py-border,#d4d4d8);border-radius:.5rem;padding:.65rem}.review-thread-host p{white-space:pre-wrap;overflow-wrap:anywhere}.review-thread-host time{font-size:.75rem;color:var(--py-muted-foreground,#52525b)}.review-thread-host form{display:grid;gap:.4rem;margin-top:.75rem}.review-thread-host textarea{min-height:5rem;border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.5rem;color:inherit;font:inherit}.review-thread-host button{border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.45rem .65rem;color:inherit}
+  .review-status{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border-radius:.5rem;background:var(--py-destructive,#b91c1c);padding:.75rem;color:#fff}
+  @media(max-width:40rem){.review-panel-host.open{inset:4.25rem .5rem .5rem;width:auto}.review-thread-host{inset:auto .5rem .5rem;width:auto;max-height:70vh}}
+</style>

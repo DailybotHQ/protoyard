@@ -171,6 +171,23 @@ describe('bundle hygiene', () => {
     expect(mount).toMatch(/await import\(['"]@protoyard\/themes\/library['"]\)/);
   });
 
+  it('reaches review UI only through the renderer’s guarded mount import', () => {
+    const files = SCANNED.flatMap((top) => sourceFiles(join(ROOT, top)));
+    const staticImports = files
+      .filter((file) =>
+        /(?:from\s*|import\s*)['"]@protoyard\/review-ui\//.test(readFileSync(file, 'utf8'))
+      )
+      .map((file) => relative(ROOT, file));
+    expect(staticImports).toEqual([]);
+    const dynamicImports = files.flatMap((file) => {
+      const source = readFileSync(file, 'utf8');
+      return [...source.matchAll(/import\(\s*['"]@protoyard\/review-ui\/[^'"]+['"]\s*\)/g)].map(
+        () => relative(ROOT, file)
+      );
+    });
+    expect(dynamicImports).toEqual(['packages/renderer-svelte/src/mount.ts']);
+  });
+
   it('scans real sources (a scan that finds nothing proves nothing)', () => {
     const files = sourceFiles(join(ROOT, 'packages/renderer-svelte/src'));
     expect(files.some((f) => f.endsWith('ExtensionPopupFrame.svelte'))).toBe(true);

@@ -42,7 +42,6 @@
   "dependencies": {
     "@lucide/svelte": "^1.50.0",
     "@protoyard/core": "workspace:*",
-    "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/review": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",

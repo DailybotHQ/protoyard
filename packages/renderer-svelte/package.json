@@ -26,6 +26,7 @@
     "@protoyard/core": "workspace:*",
     "@protoyard/devtools": "workspace:*",
     "@protoyard/offline": "workspace:*",
+    "@protoyard/review-ui": "workspace:*",
     "@protoyard/runtime": "workspace:*",
     "@protoyard/themes": "workspace:*",
     "@protoyard/ui": "workspace:*",

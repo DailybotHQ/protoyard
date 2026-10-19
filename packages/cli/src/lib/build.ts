@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { resolveReviewBuild } from '@protoyard/core/manifest';
 import { analyzeBundle, type BundleReport } from './bundle-analysis.ts';
 import { digestDirectory, type FileDigest, listFiles } from './checksum.ts';
 import { findEscapingSymlinks } from './links.ts';
@@ -46,6 +47,8 @@ export interface BuildManifest {
   offline: OfflineRecord;
   /** Keeps an explicit shell frame when embedded (ADR-026); absent in older manifests. */
   frameWhenEmbedded?: boolean;
+  /** Review activation and adapter kind only; never store endpoint credentials here. */
+  review: { enabled: boolean; adapter: 'local' | 'cloudflare' | 'http' | 'artifact' };
   /**
    * Initial vs lazy JS, CSS and whole-dist sizes (gzip level 9). Absent when
    * the build wrote no Vite manifest (a config without defineProtoyardConfig).
@@ -173,12 +176,22 @@ export async function buildPrototype(
       includeDevtools?: boolean;
       offline?: boolean;
       frameWhenEmbedded?: boolean;
+      review?: { enabled?: boolean; adapter?: 'local' | 'cloudflare' | 'http' | 'artifact' };
     };
   };
   const base = normalizeBase(options.base, manifestRaw.build?.base ?? './');
   const includeDevtools = options.includeDevtools ?? manifestRaw.build?.includeDevtools ?? false;
   const frameWhenEmbedded =
     options.frameWhenEmbedded ?? manifestRaw.build?.frameWhenEmbedded ?? false;
+  const reviewConfig = resolveReviewBuild(manifestRaw.build?.review);
+  const reviewEnabled =
+    process.env.PROTOYARD_REVIEW === undefined || process.env.PROTOYARD_REVIEW === ''
+      ? reviewConfig.enabled
+      : ['1', 'true', 'yes', 'on'].includes(process.env.PROTOYARD_REVIEW.trim().toLowerCase())
+        ? true
+        : ['0', 'false', 'no', 'off'].includes(process.env.PROTOYARD_REVIEW.trim().toLowerCase())
+          ? false
+          : reviewConfig.enabled;
   const outDir = resolveOutDir(ctx, entry, options.out, {
     allowExternal: options.allowExternalOut,
   });
@@ -247,6 +260,7 @@ export async function buildPrototype(
     node: process.versions.node,
     offline: await readOfflineRecord(ctx.root, outDir),
     frameWhenEmbedded,
+    review: { enabled: reviewEnabled, adapter: reviewConfig.adapter },
     ...(bundle ? { bundle } : {}),
   };
   const wantsOffline = options.offline === true || manifestRaw.build?.offline === true;

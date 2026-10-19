@@ -197,6 +197,28 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
     }
   }
 
+  // Keep this define inline so a review-disabled production build folds away
+  // the branch and has no review UI, adapter, or schema in its initial graph.
+  const reviewBuilt =
+    typeof __PROTOYARD_REVIEW__ !== 'undefined'
+      ? __PROTOYARD_REVIEW__
+      : options.definition.manifest.build.review?.enabled === true;
+  const devtoolsAvailable =
+    devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
+  if (
+    reviewBuilt ||
+    (devtoolsAvailable &&
+      new URLSearchParams(options.search ?? location.search).get('comments') === '1')
+  ) {
+    try {
+      const { mountReview } = await import('@protoyard/review-ui/mount');
+      const review = await mountReview({ definition, runtime: rt, root: target });
+      cleanups.push(() => review.destroy());
+    } catch (error) {
+      console.error('[protoyard] review comments failed to load', error);
+    }
+  }
+
   void requestPersistentStorage(rt);
   cleanups.push(watchOfflineUpdates());
   root.dataset.pyReady = 'true';

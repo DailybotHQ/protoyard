@@ -29,7 +29,7 @@ export {
   useScenario,
 } from './bindings.svelte.ts';
 export { getRuntime, provideRuntime, setMountedRuntime } from './context.ts';
-export { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
+export { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED, REVIEW_ENABLED } from './flags.ts';
 export {
   type MountedPrototype,
   type MountPrototypeOptions,
