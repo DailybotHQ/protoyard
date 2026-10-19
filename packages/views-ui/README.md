@@ -9,7 +9,7 @@ files, settings, states and an app command palette. They are built on
 > **Status:** `./settings`, `./states` and `./commands` are implemented; the
 > other subpaths exist and are empty until their PLAN_003 task lands, and
 > this README documents each view then.
-> **Status:** `./calendar`, `./settings` and `./states` are implemented; the other subpaths
+> **Status:** `./calendar`, `./map`, `./settings` and `./states` are implemented; the other subpaths
 > exist and are empty until their PLAN_003 task lands, and this README
 > documents each view then.
 > **Status:** `./settings`, `./states`, `./commands` and `./editor` are
@@ -135,6 +135,70 @@ services.
 
 ```bash
 pnpm vitest run packages/views-ui/tests/calendar.test.ts
+```
+
+## Map (`@protoyard/views-ui/map`)
+
+`SimulatedMap` draws the offline engine from
+[`@protoyard/views/map`](../views/README.md#map-protoyardviewsmap): a fictional
+basemap (Port Meridian by default) as SVG, with markers, clusters, routes and
+geofences. No tiles, no network, no real geography; the chip "Simulated map.
+Fictional city, not real geography." is always visible.
+
+```svelte
+<script lang="ts">
+  import { runService } from '@protoyard/renderer-svelte';
+  import { type MapMarker, SimulatedMap } from '@protoyard/views-ui/map';
+
+  let selected = $state<string | null>(null);
+  const markers: MapMarker[] = vans.map((van) => ({
+    id: van.id, label: van.name, detail: van.status, lng: van.position.lng, lat: van.position.lat,
+    tone: van.late ? 'warning' : 'primary', shape: 'square', glyph: 'V',
+  }));
+</script>
+
+<SimulatedMap
+  {markers}
+  routes={[{ id: 'loop', label: 'Morning loop', stops, progress: done / total }]}
+  fences={zones}
+  editableFenceId="yard"
+  onFenceChange={(fence) => services.updateZone(fence)}
+  bind:selected
+/>
+```
+
+- **Moving:** drag to pan, wheel or pinch to zoom at the pointer, or the
+  zoom-in, zoom-out and "show everything" buttons. On the focused map, the
+  arrow keys pan, + and − zoom, 0 shows everything and Escape clears the
+  selection. `view` (center and zoom) is bindable.
+- **Markers** are buttons named by `label` and `detail`, drawn with a shape,
+  a glyph and a tone (never color alone). Nearby markers cluster
+  (`cellPx`); activating a cluster zooms to its members. `selected` is
+  bindable and `onSelect` reports changes.
+- **List alternative:** every marker is also in a list under the map. Picking
+  a list row selects the marker and centers the map on it, and selecting on
+  the map marks the row (`aria-current`).
+- **Moving markers and routes:** positions come from props only. The
+  prototype advances them through its services and the runtime clock (for
+  example `pointAlong` on a route by simulated time), and the map animates the
+  change with CSS (off under `prefers-reduced-motion`); it never runs timers
+  that write data. Routes draw the remaining part dashed, the travelled part
+  solid, and the current position from `progress` (0–1).
+- **Geofences:** polygons and circles. With `editableFenceId` and
+  `onFenceChange`, a polygon gets draggable corner handles and a corner list
+  (latitude, longitude, add, remove) for the keyboard. Save is enabled only
+  for a valid ring (three corners, in range, no crossing edges) and runs
+  `onFenceChange` through `runService` (pending button, error toast; a
+  failure keeps the draft). Reset drops the draft.
+- **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
+  core, `@protoyard/ui`, the renderer, lucide, Bits UI and zod external;
+  2026-10-19): the view is 6.4 KB; with the map engine and the Port Meridian
+  basemap the chunk is 9.0 KB. Lazy, 0 KB initial. 5,000 markers draw as 25
+  map buttons (clusters); in happy-dom the whole render took 647 ms, most of
+  it the 5,000-row list.
+
+```bash
+pnpm vitest run packages/views-ui/tests/map.test.ts
 ```
 
 ## Settings (`@protoyard/views-ui/settings`)
