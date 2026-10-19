@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Margin } from '@protoyard/charts';
+import type { Renderer } from '../canvas/model.ts';
 import type { ChartSelection } from '../interaction/model.ts';
 import ChartShell from './ChartShell.svelte';
 import {
@@ -22,6 +23,8 @@ type Props = {
   currency?: string;
   /** Bubble radius range in px (default 4…18). */
   radius?: [number, number];
+  /** `auto` (default) draws on Canvas above 2,000 visible points. */
+  renderer?: Renderer;
   height?: number;
   margin?: Partial<Margin>;
   xHeader?: string;
@@ -44,6 +47,7 @@ let {
   unit = 'number',
   currency,
   radius = [4, 18],
+  renderer = 'auto',
   height = 280,
   margin,
   xHeader,
@@ -79,6 +83,6 @@ const formatters = $derived(chartFormatters(xKind, units));
   bind:hidden
 >
   {#snippet plot(size)}
-    <ScatterPlot label={title} {series} {hidden} {xKind} {...size} {formatters} tickFormat={tickFormatter(units)} {radius} {onselect} />
+    <ScatterPlot label={title} {series} {hidden} {xKind} {...size} {formatters} tickFormat={tickFormatter(units)} {radius} {renderer} {onselect} />
   {/snippet}
 </ChartShell>
