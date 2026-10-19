@@ -24,6 +24,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | files | size/type/quota checked Blob uploads, metadata listing, on-demand reads and removal | `.` |
 | brand | a WCAG AA theme from `brand` (`resolveBlueprintBrand`) | `.` |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | `.` |
+| aggregate | count/sum/avg/min/max with groups and UTC date buckets for dashboards and analytics | `.` |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 
@@ -345,6 +346,45 @@ const committed = await services.ticket.importCsv(text, {
 // Relation cells accept a target id or its title. Commit is one transaction
 // (bulk chunks of 1,000). Audit rows are written when features.audit is on.
 ```
+
+## Aggregates
+
+`aggregate(rows, spec, entity?)` computes one aggregate in a single pass;
+`createAggregateQuery(services, { entity, ...spec })` returns a `liveQuery` querier that reads
+through the entity service, so `session.assert('<entity>:read')` applies, and resolves to
+`null` when the persona cannot read (like the generated Home counts).
+
+```ts
+import { createAggregateQuery } from '@protoyard/blueprint';
+
+const revenue = liveQuery(
+  createAggregateQuery(services, {
+    entity: 'invoice',
+    aggregate: 'sum',
+    field: 'amount',
+    groupBy: 'status',
+    bucket: { field: 'createdAt', unit: 'week' },
+    filter: { field: 'status', op: 'in', value: ['paid', 'sent'] },
+  }),
+  { initial: null }
+);
+// revenue.current?.series → [{ key: '2026-05-04T00:00:00.000Z|paid', bucket, group, count, value }, …]
+```
+
+- `aggregate`: `count` (default), `sum`, `avg`, `min`, `max`. Money sums stay integer cents;
+  money and integer averages round to integers; `min`/`max` over dates return epoch ms
+  (`valueKind` says `money`, `date` or `number`). `avg`/`min`/`max` over no values are `null`.
+- `groupBy`: relations and personas group by id, tags and many-relations count once per
+  item, booleans as `'true'`/`'false'`. Enum groups keep the declared order and every value
+  appears, even at zero; rows without a value go to `NO_GROUP`, last.
+- `bucket`: UTC days, weeks starting Monday, months starting on the 1st, over a date or
+  datetime field or `createdAt`/`updatedAt`. Buckets are contiguous between the data's first
+  and last bucket, or over `range: { from, to }`; more than `MAX_BUCKETS` (5,000) throws.
+- `filter`: `eq`, `in`, `gte`, `lte`; dates compare as instants, array fields match any item.
+- Soft-deleted rows are always skipped. Keys (`<bucket|*>|<group|*>`) are stable.
+
+Measured: 10,000 rows grouped by status and bucketed by day in 10.7 ms in Vitest while the
+machine was under heavy load (`pnpm vitest run packages/blueprint/tests/aggregate.test.ts`).
 
 ## Tests
 

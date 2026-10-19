@@ -12,6 +12,18 @@
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
 export {
+  type AggregateCell,
+  type AggregateQuerySpec,
+  type AggregateResult,
+  type AggregateSpec,
+  aggregate,
+  type BucketUnit,
+  bucketStartUtc,
+  createAggregateQuery,
+  MAX_BUCKETS,
+  NO_GROUP,
+} from './aggregate.ts';
+export {
   AUDIT_REDACTED,
   type AuditAction,
   type AuditChange,
