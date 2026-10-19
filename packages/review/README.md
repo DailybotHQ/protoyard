@@ -6,7 +6,7 @@ thread in one list. This package has no Svelte; the UI is
 [`@protoyard/review-ui`](../review-ui/README.md). The comment schemas live in
 `@protoyard/core/review`.
 
-> **Status:** `./anchors`, `./store`, `./adapters/local` and `./adapters/artifact` are implemented.
+> **Status:** `./anchors`, `./store`, `./adapters/local`, `./adapters/artifact` and `./server` are implemented.
 > The remaining subpaths are filled by their PLAN_003 tasks and documented here when they land.
 
 | Subpath | What it will hold | Task |
@@ -49,6 +49,29 @@ and deletes only when the stored author `clientId` matches its configured
 
 Call `close()` when the adapter is no longer needed. A host can supply
 `indexedDB` and `IDBKeyRange` to isolate the adapter storage factory.
+
+## Server handler (`@protoyard/review/server`)
+
+`handleCommentsRequest(request, env, store)` is a Web API-only handler for
+`GET /api/comments/<slug>[?since=]`, `GET /api/comments/<slug>/summary`,
+`PUT /api/comments/<slug>/<id>`, and `DELETE /api/comments/<slug>/<id>`. It
+returns JSON with `nosniff` and `no-referrer` headers, validates slugs and
+comments, caps request bodies at 16 KB, and leaves comment bodies as plain text.
+Writes require a same-origin `Origin`; configure `REVIEW_KEY` to discourage
+casual access (it is not authentication). Per-client and per-IP limits use
+fixed windows and respond with `429 Retry-After` when exceeded. Defaults are
+30 requests per `x-review-client-id` and 120 per `CF-Connecting-IP` (or the
+first `X-Forwarded-For` value) per 60 seconds; pass handler env overrides to
+change the limits. The summary reports comment and root-thread counts, with
+open/resolved counts calculated from root comments.
+
+Use `createD1CommentsStore(db)` for shared deployments: D1 upserts and rate
+buckets are strongly consistent. Apply [`schema/d1.sql`](schema/d1.sql)
+manually to the database; the CLI never runs it. `createKvCommentsStore(kv)`
+is easier to bind but KV reads, writes, scans, and rate limits are eventually
+consistent. `createMemoryCommentsStore()` is intended for tests and one
+process. Reviewer names, client ids, and the optional review key do not provide
+authentication.
 
 ## Store (`@protoyard/review/store`)
 
