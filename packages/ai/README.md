@@ -112,3 +112,35 @@ const doc = parseMarkdown(message.text);
   and unmatched delimiters never rescan the input.
 - **Size:** about 2.7 KB gzip (esbuild, minified, gzip -9). Import it from the chat UI's
   lazy chunk.
+
+### Chart answers (`@protoyard/ai/chart`)
+
+A response pack can answer "show me signups last week" with a chart. It writes
+a fenced ```` ```chart ```` block whose body is a JSON spec:
+
+```ts
+import { chartBlock } from '@protoyard/ai/chart';
+
+const reply = `Signups peaked on Wednesday.\n\n${chartBlock({
+  kind: 'bar', // line | area | bar | donut | pie | funnel
+  title: 'Signups last week',
+  unit: 'number', // number | compact | cents (integer cents) | percent (ratios)
+  labels: ['Mon', 'Tue', 'Wed'],
+  series: [{ label: 'Signups', values: [12, 18, 30] }],
+})}`;
+```
+
+- `chartBlock(spec)` validates with `ChartSpecSchema` (zod) and throws on an
+  invalid spec, so a broken pack fails in its tests.
+- `parseMarkdown(text, { charts: true })` turns these fences into
+  `{ type: 'chart', text, closed }` blocks with the raw text. Without the
+  option they stay code blocks, so the views editor and comments see no new
+  block type. The parser itself still has no dependencies; zod lives only in
+  the `./chart` subpath.
+- Renderers call `parseChartSpec(text)`, which returns `{ ok: true, spec }` or
+  `{ ok: false, error }` with a short message that is safe to show as text.
+  - It uses `JSON.parse` and the schema; nothing is evaluated.
+  - The fence is capped at 20,000 characters, with at most 366 labels and 8
+    series. Strings are bounded and unknown keys are rejected.
+  - Every series needs one value per label. Donut, pie and funnel charts take
+    one non-negative series.
