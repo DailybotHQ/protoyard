@@ -11,18 +11,25 @@ import {
 } from '@protoyard/core';
 import {
   applyAppearance,
+  BUILTIN_THEMES,
   clearAppearance,
   contrastRatio,
   createThemeFromSeed,
   ELEVATION_PRESETS,
   FONT_CATALOG,
+  generateThemeHarmonies,
+  getLibraryThemeDefinition,
+  loadLibraryTheme,
   MOTION_PRESETS,
   type MotionPresetId,
+  NEUTRAL_FAMILIES,
+  type NeutralFamily,
   parseHex,
   RADIUS_PRESETS,
   type RadiusPresetId,
   stylePresetInput,
   TEXT_CONTRAST_PAIRS,
+  THEME_LIBRARY_META,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
 import { untrack } from 'svelte';
@@ -59,11 +66,19 @@ let name = $state('My theme');
 let seed = $state('#7c3aed');
 let useSecondary = $state(false);
 let secondary = $state('#0ea5e9');
+let neutral = $state<NeutralFamily>('tinted');
+let startFrom = $state('');
+let loadingStart = $state(false);
+let startError = $state<string | null>(null);
 let fontId = $state<string>(FONT_CATALOG[0]?.id ?? 'system');
 let radius = $state<RadiusPresetId>('default');
+let radiusOverride = $state<string | undefined>(undefined);
+let radiusChanged = $state(false);
+let inheritedStyle = $state<ThemeInput['style']>(undefined);
 let elevation = $state<ElevationStyle>('soft');
 let density = $state(1);
 let motion = $state<MotionPresetId>('standard');
+let motionChanged = $state(false);
 let surface = $state<SurfaceStyle>('solid');
 let focusRing = $state<FocusRingStyle>('ring');
 // Starts in the app's current mode; afterwards it is the Studio's own toggle.
@@ -75,6 +90,62 @@ let exported = $state<{ id: string; json: string } | null>(null);
 let revision = $state(0);
 
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+const harmonies = $derived.by(() => {
+  if (!HEX.test(seed)) return [];
+  try {
+    return generateThemeHarmonies(seed, neutral);
+  } catch {
+    return [];
+  }
+});
+
+function closestRadius(value: string | undefined): RadiusPresetId {
+  return RADIUS_PRESETS.find((preset) => preset.radius === value)?.id ?? 'default';
+}
+
+function applyThemeStart(theme: Theme, definition?: ReturnType<typeof getLibraryThemeDefinition>) {
+  name = theme.name;
+  seed = definition?.seed ?? theme.light.primary;
+  secondary = definition?.secondary ?? theme.light.secondary;
+  useSecondary = true;
+  neutral = definition?.neutral ?? 'tinted';
+  const font =
+    FONT_CATALOG.find((option) => option.id === definition?.font) ??
+    FONT_CATALOG.find((option) => option.fontFamily === theme.fontFamily);
+  if (font) fontId = font.id;
+  radius = closestRadius(definition?.radius ?? theme.radius);
+  radiusOverride = definition?.radius ?? theme.radius;
+  radiusChanged = false;
+  inheritedStyle = definition?.style ?? theme.style;
+  motionChanged = false;
+  motion = 'standard';
+  density = definition?.density ?? theme.density ?? 1;
+  elevation = definition?.style?.elevation ?? theme.style?.elevation ?? 'soft';
+  surface = definition?.style?.surface ?? theme.style?.surface ?? 'solid';
+  focusRing = definition?.style?.focusRing?.style ?? theme.style?.focusRing?.style ?? 'ring';
+}
+
+async function loadStartTheme() {
+  if (!startFrom) return;
+  loadingStart = true;
+  startError = null;
+  try {
+    if (startFrom.startsWith('library:')) {
+      const id = startFrom.slice('library:'.length);
+      const theme = await loadLibraryTheme(id);
+      applyThemeStart(theme, getLibraryThemeDefinition(id));
+    } else {
+      const id = startFrom.slice('builtin:'.length);
+      const theme = BUILTIN_THEMES.find((candidate) => candidate.id === id);
+      if (theme) applyThemeStart(theme);
+    }
+  } catch (error) {
+    startError = error instanceof Error ? error.message : String(error);
+  } finally {
+    loadingStart = false;
+  }
+}
 
 function slug(value: string): string {
   const base = value
@@ -100,17 +171,33 @@ const draft = $derived.by((): { theme: Theme } | { error: string } => {
       name: name.trim().slice(0, 40),
       seed,
       ...(useSecondary ? { secondary } : {}),
+      neutral,
       style: {
+        ...inheritedStyle,
         ...presets.style,
+        motion: motionChanged
+          ? presets.style.motion
+          : (inheritedStyle?.motion ?? presets.style.motion),
+        ...(inheritedStyle?.shape || presets.style.shape
+          ? {
+              shape: {
+                ...inheritedStyle?.shape,
+                ...presets.style.shape,
+                ...(!radiusChanged && inheritedStyle?.shape?.radiusScale !== undefined
+                  ? { radiusScale: inheritedStyle.shape.radiusScale }
+                  : {}),
+              },
+            }
+          : {}),
         elevation,
         surface,
         focusRing: { style: focusRing },
-      },
+      } as NonNullable<ThemeInput['style']>,
     });
     return {
       theme: {
         ...generated,
-        radius: presets.radius ?? generated.radius,
+        radius: radiusOverride ?? presets.radius ?? generated.radius,
         density,
         ...(font
           ? {
@@ -234,6 +321,22 @@ const inputClass =
 {:else}
   <Section title="Theme Studio" description="Build a theme from a brand color. Saved themes stay in this prototype's control database.">
     <div class="grid gap-2.5" data-testid="theme-studio">
+      <div class="grid grid-cols-[1fr_auto] items-end gap-2">
+        <label class="grid gap-1 text-[11px] text-muted-foreground">
+          Start from a theme
+          <select class={inputClass} value={startFrom} onchange={(event) => { startFrom = event.currentTarget.value; }} aria-label="Start from a theme">
+            <option value="">Choose a built-in or library theme</option>
+            <optgroup label="Built-in themes">
+              {#each BUILTIN_THEMES as theme (theme.id)}<option value={`builtin:${theme.id}`}>{theme.name}</option>{/each}
+            </optgroup>
+            <optgroup label="Theme library">
+              {#each THEME_LIBRARY_META as theme (theme.id)}<option value={`library:${theme.id}`}>{theme.name}</option>{/each}
+            </optgroup>
+          </select>
+        </label>
+        <Btn busy={loadingStart} disabled={!startFrom} onclick={loadStartTheme}>Load</Btn>
+      </div>
+      {#if startError}<p class="text-xs text-destructive" role="alert">{startError}</p>{/if}
       <label class="grid gap-1 text-[11px] text-muted-foreground">
         Name
         <input class={inputClass} bind:value={name} maxlength="40" aria-label="Theme name" />
@@ -257,6 +360,32 @@ const inputClass =
           </span>
         </div>
       </div>
+      <label class="grid gap-1 text-[11px] text-muted-foreground">
+        Neutral family
+        <select class={inputClass} bind:value={neutral} aria-label="Neutral family">
+          {#each NEUTRAL_FAMILIES as family (family)}<option value={family}>{family[0]?.toUpperCase()}{family.slice(1)}</option>{/each}
+        </select>
+      </label>
+      <fieldset class="grid gap-1.5" aria-label="Color harmony suggestions">
+        <legend class="text-[11px] text-muted-foreground">Suggested secondary colors</legend>
+        <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          {#each harmonies as suggestion (suggestion.id)}
+            <button
+              type="button"
+              class="grid min-h-touch gap-1 rounded-md border border-border p-1.5 text-left text-[10px] text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+              aria-label={`Use ${suggestion.label} harmony`}
+              aria-pressed={useSecondary && secondary === suggestion.secondary}
+              onclick={() => { secondary = suggestion.secondary; useSecondary = true; }}
+            >
+              <span>{suggestion.label}</span>
+              <span class="flex h-4 overflow-hidden rounded" aria-hidden="true">
+                <span class="flex-1" style:background-color={suggestion.theme.light.primary}></span>
+                <span class="flex-1" style:background-color={suggestion.theme.light.secondary}></span>
+              </span>
+            </button>
+          {/each}
+        </div>
+      </fieldset>
       <div class="grid grid-cols-2 gap-2">
         <label class="grid gap-1 text-[11px] text-muted-foreground">
           Font pairing
@@ -268,7 +397,7 @@ const inputClass =
         </label>
         <label class="grid gap-1 text-[11px] text-muted-foreground">
           Corner radius
-          <select class={inputClass} bind:value={radius} aria-label="Corner radius">
+          <select class={inputClass} bind:value={radius} onchange={() => { radiusOverride = undefined; radiusChanged = true; }} aria-label="Corner radius">
             {#each RADIUS_PRESETS as option (option.id)}
               <option value={option.id}>{option.label}</option>
             {/each}
@@ -299,7 +428,7 @@ const inputClass =
           label="Motion"
           value={motion}
           options={MOTION_PRESETS.map((preset) => ({ value: preset.id, label: preset.label }))}
-          onchange={(value: MotionPresetId) => (motion = value)}
+          onchange={(value: MotionPresetId) => { motion = value; motionChanged = true; }}
         />
       </div>
       <div class="grid gap-1 text-[11px] text-muted-foreground">
