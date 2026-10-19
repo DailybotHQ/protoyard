@@ -29,6 +29,11 @@ type Props = {
   onselect?: (selection: ChartSelection<D>) => void;
   /** Vertical guide at the active x, or none. */
   crosshair?: 'x' | 'none';
+  /**
+   * `x` (default): points run left to right and the pointer picks the nearest x.
+   * `y`: points run top to bottom (horizontal bars) and the pointer picks the nearest y.
+   */
+  orientation?: 'x' | 'y';
   tooltip?: boolean;
   /** The chart's marks (bars, lines…) in the same pixel space. */
   children?: Snippet;
@@ -44,6 +49,7 @@ let {
   formatters,
   onselect,
   crosshair = 'x',
+  orientation = 'x',
   tooltip = true,
   children,
 }: Props = $props();
@@ -54,6 +60,16 @@ let hover = $state<ActivePoint | null>(null);
 let focused = $state(false);
 let dismissed = $state(false);
 let announcement = $state('');
+
+// For horizontal layouts, look points up along y by swapping the axes once per data change.
+const lookup = $derived(
+  orientation === 'y'
+    ? series.map((s) =>
+        s.points.map((p) => ({ ...p, x: p.y ?? Number.NaN, y: Number.isFinite(p.x) ? p.x : null }))
+      )
+    : series.map((s) => s.points)
+);
+const along = (p: PlotPoint<D>) => (orientation === 'y' ? (p.y ?? Number.NaN) : p.x);
 
 const colorOf = (k: number) => series[k]?.color ?? seriesColor(k);
 const pointAt = (a: ActivePoint | null): PlotPoint<D> | undefined =>
@@ -84,7 +100,7 @@ const rows = $derived.by(() => {
   if (!shown || !shownPoint) return [];
   return series.flatMap((s, k) => {
     if (hidden.has(s.id)) return [];
-    const i = k === shown.series ? shown.index : nearestIndex(s.points, shownPoint.x);
+    const i = k === shown.series ? shown.index : nearestIndex(lookup[k] ?? [], along(shownPoint));
     const p = s.points[i];
     if (!p || p.xValue !== shownPoint.xValue) return [];
     return [
@@ -159,15 +175,17 @@ function select(a: ActivePoint) {
 function onpointermove(event: PointerEvent) {
   const svg = event.currentTarget as SVGSVGElement;
   const rect = svg.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-  // Nearest x first, then the series whose point is closest to the pointer vertically.
+  const px = event.clientX - rect.left;
+  const py = event.clientY - rect.top;
+  const [x, y] = orientation === 'y' ? [py, px] : [px, py];
+  // Nearest position along the axis first, then the series whose point is closest across it.
   let best: ActivePoint | null = null;
   let bestDistance = Number.POSITIVE_INFINITY;
   series.forEach((s, k) => {
     if (hidden.has(s.id)) return;
-    const i = nearestIndex(s.points, x);
-    const p = s.points[i];
+    const points = lookup[k] ?? [];
+    const i = nearestIndex(points, x);
+    const p = points[i];
     if (!p || p.y === null) return;
     const distance = Math.abs(p.x - x) * 1000 + Math.abs(p.y - y);
     if (distance < bestDistance) {
@@ -224,10 +242,10 @@ function onfocus() {
         <line
           aria-hidden="true"
           data-crosshair=""
-          x1={shownPoint.x}
-          x2={shownPoint.x}
-          y1={plot.y}
-          y2={plot.y + plot.height}
+          x1={orientation === 'y' ? plot.x : shownPoint.x}
+          x2={orientation === 'y' ? plot.x + plot.width : shownPoint.x}
+          y1={orientation === 'y' ? shownPoint.y : plot.y}
+          y2={orientation === 'y' ? shownPoint.y : plot.y + plot.height}
           stroke="var(--py-chart-axis, var(--py-muted-foreground))"
           stroke-dasharray="3 3"
           stroke-opacity="0.7"

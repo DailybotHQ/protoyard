@@ -30,11 +30,48 @@ import the styles after Tailwind and the theme/UI styles:
 | `@protoyard/charts-ui/canvas` | Canvas renderer for dense series |
 | `@protoyard/charts-ui/geo` | Tile-grid choropleth |
 
-**Status:** `./compact` ships Sparkline, Gauge and RadialProgress. The other
+**Status:** `./cartesian` ships LineChart, AreaChart, BarChart, ComboChart and
+ScatterChart; `./compact` ships Sparkline, Gauge and RadialProgress. The other
 family subpaths currently export only their `FAMILY` name; their components
 are added by the following PLAN_003 charts tasks. `sideEffects` lists only CSS,
 so a bundler keeps just the components a screen imports from a subpath. Load a family from a lazy route (`load: () => import('./Screen.svelte')`)
 so charts stay out of the initial chunk.
+
+## Cartesian charts (`./cartesian`)
+
+Every cartesian chart takes series in data space:
+
+```ts
+const series: CartesianSeries[] = [
+  { id: 'signups', label: 'Signups', points: days.map((d) => ({ x: d.at, y: d.count })) },
+  { id: 'previous', label: 'Previous period', comparison: true, points: previous },
+];
+// or from rows: seriesFromRows(rows, { x: (r) => r.day, series: [{ id: 'signups', label: 'Signups', y: (r) => r.signups }] })
+```
+
+Each one renders in a `ChartFrame` with axes, a grid, the keyboard and
+pointer layer, a legend that hides series (never the last one), and a "View
+as table" toggle whose table loads on demand. Values are formatted by `unit`:
+`number`, `compact`, `percent` (ratios) or `cents` (integer cents with
+`currency`).
+
+| Chart | Highlights |
+| --- | --- |
+| `LineChart` | `xKind` `time` (default), `linear` or `category`; `curve`; comparison series dashed; dense series downsampled with LTTB to about two points per pixel (the table keeps every value) |
+| `AreaChart` | LineChart with fills; `stacked` piles series so the top line is the total |
+| `BarChart` | `orientation` vertical or horizontal; `mode` `grouped`, `stacked` (negatives below zero) or `expanded` (shares of 100 %); `showValues` |
+| `ComboChart` | Bars on the left axis, lines on the right (`type` and `axis` per series; default first series bars), each with its own `leftUnit` / `rightUnit`; the legend names the axis |
+| `ScatterChart` | `xKind` `linear` or `time`; a symbol per series; `size` per point drawn as area-true bubbles (`radius` range) |
+
+All charts take `onselect({ series, index, datum })` for drill-down,
+`loading`, `error` + `onretry`, `emptyMessage` and a bindable `hidden` set.
+
+Size, measured with esbuild (minify + gzip -9, splitting, `svelte` external):
+LineChart + BarChart is a 17.4 KB entry chunk, and the table loads lazily
+(about 1.3 KB). The shared frame and interaction layer account for 10.6 KB of
+that and the chart math (scales, shapes, downsampling, palette) for 7.0 KB,
+so each further chart adds 1–3 KB. This is over the 10 KB target; see the
+PLAN_003 report for the planned reductions.
 
 ## Compact charts (`./compact`)
 
