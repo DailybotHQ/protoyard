@@ -1,0 +1,274 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Stackline Warehouse",
+  "description": "Warehouse zones, stock and outbound orders for a fictional fulfillment operation.",
+  "icon": "🏬",
+  "category": "operations",
+  "tags": ["warehouse", "wms", "fulfillment"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Warehouse WMS",
+    "platforms": ["web"],
+    "features": ["warehouse-ops", "picking"],
+    "highlights": ["Warehouse map", "Pick progress", "Order throughput"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "warehouse-wms-brand",
+    "name": "Stackline Warehouse",
+    "seed": "#286a55",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "warehouse",
+      "plural": "warehouses",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "location",
+          "kind": "geo",
+          "region": "metro-grid"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["open", "at-capacity", "maintenance"],
+          "default": "open",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "inventory-item",
+      "plural": "inventory-items",
+      "titleField": "sku",
+      "fields": [
+        {
+          "name": "sku",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "description",
+          "kind": "text"
+        },
+        {
+          "name": "warehouse",
+          "kind": "relation",
+          "to": "warehouse",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "quantity",
+          "kind": "integer",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 2500
+        },
+        {
+          "name": "reorderAt",
+          "kind": "integer",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 200
+        }
+      ],
+      "searchable": ["sku"]
+    },
+    {
+      "name": "pick-wave",
+      "plural": "pick-waves",
+      "titleField": "waveNumber",
+      "fields": [
+        {
+          "name": "waveNumber",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "warehouse",
+          "kind": "relation",
+          "to": "warehouse",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["queued", "picking", "packed", "shipped"],
+          "default": "queued",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "releasedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["waveNumber"]
+    },
+    {
+      "name": "outbound-order",
+      "plural": "outbound-orders",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "pickWave",
+          "kind": "relation",
+          "to": "pick-wave",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["new", "picking", "ready", "shipped"],
+          "default": "new",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "shipBy",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Stackline Warehouse overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total warehouses",
+          "entity": "warehouse",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "warehouses over time",
+          "entity": "warehouse",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "warehouse",
+      "columns": ["name", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "warehouse"
+    },
+    {
+      "type": "list",
+      "entity": "inventory-item",
+      "columns": ["sku", "warehouse", "quantity"]
+    },
+    {
+      "type": "form",
+      "entity": "inventory-item"
+    },
+    {
+      "type": "list",
+      "entity": "pick-wave",
+      "columns": ["waveNumber", "warehouse", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "pick-wave"
+    },
+    {
+      "type": "list",
+      "entity": "outbound-order",
+      "columns": ["reference", "pickWave", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "outbound-order"
+    },
+    {
+      "type": "map",
+      "entity": "warehouse",
+      "geoField": "location",
+      "path": "/warehouses/map",
+      "title": "Warehouse locations",
+      "nav": {
+        "label": "Map",
+        "icon": "map-pin",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

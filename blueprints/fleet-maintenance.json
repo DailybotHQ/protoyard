@@ -1,0 +1,275 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Northstar Fleet Care",
+  "description": "Vehicle service schedules, shop work and inspections for a fictional fleet.",
+  "icon": "🛠️",
+  "category": "operations",
+  "tags": ["fleet", "maintenance", "vehicles"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Fleet Maintenance",
+    "platforms": ["web"],
+    "features": ["preventive-maintenance", "inspections"],
+    "highlights": ["Service calendar", "Repair queue", "Inspection history"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "fleet-maintenance-brand",
+    "name": "Northstar Fleet Care",
+    "seed": "#37589a",
+    "styleProfile": "crisp",
+    "font": "system"
+  },
+  "entities": [
+    {
+      "name": "vehicle",
+      "plural": "vehicles",
+      "titleField": "unit",
+      "fields": [
+        {
+          "name": "unit",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "model",
+          "kind": "text"
+        },
+        {
+          "name": "odometer",
+          "kind": "integer",
+          "min": 0,
+          "trend": "growth",
+          "max": 450000
+        },
+        {
+          "name": "condition",
+          "kind": "enum",
+          "values": ["ready", "service-due", "in-shop"],
+          "default": "ready",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["unit"]
+    },
+    {
+      "name": "service-order",
+      "plural": "service-orders",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "vehicle",
+          "kind": "relation",
+          "to": "vehicle",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "technician",
+          "kind": "relation",
+          "to": "technician",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["scheduled", "in-progress", "waiting-parts", "complete"],
+          "default": "scheduled",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "scheduledFor",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    },
+    {
+      "name": "technician",
+      "plural": "technicians",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "specialty",
+          "kind": "text"
+        },
+        {
+          "name": "shift",
+          "kind": "enum",
+          "values": ["day", "swing", "on-call"],
+          "default": "day",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "inspection",
+      "plural": "inspections",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "vehicle",
+          "kind": "relation",
+          "to": "vehicle",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "result",
+          "kind": "enum",
+          "values": ["due", "passed", "repair-needed"],
+          "default": "due",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "inspectedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Northstar Fleet Care overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total vehicles",
+          "entity": "vehicle",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "vehicles over time",
+          "entity": "vehicle",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "vehicle",
+      "columns": ["unit", "model", "condition"]
+    },
+    {
+      "type": "form",
+      "entity": "vehicle"
+    },
+    {
+      "type": "list",
+      "entity": "service-order",
+      "columns": ["reference", "vehicle", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "service-order"
+    },
+    {
+      "type": "list",
+      "entity": "technician",
+      "columns": ["name", "specialty", "shift"]
+    },
+    {
+      "type": "form",
+      "entity": "technician"
+    },
+    {
+      "type": "list",
+      "entity": "inspection",
+      "columns": ["reference", "vehicle", "result"]
+    },
+    {
+      "type": "form",
+      "entity": "inspection"
+    },
+    {
+      "type": "calendar",
+      "entity": "service-order",
+      "dateField": "scheduledFor",
+      "view": "month",
+      "path": "/service-orders/calendar",
+      "title": "Maintenance calendar",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

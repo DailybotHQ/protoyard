@@ -1,0 +1,276 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Juniper Salon Studio",
+  "description": "Client appointments, stylist schedules and services for a fictional salon.",
+  "icon": "\ud83d\udc87",
+  "category": "operations",
+  "tags": ["salon", "booking", "appointments"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Salon Booking",
+    "platforms": ["web"],
+    "features": ["appointment-booking", "staff-scheduling"],
+    "highlights": ["Appointment calendar", "Stylist roster", "Service menu"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "salon-booking-brand",
+    "name": "Juniper Salon Studio",
+    "seed": "#9b4f75",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "appointment",
+      "plural": "appointments",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "client",
+          "kind": "relation",
+          "to": "client",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "stylist",
+          "kind": "relation",
+          "to": "stylist",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "service",
+          "kind": "relation",
+          "to": "service",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["booked", "checked-in", "complete", "cancelled"],
+          "default": "booked",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "endsAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    },
+    {
+      "name": "client",
+      "plural": "clients",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "phone",
+          "kind": "text"
+        },
+        {
+          "name": "loyaltyTier",
+          "kind": "enum",
+          "values": ["standard", "studio", "signature"],
+          "default": "standard",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "stylist",
+      "plural": "stylists",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "specialty",
+          "kind": "text"
+        },
+        {
+          "name": "shift",
+          "kind": "enum",
+          "values": ["morning", "afternoon", "flexible"],
+          "default": "morning",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "service",
+      "plural": "services",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "durationMinutes",
+          "kind": "integer",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 240
+        },
+        {
+          "name": "price",
+          "kind": "money",
+          "min": 0,
+          "trend": "growth",
+          "max": 50000
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Juniper Salon Studio overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total appointments",
+          "entity": "appointment",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "appointments over time",
+          "entity": "appointment",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "appointment",
+      "columns": ["reference", "client", "stylist", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "appointment"
+    },
+    {
+      "type": "list",
+      "entity": "client",
+      "columns": ["name", "phone", "loyaltyTier"]
+    },
+    {
+      "type": "form",
+      "entity": "client"
+    },
+    {
+      "type": "list",
+      "entity": "stylist",
+      "columns": ["name", "specialty", "shift"]
+    },
+    {
+      "type": "form",
+      "entity": "stylist"
+    },
+    {
+      "type": "list",
+      "entity": "service",
+      "columns": ["name", "durationMinutes", "price"]
+    },
+    {
+      "type": "form",
+      "entity": "service"
+    },
+    {
+      "type": "calendar",
+      "entity": "appointment",
+      "dateField": "startsAt",
+      "endField": "endsAt",
+      "colorBy": "status",
+      "view": "week",
+      "path": "/appointments/calendar",
+      "title": "Salon schedule",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar-days",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}
