@@ -1,5 +1,4 @@
-@import "tailwindcss";
-@import "@protoyard/themes/base.css";
+@import "@protoyard/renderer-svelte/app.css";
 @import "@protoyard/views-ui/styles.css";
 
 :root {
