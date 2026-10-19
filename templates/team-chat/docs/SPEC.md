@@ -31,7 +31,10 @@ TODO: what this prototype deliberately does not do.
 
 ## Honest boundaries
 
-TODO: name every simulated part plainly (data in the visitor's browser, personas instead of authentication, simulated permissions, payments, network and time). See [docs/SPECS.md](../../../docs/SPECS.md#honest-boundaries).
+Data lives in IndexedDB; personas and roles are simulated; bots and huddle
+captions are canned. Channel membership is enforced for private/DM reads and
+all writes; public channels need explicit Join before posting. See
+[docs/SPECS.md](../../../docs/SPECS.md#honest-boundaries).
 
 ## Rebuild as a real app
 

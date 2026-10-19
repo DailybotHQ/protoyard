@@ -29,19 +29,18 @@ Simulated permissions: UX only, not security. Services enforce them with
 _No record-level rules._
 <!-- /protoyard:generated:rules -->
 
-There are no record-level rules: every check is role × capability only.
-In particular, nothing ties an action to the record's author or to channel
-membership:
+There are no ownership rules on rows (any `huddle:start` holder can end any
+huddle). Channel **membership** is enforced in services:
 
-- Any holder of `huddle:start` can end any huddle (`endHuddle`), not only
-  the one who started it.
-- `message:read` lets any persona read any channel's messages through
-  `listMessages`, and `search:run` searches every channel of the workspace,
-  including private channels and DMs the persona is not a member of. Only
-  the sidebar list (`listChannels`) hides private channels and DMs the
-  persona has not joined.
-- `sendMessage` adds the sender to the channel's members, so posting to a
-  private channel or DM by id makes the poster a member.
+- Public channels are listed and readable without joining. Private channels
+  and DMs require a `channelMembers` row for `listMessages`, `search`,
+  `markRead` and unread counts.
+- Posting, reacting, sharing files and starting huddles require membership.
+  `sendMessage` no longer auto-joins: public channels need an explicit
+  `joinChannel` (the UI "Join" button); private channels and DMs stay
+  invitation-only.
+- `search` only returns messages from accessible channels (all public plus
+  private/DM memberships).
 
 Other notes from `src/domain/policy.ts` and `src/domain/services.ts`:
 
@@ -51,10 +50,9 @@ Other notes from `src/domain/policy.ts` and `src/domain/services.ts`:
 - `openDm` requires `channel:create`, and `setPresence` and `listPresence`
   require `workspace:read`, so a viewer can set their own presence (there is
   no UI for it).
-- The screen does not hide or disable buttons by role. A viewer sees
-  "Send", "+ New", "React", "Share file" and "Huddle"; the services refuse
-  them. Only composer and new-channel errors are shown (see
-  [FLOWS.md](FLOWS.md)).
+- The screen disables write actions for roles that lack the capability and
+  shows a short read-only reason (tooltip + status toast). Service denials
+  still surface as alerts above the composer when an action is attempted.
 
 ## Personas
 

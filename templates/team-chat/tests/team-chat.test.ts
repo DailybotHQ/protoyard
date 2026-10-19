@@ -139,10 +139,62 @@ describe('team-chat services on the real runtime', () => {
   it('denies a viewer from posting', async () => {
     const runtime = await harness.boot('viewer');
     const chat = createTeamChatServices(runtime);
+    expect(chat.can('message:create')).toBe(false);
     const [workspace] = await chat.listWorkspaces();
     const channels = await chat.listChannels(workspace!.id);
     await expect(chat.sendMessage(channels[0]!.id, { body: 'Nope' })).rejects.toBeInstanceOf(
       PermissionDeniedError
+    );
+  });
+
+  it('refuses send without membership and allows join on public channels', async () => {
+    const runtime = await harness.boot('empty');
+    const chat = createTeamChatServices(runtime);
+    const [workspace] = await chat.listWorkspaces();
+    const channel = await chat.createChannel(workspace!.id, { name: 'announce', kind: 'public' });
+    const me = runtime.session.principal()!.persona.id;
+    await runtime.db.channelMembers.delete(`${channel.id}:${me}`);
+    await expect(chat.sendMessage(channel.id, { body: 'hello' })).rejects.toBeInstanceOf(
+      TeamChatValidationError
+    );
+    await chat.joinChannel(channel.id);
+    const { message } = await chat.sendMessage(channel.id, { body: 'hello after join' });
+    expect(message.body).toBe('hello after join');
+  });
+
+  it('hides private messages from non-members in list and search', async () => {
+    const runtime = await harness.boot('busy-day');
+    const chat = createTeamChatServices(runtime);
+    const [workspace] = await chat.listWorkspaces();
+    const privateCh = await chat.createChannel(workspace!.id, {
+      name: 'exec-only',
+      kind: 'private',
+    });
+    await chat.sendMessage(privateCh.id, { body: 'secret roadmap' });
+    const people = (await runtime.db.table('py_personas').toArray()) as Array<{ id: string }>;
+    const outsider = people.find((p) => p.id !== runtime.session.principal()!.persona.id);
+    expect(outsider).toBeTruthy();
+    await runtime.session.signIn(outsider!.id);
+    const outsiderChat = createTeamChatServices(runtime);
+    await expect(outsiderChat.listMessages(privateCh.id)).rejects.toBeInstanceOf(
+      TeamChatValidationError
+    );
+    const hits = await outsiderChat.search(workspace!.id, 'secret roadmap');
+    expect(hits.some((m) => m.body.includes('secret roadmap'))).toBe(false);
+  });
+
+  it('lists reaction summaries with counts after toggle', async () => {
+    const runtime = await harness.boot('empty');
+    const chat = createTeamChatServices(runtime);
+    const [workspace] = await chat.listWorkspaces();
+    const [general] = await chat.listChannels(workspace!.id);
+    const { message } = await chat.sendMessage(general!.id, { body: 'react me' });
+    await chat.toggleReaction(message.id, '👍');
+    const summaries = await chat.listReactionSummaries(general!.id);
+    expect(summaries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ messageId: message.id, emoji: '👍', count: 1, mine: true }),
+      ])
     );
   });
 

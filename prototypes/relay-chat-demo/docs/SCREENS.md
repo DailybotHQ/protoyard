@@ -22,8 +22,9 @@ or in DevTools.
 | Huddle panel | Simulated huddle with captions | `huddle:start` |
 | Composer | Post, reply, bot commands, `/huddle` | `message:create` |
 
-No capability hides or disables anything: every persona sees every button,
-and the services refuse what the role lacks (see
+Write controls are disabled when the role lacks the capability (tooltip +
+toast). Public channels show a **Join** button until the persona is a member.
+Services still enforce policy if the UI is bypassed (see
 [PERMISSIONS.md](PERMISSIONS.md)).
 
 ### Sidebar
@@ -56,8 +57,8 @@ and the services refuse what the role lacks (see
 - **Search results:** a "Search results" region with "N result(s)" and up to
   50 hits (first 80 characters each); clicking a hit opens its channel and
   thread. Nothing is shown for zero hits.
-- **Error / denied:** search, share and huddle errors are not caught, so a
-  denial or a simulated failure shows nothing.
+- **Error / denied:** share and huddle errors are caught and shown above the
+  composer; read-only roles get a toast instead of a silent no-op.
 
 ### Message log
 
@@ -67,7 +68,7 @@ and the services refuse what the role lacks (see
   repeated). Each message shows the author (a bot's display name, or a
   person's **persona id**), the time (local `HH:MM`), an "AI · simulated"
   badge for bots, the body as plain text (never HTML), and "Attachment id
-  <fileId>" when a file is attached. Reactions are stored but not displayed.
+  <fileId>" when a file is attached. Reactions appear as chips with counts (mine highlighted); toggle updates them.
   Bot replies grow word by word as the service streams them.
 - **Actions:** "👍 React" ([React to a message](FLOWS.md#react-to-a-message));
   "Reply in thread" on top-level messages

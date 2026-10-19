@@ -3,7 +3,12 @@ import { getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte'
 import { Button, Input } from '@protoyard/ui';
 import HuddlePanel from './components/HuddlePanel.svelte';
 import type { Channel, Message, TeamChatDatabase, Workspace } from './database/schema.ts';
-import { createTeamChatServices, SLASH_COMMANDS } from './domain/services.ts';
+import {
+  CAPABILITIES,
+  createTeamChatServices,
+  type ReactionSummary,
+  SLASH_COMMANDS,
+} from './domain/services.ts';
 import { formatTime } from './lib/format.ts';
 
 const runtime = getRuntime<TeamChatDatabase>();
@@ -17,9 +22,18 @@ let draft = $state('');
 let searchQ = $state('');
 let searchHits = $state<Message[]>([]);
 let error = $state<string | null>(null);
+let toast = $state<string | null>(null);
 let activeHuddleId = $state<string | null>(null);
 let newChannelOpen = $state(false);
 let newChannelName = $state('');
+let memberOfChannel = $state(false);
+
+const canPost = $derived(services.can(CAPABILITIES['message:create']));
+const canReact = $derived(services.can(CAPABILITIES['message:react']));
+const canShare = $derived(services.can(CAPABILITIES['file:share']));
+const canHuddle = $derived(services.can(CAPABILITIES['huddle:start']));
+const canCreateChannel = $derived(services.can(CAPABILITIES['channel:create']));
+const readOnlyReason = 'Read-only role: this action needs a member or owner persona';
 
 const workspaces = liveQuery(() => runtime.db.workspaces.toArray(), {
   initial: [] as Workspace[],
@@ -27,17 +41,34 @@ const workspaces = liveQuery(() => runtime.db.workspaces.toArray(), {
 });
 const channels = liveQuery(
   () => (workspaceId ? services.listChannels(workspaceId) : Promise.resolve([] as Channel[])),
-  { initial: [] as Channel[], deps: () => [workspaceId] }
+  { initial: [] as Channel[], deps: () => [workspaceId, principal.current?.persona.id] }
 );
 const messages = liveQuery(
   () => (channelId ? services.listMessages(channelId, threadId) : Promise.resolve([] as Message[])),
-  { initial: [] as Message[], deps: () => [channelId, threadId] }
+  { initial: [] as Message[], deps: () => [channelId, threadId, principal.current?.persona.id] }
+);
+const reactions = liveQuery(
+  () =>
+    channelId
+      ? services.listReactionSummaries(channelId)
+      : Promise.resolve([] as ReactionSummary[]),
+  { initial: [] as ReactionSummary[], deps: () => [channelId, principal.current?.persona.id] }
 );
 const presence = liveQuery(() => services.listPresence(), {
   initial: [],
   deps: () => [],
 });
 const bots = services.listBots();
+
+const reactionsByMessage = $derived.by(() => {
+  const map = new Map<string, ReactionSummary[]>();
+  for (const row of reactions.current ?? []) {
+    const list = map.get(row.messageId) ?? [];
+    list.push(row);
+    map.set(row.messageId, list);
+  }
+  return map;
+});
 
 $effect(() => {
   const list = workspaces.current ?? [];
@@ -50,11 +81,32 @@ $effect(() => {
 });
 
 $effect(() => {
-  if (channelId) void services.markRead(channelId);
+  if (!channelId) {
+    memberOfChannel = false;
+    return;
+  }
+  void services.isMember(channelId).then((ok) => {
+    memberOfChannel = ok;
+  });
+  void services.markRead(channelId).catch((e) => {
+    // Viewer can mark read; membership denial on private is the only expected fail.
+    if (e instanceof Error) toast = e.message;
+  });
 });
+
+function showDenied(action: string) {
+  toast = `${action}: ${readOnlyReason}`;
+  window.setTimeout(() => {
+    if (toast?.includes(readOnlyReason)) toast = null;
+  }, 4_000);
+}
 
 async function send() {
   if (!channelId || !draft.trim()) return;
+  if (!canPost) {
+    showDenied('Send');
+    return;
+  }
   error = null;
   try {
     const result = await services.sendMessage(channelId, {
@@ -63,6 +115,23 @@ async function send() {
     });
     draft = '';
     if (result.huddle) activeHuddleId = result.huddle.id;
+    memberOfChannel = true;
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
+}
+
+async function joinCurrent() {
+  if (!channelId) return;
+  if (!canPost) {
+    showDenied('Join');
+    return;
+  }
+  error = null;
+  try {
+    await services.joinChannel(channelId);
+    memberOfChannel = true;
+    toast = 'Joined channel';
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   }
@@ -70,12 +139,17 @@ async function send() {
 
 async function createChannel() {
   if (!workspaceId) return;
+  if (!canCreateChannel) {
+    showDenied('Create channel');
+    return;
+  }
   error = null;
   try {
     const ch = await services.createChannel(workspaceId, { name: newChannelName });
     newChannelName = '';
     newChannelOpen = false;
     channelId = ch.id;
+    memberOfChannel = true;
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   }
@@ -83,33 +157,94 @@ async function createChannel() {
 
 async function runSearch() {
   if (!workspaceId) return;
-  searchHits = await services.search(workspaceId, searchQ);
+  error = null;
+  try {
+    searchHits = await services.search(workspaceId, searchQ);
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
 }
 
-async function react(messageId: string) {
-  await services.toggleReaction(messageId, '👍');
+async function react(messageId: string, emoji = '👍') {
+  if (!canReact) {
+    showDenied('React');
+    return;
+  }
+  error = null;
+  try {
+    await services.toggleReaction(messageId, emoji);
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
+}
+
+async function replyInThread(messageId: string) {
+  threadId = messageId;
 }
 
 async function shareDemoFile() {
   if (!channelId) return;
-  await services.shareFile(channelId, {
-    name: 'notes.example.txt',
-    sizeBytes: 1024,
-    mimeType: 'text/plain',
-  });
+  if (!canShare) {
+    showDenied('Share file');
+    return;
+  }
+  error = null;
+  try {
+    await services.shareFile(channelId, {
+      name: 'notes.example.txt',
+      sizeBytes: 1024,
+      mimeType: 'text/plain',
+    });
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
 }
+
+async function startHuddle() {
+  if (!channelId) return;
+  if (!canHuddle) {
+    showDenied('Huddle');
+    return;
+  }
+  error = null;
+  try {
+    const h = await services.startHuddle(channelId);
+    activeHuddleId = h.id;
+  } catch (e) {
+    error = e instanceof Error ? e.message : String(e);
+  }
+}
+
+const activeChannel = $derived((channels.current ?? []).find((c) => c.id === channelId) ?? null);
+const needsJoin = $derived(
+  Boolean(activeChannel && activeChannel.kind === 'public' && !memberOfChannel && canPost)
+);
 </script>
 
-<div class="flex h-full min-h-0 bg-background text-foreground">
+<div class="flex h-dvh max-h-dvh min-h-0 overflow-hidden bg-background text-foreground">
   <aside class="flex w-60 shrink-0 flex-col border-r border-border bg-muted/30">
     <div class="border-b border-border px-3 py-3">
       <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workspace</p>
       <p class="truncate text-sm font-medium">{(workspaces.current ?? [])[0]?.name ?? 'Loading…'}</p>
-      <p class="mt-1 text-[0.65rem] text-muted-foreground">Simulated team chat · no real models</p>
+      <p class="mt-1 text-[0.65rem] text-muted-foreground">
+        Team chat · simulated bots · no real models
+      </p>
     </div>
     <div class="flex items-center justify-between px-3 py-2">
       <span class="text-xs font-semibold text-muted-foreground">Channels</span>
-      <Button size="sm" variant="ghost" onclick={() => (newChannelOpen = !newChannelOpen)}>+ New</Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={!canCreateChannel}
+        title={canCreateChannel ? 'New channel' : readOnlyReason}
+        onclick={() => {
+          if (!canCreateChannel) {
+            showDenied('New channel');
+            return;
+          }
+          newChannelOpen = !newChannelOpen;
+        }}>+ New</Button
+      >
     </div>
     {#if newChannelOpen}
       <div class="flex gap-1 px-2 pb-2">
@@ -146,7 +281,11 @@ async function shareDemoFile() {
     <div class="border-t border-border px-3 py-2">
       <p class="text-xs font-semibold text-muted-foreground">Presence</p>
       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-      <ul class="mt-1 max-h-28 space-y-0.5 overflow-y-auto text-xs focus-visible:outline-2 focus-visible:outline-ring" tabindex="0" aria-label="Presence">
+      <ul
+        class="mt-1 max-h-28 space-y-0.5 overflow-y-auto text-xs focus-visible:outline-2 focus-visible:outline-ring"
+        tabindex="0"
+        aria-label="Presence"
+      >
         {#each presence.current ?? [] as p}
           <li class="flex justify-between gap-2">
             <span class="truncate">{p.personaId}</span>
@@ -161,13 +300,13 @@ async function shareDemoFile() {
     <header class="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
       <div class="min-w-0 flex-1">
         <h1 class="truncate text-sm font-semibold">
-          {(channels.current ?? []).find((c) => c.id === channelId)?.name ?? 'Select a channel'}
+          {activeChannel?.name ?? 'Select a channel'}
         </h1>
         <p class="truncate text-xs text-muted-foreground">
-          {(channels.current ?? []).find((c) => c.id === channelId)?.topic ?? ''}
+          {activeChannel?.topic ?? ''}
         </p>
       </div>
-      <div class="flex gap-1">
+      <div class="flex flex-wrap gap-1">
         <Input
           class="h-8 w-40 text-xs"
           placeholder="Search…"
@@ -175,23 +314,45 @@ async function shareDemoFile() {
           onkeydown={(e) => e.key === 'Enter' && void runSearch()}
         />
         <Button size="sm" variant="outline" onclick={() => void runSearch()}>Search</Button>
-        <Button size="sm" variant="outline" onclick={() => void shareDemoFile()}>Share file</Button>
+        {#if needsJoin}
+          <Button size="sm" variant="default" onclick={() => void joinCurrent()}>Join</Button>
+        {/if}
         <Button
           size="sm"
           variant="outline"
-          onclick={async () => {
-            if (!channelId) return;
-            const h = await services.startHuddle(channelId);
-            activeHuddleId = h.id;
-          }}
+          disabled={!canShare}
+          title={canShare ? 'Share a demo file' : readOnlyReason}
+          onclick={() => void shareDemoFile()}>Share file</Button
+        >
+        <Button
+          size="sm"
+          variant="outline"
+          aria-label="Start huddle"
+          disabled={!canHuddle}
+          title={canHuddle ? 'Start huddle' : readOnlyReason}
+          onclick={() => void startHuddle()}
         >
           Huddle
         </Button>
       </div>
     </header>
 
+    {#if toast}
+      <div
+        class="border-b border-border bg-muted/50 px-4 py-2 text-xs text-foreground"
+        role="status"
+        aria-live="polite"
+      >
+        {toast}
+      </div>
+    {/if}
+
     {#if searchHits.length > 0}
-      <div class="border-b border-border bg-muted/40 px-4 py-2 text-xs" role="region" aria-label="Search results">
+      <div
+        class="border-b border-border bg-muted/40 px-4 py-2 text-xs"
+        role="region"
+        aria-label="Search results"
+      >
         <p class="font-medium">{searchHits.length} result(s)</p>
         <ul class="mt-1 max-h-24 space-y-1 overflow-y-auto">
           {#each searchHits as hit}
@@ -214,9 +375,16 @@ async function shareDemoFile() {
     {/if}
 
     {#if threadId}
-      <div class="flex items-center gap-2 border-b border-border bg-muted/20 px-4 py-1 text-xs">
+      <div
+        class="flex items-center gap-2 border-b border-border bg-muted/20 px-4 py-1 text-xs"
+        data-py-thread=""
+        role="status"
+        aria-label="Thread open"
+      >
         <span>Thread</span>
-        <Button size="sm" variant="ghost" onclick={() => (threadId = null)}>Close</Button>
+        <Button size="sm" variant="ghost" aria-label="Close thread" onclick={() => (threadId = null)}>
+          Close
+        </Button>
       </div>
     {/if}
 
@@ -229,32 +397,71 @@ async function shareDemoFile() {
       {#if messages.loading}
         <p class="text-sm text-muted-foreground">Loading messages…</p>
       {:else if (messages.current ?? []).length === 0}
-        <p class="text-sm text-muted-foreground">No messages yet. Say hello or try /standup.</p>
+        <p class="text-sm text-muted-foreground">
+          No messages yet. Try @standup, /ops, or /huddle.
+        </p>
       {:else}
         {#each messages.current ?? [] as msg (msg.id)}
-          <article class="group mb-3 rounded-md px-1 py-1 hover:bg-muted/40">
+          <article
+            class="group mb-3 rounded-md px-1 py-1 hover:bg-muted/40"
+            data-message-id={msg.id}
+            data-author-kind={msg.authorKind}
+            data-author-id={msg.authorId}
+          >
             <div class="flex items-baseline gap-2 text-xs text-muted-foreground">
               <span class="font-semibold text-foreground">
-                {msg.authorKind === 'bot' ? msg.authorId : msg.authorId}
+                {msg.authorKind === 'bot'
+                  ? (bots.find((b) => b.id === msg.authorId)?.name ?? msg.authorId)
+                  : msg.authorId}
               </span>
               <time datetime={msg.at}>{formatTime(msg.at)}</time>
               {#if msg.authorKind === 'bot'}
-                <span class="rounded border border-border bg-muted px-1 text-[0.65rem] text-muted-foreground">BOT</span>
+                <span
+                  class="rounded border border-border bg-muted px-1 text-[0.65rem] text-muted-foreground"
+                  >AI · simulated</span
+                >
               {/if}
             </div>
-            <p class="whitespace-pre-wrap text-sm">{msg.body}</p>
+            <p class="whitespace-pre-wrap text-sm" data-message-body="">{msg.body}</p>
             {#if msg.fileId}
               <p class="mt-1 text-xs text-muted-foreground">Attachment id {msg.fileId}</p>
             {/if}
-            <div class="mt-1 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-              <button type="button" class="text-xs text-muted-foreground hover:text-foreground" onclick={() => void react(msg.id)}>
+            {#if (reactionsByMessage.get(msg.id) ?? []).length > 0}
+              <div class="mt-1 flex flex-wrap gap-1" data-reactions="" aria-label="Reactions">
+                {#each reactionsByMessage.get(msg.id) ?? [] as chip (chip.emoji)}
+                  <button
+                    type="button"
+                    class="rounded-full border px-1.5 py-0.5 text-xs {chip.mine
+                      ? 'border-primary bg-primary/10 text-foreground'
+                      : 'border-border bg-muted/40 text-muted-foreground'}"
+                    disabled={!canReact}
+                    title={canReact ? `Toggle ${chip.emoji}` : readOnlyReason}
+                    aria-label={`${chip.emoji} ${chip.count}${chip.mine ? ', you reacted' : ''}`}
+                    onclick={() => void react(msg.id, chip.emoji)}
+                  >
+                    {chip.emoji}
+                    <span class="ml-0.5 tabular-nums">{chip.count}</span>
+                  </button>
+                {/each}
+              </div>
+            {/if}
+            <div class="mt-1 flex gap-2">
+              <button
+                type="button"
+                class="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                aria-label="React with thumbs up"
+                disabled={!canReact}
+                title={canReact ? 'React with thumbs up' : readOnlyReason}
+                onclick={() => void react(msg.id)}
+              >
                 👍 React
               </button>
               {#if !msg.threadId}
                 <button
                   type="button"
                   class="text-xs text-muted-foreground hover:text-foreground"
-                  onclick={() => (threadId = msg.id)}
+                  aria-label="Reply in thread"
+                  onclick={() => replyInThread(msg.id)}
                 >
                   Reply in thread
                 </button>
@@ -280,8 +487,18 @@ async function shareDemoFile() {
       {#if error}
         <p class="mb-2 text-xs text-destructive" role="alert">{error}</p>
       {/if}
+      {#if needsJoin}
+        <p class="mb-2 text-xs text-muted-foreground" role="status">
+          You can read this public channel. Join to post, react, share files or start a huddle.
+        </p>
+      {:else if !canPost}
+        <p class="mb-2 text-xs text-muted-foreground" role="status">
+          Viewing as {principal.current?.role ?? 'guest'} — posting is disabled ({readOnlyReason}).
+        </p>
+      {/if}
       <p class="mb-1 text-[0.65rem] text-muted-foreground">
-        Slash: {SLASH_COMMANDS.map((c) => c.name).join(' · ')} · Acting as {principal.current?.persona.name ?? '…'}
+        Slash: {SLASH_COMMANDS.map((c) => c.name).join(' · ')} · Acting as {principal.current
+          ?.persona.name ?? '…'}
       </p>
       <form
         class="flex gap-2"
@@ -292,11 +509,28 @@ async function shareDemoFile() {
       >
         <Input
           class="flex-1"
-          placeholder={threadId ? 'Reply in thread…' : 'Message #channel — try @standup or /ops'}
+          placeholder={threadId
+            ? 'Reply in thread…'
+            : 'Message #channel — try @standup, /ops or /huddle'}
           bind:value={draft}
           aria-label="Message composer"
+          disabled={!canPost || (Boolean(activeChannel) && !memberOfChannel)}
+          title={canPost
+            ? memberOfChannel || !activeChannel
+              ? undefined
+              : 'Join this channel before posting'
+            : readOnlyReason}
         />
-        <Button type="submit">Send</Button>
+        <Button
+          type="submit"
+          aria-label="Send message"
+          disabled={!canPost || (Boolean(activeChannel) && !memberOfChannel)}
+          title={canPost
+            ? memberOfChannel || !activeChannel
+              ? 'Send'
+              : 'Join this channel before posting'
+            : readOnlyReason}>Send</Button
+        >
       </form>
     </footer>
   </main>

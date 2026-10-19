@@ -71,7 +71,7 @@ Everything below is a simulation. See
 | --- | --- |
 | Data | Stored in IndexedDB in the visitor's browser (namespace `relay-chat-demo`). Nothing is shared between visitors or devices: other "people" in the chat are generated rows, and there is no sync, real-time delivery or backup. |
 | Identity | Personas from the scenario (fictional names). The persona is switched in DevTools, which is part of `pnpm protoyard dev` but not of the static build (`build.includeDevtools: false`). There is no sign-in and no authentication. |
-| Permissions | Role capabilities checked by `session.assert` in `src/domain/services.ts`. They make forbidden calls fail even from the browser console, but they are not authorization or security, and there are no membership or ownership checks (see [PERMISSIONS.md](PERMISSIONS.md)). |
+| Permissions | Role capabilities checked by `session.assert` in `src/domain/services.ts`. They make forbidden calls fail even from the browser console and are not real security. Channel membership is checked for private/DM reads and all writes; public channels still need an explicit Join before posting (see [PERMISSIONS.md](PERMISSIONS.md)). |
 | Payments | None. |
 | AI | Scripted bots in `src/domain/bots.ts`: replies are picked from canned lines with a seeded RNG (scenario seed + prompt), and `/summarize` quotes one of the last eight messages. Replies are labeled "simulated". No model or API is called. |
 | Voice | Huddles use `createVoiceSession` from `@protoyard/ai/voice` with three fixed transcripts and no wall-clock delay. No microphone or speech API is opened. |
@@ -99,7 +99,7 @@ chosen here. See
 | Presence, read markers and the timeline | Presence from live connections with timeouts; read markers written per client; unread counts computed server-side |
 | `environment.run` failures (offline, timeout, server error) | Error, retry and offline handling the real UI must have; today only the composer and new-channel form show errors |
 | Scenarios and `generateTeamChatWorld` | Seed data for staging, demo workspaces and test fixtures |
-| The single screen ([SCREENS.md](SCREENS.md)) | The UI to keep, plus what it lacks: persona names instead of ids, visible reactions, unread badges, a DM picker, a mobile layout and visible errors for every action |
+| The single screen ([SCREENS.md](SCREENS.md)) | The UI to keep, plus what it still lacks: persona names instead of ids, unread badges, a DM picker and a dedicated mobile layout (reactions, membership filters, Join and read-only feedback are implemented) |
 
 ## Manifest facts
 
