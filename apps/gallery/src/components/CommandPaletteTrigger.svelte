@@ -1,12 +1,15 @@
 <script lang="ts">
 import Search from '@lucide/svelte/icons/search';
 import { mount, onMount } from 'svelte';
+import { retryable } from '../lib/retryable.ts';
 
 /**
  * The header's ⌘K button. It is all that loads on every page: the palette
  * itself (commands, search, the control-server client and the device
  * catalog) is imported on the first click, ⌘K / Ctrl+K or `/`, then mounted
  * here and opened immediately. After that the palette owns the shortcuts.
+ * A failed chunk load is reported next to the button and retried on the next
+ * open, never cached.
  */
 interface Props {
   homeUrl: string;
@@ -17,10 +20,10 @@ let hydrated = $state(false);
 let trigger: HTMLButtonElement;
 let host: HTMLDivElement;
 let show: (() => void) | null = null;
-let loading: Promise<void> | null = null;
+let failed = $state(false);
 
-function load(): Promise<void> {
-  loading ??= import('./CommandPalette.svelte').then(({ default: CommandPalette }) => {
+const load = retryable(() =>
+  import('./CommandPalette.svelte').then(({ default: CommandPalette }) => {
     mount(CommandPalette, {
       target: host,
       props: {
@@ -31,12 +34,18 @@ function load(): Promise<void> {
         },
       },
     });
-  });
-  return loading;
-}
+  })
+);
 
 async function open(): Promise<void> {
-  await load();
+  try {
+    await load();
+  } catch (error) {
+    failed = true;
+    console.error('[gallery] the command palette failed to load', error);
+    return;
+  }
+  failed = false;
   show?.();
 }
 
@@ -72,5 +81,10 @@ onMount(() => {
     <span class="hidden sm:inline">Search</span>
     <kbd class="rounded border border-line bg-bg px-1.5 py-0.5 font-mono text-[10px] text-muted">⌘K</kbd>
   </button>
+  {#if failed}
+    <p role="alert" class="ml-2 text-xs text-danger" data-testid="command-palette-error">
+      Search could not load. Check your connection and try again.
+    </p>
+  {/if}
   <div bind:this={host} class="contents"></div>
 </div>
