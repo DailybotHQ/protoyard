@@ -127,6 +127,13 @@ export type { SidebarItem, SidebarSection } from './components/sidebar/types.ts'
 export { default as Skeleton } from './components/skeleton/Skeleton.svelte';
 export { default as Spinner } from './components/spinner/Spinner.svelte';
 export { default as StatCard } from './components/stat-card/StatCard.svelte';
+export {
+  formatDelta,
+  resolveTrend,
+  type Trend,
+  trendTone,
+  trendWord,
+} from './components/stat-card/trend.ts';
 // Flows
 export { default as Stepper } from './components/stepper/Stepper.svelte';
 export type { StepperStep } from './components/stepper/types.ts';
