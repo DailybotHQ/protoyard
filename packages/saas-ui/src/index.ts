@@ -6,6 +6,7 @@ export {
   DEFAULT_SAAS_UI_CONFIG,
   type ResolvedSaasUiConfig,
   resolveSaasUiConfig,
+  type SaasPendingAccount,
   type SaasUiConfig,
 } from './config.ts';
 export {

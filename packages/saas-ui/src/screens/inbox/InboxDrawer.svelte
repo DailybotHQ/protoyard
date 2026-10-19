@@ -12,9 +12,14 @@ interface Props {
   recipient?: string;
   /** Override the service in isolated hosts or tests. */
   service?: InboxService;
+  /**
+   * Show only `recipient`'s mailbox: hides the address form (e.g. a signed-out
+   * account waiting to confirm its email). Default false.
+   */
+  lockRecipient?: boolean;
 }
 
-let { embedded = false, recipient, service }: Props = $props();
+let { embedded = false, recipient, service, lockRecipient = false }: Props = $props();
 const { runtime } = getSaas();
 const inbox = $derived(service ?? createInbox(runtime));
 const principalEmail = runtime.session.principal()?.persona.email ?? '';
@@ -98,22 +103,26 @@ onMount(() => {
 {#snippet content()}
   <div class="grid gap-4" data-testid="inbox-content">
     <p class="text-sm text-muted-foreground">Simulation only — these messages are stored in this prototype.</p>
-    <form class="flex flex-wrap gap-2" onsubmit={(event) => { event.preventDefault(); void refresh(); }}>
-      <label class="sr-only" for="simulated-inbox-email">Fictional inbox email</label>
-      <input
-        id="simulated-inbox-email"
-        class="min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        type="email"
-        autocomplete="email"
-        placeholder="you@example.com"
-        bind:value={address}
-        aria-describedby="inbox-email-help"
-      />
-      <button class="min-h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" type="submit">
-        Open inbox
-      </button>
-    </form>
-    <p id="inbox-email-help" class="text-xs text-muted-foreground">Use a fictional @example.com address.</p>
+    {#if lockRecipient}
+      <p class="text-sm text-foreground" data-testid="inbox-locked-recipient">Messages for <strong class="font-medium">{appliedAddress || address}</strong></p>
+    {:else}
+      <form class="flex flex-wrap gap-2" onsubmit={(event) => { event.preventDefault(); void refresh(); }}>
+        <label class="sr-only" for="simulated-inbox-email">Fictional inbox email</label>
+        <input
+          id="simulated-inbox-email"
+          class="min-h-11 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          type="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          bind:value={address}
+          aria-describedby="inbox-email-help"
+        />
+        <button class="min-h-11 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none" type="submit">
+          Open inbox
+        </button>
+      </form>
+      <p id="inbox-email-help" class="text-xs text-muted-foreground">Use a fictional @example.com address.</p>
+    {/if}
     {#if error}<p class="text-sm text-destructive" role="alert">{error}</p>{/if}
     {#if loading}
       <p class="text-sm text-muted-foreground" role="status">Loading simulated messages…</p>

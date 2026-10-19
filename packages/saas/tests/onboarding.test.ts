@@ -306,3 +306,49 @@ describe('createOnboarding on the real runtime', () => {
     expect((await onboarding.state()).currentStep).toBe('invite');
   });
 });
+
+describe('step effects with identity writes', () => {
+  const identitySteps = (fail: { now: boolean }): OnboardingStepDefinition[] => [
+    {
+      id: 'profile',
+      label: 'Profile',
+      schema: z.object({ fullName: z.string().trim().min(2, 'Enter your full name') }),
+      // Writes the persona in the wizard's transaction, then may fail.
+      effect: async (answer, { personaId, identity }) => {
+        const persona = await identity.getPersona(personaId);
+        if (!persona) throw new ValidationError({ form: 'No persona.' });
+        await identity.putPersona({ ...persona, name: (answer as { fullName: string }).fullName });
+        if (fail.now) throw new ValidationError({ form: 'Simulated failure after the write.' });
+      },
+    },
+    { id: 'workspace', label: 'Workspace', optional: true },
+  ];
+
+  it('commits the effect, the answer and the position together or not at all', async () => {
+    const { runtime } = await boot('not-started');
+    const fail = { now: true };
+    const onboarding = createOnboarding(runtime as unknown as ProtoyardRuntime, {
+      steps: identitySteps(fail),
+    });
+    const before = runtime.session.principal()?.persona.name;
+
+    await expect(onboarding.submit('profile', { fullName: 'Rolled Back' })).rejects.toThrow(
+      'Simulated failure after the write.'
+    );
+    expect((await runtime.db.table('py_personas').get('user_0001'))?.name).toBe(before);
+    expect(await runtime.db.table('saas_onboarding').count()).toBe(0);
+
+    await runtime.overrides.set({ environment: { network: 'offline' } });
+    fail.now = false;
+    await expect(onboarding.submit('profile', { fullName: 'Offline Name' })).rejects.toBeInstanceOf(
+      SimulatedServiceError
+    );
+    expect((await runtime.db.table('py_personas').get('user_0001'))?.name).toBe(before);
+
+    await runtime.overrides.set({ environment: { network: 'online' } });
+    const saved = await onboarding.submit('profile', { fullName: 'Committed Name' });
+    expect(saved).toMatchObject({ currentStep: 'workspace', completedSteps: ['profile'] });
+    // The session refreshes after the identity transaction commits.
+    expect(runtime.session.principal()?.persona.name).toBe('Committed Name');
+  });
+});

@@ -53,8 +53,17 @@ export interface OnboardingUiStep extends OnboardingStepDefinition {
   readOnly?: (ctx: OnboardingStepContext) => boolean;
   /** Explains a read-only step. */
   readOnlyNote?: string;
-  /** The real change the validated answer makes, before it is saved. Throw to stay. */
+  /**
+   * The real change the validated answer makes, before it is saved. Throw to
+   * stay. It runs outside the wizard's transaction; for data writes that must
+   * commit with the answer, give the step an engine `effect` instead.
+   */
   apply?: (answer: unknown, ctx: OnboardingStepContext) => void | Promise<void>;
+  /**
+   * Runs after the answer was saved, for changes outside the data database
+   * (e.g. the color mode in control state), so a failed save changes nothing.
+   */
+  afterSubmit?: (answer: unknown, ctx: OnboardingStepContext) => void | Promise<void>;
 }
 
 /** Turns typed field strings into the step's input (`emails` → string[]). */

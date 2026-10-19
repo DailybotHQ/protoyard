@@ -94,7 +94,8 @@ join, then are sent to sign in with their code. Route group: `invites`
 
 Mount `TrialBanner` in the app shell to show remaining trial days from the simulated clock. Use the exported `InboxDrawer` on a signed-out screen to open the simulated
 mailbox without changing routes. Pass a fictional `recipient` when no signed-in
-persona supplies one. `InboxBadge` is available for headers and displays the
+persona supplies one, and `lockRecipient` to show only that mailbox (no
+address form), with a scoped `service` when the reader must not open others. `InboxBadge` is available for headers and displays the
 unread count. Inbox messages are plain text and action links stay in the
 prototype's hash routes.
 | `/inbox` | Simulated inbox | `requireAuth` |
@@ -112,6 +113,16 @@ persona profile, simulated password and MFA, team membership and invitations,
 linked providers, and inbox notification preferences. Controls are disabled
 when the current simulated role lacks their capability; services enforce the
 same checks.
+
+Set `ssoProviders` in `provideSaas(runtime, { ssoProviders: ['google', 'github'] })`
+to show "Continue with …" buttons on the kit's sign-in and sign-up screens
+(default none). Each button has a neutral key icon (no provider logo), a
+persistent "Simulated" label and a note that no provider is contacted. Set
+`signUpInboxHref: (account) => '#/…'` to add "Open simulated inbox" to the
+sign-up confirmation; the host serves that route for the signed-out,
+unverified account (the kit's own `/inbox` route requires a session). The
+auth screens' links ("Create account", "Forgot password?", "Back to sign in")
+are `#/…` hrefs, so they stay inside the hash router.
 
 Render `SsoButtons` on a sign-in or sign-up screen to start the simulated
 provider flow. It accepts an optional provider list, `sign-in` / `sign-up` /
@@ -149,6 +160,12 @@ the table with `saasStores(1, { tables: ['saas_onboarding', …] })` and grant
 - **Progress:** a progress bar (`flow.progressOf`) plus the Wizard stepper.
 - Field errors from zod show inline under each field. Errors from `apply` keep
   the person on the step.
+- **Atomic steps:** the default steps' `apply` runs before, and outside, the
+  wizard's save. For a step whose data changes must commit with its answer,
+  drop `apply` and give the step an engine `effect` (it runs in the save's
+  transaction, see the `@protoyard/saas` README); put changes outside the data
+  database (such as the color mode) in `afterSubmit`, which runs only after the
+  answer was saved.
 
 Configure it by passing your own steps, and render any step yourself with a snippet:
 
@@ -171,7 +188,7 @@ Configure it by passing your own steps, and render any step yourself with a snip
 ```
 
 A step without a snippet renders its `fields` (`text`, `emails`, `select`).
-`defaults`, `readOnly`/`readOnlyNote` and `apply` are optional. The screen is
+`defaults`, `readOnly`/`readOnlyNote`, `apply` and `afterSubmit` are optional. The screen is
 its own lazy chunk through the `/onboarding` route.
 
 ## Guards

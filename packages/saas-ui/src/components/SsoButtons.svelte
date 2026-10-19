@@ -1,8 +1,9 @@
 <script lang="ts">
-import type { PrototypeRuntime } from '@protoyard/core';
+import { KeyRound } from '@lucide/svelte';
 import { navigate, runService } from '@protoyard/renderer-svelte';
 import {
   createOAuthSimulator,
+  OAUTH_PROVIDER_REGISTRY,
   type OAuthIntent,
   type OAuthProviderScenarios,
   SAAS_PROVIDERS,
@@ -28,6 +29,8 @@ let {
   class: className,
 }: Props = $props();
 const runtime = getSaas().runtime as Parameters<typeof createOAuthSimulator>[0];
+const uid = $props.id();
+const noteId = `sso-simulated-${uid}`;
 let busyProvider = $state<SaasProvider | null>(null);
 let message = $state('');
 
@@ -49,18 +52,28 @@ async function start(provider: SaasProvider): Promise<void> {
 </script>
 
 <div class={className ?? 'grid gap-2'} data-testid="sso-buttons">
+  <p id={noteId} class="text-center text-xs text-muted-foreground">
+    Simulated sign-in: no provider is contacted and nothing leaves this browser.
+  </p>
   {#each providers as provider (provider)}
-    {@const name = provider === 'github' ? 'GitHub' : provider[0]?.toUpperCase() + provider.slice(1)}
+    {@const name = OAUTH_PROVIDER_REGISTRY[provider].name}
     <Button
       type="button"
       variant="outline"
-      class="w-full justify-center"
+      class="w-full justify-center gap-2"
       disabled={busyProvider !== null}
       loading={busyProvider === provider}
       loadingLabel={`Opening ${name}`}
+      aria-describedby={noteId}
       onclick={() => void start(provider)}
     >
-      Continue with {name}
+      <KeyRound class="size-4 shrink-0" aria-hidden="true" />
+      <span>Continue with {name}</span>
+      <span
+        class="ml-auto rounded-full border border-border px-2 py-0.5 text-[0.7rem] font-medium text-muted-foreground"
+        aria-hidden="true"
+        data-testid="sso-simulated-label">Simulated</span
+      >
     </Button>
   {/each}
   {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}

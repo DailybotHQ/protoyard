@@ -452,4 +452,80 @@ describe('auth screens', () => {
         .first()
     ).toBeUndefined();
   });
+
+  it('shows no SSO buttons by default and keeps every auth link inside the hash router', async () => {
+    const runtime = await boot();
+    render(AuthHarness, { props: { runtime, screen: 'sign-in' } });
+    expect(screen.queryByTestId('sso-buttons')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Create account' }).getAttribute('href')).toBe(
+      '#/sign-up'
+    );
+    expect(screen.getByRole('link', { name: 'Forgot password?' }).getAttribute('href')).toBe(
+      '#/auth/reset'
+    );
+    for (const name of ['reset', 'magic', 'verify', 'mfa', 'sign-up'] as const) {
+      cleanup();
+      render(AuthHarness, { props: { runtime, screen: name } });
+      const hrefs = screen
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href') ?? '')
+        .filter((href) => href !== '');
+      expect(hrefs.length, name).toBeGreaterThan(0);
+      expect(
+        hrefs.every((href) => href.startsWith('#/')),
+        `${name}: ${hrefs.join(', ')}`
+      ).toBe(true);
+    }
+  });
+
+  it('offers configured SSO providers on sign-in and sign-up, labelled Simulated', async () => {
+    const runtime = await boot();
+    const config = { ssoProviders: ['google', 'github'] as const };
+    render(AuthHarness, { props: { runtime, screen: 'sign-in', config } });
+    expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Continue with GitHub' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Continue with Slack' })).toBeNull();
+    const labels = screen.getAllByTestId('sso-simulated-label');
+    expect(labels.map((label) => label.textContent?.trim())).toEqual(['Simulated', 'Simulated']);
+    const note = screen.getByText(/Simulated sign-in: no provider is contacted/);
+    expect(
+      screen.getByRole('button', { name: 'Continue with Google' }).getAttribute('aria-describedby')
+    ).toBe(note.id);
+
+    cleanup();
+    render(AuthHarness, { props: { runtime, screen: 'sign-up', config } });
+    await submit('Continue with Google');
+    await waitFor(() => expect(location.hash).toContain('#/oauth/google/consent?state='));
+    const token = await runtime.db
+      .rows<{ id: string; payload: { intent: string } }>('saas_tokens')
+      .where('kind')
+      .equals('oauth-state')
+      .first();
+    expect(token?.payload.intent).toBe('sign-up');
+  });
+
+  it('links the sign-up hand-off to the configured pending inbox', async () => {
+    const runtime = await boot();
+    const config = {
+      signUpInboxHref: (account: { id: string; email: string }) =>
+        `#/inbox?account=${account.id}&email=${account.email}`,
+    };
+    render(AuthHarness, { props: { runtime, screen: 'sign-up', config } });
+    await type('Name', 'Olivia Hart');
+    await type('Email', 'olivia@example.com');
+    await type('Password', 'throwaway password');
+    await submit('Create account');
+    const link = await screen.findByRole('link', { name: 'Open simulated inbox' });
+    const account = await runtime.db
+      .rows<SaasAccount>('saas_accounts')
+      .where('email')
+      .equals('olivia@example.com')
+      .first();
+    expect(link.getAttribute('href')).toBe(
+      `#/inbox?account=${account?.id}&email=olivia@example.com`
+    );
+    expect(screen.getByRole('link', { name: 'Return to sign in' }).getAttribute('href')).toBe(
+      '#/sign-in'
+    );
+  });
 });

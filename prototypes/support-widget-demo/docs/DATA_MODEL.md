@@ -16,7 +16,8 @@ it is created empty with status `streaming` and its body grows chunk by
 chunk, so a reload shows exactly what had arrived; `promptId` links it to
 the message it answers. `reads` stores one read marker per conversation and
 persona (id `<conversationId>:<personaId>`), which drives the launcher's
-unread count.
+unread count; it moves only when the persona sends a message or views the
+thread with the panel open.
 
 `orders` are fictional store orders the visitor can look up, and `returns`
 are return requests against them. They live in the same browser database
@@ -88,7 +89,7 @@ _Indexed fields only. Relations are inferred from indexed `…Id` fields that ma
 | `reads.conversationId`, `reads.personaId` | `conversations.id`, `py_personas.id` | one row per pair | The id is `<conversationId>:<personaId>` (`readMarkerId`), so `put` replaces it. Both relations are checked by the integrity rules. |
 | `returns.orderId` | `orders.id` | many to one | The service allows a new return only when every earlier return on that order is `denied` (it checks the first one it finds). Checked by the integrity rules. |
 | `returns.createdBy` | `py_personas.id` | many to one | Checked by the integrity rules; not indexed |
-| `orders.email` | `py_personas.email` | many to one, by value | Not a foreign key: generated orders all use `alex.trail@example.com`. `listOrdersForEmail` matches on it. |
+| `orders.email` | `py_personas.email` | many to one, by value | Not a foreign key: generated orders all use `alex.trail@example.com`. It scopes orders to their owner: the `ownsOrder` rule lets a visitor read and return only orders whose email matches their persona's (agents see all), and `listOrdersForEmail` matches on it. |
 
 Nothing cascades: there is no service that deletes a conversation, order or
 return.

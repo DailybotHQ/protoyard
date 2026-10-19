@@ -1,5 +1,5 @@
 import { parseInput, ValidationError } from '@protoyard/core';
-import type { ProtoyardRuntime } from '@protoyard/runtime';
+import type { IdentityOps, ProtoyardRuntime } from '@protoyard/runtime';
 import type { z } from 'zod';
 import type { SaasOnboarding } from './schema.ts';
 
@@ -25,10 +25,21 @@ export const DEFAULT_ONBOARDING_CAPABILITY = 'onboarding:progress';
 /** Re-exported from core so kit consumers keep one import (field path → first message). */
 export { parseInput, ValidationError };
 
-/** Runs inside the step's transaction, after validation (e.g. write a workspace row). */
+/**
+ * Runs inside the step's transaction, after validation (e.g. write a workspace
+ * row). The transaction is a `runtime.identity.write`, so `identity` writes
+ * personas, organizations and memberships atomically with the wizard row: if
+ * the effect throws, neither the effect's writes nor the answer are saved.
+ */
 export type StepEffect = (
   answer: unknown,
-  ctx: { at: string; personaId: string; organizationId: string | null }
+  ctx: {
+    at: string;
+    personaId: string;
+    organizationId: string | null;
+    /** Identity writes in the same transaction (the session refreshes after commit). */
+    identity: IdentityOps;
+  }
 ) => void | Promise<void>;
 
 export interface OnboardingStepDefinition {
@@ -264,16 +275,39 @@ export function createOnboarding(runtime: ProtoyardRuntime, config: OnboardingCo
         throw new ValidationError({ form: 'The final step is finished with complete().' });
       if (definition.capability) session.assert(definition.capability);
       const answer = definition.schema ? parseInput(definition.schema, input) : undefined;
-      return mutate(step, async (state, at) => {
-        reachable(state, step);
-        await definition.effect?.(answer, {
-          at,
-          personaId: state.personaId,
-          organizationId: state.organizationId,
-        });
+      const save = (state: SaasOnboarding, at: string) => {
         const answers = answer === undefined ? state.answers : { ...state.answers, [step]: answer };
         return settle({ ...state, answers }, step, 'completed', at);
-      });
+      };
+      const effect = definition.effect;
+      if (!effect) {
+        return mutate(step, (state, at) => {
+          reachable(state, step);
+          return save(state, at);
+        });
+      }
+      // Effects run in ONE identity transaction with the wizard row: the answer,
+      // the new position and the effect's writes commit together or not at all.
+      const personaId = principal().persona.id;
+      return environment.run(`${area}.${step}`, () =>
+        identity.write(
+          async (ops) => {
+            const at = now();
+            const state = await read(personaId);
+            reachable(state, step);
+            await effect(answer, {
+              at,
+              personaId: state.personaId,
+              organizationId: state.organizationId,
+              identity: ops,
+            });
+            const next = save(state, at);
+            await db.table<SaasOnboarding>(ONBOARDING_TABLE).put(next);
+            return next;
+          },
+          { tables }
+        )
+      );
     },
 
     /** Skips an optional step. A step already answered keeps its answer and stays completed. */

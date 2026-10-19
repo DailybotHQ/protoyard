@@ -29,10 +29,14 @@ live in the root [AGENTS.md](../../AGENTS.md); the spec standard is
   `nextAt(conversationId)`, not `clock.now()` alone.
 - Money is integer cents (`orders.totalCents`, `returns.amountCents`); a
   refund never exceeds the order total. Orders and emails stay fictional
-  (`NW-…` numbers, `example.com`).
+  (`NW-…` numbers, `example.com`). Order reads and returns are scoped to the
+  active persona by the `orders:lookup` / `returns:create` rule (`ownsOrder`
+  in `src/domain/policy.ts`); keep that check in the services.
 - The app runs in the `widget-host` shell: it must fit the 380 × 560 px
   panel and full-screen phone layout, and drives the launcher badge only
-  through `tryGetWidgetHost()`. There are no routes; update
+  through the widget host API: `WidgetPanel` (`src/lib/widget-panel.svelte.ts`)
+  says whether the panel is open, and `createUnreadSync` (`src/lib/unread.ts`)
+  runs one ordered badge update per change. There are no routes; update
   [docs/SCREENS.md](docs/SCREENS.md) by hand when the screen changes.
 
 ## Quick commands

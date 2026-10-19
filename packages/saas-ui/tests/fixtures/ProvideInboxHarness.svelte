@@ -8,11 +8,12 @@ interface Props {
   service: InboxService;
   embedded?: boolean;
   recipient?: string;
+  lockRecipient?: boolean;
 }
 
 const runtime = { session: { principal: () => null } } as unknown as PrototypeRuntime;
-let { service, embedded = false, recipient }: Props = $props();
+let { service, embedded = false, recipient, lockRecipient = false }: Props = $props();
 provideSaas(runtime);
 </script>
 
-<InboxDrawer {service} {embedded} {recipient} />
+<InboxDrawer {service} {embedded} {recipient} {lockRecipient} />

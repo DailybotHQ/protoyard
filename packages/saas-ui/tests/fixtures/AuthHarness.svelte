@@ -3,6 +3,7 @@ import type { PrototypeRuntime } from '@protoyard/core';
 import { untrack } from 'svelte';
 import type { OAuthProviderScenarios, SaasProvider } from '../../../saas/src/index.ts';
 import SsoButtons from '../../src/components/SsoButtons.svelte';
+import type { SaasUiConfig } from '../../src/config.ts';
 import { provideSaas } from '../../src/context.ts';
 import MagicLink from '../../src/screens/auth/MagicLink.svelte';
 import Mfa from '../../src/screens/auth/Mfa.svelte';
@@ -31,14 +32,19 @@ let {
   scenarios,
   provider = 'google',
   tab = 'profile',
+  config,
 }: {
   runtime: PrototypeRuntime;
   screen: AuthScreen;
   scenarios?: OAuthProviderScenarios;
   provider?: SaasProvider;
   tab?: string;
+  config?: SaasUiConfig;
 } = $props();
-provideSaas(untrack(() => runtime));
+provideSaas(
+  untrack(() => runtime),
+  untrack(() => config ?? {})
+);
 </script>
 
 {#if screen === 'sign-in'}
