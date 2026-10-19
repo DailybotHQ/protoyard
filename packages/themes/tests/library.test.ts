@@ -9,6 +9,7 @@ import {
   loadLibraryTheme,
   THEME_LIBRARY_META,
 } from '../src/library/index.ts';
+import { BUILTIN_THEMES } from '../src/presets.ts';
 
 afterEach(() => {
   clearLibraryThemeCache();
@@ -62,5 +63,16 @@ describe('theme library registry', () => {
       }
     }
     expect(failures).toEqual([]);
+  });
+});
+
+describe('theme values stay inside the hardened ThemeSchema', () => {
+  it('every built-in and library theme passes the color, font and radius guards', async () => {
+    const themes = [...BUILTIN_THEMES, ...(await loadAllLibraryThemes())];
+    expect(themes.length).toBeGreaterThan(BUILTIN_THEMES.length);
+    for (const theme of themes) {
+      const result = ThemeSchema.safeParse(theme);
+      expect(result.success, `${theme.id}: ${result.error?.message ?? ''}`).toBe(true);
+    }
   });
 });

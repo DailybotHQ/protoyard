@@ -6,7 +6,79 @@ import { z } from 'zod';
  * writes them as `--py-*` CSS custom properties on the prototype root.
  */
 
-const color = z.string().min(1).max(64);
+/*
+ * Theme values become CSS custom properties and can be exported as a CSS
+ * file, and imported themes are untrusted. So colors, fonts and radii are
+ * constrained to their CSS syntax: no `url(` or other resource-loading
+ * function, no `;`, `{`, `}`, `<`, `>`, backslash escapes or `!`, balanced
+ * parentheses, and (fonts) balanced quotes.
+ */
+
+/** Functions a color may use. Anything else (`url(`, `image(`, `element(`…) is refused. */
+const COLOR_FUNCTIONS = new Set([
+  'rgb',
+  'rgba',
+  'hsl',
+  'hsla',
+  'hwb',
+  'lab',
+  'lch',
+  'oklab',
+  'oklch',
+  'color',
+  'color-mix',
+  'var',
+  'calc',
+]);
+
+/** True when every `(` follows an allowed function name and parentheses balance. */
+function safeFunctions(value: string, allowed: ReadonlySet<string>): boolean {
+  let depth = 0;
+  for (let i = 0; i < value.length; i++) {
+    const char = value[i];
+    if (char === '(') {
+      const name = /([A-Za-z-]+)$/.exec(value.slice(0, i))?.[1]?.toLowerCase();
+      if (!name || !allowed.has(name)) return false;
+      depth++;
+    } else if (char === ')') {
+      depth--;
+      if (depth < 0) return false;
+    }
+  }
+  return depth === 0;
+}
+
+const HEX_COLOR = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const COLOR_KEYWORD = /^[a-z]{3,32}$/i;
+const COLOR_FUNCTION_CHARS = /^[a-z][a-z0-9 #.,%/+\-()]*\)$/i;
+
+/** A CSS color: hex, a keyword (`transparent`, `red`) or a color function. */
+export function isSafeCssColor(value: string): boolean {
+  if (HEX_COLOR.test(value) || COLOR_KEYWORD.test(value)) return true;
+  return COLOR_FUNCTION_CHARS.test(value) && safeFunctions(value, COLOR_FUNCTIONS);
+}
+
+const FONT_FUNCTIONS = new Set(['var']);
+const FONT_CHARS = /^[A-Za-z0-9 ,'"_.()-]+$/;
+
+/** A CSS font-family list: names, quoted names and `var(--token, fallback)`. */
+export function isSafeFontFamily(value: string): boolean {
+  if (!FONT_CHARS.test(value)) return false;
+  if ((value.match(/"/g)?.length ?? 0) % 2 !== 0) return false;
+  if ((value.match(/'/g)?.length ?? 0) % 2 !== 0) return false;
+  return safeFunctions(value, FONT_FUNCTIONS);
+}
+
+const color = z
+  .string()
+  .min(1)
+  .max(64)
+  .refine(isSafeCssColor, 'Use a CSS color: hex, a keyword, or rgb()/hsl()/oklch()/color-mix()');
+const fontFamily = z
+  .string()
+  .min(1)
+  .max(300)
+  .refine(isSafeFontFamily, 'Use a font-family list such as "Inter", system-ui, sans-serif');
 
 export const ThemePaletteSchema = z.object({
   background: color,
@@ -159,16 +231,21 @@ export function resolveThemeStyle(style: ThemeStyleInput | undefined = {}): Them
   return ThemeStyleSchema.parse(style);
 }
 
+/** Corner radius: a CSS length, up to `9999px` for pill shapes. */
+const radiusLength = z
+  .string()
+  .regex(/^(?:0|\d{1,5}(?:\.\d{1,4})?(?:px|rem|em))$/, 'Use a length like 0.625rem or 9999px');
+
 export const ThemeSchema = z.object({
   id: z.string().regex(/^[a-z][a-z0-9-]*$/),
   name: z.string().min(1).max(40),
   description: z.string().default(''),
-  fontFamily: z.string().default("'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif"),
-  fontFamilyHeading: z.string().optional(),
-  fontFamilyMono: z
-    .string()
-    .default("'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace"),
-  radius: z.string().default('0.625rem'),
+  fontFamily: fontFamily.default("'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif"),
+  fontFamilyHeading: fontFamily.optional(),
+  fontFamilyMono: fontFamily.default(
+    "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace"
+  ),
+  radius: radiusLength.default('0.625rem'),
   /** Multiplier applied to spacing tokens (compact 0.875 … comfortable 1.125). */
   density: z.number().min(0.75).max(1.25).default(1),
   light: ThemePaletteSchema,
