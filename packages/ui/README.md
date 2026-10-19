@@ -183,6 +183,29 @@ loading, the current screen stays mounted under a chrome skeleton. Until a
 layout has registered its loader, the screen renders in the host's default
 content frame.
 
+### Content layouts
+
+Three page layouts are available for product screens that need more than an
+application sidebar:
+
+| Component | Content | Responsive behavior |
+| --- | --- | --- |
+| `MasterDetailLayout` | `list` and `detail` snippets; bind `detailActive` to the selected route | Two panes with a keyboard- and pointer-resizable list on wide containers; one pane at a time on narrow containers. The list stays mounted while details change, and its width is stored in `localStorage` (override the key with `storageKey`). |
+| `DashboardGridLayout` | Child widgets; set `data-span="1"` through `data-span="4"` on each direct widget element | Uses one, two, three, then four columns as its container grows. Spans clamp to the current column count. It is a static grid with no drag-and-drop. |
+| `DocsLayout` | `navigation` snippet and documentation child content | Shows section navigation, the content, and a generated h2/h3 table of contents. The TOC follows visible headings and refreshes when headings are added or removed. |
+
+`MasterDetailLayout` exposes the splitter as a vertical separator: Left/Right
+arrows resize it by 16 pixels, while Home and End select the minimum and maximum
+list widths. Bind `detailActive` to route selection so narrow screens show the
+matching detail; the built-in Back to list control clears it. The default width
+key is scoped to the current app pathname, so callers can pass `storageKey` to
+share a preference between routes.
+
+`DocsLayout` assigns stable fragment ids to headings that do not already have
+one. It uses `MutationObserver` to rebuild the TOC and `IntersectionObserver`
+to mark the current section; when intersection observation is unavailable, the
+TOC remains usable as a set of fragment links.
+
 ## Toasts
 
 ```ts
