@@ -1138,6 +1138,72 @@
                 "minLength": 1,
                 "maxLength": 60
               },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
               "type": {
                 "type": "string",
                 "const": "list"
@@ -1169,6 +1235,72 @@
                 "minLength": 1,
                 "maxLength": 60
               },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
               "type": {
                 "type": "string",
                 "const": "detail"
@@ -1176,6 +1308,22 @@
               "entity": {
                 "type": "string",
                 "minLength": 1
+              },
+              "tabs": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["overview", "activity", "files", "audit"]
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^related:[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                    }
+                  ]
+                }
               }
             },
             "required": ["type", "entity"],
@@ -1192,6 +1340,72 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 60
+              },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
               },
               "type": {
                 "type": "string",
@@ -1217,6 +1431,72 @@
                 "minLength": 1,
                 "maxLength": 60
               },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
               "type": {
                 "type": "string",
                 "const": "board"
@@ -1226,6 +1506,18 @@
                 "minLength": 1
               },
               "groupBy": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "cardFields": {
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-zA-Z0-9]*$"
+                }
+              },
+              "sumField": {
                 "type": "string",
                 "pattern": "^[a-z][a-zA-Z0-9]*$"
               }
@@ -1245,12 +1537,515 @@
                 "minLength": 1,
                 "maxLength": 60
               },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "type": {
+                "type": "string",
+                "const": "calendar"
+              },
+              "entity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dateField": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "endField": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "colorBy": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "view": {
+                "default": "month",
+                "type": "string",
+                "enum": ["month", "week", "day", "agenda"]
+              }
+            },
+            "required": ["type", "entity", "dateField"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "type": {
+                "type": "string",
+                "const": "timeline"
+              },
+              "entity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "startField": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "endField": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "groupBy": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "zoom": {
+                "default": "month",
+                "type": "string",
+                "enum": ["week", "month", "quarter"]
+              }
+            },
+            "required": ["type", "entity", "startField", "endField"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "type": {
+                "type": "string",
+                "const": "map"
+              },
+              "entity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "geoField": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "colorBy": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              }
+            },
+            "required": ["type", "entity", "geoField"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "type": {
+                "type": "string",
+                "const": "analytics"
+              },
+              "entity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "dateField": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]*$"
+              },
+              "measures": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "aggregate": {
+                      "default": "count",
+                      "type": "string",
+                      "enum": ["count", "sum", "avg", "min", "max"]
+                    },
+                    "field": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "dimensions": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-zA-Z0-9]*$"
+                }
+              }
+            },
+            "required": ["type", "entity", "dateField", "measures"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
               "type": {
                 "type": "string",
                 "const": "dashboard"
               },
               "metrics": {
-                "default": [],
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -1275,6 +2070,392 @@
                   },
                   "required": ["label", "entity", "aggregate"],
                   "additionalProperties": false
+                }
+              },
+              "widgets": {
+                "default": [],
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "entity": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "filter": {
+                          "type": "object",
+                          "properties": {
+                            "field": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-zA-Z0-9]*$"
+                            },
+                            "op": {
+                              "type": "string",
+                              "enum": ["eq", "in", "gte", "lte"]
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": ["string", "number", "boolean"]
+                                },
+                                {
+                                  "minItems": 1,
+                                  "type": "array",
+                                  "items": {
+                                    "type": ["string", "number", "boolean"]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "required": ["field", "op", "value"],
+                          "additionalProperties": false
+                        },
+                        "span": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 4
+                        },
+                        "aggregate": {
+                          "default": "count",
+                          "type": "string",
+                          "enum": ["count", "sum", "avg", "min", "max"]
+                        },
+                        "field": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-zA-Z0-9]*$"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "kpi"
+                        }
+                      },
+                      "required": ["label", "entity", "kind"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "entity": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "filter": {
+                          "type": "object",
+                          "properties": {
+                            "field": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-zA-Z0-9]*$"
+                            },
+                            "op": {
+                              "type": "string",
+                              "enum": ["eq", "in", "gte", "lte"]
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": ["string", "number", "boolean"]
+                                },
+                                {
+                                  "minItems": 1,
+                                  "type": "array",
+                                  "items": {
+                                    "type": ["string", "number", "boolean"]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "required": ["field", "op", "value"],
+                          "additionalProperties": false
+                        },
+                        "span": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 4
+                        },
+                        "aggregate": {
+                          "default": "count",
+                          "type": "string",
+                          "enum": ["count", "sum", "avg", "min", "max"]
+                        },
+                        "field": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-zA-Z0-9]*$"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "chart"
+                        },
+                        "chart": {
+                          "type": "string",
+                          "enum": ["line", "area", "bar", "donut"]
+                        },
+                        "groupBy": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-zA-Z0-9]*$"
+                        },
+                        "bucket": {
+                          "type": "object",
+                          "properties": {
+                            "field": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-zA-Z0-9]*$"
+                            },
+                            "unit": {
+                              "type": "string",
+                              "enum": ["day", "week", "month"]
+                            }
+                          },
+                          "required": ["field", "unit"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": ["label", "entity", "kind", "chart"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "entity": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "filter": {
+                          "type": "object",
+                          "properties": {
+                            "field": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-zA-Z0-9]*$"
+                            },
+                            "op": {
+                              "type": "string",
+                              "enum": ["eq", "in", "gte", "lte"]
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": ["string", "number", "boolean"]
+                                },
+                                {
+                                  "minItems": 1,
+                                  "type": "array",
+                                  "items": {
+                                    "type": ["string", "number", "boolean"]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "required": ["field", "op", "value"],
+                          "additionalProperties": false
+                        },
+                        "span": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 4
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "list"
+                        },
+                        "limit": {
+                          "default": 5,
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 20
+                        },
+                        "sort": {
+                          "type": "object",
+                          "properties": {
+                            "field": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-zA-Z0-9]*$"
+                            },
+                            "direction": {
+                              "default": "desc",
+                              "type": "string",
+                              "enum": ["asc", "desc"]
+                            }
+                          },
+                          "required": ["field"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": ["label", "entity", "kind"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "entity": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "filter": {
+                          "type": "object",
+                          "properties": {
+                            "field": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-zA-Z0-9]*$"
+                            },
+                            "op": {
+                              "type": "string",
+                              "enum": ["eq", "in", "gte", "lte"]
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": ["string", "number", "boolean"]
+                                },
+                                {
+                                  "minItems": 1,
+                                  "type": "array",
+                                  "items": {
+                                    "type": ["string", "number", "boolean"]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "required": ["field", "op", "value"],
+                          "additionalProperties": false
+                        },
+                        "span": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 4
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "board-summary"
+                        },
+                        "groupBy": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-zA-Z0-9]*$"
+                        }
+                      },
+                      "required": ["label", "entity", "kind", "groupBy"],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^\\/[a-z0-9/:-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "nav": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "icon": {
+                    "type": "string",
+                    "enum": [
+                      "activity",
+                      "bell",
+                      "book-open",
+                      "briefcase",
+                      "building",
+                      "calendar",
+                      "calendar-days",
+                      "chart-bar",
+                      "chart-gantt",
+                      "chart-line",
+                      "chart-pie",
+                      "clock",
+                      "cpu",
+                      "database",
+                      "dollar-sign",
+                      "file-text",
+                      "folder",
+                      "globe",
+                      "graduation-cap",
+                      "heart-pulse",
+                      "house",
+                      "inbox",
+                      "kanban",
+                      "layout-dashboard",
+                      "list",
+                      "map",
+                      "map-pin",
+                      "message-square",
+                      "package",
+                      "receipt",
+                      "settings",
+                      "shopping-cart",
+                      "star",
+                      "table",
+                      "tag",
+                      "ticket",
+                      "truck",
+                      "users",
+                      "wallet",
+                      "wrench",
+                      "zap"
+                    ]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 999
+                  },
+                  "hidden": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "type": {
+                "type": "string",
+                "const": "settings"
+              },
+              "sections": {
+                "default": ["profile", "workspace", "appearance"],
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["profile", "workspace", "appearance", "notifications", "danger"]
                 }
               }
             },
