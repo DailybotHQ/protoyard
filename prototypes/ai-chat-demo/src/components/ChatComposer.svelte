@@ -185,6 +185,7 @@ function onkeydown(event: KeyboardEvent): void {
       bind:this={textarea}
       bind:value
       id={inputId}
+      data-py-composer=""
       rows="1"
       maxlength={4000}
       {disabled}

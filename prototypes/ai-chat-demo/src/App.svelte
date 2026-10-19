@@ -27,7 +27,7 @@ const inThread = $derived(router.current.route?.path === '/c/:id');
   Container queries (not media queries) pick the layout, so DevTools viewport
   presets that narrow #app get the real single-pane mobile layout.
 -->
-<div class="@container h-dvh overflow-hidden bg-background text-foreground">
+<div class="@container h-app overflow-hidden bg-background text-foreground">
   <div class="flex h-full flex-col">
     <EnvironmentBanner />
     <!-- One <main> for both panes: on phones only one pane is visible at a time. -->
