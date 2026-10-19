@@ -9,13 +9,13 @@ idea to a published static site in this repository. It assumes the
 
 | # | Step | Commands / files | Done when |
 | --- | --- | --- | --- |
-| 1 | Explore | `pnpm protoyard list --json`, `pnpm protoyard list --kind template`, read `templates/<t>/README.md` | You know which template fits and which slugs exist |
+| 1 | Explore | `pnpm protoyard list --json`, `pnpm protoyard list --kind template` (or `--kind blueprint`), the gallery's `/marketplace/`, read `templates/<t>/README.md` | You know which template fits and which slugs exist |
 | 2 | Choose a slug | Lowercase kebab-case, 2–48 chars, not reserved, not taken | `list --json` does not contain it |
-| 3 | Create | `pnpm protoyard new <slug> --template <t> --name "<Name>" --description "<one line>"` | `prototypes/<slug>/` exists and `new` printed next steps |
+| 3 | Create | `pnpm protoyard new <slug> --template <t> --name "<Name>" --description "<one line>"` (or `--from <prototype>` to remix, or `generate <slug> --blueprint <file>` for a CRUD product) | `prototypes/<slug>/` exists and the command printed next steps |
 | 4 | Domain | `src/database/schema.ts` → `src/domain/policy.ts` → `src/domain/*.ts` services → `src/scenarios/index.ts` + `protoyard.json → scenarios` → `src/scenarios/generators.ts` → `integrity` in `src/prototype.ts` | `pnpm protoyard scenario validate <slug>` passes |
 | 5 | UI | `src/screens/`, `src/components/`, routes in `src/App.svelte`; components from `@protoyard/ui`, bindings from `@protoyard/renderer-svelte` | Every primary control does something real; empty, loading and error states exist |
 | 6 | Tests | `prototypes/<slug>/tests/`: generator tests and service tests on the real runtime | `pnpm vitest run prototypes/<slug>` passes |
-| 7 | Validate | `pnpm protoyard validate <slug> --build` | Exit code `0` |
+| 7 | Spec + validate | `pnpm protoyard spec <slug> --write`, then `pnpm protoyard validate <slug> --build` | Exit code `0`, spec regions current |
 | 8 | Build / export | `pnpm protoyard export <slug>` | ZIP written, isolation check passed |
 | 9 | Publish | `pnpm protoyard publish <slug> --provider cloudflare --dry-run`, then a real publish **only if the user asked for it** | URL reported by the provider |
 
@@ -28,7 +28,13 @@ Read before writing code:
   personas, time, environment.
 - [packages/ui/README.md](../packages/ui/README.md) and
   [packages/renderer-svelte/README.md](../packages/renderer-svelte/README.md)
-  for components, routing and `runService()`.
+  for components, routing (including lazy routes and guards) and
+  `runService()`.
+- When the product needs them: [SHELLS.md](SHELLS.md) (device and host
+  frames), [SAAS_KITS.md](SAAS_KITS.md) (simulated SaaS kits, scenario
+  fragments and their security boundaries), [AI_KITS.md](AI_KITS.md)
+  (simulated assistants, agents, voice, widgets) and
+  [SPECS.md](SPECS.md) (the prototype's `AGENTS.md` and `docs/`).
 
 ## Step notes
 
@@ -41,6 +47,30 @@ patterns; do not copy their domain code into a new prototype.
 namespace, the package name `@prototype/<slug>`, and runs `pnpm install`. It
 never overwrites files. If it fails half-way, re-running the same command
 resumes. Use `--no-install` only when you will run `pnpm install` yourself.
+
+**Spec.** The new prototype already has `AGENTS.md` and `docs/` with
+generated regions. Replace the TODOs, and run
+`pnpm protoyard spec <slug> --write` after changing schema, policy, scenarios
+or routes. `validate` fails while a region is stale.
+
+**Generated prototypes.** For a CRUD product, write a `blueprint.json`
+(check it with `pnpm protoyard blueprint validate <file>`; examples in
+[blueprints/](../blueprints/README.md)) and run
+`pnpm protoyard generate <slug> --blueprint <file>`. To change it later, edit
+`prototypes/<slug>/blueprint.json`, re-run
+`pnpm protoyard generate <slug> --blueprint prototypes/<slug>/blueprint.json`
+and `validate`. Never edit `src/generated/**`; generated screens use
+`EntityList`, `EntityDetail` and `EntityForm` from
+[`@protoyard/crud`](../packages/crud/README.md). Generated CRUD search, forms
+and record headings follow the blueprint; relation fields use indexed
+pickers and persona fields use team-persona selects. Details and limits:
+[GENERATOR.md](GENERATOR.md); the reference is `helpdesk-demo`.
+
+**Catalog.** Each manifest's optional `catalog` block (`CatalogSchema` in
+`@protoyard/core`: a category from `CATALOG_CATEGORIES`, `productType`,
+`platforms`, `features`, `highlights`, `difficulty`) shelves the prototype in
+the gallery. `protoyard new` copies the template's block, so adjust it for
+your product; `validate` reports it.
 
 **Domain first, UI second.** A working domain layer can be tested without a
 browser:
@@ -90,6 +120,27 @@ are complete examples.
 it uses the user's provider account and creates something public. Run
 `--dry-run` and show the command. Deploy only when the user explicitly asked,
 never with `--production` unless they asked for production.
+
+## From a brief to a blueprint
+
+For a CRUD-shaped product, let the generator build the data layer and the
+standard screens, then add the product-specific parts in owned files. The
+full workflow is in [GENERATOR.md](GENERATOR.md); `helpdesk-demo` is the
+reference. Give an agent this prompt (from GENERATOR.md):
+
+```text
+Build a Protoyard prototype for <product> from a blueprint.
+1. Write prototypes/<slug>/blueprint.json (formatVersion 1). Use docs/GENERATOR.md and
+   prototypes/helpdesk-demo/blueprint.json as the reference. Define the roles owner,
+   admin, member and viewer. Use fictional data only.
+2. Run `pnpm protoyard blueprint validate prototypes/<slug>/blueprint.json` until it passes.
+3. Run `pnpm protoyard generate <slug> --blueprint prototypes/<slug>/blueprint.json`.
+4. Never edit src/generated/**. Add the product-specific screens in owned files
+   (src/screens, src/App.svelte routes) and call the generated entity services.
+5. Run `pnpm vitest run prototypes/<slug>` and `pnpm protoyard validate <slug> --build`.
+6. To change the data model, edit blueprint.json and run step 3 again. Report the
+   schema version change.
+```
 
 ## Rules
 

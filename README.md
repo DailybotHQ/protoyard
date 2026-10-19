@@ -47,12 +47,17 @@ people.
 | 🧪 **Sandboxed worlds** | `?sandbox=<name>` opens a disposable copy of a prototype's databases, so two scenarios can run side by side on one origin. |
 | 🔌 **Mock HTTP (optional)** | `@protoyard/http` exposes your services as a `fetch`-compatible API with real status codes, simulated latency and outages, and a DevTools network log. No server and no service worker. |
 | 📸 **Snapshots** | Save the exact world after your edits, restore it, export it to a file, import it with validation. |
-| 🎨 **Themes** | Six AA-checked presets × light/dark/system, reduced motion, density, custom themes, no flash on load. Each prototype is styled independently. |
+| 🎨 **Themes** | Six AA-checked presets plus a 32-theme product library × light/dark/system, palettes generated from a brand color, a font catalog, style profiles (shape, elevation, motion), a live **Theme Studio** in DevTools and `protoyard theme` to create, import and export themes. No flash on load. |
+| 📱 **Shells** | Present the same app as a phone, tablet, desktop window, browser tab, chat widget on a fictional customer site, extension popup or side-panel plugin. Brand-neutral frames, picked in the manifest, DevTools or `?shell=`. They simulate a device; they do not emulate one. |
+| 🏗️ **Generator** | Describe a CRUD product as a data-only `blueprint.json` (entities, relations, roles, brand) and `protoyard generate` builds a working prototype: list/detail/form screens, search and deterministic worlds, plus opt-in CSV import/export, soft delete and undo, an audit log, notifications and file uploads per entity. Re-run it after editing the blueprint. 20 product blueprints ship in `blueprints/`. |
+| 🔐 **SaaS kits** | Simulated sign-up/sign-in, SSO with a fake OAuth round trip, magic links, MFA, password reset, invitations, workspaces, onboarding, plans, trials, checkout and invoices, with an in-app inbox for the "emails". *(Simulation, not security.)* |
+| 🤖 **AI kits** | Deterministic simulated assistants: streaming answers, agents with tool calls and approvals, safe rich answers, a canvas, scripted voice mode and a widget that opens as launcher, sidebar and full screen. No model API. |
 | 🧰 **DevTools** | A floating in-browser control center for scenario, personas, time, data, environment, appearance, snapshots and share links. Left out of public builds by default. |
 | 🧩 **UI kit** | Svelte 5 + Bits UI + Tailwind 4 components and product patterns (data table, kanban, chat, wizard, mobile shell…). |
 | 📦 **One-command export** | Static `dist/` + ZIP + build manifest with checksums. Relocatable base path and hash routing, so it runs on any static host. |
-| 🚀 **Publishing** | Cloudflare Pages adapter with a true `--dry-run`. Netlify and Vercel adapters are experimental. `pnpm build:showcase` builds the gallery and every live demo as one static site (GitHub Pages workflow included, manual dispatch only). |
-| 🤖 **Agent-first** | `AGENTS.md`, a CLI with `--json` on every command, templates, and a Deep Work Plan harness for long tasks. |
+| 🚀 **Publishing and CI** | Cloudflare Pages adapter with a true `--dry-run`; publish one, many or `--all` prototypes, with a local deploy ledger and a static team review page. Netlify and Vercel adapters are experimental. `pnpm build:showcase` builds the gallery and every live demo as one static site. `protoyard ci init` scaffolds GitHub Actions workflows; `budget` and `affected` keep CI fast and honest. |
+| 📝 **Specs** | Every prototype can carry an `AGENTS.md` and `docs/` spec whose generated regions stay in sync with the code (`protoyard spec`), plus a rebuild kit for turning it into a real app. |
+| 🧭 **Agent-first** | `AGENTS.md`, a CLI with `--json` on every command, templates, and a Deep Work Plan harness for long tasks. |
 
 ## 60-second start
 
@@ -82,11 +87,26 @@ pnpm protoyard export my-idea                      # → artifacts/my-idea/my-id
 | ![Chat](docs/assets/screenshots/chat.png) | **Relay** · `ai-chat-demo` | Team chat with scripted AI agents: streamed replies, cancel and retry, partial outages, unread state, a 600-message thread. No AI API. |
 | ![UI kit](docs/assets/screenshots/ui-kit.png) | **UI Kit** · `ui-kit` | Every component in every state, plus a theme lab with live tokens and contrast. |
 
+Newer flagships (no screenshots yet): **Lattice** · `lattice-saas-demo`
+(SaaS onboarding, workspaces, invitations and billing), **Beacon Help Desk** ·
+`helpdesk-demo` (generated from a blueprint: CRUD, an SLA dashboard and a
+ticket workspace), **Nova Assistant** ·
+`nova-assistant-demo` (assistant with voice, agent tools, a widget and a
+5,000-message history), **Relay Chat** · `relay-chat-demo` (Slack-like team
+chat with an AI teammate and huddles) and **Northwind Help** ·
+`support-widget-demo` (a support widget on the widget-host shell).
+
 ## Templates
 
 `blank` · `dashboard` · `mobile-app` · `chat` · `onboarding` ·
-`task-manager` · `ecommerce`. Each one is a working app with a database,
-roles, scenarios and tests, not a screenshot. See
+`task-manager` · `ecommerce` · `crud-app` · `b2b-saas` · `marketplace` ·
+`admin-console` · `desktop-app` · `chat-widget` · `plugin-panel` ·
+`ai-assistant` · `team-chat` · `agent-console`. Open the gallery's
+Marketplace (`pnpm dev` → `/marketplace/`) to try every product type and
+start your own with **Use this template** or **Remix**. Each template is a working app
+with a database, roles, scenarios, tests and a spec, not a screenshot. Start
+from one with `new --template`, remix any prototype with `new --from`, or
+run a template as a live demo with `pnpm protoyard dev <template>`. See
 `pnpm protoyard list --kind template`.
 
 ## Ask an agent
@@ -115,7 +135,9 @@ packages/scenarios ─ seeded generators     src/prototype.ts    schema + policy
 packages/runtime ─ the engine              src/domain/         services: assert → validate → simulate → transact
 packages/renderer-svelte ─ mount + Vite    src/screens/        UI with @protoyard/ui
 packages/ui · devtools · themes          apps/gallery ─ Astro, reads only the metadata registry
-packages/cli ─ index · new · dev · validate · build · export · preview · publish
+packages/blueprint · crud ─ generator    blueprints/ ─ data-only product blueprints
+packages/saas · saas-ui · ai · ai-ui ─ simulated SaaS and AI kits
+packages/cli ─ index · new · generate · dev · validate · spec · build · export · publish · ci
 ```
 
 The gallery never compiles prototypes. Every CLI command targets one slug,
@@ -138,7 +160,8 @@ measured in [docs/PERFORMANCE.md](docs/PERFORMANCE.md). Read
 
 ```bash
 pnpm dev | build | lint | typecheck | test | test:e2e | check
-pnpm protoyard help | doctor | list | index | new | dev | validate | build | export | preview | publish
+pnpm protoyard help | doctor | list | index | new | generate | dev | validate | spec | build | budget
+pnpm protoyard export | preview | publish | review-index | showcase | ci | affected | theme | scenario
 ```
 
 Full reference: [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md).

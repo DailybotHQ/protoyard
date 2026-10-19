@@ -11,9 +11,14 @@ These docs describe what works in this repository today. Start with the
 | [Quickstart](QUICKSTART.md) | Clone, open the gallery, create and export a prototype |
 | [Agent guide](AGENT_GUIDE.md) | The build loop and copy-paste prompts for coding agents |
 | [Database](DATABASE.md) | Schemas, migrations, services, reactive queries, storage caveats |
+| [Generator](GENERATOR.md) | Blueprints to prototypes: format, `protoyard generate`, regeneration, migrations and drift checks |
 | [Scenarios](SCENARIOS.md) | Scenario axes, generators, personas and permissions, time, environment, snapshots |
-| [Themes](THEMES.md) | Presets, tokens, light/dark/system, custom themes |
-| [Publishing](PUBLISHING.md) | Static builds, ZIP export, base paths, provider adapters |
+| [Themes](THEMES.md) | Style model, palette engine, the 32-theme library, Theme Studio, the `theme` CLI, brand blocks |
+| [Shells](SHELLS.md) | Device and host shells (phone, tablet, desktop window, browser, widget host, extension popup, side panel) |
+| [SaaS kits](SAAS_KITS.md) | Add simulated SaaS flows, compose scenarios and understand honest boundaries |
+| [AI kits](AI_KITS.md) | Simulated assistants, agents, voice and widgets; honest boundaries |
+| [Specs](SPECS.md) | The per-prototype spec harness: files, generated regions, rebuild kit, rebuild as a real app. Every prototype ships `AGENTS.md` + `docs/` (SPEC, DATA_MODEL, FLOWS, SCREENS, PERMISSIONS); `pnpm protoyard validate <slug> --strict-spec` passes for all nine. |
+| [Publishing](PUBLISHING.md) | Static builds, ZIP export, base paths, provider adapters, batch publish, review index, CI/CD templates |
 
 ## Understand it
 
@@ -38,4 +43,19 @@ These docs describe what works in this repository today. Start with the
 
 Package and app references live next to the code: each `packages/*/README.md`,
 `apps/gallery/README.md`, `templates/*/README.md` and
-`prototypes/*/README.md`.
+`prototypes/*/README.md`. The PLAN_002 packages:
+
+| Package | For |
+| --- | --- |
+| [blueprint](../packages/blueprint/README.md) | Data-only `blueprint.json`: validation, derived stores, migrations, policy, entity services |
+| [crud](../packages/crud/README.md) | `EntityList`, `EntityDetail` and `EntityForm` for blueprint-driven screens |
+| [saas](../packages/saas/README.md) | Simulated SaaS engine: tables, schemas, services and integrity (simulation, not security) |
+| [saas-ui](../packages/saas-ui/README.md) | SaaS kit screens and `saasRoutes` |
+| [ai](../packages/ai/README.md) | Deterministic simulated AI engine: conversations, agents and tools, voice |
+| [ai-ui](../packages/ai-ui/README.md) | Assistant workspace, composer, safe rich answers, canvas and widget modes |
+
+Product blueprints for `protoyard generate` live in
+[blueprints/](../blueprints/README.md) (`pnpm protoyard list --kind blueprint`).
+`helpdesk-demo` (Beacon Help Desk) is the `protoyard generate` flagship:
+`blueprint.json` → CRUD + SLA dashboard + ticket workspace
+([README](../prototypes/helpdesk-demo/README.md)).

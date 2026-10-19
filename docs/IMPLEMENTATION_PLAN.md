@@ -61,6 +61,94 @@ subagents for templates, demo UIs, docs and the agent kit. See
 - [x] Sandboxed worlds (`?sandbox=`) for isolated side-by-side scenarios [runtime tests]
 - [ ] Publishing `@protoyard/*` packages to npm (needs a build step; ADR-004)
 
+## PLAN_002: app simulator, next level
+
+The execution record is the Deep Work Plan
+`PLAN_002_app_simulator_next_level` (git-ignored `.dwp/plans/`), built by a
+lead and parallel lanes. Evidence below is the merge commit on `main` that
+integrated the work after its lane gates passed.
+
+**Phase 1, core contracts.**
+
+- [x] Signed-out sessions, sign-in persistence, runtime-created personas and memberships, invite and role services, trial and seat fields [`592193e`, `b69cfc9`, `4edb76a`, `e6a7df6`, `2c3f535`; merged in `fc1e183`]
+- [x] Shared `ValidationError` / `parseInput`, device catalog, `preview.shell` + `?shell=`, theme style dimensions, optional manifest `catalog` block [`6aa9faf`, `c440162`]
+
+**Phase 2, device shells.** See [SHELLS.md](SHELLS.md).
+
+- [x] `--py-app-height` and safe-area tokens, `MobileAppShell`, viewport containing-block fix [`80f13df`, `52cd59f`, `82cae93`]
+- [x] `ShellHost` with lazily loaded phone, tablet, desktop-window, browser, widget-host, extension-popup and side-panel frames; DevTools shell picker [`d8d5acf`, `2459b91`, `ad3091b`, `5d6e05b`, `a3ae279`, `0ea57ae`]
+- [x] Templates `desktop-app`, `chat-widget`, `plugin-panel`; flagship `support-widget-demo` [`7640774`, `de11065`, `213775a`]
+- [x] Gallery: shared device frames, view transitions, ⌘K palette, loading and empty states [`a96a283`, `569669d`, `08045d6`]
+- [x] Playwright shell matrix with layout and axe checks; shell bundle costs measured [`3e6d7d7`, `2db3fa3`, `9d83881`]
+
+**Phase 3, generator and CRUD platform.**
+
+- [x] `@protoyard/blueprint`: schema + JSON Schema, derived stores, migrations, input schemas, policy, entity services, soft delete and undo, audit log, notifications, deterministic worlds, CSV codec and services, file uploads, brand block [`4b9f39e`, `0117cbf`, `24b79c1`, `3beed8d`, `e9b28d1`, `c1685ca`, `9d646a4`, `079dac7`, `565798a`, `e272df2`, `bb50830`, `a68b601`, `cde46de`, `036be4f`]
+- [x] UI: DataTable selection, `FilterBar`, `FileDropzone`, `CommandPalette`; lazy routes [`5cb0be4`, `f1bfc0a`, `66999ce`, `21b52a3`, `76e9c9c`]
+- [x] `@protoyard/crud` (`EntityList`, `EntityDetail`, `EntityForm`, notifications, members), global search, `crud-app` template [`cc22917`, `7b40e9b`, `0dfc9f6`, `4d67506`, `ead0fcb`]
+- [x] `protoyard generate` and safe regeneration, `blueprint validate` [`33f4112`, `c8431e6`]
+- [x] `helpdesk-demo` flagship generated from a blueprint, with a Playwright spec (`tests/e2e/helpdesk-demo.spec.ts`) [`e8d00db`]; crud template polish (search, forms, headings, pickers) [`e3bddab`]
+- [x] [GENERATOR.md](GENERATOR.md), the blueprint and generate guide [`a0ea876`]
+
+**Phase 4, SaaS kits.** See [SAAS_KITS.md](SAAS_KITS.md).
+
+- [x] Route guards; `@protoyard/saas` engine: inbox, credentials auth, simulated OAuth, magic link and MFA, reset and invitations, workspaces, billing, onboarding, scenario fragments [`669e1f8`, `ee8274e`, `e2d7ba6`, `1c982ab`, `b1e8cd9`, `4ab6c2f`, `d8a7c1c`, `de44ba5`, `f63187f`, `4056cf0`, `fb4b5c2`]
+- [x] `@protoyard/saas-ui` screens: auth, SSO and consent, inbox, onboarding, workspace switcher, billing, settings [`a3c0e79`, `98c64a3`, `0669dd9`, `dbe3c0a`, `bfb2be9`, `5b4797c`, `d17bf47`, `b39c0a4`]
+- [x] Templates `b2b-saas`, `marketplace`, `admin-console`; flagship `lattice-saas-demo` with Playwright E2E [`69f0f22`, `f01c477`, `7320698`, `fb5f439`, `331e54c`]
+
+**Phase 5, themes.** See [THEMES.md](THEMES.md).
+
+- [x] Style tokens, palette engine, font catalog, 32-theme library, component variants, Theme Studio, `protoyard theme`, gallery Themes page, ui-kit theme lab, measured cost [`fae8385`, `a1eaf41`, `a597786`, `231736b`, `b53bab9`, `ea10d63`, `b14ed47`, `f7595a8`, `96e4aef`, `034494d`]
+
+**Phase 6, AI kits.** See [AI_KITS.md](AI_KITS.md).
+
+- [x] `@protoyard/ai` (engine, agents and tools, safe rich content, voice, scenario fragments) and `@protoyard/ai-ui` (workspace, virtual threads, widget modes) [`c6cd203`, `566e214`, `767f09f`, `4bc3994`, `d00c273`, `f04d51f`, `71f5db8`, `9c6a3da`]
+- [x] Templates `ai-assistant`, `team-chat`, `agent-console`; flagships `nova-assistant-demo`, `relay-chat-demo` [`c8e6adf`, `4aa8704`, `b0e6c84`, `3d0e3a4`, `f10d857`]; documented and measured [`000763d`]
+
+**Phase 7, publish, CI/CD, specs and performance.** See
+[PUBLISHING.md](PUBLISHING.md), [SPECS.md](SPECS.md) and
+[PERFORMANCE.md](PERFORMANCE.md).
+
+- [x] Batch publish, Cloudflare `--branch` and `--ensure-project`, deploy ledger, review index (+ publish and E2E), showcase publish [`38bec7b`, `91019d8`, `62a22c0`, `70b2ade`, `4bd23e0`, `c2ab678`, `bdf63a3`, `6b01686`]
+- [x] `affected`, CI templates, `ci init`, `ci check`, `export --all` [`aa8caf7`, `4d06302`, `5984166`, `7464336`, `54d0fe6`]
+- [x] Bundle analysis, budgets, `budget`, ready signal, cold-start bench, `scenario bench`, `bench:index --check`, CI perf job [`5eafdab`, `dce4494`, `27f0d91`, `8b6c234`, `7110452`, `98bad8b`, `8889d3c`, `b6285c7`]
+- [x] Spec harness: standard (ADR-019), `src/routes.ts`, `protoyard spec`, `validate` spec check, template skeletons, flagship specs for `crm-demo`, `mobile-banking-demo`, `ai-chat-demo`, rebuild kit [`1d24696`, `34a27c0`, `22156ff`, `0c60f7a`, `c9505dd`, `9d53730`, `a40114d`, `f65c456`]
+- [x] Full specs for the newer flagships and `ui-kit`; `validate <slug> --strict-spec` passes for all nine prototypes [`f1c6a34`]
+
+**Phase 8, marketplace.**
+
+- [x] Templates run as live demos from `dev` and the control server [`e751ad2`]
+- [x] `new --from` remixes a template or prototype [`7adbe60`]
+- [x] 20 product blueprints in `blueprints/`, indexed as `kind: blueprint`; `list --kind blueprint` [`11b602d`, `3775759`]
+- [x] Catalog metadata for every template and flagship; `validate` reports the catalog block [`253b473`]
+- [x] The marketplace in the gallery: `/marketplace/` rails, filters and detail pages with Try it, Use this template and Remix [`2f608b1`]
+- [x] Showcase with a live demo of every prototype and template (`template-demo-<name>` storage; `--no-templates`) [`f0923ff`]; built locally, **not published**
+- [x] Marketplace E2E (`tests/e2e/marketplace.spec.ts`) and `bench:index --marketplace --check` [`1c067ef`]; command palette loaded on demand, `/` 33.8 KiB and `/marketplace/` 57.4 KiB of JS [`ed95e68`]
+
+**Post-spec bug fixes** (found while writing specs and reviewing demos):
+
+- [x] `relay-chat-demo`: channel membership checks, the reactions UI and transactional writes [`c84b2a1`]
+- [x] `helpdesk-demo` / `@protoyard/crud`: trash and restore work again, CSV import is atomic; bulk soft delete with Undo covered in E2E [`1156086`, `0caaffd`]
+- [x] `@protoyard/ai`: the refusal pack is no longer picked for ordinary prompts [`e85d949`]
+- [x] `ui-kit`: theme lab writes go through a permission-checked service, library themes register lazily, and the accessibility page audits built-in, library and custom themes [`e85d949`]
+- [x] `nova-assistant-demo`: AA contrast tokens in light and dark [`2f4e70e`]
+- [x] `lattice-saas-demo`: verification inbox for pending sign-ups, simulated SSO on sign-in and sign-up, sign-out for every role, one plan catalog as the price source, atomic onboarding step effects; `support-widget-demo`: one unread sync for the launcher badge, order input defaults to the latest order [`3fd9a8f`]
+- [x] Gallery: the header nav stays inside phone widths [`ec55129`]
+- [x] Control server: the CORS preflight allows the `content-type` header, so creates from the browser work [`ed95e68`]
+
+**Known gaps after PLAN_002:**
+
+- The showcase is built but **not published**: publishing it needs the developer's explicit go-ahead.
+- E2E does not cover the real control server. Marketplace Try it is tested against the bundled showcase build (`PROTOYARD_E2E_SHOWCASE=1`).
+- CI does not run `bench:index --marketplace`; it is a local gate (it builds a 3,000-page gallery and needs Chromium).
+- The `nova-assistant-demo` 5,000-message long-task E2E is flaky under parallel load (it failed once in a 170-test run and passes in isolation).
+- Marketplace detail pages ship 60.9 KiB of JS gzip against a 60 KB target; most of it is the shared gallery layout.
+- Pre-existing domain gaps recorded in each prototype's `docs/` (checked against the code at this revision):
+  - `crm-demo`: `deals.amount` is whole dollars, not integer cents; the `deals:read` and `contacts:read` route capabilities are labels only; the expired-plan paywall covers creates only; deleting a contact leaves `activities.contactId` dangling.
+  - `mobile-banking-demo`: `accounts:read` is never checked; `addBeneficiary`, `removeBeneficiary` and `setAccountStatus` write without `db.transaction`; `simulatePayroll` asserts `transfers:create` without the member amount cap; `dailyLimitCents` is enforced per transfer, not per day; deleting a payee leaves `transfers.beneficiaryId` dangling.
+  - `ai-chat-demo`: inline validation instead of zod; `cancel`, `markRead` and `search` have no `session.assert`; `togglePin` checks `messages:send` and pins are shared by all personas; `agents.speed` and `agents.skills` are not used by the UI.
+
+
 ## Deferred and known gaps
 
 - **Live provider deploys** were not run: there are no credentials, and real publishing needs the owner's explicit authorization.
