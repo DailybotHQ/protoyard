@@ -115,3 +115,30 @@ the count, the instants (inside `hours`, default 8–18 UTC) and the per-slot rn
 days at once or 1 day seven times yields the same events with the same
 `evt:<scenario>:<YYYY-MM-DD>:<n>` ids. Window bounds are `(from, to]`. Return `null` from
 `make` to leave a slot empty.
+
+## Series, schedules, events and geo
+
+Deterministic data for charts, calendars, feeds and maps. Every value comes from scenario id +
+seed + its own key and date (or index), never from the requested window, and nothing reads
+`Math.random()` or the wall clock (a test greps the sources).
+
+```ts
+import { eventStream, geoPoints, scenarioSeriesOptions, schedule, timeSeries } from '@protoyard/scenarios';
+
+timeSeries({ ctx, key: 'revenue', months: 12, base: 1_250_000, trend: 'growth', seasonality: 'annual' });
+timeSeries({ ctx, key: 'visits', base: 300, ...scenarioSeriesOptions(ctx) }); // days, seasonality, spikes from the scenario
+eventStream({ ctx, days: 14, ratePerDay: 6, kinds: { 'ticket.created': 5, 'ticket.solved': 3 } });
+schedule({ ctx, resources: ['room-a'], recurring: [{ label: 'Stand-up', every: 'daily', startMinute: 540, durationMinutes: 15 }] });
+geoPoints({ ctx, region: 'metro-grid', count: 200, key: 'stores' });
+```
+
+- `timeSeries` ends at the bucket containing `to` (default the reference time); `base` is the
+  level there, so more history adds older points only.
+- `schedule` never overlaps slots of one resource; occupancy defaults to the scenario's
+  `generators.schedule.occupancy` (the `busy-week` preset sets 0.9), else 0.5.
+- `geoPoints` uses fictional regions (`GEO_REGIONS`) placed in open ocean.
+- Presets `quarter-of-history`, `launch-spike` and `busy-week`; fragments `history`,
+  `seasonality`, `spike` and `occupancy`.
+
+Full reference: [docs/SCENARIOS.md](../../docs/SCENARIOS.md#series-schedules-events-and-geo).
+

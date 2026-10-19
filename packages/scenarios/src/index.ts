@@ -19,6 +19,17 @@ export {
 } from './context.ts';
 export { createGenerateContext, createSeededFaker } from './context-sync.ts';
 export {
+  GEO_REGION_IDS,
+  GEO_REGIONS,
+  type GeoAnchor,
+  type GeoPoint,
+  type GeoPointsOptions,
+  type GeoRegion,
+  type GeoRegionId,
+  geoPoints,
+  inGeoRegion,
+} from './geo.ts';
+export {
   AVATAR_COLORS,
   billingFields,
   EXAMPLE_EMAIL_DOMAINS,
@@ -43,4 +54,28 @@ export {
   type PresetId,
   presetScenario,
 } from './presets.ts';
+export {
+  type Recurrence,
+  type RecurringBlock,
+  type ScheduledSlot,
+  type ScheduleOptions,
+  scenarioOccupancy,
+  schedule,
+  scheduleRng,
+} from './schedule.ts';
+export {
+  bucketStart,
+  type EventStreamOptions,
+  eventStream,
+  poisson,
+  type Seasonality,
+  type SeriesPoint,
+  type SeriesSpike,
+  type SeriesUnit,
+  scenarioSeriesOptions,
+  seriesRng,
+  type TimeSeriesOptions,
+  type Trend,
+  timeSeries,
+} from './series.ts';
 export { type DailyEventsOptions, type DaySlot, dailyEvents, dayRng } from './timeline.ts';
