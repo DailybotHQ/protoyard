@@ -137,6 +137,8 @@ loader uses the defaults below.
 | `coldStartMs` | `null` | No calibrated threshold yet; report-only until set (see [Cold start](#cold-start-built-prototypes)) |
 | `generateMs` | 50 ms | Scenario generation target |
 | `indexColdMs` | 100 ms | Cold metadata-index target |
+| `ideaToRunningMs` | `null` | Brief synthesis through first paint with a seeded world; calibrate before gating |
+| `briefToBlueprintMs`, `blueprintValidationMs`, `prototypeGenerationMs`, `prototypeBuildMs`, `previewReadyMs` | `null` | Optional per-phase idea-to-running thresholds |
 
 These budgets are **enforced**:
 
@@ -146,6 +148,7 @@ These budgets are **enforced**:
 | `indexColdMs` | `pnpm bench:index --runs 3 --check [--ci-factor 3]` | exit 1 |
 | `generateMs` | `pnpm protoyard scenario bench <slug> --check [--ci-factor 3]` (CI multiplies the budget by 3 for slower runners) | exit 4 |
 | `coldStartMs` | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --check` | report only while `null` |
+| `ideaToRunningMs` and configured phase budgets | `pnpm exec tsx scripts/bench-idea.ts --runs 3 --check` | report only while `null`; exit 1 over a configured median budget |
 | Data grid (thresholds in the script) | `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check` | exit 1 locally; report only on CI until calibrated there |
 
 The `perf` job in [.github/workflows/ci.yml](../.github/workflows/ci.yml)
@@ -176,7 +179,13 @@ For one prototype, set only the values that differ:
     "cssGzipKb": 30,
     "coldStartMs": null,
     "generateMs": 50,
-    "indexColdMs": 100
+    "indexColdMs": 100,
+    "ideaToRunningMs": null,
+    "briefToBlueprintMs": null,
+    "blueprintValidationMs": null,
+    "prototypeGenerationMs": null,
+    "prototypeBuildMs": null,
+    "previewReadyMs": null
   },
   "overrides": {
     "crm-demo": { "initialJsGzipKb": 280 }
@@ -251,6 +260,52 @@ than this machine.
 ```bash
 pnpm protoyard build crm-demo
 pnpm exec tsx scripts/bench-cold-start.ts crm-demo --runs 5 --check
+```
+
+## Idea → running prototype
+
+Method: `pnpm exec tsx scripts/bench-idea.ts --runs 3` creates a disposable
+workspace under `tmp/` for each run and install mode. It synthesizes a
+blueprint from the same fictional field-service brief, validates it, generates
+the prototype, builds it, then serves the static build on an OS-assigned port
+in a fresh headless Chromium context. The `install` mode includes the
+generator's offline workspace install. The `no-install` mode first links
+dependencies in a separate offline setup step, then runs generation with
+`--no-install`; that setup is outside the timer. The final phase ends when
+`protoyard:ready` appears after the runtime's `protoyard:world-ready` mark
+reports a seeded first world. The overall clock starts immediately before
+blueprint synthesis; human brief review and editing are outside this automated
+measurement. Results include per-phase medians and samples in
+`tmp/bench-idea-<timestamp>.json` with the machine details.
+
+The total and phase thresholds are nullable until calibrated. Set
+`ideaToRunningMs` from a repeatable local median (the plan proposes 1.5×
+that median); optional phase values can locate regressions. `--check` reports
+when a budget is null and exits `1` if a configured median is exceeded. When
+`CI` is set, `--ci-factor` (default `3`) scales configured thresholds.
+
+First local comparison on 2026-10-19: 3 runs per mode on an Apple M1 Max
+(10 cores, 64 GB, macOS 27.0, Node 26.11.1, Chromium 156.0.8078.4). A
+background browser session was active, so treat these as an initial
+calibration. All six runs reached a seeded first world. The JSON report was
+written under the ignored `tmp/` directory during measurement.
+
+| Phase | Install mode median (range) | `--no-install` median (range) |
+| --- | ---: | ---: |
+| Brief → blueprint | 754 ms (730–772 ms) | 726 ms (647–777 ms) |
+| Blueprint validation | 680 ms (658–691 ms) | 638 ms (615–640 ms) |
+| Prototype generation | 3,367 ms (3,359–3,479 ms; install included) | 1,355 ms (1,267–1,521 ms) |
+| Production build | 33,601 ms (33,440–34,059 ms) | 37,882 ms (33,577–39,205 ms) |
+| Preview ready with seeded data | 618 ms (607–619 ms) | 595 ms (592–606 ms) |
+| **Idea → running** | **39,020 ms (38,794–39,619 ms)** | **41,008 ms (36,950–42,699 ms)** |
+
+The plan's 1.5× calibration rule suggests a local total ceiling of 58,530 ms
+for the default install mode. The owner-held `protoyard.budgets.json` remains
+uncalibrated (`null`); the lead can propose that value there after confirming
+the integrated main result.
+
+```bash
+pnpm exec tsx scripts/bench-idea.ts --runs 3 --check
 ```
 
 ## Data grid at 100,000 rows

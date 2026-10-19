@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_BUDGET_CONFIG } from '../src/lib/budgets.ts';
+import { DEFAULT_BUDGET_CONFIG, parseBudgetConfig, resolveBudget } from '../src/lib/budgets.ts';
 import { addPrototype, addTemplate, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 describe('protoyard budget', () => {
@@ -139,5 +139,51 @@ describe('protoyard budget', () => {
     expect(message).toContain('1 of 2 prototype(s) could not be checked');
     expect(message).toContain('no valid bundle metrics');
     expect(message).not.toMatch(/over budget|failed budget checks/);
+  });
+});
+
+describe('idea-to-running budgets', () => {
+  it('accepts optional total and phase thresholds while defaulting older config files to null', () => {
+    const legacy = parseBudgetConfig({
+      format: 'protoyard.budgets',
+      version: 1,
+      defaults: {
+        initialJsGzipKb: 250,
+        cssGzipKb: 30,
+        coldStartMs: null,
+        generateMs: 50,
+        indexColdMs: 100,
+      },
+      overrides: {},
+    });
+    expect(resolveBudget(legacy, 'sample-app')).toMatchObject({
+      ideaToRunningMs: null,
+      briefToBlueprintMs: null,
+      blueprintValidationMs: null,
+      prototypeGenerationMs: null,
+      prototypeBuildMs: null,
+      previewReadyMs: null,
+    });
+
+    const configured = parseBudgetConfig({
+      ...legacy,
+      defaults: {
+        ...legacy.defaults,
+        ideaToRunningMs: 90_000,
+        briefToBlueprintMs: 5_000,
+        blueprintValidationMs: 1_000,
+        prototypeGenerationMs: 10_000,
+        prototypeBuildMs: 65_000,
+        previewReadyMs: 9_000,
+      },
+    });
+    expect(resolveBudget(configured, 'sample-app')).toMatchObject({
+      ideaToRunningMs: 90_000,
+      briefToBlueprintMs: 5_000,
+      blueprintValidationMs: 1_000,
+      prototypeGenerationMs: 10_000,
+      prototypeBuildMs: 65_000,
+      previewReadyMs: 9_000,
+    });
   });
 });
