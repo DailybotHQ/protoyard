@@ -1,4 +1,4 @@
-import { CatalogSchema } from '@protoyard/core';
+import { CatalogSchema, LayoutIdSchema } from '@protoyard/core';
 import { GEO_REGIONS, type GeoRegionId } from '@protoyard/scenarios';
 import { z } from 'zod';
 
@@ -718,6 +718,13 @@ const BlueprintShape = z.strictObject({
   category: z.string().min(1).max(40).optional(),
   /** Optional brand → generated on-brand theme for `protoyard generate`. */
   brand: BlueprintBrandSchema.optional(),
+  /** Shared app layout selected by generated apps. */
+  layout: z
+    .strictObject({
+      id: LayoutIdSchema,
+      mobile: LayoutIdSchema.optional(),
+    })
+    .optional(),
   entities: z.array(EntitySchema).min(1, { message: 'a blueprint needs at least one entity' }),
   roles: z.array(RoleSchema).min(1, { message: 'a blueprint needs at least one role' }),
   notifications: z.array(NotificationRuleSchema).default([]),

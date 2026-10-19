@@ -384,6 +384,11 @@ async function regenerate(
     manifestSchemaVersion: manifest.storage.schemaVersion,
     allowDrop: input.allowDrop,
   });
+  const ownedApp = await readFile(join(dest, 'src/App.svelte'), 'utf8').catch(() => '');
+  const layoutWarning =
+    plan.blueprint.layout && !ownedApp.includes("from './generated/layout.ts'")
+      ? 'layout set; owned App.svelte does not read src/generated/layout.ts — see GENERATOR.md'
+      : undefined;
   const report = plan.files.map(({ path, status }) => ({ path, status }));
   const count = (status: FilePlan['status']) =>
     plan.files.filter((f) => f.status === status).length;
@@ -438,6 +443,7 @@ async function regenerate(
       unchanged,
       schemaVersion: schema,
       entities: plan.blueprint.entities.map((e) => e.name),
+      ...(layoutWarning ? { layoutWarning } : {}),
       files: report,
       counts: {
         created: count('created'),
@@ -452,6 +458,7 @@ async function regenerate(
     },
     render(out) {
       const { c } = out;
+      if (layoutWarning) out.warn(`${mark(c, 'warn')} ${layoutWarning}`);
       if (spec && !spec.ok) {
         out.warn(
           `${mark(c, 'warn')} Spec docs not refreshed (${spec.error ?? 'unknown error'}). Run \`pnpm protoyard spec ${slug} --init --write\`.`
