@@ -176,8 +176,8 @@ only seeded data, never validation:
   field until all 175 are used, the team's faces are dealt last, adding rows
   keeps the earlier faces, and other fields of the row do not shift.
 
-Generated screens show the face next to the record title in lists and in the
-detail header. The form edits it with a lazy picker (a searchable grid of
+Generated screens show the face next to the record title in lists, on board
+cards and in the detail header. The form edits it with a lazy picker (a searchable grid of
 thumbnails: arrow keys, Home and End move, Enter or Space picks) and a
 **Shuffle face** button. On a saved record, Shuffle face calls
 `services.<entity>.shuffleAvatar(id)` (`session.assert` → zod →

@@ -8,6 +8,7 @@ import {
 import { createHarness } from '../../../tests/support/runtime.ts';
 import AvatarPicker from '../src/fields/AvatarPicker.svelte';
 import { formatFieldValue } from '../src/format.ts';
+import { BoardScreen } from '../src/screens/board/index.ts';
 import CrudHarness from './fixtures/CrudHarness.svelte';
 
 // The help desk fixture with a face on customers (avatars add no index, so stores match).
@@ -20,6 +21,7 @@ blueprint.entities[0]!.fields.push({
   sensitive: false,
 });
 const avatarField = blueprint.entities[0]!.fields.at(-1)!;
+blueprint.entities[1]!.fields.push({ ...avatarField, name: 'face' });
 
 function definition() {
   const base = createBlueprintDefinition('crud-avatar-fixture');
@@ -89,6 +91,38 @@ describe('EntityList and EntityDetail faces', () => {
     expect(faces).toHaveLength(2);
     expect((faces[0] as HTMLImageElement).getAttribute('src')).toBe('./avatars/128/av-012.webp');
     expect(screen.getByText('av-012')).toBeTruthy();
+  });
+});
+
+describe('BoardScreen faces', () => {
+  it('shows the face next to the card title and never as its own line', async () => {
+    const { runtime, services } = await boot();
+    const [customer] = await services.customer!.list();
+    await services.ticket!.create({
+      subject: 'Face on a card',
+      customerId: customer!.id,
+      face: 'av-033',
+    });
+    render(BoardScreen, {
+      runtime,
+      blueprint,
+      services,
+      screen: {
+        type: 'board',
+        entity: 'ticket',
+        groupBy: 'status',
+        cardFields: ['subject', 'face'],
+      },
+      onOpenRecord: () => {},
+    });
+    const face = await waitFor(() => {
+      const img = document.querySelector<HTMLImageElement>('img[data-record-avatar="av-033"]');
+      expect(img).toBeTruthy();
+      return img!;
+    });
+    expect(face.getAttribute('loading')).toBe('lazy');
+    expect(face.closest('p')?.textContent).toContain('Face on a card');
+    expect(face.closest('[data-board-card]')?.textContent).not.toContain('av-033');
   });
 });
 
