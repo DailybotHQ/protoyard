@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
+import { badgeOverlaps } from './support/badge.ts';
 import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
 const SLUG = 'relay-chat-demo';
@@ -122,5 +123,27 @@ test.describe('Relay Chat flagship', () => {
     await expectAccessible(page, testInfo, { label: 'relay-chat-huddle' });
     await page.getByRole('button', { name: 'Leave huddle' }).click();
     await expectOnScreen(page, composer);
+  });
+
+  test('390×844: the demo badge never covers a control (info dot when every corner is busy)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${prototypeUrl(SLUG)}?scenario=busy-day`);
+    await expect(page.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+      timeout: 20_000,
+    });
+    await expect(page.locator('[data-py-demo-badge]')).toHaveCount(1);
+    await expect.poll(() => badgeOverlaps(page), { message: 'badge over controls' }).toEqual([]);
+    const badge = page.locator('[data-py-demo-badge]');
+    if ((await badge.getAttribute('data-py-demo-badge')) === 'compact') {
+      // The dot still tells the truth on demand, and Escape folds it back.
+      const dot = badge.getByRole('button', { name: 'Prototype · simulated data' });
+      await dot.click();
+      await expect(dot).toHaveAttribute('aria-expanded', 'true');
+      await expect(badge.getByRole('status')).toHaveText('Prototype · simulated data');
+      await page.keyboard.press('Escape');
+      await expect(dot).toHaveAttribute('aria-expanded', 'false');
+    }
   });
 });

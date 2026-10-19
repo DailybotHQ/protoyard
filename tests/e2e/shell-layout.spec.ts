@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
+import { badgeOverlaps } from './support/badge.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
 import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
@@ -540,34 +541,6 @@ async function openNova(page: Page, query = '') {
   await page.goto(`${prototypeUrl(NOVA)}?scenario=active-workspace${query}`);
   await waitForPrototypeReady(page, { slug: NOVA });
   await expect(page.getByRole('log', { name: 'Conversation messages' })).toBeVisible();
-}
-
-/** Visible interactive elements the demo badge overlaps (none expected). */
-async function badgeOverlaps(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
-    const badge = document.querySelector('[data-py-demo-badge]');
-    if (!badge) return ['no demo badge'];
-    const b = badge.getBoundingClientRect();
-    const selector =
-      'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [role="tab"], [tabindex]:not([tabindex="-1"])';
-    const out: string[] = [];
-    for (const el of document.querySelectorAll<HTMLElement>(selector)) {
-      if (el.closest('[aria-hidden="true"], [inert]')) continue;
-      const r = el.getBoundingClientRect();
-      // Skip links and other visually hidden controls (1 px clip) are not covered.
-      if (r.width < 4 || r.height < 4 || getComputedStyle(el).visibility === 'hidden') continue;
-      const cs = getComputedStyle(el);
-      if (cs.opacity === '0') continue;
-      // Visually hidden (sr-only skip links: clipped to nothing).
-      if (cs.clipPath.startsWith('inset(50%') || cs.clip === 'rect(0px, 0px, 0px, 0px)') continue;
-      if (r.left < b.right && b.left < r.right && r.top < b.bottom && b.top < r.bottom) {
-        out.push(
-          `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') ?? el.textContent ?? '').trim().slice(0, 40)}"`
-        );
-      }
-    }
-    return out;
-  });
 }
 
 /** Nova's footer sits below the thread and the composer, never over them. */

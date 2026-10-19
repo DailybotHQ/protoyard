@@ -101,8 +101,12 @@ The renderer shows the bare app, with no frame, when:
   a frame it sits in a row below the stage, outside the screen. Full-bleed, it takes the
   first corner of the window (bottom-left, bottom-right, top-left, top-right) where it
   covers no control, preferring one that covers no text, and re-checks after resizes,
-  navigation and DOM changes. If every corner has a control, it takes the least covered
-  one; it never takes pointer events.
+  navigation and DOM changes. The full badge never takes pointer events. If every corner
+  has a control (a phone app with back and menu buttons and a tab bar, such as
+  relay-chat-demo at 390 px), it shrinks to a 20 px info dot placed in the first gap along
+  the bottom or top edge that covers nothing (text only as a last resort). Pressing the dot
+  shows the label, and Escape or navigation folds it again. `tests/e2e/relay-chat-demo.spec.ts`
+  checks that the badge covers no control at 390×844.
 
 ## Full screen
 

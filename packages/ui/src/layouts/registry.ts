@@ -33,4 +33,6 @@ export const LAYOUT_REGISTRY: Partial<Record<LayoutId, LayoutEntry>> = {
   rail: { load: () => import('./RailLayout.svelte') },
   'top-nav': { load: () => import('./TopNavLayout.svelte') },
   'dual-sidebar': { load: () => import('./DualSidebarLayout.svelte') },
+  'mobile-tabs': { load: () => import('./MobileTabsLayout.svelte') },
+  'mobile-drawer': { load: () => import('./MobileDrawerLayout.svelte') },
 };
