@@ -1,7 +1,9 @@
 <script lang="ts">
+import { ChevronLeft, Ellipsis } from '@lucide/svelte';
 import type { Persona } from '@protoyard/core';
 import { avatarImage, getRuntime, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Button, Input } from '@protoyard/ui';
+import { tick } from 'svelte';
 import HuddlePanel from './components/HuddlePanel.svelte';
 import type { Channel, Message, TeamChatDatabase, Workspace } from './database/schema.ts';
 import {
@@ -28,6 +30,15 @@ let activeHuddleId = $state<string | null>(null);
 let newChannelOpen = $state(false);
 let newChannelName = $state('');
 let memberOfChannel = $state(false);
+// Below `md` the channel list and the channel are separate screens; wider, both show.
+let mobilePane = $state<'channels' | 'channel'>('channel');
+// Below `sm` search, file sharing and huddles live in a row the "More actions" button
+// discloses (a native disclosure: a menu library would add ~30 KB to this eager screen).
+let toolsOpen = $state(false);
+let toolsTrigger = $state<HTMLButtonElement>();
+let toolsPanel = $state<HTMLDivElement>();
+let channelHeading = $state<HTMLHeadingElement>();
+let channelNav = $state<HTMLElement>();
 
 const canPost = $derived(services.can(CAPABILITIES['message:create']));
 const canReact = $derived(services.can(CAPABILITIES['message:react']));
@@ -213,6 +224,44 @@ async function replyInThread(messageId: string) {
   threadId = messageId;
 }
 
+/** Closing a thread returns focus to the "Reply in thread" button that opened it. */
+let focusThreadTrigger = $state<string | null>(null);
+
+function closeThread() {
+  focusThreadTrigger = threadId;
+  threadId = null;
+}
+
+// The channel's messages reload after a thread closes; focus the trigger once it renders.
+$effect(() => {
+  void messages.current;
+  if (!focusThreadTrigger || threadId) return;
+  const trigger = document.querySelector<HTMLButtonElement>(
+    `[data-message-id="${CSS.escape(focusThreadTrigger)}"] [data-thread-trigger]`
+  );
+  if (!trigger) return;
+  trigger.focus();
+  focusThreadTrigger = null;
+});
+
+async function openChannel(id: string) {
+  channelId = id;
+  threadId = null;
+  if (mobilePane === 'channel') return;
+  mobilePane = 'channel';
+  await tick();
+  channelHeading?.focus();
+}
+
+async function showChannelList() {
+  mobilePane = 'channels';
+  await tick();
+  (
+    channelNav?.querySelector<HTMLButtonElement>('[aria-current="page"]') ??
+    channelNav?.querySelector<HTMLButtonElement>('button')
+  )?.focus();
+}
+
 async function shareDemoFile() {
   if (!channelId) return;
   if (!canShare) {
@@ -250,12 +299,26 @@ const activeChannel = $derived((channels.current ?? []).find((c) => c.id === cha
 const needsJoin = $derived(
   Boolean(activeChannel && activeChannel.kind === 'public' && !memberOfChannel && canPost)
 );
+
+function closeToolsOnEscape(event: KeyboardEvent) {
+  if (!toolsOpen || event.key !== 'Escape') return;
+  const focused = document.activeElement;
+  if (focused !== toolsTrigger && !toolsPanel?.contains(focused)) return;
+  toolsOpen = false;
+  toolsTrigger?.focus();
+}
 </script>
+
+<svelte:window onkeydown={closeToolsOnEscape} />
 
 <!-- `data-py-scroll-root` is reserved for the renderer's own wrapper: the message log
      uses `data-message-log`, or the renderer's layout rules would flatten it. -->
 <div class="flex h-app max-h-app min-h-0 overflow-hidden bg-background text-foreground">
-  <aside class="flex w-60 shrink-0 flex-col border-r border-border bg-muted/30">
+  <aside
+    class="{mobilePane === 'channels'
+      ? 'flex w-full'
+      : 'hidden'} min-h-0 shrink-0 flex-col border-border bg-muted/30 md:flex md:w-60 md:border-r"
+  >
     <div class="border-b border-border px-3 py-3">
       <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workspace</p>
       <p class="truncate text-sm font-medium">{(workspaces.current ?? [])[0]?.name ?? 'Loading…'}</p>
@@ -282,21 +345,23 @@ const needsJoin = $derived(
     {#if newChannelOpen}
       <div class="flex gap-1 px-2 pb-2">
         <Input bind:value={newChannelName} placeholder="channel-name" class="h-8 text-xs" />
-        <Button size="sm" onclick={() => void createChannel()}>Add</Button>
+        <Button size="sm" onclick={() => createChannel()}>Add</Button>
       </div>
     {/if}
-    <nav class="min-h-0 flex-1 overflow-y-auto px-1 pb-3" aria-label="Channels">
+    <nav
+      bind:this={channelNav}
+      class="min-h-0 flex-1 overflow-y-auto px-1 pb-3"
+      aria-label="Channels"
+    >
       {#each channels.current ?? [] as ch (ch.id)}
         <button
           type="button"
-          class="flex w-full items-center gap-1 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted {channelId ===
+          class="flex min-h-touch w-full items-center gap-1 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted md:min-h-0 {channelId ===
           ch.id
             ? 'bg-muted font-medium'
             : ''}"
-          onclick={() => {
-            channelId = ch.id;
-            threadId = null;
-          }}
+          aria-current={channelId === ch.id ? 'page' : undefined}
+          onclick={() => openChannel(ch.id)}
         >
           <span class="text-muted-foreground">{ch.kind === 'dm' ? '·' : '#'}</span>
           <span class="truncate">{ch.name}</span>
@@ -333,46 +398,120 @@ const needsJoin = $derived(
     </div>
   </aside>
 
-  <main class="flex min-w-0 flex-1 flex-col">
-    <header class="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
+  <main class="{mobilePane === 'channel' ? 'flex' : 'hidden'} min-w-0 flex-1 flex-col md:flex">
+    <header class="flex items-center gap-2 border-b border-border px-2 py-2 sm:flex-wrap sm:px-4">
+      <Button
+        size="icon"
+        variant="ghost"
+        class="shrink-0 md:hidden"
+        aria-label="Back to channels"
+        onclick={() => showChannelList()}
+      >
+        <ChevronLeft class="size-5" aria-hidden="true" />
+      </Button>
       <div class="min-w-0 flex-1">
-        <h1 class="truncate text-sm font-semibold">
+        <h1 bind:this={channelHeading} tabindex="-1" class="truncate text-sm font-semibold outline-none">
           {activeChannel?.name ?? 'Select a channel'}
         </h1>
         <p class="truncate text-xs text-muted-foreground">
           {activeChannel?.topic ?? ''}
         </p>
       </div>
-      <div class="flex flex-wrap gap-1">
-        <Input
-          class="h-8 w-40 text-xs"
-          placeholder="Search…"
-          bind:value={searchQ}
-          onkeydown={(e) => e.key === 'Enter' && void runSearch()}
-        />
-        <Button size="sm" variant="outline" onclick={() => void runSearch()}>Search</Button>
+      <div class="flex shrink-0 gap-1 sm:flex-wrap">
+        <div class="hidden gap-1 sm:flex">
+          <Input
+            class="h-8 w-40 text-xs"
+            placeholder="Search…"
+            aria-label="Search messages"
+            bind:value={searchQ}
+            onkeydown={(e) => e.key === 'Enter' && void runSearch()}
+          />
+          <Button size="sm" variant="outline" onclick={() => runSearch()}>Search</Button>
+        </div>
         {#if needsJoin}
-          <Button size="sm" variant="default" onclick={() => void joinCurrent()}>Join</Button>
+          <Button size="sm" variant="default" onclick={() => joinCurrent()}>Join</Button>
         {/if}
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={!canShare}
-          title={canShare ? 'Share a demo file' : readOnlyReason}
-          onclick={() => void shareDemoFile()}>Share file</Button
+        <div class="hidden gap-1 sm:flex">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!canShare}
+            title={canShare ? 'Share a demo file' : readOnlyReason}
+            onclick={() => shareDemoFile()}>Share file</Button
+          >
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label="Start huddle"
+            disabled={!canHuddle}
+            title={canHuddle ? 'Start huddle' : readOnlyReason}
+            onclick={() => startHuddle()}
+          >
+            Huddle
+          </Button>
+        </div>
+        <button
+          bind:this={toolsTrigger}
+          type="button"
+          class="inline-flex size-9 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
+          aria-label="More actions"
+          aria-expanded={toolsOpen}
+          aria-controls="team-chat-phone-tools"
+          onclick={() => (toolsOpen = !toolsOpen)}
         >
-        <Button
-          size="sm"
-          variant="outline"
-          aria-label="Start huddle"
-          disabled={!canHuddle}
-          title={canHuddle ? 'Start huddle' : readOnlyReason}
-          onclick={() => void startHuddle()}
-        >
-          Huddle
-        </Button>
+          <Ellipsis class="size-5" aria-hidden="true" />
+        </button>
       </div>
     </header>
+
+    {#if toolsOpen}
+      <div
+        bind:this={toolsPanel}
+        id="team-chat-phone-tools"
+        class="space-y-2 border-b border-border px-2 py-2 sm:hidden"
+        role="group"
+        aria-label="More actions"
+      >
+        <form
+          class="flex gap-2"
+          role="search"
+          onsubmit={(e) => {
+            e.preventDefault();
+            void runSearch();
+          }}
+        >
+          <Input
+            class="h-9 flex-1 text-sm"
+            placeholder="Search messages…"
+            aria-label="Search messages"
+            bind:value={searchQ}
+          />
+          <Button type="submit" size="sm" variant="outline">Search</Button>
+        </form>
+        <div class="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            class="flex-1"
+            disabled={!canShare}
+            title={canShare ? 'Share a demo file' : readOnlyReason}
+            onclick={() => shareDemoFile()}>Share file</Button
+          >
+          <Button
+            size="sm"
+            variant="outline"
+            class="flex-1"
+            aria-label="Start huddle"
+            disabled={!canHuddle}
+            title={canHuddle ? 'Start huddle' : readOnlyReason}
+            onclick={async () => {
+              await startHuddle();
+              toolsOpen = false;
+            }}>Huddle</Button
+          >
+        </div>
+      </div>
+    {/if}
 
     {#if toast}
       <div
@@ -419,7 +558,7 @@ const needsJoin = $derived(
         aria-label="Thread open"
       >
         <span>Thread</span>
-        <Button size="sm" variant="ghost" aria-label="Close thread" onclick={() => (threadId = null)}>
+        <Button size="sm" variant="ghost" aria-label="Close thread" onclick={() => closeThread()}>
           Close
         </Button>
       </div>
@@ -502,6 +641,7 @@ const needsJoin = $derived(
                   type="button"
                   class="text-xs text-muted-foreground hover:text-foreground"
                   aria-label="Reply in thread"
+                  data-thread-trigger=""
                   onclick={() => replyInThread(msg.id)}
                 >
                   Reply in thread
