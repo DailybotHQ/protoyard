@@ -371,3 +371,124 @@ Templates stay hand-written owned code built on the kits.
 **Consequences.** One command turns a short brief into a running, multi-view
 prototype; an idea → running time budget is measured.
 **Reverse:** ignore the optional keys; the generator falls back to CRUD screens.
+
+## ADR-025 — Review comments are an opt-in, lazy overlay with pluggable storage
+
+**Context.** Reviewers want Figma-style comments on published prototypes:
+pins anywhere on a screen that stay visible while navigating, and a list
+that jumps to each pin. Published builds ship without DevTools by default
+(`build.includeDevtools: false`). Scenario loads rewrite the data DB, and
+snapshots restore it. There is no backend. Options considered: comments
+inside DevTools (absent from published builds), an external comments SaaS
+(a third-party dependency, outbound requests and accounts), or a new package
+pair loaded lazily.
+
+**Decision.** Add `@protoyard/review` (engine: anchors, the `ReviewAdapter`
+contract with a conformance suite, adapters and a plain Request/Response
+server handler, with no Svelte or DOM in `./server`) and
+`@protoyard/review-ui` (Svelte: overlay, pins, threads, list panel and a
+floating toolbar). DevTools only hosts the same panel in a thin Comments tab.
+The contract lives in `@protoyard/core`. The comment, anchor and context
+schemas (`formatVersion` 1) are on the `@protoyard/core/review` subpath,
+outside the core barrel. The manifest field is `build.review`
+(`{ enabled, adapter, endpoint?, store? }`); it is absent by default, so
+every existing manifest parses to the same value. The links are
+`?comments=1` and `?review=<key>` in `parseScenarioLink`. The renderer
+loads review only when the build flag is on (`build.review.enabled` or
+`PROTOYARD_REVIEW=1`), or when DevTools are present and `?comments=1` is set.
+With the flag off, the code is folded away like DevTools.
+
+- **Adapters.** `local` (default): a third Dexie database
+  `protoyard.<ns>.review`, with file export and import. `cloudflare`: the
+  same-origin `/api/comments` handler on Pages, KV by default (eventually
+  consistent, which review notes tolerate), D1 optional. `http`: any
+  endpoint that serves the same REST shape. `artifact`: the Claude artifact
+  `db` and `user` capabilities (ADR-026). Every adapter is a document store
+  keyed by client-generated ids with last-write-wins, and all of them pass
+  one conformance suite.
+- **Separate review DB.** Comments survive scenario loads, resets and
+  snapshot restores, and they are never in snapshot files. Runtime
+  operations never touch that database.
+- **Wall-clock timestamps.** `createdAt`, `editedAt` and `resolvedAt` record
+  when the reviewer acted. They do not use the simulated clock (ADR-010).
+  The determinism rule covers generators and timelines, not reviewer facts.
+  The server stamps its own times.
+- **Honest identity.** The display name is self-declared, and the client id
+  is a per-browser random id. The optional review key keeps casual visitors
+  from writing to a shared API, but anyone who has the link can read and
+  write. Own-edit and own-delete are UX, not security. None of this is
+  authentication. The key never appears in the manifest, the build manifest
+  or a ledger. It is read from the link, kept in `sessionStorage` and
+  stripped from the address bar.
+- **Sanitization and limits.** Comments are untrusted plain text and are
+  never rendered as markup (no `{@html}`). Links go through the shared safe
+  link filter. The core schema caps bodies at 2,000 characters and names at
+  60, and it rejects control and bidi-override characters, unknown keys and
+  malformed ids, slugs and timestamps. It bounds the anchor offsets, the
+  locator ladder and reactions. The server adds a request size cap, a
+  same-origin check for writes and rate limits. Endpoints in the manifest
+  must be `https://` (or `http://localhost`) or root-relative, with no
+  credentials, query or fragment.
+
+**Consequences.** Builds without review pay 0 bytes. A review build pays a
+small loader, and the overlay, panel and thread chunks load lazily. Local
+comments are visible to other prototypes on the same origin (same-origin
+IndexedDB is not a boundary). Real Cloudflare deploys and bindings are run by
+the developer; tests cover the handler in Node and the dry runs.
+**Reverse:** drop `build.review` from manifests and remove the two packages,
+the renderer flag, the `review` link field and the `@protoyard/core/review`
+subpath. The `protoyard.<ns>.review` databases are orphaned and can be
+deleted from the browser.
+
+## ADR-026 — Sharing prototypes as Claude artifacts
+
+**Context.** People want to share a prototype with a link, without a hosting
+account. A Claude artifact hosts a page plus supporting files, framed in the
+claude.ai viewer, private by default. Only an agent can call the Artifact
+tool. The CLI cannot. Artifacts load scripts only from a CDN allow-list,
+wrap the page in their own document skeleton, and give each viewer
+browser-local storage. Options considered: a ZIP upload, self-hosting
+(already covered by `export` and the publish adapters), or packing for
+Artifact publish.
+
+**Decision.** `protoyard export <slug> --target artifact` packs a verified
+build into an artifact-ready folder. It turns the page into body content,
+writes a files map with relative published paths, and adds an
+`artifact-manifest.json` with sizes, sha256 and batches. It checks every
+artifact rule with exact reasons: no absolute script, style or font URLs,
+no service worker, standard web media types, and the size and file-count
+caps. The CLI never publishes. The repository skill `share-as-artifact`
+(with a slash command) runs the pack, reads every packed file in full (the
+tool's rule for files the agent did not write), publishes with the Artifact
+tool, and re-shares to the same URL later. It then records the URL the tool
+returned in a strict JSONL share ledger (`artifacts/share/ledger.jsonl`,
+through `protoyard artifact record` and `list`). The ledger refuses URLs that
+do not match the artifact pattern, a stale build digest and
+credential-looking fields. The review index shows these links as private by
+default.
+
+- **Comments in an artifact.** The `artifact` review adapter (ADR-025) uses
+  the documented `db` capability for shared threads and the `user`
+  capability for author ids. It stores only ids and resolves names at render
+  time. It starts on the local adapter and switches when `claude.use('db')`
+  resolves. Writes need Contributor access, so the skill asks the owner to
+  share as Contributor. The write-only `comments` capability is only a
+  composer fallback.
+- **Embedded frame.** The prototype runs framed. An opt-in build flag keeps
+  an explicit manifest shell instead of always going full-bleed. Blocked or
+  empty storage shows the existing storage error state instead of fake
+  success. Whether query parameters (`?scenario=`, `?comments=1`) reach the
+  framed page is verified by a real private publish and documented as
+  observed.
+- **Private by default.** An artifact is visible only to the people the owner
+  shares it with. Each viewer's prototype data stays in their own browser.
+  Shared comments are visible to everyone admitted and are erased with the
+  artifact. Roles inside the prototype are still simulated and are never
+  security.
+
+**Consequences.** A link with no hosting account, at the cost of the agent
+reading every packed file on each share. The real publish is an
+outward-facing action and needs the developer's confirmation, like any
+publish. **Reverse:** drop the `artifact` target, the skill and the share
+ledger. Existing artifacts stay where the owner left them on claude.ai, and
+the owner deletes them there.

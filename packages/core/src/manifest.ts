@@ -204,6 +204,72 @@ export const NamespaceSchema = z
   .max(64)
   .regex(/^[a-z][a-z0-9-]*$/, { message: 'namespace must be lowercase kebab-case' });
 
+/**
+ * Review comments storage backends (ADR-025). `local` keeps comments in the
+ * reviewer's browser; `cloudflare` and `http` share them through a comments
+ * API; `artifact` uses the Claude artifact `db` capability when framed there.
+ */
+export const ReviewAdapterKindSchema = z.enum(['local', 'cloudflare', 'http', 'artifact']);
+export type ReviewAdapterKind = z.infer<typeof ReviewAdapterKindSchema>;
+
+/** Cloudflare store behind the comments Function: KV (default) or D1. */
+export const ReviewStoreSchema = z.enum(['kv', 'd1']);
+export type ReviewStore = z.infer<typeof ReviewStoreSchema>;
+
+/** Same-origin endpoint used by the Cloudflare comments Function. */
+export const DEFAULT_REVIEW_ENDPOINT = '/api/comments';
+
+/**
+ * A comments endpoint is a root-relative path (`/api/comments`) or an
+ * `https://` URL (`http://` only for localhost), at most 256 characters.
+ * Credentials, query strings and fragments cannot match: the manifest is
+ * public, and the optional review key travels in a request header from the
+ * reviewer's session, never here.
+ */
+export const REVIEW_ENDPOINT_PATTERN =
+  /^(?:\/(?!\/)|https:\/\/[A-Za-z0-9.-]+(?::\d{1,5})?(?:\/|$)|http:\/\/(?:localhost|127\.0\.0\.1)(?::\d{1,5})?(?:\/|$))[A-Za-z0-9._~\-/]{0,200}$/;
+
+/**
+ * `build.review`: opt-in review comments on built prototypes (ADR-025).
+ * Optional and absent by default, so every existing manifest parses to the
+ * same value. Read it through `resolveReviewBuild` for the effective config.
+ * `endpoint` is required for `http` (defaults to `/api/comments` for
+ * `cloudflare`); `store` (`kv` default, or `d1`) applies to `cloudflare` only.
+ */
+export const ReviewBuildSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    adapter: ReviewAdapterKindSchema.default('local'),
+    endpoint: z.string().max(256).regex(REVIEW_ENDPOINT_PATTERN).optional(),
+    store: ReviewStoreSchema.optional(),
+  })
+  .strict()
+  .refine((v) => (v.adapter !== 'http' || v.endpoint) && (!v.store || v.adapter === 'cloudflare'), {
+    message: 'http needs an endpoint; store is for cloudflare only',
+  });
+export type ReviewBuild = z.infer<typeof ReviewBuildSchema>;
+export type ReviewBuildInput = z.input<typeof ReviewBuildSchema>;
+
+/** Effective review settings: defaults applied, Cloudflare store and endpoint filled in. */
+export interface ResolvedReviewBuild {
+  enabled: boolean;
+  adapter: ReviewAdapterKind;
+  endpoint?: string;
+  store?: ReviewStore;
+}
+
+export function resolveReviewBuild(review: ReviewBuildInput | undefined): ResolvedReviewBuild {
+  const parsed = ReviewBuildSchema.parse(review ?? {});
+  const out: ResolvedReviewBuild = { enabled: parsed.enabled, adapter: parsed.adapter };
+  if (parsed.adapter === 'cloudflare') {
+    out.store = parsed.store ?? 'kv';
+    out.endpoint = parsed.endpoint ?? DEFAULT_REVIEW_ENDPOINT;
+  } else if (parsed.endpoint !== undefined) {
+    out.endpoint = parsed.endpoint;
+  }
+  return out;
+}
+
 export const PrototypeManifestSchema = z
   .object({
     $schema: z.string().optional(),
@@ -247,6 +313,8 @@ export const PrototypeManifestSchema = z
          * caches the app shell; data is already local in IndexedDB).
          */
         offline: z.boolean().default(false),
+        /** Opt-in review comments (ADR-025). Absent means off. */
+        review: ReviewBuildSchema.optional(),
       })
       .default({ includeDevtools: false, demoBadge: true, base: './', offline: false }),
     /** Marketplace metadata (optional; indexed by the registry). */

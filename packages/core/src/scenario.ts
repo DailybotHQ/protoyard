@@ -152,9 +152,25 @@ export interface ScenarioLinkParams {
    * origin (e.g. a side-by-side scenario comparison) never share data.
    */
   sandbox?: string;
+  /**
+   * Review comments (ADR-025): `?comments=1` asks for comment mode (honored
+   * by builds that include review or DevTools), `?comments=0` opts out, and
+   * `?review=<key>` carries the optional shared review key. The key is not
+   * authentication: it only keeps casual visitors from writing to a shared
+   * comments API. Consumers strip it from the address bar after reading it.
+   */
+  review?: ReviewLinkParams;
+}
+
+export interface ReviewLinkParams {
+  key?: string;
+  comments?: boolean;
 }
 
 export const SANDBOX_PATTERN = /^[a-z0-9][a-z0-9-]{0,23}$/;
+
+/** A review key: 8–128 URL-safe characters (letters, digits, `_`, `-`). */
+export const REVIEW_KEY_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
 
 export function parseScenarioLink(search: string): ScenarioLinkParams {
   const params = new URLSearchParams(search);
@@ -178,14 +194,23 @@ export function parseScenarioLink(search: string): ScenarioLinkParams {
   if (sandbox && SANDBOX_PATTERN.test(sandbox)) out.sandbox = sandbox;
   const devtools = params.get('devtools');
   if (devtools === '0' || devtools === '1') out.devtools = devtools === '1';
+  const review: ReviewLinkParams = {};
+  const key = params.get('review');
+  if (key && REVIEW_KEY_PATTERN.test(key)) review.key = key;
+  const comments = params.get('comments');
+  if (comments === '0' || comments === '1') review.comments = comments === '1';
+  if (review.key !== undefined || review.comments !== undefined) out.review = review;
   return out;
 }
 
 export function buildScenarioLink(base: string, params: ScenarioLinkParams): string {
   const url = new URL(base, 'http://protoyard.local');
-  for (const [key, value] of Object.entries(params)) {
+  const { review, ...rest } = params;
+  for (const [key, value] of Object.entries(rest)) {
     if (value === undefined) continue;
     url.searchParams.set(key, typeof value === 'boolean' ? (value ? '1' : '0') : String(value));
   }
+  if (review?.key !== undefined) url.searchParams.set('review', review.key);
+  if (review?.comments !== undefined) url.searchParams.set('comments', review.comments ? '1' : '0');
   return base.startsWith('http') ? url.toString() : `${url.pathname}${url.search}${url.hash}`;
 }
