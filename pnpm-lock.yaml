@@ -259,9 +259,18 @@ importers:
       '@lucide/svelte':
         specifier: ^1.50.0
         version: 1.57.0(svelte@5.57.2)
+      '@protoyard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
+      '@protoyard/analytics-ui':
+        specifier: workspace:*
+        version: link:../analytics-ui
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@protoyard/charts-ui':
+        specifier: workspace:*
+        version: link:../charts-ui
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
