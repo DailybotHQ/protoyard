@@ -11,8 +11,11 @@ import {
 } from '../domain/agents.ts';
 import { AGENT_LIBRARY } from './library.ts';
 
-/** Bump when the same seed can produce a different world. */
-export const GENERATOR_VERSION = 1;
+/**
+ * Bump when the same seed can produce a different world.
+ * v2: personas carry library avatars (`generateTeam`), shown as photos.
+ */
+export const GENERATOR_VERSION = 2;
 
 /** Seeded history is generated offline: tool calls never pass through the live environment. */
 const offlineEnvironment = {

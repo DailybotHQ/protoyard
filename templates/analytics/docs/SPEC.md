@@ -73,7 +73,7 @@ Product teams need to see how people use their product: who is active, what they
 | default theme | `violet` |
 | storage namespace | `template-analytics` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

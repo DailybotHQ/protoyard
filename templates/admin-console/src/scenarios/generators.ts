@@ -6,6 +6,7 @@ import {
   type Persona,
   type WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import type {
   Plan,
   Region,
@@ -24,8 +25,11 @@ import type { AdminGeneratorOptions } from './index.ts';
  * the same console everywhere. Order: staff → tenants → people → billing → audit.
  */
 
-/** Bump when the same seed would produce a different world. */
-export const ADMIN_GENERATOR_VERSION = 1;
+/**
+ * Bump when the same seed would produce a different world.
+ * v2: personas carry library avatars (`av-NNN`), shown as photos.
+ */
+export const ADMIN_GENERATOR_VERSION = 2;
 
 /** Fixed staff, so links like `?actor=user_0003` always mean the same person. */
 const STAFF = [
@@ -83,6 +87,8 @@ export function generateAdminWorld(ctx: GenerateContext): WorldSeed {
     currentPeriodEnd: null,
   };
   const organizations: Organization[] = [staffOrg];
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('admin-console:avatars:people'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   for (const person of STAFF) {
@@ -94,6 +100,7 @@ export function generateAdminWorld(ctx: GenerateContext): WorldSeed {
     personas.push({
       id: person.id,
       name: person.name,
+      avatar: faces.next(),
       email: `${person.name.toLowerCase().replace(/\s+/g, '.')}@northwind.example`,
       title: person.title,
       avatarColor: person.color,
@@ -205,6 +212,7 @@ export function generateAdminWorld(ctx: GenerateContext): WorldSeed {
       personas.push({
         id: personaId,
         name: `${first} ${last}`,
+        avatar: faces.next(),
         email: `${`${first}.${last}`.toLowerCase().replace(/[^a-z.]/g, '')}@${domain}`,
         title: p === 0 ? 'Account owner' : faker.person.jobTitle(),
         locale: 'en-US',

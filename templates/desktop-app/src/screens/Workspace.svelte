@@ -1,6 +1,7 @@
 <script lang="ts">
 import { FilePlus, PanelLeft, Search } from '@lucide/svelte';
 import {
+  avatarImage,
   can,
   isValidationError,
   liveQuery,
@@ -10,7 +11,7 @@ import {
   useClock,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { AlertDialog, Button, EmptyState, Input, toast } from '@protoyard/ui';
+import { AlertDialog, Avatar, Button, EmptyState, Input, toast } from '@protoyard/ui';
 import DocumentEditor from '../components/DocumentEditor.svelte';
 import DocumentList from '../components/DocumentList.svelte';
 import FolderDialog from '../components/FolderDialog.svelte';
@@ -359,8 +360,9 @@ const menus = $derived<Menu[]>([
   <footer class="flex h-7 shrink-0 items-center justify-end gap-3 border-t border-border bg-surface px-3 text-xs text-muted-foreground">
     <span>{scopeName} · {countLabel(visible.length, 'document')}</span>
     {#if principal.current}
-      <span class="truncate">
-        {principal.current.persona.name} · {ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role}
+      <span class="flex min-w-0 items-center gap-1.5">
+        <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="xs" decorative />
+        <span class="truncate">{principal.current.persona.name} · {ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role}</span>
       </span>
     {/if}
   </footer>

@@ -11,6 +11,7 @@ TODO: the domain in words, and why the model looks this way.
 | --- | --- | --- |
 | `activity` | `id` (unique) | `actorId`, `at`, `projectId`, `taskId` |
 | `comments` | `id` (unique) | `authorId`, `createdAt`, `taskId` |
+| `notifications` | `id` (unique) | `[personaId+readAt]` (compound), `createdAt`, `kind`, `personaId`, `readAt`, `subjectId` |
 | `projects` | `id` (unique) | `createdAt`, `name`, `ownerId` |
 | `tasks` | `id` (unique) | `assigneeId`, `dueDate`, `labels` (multi-entry), `priority`, `projectId`, `reporterId`, `status`, `updatedAt` |
 <!-- /protoyard:generated:tables -->
@@ -32,6 +33,14 @@ erDiagram
     string authorId
     string createdAt
     string taskId FK
+  }
+  notifications {
+    string id PK
+    string createdAt
+    string kind
+    string personaId
+    string readAt
+    string subjectId
   }
   projects {
     string id PK
@@ -73,6 +82,7 @@ TODO: units (integer cents, ISO dates), enums and invariants.
 | Version | Adds | Changes indexes | Deletes |
 | --- | --- | --- | --- |
 | 1 | `activity`, `comments`, `projects`, `tasks` | — | — |
+| 2 | `notifications` | — | — |
 <!-- /protoyard:generated:versions -->
 
 ## Migrations

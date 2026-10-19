@@ -11,7 +11,8 @@ export const definition = definePrototype({
   scenarios,
   policy,
   generate: generatePluginWorld,
-  generatorVersion: 1,
+  /** v2: personas carry library avatars (`av-NNN`), shown as photos. */
+  generatorVersion: 2,
   integrity: {
     relations: {
       connectedItems: {},

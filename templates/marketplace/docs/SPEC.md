@@ -52,7 +52,7 @@ TODO: for each prototype piece (schema, services, policy, personas, environment 
 | default theme | `violet` |
 | storage namespace | `template-marketplace` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

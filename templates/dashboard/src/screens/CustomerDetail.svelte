@@ -1,6 +1,7 @@
 <script lang="ts">
 import { ArrowLeft, Building2, Globe, Mail, Pencil, Plus, Trash2, UserX } from '@lucide/svelte';
 import {
+  avatarImage,
   back,
   can,
   liveQuery,
@@ -91,7 +92,7 @@ async function remove(customerId: string) {
   {@const c = customer.current}
   <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex min-w-0 items-center gap-4">
-      <Avatar name={c.name} size="lg" />
+      <Avatar name={c.name} {...avatarImage(c.avatar)} size="lg" />
       <div class="min-w-0">
         <h1 class="truncate text-2xl font-semibold tracking-tight">{c.name}</h1>
         <p class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">

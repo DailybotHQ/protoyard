@@ -6,6 +6,7 @@ import {
   type Persona,
   type WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import { type Document, type Folder, TAG_COLORS, type Tag } from '../database/schema.ts';
 import type { DesktopGeneratorOptions } from './index.ts';
 
@@ -16,8 +17,11 @@ import type { DesktopGeneratorOptions } from './index.ts';
  * every machine. Order matters: people → folders → tags → documents.
  */
 
-/** Bump when the same seed would produce a different world. */
-export const DESKTOP_GENERATOR_VERSION = 1;
+/**
+ * Bump when the same seed would produce a different world.
+ * v2: personas carry library avatars (`av-NNN`), shown as photos.
+ */
+export const DESKTOP_GENERATOR_VERSION = 2;
 
 /** Fixed people, so links like `?actor=user_0003` always mean the same person. */
 const PEOPLE = [
@@ -103,6 +107,8 @@ function identities(ctx: GenerateContext) {
     size: PEOPLE.length,
     featureFlags: { ...scenario.organization.featureFlags },
   };
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('desktop-app:avatars:people'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   PEOPLE.forEach((p, index) => {
@@ -116,6 +122,7 @@ function identities(ctx: GenerateContext) {
     personas.push({
       id: p.id,
       name: p.name,
+      avatar: faces.next(),
       email: `${p.name.split(' ')[0]?.toLowerCase()}@example.com`,
       title: p.title,
       avatarColor: p.color,

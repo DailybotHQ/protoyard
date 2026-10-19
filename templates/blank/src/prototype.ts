@@ -12,6 +12,8 @@ export const definition = definePrototype({
   scenarios,
   policy,
   generate: generateBlankWorld,
+  /** v2: personas carry library avatars (`av-NNN`), shown as photos. (v1 was implicit.) */
+  generatorVersion: 2,
   integrity: {
     relations: { notes: { authorId: 'py_personas' } },
     timestamps: { notes: ['createdAt', 'updatedAt'] },

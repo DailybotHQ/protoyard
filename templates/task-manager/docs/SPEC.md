@@ -51,8 +51,8 @@ TODO: for each prototype piece (schema, services, policy, personas, environment 
 | default scenario | `active-team` |
 | default theme | `violet` |
 | storage namespace | `template-task-manager` |
-| schema version | 1 |
-| generator version | 1 |
+| schema version | 2 |
+| generator version | 2 |
 | timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

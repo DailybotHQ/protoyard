@@ -52,7 +52,7 @@ TODO: for each prototype piece (schema, services, policy, personas, environment 
 | default theme | `violet` |
 | storage namespace | `template-dashboard` |
 | schema version | 2 |
-| generator version | 2 |
+| generator version | 3 |
 | timeline | no |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

@@ -9,7 +9,8 @@ import type {
 } from '../database/schema.ts';
 import { MARKETPLACE_MEMBER_ROLES } from './index.ts';
 
-export const MARKETPLACE_GENERATOR_VERSION = 1;
+/** v2: personas carry library avatars (`generateTeam`), shown as photos. */
+export const MARKETPLACE_GENERATOR_VERSION = 2;
 
 const SAMPLE_LISTINGS = [
   {

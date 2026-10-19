@@ -55,7 +55,7 @@ TODO: for each prototype piece (schema, services, policy, personas, environment 
 | default theme | `ocean` |
 | storage namespace | `template-team-chat` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 3 |
 | timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

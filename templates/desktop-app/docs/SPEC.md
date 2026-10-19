@@ -51,7 +51,7 @@ TODO: for each prototype piece (schema, services, policy, personas, environment 
 | default theme | `violet` |
 | storage namespace | `template-desktop-app` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | no |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->
