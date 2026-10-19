@@ -9,6 +9,18 @@
   "platform": "mobile",
   "category": "fintech",
   "tags": ["fintech", "banking", "mobile", "ledger", "transfers"],
+  "catalog": {
+    "category": "finance",
+    "productType": "Banking app",
+    "platforms": ["mobile"],
+    "features": ["ledger", "transfers", "payees", "offline"],
+    "highlights": [
+      "Fictional accounts and a transaction ledger",
+      "Payees and atomic simulated transfers",
+      "Demo only: no real money or banks"
+    ],
+    "difficulty": "intermediate"
+  },
   "template": "mobile-app",
   "status": "ready",
   "icon": "🏦",

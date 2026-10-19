@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "ai",
   "tags": ["ai", "assistant", "agents", "voice", "canvas", "starter"],
+  "catalog": {
+    "category": "ai",
+    "productType": "AI assistant",
+    "platforms": ["web"],
+    "features": ["chat", "voice", "canvas", "agents", "memory", "usage-limits"],
+    "highlights": [
+      "Persistent project history and model selection",
+      "Canvas, agent and voice modes",
+      "Memory controls and usage limits",
+      "Simulated AI only: no model provider is contacted"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "✦",
   "defaultScenario": "active-workspace",

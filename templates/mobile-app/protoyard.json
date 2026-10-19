@@ -10,6 +10,18 @@
   "platform": "mobile",
   "category": "starter",
   "tags": ["starter", "mobile", "list-detail", "forms"],
+  "catalog": {
+    "category": "starter",
+    "productType": "Mobile app",
+    "platforms": ["mobile"],
+    "features": ["crud", "bottom-nav", "roles"],
+    "highlights": [
+      "Bottom navigation and a sticky header",
+      "A persisted list, detail and create or edit flow",
+      "Owner and viewer personas"
+    ],
+    "difficulty": "beginner"
+  },
   "status": "ready",
   "icon": "📱",
   "defaultScenario": "active",

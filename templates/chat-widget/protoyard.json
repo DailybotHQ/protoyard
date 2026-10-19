@@ -10,6 +10,18 @@
   "platform": "responsive",
   "category": "starter",
   "tags": ["starter", "chat", "widget", "support", "assistant", "streaming"],
+  "catalog": {
+    "category": "support",
+    "productType": "Support widget",
+    "platforms": ["widget"],
+    "features": ["chat", "streaming", "human-handoff", "offline"],
+    "highlights": [
+      "A single-thread support widget on a fictional customer site",
+      "A scripted streaming assistant",
+      "Handoff-to-human simulation and an offline banner"
+    ],
+    "difficulty": "beginner"
+  },
   "status": "ready",
   "icon": "💬",
   "defaultScenario": "first-visit",

@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "support",
   "tags": ["support", "chat", "widget", "orders", "returns", "flagship"],
+  "catalog": {
+    "category": "support",
+    "productType": "Support widget",
+    "platforms": ["widget"],
+    "features": ["chat", "order-lookup", "returns", "human-handoff", "offline"],
+    "highlights": [
+      "A help widget on a fictional outdoor-gear store",
+      "Order lookup and returns",
+      "Human handoff and offline mode",
+      "Demo only: no real orders or money"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "🛟",
   "defaultScenario": "returning-customer",

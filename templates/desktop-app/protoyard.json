@@ -10,6 +10,19 @@
   "platform": "desktop",
   "category": "starter",
   "tags": ["starter", "desktop", "notes", "documents", "shortcuts", "crud"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Notes app",
+    "platforms": ["desktop"],
+    "features": ["crud", "menu-bar", "keyboard-shortcuts", "search", "roles"],
+    "highlights": [
+      "Folders, tags and documents in a three-pane view",
+      "A menu bar where every item is a real action",
+      "Keyboard shortcuts with a help dialog",
+      "Framed in a desktop window"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "🗂️",
   "defaultScenario": "active",

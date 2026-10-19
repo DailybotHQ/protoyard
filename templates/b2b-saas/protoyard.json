@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "starter",
   "tags": ["starter", "saas", "b2b", "workspace", "billing", "projects"],
+  "catalog": {
+    "category": "starter",
+    "productType": "B2B SaaS",
+    "platforms": ["web"],
+    "features": ["auth", "sso", "onboarding", "workspaces", "billing", "inbox", "projects"],
+    "highlights": [
+      "Simulated sign-in and SSO",
+      "Onboarding into workspaces",
+      "Billing, settings and an inbox",
+      "Project management"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "🏢",
   "defaultScenario": "signed-out",

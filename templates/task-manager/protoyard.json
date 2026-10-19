@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "productivity",
   "tags": ["tasks", "kanban", "projects", "collaboration", "productivity"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Task manager",
+    "platforms": ["web"],
+    "features": ["kanban", "drag-and-drop", "comments", "roles"],
+    "highlights": [
+      "A drag-and-drop board from To do to Done",
+      "Tasks with assignees, due dates, priorities, labels and comments",
+      "A “My tasks” view",
+      "Owner, admin, member and viewer permissions"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "✅",
   "defaultScenario": "active-team",
