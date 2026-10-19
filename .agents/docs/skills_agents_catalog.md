@@ -31,6 +31,7 @@ to concrete models in your harness, in one place (see [../README.md](../README.m
 | [create-prototype](../skills/create-prototype/SKILL.md) | standard | create | `pnpm protoyard new` → domain → scenarios → UI → tests → validate → export |
 | [brief-to-prototype](../skills/brief-to-prototype/SKILL.md) | standard | create | Brief → offline `blueprint new` → review/refine → generate → owned screens → validate → export |
 | [add-scenario](../skills/add-scenario/SKILL.md) | standard | create | Compose presets and fragments, generator knobs, integrity, determinism test |
+| [add-dashboard](../skills/add-dashboard/SKILL.md) | standard | create | KPI row, editable widget grid, date range and filters with the analytics and charts kits on lazy routes; layout saved through a service; bench + budget gates |
 | [add-entity](../skills/add-entity/SKILL.md) | standard | create | Table + version/migration, policy, assert → zod → `environment.run` → transaction service, `liveQuery` deps, tests |
 | [add-ui-component](../skills/add-ui-component/SKILL.md) | standard | create | Shared component in `packages/ui` (tests, a11y, export) or a prototype-local one |
 | [add-theme](../skills/add-theme/SKILL.md) | standard | create | Prototype theme via `defineTheme` or a built-in preset in `BUILTIN_THEMES`, with the contrast test |
@@ -66,6 +67,7 @@ to concrete models in your harness, in one place (see [../README.md](../README.m
 | --- | --- |
 | Build a prototype from an idea | `/new-from-brief` for prose briefs; `/new-prototype` or `prototype-builder` for other starts |
 | Add a product state to demo | `add-scenario` (`scenario-designer` for a full set) |
+| Add a dashboard, KPIs or charts | `add-dashboard` (or start from `--template analytics`) |
 | Add a record type or field | `add-entity` |
 | Make a screen accessible and mobile-ready | `ux-polisher` agent, `add-ui-component` |
 | Ship a ZIP / put it online | `validate-and-export`, then `publish-prototype` |

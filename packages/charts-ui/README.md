@@ -30,13 +30,16 @@ import the styles after Tailwind and the theme/UI styles:
 | `@protoyard/charts-ui/canvas` | Canvas renderer for dense series |
 | `@protoyard/charts-ui/geo` | Tile-grid choropleth |
 
-**Status:** `./cartesian` ships LineChart, AreaChart, BarChart, ComboChart and
-ScatterChart; `./part-whole` ships DonutChart, PieChart, FunnelChart, Treemap
-and SankeyChart; `./matrix` ships Heatmap, CalendarHeatmap and Histogram;
-`./geo` ships TileMap; `./canvas` holds the Canvas renderer used by the
-dense line and scatter charts; `./compact` ships Sparkline, Gauge and RadialProgress. The other
-family subpaths currently export only their `FAMILY` name; their components
-are added by the following PLAN_003 charts tasks. `sideEffects` lists only CSS,
+What each subpath ships:
+- `./cartesian`: LineChart, AreaChart, BarChart, ComboChart, ScatterChart;
+- `./part-whole`: DonutChart, PieChart, FunnelChart, Treemap, SankeyChart;
+- `./matrix`: Heatmap, CalendarHeatmap, Histogram, RampLegend;
+- `./compact`: Sparkline, Gauge, RadialProgress;
+- `./geo`: TileMap;
+- `./canvas`: the Canvas renderer used by the dense line and scatter charts.
+
+The platform guide with every chart's props, the data contracts and the
+measured numbers is [docs/CHARTS.md](../../docs/CHARTS.md). `sideEffects` lists only CSS,
 so a bundler keeps just the components a screen imports from a subpath. Load a family from a lazy route (`load: () => import('./Screen.svelte')`)
 so charts stay out of the initial chunk.
 
@@ -278,4 +281,6 @@ Size (esbuild minify + gzip -9, `svelte` external): `InteractivePlot` 4.3 KB;
 ```bash
 pnpm vitest run packages/charts-ui
 pnpm --filter @protoyard/charts-ui typecheck
+pnpm vitest run packages/cli/tests/charts-bundle.test.ts      # real Vite build, size ceilings
+pnpm protoyard build ui-kit && pnpm exec tsx scripts/bench-charts.ts --runs 3 --check
 ```

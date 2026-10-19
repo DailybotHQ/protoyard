@@ -7,6 +7,13 @@ Svelte 5 analytics kit for Protoyard prototypes
 view has its own subpath, so a prototype pays only for the views its screens
 import. Nothing here is re-exported from the `@protoyard/ui` barrel.
 
+The platform guide is [docs/ANALYTICS.md](../../docs/ANALYTICS.md). Working
+examples:
+- [`templates/analytics`](../../templates/analytics/README.md): every view on
+  lazy routes, as a starter;
+- [`prototypes/pebblestat-analytics-demo`](../../prototypes/pebblestat-analytics-demo/README.md):
+  the flagship.
+
 ## Install in a workspace prototype
 
 Add `"@protoyard/analytics-ui": "workspace:*"` to the prototype dependencies
