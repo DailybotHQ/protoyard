@@ -427,6 +427,10 @@ export function createProgram(env: RunnerEnv): Command {
     .option('-p, --port <port>', 'gallery port', '4321')
     .option('--control-port <port>', 'control server port', '4300')
     .option('--allow-origin <origins>', 'extra comma-separated origins for the control API')
+    .option(
+      '--allow-create',
+      'let the gallery create prototypes (POST /api/new writes prototypes/<slug>/); off by default'
+    )
     .action(def('gallery', galleryCommand));
 
   program
@@ -435,6 +439,10 @@ export function createProgram(env: RunnerEnv): Command {
     .option('-p, --port <port>', 'port', '4300')
     .option('--gallery-port <port>', 'gallery port allowed as Origin', '4321')
     .option('--allow-origin <origins>', 'extra comma-separated allowed origins')
+    .option(
+      '--allow-create',
+      'enable POST /api/new (writes prototypes/<slug>/ and runs the copy); off by default'
+    )
     .action(def('control-server', controlServerCommand));
 
   return program;

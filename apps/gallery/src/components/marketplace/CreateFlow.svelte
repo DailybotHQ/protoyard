@@ -44,7 +44,9 @@ let hydrated = $state(false);
 
 const error = $derived(touched ? slugError(slug) : '');
 const command = $derived(createCommand(source, { slug: slugError(slug) ? '' : slug, name }));
-const live = $derived(control.status === 'available' && kind !== 'blueprint');
+const live = $derived(
+  control.status === 'available' && control.createEnabled && kind !== 'blueprint'
+);
 
 onMount(() => {
   hydrated = true;
@@ -125,6 +127,10 @@ const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
           Blueprints are generated from the terminal:
         {:else if control.status === 'checking' || control.status === 'unknown'}
           Looking for the local control server… Meanwhile, the same action from your terminal:
+        {:else if control.status === 'available'}
+          Creating prototypes from the gallery is off (it writes files on this machine). Start the
+          gallery with <code class="font-mono">pnpm protoyard gallery --allow-create</code> to enable
+          it, or run:
         {:else}
           This gallery is read-only here. Run it from your terminal:
         {/if}
