@@ -3,7 +3,7 @@ import { symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_BUDGET_CONFIG } from '../src/lib/budgets.ts';
-import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
+import { addPrototype, cli, createWorkspace, manifest, type TempWorkspace } from './helpers.ts';
 
 const repositoryRoot = process.cwd();
 
@@ -128,6 +128,53 @@ describe('protoyard scenario bench', () => {
     // A large factor lifts the tiny budget above the measured time; the measurement is unchanged.
     expect((await cli([...args, '--ci-factor', '100000000000'])).code).toBe(0);
     expect((await cli([...args, '--ci-factor', '0.5'])).code).toBe(2);
+  });
+});
+
+describe('protoyard scenario bench on a template', () => {
+  let ws: TempWorkspace | undefined;
+  afterEach(() => {
+    ws?.cleanup();
+    ws = undefined;
+  });
+
+  it('benchmarks a template the same way (its scenarios ship in every prototype)', {
+    timeout: 60_000,
+  }, async () => {
+    ws = createWorkspace();
+    symlinkSync(join(repositoryRoot, 'node_modules'), join(ws.root, 'node_modules'), 'dir');
+    symlinkSync(join(repositoryRoot, 'packages'), join(ws.root, 'packages'), 'dir');
+    ws.write(
+      'templates/bench-template/protoyard.json',
+      manifest({
+        id: 'template.bench-template',
+        slug: 'bench-template',
+        kind: 'template',
+        scenarios: ['steady', 'growing'],
+        defaultScenario: 'steady',
+      })
+    );
+    ws.write('templates/bench-template/package.json', {
+      name: '@protoyard-template/bench-template',
+      private: true,
+    });
+    ws.write('templates/bench-template/src/prototype.ts', fixturePrototype);
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'scenario',
+      'bench',
+      'bench-template',
+      '--runs',
+      '1',
+    ]);
+    expect(run.code).toBe(0);
+    const ids = run.json<{ data: { results: Array<{ id: string; ok: boolean }> } }>().data.results;
+    expect(ids.map((r) => [r.id, r.ok])).toEqual([
+      ['steady', true],
+      ['growing', true],
+    ]);
   });
 });
 
