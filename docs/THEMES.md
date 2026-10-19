@@ -164,7 +164,7 @@ input always gives the same hex values.
 | Function | What it does |
 | --- | --- |
 | `generatePaletteScale(seed)` | An 11-step scale (`PALETTE_STEPS`: 50, 100, 200 … 900, 950) from a `#rgb` or `#rrggbb` seed. Keeps the seed's OKLCH hue, caps chroma at `0.24`, and places each step at a fixed OKLCH lightness (`0.98` for 50 down to `0.12` for 950). Throws a `TypeError` for anything that is not hex. |
-| `createThemeFromSeed({ id, name, seed, secondary?, style? })` | A full `Theme` validated by `defineTheme`. The optional `secondary` seed drives the secondary fill and `chart2`; without it the seed is reused. `style` is passed through. The description becomes `Generated from <seed>…`. |
+| `createThemeFromSeed({ id, name, seed, secondary?, neutral?, style? })` | A full `Theme` validated by `defineTheme`. The optional `secondary` seed drives the secondary fill and `chart2`; without it the seed is reused. `neutral` picks a [neutral family](#neutral-families); without it the original neutrals are used. `style` is passed through. The description becomes `Generated from <seed>…`. An unknown family throws a `TypeError`. |
 
 ### OKLCH and gamut mapping
 
@@ -178,7 +178,8 @@ chroma by binary search until it fits. Every output is a plain `#rrggbb`.
 ### How contrast is guaranteed
 
 Neutrals (background, foreground, surface, muted, borders, sidebar) are
-fixed values per mode. The colored tokens are searched, not guessed:
+fixed values per mode, or come from a [neutral family](#neutral-families).
+The colored tokens are searched, not guessed:
 
 | Token | How it is chosen |
 | --- | --- |
@@ -189,9 +190,51 @@ fixed values per mode. The colored tokens are searched, not guessed:
 | `secondary`, `accent` repair | If either still fails 4.5:1 with its foreground, it is replaced with a neutral. |
 | `chart1` … `chart5` | Step 600 of the seed and secondary scales, plus three fixed hues. |
 
+### Neutral families
+
+Neutrals carry most of a theme's mood, so `createThemeFromSeed` can derive
+them from a family instead of the fixed values (`NEUTRAL_FAMILIES`, type
+`NeutralFamily`):
+
+| Family | OKLCH hue / chroma | Feel |
+| --- | --- | --- |
+| `zinc` | 286 / 0.006 | Nearly pure gray |
+| `slate` | 257 / 0.02 | Blue-gray |
+| `stone` | 56 / 0.008 | Faintly warm gray |
+| `gray` | 265 / 0.012 | Cool gray |
+| `warm` | 70 / 0.016 | Sand and paper |
+| `cool` | 225 / 0.016 | Ice and steel |
+| `tinted` | the seed's hue / 0.016 | A whisper of the brand color |
+
+Each family uses one fixed OKLCH lightness per token and mode (light
+background 0.985, surface 1, muted 0.965; dark background 0.145, surface 0.21,
+elevated and muted 0.27). Dark borders and inputs stay translucent white, so
+they follow whichever neutral is underneath. The text tokens (`foreground`,
+`mutedForeground`, `sidebarForeground`) start from a table lightness and are
+searched toward black or white until they reach 4.5:1 on every background
+they sit on. When a secondary or accent fill misses 4.5:1 with its text, the
+repair falls back to the family's own neutral fill.
+
+Omitting `neutral` keeps the original neutrals bit-for-bit, so every
+existing generated and library theme renders exactly as before. A library
+definition can set `neutral` too (`LibraryThemeDefinition.neutral`); no
+library theme sets one yet.
+
+```ts
+import { createThemeFromSeed } from '@protoyard/themes';
+
+export const paperTheme = createThemeFromSeed({
+  id: 'paper-ledger',
+  name: 'Paper Ledger',
+  seed: '#0f766e',
+  neutral: 'warm',
+});
+```
+
 The result is then held to the same WCAG pairs as the presets (see
 [Contrast checks](#contrast-checks)). `packages/themes/tests/palette.test.ts`
-checks every text and UI pair in both modes for 500 deterministic seeds.
+checks every text and UI pair in both modes for 500 deterministic seeds,
+with the original neutrals and with every neutral family.
 
 ```ts
 import { createThemeFromSeed } from '@protoyard/themes';
@@ -630,7 +673,7 @@ contrast (`TEXT_CONTRAST_PAIRS` and `UI_CONTRAST_PAIRS` in
 | --- | --- |
 | `packages/themes/tests/contrast.test.ts` | Every built-in preset and every library theme, both modes; built-in hover fills stay visible and keep text at AA |
 | `packages/themes/tests/library.test.ts` | Every library theme, both modes |
-| `packages/themes/tests/palette.test.ts` | `createThemeFromSeed` across 500 deterministic seeds, both modes |
+| `packages/themes/tests/palette.test.ts` | `createThemeFromSeed` across 500 deterministic seeds, both modes, with the original neutrals and every neutral family |
 | Theme Studio | Live warnings before saving |
 | `theme create` / `theme import` | Refuses to write a failing theme |
 | `generate` with a `brand` | Refuses to generate a failing brand theme |

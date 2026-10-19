@@ -7,6 +7,8 @@ export {
   type CreateThemeFromSeedInput,
   createThemeFromSeed,
   generatePaletteScale,
+  NEUTRAL_FAMILIES,
+  type NeutralFamily,
   PALETTE_STEPS,
   type PaletteScale,
   type PaletteStep,
