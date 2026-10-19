@@ -66,6 +66,11 @@ describe('protoyard generate', () => {
       ])
     );
     expect(paths).not.toContain('src/screens/ProjectsPage.svelte');
+    // Template tests target the template's entities; only blueprint-driven tests are emitted.
+    expect(paths.filter((p) => p.startsWith('tests/')).sort()).toEqual([
+      'tests/generators.test.ts',
+      'tests/services.test.ts',
+    ]);
     expect(existsSync(join(ws.root, 'prototypes/help-desk'))).toBe(false);
   });
 
