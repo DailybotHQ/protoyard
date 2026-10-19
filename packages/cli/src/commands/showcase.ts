@@ -1,7 +1,12 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import {
+  AVATAR_DIR,
+  AVATAR_IMAGE_SIZES,
+  listAvatarFiles,
+} from '@protoyard/renderer-svelte/avatars-plugin';
 import { buildPrototype, scanForForeignCode } from '../lib/build.ts';
 import { digestDirectory } from '../lib/checksum.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
@@ -44,6 +49,10 @@ import type { PublishProvider } from '../publish/types.ts';
  * template's authoring namespace. Each build is still isolated (its own Vite
  * process and config) and must pass the same isolation check as `export`.
  * Blueprints have no app until they are generated, so they are not bundled.
+ *
+ * Avatar images are shared: every app is built with PROTOYARD_AVATAR_BASE at
+ * `<base>avatars/` (so no app emits its own copy) and the library is copied
+ * once to the site root, about 0.5 MB in total instead of 0.5 MB per app.
  */
 
 export interface ShowcaseTarget {
@@ -95,6 +104,30 @@ export function showcaseEntries(
       marketplacePath: marketplacePathFor(entry),
       ...(entry.kind === 'template' ? { storageNamespace: templateDemoNamespace(entry.slug) } : {}),
     }));
+}
+
+/** The one avatar folder every showcase app points at: `<base>avatars/`. */
+export function showcaseAvatarBase(base: string): string {
+  return `${base}${AVATAR_DIR}/`;
+}
+
+/**
+ * Copies the avatar library once into `siteDir/avatars/<size>/<id>.webp`
+ * (the shared folder of `showcaseAvatarBase`). Returns what was written.
+ */
+export async function shareAvatars(
+  siteDir: string,
+  options: { assetsDir?: string } = {}
+): Promise<{ path: string; files: number; bytes: number }> {
+  const files = listAvatarFiles(AVATAR_IMAGE_SIZES, options.assetsDir);
+  let bytes = 0;
+  for (const file of files) {
+    const target = join(siteDir, ...file.fileName.split('/'));
+    await mkdir(dirname(target), { recursive: true });
+    await copyFile(file.source, target);
+    bytes += (await stat(target)).size;
+  }
+  return { path: `${AVATAR_DIR}/`, files: files.length, bytes };
 }
 
 /** Do not upload a partial showcase; every selected app must have built cleanly. */
@@ -259,6 +292,8 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   await rm(appsStaging, { recursive: true, force: true });
 
   const targets: ShowcaseTarget[] = [];
+  const avatarBase = showcaseAvatarBase(base);
+  let avatars: { path: string; files: number; bytes: number } | undefined;
   try {
     // 1. Every demo, sequentially, each with its final public base.
     for (const { entry, appPath, marketplacePath, storageNamespace } of entries) {
@@ -272,6 +307,8 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
           includeDevtools,
           out: appOut,
           allowExternalOut: allowExternal,
+          // One shared copy at the site root (step 3), none inside the app.
+          avatarBase,
           ...(flag(options, 'offline') ? { offline: true } : {}),
           ...(storageNamespace ? { storageNamespace } : {}),
           manifestPath: join(
@@ -327,6 +364,8 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
       // Build markers are local bookkeeping; they do not belong on a public site.
       await rm(join(destination, BUILD_MARKER), { force: true });
     }
+    // The one shared avatar folder every app points at.
+    if (targets.some((t) => t.ok)) avatars = await shareAvatars(staging);
     // The marker lets a later run replace this site, and only this site.
     await writeJsonAtomic(join(staging, SHOWCASE_MARKER), {
       generator: '@protoyard/cli',
@@ -350,6 +389,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
     includeDevtools,
     files: files.length,
     totalBytes,
+    ...(avatars ? { avatars } : {}),
     targets,
   };
   await writeJsonAtomic(join(ctx.paths.artifacts, 'showcase-builds', 'showcase.json'), {

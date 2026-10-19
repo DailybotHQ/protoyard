@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { resolveReviewBuild } from '@protoyard/core';
 import {
+  ARTIFACT_AVATAR_SIZES,
   ARTIFACT_COMMENT_CAPABILITIES,
   ARTIFACT_PAGE,
   type ArtifactPackManifest,
@@ -202,6 +203,9 @@ export async function exportArtifact(
       out: buildDir,
       manifestPath: buildManifestPath,
       frameWhenEmbedded: true,
+      // 128 px only: 175 avatar files instead of 350 against the 511-file
+      // version cap; `avatarUrl(id, 64)` resolves to 128 px (ARTIFACT_AVATAR_SIZES).
+      avatarSizes: ARTIFACT_AVATAR_SIZES,
     });
   }
 

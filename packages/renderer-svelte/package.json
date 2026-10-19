@@ -15,6 +15,7 @@
       "default": "./src/index.ts"
     },
     "./vite": "./src/vite.ts",
+    "./avatars-plugin": "./src/avatars-plugin.ts",
     "./app.css": "./src/app.css",
     "./env": "./src/env.d.ts"
   },

@@ -123,6 +123,7 @@ not need redirect or rewrite rules.
 | Device or host frame inside an iframe | **Off**: an embedded page renders full-bleed | `"build": { "frameWhenEmbedded": true }` keeps an explicit (non-`auto`) shell frame when the page is embedded, for example as a Claude artifact ([SHELLS.md](SHELLS.md#when-the-app-goes-full-bleed)) |
 | Faker | In a separate chunk, downloaded only when a world is generated (first visit, scenario load) | |
 | Your scenarios and generator | Included, so the first visit can seed the default scenario | |
+| Avatar images | **Included**: the 175 fictional people of `@protoyard/avatars` at 64 and 128 px under `avatars/` (350 files, 513,196 B, fixed names, no JavaScript) | `defineProtoyardConfig({ root, avatars: false })` in `vite.config.ts` ([renderer README](../packages/renderer-svelte/README.md#avatars)) |
 
 With DevTools included, visitors can still hide them with `?devtools=0`
 (presentation mode). Without them, no URL parameter can bring them back.
@@ -187,7 +188,11 @@ plain build in `dist/` is untouched:
   browser, widget) keeps its frame inside the artifact viewer
   ([SHELLS.md](SHELLS.md#when-the-app-goes-full-bleed));
 - always the relative base `./`; `--base` with another path, `--offline`
-  and `"build": { "offline": true }` are refused (exit 2 and 4).
+  and `"build": { "offline": true }` are refused (exit 2 and 4);
+- avatar images at 128 px only (175 files, 356,386 B): 64 px requests resolve
+  to 128 px. Both sizes would be 350 files, which takes `relay-chat-demo` from
+  one publish batch to two and puts `ui-kit` (180 app files) at 531 files,
+  over the 511-file version cap.
 
 It then runs the isolation check and the pack step
 (`packages/cli/src/lib/artifact-pack.ts`), which writes
@@ -212,7 +217,10 @@ true } }`. `--json` adds the manifest and the exact Artifact tool arguments
 per batch (`file_path`, `files`, `icon`, `description`, `capabilities`).
 Measured on 2026-10-19: `relay-chat-demo` packs into 31 files plus the page,
 1.25 MB, in one batch; its artifact build loads 158,065 B gzip of initial JS
-(DevTools stay lazy) against 152.75 KB for the plain build.
+(DevTools stay lazy) against 152.75 KB for the plain build. With avatars
+(same day, dry run): `relay-chat-demo` is 207 files plus the page, 1,626,663 B,
+still one batch; `ui-kit` is 355 files plus the page in two batches. The
+manifest's `avatars` field records the sizes, file count and bytes.
 
 ## Preview locally
 
@@ -581,6 +589,15 @@ because a showcase is a demo site. Preview it with
 `pnpm protoyard showcase --base /protoyard/ --serve`, then open
 `http://127.0.0.1:4500/protoyard/`.
 
+Avatar images are shared: every app is built with `PROTOYARD_AVATAR_BASE` set
+to `<base>avatars/`, so no app carries its own copy, and the library is copied
+once to the site root (350 files, 513,196 B, reported as `avatars` in the
+`--json` result). Measured on 2026-10-19 with 26 demos: the site grew from
+1,412 files and 42,202,092 B to 1,762 files and 42,715,288 B, exactly the one
+shared copy, where per-app copies would have added about 13.3 MB. A standalone
+`build` or `export` keeps its own copy, so it stays relocatable: the
+`crm-demo` ZIP grows from 62 files (610 KB) to 412 files (1.1 MB).
+
 The `--json` result lists every demo in `targets`: kind, slug, `appPath`, its
 `marketplacePath`, the `storageNamespace` of template demos, and whether it
 built (`ok`) with its size.
@@ -632,6 +649,10 @@ network. Prototype data was already local in IndexedDB.
 - Each deploy gets a new version, which waits until every tab is closed (or
   until `window.__protoyardOffline.applyUpdate()` is called).
 - `?offline=0` unregisters the service worker for that scope only.
+- The build's `avatars/` images are precached with the shell (350 files,
+  about 0.5 MB). In `showcase --offline`, avatars live in the shared
+  `<base>avatars/` folder outside each app's scope, so they are not precached
+  and need the network.
 
 It requires HTTPS or localhost, and the first visit must be online. Browsers
 (especially Safari) may still evict caches and storage, so export snapshots

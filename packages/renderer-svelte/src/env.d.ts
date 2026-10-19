@@ -15,3 +15,8 @@ declare const __PROTOYARD_BUILD__: {
   /** Keep an explicit shell frame when embedded (absent in builds before ADR-026). */
   frameWhenEmbedded?: boolean;
 };
+/**
+ * Where avatar images are served from and which sizes the build ships
+ * (`sizes: []` when avatars are turned off). See src/avatars.ts.
+ */
+declare const __PROTOYARD_AVATARS__: { base: string; sizes: readonly (64 | 128)[] };
