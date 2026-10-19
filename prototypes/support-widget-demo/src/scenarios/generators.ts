@@ -5,6 +5,7 @@ import type {
   Persona,
   WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import {
   type Conversation,
   type Message,
@@ -60,9 +61,12 @@ function identities(
     size: PEOPLE.length,
     featureFlags: {},
   };
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('support-widget-demo:avatars:people'));
   const personas: Persona[] = PEOPLE.map((p, i) => ({
     id: p.id,
     name: p.name,
+    avatar: faces.next(),
     email: p.email,
     title: p.title,
     avatarColor: p.color,
