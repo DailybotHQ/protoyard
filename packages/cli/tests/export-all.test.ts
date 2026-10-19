@@ -106,12 +106,12 @@ describe('protoyard export --all', () => {
 });
 
 describe('protoyard-build template v2', () => {
-  it('ships build template header v2 that documents export --all', () => {
+  it('ships build template header v3 that documents export --all', () => {
     const path = join(process.cwd(), 'packages/cli/ci-templates/github/protoyard-build.yml');
     const content = readFileSync(path, 'utf8');
     const header = parseTemplateHeader(content);
-    expect(header).toEqual({ id: 'build', version: 2 });
-    expect(content).toContain('pnpm protoyard export --all');
+    expect(header).toEqual({ id: 'build', version: 3 });
+    expect(content).toContain('pnpm protoyard export --all --skip-build');
     expect(content).toContain('pnpm protoyard build --all');
   });
 });

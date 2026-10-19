@@ -62,7 +62,8 @@ export async function specForPrototype(
   for (const file of SPEC_FILES) {
     const path = join(dir, file);
     if (!existsSync(path)) {
-      if (options.init) {
+      // --check is read-only, so it never creates skeletons even with --init.
+      if (options.init && options.mode !== 'check') {
         // Created whole: TODO prompts for prose, generated regions already filled.
         await writeTextAtomic(path, skeleton(file, facts));
         const { regions } = refreshRegions(file, await readFile(path, 'utf8'), facts);
@@ -301,6 +302,11 @@ export const specCommand: Handler = async (ctx, args, options): Promise<CommandR
   if (write && check) throw new CliError('usage', 'Pass --write or --check, not both.');
   const mode: Mode = write ? 'write' : check ? 'check' : 'report';
   const init = flag(options, 'init');
+  if (init && check) {
+    throw new CliError('usage', 'Pass --init or --check, not both: --check never writes files.', {
+      hint: 'Create the missing files with --init (or --init --write), then run --check.',
+    });
+  }
   const bundle = flag(options, 'bundle');
   const targets = await targetsFor(ctx, args[0], flag(options, 'all'));
 

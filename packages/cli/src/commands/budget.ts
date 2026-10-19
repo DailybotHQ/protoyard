@@ -56,7 +56,6 @@ export const budgetCommand: Handler = async (ctx, args, options): Promise<Comman
     : [(await resolveTarget(ctx, args[0], 'prototype')).entry];
   const config = await loadBudgets(ctx.root);
   const results: BudgetPrototypeResult[] = [];
-  let budgetExceeded = false;
   let firstError: CliError | undefined;
 
   for (const entry of entries) {
@@ -93,27 +92,36 @@ export const budgetCommand: Handler = async (ctx, args, options): Promise<Comman
         },
       ];
       const ok = metrics.every((metric) => metric.ok);
-      if (!ok) budgetExceeded = true;
       results.push({ slug: entry.slug, metrics, ok });
     } catch (error) {
       const cliError = toCliError(error);
       firstError ??= cliError;
-      if (cliError.code === 'validation') budgetExceeded = true;
       results.push({ slug: entry.slug, metrics: [], ok: false, error: cliError.message });
     }
   }
 
   const failed = results.filter((result) => !result.ok).length;
+  // Only a metric over its limit is "over budget". A build, isolation or
+  // manifest error means the budget could not be checked, and says so.
+  const overBudget = results.filter((result) => !result.ok && !result.error).length;
+  const unchecked = results.filter((result) => result.error !== undefined).length;
+  const summary = [
+    overBudget > 0 ? `${overBudget} of ${results.length} prototype(s) over budget` : '',
+    unchecked > 0
+      ? `${unchecked} of ${results.length} prototype(s) could not be checked (${firstError?.message ?? 'error'})`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
   const data: BudgetCommandData = { total: results.length, failed, results };
   const failure =
     failed === 0
       ? undefined
-      : budgetExceeded
-        ? new CliError(
-            'validation',
-            `${failed} of ${results.length} prototype(s) failed budget checks.`
-          )
-        : (firstError ?? new CliError('failure', `${failed} prototype budget check(s) failed.`));
+      : unchecked > 0
+        ? new CliError(firstError?.code ?? 'failure', `${summary}.`, {
+            ...(firstError?.hint ? { hint: firstError.hint } : {}),
+          })
+        : new CliError('validation', `${summary}.`);
 
   return {
     data,
@@ -143,7 +151,7 @@ export const budgetCommand: Handler = async (ctx, args, options): Promise<Comman
         out.always(`${mark(out.c, 'fail')} ${result.slug}: ${result.error}`);
       }
       if (failed === 0) out.always(`All ${results.length} prototype budget checks passed.`);
-      else out.always(`${failed} of ${results.length} prototype(s) failed budget checks.`);
+      else out.always(`${summary}.`);
     },
   };
 };

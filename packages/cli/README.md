@@ -1,7 +1,7 @@
 # @protoyard/cli
 
 The `protoyard` command line. It discovers, indexes, scaffolds, runs, validates, builds, exports
-and publishes **one prototype at a time**. Inside the repository, run it with `pnpm protoyard …`.
+and publishes prototypes: one at a time, or several in one run (`publish <slug>… | --all | --tag`). Inside the repository, run it with `pnpm protoyard …`.
 `bin/protoyard.mjs` is the package entry point: it registers tsx and runs `src/bin.ts`.
 
 ```bash
@@ -116,7 +116,8 @@ and Windows.
 
 - **Strictly inside `artifacts/` or `tmp/`:** always allowed. The default
   (`artifacts/<slug>/dist`, or `artifacts/templates/<name>/dist` for templates) needs no flag.
-  Prototype slugs `showcase` and `showcase-builds` are reserved (the CLI owns those folders).
+  Prototype slugs `templates`, `showcase`, `showcase-builds`, `publish` and `review` are reserved
+  (the CLI owns those folders under `artifacts/`).
 - **Anywhere else in the workspace:** only a new or empty folder, or one Protoyard wrote before. A
   build leaves a hidden `.protoyard-out` marker (it also holds that build's manifest); a showcase
   leaves `.protoyard-showcase`.

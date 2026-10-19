@@ -16,6 +16,7 @@ import {
   assertShaPinnedUses,
   assertWritable,
   CI_HASH_PREFIX,
+  CI_WRANGLER_VERSION,
   checkCiDrift,
   ciTemplatesRoot,
   contentSha256,
@@ -90,6 +91,49 @@ describe('ci template rendering', () => {
     }
     expect(plan.secrets).toEqual(['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID']);
     expect(plan.manualSteps.some((s) => s.includes('Settings are not changed'))).toBe(true);
+  });
+
+  it('preview installs a pinned Wrangler, ensures the project and reads secrets from an environment', async () => {
+    const plan = await planCiInit({
+      root: '/tmp/unused',
+      provider: 'github',
+      workflows: ['preview'],
+      deploy: 'cloudflare',
+      placeholders,
+    });
+    const content = plan.files[0]?.content ?? '';
+    expect(parseTemplateHeader(content)).toEqual({ id: 'preview', version: 2 });
+    expect(CI_WRANGLER_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+    const install = content.indexOf(`npm install --global wrangler@${CI_WRANGLER_VERSION}`);
+    const publish = content.indexOf('pnpm protoyard publish');
+    expect(install).toBeGreaterThan(-1);
+    expect(install).toBeLessThan(publish);
+    expect(content).toMatch(/pnpm protoyard publish .*--ensure-project/);
+    expect(content).toContain('environment: protoyard-preview');
+    expect(content).toMatch(/Cloudflare Pages: Edit/);
+    const steps = plan.manualSteps.join('\n');
+    expect(steps).toContain(`wrangler@${CI_WRANGLER_VERSION}`);
+    expect(steps).toContain('--ensure-project');
+    expect(steps).toMatch(/environment.*required reviewers/);
+    expect(steps).not.toContain('Configure repository secrets');
+  });
+
+  it('build builds each prototype once and checks budgets on the same build', async () => {
+    const plan = await planCiInit({
+      root: '/tmp/unused',
+      provider: 'github',
+      workflows: ['build'],
+      deploy: null,
+      placeholders,
+    });
+    const content = plan.files[0]?.content ?? '';
+    expect(parseTemplateHeader(content)).toEqual({ id: 'build', version: 3 });
+    const commands = content.match(/pnpm protoyard (?:export|budget)[^\n]*/g) ?? [];
+    expect(commands.length).toBeGreaterThanOrEqual(4);
+    for (const command of commands) expect(command).toContain('--skip-build');
+    // Budgets run per affected slug on PRs, never as an unconditional --all step.
+    expect(content).toContain('pnpm protoyard budget "$slug" --skip-build');
+    expect(content).not.toMatch(/name: Enforce performance budgets/);
   });
 });
 

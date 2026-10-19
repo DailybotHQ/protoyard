@@ -20,6 +20,12 @@ export type CiProvider = (typeof CI_PROVIDERS)[number];
 export const CI_DEPLOY_TARGETS = ['cloudflare'] as const;
 export type CiDeployTarget = (typeof CI_DEPLOY_TARGETS)[number];
 
+/**
+ * Exact Wrangler version the preview template installs. A clean runner has no
+ * Wrangler, and `publish` never installs one; bump with the template version.
+ */
+export const CI_WRANGLER_VERSION = '4.146.0';
+
 /** Default Node major used when the workspace engines field is absent. */
 export const DEFAULT_CI_NODE_VERSION = '24';
 
@@ -211,12 +217,18 @@ export function manualStepsForInit(options: {
     steps.push('Ensure GitHub Actions is enabled for the repository (Settings → Actions).');
     if (options.secrets.length > 0) {
       steps.push(
-        `Configure repository secrets (Settings → Secrets and variables → Actions): ${options.secrets.join(', ')}.`
+        options.workflows.includes('preview')
+          ? `Configure these secrets in the "protoyard-preview" environment (Settings → Environments), not as repository secrets: ${options.secrets.join(', ')}.`
+          : `Configure repository secrets (Settings → Secrets and variables → Actions): ${options.secrets.join(', ')}.`
       );
       steps.push('Never commit secret values; only the secret names are printed by this command.');
     }
     if (options.workflows.includes('preview')) {
       steps.push(
+        `The preview workflow installs Wrangler ${CI_WRANGLER_VERSION} on the runner (npm install --global wrangler@${CI_WRANGLER_VERSION}); nothing to add to your dependencies.`,
+        'The preview workflow passes --ensure-project, so each protoyard-<slug> Pages project is created on its first preview.',
+        'Every preview run uploads a public *.pages.dev preview immediately (publish without --dry-run deploys).',
+        'Use a Cloudflare API token scoped to "Cloudflare Pages: Edit" on one account, store both secrets in the "protoyard-preview" environment (Settings → Environments) with required reviewers, and rotate the token when collaborators change: the job builds pull request code with the token in its environment.',
         'Preview deploys skip fork pull requests; open PRs from branches on this repository.'
       );
     }

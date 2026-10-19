@@ -317,7 +317,18 @@ describe('discovery and registry', () => {
         `from-${slug}`,
         '--skip-typecheck',
       ]);
-      // Spec markers may be stale until write; refresh then re-validate with typecheck.
+      // Spec markers may be stale until write, so only the spec check may fail here.
+      const firstRun = validate.json<{
+        command: string;
+        data: { checks: { id: string; status: string }[] };
+      }>();
+      expect(firstRun.command, slug).toBe('validate');
+      expect(
+        firstRun.data.checks.filter((c) => c.status === 'fail' && c.id !== 'spec'),
+        slug
+      ).toEqual([]);
+      expect(firstRun.data.checks.find((c) => c.id === 'typecheck')?.status, slug).toBe('skip');
+      // Refresh the spec, then re-validate with typecheck.
       await cli(['--root', ws.root, '--json', 'spec', `from-${slug}`, '--write']);
       const typed = await cli(['--root', ws.root, '--json', 'validate', `from-${slug}`]);
       const { ok, data } = typed.json<{
@@ -328,7 +339,6 @@ describe('discovery and registry', () => {
       expect(failed, slug).toEqual([]);
       expect(ok, slug).toBe(true);
       expect(data.checks.find((c) => c.id === 'typecheck')?.status, slug).toBe('pass');
-      expect(validate.code).toBeDefined();
     }
   }, 180_000);
 });

@@ -1,7 +1,8 @@
 // @vitest-environment node
-import { symlinkSync } from 'node:fs';
+import { readFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { themeExportName } from '../src/commands/theme.ts';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 const repositoryRoot = process.cwd();
@@ -196,6 +197,41 @@ describe('protoyard theme', () => {
       id: 'brand-imported',
       dryRun: true,
     });
+  });
+});
+
+describe('themeExportName', () => {
+  it('turns every valid theme id into a JavaScript identifier', () => {
+    expect(themeExportName('brand')).toBe('brandTheme');
+    expect(themeExportName('brand-imported')).toBe('brandImportedTheme');
+    expect(themeExportName('brand-2024')).toBe('brand2024Theme');
+    expect(themeExportName('x-')).toBe('xTheme');
+    expect(themeExportName('a--b')).toBe('aBTheme');
+  });
+
+  it('writes a buildable export for an id with a digit after a dash', async () => {
+    const workspace = createThemeWorkspace();
+    try {
+      workspace.write('theme.json', { ...validTheme, id: 'brand-2024' });
+      const imported = await cli([
+        '--root',
+        workspace.root,
+        '--json',
+        'theme',
+        'import',
+        'theme-fixture',
+        'theme.json',
+      ]);
+      expect(imported.code).toBe(0);
+      const source = readFileSync(
+        join(workspace.root, 'prototypes', 'theme-fixture', 'src', 'theme.ts'),
+        'utf8'
+      );
+      expect(source).toContain('export const brand2024Theme = defineTheme(');
+      expect(source).not.toMatch(/export const [^ ]*-/);
+    } finally {
+      workspace.cleanup();
+    }
   });
 });
 

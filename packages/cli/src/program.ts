@@ -265,7 +265,9 @@ export function createProgram(env: RunnerEnv): Command {
   buildOptions(
     program
       .command('publish')
-      .description('build, verify and deploy one or many prototypes to a static host')
+      .description(
+        'build, verify and deploy one or many prototypes to a static host. Without --dry-run it uploads a preview immediately, with no prompt (also with --all/--tag); only --production asks for --yes'
+      )
       .argument('[slugs...]', 'one or more prototypes (or use --all / --tag)')
       .option('--all', 'every prototype, one after another')
       .option('--tag <tag>', 'every prototype with this tag')
@@ -280,7 +282,10 @@ export function createProgram(env: RunnerEnv): Command {
       .option('--branch <name>', 'Cloudflare preview branch (lowercase letters, digits and dashes)')
       .option('--preview', 'preview deployment (default)')
       .option('--production', 'production deployment (requires --yes)')
-      .option('--dry-run', 'build and verify, print the exact command, contact no provider')
+      .option(
+        '--dry-run',
+        'build and verify, print the exact command, contact no provider (without it, publish deploys)'
+      )
       .option(
         '--ensure-project',
         'Cloudflare: create the Pages project when missing (shown on dry-run; run on real publish)'
@@ -362,7 +367,10 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--all', 'every prototype')
     .option('--write', 'refresh the generated regions (prose outside the markers is untouched)')
     .option('--check', 'exit 4 when a generated region is stale or a marker is invalid')
-    .option('--init', 'create missing AGENTS.md and docs/* skeletons (never overwrites)')
+    .option(
+      '--init',
+      'create missing AGENTS.md and docs/* skeletons (never overwrites; refused with --check)'
+    )
     .option(
       '--bundle',
       'write artifacts/<slug>/<slug>-rebuild-kit.zip (spec + schema, domain, scenarios + REBUILD.md) from a current spec'
