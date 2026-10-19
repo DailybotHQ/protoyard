@@ -45,8 +45,18 @@ const nav = $derived([
   { href: '#/tasks', label: 'Tasks', icon: CheckSquare, active: router.isActive('/tasks') },
   { href: '#/members', label: 'Members', icon: Users, active: router.isActive('/members') },
 ]);
+const navSections = $derived(
+  [
+    { label: 'Overview', items: nav.filter((item) => item.href === '#/') },
+    {
+      label: 'Work',
+      items: nav.filter((item) => item.href !== '#/' && item.href !== '#/members'),
+    },
+    { label: 'Workspace', items: nav.filter((item) => item.href === '#/members') },
+  ].filter((section) => section.items.length > 0)
+);
 const layoutNav = $derived(
-  navFromSidebar(nav, {
+  navFromSidebar(navSections, {
     brand: { label: runtime.manifest.name, icon: 'folder-kanban' },
     ...(principal.current
       ? {
