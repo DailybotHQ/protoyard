@@ -1,0 +1,62 @@
+{
+  "name": "@protoyard/charts-ui",
+  "version": "0.1.0",
+  "description": "Svelte 5 chart components for Protoyard prototypes, one lazy subpath per chart family, colored by theme tokens.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.svelte"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./cartesian": {
+      "types": "./src/cartesian/index.ts",
+      "svelte": "./src/cartesian/index.ts",
+      "default": "./src/cartesian/index.ts"
+    },
+    "./part-whole": {
+      "types": "./src/part-whole/index.ts",
+      "svelte": "./src/part-whole/index.ts",
+      "default": "./src/part-whole/index.ts"
+    },
+    "./matrix": {
+      "types": "./src/matrix/index.ts",
+      "svelte": "./src/matrix/index.ts",
+      "default": "./src/matrix/index.ts"
+    },
+    "./compact": {
+      "types": "./src/compact/index.ts",
+      "svelte": "./src/compact/index.ts",
+      "default": "./src/compact/index.ts"
+    },
+    "./canvas": {
+      "types": "./src/canvas/index.ts",
+      "svelte": "./src/canvas/index.ts",
+      "default": "./src/canvas/index.ts"
+    },
+    "./geo": {
+      "types": "./src/geo/index.ts",
+      "svelte": "./src/geo/index.ts",
+      "default": "./src/geo/index.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@protoyard/charts": "workspace:*"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "svelte": "./src/index.ts"
+}
