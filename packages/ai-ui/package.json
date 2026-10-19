@@ -31,7 +31,8 @@
   },
   "dependencies": {
     "@lucide/svelte": "^1.50.0",
-    "@protoyard/ai": "workspace:*"
+    "@protoyard/ai": "workspace:*",
+    "@protoyard/charts-ui": "workspace:*"
   },
   "devDependencies": {
     "axe-core": "^4.13.0",

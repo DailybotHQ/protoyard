@@ -7,7 +7,8 @@ interface Props {
 }
 
 let { content, label = 'Assistant response' }: Props = $props();
-const document = $derived(parseMarkdown(content));
+// ```chart fences become chart blocks; their code (charts kit + zod) loads only when one appears.
+const document = $derived(parseMarkdown(content, { charts: true }));
 
 function sourceFor(id: string) {
   return document.sources.find((source) => source.id === id);
@@ -64,6 +65,19 @@ function sourceFor(id: string) {
           </div>
           <pre class="overflow-x-auto p-3 text-xs leading-5"><code>{block.text}</code></pre>
         </div>
+      {:else if block.type === 'chart'}
+        {#snippet chartStatus(text: string)}<p role="status" class="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">{text}</p>{/snippet}
+        {#if !block.closed}
+          {@render chartStatus('Preparing chart…')}
+        {:else}
+          {#await import('./ChartAnswer.svelte')}
+            {@render chartStatus('Loading chart…')}
+          {:then { default: ChartAnswer }}
+            <ChartAnswer text={block.text} />
+          {:catch}
+            {@render chartStatus('The chart did not load.')}
+          {/await}
+        {/if}
       {:else if block.type === 'list'}
         <svelte:element this={block.ordered ? 'ol' : 'ul'} class="space-y-1 pl-6 marker:text-muted-foreground" start={block.ordered ? block.start : undefined}>
           {#each block.items as item, itemIndex (`${index}-${itemIndex}`)}

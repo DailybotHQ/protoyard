@@ -48,6 +48,20 @@ The workspace renders its conversation through `MessageList`, which virtualizes 
 
 The composer supports Enter to send, Shift+Enter for a newline, Escape to stop a stream, model selection, file selection, slash-command suggestions, and @mention suggestions. The parent owns streaming state and should update `messages` as deterministic chunks arrive. `RichAnswer` renders the plain-data AST from `parseMarkdown` using text nodes and Svelte elements; it never uses `{@html}`. `CanvasPanel` displays code or editable document text in a responsive side panel.
 
+**Chart answers.** `RichAnswer` parses with `{ charts: true }`.
+- A ```` ```chart ```` fence (see `@protoyard/ai/chart`) shows "Preparing
+  chart…" while it streams.
+- When the fence closes, `ChartAnswer` loads on demand. It validates the spec,
+  shows a table of the values at once, then the matching `@protoyard/charts-ui`
+  chart (bar, line, area, donut, pie or funnel), which brings keyboard
+  navigation, tooltips and its own table toggle.
+- An invalid spec shows a note with the reason and the raw data as text.
+- The charts kit and the zod schema are lazy chunks; only the small parser and
+  renderer branch ship with `RichAnswer`. In nova-assistant-demo initial JS
+  went from 169.40 KB to 169.93 KB gzip.
+- `styles.css` registers the charts-ui class sources, so prototypes need no
+  extra import.
+
 Conversation folder controls require `folders`, `onCreateFolder`, and `onMoveToFolder` callbacks. Features without a callback are disabled. The caller supplies `onRegenerate`, `onEditMessage`, `onBranchChange`, `onFeedback`, and `onShare` only when those operations are implemented.
 
 All components use Svelte 5 runes and theme token utility classes. Import `styles.css` to register this package's class sources with Tailwind. Components accept data-only messages from `@protoyard/ai`; no credentials, provider SDKs, generated models or external network calls are included.
