@@ -57,13 +57,12 @@ changed fields) per affected root record, in the same transaction.
 
 ## Delete a customer or a ticket to the trash, with Undo
 
-1. Customers or Tickets → tick one row's checkbox → "Delete 1" → confirm
+1. Customers or Tickets → select row(s) → "Delete N" → confirm
    ("It will move to trash. You can undo for a short time."). A "Moved to
-   trash" toast offers **Undo**. The checkboxes appear only for roles that
-   hold the delete capability without a record (see
-   [PERMISSIONS.md](PERMISSIONS.md)), so members never see them.
-2. Service: `customer.remove(id)` or `ticket.remove(id)` in src/generated/services.ts (returns an undo token)
-3. Capability: `customer:delete` / `ticket:delete` (owner and admin through `*`), or `ticket:delete:own` when the ticket's `assigneeId` is the acting persona (members, service only). Members hold no customer delete capability.
+   trash" toast offers **Undo**. Selection is available when a visible row
+   passes its per-record delete capability check (see [PERMISSIONS.md](PERMISSIONS.md)).
+2. Service: `customer.remove(id)` or `ticket.remove(id)` once per selected id in src/generated/services.ts; each returns an undo token
+3. Capability: `customer:delete` / `ticket:delete` (owner and admin through `*`), or `ticket:delete:own` when the ticket's `assigneeId` is the acting persona. Members hold no customer delete capability.
 4. Writes (one transaction): soft delete of the record and its cascade — `customers` (deletedAt, deletedBy, updatedAt), its `tickets` (same fields) and those tickets' `replies` (same fields, although replies have no soft-delete feature); `auditEntries` (`delete` for the root record only). Attachments and audit rows stay.
 5. Failure states: record not found, permission denied, simulated offline or failure (nothing written; "Could not delete" toast)
 
@@ -77,17 +76,13 @@ changed fields) per affected root record, in the same transaction.
 
 ## Delete several selected records
 
-1. Customers, Tickets or Replies → tick two or more rows → "Delete N" →
-   confirm. The dialog says the records move to trash, but this path is a
-   hard delete with no Undo (see the gap below). A "Deleted N records" toast
-   follows.
-2. Service: `customer.bulkRemove(ids)`, `ticket.bulkRemove(ids)` or `reply.bulkRemove(ids)` in src/generated/services.ts
-3. Capability: for each record, `<entity>:delete`, or `<entity>:delete:own` with the record (tickets: assignee; replies: author). In the UI only owner and admin get the checkboxes.
-4. Writes (one transaction): hard deletes from the entity table and every cascaded table (`customers` → `tickets` → `replies`), `auditEntries` (`delete` per selected record)
-5. Failure states: any record not found or denied fails the whole batch, simulated offline or failure ("Could not delete selection"; nothing deleted)
-
-Gap: `bulkRemove` ignores soft delete, so bulk-deleted customers and tickets
-never reach the Trash view, although the confirmation says they will.
+1. Customers, Tickets or Replies → select two or more rows → "Delete N" →
+   confirm. Customers and Tickets move to Trash and the toast offers **Undo**;
+   Replies are hard-deleted because soft delete is disabled for them.
+2. Service: `customer.remove(id)` / `ticket.remove(id)` once per selected soft-delete row, or `reply.bulkRemove(ids)` for hard-delete rows
+3. Capability: each selected row must pass `<entity>:delete`, or `<entity>:delete:own` with the stored record (tickets: assignee; replies: author).
+4. Writes: one transaction per selected soft-delete row, including its cascade and root audit entry; hard-delete rows use one `bulkRemove` transaction.
+5. Failure states: a denial or simulated failure stops processing; prior successful soft deletes remain in Trash and are reflected by the live list, while the failed and remaining records are unchanged.
 
 ## Create a ticket
 
@@ -156,9 +151,10 @@ The service does not compute `slaDueAt`; only the scenario generator does.
 ## Delete a reply
 
 1. Replies → tick one row → "Delete 1" → confirm ("This cannot be undone.").
-   Only owner and admin get the checkboxes.
+   Selection appears for a role when the reply is owned by its author, or the
+   role has unrestricted delete access.
 2. Service: `reply.remove(id)` in src/generated/services.ts (hard delete; returns no undo token)
-3. Capability: `reply:delete`, or `reply:delete:own` with the reply (author). Members hold only the `:own` form, which the list cannot check without a record, so they cannot delete from the UI.
+3. Capability: `reply:delete`, or `reply:delete:own` with the reply (author).
 4. Writes (one transaction): deletes the `replies` row, `auditEntries` (`delete`)
 5. Failure states: record not found, permission denied, simulated offline or failure (nothing deleted)
 
@@ -178,13 +174,16 @@ The service does not compute `slaDueAt`; only the scenario generator does.
 
 1. Tickets or Customers → "Import CSV" → choose a file. Header cells are
    field names, labels or row properties (case-insensitive, as in an
-   export); relation and persona cells must be stored ids. The whole file is validated first: any invalid row shows
-   "CSV has N error(s)" and nothing is imported. Then each row is created
-   one by one, and a toast says "Imported N rows".
-2. Service: `ticket.create(row)` or `customer.create(row)` per row in src/generated/services.ts. The screen does not call `importCsv` (see the service-only flows).
-3. Capability: the button needs `<entity>:import` (tickets: owner, admin, member; customers: owner and admin); each row is then checked against `<entity>:create`.
-4. Writes (one transaction per row): the same as the create flow for that entity, including `ticket.create` notifications
-5. Failure states: CSV validation errors (nothing written); a row that fails on create shows "Import row failed" while earlier rows stay written, so a simulated failure can leave a partial import. An empty file or an unknown column throws in `validateCsv` and, because the handler is not wrapped in `runService`, shows no message.
+   export); relation and persona cells must be stored ids. The whole file is
+   validated first; any invalid row aborts the import. A successful import
+   shows "Imported N rows".
+2. Service: `ticket.importCsv(text, { mode: 'commit' })` or
+   `customer.importCsv(text, { mode: 'commit' })` in src/generated/services.ts.
+3. Capability: `<entity>:import` (tickets: owner, admin, member; customers: owner and admin); the service validates every row against the blueprint schema and relation rules.
+4. Writes (one transaction): all rows with parsed fields, defaults, owner
+   field, timestamps, import audit entries and enabled notifications
+5. Failure states: invalid CSV, permission denial or simulated service failure
+   writes nothing and shows a service error toast.
 
 ## Export a list as CSV
 
@@ -206,19 +205,19 @@ The service does not compute `slaDueAt`; only the scenario generator does.
 4. Writes (one transaction): `notifications` (readAt = simulated now, on the row or on every unread row of the persona)
 5. Failure states: simulated offline or failure (nothing written). The bell calls the service with `void`, not through `runService`, so the failure shows no toast.
 
-## Service-only mutations (no screen calls them today)
+## Trash and service-only mutations
 
 These are part of the generated service surface and covered by its package
-tests, but no screen in this prototype reaches them. Each one follows the
-full pipeline.
+tests. Trash restoration is available from the list; the other operations
+below remain service-only. Each follows the full mutation pipeline.
 
 ### Restore a trashed record from the Trash view
 
-1. Not available in the UI: the Trash view lists soft-deleted customers and tickets but has no restore button; only the Undo toast restores.
-2. Service: `customer.restore(undoToken)` / `ticket.restore(undoToken)` (needs the token returned by `remove`)
+1. Select a row in the Trash view and choose **Restore**; its soft-delete cascade is restored with it.
+2. Service: `customer.restoreTrashed(id)` / `ticket.restoreTrashed(id)` in src/generated/services.ts
 3. Capability: `<entity>:delete`, or `<entity>:delete:own` with the record
-4. Writes (one transaction): the undo set rows (deletedAt, deletedBy, updatedAt), `auditEntries` (`restore`)
-5. Failure states: expired or invalid token, permission denied, simulated offline or failure
+4. Writes (one transaction): the root and recorded cascade rows (deletedAt, deletedBy and deleteGroupId reset; updatedAt), `auditEntries` (`restore`)
+5. Failure states: row no longer in Trash, permission denied, simulated offline or failure; nothing is written
 
 ### Purge a trashed record
 
@@ -238,7 +237,7 @@ full pipeline.
 
 ### Import a CSV in one transaction
 
-1. Not available in the UI (the screen creates rows one by one instead).
+1. Tickets or Customers → "Import CSV" → choose a file.
 2. Service: `<entity>.importCsv(text, { mode: 'commit', skipInvalid? })` (`mode: 'preview'` validates only and writes nothing). Relation and persona cells may be an id or a unique title or name.
 3. Capability: `<entity>:import`
 4. Writes (one transaction, in chunks of 1,000): the entity rows (owner field defaults to the acting persona), `auditEntries` (`import` per row), `notifications` (`ticket.create` per ticket)

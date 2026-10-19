@@ -105,20 +105,20 @@ States that apply to every screen:
   and a confirmation, and for tickets and customers "Export CSV",
   "Import CSV" and an Active / Trash toggle. A single delete shows "Moved to
   trash" with Undo (tickets, customers) or "Deleted" (replies); a multi-row
-  delete shows "Deleted N records".
+  delete moves soft-delete entities to Trash with one Undo action. Trash rows
+  can be selected and restored, including their soft-delete cascade.
 - **Loading:** the table's skeleton rows. **Empty:** "No tickets yet" (or
   customers, replies) with "Create the first record to get started." when the
   role can create; "Trash is empty" with "Soft-deleted records appear here."
   in the Trash view.
-- **Denied:** "New" needs `<entity>:create`; checkboxes need `<entity>:delete`
-  or `<entity>:delete:own` without a record, so only owner and admin get
-  them; Export needs `<entity>:export`; Import needs `<entity>:import`
+- **Denied:** "New" needs `<entity>:create`; delete checkboxes appear when at
+  least one visible row passes `<entity>:delete` or `<entity>:delete:own` for
+  that record. The service checks every selected record again. Export needs
+  `<entity>:export`; Import needs `<entity>:import`
   (customers: owner and admin only). Without `<entity>:read` the list shows
   "You do not have access to this list." (no role in this blueprint lacks
   read).
-- **Gaps:** the Trash view has no restore or permanent-delete action; the
-  multi-row delete is a hard delete although the dialog says the records go
-  to the trash.
+- **Gaps:** the Trash view has no permanent-delete action.
 
 ### Edit and create forms (`#/tickets/:id`, `#/customers/:id`, `#/replies/:id`, and "New")
 

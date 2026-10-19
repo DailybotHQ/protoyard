@@ -64,8 +64,8 @@ and its owner column equals the persona id. Unlike a rule that allows the
 "no record" case, `can('ticket:delete:own')` without a record is **false**
 for a member.
 
-How the services use them: `update`, `remove`, `restore`, `bulkUpdate` and
-`bulkRemove` first try `<entity>:<action>` and fall back to
+How the services use them: `update`, `remove`, `restore`, `restoreTrashed`,
+`bulkUpdate` and `bulkRemove` first try `<entity>:<action>` and fall back to
 `<entity>:<action>:own` with the stored record; the file service does the
 same for uploads with `ticket:update`. `purge` checks only `<entity>:delete`.
 
@@ -73,19 +73,18 @@ What that means per role:
 
 - **member (Agent):** edits any customer or ticket (`customer:update`,
   `ticket:update`); cannot delete customers; deletes a ticket only when it is
-  assigned to them (`ticket:delete:own`, service only); edits and deletes
-  only replies they wrote (`reply:update:own`, `reply:delete:own`). The lists
-  decide whether to show delete checkboxes with `can()` and no record, so a
-  member never gets them, even on their own tickets or replies; editing their
-  own reply works through the form.
+  assigned to them (`ticket:delete:own`); edits and deletes only replies they
+  wrote (`reply:update:own`, `reply:delete:own`). Lists evaluate per-record
+  delete capability before exposing selection actions, and services recheck
+  every selected record; editing their own reply works through the form.
 - **viewer:** holds only the `:read` capabilities; every write fails.
 - **owner, admin (Support lead):** everything.
 
 Capabilities defined but not named by any role (owner and admin hold them
 through `*`): `customer:delete`, `customer:import`, `ticket:delete`,
 `reply:update`, `reply:delete`, `reply:import`, `reply:export`.
-`ticket:import` gates only the "Import CSV" button; the rows are then created
-with `ticket:create`. `ticket:export` and `customer:export` gate only the
+`ticket:import` gates the "Import CSV" button and the atomic import service.
+`ticket:export` and `customer:export` gate only the
 "Export CSV" button (the screen does not call the `exportCsv` service).
 Notification reads and mark-read calls have no capability: they are scoped to
 the acting persona's own rows.

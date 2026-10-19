@@ -100,6 +100,22 @@ describe('blueprint soft delete, restore, and purge', () => {
     expect((await services.customer!.trash()).map((row) => row.id)).toContain('customer_0002');
   });
 
+  it('restores cascade rows from the Trash view through the entity service', async () => {
+    const { runtime, services } = await boot();
+    const originalNote = await rowsTable(runtime, 'notes').get('note_0001');
+    await services.customer!.remove('customer_0002');
+
+    await expect(services.customer!.restoreTrashed('customer_0002')).resolves.toBe(3);
+    expect(await services.customer!.get('customer_0002')).toBeTruthy();
+    expect(await services.ticket!.get('ticket_0003')).toBeTruthy();
+    expect(await services.ticket!.get('ticket_0004')).toBeTruthy();
+    expect(await services.customer!.trash()).toHaveLength(0);
+    expect(await rowsTable(runtime, 'notes').get('note_0001')).toMatchObject({
+      ticketId: originalNote?.ticketId,
+      relatedIds: originalNote?.relatedIds,
+    });
+  });
+
   it('requires the entity delete capability before permanently purging trash', async () => {
     const { runtime, services } = await boot('member');
     const ticket = await services.ticket!.create({
