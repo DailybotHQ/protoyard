@@ -7,8 +7,8 @@ scenario generators run in Node tests, in services and in generators, so this
 package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
-> **Status:** `./board`, `./calendar`, `./grid`, `./map`, `./editor`,
-> `./scenarios`, `./timeline` and `./tree` are implemented; the other
+> **Status:** `./activity`, `./board`, `./calendar`, `./grid`, `./map`,
+> `./editor`, `./scenarios`, `./timeline` and `./tree` are implemented; the other
 > subpaths exist and are empty until their PLAN_003 task lands, and this
 > README documents each one then.
 
@@ -341,3 +341,39 @@ const { critical, tasks: info, finish } = criticalPath(tasks, links, { holidays 
   took 8.4 ms (budget 20 ms); the subpath is 2.5 KB gzip (esbuild, zod
   external).
 
+## Activity (`@protoyard/views/activity`)
+
+Comments and history without a framework.
+
+- **Mentions are stored as ids.** A body holds `@{persona-id}` and
+  `#{record-id}` tokens, and `tokenize(body, { person, record })` turns them
+  into text, mention and reference segments with names looked up at display
+  time. Renaming a persona updates every old comment, and a missing id shows
+  as `unknown person` (or the raw id for a record), flagged `missing`.
+- **Converting composer text:** `encodeMentions` turns what the composer
+  typed (`@marta.ruiz`, `#DEAL-42`) into tokens, using the same candidates as
+  the editor's `@`/`#` completion. `decodeMentions` reverses it for editing.
+  Text that matches no candidate stays as typed, and an email address is
+  never read as a mention.
+- **Other mention helpers:** `plainText` gives the display text, and
+  `mentionedIds` lists the mentioned persona ids for notifications.
+- **Days:** `groupByDay(items, { at, now, timeZone })` groups items by civil
+  day in the time zone, relative to the runtime clock (pass
+  `runtime.clock.now()`, never the wall clock), with labels like "Today",
+  "Yesterday", "Wednesday", "Oct 12" and "Dec 31, 2025". `whenLabel` gives
+  a single time: "Today, 9:05 AM".
+- **Change summaries:** `describeChange` gives one plain sentence per field:
+  "changed status from open to won", "set due date to …", "cleared owner".
+  A redacted value only says "changed api key".
+- **Audit rows:** `summarizeChanges` caps long lists ("and 2 more changes").
+  `auditToActivity` adapts a `@protoyard/blueprint` audit row (restated as
+  `AuditRowLike`, so there is no dependency) to an `ActivityItem`.
+  `sortActivity` and `filterActivity` (by kind, actor or record) prepare a
+  feed.
+- **Threads:** `buildThreads` nests replies under their root, oldest first.
+  A reply to a reply joins the root's thread, an orphan becomes a root, and a
+  deleted comment is kept only while it has replies.
+- **For services:** `toggleReaction` returns the next reactions map without
+  mutating the old one. `CommentInputSchema` validates `{ body, parentId }`
+  and trims the body; the body is 1 to 5,000 characters.
+- **Size:** 2.9 KB gzip minified, with zod external.

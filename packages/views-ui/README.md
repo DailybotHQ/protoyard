@@ -6,8 +6,9 @@ files, settings, states and an app command palette. They are built on
 `@protoyard/ui` tokens, and the engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status:** `./board`, `./calendar`, `./commands`, `./editor`, `./grid`,
-> `./map`, `./settings`, `./states` and `./tree` are implemented; the other subpaths
+> **Status:** `./activity`, `./board`, `./calendar`, `./commands`,
+> `./editor`, `./grid`, `./map`, `./settings`, `./states` and `./tree` are
+> implemented; the other subpaths
 > are empty until their PLAN_003 task lands, and this README documents each
 > view then.
 
@@ -590,3 +591,69 @@ of inline titles), on the `@protoyard/views/tree` engine over
   ui, renderer, lucide, Bits UI and zod external; 2026-10-19): 13.9 KB for
   the subpath's components, or 17.8 KB with the grid engine bundled in
   (about 4 KB of that is the engine).
+
+## Activity (`@protoyard/views-ui/activity`)
+
+`CommentThread` and `ActivityFeed`, on the `@protoyard/views/activity`
+engine.
+
+```svelte
+<CommentThread
+  query={comments} people={personas} records={deals} currentUserId={me.id}
+  now={runtime.clock.now()}
+  canEdit={(c) => c.authorId === me.id}
+  onSend={(input) => services.addComment(deal.id, input)}
+  onEdit={(c, body) => services.editComment(c.id, body)}
+  onDelete={(c) => services.deleteComment(c.id)}
+  onReact={(c, emoji) => services.toggleReaction(c.id, emoji)}
+  loadEditor={() => import('@protoyard/views-ui/editor').then((m) => m.MarkdownEditor)}
+/>
+
+<ActivityFeed
+  query={activity} people={personas} now={runtime.clock.now()}
+  onOpenRecord={(item) => navigate(`/deals/${item.recordId}`)}
+/>
+```
+
+Build `activity` from blueprint audit rows with `auditToActivity` (and
+comments as `kind: 'comment'` items with their `body`).
+
+- **CommentThread:**
+  - **Threads:** root comments are shown oldest first, each with one level
+    of replies. A comment that was deleted but still has replies shows as a
+    note.
+  - **Names and avatars:** names, avatars and `#` references are resolved
+    from ids when shown. Bodies render as plain text segments, never HTML.
+  - **Composer:** `@` and `#` typed in the composer are stored as id tokens.
+    Saving a comment, a reply or an edit goes through the callback in
+    `runService`. A new comment shows at once as "Sending…" (with
+    `aria-busy`) until the promise settles. If saving fails, the draft comes
+    back and the reason (the zod issue for `body`, or the error message) is
+    announced.
+  - **Edit and delete:** both appear only where `canEdit(comment)` says so
+    (default: your own); the service still enforces policy. Delete asks
+    first, and the dialog stays open with the error if deleting fails.
+  - **Reactions:** chips with counts and `aria-pressed` for your own, plus a
+    React picker. Each toggle goes through `onReact`.
+  - **Rich editor:** pass `loadEditor` to fetch the editor view's
+    `MarkdownEditor` when a composer opens. It is a separate chunk, and the
+    activity view never imports another view's folder (see Bundle hygiene).
+    Without it, or while it loads, a plain textarea is used: ⌘/Ctrl+Enter
+    sends, and Escape cancels a reply or an edit.
+- **ActivityFeed:**
+  - **Items:** newest first, under day headings ("Today", "Yesterday",
+    weekday, date) relative to `now` in `timeZone`. Every item is plain text:
+    the actor, the change lines or a comment excerpt with names, and an
+    optional record link.
+  - **Filters:** by kind (all activity, comments, changes) and by person.
+  - **Paging:** `pageSize` items at a time with **Show more**. On the last
+    page, `hasMore` with `onLoadMore` adds a **Load older activity** button.
+- **Avatars:** a persona's `avatar` is passed to `Avatar` when it is a URL
+  or a root-relative path. Resolve library ids (`av-001`) with `avatarSrc`.
+  Initials stay the fallback.
+- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
+  ui, renderer, lucide, Bits UI and zod external; 2026-10-19):
+  - `CommentThread`: 7.9 KB with the engine, 6.4 KB without.
+  - `ActivityFeed`: 5.5 KB with the engine, 4.5 KB without.
+  - The whole subpath: 9.7 KB.
+  - The editor, when loaded, is its own chunk.
