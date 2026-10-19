@@ -1,0 +1,277 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Openfield Grant Desk",
+  "description": "Grant opportunities, applications and award milestones for a fictional funding team.",
+  "icon": "🏅",
+  "category": "finance",
+  "tags": ["grants", "funding", "applications"],
+  "catalog": {
+    "category": "finance",
+    "productType": "Grant Management",
+    "platforms": ["web"],
+    "features": ["opportunity-tracking", "award-management"],
+    "highlights": ["Funding pipeline", "Application deadlines", "Award milestones"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "grant-management-brand",
+    "name": "Openfield Grant Desk",
+    "seed": "#8a5a2d",
+    "styleProfile": "flat",
+    "font": "grotesk"
+  },
+  "entities": [
+    {
+      "name": "opportunity",
+      "plural": "opportunities",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "funder",
+          "kind": "relation",
+          "to": "funder",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["researching", "qualified", "applying", "awarded", "closed"],
+          "default": "researching",
+          "required": true,
+          "weights": [5, 4, 3, 2, 1]
+        },
+        {
+          "name": "deadline",
+          "kind": "date",
+          "window": "future"
+        },
+        {
+          "name": "awardAmount",
+          "kind": "money",
+          "min": 0,
+          "trend": "growth",
+          "max": 5000000
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "application",
+      "plural": "applications",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "opportunity",
+          "kind": "relation",
+          "to": "opportunity",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "submitted", "review", "approved"],
+          "default": "draft",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "submittedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    },
+    {
+      "name": "funder",
+      "plural": "funders",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "focus",
+          "kind": "enum",
+          "values": ["research", "community", "education"],
+          "default": "research",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "region",
+          "kind": "text"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "milestone",
+      "plural": "milestones",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "application",
+          "kind": "relation",
+          "to": "application",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "dueAt",
+          "kind": "date",
+          "window": "around"
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Openfield Grant Desk overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total opportunities",
+          "entity": "opportunity",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "opportunities over time",
+          "entity": "opportunity",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "opportunity",
+      "columns": ["name", "funder", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "opportunity"
+    },
+    {
+      "type": "list",
+      "entity": "application",
+      "columns": ["reference", "opportunity", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "application"
+    },
+    {
+      "type": "list",
+      "entity": "funder",
+      "columns": ["name", "focus", "region"]
+    },
+    {
+      "type": "form",
+      "entity": "funder"
+    },
+    {
+      "type": "list",
+      "entity": "milestone",
+      "columns": ["name", "application", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "milestone"
+    },
+    {
+      "type": "board",
+      "entity": "opportunity",
+      "groupBy": "status",
+      "cardFields": ["name", "funder", "deadline", "awardAmount"],
+      "sumField": "awardAmount",
+      "path": "/opportunities/board",
+      "title": "Funding pipeline",
+      "nav": {
+        "label": "Pipeline",
+        "icon": "kanban",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

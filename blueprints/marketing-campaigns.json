@@ -1,0 +1,321 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Lumen Campaign Studio",
+  "description": "Campaign calendars, audiences and performance for a fictional marketing team.",
+  "icon": "📣",
+  "category": "marketing",
+  "tags": ["marketing", "campaigns", "analytics"],
+  "catalog": {
+    "category": "marketing",
+    "productType": "Marketing Campaigns",
+    "platforms": ["web"],
+    "features": ["campaign-planning", "performance-tracking"],
+    "highlights": ["Campaign calendar", "Channel mix", "Spend and reach"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "marketing-campaigns-brand",
+    "name": "Lumen Campaign Studio",
+    "seed": "#9a3e78",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "campaign",
+      "plural": "campaigns",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "scheduled", "running", "complete"],
+          "default": "draft",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "channel",
+          "kind": "enum",
+          "values": ["email", "social", "events", "search"],
+          "default": "email",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "startsAt",
+          "kind": "date",
+          "window": "past"
+        },
+        {
+          "name": "endsAt",
+          "kind": "date",
+          "window": "around"
+        },
+        {
+          "name": "budget",
+          "kind": "money",
+          "min": 0,
+          "trend": "growth",
+          "max": 2500000
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "creative",
+      "plural": "creatives",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "campaign",
+          "kind": "relation",
+          "to": "campaign",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "format",
+          "kind": "enum",
+          "values": ["email", "video", "image", "landing-page"],
+          "default": "email",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "approval",
+          "kind": "enum",
+          "values": ["draft", "review", "approved"],
+          "default": "draft",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "audience",
+      "plural": "audiences",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "segment",
+          "kind": "enum",
+          "values": ["new", "returning", "enterprise"],
+          "default": "new",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "size",
+          "kind": "integer",
+          "min": 0,
+          "trend": "growth",
+          "max": 500000
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "campaign-metric",
+      "plural": "campaign-metrics",
+      "titleField": "label",
+      "fields": [
+        {
+          "name": "label",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "campaign",
+          "kind": "relation",
+          "to": "campaign",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "spend",
+          "kind": "money",
+          "min": 0,
+          "trend": "growth",
+          "max": 100000
+        },
+        {
+          "name": "impressions",
+          "kind": "integer",
+          "min": 0,
+          "trend": "growth",
+          "max": 10000000
+        },
+        {
+          "name": "recordedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["label"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Lumen Campaign Studio overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total campaigns",
+          "entity": "campaign",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "campaigns over time",
+          "entity": "campaign",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "campaign",
+      "columns": ["name", "channel", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "campaign"
+    },
+    {
+      "type": "list",
+      "entity": "creative",
+      "columns": ["name", "campaign", "approval"]
+    },
+    {
+      "type": "form",
+      "entity": "creative"
+    },
+    {
+      "type": "list",
+      "entity": "audience",
+      "columns": ["name", "segment", "size"]
+    },
+    {
+      "type": "form",
+      "entity": "audience"
+    },
+    {
+      "type": "list",
+      "entity": "campaign-metric",
+      "columns": ["label", "campaign", "impressions"]
+    },
+    {
+      "type": "form",
+      "entity": "campaign-metric"
+    },
+    {
+      "type": "calendar",
+      "entity": "campaign",
+      "dateField": "startsAt",
+      "endField": "endsAt",
+      "colorBy": "status",
+      "view": "month",
+      "path": "/campaigns/calendar",
+      "title": "Campaign calendar",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar-days",
+        "order": 20
+      }
+    },
+    {
+      "type": "analytics",
+      "entity": "campaign-metric",
+      "dateField": "recordedAt",
+      "measures": [
+        {
+          "label": "Impressions",
+          "aggregate": "sum",
+          "field": "impressions"
+        },
+        {
+          "label": "Spend",
+          "aggregate": "sum",
+          "field": "spend"
+        }
+      ],
+      "dimensions": ["campaign"],
+      "path": "/campaign-metrics/analytics",
+      "title": "Campaign performance",
+      "nav": {
+        "label": "Performance",
+        "icon": "chart-line",
+        "order": 21
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

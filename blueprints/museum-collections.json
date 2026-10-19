@@ -1,0 +1,304 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Morrow Museum Catalog",
+  "description": "Collection objects, exhibits and loans for a fictional public museum.",
+  "icon": "🏛️",
+  "category": "media",
+  "tags": ["museum", "collections", "exhibits"],
+  "catalog": {
+    "category": "media",
+    "productType": "Museum Collections",
+    "platforms": ["web"],
+    "features": ["object-catalog", "exhibit-planning"],
+    "highlights": ["Object records", "Exhibition inventory", "Loan tracking"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "museum-collections-brand",
+    "name": "Morrow Museum Catalog",
+    "seed": "#72518a",
+    "styleProfile": "crisp",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "object",
+      "plural": "objects",
+      "titleField": "accession",
+      "fields": [
+        {
+          "name": "accession",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "collection",
+          "kind": "relation",
+          "to": "collection",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "condition",
+          "kind": "enum",
+          "values": ["stable", "monitor", "conservation"],
+          "default": "stable",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "acquiredAt",
+          "kind": "date",
+          "window": "past"
+        },
+        {
+          "name": "recordFile",
+          "kind": "file",
+          "accept": ["application/pdf"]
+        }
+      ],
+      "searchable": ["accession"],
+      "features": {
+        "audit": true,
+        "files": true
+      }
+    },
+    {
+      "name": "collection",
+      "plural": "collections",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "era",
+          "kind": "enum",
+          "values": ["ancient", "modern", "contemporary"],
+          "default": "ancient",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "curator",
+          "kind": "text"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "exhibit",
+      "plural": "exhibits",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "collection",
+          "kind": "relation",
+          "to": "collection",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planning", "open", "closing", "closed"],
+          "default": "planning",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "opensAt",
+          "kind": "date",
+          "window": "future"
+        },
+        {
+          "name": "closesAt",
+          "kind": "date",
+          "window": "around"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "loan",
+      "plural": "loans",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "object",
+          "kind": "relation",
+          "to": "object",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "borrower",
+          "kind": "text"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["requested", "approved", "outgoing", "returned"],
+          "default": "requested",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "dueAt",
+          "kind": "date",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Morrow Museum Catalog overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total objects",
+          "entity": "object",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "objects over time",
+          "entity": "object",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "object",
+      "columns": ["accession", "title", "condition"]
+    },
+    {
+      "type": "form",
+      "entity": "object"
+    },
+    {
+      "type": "list",
+      "entity": "collection",
+      "columns": ["name", "era", "curator"]
+    },
+    {
+      "type": "form",
+      "entity": "collection"
+    },
+    {
+      "type": "list",
+      "entity": "exhibit",
+      "columns": ["name", "collection", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "exhibit"
+    },
+    {
+      "type": "list",
+      "entity": "loan",
+      "columns": ["reference", "object", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "loan"
+    },
+    {
+      "type": "detail",
+      "entity": "object",
+      "tabs": ["overview", "activity", "files", "related:loan"],
+      "path": "/objects/:id",
+      "title": "Object record",
+      "nav": {
+        "label": "Object record",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "board",
+      "entity": "exhibit",
+      "groupBy": "status",
+      "cardFields": ["name", "collection", "opensAt"],
+      "path": "/exhibits/board",
+      "title": "Exhibit planning",
+      "nav": {
+        "label": "Exhibits",
+        "icon": "kanban",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

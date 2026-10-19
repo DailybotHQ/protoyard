@@ -1,0 +1,293 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Switchback Car Rental",
+  "description": "Rental bookings, vehicles and pickup branches for a fictional mobility company.",
+  "icon": "🚗",
+  "category": "travel",
+  "tags": ["car-rental", "vehicles", "reservations"],
+  "catalog": {
+    "category": "travel",
+    "productType": "Car Rental",
+    "platforms": ["web"],
+    "features": ["rental-bookings", "fleet-locations"],
+    "highlights": ["Rental calendar", "Vehicle map", "Branch availability"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "car-rental-brand",
+    "name": "Switchback Car Rental",
+    "seed": "#315a86",
+    "styleProfile": "crisp",
+    "font": "system"
+  },
+  "entities": [
+    {
+      "name": "rental",
+      "plural": "rentals",
+      "titleField": "confirmation",
+      "fields": [
+        {
+          "name": "confirmation",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "vehicle",
+          "kind": "relation",
+          "to": "vehicle",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "customer",
+          "kind": "relation",
+          "to": "customer",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "branch",
+          "kind": "relation",
+          "to": "branch",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["reserved", "picked-up", "returned", "cancelled"],
+          "default": "reserved",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "pickupAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "returnAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["confirmation"]
+    },
+    {
+      "name": "vehicle",
+      "plural": "vehicles",
+      "titleField": "unit",
+      "fields": [
+        {
+          "name": "unit",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "class",
+          "kind": "enum",
+          "values": ["compact", "electric", "utility"],
+          "default": "compact",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "availability",
+          "kind": "enum",
+          "values": ["available", "rented", "service"],
+          "default": "available",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "location",
+          "kind": "geo",
+          "region": "coral-reach"
+        }
+      ],
+      "searchable": ["unit"]
+    },
+    {
+      "name": "customer",
+      "plural": "customers",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "phone",
+          "kind": "text"
+        },
+        {
+          "name": "tier",
+          "kind": "enum",
+          "values": ["standard", "plus", "premier"],
+          "default": "standard",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "branch",
+      "plural": "branches",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "location",
+          "kind": "geo",
+          "region": "coral-reach"
+        },
+        {
+          "name": "hours",
+          "kind": "text"
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Switchback Car Rental overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total rentals",
+          "entity": "rental",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "rentals over time",
+          "entity": "rental",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "rental",
+      "columns": ["confirmation", "vehicle", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "rental"
+    },
+    {
+      "type": "list",
+      "entity": "vehicle",
+      "columns": ["unit", "class", "availability"]
+    },
+    {
+      "type": "form",
+      "entity": "vehicle"
+    },
+    {
+      "type": "list",
+      "entity": "customer",
+      "columns": ["name", "phone", "tier"]
+    },
+    {
+      "type": "form",
+      "entity": "customer"
+    },
+    {
+      "type": "list",
+      "entity": "branch",
+      "columns": ["name", "hours"]
+    },
+    {
+      "type": "form",
+      "entity": "branch"
+    },
+    {
+      "type": "calendar",
+      "entity": "rental",
+      "dateField": "pickupAt",
+      "endField": "returnAt",
+      "colorBy": "status",
+      "view": "month",
+      "path": "/rentals/calendar",
+      "title": "Rental calendar",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar",
+        "order": 20
+      }
+    },
+    {
+      "type": "map",
+      "entity": "vehicle",
+      "geoField": "location",
+      "colorBy": "availability",
+      "path": "/vehicles/map",
+      "title": "Fleet map",
+      "nav": {
+        "label": "Fleet map",
+        "icon": "map-pin",
+        "order": 21
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}
