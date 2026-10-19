@@ -9,6 +9,20 @@ import { normalize } from '../../lib/search.ts';
 
 export type MarketKind = 'prototype' | 'template' | 'blueprint';
 
+/**
+ * A theme as the marketplace shows it, mapped from library metadata at build
+ * time (theme-facet.ts) so cards need no theme code or extra request.
+ */
+export interface MarketTheme {
+  /** Theme id (`?theme=<id>`). */
+  i: string;
+  n: string;
+  /** Library collection, `builtin`, or `custom` (a prototype's own theme). */
+  c: string;
+  /** Swatch colors (seed and secondary, or light and dark primary); empty when unknown. */
+  s: string[];
+}
+
 /** One shelf item, kept small: the browse island inlines every entry as JSON. */
 export interface MarketEntry {
   k: MarketKind;
@@ -30,6 +44,8 @@ export interface MarketEntry {
   /** Base-relative thumbnail URL, or null. */
   th: string | null;
   sc: number;
+  /** Default theme, or null when the registry has none. */
+  tm: MarketTheme | null;
 }
 
 /** The registry fields the marketplace reads (any kind, including blueprints). */
@@ -54,7 +70,11 @@ const KINDS: readonly MarketKind[] = ['prototype', 'template', 'blueprint'];
 const CATEGORY_ORDER: readonly string[] = CATALOG_CATEGORIES;
 
 /** Only entries with a catalog block in a shared category are shelved. */
-export function toMarketEntry(source: MarketSource, thumbnail: string | null): MarketEntry | null {
+export function toMarketEntry(
+  source: MarketSource,
+  thumbnail: string | null,
+  theme: MarketTheme | null = null
+): MarketEntry | null {
   const kind = source.kind as MarketKind;
   const catalog = source.catalog;
   if (!KINDS.includes(kind) || !catalog?.category || !CATEGORY_ORDER.includes(catalog.category)) {
@@ -74,6 +94,7 @@ export function toMarketEntry(source: MarketSource, thumbnail: string | null): M
     df: catalog.difficulty ?? null,
     th: thumbnail,
     sc: source.scenarioCount,
+    tm: theme,
   };
 }
 
@@ -85,6 +106,8 @@ export interface MarketQuery {
   shell: string;
   /** Every selected feature must be present. */
   features: string[];
+  /** Default theme's collection. */
+  collection: string;
 }
 
 export const EMPTY_QUERY: MarketQuery = {
@@ -94,6 +117,7 @@ export const EMPTY_QUERY: MarketQuery = {
   platform: '',
   shell: '',
   features: [],
+  collection: '',
 };
 
 export function isFiltered(query: MarketQuery): boolean {
@@ -103,15 +127,24 @@ export function isFiltered(query: MarketQuery): boolean {
     query.category !== '' ||
     query.platform !== '' ||
     query.shell !== '' ||
-    query.features.length > 0
+    query.features.length > 0 ||
+    query.collection !== ''
   );
 }
 
 function haystack(entry: MarketEntry): string {
   return normalize(
-    [entry.n, entry.s, entry.d, entry.pt ?? '', entry.c, ...entry.pf, entry.sh, ...entry.f].join(
-      ' '
-    )
+    [
+      entry.n,
+      entry.s,
+      entry.d,
+      entry.pt ?? '',
+      entry.c,
+      ...entry.pf,
+      entry.sh,
+      ...entry.f,
+      entry.tm?.n ?? '',
+    ].join(' ')
   );
 }
 
@@ -121,6 +154,7 @@ export function matches(entry: MarketEntry, query: MarketQuery): boolean {
   if (query.platform && !entry.pf.includes(query.platform)) return false;
   if (query.shell && entry.sh !== query.shell) return false;
   if (query.features.some((feature) => !entry.f.includes(feature))) return false;
+  if (query.collection && entry.tm?.c !== query.collection) return false;
   const terms = normalize(query.q).split(/\s+/).filter(Boolean);
   if (terms.length === 0) return true;
   const text = haystack(entry);
@@ -155,6 +189,8 @@ export interface Facets {
   platform: Facet[];
   shell: Facet[];
   features: Facet[];
+  /** Default-theme collections. */
+  collection: Facet[];
 }
 
 function count(values: readonly string[]): Facet[] {
@@ -174,6 +210,7 @@ export function facets(entries: readonly MarketEntry[]): Facets {
     platform: count(entries.flatMap((e) => e.pf)),
     shell: count(entries.map((e) => e.sh)),
     features: count(entries.flatMap((e) => e.f)),
+    collection: count(entries.flatMap((e) => (e.tm ? [e.tm.c] : []))),
   };
 }
 
@@ -189,6 +226,9 @@ export function queryFromParams(params: URLSearchParams): MarketQuery {
     platform: params.get('platform') ?? '',
     shell: params.get('shell') ?? '',
     features: [...new Set(params.getAll('feature').filter(Boolean))],
+    collection: /^[a-z][a-z0-9-]{0,39}$/.test(params.get('collection') ?? '')
+      ? (params.get('collection') ?? '')
+      : '',
   };
 }
 
@@ -200,6 +240,7 @@ export function paramsFromQuery(query: MarketQuery): string {
   if (query.platform) params.set('platform', query.platform);
   if (query.shell) params.set('shell', query.shell);
   for (const feature of query.features) params.append('feature', feature);
+  if (query.collection) params.set('collection', query.collection);
   const text = params.toString();
   return text ? `?${text}` : '';
 }
@@ -215,6 +256,11 @@ const LABELS: Record<string, string> = {
   'extension-popup': 'Extension popup',
   'side-panel': 'Plugin panel',
   none: 'Full screen',
+  builtin: 'Built-in',
+  custom: 'Custom',
+  'brand-like': 'Brand-like',
+  'high-contrast': 'High contrast',
+  'colorblind-safe': 'Colorblind-safe',
   prototype: 'Prototype',
   template: 'Template',
   blueprint: 'Blueprint',
@@ -229,6 +275,41 @@ export function label(value: string): string {
 
 export function detailHref(entry: Pick<MarketEntry, 'k' | 's'>): string {
   return `/marketplace/${entry.k}/${encodeURIComponent(entry.s)}/`;
+}
+
+/** Theme ids are kebab-case (ThemeSchema.id); anything else is never put in a link. */
+export const THEME_ID_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
+
+/** The detail page opened with its live demo in `themeId` (`?theme=`, read by LivePreview). */
+export function tryThemeHref(entry: Pick<MarketEntry, 'k' | 's'>, themeId: string): string {
+  return `${detailHref(entry)}?theme=${encodeURIComponent(themeId)}`;
+}
+
+/**
+ * `url` with the runtime's `?theme=<id>` link parameter set, keeping its other
+ * parameters and hash. Invalid ids leave the URL untouched.
+ */
+export function withThemeParam(url: string, themeId: string): string {
+  if (!THEME_ID_PATTERN.test(themeId)) return url;
+  const hashAt = url.indexOf('#');
+  const hash = hashAt === -1 ? '' : url.slice(hashAt);
+  const base = hashAt === -1 ? url : url.slice(0, hashAt);
+  const queryAt = base.indexOf('?');
+  const path = queryAt === -1 ? base : base.slice(0, queryAt);
+  const params = new URLSearchParams(queryAt === -1 ? '' : base.slice(queryAt + 1));
+  params.set('theme', themeId);
+  return `${path}?${params}${hash}`;
+}
+
+/**
+ * The themes a card offers to try: one per collection (the same list on
+ * every card, sent once), without the card's own default.
+ */
+export function tryThemes(
+  choices: readonly MarketTheme[],
+  entry: Pick<MarketEntry, 'tm'>
+): MarketTheme[] {
+  return choices.filter((theme) => theme.i !== entry.tm?.i);
 }
 
 // --- Create flow ("Use this template" / "Remix" / "Use this blueprint") -------

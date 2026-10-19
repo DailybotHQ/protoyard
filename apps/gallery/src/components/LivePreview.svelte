@@ -18,6 +18,7 @@ import {
 } from '@/lib/devices';
 import { library } from '@/lib/library.svelte';
 import CommandBlock from './CommandBlock.svelte';
+import { THEME_ID_PATTERN, withThemeParam } from './marketplace/model';
 
 interface Props {
   slug: string;
@@ -54,6 +55,8 @@ let {
   titleId = 'preview-title',
 }: Props = $props();
 let scenario = $state('');
+/** `?theme=<id>` on this page (the marketplace "Try in theme" links): passed on to the demo. */
+let previewTheme = $state('');
 
 const initialDevice = defaultGalleryDevice({
   viewport: defaultViewport,
@@ -117,6 +120,8 @@ let hydrated = $state(false);
 onMount(() => {
   hydrated = true;
   library.visit(slug);
+  const theme = new URLSearchParams(window.location.search).get('theme') ?? '';
+  if (THEME_ID_PATTERN.test(theme)) previewTheme = theme;
   if (embeddedUrl) {
     show(embeddedUrl);
     return;
@@ -137,7 +142,8 @@ $effect(() => {
 
 let slowTimer: ReturnType<typeof setTimeout> | undefined;
 function show(url: string) {
-  previewUrl = url;
+  // A pasted URL is someone else's app: it gets no theme parameter.
+  previewUrl = previewTheme && !pasted ? withThemeParam(url, previewTheme) : url;
   loading = true;
   slow = false;
   loadFailed = false;
@@ -250,6 +256,12 @@ async function openManual(event: SubmitEvent) {
     <span class="ml-auto text-xs text-muted">{frame.width}×{frame.height}{scale < 1 ? ` · ${Math.round(scale * 100)}%` : ''}</span>
   </div>
 
+  {#if previewTheme}
+    <p class="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2 text-xs text-muted" data-testid="preview-theme">
+      Previewing in the <code class="font-mono text-fg">{previewTheme}</code> theme.
+      <a class="text-accent-fg underline-offset-2 hover:underline" href={window.location.pathname}>Use its default theme</a>
+    </p>
+  {/if}
   <div class="flex flex-wrap items-center gap-2 border-b border-line p-3 text-sm" data-testid="control-status">
     {#if embeddedUrl}
       <span class="inline-flex items-center gap-1.5 text-success"><span class="size-2 rounded-full bg-current"></span>Live demo</span>

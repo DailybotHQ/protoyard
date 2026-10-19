@@ -12,6 +12,7 @@ import {
   label,
   type MarketEntry,
   type MarketQuery,
+  type MarketTheme,
   paramsFromQuery,
   queryFromParams,
 } from './model';
@@ -21,7 +22,11 @@ import {
  * and blueprint. The page renders the rails at build time; JavaScript only
  * adds search, filters and URL sync (shareable views).
  */
-let { entries, facets }: { entries: MarketEntry[]; facets: Facets } = $props();
+let {
+  entries,
+  facets,
+  themes = [],
+}: { entries: MarketEntry[]; facets: Facets; themes?: MarketTheme[] } = $props();
 
 let query = $state<MarketQuery>({ ...EMPTY_QUERY });
 let ready = $state(false);
@@ -124,6 +129,15 @@ const kinds = [
           {#each facets.shell as [value, n] (value)}<option {value}>{label(value)} ({n})</option>{/each}
         </select>
       </label>
+      {#if facets.collection.length}
+        <label class="flex items-center gap-1.5 text-sm text-muted">
+          <span>Theme</span>
+          <select class={select} value={query.collection} onchange={(e) => update({ collection: e.currentTarget.value })} data-testid="market-collection">
+            <option value="">Any</option>
+            {#each facets.collection as [value, n] (value)}<option {value}>{label(value)} ({n})</option>{/each}
+          </select>
+        </label>
+      {/if}
     </div>
     <div role="group" aria-label="Features" class="flex flex-wrap gap-1.5">
       {#each featureChips as [feature, n] (feature)}
@@ -152,7 +166,7 @@ const kinds = [
       {#if results.length > 0}
         <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-testid="market-results">
           {#each results as entry (entry.k + entry.s)}
-            <li><MarketCard {entry} /></li>
+            <li><MarketCard {entry} {themes} /></li>
           {/each}
         </ul>
       {:else}
@@ -179,7 +193,7 @@ const kinds = [
             </div>
             <ul class="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
               {#each items as entry (entry.k + entry.s)}
-                <li class="w-64 shrink-0 snap-start"><MarketCard {entry} headingLevel={4} /></li>
+                <li class="w-64 shrink-0 snap-start"><MarketCard {entry} {themes} headingLevel={4} /></li>
               {/each}
             </ul>
           </section>
