@@ -1,1 +1,2 @@
 packages/cli/tests/publish-ledger.test.ts secret-assignment fake test token proving the ledger never records credentials
+packages/cli/tests/control-server.test.ts secret-assignment fake per-run create token used only by the control-server tests

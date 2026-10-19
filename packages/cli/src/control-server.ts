@@ -119,7 +119,7 @@ export interface ControlServerOptions {
 }
 
 /** Header that carries the per-run create token (a custom header also forces preflight). */
-export const CREATE_TOKEN_HEADER = 'x-protoyard-token';
+export const CREATE_ACCESS_HEADER = 'x-protoyard-token';
 
 /** Constant-time comparison; different lengths are a mismatch without comparing bytes. */
 export function tokenMatches(expected: string, received: unknown): boolean {
@@ -229,7 +229,7 @@ export async function startControlServer(options: ControlServerOptions): Promise
         ...(corsOrigin
           ? {
               'Access-Control-Allow-Origin': corsOrigin,
-              'Access-Control-Allow-Headers': `content-type, ${CREATE_TOKEN_HEADER}`,
+              'Access-Control-Allow-Headers': `content-type, ${CREATE_ACCESS_HEADER}`,
               Vary: 'Origin',
             }
           : {}),
@@ -274,7 +274,7 @@ export async function startControlServer(options: ControlServerOptions): Promise
         );
         return;
       }
-      if (!tokenMatches(createToken, req.headers[CREATE_TOKEN_HEADER])) {
+      if (!tokenMatches(createToken, req.headers[CREATE_ACCESS_HEADER])) {
         send(res, 403, { ok: false, error: 'missing or invalid create token' }, corsOrigin);
         return;
       }

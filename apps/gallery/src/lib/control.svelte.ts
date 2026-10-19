@@ -42,7 +42,7 @@ async function fetchJson(url: string, init: RequestInit & { timeoutMs?: number }
 }
 
 /** Header the control server checks on POST /api/new (see packages/cli control-server). */
-export const CREATE_TOKEN_HEADER = 'x-protoyard-token';
+export const CREATE_ACCESS_HEADER = 'x-protoyard-token';
 
 /**
  * Create access from GET /api/status: the server only includes the per-run
@@ -162,7 +162,7 @@ class ControlClient {
     try {
       const result = await fetchJson(`${this.baseUrl}/api/new`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', [CREATE_TOKEN_HEADER]: this.#createToken },
+        headers: { 'content-type': 'application/json', [CREATE_ACCESS_HEADER]: this.#createToken },
         body: JSON.stringify(request),
         timeoutMs: 180_000,
       });
