@@ -419,6 +419,12 @@ importers:
       '@protoyard/ui':
         specifier: workspace:*
         version: link:../ui
+      '@protoyard/views':
+        specifier: workspace:*
+        version: link:../views
+      '@protoyard/views-ui':
+        specifier: workspace:*
+        version: link:../views-ui
       bits-ui:
         specifier: ^2.19.0
         version: 2.19.5(@internationalized/date@3.12.4)(svelte@5.57.2)
