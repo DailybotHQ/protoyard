@@ -4,6 +4,7 @@ import {
   STYLE_OVERRIDE_KEYS,
   type StylePresetOverrides,
 } from '@protoyard/core';
+import { encodeThemeShare, type ThemeShareDefinition } from '@protoyard/themes';
 
 /**
  * A reproducible link carries scenario coordinates (scenario, actor, seed)
@@ -56,4 +57,20 @@ export function reproducibleLink(
     ...style,
     ...(options.presentation ? { devtools: false } : {}),
   });
+}
+
+/** Adds a compact Studio draft to the current hash route without losing it. */
+export function themeShareLink(
+  runtime: PrototypeRuntime,
+  definition: ThemeShareDefinition,
+  options: { href?: string } = {}
+): string {
+  const url = new URL(reproducibleLink(runtime, options));
+  const hash = url.hash.slice(1) || '/';
+  const queryIndex = hash.indexOf('?');
+  const path = queryIndex < 0 ? hash : hash.slice(0, queryIndex);
+  const query = new URLSearchParams(queryIndex < 0 ? '' : hash.slice(queryIndex + 1));
+  query.set('themeDef', encodeThemeShare(definition));
+  url.hash = `${path}?${query.toString()}`;
+  return url.toString();
 }

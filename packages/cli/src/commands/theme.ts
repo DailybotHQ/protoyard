@@ -259,6 +259,14 @@ function readTheme(file: string): Theme {
       `Could not read theme JSON: ${error instanceof Error ? error.message : String(error)}`
     );
   }
+  if (
+    input &&
+    typeof input === 'object' &&
+    !Array.isArray(input) &&
+    (input as Record<string, unknown>).format === 'protoyard-theme/v1'
+  ) {
+    input = (input as Record<string, unknown>).theme;
+  }
   try {
     return validateTheme(ThemeSchema.parse(input));
   } catch (error) {

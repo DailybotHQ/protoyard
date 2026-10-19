@@ -15,10 +15,12 @@ import {
   clearAppearance,
   contrastRatio,
   createThemeFromSeed,
+  decodeThemeShare,
   ELEVATION_PRESETS,
   FONT_CATALOG,
   generateThemeHarmonies,
   getLibraryThemeDefinition,
+  getThemeShareValue,
   loadLibraryTheme,
   MOTION_PRESETS,
   type MotionPresetId,
@@ -30,9 +32,12 @@ import {
   stylePresetInput,
   TEXT_CONTRAST_PAIRS,
   THEME_LIBRARY_META,
+  type ThemeShareDefinition,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
-import { untrack } from 'svelte';
+import { onMount, untrack } from 'svelte';
+import { copyText } from '../format.ts';
+import { themeShareLink } from '../link.ts';
 import Btn from '../primitives/Btn.svelte';
 import Section from '../primitives/Section.svelte';
 import Segmented from '../primitives/Segmented.svelte';
@@ -86,10 +91,41 @@ let previewMode = $state<'light' | 'dark'>(untrack(() => dt.appearance.resolvedM
 let importText = $state('');
 let importError = $state<string | null>(null);
 let exported = $state<{ id: string; json: string } | null>(null);
+let sharedDraftPending = $state(false);
+let sharedLink = $state('');
+let shareError = $state<string | null>(null);
+let sharing = $state(false);
 /** Bumped after saves/removals so the saved list re-reads the runtime. */
 let revision = $state(0);
 
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+onMount(() => {
+  const value = getThemeShareValue(location.search, location.hash);
+  if (!value) return;
+  try {
+    const definition = decodeThemeShare(value);
+    name = definition.name;
+    seed = definition.seed;
+    secondary = definition.secondary ?? '#0ea5e9';
+    useSecondary = definition.secondary !== undefined;
+    neutral = definition.neutral;
+    fontId = definition.font;
+    radius = definition.radius;
+    radiusOverride = undefined;
+    radiusChanged = true;
+    inheritedStyle = undefined;
+    elevation = definition.elevation;
+    density = definition.density;
+    motion = definition.motion;
+    motionChanged = true;
+    surface = definition.surface;
+    focusRing = definition.focusRing;
+    sharedDraftPending = true;
+  } catch (error) {
+    shareError = error instanceof Error ? error.message : String(error);
+  }
+});
 
 const harmonies = $derived.by(() => {
   if (!HEX.test(seed)) return [];
@@ -264,7 +300,43 @@ async function save(andUse: boolean) {
     },
     andUse ? `Saved and previewing “${theme.name}”` : `Saved “${theme.name}”`
   );
-  if (result) revision++;
+  if (result) {
+    revision++;
+    sharedDraftPending = false;
+  }
+}
+
+function shareDefinition(): ThemeShareDefinition {
+  return {
+    name: name.trim().slice(0, 40),
+    seed,
+    ...(useSecondary ? { secondary } : {}),
+    neutral,
+    font: fontId,
+    radius,
+    elevation,
+    motion,
+    surface,
+    focusRing,
+    density,
+  };
+}
+
+async function copyShareLink() {
+  sharing = true;
+  shareError = null;
+  try {
+    sharedLink = themeShareLink(runtime, shareDefinition());
+    const copied = await copyText(sharedLink);
+    dt.notify(
+      'success',
+      copied ? 'Theme share link copied.' : 'Theme share link is ready to copy.'
+    );
+  } catch (error) {
+    shareError = error instanceof Error ? error.message : String(error);
+  } finally {
+    sharing = false;
+  }
 }
 
 async function remove(theme: Theme) {
@@ -276,7 +348,13 @@ async function remove(theme: Theme) {
 
 function exportTheme(theme: Theme) {
   if (!api) return;
-  exported = { id: theme.id, json: api.exportTheme(theme.id) };
+  const response = JSON.parse(api.exportTheme(theme.id)) as {
+    format?: string;
+    theme?: Theme;
+  };
+  const bareTheme = response.format === 'protoyard-theme/v1' ? response.theme : undefined;
+  if (!bareTheme) throw new TypeError('Theme export did not contain a valid theme.');
+  exported = { id: theme.id, json: JSON.stringify(bareTheme, null, 2) };
 }
 
 const downloadHref = $derived(
@@ -488,10 +566,24 @@ const inputClass =
       {:else}
         <p class="mt-2 text-[11px] text-success" role="status">All text and focus pairs meet WCAG AA in light and dark.</p>
       {/if}
+      {#if sharedDraftPending}
+        <div class="grid gap-1.5 rounded-md border border-primary/40 bg-primary/5 p-2 text-xs" role="status">
+          <p>This shared theme is a draft. Save it to this browser?</p>
+          <div class="flex gap-1.5">
+            <Btn busy={dt.isBusy('theme-studio')} onclick={() => save(false)}>Save shared draft</Btn>
+            <Btn variant="ghost" onclick={() => (sharedDraftPending = false)}>Keep editing</Btn>
+          </div>
+        </div>
+      {/if}
+      {#if shareError}<p class="text-xs text-destructive" role="alert">{shareError}</p>{/if}
       <div class="mt-2.5 flex flex-wrap gap-1.5">
-        <Btn variant="primary" busy={dt.isBusy('theme-studio')} onclick={() => save(true)}>Save and preview</Btn>
-        <Btn busy={dt.isBusy('theme-studio')} onclick={() => save(false)}>Save</Btn>
+        {#if !sharedDraftPending}
+          <Btn variant="primary" busy={dt.isBusy('theme-studio')} onclick={() => save(true)}>Save and preview</Btn>
+          <Btn busy={dt.isBusy('theme-studio')} onclick={() => save(false)}>Save</Btn>
+        {/if}
+        <Btn busy={sharing} disabled={!('theme' in draft)} onclick={copyShareLink}>Copy draft share link</Btn>
       </div>
+      {#if sharedLink}<textarea class="{inputClass} mt-1 h-16 font-mono" readonly aria-label="Theme share link">{sharedLink}</textarea>{/if}
       <p class="mt-1 text-[11px] text-muted-foreground">Saved as <code class="font-mono">{draft.theme.id}</code>. Saving again with the same name replaces it.</p>
     {/if}
   </Section>
