@@ -92,7 +92,13 @@ describe('task-manager services on the real runtime', () => {
       dueDate: null,
       labels: ['docs', 'blocked'],
     });
-    await services.comments.add(created.id, '  Draft is in the shared folder.  ');
+    const senderName = runtime.session.principal()?.persona.name;
+    const senderId = runtime.session.principal()?.persona.id;
+    if (!senderId) throw new Error('active team has an actor');
+    await services.comments.add(
+      created.id,
+      '  Draft is in the shared folder. @{user_0004} @{user_0004}  '
+    );
     await expect(services.comments.add(created.id, '   ')).rejects.toBeInstanceOf(ValidationError);
 
     runtime = await harness.reload(runtime);
@@ -105,7 +111,22 @@ describe('task-manager services on the real runtime', () => {
       labels: ['docs', 'blocked'],
     });
     const comments = await runtime.db.comments.where('taskId').equals(created.id).toArray();
-    expect(comments.map((c) => c.body)).toEqual(['Draft is in the shared folder.']);
+    expect(comments.map((c) => c.body)).toEqual([
+      'Draft is in the shared folder. @{user_0004} @{user_0004}',
+    ]);
+    expect(await services.notifications.list()).toEqual([]);
+    await runtime.session.switchActor('user_0004');
+    const received = await services.notifications.list();
+    expect(received).toHaveLength(1);
+    expect(received[0]).toMatchObject({
+      kind: 'mention',
+      title: `${senderName} mentioned you in a comment`,
+      subjectId: created.id,
+      readAt: null,
+    });
+    expect(await services.notifications.markRead(received[0]!.id)).toBe(true);
+    expect(await services.notifications.list()).toMatchObject([{ readAt: expect.any(String) }]);
+    await runtime.session.switchActor(senderId);
 
     await services.tasks.remove(created.id);
     runtime = await harness.reload(runtime);

@@ -49,11 +49,14 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-/** Every module specifier in a source text: static, re-export and dynamic imports. */
-function specifiers(text: string): string[] {
-  const found: string[] = [];
-  for (const match of text.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)['"]([^'"]+)['"]/g)) {
-    if (match[1]) found.push(match[1]);
+/** Module specifiers and whether they use lazy `import()`. */
+function specifiers(text: string): { specifier: string; dynamic: boolean }[] {
+  const found: { specifier: string; dynamic: boolean }[] = [];
+  for (const match of text.matchAll(
+    /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)|(?:\bfrom\s*|\bimport\s+)['"]([^'"]+)['"]/g
+  )) {
+    const specifier = match[1] ?? match[2];
+    if (specifier) found.push({ specifier, dynamic: match[1] !== undefined });
   }
   return found;
 }
@@ -61,9 +64,15 @@ function specifiers(text: string): string[] {
 /** The view folders a file in `ownView` reaches, other than itself and the shared ones. */
 export function crossViewImports(ownView: string, text: string): string[] {
   const hits: string[] = [];
-  for (const spec of specifiers(text)) {
+  for (const { specifier: spec, dynamic } of specifiers(text)) {
     const pkg = /^@protoyard\/views-ui\/([^/]+)/.exec(spec)?.[1];
-    if (pkg && pkg !== ownView && !SHARED.has(pkg) && !DEPENDS[ownView]?.includes(pkg)) {
+    if (
+      pkg &&
+      pkg !== ownView &&
+      !SHARED.has(pkg) &&
+      !DEPENDS[ownView]?.includes(pkg) &&
+      !dynamic
+    ) {
       hits.push(spec);
     }
     // Relative paths that climb out of the view folder into a sibling view.
@@ -117,7 +126,7 @@ describe('views-ui bundle hygiene', () => {
     expect(readFileSync(join(SRC, 'styles.css'), 'utf8')).toContain('@source "./"');
   });
 
-  it('never imports one view from another', () => {
+  it('keeps static imports within views while allowing lazy package subpath imports', () => {
     const offenders = sourceFiles(SRC).flatMap((file) =>
       crossViewImports(viewOf(file), readFileSync(file, 'utf8')).map(
         (spec) => `${relative(PKG, file)} → ${spec}`
@@ -154,6 +163,9 @@ describe('views-ui bundle hygiene', () => {
     expect(crossViewImports('board', "import Grid from '../grid/DataGrid.svelte';")).toEqual([
       '../grid/DataGrid.svelte',
     ]);
+    expect(crossViewImports('board', "const m = import('@protoyard/views-ui/calendar');")).toEqual(
+      []
+    );
     expect(crossViewImports('board', "const m = import('../calendar/index.ts');")).toEqual([
       '../calendar/index.ts',
     ]);

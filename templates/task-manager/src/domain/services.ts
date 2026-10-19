@@ -23,6 +23,16 @@ import { STATUS_LABELS } from './tasks.ts';
 
 export { ValidationError };
 
+/** Mention tokens are stable persona ids, deduplicated in appearance order. */
+function mentionedIds(body: string): string[] {
+  const ids: string[] = [];
+  for (const match of body.matchAll(/@\{([^{}\s]{1,120})\}/g)) {
+    const id = match[1];
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
 /**
  * Domain services: the ONLY way the UI changes data. Each mutation
  *   1. checks the simulated policy (`session.assert`) — holds even if the UI is bypassed,
@@ -169,17 +179,22 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
         );
       },
 
-      /** Deletes the project with all its tasks, comments and activity, atomically. */
+      /** Deletes the project with its tasks, comments, activity and notices, atomically. */
       async remove(id: string): Promise<void> {
         session.assert(CAPABILITIES.projectsManage);
         await environment.run('projects.delete', () =>
-          db.transaction('rw', db.projects, db.tasks, db.comments, db.activity, async () => {
-            const taskIds = await db.tasks.where('projectId').equals(id).primaryKeys();
-            await db.comments.where('taskId').anyOf(taskIds).delete();
-            await db.activity.where('projectId').equals(id).delete();
-            await db.tasks.where('projectId').equals(id).delete();
-            await db.projects.delete(id);
-          })
+          db.transaction(
+            'rw',
+            [db.projects, db.tasks, db.comments, db.activity, db.notifications],
+            async () => {
+              const taskIds = await db.tasks.where('projectId').equals(id).primaryKeys();
+              await db.comments.where('taskId').anyOf(taskIds).delete();
+              await db.activity.where('projectId').equals(id).delete();
+              await db.notifications.where('subjectId').anyOf(taskIds).delete();
+              await db.tasks.where('projectId').equals(id).delete();
+              await db.projects.delete(id);
+            }
+          )
         );
       },
     },
@@ -332,9 +347,10 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
         if (!existing) return;
         session.assert(CAPABILITIES.tasksDelete, existing);
         await environment.run('tasks.delete', () =>
-          db.transaction('rw', db.tasks, db.comments, db.activity, async () => {
+          db.transaction('rw', [db.tasks, db.comments, db.activity, db.notifications], async () => {
             await db.comments.where('taskId').equals(id).delete();
             await db.activity.where('taskId').equals(id).delete();
+            await db.notifications.where('subjectId').equals(id).delete();
             await db.tasks.delete(id);
           })
         );
@@ -345,8 +361,9 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
       async add(taskId: string, body: string): Promise<Comment> {
         session.assert(CAPABILITIES.commentsCreate);
         const data = parseInput(CommentInputSchema, { body });
+        const authorName = await personName(actorId());
         return environment.run('comments.create', () =>
-          db.transaction('rw', db.tasks, db.comments, db.activity, async () => {
+          db.transaction('rw', [db.tasks, db.comments, db.activity, db.notifications], async () => {
             const task = await db.tasks.get(taskId);
             if (!task) throw new NotFoundError('This task');
             const comment: Comment = {
@@ -358,6 +375,19 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
             };
             await db.comments.add(comment);
             await db.activity.add(entry(task, 'commented', 'Left a comment'));
+            const mentionTargets = mentionedIds(data.body).filter((id) => id !== comment.authorId);
+            const title = `${authorName} mentioned you in a comment`;
+            for (const personaId of mentionTargets) {
+              await db.notifications.add({
+                id: createRuntimeId('notification'),
+                personaId,
+                kind: 'mention',
+                title,
+                subjectId: task.id,
+                createdAt: comment.createdAt,
+                readAt: null,
+              });
+            }
             return comment;
           })
         );
@@ -368,6 +398,36 @@ export function createTaskServices(runtime: PrototypeRuntime<TaskDatabase>) {
         if (!existing) return;
         session.assert(CAPABILITIES.commentsDelete, existing);
         await environment.run('comments.delete', () => db.comments.delete(id));
+      },
+    },
+
+    notifications: {
+      async list() {
+        return (await db.notifications.where('personaId').equals(actorId()).toArray()).sort(
+          (a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id)
+        );
+      },
+      async markRead(id: string): Promise<boolean> {
+        const existing = await db.notifications.get(id);
+        if (!existing || existing.personaId !== actorId()) return false;
+        if (existing.readAt) return true;
+        await environment.run('notifications.markRead', () =>
+          db.transaction('rw', db.notifications, async () => {
+            await db.notifications.update(id, { readAt: now() });
+          })
+        );
+        return true;
+      },
+      async markAllRead(): Promise<number> {
+        const own = await db.notifications.where('personaId').equals(actorId()).toArray();
+        const unread = own.filter((row) => row.readAt === null);
+        await environment.run('notifications.markAllRead', () =>
+          db.transaction('rw', db.notifications, async () => {
+            const readAt = now();
+            for (const row of unread) await db.notifications.update(row.id, { readAt });
+          })
+        );
+        return unread.length;
       },
     },
   };
