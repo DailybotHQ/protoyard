@@ -158,6 +158,24 @@ export type {
 // Shells
 export { default as WindowChrome } from './components/window-chrome/WindowChrome.svelte';
 export { default as Wizard } from './components/wizard/Wizard.svelte';
+// Navigation as data for every layout; NavIcon and the layouts stay lazy (never in this barrel).
+export {
+  isNavPathActive,
+  type NavAction,
+  type NavBadge,
+  type NavIconName,
+  type NavIconRef,
+  type NavModel,
+  type NavModelItem,
+  type NavSection,
+  type NavUser,
+  navBadge,
+  navFromSidebar,
+  navPath,
+  type ResolvedNavItem,
+  type ResolvedNavSection,
+  resolveNav,
+} from './layouts/nav-model.ts';
 export { cn } from './lib/cn.ts';
 export { type DateInput, formatDay, formatTime } from './lib/date.ts';
 export { hashString, initials } from './lib/hash.ts';

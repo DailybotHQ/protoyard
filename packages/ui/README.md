@@ -141,6 +141,34 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
   `onclick={() => void save()}` throws that feedback away. This applies to icon buttons
   (`size="icon"`) and the `AlertDialog` confirm action too.
 
+## Navigation model
+
+Layouts render navigation from data, so one prototype works in every layout
+(`src/layouts/nav-model.ts`, exported from the package root):
+
+```ts
+import { navFromSidebar, resolveNav, type NavModel } from '@protoyard/ui';
+
+// Migrate today's <Sidebar items={nav}> list in one line:
+const model: NavModel = navFromSidebar(nav, { brand: { label: 'Pipeline CRM', icon: 'briefcase' } });
+
+// Or write it directly: sections, items (id, label, href, icon, badge, exact, children),
+// primary actions and the signed-in user.
+const sections = resolveNav(model, location.hash); // exactly one `active` item, parents `inTrail`
+```
+
+- **Active state** follows the renderer's `router.isActive`: an item is
+  current for its path and its descendants (`#/` and `exact` items only
+  exactly), and the deepest match wins.
+- **Icons** are Lucide names (`'kanban'`, `'users'`; the `NavIconName` type
+  lists them) or any Lucide component. `src/layouts/NavIcon.svelte` maps names
+  through a static table. It is not in the package barrel, so only the lazy
+  layouts that render it pay for the icons (about 7 KB gzip for the 53 names).
+- **Badges** can be a getter (`badge: () => unread.count`), so a live count
+  updates wherever a layout reads it.
+- **Actions** either navigate (`href`) or run `onSelect`; a returned promise
+  drives the layout's pending state.
+
 ## Toasts
 
 ```ts
