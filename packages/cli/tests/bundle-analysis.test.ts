@@ -140,6 +140,8 @@ describe('analyzeBundle', () => {
   });
 });
 
+// Each test runs a real `vite build`, which can pass the
+// default 5 s on a heavily loaded machine. Same 60 s allowance as build.test.ts.
 describe('build integration (real Vite)', () => {
   let ws: TempWorkspace;
   beforeAll(() => {
@@ -172,14 +174,14 @@ describe('build integration (real Vite)', () => {
     expect(manifest.bundle).toEqual(bundle);
     expect(manifest.files.map((f) => f.path).some((p) => p.startsWith('.vite'))).toBe(false);
     expect(existsSync(join(ws.root, 'artifacts/lazy-app/dist/.vite'))).toBe(false);
-  });
+  }, 60_000);
 
   it('reports no bundle (and still builds) without a Vite manifest', async () => {
     ws.write('prototypes/lazy-app/vite.config.ts', 'export default { logLevel: "silent" };\n');
     const run = await cli(['--root', ws.root, '--json', 'build', 'lazy-app']);
     expect(run.code).toBe(0);
     expect(run.json<{ data: { bundle: unknown } }>().data.bundle).toBeNull();
-  });
+  }, 60_000);
 });
 
 describe('crm-demo (real renderer config)', () => {
