@@ -139,6 +139,27 @@ import { DashboardScreen } from '@protoyard/crud/screens/dashboard';
 - Widgets read through entity services and update from `liveQuery`; denied entity access is
   shown as a per-widget permission state. No data is fetched from a network service.
 
+## Analytics screen (`@protoyard/crud/screens/analytics`)
+
+A blueprint `analytics` screen selects an aggregate measure, optional dimension and date field:
+
+```svelte
+<script lang="ts">
+import { AnalyticsScreen } from '@protoyard/crud/screens/analytics';
+</script>
+
+<AnalyticsScreen {runtime} {blueprint} {services} screen={analyticsScreen} />
+```
+
+- Date range, comparison period and bucket granularity are shareable in the hash query. Changing
+  the measure or dimension recalculates the series through the blueprint aggregate API.
+- The screen shows a lazy line chart and sortable aggregate table; money measures use the field
+  currency and active persona locale.
+- CSV export includes the selected series and is shown only when the active persona has the
+  entity's export capability. The export is generated locally from the same aggregate result.
+- Reads use entity services and `liveQuery`; denied reads get a permission state, and no external
+  data service is contacted.
+
 ## Settings screen (`@protoyard/crud/screens/settings`)
 
 A separate entry, so the screen loads only with its route. Sections come from a blueprint
