@@ -39,6 +39,20 @@ export {
   SegmentSchema,
 } from './filter.ts';
 export {
+  compactLayout,
+  type DashboardLayout,
+  DashboardLayoutSchema,
+  type DashboardWidget,
+  DashboardWidgetSchema,
+  GRID_COLUMNS,
+  layoutRows,
+  MAX_WIDGET_ROWS,
+  type MoveDirection,
+  moveWidget,
+  readingOrder,
+  resizeWidget,
+} from './layout.ts';
+export {
   type Comparison,
   ComparisonSchema,
   comparisonRange,

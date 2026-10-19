@@ -18,6 +18,7 @@ tested in Node. The Svelte kit is [`@protoyard/analytics-ui`](../analytics-ui/RE
 | `@protoyard/analytics` (buckets) | `bucketStart`, `nextBucket`, `bucketStarts(range, granularity, { weekStartsOn })`, `bucketize(rows, { range, granularity, at, aggregate, value })` → every bucket, empty ones included |
 | `@protoyard/analytics` (aggregates) | `aggregate(values, kind)` for `count`, `sum`, `unique`, `avg`, `min`, `max`, `p50`, `p90`, `p95`; `percentile` (linear interpolation); `createAccumulator`; `delta(current, previous)` → `{ absolute, relative }` |
 | `@protoyard/analytics` (filters) | `FilterSchema` / `SegmentSchema` (data-only AND/OR trees, up to 4 levels), 14 operators with `OPERATORS_BY_TYPE`, `filterSchemaFor(catalog)` (unknown properties and type-mismatched operators become field errors), `compileFilter(filter)` → `(row) => boolean`, `readProperty` |
+| `@protoyard/analytics` (layouts) | `DashboardWidgetSchema` / `DashboardLayoutSchema` (`{ id, widget, title?, x, y, w, h }` on 12 columns), `compactLayout` (no overlaps, upward gravity), `moveWidget(layout, id, 'up' \| 'down' \| 'left' \| 'right')`, `resizeWidget(layout, id, { dw, dh })`, `readingOrder`, `layoutRows` |
 | `@protoyard/analytics/generators` | `ANALYTICS_GENERATOR_VERSION` |
 | `@protoyard/analytics/funnel` | `FunnelStepSchema`, `FunnelDefinitionSchema` (2–12 steps, unique ids) |
 | `@protoyard/analytics/cohort` | `RetentionIntervalSchema`, `RetentionPeriodsSchema` |
