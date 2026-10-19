@@ -179,13 +179,16 @@ Each registered layout is loaded through its own relative dynamic import in
 `src/layouts/registry.ts`. A layout provides a target with `mountScreen(target)`;
 the host moves one stable screen outlet between targets, preserving the route's
 component state while the layout chrome changes. While the selected module is
-loading, the current screen stays mounted under a chrome skeleton. Until a
-layout has registered its loader, the screen renders in the host's default
-content frame.
+loading, the current screen stays mounted under a chrome skeleton. The registry
+currently includes `sidebar`, `rail`, `top-nav`, `dual-sidebar`,
+`master-detail`, `dashboard-grid`, `docs`, `marketing`, `wizard` and
+`auth-split`. Layout modules stay out of the `@protoyard/ui` barrel, so a
+prototype loads a layout only when its host selects it. If a layout has no
+registered loader, the screen renders in the host's default content frame.
 
 ### Content layouts
 
-Three page layouts are available for product screens that need more than an
+Three content layouts are available for product screens that need more than an
 application sidebar:
 
 | Component | Content | Responsive behavior |
@@ -193,6 +196,9 @@ application sidebar:
 | `MasterDetailLayout` | `list` and `detail` snippets; bind `detailActive` to the selected route | Two panes with a keyboard- and pointer-resizable list on wide containers; one pane at a time on narrow containers. The list stays mounted while details change, and its width is stored in `localStorage` (override the key with `storageKey`). |
 | `DashboardGridLayout` | Child widgets; set `data-span="1"` through `data-span="4"` on each direct widget element | Uses one, two, three, then four columns as its container grows. Spans clamp to the current column count. It is a static grid with no drag-and-drop. |
 | `DocsLayout` | `navigation` snippet and documentation child content | Shows section navigation, the content, and a generated h2/h3 table of contents. The TOC follows visible headings and refreshes when headings are added or removed. |
+
+These layouts also accept the host's `mountScreen` outlet when selected through
+`LayoutHost`; their existing snippet props remain available for standalone use.
 
 `MasterDetailLayout` exposes the splitter as a vertical separator: Left/Right
 arrows resize it by 16 pixels, while Home and End select the minimum and maximum
@@ -207,8 +213,8 @@ to mark the current section; when intersection observation is unavailable, the
 TOC remains usable as a set of fragment links.
 ## Desktop layouts
 
-Four layouts are registered (`sidebar`, `rail`, `top-nav`, `dual-sidebar`).
-Each one is its own lazy module, measured at 1.3 to 2.8 KB gzip, and they
+Four navigation layouts are available (`sidebar`, `rail`, `top-nav`,
+`dual-sidebar`). Each one is its own lazy module, measured at 1.3 to 2.8 KB gzip, and they
 share one chunk of about 7.5 KB gzip (the drawer, the chrome and the
 `NavIcon` table). They all render the `nav` the host passes, follow
 `location.hash` unless the host passes `path`, put the screen in a `<main>`
@@ -229,6 +235,11 @@ navigation closes the drawer, and it also closes if the layout grows wide.
 | `rail` | 40rem | the same `<Sidebar>` collapsed to icons with tooltips. Its toggle expands it to labels, and the choice is saved per prototype in localStorage (`protoyard:layout:<storageKey or page path>:rail-expanded`, best effort) |
 | `top-nav` | 48rem | brand, primary links (the first `options.visibleItems`, default 5) and a **More** menu for the rest, actions and user, then the current item's `children` as secondary tabs |
 | `dual-sidebar` | 64rem | a switcher column with one button per nav section (arrow keys, Home and End move between them; it follows the current page until another section is picked), the section's pages with one level of children, and the `aside` snippet as a right context panel |
+
+The host registry also includes six layouts for other product frames:
+`master-detail`, `dashboard-grid` and `docs` for content; `marketing`,
+`wizard` and `auth-split` for flow pages. Each is loaded from its own lazy
+module and stays out of the package barrel.
 
 Only the exact current page gets `aria-current="page"`. Its parents are
 tinted (`data-trail`), and in a collapsed or one-level list the visible

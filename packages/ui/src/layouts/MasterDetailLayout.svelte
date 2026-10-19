@@ -3,8 +3,10 @@ import type { Snippet } from 'svelte';
 import { onMount } from 'svelte';
 
 interface Props {
-  list: Snippet;
-  detail: Snippet;
+  list?: Snippet;
+  detail?: Snippet;
+  /** LayoutHost integration; the stable routed screen is mounted in the detail pane. */
+  mountScreen?: (target: HTMLElement) => void;
   /** Bind to route selection so narrow screens show the routed detail pane. */
   detailActive?: boolean;
   listLabel?: string;
@@ -21,6 +23,7 @@ const WIDTH_STEP = 16;
 let {
   list,
   detail,
+  mountScreen,
   detailActive = $bindable(false),
   listLabel = 'Items',
   detailLabel = 'Details',
@@ -30,7 +33,12 @@ let {
 }: Props = $props();
 
 let root = $state<HTMLDivElement | undefined>();
+let screenTarget = $state<HTMLDivElement | undefined>();
 let listWidth = $state(360);
+
+$effect(() => {
+  if (mountScreen && screenTarget) mountScreen(screenTarget);
+});
 
 onMount(() => {
   const key = getStorageKey();
@@ -95,34 +103,45 @@ function onBack(): void {
   bind:this={root}
   class="master-detail @container min-w-0 {className ?? ''}"
   data-py-master-detail
-  data-detail-active={detailActive}
+  data-py-layout-host-mode={mountScreen || undefined}
+  data-detail-active={mountScreen ? true : detailActive}
   style={`--py-master-detail-list-width: ${listWidth}px`}
 >
   <div class="master-detail__panes">
-    <section class="master-detail__list" aria-label={listLabel}>
-      {@render list()}
-    </section>
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-    <div
-      class="master-detail__splitter"
-      role="separator"
-      tabindex="0"
-      aria-label="Resize list panel"
-      aria-orientation="vertical"
-      aria-valuemin={MIN_LIST_WIDTH}
-      aria-valuemax={MAX_LIST_WIDTH}
-      aria-valuenow={listWidth}
-      aria-valuetext={`List panel width ${listWidth} pixels`}
-      onkeydown={onSplitterKeydown}
-      onpointerdown={onSplitterPointerDown}
-      onpointermove={(event) => event.buttons === 1 && updateFromPointer(event)}
-      onpointerup={persistWidth}
-      onpointercancel={persistWidth}
-    ></div>
-    <section class="master-detail__detail" aria-label={detailLabel}>
-      <button class="master-detail__back" type="button" onclick={onBack}>{backLabel}</button>
-      {@render detail()}
-    </section>
+    {#if list}
+      <section class="master-detail__list" aria-label={listLabel}>
+        {@render list()}
+      </section>
+    {/if}
+    {#if list && detail}
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+      <div
+        class="master-detail__splitter"
+        role="separator"
+        tabindex="0"
+        aria-label="Resize list panel"
+        aria-orientation="vertical"
+        aria-valuemin={MIN_LIST_WIDTH}
+        aria-valuemax={MAX_LIST_WIDTH}
+        aria-valuenow={listWidth}
+        aria-valuetext={`List panel width ${listWidth} pixels`}
+        onkeydown={onSplitterKeydown}
+        onpointerdown={onSplitterPointerDown}
+        onpointermove={(event) => event.buttons === 1 && updateFromPointer(event)}
+        onpointerup={persistWidth}
+        onpointercancel={persistWidth}
+      ></div>
+    {/if}
+    {#if detail || mountScreen}
+      <section class="master-detail__detail" aria-label={detailLabel}>
+        {#if list && detail}<button class="master-detail__back" type="button" onclick={onBack}>{backLabel}</button>{/if}
+        {#if detail}
+          {@render detail()}
+        {:else if mountScreen}
+          <div bind:this={screenTarget} data-py-layout-screen-target></div>
+        {/if}
+      </section>
+    {/if}
   </div>
 </div>
 
@@ -206,6 +225,10 @@ function onBack(): void {
     .master-detail__panes {
       grid-template-columns: minmax(15rem, var(--py-master-detail-list-width, 22.5rem)) 0.5rem minmax(0, 1fr);
       min-height: var(--py-app-height, 100%);
+    }
+
+    .master-detail[data-py-layout-host-mode] .master-detail__panes {
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .master-detail__list,

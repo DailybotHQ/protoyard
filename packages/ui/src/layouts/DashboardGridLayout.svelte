@@ -2,17 +2,28 @@
 import type { Snippet } from 'svelte';
 
 interface Props {
-  children: Snippet;
+  children?: Snippet;
+  /** LayoutHost integration; the stable routed screen is mounted in the grid. */
+  mountScreen?: (target: HTMLElement) => void;
   class?: string;
   gap?: string;
 }
 
-let { children, class: className, gap = '1rem' }: Props = $props();
+let { children, mountScreen, class: className, gap = '1rem' }: Props = $props();
+let screenTarget = $state<HTMLDivElement | undefined>();
+
+$effect(() => {
+  if (mountScreen && screenTarget) mountScreen(screenTarget);
+});
 </script>
 
 <div class="dashboard-grid-container @container min-w-0 {className ?? ''}" data-py-dashboard-grid>
   <div class="dashboard-grid" style={`--py-dashboard-grid-gap: ${gap}`}>
-    {@render children()}
+    {#if children}
+      {@render children()}
+    {:else if mountScreen}
+      <div bind:this={screenTarget} class="min-w-0" data-py-layout-screen-target></div>
+    {/if}
   </div>
 </div>
 

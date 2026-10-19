@@ -6,6 +6,9 @@ import {
   type DeviceId,
   deviceFitsShell,
   getDevice,
+  LAYOUTS,
+  type LayoutId,
+  layoutChoices,
   type Orientation,
   type Platform,
   type Shell,
@@ -37,6 +40,16 @@ let studioOpen = $state(false);
 const loadStudio = () => import('./ThemeStudioSection.svelte');
 const platform = $derived(runtime.manifest.platform);
 const overrides = $derived(dt.overrides);
+const layoutSettings = $derived(runtime.manifest.preview.layout);
+const showLayoutPicker = $derived(
+  (layoutSettings?.id ?? 'custom') !== 'custom' || layoutSettings?.supported !== undefined
+);
+const layoutOptions = $derived(
+  layoutChoices(layoutSettings).map((id) => ({
+    value: id,
+    label: LAYOUTS.find((layout) => layout.id === id)?.label ?? id,
+  }))
+);
 
 /** `override` = temporary design preview; `preference` = saved on the persona. */
 let target = $state<'override' | 'preference'>('override');
@@ -61,6 +74,11 @@ const hasOverride = $derived(
 
 /** Any appearance change in flight: the controls wait for it (no double triggers). */
 const applying = $derived(dt.isBusy('appearance'));
+const layoutApplying = $derived(dt.isBusy('appearance:layout'));
+
+async function setLayout(layout: LayoutId) {
+  await dt.run('appearance:layout', () => runtime.theme.setOverride({ layout }));
+}
 
 async function set(
   patch: { themeId?: string; mode?: ColorMode; reducedMotion?: boolean },
@@ -228,6 +246,31 @@ async function setFrame(on: boolean) {
     onchange={(viewport: ViewportPreset) => dt.run('appearance', () => runtime.theme.setOverride({ viewport }))}
   />
 </Section>
+
+{#if showLayoutPicker}
+  <Section
+    title="Layout"
+    description="Temporary app frame override. Share links include ?layout= when set."
+  >
+    {#snippet actions()}<SourceBadge source={appearance.layout.source} />{/snippet}
+    <label class="block text-[11px] text-muted-foreground">
+      <span class="mb-1 block">App layout</span>
+      <select
+        class="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+        aria-label="App layout"
+        aria-busy={layoutApplying || undefined}
+        disabled={layoutApplying}
+        value={appearance.layout.value}
+        onchange={(event) => setLayout((event.currentTarget as HTMLSelectElement).value as LayoutId)}
+      >
+        {#each layoutOptions as option (option.value)}
+          <option value={option.value}>{option.label}</option>
+        {/each}
+      </select>
+    </label>
+    <InlineError message={dt.errorFor('appearance')} />
+  </Section>
+{/if}
 
 <Section
   title="Shell"
