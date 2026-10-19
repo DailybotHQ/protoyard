@@ -79,6 +79,13 @@ export interface ViteBuildOptions {
   storageNamespace?: string;
   /** Keep an explicit shell frame when embedded (PROTOYARD_FRAME_WHEN_EMBEDDED; the artifact target). */
   frameWhenEmbedded?: boolean;
+  /**
+   * Serve avatar images from this shared folder instead of emitting a copy
+   * into the build (PROTOYARD_AVATAR_BASE; the showcase uses `<base>avatars/`).
+   */
+  avatarBase?: string;
+  /** Ship only these avatar sizes (PROTOYARD_AVATAR_SIZES; the artifact target ships 128). */
+  avatarSizes?: readonly number[];
   /** Pipe output (for --json) instead of inheriting the terminal. */
   quiet: boolean;
 }
@@ -86,7 +93,14 @@ export interface ViteBuildOptions {
 export function buildEnv(
   options: Pick<
     ViteBuildOptions,
-    'outDir' | 'base' | 'includeDevtools' | 'offline' | 'storageNamespace' | 'frameWhenEmbedded'
+    | 'outDir'
+    | 'base'
+    | 'includeDevtools'
+    | 'offline'
+    | 'storageNamespace'
+    | 'frameWhenEmbedded'
+    | 'avatarBase'
+    | 'avatarSizes'
   >
 ) {
   return {
@@ -101,6 +115,9 @@ export function buildEnv(
     PROTOYARD_STORAGE_NAMESPACE: options.storageNamespace ?? '',
     // Only forced on by the artifact target; otherwise the manifest decides.
     PROTOYARD_FRAME_WHEN_EMBEDDED: options.frameWhenEmbedded ? '1' : '',
+    // Set explicitly either way, so an inherited value never drops a build's avatars.
+    PROTOYARD_AVATAR_BASE: options.avatarBase ?? '',
+    PROTOYARD_AVATAR_SIZES: options.avatarSizes ? options.avatarSizes.join(',') : '',
   };
 }
 

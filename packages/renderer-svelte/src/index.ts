@@ -1,5 +1,14 @@
 export { bindAppearance } from './appearance.ts';
 export {
+  AVATAR_BASE,
+  type AvatarImageSize,
+  type AvatarUrlOptions,
+  avatarSrcset,
+  avatarUrl,
+  isAvatarId,
+  isAvatarUrl,
+} from './avatars.ts';
+export {
   type ClockView,
   can,
   fromController,

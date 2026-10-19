@@ -6,6 +6,8 @@ import { BUILTIN_THEMES } from '../../themes/src/index.ts';
 import { type DevtoolsHandle, mountDevtools, reproducibleLink } from '../src/index.ts';
 import { loadPrefs } from '../src/persist.ts';
 
+const STYLE_KEYS = ['radius', 'elevation', 'font', 'motion'];
+
 const settle = async () => {
   for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
   flushSync();
@@ -403,6 +405,54 @@ describe('DevTools panel', () => {
     expect(reproducibleLink(runtime, { href: 'https://x.test/', presentation: true })).toContain(
       'devtools=0'
     );
+  });
+
+  it('includes the theme, mode and layout overrides in the share link', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.load('busy');
+    await runtime.overrides.set({ themeId: 'ocean', mode: 'dark', layout: 'rail' });
+    const link = reproducibleLink(runtime, {
+      href: 'https://x.test/crm/?theme=old&mode=light&layout=sidebar&foo=1#/deals',
+    });
+    const params = new URL(link).searchParams;
+    expect(params.getAll('theme')).toEqual(['ocean']);
+    expect(params.getAll('mode')).toEqual(['dark']);
+    expect(params.getAll('layout')).toEqual(['rail']);
+    expect(params.get('foo')).toBe('1');
+    expect(new URL(link).hash).toBe('#/deals');
+
+    await runtime.overrides.clear(['themeId', 'mode', 'layout']);
+    const cleared = new URL(
+      reproducibleLink(runtime, { href: 'https://x.test/crm/?theme=old&mode=light&layout=sidebar' })
+    ).searchParams;
+    expect(['theme', 'mode', 'layout'].some((key) => cleared.has(key))).toBe(false);
+  });
+
+  it('includes the style preset overrides in the share link', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.load('busy');
+    await runtime.overrides.set({
+      radius: 'pill',
+      elevation: 'flat',
+      font: 'mono',
+      motion: 'none',
+    });
+    const link = reproducibleLink(runtime, {
+      href: 'https://x.test/crm/?radius=square&foo=1#/deals',
+    });
+    const params = new URL(link).searchParams;
+    expect(params.get('radius')).toBe('pill');
+    expect(params.get('elevation')).toBe('flat');
+    expect(params.get('font')).toBe('mono');
+    expect(params.get('motion')).toBe('none');
+    expect(params.getAll('radius')).toHaveLength(1);
+    expect(params.get('foo')).toBe('1');
+
+    await runtime.overrides.clear(['radius', 'elevation', 'font', 'motion']);
+    const cleared = new URL(
+      reproducibleLink(runtime, { href: 'https://x.test/crm/?radius=square' })
+    ).searchParams;
+    expect(STYLE_KEYS.some((key) => cleared.has(key))).toBe(false);
   });
 
   it('selects a shell via setOverride and includes shell= in the share link', async () => {

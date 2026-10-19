@@ -24,6 +24,7 @@ import {
   packArtifact,
   planBatches,
   publishArguments,
+  summarizeAvatars,
   transformPage,
 } from '../src/lib/artifact-pack.ts';
 import { digestDirectory } from '../src/lib/checksum.ts';
@@ -313,6 +314,7 @@ describe('packArtifact', () => {
       description: 'A fictional CRM.',
       icon: 'briefcase',
       capabilities: null,
+      avatars: null,
       warnings: [],
     });
     expect(manifest.page).toEqual({
@@ -418,6 +420,63 @@ describe('packArtifact', () => {
     expect(!inside.ok && inside.issues.map((issue) => issue.reason)).toContain(
       'the pack folder must not contain, or be inside, the build folder'
     );
+  });
+
+  const writeAvatars = (sizes: readonly number[]) => {
+    for (const size of sizes) {
+      for (let n = 1; n <= 175; n += 1) {
+        write(`avatars/${size}/av-${String(n).padStart(3, '0')}.webp`, Buffer.alloc(size * 16, n));
+      }
+    }
+  };
+
+  it('packs one copy of the 128 px avatars in a single publish', async () => {
+    writeAvatars([128]);
+    const result = await pack({ dryRun: true });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const avatars = result.manifest.files.filter((file) => file.path.startsWith('avatars/'));
+    expect(avatars).toHaveLength(175);
+    expect(new Set(avatars.map((file) => file.path)).size).toBe(175);
+    expect(avatars.every((file) => file.contentType === 'image/webp')).toBe(true);
+    expect(result.manifest.avatars).toEqual({ sizes: [128], files: 175, bytes: 175 * 128 * 16 });
+    // 5 app files + 175 avatars + the page: one publish.
+    expect(result.manifest.batches).toHaveLength(1);
+  });
+
+  it('splits a pack with both avatar sizes and many app files into ordered batches', async () => {
+    writeAvatars([64, 128]);
+    for (let n = 0; n < 100; n += 1) write(`assets/chunk-${n}.js`, `export const n = ${n};`);
+    const result = await pack({ dryRun: true });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // 105 app files + 350 avatars + the page = 456 files, under the 511-file version cap.
+    expect(result.manifest.files).toHaveLength(455);
+    expect(result.manifest.batches.map((batch) => batch.files.length)).toEqual([254, 201]);
+    // The app's own assets sort before avatars/, so the entry ships with the page in batch 1.
+    expect(result.manifest.batches[0]?.files).toContain('assets/index-abc.js');
+    expect(result.manifest.avatars).toMatchObject({ sizes: [64, 128], files: 350 });
+  });
+
+  it('refuses a pack whose avatars push it past the version cap', async () => {
+    writeAvatars([64, 128]);
+    for (let n = 0; n < 160; n += 1) write(`assets/chunk-${n}.js`, `export const n = ${n};`);
+    const result = await pack({ dryRun: true });
+    expect(!result.ok && result.issues.map((issue) => issue.reason)).toEqual([
+      '516 files exceed the 511-file limit of one Artifact version',
+    ]);
+  });
+
+  it('counts only library avatar files', () => {
+    expect(
+      summarizeAvatars([
+        { path: 'avatars/128/av-001.webp', bytes: 10 },
+        { path: 'avatars/128/notes.txt', bytes: 5 },
+        { path: 'assets/avatars/64/av-002.webp', bytes: 7 },
+        { path: 'assets/index.js', bytes: 3 },
+      ])
+    ).toEqual({ sizes: [128], files: 1, bytes: 10 });
+    expect(summarizeAvatars([])).toBeNull();
   });
 
   it('fails clearly without a build', async () => {

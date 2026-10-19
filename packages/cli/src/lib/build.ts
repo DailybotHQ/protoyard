@@ -71,6 +71,10 @@ export interface BuildOptions {
   frameWhenEmbedded?: boolean;
   /** Bake this storage namespace in instead of the manifest's (template demos). */
   storageNamespace?: string;
+  /** Point avatar images at a shared folder and emit none (the showcase). */
+  avatarBase?: string;
+  /** Ship only these avatar sizes (the artifact target ships 128). */
+  avatarSizes?: readonly number[];
 }
 
 export interface BuildResult {
@@ -199,6 +203,8 @@ export async function buildPrototype(
     offline: options.offline === true,
     ...(options.storageNamespace ? { storageNamespace: options.storageNamespace } : {}),
     ...(options.frameWhenEmbedded ? { frameWhenEmbedded: true } : {}),
+    ...(options.avatarBase ? { avatarBase: options.avatarBase } : {}),
+    ...(options.avatarSizes ? { avatarSizes: options.avatarSizes } : {}),
     quiet: ctx.out.options.json || ctx.out.options.quiet,
   });
   if (code !== 0) {

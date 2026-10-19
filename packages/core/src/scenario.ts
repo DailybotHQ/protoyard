@@ -3,7 +3,11 @@ import { DeviceIdSchema, OrientationSchema } from './devices.ts';
 import { EnvironmentPatchSchema, SubscriptionStatusSchema } from './environment.ts';
 import { type LayoutId, LayoutIdSchema } from './layouts.ts';
 import { ColorModeSchema, type Shell, ShellSchema, ViewportPresetSchema } from './manifest.ts';
-import { StylePresetOverridesSchema } from './theme.ts';
+import {
+  STYLE_OVERRIDE_KEYS,
+  type StylePresetOverrides,
+  StylePresetOverridesSchema,
+} from './theme.ts';
 
 /**
  * A scenario answers: "what does this app look like for THIS actor, in THIS
@@ -131,7 +135,7 @@ export function parseScenario(input: unknown): Scenario {
  * `?scenario=active-month&actor=user_0002&seed=42`. Manual edits are never in
  * a URL — use snapshots for those.
  */
-export interface ScenarioLinkParams {
+export interface ScenarioLinkParams extends StylePresetOverrides {
   scenario?: string;
   actor?: string;
   seed?: number;
@@ -149,6 +153,9 @@ export interface ScenarioLinkParams {
    * when the prototype supports it. Unknown ids are ignored.
    */
   layout?: LayoutId;
+  // Style presets (`?radius=round&elevation=flat&font=editorial&motion=none`),
+  // inherited from StylePresetOverrides: applied as visible, clearable
+  // overrides. Values outside the preset ids are ignored.
   /**
    * Isolated, disposable world: the runtime suffixes the storage namespace
    * (`<namespace>~<sandbox>`) so two views of the same prototype on one
@@ -193,6 +200,12 @@ export function parseScenarioLink(search: string): ScenarioLinkParams {
   else if (params.get('frame') === 'none') out.shell = 'none';
   const layout = LayoutIdSchema.safeParse(params.get('layout'));
   if (layout.success) out.layout = layout.data;
+  for (const key of STYLE_OVERRIDE_KEYS) {
+    const raw = params.get(key);
+    if (!raw) continue;
+    const style = StylePresetOverridesSchema.shape[key].safeParse(raw);
+    if (style.success && style.data !== undefined) Object.assign(out, { [key]: style.data });
+  }
   const sandbox = params.get('sandbox');
   if (sandbox && SANDBOX_PATTERN.test(sandbox)) out.sandbox = sandbox;
   const devtools = params.get('devtools');

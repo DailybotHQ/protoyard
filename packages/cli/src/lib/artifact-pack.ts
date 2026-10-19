@@ -41,6 +41,21 @@ export const ARTIFACT_LIMITS = {
 } as const;
 
 /**
+ * Avatar sizes an artifact build ships: 128 px only. The library is 175
+ * images per size, so both sizes would be 350 files (513,196 B) next to the
+ * app's own; 128 px alone is 175 files (356,386 B). Measured 2026-10-19:
+ * relay-chat-demo (32 app files) stays in one 255-file publish instead of
+ * two, and ui-kit (180 app files) packs 356 files in two publishes, where
+ * both sizes would be 531 files, over the 511-file version cap.
+ * `avatarUrl(id, 64)` then resolves to the 128 px file and `avatarSrcset` is
+ * omitted; the browser downscales, about 1 KB more per face shown at 1x.
+ */
+export const ARTIFACT_AVATAR_SIZES: readonly number[] = [128];
+
+/** Avatar images in a build: `avatars/<size>/av-NNN.webp`. */
+const AVATAR_FILE = /^avatars\/(\d+)\/av-\d{3}\.webp$/;
+
+/**
  * Runtime capabilities declared when a pack enables review comments (`export
  * --target artifact --comments`): a shared `db` store under `review/` that
  * every admitted viewer reads and Contributors and above write, and the
@@ -521,7 +536,26 @@ export interface ArtifactPackManifest {
   buildSha256: string;
   /** Runtime capabilities to declare on publish; null unless review comments are enabled. */
   capabilities: Record<string, unknown> | null;
+  /** The avatar images in the pack (one copy, `avatars/<size>/`), or null when it has none. */
+  avatars: { sizes: number[]; files: number; bytes: number } | null;
   warnings: string[];
+}
+
+/** Counts the avatar images among the pack files (sizes found, files, bytes). */
+export function summarizeAvatars(
+  files: readonly { path: string; bytes: number }[]
+): ArtifactPackManifest['avatars'] {
+  const sizes = new Set<number>();
+  let count = 0;
+  let bytes = 0;
+  for (const file of files) {
+    const match = AVATAR_FILE.exec(file.path);
+    if (!match) continue;
+    sizes.add(Number(match[1]));
+    count += 1;
+    bytes += file.bytes;
+  }
+  return count ? { sizes: [...sizes].sort((a, b) => a - b), files: count, bytes } : null;
 }
 
 export interface PackArtifactOptions {
@@ -664,6 +698,7 @@ export async function packArtifact(options: PackArtifactOptions): Promise<PackAr
     totalBytes: pageBytes + files.reduce((sum, file) => sum + file.bytes, 0),
     buildSha256: buildDigest(digests),
     capabilities: options.capabilities ?? null,
+    avatars: summarizeAvatars(files),
     warnings,
   };
   if (options.dryRun) return { ok: true, manifest, outDir, written: false };

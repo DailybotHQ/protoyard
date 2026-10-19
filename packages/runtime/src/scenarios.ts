@@ -12,6 +12,9 @@ import {
   SANDBOX_PATTERN,
   type Scenario,
   type ScenarioController,
+  type ScenarioLinkParams,
+  STYLE_OVERRIDE_KEYS,
+  type StylePresetOverrides,
   type TimelineContext,
   type WorldSeed,
 } from '@protoyard/core';
@@ -25,6 +28,15 @@ import {
 import { createEmitter } from './emitter.ts';
 import { type Kernel, signedOutByDefault } from './kernel.ts';
 import { applyOverrides } from './overrides.ts';
+
+/** The style presets a link carries (`?radius=`, `?elevation=`, `?font=`, `?motion=`). */
+function styleFromLink(link: ScenarioLinkParams): StylePresetOverrides {
+  const out: StylePresetOverrides = {};
+  for (const key of STYLE_OVERRIDE_KEYS) {
+    if (link[key] !== undefined) Object.assign(out, { [key]: link[key] });
+  }
+  return out;
+}
 
 export class UnknownScenarioError extends Error {
   readonly scenarioId: string;
@@ -349,7 +361,8 @@ export function createScenarioController(
           (themeOk && link.theme !== k.overrides.themeId) ||
           (link.mode && link.mode !== k.overrides.mode) ||
           (link.shell && link.shell !== k.overrides.shell) ||
-          (layoutOk && link.layout !== k.overrides.layout)
+          (layoutOk && link.layout !== k.overrides.layout) ||
+          STYLE_OVERRIDE_KEYS.some((key) => link[key] && link[key] !== k.overrides[key])
         ) {
           await applyOverrides(k, {
             ...k.overrides,
@@ -357,6 +370,7 @@ export function createScenarioController(
             ...(link.mode ? { mode: link.mode } : {}),
             ...(link.shell ? { shell: link.shell } : {}),
             ...(layoutOk ? { layout: link.layout } : {}),
+            ...styleFromLink(link),
           });
         }
       }),

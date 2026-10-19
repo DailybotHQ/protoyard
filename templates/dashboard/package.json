@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@lucide/svelte": "^1.50.0",
+    "@protoyard/charts-ui": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/scenarios": "workspace:*",

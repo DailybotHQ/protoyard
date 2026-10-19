@@ -199,6 +199,12 @@ await runtime.theme.clearOverride(); // back to the scenario, then the theme
 - **Storage.** Overrides live in the prototype's control DB only, never the
   data DB (ADR-005), and `theme.clearOverride()` or DevTools' "Clear
   overrides" removes them.
+- **Links.** `?radius=round&elevation=flat&font=editorial&motion=none`
+  applies the same presets as clearable overrides (source `override`,
+  persisted like a DevTools choice). Values outside the preset ids are
+  ignored. DevTools' share link (`reproducibleLink`) carries any active style
+  override together with the theme, mode, shell and layout overrides, so a
+  reviewer can send the exact look.
 
 ### Fonts
 
@@ -836,7 +842,7 @@ layer that sets them:
 
 | Order | Source | Set by |
 | --- | --- | --- |
-| 1 | `override` | DevTools → Look with "Temporary override" selected, Theme Studio's **Save and preview**, a link's `?theme=` / `?mode=`, `theme.setOverride()` |
+| 1 | `override` | DevTools → Look with "Temporary override" selected, Theme Studio's **Save and preview**, a link's `?theme=` / `?mode=` / `?radius=` / `?elevation=` / `?font=` / `?motion=`, `theme.setOverride()` |
 | 2 | `preference` | The active persona's saved choice: DevTools → Look with "Persona preference" selected, `theme.setPreference()`, or `persona.preferences` from the generator |
 | 3 | `scenario` | The loaded scenario's `appearance` |
 | 4 | `default` | `protoyard.json`: `defaultTheme` (default `violet`) and `defaultMode` (default `system`); for reduced motion, the OS setting |
