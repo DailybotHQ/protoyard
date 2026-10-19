@@ -29,7 +29,7 @@ const inThread = $derived(router.current.route?.path === '/c/:id');
   that narrow #app get the real one-pane phone layout: list OR thread, with a
   back button. Wide containers show both panes.
 -->
-<div class="@container h-dvh overflow-hidden bg-background text-foreground">
+<div class="@container h-app overflow-hidden bg-background text-foreground">
   <div class="flex h-full flex-col">
     <ConditionBanner />
     <!-- One <main> for both panes: on phones only one pane is visible at a time. -->

@@ -94,7 +94,7 @@ $effect(() => {
   bind:this={viewport}
   aria-label="Messages"
   tabindex="0"
-  class="min-h-0 flex-1 overflow-y-auto px-3 py-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-5"
+  class="relative min-h-0 flex-1 overflow-y-auto px-3 py-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:px-5"
 >
   <ol class="flex flex-col gap-3">
     {#each groups as group (group.key)}
