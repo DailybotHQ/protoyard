@@ -9,6 +9,8 @@ import StatusBar from './StatusBar.svelte';
 let { spec, shell }: FrameProps = $props();
 
 const bezel = 22;
+/** Gap between the bezel and the rotate control, which sits outside the device. */
+const ROTATE_GAP = 8;
 
 async function toggleOrientation(): Promise<void> {
   await getRuntime().theme.setOverride({ orientation: rotate(spec).orientation });
@@ -44,10 +46,12 @@ async function toggleOrientation(): Promise<void> {
 
   <StatusBar {spec} />
   <HomeIndicator {spec} />
+  <!-- Beside the bezel, never over the screen: app tabs and sheets keep every pixel. -->
   <button
     type="button"
     data-py-orientation-toggle
-    class="pointer-events-auto absolute right-3 bottom-8 z-[35] flex size-8 items-center justify-center rounded-full border border-white/20 bg-zinc-800/80 text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-zinc-950/80"
+    style:left="calc(100% + {bezel + ROTATE_GAP}px)"
+    class="pointer-events-auto absolute bottom-8 z-[35] flex size-8 items-center justify-center rounded-full border border-white/20 bg-zinc-800/80 text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-zinc-950/80"
     aria-label="Rotate tablet to {spec.orientation === 'portrait' ? 'landscape' : 'portrait'}"
     title="Rotate tablet"
     onclick={toggleOrientation}

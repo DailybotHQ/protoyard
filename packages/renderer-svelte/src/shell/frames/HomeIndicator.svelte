@@ -5,12 +5,14 @@ import { safeAreaOf } from '@protoyard/core';
 /**
  * Brand-neutral home indicator. Clicking it navigates to the app root (`#/`) —
  * a real "go home" gesture, not a dead control. The bar itself is decorative.
+ * Its hit area is exactly the bottom safe-area inset, which apps keep free
+ * (`pb-safe`), so it never takes a tap meant for app content.
  */
 let { spec }: { spec: DeviceSpec } = $props();
 
 const insets = $derived(safeAreaOf(spec));
 const barHeight = $derived(Math.max(4, Math.min(6, Math.round(spec.homeIndicator.height * 0.2))));
-const hitHeight = $derived(Math.max(spec.homeIndicator.height, insets.bottom, 20));
+const hitHeight = $derived(insets.bottom);
 
 function goHome(event: MouseEvent): void {
   event.preventDefault();
@@ -23,16 +25,16 @@ function goHome(event: MouseEvent): void {
 }
 </script>
 
-{#if spec.homeIndicator.height > 0}
+{#if spec.homeIndicator.height > 0 && hitHeight > 0}
   <div
     data-py-home-indicator
-    class="absolute inset-x-0 bottom-0 z-[30] flex items-end justify-center"
+    class="absolute inset-x-0 bottom-0 z-[30] flex justify-center"
     style:height="{hitHeight}px"
-    style:padding-bottom="{Math.max(8, Math.round(insets.bottom * 0.25))}px"
   >
     <button
       type="button"
-      class="pointer-events-auto flex w-full max-w-[40%] cursor-pointer items-center justify-center border-0 bg-transparent p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      class="pointer-events-auto box-border flex h-full w-full max-w-[40%] cursor-pointer items-end justify-center border-0 bg-transparent px-2 pt-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      style:padding-bottom="{Math.max(4, Math.round(insets.bottom * 0.25))}px"
       aria-label="Go home"
       title="Go home"
       onclick={goHome}

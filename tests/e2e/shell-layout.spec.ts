@@ -287,3 +287,74 @@ test.describe('shell matrix: full-bleed on a phone', () => {
     });
   }
 });
+
+/**
+ * The rotate control decorates the device; it must never sit on app pixels.
+ * It used to cover the lower right of the screen, where the last bottom-nav
+ * tab (and bottom-sheet actions) live, so a tap there rotated the device.
+ */
+function intersects(a: Box, b: Box): boolean {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
+test.describe('shell matrix: the rotate control stays off the screen', () => {
+  for (const shell of ['phone', 'tablet'] as const) {
+    test(`${shell}: rotate button outside the screen, in the viewport, last tab hit-testable`, async ({
+      page,
+      isMobile,
+    }) => {
+      test.skip(isMobile, 'frames need a window wider than the device');
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await openShell(page, shell);
+      await expect(page.locator('html')).toHaveAttribute('data-py-shell', shell);
+
+      for (const orientation of ['portrait', 'landscape'] as const) {
+        const toggle = page.locator('[data-py-orientation-toggle]');
+        await expect(page.locator(`[data-py-frame="${shell}"]`)).toHaveAttribute(
+          'data-py-orientation',
+          orientation
+        );
+        await expect(toggle).toBeVisible();
+        const button = (await toggle.boundingBox()) as Box;
+        const screen = await boxOf(page, '[data-py-shell-part="screen"]');
+        expect(intersects(button, screen), `${shell} ${orientation}: button over the screen`).toBe(
+          false
+        );
+        expectInside(button, await viewportBox(page), `${shell} ${orientation} rotate button`);
+
+        // The home indicator is a frame control too: it stays inside the bottom safe inset.
+        const home = (await page.getByRole('button', { name: 'Go home' }).boundingBox()) as Box;
+        const safeBottom = await page
+          .locator('[data-py-shell-part="screen"]')
+          .evaluate((el) =>
+            Number.parseFloat(getComputedStyle(el).getPropertyValue('--py-safe-bottom'))
+          );
+        const scale =
+          screen.height /
+          (await page
+            .locator('[data-py-shell-part="screen"]')
+            .evaluate((el) => (el as HTMLElement).offsetHeight));
+        expect(
+          home.y,
+          `${shell} ${orientation}: home indicator above the safe inset`
+        ).toBeGreaterThanOrEqual(screen.y + screen.height - safeBottom * scale - 1);
+
+        // The lower right of the last bottom-nav tab belongs to the app.
+        const hit = await page.evaluate(() => {
+          const screenEl = document.querySelector('[data-py-shell-part="screen"]');
+          const links = document.querySelectorAll(
+            '[data-py-bottom-nav] a, [data-py-bottom-nav] button'
+          );
+          const last = links[links.length - 1];
+          if (!screenEl || !last) return 'no bottom nav tab';
+          const r = last.getBoundingClientRect();
+          const top = document.elementFromPoint(r.right - 4, r.bottom - 4);
+          return top && screenEl.contains(top) ? null : `${top?.tagName ?? 'nothing'} is on top`;
+        });
+        expect(hit, `${shell} ${orientation}: last tab`).toBeNull();
+
+        if (orientation === 'portrait') await toggle.click();
+      }
+    });
+  }
+});

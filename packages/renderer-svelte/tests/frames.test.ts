@@ -89,6 +89,36 @@ describe('device bezels never paint over the app', () => {
   });
 });
 
+describe('the rotate control never covers the screen', () => {
+  // jsdom has no layout, so check the geometry contract: the button is placed
+  // beyond the right edge of the device (past its bezel), and the frame margin
+  // reserves room for it. shell-layout.spec.ts measures the real rects.
+  it('places the phone and tablet rotate buttons beside the bezel, inside the frame margin', () => {
+    const phone = getDevice('phone-pill');
+    const tablet = getDevice('tablet');
+    if (!phone || !tablet) throw new Error('catalog devices missing');
+    runtimeMock.current = createFakeRuntime();
+    for (const [Frame, spec, shell, bezel] of [
+      [PhoneFrame, phone, 'phone', 12],
+      [TabletFrame, tablet, 'tablet', 22],
+    ] as const) {
+      const { container } = render(Frame, { spec, shell });
+      const button = container.querySelector<HTMLElement>('[data-py-orientation-toggle]');
+      expect(button, shell).not.toBeNull();
+      const left = button?.style.left ?? '';
+      const offset = Number(/^calc\(100% \+ (\d+)px\)$/.exec(left)?.[1] ?? Number.NaN);
+      // Starts past the device edge and its bezel ring.
+      expect(offset, `${shell} left: ${left}`).toBeGreaterThan(bezel);
+      // No class pins it back inside the device (right-*, inset-*).
+      expect(button?.className, shell).not.toMatch(/(^|\s)(right|inset|left)-/);
+      // size-8 = 32 px; the margin used for fit scaling covers bezel + gap + button.
+      expect(button?.className, shell).toMatch(/(^|\s)size-8(\s|$)/);
+      expect(FRAMES[shell]?.margin ?? 0, `${shell} margin`).toBeGreaterThanOrEqual(offset + 32);
+      cleanup();
+    }
+  });
+});
+
 describe('PhoneFrame', () => {
   it('matches catalog dimensions, safe-area CSS vars contract, and cutout for phone-pill', () => {
     const spec = getDevice('phone-pill');
@@ -200,6 +230,22 @@ describe('tablet frame', () => {
 });
 
 describe('HomeIndicator', () => {
+  it('keeps its hit area inside the bottom safe-area inset in both orientations', () => {
+    const base = getDevice('phone-pill');
+    if (!base) throw new Error('missing phone-pill');
+    for (const spec of [base, orient(base, 'landscape')]) {
+      const { container } = render(HomeIndicator, { spec });
+      const host = container.querySelector<HTMLElement>('[data-py-home-indicator]');
+      // Landscape: 21 px inset although the indicator spec says 34 px.
+      expect(host?.style.height, spec.orientation).toBe(`${safeAreaOf(spec).bottom}px`);
+      // The button fills that strip and never grows past it.
+      const button = screen.getByRole('button', { name: 'Go home' });
+      expect(button.className).toMatch(/(^|\s)h-full(\s|$)/);
+      expect(button.className).not.toMatch(/(^|\s)p(y|t)?-[1-9]/);
+      cleanup();
+    }
+  });
+
   it('navigates to the app root hash when activated', async () => {
     const spec = getDevice('phone-pill');
     if (!spec) return;
