@@ -12,6 +12,7 @@ import {
   nodeVersionFromEngines,
   parseCiProvider,
   parseDeployTarget,
+  parsePrototypeList,
   parseWorkflowList,
   planCiInit,
   unifiedDiff,
@@ -37,19 +38,21 @@ async function resolvePlaceholders(
     // Workspace without package.json still gets the default.
   }
 
-  let prototypes = prototypesOverride?.trim() ?? '';
-  if (!prototypes) {
-    try {
-      const registry = await loadRegistry(workspacePaths(root));
-      prototypes = registry.entries
-        .filter((e) => e.kind === 'prototype')
-        .map((e) => e.slug)
-        .sort()
-        .join(',');
-    } catch {
-      prototypes = '';
-    }
+  let known: string[] | undefined;
+  try {
+    const registry = await loadRegistry(workspacePaths(root));
+    known = registry.entries
+      .filter((e) => e.kind === 'prototype')
+      .map((e) => e.slug)
+      .sort();
+  } catch {
+    known = undefined;
   }
+  // Explicit values are validated (slug rules + registry) before they reach YAML or bash.
+  const override = prototypesOverride?.trim() ?? '';
+  const prototypes = override
+    ? parsePrototypeList(override, known ? new Set(known) : undefined)
+    : (known ?? []).join(',');
 
   return {
     NODE_VERSION: nodeVersion,

