@@ -106,10 +106,11 @@ export function resolveColor(
 export interface CanvasLine {
   id: string;
   color: string;
-  points: readonly PixelPoint[];
+  /** Every point of the series; CanvasMarks keeps first/min/max/last per pixel column. */
+  points: readonly (PixelPoint & { y0?: number })[];
   dashed?: boolean;
-  /** Baselines per point for a filled area (same length as `points`). */
-  area?: readonly number[];
+  /** Fill down to each point's `y0` (areas and stacks). */
+  fill?: boolean;
 }
 
 export interface CanvasDots {

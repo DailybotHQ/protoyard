@@ -1,6 +1,6 @@
 import type { ThemeTokenName } from '@protoyard/core';
 import type { ChartPalette, ChartPaletteInput } from './chart-palette.ts';
-import { CATEGORICAL_COUNT, RAMP_STEPS } from './chart-palette.ts';
+import { CATEGORICAL_COUNT, RAMP_STEPS } from './constants.ts';
 
 /** Categorical theme tokens every theme defines today (`--py-chart1` … `--py-chart5`). */
 export const CHART_TOKENS = [

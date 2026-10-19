@@ -1,7 +1,13 @@
 <script lang="ts">
 import { untrack } from 'svelte';
 import { getChartFrameContext } from '../frame/context.ts';
-import { type CanvasDots, type CanvasLine, type PixelPoint, resolveColor } from './model.ts';
+import {
+  type CanvasDots,
+  type CanvasLine,
+  type PixelPoint,
+  reduceForPixels,
+  resolveColor,
+} from './model.ts';
 
 type Props = {
   width: number;
@@ -37,7 +43,14 @@ function draw() {
   const style = getComputedStyle(el);
   const color = (c: string) => resolveColor(c, (name) => style.getPropertyValue(name));
 
-  for (const line of lines) {
+  for (const source of lines) {
+    // Thin to what each pixel column can show (lazy with this component, off the chart's own chunk).
+    const reduced = reduceForPixels(source.points, width);
+    const line = {
+      ...source,
+      points: reduced,
+      area: source.fill ? reduced.map((p) => p.y0 ?? height) : undefined,
+    };
     const stroke = color(line.color);
     if (line.area) {
       // Each defined run is its own filled shape down to its baseline.

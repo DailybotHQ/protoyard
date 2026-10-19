@@ -174,7 +174,7 @@ describe('LineChart on Canvas', () => {
     await fireEvent.focus(svg);
     await fireEvent.keyDown(svg, { key: 'End' });
     expect(document.querySelector('[data-chart-live]')?.textContent).toContain('Point 300 of 300');
-    await fireEvent.click(screen.getByRole('button', { name: 'View as table' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'View as table' }));
     expect(await screen.findByText('Showing 50 of 300 rows')).toBeTruthy();
   });
 
