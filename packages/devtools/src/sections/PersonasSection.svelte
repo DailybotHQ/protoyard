@@ -1,7 +1,9 @@
 <script lang="ts">
 import Initials from '../primitives/Initials.svelte';
+import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
+import Spinner from '../primitives/Spinner.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
 let { dt }: { dt: DevtoolsState } = $props();
@@ -26,6 +28,8 @@ const roles = $derived(Object.keys(runtime.policy.definition.roles));
 const principal = $derived(dt.principal);
 const roleOverride = $derived(dt.overrides.role);
 const capabilities = $derived(principal ? [...principal.capabilities].sort() : []);
+/** Any persona, role or organization change in flight: controls wait for it. */
+const switching = $derived(dt.isBusy('persona'));
 
 function roleOf(personaId: string): string {
   const orgId = principal?.organization?.id;
@@ -105,14 +109,16 @@ async function setOrganization(event: Event) {
   <ul class="space-y-1">
     {#each personas as persona (persona.id)}
       {@const current = principal?.persona.id === persona.id}
+      {@const pending = dt.isBusy(`persona:${persona.id}`)}
       <li>
         <button
           type="button"
           class="flex min-h-touch w-full items-center gap-2.5 rounded-md border px-2 py-1.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-default {current
             ? 'border-primary/60 bg-primary/5'
             : 'border-border hover:bg-muted/60'}"
-          aria-pressed={current}
-          disabled={current || dt.isBusy(`persona:${persona.id}`)}
+          aria-pressed={current || pending}
+          aria-busy={pending || undefined}
+          disabled={current || switching}
           onclick={() => switchTo(persona.id)}
         >
           <Initials name={persona.name} color={persona.avatarColor} size="sm" />
@@ -120,6 +126,7 @@ async function setOrganization(event: Event) {
             <span class="block truncate text-xs font-medium">{persona.name}</span>
             <span class="block truncate text-[11px] text-muted-foreground">{persona.summary ?? persona.title ?? persona.id}</span>
           </span>
+          {#if pending}<Spinner class="text-primary" />{/if}
           <span class="font-mono text-[10px] text-muted-foreground">{roleOf(persona.id)}</span>
         </button>
       </li>
@@ -127,6 +134,7 @@ async function setOrganization(event: Event) {
       <li class="text-xs text-muted-foreground">This scenario has no personas.</li>
     {/each}
   </ul>
+  <InlineError message={dt.errorFor('persona')} />
 </Section>
 
 <Section title="Overrides">
@@ -137,7 +145,7 @@ async function setOrganization(event: Event) {
         class="mt-1 block min-h-touch w-full rounded-md border border-input bg-surface px-2 text-xs text-surface-foreground sm:min-h-7"
         value={roleOverride ?? ''}
         onchange={setRole}
-        disabled={!principal}
+        disabled={!principal || switching}
       >
         <option value="">Membership role ({principal?.membership?.role ?? '—'})</option>
         {#each roles as role (role)}
@@ -152,6 +160,7 @@ async function setOrganization(event: Event) {
           class="mt-1 block min-h-touch w-full rounded-md border border-input bg-surface px-2 text-xs text-surface-foreground sm:min-h-7"
           value={principal?.organization?.id ?? ''}
           onchange={setOrganization}
+          disabled={switching}
         >
           {#each organizations as org (org.id)}
             <option value={org.id}>{org.name}</option>

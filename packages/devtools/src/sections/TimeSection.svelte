@@ -3,6 +3,7 @@ import type { Duration } from '@protoyard/core';
 import { formatDateTime, formatOffset } from '../format.ts';
 import Btn from '../primitives/Btn.svelte';
 import Confirm from '../primitives/Confirm.svelte';
+import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
@@ -30,7 +31,11 @@ const previews: { label: string; duration: Duration }[] = [
   { label: '+30 days', duration: { days: 30 } },
 ];
 
+/** An advance in flight: both buttons wait for it (no double triggers). */
+const advancing = $derived(dt.isBusy('time'));
+
 async function advance(days: number) {
+  if (advancing) return;
   const result = await dt.run(`time:advance:${days}`, () => runtime.scenarios.advance({ days }));
   if (!result) return;
   dt.touchWorld();
@@ -96,9 +101,10 @@ function previewAt() {
     : 'This prototype defines no timeline: advancing moves committed time only.'}
 >
   <div class="flex flex-wrap gap-1.5">
-    <Btn variant="primary" busy={dt.isBusy('time:advance:1')} onclick={() => advance(1)}>Advance 1 day</Btn>
-    <Btn variant="primary" busy={dt.isBusy('time:advance:7')} onclick={() => advance(7)}>Advance 7 days</Btn>
+    <Btn variant="primary" busy={dt.isBusy('time:advance:1')} disabled={advancing} onclick={() => advance(1)}>Advance 1 day</Btn>
+    <Btn variant="primary" busy={dt.isBusy('time:advance:7')} disabled={advancing} onclick={() => advance(7)}>Advance 7 days</Btn>
   </div>
+  <InlineError message={dt.errorFor('time')} />
   {#if lastAdvance}<p class="mt-2 text-[11px] text-muted-foreground">{lastAdvance}</p>{/if}
   <div class="mt-3">
     <Confirm

@@ -13,9 +13,11 @@ import {
   type ViewportPreset,
 } from '@protoyard/core';
 import Btn from '../primitives/Btn.svelte';
+import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
 import Segmented from '../primitives/Segmented.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
+import Spinner from '../primitives/Spinner.svelte';
 import Toggle from '../primitives/Toggle.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
@@ -53,8 +55,14 @@ const hasOverride = $derived(
   ].some((key) => overrides[key as keyof typeof overrides] !== undefined)
 );
 
-async function set(patch: { themeId?: string; mode?: ColorMode; reducedMotion?: boolean }) {
-  await dt.run('appearance', () =>
+/** Any appearance change in flight: the controls wait for it (no double triggers). */
+const applying = $derived(dt.isBusy('appearance'));
+
+async function set(
+  patch: { themeId?: string; mode?: ColorMode; reducedMotion?: boolean },
+  key = 'appearance:look'
+) {
+  await dt.run(key, () =>
     target === 'override' ? runtime.theme.setOverride(patch) : runtime.theme.setPreference(patch)
   );
 }
@@ -68,7 +76,7 @@ async function setShellPatch(patch: {
   if (patch.shell !== undefined && patch.shell !== 'none') {
     lastFramedShell = patch.shell;
   }
-  await dt.run('appearance', () => runtime.theme.setOverride(patch));
+  await dt.run('appearance:shell', () => runtime.theme.setOverride(patch));
 }
 
 const viewports: { value: ViewportPreset; label: string }[] = [
@@ -161,16 +169,21 @@ async function setFrame(on: boolean) {
   <div class="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Theme">
     {#each themes as theme (theme.id)}
       {@const selected = appearance.theme.value === theme.id}
+      {@const pending = dt.isBusy(`appearance:theme:${theme.id}`)}
       {@const palette = appearance.resolvedMode === 'dark' ? theme.dark : theme.light}
       <button
         type="button"
         role="radio"
         aria-checked={selected}
+        aria-busy={pending || undefined}
+        disabled={applying && !pending}
         title={theme.description}
         class="group flex min-h-touch flex-col items-start gap-1.5 rounded-md border p-2 text-left focus-visible:outline-2 focus-visible:outline-ring {selected
           ? 'border-primary ring-1 ring-primary'
-          : 'border-border hover:bg-muted/60'}"
-        onclick={() => set({ themeId: theme.id })}
+          : 'border-border hover:bg-muted/60'} disabled:opacity-60"
+        onclick={() => {
+          if (!applying) void set({ themeId: theme.id }, `appearance:theme:${theme.id}`);
+        }}
       >
         <span class="flex w-full overflow-hidden rounded" style:background-color={palette.background} aria-hidden="true">
           <span class="h-5 flex-1" style:background-color={palette.primary}></span>
@@ -180,11 +193,12 @@ async function setFrame(on: boolean) {
         </span>
         <span class="flex w-full items-center justify-between text-[11px] font-medium">
           {theme.name}
-          {#if selected}<Check class="size-3 text-primary" aria-hidden="true" />{/if}
+          {#if pending}<Spinner class="text-primary" />{:else if selected}<Check class="size-3 text-primary" aria-hidden="true" />{/if}
         </span>
       </button>
     {/each}
   </div>
+  <InlineError message={dt.errorFor('appearance')} />
 </Section>
 
 <Section title="Theme Studio" description="Create a theme from a brand color, preview it live, save, export or import it.">
@@ -213,6 +227,7 @@ async function setFrame(on: boolean) {
       { value: 'dark', label: 'Dark' },
       { value: 'system', label: 'System' },
     ]}
+    busy={applying}
     onchange={(mode: ColorMode) => set({ mode })}
   />
   {#if appearance.mode.value === 'system'}
@@ -256,6 +271,7 @@ async function setFrame(on: boolean) {
     label="Viewport preset"
     value={appearance.viewport.value === 'custom' ? 'desktop' : appearance.viewport.value}
     options={viewports}
+    busy={applying}
     onchange={(viewport: ViewportPreset) => dt.run('appearance', () => runtime.theme.setOverride({ viewport }))}
   />
 </Section>
@@ -277,6 +293,7 @@ async function setFrame(on: boolean) {
     label="Shell"
     value={shellControlValue}
     options={primaryShells}
+    busy={applying}
     onchange={(shell: Shell) => setShellPatch({ shell })}
   />
   {#if moreShells.length > 0}
