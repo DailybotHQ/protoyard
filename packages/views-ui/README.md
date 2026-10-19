@@ -7,8 +7,8 @@ files, settings, states and an app command palette. They are built on
 [`@protoyard/views`](../views/README.md).
 
 > **Status:** `./activity`, `./board`, `./calendar`, `./commands`,
-> `./editor`, `./grid`, `./map`, `./settings`, `./states` and `./tree` are
-> implemented; the other subpaths
+> `./editor`, `./files`, `./grid`, `./map`, `./settings`, `./states` and
+> `./tree` are implemented; the other subpaths
 > are empty until their PLAN_003 task lands, and this README documents each
 > view then.
 
@@ -53,8 +53,9 @@ re-exported from `@protoyard/ui`.
 
 `tests/bundle-hygiene.test.ts` fails when:
 
-- a view imports another view's subpath or folder (only `lib/` and `states/`
-  are shared);
+- a view imports another view's subpath or folder. Only `lib/` and
+  `states/` are shared, plus the edges declared in `DEPENDS`: `files` uses
+  `tree`, so the folder tree reuses the TreeView chunk;
 - any file imports `@protoyard/ui` dynamically, which would put the ui barrel
   in every initial chunk (see docs/PERFORMANCE.md, Shells);
 - a runtime value is imported from the `@protoyard/views` root instead of an
@@ -657,3 +658,67 @@ comments as `kind: 'comment'` items with their `body`).
   - `ActivityFeed`: 5.5 KB with the engine, 4.5 KB without.
   - The whole subpath: 9.7 KB.
   - The editor, when loaded, is its own chunk.
+
+## Files (`@protoyard/views-ui/files`)
+
+`FileManager` (drive, CMS, DAM and attachment screens) and `FilePreview`, on
+the `@protoyard/views/files` engine over flat
+`{ id, parentId, name, kind: 'folder' | 'file', type?, size?, updatedAt?, hasBlob? }`
+rows.
+
+```svelte
+<FileManager
+  query={entries} bind:folder bind:view
+  getBlob={(entry) => services.readBlob(entry.id)}
+  onCreateFolder={(parentId, name) => services.createFolder({ parentId, name })}
+  onRename={(entry, name) => services.rename(entry.id, name)}
+  onMove={(list, targetId) => services.move(list.map((e) => e.id), targetId)}
+  onDelete={(list) => services.remove(list.map((e) => e.id))}
+  onUpload={(files, folderId) => services.upload(files, folderId)}
+  accept="image/*,.pdf" maxSize={10 * 1024 * 1024}
+/>
+```
+
+- **Navigation:**
+  - From `md`, a folder tree (the `TreeView`, opened down to the current
+    folder) sits beside breadcrumbs.
+  - Folders open with a double-click, Enter or the toolbar's **Open**.
+  - The open folder is the bindable `folder` (`null` is the root).
+  - Grid or list layout comes from the bindable `view`.
+- **Keyboard:** the folder is a multi-select listbox with one tab stop.
+  - Arrows move, Up and Down by a row of tiles. Home and End jump to the
+    ends.
+  - Shift+arrow or Shift+click selects a range, and Ctrl/⌘+click toggles.
+  - Space toggles, Ctrl/⌘+A selects all, and Escape clears the selection.
+  - Enter opens, F2 renames, and Delete deletes after a confirm.
+  - On touch, **Select multiple** makes taps toggle.
+- **Writes** go through the callbacks in `runService`:
+  - Names are checked first (`nameProblem`: empty, `/`, duplicates in the
+    folder).
+  - Moves are checked first too (`moveProblem`: a folder into itself or its
+    subfolders is disabled in the destination list).
+  - A rename shows the new name, and a move takes the items out of the
+    folder at once, with a spinner and `aria-busy`. Both roll back and
+    announce why if the promise rejects.
+  - New folder suggests a unique name ("Untitled folder 2").
+  - Delete confirms in an `AlertDialog`, and keeps it open with the error if
+    the delete fails.
+  - Upload uses the ui `FileDropzone` into the open folder, with an
+    "Uploading…" status.
+- **Preview:** Enter on a file opens a lightbox over the folder's files.
+  - ←/→ or the Previous and Next buttons step through them (wrapping), and
+    Escape closes.
+  - Images show their blob, and files with no blob show the generated
+    thumbnail.
+- **Blobs and thumbnails:**
+  - `getBlob` is called once per image file with `hasBlob`. The blob is
+    shown through an object URL, and every URL is revoked when the
+    component is destroyed.
+  - Everything else uses `thumbnailSvg` / `thumbnailUrl`: a deterministic
+    SVG made only from the id (and an optional hue), with no network. Its
+    only text is the sanitized extension.
+  - Storage caveats are in docs/DATABASE.md (Uploaded files).
+- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
+  ui, renderer, lucide, Bits UI and zod external; 2026-10-19):
+  - The subpath is 16.6 KB, including the TreeView it shares (8.0 KB alone).
+  - That leaves about 8.6 KB for the files chunk itself.
