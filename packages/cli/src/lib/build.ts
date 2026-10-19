@@ -65,6 +65,8 @@ export interface BuildOptions {
   allowExternalOut?: boolean;
   /** Force the offline service worker on (PROTOYARD_OFFLINE=1). */
   offline?: boolean;
+  /** Bake this storage namespace in instead of the manifest's (template demos). */
+  storageNamespace?: string;
 }
 
 export interface BuildResult {
@@ -184,6 +186,7 @@ export async function buildPrototype(
     base,
     includeDevtools,
     offline: options.offline === true,
+    ...(options.storageNamespace ? { storageNamespace: options.storageNamespace } : {}),
     quiet: ctx.out.options.json || ctx.out.options.quiet,
   });
   if (code !== 0) {

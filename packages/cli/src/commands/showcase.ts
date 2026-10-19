@@ -17,7 +17,13 @@ import {
   type PublishRunResult,
   publishDirectory,
 } from '../lib/publish-run.ts';
-import { buildIndex, type Registry, type RegistryEntry, writeJsonAtomic } from '../lib/registry.ts';
+import {
+  buildIndex,
+  type Registry,
+  type RegistryEntry,
+  templateDemoNamespace,
+  writeJsonAtomic,
+} from '../lib/registry.ts';
 import { serveStatic } from '../lib/static-server.ts';
 import { normalizeBase } from '../lib/vite.ts';
 import type { CommandContext } from '../lib/workspace.ts';
@@ -25,14 +31,19 @@ import { createProvider } from '../publish/index.ts';
 import type { PublishProvider } from '../publish/types.ts';
 
 /**
- * `protoyard showcase` builds ONE static site: the gallery plus every
- * prototype's own static build at `<base>p/<slug>/app/` (templates at
- * `<base>t/<name>/app/` with --include-templates). The gallery learns which
- * builds are bundled from an `embedded` flag in a showcase-only copy of the
- * registry, so hosted previews and "Open" links work with no control server.
+ * `protoyard showcase` builds ONE static site: the gallery (with its
+ * marketplace) plus a live, read-only demo of every prototype at
+ * `<base>p/<slug>/app/` and of every template at `<base>t/<name>/app/`
+ * (`--no-templates` leaves templates out). The gallery learns which builds are
+ * bundled from an `embedded` flag in a showcase-only copy of the registry, so
+ * the marketplace's "Try it", hosted previews and "Open" links work with no
+ * control server.
  *
- * Each prototype is still built in isolation (its own Vite process and
- * config) and must pass the same isolation check as `export`.
+ * Template demos use the same `template-demo-<name>` storage namespace as
+ * `protoyard dev <template>`, so visitors' demo data never shares the
+ * template's authoring namespace. Each build is still isolated (its own Vite
+ * process and config) and must pass the same isolation check as `export`.
+ * Blueprints have no app until they are generated, so they are not bundled.
  */
 
 export interface ShowcaseTarget {
@@ -40,6 +51,10 @@ export interface ShowcaseTarget {
   slug: string;
   /** Site-relative app path, e.g. `p/crm-demo/app/`. */
   appPath: string;
+  /** Site-relative marketplace page where the demo is tried, e.g. `marketplace/template/blank/`. */
+  marketplacePath?: string;
+  /** Storage namespace baked into the build (templates: `template-demo-<name>`). */
+  storageNamespace?: string;
   ok: boolean;
   bytes?: number;
   durationMs: number;
@@ -48,6 +63,38 @@ export interface ShowcaseTarget {
 
 export function appPathFor(entry: Pick<RegistryEntry, 'kind' | 'slug'>): string {
   return `${entry.kind === 'template' ? 't' : 'p'}/${entry.slug}/app/`;
+}
+
+/** The marketplace detail page for an entry (apps/gallery/src/pages/marketplace). */
+export function marketplacePathFor(entry: Pick<RegistryEntry, 'kind' | 'slug'>): string {
+  return `marketplace/${entry.kind}/${entry.slug}/`;
+}
+
+export interface ShowcaseEntry {
+  entry: RegistryEntry;
+  appPath: string;
+  marketplacePath: string;
+  /** Set for template demos only; prototypes keep their own namespace. */
+  storageNamespace?: string;
+}
+
+/**
+ * What the showcase bundles: every prototype and, unless `templates` is
+ * false, every template as a live demo in its demo namespace. Blueprints (and
+ * any other kind) are skipped: they have no app to build.
+ */
+export function showcaseEntries(
+  entries: readonly RegistryEntry[],
+  options: { templates: boolean }
+): ShowcaseEntry[] {
+  return entries
+    .filter((e) => e.kind === 'prototype' || (options.templates && e.kind === 'template'))
+    .map((entry) => ({
+      entry,
+      appPath: appPathFor(entry),
+      marketplacePath: marketplacePathFor(entry),
+      ...(entry.kind === 'template' ? { storageNamespace: templateDemoNamespace(entry.slug) } : {}),
+    }));
 }
 
 /** Do not upload a partial showcase; every selected app must have built cleanly. */
@@ -202,9 +249,9 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   }
 
   const { registry } = await buildIndex(ctx.paths);
-  const entries = registry.entries.filter(
-    (e) => e.kind === 'prototype' || (flag(options, 'includeTemplates') && e.kind === 'template')
-  );
+  // Templates are bundled by default (the marketplace tries every product type);
+  // `--no-templates` leaves them out. `--include-templates` is still accepted.
+  const entries = showcaseEntries(registry.entries, { templates: options.templates !== false });
   const includeDevtools = options.devtools !== false;
   const staging = `${out}.staging-${process.pid}`;
   const appsStaging = `${out}.apps-${process.pid}`;
@@ -213,10 +260,10 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
 
   const targets: ShowcaseTarget[] = [];
   try {
-    // 1. Every prototype, sequentially, each with its final public base.
-    for (const entry of entries) {
-      const appPath = appPathFor(entry);
+    // 1. Every demo, sequentially, each with its final public base.
+    for (const { entry, appPath, marketplacePath, storageNamespace } of entries) {
       const started = performance.now();
+      const where = { appPath, marketplacePath, ...(storageNamespace ? { storageNamespace } : {}) };
       ctx.out.info(`Building ${ctx.out.c.bold(entry.slug)} → ${base}${appPath}`);
       try {
         const appOut = join(appsStaging, appPath);
@@ -226,6 +273,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
           out: appOut,
           allowExternalOut: allowExternal,
           ...(flag(options, 'offline') ? { offline: true } : {}),
+          ...(storageNamespace ? { storageNamespace } : {}),
           manifestPath: join(
             ctx.paths.artifacts,
             'showcase-builds',
@@ -242,7 +290,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
         targets.push({
           kind: entry.kind,
           slug: entry.slug,
-          appPath,
+          ...where,
           ok: true,
           bytes: result.manifest.totalBytes,
           durationMs: Math.round(performance.now() - started),
@@ -251,7 +299,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
         targets.push({
           kind: entry.kind,
           slug: entry.slug,
-          appPath,
+          ...where,
           ok: false,
           durationMs: Math.round(performance.now() - started),
           error: toCliError(error).message,
@@ -355,7 +403,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
       ? {
           failure: new CliError(
             'failure',
-            `${failed.length} of ${targets.length} prototype build(s) failed; they are listed without a live demo.`
+            `${failed.length} of ${targets.length} demo build(s) failed; they are listed without a live demo.`
           ),
         }
       : {}),
