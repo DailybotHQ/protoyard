@@ -1,7 +1,7 @@
 <script lang="ts">
 import { CheckSquare, FolderKanban, LayoutDashboard, Users } from '@lucide/svelte';
-import { avatarImage, createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
-import { AppShell, Avatar, Badge, Header, Sidebar } from '@protoyard/ui';
+import { createRouter, Router, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
+import { LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import AppSearch from './components/AppSearch.svelte';
 import NotificationsBell from './components/NotificationsBell.svelte';
@@ -13,6 +13,7 @@ import TasksPage from './screens/TasksPage.svelte';
 
 const { runtime } = provideCrudApp();
 const principal = usePrincipal();
+const appearance = useAppearance();
 
 const router = createRouter(
   [
@@ -38,55 +39,24 @@ const nav = $derived([
   { href: '#/tasks', label: 'Tasks', icon: CheckSquare, active: router.isActive('/tasks') },
   { href: '#/members', label: 'Members', icon: Users, active: router.isActive('/members') },
 ]);
+const layoutNav = $derived(
+  navFromSidebar(nav, {
+    brand: { label: runtime.manifest.name, icon: 'folder-kanban' },
+    ...(principal.current
+      ? {
+          user: {
+            name: principal.current.persona.name,
+            detail: principal.current.persona.title ?? principal.current.role ?? '',
+          },
+        }
+      : {}),
+  })
+);
 </script>
 
-<AppShell sidebarLabel="Main navigation">
-  {#snippet sidebar()}
-    <Sidebar items={nav} label="Sections" collapsible={false}>
-      {#snippet header()}
-        <a href="#/" class="flex min-w-0 items-center gap-2.5 rounded-md px-1">
-          <span
-            class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm"
-            aria-hidden="true"
-          >
-            <FolderKanban class="size-4" />
-          </span>
-          <span class="truncate text-sm font-semibold">{runtime.manifest.name}</span>
-        </a>
-      {/snippet}
-      {#snippet footer()}
-        {#if principal.current}
-          <div
-            class="mb-8 flex items-center gap-3 rounded-lg border border-sidebar-border bg-surface p-3"
-          >
-            <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" />
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium">{principal.current.persona.name}</p>
-              <p class="truncate text-xs text-muted-foreground">
-                {principal.current.persona.title ?? ''}
-              </p>
-            </div>
-            <Badge variant={principal.current.role === 'viewer' ? 'outline' : 'secondary'}>
-              {principal.current.role}
-            </Badge>
-          </div>
-        {/if}
-      {/snippet}
-    </Sidebar>
-  {/snippet}
-
-  {#snippet header()}
-    <Header class="border-b border-border" title={runtime.manifest.name}>
-      {#snippet actions()}
-        <div class="flex items-center gap-2">
-          <AppSearch />
-          <NotificationsBell />
-        </div>
-      {/snippet}
-    </Header>
-  {/snippet}
-
+<LayoutHost layout={appearance.current.layout.value} nav={layoutNav} storageKey={runtime.manifest.storage.namespace}>
   <div class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8">
+    <div class="mb-4 flex justify-end gap-2"><AppSearch /><NotificationsBell /></div>
     <Router {router} />
   </div>
-</AppShell>
+</LayoutHost>
