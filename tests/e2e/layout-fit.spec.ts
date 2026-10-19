@@ -47,11 +47,13 @@ const FIT_TARGETS: Record<string, FitTarget> = {
     ready: '[data-py-composer]',
     mustScroll: { desktop: true, phone: true },
   },
+  // busy-day's first channel holds four messages: they fit a full-width phone log, as on
+  // desktop (the old fixed 240 px sidebar squeezed the log until it overflowed).
   'relay-chat-demo': {
     scenario: 'busy-day',
     layout: 'viewport',
     ready: '[data-message-id]',
-    mustScroll: { desktop: false, phone: true },
+    mustScroll: { desktop: false, phone: false },
   },
   'support-widget-demo': { scenario: 'returning-customer', layout: 'viewport' },
   'mobile-banking-demo': {

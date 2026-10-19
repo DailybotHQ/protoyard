@@ -12,6 +12,7 @@ import {
   deviceFitsShell,
   type EnvironmentState,
   getDevice,
+  layoutChoices,
   type Membership,
   type Organization,
   type Overrides,
@@ -483,7 +484,25 @@ function computeAppearance(
       manifest.preview.viewport
     ),
     ...computeShell(manifest, scenario, o),
+    layout: computeLayout(manifest, scenario, o),
   };
+}
+
+/**
+ * Layout resolves like the shell (override › scenario › manifest). A layout
+ * the prototype does not offer falls back visibly to the manifest layout.
+ */
+function computeLayout(
+  manifest: PrototypeManifest,
+  scenario: Scenario['appearance'],
+  o: Overrides
+): AppearanceState['layout'] {
+  const settings = manifest.preview.layout;
+  const fallback = settings?.id ?? 'custom';
+  const layout = resolveEffective({ override: o.layout, scenario: scenario.layout }, fallback);
+  return layoutChoices(settings).includes(layout.value)
+    ? layout
+    : { value: fallback, source: 'default' };
 }
 
 /**

@@ -116,11 +116,18 @@ growing-team *  Growing team, day 30             Lifecycle   normal   4218  1
 | `subscription-free` / `subscription-pro` / `subscription-expired` | Billing states |
 | `offline` / `slow-network` | Network conditions |
 | `large-organization` | 250 people, massive density, enterprise plan |
+| `quarter-of-history` | 90 days of history with a weekly rhythm (charts, analytics) |
+| `launch-spike` | 45 days of history and a 5× launch three days ago, still decaying |
+| `busy-week` | Calendars about 90 % booked (`schedule()` occupancy 0.9) |
 
 Fragments each describe one axis: `fragments.density`, `.activity`, `.role`,
 `.tenure`, `.organizationAge`, `.organizationSize`, `.accountAge`,
 `.onboarding`, `.subscription`, `.network`, `.featureFlags`, `.appearance`,
-`.tags`.
+`.tags`, and for series and calendars `.history(days)`, `.seasonality(kind)`,
+`.spike(daysAgo, factor, decayDays?)` and `.occupancy(share)`. Those four
+write knobs under `generators.series` and `generators.schedule`, read back by
+`scenarioSeriesOptions(ctx)` and `schedule()` (see
+[Series, schedules, events and geo](#series-schedules-events-and-geo)).
 
 Two ways to use them:
 
@@ -429,6 +436,35 @@ Other rules:
 - `dailyEvents(ctx, { perDay, make, hours? })` from `@protoyard/scenarios`
   implements the window-independent pattern for you (count, instants and a
   per-slot rng derived from seed + day).
+
+### Series, schedules, events and geo
+
+Data helpers for charts, calendars, activity feeds and maps. Each value is
+derived from the scenario id and seed plus its own key and date (or index),
+never from the window you ask for, so more history or more points never
+changes what you already had. They take `{ ctx }` (only `ctx.scenario` is
+read) and never touch `Math.random()` or the wall clock; a test enforces this
+for the whole package.
+
+| Helper | Returns | Notes |
+| --- | --- | --- |
+| `timeSeries({ ctx, key, days \| weeks \| months, base, trend?, seasonality?, noise?, spikes?, min?, max?, integer? })` | `[{ at, value }]` | Ends at the bucket containing `to` (default the reference time). `base` is the level at the end; `trend` `growth` (+8 %/30 days), `decline` (−5 %), `flat` or a rate. Seasonality `weekly` (quiet weekends, daily buckets), `annual`, `weekly+annual`. Integers by default (counts, money cents). |
+| `eventStream({ ctx, days, ratePerDay, kinds, seasonality?, burstiness?, hours?, payload? })` | `DomainEvent[]` | Poisson counts per day (bursty days at 3×), types picked by weight, built on `dailyEvents` (same ids). |
+| `schedule({ ctx, resources, window?, businessHours?, openDays?, slotMinutes?, durations?, occupancy?, recurring? })` | `[{ id, resourceId, start, end, durationMinutes, recurring, status }]` | Never overlaps within a resource. Recurring blocks (`daily`, `weekly`, `monthly`) first, then bookings filling free grid time; `status` is past, in-progress or upcoming at the reference time. |
+| `geoPoints({ ctx, region, count, key?, clusters?, spread? })` | `[{ id, lat, lng, anchorId }]` | Clustered around weighted anchors of a fictional region (`harbor-bay`, `north-valley`, `metro-grid`, `coral-reach`), clamped to its box, 5 decimals. Every region is open ocean, so no point is a real address. |
+
+```ts
+import { geoPoints, scenarioSeriesOptions, schedule, timeSeries } from '@protoyard/scenarios';
+
+const signups = timeSeries({ ctx, key: 'signups', base: 40, trend: 'growth', ...scenarioSeriesOptions(ctx) });
+const bookings = schedule({ ctx, resources: ['room-a', 'room-b'] }); // occupancy from busy-week
+const depots = geoPoints({ ctx, region: 'harbor-bay', count: ctx.scale(12), key: 'depots' });
+```
+
+Measured on a heavily loaded machine (load average ~165):
+`timeSeries` with 10,000 daily points took 14–17 ms in the Vitest run
+(`pnpm vitest run packages/scenarios/tests/series.test.ts -t "10k"`). The
+test only fails above 250 ms, to tolerate slow runners.
 
 ## Environment
 

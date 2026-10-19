@@ -62,8 +62,18 @@ optional `screens` and optional `brand`. Every object is strict, so unknown keys
   `deletedBy` are managed by the platform and cannot be declared.
 - **Roles:** `permissions` maps an entity name (or `*`) to actions: `read`, `create`,
   `update`, `update:own`, `delete`, `delete:own`, `import`, `export` or `*`.
-- **Screens:** `list` (`columns`), `detail`, `form`, `board` (`groupBy` an enum field) and
-  `dashboard` (`metrics` with `count` or `sum` over a number, integer or money field).
+- **Screens:** `list` (`columns`), `detail` (optional `tabs`: `overview`, `related:<entity>`,
+  `activity`, `files`, `audit`), `form`, `board` (`groupBy` an enum, `cardFields`, `sumField`),
+  `calendar` (`dateField`, `endField`, `colorBy`, `view`), `timeline` (`startField`,
+  `endField`, `groupBy`, `zoom`), `map` (`geoField`, `colorBy`), `analytics` (`dateField`,
+  `measures`, `dimensions`), `dashboard` (`widgets`: `kpi`, `chart` line/area/bar/donut,
+  `list`, `board-summary`, each with `aggregate` count/sum/avg/min/max, optional `field`,
+  `groupBy`, date `bucket` and `filter`; the formatVersion 1 `metrics` still parse) and
+  `settings` (`sections`). Every screen takes `path`, `title` and `nav` (`label`, a Lucide
+  `icon` from `SCREEN_NAV_ICONS`, `order`, `hidden`). `screenPath(screen, entities)` derives
+  default routes (`/<plural>`, `/<plural>/:id`, `/<plural>/new`, `/<plural>/<kind>`,
+  `/dashboard`, `/settings`); `dashboardWidgets(screen)` returns legacy metrics as `kpi`
+  widgets followed by `widgets`. All keys are additive: `formatVersion` stays `1`.
 - **Notifications:** optional top-level rules use `on: 'create' | 'update' | 'assign'`, an
   entity, `notify: 'owner' | 'assignee' | 'role:<name>'`, and a plain-text title with `{field}`
   substitutions. Assignment rules name a persona field. Writes share the entity mutation
@@ -72,8 +82,11 @@ optional `screens` and optional `brand`. Every object is strict, so unknown keys
 After the shape is valid, cross-references are checked with path-specific messages, for
 example `entities.1.fields.3.to: relation "support-ticket.customer" targets unknown entity
 "client"`: relation targets, title and owner fields, enum values and defaults, the reserved
-`py_` table prefix, duplicate names, `:own` actions without an owner field, board columns and
-dashboard sums.
+`py_` table prefix, duplicate names, `:own` actions without an owner field, and screens: every
+referenced field exists and has the right kind (enum `groupBy`, date fields, numeric
+aggregates, `geo` for maps), filter values and ops, chart requirements (donut needs `groupBy`,
+line and area need a date bucket), related tabs need a relation back, feature-gated tabs and
+settings sections, and duplicate or reserved (`/members`) routes.
 
 ## JSON Schema
 
@@ -85,9 +98,9 @@ run in `parseBlueprint`. A test fails when the file is out of date. Regenerate i
 pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/schema.ts'; import { writeFileSync } from 'node:fs'; writeFileSync('packages/blueprint/schema/blueprint.schema.json', JSON.stringify(blueprintJsonSchema(), null, 2) + '\n');" && npx biome format --write packages/blueprint/schema
 ```
 
-**Size:** measured with esbuild (minified, zod external) and gzip -9: about 3.0 KB for
-parsing (`parseBlueprint`, `entityTable`) and 3.2 KB for the whole module including
-`blueprintJsonSchema`, which tree-shakes away when unused.
+**Size:** measured with esbuild (minified, zod and `@protoyard/core` external) and gzip -9:
+about 6.1 KB for parsing (`parseBlueprint`, `entityTable`) with the screen kinds (3.9 KB
+before them). `blueprintJsonSchema` tree-shakes away when unused.
 
 ## Storage derivation
 

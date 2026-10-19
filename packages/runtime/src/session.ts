@@ -132,6 +132,7 @@ export function createThemeController(k: Kernel): ThemeController {
         shell: _s,
         device: _dv,
         orientation: _o,
+        layout: _l,
         ...rest
       } = k.overrides;
       await applyOverrides(k, rest);

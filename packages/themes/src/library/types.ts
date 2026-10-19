@@ -1,4 +1,5 @@
 import type { ThemeStyleInput } from '@protoyard/core';
+import type { NeutralFamily } from '../palette.ts';
 
 /**
  * Declarative library preset: seed colors + style profile + catalog metadata.
@@ -15,6 +16,8 @@ export interface LibraryThemeDefinition {
   seed: string;
   /** Optional secondary brand hex. */
   secondary?: string;
+  /** Neutral family for surfaces, text and borders (absent: the original neutrals). */
+  neutral?: NeutralFamily;
   /** Id from `FONT_CATALOG` (`system`, `editorial`, …). */
   font?: string;
   radius?: string;

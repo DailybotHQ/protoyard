@@ -1,0 +1,32 @@
+{
+  "name": "@protoyard/views",
+  "version": "0.1.0",
+  "description": "Framework-free engines for Protoyard's rich views kit: board ranks and WIP limits, calendar recurrence, schedule dependencies, grid virtualization and filters, trees, offline geo, comments and deterministic scenario generators. One subpath per view; no Svelte.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./board": "./src/board/index.ts",
+    "./calendar": "./src/calendar/index.ts",
+    "./timeline": "./src/timeline/index.ts",
+    "./grid": "./src/grid/index.ts",
+    "./tree": "./src/tree/index.ts",
+    "./map": "./src/map/index.ts",
+    "./editor": "./src/editor/index.ts",
+    "./activity": "./src/activity/index.ts",
+    "./notifications": "./src/notifications/index.ts",
+    "./files": "./src/files/index.ts",
+    "./settings": "./src/settings/index.ts",
+    "./states": "./src/states/index.ts",
+    "./commands": "./src/commands/index.ts",
+    "./scenarios": "./src/scenarios/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@protoyard/core": "workspace:*",
+    "zod": "^4.6.0"
+  }
+}

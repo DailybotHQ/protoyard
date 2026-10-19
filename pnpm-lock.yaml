@@ -122,6 +122,37 @@ importers:
         specifier: ^5.57.0
         version: 5.57.2
 
+  packages/analytics:
+    dependencies:
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../scenarios
+      zod:
+        specifier: ^4.6.0
+        version: 4.6.7
+
+  packages/analytics-ui:
+    dependencies:
+      '@protoyard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
+      '@protoyard/charts-ui':
+        specifier: workspace:*
+        version: link:../charts-ui
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../renderer-svelte
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../ui
+    devDependencies:
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.2
+
   packages/blueprint:
     dependencies:
       '@protoyard/core':
@@ -140,6 +171,22 @@ importers:
       '@protoyard/database':
         specifier: workspace:*
         version: link:../database
+
+  packages/charts:
+    dependencies:
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/charts-ui:
+    dependencies:
+      '@protoyard/charts':
+        specifier: workspace:*
+        version: link:../charts
+    devDependencies:
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.2
 
   packages/cli:
     dependencies:
@@ -395,6 +442,40 @@ importers:
       tailwind-variants:
         specifier: ^3.3.0
         version: 3.3.1(tailwind-merge@3.7.0)(tailwindcss@4.3.3)
+    devDependencies:
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.2
+
+  packages/views:
+    dependencies:
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+      zod:
+        specifier: ^4.6.0
+        version: 4.6.7
+
+  packages/views-ui:
+    dependencies:
+      '@lucide/svelte':
+        specifier: ^1.50.0
+        version: 1.57.0(svelte@5.57.2)
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../renderer-svelte
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@protoyard/views':
+        specifier: workspace:*
+        version: link:../views
+      bits-ui:
+        specifier: ^2.19.0
+        version: 2.19.5(@internationalized/date@3.12.4)(svelte@5.57.2)
     devDependencies:
       svelte:
         specifier: ^5.57.0

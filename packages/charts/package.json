@@ -1,0 +1,22 @@
+{
+  "name": "@protoyard/charts",
+  "version": "0.1.0",
+  "description": "Framework-agnostic chart math for Protoyard prototypes: scales, shapes, downsampling, layouts and theme-token palettes (no Svelte, no third-party chart library).",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./scales": "./src/scales/index.ts",
+    "./shapes": "./src/shapes/index.ts",
+    "./downsample": "./src/downsample/index.ts",
+    "./layout": "./src/layout.ts",
+    "./palette": "./src/palette/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@protoyard/core": "workspace:*"
+  }
+}

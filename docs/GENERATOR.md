@@ -180,11 +180,16 @@ this is still a simulation, not security. The crud-app scenarios use the roles
 
 ### Screens, brand and catalog
 
-- `screens`: `list` (with `columns`), `detail`, `form`, `board` (`groupBy` an
-  enum field) and `dashboard` (`metrics` with `count`, or `sum` over a number,
-  integer or money field). They are validated hints. Generation creates a list
-  and edit route for every entity whether or not a screen is listed; boards and
-  dashboards are yours to build (see the worked example).
+- `screens`: `list` (with `columns`), `detail` (optional `tabs`), `form`,
+  `board` (`groupBy` an enum field), `calendar`, `timeline`, `map`,
+  `analytics`, `dashboard` (`widgets` of kind `kpi`, `chart`, `list` and
+  `board-summary`; the older `metrics` list still parses) and `settings`. The
+  full option list and every cross-reference check are in the
+  [`@protoyard/blueprint` README](../packages/blueprint/README.md). Each screen
+  can set `path` (defaults such as `/<plural>/board` or `/dashboard`), `title`
+  and `nav`. Today they are validated hints: generation creates a list and edit
+  route for every entity whether or not a screen is listed, and the other
+  screens are yours to build (see the worked example).
 - `brand`: a `seed` color (`#rrggbb`) and/or a built-in `preset`, plus optional
   `secondary`, `styleProfile`, `font`, `radius` and `density`. `generate`
   writes a hash-headed `src/generated/brand-theme.ts`, registers it and sets
@@ -350,8 +355,8 @@ Build a Protoyard prototype for <product> from a blueprint.
 - The generic world generator fills fields from enum defaults and allow-listed
   Faker paths. For believable data, wrap it in an owned generator, as the help
   desk does.
-- Boards and dashboards declared in `screens` are not generated; build them in
-  owned files.
+- Boards, calendars, timelines, maps, analytics, dashboards and settings
+  declared in `screens` are not generated yet; build them in owned files.
 - Renames are a drop plus an add. The prototype's `generatorVersion` in
   `src/prototype.ts` is not bumped by regeneration.
 - Adding or removing `brand` on regeneration regenerates `brand-theme.ts` but

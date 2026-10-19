@@ -2,6 +2,7 @@ export * from './clock.ts';
 export * from './devices.ts';
 export * from './environment.ts';
 export * from './events.ts';
+export * from './layouts.ts';
 export * from './manifest.ts';
 export * from './overrides.ts';
 export * from './pending.ts';

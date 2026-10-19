@@ -104,7 +104,7 @@ profile with the defaults.
 | `typography.tracking` | `body`, `heading`: `0`, `normal` or an `em` value | `0`, `0` |
 | `shape.radiusScale` | `0`–`4`, multiplies the steps around `radius` | `1` |
 | `shape.borderWidth` | a length | `1px` |
-| `elevation` | `flat` (no shadow), `soft`, `crisp`, `glow` (primary-tinted) | `soft` |
+| `elevation` | `flat` (no shadow), `soft`, `crisp`, `glow` (primary-tinted), `layered` (stacked contact, key and ambient shadows) | `soft` |
 | `surface` | `solid`, `glass` | `solid` |
 | `motion.durations` | `fast`, `base`, `slow`: 0–2000 ms | `150`, `200`, `300` |
 | `motion.easing` | CSS keyword or `cubic-bezier(a, b, c, d)` | `cubic-bezier(0.4, 0, 0.2, 1)` |
@@ -125,6 +125,40 @@ only where the theme departs from the default look:
 `glass` is progressive enhancement: `bg-surface` and `bg-elevated` become
 translucent with a backdrop blur only in browsers that support
 `backdrop-filter`; others keep solid fills.
+
+### Style presets
+
+`packages/themes/src/style-presets.ts` names the common choices so the Theme
+Studio, DevTools, the CLI and blueprints share one vocabulary. Each preset is
+plain data (`id`, `label`, `description` and its values):
+
+| Dimension | Export | Presets |
+| --- | --- | --- |
+| Density | `DENSITY_PRESETS` | `compact` 0.875, `default` 1, `comfortable` 1.125, `spacious` 1.25 |
+| Corner radius | `RADIUS_PRESETS` | `square` (`0`, radius scale 0, so every step is square), `sharp` (`0.25rem`, 0.5), `default` (`0.625rem`, 1), `round` (`1rem`, 1.25), `pill` (`9999px`, 1) |
+| Elevation | `ELEVATION_PRESETS` | `flat`, `soft`, `crisp`, `glow`, `layered` (one per `ELEVATION_STYLES` value) |
+| Font pairing | `FONT_PRESETS` | The `FONT_CATALOG` ids |
+| Motion | `MOTION_PRESETS` | `none` (0 ms, linear), `subtle` (100/150/200 ms, ease-out), `standard` (150/200/300 ms, the default curve), `expressive` (200/300/500 ms, slight overshoot) |
+
+`stylePresetInput(selection)` turns a selection such as
+`{ radius: 'round', motion: 'subtle' }` into theme fields (`radius`,
+`density`, the font stacks) plus a `ThemeStyleInput`.
+`applyStylePresets(theme, selection)` applies it on top of a theme, keeps
+every style field the selection does not touch, and validates the result with
+`ThemeSchema`. An unknown id throws a `TypeError` that lists the known ids.
+The default presets (`default`, `default`, `soft`, `standard`) reproduce
+`DEFAULT_THEME_STYLE` exactly.
+
+```ts
+import { applyStylePresets, violetTheme } from '@protoyard/themes';
+
+const roomyViolet = applyStylePresets(violetTheme, {
+  density: 'comfortable',
+  radius: 'round',
+  elevation: 'layered',
+  motion: 'subtle',
+});
+```
 
 ### Fonts
 
@@ -164,7 +198,7 @@ input always gives the same hex values.
 | Function | What it does |
 | --- | --- |
 | `generatePaletteScale(seed)` | An 11-step scale (`PALETTE_STEPS`: 50, 100, 200 … 900, 950) from a `#rgb` or `#rrggbb` seed. Keeps the seed's OKLCH hue, caps chroma at `0.24`, and places each step at a fixed OKLCH lightness (`0.98` for 50 down to `0.12` for 950). Throws a `TypeError` for anything that is not hex. |
-| `createThemeFromSeed({ id, name, seed, secondary?, style? })` | A full `Theme` validated by `defineTheme`. The optional `secondary` seed drives the secondary fill and `chart2`; without it the seed is reused. `style` is passed through. The description becomes `Generated from <seed>…`. |
+| `createThemeFromSeed({ id, name, seed, secondary?, neutral?, style? })` | A full `Theme` validated by `defineTheme`. The optional `secondary` seed drives the secondary fill and `chart2`; without it the seed is reused. `neutral` picks a [neutral family](#neutral-families); without it the original neutrals are used. `style` is passed through. The description becomes `Generated from <seed>…`. An unknown family throws a `TypeError`. |
 
 ### OKLCH and gamut mapping
 
@@ -178,7 +212,8 @@ chroma by binary search until it fits. Every output is a plain `#rrggbb`.
 ### How contrast is guaranteed
 
 Neutrals (background, foreground, surface, muted, borders, sidebar) are
-fixed values per mode. The colored tokens are searched, not guessed:
+fixed values per mode, or come from a [neutral family](#neutral-families).
+The colored tokens are searched, not guessed:
 
 | Token | How it is chosen |
 | --- | --- |
@@ -189,9 +224,51 @@ fixed values per mode. The colored tokens are searched, not guessed:
 | `secondary`, `accent` repair | If either still fails 4.5:1 with its foreground, it is replaced with a neutral. |
 | `chart1` … `chart5` | Step 600 of the seed and secondary scales, plus three fixed hues. |
 
+### Neutral families
+
+Neutrals carry most of a theme's mood, so `createThemeFromSeed` can derive
+them from a family instead of the fixed values (`NEUTRAL_FAMILIES`, type
+`NeutralFamily`):
+
+| Family | OKLCH hue / chroma | Feel |
+| --- | --- | --- |
+| `zinc` | 286 / 0.006 | Nearly pure gray |
+| `slate` | 257 / 0.02 | Blue-gray |
+| `stone` | 56 / 0.008 | Faintly warm gray |
+| `gray` | 265 / 0.012 | Cool gray |
+| `warm` | 70 / 0.016 | Sand and paper |
+| `cool` | 225 / 0.016 | Ice and steel |
+| `tinted` | the seed's hue / 0.016 | A whisper of the brand color |
+
+Each family uses one fixed OKLCH lightness per token and mode (light
+background 0.985, surface 1, muted 0.965; dark background 0.145, surface 0.21,
+elevated and muted 0.27). Dark borders and inputs stay translucent white, so
+they follow whichever neutral is underneath. The text tokens (`foreground`,
+`mutedForeground`, `sidebarForeground`) start from a table lightness and are
+searched toward black or white until they reach 4.5:1 on every background
+they sit on. When a secondary or accent fill misses 4.5:1 with its text, the
+repair falls back to the family's own neutral fill.
+
+Omitting `neutral` keeps the original neutrals bit-for-bit, so every
+existing generated and library theme renders exactly as before. A library
+definition can set `neutral` too (`LibraryThemeDefinition.neutral`); no
+library theme sets one yet.
+
+```ts
+import { createThemeFromSeed } from '@protoyard/themes';
+
+export const paperTheme = createThemeFromSeed({
+  id: 'paper-ledger',
+  name: 'Paper Ledger',
+  seed: '#0f766e',
+  neutral: 'warm',
+});
+```
+
 The result is then held to the same WCAG pairs as the presets (see
 [Contrast checks](#contrast-checks)). `packages/themes/tests/palette.test.ts`
-checks every text and UI pair in both modes for 500 deterministic seeds.
+checks every text and UI pair in both modes for 500 deterministic seeds,
+with the original neutrals and with every neutral family.
 
 ```ts
 import { createThemeFromSeed } from '@protoyard/themes';
@@ -391,7 +468,7 @@ lazy chunk: its code loads only when you press **Open studio**.
 
 | Area | What you can do |
 | --- | --- |
-| Build | Name the theme; pick a seed color (color picker or hex field) and, optionally, a secondary color; choose a font pairing from `FONT_CATALOG`, a corner radius (Square, Small, Medium, Default, Large, XL, Pill), elevation (`flat`, `soft`, `crisp`, `glow`), surface (Solid, Glass), motion (None, Subtle, Standard, Expressive), focus ring (`ring`, `outline`, `glow`, `inset`) and density (0.75–1.25 in 0.125 steps). The draft is built with `createThemeFromSeed`. |
+| Build | Name the theme; pick a seed color (color picker or hex field) and, optionally, a secondary color; choose a font pairing from `FONT_CATALOG`, a corner radius and motion from the [style presets](#style-presets) (Square, Sharp, Default, Round, Pill; None, Subtle, Standard, Expressive), elevation (`flat`, `soft`, `crisp`, `glow`, `layered`), surface (Solid, Glass), focus ring (`ring`, `outline`, `glow`, `inset`) and density (0.75–1.25 in 0.125 steps). The draft is built with `createThemeFromSeed`. |
 | Preview | A sample card, buttons, badge and input themed by the draft only (scoped with `applyAppearance` on the preview box, cleared on close), with its own Light / Dark toggle. |
 | Contrast | Live WCAG warnings for every text pair (4.5:1) and focus pair (3:1) in both modes, or a confirmation that all pass. An invalid name or seed shows an inline error and nothing can be saved. |
 | Save | **Save** stores the theme; **Save and preview** also applies it as a temporary override. The id is a slug of the name, and saving again with the same name replaces it. |
@@ -630,7 +707,7 @@ contrast (`TEXT_CONTRAST_PAIRS` and `UI_CONTRAST_PAIRS` in
 | --- | --- |
 | `packages/themes/tests/contrast.test.ts` | Every built-in preset and every library theme, both modes; built-in hover fills stay visible and keep text at AA |
 | `packages/themes/tests/library.test.ts` | Every library theme, both modes |
-| `packages/themes/tests/palette.test.ts` | `createThemeFromSeed` across 500 deterministic seeds, both modes |
+| `packages/themes/tests/palette.test.ts` | `createThemeFromSeed` across 500 deterministic seeds, both modes, with the original neutrals and every neutral family |
 | Theme Studio | Live warnings before saving |
 | `theme create` / `theme import` | Refuses to write a failing theme |
 | `generate` with a `brand` | Refuses to generate a failing brand theme |

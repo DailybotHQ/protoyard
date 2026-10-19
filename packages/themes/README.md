@@ -19,7 +19,8 @@ applyAppearance(document.documentElement, {
 | --- | --- |
 | `BUILTIN_THEMES`, `violetTheme` … `monochromeTheme` | Core six presets (every token for light and dark) |
 | `THEME_LIBRARY_META`, `listThemeLibrary`, `loadLibraryTheme(id)` | 30+ category presets: eager metadata, lazy token load via the palette engine |
-| `createThemeFromSeed({ id, name, seed, secondary?, style? })` | Build an AA light/dark theme from brand hex colors |
+| `createThemeFromSeed({ id, name, seed, secondary?, neutral?, style? })` | Build an AA light/dark theme from brand hex colors; `neutral` picks a family from `NEUTRAL_FAMILIES` (`zinc`, `slate`, `stone`, `gray`, `warm`, `cool`, `tinted`) |
+| `DENSITY_PRESETS`, `RADIUS_PRESETS`, `ELEVATION_PRESETS`, `FONT_PRESETS`, `MOTION_PRESETS`, `stylePresetInput(selection)`, `applyStylePresets(theme, selection)` | Named density, radius, elevation, font and motion presets as data, resolved to validated theme fields |
 | `FONT_CATALOG`, `getFontPairing`, `loadVariableFont` | System-first font pairings (no network) |
 | `getTheme(id, extra?)` / `findTheme` / `mergeThemes` | Lookup with Violet fallback; prototype themes override by id |
 | `resolveMode(mode, matchMedia?)` | `system` → `light`/`dark` |
