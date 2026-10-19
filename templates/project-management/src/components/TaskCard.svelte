@@ -1,6 +1,6 @@
 <script lang="ts">
 import { MessageSquare } from '@lucide/svelte';
-import { avatarImage, Link } from '@protoyard/renderer-svelte';
+import { avatarImage } from '@protoyard/renderer-svelte';
 import { Avatar } from '@protoyard/ui';
 import type { Project, Task } from '../database/schema.ts';
 import { taskKey } from '../domain/tasks.ts';
@@ -9,7 +9,11 @@ import DueBadge from './DueBadge.svelte';
 import LabelChip from './LabelChip.svelte';
 import PriorityBadge from './PriorityBadge.svelte';
 
-/** Compact task summary used on the board. The title links to the task page. */
+/**
+ * Compact task summary used on the board. It renders inside the board's card
+ * control (`role="button"`, which opens the task on click or Enter), so it
+ * holds no links or buttons of its own (axe: nested-interactive).
+ */
 let {
   task,
   project,
@@ -24,12 +28,7 @@ const assignee = $derived(task.assigneeId ? workspace.peopleById.get(task.assign
   <span class="font-mono">{taskKey(task, project)}</span>
   <PriorityBadge priority={task.priority} compact />
 </div>
-<Link
-  href={`/tasks/${task.id}`}
-  class="mt-1 block text-sm leading-snug font-medium break-words text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
->
-  {task.title}
-</Link>
+<p class="mt-1 text-sm leading-snug font-medium break-words text-foreground">{task.title}</p>
 {#if task.labels.length > 0}
   <div class="mt-2 flex flex-wrap gap-1">
     {#each task.labels as label (label)}<LabelChip {label} />{/each}

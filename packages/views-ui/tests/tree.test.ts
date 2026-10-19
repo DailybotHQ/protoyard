@@ -1,6 +1,6 @@
 import { rankSequence } from '@protoyard/views/board';
 import type { TreeMove } from '@protoyard/views/tree';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { dropZone, OutlineEditor, TreeView } from '../src/tree/index.ts';
 
