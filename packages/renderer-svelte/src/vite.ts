@@ -1,6 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { MANIFEST_FILENAME, type PrototypeManifest, parseManifest } from '@protoyard/core/manifest';
+import {
+  MANIFEST_FILENAME,
+  NamespaceSchema,
+  type PrototypeManifest,
+  parseManifest,
+} from '@protoyard/core/manifest';
 // Subpath imports keep the config graph erasable-only TS (Node strip-types can load it).
 import { protoyardOffline } from '@protoyard/offline';
 import { noFlashScript } from '@protoyard/themes/no-flash';
@@ -103,6 +108,23 @@ export interface ResolvedProtoyardSettings {
   build: ProtoyardBuildInfo;
 }
 
+/**
+ * PROTOYARD_STORAGE_NAMESPACE overrides the manifest namespace (template live
+ * demos). It names IndexedDB databases and is embedded in the inline no-flash
+ * script, so it must pass the same check as a manifest namespace.
+ */
+function storageNamespace(manifest: PrototypeManifest, env: Env): string {
+  const override = env.PROTOYARD_STORAGE_NAMESPACE?.trim();
+  if (!override) return manifest.storage.namespace;
+  const parsed = NamespaceSchema.safeParse(override);
+  if (!parsed.success) {
+    throw new Error(
+      `PROTOYARD_STORAGE_NAMESPACE must be lowercase kebab-case, 2-64 characters (got ${JSON.stringify(override.slice(0, 80))})`
+    );
+  }
+  return parsed.data;
+}
+
 /** Pure resolution step (unit-tested): manifest + env + command → settings. */
 export function resolveProtoyardSettings(
   manifest: PrototypeManifest,
@@ -127,7 +149,7 @@ export function resolveProtoyardSettings(
       slug: manifest.slug,
       version: manifest.version,
       // PROTOYARD_STORAGE_NAMESPACE isolates template live demos (template-demo-<name>).
-      namespace: env.PROTOYARD_STORAGE_NAMESPACE?.trim() || manifest.storage.namespace,
+      namespace: storageNamespace(manifest, env),
       // Build metadata only — never used for seeded data.
       builtAt: env.PROTOYARD_BUILT_AT || new Date().toISOString(),
       mode: isBuild ? 'build' : 'dev',

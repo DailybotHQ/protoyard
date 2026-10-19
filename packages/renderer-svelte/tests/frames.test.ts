@@ -719,12 +719,15 @@ describe('side panel shell', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Collapse plugin' }));
     await waitFor(() => expect(screenEl.getAttribute('data-py-side-panel')).toBe('collapsed'));
     expect(screenEl.style.width).toBe('0px');
+    // Out of the tab order and the accessibility tree while collapsed.
+    expect(screenEl.hasAttribute('inert')).toBe(true);
     expect(
       screen.getByRole('button', { name: 'Expand plugin' }).getAttribute('aria-expanded')
     ).toBe('false');
 
     await fireEvent.click(screen.getByRole('button', { name: 'Expand plugin' }));
     await waitFor(() => expect(screenEl.getAttribute('data-py-side-panel')).toBe('open'));
+    expect(screenEl.hasAttribute('inert')).toBe(false);
     expect(
       screen.getByRole('button', { name: 'Collapse plugin' }).getAttribute('aria-expanded')
     ).toBe('true');

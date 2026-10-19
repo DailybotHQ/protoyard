@@ -100,6 +100,9 @@ function findScreen(): HTMLElement | null {
 function applyPanel(screen: HTMLElement): void {
   const width = collapsed ? 0 : clampSidePanelWidth(panelWidth, maxWidth);
   screen.dataset.pySidePanel = collapsed ? 'collapsed' : 'open';
+  // A collapsed panel is zero-width: take its controls out of the tab order and
+  // the accessibility tree too, not just out of sight.
+  screen.toggleAttribute('inert', collapsed);
   screen.style.top = '0';
   screen.style.right = '0';
   screen.style.bottom = '0';
@@ -118,6 +121,7 @@ function applyPanel(screen: HTMLElement): void {
 
 function clearPanel(screen: HTMLElement): void {
   delete screen.dataset.pySidePanel;
+  screen.removeAttribute('inert');
   screen.style.removeProperty('top');
   screen.style.removeProperty('right');
   screen.style.removeProperty('bottom');

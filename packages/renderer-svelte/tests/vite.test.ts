@@ -75,6 +75,24 @@ describe('resolveProtoyardSettings', () => {
     ).toBe('template-demo-blank');
     expect(envFlag('maybe')).toBeUndefined();
   });
+
+  it('rejects a PROTOYARD_STORAGE_NAMESPACE that is not a valid namespace', () => {
+    const resolveWith = (value: string) =>
+      resolveProtoyardSettings(manifest, 'build', { PROTOYARD_STORAGE_NAMESPACE: value }, '/proj')
+        .build.namespace;
+    // Blank falls back to the manifest namespace.
+    expect(resolveWith('  ')).toBe(manifest.storage.namespace);
+    for (const bad of [
+      'x</script><script>alert(1)</script>',
+      'other.prototype',
+      'Upper-Case',
+      '1starts-with-digit',
+      'a',
+      `a${'b'.repeat(64)}`,
+    ]) {
+      expect(() => resolveWith(bad), bad).toThrow(/PROTOYARD_STORAGE_NAMESPACE/);
+    }
+  });
 });
 
 describe('defineProtoyardConfig', () => {
