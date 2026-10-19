@@ -51,9 +51,10 @@ const items = $derived(
 <!--
   MobileAppShell fills the app viewport (h-app). Only <main> scrolls; BottomNav
   and Transfer's stickyFooter stay visible. Device frames supply presentation —
-  no md: desktop-card chrome here.
+  no md: desktop-card chrome here. The phone-width cap is for wide windows only:
+  inside a phone or tablet frame the app fills the screen (landscape too).
 -->
-<MobileAppShell mainId="main" class="mx-auto w-full max-w-md">
+<MobileAppShell mainId="main" class="mx-auto w-full max-w-md device-frame:max-w-none">
   {#snippet stickyFooter()}
     {#if shellLayout.footer}
       <div

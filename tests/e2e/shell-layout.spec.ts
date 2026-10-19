@@ -358,3 +358,163 @@ test.describe('shell matrix: the rotate control stays off the screen', () => {
     });
   }
 });
+
+/**
+ * The phone's glass: every layer of the screen (the app, the status bar, the home
+ * indicator) is clipped to the device's corner radius, and a landscape phone gives the
+ * app the whole width between its side insets. The status bar used to be a plain
+ * rectangle above the bezel, so its square top corners stuck out past the rounded
+ * bezel; in landscape the app kept a 448 px column and the status bar covered its header.
+ */
+test.describe('phone shell: rounded glass and landscape layout', () => {
+  test.beforeEach(async ({ isMobile }) => {
+    test.skip(isMobile, 'frames need a window wider than the device');
+  });
+
+  async function openTransfer(page: Page) {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${prototypeUrl(SLUG)}?scenario=active-customer&shell=phone#/transfer`);
+    await waitForPrototypeReady(page, { slug: SLUG });
+    await expect(page.locator('html')).toHaveAttribute('data-py-shell', 'phone');
+    await expect(page.locator('[data-py-status-bar]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Send money' })).toBeVisible();
+  }
+
+  /**
+   * What paints at a point just inside each corner of the device box, beyond the
+   * rounded glass (and the bezel ring around it): only the stage may be there.
+   */
+  async function cornerPainters(page: Page): Promise<string[]> {
+    return page.evaluate(() => {
+      const device = document.querySelector('[data-py-shell-part="device"]') as HTMLElement;
+      const stage = document.querySelector('[data-py-shell-part="stage"]') as HTMLElement;
+      const force = document.createElement('style');
+      force.textContent =
+        '[data-py-shell-part], [data-py-shell-part] * { pointer-events: auto !important; }';
+      document.head.append(force);
+      const r = device.getBoundingClientRect();
+      const d = 3;
+      const corners: [string, number, number][] = [
+        ['top-left', r.left + d, r.top + d],
+        ['top-right', r.right - d, r.top + d],
+        ['bottom-right', r.right - d, r.bottom - d],
+        ['bottom-left', r.left + d, r.bottom - d],
+      ];
+      const out: string[] = [];
+      for (const [name, x, y] of corners) {
+        // Transparent wrappers (the frame overlay) may cover the corner; anything that
+        // paints there, or any part of the screen, is a leak.
+        for (const el of document.elementsFromPoint(x, y)) {
+          if (el === stage) break;
+          const cs = getComputedStyle(el);
+          const transparent =
+            /^(transparent|rgba\(.*,\s*0\))$/.test(cs.backgroundColor) &&
+            cs.backgroundImage === 'none' &&
+            cs.borderTopWidth === '0px';
+          if (transparent) continue;
+          const marks = [...el.attributes]
+            .filter((a) => a.name.startsWith('data-py'))
+            .map((a) => a.name);
+          out.push(
+            `${name}: ${el.tagName.toLowerCase()} ${marks.join(' ')} (${cs.backgroundColor})`
+          );
+          break;
+        }
+      }
+      force.remove();
+      return out;
+    });
+  }
+
+  test('portrait: the screen and the status bar are clipped to the device radius', async ({
+    page,
+  }) => {
+    await openTransfer(page);
+    const clip = await page.evaluate(() => {
+      const radiusOf = (el: Element | null) => {
+        if (!el) return null;
+        const cs = getComputedStyle(el);
+        return {
+          overflow: cs.overflow,
+          radii: [
+            cs.borderTopLeftRadius,
+            cs.borderTopRightRadius,
+            cs.borderBottomRightRadius,
+            cs.borderBottomLeftRadius,
+          ],
+        };
+      };
+      return {
+        screen: radiusOf(document.querySelector('[data-py-shell-part="screen"]')),
+        chrome: radiusOf(document.querySelector('[data-py-screen-clip]')),
+        barInChrome: Boolean(document.querySelector('[data-py-screen-clip] [data-py-status-bar]')),
+      };
+    });
+    const rounded = { overflow: 'hidden', radii: ['55px', '55px', '55px', '55px'] };
+    expect(clip.screen, 'screen').toEqual(rounded);
+    expect(clip.chrome, 'status bar and home indicator layer').toEqual(rounded);
+    expect(clip.barInChrome).toBe(true);
+    expect(await cornerPainters(page), 'paint past the rounded corners').toEqual([]);
+  });
+
+  test('landscape: the app fills the screen, keeps its header, and the document never scrolls', async ({
+    page,
+  }) => {
+    await openTransfer(page);
+    await page.locator('[data-py-orientation-toggle]').click();
+    await expect(page.locator('[data-py-frame="phone"]')).toHaveAttribute(
+      'data-py-orientation',
+      'landscape'
+    );
+    expect(await cornerPainters(page), 'paint past the rounded corners').toEqual([]);
+
+    const device = await boxOf(page, '[data-py-shell-part="device"]');
+    const screen = await boxOf(page, '[data-py-shell-part="screen"]');
+    expect(device.width, 'landscape device').toBeGreaterThan(device.height);
+    expectInside(screen, device, 'screen');
+
+    // The app is not a phone-width column: it spans the screen between the side insets.
+    const app = await boxOf(page, '[data-py-scroll-root] > *');
+    expect(app.width / device.width, 'app width / screen width').toBeGreaterThanOrEqual(0.85);
+    expectInside(app, screen, 'app');
+
+    // The header is below the status bar and really painted (not covered by it).
+    const heading = page.getByRole('heading', { name: 'Send money' });
+    await expect(heading).toBeVisible();
+    const headingBox = (await heading.boundingBox()) as Box;
+    expectInside(headingBox, screen, 'header');
+    const bar = await boxOf(page, '[data-py-status-bar]');
+    expect(headingBox.y, 'header below the status bar').toBeGreaterThanOrEqual(
+      bar.y + bar.height - 1
+    );
+    const headingOnTop = await heading.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + 4, r.top + r.height / 2);
+      return top !== null && (el === top || el.contains(top));
+    });
+    expect(headingOnTop, 'header hit-testable').toBe(true);
+
+    // The bottom nav spans the app and stays inside the screen.
+    const nav = await boxOf(page, '[data-py-bottom-nav]');
+    expectInside(nav, screen, 'bottom nav');
+    expect(Math.abs(nav.width - app.width), 'nav spans the app width').toBeLessThanOrEqual(1);
+
+    // Nothing (the demo badge included) covers a bottom-nav tab.
+    const covered = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-py-bottom-nav] a')].flatMap((link) => {
+        const r = link.getBoundingClientRect();
+        const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return top && link.contains(top) ? [] : [link.textContent?.trim() ?? '?'];
+      })
+    );
+    expect(covered, 'covered tabs').toEqual([]);
+
+    // Only the app's own content area scrolls.
+    await expectDocumentDoesNotScroll(page);
+    const main = page.locator('[data-py-scroll-root] main#main');
+    expect(await main.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+    await main.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
+    await expectDocumentDoesNotScroll(page);
+    expect((await boxOf(page, '[data-py-bottom-nav]')).y).toBeCloseTo(nav.y, 0);
+  });
+});
