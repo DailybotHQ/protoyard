@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_BUDGET_CONFIG } from '../src/lib/budgets.ts';
-import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
+import { addPrototype, addTemplate, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 describe('protoyard budget', () => {
   let ws: TempWorkspace | undefined;
@@ -53,6 +53,25 @@ describe('protoyard budget', () => {
         { metric: 'cssGzip', value: 1, budget: 1, headroom: 0, ok: true },
       ],
     });
+  });
+
+  it('measures a template by slug, like a prototype', async () => {
+    ws = createWorkspace();
+    addTemplate(ws, 'dashboard');
+    ws.write('artifacts/templates/dashboard/build-manifest.json', {
+      format: 'protoyard.build',
+      slug: 'dashboard',
+      bundle: { initialJsGzip: 512, cssGzip: 512 },
+    });
+
+    const run = await cli(['--root', ws.root, '--json', 'budget', 'dashboard', '--skip-build']);
+
+    expect(run.code).toBe(0);
+    const data = run.json<{
+      data: { total: number; results: Array<{ slug: string; ok: boolean }> };
+    }>();
+    expect(data.data.total).toBe(1);
+    expect(data.data.results[0]).toMatchObject({ slug: 'dashboard', ok: true });
   });
 
   it('returns validation exit code 4 when a fixture bundle exceeds its budget', async () => {

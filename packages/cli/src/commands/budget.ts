@@ -46,14 +46,14 @@ export const budgetCommand: Handler = async (ctx, args, options): Promise<Comman
   if (args.length > 1) throw new CliError('usage', 'Pass one <slug> or --all, not both.');
   if (all && args[0]) throw new CliError('usage', 'Pass either <slug> or --all, not both.');
   if (!all && !args[0]) {
-    throw new CliError('usage', 'Pass a prototype <slug> or --all.', {
+    throw new CliError('usage', 'Pass a prototype or template <slug>, or --all.', {
       hint: 'Use --skip-build to check the latest build-manifest.json without rebuilding.',
     });
   }
 
   const entries = all
     ? (await loadRegistry(ctx.paths)).entries.filter((entry) => entry.kind === 'prototype')
-    : [(await resolveTarget(ctx, args[0], 'prototype')).entry];
+    : [(await resolveTarget(ctx, args[0])).entry];
   const config = await loadBudgets(ctx.root);
   const results: BudgetPrototypeResult[] = [];
   let firstError: CliError | undefined;
