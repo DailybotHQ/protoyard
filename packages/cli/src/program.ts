@@ -477,11 +477,21 @@ export function createProgram(env: RunnerEnv): Command {
       'ONE static site: the gallery and marketplace + a live demo of every prototype (<base>p/<slug>/app/) and template (<base>t/<name>/app/)'
     )
     .option('--out <dir>', 'output folder', 'artifacts/showcase')
+    .addOption(
+      new Option('--target <target>', 'site (default) or artifact pack').choices([
+        'site',
+        'artifact',
+      ])
+    )
     .option(
       '--allow-external-out',
       'permit an --out outside the workspace (must be new, empty or a previous showcase)'
     )
-    .option('--base <path>', 'absolute public base of the site', '/')
+    .option('--base <path>', 'absolute site base; artifact target requires ./')
+    .option(
+      '--slugs <list>',
+      'artifact target: only bundle these comma-separated prototype or template slugs'
+    )
     .option('--no-devtools', 'leave the DevTools panel out of the bundled prototypes')
     .option('--no-templates', 'leave the template demos out (prototypes only)')
     .option('--include-templates', 'accepted for older scripts: templates are bundled by default')
