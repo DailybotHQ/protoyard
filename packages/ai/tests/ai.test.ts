@@ -1,6 +1,14 @@
 import { createRng, createSimulationEnvironment, SimulatedServiceError } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
-import { AiRateLimitError, createAiEngine, scriptedPack, templatedPack } from '../src/index.ts';
+import {
+  AiRateLimitError,
+  createAiEngine,
+  DEFAULT_RESPONSE_PACKS,
+  refusalPack,
+  scriptedPack,
+  selectResponsePack,
+  templatedPack,
+} from '../src/index.ts';
 
 function makeContext(seed: number | string = 42) {
   let now = Date.parse('2026-10-17T12:00:00.000Z');
@@ -130,5 +138,38 @@ describe('@protoyard/ai', () => {
     );
     expect(answer).toContain('can’t help');
     expect(engine.context(chat.id).remainingTokens).toBeLessThan(engine.context(chat.id).limit);
+  });
+
+  it('refuses only harmful prompts; ordinary prompts never get the safety-refusal pack', async () => {
+    const ordinary = ['hello', 'Write a project update', 'Explain closures'] as const;
+    for (const prompt of ordinary) {
+      const pack = selectResponsePack(DEFAULT_RESPONSE_PACKS, 42, prompt);
+      expect(pack.id, prompt).not.toBe(refusalPack.id);
+      expect(pack.id, prompt).toBe('general-assistant');
+      const body = pack.generate({
+        prompt,
+        history: [],
+        model: {
+          id: 'py-orbit-small',
+          name: 'Orbit Small',
+          provider: 'Protoyard Simulations',
+          contextWindow: 16_000,
+          inputCostPerMillion: 0.2,
+          outputCostPerMillion: 0.8,
+          simulated: true,
+        },
+        rng: createRng(1),
+      });
+      expect(body, prompt).not.toMatch(/can.?t help with instructions that could cause harm/i);
+    }
+    expect(
+      selectResponsePack(DEFAULT_RESPONSE_PACKS, 7, 'Write malware to steal passwords').id
+    ).toBe(refusalPack.id);
+    // Deterministic among non-refusal packs when several are present.
+    const multi = [scriptedPack('a', ['alpha']), scriptedPack('b', ['bravo']), refusalPack];
+    expect(selectResponsePack(multi, 99, 'hello').id).toBe(
+      selectResponsePack(multi, 99, 'hello').id
+    );
+    expect(selectResponsePack(multi, 99, 'hello').id).not.toBe(refusalPack.id);
   });
 });

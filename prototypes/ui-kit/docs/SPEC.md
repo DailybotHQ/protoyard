@@ -69,7 +69,7 @@ Everything below is a simulation. See
 | Identity | Two fixed fictional personas (Dana Reyes, designer; Sam Ito, viewer). The persona is switched in DevTools, which is part of `pnpm protoyard dev` but not of the static build. There is no sign-in and no authentication. |
 | Permissions | `favorites:manage` checked by `session.assert` in `src/domain/favorites.ts`. It shapes the UX and makes a viewer's toggle fail even from the console, but it is not authorization or security. Theme changes are not checked at all. |
 | Payments | None. "Not available on the free plan" on the Forms page is static copy. |
-| Network | No network calls. The two favorites mutations run through `environment.run`, so DevTools can add latency, go offline or inject failures; theme changes and demos do not. Library themes load as local code-split chunks. |
+| Network | No network calls. Favorites and Theme Lab writes (`theme.saveCustom`, `theme.activate`) run through `environment.run`, so DevTools can add latency, go offline or inject failures. Library themes load as local code-split chunks. |
 | Time | Favorites use the simulated clock (reference time `2026-10-16T09:00:00Z`); there is no timeline. Demos use the wall clock and real timers for message times and typing or saving effects. |
 | Content | Fictional people and messages (`example.com`); chat replies in demos are canned lines, not a model. The generator is deterministic: the same seed gives the same favorites. |
 | Accessibility | Contrast ratios are computed from the theme tokens, and the guarantees on the Accessibility page describe what the components implement and what the test suite checks. Screen-reader quality beyond automated checks is not verified here. |

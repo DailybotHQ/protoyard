@@ -123,16 +123,12 @@ States that apply to every screen:
 
 - **Purpose:** what the kit guarantees and how to keep it when composing
   screens.
-- **Data:** "Live contrast audit" of the active theme and mode (number of
-  text pairs, lowest ratio, "All pairs pass WCAG AA." or a badge per
-  failing pair); eight guarantees (focus, contrast, 44px touch targets,
-  reduced motion, wired labels, overlay focus management, live regions,
-  safe areas); a keyboard map; a checklist for composing screens.
-- **Actions:** none (read-only); the audit follows theme and mode changes
-  from DevTools.
-- **Known limit:** the audit resolves the active theme with `getTheme`
-  over the built-in presets only, so when a library or custom theme is
-  active it audits the default theme (Violet) instead.
+- **Data:** "Live contrast audit" of the **active** theme and mode (built-in,
+  library or custom, resolved via `getTheme` plus the runtime/custom/library
+  lists); a **Catalog contrast sweep** over every loaded theme in both modes;
+  eight guarantees; a keyboard map; a checklist for composing screens.
+- **Actions:** none (read-only); the live audit follows theme and mode
+  changes from DevTools or the Theme lab.
 
 ### Favorites (`#/favorites`)
 
