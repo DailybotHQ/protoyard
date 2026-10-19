@@ -186,8 +186,10 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   const rel = toPosixRelative(ctx.root, dest);
   const removed = new Set<string>(TEMPLATE_FILES_REMOVED);
   const emitted = new Set(files.map((f) => f.path));
+  // The template's own tests exercise its own entities; generated prototypes get
+  // blueprint-driven tests from the emitter instead.
   const copied = (await listTemplateFiles(templateDir)).filter(
-    (path) => !removed.has(path) && !emitted.has(path)
+    (path) => !removed.has(path) && !emitted.has(path) && !path.startsWith('tests/')
   );
   const fileList = [
     ...copied.map((path) => ({ path, source: 'template' as const })),
@@ -254,6 +256,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       }
       for (const path of removed) await rm(nested(staging, path), { force: true });
       await rm(nested(staging, 'src/generated'), { recursive: true, force: true });
+      await rm(nested(staging, 'tests'), { recursive: true, force: true });
       await writeFiles(staging, files);
       if (existing === 'empty') await rm(dest, { recursive: true, force: true });
       await rename(staging, dest);
