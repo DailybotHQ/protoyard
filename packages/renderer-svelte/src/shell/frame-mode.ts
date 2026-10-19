@@ -9,6 +9,7 @@ import {
   type Shell,
   ShellSchema,
 } from '@protoyard/core';
+import { localStorageOrUndefined } from '@protoyard/themes';
 import { activeFrame } from './frames/registry.ts';
 
 /**
@@ -36,7 +37,7 @@ export function frameReturnKey(namespace: string): string {
 export function saveFrameReturn(
   namespace: string,
   shell: Shell | undefined,
-  storage: Storage | undefined = globalThis.localStorage
+  storage: Storage | undefined = localStorageOrUndefined()
 ): void {
   try {
     storage?.setItem(frameReturnKey(namespace), shell ?? NO_OVERRIDE);
@@ -51,7 +52,7 @@ export function saveFrameReturn(
  */
 export function loadFrameReturn(
   namespace: string,
-  storage: Storage | undefined = globalThis.localStorage
+  storage: Storage | undefined = localStorageOrUndefined()
 ): Shell | undefined {
   try {
     const raw = storage?.getItem(frameReturnKey(namespace));
@@ -64,7 +65,7 @@ export function loadFrameReturn(
 
 export function clearFrameReturn(
   namespace: string,
-  storage: Storage | undefined = globalThis.localStorage
+  storage: Storage | undefined = localStorageOrUndefined()
 ): void {
   try {
     storage?.removeItem(frameReturnKey(namespace));
@@ -116,6 +117,26 @@ export function isFrameExitKey(event: KeyboardEvent, doc: Document = document): 
   return ![...doc.querySelectorAll(ESCAPE_OWNERS)].some(
     (el) => el.closest('[inert], [aria-hidden="true"], [hidden]') === null
   );
+}
+
+/** The shell asked for before `auto` resolves: the override, then the scenario's, then the manifest's. */
+export function requestedShell(runtime: PrototypeRuntime): Shell {
+  return (
+    runtime.overrides.get().shell ??
+    runtime.scenarios.active()?.scenario.appearance?.shell ??
+    runtime.manifest.preview.shell ??
+    'auto'
+  );
+}
+
+/**
+ * Whether a page embedded in an iframe keeps its frame (a Claude artifact,
+ * ADR-026): only when the build opts in with `build.frameWhenEmbedded` and
+ * the shell is explicit. `auto` keeps today's full-bleed rule, and the window
+ * must still be wide enough for the frame.
+ */
+export function keepsFrameWhenEmbedded(runtime: PrototypeRuntime): boolean {
+  return runtime.manifest.build.frameWhenEmbedded && requestedShell(runtime) !== 'auto';
 }
 
 export interface FrameRestoreInput {

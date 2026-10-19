@@ -5,7 +5,12 @@ import type { Snippet } from 'svelte';
 import { useAppearance } from '../bindings.svelte.ts';
 import FullScreenExit from './FullScreenExit.svelte';
 import FullScreenToggle from './FullScreenToggle.svelte';
-import { enterFullScreen, exitFullScreen, frameToRestore } from './frame-mode.ts';
+import {
+  enterFullScreen,
+  exitFullScreen,
+  frameToRestore,
+  keepsFrameWhenEmbedded,
+} from './frame-mode.ts';
 import {
   activeFrame,
   FRAMES,
@@ -29,7 +34,12 @@ let { runtime, children }: { runtime: PrototypeRuntime; children: Snippet } = $p
 
 // svelte-ignore state_referenced_locally
 const appearance = useAppearance(runtime);
-const embedded = typeof window !== 'undefined' && isEmbedded();
+const inIframe = typeof window !== 'undefined' && isEmbedded();
+/** Embedded pages go full-bleed unless the build keeps an explicit frame (ADR-026). */
+const embedded = $derived.by(() => {
+  void appearance.current;
+  return inIframe && !keepsFrameWhenEmbedded(runtime);
+});
 // The prototype's stylesheet is in place before mount (a <link> in builds, an imported
 // module in dev), so one check at startup is enough.
 const cssReady = typeof document !== 'undefined' && hasShellCss();

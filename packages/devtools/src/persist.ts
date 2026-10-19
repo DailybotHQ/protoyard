@@ -1,3 +1,4 @@
+import { localStorageOrUndefined } from '@protoyard/themes';
 /** Remembered panel state. Storage can be unavailable, so every access is guarded. */
 
 export interface PanelPrefs {
@@ -13,7 +14,7 @@ export function prefsKey(namespace: string): string {
 
 export function loadPrefs(
   namespace: string,
-  storage: Storage | undefined = globalThis.localStorage
+  storage: Storage | undefined = localStorageOrUndefined()
 ): PanelPrefs {
   try {
     const raw = storage?.getItem(prefsKey(namespace));
@@ -31,7 +32,7 @@ export function loadPrefs(
 export function savePrefs(
   namespace: string,
   prefs: PanelPrefs,
-  storage: Storage | undefined = globalThis.localStorage
+  storage: Storage | undefined = localStorageOrUndefined()
 ): void {
   try {
     storage?.setItem(prefsKey(namespace), JSON.stringify(prefs));
