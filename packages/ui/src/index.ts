@@ -165,6 +165,7 @@ export type {
 // Shells
 export { default as WindowChrome } from './components/window-chrome/WindowChrome.svelte';
 export { default as Wizard } from './components/wizard/Wizard.svelte';
+export { default as LayoutHost } from './layouts/LayoutHost.svelte';
 // Navigation as data for every layout; NavIcon and the layouts stay lazy (never in this barrel).
 export {
   isNavPathActive,

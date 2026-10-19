@@ -35,6 +35,12 @@ describe('bundle hygiene', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('keeps Svelte layout components out of the eager layout registry', () => {
+    const registry = readFileSync(join(ROOT, 'packages/ui/src/layouts/registry.ts'), 'utf8');
+    expect(registry).not.toMatch(/(?:^|\n)\s*import\s+.*\.svelte['"]/);
+    expect(registry).not.toMatch(/from\s+['"]@protoyard\/ui['"]/);
+  });
+
   it('never imports the @protoyard/themes barrel dynamically (it is already in every entry chunk)', () => {
     const offenders = SCANNED.flatMap((top) => sourceFiles(join(ROOT, top)))
       .filter((file) =>
