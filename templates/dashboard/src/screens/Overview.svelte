@@ -2,12 +2,12 @@
 import { CircleDollarSign, Plus, Receipt, ShoppingCart, UserPlus, Users } from '@lucide/svelte';
 import { can, Link, liveQuery, useClock, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, Card, EmptyState, ErrorState, Skeleton, StatCard } from '@protoyard/ui';
-import BarChart from '../components/BarChart.svelte';
 import CustomerDialog from '../components/CustomerDialog.svelte';
+import MetricCard from '../components/MetricCard.svelte';
 import OrderDialog from '../components/OrderDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import StatusBadge from '../components/StatusBadge.svelte';
-import { dailyRevenue, overviewStats } from '../domain/metrics.ts';
+import { dailyRevenue, overviewStats, overviewTrends } from '../domain/metrics.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useDashboard } from '../lib/context.ts';
 import { fromNow, money, moneyCompact } from '../lib/format.ts';
@@ -37,12 +37,18 @@ const data = liveQuery(
 
 let customerOpen = $state(false);
 let orderOpen = $state(false);
+let chartAttempt = $state(0);
 
 const currency = $derived(settings.current?.currency ?? 'USD');
 const stats = $derived(
   overviewStats(data.current?.customers ?? [], data.current?.orders ?? [], clock.now)
 );
-const series = $derived(dailyRevenue(data.current?.orders ?? [], clock.now, 14));
+const daily = $derived(dailyRevenue(data.current?.orders ?? [], clock.now, 14));
+const trends = $derived(
+  overviewTrends(data.current?.customers ?? [], data.current?.orders ?? [], clock.now)
+);
+const revenueTotal = $derived(daily.reduce((s, d) => s + d.total, 0));
+const revenueOrders = $derived(daily.reduce((s, d) => s + d.count, 0));
 const customerName = $derived(new Map((data.current?.customers ?? []).map((c) => [c.id, c.name])));
 const recentOrders = $derived(
   [...(data.current?.orders ?? [])]
@@ -97,9 +103,9 @@ const trend = (value: number | null) =>
   </EmptyState>
 {:else}
   <section aria-label="Key metrics" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    <StatCard label="Revenue · 30 days" value={moneyCompact(stats.revenue30, currency)} delta={delta(stats.revenueDelta)} trend={trend(stats.revenueDelta)} hint="Paid and fulfilled orders" icon={CircleDollarSign} />
-    <StatCard label="Orders · 30 days" value={stats.orders30.toLocaleString()} delta={delta(stats.ordersDelta)} trend={trend(stats.ordersDelta)} hint={`${stats.pending} pending overall`} icon={ShoppingCart} />
-    <StatCard label="Active customers" value={stats.activeCustomers.toLocaleString()} hint={`${stats.newCustomers} new in 30 days`} icon={Users} />
+    <MetricCard label="Revenue · 30 days" value={moneyCompact(stats.revenue30, currency)} delta={delta(stats.revenueDelta)} trend={trend(stats.revenueDelta)} hint="Paid and fulfilled orders" icon={CircleDollarSign} trendValues={trends.revenue} trendFormat={(v) => moneyCompact(v, currency)} />
+    <MetricCard label="Orders · 30 days" value={stats.orders30.toLocaleString()} delta={delta(stats.ordersDelta)} trend={trend(stats.ordersDelta)} hint={`${stats.pending} pending overall`} icon={ShoppingCart} trendValues={trends.orders} />
+    <MetricCard label="Active customers" value={stats.activeCustomers.toLocaleString()} hint={`${stats.newCustomers} new in 30 days`} icon={Users} trendValues={trends.newCustomers} trendPeriod="30 days (new customers per day)" />
     <StatCard label="Average order" value={money(stats.averageOrder, currency)} hint="Revenue orders, 30 days" icon={Receipt} />
   </section>
 
@@ -109,7 +115,20 @@ const trend = (value: number | null) =>
         <h2 class="text-sm font-semibold">Revenue · last 14 days</h2>
         <Link href="/orders" class="text-sm font-medium text-primary hover:underline">All orders</Link>
       </div>
-      <BarChart data={series} {currency} label="Revenue per day for the last 14 days" />
+      <p class="text-2xl font-semibold tabular-nums">{money(revenueTotal, currency)}</p>
+      <p class="mb-2 text-xs text-muted-foreground">{revenueOrders.toLocaleString()} revenue order{revenueOrders === 1 ? '' : 's'} in 14 days</p>
+      <!-- The charts kit loads on demand so the Overview route stays small. -->
+      {#key chartAttempt}
+        {#await import('../components/RevenueChart.svelte')}
+          <div role="status" aria-label="Loading the revenue chart"><Skeleton class="h-56 rounded-lg" /></div>
+        {:then { default: RevenueChart }}
+          <RevenueChart data={daily} {currency} label="Revenue per day for the last 14 days" />
+        {:catch}
+          <ErrorState title="Could not load the chart" message="The chart code did not download." onRetry={() => {
+            chartAttempt += 1;
+          }} />
+        {/await}
+      {/key}
     </Card>
 
     <Card class="p-5 lg:col-span-2">
