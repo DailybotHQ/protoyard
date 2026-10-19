@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Dependency, ScheduleTask, TaskChange } from '@protoyard/views/timeline';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -126,5 +128,17 @@ describe('TimelineView', () => {
     });
     await waitFor(() => expect(screen.getByText(/dates were restored/)).toBeTruthy());
     expect(screen.getByRole('button', { name: /Design, October 19/ })).toBeTruthy();
+  });
+});
+
+describe('TimelineView theming', () => {
+  it('styles itself with theme tokens only, so dark mode and custom themes apply', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, '../src/timeline/TimelineView.svelte'),
+      'utf8'
+    );
+    const style = source.slice(source.indexOf('<style'));
+    expect(style.match(/#[0-9a-f]{3,8}\b|\b(?:white|black)\b(?!-)|rgba?\(/gi) ?? []).toEqual([]);
+    expect(style).toContain('var(--py-primary-foreground)');
   });
 });
