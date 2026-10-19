@@ -7,9 +7,10 @@ scenario generators run in Node tests, in services and in generators, so this
 package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
-> **Status:** `./board`, `./calendar`, `./grid`, `./map`, `./editor` and
-> `./scenarios` are implemented; the other subpaths exist and are empty until
-> their PLAN_003 task lands, and this README documents each one then.
+> **Status:** `./board`, `./calendar`, `./grid`, `./map`, `./editor`,
+> `./scenarios` and `./tree` are implemented; the other subpaths exist and are
+> empty until their PLAN_003 task lands, and this README documents each one
+> then.
 
 ## Subpaths
 
@@ -290,4 +291,16 @@ const { tasks, dependencies } = generateTaskPlan(ctx, { people });
 - **Speed** (all eight kits, best of five, on a heavily loaded machine,
   2026-10-19): typical 2.0 ms, dense 21.8 ms, edge 1.8 ms, inside the 50 ms
   `generateMs` budget. Bump `VIEWS_GENERATOR_VERSION` when output changes.
+
+## Tree (`@protoyard/views/tree`)
+
+Trees and outlines over flat `{ id, parentId, rank }` rows, siblings ordered
+by board rank keys. `buildTree` indexes them (a row whose parent is missing,
+or that sits in a parent cycle in older data, becomes a root, so nothing
+disappears); `flatten` returns the visible rows with `level`, `position` and
+`siblings` for ARIA; `moveNode` moves a node under a parent at an index and
+rejects moves into its own subtree; `indent`, `outdent`, `moveSibling` and
+`newSibling` implement outline editing; `validParents` lists where a node may
+go; `isWithin` and `pathTo` answer ancestry. Flattening 10,000 nodes took
+1.2 ms (best of three, loaded machine, 2026-10-19).
 
