@@ -352,6 +352,40 @@ const committed = await services.ticket.importCsv(text, {
 // (bulk chunks of 1,000). Audit rows are written when features.audit is on.
 ```
 
+## Brief to blueprint
+
+`blueprintFromBrief(brief, { archetype?, name? })` turns a short product brief into a valid
+blueprint, offline and deterministically (same brief, same JSON; no network or model):
+
+```ts
+import { blueprintFromBrief } from '@protoyard/blueprint';
+
+const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
+  'A dog grooming salon that books appointments, tracks groomers and invoices with amount and due date.'
+);
+// archetype 'booking'; entities appointment, client, groomer, invoice; rationale explains each choice
+```
+
+- **Archetype:** keyword scoring over `ARCHETYPES` (help desk, CRM, booking, logistics,
+  analytics, projects, LMS, clinic, finance, wiki, IoT, social, marketplace; ties go to the
+  earlier one). One stray keyword is not enough unless it names an archetype entity; otherwise
+  the generic `tracker` is used and the brief's main noun becomes its entity.
+- **Entities:** nouns after verbs such as *track*, *manage*, *log* or *schedule* ("track
+  groomers and invoices") become entities linked to the main one; attribute words
+  ("locations", "prices") do not.
+- **Fields:** "… with amount, due date and status" infers kinds from cue words
+  (`fieldFromPhrase`): dates, datetimes, money, numbers, enums, geo, personas, email, phone,
+  URL, tags, long text and booleans. Brief-wide cues (a location, a price, a deadline, an
+  owner) add a field to the main entity when it lacks that kind.
+- **Screens** follow the data: list for every entity, board for a status enum, calendar for
+  upcoming dates, timeline for start/end pairs, map for geo, a dashboard at `/`, analytics for
+  amounts, a tabbed detail and settings.
+- Always the roles `owner`, `admin`, `member`, `viewer`; a brand seed picked by name hash from
+  the catalog's AA-checked seeds; `layout` is `mobile-tabs` for phone briefs, else `sidebar`
+  (a suggestion: blueprints have no layout key yet).
+
+It is a heuristic starting point: read the `rationale`, then refine `blueprint.json`.
+
 ## Aggregates
 
 `aggregate(rows, spec, entity?)` computes one aggregate in a single pass;

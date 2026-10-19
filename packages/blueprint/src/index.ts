@@ -48,6 +48,18 @@ export {
   type StyleProfile,
 } from './brand.ts';
 export {
+  ARCHETYPE_IDS,
+  ARCHETYPES,
+  type Archetype,
+  type BriefOptions,
+  type BriefResult,
+  blueprintFromBrief,
+  fieldFromPhrase,
+  GENERIC_ARCHETYPE,
+  MAX_BRIEF_LENGTH,
+  type SuggestedLayout,
+} from './brief/index.ts';
+export {
   type BlueprintFile,
   type BlueprintFileMetadata,
   createFileServices,
