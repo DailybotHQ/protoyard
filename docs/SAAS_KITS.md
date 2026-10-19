@@ -139,7 +139,17 @@ button.
 | OAuth / SSO | Provider-shaped consent and deterministic outcomes inside the prototype. | Contact with Google, GitHub or another provider; a real OAuth/OIDC flow. |
 | MFA | Codes derived from the simulated seed and clock, plus recovery-code UX. | A real authenticator, TOTP security or a second security factor. |
 | Roles and permissions | Services enforce capabilities so role-specific product behavior can be demonstrated. | An authorization boundary; users can alter browser state and same-origin scripts can access it. |
-| Inbox and invitations | Local messages, invitation links and an accept screen that joins the workspace and signs the invitee in. | Email delivery or proof that someone owns the address. |
+| Inbox and invitations | Local messages, invitation links and an accept screen that joins the workspace and signs the invitee in (refused for disabled or locked accounts). | Email delivery or proof that someone owns the address. |
+
+The simulation still follows the kit's own rules consistently, so a demo never
+shows a shortcut a real product would forbid. MFA (password, magic link and
+OAuth) needs a single-use challenge from the first factor. Sign-in counts
+failed attempts and locks. Workspace renames and invitation changes check the
+actor's role **in the target workspace**. Destructive actions (remove member,
+revoke invitation, cancel subscription) ask for confirmation. Every password
+field says: "Simulation only — do not use a real password. What you type is
+kept as plain text in this browser and in exported snapshots." These are
+product behaviors, not security: anyone can edit browser storage.
 | Checkout and billing | In-browser plan changes, checkout outcomes, subscriptions and invoices. | Payment processing, card collection or a charge. |
 
 All account, token, MFA, inbox and billing rows are fictional prototype data in

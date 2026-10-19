@@ -15,9 +15,9 @@ const projects = liveQuery(
   () =>
     runtime.db.projects
       .where('organizationId')
-      .equals(runtime.session.principal()?.organization?.id ?? '')
+      .equals(principal.current?.organization?.id ?? '')
       .toArray(),
-  { initial: [], deps: () => [runtime.session.principal()?.organization?.id] }
+  { initial: [], deps: () => [principal.current?.organization?.id] }
 );
 const projectRows = $derived(projects.current ?? []);
 const activeCount = $derived(projectRows.filter((project) => project.status === 'active').length);
