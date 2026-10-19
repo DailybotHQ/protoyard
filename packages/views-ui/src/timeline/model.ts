@@ -44,8 +44,9 @@ export function dateAtOffset(start: IsoDate, offset: number): IsoDate {
   return addDays(start, Math.round(offset));
 }
 
+/** End dates are inclusive: a task that starts and ends the same day lasts one day; only `milestone` takes none. */
 export function durationLabel(task: ScheduleTask): string {
-  if (task.milestone || task.start === task.end) return 'Milestone';
+  if (task.milestone) return 'Milestone';
   const days = durationDays(task);
   return `${days} day${days === 1 ? '' : 's'}`;
 }

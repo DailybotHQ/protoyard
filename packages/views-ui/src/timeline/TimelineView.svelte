@@ -263,7 +263,7 @@ function formatDate(date: string) {
               {@const dates = scheduled(task)}
               <div class="table-row" role="row" aria-rowindex={row.index + 2} style={`top:${row.start - scrollTop}px;height:${row.size}px`} data-task-row={task.id}>
                 <span role="gridcell" class="task-name" title={getTitle(task)}>{#if critical.has(task.id)}<span class="critical-mark" aria-label="Critical path">●</span>{/if}{getTitle(task)}<span class="mini-bar" aria-hidden="true"><i style={`width:${progressValue(getProgress(task))}%`}></i></span></span>
-                <span role="gridcell">{dates.start}</span><span role="gridcell">{dates.end}</span><span role="gridcell">{durationLabel(dates)}</span>
+                <span role="gridcell">{dates.start}</span><span role="gridcell">{dates.end}</span><span role="gridcell">{durationLabel({ ...dates, id: task.id, milestone: task.milestone })}</span>
               </div>
             {/each}
           </div>
