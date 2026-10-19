@@ -258,6 +258,8 @@ const world = generate(createGenerateContext(scenario));
 - `generatorVersion` mixes a blueprint content hash with the generator SDK and scenarios SDK versions.
 - `geo` fields get points from `geoPoints()` inside their `region` (default `metro-grid`), one
   point set per entity field, so the same seed gives the same points (generator SDK 2).
+- Team personas come from `generateTeam`, so each one carries a seeded library `avatar`
+  (`av-NNN`, no repeats until all 175 are used; generator SDK 4).
 
 ## Audit log
 

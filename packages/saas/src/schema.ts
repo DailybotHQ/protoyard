@@ -1,4 +1,4 @@
-import type { IntegrityRules, Row } from '@protoyard/core';
+import { type IntegrityRules, PersonaAvatarSchema, type Row } from '@protoyard/core';
 import { z } from 'zod';
 
 /**
@@ -143,6 +143,8 @@ export const SaasInvitationSchema = z.object({
   expiresAt: isoDate,
   acceptedAt: nullableDate,
   acceptedBy: z.string().nullable().default(null),
+  /** Face for the invitee (seeded worlds set a library id); the accepted persona keeps it. */
+  avatar: PersonaAvatarSchema.optional(),
 });
 export type SaasInvitation = z.infer<typeof SaasInvitationSchema>;
 

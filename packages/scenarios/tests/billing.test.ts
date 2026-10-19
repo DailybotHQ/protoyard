@@ -84,7 +84,7 @@ describe('organization billing fields', () => {
       currentPeriodEnd,
     });
     expect(validateWorld({ ...team, tables: {} }, { referenceTime: REF })).toEqual([]);
-    expect(GENERATOR_SDK_VERSION).toBe(2);
+    expect(GENERATOR_SDK_VERSION).toBe(3);
   });
 
   it('parses organizations stored before the fields existed, with defaults', () => {

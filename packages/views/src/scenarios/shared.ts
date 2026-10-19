@@ -1,3 +1,4 @@
+import { createAvatarPool } from '@protoyard/avatars';
 import { createRng, type GenerateContext, type Rng, type Scenario } from '@protoyard/core';
 
 /**
@@ -26,7 +27,7 @@ export const VIEWS_KITS = [
 export type ViewsKit = (typeof VIEWS_KITS)[number];
 
 /** Bump when the same scenario and options can produce different rows. */
-export const VIEWS_GENERATOR_VERSION = 1;
+export const VIEWS_GENERATOR_VERSION = 2;
 
 export function viewsRng(ctx: Pick<GenerateContext, 'scenario'>, key: string): Rng {
   return createRng(`protoyard:views:${ctx.scenario.id}:${ctx.scenario.seed}:${key}`);
@@ -94,6 +95,8 @@ export interface ViewsPerson {
   /** Mention handle, without the `@`. */
   handle: string;
   email: string;
+  /** Face: a library id (`av-NNN`), an https URL or a root-relative path, like `persona.avatar`. */
+  avatar?: string;
 }
 
 const FIRST = [
@@ -123,9 +126,14 @@ const LAST = [
   'Kowal',
 ];
 
-/** Fictional people (example.com emails) for kits that need authors or assignees and were given none. */
+/**
+ * Fictional people (example.com emails) for kits that need authors or
+ * assignees and were given none. Each one has a seeded library avatar from its
+ * own stream (`avatars`), so faces never shift names, and none repeats.
+ */
 export function defaultPeople(ctx: Pick<GenerateContext, 'scenario'>, count = 6): ViewsPerson[] {
   const offset = viewsRng(ctx, 'people').int(0, LAST.length - 1);
+  const avatars = createAvatarPool(viewsRng(ctx, 'avatars'));
   // First names by index keep handles unique for up to 12 people.
   return Array.from({ length: Math.min(count, FIRST.length) }, (_, i) => {
     const first = FIRST[i] as string;
@@ -136,6 +144,7 @@ export function defaultPeople(ctx: Pick<GenerateContext, 'scenario'>, count = 6)
       name: `${first} ${last}`,
       handle,
       email: `${handle}@example.com`,
+      avatar: avatars.next(),
     };
   });
 }

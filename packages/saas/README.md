@@ -278,6 +278,9 @@ Every persona gets a verified account with the password `SAAS_DEMO_PASSWORD`
 `organization.subscription` (`free` has none, `pro`/`enterprise` get up to
 three paid invoices, `expired` lapses). Rows come from `ctx.ids`, `ctx.rng`,
 `ctx.faker` and `ctx.time` only, so the same seed rebuilds the same world.
+Each pending invitation carries a seeded library `avatar` (`av-NNN`) that
+skips the team's faces, and the persona created on acceptance keeps it; team
+members without an avatar get one from the same pool (generator version 2).
 Bump `SAAS_GENERATOR_VERSION` (and your `generatorVersion`) when the output
 changes. Pass `tables` to generate only the kit tables you opted into.
 
@@ -287,7 +290,7 @@ changes. Pass `tables` to generate only the kit tables you opted into.
 | `saas_sessions_log` | Sign-in, sign-up and sign-out attempts with method, provider, outcome and reason | `id, accountId, personaId, at` |
 | `saas_tokens` | Single-use tokens: `verify-email`, `magic-link`, `password-reset`, `invite`, `oauth-state`, with expiry and consumption | `id, kind, email, accountId, expiresAt` |
 | `saas_mfa` | Simulated authenticator enrollment (`totp-sim` seed, status, recovery codes) | `id, &accountId` |
-| `saas_invitations` | Workspace invitations: email, role, inviter, status, expiry, who accepted | `id, organizationId, email, status, tokenId` |
+| `saas_invitations` | Workspace invitations: email, role, inviter, status, expiry, who accepted, optional invitee `avatar` | `id, organizationId, email, status, tokenId` |
 | `saas_inbox` | The simulated mailbox: plain-text messages with an optional in-app action (`#/…` links only) | `id, recipient, personaId, kind, at` |
 | `saas_subscriptions` | Plan, status, seats, per-seat price in integer cents, trial end, current period | `id, organizationId, status` |
 | `saas_invoices` | Invoices with lines in integer cents (negative lines for credits) | `id, organizationId, subscriptionId, issuedAt` |

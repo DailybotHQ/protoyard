@@ -41,7 +41,10 @@ state and `joinedAt = referenceTime − joinedDaysAgo`. The organization is crea
 `ageDays` ago, so actor tenure is independent from organization age. The actor is clamped so
 it never predates the organization. Other members join between the organization's creation
 and now. Names are deterministic, emails are unique on `example.com`/`example.org`, and avatar
-colors come from a fixed palette. Plan and billing status follow `organization.subscription`.
+colors come from a fixed palette. Every persona gets a library `avatar` (`av-NNN` from
+`@protoyard/avatars`) dealt from a seeded pool on its own fork (`protoyard:avatars:team`): no face
+repeats until all 175 are used, and the same seed gives the same faces. Pass `actor: { avatar }` to
+choose the actor's face. Plan and billing status follow `organization.subscription`.
 
 Options: `size`, `roles` (weights `{ member: 6, viewer: 1 }` or a cycled list), `titles`,
 `organization` / `actor` field overrides, `emailDomain`. It uses a forked rng, so team size

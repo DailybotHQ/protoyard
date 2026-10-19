@@ -20,7 +20,7 @@ import { inputProperty } from './validation.ts';
  */
 
 /** Bump when the same blueprint + seed can produce a different world shape. */
-export const BLUEPRINT_GENERATOR_SDK = 3;
+export const BLUEPRINT_GENERATOR_SDK = 4;
 
 /** Region for geo fields that do not name one. */
 export const DEFAULT_GEO_REGION: GeoRegionId = 'metro-grid';

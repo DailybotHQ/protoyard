@@ -26,6 +26,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@protoyard/avatars": "workspace:*",
     "@protoyard/core": "workspace:*",
     "zod": "^4.6.0"
   }

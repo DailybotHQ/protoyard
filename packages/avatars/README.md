@@ -49,6 +49,31 @@ avatarFile('av-007', 128); // 'assets/128/av-007.webp' (package-relative)
 isAvatarId('av-176'); // false
 ```
 
+### Seeded assignment
+
+"Random" faces stay reproducible: the pickers draw only from the rng they are
+given (any `Rng` from `@protoyard/core`, such as `ctx.rng` or `createRng(seed)`),
+never from `Math.random()` or the clock. The same seed always gives the same faces.
+
+```ts
+import { assignAvatars, createAvatarPool, pickAvatar } from '@protoyard/avatars';
+
+// Fork with a stable key so adding another generator never shifts these faces.
+const avatars = createAvatarPool(ctx.rng.fork('my-app:avatars:customers'));
+const customer = { name: 'Ada Example', avatar: avatars.next() };
+
+assignAvatars(ctx.rng.fork('my-app:avatars:team'), 12); // 12 distinct ids
+pickAvatar(ctx.rng); // one id; repeats are possible across calls
+```
+
+A pool deals every id once (175) in a shuffled order before it reshuffles, and
+never repeats a face back to back across rounds. Pass `{ avoid: ids }` to deal
+ids already in use last in the first round, so people added by a later
+generator get fresh faces. The built-in generators already do this:
+`generateTeam` (`@protoyard/scenarios`, so blueprint worlds too),
+`generateSaasWorld` invitees (`@protoyard/saas`) and `defaultPeople`
+(`@protoyard/views/scenarios`).
+
 The images resolve as `@protoyard/avatars/assets/<size>/<id>.webp`. Full
 metadata (bytes, sha256, width and height per size, the source file name and
 its sha256, and the encoder versions) is in `@protoyard/avatars/manifest.json`.
@@ -78,4 +103,5 @@ that every file exists with its recorded bytes and sha256, and that dimensions
 parsed from the WebP header are right. It also checks that there are no stray
 files, enforces the budgets (64 px ≤ 4 KB, 128 px ≤ 12 KB per file, 128 px
 average ≤ 6 KB, all assets ≤ 1.2 MB), and covers `avatarFile`, `isAvatarId` and
-`isAvatarSize`.
+`isAvatarSize`. `tests/pick.test.ts` covers seeded assignment (determinism, no repeats
+within 175, valid ids).

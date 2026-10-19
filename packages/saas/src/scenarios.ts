@@ -1,3 +1,4 @@
+import { createAvatarPool } from '@protoyard/avatars';
 import type {
   GenerateContext,
   IntegrityRules,
@@ -35,7 +36,7 @@ import {
  */
 
 /** Bump when the same knobs and seed can produce different kit rows. */
-export const SAAS_GENERATOR_VERSION = 1;
+export const SAAS_GENERATOR_VERSION = 2;
 
 /** The simulated password every generated account uses (shown on the sign-in screen as a hint). */
 export const SAAS_DEMO_PASSWORD = 'demo-password';
@@ -163,6 +164,12 @@ export function generateSaasWorld(
   const actor = team.actor;
   const organizations = team.organizations.map((o) => ({ ...o }));
   const personas = team.personas.map((p) => ({ ...p }));
+  // Faces for people this kit adds (and team members without one) come from
+  // their own fork and skip the team's faces until the library runs out.
+  const avatars = createAvatarPool(ctx.rng.fork('protoyard:avatars:saas'), {
+    avoid: personas.map((p) => p.avatar),
+  });
+  for (const persona of personas) persona.avatar ??= avatars.next();
   const memberships = team.memberships.map((m) => ({ ...m }));
   const primary = organizations.find((o) => o.id === team.organization.id) as Organization;
   const orgCreatedMs = Date.parse(primary.createdAt);
@@ -284,6 +291,7 @@ export function generateSaasWorld(
       expiresAt: token.expiresAt,
       acceptedAt: null,
       acceptedBy: null,
+      avatar: avatars.next(),
     };
     token.payload = { invitationId: invitation.id, organizationId: primary.id };
     tokens.push(token);

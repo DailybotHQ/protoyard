@@ -358,6 +358,7 @@ export function createInvitationServices(
               name,
               email: invitationRows.email,
               onboardingComplete: false,
+              ...(invitationRows.avatar ? { avatar: invitationRows.avatar } : {}),
             });
             account = {
               id: createRuntimeId('acct'),

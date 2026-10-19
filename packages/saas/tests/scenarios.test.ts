@@ -1,6 +1,8 @@
+import { isAvatarId } from '@protoyard/avatars';
 import {
   definePolicy,
   definePrototype,
+  isPersonaAvatar,
   type PrototypeDefinition,
   parseManifest,
   type ScenarioDefinition,
@@ -13,6 +15,7 @@ import { createHarness } from '../../../tests/support/runtime.ts';
 import {
   applySaasScenarioSession,
   createAuthServices,
+  createInvitationServices,
   generateSaasWorld,
   SAAS_DEMO_PASSWORD,
   type SaasAccount,
@@ -179,6 +182,35 @@ describe('saasFragments + generateSaasWorld', () => {
     expect(w.world.tables.saas_inbox?.filter((m) => m.kind === 'invite')).toHaveLength(2);
   });
 
+  it('gives invitees seeded avatars that skip the team faces', () => {
+    const w = world('invites');
+    const teamFaces = new Set(w.world.personas.map((p) => p.avatar));
+    expect(w.world.personas.every((p) => isAvatarId(p.avatar))).toBe(true);
+    const faces = rows<SaasInvitation>(w.world, 'saas_invitations').map((i) => i.avatar);
+    expect(faces).toHaveLength(2);
+    for (const face of faces) {
+      expect(isAvatarId(face) && isPersonaAvatar(face), face).toBe(true);
+      expect(teamFaces.has(face)).toBe(false);
+    }
+    expect(new Set(faces).size).toBe(2);
+    expect(faces).toEqual(
+      rows<SaasInvitation>(world('invites').world, 'saas_invitations').map((i) => i.avatar)
+    );
+  });
+
+  it('fills a face for team members that have none, without reusing team faces', () => {
+    const ctx = contextFor(scenarios, 'invites');
+    const team = generateTeam(ctx);
+    const [first, ...rest] = team.personas;
+    const { avatar: _dropped, ...bare } = first as (typeof team.personas)[number];
+    const personas = [bare, ...rest];
+    const out = generateSaasWorld(ctx, { team: { ...team, personas, actor: bare } });
+    const filled = out.personas[0]?.avatar;
+    expect(isAvatarId(filled)).toBe(true);
+    expect(rest.map((p) => p.avatar)).not.toContain(filled);
+    expect(out.personas.slice(1)).toEqual(rest);
+  });
+
   it('trial-ending(2): trialing subscription ending in 2 days, org trialing, a trial reminder', () => {
     const w = world('trial-ending');
     const [subscription] = rows<SaasSubscription>(w.world, 'saas_subscriptions');
@@ -259,5 +291,18 @@ describe('scenarios on the real runtime', () => {
     await runtime.scenarios.load('mfa');
     expect(await applySaasScenarioSession(runtime)).toBe(false);
     expect(runtime.session.isSignedIn()).toBe(true);
+  });
+
+  it('an accepted seeded invitation creates a persona with the invitee avatar', async () => {
+    const runtime = (await harness.boot('invites')) as unknown as ProtoyardRuntime;
+    const [invitation] = await runtime.db.rows<SaasInvitation>('saas_invitations').toArray();
+    expect(isAvatarId(invitation?.avatar)).toBe(true);
+    const accepted = await createInvitationServices(runtime).accept(
+      { tokenId: invitation?.tokenId ?? '' },
+      { signIn: false }
+    );
+    expect(accepted.createdAccount).toBe(true);
+    const persona = runtime.session.personas().find((p) => p.id === accepted.account.personaId);
+    expect(persona?.avatar).toBe(invitation?.avatar);
   });
 });

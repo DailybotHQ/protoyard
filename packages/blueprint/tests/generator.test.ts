@@ -1,5 +1,5 @@
 import type { DataDensity, ScenarioInput } from '@protoyard/core';
-import { parseScenario } from '@protoyard/core';
+import { isPersonaAvatar, PERSONA_AVATAR_ID_PATTERN, parseScenario } from '@protoyard/core';
 import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
 import { describe, expect, it } from 'vitest';
 import { helpdeskBlueprint } from '../../../tests/fixtures/blueprint-prototype.ts';
@@ -135,6 +135,22 @@ describe('createBlueprintGenerator', () => {
     const world = gen.generate(createGenerateContext(parseScenario(scenario('normal', 3))));
     const companies = world.tables.companies ?? [];
     expect(companies[0]?.name).toEqual(expect.any(String));
+  });
+
+  it('gives every team persona a seeded, unique library avatar', () => {
+    const gen = createBlueprintGenerator(richBlueprint);
+    const run = (seed: number) =>
+      gen.generate(createGenerateContext(parseScenario(scenario('normal', seed))));
+    const world = run(5);
+    expect(world.personas.length).toBeGreaterThan(1);
+    for (const persona of world.personas) {
+      expect(persona.avatar, persona.id).toMatch(PERSONA_AVATAR_ID_PATTERN);
+      expect(isPersonaAvatar(persona.avatar), persona.id).toBe(true);
+    }
+    expect(new Set(world.personas.map((p) => p.avatar)).size).toBe(world.personas.length);
+    expect(JSON.stringify(run(5))).toBe(JSON.stringify(world));
+    expect(run(6).personas.map((p) => p.avatar)).not.toEqual(world.personas.map((p) => p.avatar));
+    expect(BLUEPRINT_GENERATOR_SDK).toBe(4);
   });
 });
 
