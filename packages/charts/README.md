@@ -17,7 +17,7 @@ plain TypeScript tested in Node. Svelte components live in
 | `@protoyard/charts/shapes` | `roundCoord(value, digits?)`: stable coordinates for SVG paths |
 | `@protoyard/charts/downsample` | `largestTriangleThreeBuckets(points, threshold)` (keeps gaps, returns the input when small), `lttbIndices(xs, ys, threshold)` (plain or typed arrays), `minMaxBuckets(xs, ys, { buckets, x0?, x1? })` (first/min/max/last per pixel column, for canvas), `bisectX` / `bisectLeft` (O(log n) crosshair lookup), `downsampleThreshold(plotWidthPx)` (2 per pixel, 200–4,000) |
 | `@protoyard/charts/layout` | `plotArea(width, height, margin)`: the plot rectangle inside a frame |
-| `@protoyard/charts/palette` | `CHART_TOKENS`, `seriesColor(index)`: `var(--py-chart1)` … `var(--py-chart5)`, cycling |
+| `@protoyard/charts/palette` | `chartPalette(themePalette, mode)` → 8 categorical + 9-step sequential + 9-step diverging hex colors, repaired to pass; `validateChartPalette()`; `chartPaletteVariables()` (`--py-chart1…8`, `--py-seq-1…9`, `--py-div-1…9` for a chart root); `readChartPaletteInput()`; `seriesColor(i)`, `sequentialColor(t)`, `divergingColor(t)`; color math (`contrastRatio`, OKLCH, `simulateDeficiency`) |
 
 Scales are complete (PLAN_003 `T-charts-scales`): the whole `./scales` module
 is 3.1 KB gzip (esbuild, minified, gzip -9); a typical import of
@@ -28,9 +28,36 @@ Measured in Node 26.11.1 on an Apple M1 Max (median of 9, three runs of
 LTTB 10k → 1k points 0.29–0.71 ms, 100k → 2k 1.27–1.37 ms; min-max 100k
 points into 1,600 columns 2.6–4.0 ms; 10,000 `bisectX` lookups on 100k
 points 1.3–1.6 ms. Path
-generators, treemap/sankey/funnel/calendar/gauge layouts
-and validated palettes are added by the following PLAN_003 charts tasks; this
-table lists only what exists.
+generators and treemap/sankey/funnel/calendar/gauge layouts are added by the
+following PLAN_003 charts tasks; this table lists only what exists.
+
+### Chart palettes
+
+`chartPalette()` starts from the theme's `chart1…chart5` and adds three hues
+placed as far as possible from them. Every color that marks data is checked
+and, when needed, repaired by moving lightness only, so hues stay
+recognizable:
+
+| Check | Rule |
+| --- | --- |
+| Contrast | Every categorical color and each ramp's data end ≥ 3:1 against `surface` and `background` (WCAG 1.4.11) |
+| Distinct | Any two categorical colors ≥ 0.08 apart in OKLab |
+| Colour vision | Any two categorical colors ≥ 0.04 apart under simulated protanopia and deuteranopia (Machado et al. 2009) |
+| Ramps | Sequential lightness moves monotonically toward the data end; diverging has a neutral midpoint |
+
+Gray tokens (a monochrome theme) can only differ in lightness. When they end
+up too close, they are spread evenly over the lightness band that keeps 3:1.
+`palette.repaired` names the theme tokens that were changed. Every built-in
+and library theme passes in both modes after repair
+(`pnpm vitest run packages/charts/tests/palette.test.ts` prints the repair
+list). Color alone never identifies a series: legends and labels stay
+required.
+
+Size and speed: building a palette costs 2.9 KB gzip (`chartPalette` +
+`chartPaletteVariables` + `seriesColor`; the whole module with validation is
+3.6 KB). `seriesColor`/`sequentialColor` alone are 0.3 KB. One palette takes
+about 0.3 ms median and up to 1.5 ms after warm-up in Node (Apple M1 Max).
+Compute it once per appearance change, not per render.
 
 ## Rules
 

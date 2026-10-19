@@ -11,7 +11,7 @@
     "./shapes": "./src/shapes.ts",
     "./downsample": "./src/downsample/index.ts",
     "./layout": "./src/layout.ts",
-    "./palette": "./src/palette.ts"
+    "./palette": "./src/palette/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

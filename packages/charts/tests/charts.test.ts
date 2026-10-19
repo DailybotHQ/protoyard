@@ -37,10 +37,12 @@ describe('@protoyard/charts scaffold', () => {
     expect(plotArea(20, 10, margin)).toMatchObject({ width: 0, height: 0 });
   });
 
-  it('seriesColor cycles the theme chart tokens', () => {
+  it('seriesColor cycles 8 colors, falling back to the theme chart tokens', () => {
     expect(seriesColor(0)).toBe('var(--py-chart1)');
-    expect(seriesColor(CHART_TOKENS.length)).toBe('var(--py-chart1)');
-    expect(seriesColor(-1)).toBe('var(--py-chart5)');
+    expect(seriesColor(CHART_TOKENS.length - 1)).toBe('var(--py-chart5)');
+    expect(seriesColor(CHART_TOKENS.length)).toBe('var(--py-chart6, var(--py-chart1))');
+    expect(seriesColor(8)).toBe('var(--py-chart1)');
+    expect(seriesColor(-1)).toBe('var(--py-chart8, var(--py-chart3))');
   });
 
   it('every subpath export resolves to a module', async () => {
@@ -49,7 +51,7 @@ describe('@protoyard/charts scaffold', () => {
       import('../src/shapes.ts'),
       import('../src/downsample/index.ts'),
       import('../src/layout.ts'),
-      import('../src/palette.ts'),
+      import('../src/palette/index.ts'),
     ]);
     for (const mod of subpaths) expect(Object.keys(mod).length).toBeGreaterThan(0);
   });
