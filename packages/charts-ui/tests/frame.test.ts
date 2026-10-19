@@ -167,6 +167,34 @@ describe('ChartFrame', () => {
     expect(figure.getAttribute('style')).not.toContain('--py-chart1: #4c1d95');
   });
 
+  it('uses the chart block a theme ships instead of deriving one', () => {
+    const themed: Record<string, string> = {};
+    [
+      '#111111',
+      '#222222',
+      '#333333',
+      '#444444',
+      '#555555',
+      '#666666',
+      '#777777',
+      '#888888',
+    ].forEach((c, i) => {
+      themed[`--py-chart${i + 1}`] = c;
+    });
+    for (let i = 1; i <= 9; i++) {
+      themed[`--py-seq-${i}`] = '#abcdef';
+      themed[`--py-div-${i}`] = '#fedcba';
+    }
+    for (const [name, value] of Object.entries(themed)) html.style.setProperty(name, value);
+    render(FrameProbe);
+    // The frame sets nothing: the theme's variables already reach the chart from <html>.
+    expect(screen.getByRole('figure').getAttribute('style')).not.toMatch(
+      /--py-(chart\d|seq-|div-)/
+    );
+    expect(screen.getByTestId('context').dataset.hasPalette).toBe('yes');
+    for (const name of Object.keys(themed)) html.style.removeProperty(name);
+  });
+
   it('falls back to the raw theme tokens when the variables are not hex', () => {
     for (const name of Object.keys(TOKENS)) html.style.removeProperty(name);
     render(FrameProbe);
