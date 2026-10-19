@@ -66,6 +66,33 @@ import { CalendarScreen } from '@protoyard/crud/screens/calendar';
   Prototypes that use it add `@source` for `@protoyard/views-ui` in their CSS so Tailwind
   sees the view's classes (see the views-ui README).
 
+## Map screen (`@protoyard/crud/screens/map`)
+
+A blueprint `map` screen (`entity`, `geoField`, optional `colorBy`) on the offline
+`SimulatedMap`, in its own lazy entry:
+
+```svelte
+<script lang="ts">
+import { MapScreen } from '@protoyard/crud/screens/map';
+</script>
+
+<MapScreen {runtime} {blueprint} {services} screen={mapScreen} />
+```
+
+- Records with valid `{ lat, lng }` values become map markers and accessible rows in
+  the synced list. Selecting either highlights both; **Open record** uses the supplied
+  `onOpenRecord` callback or the entity detail route. Records without a valid point are
+  counted below the map.
+- Markers cluster when there are more than 200 placed records. The list keeps every
+  marker available to keyboard and screen-reader users. `colorBy` uses an enum legend
+  with tone, shape and glyph cues.
+- The map is a fictional SVG basemap with no tile server or runtime network requests.
+  This entry loads the view only when the map route is used. Add `@source` for
+  `@protoyard/views-ui` to prototype CSS so Tailwind sees the view classes.
+- Blueprint `geo` fields keep editable latitude and longitude inputs and provide a
+  **Pick on map** control. It loads the offline map on demand; clicking a point or
+  focusing the map and pressing Enter updates the same inputs.
+
 ## Settings screen (`@protoyard/crud/screens/settings`)
 
 A separate entry, so the screen loads only with its route. Sections come from a blueprint
@@ -95,5 +122,6 @@ profile and workspace read-only. Roles here are a simulation, not security.
 ```bash
 pnpm vitest run packages/crud
 pnpm vitest run packages/crud/tests/settings-screen.test.ts
+pnpm vitest run packages/crud/tests/map-screen.test.ts
 pnpm --filter @protoyard/crud typecheck
 ```

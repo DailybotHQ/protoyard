@@ -8,6 +8,7 @@ import {
   cluster,
   fitBounds,
   type Geofence,
+  type LngLat,
   type MapSize,
   type MapView,
   PORT_MERIDIAN,
@@ -52,6 +53,7 @@ let {
   cellPx = 56,
   onSelect,
   onFenceChange,
+  onPick,
   class: className,
 }: {
   markers?: MapMarker[];
@@ -70,6 +72,12 @@ let {
   onSelect?: (id: string | null) => void;
   /** Saves an edited fence through the prototype's service; a rejection keeps the draft. */
   onFenceChange?: (fence: Geofence) => unknown;
+  /**
+   * Picking mode: a click on the map (without dragging) picks the point under
+   * the pointer; Enter or Space on the focused map picks the center, marked by
+   * a crosshair. For forms that set a location.
+   */
+  onPick?: (point: LngLat) => void;
   class?: string;
 } = $props();
 
@@ -148,6 +156,8 @@ function onKeydown(event: KeyboardEvent) {
   else if (event.key === '-' || event.key === '_') setView(zoomAround(current, -1, size));
   else if (event.key === '0') reset();
   else if (event.key === 'Escape' && selected) select(null);
+  else if (onPick && (event.key === 'Enter' || event.key === ' '))
+    pick(size.width / 2, size.height / 2);
   else return;
   event.preventDefault();
 }
@@ -166,9 +176,20 @@ function local(event: PointerEvent | WheelEvent) {
     : { x: size.width / 2, y: size.height / 2 };
 }
 
+/** Where a press started, to tell a click (pick) from a drag (pan). */
+let pressedAt: { x: number; y: number } | null = null;
+
+function pick(x: number, y: number) {
+  if (!onPick) return;
+  const point = unproject(x, y, current, size);
+  const round = (n: number) => Math.round(n * 1e5) / 1e5;
+  onPick({ lng: round(point.lng), lat: round(point.lat) });
+}
+
 function onPointerDown(event: PointerEvent) {
   if (event.target !== event.currentTarget && !(event.target as Element).closest('svg')) return;
   if ((event.target as Element).closest('[data-vertex]')) return;
+  pressedAt = local(event);
   pointers.set(event.pointerId, local(event));
   (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
 }
@@ -196,6 +217,11 @@ function onPointerMove(event: PointerEvent) {
 }
 
 function onPointerUp(event: PointerEvent) {
+  if (pressedAt && pointers.size === 1) {
+    const end = local(event);
+    if (Math.hypot(end.x - pressedAt.x, end.y - pressedAt.y) < 4) pick(end.x, end.y);
+  }
+  pressedAt = null;
   pointers.delete(event.pointerId);
   if (pointers.size < 2) pinch = null;
 }
@@ -264,7 +290,7 @@ async function saveFence() {
       class="relative h-[min(28rem,60vh)] touch-none overflow-hidden bg-muted outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       role="region"
       tabindex="0"
-      aria-label={`${label}. Arrow keys pan, plus and minus zoom, 0 shows everything.`}
+      aria-label={`${label}. Arrow keys pan, plus and minus zoom, 0 shows everything.${onPick ? ' Enter picks the point at the center cross.' : ''}`}
       aria-roledescription="map"
       data-zoom={current.zoom.toFixed(2)}
       data-center={`${current.center.lng.toFixed(5)},${current.center.lat.toFixed(5)}`}
@@ -390,6 +416,13 @@ async function saveFence() {
         {/if}
       {/each}
 
+      {#if onPick}
+        <span
+          class="pointer-events-none absolute top-1/2 left-1/2 size-6 -translate-x-1/2 -translate-y-1/2 before:absolute before:top-1/2 before:left-0 before:h-0.5 before:w-full before:bg-foreground after:absolute after:top-0 after:left-1/2 after:h-full after:w-0.5 after:bg-foreground"
+          aria-hidden="true"
+          data-crosshair
+        ></span>
+      {/if}
       <p class="absolute bottom-2 left-2 rounded-md bg-background/90 px-2 py-1 text-[0.7rem] text-foreground shadow-sm" title={basemap.attribution} data-map-attribution>
         Simulated map. Fictional city, not real geography.
       </p>

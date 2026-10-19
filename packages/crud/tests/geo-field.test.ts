@@ -1,6 +1,6 @@
 import { type BlueprintField, deriveInputSchemas, parseBlueprint } from '@protoyard/blueprint';
 import { parseInput, ValidationError } from '@protoyard/core';
-import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { formatFieldValue } from '../src/format.ts';
 import GeoFieldHarness from './fixtures/GeoFieldHarness.svelte';
@@ -37,8 +37,25 @@ describe('GeoField', () => {
     expect(lat.value).toBe('-30.4');
     expect(lng.value).toBe('-18.6');
     expect(lat.id).toBe('geo-under-test');
-    // No map picker until a map view exists: no dead button.
-    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Pick on map' })).toBeTruthy();
+  });
+
+  it('loads the offline map on demand and binds a picked point without removing the inputs', async () => {
+    render(GeoFieldHarness, { field: position, initial: { lat: '-30', lng: '-18' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Pick on map' }));
+
+    const region = await screen.findByRole('region', { name: /Position location picker/ });
+    await fireEvent.keyDown(region, { key: 'Enter' });
+    await waitFor(() =>
+      expect(bound()).toEqual({ lat: expect.any(String), lng: expect.any(String) })
+    );
+    expect(Number(bound().lat)).toBeGreaterThan(-90);
+    expect(Number(bound().lat)).toBeLessThan(90);
+    expect(Number(bound().lng)).toBeGreaterThan(-180);
+    expect(Number(bound().lng)).toBeLessThan(180);
+    expect(screen.getByTestId('geo-field-lat')).toBeTruthy();
+    expect(screen.getByTestId('geo-field-lng')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Close map' })).toBeTruthy();
   });
 
   it('binds typed coordinates that the entity service validates', async () => {
