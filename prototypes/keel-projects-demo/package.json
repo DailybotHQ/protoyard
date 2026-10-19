@@ -1,0 +1,30 @@
+{
+  "name": "@prototype/keel-projects-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Keel Projects: a fictional product studio's project hub (board, calendar rituals, critical-path timeline, 10k-task grid, notifications, command palette).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/scenarios": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "@protoyard/views": "workspace:*",
+    "@protoyard/views-ui": "workspace:*",
+    "dexie": "^4.4.0",
+    "svelte": "^5.57.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "@protoyard/runtime": "workspace:*"
+  }
+}

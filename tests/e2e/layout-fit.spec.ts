@@ -81,6 +81,13 @@ const FIT_TARGETS: Record<string, FitTarget> = {
     layout: 'document',
     ready: 'figure[data-py-chart]',
   },
+  // The project-management flagship at its densest: 10,004 tasks in the virtualized grid.
+  'keel-projects-demo': {
+    scenario: 'massive',
+    hash: '#/tasks',
+    layout: 'document',
+    ready: '[data-grid]',
+  },
 };
 
 const DESKTOP = { width: 1920, height: 1080 } as const;
