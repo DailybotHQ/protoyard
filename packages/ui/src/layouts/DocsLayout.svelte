@@ -2,8 +2,10 @@
 import { type Snippet, untrack } from 'svelte';
 
 interface Props {
-  navigation: Snippet;
-  children: Snippet;
+  navigation?: Snippet;
+  children?: Snippet;
+  /** LayoutHost integration; the stable routed screen is mounted in the content column. */
+  mountScreen?: (target: HTMLElement) => void;
   navigationLabel?: string;
   contentLabel?: string;
   tocLabel?: string;
@@ -19,6 +21,7 @@ interface TocItem {
 let {
   navigation,
   children,
+  mountScreen,
   navigationLabel = 'Documentation sections',
   contentLabel = 'Documentation content',
   tocLabel = 'On this page',
@@ -26,6 +29,7 @@ let {
 }: Props = $props();
 
 let contentRoot = $state<HTMLElement | undefined>();
+let screenTarget = $state<HTMLDivElement | undefined>();
 let tocItems = $state<TocItem[]>([]);
 let activeId = $state('');
 
@@ -99,17 +103,27 @@ $effect(() => {
     intersection?.disconnect();
   };
 });
+
+$effect(() => {
+  if (mountScreen && screenTarget) mountScreen(screenTarget);
+});
 </script>
 
 <div class="docs-layout @container min-w-0 {className ?? ''}" data-py-docs-layout>
   <div class="docs-layout__grid">
     <main bind:this={contentRoot} class="docs-layout__content" aria-label={contentLabel}>
-      {@render children()}
+      {#if children}
+        {@render children()}
+      {:else if mountScreen}
+        <div bind:this={screenTarget} data-py-layout-screen-target></div>
+      {/if}
     </main>
 
-    <nav class="docs-layout__navigation" aria-label={navigationLabel}>
-      {@render navigation()}
-    </nav>
+    {#if navigation}
+      <nav class="docs-layout__navigation" aria-label={navigationLabel}>
+        {@render navigation()}
+      </nav>
+    {/if}
 
     <aside class="docs-layout__toc" aria-label={tocLabel}>
       <p class="docs-layout__toc-title">{tocLabel}</p>

@@ -66,7 +66,7 @@ async function copy(key: string, text: string) {
 
 <Section
   title="Reproducible link"
-  description="Carries scenario, persona, seed and shell (?shell=) when overridden. Manual data edits travel as snapshot files."
+  description="Carries scenario, persona, seed, shell (?shell=) and app layout (?layout=) when overridden. Manual data edits travel as snapshot files."
 >
   <div class="space-y-2.5">
     {@render copyRow('link', 'Open this scenario', link)}

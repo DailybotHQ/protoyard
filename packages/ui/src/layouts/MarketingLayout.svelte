@@ -3,7 +3,9 @@ import type { Snippet } from 'svelte';
 import { cn } from '../lib/cn.ts';
 
 interface Props {
-  hero: Snippet;
+  hero?: Snippet;
+  /** LayoutHost integration; the stable routed screen is mounted in the main column. */
+  mountScreen?: (target: HTMLElement) => void;
   brand?: Snippet;
   navigation?: Snippet;
   actions?: Snippet;
@@ -12,7 +14,21 @@ interface Props {
   class?: string;
 }
 
-let { hero, brand, navigation, actions, sections, footer, class: className }: Props = $props();
+let {
+  hero,
+  mountScreen,
+  brand,
+  navigation,
+  actions,
+  sections,
+  footer,
+  class: className,
+}: Props = $props();
+let screenTarget = $state<HTMLDivElement | undefined>();
+
+$effect(() => {
+  if (mountScreen && screenTarget) mountScreen(screenTarget);
+});
 </script>
 
 <div class={cn('min-h-app bg-background text-foreground', className)} data-py-marketing-layout>
@@ -25,11 +41,19 @@ let { hero, brand, navigation, actions, sections, footer, class: className }: Pr
   </header>
 
   <main class="mx-auto flex w-full max-w-7xl flex-col px-4 sm:px-6">
-    <section class="py-12 sm:py-20" aria-label="Introduction">{@render hero()}</section>
+    {#if hero}
+      <section class="py-12 sm:py-20" aria-label="Introduction">{@render hero()}</section>
+    {:else if mountScreen}
+      <section class="min-w-0 py-8 sm:py-12" aria-label="Page content">
+        <div bind:this={screenTarget} data-py-layout-screen-target></div>
+      </section>
+    {/if}
     {@render sections?.()}
   </main>
 
-  <footer class="mt-12 border-t border-border bg-muted/30 px-4 py-8 pb-safe sm:px-6">
-    <div class="mx-auto max-w-7xl">{@render footer?.()}</div>
-  </footer>
+  {#if footer || !mountScreen}
+    <footer class="mt-12 border-t border-border bg-muted/30 px-4 py-8 pb-safe sm:px-6">
+      <div class="mx-auto max-w-7xl">{@render footer?.()}</div>
+    </footer>
+  {/if}
 </div>

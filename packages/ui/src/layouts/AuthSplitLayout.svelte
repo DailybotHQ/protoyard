@@ -3,7 +3,9 @@ import type { Snippet } from 'svelte';
 import { cn } from '../lib/cn.ts';
 
 interface Props {
-  form: Snippet;
+  form?: Snippet;
+  /** LayoutHost integration; the stable routed screen is mounted in the form column. */
+  mountScreen?: (target: HTMLElement) => void;
   brand?: Snippet;
   brandTitle?: string;
   brandDescription?: string;
@@ -12,18 +14,29 @@ interface Props {
 
 let {
   form,
+  mountScreen,
   brand,
   brandTitle = 'A clearer way to work',
   brandDescription = 'Bring your team and your ideas together in one place.',
   class: className,
 }: Props = $props();
+
+let screenTarget = $state<HTMLDivElement | undefined>();
+
+$effect(() => {
+  if (mountScreen && screenTarget) mountScreen(screenTarget);
+});
 </script>
 
 <main class={cn('grid min-h-app bg-background text-foreground lg:grid-cols-2', className)} data-py-auth-split-layout>
   <section class="flex min-w-0 items-center justify-center px-4 py-10 sm:px-8 lg:px-12" aria-label="Sign in">
     <div class="w-full max-w-md space-y-8">
       <div class="text-sm font-semibold">{@render brand?.()}</div>
-      {@render form()}
+      {#if form}
+        {@render form()}
+      {:else if mountScreen}
+        <div bind:this={screenTarget} class="min-w-0" data-py-layout-screen-target></div>
+      {/if}
     </div>
   </section>
 

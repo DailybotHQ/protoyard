@@ -35,4 +35,10 @@ export const LAYOUT_REGISTRY: Partial<Record<LayoutId, LayoutEntry>> = {
   'dual-sidebar': { load: () => import('./DualSidebarLayout.svelte') },
   'mobile-tabs': { load: () => import('./MobileTabsLayout.svelte') },
   'mobile-drawer': { load: () => import('./MobileDrawerLayout.svelte') },
+  'master-detail': { load: () => import('./MasterDetailLayout.svelte') },
+  'dashboard-grid': { load: () => import('./DashboardGridLayout.svelte') },
+  docs: { load: () => import('./DocsLayout.svelte') },
+  marketing: { load: () => import('./MarketingLayout.svelte') },
+  wizard: { load: () => import('./WizardLayout.svelte') },
+  'auth-split': { load: () => import('./AuthSplitLayout.svelte') },
 };

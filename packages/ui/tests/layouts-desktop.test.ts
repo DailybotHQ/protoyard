@@ -1,14 +1,20 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import AuthSplitLayout from '../src/layouts/AuthSplitLayout.svelte';
+import DashboardGridLayout from '../src/layouts/DashboardGridLayout.svelte';
+import DocsLayout from '../src/layouts/DocsLayout.svelte';
 import DualSidebarLayout from '../src/layouts/DualSidebarLayout.svelte';
 import LayoutHost from '../src/layouts/LayoutHost.svelte';
 import { layoutStorageKey } from '../src/layouts/layout-kit.ts';
+import MarketingLayout from '../src/layouts/MarketingLayout.svelte';
+import MasterDetailLayout from '../src/layouts/MasterDetailLayout.svelte';
 import type { NavModel } from '../src/layouts/nav-model.ts';
 import RailLayout from '../src/layouts/RailLayout.svelte';
 import { LAYOUT_REGISTRY } from '../src/layouts/registry.ts';
 import SidebarLayout from '../src/layouts/SidebarLayout.svelte';
 import TopNavLayout from '../src/layouts/TopNavLayout.svelte';
+import WizardLayout from '../src/layouts/WizardLayout.svelte';
 
 const nav: NavModel = {
   brand: { label: 'Pipeline CRM', icon: 'briefcase' },
@@ -305,12 +311,18 @@ describe('DualSidebarLayout', () => {
 });
 
 describe('registry and host', () => {
-  it('registers each desktop layout as its own lazy module', async () => {
+  it('registers each shipped host layout as its own lazy module', async () => {
     const expected = {
       sidebar: SidebarLayout,
       rail: RailLayout,
       'top-nav': TopNavLayout,
       'dual-sidebar': DualSidebarLayout,
+      'master-detail': MasterDetailLayout,
+      'dashboard-grid': DashboardGridLayout,
+      docs: DocsLayout,
+      marketing: MarketingLayout,
+      wizard: WizardLayout,
+      'auth-split': AuthSplitLayout,
     } as const;
     for (const [id, component] of Object.entries(expected)) {
       const entry = LAYOUT_REGISTRY[id as keyof typeof expected];

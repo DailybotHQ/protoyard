@@ -5,8 +5,10 @@ import Wizard from '../components/wizard/Wizard.svelte';
 import { cn } from '../lib/cn.ts';
 
 interface Props {
-  steps: StepperStep[];
-  content: Snippet<[{ step: StepperStep; index: number }]>;
+  steps?: StepperStep[];
+  content?: Snippet<[{ step: StepperStep; index: number }]>;
+  /** LayoutHost integration; the stable routed screen is mounted in the wizard frame. */
+  mountScreen?: (target: HTMLElement) => void;
   current?: number;
   title?: string;
   description?: string;
@@ -25,6 +27,7 @@ interface Props {
 let {
   steps,
   content,
+  mountScreen,
   current = $bindable(0),
   title,
   description,
@@ -39,6 +42,12 @@ let {
   brand,
   class: className,
 }: Props = $props();
+
+let screenTarget = $state<HTMLDivElement | undefined>();
+
+$effect(() => {
+  if (mountScreen && screenTarget) mountScreen(screenTarget);
+});
 </script>
 
 <main class={cn('min-h-app bg-muted/30 px-4 py-8 text-foreground sm:px-6 sm:py-12', className)} data-py-wizard-layout>
@@ -50,19 +59,23 @@ let {
     </header>
 
     <section class="rounded-xl border border-border bg-surface p-4 shadow-soft sm:p-8">
-      <Wizard
-        {steps}
-        bind:current
-        {content}
-        {canAdvance}
-        {validate}
-        {onFinish}
-        {onStepChange}
-        {backLabel}
-        {nextLabel}
-        {finishLabel}
-        {secondaryActions}
-      />
+      {#if steps && content}
+        <Wizard
+          {steps}
+          bind:current
+          {content}
+          {canAdvance}
+          {validate}
+          {onFinish}
+          {onStepChange}
+          {backLabel}
+          {nextLabel}
+          {finishLabel}
+          {secondaryActions}
+        />
+      {:else if mountScreen}
+        <div bind:this={screenTarget} class="min-w-0" data-py-layout-screen-target></div>
+      {/if}
     </section>
   </div>
 </main>
