@@ -125,6 +125,39 @@ describe('blueprint notifications', () => {
     ).toThrow(/unknown title placeholder/);
   });
 
+  it('rejects sensitive notification placeholders and bails before scanning oversized HTML', () => {
+    const base = { ...helpdeskBlueprint, notifications: [] };
+    expect(() =>
+      parseBlueprint({
+        ...base,
+        entities: base.entities.map((item) =>
+          item.name === 'ticket'
+            ? {
+                ...item,
+                fields: item.fields.map((field) =>
+                  field.name === 'subject' ? { ...field, sensitive: true } : field
+                ),
+              }
+            : item
+        ),
+        notifications: [
+          { on: 'create', entity: 'ticket', notify: 'assignee', title: 'New {subject}' },
+        ],
+      })
+    ).toThrow(/sensitive field/);
+    const hostileTitle = `<${'<a'.repeat(20_000)}`;
+    const started = performance.now();
+    expect(() =>
+      parseBlueprint({
+        ...base,
+        notifications: [
+          { on: 'create', entity: 'ticket', notify: 'assignee', title: hostileTitle },
+        ],
+      })
+    ).toThrow();
+    expect(performance.now() - started).toBeLessThan(100);
+  });
+
   it('does not notify the actor for a self-assigned create', async () => {
     const runtime = await harness.boot('member');
     const actorId = runtime.session.principal()?.persona.id as string;
@@ -132,5 +165,28 @@ describe('blueprint notifications', () => {
     await services.ticket!.create({ subject: 'My ticket', customerId: 'customer_0001' });
     runtime.session.switchActor(actorId);
     expect(await createNotificationService(runtime).list()).toEqual([]);
+  });
+
+  it('resolves persona field placeholders to the persona name', async () => {
+    const runtime = await harness.boot('owner');
+    const actorId = runtime.session.principal()?.persona.id;
+    const assignee = (await table(runtime, 'py_personas').toArray()).find(
+      (row) => row.id !== actorId
+    )!;
+    const personaTitleBlueprint = parseBlueprint({
+      ...helpdeskBlueprint,
+      notifications: [
+        { on: 'create', entity: 'ticket', notify: 'assignee', title: 'Assigned to {assignee}' },
+      ],
+    });
+    await createEntityServices(runtime, personaTitleBlueprint).ticket!.create({
+      subject: 'Assignment label',
+      customerId: 'customer_0001',
+      assigneeId: assignee.id,
+    });
+    runtime.session.switchActor(assignee.id as string);
+    expect((await createNotificationService(runtime).list()).map((row) => row.title)).toContain(
+      `Assigned to ${assignee.name}`
+    );
   });
 });

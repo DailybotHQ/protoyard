@@ -101,4 +101,18 @@ describe('derivePolicy', () => {
     expect(policy.can(admin, 'ticket:export')).toBe(true);
     expect(policy.can(admin, 'ticket:delete')).toBe(false);
   });
+
+  it('applies -delete to delete:own capabilities too', () => {
+    const policy = createPermissionPolicy(
+      derivePolicy(
+        parseBlueprint({
+          ...fixture(),
+          roles: [{ name: 'member', permissions: { ticket: ['delete:own', '-delete'] } }],
+        })
+      )
+    );
+    const member = principal(policy, 'member');
+    expect(policy.can(member, 'ticket:delete')).toBe(false);
+    expect(policy.can(member, 'ticket:delete:own', { ownerId: 'user_001' })).toBe(false);
+  });
 });

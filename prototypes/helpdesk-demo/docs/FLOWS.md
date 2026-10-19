@@ -63,13 +63,13 @@ changed fields) per affected root record, in the same transaction.
    passes its per-record delete capability check (see [PERMISSIONS.md](PERMISSIONS.md)).
 2. Service: `customer.remove(id)` or `ticket.remove(id)` once per selected id in src/generated/services.ts; each returns an undo token
 3. Capability: `customer:delete` / `ticket:delete` (owner and admin through `*`), or `ticket:delete:own` when the ticket's `assigneeId` is the acting persona. Members hold no customer delete capability.
-4. Writes (one transaction): soft delete of the record and its cascade — `customers` (deletedAt, deletedBy, updatedAt), its `tickets` (same fields) and those tickets' `replies` (same fields, although replies have no soft-delete feature); `auditEntries` (`delete` for the root record only). Attachments and audit rows stay.
+4. Writes (one transaction): soft delete of the record and its cascade — `customers` (deletedAt, deletedBy, updatedAt), its `tickets` (same fields) and those tickets' `replies` (same fields, although replies have no soft-delete feature); server-side restore metadata is stored with the root. Attachments remain available in Trash and are removed if the row is purged; audit rows stay.
 5. Failure states: record not found, permission denied, simulated offline or failure (nothing written; "Could not delete" toast)
 
 ### Undo the delete
 
 1. The "Undo" action on the "Moved to trash" toast.
-2. Service: `customer.restore(undoToken)` or `ticket.restore(undoToken)` in src/generated/services.ts
+2. Service: `customer.restore(undoToken)` or `ticket.restore(undoToken)` in src/generated/services.ts. The token identifies the root only; row ids and original references are read from stored group metadata.
 3. Capability: the same delete check as the removal, against the trashed record
 4. Writes (one transaction): every row in the undo set (deletedAt and deletedBy back to `null`, updatedAt), `auditEntries` (`restore`)
 5. Failure states: "The undo window has expired." (30 seconds of simulated time; the clock is stopped unless changed in DevTools), "The rows in this undo set are no longer available.", permission denied, simulated offline or failure ("Could not undo" toast; nothing written)
@@ -224,7 +224,7 @@ below remain service-only. Each follows the full mutation pipeline.
 1. Not available in the UI.
 2. Service: `customer.purge(id)` / `ticket.purge(id)` / `reply.purge(id)` (only records that are already soft-deleted)
 3. Capability: `<entity>:delete` with the record (no `:own` fallback, so only owner and admin)
-4. Writes (one transaction): hard deletes the record and its cascade, `auditEntries` (`purge`)
+4. Writes (one transaction): hard deletes the record and its cascade, removes attached `files` rows, and writes `auditEntries` (`purge`)
 5. Failure states: record not in the trash ("No ticket with id …"), permission denied, simulated offline or failure
 
 ### Update several records at once

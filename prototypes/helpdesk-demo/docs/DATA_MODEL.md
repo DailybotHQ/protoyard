@@ -119,7 +119,7 @@ notifications → personaId
 
 | From | Field | To | Cardinality | Notes |
 | --- | --- | --- | --- | --- |
-| `tickets` | `customerId` | `customers` | many to one, required | `onDelete: cascade` in the blueprint; the service rejects a customer id that does not exist ("Customer not found") |
+| `tickets` | `customerId` | `customers` | many to one, required | `onDelete: cascade` in the blueprint; the service rejects missing and soft-deleted customers ("Customer not found") |
 | `replies` | `ticketId` | `tickets` | many to one, required | `onDelete: cascade` |
 | `customers` | `accountManagerId` | `py_personas` | many to zero-or-one | The blueprint `ownerField`; set to the acting persona on create when left blank |
 | `tickets` | `assigneeId` | `py_personas` | many to zero-or-one | The `ownerField`; set to the acting persona on create when left blank. Seeded tickets are unassigned about 15% of the time |
@@ -139,12 +139,14 @@ Delete behavior (in the generated services, not enforced by the database):
 - **Single delete** of a customer or ticket is a soft delete: it sets
   `deletedAt`, `deletedBy` and `updatedAt` on the record and on every row the
   cascade reaches (a customer's tickets, and those tickets' replies), so they
-  disappear from lists and can be restored with Undo.
-- **Bulk delete** (`bulkRemove`) and **purge** are hard deletes: the record
-  and its cascade are removed from the tables.
+  disappear from lists and can be restored with Undo. The token carries only
+  the root id; trusted cascade and nullification data stays on the stored root.
+- **Bulk delete** (`bulkRemove`) and **purge** are hard deletes: the record,
+  its cascade and their attachment rows are removed in the same transaction.
 - Deleting a reply is always a hard delete (replies have no soft delete).
-- Nothing deletes `files` rows of a deleted ticket or the `auditEntries` of a
-  deleted record; they stay and can point at missing or trashed rows.
+- Soft-deleted attachments stay available while a record is in Trash; purging
+  the record removes its attachment rows and frees their quota. Audit history
+  is retained after deletion.
 
 ## Field notes
 

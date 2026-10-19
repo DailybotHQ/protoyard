@@ -53,12 +53,30 @@ const isBlank = (value: unknown) =>
  * `'1,234.5'` → 123450, `'-$3'` → -300. Returns null for anything else.
  */
 export function parseMoneyText(text: string): number | null {
-  const match = /^(-)?\s*[^\d\s.,-]?\s*(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,2}))?$/.exec(text.trim());
-  if (!match) return null;
-  const units = Number((match[2] as string).replace(/,/g, ''));
-  const cents = units * 100 + Number((match[3] ?? '0').padEnd(2, '0'));
+  // Bound work before parsing. This is deliberately linear and avoids the
+  // backtracking behavior of the former grouped-number regular expression.
+  if (text.length > 128) return null;
+  let source = text.trim();
+  let sign = 1;
+  if (source.startsWith('-')) {
+    sign = -1;
+    source = source.slice(1).trimStart();
+  }
+  if (source.length > 0 && !/[\d.,\s]/.test(source[0] as string)) {
+    source = source.slice(1).trimStart();
+  }
+  if (!source) return null;
+  const parts = source.split('.');
+  if (parts.length > 2) return null;
+  const whole = parts[0] as string;
+  const fraction = parts[1] ?? '';
+  if (!/^\d+(?:,\d{3})*$/.test(whole) || (parts.length === 2 && !/^\d{1,2}$/.test(fraction))) {
+    return null;
+  }
+  const units = Number(whole.replace(/,/g, ''));
+  const cents = units * 100 + Number(fraction.padEnd(2, '0') || '0');
   if (!Number.isSafeInteger(cents)) return null;
-  return match[1] ? -cents : cents;
+  return sign * cents;
 }
 
 const PHONE = /^\+?[\d\s().-]{4,32}$/;
@@ -133,12 +151,20 @@ function checkValue(field: BlueprintField, value: unknown): Check {
     }
     case 'date': {
       const text = typeof value === 'string' ? value.trim() : '';
-      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
-      const date = match ? new Date(`${text}T00:00:00.000Z`) : null;
-      if (!date || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== text) {
+      const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.test(text);
+      const date = dateOnly
+        ? new Date(`${text}T00:00:00.000Z`)
+        : /^\d{4}-\d{2}-\d{2}T/.test(text)
+          ? new Date(text)
+          : null;
+      if (
+        !date ||
+        Number.isNaN(date.getTime()) ||
+        (dateOnly && date.toISOString().slice(0, 10) !== text)
+      ) {
         return fail(`${label} must be a date like 2026-03-02`);
       }
-      return ok(text);
+      return ok(dateOnly ? text : date.toISOString());
     }
     case 'datetime': {
       const date =

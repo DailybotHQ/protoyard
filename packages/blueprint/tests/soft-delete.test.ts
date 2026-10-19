@@ -51,8 +51,14 @@ describe('blueprint soft delete, restore, and purge', () => {
     const { runtime, services } = await boot();
     const originalNote = await rowsTable(runtime, 'notes').get('note_0001');
     const undoToken = await services.customer!.remove('customer_0002');
+    expect(await rowsTable(runtime, 'customers').get('customer_0002')).toMatchObject({
+      deleteGroupRows: expect.arrayContaining([
+        { entity: 'customer', ids: ['customer_0002'] },
+        { entity: 'ticket', ids: ['ticket_0003', 'ticket_0004'] },
+      ]),
+    });
 
-    expect(undoToken).toMatch(/^blueprint-undo-v1:/);
+    expect(undoToken).toMatch(/^blueprint-undo-v2:/);
     expect(await services.customer!.get('customer_0002')).toBeUndefined();
     expect((await services.customer!.trash()).map((row) => row.id)).toEqual(['customer_0002']);
     expect((await services.ticket!.list()).map((row) => row.id)).not.toContain('ticket_0003');
@@ -114,6 +120,65 @@ describe('blueprint soft delete, restore, and purge', () => {
       ticketId: originalNote?.ticketId,
       relatedIds: originalNote?.relatedIds,
     });
+  });
+
+  it('does not accept client supplied undo row or field overrides', async () => {
+    const { runtime, services } = await boot();
+    const undoToken = await services.customer!.remove('customer_0002');
+    const invoiceBefore = await rowsTable(runtime, 'invoices').get('invoice_0001');
+    const forged = `blueprint-undo-v1:${encodeURIComponent(
+      JSON.stringify({
+        version: 1,
+        entity: 'customer',
+        deletedAt: runtime.clock.now().toISOString(),
+        expiresAt: runtime.clock.nowMs() + 30_000,
+        rows: [{ entity: 'customer', ids: ['customer_0002'] }],
+        nullified: [{ entity: 'invoice', id: 'invoice_0001', fields: { number: 'FORGED' } }],
+      })
+    )}`;
+
+    await expect(services.customer!.restore(forged)).rejects.toThrow(/invalid/);
+    expect(await rowsTable(runtime, 'invoices').get('invoice_0001')).toEqual(invoiceBefore);
+    expect(undoToken).toMatch(/^blueprint-undo-v2:/);
+  });
+
+  it('keeps overlapping nullification groups and does not overwrite a later edit', async () => {
+    const { runtime, services } = await boot();
+    await rowsTable(runtime, 'notes').put({
+      id: 'note_group_test',
+      body: 'links',
+      ticketId: 'ticket_0003',
+      relatedIds: ['ticket_0003', 'ticket_0005'],
+      createdAt: runtime.clock.now().toISOString(),
+      updatedAt: runtime.clock.now().toISOString(),
+    });
+    const first = await services.ticket!.remove('ticket_0003');
+    await rowsTable(runtime, 'notes').put({
+      ...(await rowsTable(runtime, 'notes').get('note_group_test'))!,
+      ticketId: 'ticket_0004',
+    });
+    const noteAfterEdit = await rowsTable(runtime, 'notes').get('note_group_test');
+    const second = await services.ticket!.remove('ticket_0005');
+    await services.ticket!.restore(first as string);
+    expect(await rowsTable(runtime, 'notes').get('note_group_test')).toMatchObject({
+      ticketId: noteAfterEdit?.ticketId,
+      relatedIds: ['ticket_0003'],
+    });
+    await services.ticket!.restore(second as string);
+    const finalNote = await rowsTable(runtime, 'notes').get('note_group_test');
+    expect(finalNote?.ticketId).toBe(noteAfterEdit?.ticketId);
+    expect(finalNote?.relatedIds).toEqual(['ticket_0003', 'ticket_0005']);
+  });
+
+  it('rejects creating a relation to a soft-deleted target', async () => {
+    const { services } = await boot();
+    await services.customer!.remove('customer_0002');
+    await expect(
+      services.ticket!.create({
+        subject: 'Reference deleted customer',
+        customerId: 'customer_0002',
+      })
+    ).rejects.toMatchObject({ issues: { customerId: 'Customer not found' } });
   });
 
   it('requires the entity delete capability before permanently purging trash', async () => {

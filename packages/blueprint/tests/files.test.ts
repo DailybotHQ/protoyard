@@ -6,6 +6,7 @@ import {
 } from '../../../tests/fixtures/blueprint-prototype.ts';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
+  createEntityServices,
   createFileServices,
   deriveIntegrity,
   deriveStores,
@@ -178,5 +179,27 @@ describe('blueprint file services', () => {
     await expect(files.remove(uploaded.id)).resolves.toBe(true);
     expect(await files.get(uploaded.id)).toBeUndefined();
     expect((await table(runtime, 'tickets').get('ticket_0001'))?.attachmentsIds).toEqual([]);
+  });
+
+  it('hard-deleting an entity removes its attachments and releases stored quota', async () => {
+    const runtime = await harness.boot('owner');
+    const files = createFileServices(runtime, blueprint, { prototypeQuotaBytes: 5 }).ticket!;
+    const file = await files.upload({
+      entity: 'ticket',
+      recordId: 'ticket_0001',
+      field: 'attachments',
+      file: new Blob(['quota'], { type: 'text/plain' }),
+    });
+    expect((await table(runtime, 'files').toArray()).map((row) => row.id)).toContain(file.id);
+    await createEntityServices(runtime, blueprint).ticket!.remove('ticket_0001');
+    expect(await table(runtime, 'files').toArray()).toEqual([]);
+    await expect(
+      files.upload({
+        entity: 'ticket',
+        recordId: 'ticket_0002',
+        field: 'attachments',
+        file: new Blob(['quota'], { type: 'text/plain' }),
+      })
+    ).resolves.toMatchObject({ size: 5 });
   });
 });
