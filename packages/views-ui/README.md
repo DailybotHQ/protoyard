@@ -607,7 +607,6 @@ engine.
   onEdit={(c, body) => services.editComment(c.id, body)}
   onDelete={(c) => services.deleteComment(c.id)}
   onReact={(c, emoji) => services.toggleReaction(c.id, emoji)}
-  loadEditor={() => import('@protoyard/views-ui/editor').then((m) => m.MarkdownEditor)}
 />
 
 <ActivityFeed
@@ -624,7 +623,8 @@ comments as `kind: 'comment'` items with their `body`).
     of replies. A comment that was deleted but still has replies shows as a
     note.
   - **Names and avatars:** names, avatars and `#` references are resolved
-    from ids when shown. Bodies render as plain text segments, never HTML.
+    from ids when shown. Stored bodies use the editor view's lazy
+    `MarkdownPreview`; rendering creates elements and text, never HTML.
   - **Composer:** `@` and `#` typed in the composer are stored as id tokens.
     Saving a comment, a reply or an edit goes through the callback in
     `runService`. A new comment shows at once as "Sending…" (with
@@ -636,10 +636,10 @@ comments as `kind: 'comment'` items with their `body`).
     first, and the dialog stays open with the error if deleting fails.
   - **Reactions:** chips with counts and `aria-pressed` for your own, plus a
     React picker. Each toggle goes through `onReact`.
-  - **Rich editor:** pass `loadEditor` to fetch the editor view's
-    `MarkdownEditor` when a composer opens. It is a separate chunk, and the
-    activity view never imports another view's folder (see Bundle hygiene).
-    Without it, or while it loads, a plain textarea is used: ⌘/Ctrl+Enter
+  - **Rich editor:** the `MarkdownEditor` is loaded from the editor view when
+    a composer opens. Override its loader with `loadEditor` when needed. It is
+    a separate chunk; activity has no static dependency on another view.
+    While it loads, a plain textarea is used: ⌘/Ctrl+Enter
     sends, and Escape cancels a reply or an edit.
 - **ActivityFeed:**
   - **Items:** newest first, under day headings ("Today", "Yesterday",
@@ -658,6 +658,46 @@ comments as `kind: 'comment'` items with their `body`).
   - `ActivityFeed`: 5.5 KB with the engine, 4.5 KB without.
   - The whole subpath: 9.7 KB.
   - The editor, when loaded, is its own chunk.
+
+## Notifications (`@protoyard/views-ui/notifications`)
+
+`NotificationCenter` accepts rows such as `NotificationRow` from
+`@protoyard/views/scenarios` or blueprint notification-service rows (`id`, `kind`, `title`, `subjectId`,
+`createdAt`/`at`, and `readAt`). Pass live query results and service callbacks;
+the component owns only temporary optimistic state. At narrow widths it opens
+in a bottom sheet, otherwise in a popover. A custom `trigger` snippet can use
+an app's bell button. Opening a row calls the hash router with `hrefFor(row)`;
+the default route is `/<subjectId>`.
+
+```svelte
+{#snippet bellTrigger({ props })}
+  <Button {...props} variant="ghost" size="icon" aria-label="Notifications">
+    <Bell aria-hidden="true" />
+  </Button>
+{/snippet}
+
+<NotificationCenter
+  trigger={bellTrigger}
+  query={notifications}
+  onMarkRead={(id) => services.notifications.markRead(id)}
+  onMarkAllRead={() => services.notifications.markAllRead()}
+  hrefFor={(row) => `/tasks/${row.subjectId}`}
+/>
+```
+
+Pass `onMuteChange` when the prototype has a per-type preference service; its
+callback receives the notification kind and the requested muted state.
+
+- **Size:** 3.24 KB gzip-9 for the minified Svelte client component, with
+  Svelte, Protoyard packages, Lucide and Bits UI external. Import this subpath
+  from a lazy route so the panel stays out of initial JavaScript.
+
+Replace the `<NotificationsBell>` instance with `NotificationCenter`, move its
+existing bell button markup into the `trigger` snippet, and pass the prototype's
+live query and service callbacks. For comment mentions, call
+`mentionedIds(body)` in the comment service and write one notification row per
+mentioned recipient in the same transaction as the comment. The task-manager
+template demonstrates this with actor filtering and recipient-scoped reads.
 
 ## Files (`@protoyard/views-ui/files`)
 

@@ -93,7 +93,7 @@ A blueprint is strict: an unknown key anywhere fails validation.
 | `roles` | yes | One or more roles with permissions. |
 | `notifications` | no | Notification rules. |
 | `screens` | no | Screen hints (`list`, `detail`, `form`, `board`, `dashboard`). |
-| `brand` | no | A seed color or preset that `generate` turns into a WCAG AA theme. |
+| `brand` | no | A seed color or preset that `generate` turns into a WCAG AA theme, or a `libraryTheme` id it uses as-is. |
 | `catalog`, `tags`, `icon`, `category` | no | Catalog metadata for files under `blueprints/`. |
 | `history` | no | Written by `generate`; never edit it by hand (see [Migrations](#regeneration-and-migrations)). |
 
@@ -244,7 +244,10 @@ this is still a simulation, not security. The crud-app scenarios use the roles
 - `brand`: a `seed` color (`#rrggbb`) and/or a built-in `preset`, plus optional
   `secondary`, `styleProfile`, `font`, `radius` and `density`. `generate`
   writes a hash-headed `src/generated/brand-theme.ts`, registers it and sets
-  `defaultTheme`. Contrast failures exit 4.
+  `defaultTheme`. Contrast failures exit 4. Or `libraryTheme`, a theme
+  library id (alone: no seed, preset or style fields): `generate` only sets
+  `defaultTheme` to it, with no theme module; an unknown id exits 4 with the
+  closest ids ([THEMES](THEMES.md#the-blueprint-brand-block)).
 - `catalog`, `tags`, `icon`, `category`: shelf metadata. Files under
   `blueprints/` that set both `brand` and `catalog` are indexed as
   `kind: blueprint` (`pnpm protoyard list --kind blueprint`).

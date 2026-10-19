@@ -5,7 +5,7 @@ import type {
   Persona,
   WorldSeed,
 } from '@protoyard/core';
-import { CATALOG_IDS } from '../catalog/entries.ts';
+import { FAVORITE_CANDIDATE_IDS } from '../catalog/entries.ts';
 import type { Favorite } from '../database/schema.ts';
 
 const PEOPLE = [
@@ -67,13 +67,13 @@ export function generateUiKitWorld(ctx: GenerateContext): WorldSeed {
 
   const count = Math.max(
     0,
-    Math.min(CATALOG_IDS.length, Number(scenario.generators.favorites ?? 0) || 0)
+    Math.min(FAVORITE_CANDIDATE_IDS.length, Number(scenario.generators.favorites ?? 0) || 0)
   );
   const span = Math.max(1, scenario.organization.ageDays);
   const favorites: Favorite[] = [];
   for (const [i, person] of PEOPLE.entries()) {
     const rng = ctx.rng.fork(`favorites:${person.id}`);
-    const picks = rng.sample(CATALOG_IDS, i === 0 ? count : Math.floor(count / 2));
+    const picks = rng.sample(FAVORITE_CANDIDATE_IDS, i === 0 ? count : Math.floor(count / 2));
     for (const entryId of picks) {
       favorites.push({
         id: ctx.ids.next('fav'),

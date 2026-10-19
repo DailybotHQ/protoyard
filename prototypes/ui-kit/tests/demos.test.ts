@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CATALOG_IDS } from '../src/catalog/entries.ts';
 import { DEMOS } from '../src/catalog/registry.ts';
 import FormsPage from '../src/screens/FormsPage.svelte';
@@ -11,9 +11,12 @@ describe('catalog registry', () => {
     expect(Object.keys(DEMOS).sort()).toEqual([...CATALOG_IDS].sort());
   });
 
-  it.each(Object.keys(DEMOS))('%s has a snippet importing @protoyard/ui and a11y notes', (id) => {
+  it.each(Object.keys(DEMOS))('%s has a snippet importing the kit and a11y notes', (id) => {
     const demo = DEMOS[id];
-    expect(demo?.snippet).toContain("from '@protoyard/ui'");
+    // Chart entries import their family subpath; the states snippet shows chart props only.
+    if (id.startsWith('chart-')) {
+      if (id !== 'chart-states') expect(demo?.snippet).toContain("from '@protoyard/charts-ui/");
+    } else expect(demo?.snippet).toContain("from '@protoyard/ui'");
     expect((demo?.a11y?.length ?? 0) > 0).toBe(true);
   });
 });
@@ -57,5 +60,56 @@ describe('forms page', () => {
     // The slug follows the name until edited manually, so its error clears too.
     expect(screen.queryByText('URL slug is required.')).toBeNull();
     expect(screen.getByText('Owner email is required.')).toBeTruthy();
+  });
+});
+
+describe('chart demos', () => {
+  // happy-dom has no layout: give chart frames a width so they draw their plots.
+  class FixedWidthObserver {
+    callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(target: Element) {
+      this.callback(
+        [{ target, contentRect: { width: 640, height: 260 } } as unknown as ResizeObserverEntry],
+        this as unknown as ResizeObserver
+      );
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+  beforeEach(() => vi.stubGlobal('ResizeObserver', FixedWidthObserver));
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('stress demo draws 10k deterministic points and switches between SVG and Canvas', async () => {
+    const demo = DEMOS['chart-stress'];
+    if (!demo) throw new Error('missing chart-stress demo');
+    render(await demo.load(), {});
+    expect(screen.getByText(/10,000 points per chart · seed 20261019/)).toBeTruthy();
+    const svg = screen.getByRole('button', { name: 'SVG' });
+    await fireEvent.click(svg);
+    expect(svg.getAttribute('aria-pressed')).toBe('true');
+    // SVG mode draws a downsampled path; Canvas mode hands pixels to a decorative canvas.
+    expect(document.querySelector('path[data-line]')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Canvas' }));
+    expect(screen.getByRole('button', { name: 'Canvas' }).getAttribute('aria-pressed')).toBe(
+      'true'
+    );
+  });
+
+  it('states demo switches a chart to its error state and recovers on retry', async () => {
+    const demo = DEMOS['chart-states'];
+    if (!demo) throw new Error('missing chart-states demo');
+    render(await demo.load(), {});
+    await fireEvent.click(screen.getByRole('button', { name: 'Error' }));
+    const retry = screen.getAllByRole('button', { name: /retry/i })[0] as HTMLElement;
+    expect(
+      screen.getAllByText('The orders service did not answer (simulated).').length
+    ).toBeGreaterThan(0);
+    await fireEvent.click(retry);
+    expect(
+      await screen.findByRole('group', { name: /^Orders this week/ }, { timeout: 3000 })
+    ).toBeTruthy();
   });
 });

@@ -205,7 +205,10 @@ export const ARTIFACT_PAGE_STYLE = [
 const SERVICE_WORKER = /\bserviceWorker\s*\.\s*register\s*\(/;
 
 /** Turns a build's `index.html` into Artifact page content, checking every reference. */
-export function transformPage(indexHtml: string): TransformedPage {
+export function transformPage(
+  indexHtml: string,
+  options: { allowStaticPage?: boolean } = {}
+): TransformedPage {
   const issues: PackIssue[] = [];
   const warnings: string[] = [];
   const references: string[] = [];
@@ -323,7 +326,7 @@ export function transformPage(indexHtml: string): TransformedPage {
     }
   }
 
-  if (!modules.some((tag) => /type="module"/.test(tag))) {
+  if (!options.allowStaticPage && !modules.some((tag) => /type="module"/.test(tag))) {
     issue('index.html loads no module script; the prototype entry is missing');
   }
 
@@ -567,6 +570,8 @@ export interface PackArtifactOptions {
   manifest: { id: string; name: string; description?: string; category?: string };
   capabilities?: Record<string, unknown> | null;
   allowSourceMaps?: boolean;
+  /** A deliberate static HTML page, such as the pre-rendered gallery index. */
+  allowStaticPage?: boolean;
   /** Check only; write nothing. */
   dryRun?: boolean;
 }
@@ -620,7 +625,9 @@ export async function packArtifact(options: PackArtifactOptions): Promise<PackAr
   }
 
   const digests: FileDigest[] = await digestDirectory(distDir);
-  const transformed = transformPage(await readFile(indexPath, 'utf8'));
+  const transformed = transformPage(await readFile(indexPath, 'utf8'), {
+    allowStaticPage: options.allowStaticPage,
+  });
   const issues: PackIssue[] = [...transformed.issues];
   const warnings: string[] = [...transformed.warnings];
   const files: ArtifactPackFile[] = [];

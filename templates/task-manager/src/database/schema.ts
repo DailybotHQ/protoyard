@@ -87,11 +87,22 @@ export type Activity = {
   at: string;
 };
 
+export type Notification = {
+  id: string;
+  personaId: string;
+  kind: 'mention';
+  title: string;
+  subjectId: string;
+  createdAt: string;
+  readAt: string | null;
+};
+
 export type TaskDatabase = Dexie & {
   projects: EntityTable<Project, 'id'>;
   tasks: EntityTable<Task, 'id'>;
   comments: EntityTable<Comment, 'id'>;
   activity: EntityTable<Activity, 'id'>;
+  notifications: EntityTable<Notification, 'id'>;
 };
 
 export const database: DatabaseDefinition = {
@@ -104,6 +115,17 @@ export const database: DatabaseDefinition = {
           'id, projectId, status, assigneeId, reporterId, dueDate, priority, *labels, updatedAt',
         comments: 'id, taskId, authorId, createdAt',
         activity: 'id, taskId, projectId, actorId, at',
+      },
+    },
+    {
+      version: 2,
+      stores: {
+        projects: 'id, name, ownerId, createdAt',
+        tasks:
+          'id, projectId, status, assigneeId, reporterId, dueDate, priority, *labels, updatedAt',
+        comments: 'id, taskId, authorId, createdAt',
+        activity: 'id, taskId, projectId, actorId, at',
+        notifications: 'id, personaId, kind, subjectId, createdAt, readAt, [personaId+readAt]',
       },
     },
   ],

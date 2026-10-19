@@ -45,7 +45,9 @@ optional `screens` and optional `brand`. Every object is strict, so unknown keys
   `mono`), `font` (catalog id), `radius`, `density`, `id` and `name`.
   `pnpm protoyard generate` turns brand into a WCAG AA theme (`resolveBlueprintBrand`), writes
   hash-headed `src/generated/brand-theme.ts`, registers it on the prototype, and sets
-  `defaultTheme`. Without `brand`, the template default theme is kept.
+  `defaultTheme`. `libraryTheme` (a theme library id, exclusive with every other theme field)
+  skips the module: `defaultTheme` becomes the library id, checked by `brandLibraryThemeId`.
+  Without `brand`, the template default theme is kept.
 - **Catalog (optional):** the same `catalog` block as a prototype manifest, plus optional
   `tags`, `icon` and `category`. Files under `blueprints/<slug>.json` that set **both**
   `brand` and `catalog` are indexed by `protoyard index` as `kind: blueprint` (see

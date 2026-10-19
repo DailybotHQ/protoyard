@@ -545,7 +545,20 @@ persona preference or a DevTools override. The resolved theme is validated,
 registered once and applied like any other theme. The no-flash cache then
 replays it before the next boot, and a stored override keeps it across
 reloads. An id the library does not know falls back visibly to the manifest
-default. The gallery's Themes page (`apps/gallery/src/pages/themes.astro`),
+default.
+
+The same ids work declaratively: `"defaultTheme": "fintech-ledger"` in
+`protoyard.json`, `appearance: { themeId: 'health-clinic' }` in a scenario,
+or `"brand": { "libraryTheme": "fintech-ledger" }` in a blueprint (below).
+The manifest schema accepts any kebab-case theme id (`ThemeIdRefSchema` in
+`packages/core/src/manifest.ts`), and `pnpm protoyard validate <slug>` runs a
+**Theme ids** check: `defaultTheme` and every scenario `appearance.themeId`
+must be a built-in preset, one of the prototype's own `themes` or a library
+id. An unknown id is a warning that names the closest known ids
+(`defaultTheme: unknown theme "fintech-ledgr"; closest: fintech-ledger, …`),
+because the runtime falls back instead of failing.
+
+The gallery's Themes page (`apps/gallery/src/pages/themes.astro`),
 the UI Kit prototype's Theme Lab and the CLI list them too.
 
 **DevTools → Look → Theme** is a theme browser
@@ -627,6 +640,7 @@ A blueprint for `pnpm protoyard generate` can carry an optional `brand`
 | `font` | a `FONT_CATALOG` id (overrides the profile's font) |
 | `radius`, `density` | a CSS length; 0.75–1.25 (override the profile's values) |
 | `id`, `name` | theme id and display name; both default from the brand or blueprint name (`Acme Teal` → `acme-teal`) |
+| `libraryTheme` | a theme library id (`fintech-ledger`, …), used as-is; cannot be combined with `id`, `seed`, `secondary`, `preset`, `styleProfile`, `font`, `radius` or `density` |
 
 ```json
 {
@@ -655,6 +669,17 @@ $ pnpm protoyard generate acme-desk --blueprint ./acme-desk.blueprint.json --dry
   emitted   src/prototype.ts
   …
 ```
+
+With `"brand": { "libraryTheme": "fintech-ledger" }`, `generate` writes no
+theme module and keeps the template's `src/prototype.ts`: it only sets
+`"defaultTheme": "fintech-ledger"`, and the renderer loads the library theme
+on demand (its contrast is covered by the library's own tests). The id is
+checked against `THEME_LIBRARY_META` by `generate` and
+`pnpm protoyard blueprint validate`; an unknown id fails with exit 4 and the
+closest ids. The check lives in `brandLibraryThemeId`
+(`packages/blueprint/src/brand.ts`), not the zod schema, because
+`parseBlueprint` runs inside generated prototypes and the library stays out
+of their initial chunk.
 
 Without `brand`, the template's default theme is kept.
 

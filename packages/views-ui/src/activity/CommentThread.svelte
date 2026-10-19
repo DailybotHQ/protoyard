@@ -2,6 +2,8 @@
 import { runService } from '@protoyard/renderer-svelte';
 import { AlertDialog, Avatar, Button, Spinner } from '@protoyard/ui';
 import { type ActivityComment, buildThreads, tokenize, whenLabel } from '@protoyard/views/activity';
+import type { Component } from 'svelte';
+import { onMount } from 'svelte';
 import QueryState from '../states/QueryState.svelte';
 import Composer from './Composer.svelte';
 import Segments from './Segments.svelte';
@@ -63,12 +65,46 @@ let {
   onRetry?: () => void | Promise<void>;
 } = $props();
 
+const defaultEditorLoader: EditorLoader = () =>
+  import('@protoyard/views-ui/editor').then((module) => module.MarkdownEditor);
+const effectiveLoadEditor = $derived(loadEditor ?? defaultEditorLoader);
+let MarkdownPreview = $state<Component<{
+  source: string;
+  label?: string;
+  class?: string;
+  onLinkClick?: (href: string) => boolean;
+}> | null>(null);
+onMount(() => {
+  void import('@protoyard/views-ui/editor').then((module) => {
+    MarkdownPreview = module.MarkdownPreview;
+  });
+});
+
 const byId = $derived(new Map(people.map((p) => [p.id, p])));
 const recordById = $derived(new Map(records.map((r) => [r.id, r])));
 const lookups = $derived({
   person: (id: string) => byId.get(id)?.name,
   record: (id: string) => recordById.get(id)?.label,
 });
+function markdownBody(body: string): string {
+  return tokenize(body, lookups)
+    .map((segment) => {
+      if (segment.type === 'text') return segment.text;
+      if (segment.type === 'mention') return `@${segment.label}`;
+      if (segment.type === 'reference' && onOpenReference && !segment.missing) {
+        const label = `#${segment.label.replace(/[\\[\]]/g, '\\$&')}`;
+        return `[${label}](#/__reference/${encodeURIComponent(segment.id)})`;
+      }
+      return `#${segment.label}`;
+    })
+    .join('');
+}
+const handleMarkdownLink = (href: string) => {
+  const prefix = '#/__reference/';
+  if (!href.startsWith(prefix) || !onOpenReference) return false;
+  onOpenReference(decodeURIComponent(href.slice(prefix.length)));
+  return true;
+};
 const mentions = $derived(people.map((p) => ({ id: p.id, value: handleOf(p), label: p.name })));
 const references = $derived(
   records.map((r) => ({ id: r.id, value: r.value ?? r.id, label: r.label }))
@@ -122,7 +158,7 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
           submitLabel="Save"
           {mentions}
           {references}
-          {loadEditor}
+          loadEditor={effectiveLoadEditor}
           autofocus
           onSubmit={async (body) => {
             await onEdit(comment, body);
@@ -131,7 +167,12 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
           onCancel={() => (editing = null)}
         />
       {:else}
-        <p class="text-sm break-words whitespace-pre-wrap"><Segments segments={tokenize(comment.body, lookups)} {onOpenReference} /></p>
+        {#if MarkdownPreview}
+          {@const source = markdownBody(comment.body)}
+          <MarkdownPreview {source} label="Comment" class="text-sm" onLinkClick={handleMarkdownLink} />
+        {:else}
+          <p class="text-sm break-words whitespace-pre-wrap"><Segments segments={tokenize(comment.body, lookups)} {onOpenReference} /></p>
+        {/if}
         <div class="mt-1 flex flex-wrap items-center gap-1">
           {#each Object.entries(comment.reactions ?? {}) as [emoji, ids] (emoji)}
             {#if ids.length}
@@ -194,7 +235,12 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
         <span class="font-medium">{me?.name ?? 'You'}</span>
         <span class="flex items-center gap-1 text-xs text-muted-foreground"><Spinner class="size-3" />Sending…</span>
       </p>
-      <p class="text-sm break-words whitespace-pre-wrap"><Segments segments={tokenize(body, lookups)} /></p>
+      {#if MarkdownPreview}
+        {@const source = markdownBody(body)}
+        <MarkdownPreview {source} label="Pending comment" class="text-sm" onLinkClick={handleMarkdownLink} />
+      {:else}
+        <p class="text-sm break-words whitespace-pre-wrap"><Segments segments={tokenize(body, lookups)} /></p>
+      {/if}
     </div>
   </article>
 {/snippet}
@@ -220,7 +266,7 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
                       submitLabel="Send reply"
                       {mentions}
                       {references}
-                      {loadEditor}
+                      loadEditor={effectiveLoadEditor}
                       autofocus
                       onSubmit={(body) => send(body, thread.comment.id)}
                       onCancel={() => (replyTo = null)}
@@ -233,7 +279,7 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
         {/each}
         {#each sending.filter((s) => s.parentId === null) as pending (pending.key)}<li>{@render pendingItem(pending.body)}</li>{/each}
       </ol>
-      <Composer label="Add a comment" {mentions} {references} {loadEditor} onSubmit={(body) => send(body, null)} />
+      <Composer label="Add a comment" {mentions} {references} loadEditor={effectiveLoadEditor} onSubmit={(body) => send(body, null)} />
     {/snippet}
   </QueryState>
 </section>

@@ -47,8 +47,10 @@ export {
 export {
   type BrandContrastFailure,
   BrandThemeError,
+  brandLibraryThemeId,
   brandThemeExportName,
   brandThemeId,
+  closestIds,
   emitBrandThemeModule,
   getStyleProfile,
   type ResolveBrandOptions,

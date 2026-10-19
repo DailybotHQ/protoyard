@@ -24,6 +24,7 @@ procedure. Discovery is local; no network service is consulted.
 | Command | File | Routes to | Does |
 | --- | --- | --- | --- |
 | `/new-prototype` | `.agents/commands/new-prototype.md` | `.agents/skills/create-prototype/SKILL.md` | Brief → `pnpm protoyard new` → domain, scenarios, UI, tests → validate → export |
+| `/share-artifact` | `.agents/commands/share-artifact.md` | `.agents/skills/share-as-artifact/SKILL.md` | Check an artifact pack, read every packed file, publish with approval through Claude's Artifact tool, and record its returned URL |
 
 The other repository skills have no alias command; invoke them by name
 (`/add-scenario`, `#add-entity`, "run validate-and-export") where the host

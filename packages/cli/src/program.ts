@@ -29,6 +29,8 @@ import {
   themeExportCommand,
   themeImportCommand,
   themeListCommand,
+  themeShowCommand,
+  themeUseCommand,
 } from './commands/theme.ts';
 import { validateCommand } from './commands/validate.ts';
 import { action, type RunnerEnv } from './lib/command.ts';
@@ -362,11 +364,27 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--ci-factor <n>', 'multiply the generateMs budget on slower CI runners (default 1)')
     .action(def('scenario bench', scenarioBenchCommand));
 
-  const theme = program.command('theme').description('create, list, export and import themes');
+  const theme = program
+    .command('theme')
+    .description('search, inspect, apply, create, export and import themes');
   theme
     .command('list')
-    .description('list built-in and library themes')
+    .description('list built-in and library themes, optionally filtered by collection or search')
+    .option('--collection <collection>', 'filter by library collection')
+    .option('--search <query>', 'search library theme names, ids, tags, moods and descriptions')
     .action(def('theme list', themeListCommand));
+  theme
+    .command('show')
+    .description('show a theme’s light and dark swatches and contrast checks')
+    .argument('<theme-id>', 'built-in or library theme id')
+    .action(def('theme show', themeShowCommand));
+  theme
+    .command('use')
+    .description('set a prototype manifest’s default theme to a built-in or library theme')
+    .argument('<slug>', 'prototype slug')
+    .argument('<theme-id>', 'built-in or library theme id')
+    .option('--dry-run', 'show the manifest change without writing')
+    .action(def('theme use', themeUseCommand));
   theme
     .command('create')
     .description('write a typed theme into a prototype from a seed or JSON file')
@@ -459,11 +477,21 @@ export function createProgram(env: RunnerEnv): Command {
       'ONE static site: the gallery and marketplace + a live demo of every prototype (<base>p/<slug>/app/) and template (<base>t/<name>/app/)'
     )
     .option('--out <dir>', 'output folder', 'artifacts/showcase')
+    .addOption(
+      new Option('--target <target>', 'site (default) or artifact pack').choices([
+        'site',
+        'artifact',
+      ])
+    )
     .option(
       '--allow-external-out',
       'permit an --out outside the workspace (must be new, empty or a previous showcase)'
     )
-    .option('--base <path>', 'absolute public base of the site', '/')
+    .option('--base <path>', 'absolute site base; artifact target requires ./')
+    .option(
+      '--slugs <list>',
+      'artifact target: only bundle these comma-separated prototype or template slugs'
+    )
     .option('--no-devtools', 'leave the DevTools panel out of the bundled prototypes')
     .option('--no-templates', 'leave the template demos out (prototypes only)')
     .option('--include-templates', 'accepted for older scripts: templates are bundled by default')
