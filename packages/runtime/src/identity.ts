@@ -51,7 +51,11 @@ export type MembershipInput = WithOptional<Membership, 'id' | 'joinedAt' | 'capa
 
 /** Operations available inside `identity.write(…)`, all in the same transaction. */
 export interface IdentityOps {
-  /** Validates with `PersonaSchema` (defaults filled) and inserts or replaces. */
+  /**
+   * Validates with `PersonaSchema` (defaults filled) and inserts or replaces.
+   * Every schema field is kept, including the optional `avatar`, so
+   * copy-and-patch writes (`{ ...persona, name }`) carry it along.
+   */
   putPersona(input: PersonaInput): Promise<Persona>;
   /** Validates with `OrganizationSchema` (defaults filled) and inserts or replaces. */
   putOrganization(input: OrganizationInput): Promise<Organization>;

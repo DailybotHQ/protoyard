@@ -45,11 +45,45 @@ export type Organization = Omit<ParsedOrganization, OrganizationBillingField> &
   Partial<Pick<ParsedOrganization, OrganizationBillingField>>;
 export type BillingInterval = NonNullable<ParsedOrganization['billingInterval']>;
 
+/**
+ * Library avatar id (`av-001`…). The shape lives here so core does not depend
+ * on `@protoyard/avatars`; the library decides which ids exist.
+ */
+export const PERSONA_AVATAR_ID_PATTERN = /^av-\d{3}$/;
+/** Longest accepted `persona.avatar` (characters). */
+export const PERSONA_AVATAR_MAX_LENGTH = 2048;
+/** `https://host[:port]` followed by nothing or a path, query or fragment; no credentials. */
+const HTTPS_AVATAR_PATTERN = /^https:\/\/[A-Za-z0-9.-]+(?::\d{1,5})?(?:[/?#][^\s\\]*)?$/;
+/** Root-relative path: one `/`, never `//host` or `/\host` (both resolve off-origin). */
+const ROOT_RELATIVE_AVATAR_PATTERN = /^\/(?![/\\])[^\s\\]*$/;
+
+/**
+ * True when `value` is a safe `persona.avatar`: a library id (`av-NNN`), an
+ * `https://` URL or a root-relative path, at most 2048 characters. Anything
+ * else (`javascript:`, `data:`, `http:`, `//host`, credentials, whitespace) is
+ * rejected. Renderers should re-check rows that came from snapshots.
+ */
+export function isPersonaAvatar(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length > PERSONA_AVATAR_MAX_LENGTH) return false;
+  return (
+    PERSONA_AVATAR_ID_PATTERN.test(value) ||
+    HTTPS_AVATAR_PATTERN.test(value) ||
+    ROOT_RELATIVE_AVATAR_PATTERN.test(value)
+  );
+}
+
+export const PersonaAvatarSchema = z
+  .string()
+  .max(PERSONA_AVATAR_MAX_LENGTH, 'Avatar must be at most 2048 characters')
+  .refine(isPersonaAvatar, 'Use an avatar id (av-001), an https:// URL or a /path');
+
 export const PersonaSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   email: z.string().optional(),
   avatarColor: z.string().optional(),
+  /** Optional portrait: a library id (`av-042`), an `https://` URL or a root-relative path. */
+  avatar: PersonaAvatarSchema.optional(),
   title: z.string().optional(),
   locale: z.string().default('en-US'),
   timezone: z.string().default('UTC'),

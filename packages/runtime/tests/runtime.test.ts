@@ -1237,6 +1237,67 @@ describe('runtime identity writes', () => {
     expect(runtime.session.principal()?.persona.id).toBe(persona.id);
   });
 
+  it('keeps an optional persona avatar through writes, copies, reloads and snapshots', async () => {
+    const store = backend();
+    const runtime = await start(createTasksDefinition(), store);
+    await runtime.scenarios.ensureSeeded();
+    const created = await runtime.identity.write((ops) =>
+      ops.putPersona({ name: 'Ada Avatar', avatar: 'av-042', avatarColor: '#336699' })
+    );
+    expect(created).toMatchObject({ avatar: 'av-042', avatarColor: '#336699' });
+    expect(runtime.session.personas().find((p) => p.id === created.id)?.avatar).toBe('av-042');
+
+    // Copy-and-patch writes (profile edits, onboarding) carry the field along.
+    const renamed = await runtime.identity.write((ops) =>
+      ops.putPersona({ ...created, name: 'Ada Renamed' })
+    );
+    expect(renamed.avatar).toBe('av-042');
+    const swapped = await runtime.identity.write((ops) =>
+      ops.putPersona({ ...renamed, avatar: '/avatars/ada.webp' })
+    );
+    expect(swapped.avatar).toBe('/avatars/ada.webp');
+
+    const saved = await runtime.snapshots.save({ name: 'With avatar' });
+    const { json } = await runtime.snapshots.exportJson(saved.id);
+    await runtime.identity.write((ops) =>
+      ops.putPersona({ ...swapped, avatar: 'https://images.example.com/ada.webp' })
+    );
+    await runtime.snapshots.restore(saved.id);
+    expect(runtime.session.personas().find((p) => p.id === created.id)?.avatar).toBe(
+      '/avatars/ada.webp'
+    );
+    await runtime.scenarios.load('active-month');
+    await runtime.snapshots.importJson(json, { restore: true });
+    expect(runtime.session.personas().find((p) => p.id === created.id)?.avatar).toBe(
+      '/avatars/ada.webp'
+    );
+    runtime.close();
+
+    const reopened = await start(createTasksDefinition(), store);
+    await reopened.scenarios.ensureSeeded();
+    expect(reopened.session.personas().find((p) => p.id === created.id)?.avatar).toBe(
+      '/avatars/ada.webp'
+    );
+    reopened.close();
+  });
+
+  it('rejects an unsafe persona avatar before writing anything', async () => {
+    const runtime = await start(createTasksDefinition(), backend());
+    await runtime.scenarios.ensureSeeded();
+    const before = await dumpTables(runtime.db);
+    for (const avatar of [
+      'javascript:alert(1)',
+      'data:image/png;base64,AAAA',
+      '//x.example.com/a',
+    ]) {
+      const write = runtime.identity.write((ops) => ops.putPersona({ name: 'Unsafe', avatar }));
+      await expect(write).rejects.toBeInstanceOf(IdentityValidationError);
+      await expect(write).rejects.toMatchObject({ issues: { avatar: expect.any(String) } });
+    }
+    expect(await dumpTables(runtime.db)).toEqual(before);
+    runtime.close();
+  });
+
   it('validates before writing and rolls back the whole transaction on failure', async () => {
     const runtime = await start(createTasksDefinition(), backend());
     await runtime.scenarios.ensureSeeded();
