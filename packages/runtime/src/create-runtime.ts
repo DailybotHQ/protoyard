@@ -1,5 +1,6 @@
 import {
   type DataInspector,
+  type PendingTracker,
   type PrototypeDefinition,
   type PrototypeRuntime,
   SANDBOX_PATTERN,
@@ -25,6 +26,8 @@ export const MAX_INSPECTOR_PAGE = 500;
 
 /** The runtime returned by `createPrototypeRuntime`: the core contract plus a few extras. */
 export interface ProtoyardRuntime extends PrototypeRuntime<PrototypeDatabase> {
+  /** Operations in flight; always present on this runtime. */
+  readonly pending: PendingTracker;
   readonly scenarios: PrototypeRuntime['scenarios'] & ScenarioControllerExtras;
   readonly snapshots: PrototypeRuntime['snapshots'] & SnapshotControllerExtras;
   /** Runtime-created personas, organizations and memberships (sign-up, invites, workspaces). */
@@ -121,6 +124,7 @@ export async function createPrototypeRuntime(
     overrides: createOverrideController(kernel),
     policy: kernel.policy,
     data: createInspector(kernel),
+    pending: kernel.pending,
     storage: () => ({ ...kernel.status }),
     environmentState: () => kernel.env.get(),
     get closed() {

@@ -311,11 +311,13 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
     lastWarnings: () => warnings,
 
     restore: (id) =>
-      k.serial(async () => {
-        const snapshot = await k.control.getSnapshot(id);
-        if (!snapshot) throw new Error(`Snapshot "${id}" was not found.`);
-        await apply(snapshot);
-      }),
+      k.pending.track({ kind: 'snapshot', label: 'Restoring snapshot…' }, () =>
+        k.serial(async () => {
+          const snapshot = await k.control.getSnapshot(id);
+          if (!snapshot) throw new Error(`Snapshot "${id}" was not found.`);
+          await apply(snapshot);
+        })
+      ),
 
     remove: (id) => k.control.deleteSnapshot(id),
 
@@ -343,31 +345,38 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
     },
 
     importJson: (text, options = {}) =>
-      k.serial(async () => {
-        const { snapshot: parsed, warnings: found } = parse(text);
-        // A fresh id: importing the same file twice never overwrites a stored snapshot.
-        const snapshot: Snapshot = { ...parsed, id: createRuntimeId('snap') };
-        // Store the copy FIRST: if that fails (quota), nothing has changed yet. If
-        // the restore fails before the records change (restoreTables is atomic),
-        // drop the copy again so a rejected import leaves no trace. If it fails
-        // AFTER the records were replaced (control state, identity), keep the copy:
-        // the world already holds its rows and the stored copy is the way to retry.
-        await k.control.putSnapshot(snapshot);
-        if (options.restore) {
-          const progress = { tablesRestored: false };
-          try {
-            const notes = await apply(snapshot, progress);
-            warnings = [...new Set([...found, ...notes])];
-          } catch (error) {
-            if (!progress.tablesRestored) {
-              await k.control.deleteSnapshot(snapshot.id).catch(k.report);
+      k.pending.track(
+        {
+          kind: 'snapshot',
+          label: options.restore ? 'Restoring snapshot…' : 'Importing snapshot…',
+        },
+        () =>
+          k.serial(async () => {
+            const { snapshot: parsed, warnings: found } = parse(text);
+            // A fresh id: importing the same file twice never overwrites a stored snapshot.
+            const snapshot: Snapshot = { ...parsed, id: createRuntimeId('snap') };
+            // Store the copy FIRST: if that fails (quota), nothing has changed yet. If
+            // the restore fails before the records change (restoreTables is atomic),
+            // drop the copy again so a rejected import leaves no trace. If it fails
+            // AFTER the records were replaced (control state, identity), keep the copy:
+            // the world already holds its rows and the stored copy is the way to retry.
+            await k.control.putSnapshot(snapshot);
+            if (options.restore) {
+              const progress = { tablesRestored: false };
+              try {
+                const notes = await apply(snapshot, progress);
+                warnings = [...new Set([...found, ...notes])];
+              } catch (error) {
+                if (!progress.tablesRestored) {
+                  await k.control.deleteSnapshot(snapshot.id).catch(k.report);
+                }
+                throw error;
+              }
+            } else {
+              warnings = found;
             }
-            throw error;
-          }
-        } else {
-          warnings = found;
-        }
-        return summarize(snapshot);
-      }),
+            return summarize(snapshot);
+          })
+      ),
   };
 }

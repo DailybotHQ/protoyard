@@ -354,85 +354,96 @@ export function createScenarioController(
         }
       }),
 
-    load: (id, options) => k.serial(() => load(id, options)),
+    load: (id, options) =>
+      k.pending.track(
+        { kind: 'scenario', label: `Loading scenario “${byId(id)?.name ?? id}”…` },
+        () => k.serial(() => load(id, options))
+      ),
 
     reset: (options = {}) =>
-      k.serial(async () => {
-        const active = k.active;
-        if (!active) throw new Error('No active scenario to reset. Load one first.');
-        if (options.snapshotFirst) {
-          await saveSafetySnapshot(`Before resetting ${active.scenario.name}`);
-        }
-        // The stored scenario is used even if the code no longer lists it.
-        const scenario = byId(active.scenario.id) ?? active.scenario;
-        await loadScenario(scenario, active.seed, options);
-      }),
+      k.pending.track({ kind: 'scenario', label: 'Resetting scenario…' }, () =>
+        k.serial(async () => {
+          const active = k.active;
+          if (!active) throw new Error('No active scenario to reset. Load one first.');
+          if (options.snapshotFirst) {
+            await saveSafetySnapshot(`Before resetting ${active.scenario.name}`);
+          }
+          // The stored scenario is used even if the code no longer lists it.
+          const scenario = byId(active.scenario.id) ?? active.scenario;
+          await loadScenario(scenario, active.seed, options);
+        })
+      ),
 
     advance: (duration) =>
-      k.serial(async () => {
-        const active = k.active;
-        if (!active) throw new Error('No active scenario. Load one before advancing time.');
-        const ms = durationToMs(duration);
-        if (!(ms > 0)) throw new RangeError('advance(): duration must be positive');
+      k.pending.track({ kind: 'time', label: 'Advancing time…' }, () =>
+        k.serial(async () => {
+          const active = k.active;
+          if (!active) throw new Error('No active scenario. Load one before advancing time.');
+          const ms = durationToMs(duration);
+          if (!(ms > 0)) throw new RangeError('advance(): duration must be positive');
 
-        const fromMs = k.clock.committed().getTime();
-        const from = new Date(fromMs);
-        const to = new Date(fromMs + ms);
-        let applied = 0;
-        let skipped = 0;
+          const fromMs = k.clock.committed().getTime();
+          const from = new Date(fromMs);
+          const to = new Date(fromMs + ms);
+          let applied = 0;
+          let skipped = 0;
 
-        const timeline = k.definition.timeline;
-        if (timeline) {
-          const base = await createGenerateContextAsync(withSeed(active.scenario, active.seed));
-          const ctx: TimelineContext = {
-            ...base,
-            from,
-            to,
-            read: (table) => k.db.rows(table).toArray(),
-          };
-          const events = await timeline(ctx);
-          const unique = new Map<string, DomainEvent>();
-          for (const event of events) if (!unique.has(event.id)) unique.set(event.id, event);
-          const candidates = [...unique.values()];
-          const db = k.db;
-          await db.transaction('rw', [...db.allTables], async () => {
-            const seen = await db.table('py_events').bulkGet(candidates.map((e) => e.id));
-            const fresh = candidates.filter((_, i) => seen[i] === undefined);
-            skipped = candidates.length - fresh.length;
-            const apply = k.definition.applyEvent;
-            const ctxApply: EventApplyContext = {
-              put: async (table, row) => {
-                await db.rows(table).put(row);
-              },
-              get: (table, id) => db.rows(table).get(id) as Promise<Row | undefined>,
-              remove: (table, id) => db.rows(table).delete(id),
+          const timeline = k.definition.timeline;
+          if (timeline) {
+            const base = await createGenerateContextAsync(withSeed(active.scenario, active.seed));
+            const ctx: TimelineContext = {
+              ...base,
+              from,
+              to,
+              read: (table) => k.db.rows(table).toArray(),
             };
-            fresh.sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
-            for (const event of fresh) {
-              if (apply) await apply(event, ctxApply);
-              await db.table('py_events').add({ ...event, source: event.source ?? 'timeline' });
-            }
-            applied = fresh.length;
-          });
-        }
+            const events = await timeline(ctx);
+            const unique = new Map<string, DomainEvent>();
+            for (const event of events) if (!unique.has(event.id)) unique.set(event.id, event);
+            const candidates = [...unique.values()];
+            const db = k.db;
+            await db.transaction('rw', [...db.allTables], async () => {
+              const seen = await db.table('py_events').bulkGet(candidates.map((e) => e.id));
+              const fresh = candidates.filter((_, i) => seen[i] === undefined);
+              skipped = candidates.length - fresh.length;
+              const apply = k.definition.applyEvent;
+              const ctxApply: EventApplyContext = {
+                put: async (table, row) => {
+                  await db.rows(table).put(row);
+                },
+                get: (table, id) => db.rows(table).get(id) as Promise<Row | undefined>,
+                remove: (table, id) => db.rows(table).delete(id),
+              };
+              fresh.sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
+              for (const event of fresh) {
+                if (apply) await apply(event, ctxApply);
+                await db.table('py_events').add({ ...event, source: event.source ?? 'timeline' });
+              }
+              applied = fresh.length;
+            });
+          }
 
-        // Clock listeners (the UI) are still notified; only the duplicate
-        // persist is skipped because clock + checkpoint are written together.
-        k.setClockSilently({
-          ...k.clock.getState(),
-          committedOffsetMs: k.clock.getState().committedOffsetMs + ms,
-        });
-        const state = k.clock.getState();
-        await k.writeControl({
-          clock: state,
-          timelineCheckpoint: { committedOffsetMs: state.committedOffsetMs, at: to.toISOString() },
-        });
-        if (applied > 0) {
-          await k.reloadIdentity();
-          k.refreshDerived();
-        }
-        return { applied, skipped };
-      }),
+          // Clock listeners (the UI) are still notified; only the duplicate
+          // persist is skipped because clock + checkpoint are written together.
+          k.setClockSilently({
+            ...k.clock.getState(),
+            committedOffsetMs: k.clock.getState().committedOffsetMs + ms,
+          });
+          const state = k.clock.getState();
+          await k.writeControl({
+            clock: state,
+            timelineCheckpoint: {
+              committedOffsetMs: state.committedOffsetMs,
+              at: to.toISOString(),
+            },
+          });
+          if (applied > 0) {
+            await k.reloadIdentity();
+            k.refreshDerived();
+          }
+          return { applied, skipped };
+        })
+      ),
 
     subscribe: (listener) => k.events.scenario.subscribe(listener),
     progress: () => progress,
