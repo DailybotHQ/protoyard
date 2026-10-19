@@ -109,7 +109,7 @@ No vendor below has been chosen.
 | default theme | `ocean` |
 | storage namespace | `ai-chat-demo` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | no |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

@@ -38,20 +38,41 @@ function avatarColors(hex: string): { bg: string; fg: string } {
   return { bg: `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`, fg: '#ffffff' };
 }
 const colors = $derived(avatarColors(author.color));
+// The face that failed to load last: initials show instead, a new face retries.
+let failed = $state<string | null>(null);
+const photo = $derived(author.image.src !== undefined && failed !== author.image.src);
+const label = $derived(`${author.name}${author.kind === 'agent' ? ' (AI agent)' : ''}`);
 </script>
 
-<!-- Initials always reach 4.5:1 against their fill (see avatarColors). -->
-<span
-  class={[
-    'grid shrink-0 place-items-center font-semibold select-none',
-    size === 'sm' ? 'size-7 text-[0.65rem]' : 'size-9 text-xs',
-    author.kind === 'agent' ? 'rounded-lg' : 'rounded-full',
-  ]}
-  style:background-color={colors.bg}
-  style:color={colors.fg}
-  role={decorative ? undefined : 'img'}
-  aria-hidden={decorative ? 'true' : undefined}
-  aria-label={decorative ? undefined : `${author.name}${author.kind === 'agent' ? ' (AI agent)' : ''}`}
->
-  {initials}
-</span>
+{#if photo}
+  <img
+    src={author.image.src}
+    srcset={author.image.srcset}
+    alt={decorative ? '' : label}
+    aria-hidden={decorative ? 'true' : undefined}
+    width={size === 'sm' ? 28 : 36}
+    height={size === 'sm' ? 28 : 36}
+    loading="lazy"
+    decoding="async"
+    class={['shrink-0 rounded-full object-cover', size === 'sm' ? 'size-7' : 'size-9']}
+    style:background-color={colors.bg}
+    data-author-avatar=""
+    onerror={() => (failed = author.image.src ?? null)}
+  />
+{:else}
+  <!-- Initials always reach 4.5:1 against their fill (see avatarColors). -->
+  <span
+    class={[
+      'grid shrink-0 place-items-center font-semibold select-none',
+      size === 'sm' ? 'size-7 text-[0.65rem]' : 'size-9 text-xs',
+      author.kind === 'agent' ? 'rounded-lg' : 'rounded-full',
+    ]}
+    style:background-color={colors.bg}
+    style:color={colors.fg}
+    role={decorative ? undefined : 'img'}
+    aria-hidden={decorative ? 'true' : undefined}
+    aria-label={decorative ? undefined : label}
+  >
+    {initials}
+  </span>
+{/if}

@@ -7,12 +7,16 @@ import {
   type Row,
   type WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import type { Conversation, Message, Participant } from '../database/schema.ts';
 import { AGENTS, scriptedReply } from '../domain/agents.ts';
 import type { ChatGeneratorOptions } from './index.ts';
 
-/** Bump when generated output for the same seed changes. */
-export const CHAT_GENERATOR_VERSION = 1;
+/**
+ * Bump when generated output for the same seed changes.
+ * v2: personas carry library avatars (`av-NNN`), shown as photos.
+ */
+export const CHAT_GENERATOR_VERSION = 2;
 
 const PEOPLE = [
   { id: 'user_0001', name: 'Alex Rivera', title: 'Design lead', role: 'owner', color: '#0ea5e9' },
@@ -83,6 +87,8 @@ export function generateChatWorld(ctx: GenerateContext): WorldSeed {
     featureFlags: { agents: true, ...scenario.organization.featureFlags },
   };
 
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('ai-chat-demo:avatars:people'));
   const personas: Persona[] = [];
   const memberships: Membership[] = [];
   PEOPLE.forEach((person, index) => {
@@ -94,6 +100,7 @@ export function generateChatWorld(ctx: GenerateContext): WorldSeed {
     personas.push({
       id: person.id,
       name: person.name,
+      avatar: faces.next(),
       email: `${person.name.split(' ')[0]?.toLowerCase()}@brightpath.example`,
       avatarColor: person.color,
       title: person.title,

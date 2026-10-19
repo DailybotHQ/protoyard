@@ -1,5 +1,12 @@
 import type { Persona, PrototypeRuntime } from '@protoyard/core';
-import { getRuntime, type LiveQuery, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  type AvatarImage,
+  avatarImage,
+  getRuntime,
+  type LiveQuery,
+  liveQuery,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import Dexie from 'dexie';
 import { getContext, setContext } from 'svelte';
 import type { Agent, ChatDatabase, Conversation } from '../database/schema.ts';
@@ -103,13 +110,22 @@ export interface Author {
   color: string;
   kind: 'person' | 'agent';
   subtitle: string;
+  /** The person's face (`{}` for agents or when there is none: initials show). */
+  image: AvatarImage;
 }
 
 /** Display info for any author id, with a graceful fallback for removed people. */
 export function authorOf(directory: Directory | undefined, id: string): Author {
   const agent = directory?.agents.get(id);
   if (agent)
-    return { id, name: agent.name, color: agent.color, kind: 'agent', subtitle: 'AI agent' };
+    return {
+      id,
+      name: agent.name,
+      color: agent.color,
+      kind: 'agent',
+      subtitle: 'AI agent',
+      image: {},
+    };
   const person = directory?.people.get(id);
   return {
     id,
@@ -117,5 +133,6 @@ export function authorOf(directory: Directory | undefined, id: string): Author {
     color: person?.avatarColor ?? '#64748b',
     kind: 'person',
     subtitle: person?.title ?? '',
+    image: avatarImage(person?.avatar),
   };
 }
