@@ -29,7 +29,9 @@ import {
   type Scenario,
   type SimulationClock,
   type SimulationEnvironment,
+  STYLE_OVERRIDE_KEYS,
   type StorageStatus,
+  type StyleOverrideKey,
   type Theme,
   ThemeSchema,
 } from '@protoyard/core';
@@ -479,6 +481,7 @@ function computeAppearance(
       { override: o.density },
       k.themes.find((t) => t.id === theme.value)?.density ?? 1
     ),
+    ...computeStyle(scenario, o),
     viewport: resolveEffective(
       { override: o.viewport, scenario: scenario.viewport },
       manifest.preview.viewport
@@ -486,6 +489,19 @@ function computeAppearance(
     ...computeShell(manifest, scenario, o),
     layout: computeLayout(manifest, scenario, o),
   };
+}
+
+/** Style presets resolve override › scenario; `null` keeps the theme's own value. */
+function computeStyle(
+  scenario: Scenario['appearance'],
+  o: Overrides
+): Pick<AppearanceState, StyleOverrideKey> {
+  return Object.fromEntries(
+    STYLE_OVERRIDE_KEYS.map((key) => [
+      key,
+      resolveEffective({ override: o[key], scenario: scenario[key] }, null),
+    ])
+  );
 }
 
 /**

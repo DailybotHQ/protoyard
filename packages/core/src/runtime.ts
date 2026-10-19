@@ -16,7 +16,13 @@ import type { PrototypeDefinition } from './prototype.ts';
 import type { Scenario } from './scenario.ts';
 import type { Membership, Organization, PermissionPolicy, Persona, Principal } from './session.ts';
 import type { Snapshot, SnapshotSummary } from './snapshot.ts';
-import type { Theme } from './theme.ts';
+import type {
+  ElevationStyle,
+  FontPairingId,
+  MotionPresetId,
+  RadiusPresetId,
+  Theme,
+} from './theme.ts';
 
 /**
  * Framework-agnostic runtime contract. `@protoyard/runtime` implements it;
@@ -224,6 +230,16 @@ export interface AppearanceState {
   reducedMotion: Effective<boolean>;
   /** Spacing multiplier: override, else the active theme's `density`. */
   density: Effective<number>;
+  /**
+   * Style presets layered on the effective theme: override › scenario. `null`
+   * (source `default`) keeps the theme's own value. Renderers merge them into
+   * the theme with `applyStylePresets` from `@protoyard/themes`. `@protoyard/runtime`
+   * always sets them; they are optional so older runtimes and test fakes stay valid.
+   */
+  radius?: Effective<RadiusPresetId | null>;
+  elevation?: Effective<ElevationStyle | null>;
+  font?: Effective<FontPairingId | null>;
+  motion?: Effective<MotionPresetId | null>;
   viewport: Effective<ViewportPreset>;
   /**
    * Presentation shell (ADR-016): override › scenario › `preview.shell`, with
@@ -272,6 +288,10 @@ export interface ThemeController {
     mode?: ColorMode;
     reducedMotion?: boolean;
     density?: number;
+    radius?: RadiusPresetId;
+    elevation?: ElevationStyle;
+    font?: FontPairingId;
+    motion?: MotionPresetId;
     viewport?: ViewportPreset;
     shell?: Shell;
     device?: DeviceId;

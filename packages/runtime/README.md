@@ -103,6 +103,11 @@ and full numbers are in `docs/PERFORMANCE.md`.
   falls back to the manifest layout with source `default`. `setOverride({ layout })` persists
   in the control DB only, and `?layout=` applies as an override only when the prototype offers
   that layout.
+  The style presets `radius`, `elevation`, `font` and `motion` resolve override → scenario
+  `appearance` → the theme's own value (`{ value: null, source: 'default' }`).
+  `setOverride({ radius: 'round' })` accepts preset ids only (`OverridesSchema`), persists in
+  the control DB only and is cleared by `clearOverride()`; the renderer merges them on top of
+  the theme (`applyStylePresets` from `@protoyard/themes`).
   **Custom themes** (the DevTools Theme Studio): `saveCustom(theme)`, `removeCustom(id)`,
   `customThemes()`, `isCustom(id)`, `exportTheme(id)` (JSON with `format:
   "protoyard-theme/v1"`) and `importTheme(json)`. They are stored in the control DB

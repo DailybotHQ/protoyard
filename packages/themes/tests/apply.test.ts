@@ -1,17 +1,31 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { defineTheme, tokenToCssVar } from '@protoyard/core';
+import {
+  defineTheme,
+  ELEVATION_STYLES,
+  FONT_PAIRING_IDS,
+  MOTION_PRESET_IDS,
+  RADIUS_PRESET_IDS,
+  tokenToCssVar,
+} from '@protoyard/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   appearanceCacheKey,
   applyAppearance,
+  applyStylePresets,
   BUILTIN_THEMES,
   cacheAppearance,
   clearAppearance,
+  ELEVATION_PRESETS,
+  FONT_CATALOG,
+  FONT_PRESETS,
+  getFontPairing,
   getTheme,
+  MOTION_PRESETS,
   mergeThemes,
   noFlashScript,
   oceanTheme,
+  RADIUS_PRESETS,
   readCachedAppearance,
   resolveMode,
   themeVariables,
@@ -195,6 +209,87 @@ describe('no-flash cache', () => {
     new Function(noFlashScript('x'))();
     expect(root.style.getPropertyValue('color')).toBe('');
     expect(root.style.getPropertyValue('--py-primary')).toBe('#123456');
+  });
+});
+
+describe('style preset overrides', () => {
+  beforeEach(resetRoot);
+  afterEach(resetRoot);
+
+  it('keeps the core override ids in sync with the theme presets', () => {
+    expect(RADIUS_PRESET_IDS).toEqual(RADIUS_PRESETS.map((p) => p.id));
+    expect(MOTION_PRESET_IDS).toEqual(MOTION_PRESETS.map((p) => p.id));
+    expect(ELEVATION_STYLES).toEqual(ELEVATION_PRESETS.map((p) => p.id));
+    expect(FONT_PAIRING_IDS).toEqual(FONT_PRESETS.map((p) => p.id));
+    expect(FONT_PAIRING_IDS).toEqual(FONT_CATALOG.map((p) => p.id));
+  });
+
+  it('applies radius, elevation, font and motion on top of the theme', () => {
+    const applied = applyAppearance(root, {
+      theme: applyStylePresets(violetTheme, {
+        radius: 'pill',
+        elevation: 'flat',
+        font: 'editorial',
+        motion: 'expressive',
+      }),
+      resolvedMode: 'light',
+    });
+    const editorial = getFontPairing('editorial');
+    expect(root.dataset.pyTheme).toBe('violet');
+    expect(root.style.getPropertyValue('--py-radius')).toBe('9999px');
+    expect(root.style.getPropertyValue('--py-elevation-style')).toBe('flat');
+    expect(root.style.getPropertyValue('--py-shadow-soft')).toBe('none');
+    expect(root.style.getPropertyValue('--py-font-heading')).toBe(editorial?.fontFamilyHeading);
+    expect(root.style.getPropertyValue('--py-motion-base')).toBe('300ms');
+    expect(root.style.getPropertyValue('--py-motion-easing')).toBe(
+      'cubic-bezier(0.34, 1.56, 0.64, 1)'
+    );
+    // Component profiles follow the merged theme (pill buttons, bordered flat cards).
+    expect(applied.components).toEqual({ button: 'pill', card: 'bordered' });
+    expect(root.dataset.pyButtonStyle).toBe('pill');
+    // The theme's colors are untouched.
+    expect(root.style.getPropertyValue('--py-primary')).toBe(violetTheme.light.primary);
+  });
+
+  it('keeps reduced motion and the density override above the presets', () => {
+    applyAppearance(root, {
+      theme: applyStylePresets(violetTheme, { motion: 'expressive', density: 'spacious' }),
+      resolvedMode: 'light',
+      reducedMotion: true,
+      density: 0.75,
+    });
+    expect(root.style.getPropertyValue('--py-motion-base')).toBe('0ms');
+    expect(root.style.getPropertyValue('--py-density')).toBe('0.75');
+  });
+
+  it('writes exactly the theme variables for an empty selection and reverts when cleared', () => {
+    const plain = themeVariables({ theme: violetTheme, resolvedMode: 'light' });
+    expect(
+      themeVariables({ theme: applyStylePresets(violetTheme, {}), resolvedMode: 'light' })
+    ).toEqual(plain);
+    applyAppearance(root, {
+      theme: applyStylePresets(violetTheme, { radius: 'square', elevation: 'glow' }),
+      resolvedMode: 'light',
+    });
+    expect(root.dataset.pyButtonStyle).toBe('square');
+    applyAppearance(root, { theme: violetTheme, resolvedMode: 'light' });
+    expect(root.style.getPropertyValue('--py-radius')).toBe(plain['--py-radius']);
+    expect(root.style.getPropertyValue('--py-shadow-float')).toBe(plain['--py-shadow-float']);
+    expect(root.dataset.pyButtonStyle).toBeUndefined();
+  });
+
+  it('replays the overridden style through the no-flash script', () => {
+    const applied = applyAppearance(root, {
+      theme: applyStylePresets(violetTheme, { radius: 'pill', elevation: 'flat' }),
+      resolvedMode: 'light',
+    });
+    cacheAppearance('styled', applied);
+    resetRootStyleOnly();
+    new Function(noFlashScript('styled'))();
+    expect(root.style.getPropertyValue('--py-radius')).toBe('9999px');
+    expect(root.style.getPropertyValue('--py-shadow-soft')).toBe('none');
+    expect(root.dataset.pyButtonStyle).toBe('pill');
+    expect(root.dataset.pyCardStyle).toBe('bordered');
   });
 });
 

@@ -3,6 +3,7 @@ import { DeviceIdSchema, OrientationSchema } from './devices.ts';
 import { EnvironmentPatchSchema, SubscriptionStatusSchema } from './environment.ts';
 import { type LayoutId, LayoutIdSchema } from './layouts.ts';
 import { ColorModeSchema, type Shell, ShellSchema, ViewportPresetSchema } from './manifest.ts';
+import { StylePresetOverridesSchema } from './theme.ts';
 
 /**
  * A scenario answers: "what does this app look like for THIS actor, in THIS
@@ -58,6 +59,8 @@ export const ScenarioAppearanceSchema = z.object({
   device: DeviceIdSchema.optional(),
   orientation: OrientationSchema.optional(),
   layout: LayoutIdSchema.optional(),
+  /** Style presets for this scenario; an override wins, the theme's own value is the fallback. */
+  ...StylePresetOverridesSchema.shape,
 });
 
 export const ScenarioSchema = z.object({

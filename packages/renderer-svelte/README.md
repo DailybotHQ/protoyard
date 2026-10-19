@@ -111,7 +111,8 @@ void mountPrototype({ definition, App, target: document.getElementById('app')! }
 
 Boot: `parseScenarioLink(location.search)` → `createPrototypeRuntime(definition,
 { themes: BUILTIN_THEMES + definition.themes, link })` → `scenarios.ensureSeeded()`
-→ appearance applied to `<html>` and kept in sync (+ cached for no-flash) →
+→ appearance applied to `<html>` and kept in sync (+ cached for no-flash; live
+radius, elevation, font and motion presets merge in from a lazy chunk) →
 App mounted with the runtime in context → DevTools (dynamic import) unless
 `?devtools=0`. Also renders the storage-degraded banner, a "Load linked
 scenario" prompt when a link disagrees with stored data (never automatic),
