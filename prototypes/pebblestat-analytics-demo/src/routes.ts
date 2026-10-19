@@ -10,7 +10,7 @@ export const routes = defineRoutes([
   },
   {
     path: '/trends',
-    name: 'Trends',
+    name: 'Insights',
     description: 'Event and user trends with filters, breakdowns and saved segments.',
     load: () => import('./screens/Trends.svelte'),
   },
@@ -33,9 +33,21 @@ export const routes = defineRoutes([
     load: () => import('./screens/Live.svelte'),
   },
   {
+    path: '/users',
+    name: 'Users',
+    description: 'Tracked users with a drill-down by plan, country and platform.',
+    load: () => import('./screens/Users.svelte'),
+  },
+  {
+    path: '/users/:id',
+    name: 'User',
+    description: 'One tracked user: properties, activation and their event timeline.',
+    load: () => import('./screens/UserDetail.svelte'),
+  },
+  {
     path: '/reports',
     name: 'Reports',
-    description: 'Saved Trends reports: open, rename and delete with ownership rules.',
+    description: 'Saved Insights reports: open, rename and delete with ownership rules.',
     load: () => import('./screens/Reports.svelte'),
   },
   {

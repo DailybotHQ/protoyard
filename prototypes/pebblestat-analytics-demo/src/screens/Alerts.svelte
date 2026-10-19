@@ -1,15 +1,16 @@
 <script lang="ts">
-import { BellOff, BellPlus, BellRing, Trash2 } from '@lucide/svelte';
+import { BellOff, BellPlus, BellRing, Flag, Trash2 } from '@lucide/svelte';
 import { Sparkline } from '@protoyard/charts-ui/compact';
 import { can, liveQuery, runService, useClock, usePrincipal } from '@protoyard/renderer-svelte';
 import { AlertDialog, Badge, Button, Card, EmptyState } from '@protoyard/ui';
+import AnnotationDialog from '../components/AnnotationDialog.svelte';
 import MetricAlertDialog from '../components/MetricAlertDialog.svelte';
 import PageHeader from '../components/PageHeader.svelte';
 import type { AlertCheck, MetricAlert } from '../database/schema.ts';
 import { EVENT_LABELS } from '../domain/catalog.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
 import { useAnalytics } from '../lib/context.ts';
-import { fromNow } from '../lib/format.ts';
+import { formatDate, fromNow } from '../lib/format.ts';
 import { currentProject } from '../lib/project.svelte.ts';
 
 const { db, services } = useAnalytics();
@@ -29,6 +30,20 @@ const data = liveQuery(
 );
 
 let createOpen = $state(false);
+let annotateOpen = $state(false);
+const notes = liveQuery(
+  async () =>
+    (await db.annotations.where('projectId').equals(currentProject.id).sortBy('at')).reverse(),
+  { initial: [], deps: () => currentProject.id }
+);
+const people = liveQuery(
+  async () =>
+    new Map(
+      (await db.table('py_personas').toArray()).map((p) => [p.id as string, p.name as string])
+    ),
+  { initial: new Map<string, string>() }
+);
+const KIND_LABELS = { release: 'Release', incident: 'Incident', campaign: 'Campaign' } as const;
 let deleting = $state<MetricAlert | null>(null);
 let deleteOpen = $state(false);
 const canManage = (alert: MetricAlert) =>
@@ -38,7 +53,7 @@ const rule = (a: MetricAlert) =>
   `${EVENT_LABELS[a.eventType] ?? a.eventType} ${a.operator} ${a.threshold.toLocaleString('en-US')} per day (typical ${a.baseline.toLocaleString('en-US')})`;
 </script>
 
-<PageHeader title="Alerts" description="Daily thresholds on event counts. They are checked once a day as simulated time advances.">
+<PageHeader title="Alerts & annotations" description="Daily thresholds on event counts, checked once a day as simulated time advances, and the notes shown on the charts.">
   {#snippet actions()}
     {#if can(CAPABILITIES.alertsManage)}
       <Button size="sm" onclick={() => (createOpen = true)}><BellPlus class="size-4" aria-hidden="true" />New alert</Button>
@@ -97,7 +112,39 @@ const rule = (a: MetricAlert) =>
   </div>
 {/if}
 
+<section class="mt-10 grid gap-3" aria-labelledby="annotations-title">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 id="annotations-title" class="text-base font-semibold">Annotations</h2>
+    {#if can(CAPABILITIES.annotationsCreate)}
+      <Button variant="outline" size="sm" onclick={() => (annotateOpen = true)}><Flag class="size-4" aria-hidden="true" />Add annotation</Button>
+    {/if}
+  </div>
+  {#if (notes.current ?? []).length === 0}
+    <p class="text-sm text-muted-foreground">No annotations yet. They mark releases, incidents and campaigns on the trend charts.</p>
+  {:else}
+    <Card class="p-0">
+      <ul class="divide-y divide-border">
+        {#each notes.current ?? [] as note (note.id)}
+          <li class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
+            <span class="min-w-0">
+              <Badge variant={note.kind === 'incident' ? 'destructive' : 'outline'}>{KIND_LABELS[note.kind]}</Badge>
+              <span class="ml-2 font-medium">{note.title}</span>
+              <span class="block text-xs text-muted-foreground"><time datetime={note.at}>{formatDate(note.at)}</time> · by {people.current?.get(note.authorId) ?? 'someone'}</span>
+            </span>
+            {#if can(CAPABILITIES.annotationsManageAll) || (can(CAPABILITIES.annotationsCreate) && note.authorId === principal.current?.persona.id)}
+              <Button variant="ghost" size="sm" onclick={() => runService(() => services.annotations.remove(note.id), { success: 'Annotation removed' })}>
+                <Trash2 class="size-4" aria-hidden="true" />Remove<span class="sr-only"> {note.title}</span>
+              </Button>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    </Card>
+  {/if}
+</section>
+
 <MetricAlertDialog bind:open={createOpen} projectId={currentProject.id} />
+<AnnotationDialog bind:open={annotateOpen} projectId={currentProject.id} />
 {#if deleting}
   {@const target = deleting}
   <AlertDialog
