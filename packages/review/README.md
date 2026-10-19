@@ -180,6 +180,16 @@ locally queued edits and deletes. Queue metadata itself is in memory; comments
 remain in IndexedDB, but queued operations are not automatically restored
 after a page reload.
 
+## Reports (`@protoyard/review/report`)
+
+`createReviewCommentsFile()` and `parseReviewCommentsFile()` validate the
+same versioned JSON envelope used by the local adapter's `exportComments()`.
+`createPulledReviewComments()` adds the workspace pull timestamp, while
+`toReviewCommentsFile()` removes that extra field when exporting back to the
+adapter format. `renderReviewMarkdown()` groups threads by anchored screen,
+lists open threads first, and escapes comment text before quoting it in
+`REVIEW.md`.
+
 ## Anchors (`@protoyard/review/anchors`)
 
 A pin has to land on the same spot after the layout reflows, inside a device

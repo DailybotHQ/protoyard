@@ -5,6 +5,11 @@ import { blueprintNewCommand, blueprintValidateCommand } from './commands/bluepr
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
 import { ciCheckCommand, ciInitCommand } from './commands/ci.ts';
+import {
+  commentsExportCommand,
+  commentsImportCommand,
+  commentsPullCommand,
+} from './commands/comments.ts';
 import { devCommand } from './commands/dev.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { exportCommand } from './commands/export.ts';
@@ -166,6 +171,36 @@ export function createProgram(env: RunnerEnv): Command {
   const blueprintCmd = program
     .command('blueprint')
     .description('work with data-only blueprints (see packages/blueprint)');
+
+  const commentsCmd = program
+    .command('comments')
+    .description('pull, export and import prototype review comments');
+  commentsCmd
+    .command('pull')
+    .description('pull review comments from an endpoint or local adapter export')
+    .argument('<slug>', 'prototype slug')
+    .option('--from <url>', 'remote comments collection endpoint (GET only)')
+    .option('--file <json>', 'local review adapter export file')
+    .addOption(
+      new Option('--format <format>', 'custom report format')
+        .choices(['md', 'json'])
+        .makeOptionMandatory()
+    )
+    .option('--out <file>', 'also write the selected format to this workspace file')
+    .action(def('comments pull', commentsPullCommand));
+  commentsCmd
+    .command('export')
+    .description('write the local adapter JSON format from the last pulled comments')
+    .argument('<slug>', 'prototype slug')
+    .option('--out <file>', 'output JSON file (default artifacts/review/exports/<slug>.json)')
+    .action(def('comments export', commentsExportCommand));
+  commentsCmd
+    .command('import')
+    .description('import a local adapter JSON export into the workspace comments cache')
+    .argument('<slug>', 'prototype slug')
+    .argument('<file>', 'local review adapter JSON export')
+    .action(def('comments import', commentsImportCommand));
+
   blueprintCmd
     .command('validate')
     .description('validate a blueprint JSON file (exit 4 with path-specific issues)')
