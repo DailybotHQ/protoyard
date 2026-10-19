@@ -8,6 +8,7 @@ export { default as EntityDetail } from './EntityDetail.svelte';
 export { default as EntityForm } from './EntityForm.svelte';
 export { default as EntityList } from './EntityList.svelte';
 export { default as FieldControl } from './fields/FieldControl.svelte';
+export { default as RecordAvatar } from './fields/RecordAvatar.svelte';
 export {
   fieldLabel,
   formatEntityHeading,

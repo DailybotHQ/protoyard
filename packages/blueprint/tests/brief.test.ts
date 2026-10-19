@@ -29,6 +29,12 @@ describe('blueprintFromBrief fixtures', () => {
       expect(result.archetype).toBe(expected.archetype);
       expect(result.layout).toBe(expected.layout);
       expect(result.blueprint.entities.map((e) => e.name)).toEqual(expected.entities);
+      // People-like entities get a face from the avatar library.
+      expect(
+        result.blueprint.entities
+          .filter((e) => e.fields.some((f) => f.kind === 'avatar'))
+          .map((e) => e.name)
+      ).toEqual(expected.avatars);
       expect([...new Set(result.blueprint.screens.map((s) => s.type))].sort()).toEqual(
         expected.screens
       );
@@ -99,6 +105,31 @@ describe('blueprintFromBrief behavior', () => {
     expect(rationale).toContain('Entity invoice from "groomer, invoice", linked to appointment.');
     expect(rationale).toContain('Field invoice.amount (money) from "amount" (cue "amount").');
     expect(rationale).toContain('Field invoice.dueDate (date) from "due date" (cue "date").');
+  });
+
+  it('adds a photo to people-like entities, with a free field name', () => {
+    const { blueprint, rationale } = blueprintFromBrief(
+      'A dog grooming salon that books appointments, tracks groomers and invoices with amount and due date.'
+    );
+    const groomer = blueprint.entities.find((e) => e.name === 'groomer');
+    expect(groomer?.fields.find((f) => f.kind === 'avatar')).toEqual({
+      name: 'avatar',
+      kind: 'avatar',
+      label: 'Photo',
+      required: false,
+      sensitive: false,
+    });
+    expect(rationale).toContain('Field groomer.avatar (avatar): groomer is a person.');
+    expect(
+      blueprint.entities.find((e) => e.name === 'invoice')?.fields.map((f) => f.kind)
+    ).not.toContain('avatar');
+    // A brief that already names an "avatar" field keeps it and the photo goes to `photo`.
+    const taken = blueprintFromBrief('A volunteer roster: track volunteers with avatar and phone.');
+    const volunteer = taken.blueprint.entities.find((e) => e.name === 'volunteer');
+    expect(volunteer?.fields.filter((f) => f.kind === 'avatar').map((f) => f.name)).toEqual([
+      'photo',
+    ]);
+    expect(volunteer?.fields.find((f) => f.name === 'avatar')?.kind).toBe('text');
   });
 
   it('turns the main noun of a generic brief into the focus entity with inferred fields', () => {

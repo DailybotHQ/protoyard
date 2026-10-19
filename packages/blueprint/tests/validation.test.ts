@@ -50,6 +50,7 @@ const blueprint = parseBlueprint({
         { name: 'attachments', kind: 'file', multiple: true },
         { name: 'metadata', kind: 'json' },
         { name: 'location', kind: 'geo', region: 'harbor-bay' },
+        { name: 'face', kind: 'avatar' },
       ],
       titleField: 'subject',
     },
@@ -101,6 +102,7 @@ describe('deriveInputSchemas', () => {
       attachmentsIds: [],
       metadata: null,
       location: null,
+      face: null,
     });
   });
 
@@ -298,6 +300,20 @@ const cases: Record<string, [string, [unknown, unknown][], [unknown, string][]]>
       [{ lat: 0, lng: -180.5 }, 'Location longitude must be between -180 and 180'],
       [{ lat: '12', lng: '' }, 'Location needs a latitude and a longitude'],
       ['north', 'Location needs a latitude and a longitude'],
+    ],
+  ],
+  avatar: [
+    'face',
+    [
+      ['av-001', 'av-001'],
+      [' av-175 ', 'av-175'],
+    ],
+    [
+      ['av-000', 'Face must be a library face from av-001 to av-175'],
+      ['av-176', 'Face must be a library face from av-001 to av-175'],
+      ['av-7', 'Face must be a library face from av-001 to av-175'],
+      ['https://example.com/face.png', 'Face must be a library face from av-001 to av-175'],
+      [7, 'Face must be a library face from av-001 to av-175'],
     ],
   ],
 };

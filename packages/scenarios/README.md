@@ -46,6 +46,10 @@ colors come from a fixed palette. Every persona gets a library `avatar` (`av-NNN
 repeats until all 175 are used, and the same seed gives the same faces. Pass `actor: { avatar }` to
 choose the actor's face. Plan and billing status follow `organization.subscription`.
 
+The library's seeded pickers (`createAvatarPool`, `assignAvatars`, `pickAvatar`, `isAvatarId`,
+`AVATAR_IDS`) are re-exported here, so generators that already depend on this package (blueprint
+worlds) deal faces without another dependency.
+
 Options: `size`, `roles` (weights `{ member: 6, viewer: 1 }` or a cycled list), `titles`,
 `organization` / `actor` field overrides, `emailDomain`. It uses a forked rng, so team size
 never shifts the rest of your generator's random stream.

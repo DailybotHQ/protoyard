@@ -14,13 +14,22 @@ let {
   error,
   disabled = false,
   id,
+  shuffleKey,
+  onShuffle,
 }: {
   field: BlueprintField;
   value?: unknown;
   error?: string;
   disabled?: boolean;
   id?: string;
+  /** Avatar fields: stable key for draft shuffles. */
+  shuffleKey?: string;
+  /** Avatar fields: save a new face through a service (see AvatarPicker). */
+  onShuffle?: () => Promise<string | null | undefined>;
 } = $props();
+
+// The picker (and its 175 thumbnails) is its own chunk, loaded only by forms with an avatar field.
+const loadAvatarPicker = () => import('./AvatarPicker.svelte');
 
 const label = $derived(fieldLabel(field));
 
@@ -90,6 +99,23 @@ const enumItems = $derived(
       } else value = text;
     }}
   />
+{:else if field.kind === 'avatar'}
+  {#await loadAvatarPicker()}
+    <p class="text-sm text-muted-foreground" role="status">Loading faces…</p>
+  {:then { default: AvatarPicker }}
+    <AvatarPicker
+      bind:value
+      {label}
+      {id}
+      {disabled}
+      {error}
+      required={field.required}
+      shuffleKey={shuffleKey ?? field.name}
+      {onShuffle}
+    />
+  {:catch}
+    <p class="text-sm text-destructive" role="alert">Could not load the face picker. Reload to try again.</p>
+  {/await}
 {:else if field.kind === 'geo'}
   <GeoField bind:value {label} {error} {disabled} {id} />
 {:else if field.kind === 'enum'}

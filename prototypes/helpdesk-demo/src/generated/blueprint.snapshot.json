@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "blueprint": {
     "$schema": "../../packages/blueprint/schema/blueprint.schema.json",
     "formatVersion": 1,
@@ -45,6 +45,11 @@
           {
             "name": "tags",
             "kind": "tags"
+          },
+          {
+            "name": "avatar",
+            "kind": "avatar",
+            "label": "Photo"
           }
         ],
         "titleField": "name",

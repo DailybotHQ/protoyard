@@ -150,7 +150,7 @@ describe('createBlueprintGenerator', () => {
     expect(new Set(world.personas.map((p) => p.avatar)).size).toBe(world.personas.length);
     expect(JSON.stringify(run(5))).toBe(JSON.stringify(world));
     expect(run(6).personas.map((p) => p.avatar)).not.toEqual(world.personas.map((p) => p.avatar));
-    expect(BLUEPRINT_GENERATOR_SDK).toBe(4);
+    expect(BLUEPRINT_GENERATOR_SDK).toBe(5);
   });
 });
 

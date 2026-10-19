@@ -135,7 +135,7 @@ chosen here. See
 | default scenario | `active` |
 | default theme | `ocean` |
 | storage namespace | `helpdesk-demo` |
-| schema version | 1 |
+| schema version | 2 |
 | generator version | 2 |
 | timeline | no |
 | themes | built-in presets only |

@@ -6,6 +6,7 @@ import {
   type EntityServices,
   fieldLabel,
   inputProperty,
+  primaryAvatarField,
 } from '@protoyard/blueprint';
 import type { PrototypeRuntime, Row } from '@protoyard/core';
 import { can, liveQuery, navigate, runService, usePrincipal } from '@protoyard/renderer-svelte';
@@ -13,6 +14,7 @@ import { applyFilters, FilterBar, type FilterField, type FilterValues, toast } f
 import { type BoardColumnDef, type BoardMove, rankSequence } from '@protoyard/views/board';
 import { BoardView } from '@protoyard/views-ui/board';
 import { QueryState } from '@protoyard/views-ui/states';
+import RecordAvatar from '../../fields/RecordAvatar.svelte';
 import { formatEntityHeading, formatFieldValue, formatMoney } from '../../format.ts';
 import type { BoardScreenSpec } from './model.ts';
 
@@ -64,10 +66,13 @@ const label = $derived(title ?? `${formatEntityHeading(entity)} board`);
 const sumField = $derived(
   screen.sumField ? entity.fields.find((field) => field.name === screen.sumField) : undefined
 );
+const avatarField = $derived(primaryAvatarField(entity));
 const cardFields = $derived(
   (screen.cardFields ?? [entity.titleField])
     .map((name) => entity.fields.find((field) => field.name === name))
     .filter((field): field is BlueprintField => field !== undefined)
+    // The face sits next to the title, never as a line of text.
+    .filter((field) => field.kind !== 'avatar')
 );
 
 let attempt = $state(0);
@@ -242,7 +247,12 @@ const unplaced = $derived(
   <div class="grid min-w-0 gap-1" data-board-card={idOf(row)}>
     {#each cardFields as field (field.name)}
       {@const value = row[inputProperty(field)]}
-      {#if field.name === entity.titleField}
+      {#if field.name === entity.titleField && avatarField}
+        <p class="flex min-w-0 items-center gap-2 font-medium">
+          <RecordAvatar avatar={row[inputProperty(avatarField)]} name={formatFieldValue(field, value)} size="xs" />
+          <span class="truncate">{formatFieldValue(field, value)}</span>
+        </p>
+      {:else if field.name === entity.titleField}
         <p class="truncate font-medium">{formatFieldValue(field, value)}</p>
       {:else}
         <p class="truncate text-xs text-muted-foreground">

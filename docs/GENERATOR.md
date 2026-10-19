@@ -48,7 +48,9 @@ pnpm protoyard generate my-desk --blueprint prototypes/my-desk/blueprint.json
 
 `blueprint new <file>` writes a validated blueprint from a brief, offline and
 deterministically (`blueprintFromBrief` in `@protoyard/blueprint`), and prints
-why it chose each archetype, entity, field and screen. The brief comes from
+why it chose each archetype, entity, field and screen. People-like entities
+(customers, contacts, clients, patients, students, members, drivers, agents,
+volunteers and similar) get an optional `avatar` field labeled Photo. The brief comes from
 `--from-brief <file>`, from stdin with `--from-brief -`, or from seven questions
 with `--interactive` (terminal only). `--archetype <id>` and `--name` steer it;
 `--generate <slug>` chains into `generate` (add `--dry-run` to plan only: then
@@ -140,6 +142,7 @@ audit diffs) and `fake`, a generator hint taken from an allow-list such as
 | `file` | `accept` (MIME types or `image/*`), `maxSizeBytes` (default 5 MB, max 50 MB), `multiple` | `<name>Id` or `<name>Ids` in the `files` table |
 | `json` | — | any JSON value |
 | `geo` | `region` (a fictional region from `@protoyard/scenarios`: `harbor-bay`, `north-valley`, `metro-grid`, `coral-reach`) | `{ lat, lng }`, 5 decimals; never indexed, searched or sorted |
+| `avatar` | — | a face from `@protoyard/avatars`, stored as its id (`av-001` … `av-175`; other values fail validation and CSV import); never indexed, searched or sorted |
 
 Relation behavior on delete:
 
@@ -152,7 +155,7 @@ cannot use `nullify`.
 
 ### Generation hints
 
-The generic world generator (generator SDK 3) reads these hints. They change
+The generic world generator (generator SDK 5) reads these hints. They change
 only seeded data, never validation:
 
 - `enum.weights`: relative weights, one per value (`[6, 3, 0]` never picks the
@@ -168,6 +171,19 @@ only seeded data, never validation:
   (weekly and yearly rhythm) or `flat`. A row's value follows its `createdAt`
   day, centered on the middle of `min`–`max`, so charts over time show it.
 - `seedCount` on the entity: rows at `normal` density.
+- `avatar` fields: each row gets a seeded face (`createAvatarPool` on a fork
+  keyed by entity and field; generator SDK 5). Faces do not repeat within the
+  field until all 175 are used, the team's faces are dealt last, adding rows
+  keeps the earlier faces, and other fields of the row do not shift.
+
+Generated screens show the face next to the record title in lists, on board
+cards and in the detail header. The form edits it with a lazy picker (a searchable grid of
+thumbnails: arrow keys, Home and End move, Enter or Space picks) and a
+**Shuffle face** button. On a saved record, Shuffle face calls
+`services.<entity>.shuffleAvatar(id)` (`session.assert` → zod →
+`environment.run('<entity>.shuffleAvatar')` → `db.transaction`) and saves at
+once; the next face is deterministic per record (`nextAvatar`) and visits every
+face before any repeat. On a new record it changes the draft only.
 
 ### Features
 

@@ -35,6 +35,9 @@ export function formatFieldValue(
       return (Array.isArray(value) ? value : [value])
         .map((id) => displayNames?.get(String(id)) ?? String(id))
         .join(', ');
+    case 'avatar':
+      // The library id; screens render the face next to it (RecordAvatar).
+      return String(value);
     case 'geo': {
       const { lat, lng } = value as { lat?: unknown; lng?: unknown };
       return typeof lat === 'number' && typeof lng === 'number'

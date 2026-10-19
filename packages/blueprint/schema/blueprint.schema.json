@@ -1066,6 +1066,42 @@
                   },
                   "required": ["name", "kind"],
                   "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "description": {
+                      "type": "string",
+                      "maxLength": 200
+                    },
+                    "required": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "sensitive": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "fake": {
+                      "type": "string",
+                      "pattern": "^[a-z]+\\.[a-zA-Z]+$"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "const": "avatar"
+                    }
+                  },
+                  "required": ["name", "kind"],
+                  "additionalProperties": false
                 }
               ]
             }

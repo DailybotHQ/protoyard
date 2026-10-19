@@ -1,5 +1,5 @@
 export { ARCHETYPE_IDS, ARCHETYPES, type Archetype, GENERIC_ARCHETYPE } from './archetypes.ts';
-export { fieldFromPhrase } from './fields.ts';
+export { fieldFromPhrase, PEOPLE_ENTITIES } from './fields.ts';
 export {
   type BriefOptions,
   type BriefResult,

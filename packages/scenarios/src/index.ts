@@ -1,3 +1,15 @@
+/** The avatar library's seeded pickers, re-exported for generators (blueprint worlds). */
+export {
+  AVATAR_COUNT,
+  AVATAR_IDS,
+  type AvatarId,
+  type AvatarPool,
+  type AvatarPoolOptions,
+  assignAvatars,
+  createAvatarPool,
+  isAvatarId,
+  pickAvatar,
+} from '@protoyard/avatars';
 export {
   composeScenario,
   type DeepPartial,

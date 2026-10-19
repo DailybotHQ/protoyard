@@ -12,7 +12,7 @@ import {
   type FieldInput,
   GENERIC_ARCHETYPE,
 } from './archetypes.ts';
-import { fieldFromPhrase, GLOBAL_CUES } from './fields.ts';
+import { avatarFieldFor, fieldFromPhrase, GLOBAL_CUES, PEOPLE_ENTITIES } from './fields.ts';
 import { hasPhrase, normalize, plural, singular, titleCase, words } from './text.ts';
 
 /**
@@ -445,6 +445,16 @@ export function blueprintFromBrief(brief: string, options: BriefOptions = {}): B
     if (!hit || focus.fields.some(same)) continue;
     if (addField(focus, clone(cue.field))) {
       rationale.push(`Field ${focus.name}.${cue.field.name} (${cue.kind}) from "${hit}".`);
+    }
+  }
+  // People-like entities get a face from the avatar library.
+  for (const entity of entities) {
+    if (!PEOPLE_ENTITIES.has(entity.name) || entity.fields.some((f) => kindOf(f) === 'avatar')) {
+      continue;
+    }
+    const avatar = avatarFieldFor(entity.fields.map((f) => f.name));
+    if (avatar && addField(entity, avatar)) {
+      rationale.push(`Field ${entity.name}.${avatar.name} (avatar): ${entity.name} is a person.`);
     }
   }
   focus = entities[0] as EntityInput;

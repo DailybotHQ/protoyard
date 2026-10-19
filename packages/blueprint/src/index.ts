@@ -36,6 +36,15 @@ export {
   createAuditWriter,
 } from './audit.ts';
 export {
+  AVATAR_IDS,
+  type AvatarField,
+  type AvatarId,
+  avatarFields,
+  isAvatarId,
+  nextAvatar,
+  primaryAvatarField,
+} from './avatar.ts';
+export {
   type BrandContrastFailure,
   BrandThemeError,
   brandLibraryThemeId,
@@ -59,6 +68,7 @@ export {
   fieldFromPhrase,
   GENERIC_ARCHETYPE,
   MAX_BRIEF_LENGTH,
+  PEOPLE_ENTITIES,
   type SuggestedLayout,
 } from './brief/index.ts';
 export {

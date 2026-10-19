@@ -1,5 +1,6 @@
 import { type GenerateContext, hashString, type Row, type WorldSeed } from '@protoyard/core';
 import {
+  createAvatarPool,
   GENERATOR_SDK_VERSION,
   type GeoRegionId,
   generateTeam,
@@ -20,7 +21,7 @@ import { inputProperty } from './validation.ts';
  */
 
 /** Bump when the same blueprint + seed can produce a different world shape. */
-export const BLUEPRINT_GENERATOR_SDK = 4;
+export const BLUEPRINT_GENERATOR_SDK = 5;
 
 /** Region for geo fields that do not name one. */
 export const DEFAULT_GEO_REGION: GeoRegionId = 'metro-grid';
@@ -239,6 +240,9 @@ function valueForField(
 ): unknown {
   const { faker, rng, time } = ctx;
   const orgStart = new Date(orgCreatedAt);
+
+  // Faces are dealt per entity field from a seeded pool (see createBlueprintGenerator).
+  if (field.kind === 'avatar') return null;
 
   if ('default' in field && field.default !== undefined && !field.required && rng.chance(0.15)) {
     return field.default;
@@ -470,6 +474,23 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
             ]
           : []
       );
+      // One seeded face per row and avatar field: no repeats until the library runs out, and
+      // the team's faces are dealt last so records rarely share a face with a persona.
+      const avatars = entity.fields.flatMap((field) =>
+        field.kind === 'avatar'
+          ? [
+              {
+                prop: inputProperty(field),
+                ids: createAvatarPool(
+                  ctx.rng.fork(`blueprint:avatars:${entity.name}.${field.name}`),
+                  {
+                    avoid: team.personas.map((persona) => persona.avatar),
+                  }
+                ).take(count),
+              },
+            ]
+          : []
+      );
       const trends = entity.fields.flatMap((field) =>
         (field.kind === 'number' || field.kind === 'integer' || field.kind === 'money') &&
         field.trend !== undefined
@@ -499,6 +520,7 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
               ? { lat: point.lat, lng: point.lng }
               : null;
         }
+        for (const { prop, ids } of avatars) values[prop] = ids[i] ?? null;
         const stamps = stampRow(fieldCtx, orgCreatedAt);
         for (const { prop, byDay } of trends) {
           values[prop] = byDay.get(stamps.createdAt.slice(0, 10)) ?? values[prop];

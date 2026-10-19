@@ -5,6 +5,7 @@
     "archetype": "helpdesk",
     "layout": "sidebar",
     "entities": ["ticket", "customer"],
+    "avatars": ["customer"],
     "screens": ["board", "calendar", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -13,6 +14,7 @@
     "archetype": "crm",
     "layout": "sidebar",
     "entities": ["deal", "company", "contact", "lead"],
+    "avatars": ["contact", "lead"],
     "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -21,6 +23,7 @@
     "archetype": "booking",
     "layout": "sidebar",
     "entities": ["appointment", "client", "groomer", "invoice"],
+    "avatars": ["client", "groomer"],
     "screens": [
       "analytics",
       "board",
@@ -38,6 +41,7 @@
     "archetype": "logistics",
     "layout": "sidebar",
     "entities": ["shipment", "driver"],
+    "avatars": ["driver"],
     "screens": [
       "analytics",
       "board",
@@ -56,6 +60,7 @@
     "archetype": "analytics",
     "layout": "sidebar",
     "entities": ["metric", "report"],
+    "avatars": [],
     "screens": ["analytics", "board", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -64,6 +69,7 @@
     "archetype": "pm",
     "layout": "sidebar",
     "entities": ["task", "project"],
+    "avatars": [],
     "screens": [
       "analytics",
       "board",
@@ -81,6 +87,7 @@
     "archetype": "lms",
     "layout": "sidebar",
     "entities": ["enrollment", "course"],
+    "avatars": [],
     "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -89,6 +96,7 @@
     "archetype": "clinic",
     "layout": "sidebar",
     "entities": ["visit", "patient"],
+    "avatars": ["patient"],
     "screens": ["board", "calendar", "dashboard", "detail", "list", "settings", "timeline"]
   },
   {
@@ -97,6 +105,7 @@
     "archetype": "fintech",
     "layout": "sidebar",
     "entities": ["transaction", "account", "expense"],
+    "avatars": [],
     "screens": ["analytics", "board", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -105,6 +114,7 @@
     "archetype": "wiki",
     "layout": "sidebar",
     "entities": ["page", "space"],
+    "avatars": [],
     "screens": ["board", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -113,6 +123,7 @@
     "archetype": "iot",
     "layout": "sidebar",
     "entities": ["device", "alert"],
+    "avatars": [],
     "screens": ["analytics", "board", "dashboard", "detail", "list", "map", "settings"]
   },
   {
@@ -121,6 +132,7 @@
     "archetype": "social",
     "layout": "sidebar",
     "entities": ["post", "comment", "follower"],
+    "avatars": ["follower"],
     "screens": ["analytics", "board", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -129,6 +141,7 @@
     "archetype": "marketplace",
     "layout": "sidebar",
     "entities": ["order", "listing", "product"],
+    "avatars": [],
     "screens": ["analytics", "board", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -137,6 +150,7 @@
     "archetype": "tracker",
     "layout": "sidebar",
     "entities": ["plant"],
+    "avatars": [],
     "screens": ["board", "calendar", "dashboard", "detail", "list", "map", "settings"]
   },
   {
@@ -145,6 +159,7 @@
     "archetype": "tracker",
     "layout": "mobile-tabs",
     "entities": ["book"],
+    "avatars": [],
     "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -153,6 +168,7 @@
     "archetype": "tracker",
     "layout": "sidebar",
     "entities": ["rental"],
+    "avatars": [],
     "screens": [
       "analytics",
       "board",
@@ -170,6 +186,7 @@
     "archetype": "tracker",
     "layout": "sidebar",
     "entities": ["inspection"],
+    "avatars": [],
     "screens": ["board", "calendar", "dashboard", "detail", "list", "map", "settings"]
   },
   {
@@ -178,6 +195,7 @@
     "archetype": "tracker",
     "layout": "sidebar",
     "entities": ["shift"],
+    "avatars": [],
     "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "map", "settings"]
   },
   {
@@ -186,6 +204,7 @@
     "archetype": "tracker",
     "layout": "sidebar",
     "entities": ["volunteer", "event"],
+    "avatars": ["volunteer"],
     "screens": ["analytics", "board", "calendar", "dashboard", "detail", "list", "settings"]
   },
   {
@@ -194,6 +213,7 @@
     "archetype": "booking",
     "layout": "sidebar",
     "entities": ["appointment", "client"],
+    "avatars": ["client"],
     "screens": [
       "analytics",
       "board",

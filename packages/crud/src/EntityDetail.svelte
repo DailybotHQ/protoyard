@@ -9,9 +9,11 @@ import {
   FEATURE_TABLES,
   fieldLabel,
   inputProperty,
+  primaryAvatarField,
 } from '@protoyard/blueprint';
 import type { PrototypeRuntime, Row } from '@protoyard/core';
 import { Button } from '@protoyard/ui';
+import RecordAvatar from './fields/RecordAvatar.svelte';
 import { formatFieldValue } from './format.ts';
 
 interface Collection {
@@ -44,6 +46,7 @@ let {
 } = $props();
 
 const entity = $derived(blueprint.entities.find((candidate) => candidate.name === entityName));
+const avatarField = $derived(entity ? primaryAvatarField(entity) : undefined);
 let record = $state<Row | null>(null);
 let related = $state<Array<{ entity: BlueprintEntity; field: string; rows: Row[] }>>([]);
 let attachments = $state<Row[]>([]);
@@ -177,11 +180,16 @@ function changeLabel(entry: AuditEntry, name: string): string {
     <p role="status" class="text-sm text-muted-foreground">Loading record…</p>
   {:else}
     <header class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p class="text-sm text-muted-foreground">{entity.label ?? entity.name}</p>
-        <svelte:element this={`h${headingLevel}`} class="text-2xl font-semibold">
-          {displayTitle(entity, record)}
-        </svelte:element>
+      <div class="flex min-w-0 items-center gap-3">
+        {#if avatarField}
+          <RecordAvatar avatar={valueFor(avatarField, record)} name={displayTitle(entity, record)} size="lg" />
+        {/if}
+        <div class="min-w-0">
+          <p class="text-sm text-muted-foreground">{entity.label ?? entity.name}</p>
+          <svelte:element this={`h${headingLevel}`} class="text-2xl font-semibold">
+            {displayTitle(entity, record)}
+          </svelte:element>
+        </div>
       </div>
       {#if onEdit && runtime.session.can(`${entity.name}:update`, record)}
         <Button type="button" variant="outline" onclick={() => onEdit?.(record!)}>Edit</Button>
@@ -193,7 +201,14 @@ function changeLabel(entry: AuditEntry, name: string): string {
         {#if field.kind !== 'file'}
           <div class="min-w-0">
             <dt class="text-sm text-muted-foreground">{fieldLabel(field)}</dt>
-            <dd class="mt-1 break-words text-sm">{formatFieldValue(field, valueFor(field, record))}</dd>
+            {#if field.kind === 'avatar'}
+              <dd class="mt-1 flex items-center gap-2 text-sm">
+                <RecordAvatar avatar={valueFor(field, record)} name={displayTitle(entity, record)} size="md" />
+                <span>{formatFieldValue(field, valueFor(field, record))}</span>
+              </dd>
+            {:else}
+              <dd class="mt-1 break-words text-sm">{formatFieldValue(field, valueFor(field, record))}</dd>
+            {/if}
           </div>
         {/if}
       {/each}
