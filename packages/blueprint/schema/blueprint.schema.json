@@ -184,6 +184,49 @@
       },
       "additionalProperties": false
     },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "sidebar",
+            "rail",
+            "top-nav",
+            "dual-sidebar",
+            "master-detail",
+            "dashboard-grid",
+            "docs",
+            "marketing",
+            "mobile-tabs",
+            "mobile-drawer",
+            "wizard",
+            "auth-split",
+            "custom"
+          ]
+        },
+        "mobile": {
+          "type": "string",
+          "enum": [
+            "sidebar",
+            "rail",
+            "top-nav",
+            "dual-sidebar",
+            "master-detail",
+            "dashboard-grid",
+            "docs",
+            "marketing",
+            "mobile-tabs",
+            "mobile-drawer",
+            "wizard",
+            "auth-split",
+            "custom"
+          ]
+        }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
     "entities": {
       "minItems": 1,
       "type": "array",
