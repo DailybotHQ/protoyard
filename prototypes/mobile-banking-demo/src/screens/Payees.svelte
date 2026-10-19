@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Plus, Send, Trash, Users } from '@lucide/svelte';
-import { can, liveQuery } from '@protoyard/renderer-svelte';
+import { avatarImage, can, liveQuery } from '@protoyard/renderer-svelte';
 import {
   AlertDialog,
   Avatar,
@@ -116,7 +116,7 @@ async function remove() {
     <ul class="flex flex-col divide-y divide-border rounded-2xl bg-surface px-4 shadow-soft">
       {#each payees.current ?? [] as payee (payee.id)}
         <li class="flex min-h-16 items-center gap-3 py-3">
-          <Avatar name={payee.name} decorative />
+          <Avatar name={payee.name} {...avatarImage(payee.avatar)} decorative />
           <div class="min-w-0 flex-1">
             <p class="truncate font-medium">{payee.nickname || payee.name}</p>
             <p class="truncate text-xs text-muted-foreground">

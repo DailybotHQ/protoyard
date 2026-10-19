@@ -63,6 +63,11 @@ export interface Beneficiary {
   /** Fictional institution name + masked number, display only. */
   institution: string;
   masked: string;
+  /**
+   * Library avatar id (`av-NNN`) for seeded person payees; resolve it with
+   * `avatarImage`. Businesses and payees added in the app show initials.
+   */
+  avatar?: string;
   createdAt: string;
 }
 

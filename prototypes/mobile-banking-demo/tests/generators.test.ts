@@ -58,4 +58,31 @@ describe('mobile-banking-demo generator', () => {
       rows<Beneficiary>(generateBankWorld(ctx('active-customer')), 'beneficiaries')
     ).toHaveLength(3);
   });
+
+  it('gives the household and person payees library avatars, stable per seed', () => {
+    expect(definition.generatorVersion).toBe(2);
+    const AVATAR = /^av-\d{3}$/;
+    const faces = (world: ReturnType<typeof generateBankWorld>) => ({
+      household: world.personas.map((p) => p.avatar),
+      payees: rows<Beneficiary>(world, 'beneficiaries').map((b) => [b.name, b.avatar]),
+    });
+    for (const scenario of definition.scenarios) {
+      const world = generateBankWorld(ctx(scenario.id));
+      const { household } = faces(world);
+      expect(household.length).toBeGreaterThan(0);
+      for (const id of household) expect(id).toMatch(AVATAR);
+      expect(faces(generateBankWorld(ctx(scenario.id)))).toEqual(faces(world));
+    }
+    const world = generateBankWorld(ctx('active-customer'));
+    const payees = rows<Beneficiary>(world, 'beneficiaries');
+    // People have faces; the landlord (a business) keeps its initials.
+    for (const payee of payees) {
+      if (payee.name === 'Maple Court Apartments') expect(payee.avatar).toBeUndefined();
+      else expect(payee.avatar).toMatch(AVATAR);
+    }
+    const all = [...world.personas.map((p) => p.avatar), ...payees.map((p) => p.avatar)].filter(
+      Boolean
+    );
+    expect(new Set(all).size).toBe(all.length);
+  });
 });
