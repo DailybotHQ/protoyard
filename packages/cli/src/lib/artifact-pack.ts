@@ -59,12 +59,14 @@ const AVATAR_FILE = /^avatars\/(\d+)\/av-\d{3}\.webp$/;
  * Runtime capabilities declared when a pack enables review comments (`export
  * --target artifact --comments`): a shared `db` store under `review/` that
  * every admitted viewer reads and Contributors and above write, and the
- * `user` capability for author ids and display names. The shape follows the
- * Artifact capability docs (db rules by sharing level, user scopes).
+ * `user` capability for author ids and display names, and a write-only
+ * `comments` composer for viewers who cannot write to the shared database.
+ * The shape follows the Artifact capability docs.
  */
 export const ARTIFACT_COMMENT_CAPABILITIES: Readonly<Record<string, unknown>> = {
   db: { rules: [{ path: 'review', read: 'view', write: 'interact' }] },
   user: { scopes: ['profile'] },
+  comments: { composer_only: true },
 };
 
 /** Hosts the Artifact tool accepts for external scripts (https only). */

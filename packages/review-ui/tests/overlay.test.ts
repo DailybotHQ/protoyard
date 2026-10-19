@@ -2,7 +2,7 @@
 import type { ReviewAnchor, ReviewComment } from '@protoyard/core/review';
 import { createAnchor } from '@protoyard/review/anchors';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createReviewOverlay } from '../src/overlay/index.ts';
+import { createReviewOverlay, type ReviewOverlayOptions } from '../src/overlay/index.ts';
 
 const handles: Array<{ destroy: () => void }> = [];
 
@@ -12,7 +12,7 @@ afterEach(() => {
   window.location.hash = '';
 });
 
-function setup() {
+function setup(options: Partial<ReviewOverlayOptions> = {}) {
   const root = document.createElement('main');
   const target = document.createElement('button');
   target.textContent = 'Open invoice';
@@ -21,7 +21,7 @@ function setup() {
   vi.spyOn(root, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 320, 240));
   vi.spyOn(target, 'getBoundingClientRect').mockReturnValue(new DOMRect(40, 30, 80, 32));
   const onPlace = vi.fn();
-  const handle = createReviewOverlay({ root, onPlace });
+  const handle = createReviewOverlay({ ...options, root, onPlace });
   handles.push(handle);
   return { root, target, onPlace };
 }
@@ -93,6 +93,26 @@ describe('review comment overlay', () => {
       offset: { x: 0.1, y: 0.3125 },
     });
     expect(root.contains(target)).toBe(true);
+  });
+
+  it('opens the Claude composer on the clicked element in composer-only mode', async () => {
+    const onCommentInClaude = vi.fn();
+    const { target, onPlace } = setup({ onCommentInClaude });
+    Object.defineProperty(document, 'elementsFromPoint', {
+      configurable: true,
+      value: vi.fn(() => [document.querySelector('[data-py-review-capture]')!, target]),
+    });
+    document.querySelector<HTMLButtonElement>('[data-py-review-toggle]')?.click();
+    document
+      .querySelector('[data-py-review-capture]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 48, clientY: 40 }));
+    await Promise.resolve();
+
+    expect(onCommentInClaude).toHaveBeenCalledWith(target);
+    expect(onPlace).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-py-review-status]')?.textContent).toBe(
+      'Claude comment composer opened.'
+    );
   });
 
   it('supports Shift+C on the focused element and arrow-key crosshair placement', async () => {

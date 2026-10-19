@@ -248,3 +248,13 @@ const adapter = await createArtifactReviewAdapter(localAdapter);
   Claude capability surface (`tests/fixtures/fake-claude.ts`).
 - **Not live-verified:** no real Artifact runtime has exercised it yet; that
   happens in T-art-real-private-publish.
+
+## Claude shell composer fallback (`@protoyard/review/adapters/artifact-shell`)
+
+`createArtifactShellReviewAdapter(fallback, claude)` prefers the shared
+`db` + `user` adapter. If those capabilities are unavailable and the shell
+grants `comments` with `composer_only: true`, it returns the local adapter in
+`composer_only` mode plus an `openComposer(element)` action. Call that action
+only from a viewer gesture; it opens Claude's composer anchored to the chosen
+element. Claude owns those threads, so Protoyard cannot list or synchronize
+them. The review panel can show `ClaudeComposerNotice` in this mode.
