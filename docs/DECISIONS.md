@@ -296,3 +296,78 @@ one session per machine (fixed ports), scheduled by the lead.
 **Consequences.** No two writers share a checkout; conflicts surface as
 ordinary merges the lead resolves. **Reverse:** remove the worktrees
 (`git worktree remove`) once the lane branches are merged.
+
+## ADR-021 — Charts and analytics as four lazy packages with theme-owned chart tokens
+
+**Context.** Prototypes need charts of every kind and analytics screens. Only
+a hover-only div bar chart exists (`templates/dashboard`); the theme tokens
+`chart1..5` are never contrast-checked. Chart libraries are large and would
+break the 250 KB initial JS budget.
+
+**Decision.** Add `@protoyard/charts` (pure TypeScript: scales, shapes,
+downsampling, layouts; testable in Node), `@protoyard/charts-ui` (Svelte, one
+subpath per family: `./cartesian`, `./part-whole`, `./matrix`, `./compact`,
+`./canvas`, `./geo`), `@protoyard/analytics` (date ranges, comparison,
+bucketing, filters, funnels, cohorts, deterministic generators) and
+`@protoyard/analytics-ui` (KPIs, date range, filters, explore views, a
+keyboard-editable dashboard grid). No third-party chart dependency, and
+nothing is re-exported from the `@protoyard/ui` barrel. Chart palettes
+(categorical 8, sequential and diverging ramps) are optional `ThemePalette`
+tokens owned by `@protoyard/themes` and validated there (3:1 non-text
+contrast, colour-vision-deficiency distance); charts read `--py-chart-*`
+variables with a derived fallback.
+
+**Consequences.** A prototype pays for a chart family only on the screen that
+uses it. **Reverse:** remove the packages; prototypes fall back to tables.
+
+## ADR-022 — The views kit: an engine package plus per-view Svelte subpaths
+
+**Context.** Products need more than CRUD: boards, calendars, timelines, big
+grids, trees, maps, editors, comments, notifications, files, settings and
+state patterns. Growing `@protoyard/ui` would grow every prototype's barrel.
+
+**Decision.** Add `@protoyard/views` (framework-free engines: board ranks and
+WIP, calendar recurrence subset, schedule dependencies and critical path,
+grid virtualization and filters, tree, offline geo, comments) and
+`@protoyard/views-ui` with one subpath per view, never in the `ui` barrel.
+The map uses a fully fictional, hand-authored offline basemap (no tiles, no
+licensing, no network). The markdown parser is shared through a `./markdown`
+subpath of `@protoyard/ai`. One explicit time zone per prototype. The old
+`ui` Kanban stays; `BoardView` is the new board.
+
+**Consequences.** Each view is a 3–16 KB lazy chunk with 0 KB initial cost.
+**Reverse:** remove the packages; templates keep their own screens.
+
+## ADR-023 — Layouts are a data-only contract with a lazy host
+
+**Context.** Prototypes need multiple app layouts (sidebar, rail, top nav,
+master-detail, dashboard, docs, landing, wizard, auth split, mobile tab bar
+and drawer), switchable live like shells and choosable by generated apps.
+
+**Decision.** `@protoyard/core` adds a manifest `preview.layout`, a `?layout=`
+link parameter and a runtime override (lead-owned seam), plus a data-only
+`NavModel`. `LayoutHost` lives in `@protoyard/ui` next to `AppShell` with a
+lazy registry (host ≤ 2 KB, each layout ≤ 4 KB). Existing prototypes keep a
+`custom` layout; templates and new flagships adopt `LayoutHost`. The theme
+library index loads lazily on first library use (DevTools browser, an unknown
+`?theme=` id), never at boot.
+
+**Consequences.** DevTools can switch layouts live; blueprints can choose one.
+**Reverse:** set `preview.layout: custom` everywhere and drop the host.
+
+## ADR-024 — Blueprint screens v2, the geo field and an offline brief synthesizer
+
+**Context.** Blueprint screens are hints only and every catalog blueprint is
+three-entity CRUD; turning an idea into a prototype still takes hand work.
+
+**Decision.** Blueprints gain optional screen kinds (dashboard, board,
+calendar, timeline, map, analytics, detail tabs, settings), a `geo` field
+kind, realistic value distributions and aggregate queries, and a layout
+choice. Additions are optional keys; `formatVersion` stays 1 unless a key
+changes meaning. A deterministic, offline brief → blueprint synthesizer
+backs `protoyard blueprint new --from-brief`; no model or network call.
+Templates stay hand-written owned code built on the kits.
+
+**Consequences.** One command turns a short brief into a running, multi-view
+prototype; an idea → running time budget is measured.
+**Reverse:** ignore the optional keys; the generator falls back to CRUD screens.
