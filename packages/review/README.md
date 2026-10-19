@@ -6,10 +6,10 @@ thread in one list. This package has no Svelte; the UI is
 [`@protoyard/review-ui`](../review-ui/README.md). The comment schemas live in
 `@protoyard/core/review`.
 
-> **Status:** `./anchors`, `./store`, `./adapters/local`, `./adapters/artifact` and `./server` are implemented.
+> **Status:** `./anchors`, `./store`, `./adapters/local`, `./adapters/http`, `./adapters/artifact` and `./server` are implemented.
 > The remaining subpaths are filled by their PLAN_003 tasks and documented here when they land.
 
-| Subpath | What it will hold | Task |
+| Subpath | Purpose | Task |
 | --- | --- | --- |
 | `./anchors` | Pin anchors: route, element locator ladder, offset inside the element, context | T-review-anchoring |
 | `./store` | The small `ReviewAdapter` contract and its conformance suite | T-review-adapter-contract |
@@ -142,6 +142,43 @@ pnpm vitest run packages/review/tests/adapter-contract.test.ts
 
 **Size:** the contract helpers are 0.55 KB gzip, and 0.8 KB with the memory
 adapter. zod and the `@protoyard/core/review` schemas are external.
+
+## HTTP adapter (`@protoyard/review/adapters/http`)
+
+`createHttpReviewAdapter({ endpoint, clientId, localAdapter })` connects the
+review UI to an endpoint that implements the comments REST shape. Relative
+endpoints resolve from the host site's origin, so an embedded showcase page
+under `/p/<slug>/app/` still calls `/api/comments`. The adapter sends the
+client id on each request. A `?review=<key>` query value is moved to
+`sessionStorage` and removed from the address bar before network requests; the
+key is sent as `x-review-key`. This deters casual access and is not
+authentication.
+
+Network failures, HTTP 429 and server errors queue writes in memory and persist
+comment bodies through the supplied local adapter. The adapter retries queued
+idempotent writes when subscribed and exposes `pendingCount()`,
+`pendingWrites()` and `subscribePending()` for an integration to show pending
+status. Call `retryPending(slug?)` to retry explicitly. While a subscriber is
+active, the adapter polls immediately, on window focus and every 30 seconds by
+default; unsubscribe to stop polling.
+
+```ts
+import { createHttpReviewAdapter } from '@protoyard/review/adapters/http';
+
+const adapter = createHttpReviewAdapter({
+  endpoint: '/api/comments',
+  clientId,
+  localAdapter,
+});
+const unsubscribePending = adapter.subscribePending(() => {
+  showPendingCount(adapter.pendingCount());
+});
+```
+
+The local adapter must use the same client identity as the review author for
+locally queued edits and deletes. Queue metadata itself is in memory; comments
+remain in IndexedDB, but queued operations are not automatically restored
+after a page reload.
 
 ## Anchors (`@protoyard/review/anchors`)
 
