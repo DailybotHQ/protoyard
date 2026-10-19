@@ -1,0 +1,44 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.social-feed",
+  "slug": "social-feed",
+  "kind": "template",
+  "name": "Social Feed",
+  "description": "A social starter: a windowed home and everyone feed, a composer, reactions, comments, follows, profiles and a notifications inbox that fills as simulated time advances, with member, moderator and read-only personas.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "social", "feed", "community", "notifications", "roles"],
+  "catalog": {
+    "category": "social",
+    "productType": "Social feed",
+    "platforms": ["web", "mobile"],
+    "features": [
+      "feed",
+      "composer",
+      "reactions",
+      "comments",
+      "follows",
+      "notifications",
+      "large-dataset",
+      "roles"
+    ],
+    "highlights": [
+      "Windowed feed that stays smooth at thousands of posts",
+      "Composer, reactions, comments and follows",
+      "Notifications inbox fed by simulated activity",
+      "A massive scenario with over 5,000 posts"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "💬",
+  "defaultScenario": "active",
+  "defaultTheme": "rose",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-social-feed", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "massive", "moderator", "viewer"]
+}
