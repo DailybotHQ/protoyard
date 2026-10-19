@@ -278,3 +278,65 @@ describe('neutral families', () => {
     expect(fromLibrary.light.background).not.toBe(ORIGINAL_FINTECH_LEDGER.light.background);
   });
 });
+
+describe('AAA themes, chart seeds and achromatic seeds', () => {
+  it('reaches 7:1 for every text pair with a neutral family, and refuses AAA without one', () => {
+    const failures: string[] = [];
+    for (const neutral of NEUTRAL_FAMILIES) {
+      for (const seed of FIXED_SEEDS.slice(0, 60)) {
+        const theme = createThemeFromSeed({
+          id: 'aaa',
+          name: 'AAA',
+          seed,
+          neutral,
+          contrast: 'AAA',
+        });
+        for (const mode of ['light', 'dark'] as const) {
+          for (const [foreground, background] of TEXT_CONTRAST_PAIRS) {
+            const ratio = contrastRatio(theme[mode][foreground], theme[mode][background]);
+            if (ratio < 7)
+              failures.push(
+                `${neutral}/${seed}/${mode}: ${foreground} on ${background} = ${ratio}`
+              );
+          }
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+    expect(() =>
+      createThemeFromSeed({ id: 'aaa', name: 'AAA', seed: '#336699', contrast: 'AAA' })
+    ).toThrow(/needs a neutral family/);
+  });
+
+  it('starts the chart series from the given seeds and validates them', () => {
+    const okabe = ['#0072b2', '#e69f00', '#009e73', '#cc79a7', '#d55e00'];
+    const theme = createThemeFromSeed({
+      id: 'ok',
+      name: 'OK',
+      seed: '#0072b2',
+      neutral: 'cool',
+      chartSeeds: okabe,
+    });
+    expect(theme.light.chart1).toBe(theme.charts?.light.categorical[0]);
+    expect(theme.light.chart3).not.toBe(
+      createThemeFromSeed({ id: 'ok', name: 'OK', seed: '#0072b2', neutral: 'cool' }).light.chart3
+    );
+    expect(() =>
+      createThemeFromSeed({ id: 'ok', name: 'OK', seed: '#0072b2', chartSeeds: okabe.slice(0, 4) })
+    ).toThrow(/five #rrggbb/);
+  });
+
+  it('keeps a gray primary for an achromatic seed', () => {
+    for (const seed of ['#000000', '#18181b', '#3f3f46', '#57534e']) {
+      const theme = createThemeFromSeed({ id: 'mono', name: 'Mono', seed, neutral: 'zinc' });
+      for (const mode of ['light', 'dark'] as const) {
+        const { c } = rgbToOklch(parseHex(theme[mode].primary) as [number, number, number]);
+        expect(c, `${seed}/${mode}`).toBeLessThan(0.04);
+      }
+    }
+    const vivid = createThemeFromSeed({ id: 'blue', name: 'Blue', seed: '#2563eb' });
+    expect(rgbToOklch(parseHex(vivid.light.primary) as [number, number, number]).c).toBeGreaterThan(
+      0.15
+    );
+  });
+});

@@ -11,6 +11,8 @@ export function buildLibraryTheme(definition: LibraryThemeDefinition): Theme {
     seed: definition.seed,
     ...(definition.secondary ? { secondary: definition.secondary } : {}),
     ...(definition.neutral ? { neutral: definition.neutral } : {}),
+    ...(definition.contrastLevel === 'AAA' ? { contrast: 'AAA' as const } : {}),
+    ...(definition.chartSeeds ? { chartSeeds: definition.chartSeeds } : {}),
     ...(definition.style ? { style: definition.style } : {}),
   });
 }

@@ -15,7 +15,7 @@ import {
   MIN_CHART_CVD_DISTANCE,
   validateChartTokens,
 } from '../src/charts.ts';
-import { loadAllLibraryThemes } from '../src/library/registry.ts';
+import { loadAllLibraryThemes, THEME_LIBRARY_META } from '../src/library/registry.ts';
 import { createThemeFromSeed } from '../src/palette.ts';
 import { BUILTIN_THEMES, violetTheme } from '../src/presets.ts';
 
@@ -40,7 +40,7 @@ const chartTokens = (palette: Theme['light']) => [
 
 describe('theme chart palettes', () => {
   it('pass contrast, separation, color-vision and ramp checks for every preset and library theme', () => {
-    expect(themes.length).toBe(38);
+    expect(themes.length).toBe(BUILTIN_THEMES.length + THEME_LIBRARY_META.length);
     const failures: string[] = [];
     for (const theme of themes) {
       for (const mode of MODES) {

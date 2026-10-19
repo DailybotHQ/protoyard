@@ -294,6 +294,13 @@ Lazy chunks, loaded only when used (gzip):
 
 Builds without DevTools (the default) do not contain the Studio at all.
 
+**64-theme library (2026-10-19).** Same Vite library build method, entry
+`packages/themes/src/library/index.ts`: the metadata, definitions and
+registry chunk is **7,217 B gzip** for 64 themes (4,226 B for 32), about
+1.1 KB per 10 entries, and the token builder chunk (palette engine and chart
+palettes) is 6,009 B. Both load only when a page asks for a library theme;
+no prototype's initial JS contains them.
+
 **Library themes in every prototype (2026-10-19).** `mountPrototype` passes
 the runtime a resolver that imports `@protoyard/themes/library` on first use.
 Measured on `crm-demo` with `pnpm protoyard build crm-demo` (the
