@@ -19,6 +19,21 @@ import Root from './shell/Root.svelte';
 export interface RuntimeFactoryOptions {
   themes: Theme[];
   link: ScenarioLinkParams;
+  /** Loads a theme id the prototype does not ship (the theme library, ADR-023). */
+  resolveTheme: (id: string) => Promise<Theme | undefined>;
+}
+
+/**
+ * Every prototype can use any theme of the `@protoyard/themes` library
+ * (`?theme=fintech-ledger`, a scenario, a persona preference) with no code of
+ * its own. The library's metadata and builder load on first use only: the
+ * subpath is imported dynamically, never the themes barrel (already in every
+ * initial chunk), so a page that never asks for a library theme downloads
+ * none of it. Unknown ids resolve to `undefined` and fall back visibly.
+ */
+export async function resolveLibraryTheme(id: string): Promise<Theme | undefined> {
+  const { getLibraryThemeMeta, loadLibraryTheme } = await import('@protoyard/themes/library');
+  return getLibraryThemeMeta(id) ? loadLibraryTheme(id) : undefined;
 }
 
 export interface MountPrototypeOptions {
@@ -104,7 +119,7 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   let runtime: PrototypeRuntime | null = null;
   try {
     const create = options.createRuntime ?? createPrototypeRuntime;
-    runtime = await create(definition, { themes, link });
+    runtime = await create(definition, { themes, link, resolveTheme: resolveLibraryTheme });
     let seeded = false;
     const unsubscribeProgress = runtime.scenarios.subscribeProgress((progress) => {
       if (progress?.phase === 'generate') seeded = true;

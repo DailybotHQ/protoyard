@@ -458,14 +458,19 @@ The registry API (`packages/themes/src/library/registry.ts`):
 The dynamic import keeps the palette engine out of the eager metadata chunk
 in bundlers that split on `import()`.
 
-**Where library themes show up today.** The gallery's Themes page
-(`apps/gallery/src/pages/themes.astro`) renders all of them next to the
-presets, the UI Kit prototype's Theme Lab previews them, and the CLI lists
-and exports them. They are **not** added to a prototype's DevTools theme grid
-automatically: a prototype's theme list is the built-in presets, its own
-`definePrototype({ themes })` and its saved custom themes. To use a library
-look in a prototype, start from its seed with `theme create --seed` or the
-Theme Studio, or register the theme yourself.
+**Using a library theme in any prototype.** Every prototype can use every
+library theme with no code of its own. `mountPrototype` gives the runtime a
+resolver (`resolveLibraryTheme` in `packages/renderer-svelte/src/mount.ts`)
+that loads `@protoyard/themes/library` the first time an unknown id is asked
+for: a `?theme=fintech-ledger` link, a scenario's `appearance.themeId`, a
+persona preference or a DevTools override. The resolved theme is validated,
+registered once and applied like any other theme. The no-flash cache then
+replays it before the next boot, and a stored override keeps it across
+reloads. An id the library does not know falls back visibly to the manifest
+default. The gallery's Themes page (`apps/gallery/src/pages/themes.astro`),
+the UI Kit prototype's Theme Lab and the CLI list them too. DevTools → Look
+still shows only the presets, the prototype's own themes and saved custom
+themes; the searchable library browser is a separate task.
 
 ## Custom themes per prototype
 
