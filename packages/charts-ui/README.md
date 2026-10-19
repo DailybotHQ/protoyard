@@ -31,7 +31,8 @@ import the styles after Tailwind and the theme/UI styles:
 | `@protoyard/charts-ui/geo` | Tile-grid choropleth |
 
 **Status:** `./cartesian` ships LineChart, AreaChart, BarChart, ComboChart and
-ScatterChart; `./compact` ships Sparkline, Gauge and RadialProgress. The other
+ScatterChart; `./part-whole` ships DonutChart, PieChart, FunnelChart, Treemap
+and SankeyChart; `./compact` ships Sparkline, Gauge and RadialProgress. The other
 family subpaths currently export only their `FAMILY` name; their components
 are added by the following PLAN_003 charts tasks. `sideEffects` lists only CSS,
 so a bundler keeps just the components a screen imports from a subpath. Load a family from a lazy route (`load: () => import('./Screen.svelte')`)
@@ -72,6 +73,27 @@ LineChart + BarChart is a 17.4 KB entry chunk, and the table loads lazily
 that and the chart math (scales, shapes, downsampling, palette) for 7.0 KB,
 so each further chart adds 1–3 KB. This is over the 10 KB target; see the
 PLAN_003 report for the planned reductions.
+
+## Part-whole and flow charts (`./part-whole`)
+
+These charts share one keyboard model (`ItemPlot`): a single tab stop with
+`aria-activedescendant`. Arrows move between slices, steps, cells or nodes,
+Home and End jump to the ends, and Enter selects. A polite live region reads
+each item ("Pro, 280, 28%. 2 of 4."), and the shared tooltip follows pointer
+and focus.
+
+| Chart | Highlights |
+| --- | --- |
+| `DonutChart` / `PieChart` | `data: [{ id, label, value, color? }]`. Slices under `otherThreshold` (3 %) fold into "Other" (`groupSmallSlices`; the selection keeps its `members`). Outside labels appear only for slices of 6 % or more, pushed apart so they never overlap. The total sits in the hole (`centerLabel`), and a legend lists every value and share. `PieChart` has no hole. |
+| `FunnelChart` | `steps: [{ id, label, value }]`, or `computeFunnel(...).steps` from @protoyard/analytics as they are (`count`). Vertical or horizontal. Each step shows its value and share of entered; the tooltip adds step-to-step conversion and drop-off. |
+| `Treemap` | `root` as a `TreemapNode` tree, shown one level at a time. Labels appear only in cells that fit. Enter or a click on a group drills in, Backspace or Escape goes back, and a breadcrumb jumps up. `onselect(node, path)` fires for leaves. Invalid trees show the error state. |
+| `SankeyChart` | `nodes` and `links` (a DAG). Links are colored by their source node, and the focused node's links are highlighted. Cycles and unknown nodes show the error state instead of throwing. |
+
+Size (esbuild minify + gzip -9, splitting, `svelte` external), each chart on
+its own: DonutChart 10.6 KB, FunnelChart 9.6 KB, Treemap 10.3 KB, SankeyChart
+10.3 KB; all five 16.5 KB. Most of each is the shared frame + `ItemPlot`
+(7.3 KB, including the palette builder). That is over the 6 KB target for the
+subpath; the same frame reductions as for the cartesian family apply.
 
 ## Compact charts (`./compact`)
 
