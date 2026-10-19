@@ -1,0 +1,35 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.clinic",
+  "slug": "clinic",
+  "kind": "template",
+  "name": "Clinic",
+  "description": "A clinic front desk on fictional patients: provider schedules, booking that refuses overlaps, check-in, plain-text visit notes signed by the clinician and a redacted audit log. A simulation: no real medical data, no HIPAA or other compliance claim.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "healthcare", "clinic", "appointments", "scheduling", "audit", "roles"],
+  "catalog": {
+    "category": "health",
+    "productType": "Clinic front desk",
+    "platforms": ["web"],
+    "features": ["calendar", "booking", "check-in", "notes", "audit", "redaction", "roles"],
+    "highlights": [
+      "Front-desk dashboard for today with one-click check-in",
+      "Provider schedules that refuse double-booking",
+      "Plain-text visit notes signed by the treating clinician",
+      "Audit log with sensitive fields redacted"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "🩺",
+  "defaultScenario": "active",
+  "defaultTheme": "health-clinic",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-clinic", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "busy-clinic", "clinician", "viewer"]
+}

@@ -83,6 +83,13 @@ const FIT_TARGETS: Record<string, FitTarget> = {
   },
   // The busiest booking world on the calendar screen (week view on desktop, agenda on phones).
   'booking-calendar': { scenario: 'busy-week', hash: '#/', layout: 'document' },
+  // The busiest front desk: a long day list and stat cards scroll as a document.
+  clinic: {
+    scenario: 'busy-clinic',
+    hash: '#/',
+    layout: 'document',
+    ready: '[data-front-desk-list]',
+  },
   // The windowed feed bound to the window: the composer stays on screen, the feed list scrolls.
   'social-feed': {
     scenario: 'massive',
