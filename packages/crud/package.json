@@ -43,6 +43,11 @@
       "types": "./src/screens/analytics/index.ts",
       "svelte": "./src/screens/analytics/index.ts",
       "default": "./src/screens/analytics/index.ts"
+    },
+    "./screens/timeline": {
+      "types": "./src/screens/timeline/index.ts",
+      "svelte": "./src/screens/timeline/index.ts",
+      "default": "./src/screens/timeline/index.ts"
     }
   },
   "scripts": {

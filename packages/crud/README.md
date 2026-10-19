@@ -167,6 +167,31 @@ import { AnalyticsScreen } from '@protoyard/crud/screens/analytics';
 - Reads use entity services and `liveQuery`; denied reads get a permission state, and no external
   data service is contacted.
 
+## Timeline screen (`@protoyard/crud/screens/timeline`)
+
+A blueprint `timeline` screen (`entity`, `startField`, `endField`, optional `groupBy` and `zoom`)
+renders dated records with `TimelineView` from `@protoyard/views-ui/timeline`, in its own lazy entry:
+
+```svelte
+<script lang="ts">
+import { TimelineScreen } from '@protoyard/crud/screens/timeline';
+</script>
+
+<TimelineScreen {runtime} {blueprint} {services} screen={timelineScreen} />
+```
+
+- Enum groups use the blueprint's declared value order and labels; relation and persona groups are
+  sorted by their stored value. Tasks within a group sort by start date, title and id. Records with
+  no valid start date are reported below the timeline. A missing or invalid end date becomes a
+  one-day milestone.
+- Week, month and quarter zoom are available. The today line follows the runtime clock, and each
+  timeline keeps horizontal scrolling inside its own canvas.
+- Keyboard and pointer rescheduling moves dates one day at a time; the task menu shifts a record by
+  one week. Both update through the entity service and show pending feedback. The view restores its
+  optimistic dates if a save fails. Viewers get a read-only timeline.
+- Prototypes using the screen add `@source` for `@protoyard/views-ui` in their CSS so Tailwind sees
+  the view classes.
+
 ## Settings screen (`@protoyard/crud/screens/settings`)
 
 A separate entry, so the screen loads only with its route. Sections come from a blueprint
