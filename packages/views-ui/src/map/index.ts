@@ -1,6 +1,18 @@
 /**
- * `@protoyard/views-ui/map` — Svelte 5 components for the map view.
- * Import this subpath only from a lazy route screen. Filled by the PLAN_003
- * task geo-model and map-view; empty until then.
+ * `@protoyard/views-ui/map` — the simulated map: a fictional SVG basemap,
+ * focusable markers and clusters, routes with progress, editable geofences and
+ * a synced list. Import this subpath only from a lazy route screen.
  */
-export {};
+
+export {
+  circleRadiusPx,
+  linePath,
+  type MapMarker,
+  type MapRoute,
+  type MapTone,
+  type MarkerShape,
+  PAN_STEP,
+  ringProblem,
+  routeProgress,
+} from './model.ts';
+export { default as SimulatedMap } from './SimulatedMap.svelte';
