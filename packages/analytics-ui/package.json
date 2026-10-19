@@ -38,6 +38,11 @@
       "svelte": "./src/grid/index.ts",
       "default": "./src/grid/index.ts"
     },
+    "./drill": {
+      "types": "./src/drill/index.ts",
+      "svelte": "./src/drill/index.ts",
+      "default": "./src/drill/index.ts"
+    },
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
