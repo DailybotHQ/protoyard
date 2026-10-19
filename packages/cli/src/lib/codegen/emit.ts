@@ -229,7 +229,8 @@ import { useCrudApp } from '../../lib/context.ts';
 
 const { runtime, services, blueprint } = useCrudApp();
 const found = blueprint.screens[${index}];
-if (found?.type !== 'dashboard') throw new Error('blueprint screen ${index} is not a dashboard: regenerate');
+if (found?.type !== 'dashboard')
+  throw new Error('blueprint screen ${index} is not a dashboard: regenerate');
 const screen = found;
 </script>
 
