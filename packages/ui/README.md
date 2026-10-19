@@ -92,7 +92,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Spinner` / `Skeleton` | size / `class` for shape |
 | `EmptyState` / `ErrorState` / `LoadingState` | `title`, `description`, `icon`, `action` snippet; `ErrorState.onRetry`; `LoadingState.label` |
 | `Badge` | `variant` default·secondary·outline·success·warning·destructive·info |
-| `Avatar` | `name` (initials + deterministic color), `src?`, `size` xs·sm·md·lg, `decorative` |
+| `Avatar` | `name` (initials + deterministic color), `src?`, `srcset?`, `size` xs·sm·md·lg, `decorative`. The image is lazy, async-decoded and fixed-size; an unsafe `src` (any scheme but https, `//host`) or a load error shows the initials. Persona faces: `<Avatar name={p.name} {...avatarImage(p.avatar)} />` (`avatarImage` from `@protoyard/renderer-svelte`) |
 | `Card` + parts | `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
 | `Separator` / `Kbd` | `orientation` / children |
 | `StatCard` | `label`, `value`, `delta`, `trend` up·down·neutral, `positive`, `hint`, `icon` |
