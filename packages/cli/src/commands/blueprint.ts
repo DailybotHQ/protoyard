@@ -1,8 +1,21 @@
-import { readFile, stat } from 'node:fs/promises';
-import { resolve } from 'node:path';
-import { latestSchemaVersion, safeParseBlueprint } from '@protoyard/blueprint';
-import type { CommandResult, Handler } from '../lib/command.ts';
+import { existsSync } from 'node:fs';
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join, relative, resolve, sep } from 'node:path';
+import { createInterface } from 'node:readline';
+import type { Readable, Writable } from 'node:stream';
+import {
+  ARCHETYPE_IDS,
+  type BriefResult,
+  blueprintFromBrief,
+  latestSchemaVersion,
+  MAX_BRIEF_LENGTH,
+  safeParseBlueprint,
+} from '@protoyard/blueprint';
+import { type CommandResult, flag, type Handler, opt } from '../lib/command.ts';
 import { CliError, mark } from '../lib/output.ts';
+import { isInside } from '../lib/paths.ts';
+import { generateCommand } from './generate.ts';
 
 /**
  * `protoyard blueprint validate <file>`: checks a blueprint without
@@ -82,6 +95,228 @@ export const blueprintValidateCommand: Handler = async (_ctx, args): Promise<Com
         `${mark(c, 'pass')} ${c.bold(blueprint.name)} is a valid blueprint: ${entities.length} entities, ${blueprint.roles.length} roles, schema v${schemaVersion}`
       );
       for (const e of entities) out.info(`  ${e.name} ${c.dim(`(${e.fields} fields)`)}`);
+    },
+  };
+};
+
+/** Where `blueprint new` reads a piped brief and asks interactive questions. Tests swap it. */
+export interface BriefIo {
+  stdin: Readable & { isTTY?: boolean };
+  /** Prompts go here (stderr by default, so `--json` stdout stays parseable). */
+  prompts: Writable;
+}
+
+let briefIo: BriefIo = { stdin: process.stdin, prompts: process.stderr };
+
+/** Replaces the brief input and prompt streams; returns a function that restores them. */
+export function setBriefIo(io: BriefIo): () => void {
+  const previous = briefIo;
+  briefIo = io;
+  return () => {
+    briefIo = previous;
+  };
+}
+
+/** Upper bound on a brief read from a file or stdin (the synthesizer reads 5,000 characters). */
+const MAX_BRIEF_BYTES = 64 * 1024;
+
+async function readStdin(stream: Readable): Promise<string> {
+  let text = '';
+  for await (const chunk of stream) {
+    text += typeof chunk === 'string' ? chunk : (chunk as Buffer).toString('utf8');
+    if (text.length > MAX_BRIEF_BYTES) {
+      throw new CliError('validation', 'The brief on stdin is larger than 64 KB.');
+    }
+  }
+  return text;
+}
+
+async function readBriefFile(file: string): Promise<string> {
+  const path = resolve(process.cwd(), file);
+  const info = await stat(path).catch(() => null);
+  if (!info?.isFile()) throw new CliError('not_found', `Brief file not found: ${file}`);
+  if (info.size > MAX_BRIEF_BYTES) {
+    throw new CliError('validation', `Brief file is larger than 64 KB: ${file}`);
+  }
+  return readFile(path, 'utf8');
+}
+
+/** The questions `--interactive` asks, in order; answers become one brief. */
+export const BRIEF_QUESTIONS = [
+  'What are you building? (one sentence)',
+  'Who uses it?',
+  'What do they track? (for example: tickets and customers)',
+  'What details matter for each? (for example: priority, due date, amount)',
+  'Anything else: a map, a calendar, prices? (optional)',
+  'Product name? (optional)',
+  'Is it a mobile app? (y/N)',
+] as const;
+
+/** Asks `BRIEF_QUESTIONS` line by line; lines that arrive early are buffered, not lost. */
+async function askBrief(io: BriefIo): Promise<{ brief: string; name?: string }> {
+  const rl = createInterface({ input: io.stdin, terminal: false });
+  const lines = rl[Symbol.asyncIterator]();
+  const answers: string[] = [];
+  try {
+    for (const question of BRIEF_QUESTIONS) {
+      io.prompts.write(`? ${question} `);
+      const next = await lines.next();
+      answers.push(next.done ? '' : String(next.value).trim());
+    }
+  } finally {
+    rl.close();
+  }
+  const [what = '', who = '', track = '', details = '', extra = '', name = '', mobile = ''] =
+    answers;
+  const sentence = (text: string) => (text && !/[.!?]$/.test(text) ? `${text}.` : text);
+  const brief = [
+    sentence(what),
+    who ? sentence(`Used by ${who}`) : '',
+    track ? sentence(`Track ${track}${details ? ` with ${details}` : ''}`) : '',
+    sentence(extra),
+    /^y(es)?$/i.test(mobile) ? 'A mobile app.' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return name ? { brief, name } : { brief };
+}
+
+/** `$schema` relative to the output file, when the workspace ships the blueprint schema. */
+function schemaRef(root: string, target: string): string | undefined {
+  const schema = join(root, 'packages', 'blueprint', 'schema', 'blueprint.schema.json');
+  if (!existsSync(schema)) return undefined;
+  const rel = relative(dirname(target), schema).split(sep).join('/');
+  return rel.startsWith('.') ? rel : `./${rel}`;
+}
+
+/**
+ * `protoyard blueprint new <file> --from-brief <file|-> | --interactive`:
+ * turns a product brief into a validated blueprint offline (same brief, same
+ * file), prints the reasons for each choice, and with `--generate <slug>`
+ * chains straight into `generate`. Never overwrites without `--force`.
+ */
+export const blueprintNewCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  const file = args[0];
+  if (!file) {
+    throw new CliError('usage', 'Missing <file>.', {
+      hint: 'Example: pnpm protoyard blueprint new ./salon.blueprint.json --from-brief brief.md',
+    });
+  }
+  if (!file.endsWith('.json')) {
+    throw new CliError('usage', `The blueprint file must end in .json: ${file}`);
+  }
+  const fromBrief = opt(options, 'fromBrief');
+  const interactive = flag(options, 'interactive');
+  if (fromBrief && interactive) {
+    throw new CliError('usage', 'Use either --from-brief or --interactive, not both.');
+  }
+  if (!fromBrief && !interactive) {
+    throw new CliError('usage', 'Missing a brief.', {
+      hint: 'Pass --from-brief <file>, pipe one with --from-brief -, or use --interactive on a terminal.',
+    });
+  }
+  const archetype = opt(options, 'archetype');
+  if (archetype && !(ARCHETYPE_IDS as readonly string[]).includes(archetype)) {
+    throw new CliError('usage', `Unknown archetype "${archetype}".`, {
+      hint: `Choose one of: ${ARCHETYPE_IDS.join(', ')}.`,
+    });
+  }
+  const dryRun = flag(options, 'dryRun');
+  const generateSlug = opt(options, 'generate');
+
+  const target = resolve(process.cwd(), file);
+  const parent = dirname(target);
+  const rootReal = await realpath(ctx.root);
+  const parentReal = existsSync(parent) ? await realpath(parent) : parent;
+  if (!isInside(rootReal, parentReal) || !isInside(ctx.root, target)) {
+    throw new CliError('unsafe_path', `Refusing to write outside the workspace: ${file}`);
+  }
+  if (!dryRun && existsSync(target) && !flag(options, 'force')) {
+    throw new CliError('conflict', `${file} already exists.`, {
+      hint: 'Re-run with --force to replace it, or choose another file name.',
+    });
+  }
+
+  let brief: string;
+  let name = opt(options, 'name');
+  if (interactive) {
+    if (!briefIo.stdin.isTTY) {
+      throw new CliError('usage', '--interactive needs a terminal.', {
+        hint: 'Pipe the brief instead: echo "…" | pnpm protoyard blueprint new <file> --from-brief -',
+      });
+    }
+    const answers = await askBrief(briefIo);
+    brief = answers.brief;
+    name ??= answers.name;
+  } else {
+    brief =
+      fromBrief === '-' ? await readStdin(briefIo.stdin) : await readBriefFile(fromBrief as string);
+  }
+  if (brief.trim() === '') throw new CliError('usage', 'The brief is empty.');
+
+  let result: BriefResult;
+  try {
+    result = blueprintFromBrief(brief, {
+      ...(archetype ? { archetype } : {}),
+      ...(name ? { name } : {}),
+    });
+  } catch (error) {
+    throw new CliError('validation', `Could not build a blueprint: ${(error as Error).message}`);
+  }
+  const ref = schemaRef(ctx.root, target);
+  const json = { ...(ref ? { $schema: ref } : {}), ...result.json };
+  const text = `${JSON.stringify(json, null, 2)}\n`;
+
+  if (!dryRun) {
+    await mkdir(parent, { recursive: true });
+    await writeFile(target, text);
+  }
+
+  let generated: CommandResult | undefined;
+  if (generateSlug) {
+    // A dry run still needs a file to read: plan from a temporary copy.
+    const scratch = dryRun ? await mkdtemp(join(tmpdir(), 'protoyard-brief-')) : undefined;
+    const source = scratch ? join(scratch, 'blueprint.json') : target;
+    try {
+      if (scratch) await writeFile(source, text);
+      generated = await generateCommand(ctx, [generateSlug], {
+        blueprint: source,
+        dryRun,
+        ...(options.install === false ? { install: false } : {}),
+      });
+    } finally {
+      if (scratch) await rm(scratch, { recursive: true, force: true });
+    }
+  }
+
+  const { blueprint } = result;
+  return {
+    data: {
+      file,
+      written: !dryRun,
+      archetype: result.archetype,
+      layout: result.layout,
+      name: blueprint.name,
+      entities: blueprint.entities.map((e) => e.name),
+      screens: blueprint.screens.map((s) => s.type),
+      rationale: result.rationale,
+      briefLength: Math.min(brief.length, MAX_BRIEF_LENGTH),
+      ...(dryRun ? { blueprint: json } : {}),
+      ...(generated ? { generate: generated.data } : {}),
+    },
+    ...(generated?.failure ? { failure: generated.failure } : {}),
+    render(out) {
+      const { c } = out;
+      out.always(
+        `${mark(c, 'pass')} ${dryRun ? 'Planned' : 'Wrote'} ${c.bold(file)}: ${c.bold(blueprint.name)} (${result.archetype}), ${blueprint.entities.length} entities, ${blueprint.screens.length} screens`
+      );
+      for (const line of result.rationale) out.info(`  ${c.dim('·')} ${line}`);
+      if (!generateSlug && !dryRun) {
+        out.info(
+          `  Next: pnpm protoyard generate <slug> --blueprint ${file}  (or re-run with --generate <slug>)`
+        );
+      }
+      generated?.render?.(out);
     },
   };
 };
