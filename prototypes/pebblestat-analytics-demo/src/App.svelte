@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Repeat,
   TrendingUp,
+  UsersRound,
 } from '@lucide/svelte';
 import { createRouter, liveQuery, Router, usePrincipal } from '@protoyard/renderer-svelte';
 import { AppShell, Avatar, Badge, Header, Select, Sidebar } from '@protoyard/ui';
@@ -35,9 +36,10 @@ const firing = liveQuery(
 );
 const nav = $derived([
   { href: '#/', label: 'Overview', icon: LayoutDashboard, active: router.isActive('/', true) },
-  { href: '#/trends', label: 'Trends', icon: TrendingUp, active: router.isActive('/trends') },
+  { href: '#/trends', label: 'Insights', icon: TrendingUp, active: router.isActive('/trends') },
   { href: '#/funnels', label: 'Funnels', icon: Funnel, active: router.isActive('/funnels') },
   { href: '#/retention', label: 'Retention', icon: Repeat, active: router.isActive('/retention') },
+  { href: '#/users', label: 'Users', icon: UsersRound, active: router.isActive('/users') },
   { href: '#/reports', label: 'Reports', icon: Bookmark, active: router.isActive('/reports') },
   {
     href: '#/alerts',

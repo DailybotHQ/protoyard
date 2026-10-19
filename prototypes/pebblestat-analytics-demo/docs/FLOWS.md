@@ -16,7 +16,7 @@ row) and simulated offline (nothing written).
 
 ## Save a report
 
-1. On Trends, the user picks an event, measure, breakdown and filter, then **Save report**.
+1. On Insights, the user picks an event, measure, breakdown and filter, then **Save report**.
 2. Service: `reports.save({ projectId, name, config })`; on Reports, `reports.rename(id, { name })` and `reports.remove(id)`
 3. Capability: `reports:save`; renaming or deleting someone else's report needs `reports:manage-all`
 4. Writes: `reports`; `activity` (`report.saved`, `report.renamed`, `report.deleted`)
@@ -24,7 +24,7 @@ row) and simulated offline (nothing written).
 
 ## Save and manage a segment
 
-1. On Trends, the user saves the filter as a segment; on Segments, renames or deletes it.
+1. On Insights, the user saves the filter as a segment; on Segments, renames or deletes it.
 2. Service: `segments.create({ projectId, name, filter })`, `segments.rename`, `segments.remove`
 3. Capability: `segments:create`, `segments:manage-own` / `segments:manage-all`
 4. Writes: `segments`; `activity`
@@ -32,7 +32,7 @@ row) and simulated offline (nothing written).
 
 ## Annotate the timeline
 
-1. On Trends, the user selects **Annotate** and picks a title, kind and past day; the note appears in the strip under the charts.
+1. On Insights, the user selects **Annotate** (or **Add annotation** on Alerts & annotations) and picks a title, kind and past day; the note appears in the strip under the charts. Notes are removed from the strip or the Alerts & annotations list.
 2. Service: `annotations.create({ projectId, title, kind, day })`, `annotations.remove(id)`
 3. Capability: `annotations:create`; removing someone else's note needs `annotations:manage-all`
 4. Writes: `annotations`; `activity`
@@ -40,8 +40,14 @@ row) and simulated offline (nothing written).
 
 ## Create and manage an alert
 
-1. On Alerts, the user creates an alert (event, above or below, daily threshold), then mutes, unmutes or deletes it.
+1. On Alerts & annotations, the user creates an alert (event, above or below, daily threshold), then mutes, unmutes or deletes it.
 2. Service: `alerts.create(input)`, which stores a baseline from the last 14 days; `alerts.setMuted(id, muted)`; `alerts.remove(id)`
 3. Capability: `alerts:manage`; someone else's alert needs `alerts:manage-all`
 4. Writes: `alerts`; `alertChecks` (deleted with the alert); `activity`
 5. Afterwards: advancing simulated time runs the daily checks (timeline `alert.check` → `applyEvent`), which write `alertChecks` and update `alerts.status`. Failure states: a negative or fractional threshold (field errors)
+
+## Explore users (read-only)
+
+1. On Users, the user selects a plan bar, then a country and a platform, to narrow the table. The breadcrumb walks back, and the hash keeps the path.
+2. Opening a user shows their properties, activation steps and events.
+3. No service or capability: it only reads `users` and `events`.

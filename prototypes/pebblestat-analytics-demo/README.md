@@ -17,12 +17,13 @@ pnpm protoyard scenario bench pebblestat-analytics-demo --check
 | Screen | What it shows |
 | --- | --- |
 | **Overview** | KPI tiles, release annotations, the editable project dashboard |
-| **Trends** | Filters, breakdowns, segments, **Save report** and **Annotate** |
+| **Insights** | Over time with a compare period, or totals per breakdown; filters, segments, **Save report** and **Annotate** |
+| **Users** | A drill-down by plan, country and platform, and each user's events |
 | **Funnels** | The activation funnel |
 | **Retention** | Cohort retention |
 | **Reports** | Saved Trends queries |
-| **Alerts** | Daily thresholds that fire as simulated time advances |
-| **Live** | A live counter and the latest events |
+| **Alerts & annotations** | Daily thresholds that fire as simulated time advances, and the chart notes |
+| **Live** | A live counter and a stream of events and alert checks |
 | **Segments** | Saved filters |
 
 | Scenario | What you see |
