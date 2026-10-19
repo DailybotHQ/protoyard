@@ -36,8 +36,9 @@ Services still enforce policy if the UI is bypassed (see
   persona is a member of), newest activity first, `#` for channels and `·`
   for DMs; the three bots as `@handle — Name`; a scrollable "Presence" list
   with each persona's **id** (not name) and status.
-- **Actions:** click a channel (closes any open thread, marks it read);
-  "+ New" toggles an inline "channel-name" field with "Add"
+- **Actions:** click a channel (closes any open thread, marks it read; on
+  phones it also opens the channel screen and focuses its heading); the
+  current channel carries `aria-current="page"`; "+ New" toggles an inline "channel-name" field with "Add"
   ([Create a channel](FLOWS.md#create-a-channel)).
 - **Empty:** the channel list and presence list render nothing when empty.
   On load the first workspace and its first channel are selected
@@ -53,7 +54,11 @@ Services still enforce policy if the UI is bypassed (see
 - **Actions:** "Search…" with Enter or "Search"
   ([Search messages](FLOWS.md#search-messages-read-only)); "Share file"
   ([Share a file](FLOWS.md#share-a-file)); "Huddle"
-  ([Start a huddle](FLOWS.md#start-a-huddle)).
+  ([Start a huddle](FLOWS.md#start-a-huddle)). Below `sm` (640 px) these
+  move into a "More actions" disclosure button (`aria-expanded`) that opens
+  a row with the search field, "Share file" and "Huddle"; Escape closes it
+  and returns focus to the button. "Join" stays in the header at every width.
+  Below `md` a "Back to channels" button opens the channel list.
 - **Search results:** a "Search results" region with "N result(s)" and up to
   50 hits (first 80 characters each); clicking a hit opens its channel and
   thread. Nothing is shown for zero hits.
@@ -73,7 +78,9 @@ Services still enforce policy if the UI is bypassed (see
 - **Actions:** "👍 React" ([React to a message](FLOWS.md#react-to-a-message));
   "Reply in thread" on top-level messages
   ([Reply in a thread](FLOWS.md#reply-in-a-thread)). With a thread open, a
-  "Thread" bar (`role="status"`, "Thread open") has "Close".
+  "Thread" bar (`role="status"`, "Thread open") has "Close", which returns
+  focus to the "Reply in thread" button that opened the thread. On phones the
+  thread fills the channel screen.
 - **Loading:** "Loading messages…" while the query loads.
 - **Empty:** "No messages yet. Try @relay, /summarize, or /huddle." (also
   shown for a thread with no replies yet).
@@ -115,9 +122,11 @@ Services still enforce policy if the UI is bypassed (see
 `protoyard.json` sets `"preview": { "viewport": "desktop", "shell": "none" }`
 and `"platform": "responsive"`: the prototype is previewed at a desktop
 viewport with no device frame. The layout is a full-height
-(`h-dvh`) two-column chat: a fixed 15rem (`w-60`) sidebar and the main
-column. There is no mobile drawer or collapsed sidebar, so narrow screens
-keep the sidebar and get a narrow main column; the end-to-end journey runs
-on desktop only and skips the mobile project. The default theme is `ocean`
+(`h-dvh`) chat. From `md` (768 px) it has two columns: a 15rem (`w-60`)
+sidebar and the main column. Below `md` the sidebar and the channel are
+separate full-width screens (local state, no routes): the app opens on the
+selected channel, "Back to channels" shows the list, and picking a channel
+returns to it. The end-to-end journey runs on desktop and on a phone
+(Pixel 7), where it also checks that the composer is fully on screen. The default theme is `ocean`
 and the mode follows the system setting (`defaultMode: system`). The static
 build shows the demo badge and does not include DevTools.
