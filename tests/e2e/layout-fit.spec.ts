@@ -81,6 +81,8 @@ const FIT_TARGETS: Record<string, FitTarget> = {
     layout: 'document',
     ready: 'figure[data-py-chart]',
   },
+  // The busiest booking world on the calendar screen (week view on desktop, agenda on phones).
+  'booking-calendar': { scenario: 'busy-week', hash: '#/', layout: 'document' },
 };
 
 const DESKTOP = { width: 1920, height: 1080 } as const;

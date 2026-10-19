@@ -1,0 +1,35 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.booking-calendar",
+  "slug": "booking-calendar",
+  "kind": "template",
+  "name": "Booking Calendar",
+  "description": "A booking starter: rooms and staff with weekly availability rules, a week calendar to book, move and cancel, a public booking flow that only offers free slots, overlap conflicts refused by the services, and bookings that complete or no-show as simulated time advances.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "booking", "calendar", "scheduling", "availability", "roles"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Booking calendar",
+    "platforms": ["web"],
+    "features": ["calendar", "booking", "availability", "conflicts", "crud", "roles", "realtime"],
+    "highlights": [
+      "Week calendar with drag to move and click to book",
+      "Public booking flow with free slots only",
+      "Overlapping bookings refused by the services",
+      "Completed and no-show states as time advances"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "📅",
+  "defaultScenario": "active",
+  "defaultTheme": "emerald",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-booking-calendar", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "busy-week", "viewer", "client"]
+}
