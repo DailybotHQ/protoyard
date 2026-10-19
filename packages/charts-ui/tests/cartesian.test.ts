@@ -234,6 +234,18 @@ describe('BarChart', () => {
     expect(num(bars('north')[0] as Element, 'width')).toBeGreaterThan(before * 1.8);
   });
 
+  it('selects a bar on a tap (pointerdown, pointerleave, then click; no pointermove)', async () => {
+    const onselect = vi.fn();
+    render(BarChart, { title: 'Revenue', series: quarterly, onselect });
+    const svg = chart('Revenue');
+    // The touch sequence browsers fire: the hover is gone by the time the click arrives.
+    await fireEvent.pointerDown(svg, { clientX: 120, clientY: 150 });
+    await fireEvent.pointerLeave(svg);
+    await fireEvent.click(svg, { clientX: 120, clientY: 150, detail: 1 });
+    expect(onselect).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[data-chart-tooltip]')).not.toBeNull();
+  });
+
   it('reaches every bar with the keyboard', async () => {
     const onselect = vi.fn();
     render(BarChart, { title: 'Revenue', series: quarterly, onselect });
