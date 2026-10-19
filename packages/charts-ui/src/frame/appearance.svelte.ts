@@ -1,7 +1,6 @@
 import {
   CATEGORICAL_COUNT,
   type ChartPalette,
-  chartPalette,
   chartPaletteVariables,
   parseHex,
   RAMP_STEPS,
@@ -17,7 +16,9 @@ import {
  * the renderer's applyAppearance() writes (data-py-* attributes and inline
  * custom properties). When the theme ships its own validated chart block
  * (`--py-chart6…8`, `--py-seq-*`, `--py-div-*` on <html>), those values are
- * used as they are; the palette is derived from chart1…5 only as a fallback.
+ * used as they are; the palette is derived from chart1…5 only as a fallback,
+ * and the builder for that fallback loads on demand (`@protoyard/charts/palette/derive`),
+ * so pages on such themes never download it.
  */
 
 export interface ChartAppearance {
@@ -85,19 +86,30 @@ function read(): void {
     };
     return;
   }
-  let palette: ChartPalette | null = null;
-  try {
-    palette = chartPalette(input, mode);
-  } catch {
-    palette = null;
-  }
-  state.current = {
-    mode,
-    reducedMotion,
-    palette,
-    variables: palette ? chartPaletteVariables(palette) : {},
-    source: palette ? 'derived' : 'none',
-  };
+  // Until the fallback builder arrives, charts use the raw theme tokens (seriesColor falls back too).
+  state.current = { mode, reducedMotion, palette: null, variables: {}, source: 'none' };
+  const requested = key;
+  void import('@protoyard/charts/palette/derive')
+    .then(({ chartPalette }) => {
+      if (lastKey !== requested) return; // The appearance changed meanwhile.
+      let palette: ChartPalette | null = null;
+      try {
+        palette = chartPalette(input, mode);
+      } catch {
+        palette = null;
+      }
+      if (!palette) return;
+      state.current = {
+        mode,
+        reducedMotion,
+        palette,
+        variables: chartPaletteVariables(palette),
+        source: 'derived',
+      };
+    })
+    .catch(() => {
+      // Offline or a failed chunk: keep the raw theme tokens.
+    });
 }
 
 /** Starts watching (first subscriber) and returns a release function. */

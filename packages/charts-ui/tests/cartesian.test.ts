@@ -121,7 +121,7 @@ describe('LineChart and AreaChart', () => {
     const dashed = [...lines()].filter((l) => l.getAttribute('stroke-dasharray'));
     expect(dashed).toHaveLength(1);
     expect(dashed[0]?.closest('[data-series]')?.getAttribute('data-series')).toBe('previous');
-    await fireEvent.click(screen.getByRole('button', { name: 'Previous period' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Previous period' }));
     expect(lines()).toHaveLength(1);
     // The last visible series cannot be hidden.
     await fireEvent.click(screen.getByRole('button', { name: 'Signups' }));
@@ -160,7 +160,7 @@ describe('LineChart and AreaChart', () => {
 
   it('opens the same data as a table', async () => {
     render(LineChart, { title: 'Signups', series, unit: 'compact' });
-    await fireEvent.click(screen.getByRole('button', { name: 'View as table' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'View as table' }));
     const table = await screen.findByRole('table', { name: 'Signups' });
     expect(table.querySelectorAll('tbody tr')).toHaveLength(7);
     expect(screen.queryByRole('group', { name: /^Signups/ })).toBeNull();
@@ -229,7 +229,7 @@ describe('BarChart', () => {
   it('hides a series from the legend and widens the remaining bars', async () => {
     render(BarChart, { title: 'Revenue', series: quarterly });
     const before = num(bars('north')[0] as Element, 'width');
-    await fireEvent.click(screen.getByRole('button', { name: 'South' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'South' }));
     expect(bars('south')).toHaveLength(0);
     expect(num(bars('north')[0] as Element, 'width')).toBeGreaterThan(before * 1.8);
   });
@@ -261,7 +261,7 @@ describe('BarChart', () => {
 });
 
 describe('ComboChart', () => {
-  it('draws bars on the left axis and a line on the right, and labels the axes in the legend', () => {
+  it('draws bars on the left axis and a line on the right, and labels the axes in the legend', async () => {
     render(ComboChart, {
       title: 'Revenue and margin',
       leftUnit: 'cents',
@@ -273,7 +273,7 @@ describe('ComboChart', () => {
     });
     expect(bars('revenue')).toHaveLength(3);
     expect(document.querySelectorAll('path[data-line="margin"]')).toHaveLength(1);
-    expect(screen.getByRole('button', { name: 'Revenue (left axis)' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Revenue (left axis)' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Margin (right axis)' })).toBeTruthy();
     expect(document.querySelector('[data-axis="right"]')?.textContent).toContain('%');
     expect(document.querySelector('[data-axis="left"]')?.textContent).toContain('$');

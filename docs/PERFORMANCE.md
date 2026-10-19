@@ -603,6 +603,45 @@ the header strip and (past 150 ms) the app's global bar show it.
 
 Every prototype stays under the 250 KB initial-JS budget.
 
+## Charts and analytics kits
+
+Method: `pnpm vitest run packages/cli/tests/charts-bundle.test.ts`. This is a
+real Vite 8 production build (Rolldown, `NODE_ENV=production`) of
+`tests/fixtures/charts-prototype`, linked to the real packages the way pnpm
+links a prototype. The app shows a Sparkline on its first screen and loads
+LineChart + BarChart through `import()`; a second entry without charts is the
+baseline. Sizes are gzip level 9 per chunk. "Line + bar view" is what opening
+the charts view downloads (the dynamic chunk and its static imports, minus the
+first screen's chunks); the table, the Canvas renderer and the palette
+fallback load later, only when needed. Measured 2026-10-19 on the Apple M1
+Max, Node 26.11.1.
+
+| Change | Sparkline initial delta | Line + bar view |
+| --- | ---: | ---: |
+| Before (palette builder, Legend and TableToggle eager) | 2,549 B | 17,833 B |
+| Palette builder loads only for themes without a chart block (`@protoyard/charts/palette/derive`) | 2,549 B | 16,650 B |
+| Legend and TableToggle load after the plot | 2,549 B | 16,148 B |
+| Unit formatters from one `Intl` table; Canvas pixel reduction moves into the lazy Canvas chunk | **2,549 B** | **15,959 B** |
+
+The guard fails above 2,750 B and 17,000 B, when any module under
+`charts-ui/src/{cartesian,interaction,frame}` reaches initial JS, or when unused
+siblings (Gauge, RadialProgress) are bundled. The plan's 10 KB target for line +
+bar is not met: the remaining bytes are chart code (Svelte's runtime is only
+132 B of the view chunk, because the first screen already has it).
+
+**`sideEffects` and Svelte components.** A real Vite 8 build tree-shakes unused
+Svelte components re-exported from a barrel whether or not `package.json`
+lists `**/*.svelte` as side-effectful. With charts-ui set back to
+`["**/*.css", "**/*.svelte"]`, the fixture still dropped Gauge and RadialProgress
+and measured the same 2,767 B delta (in the development build used for that
+check). The same holds for the shared packages: an app importing only `Button`
+from `@protoyard/ui` measured 40,948 B gzip with either setting, and only
+`BoardView` from `@protoyard/views-ui/board` 165,782 B with either setting. The
+earlier difference (4,958 B against 1,903 B) came from an esbuild measurement,
+which keeps side-effectful re-exports. charts-ui and analytics-ui list only CSS,
+which is correct for components without module-level side effects, but it is
+not needed for Vite.
+
 ## Runtime behavior worth knowing
 
 - **Reads are reactive and scoped.** `liveQuery` re-runs only when the tables

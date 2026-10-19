@@ -2,9 +2,7 @@
 import type { Margin, Rect } from '@protoyard/charts';
 import type { Snippet } from 'svelte';
 import ChartFrame from '../frame/ChartFrame.svelte';
-import Legend from '../interaction/Legend.svelte';
 import type { ChartFormatters, PlotSeries } from '../interaction/model.ts';
-import TableToggle from '../interaction/TableToggle.svelte';
 import { type CartesianSeries, colorFor, isEmpty } from './model.ts';
 
 type Props = {
@@ -81,11 +79,18 @@ const tableSeries = $derived<PlotSeries[]>(
   {#snippet footer()}
     <div class="flex flex-wrap items-center justify-between gap-2">
       {#if showLegend && series.length > 1}
-        <Legend {items} {hidden} onchange={(next) => (hidden = next)} label="{title} series" />
+        <!-- Footer controls load after the plot: they stay out of the chart's own chunk. -->
+        {#await import('../interaction/Legend.svelte') then { default: Legend }}
+          <Legend {items} {hidden} onchange={(next) => (hidden = next)} label="{title} series" />
+        {/await}
       {:else}
         <span></span>
       {/if}
-      {#if showTable}<TableToggle bind:showing={tableShown} controls="{uid}-table" />{/if}
+      {#if showTable}
+        {#await import('../interaction/TableToggle.svelte') then { default: TableToggle }}
+          <TableToggle bind:showing={tableShown} controls="{uid}-table" />
+        {/await}
+      {/if}
     </div>
   {/snippet}
 </ChartFrame>

@@ -2,7 +2,7 @@
 import type { Rect } from '@protoyard/charts';
 import { downsampleThreshold, largestTriangleThreeBuckets } from '@protoyard/charts/downsample';
 import { areaPath, type Curve, linePath, stack } from '@protoyard/charts/shapes';
-import { type CanvasLine, type Renderer, reduceForPixels, useCanvas } from '../canvas/model.ts';
+import { type CanvasLine, type Renderer, useCanvas } from '../canvas/model.ts';
 import Axis from '../interaction/Axis.svelte';
 import Grid from '../interaction/Grid.svelte';
 import InteractivePlot from '../interaction/InteractivePlot.svelte';
@@ -146,13 +146,12 @@ const layout = $derived.by(() => {
     });
     if (hidden.has(s.id)) continue;
     if (canvas) {
-      const reduced = reduceForPixels(points, plot.width);
       canvasLines.push({
         id: s.id,
         color: colorFor(s, i),
         dashed: s.comparison === true,
-        points: reduced,
-        ...(area ? { area: reduced.map((p) => p.y0) } : {}),
+        points,
+        fill: area,
       });
       continue;
     }

@@ -2,11 +2,7 @@ import type { Rect } from '@protoyard/charts';
 import { seriesColor } from '@protoyard/charts/palette';
 import {
   bandScale,
-  formatCents,
-  formatCompact,
   formatDate,
-  formatNumber,
-  formatPercent,
   formatTimeTick,
   linearScale,
   timeScale,
@@ -77,24 +73,36 @@ export function seriesFromRows<R>(
 export const colorFor = (series: CartesianSeries, index: number) =>
   series.color ?? seriesColor(index);
 
+// One cached Intl.NumberFormat per option set; units map to options here instead of importing a
+// formatter per unit, which keeps every chart's chunk smaller.
+const formats = new Map<string, Intl.NumberFormat>();
+function nf(options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const key = JSON.stringify(options);
+  let f = formats.get(key);
+  if (!f) {
+    f = new Intl.NumberFormat('en-US', options);
+    formats.set(key, f);
+  }
+  return f;
+}
+
 /** A full-precision value formatter for tooltips and tables. */
 export function valueFormatter({
   unit = 'number',
   currency = 'USD',
 }: UnitOptions = {}): (value: number | null) => string {
-  return (value) => {
-    if (value === null || !Number.isFinite(value)) return '—';
-    switch (unit) {
-      case 'cents':
-        return formatCents(Math.round(value), currency);
-      case 'percent':
-        return formatPercent(value);
-      case 'compact':
-        return formatCompact(value);
-      default:
-        return formatNumber(value);
-    }
-  };
+  const f =
+    unit === 'cents'
+      ? nf({ style: 'currency', currency })
+      : unit === 'percent'
+        ? nf({ style: 'percent', maximumFractionDigits: 1 })
+        : unit === 'compact'
+          ? nf({ notation: 'compact', maximumFractionDigits: 1 })
+          : nf({ maximumFractionDigits: 2 });
+  return (value) =>
+    value === null || !Number.isFinite(value)
+      ? '—'
+      : f.format(unit === 'cents' ? Math.round(value) / 100 : value);
 }
 
 /** A short formatter for axis ticks. */
@@ -102,17 +110,21 @@ export function tickFormatter({
   unit = 'number',
   currency = 'USD',
 }: UnitOptions = {}): (value: number) => string {
-  return (value) =>
+  const f =
     unit === 'cents'
-      ? formatCents(Math.round(value), currency, { compact: true })
+      ? nf({ style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 })
       : unit === 'percent'
-        ? formatPercent(value, { digits: 0 })
-        : formatCompact(value);
+        ? nf({ style: 'percent', maximumFractionDigits: 0 })
+        : nf({ notation: 'compact', maximumFractionDigits: 1 });
+  return (value) => f.format(unit === 'cents' ? Math.round(value) / 100 : value);
 }
 
 export function xFormatter(kind: XKind): (value: number | string) => string {
   if (kind === 'time') return (v) => formatDate(typeof v === 'number' ? v : Date.parse(v));
-  if (kind === 'linear') return (v) => (typeof v === 'number' ? formatNumber(v) : v);
+  if (kind === 'linear') {
+    const f = nf({ maximumFractionDigits: 2 });
+    return (v) => (typeof v === 'number' ? f.format(v) : v);
+  }
   return (v) => String(v);
 }
 
@@ -154,7 +166,10 @@ export function continuousX(kind: 'time' | 'linear', values: readonly number[], 
   const scale = linearScale({ domain, range, nice: count });
   return {
     scale,
-    ticks: scale.ticks(count).map((t) => ({ position: scale(t), label: formatCompact(t) })),
+    ticks: scale.ticks(count).map((t) => ({
+      position: scale(t),
+      label: nf({ notation: 'compact', maximumFractionDigits: 1 }).format(t),
+    })),
   };
 }
 
