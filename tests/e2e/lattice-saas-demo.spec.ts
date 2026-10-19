@@ -148,10 +148,14 @@ test.describe('Lattice flagship SaaS journeys', () => {
     await page.getByRole('button', { name: 'Create account' }).click();
     await expect(page.getByTestId('auth-handoff')).toContainText('Check your simulated inbox');
 
-    await expect.poll(() => inboxActionHref(page, email, 'verify-email')).not.toBeNull();
-    const verificationHref = await inboxActionHref(page, email, 'verify-email');
-    if (!verificationHref) throw new Error('The simulated inbox has no verification action.');
-    await page.goto(`${prototypeUrl(LATTICE_SAAS_DEMO)}?scenario=signed-out${verificationHref}`);
+    // The pending account opens its own verification inbox from the UI, signed out.
+    await page.getByRole('link', { name: 'Open simulated inbox' }).click();
+    await expect(page).toHaveURL(/#\/inbox\?account=/);
+    const inbox = page.getByTestId('pending-inbox');
+    await expect(inbox).toBeVisible();
+    await expect(inbox.getByTestId('inbox-message')).toHaveCount(1);
+    await checkAuthA11y(page, testInfo, '[data-testid="pending-inbox"]', 'lattice-pending-inbox');
+    await inbox.getByRole('button', { name: 'Open Confirm email' }).click();
     await expect(page.getByTestId('auth-verify-email')).toBeVisible();
     await checkAuthA11y(
       page,
@@ -180,6 +184,25 @@ test.describe('Lattice flagship SaaS journeys', () => {
     await page.goto(`${prototypeUrl(LATTICE_SAAS_DEMO)}?scenario=signed-out${href}`);
     await expect(page.getByTestId('oauth-consent')).toBeVisible();
     await checkAuthA11y(page, testInfo, '[data-testid="oauth-consent"]', 'lattice-sso-consent');
+    await page.getByRole('button', { name: 'Approve' }).click();
+    await expect(page).toHaveURL(/#\/onboarding$/, { timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'Set up your account' })).toBeVisible();
+  });
+
+  test('sign-in offers simulated SSO buttons that run the consent round trip into onboarding', async ({
+    page,
+  }, testInfo) => {
+    await openPrototype(page, 'signed-out', '/sign-in');
+    const sso = page.getByTestId('sso-buttons');
+    await expect(sso).toBeVisible();
+    await expect(sso).toContainText('no provider is contacted');
+    for (const name of ['Google', 'Microsoft', 'GitHub']) {
+      await expect(sso.getByRole('button', { name: `Continue with ${name}` })).toBeVisible();
+    }
+    await expect(sso.getByTestId('sso-simulated-label')).toHaveCount(3);
+    await checkAuthA11y(page, testInfo, '[data-testid="auth-sign-in"]', 'lattice-sso-buttons');
+    await sso.getByRole('button', { name: 'Continue with Google' }).click();
+    await expect(page.getByTestId('oauth-consent')).toBeVisible();
     await page.getByRole('button', { name: 'Approve' }).click();
     await expect(page).toHaveURL(/#\/onboarding$/, { timeout: 10_000 });
     await expect(page.getByRole('heading', { name: 'Set up your account' })).toBeVisible();

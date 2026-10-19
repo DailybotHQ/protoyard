@@ -11,4 +11,5 @@ const runtime = getRuntime();
 const steps = latticeOnboardingSteps(runtime);
 </script>
 
-<OnboardingWizard {steps} title="Set up your Lattice workspace" />
+<!-- The kit title ("Set up your account") keeps step headings such as "Workspace" unambiguous. -->
+<OnboardingWizard {steps} />

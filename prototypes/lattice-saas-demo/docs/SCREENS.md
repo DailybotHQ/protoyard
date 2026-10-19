@@ -136,7 +136,7 @@ States that apply to every screen:
 
 ### Onboarding (`#/onboarding`)
 
-- **Purpose:** "Set up your Lattice workspace": the four-step setup wizard
+- **Purpose:** "Set up your account" (the kit wizard title): the four-step setup wizard
   (Profile, Workspace, Invite teammates, Preferences, then Done) with a
   progress bar.
 - **Actions:** Next (validates, then saves the answer and its changes in one
