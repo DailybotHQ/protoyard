@@ -38,6 +38,11 @@
       "types": "./src/screens/dashboard/index.ts",
       "svelte": "./src/screens/dashboard/index.ts",
       "default": "./src/screens/dashboard/index.ts"
+    },
+    "./screens/analytics": {
+      "types": "./src/screens/analytics/index.ts",
+      "svelte": "./src/screens/analytics/index.ts",
+      "default": "./src/screens/analytics/index.ts"
     }
   },
   "scripts": {
