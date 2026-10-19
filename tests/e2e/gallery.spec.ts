@@ -166,7 +166,10 @@ test.describe('gallery', () => {
     await expect(page).toHaveURL(/[?&]q=health-clinic/);
     const card = page.locator('[data-theme-card][data-theme-id="health-clinic"]');
     await expect(card).toBeVisible();
-    await expect(card.locator('[aria-label="Chart palette preview"] span')).toHaveCount(5);
+    // The light preview shows every chart color (8); the dark one renders hidden beside it.
+    await expect(
+      card.locator('[data-theme-mode="light"] [aria-label="Chart palette preview"] span')
+    ).toHaveCount(8);
 
     await page.getByTestId('theme-collection').selectOption('brand-like');
     await expect(page.getByTestId('theme-count')).toContainText('Showing 0 of');
@@ -177,7 +180,10 @@ test.describe('gallery', () => {
     await expect(page).toHaveURL(/[?&]mood=calm/);
     await page.getByRole('button', { name: 'Clear filters' }).click();
     await search.fill('health-clinic');
-    await page.getByRole('button', { name: 'Dark' }).click();
+    await page
+      .getByTestId('theme-explorer')
+      .getByRole('button', { name: 'Dark', exact: true })
+      .click();
     await expect(page).toHaveURL(/[?&]mode=dark/);
 
     const target = prototypes[0];
