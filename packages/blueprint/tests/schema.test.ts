@@ -24,6 +24,7 @@ function fixture(): BlueprintInput {
           { name: 'website', kind: 'url' },
           { name: 'phone', kind: 'phone' },
           { name: 'seats', kind: 'integer', min: 1, max: 10_000 },
+          { name: 'office', kind: 'geo', region: 'metro-grid' },
           { name: 'healthScore', kind: 'number', min: 0, max: 1 },
           { name: 'vip', kind: 'boolean', default: false },
           { name: 'metadata', kind: 'json' },

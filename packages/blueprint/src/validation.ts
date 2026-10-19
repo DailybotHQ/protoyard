@@ -11,7 +11,8 @@ import { relationProperty } from './storage.ts';
  * `customerId` / `relatedIds` (see `relationProperty`), everything else its
  * name. Form strings are coerced: numbers, money (`'12.34'` → 1234 cents;
  * plain numbers are already cents), booleans (`'on'`, `'true'`, `'1'`),
- * comma-separated tags and JSON text. Blank optional values become `null`
+ * comma-separated tags, JSON text and geo points (`{ lat, lng }` or `"lat, lng"`,
+ * kept to 5 decimals). Blank optional values become `null`
  * (or the field default on create); blank required values fail with
  * "<Label> is required". Unknown keys are dropped.
  */
@@ -229,7 +230,38 @@ function checkValue(field: BlueprintField, value: unknown): Check {
         return fail(`${label} must be valid JSON`);
       }
     }
+    case 'geo':
+      return checkGeo(label, value);
   }
+}
+
+const round5 = (n: number) => Math.round(n * 1e5) / 1e5;
+
+/** `{ lat, lng }` (numbers or numeric strings) or `"lat, lng"` → `{ lat, lng }` rounded to 5 decimals. */
+function checkGeo(label: string, value: unknown): Check {
+  let lat: number | null = null;
+  let lng: number | null = null;
+  if (typeof value === 'string') {
+    const parts = value.split(',');
+    if (parts.length === 2) {
+      lat = toNumber(parts[0]);
+      lng = toNumber(parts[1]);
+    }
+  } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+    lat = toNumber((value as { lat?: unknown }).lat);
+    lng = toNumber((value as { lng?: unknown }).lng);
+  }
+  if (lat === null || lng === null) return fail(`${label} needs a latitude and a longitude`);
+  if (lat < -90 || lat > 90) return fail(`${label} latitude must be between -90 and 90`);
+  if (lng < -180 || lng > 180) return fail(`${label} longitude must be between -180 and 180`);
+  return ok({ lat: round5(lat), lng: round5(lng) });
+}
+
+/** A geo input whose latitude and longitude are both empty counts as blank. */
+function geoBlank(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const { lat, lng } = value as { lat?: unknown; lng?: unknown };
+  return isBlank(lat) && isBlank(lng);
 }
 
 /** Value used on create when an optional field is blank or absent. */
@@ -246,7 +278,8 @@ function blankValue(field: BlueprintField): unknown {
   return null;
 }
 
-function check(field: BlueprintField, value: unknown, mode: 'create' | 'update'): Check {
+function check(field: BlueprintField, input: unknown, mode: 'create' | 'update'): Check {
+  const value = field.kind === 'geo' && geoBlank(input) ? null : input;
   if (!isBlank(value)) {
     const result = checkValue(field, value);
     if (result.ok && field.required && isBlank(result.value)) {

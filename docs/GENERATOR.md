@@ -124,6 +124,7 @@ audit diffs) and `fake`, a generator hint taken from an allow-list such as
 | `persona` | — | `<name>Id`, a `py_personas` row |
 | `file` | `accept` (MIME types or `image/*`), `maxSizeBytes` (default 5 MB, max 50 MB), `multiple` | `<name>Id` or `<name>Ids` in the `files` table |
 | `json` | — | any JSON value |
+| `geo` | `region` (a fictional region from `@protoyard/scenarios`: `harbor-bay`, `north-valley`, `metro-grid`, `coral-reach`) | `{ lat, lng }`, 5 decimals; never indexed, searched or sorted |
 
 Relation behavior on delete:
 
