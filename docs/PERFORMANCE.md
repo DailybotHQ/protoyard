@@ -146,6 +146,7 @@ These budgets are **enforced**:
 | `indexColdMs` | `pnpm bench:index --runs 3 --check [--ci-factor 3]` | exit 1 |
 | `generateMs` | `pnpm protoyard scenario bench <slug> --check [--ci-factor 3]` (CI multiplies the budget by 3 for slower runners) | exit 4 |
 | `coldStartMs` | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --check` | report only while `null` |
+| Data grid (thresholds in the script) | `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check` | exit 1 locally; report only on CI until calibrated there |
 
 The `perf` job in [.github/workflows/ci.yml](../.github/workflows/ci.yml)
 runs the first three on every pull request and push to `main`, and reports
@@ -250,6 +251,59 @@ than this machine.
 ```bash
 pnpm protoyard build crm-demo
 pnpm exec tsx scripts/bench-cold-start.ts crm-demo --runs 5 --check
+```
+
+## Data grid at 100,000 rows
+
+Method: `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3`
+builds ui-kit (`--skip-build` reuses `artifacts/ui-kit/dist`), serves it with
+the CLI's static server on an OS-assigned port, and opens a **fresh**
+headless Chromium context per run (1280×800) on the grid demo
+(`#/c/grid`, `prototypes/ui-kit/src/demos/views/GridDemo.svelte`). There it
+presses **Load 100,000 rows**. The demo builds those rows in memory in the
+page, not in IndexedDB, so the bench measures the grid's rendering and
+virtualization, not storage or scenario generation. The rows are the demo's
+own simple generator (`Record N`, three teams, a score), not a views
+scenario fragment, and `--rows` accepts only the demo's 100,000. Per run it
+records:
+
+- **First render:** milliseconds from the click to the first painted frame
+  where the grid reports every row (`aria-rowcount`) and shows its first
+  data row. This includes building the 100,000 row objects.
+- **DOM rows:** `[role="row"]` elements in the grid (header included) after
+  that render, and the most seen during the scroll.
+- **Scroll:** a scripted 5-second scroll from top to bottom (one
+  `scrollTop` step per animation frame). It counts long tasks
+  (`PerformanceObserver` `longtask`, all of them and those over 200 ms) and
+  dropped frames (frame gaps beyond one 60 Hz interval, counted in missed
+  intervals). A run that never renders the last row (`Record 100000`) fails
+  the check.
+
+Results go to `tmp/bench-grid-<timestamp>.json` with every sample, the
+thresholds and the machine. Medians of 3 runs on 2026-10-19 (Apple M1 Max,
+10 cores, 64 GB, macOS 27.0, Node 26.11.1, headless Chromium 156.0.8078.4,
+a local static server, production build without DevTools, other build and
+test jobs running at the same time, load average about 70):
+
+| Metric | Median (range) | Threshold (`--check`) |
+| --- | --- | --- |
+| First render, 100,000 rows | **94 ms** (93–102 ms) | ≤ 500 ms |
+| DOM rows (most seen while scrolling) | **17** (13 after the first render) | ≤ 80 |
+| Long tasks during the 5 s scroll | **0** (none over 200 ms) | 0 over 200 ms |
+| Dropped frames during the scroll | **0** of 301 frames (longest frame 17 ms) | reported only |
+
+- An earlier run the same day with a reused build measured 91 to 98 ms for
+  the first render, with the same row and frame counts.
+- **Not measured:** real phones, throttled CPU, a headed browser on a
+  high-refresh display, wide column sets, sorting or filtering 100,000 rows,
+  or rows from IndexedDB. No claim is made beyond this table.
+
+`--check` exits `1` when a median is over its threshold (`THRESHOLDS` in
+the script). With `CI` set it reports and passes until the thresholds are
+calibrated on a CI runner (`CI_CALIBRATED`), like `coldStartMs`.
+
+```bash
+pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check
 ```
 
 ## Themes: library, palette engine and Theme Studio
