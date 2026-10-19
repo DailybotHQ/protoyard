@@ -7,7 +7,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./generators": "./src/generators.ts",
+    "./generators": "./src/generators/index.ts",
     "./funnel": "./src/funnel.ts",
     "./cohort": "./src/cohort.ts"
   },

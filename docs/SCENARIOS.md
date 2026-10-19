@@ -466,6 +466,49 @@ Measured on a heavily loaded machine (load average ~165):
 (`pnpm vitest run packages/scenarios/tests/series.test.ts -t "10k"`). The
 test only fails above 250 ms, to tolerate slow runners.
 
+### Analytics data
+
+`@protoyard/analytics/generators` builds analytics worlds on the helpers
+above. It uses `timeSeries` and `dailyEvents`, `ctx.rng` forks per stream,
+`ctx.ids`, the scenario reference time and `ctx.scale`, so the same seed
+gives byte-identical output and `empty` / `massive` density apply.
+
+| Generator | Returns | Notes |
+| --- | --- | --- |
+| `generateTimeSeries(ctx, { key, base, days?, trend?, seasonality?, noise?, spikes?, outages? })` | `[{ at (epoch ms), value }]` | `timeSeries` plus outage dips over whole UTC days. History, seasonality, spikes and outages default to the scenario's knobs. Integers by default (counts, cents). `generateMetrics(ctx, [...])` builds several at once. |
+| `generateProductEvents(ctx, { users?, eventTypes, firstEvent?, sessionsPerUser?, properties? })` | `{ users, events }` | Power-law sessions per user (a few heavy users, a long tail), weighted event types, quiet weekends when weekly, user properties on every event. `AnalyticsEvent` rows, sorted by time. |
+| `generateFunnelJourneys(ctx, { steps, conversion, users?, medianStepMinutes? })` | `AnalyticsEvent[]` | Ordered journeys that continue with the given chance per step and lognormal gaps; `computeFunnel` recovers the rates. |
+| `generateCohorts(ctx, { cohorts?, interval?, cohortSize?, retention? })` | `AnalyticsEvent[]` | Signups per cohort and returns that follow `retention` (a list, or `{ initial, decay }`); `computeRetention` recovers the curve. |
+| `liveCounterEvents(ctx, { counter, perDay, maxDelta?, from?, to? })` | `DomainEvent[]` | Timeline events for live counters, built on `dailyEvents`: advancing seven days at once equals seven single days, with the same ids. |
+
+Fragments in `analyticsFragments` (combine with `composeScenario` or `extends`):
+
+| Fragment | Effect |
+| --- | --- |
+| `launchSpike(daysAgo = 14, factor = 4)` | Spike that decays over about 4 days, tagged `launch` |
+| `outageDip(daysAgo = 10, days = 1, depth = 0.15)` | Traffic falls to `depth` of normal (`generators.analytics.outages`), tagged `outage` |
+| `seasonal()` | Weekly and annual rhythm over 180 days of history |
+| `empty()` / `massive()` | Density `empty` (no users) or `massive` (about 25×) |
+
+```ts
+import { analyticsFragments, generateMetrics, generateProductEvents } from '@protoyard/analytics/generators';
+
+const metrics = generateMetrics(ctx, [{ key: 'signups', base: 120 }, { key: 'revenue_cents', base: 450_000 }]);
+const { users, events } = generateProductEvents(ctx, {
+  eventTypes: { page_view: 6, feature_used: 3, export: 1 },
+  firstEvent: 'signup',
+  properties: { plan: [['free', 6], ['pro', 3], ['team', 1]] },
+});
+```
+
+Bump `ANALYTICS_GENERATOR_VERSION` (and your prototype's
+`generatorVersion`) when output can change. Measured on the Apple M1 Max
+under heavy load (load average ~110): 90 days × 10 metrics plus about 19k events from
+2,000 users took a median of 26–33 ms over three runs
+(`PROTOYARD_BENCH=1 pnpm vitest run packages/analytics/tests/generators.test.ts`,
+which asserts < 50 ms). Formatting timestamps with an arithmetic ISO formatter
+(`isoString`) instead of `Date#toISOString` cut this from 120–230 ms.
+
 ## Environment
 
 `runtime.environment` simulates conditions for service calls. It only
