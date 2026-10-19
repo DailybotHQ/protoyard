@@ -37,32 +37,36 @@ function fakeHandle(slug: string, port: number): DevServerHandle {
 
 /** Raw HTTP so the test controls Host and Origin headers exactly. */
 function call(method: string, path: string, headers: Record<string, string> = {}) {
-  return new Promise<{ status: number; body: Record<string, unknown>; cors?: string }>(
-    (resolve, reject) => {
-      const req = request(
-        {
-          host: '127.0.0.1',
-          port: control.port,
-          method,
-          path,
-          headers: { Host: `127.0.0.1:${control.port}`, ...headers },
-        },
-        (res) => {
-          let data = '';
-          res.on('data', (c) => (data += c));
-          res.on('end', () =>
-            resolve({
-              status: res.statusCode ?? 0,
-              body: data ? JSON.parse(data) : {},
-              cors: res.headers['access-control-allow-origin'] as string | undefined,
-            })
-          );
-        }
-      );
-      req.on('error', reject);
-      req.end();
-    }
-  );
+  return new Promise<{
+    status: number;
+    body: Record<string, unknown>;
+    cors?: string;
+    allowHeaders?: string;
+  }>((resolve, reject) => {
+    const req = request(
+      {
+        host: '127.0.0.1',
+        port: control.port,
+        method,
+        path,
+        headers: { Host: `127.0.0.1:${control.port}`, ...headers },
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (c) => (data += c));
+        res.on('end', () =>
+          resolve({
+            status: res.statusCode ?? 0,
+            body: data ? JSON.parse(data) : {},
+            cors: res.headers['access-control-allow-origin'] as string | undefined,
+            allowHeaders: res.headers['access-control-allow-headers'] as string | undefined,
+          })
+        );
+      }
+    );
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 beforeAll(async () => {
@@ -100,6 +104,23 @@ describe('control server', () => {
     // State changes need an Origin at all (blocks blind cross-site requests without one).
     expect((await call('POST', '/api/dev/crm-app')).status).toBe(403);
     expect(started).toEqual([]);
+  });
+
+  it('lets the allowed origin preflight a JSON POST (browsers send content-type)', async () => {
+    const preflight = await call('OPTIONS', '/api/new', {
+      Origin: ORIGIN,
+      'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Headers': 'content-type',
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.cors).toBe(ORIGIN);
+    expect(preflight.allowHeaders).toBe('content-type');
+    const foreign = await call('OPTIONS', '/api/new', {
+      Origin: 'https://evil.example',
+      'Access-Control-Request-Method': 'POST',
+    });
+    expect(foreign.status).toBe(403);
+    expect(foreign.allowHeaders).toBeUndefined();
   });
 
   it('accepts only registry slugs', async () => {

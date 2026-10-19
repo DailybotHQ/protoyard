@@ -4,7 +4,7 @@ import { onMount } from 'svelte';
 import { devCommand } from '@/lib/commands';
 import { control, localDevUrl } from '@/lib/control.svelte';
 import CommandBlock from '../CommandBlock.svelte';
-import LivePreview from '../LivePreview.svelte';
+import { created } from './created.svelte';
 import {
   type CreateOutcome,
   createCommand,
@@ -65,6 +65,11 @@ async function submit(event: SubmitEvent) {
   const result = await control.create(request);
   outcome = interpretCreate(result.body, result.ok, localDevUrl);
   creating = false;
+  // The framed preview renders full width under the page hero (CreatedPreview).
+  created.current =
+    outcome.state === 'running'
+      ? { slug: outcome.slug, name: name.trim() || outcome.slug, shell, platform }
+      : null;
 }
 
 const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
@@ -132,15 +137,9 @@ const input = 'h-10 w-full rounded-lg border border-line bg-bg px-3 text-sm';
     {#if outcome?.state === 'running'}
       <div class="space-y-3" data-testid="create-outcome" data-state="running">
         <p class="text-sm text-success">Created and running: prototypes/{outcome.slug}</p>
-        <!-- The control client already lists the new server, so the preview opens it framed. -->
-        <LivePreview
-          titleId="create-preview-title"
-          slug={outcome.slug}
-          name={name.trim() || outcome.slug}
-          defaultShell={shell}
-          {platform}
-          devCommand={devCommand(outcome.slug)}
-        />
+        <a class="text-sm text-accent-fg underline underline-offset-2" href="#create-preview-title">
+          Open its live preview above
+        </a>
       </div>
     {:else if outcome?.state === 'created'}
       <div class="space-y-2" data-testid="create-outcome" data-state="created">
