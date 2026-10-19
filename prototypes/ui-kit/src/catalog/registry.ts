@@ -634,6 +634,117 @@ export const DEMOS: Record<string, CatalogDemo> = {
       'Moves are announced in a polite live region; columns are labelled sections with item counts.',
     ],
   },
+  'chart-cartesian': {
+    load: demo('ChartCartesianDemo'),
+    snippet: `<script lang="ts">
+  import { BarChart, LineChart, seriesFromRows } from '@protoyard/charts-ui/cartesian';
+  const series = seriesFromRows(days, {
+    x: (d) => d.at, // epoch ms for xKind="time"
+    series: [
+      { id: 'signups', label: 'Signups', y: (d) => d.signups },
+      { id: 'previous', label: 'Previous period', y: (d) => d.previous, comparison: true },
+    ],
+  });
+</script>
+
+<LineChart title="Signups" {series} xKind="time" onselect={(s) => open(s.datum)} />
+<BarChart title="Revenue by region" series={regions} unit="cents" mode="stacked" />`,
+    a11y: [
+      'The plot is one focusable group: arrow keys move between points (PageUp/PageDown switch series), Enter selects, and a polite live region reads each point.',
+      'A visible summary sentence describes the chart; "View as table" swaps in a real table with the same values.',
+      'Series are labelled in a legend that also hides them; comparison series are dashed, so color is never the only cue.',
+    ],
+  },
+  'chart-part-whole': {
+    load: demo('ChartPartWholeDemo'),
+    snippet: `<script lang="ts">
+  import { DonutChart, FunnelChart, SankeyChart } from '@protoyard/charts-ui/part-whole';
+</script>
+
+<DonutChart title="Accounts by plan" data={[{ id: 'free', label: 'Free', value: 6200 }, …]} />
+<FunnelChart title="Activation" steps={[{ id: 'visit', label: 'Visited', count: 12400 }, …]} />
+<SankeyChart title="Visitor flow" {nodes} links={[{ source: 'visit', target: 'signup', value: 3100 }, …]} />`,
+    a11y: [
+      'Slices, steps, nodes and cells are reachable with the arrow keys; each one is announced with its value and share.',
+      'Every chart has "View as table": slices with value and share, funnel steps with conversions, Sankey links source → target.',
+      'Small slices fold into "Other" (listed in its tooltip) so labels never overlap.',
+    ],
+  },
+  'chart-matrix': {
+    load: demo('ChartMatrixDemo'),
+    snippet: `<script lang="ts">
+  import { CalendarHeatmap, Heatmap, Histogram } from '@protoyard/charts-ui/matrix';
+</script>
+
+<Heatmap title="Sessions" rows={weekdays} cols={hours} values={matrix} />
+<Heatmap title="Change (%)" rows={weekdays} cols={hours} values={deltas} diverging mid={0} showValues />
+<CalendarHeatmap title="Commits" start="2026-01-01" end="2026-04-30" values={byDay} />
+<Histogram title="Response time (ms)" values={latencies} rules={['median', 'mean']} />`,
+    a11y: [
+      'Cells move with the arrow keys and announce row, column and value; a ramp legend explains the colors.',
+      'Values printed on cells use light or dark text only where it reaches 4.5:1 against the cell fill.',
+      'Sequential and diverging ramps come from the theme palette, validated for both light and dark mode.',
+    ],
+  },
+  'chart-compact': {
+    load: demo('ChartCompactDemo'),
+    snippet: `<script lang="ts">
+  import { Gauge, RadialProgress, Sparkline } from '@protoyard/charts-ui/compact';
+</script>
+
+<Sparkline values={weekly} period="12 weeks" />
+<Gauge label="Uptime" value={99.2} min={95} max={100} thresholds={[98, 99.5]} />
+<RadialProgress label="Onboarding" value={7} max={10} />`,
+    a11y: [
+      'A sparkline is one image with a spoken trend sentence ("Trend: up 12% over 12 weeks").',
+      'Gauges and radial progress expose their value with role="meter" or progressbar and a visible label.',
+      'No resize observer: compact charts fit table cells and stat cards at any width.',
+    ],
+  },
+  'chart-geo': {
+    load: demo('ChartGeoDemo'),
+    snippet: `<script lang="ts">
+  import { TileMap, WORLD_TILES } from '@protoyard/charts-ui/geo';
+</script>
+
+<TileMap title="Active accounts" data={{ 'north-america': 42000, … }} layout={WORLD_TILES} unit="compact" />`,
+    a11y: [
+      'Equal-area tiles keep small regions as readable and focusable as large ones; arrow keys move between tiles.',
+      'Tiles without data are marked and announced as "no data" instead of looking like zero.',
+      'No map tiles or network requests: the layout ships with the package.',
+    ],
+  },
+  'chart-states': {
+    load: demo('ChartStatesDemo'),
+    snippet: `<LineChart
+  title="Orders"
+  {series}
+  loading={orders.loading}
+  error={orders.error}
+  onretry={() => reload()}
+  emptyMessage="No orders this week"
+/>`,
+    a11y: [
+      'Loading sets aria-busy with a skeleton; the error state shows the message and a Retry button that stays pending until onretry settles.',
+      'Empty data shows a message instead of a blank plot.',
+      'Charts follow light and dark mode and stop animating under reduced motion (OS setting or DevTools override).',
+    ],
+  },
+  'chart-stress': {
+    load: demo('ChartStressDemo'),
+    snippet: `<script lang="ts">
+  import { LineChart } from '@protoyard/charts-ui/cartesian';
+  import { createRng } from '@protoyard/core';
+  const rng = createRng(20261019); // same points on every load
+</script>
+
+<LineChart title="10k points" series={line} xKind="linear" renderer="canvas" />`,
+    a11y: [
+      'SVG draws a downsampled line (LTTB keeps the shape); Canvas draws every point. auto switches above a threshold.',
+      'Keyboard, tooltip and table always use the full data, whichever renderer draws the pixels.',
+      'The Canvas element is decorative (aria-hidden); the focusable SVG layer on top keeps the chart accessible.',
+    ],
+  },
   'app-shell': {
     load: demo('AppShellDemo'),
     snippet: `<script lang="ts">
