@@ -182,7 +182,8 @@ describe('Theme Studio (DevTools)', () => {
     await fireEvent.click(within(panel).getByRole('button', { name: 'Export Ocean X' }));
     await settle();
     const json = (within(panel).getByLabelText('Exported theme JSON') as HTMLTextAreaElement).value;
-    expect(JSON.parse(json)).toMatchObject({ theme: { id: 'ocean-x' } });
+    // Studio exports the bare theme definition (T-lt-studio-share-export); the CLI also accepts the v1 wrapper.
+    expect(JSON.parse(json)).toMatchObject({ id: 'ocean-x', name: 'Ocean X' });
     const link = within(panel).getByRole('link', { name: /Download ocean-x\.theme\.json/ });
     expect(link.getAttribute('download')).toBe('ocean-x.theme.json');
 
