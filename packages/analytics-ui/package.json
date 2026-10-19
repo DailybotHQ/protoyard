@@ -1,0 +1,60 @@
+{
+  "name": "@protoyard/analytics-ui",
+  "version": "0.1.0",
+  "description": "Svelte 5 analytics kit for Protoyard prototypes: KPI tiles, date ranges, filters and segments, cohort and funnel views and a dashboard grid, one lazy subpath per view.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.svelte"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./date-range": {
+      "types": "./src/date-range/index.ts",
+      "svelte": "./src/date-range/index.ts",
+      "default": "./src/date-range/index.ts"
+    },
+    "./filters": {
+      "types": "./src/filters/index.ts",
+      "svelte": "./src/filters/index.ts",
+      "default": "./src/filters/index.ts"
+    },
+    "./cohort": {
+      "types": "./src/cohort/index.ts",
+      "svelte": "./src/cohort/index.ts",
+      "default": "./src/cohort/index.ts"
+    },
+    "./funnel": {
+      "types": "./src/funnel/index.ts",
+      "svelte": "./src/funnel/index.ts",
+      "default": "./src/funnel/index.ts"
+    },
+    "./grid": {
+      "types": "./src/grid/index.ts",
+      "svelte": "./src/grid/index.ts",
+      "default": "./src/grid/index.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@protoyard/analytics": "workspace:*",
+    "@protoyard/charts-ui": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "svelte": "./src/index.ts"
+}
