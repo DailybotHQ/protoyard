@@ -97,6 +97,11 @@ and full numbers are in `docs/PERFORMANCE.md`.
   otherwise, and a device or orientation that cannot apply (a phone in a desktop window)
   falls back to the default with source `default`. `setOverride({ shell, device,
   orientation })` persists in the control DB only, and `?shell=` applies as an override.
+  The app `layout` (ADR-023) resolves the same way (override → scenario →
+  `preview.layout.id`, default `custom`); a layout outside `layoutChoices(preview.layout)`
+  falls back to the manifest layout with source `default`. `setOverride({ layout })` persists
+  in the control DB only, and `?layout=` applies as an override only when the prototype offers
+  that layout.
   **Custom themes** (the DevTools Theme Studio): `saveCustom(theme)`, `removeCustom(id)`,
   `customThemes()`, `isCustom(id)`, `exportTheme(id)` (JSON with `format:
   "protoyard-theme/v1"`) and `importTheme(json)`. They are stored in the control DB

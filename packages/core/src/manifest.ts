@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DeviceIdSchema, OrientationSchema } from './devices.ts';
+import { LayoutSettingsSchema } from './layouts.ts';
 import { SLUG_MAX_LENGTH, SLUG_PATTERN } from './slug.ts';
 
 /**
@@ -88,6 +89,8 @@ export const PreviewSchema = z.object({
   device: DeviceIdSchema.optional(),
   orientation: OrientationSchema.optional(),
   chrome: ShellChromeSchema.optional(),
+  /** App layout (ADR-023); absent: `custom`, the prototype renders its own. */
+  layout: LayoutSettingsSchema.optional(),
 });
 export type PreviewSettings = z.infer<typeof PreviewSchema>;
 

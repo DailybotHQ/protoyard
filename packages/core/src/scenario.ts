@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { DeviceIdSchema, OrientationSchema } from './devices.ts';
 import { EnvironmentPatchSchema, SubscriptionStatusSchema } from './environment.ts';
+import { type LayoutId, LayoutIdSchema } from './layouts.ts';
 import { ColorModeSchema, type Shell, ShellSchema, ViewportPresetSchema } from './manifest.ts';
 
 /**
@@ -56,6 +57,7 @@ export const ScenarioAppearanceSchema = z.object({
   shell: ShellSchema.optional(),
   device: DeviceIdSchema.optional(),
   orientation: OrientationSchema.optional(),
+  layout: LayoutIdSchema.optional(),
 });
 
 export const ScenarioSchema = z.object({
@@ -140,6 +142,11 @@ export interface ScenarioLinkParams {
    */
   shell?: Shell;
   /**
+   * App layout (`?layout=rail`); applied as a visible, clearable override
+   * when the prototype supports it. Unknown ids are ignored.
+   */
+  layout?: LayoutId;
+  /**
    * Isolated, disposable world: the runtime suffixes the storage namespace
    * (`<namespace>~<sandbox>`) so two views of the same prototype on one
    * origin (e.g. a side-by-side scenario comparison) never share data.
@@ -165,6 +172,8 @@ export function parseScenarioLink(search: string): ScenarioLinkParams {
   const shell = ShellSchema.safeParse(params.get('shell'));
   if (shell.success) out.shell = shell.data;
   else if (params.get('frame') === 'none') out.shell = 'none';
+  const layout = LayoutIdSchema.safeParse(params.get('layout'));
+  if (layout.success) out.layout = layout.data;
   const sandbox = params.get('sandbox');
   if (sandbox && SANDBOX_PATTERN.test(sandbox)) out.sandbox = sandbox;
   const devtools = params.get('devtools');
