@@ -47,13 +47,26 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Affected-prototype selection | `pnpm vitest run packages/cli/tests/affected.test.ts` | scoped |
 | Bundle budget command | `pnpm vitest run packages/cli/tests/budget-command.test.ts` | scoped |
 | Scenario benchmark command | `pnpm vitest run packages/cli/tests/scenario-bench.test.ts` | scoped |
+| Blueprint package | `pnpm vitest run packages/blueprint` | scoped |
+| Blueprint schema / validation | `pnpm vitest run packages/blueprint/tests/schema.test.ts packages/blueprint/tests/validation.test.ts` | scoped |
+| Generate, regenerate and `blueprint validate` | `pnpm vitest run packages/cli/tests/generate.test.ts packages/cli/tests/blueprint-validate.test.ts` | scoped |
+| Spec command and extraction | `pnpm vitest run packages/cli/tests/spec-command.test.ts packages/cli/tests/spec-extract.test.ts` | scoped |
+| Safe AI markdown | `pnpm vitest run packages/ai/tests/markdown.test.ts` | scoped |
+| Generator flagship | `pnpm vitest run prototypes/helpdesk-demo` · `PROTOYARD_E2E_PROTOTYPES=helpdesk-demo pnpm test:e2e` | scoped |
+| Shell matrix (every shell framed on desktop with axe, full-bleed on Pixel 7) | `PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo pnpm test:e2e tests/e2e/shell-layout.spec.ts` | scoped |
+| Marketplace (unit + E2E) | `pnpm vitest run apps/gallery` · `pnpm test:e2e tests/e2e/marketplace.spec.ts` (`PROTOYARD_E2E_SHOWCASE=1` adds the bundled-demo Try it test) | scoped |
+| Marketplace performance | `pnpm bench:index --marketplace --check` (needs `pnpm test:e2e:install`) | full |
 | All current CLI tests (includes the rows above) | `pnpm vitest run packages/cli` | scoped |
 | CI performance job (local mirror) | `pnpm protoyard build --all && pnpm protoyard budget --all --skip-build && pnpm bench:index --runs 3 --check` | full |
 
-`protoyard spec` extraction, generation and drift checks are not implemented on
-this revision. The source-to-test map for that surface is therefore pending the
-spec CLI tasks; `docs/SPECS.md` defines the hand-written contract in the meantime.
-Do not use `protoyard validate` as evidence that generated spec regions are fresh.
+`protoyard spec <slug> --check` (or `spec --all --check`) is the drift check
+for generated spec regions, and `validate` fails while a region is stale
+([SPECS.md](SPECS.md)).
+
+E2E specs wait for the app with `waitForPrototypeReady({ slug })` from
+`tests/e2e/support/ready.ts`, not by polling `data-py-ready`;
+`tests/e2e/viewport-fit.spec.ts` guards full-viewport layouts and the bottom
+nav.
 
 ### CI performance job (`.github/workflows/ci.yml` → `perf`)
 
@@ -127,11 +140,15 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/cli/src/lib/publish-ledger.ts` | `publish-ledger.test.ts`; ledger consumers in `publish-batch.test.ts` and `review-index.test.ts` | ledger persistence and consumers |
 | `packages/cli/src/commands/review-index.ts` | `review-index.test.ts` + `tests/e2e/review-index.spec.ts` | CLI integration + opt-in browser E2E |
 | `packages/cli/src/commands/ci.ts` | `ci-init.test.ts` | workflow init, drift and integrity checks |
-| `packages/cli/src/commands/affected.ts` | `affected.test.ts` | CLI integration |
+| `packages/cli/src/commands/affected.ts`, `packages/cli/src/lib/affected.ts` | `affected.test.ts` | CLI integration |
+| `packages/cli/src/commands/generate.ts`, `blueprint` command | `generate.test.ts`, `blueprint-validate.test.ts` | CLI integration (temporary workspaces) |
+| `packages/blueprint/src/services.ts` | `packages/blueprint/tests/services.test.ts` (real runtime, fixture `tests/fixtures/blueprint-prototype.ts`); CSV paths in `csv-services.test.ts` | integration on fake IndexedDB |
 | `packages/cli/src/commands/budget.ts` | `budget-command.test.ts` + `budgets.test.ts` | CLI integration; build budgets are also gated in CI |
 | `packages/cli/src/commands/scenario.ts` (benchmark path) | `scenario-bench.test.ts` | CLI integration; CI checks each prototype's default scenarios |
-| Prototype spec docs / generated regions | `docs/SPECS.md` currently describes the manual contract; `protoyard spec` and its tests are pending | manual until the spec CLI tasks land |
+| `packages/cli/src/commands/spec.ts`, spec extraction | `spec-command.test.ts`, `spec-extract.test.ts`; `pnpm protoyard spec --all --check` for the committed specs | CLI integration + drift check |
 | `apps/gallery/src/**` | `apps/gallery/tests/*.test.ts` + `tests/e2e/gallery.spec.ts` | unit + E2E |
+| `apps/gallery/src/components/marketplace/**`, `apps/gallery/src/pages/marketplace/**` | `pnpm vitest run apps/gallery` + `tests/e2e/marketplace.spec.ts` (`PROTOYARD_E2E_SHOWCASE=1` adds the bundled-demo Try it test); perf: `pnpm bench:index --marketplace --check` | unit + E2E + perf |
+| `packages/renderer-svelte/src/shell/**`, viewport presets | `tests/e2e/shell-layout.spec.ts`, `tests/e2e/viewport-fit.spec.ts` | E2E (layout + axe) |
 | `prototypes/<slug>/src/scenarios/**` | `prototypes/<slug>/tests/generators.test.ts` (via `tests/support/generate-context.ts`) | unit |
 | `prototypes/<slug>/src/domain/**` | `prototypes/<slug>/tests/services.test.ts` (via `tests/support/runtime.ts`, the **real runtime**) | integration |
 | `prototypes/<slug>/src/**/*.svelte` | component tests in `prototypes/<slug>/tests/` where present + `tests/e2e/prototypes.spec.ts` | component + E2E |

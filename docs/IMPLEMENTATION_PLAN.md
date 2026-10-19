@@ -113,17 +113,41 @@ integrated the work after its lane gates passed.
 - [x] `affected`, CI templates, `ci init`, `ci check`, `export --all` [`aa8caf7`, `4d06302`, `5984166`, `7464336`, `54d0fe6`]
 - [x] Bundle analysis, budgets, `budget`, ready signal, cold-start bench, `scenario bench`, `bench:index --check`, CI perf job [`5eafdab`, `dce4494`, `27f0d91`, `8b6c234`, `7110452`, `98bad8b`, `8889d3c`, `b6285c7`]
 - [x] Spec harness: standard (ADR-019), `src/routes.ts`, `protoyard spec`, `validate` spec check, template skeletons, flagship specs for `crm-demo`, `mobile-banking-demo`, `ai-chat-demo`, rebuild kit [`1d24696`, `34a27c0`, `22156ff`, `0c60f7a`, `c9505dd`, `9d53730`, `a40114d`, `f65c456`]
-- [ ] Specs for the newer flagships (Task 153): `lattice-saas-demo`, `nova-assistant-demo`, `relay-chat-demo`, `support-widget-demo` and `ui-kit` have no `AGENTS.md` yet (`validate` warns)
+- [x] Full specs for the newer flagships and `ui-kit`; `validate <slug> --strict-spec` passes for all nine prototypes [`f1c6a34`]
 
-**Phase 8, marketplace (in progress).**
+**Phase 8, marketplace.**
 
 - [x] Templates run as live demos from `dev` and the control server [`e751ad2`]
 - [x] `new --from` remixes a template or prototype [`7adbe60`]
 - [x] 20 product blueprints in `blueprints/`, indexed as `kind: blueprint`; `list --kind blueprint` [`11b602d`, `3775759`]
 - [x] Catalog metadata for every template and flagship; `validate` reports the catalog block [`253b473`]
-- [ ] The marketplace in the gallery (Task 158)
-- [ ] Marketplace showcase with live demos of every base product (Task 159)
-- [ ] Marketplace E2E and performance proof (Task 160)
+- [x] The marketplace in the gallery: `/marketplace/` rails, filters and detail pages with Try it, Use this template and Remix [`2f608b1`]
+- [x] Showcase with a live demo of every prototype and template (`template-demo-<name>` storage; `--no-templates`) [`f0923ff`]; built locally, **not published**
+- [x] Marketplace E2E (`tests/e2e/marketplace.spec.ts`) and `bench:index --marketplace --check` [`1c067ef`]; command palette loaded on demand, `/` 33.8 KiB and `/marketplace/` 57.4 KiB of JS [`ed95e68`]
+
+**Post-spec bug fixes** (found while writing specs and reviewing demos):
+
+- [x] `relay-chat-demo`: channel membership checks, the reactions UI and transactional writes [`c84b2a1`]
+- [x] `helpdesk-demo` / `@protoyard/crud`: trash and restore work again, CSV import is atomic; bulk soft delete with Undo covered in E2E [`1156086`, `0caaffd`]
+- [x] `@protoyard/ai`: the refusal pack is no longer picked for ordinary prompts [`e85d949`]
+- [x] `ui-kit`: theme lab writes go through a permission-checked service, library themes register lazily, and the accessibility page audits built-in, library and custom themes [`e85d949`]
+- [x] `nova-assistant-demo`: AA contrast tokens in light and dark [`2f4e70e`]
+- [x] `lattice-saas-demo`: verification inbox for pending sign-ups, simulated SSO on sign-in and sign-up, sign-out for every role, one plan catalog as the price source, atomic onboarding step effects; `support-widget-demo`: one unread sync for the launcher badge, order input defaults to the latest order [`3fd9a8f`]
+- [x] Gallery: the header nav stays inside phone widths [`ec55129`]
+- [x] Control server: the CORS preflight allows the `content-type` header, so creates from the browser work [`ed95e68`]
+
+**Known gaps after PLAN_002:**
+
+- The showcase is built but **not published**: publishing it needs the developer's explicit go-ahead.
+- E2E does not cover the real control server. Marketplace Try it is tested against the bundled showcase build (`PROTOYARD_E2E_SHOWCASE=1`).
+- CI does not run `bench:index --marketplace`; it is a local gate (it builds a 3,000-page gallery and needs Chromium).
+- The `nova-assistant-demo` 5,000-message long-task E2E is flaky under parallel load (it failed once in a 170-test run and passes in isolation).
+- Marketplace detail pages ship 60.9 KiB of JS gzip against a 60 KB target; most of it is the shared gallery layout.
+- Pre-existing domain gaps recorded in each prototype's `docs/` (checked against the code at this revision):
+  - `crm-demo`: `deals.amount` is whole dollars, not integer cents; the `deals:read` and `contacts:read` route capabilities are labels only; the expired-plan paywall covers creates only; deleting a contact leaves `activities.contactId` dangling.
+  - `mobile-banking-demo`: `accounts:read` is never checked; `addBeneficiary`, `removeBeneficiary` and `setAccountStatus` write without `db.transaction`; `simulatePayroll` asserts `transfers:create` without the member amount cap; `dailyLimitCents` is enforced per transfer, not per day; deleting a payee leaves `transfers.beneficiaryId` dangling.
+  - `ai-chat-demo`: inline validation instead of zod; `cancel`, `markRead` and `search` have no `session.assert`; `togglePin` checks `messages:send` and pins are shared by all personas; `agents.speed` and `agents.skills` are not used by the UI.
+
 
 ## Deferred and known gaps
 

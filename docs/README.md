@@ -17,7 +17,7 @@ These docs describe what works in this repository today. Start with the
 | [Shells](SHELLS.md) | Device and host shells (phone, tablet, desktop window, browser, widget host, extension popup, side panel) |
 | [SaaS kits](SAAS_KITS.md) | Add simulated SaaS flows, compose scenarios and understand honest boundaries |
 | [AI kits](AI_KITS.md) | Simulated assistants, agents, voice and widgets; honest boundaries |
-| [Specs](SPECS.md) | The per-prototype spec harness: files, generated regions, rebuild kit, rebuild as a real app |
+| [Specs](SPECS.md) | The per-prototype spec harness: files, generated regions, rebuild kit, rebuild as a real app. Every prototype ships `AGENTS.md` + `docs/` (SPEC, DATA_MODEL, FLOWS, SCREENS, PERMISSIONS); `pnpm protoyard validate <slug> --strict-spec` passes for all nine. |
 | [Publishing](PUBLISHING.md) | Static builds, ZIP export, base paths, provider adapters, batch publish, review index, CI/CD templates |
 
 ## Understand it

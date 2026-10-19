@@ -9,7 +9,7 @@ idea to a published static site in this repository. It assumes the
 
 | # | Step | Commands / files | Done when |
 | --- | --- | --- | --- |
-| 1 | Explore | `pnpm protoyard list --json`, `pnpm protoyard list --kind template`, read `templates/<t>/README.md` | You know which template fits and which slugs exist |
+| 1 | Explore | `pnpm protoyard list --json`, `pnpm protoyard list --kind template` (or `--kind blueprint`), the gallery's `/marketplace/`, read `templates/<t>/README.md` | You know which template fits and which slugs exist |
 | 2 | Choose a slug | Lowercase kebab-case, 2–48 chars, not reserved, not taken | `list --json` does not contain it |
 | 3 | Create | `pnpm protoyard new <slug> --template <t> --name "<Name>" --description "<one line>"` (or `--from <prototype>` to remix, or `generate <slug> --blueprint <file>` for a CRUD product) | `prototypes/<slug>/` exists and the command printed next steps |
 | 4 | Domain | `src/database/schema.ts` → `src/domain/policy.ts` → `src/domain/*.ts` services → `src/scenarios/index.ts` + `protoyard.json → scenarios` → `src/scenarios/generators.ts` → `integrity` in `src/prototype.ts` | `pnpm protoyard scenario validate <slug>` passes |

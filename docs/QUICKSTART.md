@@ -169,6 +169,9 @@ add a table, a service, a screen and a scenario.
 
 ### Other starting points
 
+Open the gallery's Marketplace (`pnpm dev` → `/marketplace/`) to try every
+product type and start your own with **Use this template** or **Remix**.
+
 Every template is a working app with scenarios, tests and a spec
 (`AGENTS.md` + `docs/`), and runs as a live demo with
 `pnpm protoyard dev <template>` (its own `template-demo-<name>` storage):

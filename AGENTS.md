@@ -68,7 +68,7 @@ protoyard/
 │   ├── ai/                simulated AI engine: streaming, agents and tools, voice, safe markdown  (README)
 │   ├── ai-ui/             Svelte assistant workspace, safe rich answers, canvas, widget modes      (README)
 │   └── cli/               `protoyard` CLI: new/generate/dev/validate/build/export/publish/spec/ci… (README)
-├── apps/gallery/          Astro static gallery (reads the registry only)                           (README)
+├── apps/gallery/          Astro static gallery + /marketplace/ (reads the registry only)           (README)
 ├── templates/<name>/      admin-console, agent-console, ai-assistant, b2b-saas, blank, chat,
 │                          chat-widget, crud-app, dashboard, desktop-app, ecommerce, marketplace,
 │                          mobile-app, onboarding, plugin-panel, task-manager, team-chat
