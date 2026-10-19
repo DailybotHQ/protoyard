@@ -35,6 +35,38 @@ its `FAMILY` name; the components are added by the following PLAN_003 charts
 tasks. Load a family from a lazy route (`load: () => import('./Screen.svelte')`)
 so charts stay out of the initial chunk.
 
+## ChartFrame (shared by every family)
+
+`src/frame/` holds the container every chart renders in. It is internal for
+now: each family subpath re-exports it with its charts, so the root entry
+stays free of component code.
+
+- **Responsive:** width comes from the container through `ResizeObserver`
+  (it works inside device shells; no window media queries). `height` is a
+  prop. The chart (`children` snippet) renders once the width is known and
+  receives `{ width, height, plot }`.
+- **Accessible:** a `<figure>` named by `title` (visible, or `hideTitle`)
+  and described by `description` and a screen-reader `summary`. Loading
+  (`role="status"`, `aria-busy`), empty and error (`role="alert"`) states
+  replace the plot. `onretry` returning a promise disables the button and
+  shows "Retrying…" until it settles.
+- **Themed:** one shared reader per page watches `<html>` (`data-py-*`,
+  class, inline variables) and, once per appearance change, builds the
+  validated chart palette from the theme tokens. It sets `--py-chart1…8`,
+  `--py-seq-*` and `--py-div-*` on the frame. When the tokens are not hex,
+  charts fall back to the raw `--py-chart*` tokens.
+- **Motion:** `data-py-motion="reduce"` or `prefers-reduced-motion` sets
+  `data-motion="reduce"` and `--py-chart-duration: 0ms` on the frame and
+  `reducedMotion` in the context. Charts animate only through
+  `--py-chart-duration`.
+- **Context:** `getChartFrameContext()` gives nested chart parts `width`,
+  `height`, `margin`, `plot`, `mode`, `reducedMotion` and `palette`, all
+  reactive.
+
+Size (esbuild minify + gzip -9, `svelte` runtime external): 5.4 KB with the
+palette builder it pulls in (about 2.8 KB of that), shared by every chart
+on a page.
+
 ## Tests
 
 ```bash
