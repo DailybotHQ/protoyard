@@ -10,6 +10,18 @@
   "platform": "responsive",
   "category": "starter",
   "tags": ["starter", "marketplace", "commerce", "seller", "orders"],
+  "catalog": {
+    "category": "marketplace",
+    "productType": "Two-sided marketplace",
+    "platforms": ["web"],
+    "features": ["seller-onboarding", "listings", "checkout", "orders", "payouts"],
+    "highlights": [
+      "Seller onboarding and listing management",
+      "Simulated checkout and orders",
+      "Cent-based payouts"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "🛍️",
   "defaultScenario": "marketplace",

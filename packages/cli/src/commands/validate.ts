@@ -61,6 +61,29 @@ export function checkContractFiles(dir: string): Check {
   );
 }
 
+/**
+ * Marketplace metadata (`catalog`, CatalogSchema in @protoyard/core). The schema is
+ * enforced by the manifest check; this one reports what the gallery will
+ * shelve. Templates are the marketplace's starting points, so a template
+ * without a catalog block warns. For a prototype the block is optional.
+ */
+export function checkCatalog(manifest: PrototypeManifest, kind: 'prototype' | 'template'): Check {
+  const label = 'Marketplace catalog';
+  const catalog = manifest.catalog;
+  if (!catalog) {
+    return kind === 'template'
+      ? check('catalog', label, 'warn', [
+          'no "catalog" block: the marketplace cannot shelve this template. Add one with a category from the shared list (CATALOG_CATEGORIES in @protoyard/core).',
+        ])
+      : check('catalog', label, 'skip', ['optional for prototypes']);
+  }
+  const summary = [catalog.category, catalog.productType].filter(Boolean).join(' · ');
+  const details = [summary];
+  if (catalog.platforms.length > 0) details.push(`platforms: ${catalog.platforms.join(', ')}`);
+  if (catalog.features.length > 0) details.push(`features: ${catalog.features.join(', ')}`);
+  return check('catalog', label, 'pass', details);
+}
+
 export function checkPackage(dir: string, slug: string, kind: 'prototype' | 'template'): Check {
   const pkg = readPackageJson(join(dir, 'package.json'));
   if (!pkg)
@@ -314,6 +337,7 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
 
   let inspection: Inspection | null = null;
   if (parsed.manifest) {
+    checks.push(checkCatalog(parsed.manifest, kind));
     checks.push(await checkSchemaVersion(dir, parsed.manifest));
     const blueprintCheck = await checkBlueprint(dir, slug, parsed.manifest);
     if (blueprintCheck) checks.push(blueprintCheck);

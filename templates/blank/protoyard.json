@@ -10,6 +10,18 @@
   "platform": "responsive",
   "category": "starter",
   "tags": ["starter", "notes", "minimal"],
+  "catalog": {
+    "category": "starter",
+    "productType": "Notes",
+    "platforms": ["web"],
+    "features": ["crud", "roles"],
+    "highlights": [
+      "A persisted notes list",
+      "Owner and viewer personas",
+      "Permission-checked services and three scenarios"
+    ],
+    "difficulty": "beginner"
+  },
   "status": "ready",
   "icon": "📝",
   "defaultScenario": "active",

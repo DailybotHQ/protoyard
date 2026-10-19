@@ -10,6 +10,18 @@
   "platform": "responsive",
   "category": "starter",
   "tags": ["starter", "onboarding", "wizard", "forms", "stepper"],
+  "catalog": {
+    "category": "starter",
+    "productType": "Onboarding wizard",
+    "platforms": ["web"],
+    "features": ["onboarding", "wizard", "validation", "invites"],
+    "highlights": [
+      "Profile, workspace, invites and preferences steps",
+      "Per-step validation, with progress saved after every step",
+      "Skippable optional steps and a summary"
+    ],
+    "difficulty": "beginner"
+  },
   "status": "ready",
   "icon": "🧭",
   "defaultScenario": "half-complete",

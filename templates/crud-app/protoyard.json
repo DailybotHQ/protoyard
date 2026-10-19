@@ -10,6 +10,18 @@
   "platform": "responsive",
   "category": "starter",
   "tags": ["starter", "crud", "blueprint", "generate"],
+  "catalog": {
+    "category": "starter",
+    "productType": "CRUD app",
+    "platforms": ["web"],
+    "features": ["crud", "blueprint", "notifications", "search", "command-palette"],
+    "highlights": [
+      "Projects and tasks with list and form screens",
+      "Notifications bell, members and a command palette",
+      "The base template for `protoyard generate`"
+    ],
+    "difficulty": "beginner"
+  },
   "status": "ready",
   "icon": "🗂️",
   "defaultScenario": "active",

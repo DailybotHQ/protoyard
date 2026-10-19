@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "communication",
   "tags": ["starter", "chat", "team", "slack", "ai", "bots", "voice", "huddle"],
+  "catalog": {
+    "category": "communication",
+    "productType": "Team chat",
+    "platforms": ["web"],
+    "features": ["channels", "threads", "reactions", "mentions", "search", "ai-bots", "huddles"],
+    "highlights": [
+      "Workspaces, channels, DMs and threads",
+      "Reactions, mentions, presence and search",
+      "Slash commands and AI bots in channels (simulated)",
+      "Simulated huddles with captions"
+    ],
+    "difficulty": "advanced"
+  },
   "status": "ready",
   "icon": "💬",
   "defaultScenario": "busy-day",

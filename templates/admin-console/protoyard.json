@@ -10,6 +10,19 @@
   "platform": "desktop",
   "category": "starter",
   "tags": ["starter", "admin", "internal-tool", "saas", "audit", "roles", "impersonation"],
+  "catalog": {
+    "category": "internal-tools",
+    "productType": "Admin console",
+    "platforms": ["web", "desktop"],
+    "features": ["multi-tenant", "roles", "impersonation", "subscriptions", "audit-log"],
+    "highlights": [
+      "Suspend and reactivate tenants",
+      "Simulated impersonation of users across tenants",
+      "Cancel and resume subscriptions",
+      "Audit log of every staff action, with confirmed destructive actions"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "🛡️",
   "defaultScenario": "operations",

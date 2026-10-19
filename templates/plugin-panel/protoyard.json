@@ -10,6 +10,18 @@
   "platform": "responsive",
   "category": "starter",
   "tags": ["starter", "plugin", "extension", "side-panel", "integrations"],
+  "catalog": {
+    "category": "developer-tools",
+    "productType": "Plugin",
+    "platforms": ["plugin"],
+    "features": ["plugin", "oauth-simulation", "crud", "settings"],
+    "highlights": [
+      "A narrow plugin panel beside a mock host app",
+      "Editable connected items and account preferences",
+      "A simulated OAuth connection flow"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "🔌",
   "defaultScenario": "connected-workspace",

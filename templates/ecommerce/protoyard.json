@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "commerce",
   "tags": ["ecommerce", "storefront", "cart", "checkout", "inventory"],
+  "catalog": {
+    "category": "commerce",
+    "productType": "Storefront",
+    "platforms": ["web"],
+    "features": ["catalog", "search", "cart", "checkout", "inventory", "roles"],
+    "highlights": [
+      "Catalog with categories, search and filters",
+      "A persisted cart",
+      "Demo-only checkout that places orders atomically against inventory",
+      "Price and stock editing for admins"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "🛍️",
   "defaultScenario": "returning-customer",

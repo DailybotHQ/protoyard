@@ -10,6 +10,18 @@
   "platform": "responsive",
   "category": "design-system",
   "tags": ["design-system", "components", "themes", "accessibility", "showcase"],
+  "catalog": {
+    "category": "design",
+    "productType": "Design system",
+    "platforms": ["web"],
+    "features": ["components", "themes", "accessibility"],
+    "highlights": [
+      "Every @protoyard/ui component and pattern",
+      "Forms and a theme lab",
+      "Live tokens and contrast ratios"
+    ],
+    "difficulty": "beginner"
+  },
   "status": "ready",
   "icon": "🧩",
   "defaultScenario": "default",

@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "support",
   "tags": ["support", "helpdesk", "blueprint", "generated", "sla", "crud"],
+  "catalog": {
+    "category": "support",
+    "productType": "Help desk",
+    "platforms": ["web"],
+    "features": ["tickets", "sla", "attachments", "csv", "notifications", "blueprint"],
+    "highlights": [
+      "Tickets with SLAs and a status board",
+      "Replies, attachments and audit history",
+      "Notifications and CSV",
+      "Generated from a blueprint"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "\ud83c\udfa7",
   "defaultScenario": "active",
