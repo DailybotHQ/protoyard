@@ -198,3 +198,50 @@ export const GLOBAL_CUES: readonly { kind: string; cues: readonly string[]; fiel
       field: { name: 'owner', kind: 'persona' } as FieldInput,
     },
   ];
+
+/**
+ * Entity names that describe people. They get an `avatar` field (a face from
+ * the avatar library), so generated lists and details show real-looking people.
+ */
+export const PEOPLE_ENTITIES: ReadonlySet<string> = new Set([
+  'agent',
+  'athlete',
+  'attendee',
+  'author',
+  'candidate',
+  'client',
+  'coach',
+  'contact',
+  'courier',
+  'customer',
+  'doctor',
+  'driver',
+  'employee',
+  'follower',
+  'groomer',
+  'guest',
+  'instructor',
+  'lead',
+  'member',
+  'mentor',
+  'nurse',
+  'patient',
+  'player',
+  'resident',
+  'rider',
+  'student',
+  'subscriber',
+  'teacher',
+  'technician',
+  'tenant',
+  'trainer',
+  'tutor',
+  'volunteer',
+  'worker',
+]);
+
+/** The avatar field added to people-like entities: `avatar`, or `photo` when the name is taken. */
+export function avatarFieldFor(fieldNames: readonly string[]): FieldInput | null {
+  const name = ['avatar', 'photo', 'face'].find((candidate) => !fieldNames.includes(candidate));
+  return name ? ({ name, kind: 'avatar', label: 'Photo' } as FieldInput) : null;
+}

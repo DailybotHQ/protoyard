@@ -7,6 +7,7 @@ import {
 } from '@protoyard/core';
 import { z } from 'zod';
 import { blueprintUsesAudit, createAuditWriter } from './audit.ts';
+import { avatarFields, nextAvatar } from './avatar.ts';
 import {
   type CsvParseOptions,
   type CsvRowError,
@@ -102,6 +103,14 @@ export interface EntityService {
   restoreTrashed(id: string): Promise<number>;
   /** Permanently removes a trashed row and its cascade dependents. */
   purge(id: string): Promise<number>;
+  /**
+   * Gives the record the next face for one avatar field (default: the first)
+   * and returns the saved row. Same contract as `update` (`<entity>:update` or
+   * `update:own`, operation `<entity>.shuffleAvatar`). Deterministic: the next
+   * face depends only on the record id, the field and the current face (see
+   * `nextAvatar`), so repeated shuffles visit every face before any repeats.
+   */
+  shuffleAvatar(id: string, field?: string): Promise<Row>;
   bulkUpdate(ids: readonly string[], patch: EntityInput): Promise<Row[]>;
   /** Removes every id (with `onDelete` effects) and returns how many rows were deleted. */
   bulkRemove(ids: readonly string[]): Promise<number>;
@@ -953,6 +962,37 @@ export function createEntityServices(
               after: null,
             });
             return deleted;
+          })
+        );
+      },
+
+      async shuffleAvatar(id, field) {
+        const existing = await load(id);
+        assertOn('update', existing);
+        const fields = avatarFields(entity);
+        const avatarField =
+          field === undefined ? fields[0] : fields.find((candidate) => candidate.name === field);
+        if (!avatarField) {
+          throw new ValidationError({
+            field:
+              fields.length === 0
+                ? `${entity.label ?? entity.name} has no avatar field`
+                : `Pick one of: ${fields.map((f) => f.name).join(', ')}`,
+          });
+        }
+        const property = inputProperty(avatarField);
+        const key = `${entity.name}:${id}:${avatarField.name}`;
+        const values = parseInput(schemas().update, {
+          [property]: nextAvatar(existing[property], key),
+        });
+        return environment.run(op('shuffleAvatar'), () =>
+          db.transaction('rw', writeTables, async () => {
+            const current = await load(id);
+            const row: Row = { ...current, ...values, id, updatedAt: clock.now().toISOString() };
+            await db.table(table).put(row);
+            await audit({ action: 'update', entity, recordId: id, before: current, after: row });
+            await notify({ on: 'update', entity, row, previous: current });
+            return row;
           })
         );
       },

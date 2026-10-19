@@ -28,6 +28,7 @@ function fixture(): BlueprintInput {
           { name: 'healthScore', kind: 'number', min: 0, max: 1 },
           { name: 'vip', kind: 'boolean', default: false },
           { name: 'metadata', kind: 'json' },
+          { name: 'photo', kind: 'avatar' },
         ],
         titleField: 'name',
         searchable: ['name', 'email'],

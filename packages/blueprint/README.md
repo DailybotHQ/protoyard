@@ -59,8 +59,10 @@ optional `screens` and optional `brand`. Every object is strict, so unknown keys
   ISO 4217 `currency`, default `USD`), `boolean`, `date`, `datetime`, `enum` (`values`),
   `email`, `url`, `phone`, `tags`, `relation` (`to`, `cardinality` `one|many`, `onDelete`
   `restrict|cascade|nullify`), `persona` (a `py_personas` row), `file` (`accept`,
-  `maxSizeBytes`, `multiple`), `json` and `geo` (`region`; stored as `{ lat, lng }` with 5
-  decimals, accepted as an object or `"lat, lng"` text, never indexed, searched or sorted). `id`, `createdAt`, `updatedAt`, `deletedAt` and
+  `maxSizeBytes`, `multiple`), `json`, `geo` (`region`; stored as `{ lat, lng }` with 5
+  decimals, accepted as an object or `"lat, lng"` text, never indexed, searched or sorted)
+  and `avatar` (a face from `@protoyard/avatars` stored as its id, `av-001` … `av-175`;
+  only library ids validate; never indexed, searched or sorted). `id`, `createdAt`, `updatedAt`, `deletedAt` and
   `deletedBy` are managed by the platform and cannot be declared.
 - **Roles:** `permissions` maps an entity name (or `*`) to actions: `read`, `create`,
   `update`, `update:own`, `delete`, `delete:own`, `import`, `export` or `*`.
@@ -203,8 +205,8 @@ const patch = parseInput(update, { status: 'solved' }); // only keys present are
   `true`, `1`, `yes`), dates (`YYYY-MM-DD`, real calendar dates), datetimes (ISO with an
   offset, normalized to UTC), comma-separated tags (trimmed, de-duplicated) and JSON text.
 - **Checks:** text `minLength`/`maxLength`, number/integer/money `min`/`max`, enum values,
-  email, http(s) URLs, phone numbers, tag count and length, and non-empty ids for
-  relations, personas and files.
+  email, http(s) URLs, phone numbers, tag count and length, library ids for avatars, and
+  non-empty ids for relations, personas and files.
 - **Blanks:** on create, a blank or absent optional field becomes its `default`, `false`
   for booleans, `[]` for lists, otherwise `null`. A blank required field fails with
   "<Label> is required" unless it has a default. On update, blanks clear optional fields
@@ -234,6 +236,7 @@ const { valid, errors } = validateCsv(entity, text);
 - Headers match field **name**, input **property** (`customerId`) or **label** (case-insensitive).
 - A `geo` field is two columns, `<name>Lat` and `<name>Lng` (also matched as `<label> lat` /
   `<label> lng`); import needs both halves or neither.
+- An `avatar` field exports its id (`av-007`) and imports only library ids.
 - Money and dates go through `deriveInputSchemas` create coercion (`12.50` → 1250 cents).
 - Export prefixes cells starting with `= + - @` with `'` (spreadsheet formula guard).
 - Hard limits: `CSV_MAX_BYTES` (2 MiB) and `CSV_MAX_ROWS` (10,000 data rows); override per call.
@@ -260,6 +263,10 @@ const world = generate(createGenerateContext(scenario));
   point set per entity field, so the same seed gives the same points (generator SDK 2).
 - Team personas come from `generateTeam`, so each one carries a seeded library `avatar`
   (`av-NNN`, no repeats until all 175 are used; generator SDK 4).
+- `avatar` fields get one seeded face per row from `createAvatarPool` on a fork keyed by
+  entity and field, dealing the team's faces last: no repeats within the field until all
+  175 are used, more rows keep the earlier faces, and other values do not shift
+  (generator SDK 5).
 
 ## Audit log
 
@@ -295,7 +302,12 @@ await services.customer.purge(customerId); // permanently remove trashed rows
 ```
 
 Each entity gets `list`, `trash`, `get`, `create`, `update`, `remove`, `restore`, `purge`,
-`bulkUpdate` and `bulkRemove`. `list` hides soft-deleted rows; `trash` reads the indexed
+`shuffleAvatar`, `bulkUpdate` and `bulkRemove`. `shuffleAvatar(id, field?)` saves the next face
+for an avatar field (default: the first) with the same checks as `update` (operation
+`<entity>.shuffleAvatar`); the face comes from `nextAvatar(current, '<entity>:<id>:<field>')`,
+a deterministic walk with no clock or random source that never repeats the current face and
+visits all 175 before any repeat. Entities without an avatar field reject it with a
+`ValidationError`. `list` hides soft-deleted rows; `trash` reads the indexed
 `deletedAt` values for review. When `features.softDelete` is enabled, `remove` marks the record
 and its cascade set with `deletedAt` / `deletedBy` and returns an undo token that works for 30
 seconds of simulated time, including after a reload. Restoring also reverses nullified relation
@@ -382,6 +394,9 @@ const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
 - **Screens** follow the data: list for every entity, board for a status enum, calendar for
   upcoming dates, timeline for start/end pairs, map for geo, a dashboard at `/`, analytics for
   amounts, a tabbed detail and settings.
+- **Faces:** people-like entities (`PEOPLE_ENTITIES`: customer, contact, lead, client,
+  patient, student, member, driver, agent, volunteer, follower and similar) get an optional
+  `avatar` field labeled Photo (named `photo` when `avatar` is taken).
 - Always the roles `owner`, `admin`, `member`, `viewer`; a brand seed picked by name hash from
   the catalog's AA-checked seeds; `layout` is `mobile-tabs` for phone briefs, else `sidebar`
   (a suggestion: blueprints have no layout key yet).

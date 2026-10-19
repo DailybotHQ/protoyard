@@ -1,3 +1,4 @@
+import { isAvatarId } from '@protoyard/scenarios';
 import { z } from 'zod';
 import type { BlueprintEntity, BlueprintField } from './schema.ts';
 import { relationProperty } from './storage.ts';
@@ -12,9 +13,10 @@ import { relationProperty } from './storage.ts';
  * name. Form strings are coerced: numbers, money (`'12.34'` → 1234 cents;
  * plain numbers are already cents), booleans (`'on'`, `'true'`, `'1'`),
  * comma-separated tags, JSON text and geo points (`{ lat, lng }` or `"lat, lng"`,
- * kept to 5 decimals). Blank optional values become `null`
- * (or the field default on create); blank required values fail with
- * "<Label> is required". Unknown keys are dropped.
+ * kept to 5 decimals). Avatar fields accept library ids only (`av-001` …
+ * `av-175`). Blank optional values become `null` (or the field default on
+ * create); blank required values fail with "<Label> is required". Unknown
+ * keys are dropped.
  */
 
 export type EntityInput = Record<string, unknown>;
@@ -232,6 +234,12 @@ function checkValue(field: BlueprintField, value: unknown): Check {
     }
     case 'geo':
       return checkGeo(label, value);
+    case 'avatar': {
+      const text = typeof value === 'string' ? value.trim() : '';
+      return isAvatarId(text)
+        ? ok(text)
+        : fail(`${label} must be a library face from av-001 to av-175`);
+    }
   }
 }
 

@@ -174,6 +174,11 @@ export const FieldSchema = z.discriminatedUnion('kind', [
   field('geo', {
     region: z.enum(Object.keys(GEO_REGIONS) as [GeoRegionId, ...GeoRegionId[]]).optional(),
   }),
+  /**
+   * A face from the avatar library, stored as its id (`av-001` … `av-175`).
+   * Generated rows get distinct seeded faces; never indexed, searched or sorted.
+   */
+  field('avatar'),
 ]);
 export type BlueprintField = z.infer<typeof FieldSchema>;
 export type FieldKind = BlueprintField['kind'];
@@ -692,6 +697,8 @@ type Add = (path: Issue['path'], message: string) => void;
 
 const TITLE_KINDS = new Set<FieldKind>(['text', 'email', 'url', 'phone', 'enum', 'integer']);
 const SUM_KINDS = new Set<FieldKind>(['number', 'integer', 'money']);
+/** Kinds that are never indexed, searched or used to sort a list. */
+const UNSORTABLE_KINDS = new Set<FieldKind>(['geo', 'avatar']);
 
 function duplicates(values: readonly string[]): Set<string> {
   const seen = new Set<string>();
@@ -783,20 +790,23 @@ function checkEntity(entity: BlueprintEntity, at: number, names: Set<string>, ad
     entity[key].forEach((ref, i) => {
       if (!fields.has(ref)) {
         add([...base, key, i], `unknown field "${ref}"`);
-      } else if (fields.get(ref)?.kind === 'geo') {
+      } else if (UNSORTABLE_KINDS.has(fields.get(ref)?.kind as FieldKind)) {
         add(
           [...base, key, i],
-          `geo field "${ref}" cannot be ${key === 'indexes' ? 'indexed' : 'searched'}`
+          `${fields.get(ref)?.kind} field "${ref}" cannot be ${key === 'indexes' ? 'indexed' : 'searched'}`
         );
       }
     });
   }
   if (entity.defaultSort && !fields.has(entity.defaultSort.field)) {
     add([...base, 'defaultSort', 'field'], `unknown field "${entity.defaultSort.field}"`);
-  } else if (entity.defaultSort && fields.get(entity.defaultSort.field)?.kind === 'geo') {
+  } else if (
+    entity.defaultSort &&
+    UNSORTABLE_KINDS.has(fields.get(entity.defaultSort.field)?.kind as FieldKind)
+  ) {
     add(
       [...base, 'defaultSort', 'field'],
-      `geo field "${entity.defaultSort.field}" cannot sort a list`
+      `${fields.get(entity.defaultSort.field)?.kind} field "${entity.defaultSort.field}" cannot sort a list`
     );
   }
   if (entity.features.files && !entity.fields.some((f) => f.kind === 'file')) {
