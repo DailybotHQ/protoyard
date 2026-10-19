@@ -24,7 +24,7 @@
     "difficulty": "intermediate"
   },
   "status": "ready",
-  "icon": "\ud83c\udfa7",
+  "icon": "🎧",
   "defaultScenario": "active",
   "defaultTheme": "ocean",
   "defaultMode": "system",
@@ -33,7 +33,7 @@
   },
   "storage": {
     "namespace": "helpdesk-demo",
-    "schemaVersion": 1
+    "schemaVersion": 2
   },
   "build": {
     "includeDevtools": false,
@@ -43,5 +43,5 @@
   "scenarios": ["empty", "active", "viewer", "massive"],
   "template": "crud-app",
   "createdAt": "2026-10-18T21:44:42.953Z",
-  "updatedAt": "2026-10-18T21:44:42.953Z"
+  "updatedAt": "2026-10-19T19:23:36.930Z"
 }

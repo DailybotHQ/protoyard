@@ -199,6 +199,7 @@ Delete behavior (in the generated services, not enforced by the database):
 | Version | Adds | Changes indexes | Deletes |
 | --- | --- | --- | --- |
 | 1 | `auditEntries`, `customers`, `files`, `notifications`, `replies`, `tickets` | — | — |
+| 2 | — | — | — |
 <!-- /protoyard:generated:versions -->
 
 ## Migrations

@@ -101,6 +101,6 @@ async function submitEdit(input: Record<string, unknown>) {
   {:else if mode === 'create'}
     <EntityForm {entity} mode="create" onSubmit={submitCreate} />
   {:else if editing}
-    <EntityForm {entity} mode="edit" initial={editing} onSubmit={submitEdit} />
+    <EntityForm {entity} mode="edit" initial={editing} {services} onSubmit={submitEdit} />
   {/if}
 {/if}
