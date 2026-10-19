@@ -66,7 +66,16 @@ for generated spec regions, and `validate` fails while a region is stale
 E2E specs wait for the app with `waitForPrototypeReady({ slug })` from
 `tests/e2e/support/ready.ts`, not by polling `data-py-ready`;
 `tests/e2e/viewport-fit.spec.ts` guards full-viewport layouts and the bottom
-nav.
+nav. `tests/e2e/layout-fit.spec.ts` runs over every prototype target at
+1920×1080 and 390×844 on its densest scenario: a full-viewport app never
+scrolls the document, every primary input (`[data-py-composer]` or a chat
+`textarea`) is fully on screen, and the main scroll region really scrolls;
+page-scrolling apps (AppShell dashboards) must scroll the document. Specs that
+type with `fill()` cannot catch a composer below the fold, because Playwright
+scrolls `overflow: hidden` ancestors for you. `tests/e2e/devtools-panel.spec.ts`
+(with `PROTOYARD_E2E_SHOWCASE=1`, whose builds ship DevTools) opens and closes
+the DevTools panel by its X, Escape and the Ctrl/⌘ + . shortcut, then reloads
+and expects the launcher, at 2000×1030, 1440×900 and 390×844.
 
 ### CI performance job (`.github/workflows/ci.yml` → `perf`)
 

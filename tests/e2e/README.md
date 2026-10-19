@@ -37,7 +37,8 @@ attributes the renderer sets (`data-py-ready`, `data-py-mode`, `data-py-theme`, 
 Also covered: `prototypes.spec.ts` (every target boots without errors and persists across
 reloads), `gallery.spec.ts` (favorites, device frames, theme toggle, the create builder, no
 horizontal overflow on phones) and `showcase.spec.ts` (live demo iframe write survives a reload,
-scenario links, no 404s under a sub-path).
+scenario links, no 404s under a sub-path), and `devtools-panel.spec.ts` (with the showcase: the
+DevTools panel closes by X, Escape and Ctrl/⌘ + ., and stays closed after a reload).
 
 ## Accessibility
 
@@ -78,4 +79,4 @@ PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo pnpm test:e2e tests/e2e/shell-layou
 
 Use one file per prototype (`<slug>.spec.ts`). Skip unless the slug is in
 `PROTOYARD_E2E_PROTOTYPES`, open `prototypeUrl(slug)` with `?scenario=<id>`, and wait for
-`html[data-protoyard-ready="1"]` (and the older `data-py-ready="true"`). Use `waitForPrototypeReady(page, { slug })` from `tests/e2e/support/ready.ts` instead of ad-hoc selector polls. Viewport layout is guarded by `tests/e2e/viewport-fit.spec.ts` (desktop 1280×800 + Pixel 7). See the `write-e2e` skill for the full pattern.
+`html[data-protoyard-ready="1"]` (and the older `data-py-ready="true"`). Use `waitForPrototypeReady(page, { slug })` from `tests/e2e/support/ready.ts` instead of ad-hoc selector polls. Viewport layout is guarded by `tests/e2e/viewport-fit.spec.ts` (desktop 1280×800 + Pixel 7) and, for every target, by `tests/e2e/layout-fit.spec.ts` (1920×1080 + 390×844: no document scroll for full-viewport apps, primary inputs on screen, the main region scrolls). Add a new target to its `FIT_TARGETS` with its densest scenario and its layout (`viewport` or `document`); mark a chat composer with `data-py-composer`. Never put `data-py-scroll-root` on app markup: it is the renderer's own wrapper, and its layout rules flatten any element that carries it. See the `write-e2e` skill for the full pattern.
