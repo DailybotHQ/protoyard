@@ -243,7 +243,7 @@ open tmp/visual-sweep/index.html
 | Shell (phone) | only the manifest's own shell: every frame is full-bleed at 390 px ([SHELLS.md](SHELLS.md)) |
 | Layout | the manifest's `preview.layout` id and its `supported` list; `custom` (no `?layout=`) when it has none |
 | Mode | light and dark (`?mode=` and the browser color scheme) |
-| Theme | off by default; `--themes a,b` adds `?theme=` per id |
+| Theme | off by default; `--themes a,b` multiplies the matrix by `?theme=` per id; `--themes all` or a library collection switches to the theme review (below) |
 | Scenario | the densest by name (`massive`, `scale`, `long-`, `multi-`, `power`, `busy`, `mature`, in that order), else the manifest default: the scenarios `layout-fit.spec.ts` uses |
 
 Every shot opens `?devtools=0&scenario=…&shell=…&mode=…` in a fresh browser
@@ -258,6 +258,23 @@ context with the thumbnails' readiness wait (`scripts/lib/capture.ts`:
 - with `--compare <earlier sweep>`, the changed pixels per shot (both PNGs
   are decoded by `scripts/lib/png.ts`, no image dependency), `new` or
   `resized`.
+
+**Theme review.** `--themes all` (every library theme) or a collection
+(`industry`, `brand-like`, `high-contrast`, `colorblind-safe`, `seasonal`,
+`mono`; entries combine with explicit ids, `--themes high-contrast,violet`)
+captures one representative screen per target instead of the full matrix:
+desktop, the first `--shells` entry or the manifest's shell, the manifest
+layout, the densest scenario and `--route /path` (a hash route; the home
+route otherwise), in every selected theme × light and dark, through
+`?theme=<id>`. That is 2 × the number of library themes per target. A shot
+whose page applied a different theme (the runtime's visible fallback for an
+unknown id) is flagged `theme-fallback (<applied id>)`. The contact sheet's
+theme filter narrows the review.
+
+```bash
+pnpm visual:sweep --only ui-kit --themes all --shells none              # 2 × 64 shots
+pnpm visual:sweep --only crm-demo --themes high-contrast --route /settings --no-axe
+```
 
 The output goes to `tmp/visual-sweep/` (`--out` must be inside `tmp/`):
 `index.html` (static, no external assets, light and dark, filters for every

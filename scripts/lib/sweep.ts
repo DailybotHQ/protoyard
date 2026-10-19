@@ -34,7 +34,13 @@ export interface SweepArgs {
   only: string[];
   /** Explicit shells for the desktop viewport (replaces the platform's list). */
   shells: SweepShell[] | null;
+  /**
+   * Theme ids, `all` (every library theme) or library collection names. `all`
+   * or a collection switches to the theme review (see `buildMatrix`).
+   */
   themes: string[];
+  /** Hash route every shot opens (`/settings` → `#/settings`); the app's home otherwise. */
+  route: string | null;
   skipBuild: boolean;
   templates: boolean;
   axe: boolean;
@@ -46,7 +52,7 @@ export interface SweepArgs {
 export const DEFAULT_OUT = 'tmp/visual-sweep';
 
 const USAGE =
-  'Usage: tsx scripts/visual-sweep.ts [--only a,b] [--shells a,b] [--themes a,b] [--templates] [--skip-build] [--no-axe] [--concurrency N] [--compare <dir>] [--out <dir>]';
+  'Usage: tsx scripts/visual-sweep.ts [--only a,b] [--shells a,b] [--themes all|<collection>|a,b] [--route /path] [--templates] [--skip-build] [--no-axe] [--concurrency N] [--compare <dir>] [--out <dir>]';
 
 const list = (value: string | undefined, flag: string): string[] => {
   if (value === undefined || value.startsWith('--'))
@@ -63,6 +69,7 @@ export function parseSweepArgs(argv: readonly string[]): SweepArgs {
     only: [],
     shells: null,
     themes: [],
+    route: null,
     skipBuild: false,
     templates: false,
     axe: true,
@@ -96,6 +103,16 @@ export function parseSweepArgs(argv: readonly string[]): SweepArgs {
         args.themes = list(next, flag);
         i += 1;
         break;
+      case '--route': {
+        const [route = ''] = list(next, flag);
+        const path = route.replace(/^#/, '');
+        if (!/^\/[A-Za-z0-9._~\-/]*$/.test(path)) {
+          throw new Error(`--route must be a hash path like /settings (got ${route})`);
+        }
+        args.route = path;
+        i += 1;
+        break;
+      }
       case '--concurrency': {
         const value = Number(next);
         if (!Number.isInteger(value) || value < 1 || value > 16) {
@@ -127,6 +144,48 @@ export function parseSweepArgs(argv: readonly string[]): SweepArgs {
     }
   }
   return args;
+}
+
+/** The library metadata the theme selection needs (`THEME_LIBRARY_META` entries). */
+export interface LibraryThemeRef {
+  id: string;
+  collection: string;
+}
+
+export interface ThemeSelection {
+  /** Theme ids to capture, library order first, explicit ids after, no repeats. */
+  ids: string[];
+  /** True when `all` or a collection was asked for: the theme review matrix. */
+  review: boolean;
+}
+
+/**
+ * Expands `--themes`: `all` is every library theme, a collection name its
+ * themes, anything else an explicit id kept as given (built-in presets and
+ * a prototype's own themes are valid too; an unknown id falls back visibly
+ * in the shot). Throws for a collection with no themes.
+ */
+export function resolveThemes(
+  selection: readonly string[],
+  library: readonly LibraryThemeRef[],
+  collections: readonly string[]
+): ThemeSelection {
+  const ids: string[] = [];
+  const add = (id: string) => {
+    if (!ids.includes(id)) ids.push(id);
+  };
+  let review = false;
+  for (const entry of selection) {
+    if (entry === 'all' || collections.includes(entry)) {
+      review = true;
+      const picked = library.filter((theme) => entry === 'all' || theme.collection === entry);
+      if (!picked.length) throw new Error(`--themes ${entry}: the library has no such themes`);
+      for (const theme of picked) add(theme.id);
+    } else {
+      add(entry);
+    }
+  }
+  return { ids, review };
 }
 
 export interface SweepTarget {
@@ -213,6 +272,8 @@ export interface Shot {
   mode: Mode;
   theme?: string;
   scenario?: string;
+  /** Hash route the shot opens (`/settings`). */
+  route?: string;
   /** Path of the PNG inside the output folder. */
   file: string;
 }
@@ -239,16 +300,43 @@ function makeShot(base: Omit<Shot, 'key' | 'file'>): Shot {
  * Every shot for the targets. The desktop viewport covers shells × layouts ×
  * modes (× themes). At 390 px every shell is full-bleed (docs/SHELLS.md), so
  * the phone viewport captures only the manifest's own shell.
+ *
+ * With `review` (the theme review, `--themes all|<collection>`), each target
+ * gets one representative screen instead: desktop, the first `--shells`
+ * entry or the manifest's shell, the manifest's layout, its densest scenario,
+ * in every theme × light and dark (2 × themes shots per target).
  */
 export function buildMatrix(
   targets: readonly SweepTarget[],
-  args: Pick<SweepArgs, 'shells' | 'themes'>
+  args: Pick<SweepArgs, 'shells' | 'themes'> & { route?: string | null; review?: boolean }
 ): Shot[] {
   const themes: (string | undefined)[] = args.themes.length ? args.themes : [undefined];
+  const route = args.route ? { route: args.route } : {};
   const shots: Shot[] = [];
   for (const target of targets) {
     const scenario = densestScenario(target.scenarios, target.defaultScenario);
     const layouts = layoutsFor(target);
+    if (args.review) {
+      const shell = args.shells?.[0] ?? target.previewShell ?? 'auto';
+      for (const theme of themes) {
+        for (const mode of MODES) {
+          shots.push(
+            makeShot({
+              kind: target.kind,
+              slug: target.slug,
+              viewport: 'desktop',
+              shell,
+              layout: layouts[0] as string,
+              mode,
+              ...(theme ? { theme } : {}),
+              ...(scenario ? { scenario } : {}),
+              ...route,
+            })
+          );
+        }
+      }
+      continue;
+    }
     const viewports: [ViewportName, SweepShell[]][] = [
       ['desktop', shellsFor(target, args.shells)],
       ['phone', [target.previewShell ?? 'auto']],
@@ -268,6 +356,7 @@ export function buildMatrix(
                   mode,
                   ...(theme ? { theme } : {}),
                   ...(scenario ? { scenario } : {}),
+                  ...route,
                 })
               );
             }
@@ -288,6 +377,11 @@ export function shotQuery(shot: Shot): URLSearchParams {
   query.set('mode', shot.mode);
   if (shot.theme) query.set('theme', shot.theme);
   return query;
+}
+
+/** The full link to a shot under the app's base path: query, then the hash route. */
+export function shotUrl(base: string, shot: Shot): string {
+  return `${base}?${shotQuery(shot)}${shot.route ? `#${shot.route}` : ''}`;
 }
 
 /** What tests/e2e/layout-fit.spec.ts measures, gathered in the page. */

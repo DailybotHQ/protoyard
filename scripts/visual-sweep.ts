@@ -15,9 +15,18 @@
  * Failures are recorded and the sweep continues; the exit code is 1 when any
  * shot failed to capture. Flags and axe findings never fail the run.
  *
- *   tsx scripts/visual-sweep.ts [--only a,b] [--shells a,b] [--themes a,b]
+ *   tsx scripts/visual-sweep.ts [--only a,b] [--shells a,b]
+ *     [--themes all|<collection>|a,b] [--route /path]
  *     [--templates] [--skip-build] [--no-axe] [--concurrency N]
  *     [--compare <earlier sweep dir>] [--out <dir under tmp/>]
+ *
+ * `--themes a,b` multiplies the whole matrix by those theme ids. `--themes
+ * all` (or a library collection such as `high-contrast`) is the theme review:
+ * one representative screen per target (desktop, the first `--shells` entry
+ * or the manifest shell, the manifest layout, the densest scenario, `--route`
+ * or the home route) in every selected library theme, light and dark, through
+ * `?theme=<id>`. A shot whose page applied another theme (the runtime's
+ * visible fallback) is flagged `theme-fallback`.
  *
  * `--compare` decodes both PNGs and counts changed pixels per shot (no image
  * dependency). `--templates` serves the template demos from the showcase
@@ -37,6 +46,8 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { type Browser, chromium } from '@playwright/test';
+import { THEME_LIBRARY_META } from '../packages/themes/src/library/registry.ts';
+import { THEME_COLLECTIONS } from '../packages/themes/src/library/types.ts';
 import { screenshot, withReadyPage } from './lib/capture.ts';
 import { changedPixels, decodePng, optimizePng } from './lib/png.ts';
 import { type StaticServer, serveDirectory } from './lib/static-server.ts';
@@ -47,12 +58,13 @@ import {
   MEASURE_FIT,
   parseSweepArgs,
   renderContactSheet,
+  resolveThemes,
   type Shot,
   type ShotResult,
   type SweepArgs,
   type SweepShell,
   type SweepTarget,
-  shotQuery,
+  shotUrl,
   summarize,
   VIEWPORTS,
 } from './lib/sweep.ts';
@@ -144,7 +156,7 @@ async function captureShot(
   try {
     const result = await withReadyPage(
       browser,
-      `${origin}${path}?${shotQuery(shot)}`,
+      `${origin}${shotUrl(path, shot)}`,
       {
         viewport: { width: viewport.width, height: viewport.height },
         colorScheme: shot.mode,
@@ -153,10 +165,13 @@ async function captureShot(
       async (page) => {
         const png = optimizePng(await screenshot(page));
         const metrics = (await page.evaluate(MEASURE_FIT)) as FitMetrics;
+        const appliedTheme = await page.evaluate(
+          () => document.querySelector<HTMLElement>('[data-py-theme]')?.dataset.pyTheme ?? null
+        );
         const axe = args.axe
           ? (await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations.length
           : null;
-        return { png, metrics, axe };
+        return { png, metrics, axe, appliedTheme };
       }
     );
     const file = join(outDir, shot.file);
@@ -166,7 +181,12 @@ async function captureShot(
       ...shot,
       ok: true,
       axeViolations: result.axe,
-      flags: fitFlags(result.metrics),
+      flags: [
+        ...fitFlags(result.metrics),
+        ...(shot.theme && result.appliedTheme !== shot.theme
+          ? [`theme-fallback (${result.appliedTheme ?? 'none'})`]
+          : []),
+      ],
       bytes: result.png.length,
       ms: Math.round(performance.now() - started),
     };
@@ -229,9 +249,10 @@ async function main() {
   const args = parseSweepArgs(process.argv.slice(2));
   const targets = discover(args);
   const outDir = prepareOut(args.out, args.compare);
-  const shots = buildMatrix(targets, args);
+  const themes = resolveThemes(args.themes, THEME_LIBRARY_META, THEME_COLLECTIONS);
+  const shots = buildMatrix(targets, { ...args, themes: themes.ids, review: themes.review });
   console.log(
-    `Visual sweep: ${targets.length} target(s), ${shots.length} shot(s) → ${relative(ROOT, outDir)}`
+    `Visual sweep${themes.review ? ` (theme review, ${themes.ids.length} themes)` : ''}: ${targets.length} target(s), ${shots.length} shot(s) → ${relative(ROOT, outDir)}`
   );
 
   const buildErrors = new Map<string, string>();
