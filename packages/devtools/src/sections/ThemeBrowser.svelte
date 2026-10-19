@@ -236,7 +236,7 @@ function tabStop(ids: readonly string[], id: string): 0 | -1 {
             class="rounded-full border px-2 py-0.5 text-[11px] {collection === entry.id ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground'}"
             onclick={() => (collection = collection === entry.id ? '' : entry.id)}
           >
-            {entry.id} <span class="tabular-nums opacity-70">{entry.count}</span>
+            {entry.id} <span class="tabular-nums">{entry.count}</span>
           </button>
         {/each}
       </div>
