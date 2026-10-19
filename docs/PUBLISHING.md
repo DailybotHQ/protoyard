@@ -118,7 +118,7 @@ not need redirect or rewrite rules.
 | Item | Default | Change it |
 | --- | --- | --- |
 | DevTools panel | **Excluded.** The code is removed from the bundle, not just hidden. | `--include-devtools`, or `"build": { "includeDevtools": true }` in `protoyard.json` |
-| "Prototype · simulated data" badge | **Shown** (bottom-left; its tooltip says data is simulated and stored only in this browser) | `"build": { "demoBadge": false }` in `protoyard.json` |
+| "Prototype · simulated data" badge | **Shown** (below the frame, or in a corner free of controls when full-bleed; its tooltip says data is simulated and stored only in this browser) | `"build": { "demoBadge": false }` in `protoyard.json` |
 | Faker | In a separate chunk, downloaded only when a world is generated (first visit, scenario load) | |
 | Your scenarios and generator | Included, so the first visit can seed the default scenario | |
 

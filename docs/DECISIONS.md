@@ -208,6 +208,17 @@ container queries. Frames are brand-neutral (no real device or OS marks).
 **Reverse:** set `preview.shell: none` (per prototype) or drop `ShellHost`
 from the renderer root.
 
+**Amendment (sizing and full screen).** Devices keep their catalog size and
+only scale down. Window-like frames (`browser`, `desktop-window`) are fluid:
+they fill the stage minus their margin, with the catalog size as the minimum,
+because a fixed 1280 × 800 window left most of a large screen empty. Every
+framed shell gets a Full screen control beside the frame (never over app
+pixels); full screen is the same `shell: none` override as DevTools' "Device
+frame" switch, so there is one state, persisted by the runtime and settable
+with `?frame=none`. The published-build badge moved out of the screen (below
+the stage when framed, a control-free corner when full-bleed). **Reverse:**
+drop `fluid` from the registry entries; remove the control from `ShellHost`.
+
 ## ADR-017 — Data-only blueprints generate prototypes
 
 **Context.** "Generate anything" needs a description of a product that

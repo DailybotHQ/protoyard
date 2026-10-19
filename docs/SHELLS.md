@@ -55,8 +55,9 @@ then the loaded scenario (its `shell`, `device` and `orientation`), then the man
 DevTools shows the source of each value.
 
 - **Links:** `?shell=<shell>` sets the shell as a visible, clearable override, for example
-  `http://localhost:5173/?shell=browser`. DevTools → Share includes `?shell=` when one is
-  set. Device and orientation are not link parameters.
+  `http://localhost:5173/?shell=browser`. `?frame=none` is an alias for `?shell=none`: the
+  link opens in [full screen](#full-screen) (an explicit `?shell=` wins). DevTools → Share
+  includes `?shell=` when one is set. Device and orientation are not link parameters.
 - **DevTools → Appearance:** the **Shell** section has a "Device frame" on/off toggle, the
   shell picker (with "More shells") and its source badge. The **Device** section picks a
   catalog device that fits the shell and its orientation. These are always temporary
@@ -74,12 +75,52 @@ The renderer shows the bare app, with no frame, when:
 - the prototype runs inside an iframe (the gallery preview draws its own device frame);
 - the window is too narrow. Phones and tablets need the device width plus the frame and a
   gutter, so a real phone is always full-bleed. `desktop-window` and `browser` need 768 px
-  and scale down on smaller desktops;
+  and scale down on smaller desktops. The panel shells (`widget-host`, `side-panel`,
+  `extension-popup`) need 1328 px and scale down slightly until 1424 px;
+- the visitor chose [full screen](#full-screen);
 - the prototype's stylesheet does not import `@protoyard/renderer-svelte/app.css`, which
   holds the shell layout rules. The console then explains what to add. Every prototype's
   `src/app.css` should start with that import.
 
-The device box scales down to fit the window on both axes. It never scales up.
+## Frame size
+
+- **Devices** (`phone`, `tablet`) and the **panel shells** keep the catalog size. The box
+  scales down to fit the window on both axes and never scales up.
+- **Window-like frames** (`browser`, `desktop-window`) are fluid: the window fills the stage
+  minus the frame margin and a 24 px gutter on each side, so a 1920 × 1080 screen gets a
+  browser window about 1776 px wide. The catalog size (`laptop-window`, 1280 × 800) is the
+  minimum on each axis; below it the box keeps that size and scales down as a device does.
+  `desktop-window` still maximizes to the whole stage, and its dock or taskbar stays
+  reachable (a minimized maximized window hands the stage back).
+- **The "Prototype · simulated data" badge** of published builds never covers the app. In
+  a frame it sits in a row below the stage, outside the screen. Full-bleed, it takes the
+  first corner of the window (bottom-left, bottom-right, top-left, top-right) where it
+  covers no control, preferring one that covers no text, and re-checks after resizes,
+  navigation and DOM changes. If every corner has a control, it takes the least covered
+  one; it never takes pointer events.
+
+## Full screen
+
+Every framed shell has a **Full screen** control above the frame's top-right corner,
+outside the device and never over app pixels (`aria-label="Show full screen"`,
+`aria-pressed="false"`). It switches to frameless full-bleed: the app fills the viewport
+with no chrome.
+
+- **Back to the frame:** press Escape, or the "Show in frame" button
+  (`aria-pressed="true"`). It is the first tab stop of the page and stays invisible until
+  it has keyboard focus, like a skip link, so it never covers the app. A short hint says
+  "press Esc to show the frame" when full screen starts. Escape is left to the app while
+  a field has focus or a dialog, menu or listbox is open.
+- **Browser full screen:** Shift+click the control to also ask the browser for real full
+  screen. Leaving it (the browser's own Escape) returns to the frame too.
+- **Same state as DevTools:** full screen is the `shell: none` override that DevTools →
+  Appearance → "Device frame" off writes. The runtime keeps it per prototype across
+  reloads, `?frame=none` or `?shell=none` sets it from a link, and leaving full screen
+  drops those parameters from the address. The shell override to restore is remembered
+  in `localStorage` (`protoyard.<namespace>.frame-return`); without storage, leaving
+  full screen clears the override.
+- A maximized `desktop-window` has no room outside the window, so it hides the control
+  until it is restored. A prototype whose default shell is `none` has no control.
 
 ## Laying out an app inside a shell
 
@@ -140,11 +181,16 @@ Register it in `packages/renderer-svelte/src/shell/frames/registry.ts`:
 ```ts
 'my-shell': {
   load: () => import('./MyShellFrame.svelte'),
-  margin: 24,              // space the decoration needs outside the device box (fit scaling)
+  margin: 48,              // space outside the device box: decoration plus the full-screen control
+  bezel: 0,                // decoration drawn outside the box (controls start past it)
   screenInset: { top: 40 }, // chrome inside the device box; the app's screen starts below it
   minWindowWidth: 768,      // narrowest window that still shows the frame
+  fluid: true,              // window-like: fill the stage, catalog size as the minimum
 },
 ```
+
+The margin must hold the bezel plus 40 px (an 8 px gap and the 32 px Full screen
+control); a unit test checks every frame.
 
 A frame is a sibling overlay of the app's screen, not a wrapper, so switching shells never
 remounts the app. It receives `FrameProps`: `spec` (the device in its orientation), `shell`,
@@ -161,7 +207,8 @@ also be added to `PANEL_SHELLS` in `ShellHost.svelte`.
 ```bash
 pnpm vitest run packages/renderer-svelte                     # ShellHost and every frame
 pnpm vitest run packages/renderer-svelte/tests/frames.test.ts -t "desktop window"
-PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo pnpm test:e2e tests/e2e/shell-layout.spec.ts
+pnpm vitest run packages/renderer-svelte/tests/full-screen.test.ts  # sizing, full screen, badge
+PROTOYARD_E2E_PROTOTYPES=nova-assistant-demo,mobile-banking-demo pnpm test:e2e tests/e2e/shell-layout.spec.ts
 PROTOYARD_E2E_PROTOTYPES=support-widget-demo pnpm test:e2e tests/e2e/support-widget-demo.spec.ts
 ```
 
