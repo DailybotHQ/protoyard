@@ -1,0 +1,47 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.helpdesk-demo",
+  "slug": "helpdesk-demo",
+  "kind": "prototype",
+  "name": "Beacon Help Desk",
+  "description": "A support desk generated from a blueprint: customers, tickets with SLAs and a status board, replies, attachments, audit history, notifications and CSV.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "support",
+  "tags": ["support", "helpdesk", "blueprint", "generated", "sla", "crud"],
+  "catalog": {
+    "category": "support",
+    "productType": "Help desk",
+    "platforms": ["web"],
+    "features": ["tickets", "sla", "attachments", "csv", "notifications", "blueprint"],
+    "highlights": [
+      "Tickets with SLAs and a status board",
+      "Replies, attachments and audit history",
+      "Notifications and CSV",
+      "Generated from a blueprint"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "\ud83c\udfa7",
+  "defaultScenario": "active",
+  "defaultTheme": "ocean",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop"
+  },
+  "storage": {
+    "namespace": "helpdesk-demo",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": ["empty", "active", "viewer", "massive"],
+  "template": "crud-app",
+  "createdAt": "2026-10-18T21:44:42.953Z",
+  "updatedAt": "2026-10-18T21:44:42.953Z"
+}

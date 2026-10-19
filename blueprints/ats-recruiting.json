@@ -5,26 +5,13 @@
   "description": "Jobs, candidates and interviews for a fictional recruiting team.",
   "icon": "🧭",
   "category": "hr",
-  "tags": [
-    "recruiting",
-    "hr",
-    "jobs"
-  ],
+  "tags": ["recruiting", "hr", "jobs"],
   "catalog": {
     "category": "hr",
     "productType": "ATS",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "pipeline",
-      "interviews"
-    ],
-    "highlights": [
-      "Job reqs",
-      "Candidate stages",
-      "Interview scorecards"
-    ],
+    "platforms": ["web"],
+    "features": ["pipeline", "interviews"],
+    "highlights": ["Job reqs", "Candidate stages", "Interview scorecards"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -48,11 +35,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "open",
-            "paused",
-            "closed"
-          ],
+          "values": ["open", "paused", "closed"],
           "default": "open",
           "required": true
         },
@@ -87,14 +70,7 @@
         {
           "name": "stage",
           "kind": "enum",
-          "values": [
-            "applied",
-            "screen",
-            "onsite",
-            "offer",
-            "hired",
-            "rejected"
-          ],
+          "values": ["applied", "screen", "onsite", "offer", "hired", "rejected"],
           "default": "applied",
           "required": true
         },
@@ -108,16 +84,11 @@
         {
           "name": "resume",
           "kind": "file",
-          "accept": [
-            "application/pdf"
-          ]
+          "accept": ["application/pdf"]
         }
       ],
       "titleField": "fullName",
-      "searchable": [
-        "fullName",
-        "email"
-      ],
+      "searchable": ["fullName", "email"],
       "features": {
         "files": true
       }
@@ -160,30 +131,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -191,11 +151,7 @@
     {
       "type": "list",
       "entity": "job",
-      "columns": [
-        "title",
-        "status",
-        "location"
-      ]
+      "columns": ["title", "status", "location"]
     },
     {
       "type": "form",
@@ -204,11 +160,7 @@
     {
       "type": "list",
       "entity": "candidate",
-      "columns": [
-        "fullName",
-        "email",
-        "stage"
-      ]
+      "columns": ["fullName", "email", "stage"]
     },
     {
       "type": "form",
@@ -217,11 +169,7 @@
     {
       "type": "list",
       "entity": "interview",
-      "columns": [
-        "candidate",
-        "scheduledAt",
-        "interviewer"
-      ]
+      "columns": ["candidate", "scheduledAt", "interviewer"]
     },
     {
       "type": "form",

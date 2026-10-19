@@ -5,26 +5,13 @@
   "description": "Trips, segments and travelers for a fictional travel desk.",
   "icon": "✈️",
   "category": "travel",
-  "tags": [
-    "travel",
-    "trips",
-    "booking"
-  ],
+  "tags": ["travel", "trips", "booking"],
   "catalog": {
     "category": "travel",
     "productType": "Travel",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "itineraries",
-      "travelers"
-    ],
-    "highlights": [
-      "Multi-segment trips",
-      "Traveler list",
-      "PNR codes"
-    ],
+    "platforms": ["web"],
+    "features": ["itineraries", "travelers"],
+    "highlights": ["Multi-segment trips", "Traveler list", "PNR codes"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -52,12 +39,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "planned",
-            "booked",
-            "completed",
-            "cancelled"
-          ],
+          "values": ["planned", "booked", "completed", "cancelled"],
           "default": "planned",
           "required": true
         },
@@ -68,10 +50,7 @@
       ],
       "titleField": "name",
       "ownerField": "agent",
-      "searchable": [
-        "name",
-        "pnr"
-      ]
+      "searchable": ["name", "pnr"]
     },
     {
       "name": "segment",
@@ -87,12 +66,7 @@
         {
           "name": "kind",
           "kind": "enum",
-          "values": [
-            "flight",
-            "hotel",
-            "rail",
-            "car"
-          ],
+          "values": ["flight", "hotel", "rail", "car"],
           "default": "flight",
           "required": true
         },
@@ -145,30 +119,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -176,11 +139,7 @@
     {
       "type": "list",
       "entity": "trip",
-      "columns": [
-        "name",
-        "pnr",
-        "status"
-      ]
+      "columns": ["name", "pnr", "status"]
     },
     {
       "type": "form",
@@ -189,11 +148,7 @@
     {
       "type": "list",
       "entity": "segment",
-      "columns": [
-        "trip",
-        "kind",
-        "origin"
-      ]
+      "columns": ["trip", "kind", "origin"]
     },
     {
       "type": "form",
@@ -202,11 +157,7 @@
     {
       "type": "list",
       "entity": "traveler",
-      "columns": [
-        "trip",
-        "fullName",
-        "email"
-      ]
+      "columns": ["trip", "fullName", "email"]
     },
     {
       "type": "form",

@@ -9,6 +9,7 @@ import {
   personalizeHtml,
   TEMPLATE_FILES_REMOVED,
 } from '../lib/codegen/emit.ts';
+import { formatJson } from '../lib/codegen/format.ts';
 import { checkHeader } from '../lib/codegen/header.ts';
 import {
   emitOrThrow,
@@ -78,7 +79,7 @@ async function readBlueprint(
   return {
     blueprint: parsed.data,
     raw: raw as Record<string, unknown>,
-    text: `${JSON.stringify(raw, null, 2)}\n`,
+    text: formatJson(raw),
   };
 }
 
@@ -185,8 +186,10 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
   const rel = toPosixRelative(ctx.root, dest);
   const removed = new Set<string>(TEMPLATE_FILES_REMOVED);
   const emitted = new Set(files.map((f) => f.path));
+  // The template's own tests exercise its own entities; generated prototypes get
+  // blueprint-driven tests from the emitter instead.
   const copied = (await listTemplateFiles(templateDir)).filter(
-    (path) => !removed.has(path) && !emitted.has(path)
+    (path) => !removed.has(path) && !emitted.has(path) && !path.startsWith('tests/')
   );
   const fileList = [
     ...copied.map((path) => ({ path, source: 'template' as const })),
@@ -242,7 +245,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       manifest.preview = preview;
       const brandTheme = brandDefaultThemeId(blueprint);
       if (brandTheme) manifest.defaultTheme = brandTheme;
-      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+      await writeFile(manifestPath, formatJson(manifest));
       const htmlPath = join(staging, 'index.html');
       if (existsSync(htmlPath)) {
         const html = await readFile(htmlPath, 'utf8');
@@ -253,6 +256,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       }
       for (const path of removed) await rm(nested(staging, path), { force: true });
       await rm(nested(staging, 'src/generated'), { recursive: true, force: true });
+      await rm(nested(staging, 'tests'), { recursive: true, force: true });
       await writeFiles(staging, files);
       if (existing === 'empty') await rm(dest, { recursive: true, force: true });
       await rename(staging, dest);
@@ -395,7 +399,7 @@ async function regenerate(
     if (schema.to !== schema.from) {
       manifest.storage = { ...manifest.storage, schemaVersion: schema.to };
       manifest.updatedAt = new Date().toISOString();
-      await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+      await writeFile(manifestPath, formatJson(manifest));
     }
     await buildIndex(ctx.paths);
   }

@@ -5,26 +5,13 @@
   "description": "Workouts, sets and goals for a fictional fitness mobile app.",
   "icon": "🏃",
   "category": "health",
-  "tags": [
-    "fitness",
-    "mobile",
-    "workouts"
-  ],
+  "tags": ["fitness", "mobile", "workouts"],
   "catalog": {
     "category": "health",
     "productType": "Fitness",
-    "platforms": [
-      "mobile"
-    ],
-    "features": [
-      "workouts",
-      "goals"
-    ],
-    "highlights": [
-      "Workout log",
-      "Set tracking",
-      "Weekly goals"
-    ],
+    "platforms": ["mobile"],
+    "features": ["workouts", "goals"],
+    "highlights": ["Workout log", "Set tracking", "Weekly goals"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -114,11 +101,7 @@
         {
           "name": "unit",
           "kind": "enum",
-          "values": [
-            "km",
-            "kg",
-            "sessions"
-          ],
+          "values": ["km", "kg", "sessions"],
           "default": "km",
           "required": true
         },
@@ -135,30 +118,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -166,11 +138,7 @@
     {
       "type": "list",
       "entity": "workout",
-      "columns": [
-        "title",
-        "athlete",
-        "performedOn"
-      ]
+      "columns": ["title", "athlete", "performedOn"]
     },
     {
       "type": "form",
@@ -179,11 +147,7 @@
     {
       "type": "list",
       "entity": "set",
-      "columns": [
-        "workout",
-        "exercise",
-        "reps"
-      ]
+      "columns": ["workout", "exercise", "reps"]
     },
     {
       "type": "form",
@@ -192,11 +156,7 @@
     {
       "type": "list",
       "entity": "goal",
-      "columns": [
-        "title",
-        "athlete",
-        "target"
-      ]
+      "columns": ["title", "athlete", "target"]
     },
     {
       "type": "form",

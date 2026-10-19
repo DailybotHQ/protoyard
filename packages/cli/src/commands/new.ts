@@ -265,6 +265,12 @@ export async function createPrototypeFrom(
     dir: sourceDir,
     registry,
   } = await resolveTarget(ctx, fromSlug, input.templatesOnly ? 'template' : 'runnable');
+  // 'runnable' resolves prototypes and templates only; this narrows the registry kind.
+  if (source.kind === 'blueprint') {
+    throw new CliError('usage', `"${source.slug}" is a blueprint, not a template or prototype.`, {
+      hint: `pnpm protoyard generate ${slug} --blueprint blueprints/${source.slug}.json`,
+    });
+  }
   // A prototype keeps the template it came from; a template is its own origin.
   const origin = source.kind === 'template' ? source.slug : source.template;
   const name = input.name ?? titleFromSlug(slug);

@@ -4,26 +4,28 @@ Data-only blueprints for Protoyard ([ADR-017](../../docs/DECISIONS.md)). A `blue
 describes a product (entities, fields, relations, roles, screens) without any executable
 code. This package validates it and derives what a working prototype needs from it.
 
-Framework-agnostic: it depends only on `@protoyard/core` and zod and never imports Svelte
-(ADR-002). The Svelte CRUD screens live in `@protoyard/crud`.
+Framework-agnostic: it depends on `@protoyard/core`, `@protoyard/scenarios` (generator
+helpers), `@protoyard/themes` (brand themes) and zod, and never imports Svelte (ADR-002). The
+Svelte CRUD screens live in [`@protoyard/crud`](../crud/README.md). How a blueprint becomes a
+prototype (`protoyard generate`, regeneration, drift checks) is in
+[docs/GENERATOR.md](../../docs/GENERATOR.md).
 
-## Status
+## Modules
 
-Implemented: schema, storage, migrations, validation, policy, notifications, audit, file
-services and CSV codec. Remaining work lands in later PLAN_002 tasks:
-
-| Module | Derives | Status |
+| Module | Derives | Entry |
 | --- | --- | --- |
-| storage | Dexie store strings and integrity rules | done |
-| migrations | the next appended database version from a blueprint change | done |
-| validation | create and update zod input schemas per entity | done |
-| policy | role capabilities (`<entity>:<action>`) and `:own` record rules | done |
-| notifications | validated create/update/assignment rules, atomic writes and actor-scoped read state | done |
-| audit | per-mutation `auditEntries` rows (diff + sensitive redaction) and history reads | done |
-| files | size/type/quota checked Blob uploads, metadata listing, on-demand reads and removal | done |
-| csv | RFC 4180 parse/serialize + row validation (`@protoyard/blueprint/csv`) | done |
-| generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | done |
-| services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | done |
+| schema | the zod schema, JSON Schema and cross-reference checks | `.` |
+| storage | Dexie store strings and integrity rules | `.` |
+| migrations | appended database versions; `deriveDatabaseVersions` rebuilds them from `history` | `.` |
+| validation | create and update zod input schemas per entity | `.` |
+| policy | role capabilities (`<entity>:<action>`) and `:own` record rules | `.` |
+| notifications | validated create/update/assignment rules, atomic writes and actor-scoped read state | `.` |
+| audit | per-mutation `auditEntries` rows (diff + sensitive redaction) and history reads | `.` |
+| files | size/type/quota checked Blob uploads, metadata listing, on-demand reads and removal | `.` |
+| brand | a WCAG AA theme from `brand` (`resolveBlueprintBrand`) | `.` |
+| services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | `.` |
+| csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
+| generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 
 ## The schema
 
@@ -140,6 +142,18 @@ const versions = appendMigration([v1], migration);
 (`backfill`, `renameField`, `copyTable`) so blueprint history stays JSON; `toDatabaseVersion`
 turns them into a Dexie `upgrade` callback. Drops without `allowDrop` throw `MigrationError`
 — migrations never delete user data silently.
+
+`protoyard generate` records every storage change in the blueprint's `history` (earlier
+blueprints with their schema version and `migrateNext.allowDrop`). `deriveDatabaseVersions`
+rebuilds the full version list from that data alone, and `latestSchemaVersion` returns its
+tip, which is what generated `src/generated/schema.ts` and the `validate` drift check use:
+
+```ts
+import { deriveDatabaseVersions, latestSchemaVersion } from '@protoyard/blueprint';
+
+const versions = deriveDatabaseVersions(blueprint); // v1 from the oldest entry, then each diff
+latestSchemaVersion(blueprint); // must equal protoyard.json storage.schemaVersion
+```
 
 ## Policy derivation
 
@@ -305,14 +319,6 @@ demand. JSON snapshots do not preserve file bytes, so users should not rely on s
 attachments between prototypes. A visible note in the snapshot UI still requires the runtime
 snapshot surface to opt in.
 
-Tests run on the real runtime with the help desk fixture in
-`tests/fixtures/blueprint-prototype.ts`, a prototype whose stores, policy and integrity
-are all derived from its blueprint.
-
-## Tests
-
-```
-
 CSV import/export live on the same service object (capabilities `<entity>:export` /
 `<entity>:import`):
 
@@ -326,7 +332,14 @@ const committed = await services.ticket.importCsv(text, {
 // Relation cells accept a target id or its title. Commit is one transaction
 // (bulk chunks of 1,000). Audit rows are written when features.audit is on.
 ```
-bash
+
+## Tests
+
+Services run on the real runtime with the help desk fixture in
+`tests/fixtures/blueprint-prototype.ts`, a prototype whose stores, policy and integrity are
+all derived from its blueprint.
+
+```bash
 pnpm vitest run packages/blueprint
 pnpm --filter @protoyard/blueprint typecheck
 ```

@@ -5,26 +5,13 @@
   "description": "Devices, telemetry and alerts for a fictional IoT fleet.",
   "icon": "📡",
   "category": "operations",
-  "tags": [
-    "iot",
-    "fleet",
-    "devices"
-  ],
+  "tags": ["iot", "fleet", "devices"],
   "catalog": {
     "category": "operations",
     "productType": "IoT",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "telemetry",
-      "alerts"
-    ],
-    "highlights": [
-      "Device registry",
-      "Last-seen",
-      "Alert rules"
-    ],
+    "platforms": ["web"],
+    "features": ["telemetry", "alerts"],
+    "highlights": ["Device registry", "Last-seen", "Alert rules"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -52,11 +39,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "online",
-            "offline",
-            "maintenance"
-          ],
+          "values": ["online", "offline", "maintenance"],
           "default": "online",
           "required": true
         },
@@ -66,13 +49,8 @@
         }
       ],
       "titleField": "name",
-      "searchable": [
-        "serial",
-        "name"
-      ],
-      "indexes": [
-        "status"
-      ]
+      "searchable": ["serial", "name"],
+      "indexes": ["status"]
     },
     {
       "name": "telemetry",
@@ -122,22 +100,14 @@
         {
           "name": "severity",
           "kind": "enum",
-          "values": [
-            "info",
-            "warn",
-            "critical"
-          ],
+          "values": ["info", "warn", "critical"],
           "default": "info",
           "required": true
         },
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "open",
-            "acked",
-            "resolved"
-          ],
+          "values": ["open", "acked", "resolved"],
           "default": "open",
           "required": true
         }
@@ -152,30 +122,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -183,11 +142,7 @@
     {
       "type": "list",
       "entity": "device",
-      "columns": [
-        "serial",
-        "name",
-        "status"
-      ]
+      "columns": ["serial", "name", "status"]
     },
     {
       "type": "form",
@@ -196,11 +151,7 @@
     {
       "type": "list",
       "entity": "telemetry",
-      "columns": [
-        "device",
-        "metric",
-        "value"
-      ]
+      "columns": ["device", "metric", "value"]
     },
     {
       "type": "form",
@@ -209,11 +160,7 @@
     {
       "type": "list",
       "entity": "alert",
-      "columns": [
-        "device",
-        "message",
-        "severity"
-      ]
+      "columns": ["device", "message", "severity"]
     },
     {
       "type": "form",

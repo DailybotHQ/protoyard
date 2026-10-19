@@ -10,6 +10,18 @@
   "platform": "responsive",
   "category": "productivity",
   "tags": ["productivity", "saas", "b2b", "workspace", "billing", "projects", "team-planning"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Team planning",
+    "platforms": ["web"],
+    "features": ["projects", "workspaces", "billing", "auth"],
+    "highlights": [
+      "Project portfolios and delivery health",
+      "Team collaboration",
+      "Simulated SaaS journeys"
+    ],
+    "difficulty": "advanced"
+  },
   "status": "ready",
   "icon": "◈",
   "defaultScenario": "signed-out",

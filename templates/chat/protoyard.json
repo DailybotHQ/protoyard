@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "starter",
   "tags": ["starter", "chat", "assistant", "streaming", "messaging"],
+  "catalog": {
+    "category": "communication",
+    "productType": "Chat",
+    "platforms": ["web"],
+    "features": ["chat", "streaming", "unread-badges", "roles"],
+    "highlights": [
+      "Persisted conversations and messages",
+      "A scripted assistant whose replies stream, with stop and retry",
+      "Simulated outages and unread badges",
+      "Owner, member and viewer personas"
+    ],
+    "difficulty": "beginner"
+  },
   "status": "ready",
   "icon": "💬",
   "defaultScenario": "active",

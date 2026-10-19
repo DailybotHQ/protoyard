@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "ai",
   "tags": ["ai", "assistant", "agents", "voice", "canvas", "widget", "starter"],
+  "catalog": {
+    "category": "ai",
+    "productType": "AI assistant",
+    "platforms": ["web", "widget"],
+    "features": ["voice", "agents", "canvas", "widget", "large-history"],
+    "highlights": [
+      "Voice and agent tools",
+      "An embeddable widget",
+      "5,000-message history",
+      "Simulated AI only"
+    ],
+    "difficulty": "advanced"
+  },
   "status": "active",
   "icon": "✦",
   "defaultScenario": "active-workspace",

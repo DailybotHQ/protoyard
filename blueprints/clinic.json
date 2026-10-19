@@ -5,26 +5,13 @@
   "description": "Patients, visits and prescriptions for a fictional clinic.",
   "icon": "🏥",
   "category": "health",
-  "tags": [
-    "health",
-    "clinic",
-    "patients"
-  ],
+  "tags": ["health", "clinic", "patients"],
   "catalog": {
     "category": "health",
     "productType": "Clinic",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "visits",
-      "rx"
-    ],
-    "highlights": [
-      "Patient chart",
-      "Visit notes",
-      "Rx list"
-    ],
+    "platforms": ["web"],
+    "features": ["visits", "rx"],
+    "highlights": ["Patient chart", "Visit notes", "Rx list"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -60,10 +47,7 @@
         }
       ],
       "titleField": "fullName",
-      "searchable": [
-        "fullName",
-        "email"
-      ]
+      "searchable": ["fullName", "email"]
     },
     {
       "name": "visit",
@@ -122,11 +106,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "active",
-            "completed",
-            "stopped"
-          ],
+          "values": ["active", "completed", "stopped"],
           "default": "active",
           "required": true
         }
@@ -138,30 +118,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -169,11 +138,7 @@
     {
       "type": "list",
       "entity": "patient",
-      "columns": [
-        "fullName",
-        "email",
-        "phone"
-      ]
+      "columns": ["fullName", "email", "phone"]
     },
     {
       "type": "form",
@@ -182,11 +147,7 @@
     {
       "type": "list",
       "entity": "visit",
-      "columns": [
-        "patient",
-        "clinician",
-        "visitedAt"
-      ]
+      "columns": ["patient", "clinician", "visitedAt"]
     },
     {
       "type": "form",
@@ -195,11 +156,7 @@
     {
       "type": "list",
       "entity": "prescription",
-      "columns": [
-        "visit",
-        "medication",
-        "dose"
-      ]
+      "columns": ["visit", "medication", "dose"]
     },
     {
       "type": "form",

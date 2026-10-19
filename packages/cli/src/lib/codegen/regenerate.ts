@@ -10,6 +10,7 @@ import {
 } from '@protoyard/blueprint';
 import { CliError } from '../output.ts';
 import { type EmittedFile, emitPrototype } from './emit.ts';
+import { formatJson } from './format.ts';
 import { checkHeader } from './header.ts';
 
 /**
@@ -45,12 +46,19 @@ export const withoutHistory = (raw: Record<string, unknown>) => {
   return rest;
 };
 
-export const snapshotText = (snapshot: Snapshot) => `${JSON.stringify(snapshot, null, 2)}\n`;
+export const snapshotText = (snapshot: Snapshot) => formatJson(snapshot);
 
 const readText = (path: string) => readFile(path, 'utf8').catch(() => null);
 
 /** JSON equality on parsed values (key order matters, like the files on disk). */
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const sameJsonText = (a: string, b: string) => {
+  try {
+    return sameJson(JSON.parse(a), JSON.parse(b));
+  } catch {
+    return a === b;
+  }
+};
 
 function parseOrThrow(raw: unknown, label: string): Blueprint {
   const parsed = safeParseBlueprint(raw);
@@ -210,7 +218,7 @@ export async function planRegeneration(input: {
       { hint: 'Restore blueprint.json (its "history") from version control.' }
     );
   }
-  const blueprintText = `${JSON.stringify(finalRaw, null, 2)}\n`;
+  const blueprintText = formatJson(finalRaw);
   const emitted = emitOrThrow(blueprint, slug, blueprintText);
   const files = await planGeneratedFiles(dest, emitted);
   const nextSnapshot: Snapshot = { schemaVersion: toVersion, blueprint: nextRaw };
@@ -220,8 +228,9 @@ export async function planRegeneration(input: {
   ];
   for (const [path, content] of managed) {
     const current = await readText(join(dest, path));
+    // JSON is compared by value: reformatting it (for example by Biome) is not a change.
     files.push(
-      current === content
+      current !== null && sameJsonText(current, content)
         ? { path, status: 'unchanged' }
         : { path, status: current === null ? 'created' : 'changed', content }
     );

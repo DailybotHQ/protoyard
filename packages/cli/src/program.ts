@@ -88,7 +88,7 @@ export function createProgram(env: RunnerEnv): Command {
     .description('list prototypes and templates from the registry')
     .addOption(
       new Option('--kind <kind>', 'prototype, template, blueprint or all')
-        .choices(['prototype', 'template', 'all'])
+        .choices(['prototype', 'template', 'blueprint', 'all'])
         .default('all')
     )
     .option('--tag <tag>', 'only entries with this tag')

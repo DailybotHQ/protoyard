@@ -5,26 +5,13 @@
   "description": "Menus, tickets and payments for a fictional restaurant floor.",
   "icon": "🍽️",
   "category": "commerce",
-  "tags": [
-    "restaurant",
-    "pos",
-    "orders"
-  ],
+  "tags": ["restaurant", "pos", "orders"],
   "catalog": {
     "category": "commerce",
     "productType": "POS",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "tickets",
-      "payments"
-    ],
-    "highlights": [
-      "Floor tickets",
-      "Menu items",
-      "Tips in cents"
-    ],
+    "platforms": ["web"],
+    "features": ["tickets", "payments"],
+    "highlights": ["Floor tickets", "Menu items", "Tips in cents"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -55,12 +42,7 @@
         {
           "name": "course",
           "kind": "enum",
-          "values": [
-            "starter",
-            "main",
-            "dessert",
-            "drink"
-          ],
+          "values": ["starter", "main", "dessert", "drink"],
           "default": "starter",
           "required": true
         }
@@ -82,12 +64,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "open",
-            "sent",
-            "paid",
-            "void"
-          ],
+          "values": ["open", "sent", "paid", "void"],
           "default": "open",
           "required": true
         },
@@ -139,30 +116,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -170,11 +136,7 @@
     {
       "type": "list",
       "entity": "menu-item",
-      "columns": [
-        "name",
-        "price",
-        "course"
-      ]
+      "columns": ["name", "price", "course"]
     },
     {
       "type": "form",
@@ -183,11 +145,7 @@
     {
       "type": "list",
       "entity": "ticket",
-      "columns": [
-        "table",
-        "status",
-        "server"
-      ]
+      "columns": ["table", "status", "server"]
     },
     {
       "type": "form",
@@ -196,11 +154,7 @@
     {
       "type": "list",
       "entity": "ticket-line",
-      "columns": [
-        "ticket",
-        "menuItem",
-        "quantity"
-      ]
+      "columns": ["ticket", "menuItem", "quantity"]
     },
     {
       "type": "form",

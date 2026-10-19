@@ -10,6 +10,19 @@
   "platform": "responsive",
   "category": "starter",
   "tags": ["starter", "dashboard", "saas", "admin", "crud", "roles"],
+  "catalog": {
+    "category": "analytics",
+    "productType": "SaaS dashboard",
+    "platforms": ["web"],
+    "features": ["dashboard", "charts", "crud", "audit-log", "roles"],
+    "highlights": [
+      "Overview metrics and a revenue chart",
+      "Customers with search, filters and detail pages",
+      "Orders with audited status changes",
+      "Role-gated settings for four personas"
+    ],
+    "difficulty": "intermediate"
+  },
   "status": "ready",
   "icon": "📊",
   "defaultScenario": "active",

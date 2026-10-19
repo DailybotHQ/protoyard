@@ -5,26 +5,13 @@
   "description": "Projects, tasks and milestones for a fictional product studio.",
   "icon": "🗂️",
   "category": "productivity",
-  "tags": [
-    "projects",
-    "tasks",
-    "pm"
-  ],
+  "tags": ["projects", "tasks", "pm"],
   "catalog": {
     "category": "productivity",
     "productType": "Projects",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "boards",
-      "milestones"
-    ],
-    "highlights": [
-      "Task boards",
-      "Owners",
-      "Due dates"
-    ],
+    "platforms": ["web"],
+    "features": ["boards", "milestones"],
+    "highlights": ["Task boards", "Owners", "Due dates"],
     "difficulty": "intermediate"
   },
   "brand": {
@@ -47,11 +34,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "planned",
-            "active",
-            "done"
-          ],
+          "values": ["planned", "active", "done"],
           "default": "planned",
           "required": true
         },
@@ -79,11 +62,7 @@
         {
           "name": "status",
           "kind": "enum",
-          "values": [
-            "todo",
-            "doing",
-            "done"
-          ],
+          "values": ["todo", "doing", "done"],
           "default": "todo",
           "required": true
         },
@@ -105,9 +84,7 @@
       ],
       "titleField": "title",
       "ownerField": "assignee",
-      "indexes": [
-        "status"
-      ]
+      "indexes": ["status"]
     },
     {
       "name": "milestone",
@@ -138,30 +115,19 @@
     {
       "name": "owner",
       "permissions": {
-        "*": [
-          "*"
-        ]
+        "*": ["*"]
       }
     },
     {
       "name": "member",
       "permissions": {
-        "*": [
-          "read",
-          "create",
-          "update",
-          "delete",
-          "import",
-          "export"
-        ]
+        "*": ["read", "create", "update", "delete", "import", "export"]
       }
     },
     {
       "name": "viewer",
       "permissions": {
-        "*": [
-          "read"
-        ]
+        "*": ["read"]
       }
     }
   ],
@@ -169,11 +135,7 @@
     {
       "type": "list",
       "entity": "project",
-      "columns": [
-        "name",
-        "status",
-        "lead"
-      ]
+      "columns": ["name", "status", "lead"]
     },
     {
       "type": "form",
@@ -182,11 +144,7 @@
     {
       "type": "list",
       "entity": "task",
-      "columns": [
-        "title",
-        "status",
-        "project"
-      ]
+      "columns": ["title", "status", "project"]
     },
     {
       "type": "form",
@@ -195,11 +153,7 @@
     {
       "type": "list",
       "entity": "milestone",
-      "columns": [
-        "name",
-        "project",
-        "targetOn"
-      ]
+      "columns": ["name", "project", "targetOn"]
     },
     {
       "type": "form",

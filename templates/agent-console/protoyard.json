@@ -10,6 +10,19 @@
   "platform": "desktop",
   "category": "ai",
   "tags": ["ai", "agents", "evaluations", "simulated"],
+  "catalog": {
+    "category": "ai",
+    "productType": "Agent platform",
+    "platforms": ["web", "desktop"],
+    "features": ["agents", "traces", "approvals", "evaluations", "usage-metering"],
+    "highlights": [
+      "Agent definitions and a playground with step traces",
+      "Approvals inside agent runs",
+      "Deterministic evaluations",
+      "Usage and cost dashboards (simulated)"
+    ],
+    "difficulty": "advanced"
+  },
   "status": "ready",
   "icon": "🤖",
   "defaultScenario": "active",

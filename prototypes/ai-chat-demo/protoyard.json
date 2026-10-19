@@ -9,6 +9,19 @@
   "platform": "responsive",
   "category": "ai",
   "tags": ["ai", "chat", "agents", "messaging", "streaming"],
+  "catalog": {
+    "category": "ai",
+    "productType": "Team AI chat",
+    "platforms": ["web"],
+    "features": ["chat", "agents", "streaming", "search"],
+    "highlights": [
+      "People and scripted AI agents in one chat",
+      "Streamed agent replies and unread badges",
+      "Search and failure states",
+      "No real AI API"
+    ],
+    "difficulty": "intermediate"
+  },
   "template": "chat",
   "status": "ready",
   "icon": "💬",

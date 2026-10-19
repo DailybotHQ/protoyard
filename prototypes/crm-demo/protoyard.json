@@ -9,6 +9,19 @@
   "platform": "responsive",
   "category": "sales",
   "tags": ["crm", "sales", "pipeline", "dashboard", "saas"],
+  "catalog": {
+    "category": "sales",
+    "productType": "CRM",
+    "platforms": ["web"],
+    "features": ["pipeline", "crud", "activity", "roles", "large-dataset"],
+    "highlights": [
+      "Companies, contacts and an editable deal pipeline",
+      "Activity history",
+      "Owner, admin, sales-rep and viewer personas",
+      "An enterprise-scale scenario with over 16,000 rows"
+    ],
+    "difficulty": "intermediate"
+  },
   "template": "dashboard",
   "status": "ready",
   "icon": "📈",

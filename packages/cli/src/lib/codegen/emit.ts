@@ -6,6 +6,7 @@ import {
   entityTable,
   resolveBlueprintBrand,
 } from '@protoyard/blueprint';
+import { tsString } from './format.ts';
 import { withHeader } from './header.ts';
 
 /**
@@ -22,7 +23,7 @@ export interface EmittedFile {
   generated: boolean;
 }
 
-const lit = (value: string) => JSON.stringify(value);
+const lit = tsString;
 
 /** `support-ticket` → `SupportTicket` (safe: names are lowercase kebab-case). */
 export function pascal(name: string): string {
@@ -187,7 +188,7 @@ function appComponent(blueprint: Blueprint): string {
   return `<script lang="ts">
 import { FolderKanban } from '@lucide/svelte';
 import { createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
-import { AppShell, Avatar, Badge, Header, Sidebar, Toaster } from '@protoyard/ui';
+import { AppShell, Avatar, Badge, Header, Sidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import AppSearch from './components/AppSearch.svelte';
 ${bell ? "import NotificationsBell from './components/NotificationsBell.svelte';\n" : ''}import { nav, routes } from './generated/routes.ts';
@@ -254,7 +255,6 @@ ${bell ? '          <NotificationsBell />\n' : ''}        </div>
     <Router {router} />
   </div>
 </AppShell>
-<Toaster />
 `;
 }
 
@@ -368,6 +368,10 @@ describe('generated world', () => {
 `;
 }
 
+/** `.customer` for identifier-safe names, `['support-ticket']` otherwise (Biome's useLiteralKeys). */
+const accessor = (name: string) =>
+  /^[a-z][a-zA-Z0-9]*$/.test(name) ? `.${name}` : `[${lit(name)}]`;
+
 function servicesTest(blueprint: Blueprint): string {
   const first = blueprint.entities[0] as BlueprintEntity;
   return `import { PermissionDeniedError } from '@protoyard/core';
@@ -393,7 +397,7 @@ describe('generated services', () => {
 
   it('denies a viewer from creating in the service layer', async () => {
     const services = createServices(await harness.boot('viewer'));
-    await expect(services[${lit(first.name)}]!.create({})).rejects.toBeInstanceOf(PermissionDeniedError);
+    await expect(services${accessor(first.name)}!.create({})).rejects.toBeInstanceOf(PermissionDeniedError);
   });
 });
 `;
