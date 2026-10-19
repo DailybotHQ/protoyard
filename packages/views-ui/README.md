@@ -6,9 +6,9 @@ files, settings, states and an app command palette. They are built on
 `@protoyard/ui` tokens, and the engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status:** `./settings` and `./states` are implemented; the other subpaths
-> exist and are empty until their PLAN_003 task lands, and this README
-> documents each view then.
+> **Status:** `./settings`, `./states` and `./commands` are implemented; the
+> other subpaths exist and are empty until their PLAN_003 task lands, and
+> this README documents each view then.
 
 ## Install
 
@@ -169,4 +169,57 @@ data-less states.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
   core, `@protoyard/ui`, the renderer and lucide external): 1.4 KB, small
   enough for route screens to import statically.
+
+## Commands (`@protoyard/views-ui/commands`)
+
+An app command palette on ⌘K (Mac) / Ctrl+K (elsewhere). DevTools keep
+Ctrl/⌘ + `.`, keys typed inside the DevTools panel are ignored, and `mod+k`
+and `mod+.` cannot be registered as action shortcuts.
+
+```svelte
+<script lang="ts">
+  import { getRuntime, runService } from '@protoyard/renderer-svelte';
+  import { AppCommandPalette, createCommands } from '@protoyard/views-ui/commands';
+  import { routes } from './routes.ts';
+
+  const runtime = getRuntime();
+  const commands = createCommands(runtime, routes); // pages from defineRoutes metadata
+  commands.register({
+    id: 'new-deal',
+    label: 'New deal',
+    shortcut: 'mod+shift+n',
+    capability: 'deals:create',
+    run: () => services.createDeal(draft), // the palette wraps it in runService
+  });
+  // when a record opens: commands.addRecent({ id: deal.id, label: deal.name, path: `/deals/${deal.id}` })
+</script>
+
+<AppCommandPalette registry={commands}>
+  {#snippet trigger({ open, keys })}
+    <Button variant="outline" onclick={open}>Search <Kbd>{keys.join('')}</Kbd></Button>
+  {/snippet}
+</AppCommandPalette>
+```
+
+- **What it lists:** recent records first, then pages (routes with a `name`;
+  routes with `:params` or `*` are reached through recent records), then
+  actions. Everything with a `capability` is filtered through
+  `session.can`, and the list is re-filtered when the persona switches
+  (`session.subscribe`). `createCommands` reads only `path`, `name`,
+  `description` and `capability` from route metadata and never calls `load`,
+  so no screen chunk is fetched.
+- **Running:** pages navigate and close. Actions run through `runService`
+  (pending bar, toasts for denied or simulated failures) with the capability
+  asserted first; the item shows a spinner and `aria-busy` until the promise
+  settles, and the palette closes only on success. Registered shortcuts run
+  their action from anywhere; shortcuts without `mod` never fire while typing
+  in a field.
+- **Hints:** shortcuts show as `Kbd` keys, `⌘ ⇧ N` on Mac and
+  `Ctrl Shift N` elsewhere (platform read from `navigator` in UI code only),
+  with `aria-keyshortcuts` on the item.
+- **Size** (Svelte 5 client output, esbuild minified with code splitting,
+  gzip -9; svelte, core, ui, renderer, lucide and Bits UI external;
+  2026-10-19): the static listener component is 0.8 KB plus a 0.3 KB shared
+  platform helper; `createCommands` is 1.2 KB; the dialog is a separate
+  2.4 KB chunk fetched on the first open.
 
