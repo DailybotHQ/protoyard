@@ -494,6 +494,31 @@ describe('codegen emitters', () => {
     expect(tsString(`a'b"c\\`)).toBe(`'a\\'b"c\\\\'`);
   });
 
+  it('emits a lazy dashboard route and its generated screen for dashboard blueprints', () => {
+    const dashboardBlueprint = parseBlueprint({
+      ...blueprintInput(),
+      screens: [
+        {
+          type: 'dashboard',
+          title: 'Sales overview',
+          widgets: [{ kind: 'kpi', label: 'Deals', entity: 'support-ticket', aggregate: 'count' }],
+        },
+      ],
+    });
+    const files = emitPrototype(dashboardBlueprint, 'help-desk', '{}');
+    const byPath = Object.fromEntries(files.map((file) => [file.path, file.content]));
+
+    expect(byPath['src/generated/routes.ts']).toContain("path: '/dashboard'");
+    expect(byPath['src/generated/routes.ts']).toContain(
+      "load: () => import('./screens/Dashboard1.svelte')"
+    );
+    expect(byPath['src/generated/routes.ts']).toContain("label: 'Sales overview'");
+    expect(byPath['src/generated/screens/Dashboard1.svelte']).toContain(
+      "import { DashboardScreen } from '@protoyard/crud/screens/dashboard';"
+    );
+    expect(byPath['src/generated/screens/Dashboard1.svelte']).toContain('aggregate');
+  });
+
   it('formats JSON like Biome: short primitive arrays inline, objects expanded', () => {
     expect(formatJson({ a: [1, 'x', null], b: {}, c: [], d: [{ e: true }] })).toBe(
       '{\n  "a": [1, "x", null],\n  "b": {},\n  "c": [],\n  "d": [\n    {\n      "e": true\n    }\n  ]\n}\n'
