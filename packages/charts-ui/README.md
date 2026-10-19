@@ -51,10 +51,12 @@ stays free of component code.
   replace the plot. `onretry` returning a promise disables the button and
   shows "Retrying…" until it settles.
 - **Themed:** one shared reader per page watches `<html>` (`data-py-*`,
-  class, inline variables) and, once per appearance change, builds the
-  validated chart palette from the theme tokens. It sets `--py-chart1…8`,
-  `--py-seq-*` and `--py-div-*` on the frame. When the tokens are not hex,
-  charts fall back to the raw `--py-chart*` tokens.
+  class, inline variables) once per appearance change. Themes that ship a
+  validated chart block (library and generated themes) already publish
+  `--py-chart1…8`, `--py-seq-*` and `--py-div-*`; the frame uses those as
+  they are and sets nothing. For other themes it builds the validated
+  palette from `chart1…5` and sets those variables on the frame. When the
+  tokens are not hex, charts fall back to the raw `--py-chart*` tokens.
 - **Motion:** `data-py-motion="reduce"` or `prefers-reduced-motion` sets
   `data-motion="reduce"` and `--py-chart-duration: 0ms` on the frame and
   `reducedMotion` in the context. Charts animate only through
@@ -66,6 +68,43 @@ stays free of component code.
 Size (esbuild minify + gzip -9, `svelte` runtime external): 5.4 KB with the
 palette builder it pulls in (about 2.8 KB of that), shared by every chart
 on a page.
+
+## Interaction layer (shared by every family)
+
+`src/interaction/` holds the parts charts compose. Charts map their data to
+pixel points (`PlotSeries` → `PlotPoint { x, y, xValue, yValue, datum }`)
+and pass formatters (`{ x, y }`); the same formatters feed the tooltip, the
+live region and the table.
+
+- **`InteractivePlot`:** the plot `<svg>`. It is one tab stop
+  (`role="group"`, `aria-roledescription="chart"`, `aria-activedescendant`
+  on a single focus marker, so it scales to any number of points).
+  - Keys: arrows move between points and skip gaps; Home and End jump to
+    the ends; Page Up and Page Down (or Up and Down) switch to the nearest
+    point in the previous or next visible series; Enter or Space call
+    `onselect({ series, index, datum })` for drill-down; Escape dismisses
+    the tooltip.
+  - A polite live region reads "Signups, Tue: 20 users. Point 2 of 3."
+  - The pointer follows the nearest x (then the nearest series vertically);
+    a click selects.
+  - A dashed crosshair and a tooltip list every visible series at that x.
+    The tooltip stays inside the frame, flips at the edges and never covers
+    the point; it is `aria-hidden` because the live region carries the text.
+- **`Legend`:** one toggle button per series (`aria-pressed`). The last
+  visible series cannot be hidden. Without `onchange` it renders a static
+  key.
+- **`ChartTable` + `TableToggle`:** the same data as an HTML table, one row
+  per x and one column per series. Hidden series are still listed, marked
+  "(hidden)". Long tables page 50 rows at a time ("Show 50 more").
+  `TableToggle` is an `aria-pressed` "View as table" / "View as chart"
+  button.
+- **`Axis` and `Grid`:** decorative SVG (`aria-hidden`) in
+  `--py-chart-axis` and `--py-chart-grid`, falling back to the muted and
+  border tokens.
+
+Size (esbuild minify + gzip -9, `svelte` external): `InteractivePlot` 4.3 KB;
+`Legend` 2.2 KB, `Axis` + `Grid` 2.1 KB, `ChartTable` + `TableToggle`
+2.3 KB measured alone; 6.4 KB for the whole layer.
 
 ## Tests
 
