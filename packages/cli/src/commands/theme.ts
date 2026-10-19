@@ -162,7 +162,7 @@ function writeTheme(
       hint: 'Pass --force to replace the existing theme file.',
     });
   }
-  const source = `import { defineTheme } from '@protoyard/core';\n\nexport const ${theme.id.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())}Theme = defineTheme(${JSON.stringify(theme, null, 2)});\n`;
+  const source = `import { defineTheme } from '@protoyard/core';\n\nexport const ${themeExportName(theme.id)} = defineTheme(${JSON.stringify(theme, null, 2)});\n`;
   if (!dryRun) {
     mkdirSync(resolve(prototypeDir, 'src'), { recursive: true });
     writeFileSync(file, source, 'utf8');
@@ -182,4 +182,17 @@ function titleFromId(id: string): string {
     .split('-')
     .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
     .join(' ');
+}
+
+/**
+ * The `src/theme.ts` export name for a theme id: `brand-2024` → `brand2024Theme`.
+ * Theme ids allow digits after a dash and a trailing dash, which a naive
+ * `-<letter>` camel-case would leave in the name and break the build.
+ */
+export function themeExportName(id: string): string {
+  const name = `${id.replace(/-+([a-z0-9])/g, (_match, char: string) => char.toUpperCase()).replace(/-+$/, '')}Theme`;
+  if (!/^[A-Za-z_$][\w$]*$/.test(name)) {
+    throw new CliError('validation', `Theme id "${id}" cannot be turned into an export name.`);
+  }
+  return name;
 }

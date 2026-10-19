@@ -163,6 +163,30 @@ describe('publish adapters', () => {
     expect(calls[0]).toEqual(['wrangler', 'pages', 'project', 'list', '--json']);
   });
 
+  it('ensure: failure hints never carry the account id or email', async () => {
+    const accountId = '0123456789abcdef0123456789abcdef';
+    const runFn = async () => ({
+      code: 1,
+      stdout: '',
+      stderr: [
+        `✘ [ERROR] A request to the Cloudflare API (/accounts/${accountId}/pages/projects) failed.`,
+        '  Authentication error [code: 10000]',
+        `  Logged in as ops@example.com, account ${accountId.toUpperCase()}.`,
+      ].join('\n'),
+    });
+    const error = (await ensureCloudflareProject(['wrangler'], 'protoyard-crm', {
+      runFn: runFn as typeof import('../src/lib/process.ts').run,
+    }).then(
+      () => ({ message: 'unexpectedly succeeded' }),
+      (caught: unknown) => caught
+    )) as { message: string; hint?: string };
+    const text = `${error.message}\n${error.hint ?? ''}`;
+    expect(text).toContain('Authentication error');
+    expect(text).toContain('/accounts/<account-id>/pages/projects');
+    expect(text.toLowerCase()).not.toContain(accountId);
+    expect(text).not.toContain('ops@example.com');
+  });
+
   it('ensure: creates when missing and treats already-exists create output as ok', async () => {
     const calls: string[][] = [];
     let listEmpty = true;

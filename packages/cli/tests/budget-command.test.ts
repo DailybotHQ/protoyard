@@ -98,4 +98,27 @@ describe('protoyard budget', () => {
       data: { results: [{ error: expect.stringContaining('no valid bundle metrics') }] },
     });
   });
+
+  it('reports a prototype it could not measure as unchecked, never as over budget', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'sample-app');
+    addPrototype(ws, 'broken-app');
+    ws.write('artifacts/sample-app/build-manifest.json', {
+      format: 'protoyard.build',
+      slug: 'sample-app',
+      bundle: { initialJsGzip: 1024, cssGzip: 512 },
+    });
+    ws.write('artifacts/broken-app/build-manifest.json', {
+      format: 'protoyard.build',
+      slug: 'broken-app',
+    });
+
+    const run = await cli(['--root', ws.root, '--json', 'budget', '--all', '--skip-build']);
+
+    expect(run.code).toBe(4);
+    const message = run.json<{ error: { message: string } }>().error.message;
+    expect(message).toContain('1 of 2 prototype(s) could not be checked');
+    expect(message).toContain('no valid bundle metrics');
+    expect(message).not.toMatch(/over budget|failed budget checks/);
+  });
 });

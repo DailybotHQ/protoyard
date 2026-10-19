@@ -72,6 +72,17 @@ export function formatCommand(argv: readonly string[]): string {
     .join(' ');
 }
 
+/**
+ * The tail of a provider CLI's output, for error hints. Account ids (32 hex
+ * characters, e.g. in Cloudflare `/accounts/<id>/` API URLs) and email
+ * addresses are redacted, because hints are printed and included in --json.
+ */
 export function lastLines(text: string, count = 12): string {
-  return stripAnsi(text).trim().split('\n').slice(-count).join('\n');
+  return redactAccountDetails(stripAnsi(text).trim().split('\n').slice(-count).join('\n'));
+}
+
+export function redactAccountDetails(text: string): string {
+  return text
+    .replace(/\b[0-9a-f]{32}\b/gi, '<account-id>')
+    .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, '<email>');
 }

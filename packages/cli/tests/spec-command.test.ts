@@ -296,6 +296,18 @@ describe('spec files on disk (real crm-demo facts)', { timeout: 120_000 }, () =>
     expect((await specForPrototype(dir, changed, { mode: 'check', init: false })).stale).toBe(0);
   });
 
+  it('--init in check mode creates nothing', async () => {
+    const empty = mkdtempSync(join(tmpdir(), 'protoyard-spec-check-'));
+    try {
+      const result = await specForPrototype(empty, crm, { mode: 'check', init: true });
+      expect(result.files.every((f) => !f.exists && !f.created)).toBe(true);
+      expect(existsSync(join(empty, 'AGENTS.md'))).toBe(false);
+      expect(existsSync(join(empty, 'docs'))).toBe(false);
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+    }
+  });
+
   it('reports invalid markers per file instead of rewriting them', async () => {
     const file = join(dir, 'docs/SCREENS.md');
     writeFileSync(file, `${readFileSync(file, 'utf8')}\n${openMarker('routes')}\n`);
@@ -328,6 +340,19 @@ describe('protoyard spec (CLI)', { timeout: 120_000 }, () => {
       (await cli(['--root', ROOT, '--json', 'spec', 'crm-demo', '--write', '--check'])).code
     ).toBe(2);
     expect((await cli(['--root', ROOT, '--json', 'spec'])).code).toBe(2);
+    const initCheck = await cli([
+      '--root',
+      ROOT,
+      '--json',
+      'spec',
+      'crm-demo',
+      '--init',
+      '--check',
+    ]);
+    expect(initCheck.code).toBe(2);
+    expect(initCheck.json<{ error: { message: string } }>().error.message).toContain(
+      '--check never writes files'
+    );
     expect((await cli(['--root', ROOT, '--json', 'spec', 'crm-demo', '--all'])).code).toBe(2);
     expect((await cli(['--root', ROOT, '--json', 'spec', 'no-such-app'])).code).toBe(3);
   });

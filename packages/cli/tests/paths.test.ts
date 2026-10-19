@@ -1,7 +1,8 @@
 // @vitest-environment node
-import { realpathSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { RESERVED_ARTIFACT_NAMES } from '../src/lib/build.ts';
 import { CliError } from '../src/lib/output.ts';
 import { childPath, isInside, resolveWorkspaceRoot } from '../src/lib/paths.ts';
 import { normalizeBase } from '../src/lib/vite.ts';
@@ -17,6 +18,13 @@ describe('slug and path guards', () => {
       expect(() => assertSlug(bad), bad).toThrow(CliError);
     }
     expect(assertSlug('my-app')).toBe('my-app');
+  });
+
+  it('the CLI README names every reserved artifact folder', () => {
+    const readme = readFileSync(join(import.meta.dirname, '..', 'README.md'), 'utf8');
+    const line = readme.split(/\n(?=\s*-|\n)/).find((block) => block.includes('are reserved'));
+    expect(line).toBeDefined();
+    for (const name of RESERVED_ARTIFACT_NAMES) expect(line, name).toContain(`\`${name}\``);
   });
 
   it('treats CI as non-interactive unless it is empty, 0 or false', () => {
