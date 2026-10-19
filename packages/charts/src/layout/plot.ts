@@ -1,4 +1,4 @@
-import type { Margin, Rect } from './types.ts';
+import type { Margin, Rect } from '../types.ts';
 
 /**
  * The plot area left inside a `width × height` frame after its margins

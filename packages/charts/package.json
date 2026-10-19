@@ -10,7 +10,7 @@
     "./scales": "./src/scales/index.ts",
     "./shapes": "./src/shapes/index.ts",
     "./downsample": "./src/downsample/index.ts",
-    "./layout": "./src/layout.ts",
+    "./layout": "./src/layout/index.ts",
     "./palette": "./src/palette/index.ts"
   },
   "scripts": {
