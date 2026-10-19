@@ -3,13 +3,14 @@ import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { renderReviewIndex } from '../../packages/cli/src/lib/review-index-html.ts';
 import { expectAccessible, WCAG_TAGS } from './support/a11y.ts';
 
 /**
  * The team review index (`protoyard review-index`), rendered from the fixture
- * ledger tests/e2e/fixtures/publish-ledger.jsonl and served by
- * `review-index --serve` (see playwright.config.ts). Nothing is deployed and
- * no link is followed: the URLs are fictional `.example` hosts. The checks:
+ * deploy ledger tests/e2e/fixtures/publish-ledger.jsonl and the fictional
+ * share URL in share-ledger.jsonl, then served by `review-index --serve` (see
+ * playwright.config.ts). Nothing is deployed and no link is followed. The checks:
  * every link is exactly a URL the ledger recorded (plus a query parameter),
  * undeployed prototypes show the publish command, the page is keyboard
  * navigable, has no script and no axe violations, in light and dark.
@@ -27,6 +28,9 @@ const fixture = readFileSync(join(process.cwd(), 'tests/e2e/fixtures/publish-led
   .trim()
   .split('\n')
   .map((line) => JSON.parse(line) as FixtureLine);
+const shareFixture = JSON.parse(
+  readFileSync(join(process.cwd(), 'tests/e2e/fixtures/share-ledger.jsonl'), 'utf8').trim()
+) as { slug: string; url: string; visibility: 'private' };
 /** Latest real deploy per slug, the same rule the command applies. */
 const deployed = new Map<string, string>();
 for (const line of fixture)
@@ -108,6 +112,43 @@ test.describe('review index', () => {
     await expect(
       page.getByText(`${deployed.size} of ${slugs.length} prototypes deployed`)
     ).toBeVisible();
+  });
+
+  test('renders the recorded shared artifact link with its access note', async ({ page }) => {
+    const html = renderReviewIndex({
+      format: 'protoyard.review-index',
+      formatVersion: 1,
+      title: 'Prototype review',
+      base: './',
+      entries: [
+        {
+          slug: shareFixture.slug,
+          name: 'CRM Demo',
+          description: 'A fictional CRM prototype.',
+          icon: null,
+          deployment: {
+            url: deployed.get(shareFixture.slug) ?? 'https://crm-demo.review.example/',
+            target: 'preview',
+            branch: 'pr-12',
+            provider: 'cloudflare',
+            at: '2026-10-18T09:30:00.000Z',
+            commit: null,
+            dirty: null,
+          },
+          artifactShare: { url: shareFixture.url, visibility: shareFixture.visibility },
+          scenarioLinks: [],
+          personaLinks: [],
+          publishCommand: `pnpm protoyard publish ${shareFixture.slug} --provider cloudflare`,
+        },
+      ],
+    });
+    await page.setContent(html);
+    const card = page.locator(`article[aria-labelledby="p-${shareFixture.slug}"]`);
+    await expect(
+      card.getByRole('link', { name: 'Open Claude artifact', exact: true })
+    ).toHaveAttribute('href', shareFixture.url);
+    await expect(card.getByText('Shared as artifact (private by default)')).toBeVisible();
+    await expect(card.getByText('Opens only for people the owner shared it with.')).toBeVisible();
   });
 
   test('loads no JavaScript and stays under 30 KB gzip', async ({ page, request }) => {

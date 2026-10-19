@@ -3,9 +3,10 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { latestDeployments } from '../src/commands/review-index.ts';
+import { latestArtifactShares, latestDeployments } from '../src/commands/review-index.ts';
 import { workspacePaths } from '../src/lib/paths.ts';
 import {
+  appendJsonlEntry,
   appendLedgerEntry,
   LEDGER_FORMAT,
   type LedgerEntry,
@@ -21,9 +22,11 @@ import {
   scenarioLinks,
   withParam,
 } from '../src/lib/review-index-html.ts';
+import type { ShareLedgerEntry } from '../src/lib/share-ledger.ts';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 const URL_A = 'https://abcdef12.protoyard-alpha-app.pages.dev/';
+const ARTIFACT_URL = 'https://claude.ai/artifact/fictional-review-index-share';
 
 function deployed(overrides: Partial<ReviewEntry> = {}): ReviewEntry {
   return {
@@ -80,6 +83,27 @@ function ledgerLine(overrides: Record<string, unknown>): Record<string, unknown>
   };
 }
 
+function artifactShareLine(
+  slug: string,
+  url = ARTIFACT_URL,
+  at = '2026-10-18T10:00:00.000Z'
+): ShareLedgerEntry {
+  return {
+    format: 'protoyard.share-ledger',
+    formatVersion: 1,
+    at,
+    slug,
+    kind: 'artifact',
+    url,
+    visibility: 'private',
+    buildSha256: 'c'.repeat(64),
+    fileCount: 3,
+    commit: null,
+    dirty: null,
+    capabilities: [],
+  };
+}
+
 describe('links', () => {
   it('adds scenario and actor parameters with the URL API, keeping the #route', () => {
     expect(withParam('https://x.pages.dev/#/deals/4', 'scenario', 'rep-view')).toBe(
@@ -123,6 +147,16 @@ describe('links', () => {
     expect([...latest.keys()]).toEqual(['alpha-app']);
     expect(latest.get('alpha-app')?.url).toBe(URL_A);
   });
+
+  it("keeps only each slug's latest recorded artifact share", () => {
+    const latest = latestArtifactShares([
+      artifactShareLine('alpha-app', 'https://claude.ai/artifact/old-share'),
+      artifactShareLine('alpha-app', ARTIFACT_URL, '2026-10-18T11:00:00.000Z'),
+      artifactShareLine('beta-app'),
+    ]);
+    expect([...latest.keys()]).toEqual(['alpha-app', 'beta-app']);
+    expect(latest.get('alpha-app')?.url).toBe(ARTIFACT_URL);
+  });
 });
 
 describe('renderReviewIndex', () => {
@@ -164,6 +198,16 @@ describe('renderReviewIndex', () => {
       './review-manifest.json',
     ]);
     expect(html).toContain('0 of 1 prototypes deployed');
+  });
+
+  it('renders a private artifact link only from the recorded URL', () => {
+    const html = renderReviewIndex(
+      model([deployed({ artifactShare: { url: ARTIFACT_URL, visibility: 'private' } })])
+    );
+    expect(html).toContain('Shared as artifact (private by default)');
+    expect(html).toContain('Opens only for people the owner shared it with.');
+    expect(html).toContain(`<a href="${ARTIFACT_URL}">Open Claude artifact</a>`);
+    expect(html).not.toContain('https://claude.ai/artifact/guessed');
   });
 
   it('is deterministic: the same model renders the same bytes', () => {
@@ -219,6 +263,12 @@ describe('protoyard review-index (CLI)', () => {
       path,
       ledgerLine({ slug: 'beta-app', kind: 'dry-run', dryRun: true, url: null, deploymentId: null })
     );
+    const sharePath = join(ws.root, 'artifacts', 'share', 'ledger.jsonl');
+    await appendJsonlEntry(sharePath, artifactShareLine('alpha-app'));
+    await appendJsonlEntry(
+      sharePath,
+      artifactShareLine('beta-app', 'https://claude.ai/artifact/fictional-beta-share')
+    );
   });
   afterAll(() => ws.cleanup());
 
@@ -239,6 +289,8 @@ describe('protoyard review-index (CLI)', () => {
     expect(html).toContain('Alpha &lt;app&gt;');
     expect(html).not.toContain('old.pages.dev');
     expect(html).toContain('pnpm protoyard publish beta-app --provider cloudflare');
+    expect(html).toContain(`href="${ARTIFACT_URL}"`);
+    expect(html).toContain('Opens only for people the owner shared it with.');
     const manifest = JSON.parse(read('artifacts/review/review-manifest.json')) as ReviewModel;
     expect(manifest.format).toBe(REVIEW_FORMAT);
     expect(manifest.entries.map((e) => [e.slug, e.deployment?.branch ?? null])).toEqual([
@@ -259,7 +311,9 @@ describe('protoyard review-index (CLI)', () => {
       '--no-personas',
       '--from-ledger',
     ]);
-    expect(ledgerOnly.json<{ data: { total: number } }>().data.total).toBe(1);
+    expect(ledgerOnly.json<{ data: { total: number } }>().data.total).toBe(2);
+    const ledgerOnlyHtml = read('artifacts/review/index.html');
+    expect(ledgerOnlyHtml).toContain('href="https://claude.ai/artifact/fictional-beta-share"');
     const one = await cli([
       '--root',
       ws.root,

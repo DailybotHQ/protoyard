@@ -25,6 +25,12 @@ import {
   renderReviewIndex,
   scenarioLinks,
 } from '../lib/review-index-html.ts';
+import {
+  latestShareEntries,
+  readShareLedger,
+  type ShareLedgerEntry,
+  shareLedgerPath,
+} from '../lib/share-ledger.ts';
 import { serveStatic } from '../lib/static-server.ts';
 import { normalizeBase } from '../lib/vite.ts';
 import type { CommandContext } from '../lib/workspace.ts';
@@ -47,6 +53,13 @@ export function latestDeployments(entries: readonly LedgerEntry[]): Map<string, 
   return latest;
 }
 
+/** The latest recorded Claude artifact URL per prototype. */
+export function latestArtifactShares(
+  entries: readonly ShareLedgerEntry[]
+): Map<string, ShareLedgerEntry> {
+  return new Map(latestShareEntries(entries).map((entry) => [entry.slug, entry]));
+}
+
 function toDeployment(entry: LedgerEntry): ReviewDeployment {
   return {
     url: entry.url as string,
@@ -62,6 +75,7 @@ function toDeployment(entry: LedgerEntry): ReviewDeployment {
 function selectEntries(
   registry: RegistryEntry[],
   deployments: Map<string, LedgerEntry>,
+  artifactShares: Map<string, ShareLedgerEntry>,
   options: { fromLedger: boolean; slugs: string[] | null }
 ): RegistryEntry[] {
   const prototypes = registry.filter((e) => e.kind === 'prototype');
@@ -76,7 +90,9 @@ function selectEntries(
       return found;
     });
   }
-  return options.fromLedger ? prototypes.filter((e) => deployments.has(e.slug)) : prototypes;
+  return options.fromLedger
+    ? prototypes.filter((e) => deployments.has(e.slug) || artifactShares.has(e.slug))
+    : prototypes;
 }
 
 /** Personas of the default scenario, generated in a child process (fictional data). */
@@ -212,21 +228,28 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
   }
   const { entries: ledgerEntries, skipped } = await readLedger(ledgerFile);
   const deployments = latestDeployments(ledgerEntries);
-  const selected = selectEntries(registry.entries, deployments, { fromLedger, slugs }).sort(
-    (a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0)
-  );
+  const shareLedger = await readShareLedger(shareLedgerPath(ctx));
+  const artifactShares = latestArtifactShares(shareLedger.entries);
+  const selected = selectEntries(registry.entries, deployments, artifactShares, {
+    fromLedger,
+    slugs,
+  }).sort((a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
   const withPersonas = options.personas !== false;
 
   const entries: ReviewEntry[] = [];
   for (const entry of selected) {
     const deployed = deployments.get(entry.slug);
     const deployment = deployed ? toDeployment(deployed) : null;
+    const artifactShare = artifactShares.get(entry.slug);
     entries.push({
       slug: entry.slug,
       name: entry.name,
       description: entry.description,
       icon: entry.icon,
       deployment,
+      ...(artifactShare
+        ? { artifactShare: { url: artifactShare.url, visibility: artifactShare.visibility } }
+        : {}),
       scenarioLinks: deployment ? scenarioLinks(deployment.url, entry.scenarios) : [],
       personaLinks:
         deployment && withPersonas
