@@ -13,7 +13,7 @@ import {
   Input,
 } from '@protoyard/ui';
 import { onMount } from 'svelte';
-import { applyServiceError, authServices, hashParam } from './helpers.ts';
+import { applyServiceError, authServices, hashParam, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
 const mfa = createMfaServices(runtime);
@@ -100,6 +100,6 @@ onMount(() => {
       </Button>
       {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
     </CardContent>
-    <CardFooter><Button href={config.signInPath} variant="ghost">Return to sign in</Button></CardFooter>
+    <CardFooter><Button href={routeHref(config.signInPath)} variant="ghost">Return to sign in</Button></CardFooter>
   </Card>
 </main>

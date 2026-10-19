@@ -24,14 +24,24 @@ live in the root [AGENTS.md](../../AGENTS.md); the spec standard is
   [docs/SAAS_KITS.md](../../docs/SAAS_KITS.md)). Change them in the kit
   packages, not here, and use the kit services instead of writing `saas_*`
   tables.
-- Money is integer cents: the plan catalog (`pro` 1900, `team` 4900 cents per
-  seat per month, 14-day trials) is passed to `createBilling` in
-  `src/App.svelte`. Seeded subscriptions use the kit's default prices, so
-  keep both in mind when changing prices.
+- Money is integer cents, and `LATTICE_PLANS` in `src/domain/plans.ts` is the
+  only price source (`pro` 1900, `team` 4900 cents per seat per month,
+  14-day trials): `createBilling` in `src/App.svelte` and the generator
+  (`seededPlanPrices()`) both read it. Change prices there and bump
+  `B2B_SAAS_GENERATOR_VERSION`.
 - The app boots signed out (`auth.signedOutByDefault`) and
-  `applySaasScenarioSession` signs out once per load in `signed-out`. `/app`
-  and `/projects` use `requireSaasApp` (signed in and onboarded); keep new
-  app routes behind the same guard.
+  `applySaasScenarioSession` signs out once per load in `signed-out`. Routes
+  and the kit UI config (SSO providers, the sign-up inbox hand-off) live in
+  `src/saas.ts`. `/app` and `/projects` use `requireSaasApp` (signed in and
+  onboarded); keep new app routes behind the same guard. Lattice serves
+  `/inbox` (signed in, or `?account=` for a pending sign-up,
+  `src/domain/pending-inbox.ts`) and `/onboarding` (the kit wizard with
+  `latticeOnboardingSteps`, `src/domain/onboarding.ts`) itself.
+- Onboarding data changes are engine step `effect`s, never `apply`: they run
+  in the same `identity.write` transaction as the step's answer.
+- Every signed-in persona signs out from the header (`SignOutButton`,
+  `auth.signOut`, no capability); Settings → Security's sign-out stays
+  `settings:security`.
 - `src/database/schema.ts` spreads `saasStores(1)`; add kit or project
   changes in a new schema version. Integrity merges
   `saasScenarioIntegrity()` with the project relations in

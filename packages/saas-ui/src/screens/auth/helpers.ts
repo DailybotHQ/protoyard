@@ -7,6 +7,14 @@ export function authServices() {
   return { runtime, config: getSaas().config };
 }
 
+/**
+ * An `href` for a kit path inside the hash router: `/sign-up` → `#/sign-up`.
+ * A plain `/sign-up` would leave the prototype (and 404 on static hosts).
+ */
+export function routeHref(path: string): string {
+  return path.startsWith('#') ? path : `#${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 export function hashParam(name: string): string {
   const query = location.hash.split('?')[1] ?? '';
   return new URLSearchParams(query).get(name) ?? '';

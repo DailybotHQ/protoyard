@@ -98,36 +98,51 @@ Assistant replies are never produced by a real model: `scriptedReply` in
    only when `messages:send` is held and the network is online.
 2. Service: `chat.retry(replyId)` in src/domain/chat.ts
 3. Capability: `messages:send` (no record-level rule).
-4. Writes: deletes the old reply from `messages` directly (not inside
-   `environment.run` and not in a transaction with the new reply), then
-   starts a new reply to the same prompt exactly as in
-   [Send a message and receive a scripted reply](#send-a-message-and-receive-a-scripted-reply):
-   a new `messages` row that streams, and `conversations.lastMessageAt`.
+4. Writes (one transaction inside `environment.run('assistant.reply')`):
+   deletes the old reply from `messages`, adds the new empty `streaming`
+   reply to the same prompt (`at` from `nextAt`) and updates
+   `conversations.lastMessageAt`. The reply then streams chunk by chunk
+   exactly as in
+   [Send a message and receive a scripted reply](#send-a-message-and-receive-a-scripted-reply)
+   and ends `sent` (or `stopped`).
 5. Failure states: permission denied; returns `null` and writes nothing when
    the reply or its prompt no longer exists (the seeded greeting and
-   messages written by `requestReturn` have no prompt). Because the delete
-   happens before `environment.run('assistant.reply')`, a retry during the
-   outage or offline replaces the failed reply with a new failed one rather
-   than leaving it untouched.
+   messages written by `requestReturn` have no prompt) or the reply is still
+   streaming in this page. A simulated failure on `assistant.reply` (the
+   `outage` scenario, or offline) rejects before anything is written: the
+   old reply stays exactly as it was and a "Could not retry" toast shows.
 
 ## Read the thread and update the launcher badge
 
 1. Whenever the message list changes (a new message, or the last message
-   changing status), `src/App.svelte` asks for the unread count and passes
-   it to the widget host's launcher badge (`tryGetWidgetHost()?.setUnread`),
-   and marks the thread as read.
+   changing status) or the panel opens or closes, `src/App.svelte` queues
+   one badge update (`createUnreadSync` in `src/lib/unread.ts`). Updates run
+   one at a time, in order, and an update replaced by a newer one is
+   skipped, so the badge always ends on the latest state:
+   - **Panel open** (the visitor is viewing the thread): mark the thread
+     read, then set the badge to 0.
+   - **Panel closed:** leave the read marker alone and set the badge to the
+     unread count, so messages that arrive while the panel is closed (a
+     reply that finishes after closing, the handoff message, a return
+     confirmation) raise it.
+
+   Whether the panel is open comes from the widget host's `isOpen()`
+   (`WidgetPanel` in `src/lib/widget-panel.svelte.ts`); the badge is set
+   with its `setUnread`. The host frame loads lazily: until it has mounted
+   the panel counts as closed (it starts closed), and outside the
+   widget-host shell the app is the whole page and counts as open.
 2. Service: `chat.markRead(conversationId)` in src/domain/chat.ts; the badge
    count comes from `chat.unreadCount(conversationId, personaId)` (read
    only: messages after the persona's `lastReadAt` not written by that
-   persona).
+   persona). Sending a message also moves the sender's marker
+   (see the send flow).
 3. Capability: none. `markRead` has no `session.assert` and does not go
    through `environment.run`.
 4. Writes: `reads` (put; id `<conversationId>:<personaId>`, lastReadAt = the
    later of the simulation clock and the thread's `lastMessageAt`).
 5. Failure states: none surfaced; nothing happens when the conversation does
-   not exist. Both calls run on the same change and are not ordered, and
-   `markRead` runs whether or not the panel is open, so the badge usually
-   reads 0 (see the gap in [SPEC.md](SPEC.md#honest-boundaries)).
+   not exist or there is no active persona. A failed update is logged and
+   the next change runs normally.
 
 ## Talk to a human
 
@@ -151,21 +166,26 @@ Assistant replies are never produced by a real model: `scriptedReply` in
 
 ## Look up an order
 
-1. Widget → order tools strip → type an order number (prefilled with
-   `NW-10042`) → **Look up order**. The strip is shown only with
+1. Widget → order tools strip → type an order number → **Look up order**.
+   The input is prefilled with the active persona's most recent order
+   (`chat.latestOrder()`: latest `orderedAt`, ties broken by id), so the
+   default lookup exists in every scenario; it follows a persona switch
+   until the visitor edits the field. The strip is shown only with
    `orders:lookup`; the input and button are disabled while offline.
 2. Service: `chat.lookupOrder(numberOrId)` in src/domain/chat.ts
-3. Capability: `orders:lookup` (no record-level rule, and no check that the
-   order belongs to the visitor: any order in the browser can be found).
-4. Writes: nothing. Inside `environment.run('orders.lookup')` it reads every
-   order and returns the first exact match on `number` or `id`
-   (case-insensitive), otherwise the first `number` that contains the query.
-   The UI shows the order card: number, item summary, ordered date, status,
-   tracking code when shipped, and the total.
+3. Capability: `orders:lookup`, with the record-level rule `ownsOrder`: a
+   visitor can only find orders on their own persona email; an `agent` can
+   find any order (see [PERMISSIONS.md](PERMISSIONS.md#record-level-rules)).
+4. Writes: nothing. Inside `environment.run('orders.lookup')` it reads the
+   orders the persona may see and returns the first exact match on `number`
+   or `id` (case-insensitive), otherwise the first `number` that contains
+   the query. The UI shows the order card: number, item summary, ordered
+   date, status, tracking code when shipped, and the total.
 5. Failure states: permission denied; fewer than 3 characters ("Enter an
-   order number like NW-10042."); no match ("No fictional order matches
-   …"); simulated offline or server error. Errors appear under the input and
-   as a toast, and the card is cleared.
+   order number like NW-10040."); no match among your orders, including
+   someone else's order ("No order matching … on your account."); simulated
+   offline or server error. Errors appear under the input and as a toast,
+   and the card is cleared.
 
 ## Start a return
 
@@ -176,7 +196,8 @@ Assistant replies are never produced by a real model: `scriptedReply` in
 2. Service: `chat.requestReturn({ orderId, reason, amountCents? })` in
    src/domain/chat.ts (the UI never passes `amountCents`, so the full order
    total is requested)
-3. Capability: `returns:create` (no record-level rule).
+3. Capability: `returns:create`, with the record-level rule `ownsOrder`
+   (a visitor can only return their own orders; an `agent` any order).
 4. Writes (one transaction inside `environment.run('returns.create')`):
    `returns` (new row: id `ret_…`, orderId, reason trimmed, status
    `requested`, amountCents = `amountCents` floored and at least 0, or the
@@ -186,7 +207,8 @@ Assistant replies are never produced by a real model: `scriptedReply` in
    requested. This is a simulated return — no real refund.");
    `conversations.lastMessageAt` of `conv_support`.
 5. Failure states: permission denied; reason under 3 or over 200 characters;
-   order not found; cancelled order; a return already open for the order
+   order missing or someone else's ("Order not found on your account.");
+   cancelled order; a return already open for the order
    (any status except `denied`); an amount above the order total; simulated
    offline or server error (nothing written). Errors appear on the card and
    as a "Could not start return" toast. Orders that are `processing` or
@@ -204,10 +226,17 @@ covered here so every service is mapped.
   Kept for parity with the chat template; the widget only uses
   `conv_support`.
 - **List orders for an email:** `chat.listOrdersForEmail(email)`.
-  Capability `orders:lookup`. Read only, inside
-  `environment.run('orders.listByEmail')`, exact case-insensitive match on
-  `orders.email`.
-- **List returns:** `chat.listReturns()`. Capability `returns:read`. Read
-  only, newest first, not through `environment.run`. The widget's returns
-  list reads the `returns` table directly with `liveQuery` instead, so
-  `returns:read` is not checked on screen.
+  Capability `orders:lookup` with the `ownsOrder` rule: a visitor may only
+  pass their own email (otherwise "You can only list the orders on your own
+  email."). Read only, inside `environment.run('orders.listByEmail')`,
+  exact case-insensitive match on `orders.email`.
+
+The widget also reads through two read-only services that have no flow of
+their own, both outside `environment.run`:
+
+- **Most recent order:** `chat.latestOrder()` prefills the order input (see
+  [Look up an order](#look-up-an-order)). It returns `null` without
+  `orders:lookup`.
+- **List returns:** `chat.listReturns()`. Capability `returns:read`.
+  Newest first, only returns on orders the persona may see. The widget's
+  returns list reads it through `liveQuery`.

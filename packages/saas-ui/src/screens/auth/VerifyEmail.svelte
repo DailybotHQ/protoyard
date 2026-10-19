@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@protoyard/ui';
 import { onMount } from 'svelte';
-import { applyServiceError, authServices, hashParam } from './helpers.ts';
+import { applyServiceError, authServices, hashParam, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
 const auth = createAuthServices(runtime);
@@ -60,6 +60,6 @@ onMount(() => {
         <Button onclick={() => void verify()} loading={busy} loadingLabel="Confirming email" disabled={busy || !tokenId}>Confirm email</Button>
       {/if}
     </CardContent>
-    <CardFooter><Button href={config.signInPath} variant="ghost">Go to sign in</Button></CardFooter>
+    <CardFooter><Button href={routeHref(config.signInPath)} variant="ghost">Go to sign in</Button></CardFooter>
   </Card>
 </main>

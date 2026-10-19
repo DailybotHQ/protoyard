@@ -46,17 +46,29 @@ Capabilities the code checks that no role names, held only by `owner` and
 | `workspaces:create` | `workspaces.create` (the switcher's "Create workspace") |
 | `billing:manage` | `billing.checkout`, `upgrade`, `cancel`, `resume` |
 | `profile:update` | `settings.updateProfile` |
-| `settings:security` | password change, MFA enrollment and sign-out in Security |
+| `settings:security` | password change, MFA enrollment and the "Sign out" in Settings → Security (`settings.signOutEverywhere`) |
 | `settings:notifications` | reading and saving notification preferences |
 
 `onboarding:progress` is held by every role, so a viewer can finish the
-wizard (the Workspace step is read-only for them and the Invite step refuses
-addresses). `projects:read` is named by every role, but the screens read
+wizard. Inside a step's transaction, a real workspace rename asserts
+`workspaces:rename` and inviting asserts `members:invite`: the Workspace
+step is read-only for a viewer (confirming the unchanged name is allowed, a
+different name is denied), and the Invite step refuses addresses ("Your role
+can't invite people. Skip this step instead."). A denied step writes
+nothing. The Profile step changes only the person's own name and title and
+needs only `onboarding:progress`.
+
+Signing yourself out needs no capability: the header "Sign out"
+(`auth.signOut`) works for every role. Only the Security tab's sign-out
+asserts `settings:security` (owner and admin). `projects:read` is named by every role, but the screens read
 the `projects` table directly with `liveQuery`; only the unused
 `projects.list()` asserts it.
 
-Signed-out journeys (sign up, sign in, magic link, reset, verify, accept
-invitation, consent) check no capability: there is no principal yet.
+Signed-out journeys (sign up, sign in, magic link, reset, verify, the
+pending sign-up inbox, simulated provider sign-in and consent, accept
+invitation) check no capability: there is no principal yet. The pending
+inbox is scoped by the service instead: it opens only for an unverified
+account and shows, marks read and archives only that account's messages.
 
 ## Boundary
 

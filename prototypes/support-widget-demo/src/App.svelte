@@ -5,12 +5,11 @@ import {
   DEMO_BADGE_ENABLED,
   liveQuery,
   runService,
-  tryGetWidgetHost,
   useEnvironment,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { Button, Composer, Input, TypingIndicator } from '@protoyard/ui';
-import { onMount } from 'svelte';
+import { onMount, untrack } from 'svelte';
 import ConditionBanner from './components/ConditionBanner.svelte';
 import MessageList from './components/MessageList.svelte';
 import type { Order, ReturnRequest } from './database/schema.ts';
@@ -18,6 +17,8 @@ import { ASSISTANT } from './domain/assistant.ts';
 import { CAPABILITIES } from './domain/policy.ts';
 import { provideChat } from './lib/context.ts';
 import { formatDay, formatMoney } from './lib/format.ts';
+import { createUnreadSync } from './lib/unread.ts';
+import { WidgetPanel } from './lib/widget-panel.svelte.ts';
 
 const { runtime, db, chat, people, supportId } = provideChat();
 const principal = usePrincipal();
@@ -31,8 +32,15 @@ const messages = liveQuery(
     db.messages.where('[conversationId+at]').between([supportId, ''], [supportId, '￿']).toArray(),
   { initial: [], deps: () => supportId }
 );
-const returnsQuery = liveQuery(() => db.returns.orderBy('createdAt').reverse().toArray(), {
-  initial: [] as ReturnRequest[],
+// Scoped to the active persona's orders by the service.
+const returnsQuery = liveQuery(
+  () => (runtime.session.can(CAPABILITIES.readReturns) ? chat.listReturns() : Promise.resolve([])),
+  { initial: [] as ReturnRequest[], deps: () => principal.current?.persona.id }
+);
+// The persona's most recent order prefills the lookup, so the default exists in every world.
+const latestOrder = liveQuery(() => chat.latestOrder(), {
+  initial: null,
+  deps: () => principal.current?.persona.id,
 });
 
 const list = $derived(messages.current ?? []);
@@ -44,7 +52,8 @@ const canReturn = $derived(can(CAPABILITIES.requestReturn));
 
 let draft = $state('');
 let handoffBusy = $state(false);
-let orderQuery = $state('NW-10042');
+let orderQuery = $state('');
+let prefilledOrder = '';
 let orderBusy = $state(false);
 let orderError = $state<string | null>(null);
 let lookedUp = $state<Order | null>(null);
@@ -52,24 +61,40 @@ let returnReason = $state('Wrong size');
 let returnBusy = $state(false);
 let returnError = $state<string | null>(null);
 
+const panel = new WidgetPanel(runtime.manifest.preview.shell === 'widget-host');
+const unreadSync = createUnreadSync({
+  unreadCount: async () => {
+    const me = principal.current?.persona.id;
+    return me ? chat.unreadCount(supportId, me) : 0;
+  },
+  markRead: () => chat.markRead(supportId),
+  setUnread: (count) => panel.host?.setUnread(count),
+});
+
 onMount(() => {
   void chat.ensureSupportThread();
+  return panel.watch();
+});
+
+$effect(() => {
+  // Prefill only while the field still holds the previous default (or nothing).
+  const number = latestOrder.current?.number;
+  if (!number) return;
+  untrack(() => {
+    if (orderQuery === '' || orderQuery === prefilledOrder) {
+      orderQuery = number;
+      prefilledOrder = number;
+    }
+  });
 });
 
 const readKey = $derived(`${list.length}:${list.at(-1)?.status}:${list.at(-1)?.id}`);
+// One ordered update per change: read while the panel is open, count while it is closed.
 $effect(() => {
   void readKey;
-  const me = principal.current?.persona.id;
-  if (!me) return;
-  void (async () => {
-    const unread = await chat.unreadCount(supportId, me);
-    tryGetWidgetHost()?.setUnread(unread);
-  })();
-});
-
-$effect(() => {
-  void readKey;
-  if (conversation.current && principal.current) void chat.markRead(supportId);
+  const viewing = panel.viewing;
+  if (!principal.current || !conversation.current) return;
+  void unreadSync.sync(viewing);
 });
 
 async function send(text: string): Promise<boolean> {
@@ -174,7 +199,7 @@ async function startReturn() {
           <span class="mb-1 block font-medium text-muted-foreground">Order number</span>
           <Input
             bind:value={orderQuery}
-            placeholder="NW-10042"
+            placeholder="NW-10040"
             aria-label="Order number"
             data-testid="order-lookup-input"
             disabled={environment.current.network === 'offline'}

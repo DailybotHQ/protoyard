@@ -13,7 +13,7 @@ import {
   Input,
 } from '@protoyard/ui';
 import { onMount } from 'svelte';
-import { applyServiceError, authServices, hashParam } from './helpers.ts';
+import { applyServiceError, authServices, hashParam, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
 const reset = createPasswordResetServices(runtime);
@@ -82,7 +82,7 @@ onMount(() => {
       {#if complete}
         <div class="grid gap-3" role="status" data-testid="auth-handoff">
           <p>{message || 'Check your simulated inbox for a password reset link. Nothing was emailed.'}</p>
-          {#if tokenId}<Button href={config.signInPath}>Go to sign in</Button>{/if}
+          {#if tokenId}<Button href={routeHref(config.signInPath)}>Go to sign in</Button>{/if}
         </div>
       {:else if tokenId}
         <form class="grid gap-4" onsubmit={(event) => { event.preventDefault(); void consume(); }}>
@@ -112,7 +112,7 @@ onMount(() => {
         </form>
       {/if}
     </CardContent>
-    <CardFooter><Button href={config.signInPath} variant="ghost">Back to sign in</Button></CardFooter>
+    <CardFooter><Button href={routeHref(config.signInPath)} variant="ghost">Back to sign in</Button></CardFooter>
   </Card>
   <p class="mt-4 text-center text-xs text-muted-foreground">Simulation only — no email is sent and no real credential is stored.</p>
 </main>

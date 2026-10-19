@@ -10,6 +10,11 @@ Each flow ends in the service layer: UI → service → `session.assert` → zod
   one first requires a signed-in principal with an active workspace (else a
   `ValidationError`: "Sign in to manage projects." / "Choose a workspace
   before managing projects."), then follows the full pipeline.
+- **Lattice wiring of kit flows:** `createPendingInboxServices(runtime)` in
+  `src/domain/pending-inbox.ts` (the inbox of a signed-out, unverified
+  account) and `latticeOnboardingSteps(runtime)` in
+  `src/domain/onboarding.ts` (the onboarding steps' data changes as engine
+  effects). `src/saas.ts` holds the routes and the kit UI config.
 - **SaaS kit services** from `@protoyard/saas`, called by the kit screens
   of `@protoyard/saas-ui` that `saasRoutes` mounts: `createAuthServices`,
   `createMfaServices`, `createMagicLinkServices`,
@@ -67,24 +72,26 @@ The service accepts a new name and summary too, but no screen edits them.
 1. Landing (`#/`) → "Create your workspace" or header "Start your
    workspace" → Create your account (`#/sign-up`) → name, an `example.com`
    email and a password → "Create account". The screen then says "Check
-   your simulated inbox"; the person stays signed out.
+   your simulated inbox" with "Open simulated inbox"
+   (`#/inbox?account=<new account id>`) and "Return to sign in"; the person
+   stays signed out. The same screen offers simulated SSO (see
+   [Sign in or sign up with a simulated provider](#sign-in-or-sign-up-with-a-simulated-provider)).
 2. Service: `auth.signUp({ name, email, password })` (`createAuthServices`, packages/saas/src/auth.ts)
 3. Capability: none (signed-out flow). zod validates the input.
 4. Writes (one identity transaction): `py_personas` (new persona, `onboardingComplete: false`), `py_organizations` ("<name>'s workspace"), `py_memberships` (role `owner`), `saas_accounts` (emailVerified `false`, simulatedPassword, status `active`), `saas_tokens` (`verify-email`, 24 h), `saas_inbox` (the confirmation message), `saas_sessions_log` (`sign-up`)
 5. Failure states: "An account with this email already exists", validation errors (non-fictional email domain, short password), simulated offline or failure (nothing written)
 
-Gap: the confirmation message sits in the simulated inbox, but the inbox is
-only reachable when signed in (the header drawer and `#/inbox`), so a new
-visitor cannot open it from the UI. One way through is to sign in as a
-seeded account and open the new address in the inbox.
-
 ## Confirm an email address
 
-1. Inbox → the "Confirm email" action (`#/auth/verify?token=…`) → "Confirm".
-2. Service: `auth.verifyEmail(tokenId)` (packages/saas/src/auth.ts)
-3. Capability: none (the token stands for owning the mailbox)
-4. Writes (one transaction): `saas_tokens` (consumedAt), `saas_accounts` (emailVerified `true`)
-5. Failure states: "This confirmation link is not valid.", "… was already used.", "… has expired. Ask for a new one.", simulated offline or failure
+1. Sign-up confirmation → "Open simulated inbox" (`#/inbox?account=…`): the
+   pending inbox shows only the new account's own messages, without the
+   address form → "Open Confirm email" (`#/auth/verify?token=…`) →
+   "Confirm email" → "Go to sign in". A signed-in persona can also open the
+   message from the regular inbox.
+2. Service: `pendingInboxes.open(accountId)` (`createPendingInboxServices`, src/domain/pending-inbox.ts), whose scoped inbox lists, marks read and archives only messages addressed to that account; then `auth.verifyEmail(tokenId)` (packages/saas/src/auth.ts)
+3. Capability: none (signed-out flow; the account link and the token stand for owning the mailbox)
+4. Writes (one transaction): `saas_inbox` (readAt, when the action is opened); `saas_tokens` (consumedAt), `saas_accounts` (emailVerified `true`)
+5. Failure states: "This inbox link only works for an account waiting for email confirmation. Sign in to read your inbox." (unknown, verified, locked or disabled account, also after the email is confirmed), "This message is not in your simulated inbox.", "This confirmation link is not valid.", "… was already used.", "… has expired. Ask for a new one.", simulated offline or failure
 
 ## Sign in with a password
 
@@ -121,49 +128,53 @@ This path does not count failed attempts or lock accounts (the kit's
 4. Writes: issue (one transaction) `saas_tokens` (`magic-link`) and `saas_inbox`; an unknown email writes nothing and the screen looks the same. Consume (one transaction) `saas_tokens` (consumedAt), `saas_accounts` (lastSignInAt), `saas_sessions_log`; MFA accounts are sent to the challenge instead
 5. Failure states: "This sign-in link is not valid." / "… was already used." / expired, "This account is not available.", simulated offline or failure
 
-The same inbox gap as sign-up applies to a signed-out visitor.
+The pending inbox serves only unverified sign-ups, so a signed-out visitor
+with a confirmed account cannot open the magic-link message from the UI
+(DevTools persona switching, or another signed-in persona typing the
+address in the inbox, still can).
 
 ## Reset a password
 
 1. Reset password (`#/auth/reset`) → email → "Send reset link"; then the
    inbox action (`#/auth/reset?token=…`) → new password twice → "Save new
-   password". Gap: the "Forgot password?" button on Sign in links to
-   `/auth/reset` without `#`, which leaves the hash route (see
-   [SCREENS.md](SCREENS.md)).
+   password". Sign in → "Forgot password?" opens `#/auth/reset`. The reset
+   message has the same signed-out inbox limit as a magic link.
 2. Service: `reset.request({ email })`, then `reset.consume({ tokenId, password })` (`createPasswordResetServices`, packages/saas/src/reset.ts)
 3. Capability: none
 4. Writes: request (one transaction) `saas_tokens` (`password-reset`, 30 minutes) and `saas_inbox`; unknown or disabled accounts write nothing. Consume (one transaction) `saas_tokens` (consumedAt), `saas_accounts` (simulatedPassword, failedAttempts 0, status `active`)
 5. Failure states: "Passwords do not match." (screen check), invalid, used or expired link, "This account is not available.", simulated offline or failure
 
-## Approve or deny simulated provider consent
+## Sign in or sign up with a simulated provider
 
-1. Reachable only by URL in this prototype: no Lattice screen mounts the
-   kit's "Continue with …" buttons, so nothing starts a consent. A started
-   consent opens `#/oauth/:provider/consent?state=…` → "Approve" or "Deny".
-   `#/oauth/:provider/link` confirms linking a provider to the signed-in
-   account and starts a `link` consent.
-2. Service: `oauth.approve(state)` / `oauth.deny(state)`; `oauth.start(provider, 'link')` from the link screen (`createOAuthSimulator`, packages/saas/src/oauth.ts)
+1. Sign in or Create your account → "Continue with Google", "Continue with
+   Microsoft" or "Continue with GitHub" (neutral key icon, a persistent
+   "Simulated" label and the note "Simulated sign-in: no provider is
+   contacted and nothing leaves this browser.") → the in-app consent
+   screen `#/oauth/:provider/consent?state=…` → "Approve" or "Deny".
+   Approve with an unknown identity (the default simulated identity, for
+   example `google.user@example.com`) creates the account and lands in the
+   onboarding wizard (`#/onboarding`); a linked identity signs in and goes
+   to `#/`; an existing account with the same email but no link goes to
+   `#/oauth/:provider/link`, which confirms linking after sign-in. Deny
+   returns to sign in with "Access was denied. No account changes were
+   made."
+2. Service: `oauth.start(provider, 'sign-in' | 'sign-up')` from the buttons, then `oauth.approve(state)` / `oauth.deny(state)`; `oauth.start(provider, 'link')` from the link screen (`createOAuthSimulator`, packages/saas/src/oauth.ts). The providers come from `LATTICE_SSO_PROVIDERS` in src/saas.ts.
 3. Capability: none (linking needs a signed-in session)
-4. Writes (one transaction per step): `saas_tokens` (`oauth-state` consumed), `saas_sessions_log`; on approval `saas_accounts` (provider linked, or a new account with persona and workspace for an unknown identity), then the session signs in
+4. Writes (one transaction per step): start `saas_tokens` (`oauth-state`, 10 minutes); approve or deny `saas_tokens` (consumed), `saas_sessions_log`; on approval `saas_accounts` (provider linked, or a new verified account with persona, workspace and owner membership for an unknown identity), then the session signs in
 5. Failure states: missing or expired state, consent denied, email not shared, provider error, simulated offline or failure
 
 ## Complete onboarding
 
-1. After sign-in with unfinished onboarding (or `#/onboarding`): Profile
-   (full name, job title) → Workspace (name; read-only without
-   `workspaces:rename`) → Invite teammates (optional, up to 10
-   `example.com` addresses) → Preferences (optional color mode) → Finish.
-   Back, Skip and a confirmed Restart are persisted, so a reload resumes on
-   the same step.
-2. Service: `onboarding.submit(step, input)`, `onboarding.skip(step)`, `onboarding.goTo(step)`, `onboarding.complete()`, `onboarding.restart()` (`createOnboarding`, packages/saas/src/onboarding.ts). Before each `submit`, the screen applies the step's change: Profile writes the persona through `runtime.identity.write`, Workspace calls `workspaces.rename(id, { name })`, Invite calls `runtime.members.invite({ name, email, role: 'member' })` per new address, Preferences calls `runtime.theme.setPreference({ mode })`.
-3. Capability: `onboarding:progress` for every wizard action (all four roles); the step changes need `workspaces:rename` (owner, admin, member) and `members:invite` (owner, admin, member; a viewer gets "Your role can't invite people. Skip this step instead."). The Profile change has no capability check.
-4. Writes: `saas_onboarding` (currentStep, completedSteps, skippedSteps, answers, timestamps; one transaction per action); `complete()` and `restart()` also set or clear the persona's `onboardingComplete` in the same transaction. Step changes: `py_personas` (name, title), `py_organizations` (name), `py_personas` and `py_memberships` (one new member per invited address, joined directly without an invitation token), and the theme preference (control state, not the data database).
-5. Failure states: validation errors per field ("Enter your full name", "Use fictional addresses at example.com", "That's your own email"), "Finish Profile and Workspace first." on Finish, permission denied, simulated offline or failure.
-
-Gap: a step's change runs before and outside the wizard's transaction, so
-a failure in `submit` can leave the new name or invited member in place
-while the wizard stays on the step. The Profile change does not go through
-`environment.run`, so it is written even in the offline scenario.
+1. After sign-in with unfinished onboarding, after a simulated provider
+   sign-up (or `#/onboarding`): Profile (full name, job title) → Workspace
+   (name; read-only without `workspaces:rename`) → Invite teammates
+   (optional, up to 10 `example.com` addresses) → Preferences (optional
+   color mode) → Finish. Back, Skip and a confirmed Restart are persisted,
+   so a reload resumes on the same step.
+2. Service: `onboarding.submit(step, input)`, `onboarding.skip(step)`, `onboarding.goTo(step)`, `onboarding.complete()`, `onboarding.restart()` (`createOnboarding`, packages/saas/src/onboarding.ts) with the steps of `latticeOnboardingSteps(runtime)` (src/domain/onboarding.ts). Each step's data change is an engine `effect` that `submit` runs inside the step's own transaction: Profile writes the persona's name and title, Workspace renames the active organization when the name changed, Invite adds one `member` per new address. Preferences sets the color mode with `runtime.theme.setPreference({ mode })` only after the answer is saved.
+3. Capability: `onboarding:progress` for every wizard action (all four roles), asserted before validation; inside the step, a real rename asserts `workspaces:rename` (owner, admin, member) and inviting asserts `members:invite` (owner, admin, member; a viewer gets "Your role can't invite people. Skip this step instead."). Confirming the unchanged workspace name needs no extra capability, so a viewer can continue.
+4. Writes: each `submit` is `environment.run('onboarding.<step>')` around ONE `identity.write` transaction that writes the step's changes and `saas_onboarding` (answers, completedSteps, currentStep, timestamps) together: `py_personas` (name, title), `py_organizations` (name), `py_personas` and `py_memberships` (one new member per invited address, joined directly without an invitation token). Skip, Back and Restart write `saas_onboarding` only; `complete()` and `restart()` also set or clear the persona's `onboardingComplete` in the same transaction. The theme preference is control state, not the data database.
+5. Failure states: validation errors per field ("Enter your full name", "Use fictional addresses at example.com", "That's your own email"), "Finish Profile and Workspace first." on Finish, permission denied, simulated offline or failure. In every failure nothing is written: not the answer, not the new name, not an invited member, and the color mode is not changed.
 
 ## Switch or create a workspace
 
@@ -212,9 +223,12 @@ The kit's `invitations.resend` is not reachable from any screen.
 1. Signed in: the header inbox drawer or Inbox (`#/inbox`). It opens the
    signed-in persona's address; any other fictional `@example.com` address
    can be typed and opened. Per message: "Open <action>" (marks it read and
-   follows the in-app link), "Mark as read", "Archive".
-2. Service: `inbox.markRead(id)`, `inbox.archive(id)` (`createInbox`, packages/saas/src/inbox.ts)
-3. Capability: none; the inbox is not scoped to the signed-in persona
+   follows the in-app link), "Mark as read", "Archive". Signed out, `#/inbox`
+   opens only with `?account=` for a pending sign-up (see
+   [Confirm an email address](#confirm-an-email-address)); without it the
+   route goes to sign in.
+2. Service: `inbox.markRead(id)`, `inbox.archive(id)` (`createInbox`, packages/saas/src/inbox.ts); for a pending sign-up the scoped service from `createPendingInboxServices`
+3. Capability: none; the signed-in inbox is not scoped to the signed-in persona, the pending inbox is scoped to the pending account's address
 4. Writes (one transaction): `saas_inbox` (readAt; archive sets archivedAt and readAt)
 5. Failure states: simulated offline or failure ("This message could not be marked as read. Try again.", "… could not be archived.")
 
@@ -227,7 +241,7 @@ The kit's `invitations.resend` is not reachable from any screen.
    outcome picker is not enabled in this prototype).
 2. Service: `billing.upgrade({ planId, outcome })` when there is a non-trial subscription on another plan, else `billing.checkout({ planId, outcome })` (`createBilling`, packages/saas/src/billing.ts)
 3. Capability: `billing:manage` (owner and admin through `*`). Members and viewers can open the pages but get the permission error inline.
-4. Writes (one transaction): `saas_invoices` (new invoice with lines in integer cents: the plan price × seats, or proration lines for an upgrade), `saas_subscriptions` (created, or updated to the plan with status `active`), `py_organizations` (plan, billingStatus `active`, trialEndsAt `null`, seats, billingInterval, currentPeriodEnd), `saas_inbox` (a receipt when the amount is above zero)
+4. Writes (one transaction): `saas_invoices` (new invoice with lines in integer cents: the plan price from `LATTICE_PLANS` × seats, or proration lines for an upgrade), `saas_subscriptions` (created, or updated to the plan with status `active`), `py_organizations` (plan, billingStatus `active`, trialEndsAt `null`, seats, billingInterval, currentPeriodEnd), `saas_inbox` (a receipt when the amount is above zero)
 5. Failure states: "The selected plan is not an upgrade." (choosing Pro while on Team: there is no downgrade path in the UI), unknown plan, permission denied, simulated offline or failure
 
 ## Cancel or resume the subscription
@@ -258,20 +272,26 @@ The kit's `invitations.resend` is not reachable from any screen.
 4. Writes (one identity transaction): `py_personas` (name, timezone, avatarColor)
 5. Failure states: validation errors ("Enter at least 2 characters", "Choose a valid six-digit color"), permission denied, simulated offline or failure
 
-## Change password, set up MFA or sign out
+## Sign out
+
+1. Signed in, any role: header → "Sign out". The app goes to sign in
+   (`#/sign-in`).
+2. Service: `auth.signOut()` (`createAuthServices`, packages/saas/src/auth.ts), called by `SignOutButton` (src/components/SignOutButton.svelte)
+3. Capability: none: signing yourself out needs no capability, so members and viewers can sign out too
+4. Writes (one transaction): `saas_sessions_log` (`sign-out`), then the simulated session ends
+5. Failure states: simulated offline or failure (the message shows next to the button and the session stays open)
+
+## Change password, set up MFA or sign out from Security
 
 1. Settings → Security: current and new password → "Change password";
    "Set up simulated MFA" → the screen shows the simulated code → type it →
    "Confirm MFA"; "Sign out". Without the capability every control is
-   disabled ("Your simulated role cannot change security settings.").
+   disabled ("Your simulated role cannot change security settings."); the
+   header "Sign out" works for every role.
 2. Service: `settings.changePassword({ currentPassword, newPassword })`, `settings.enrollMfa()` then `settings.confirmMfaEnrollment(code)` (which call `mfa.enroll()` and `mfa.confirmEnroll(code)`), `settings.signOutEverywhere()` (which calls `auth.signOut()`)
 3. Capability: `settings:security` (owner and admin through `*`)
 4. Writes (one transaction each): `saas_accounts` (simulatedPassword); `saas_mfa` (a `pending` factor with seed and 8 recovery codes, then status `active`) and `saas_sessions_log`; sign-out writes `saas_sessions_log` (`sign-out`) and ends the session, then the app goes to sign in
 5. Failure states: "That simulated password is not correct.", "Use at least 8 characters", "MFA is already active on this account.", "That simulated code is not correct.", permission denied, simulated offline or failure
-
-Gap: Security is the only sign-out control in Lattice, so members and
-viewers cannot sign out from the UI (persona switching in DevTools still
-works).
 
 ## Edit notification preferences
 

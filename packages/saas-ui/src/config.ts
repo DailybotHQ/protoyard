@@ -1,3 +1,11 @@
+import type { SaasProvider } from '@protoyard/saas';
+
+/** The account a sign-up just created (what the inbox hand-off link needs). */
+export interface SaasPendingAccount {
+  id: string;
+  email: string;
+}
+
 /** Paths and feature flags for the simulated SaaS kit UI. */
 export interface SaasUiConfig {
   /** Default `/sign-in`. */
@@ -23,6 +31,17 @@ export interface SaasUiConfig {
   billingShowOutcomePicker?: boolean;
   /** When false, route screens are imported eagerly (tests). Default true. */
   lazy?: boolean;
+  /**
+   * Simulated SSO providers offered on the sign-in and sign-up screens
+   * ("Continue with …"). Default none, so the screens show no SSO buttons.
+   */
+  ssoProviders?: readonly SaasProvider[];
+  /**
+   * When set, the sign-up confirmation offers "Open simulated inbox" with this
+   * href (an in-app `#/…` route the host serves for a signed-out, unverified
+   * account). Default unset: no inbox link after sign-up.
+   */
+  signUpInboxHref?: (account: SaasPendingAccount) => string;
 }
 
 export interface ResolvedSaasUiConfig {
@@ -36,6 +55,8 @@ export interface ResolvedSaasUiConfig {
   billingPortalPath: string;
   billingShowOutcomePicker: boolean;
   lazy: boolean;
+  ssoProviders: readonly SaasProvider[];
+  signUpInboxHref?: (account: SaasPendingAccount) => string;
 }
 
 export const DEFAULT_SAAS_UI_CONFIG: ResolvedSaasUiConfig = {
@@ -49,6 +70,7 @@ export const DEFAULT_SAAS_UI_CONFIG: ResolvedSaasUiConfig = {
   billingPortalPath: '/billing/portal',
   billingShowOutcomePicker: false,
   lazy: true,
+  ssoProviders: [],
 };
 
 export function resolveSaasUiConfig(config: SaasUiConfig = {}): ResolvedSaasUiConfig {
@@ -64,5 +86,7 @@ export function resolveSaasUiConfig(config: SaasUiConfig = {}): ResolvedSaasUiCo
     billingShowOutcomePicker:
       config.billingShowOutcomePicker ?? DEFAULT_SAAS_UI_CONFIG.billingShowOutcomePicker,
     lazy: config.lazy ?? DEFAULT_SAAS_UI_CONFIG.lazy,
+    ssoProviders: config.ssoProviders ?? DEFAULT_SAAS_UI_CONFIG.ssoProviders,
+    ...(config.signUpInboxHref ? { signUpInboxHref: config.signUpInboxHref } : {}),
   };
 }

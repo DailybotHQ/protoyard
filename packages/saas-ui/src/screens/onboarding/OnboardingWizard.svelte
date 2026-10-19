@@ -146,7 +146,7 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** Next: validate → apply the real change → save answer + position. */
+/** Next: validate → apply the real change → save answer + position → afterSubmit. */
 async function validate(index: number): Promise<true | string> {
   const id = flow.ids[index];
   const step = definedSteps.find((s) => s.id === id);
@@ -157,6 +157,7 @@ async function validate(index: number): Promise<true | string> {
     const answer = step.schema ? parseInput(step.schema, input) : undefined;
     await step.apply?.(answer, ctx);
     adopt(await onboarding.submit(id, input), { move: false });
+    await step.afterSubmit?.(answer, ctx);
     return true;
   } catch (error) {
     return messageOf(error);

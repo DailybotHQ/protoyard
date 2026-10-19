@@ -28,9 +28,9 @@ author id `assistant` and it never signs in.
 - Send a message and get a streamed, scripted reply: [Send a message and receive a scripted reply](FLOWS.md#send-a-message-and-receive-a-scripted-reply).
 - Stop a reply while it streams: [Stop a streaming reply](FLOWS.md#stop-a-streaming-reply).
 - Retry a failed or interrupted reply, or regenerate a stopped one: [Retry a failed, stopped or interrupted reply](FLOWS.md#retry-a-failed-stopped-or-interrupted-reply).
-- See an unread badge on the launcher: [Read the thread and update the launcher badge](FLOWS.md#read-the-thread-and-update-the-launcher-badge).
+- See an unread badge on the launcher for messages that arrive while the panel is closed: [Read the thread and update the launcher badge](FLOWS.md#read-the-thread-and-update-the-launcher-badge).
 - Hand the conversation to a (simulated) human: [Talk to a human](FLOWS.md#talk-to-a-human).
-- Look up a fictional order by number: [Look up an order](FLOWS.md#look-up-an-order).
+- Look up one of your own fictional orders by number (prefilled with your most recent one): [Look up an order](FLOWS.md#look-up-an-order).
 - Start a return for an order and see it in the returns list: [Start a return](FLOWS.md#start-a-return).
 - Services without a screen (another conversation, orders by email, list returns): [Service-only operations](FLOWS.md#service-only-operations-no-ui).
 
@@ -45,8 +45,8 @@ author id `assistant` and it never signs in.
 - No agent console: there is no screen to read the queue, answer, approve
   or refuse returns. Return statuses after `requested` exist only in the
   type.
-- No identity verification: lookup does not check that the order belongs
-  to the visitor.
+- No identity verification: lookup is scoped to the active persona's email
+  by a simulated rule, but nobody proves who the visitor is.
 - No real embedding: the host site is drawn by the shell, not a script tag
   on a third-party page.
 - No multiple conversations, attachments, message edits or deletion.
@@ -71,7 +71,7 @@ See [docs/SPECS.md](../../../docs/SPECS.md#honest-boundaries) for the standard.
 | --- | --- |
 | Data | IndexedDB in the visitor's browser (namespace `support-widget-demo`). Nothing is shared between visitors or devices. |
 | Identity | Two generated personas (Alex Trail, Casey Support) switched in DevTools during development. There is no sign-in, no customer verification and no account security. |
-| Permissions | Simulated roles checked in services with `session.assert`. UX only, not security. Both roles hold every capability today, and `cancel` and `markRead` have no check. |
+| Permissions | Simulated roles checked in services with `session.assert`. UX only, not security. Both roles hold every capability today; a record-level rule limits a visitor to orders and returns on their own email (agents see all). `cancel` and `markRead` have no check. |
 | AI assistant | Simulated. `scriptedReply` in `src/domain/assistant.ts` returns the first keyword topic that matches (orders, returns, human, greeting) or one of three fallbacks picked by a seeded generator keyed on the prompt, so the same prompt always gets the same answer. `chunkReply` splits it into chunks of two to five words written into the message row about every 45 ms. |
 | Human handoff | Simulated. The service writes a fixed message from the `user_agent` persona and sets both handoff flags at once. Nobody is contacted. |
 | Orders and returns | Fictional fixtures. Money is integer cents (`totalCents`, `amountCents`); no payment, refund or carrier is involved. Tracking codes are made up (`TRK1000xx`). |
@@ -80,17 +80,12 @@ See [docs/SPECS.md](../../../docs/SPECS.md#honest-boundaries) for the standard.
 
 Known gaps in the code (documented, not fixed):
 
-- The launcher badge: `src/App.svelte` calls `unreadCount` and `markRead`
-  on the same change, unordered, and marks the thread read even while the
-  panel is closed, so the badge usually shows nothing.
-- The order input is prefilled with `NW-10042`, but `agent-offline` and
-  `outage` generate only two orders (`NW-10040`, `NW-10041`), so the default
-  lookup fails there with "No fictional order matches".
-- `retry` deletes the old reply before the new attempt and outside
-  `environment.run`; `requestHandoff` can be repeated through the service;
-  the assistant keeps replying after a human has joined.
-- The services' header comment mentions an `assistant-outage` scenario; the
-  scenario id is `outage`.
+- `requestHandoff` can be repeated through the service; the assistant keeps
+  replying after a human has joined.
+- Until the widget-host frame has mounted (it loads lazily), the panel
+  counts as closed, so nothing is marked read; where the shell is not shown
+  at all (for example an embedded gallery preview), the thread is never
+  marked read and there is no badge to show.
 
 ## Rebuild as a real app
 
@@ -101,10 +96,10 @@ No vendor below has been chosen.
 | --- | --- |
 | `src/database/schema.ts` (`conversations`, `messages`, `reads`, `orders`, `returns`) | Server database schema for the support side. `orders` would come from the store's order system rather than live in the chat database. Keep the ids, the `[conversationId+at]` ordering index, integer-cent money and the reply-to-prompt link (`promptId`). |
 | Schema version 1 | The first server migration |
-| `src/domain/chat.ts` (`ensureSupportThread`, `send`, `retry`, `cancel`, `markRead`, `requestHandoff`, `lookupOrder`, `listOrdersForEmail`, `requestReturn`, `listReturns`, `createConversation`) | API endpoints or server actions with the same inputs, checks and transaction boundaries. Inputs are validated with inline checks today; a real API needs schema validation. `cancel` and `markRead` need a check, and `retry` should be atomic. |
+| `src/domain/chat.ts` (`ensureSupportThread`, `send`, `retry`, `cancel`, `markRead`, `requestHandoff`, `lookupOrder`, `latestOrder`, `listOrdersForEmail`, `requestReturn`, `listReturns`, `createConversation`) | API endpoints or server actions with the same inputs, checks and transaction boundaries. Inputs are validated with inline checks today; a real API needs schema validation. `cancel` and `markRead` need a check. `retry` already swaps the old reply for the new one in one transaction. |
 | `scriptedReply` and `chunkReply` in `src/domain/assistant.ts` | A model provider integration with streaming responses, grounding in store policies and the visitor's own orders, safety filtering, escalation rules, rate limits, cost controls, timeouts and cancellation. Still to design. |
 | `requestHandoff` and the scripted "Casey" message | A live-chat or ticketing integration: an agent queue, routing, availability and business hours, an agent console, and notifications to the visitor when someone joins |
-| `lookupOrder` and `listOrdersForEmail` | Calls to the order system, scoped to the verified customer (sign-in, or order number plus email verification), never a search over all orders |
+| `lookupOrder`, `latestOrder` and `listOrdersForEmail` | Calls to the order system, scoped to the verified customer (sign-in, or order number plus email verification), never a search over all orders. Today the scope is the persona's email, checked by a simulated rule. |
 | `requestReturn` and `returns.status` | A returns workflow: eligibility windows, approval, shipping labels, receiving and refunds through the payment system, with every status after `requested` driven by a real process |
 | `policy.roles` (`visitor`, `agent`) | Server-side authorization on every request: customers see only their own thread, orders and returns; agents work from a separate console |
 | Personas | A real identity provider or an anonymous visitor session tied to a verified customer |

@@ -13,7 +13,7 @@ import {
   Input,
 } from '@protoyard/ui';
 import { onMount } from 'svelte';
-import { applyServiceError, authServices, hashParam } from './helpers.ts';
+import { applyServiceError, authServices, hashParam, routeHref } from './helpers.ts';
 
 const { runtime, config } = authServices();
 const magic = createMagicLinkServices(runtime);
@@ -94,7 +94,7 @@ onMount(() => {
         </form>
       {/if}
     </CardContent>
-    <CardFooter><Button href={config.signInPath} variant="ghost">Back to sign in</Button></CardFooter>
+    <CardFooter><Button href={routeHref(config.signInPath)} variant="ghost">Back to sign in</Button></CardFooter>
   </Card>
   <p class="mt-4 text-center text-xs text-muted-foreground">Simulation only — no email is sent.</p>
 </main>
