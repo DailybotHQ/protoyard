@@ -1,5 +1,6 @@
 import { Command, CommanderError, Option } from 'commander';
 import { affectedCommand } from './commands/affected.ts';
+import { artifactListCommand, artifactRecordCommand } from './commands/artifact.ts';
 import { blueprintNewCommand, blueprintValidateCommand } from './commands/blueprint.ts';
 import { budgetCommand } from './commands/budget.ts';
 import { buildCommand } from './commands/build.ts';
@@ -283,6 +284,20 @@ export function createProgram(env: RunnerEnv): Command {
       .option('--comments', 'artifact target: declare the shared review-comment capabilities')
       .option('--dry-run', 'artifact target: check every artifact rule without writing the pack')
   ).action(def('export', exportCommand));
+
+  const artifact = program
+    .command('artifact')
+    .description('record and inspect Claude artifact shares');
+  artifact
+    .command('record')
+    .description('record the URL returned by the Claude Artifact tool')
+    .argument('<slug>', 'prototype slug with a current artifact pack')
+    .requiredOption('--url <url>', 'exact URL returned by the Claude Artifact tool')
+    .action(def('artifact record', artifactRecordCommand));
+  artifact
+    .command('list')
+    .description('list the latest recorded Artifact share for each prototype')
+    .action(def('artifact list', artifactListCommand));
 
   program
     .command('preview')
