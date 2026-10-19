@@ -1,5 +1,5 @@
 export * from './downsample/index.ts';
-export { plotArea } from './layout.ts';
+export * from './layout/index.ts';
 export * from './palette/index.ts';
 export * from './scales/index.ts';
 export * from './shapes/index.ts';
