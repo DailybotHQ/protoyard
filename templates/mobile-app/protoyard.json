@@ -27,7 +27,10 @@
   "defaultScenario": "active",
   "defaultTheme": "emerald",
   "defaultMode": "system",
-  "preview": { "viewport": "iphone" },
+  "preview": {
+    "viewport": "iphone",
+    "layout": { "id": "mobile-tabs", "supported": ["mobile-tabs", "mobile-drawer"] }
+  },
   "storage": { "namespace": "template-mobile-app", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["empty", "active", "viewer"]

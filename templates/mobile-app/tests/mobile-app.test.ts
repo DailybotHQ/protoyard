@@ -1,6 +1,6 @@
 import { PermissionDeniedError, parseScenario } from '@protoyard/core';
 import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
-import { cleanup, render, screen } from '@testing-library/svelte';
+import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import type { AppDatabase } from '../src/database/schema.ts';
@@ -112,20 +112,28 @@ describe('app shell', () => {
   it('renders the bottom nav in normal flow, after the only scrolling region', async () => {
     const runtime = await harness.boot('active');
     const { container } = render(AppHost, { runtime });
-    const nav = await screen.findByRole('navigation', { name: 'Main' });
-    const main = container.querySelector('main#main');
+    const nav = await screen.findByRole('navigation', { name: 'Primary' });
+    const main = await waitFor(() => {
+      const element = container.querySelector('main');
+      expect(element).toBeTruthy();
+      return element;
+    });
 
     // In flow: not fixed to the window, so no viewport preset or frame can push it off screen.
     expect(nav.className).not.toMatch(/\bfixed\b/);
     expect(main?.className).toMatch(/\boverflow-y-auto\b/);
     expect(main?.contains(nav)).toBe(false);
-    expect(main?.parentElement).toBe(nav.parentElement);
+    const tabBar = container.querySelector('[data-py-tab-bar]');
+    expect(main?.parentElement?.contains(tabBar)).toBe(true);
     expect(
-      (main?.compareDocumentPosition(nav) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING
+      (main?.compareDocumentPosition(tabBar ?? nav) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     // The shell is exactly one app-height tall; no desktop card or md: frame remains.
     expect(main?.parentElement?.className).toMatch(/\bh-app\b/);
-    expect(container.innerHTML).not.toMatch(/md:rounded-3xl|min-h-dvh/);
+    expect(container.querySelector('[data-py-layout-host]')?.getAttribute('data-layout')).toBe(
+      'mobile-tabs'
+    );
+    expect(container.querySelector('[data-py-layout="mobile-tabs"]')).toBeTruthy();
 
     expect(await screen.findByRole('heading', { name: 'Items', level: 1 })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Items' }).getAttribute('aria-current')).toBe('page');

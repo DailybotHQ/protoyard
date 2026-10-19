@@ -63,8 +63,9 @@ src/
 `issues` object for field errors; forms read them from `runService`'s result.
 
 **Add a screen:** create `src/screens/Thing.svelte`, register `{ path: '/things/:id',
-component: Thing }` in `App.svelte`, and optionally add a tab to the `BottomNav` items. Wrap
-it in `<Page title="…" backHref="#/">` to get the header and condition banners.
+component: Thing }` in `App.svelte`, and add its link to the `LayoutHost` navigation model when
+it belongs in the mobile tabs. Wrap it in `<Page title="…" backHref="#/">` to get the header and
+condition banners.
 
 **Add a scenario:** append it to `scenarios/index.ts` **and** list its id in
 `protoyard.json` → `scenarios`. Reuse presets with `extends: 'first-week'` (see
@@ -73,3 +74,9 @@ it in `<Page title="…" backHref="#/">` to get the header and condition banners
 
 **Add a role:** add it to `domain/policy.ts` and give a persona that membership role in the
 generator.
+
+## Layouts
+
+The mobile app starts with the mobile tab bar and supports the mobile drawer.
+Both layouts use the shared navigation model and retain the app-height shell
+with its scrolling screen region.
