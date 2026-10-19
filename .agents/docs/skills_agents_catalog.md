@@ -29,6 +29,7 @@ to concrete models in your harness, in one place (see [../README.md](../README.m
 | Skill | Tier | Intent | Use for |
 | --- | --- | --- | --- |
 | [create-prototype](../skills/create-prototype/SKILL.md) | standard | create | `pnpm protoyard new` → domain → scenarios → UI → tests → validate → export |
+| [brief-to-prototype](../skills/brief-to-prototype/SKILL.md) | standard | create | Brief → offline `blueprint new` → review/refine → generate → owned screens → validate → export |
 | [add-scenario](../skills/add-scenario/SKILL.md) | standard | create | Compose presets and fragments, generator knobs, integrity, determinism test |
 | [add-entity](../skills/add-entity/SKILL.md) | standard | create | Table + version/migration, policy, assert → zod → `environment.run` → transaction service, `liveQuery` deps, tests |
 | [add-ui-component](../skills/add-ui-component/SKILL.md) | standard | create | Shared component in `packages/ui` (tests, a11y, export) or a prototype-local one |
@@ -51,6 +52,7 @@ to concrete models in your harness, in one place (see [../README.md](../README.m
 | Command | Routes to |
 | --- | --- |
 | `/new-prototype` | `create-prototype` skill |
+| `/new-from-brief` | `brief-to-prototype` skill |
 | `/share-artifact` | `share-as-artifact` skill |
 | `/commit` | Commit rules in `AGENTS.md` and `docs/AI_AGENT_COLLAB.md` |
 | `/code-review` | `ai-diff-reviewer` skill (local review) |
@@ -62,7 +64,7 @@ to concrete models in your harness, in one place (see [../README.md](../README.m
 
 | I want to… | Use |
 | --- | --- |
-| Build a prototype from an idea | `/new-prototype` (or the `prototype-builder` agent) |
+| Build a prototype from an idea | `/new-from-brief` for prose briefs; `/new-prototype` or `prototype-builder` for other starts |
 | Add a product state to demo | `add-scenario` (`scenario-designer` for a full set) |
 | Add a record type or field | `add-entity` |
 | Make a screen accessible and mobile-ready | `ux-polisher` agent, `add-ui-component` |
