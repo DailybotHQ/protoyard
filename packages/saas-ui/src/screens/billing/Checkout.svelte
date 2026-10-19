@@ -151,7 +151,7 @@ async function submit() {
       {/if}
     </CardContent>
     <CardFooter class="flex flex-wrap gap-2">
-      <Button disabled={!plan || busy} loading={busy} onclick={() => void submit()}>
+      <Button disabled={!plan || busy} loading={busy} onclick={() => submit()}>
         Confirm simulated payment
       </Button>
       <Button href="#/billing/plans" variant="ghost">Back to plans</Button>

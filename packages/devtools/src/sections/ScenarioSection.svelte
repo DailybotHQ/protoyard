@@ -5,6 +5,7 @@ import { copyText, formatDateTime } from '../format.ts';
 import { reproducibleLink } from '../link.ts';
 import Btn from '../primitives/Btn.svelte';
 import Confirm from '../primitives/Confirm.svelte';
+import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
 import type { DevtoolsState } from '../state.svelte.ts';
 
@@ -28,6 +29,8 @@ let snapshotFirst = $state(true);
 let copied = $state(false);
 const selected = $derived(runtime.scenarios.get(selectedId));
 const seedValid = $derived(seedText === '' || /^\d{1,10}$/.test(seedText));
+/** A load or reset in flight (from here or any other caller): nothing else starts. */
+const loading = $derived(dt.isBusy('scenario') || dt.progress !== null);
 
 async function load() {
   if (!selected || !seedValid) return;
@@ -99,6 +102,7 @@ async function copyLink() {
           confirmLabel="Reset data"
           message="Rebuilds this prototype's data from the scenario seed. Your edits are replaced."
           busy={dt.isBusy('scenario:reset')}
+          disabled={loading}
           onconfirm={reset}
         />
         <Btn onclick={copyLink}>
@@ -146,7 +150,7 @@ async function copyLink() {
 <Section title="Load a scenario" description="Rebuilds the world from a versioned seed. Only this prototype's data changes.">
   <div class="space-y-3">
     {#each groups as [group, scenarios] (group)}
-      <fieldset>
+      <fieldset disabled={loading} class="disabled:opacity-60">
         <legend class="mb-1 text-[11px] font-medium text-muted-foreground">{group}</legend>
         <div class="space-y-1">
           {#each scenarios as scenario (scenario.id)}
@@ -202,11 +206,12 @@ async function copyLink() {
       label={selected ? `Load “${selected.name}”` : 'Load'}
       confirmLabel="Replace data"
       variant="primary"
-      disabled={!selected || !seedValid}
+      disabled={!selected || !seedValid || loading}
       message={`Loading replaces this prototype's current data${snapshotFirst ? ' — a safety snapshot is saved first' : ''}.`}
       busy={dt.isBusy('scenario:load')}
       onconfirm={load}
     />
+    <InlineError message={dt.errorFor('scenario')} />
   </div>
 </Section>
 

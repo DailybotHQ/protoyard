@@ -75,7 +75,7 @@ async function confirmLink(): Promise<void> {
     </CardContent>
     <CardFooter class="flex justify-end gap-2">
       <Button variant="outline" onclick={() => navigate(config.signInPath)}>Cancel</Button>
-      <Button disabled={!provider || busy} loading={busy} loadingLabel="Preparing account link" onclick={() => void confirmLink()}>{principal.current ? 'Continue to consent' : 'Sign in to link'}</Button>
+      <Button disabled={!provider || busy} loading={busy} loadingLabel="Preparing account link" onclick={() => confirmLink()}>{principal.current ? 'Continue to consent' : 'Sign in to link'}</Button>
     </CardFooter>
   </Card>
 </main>

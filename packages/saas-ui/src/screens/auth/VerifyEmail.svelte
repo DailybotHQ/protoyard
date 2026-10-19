@@ -57,7 +57,7 @@ onMount(() => {
         <p role="status" data-testid="auth-handoff">Your account is ready. You can sign in now.</p>
       {:else}
         <p class="text-sm text-muted-foreground">This confirmation link is simulated and expires on the prototype clock.</p>
-        <Button onclick={() => void verify()} loading={busy} loadingLabel="Confirming email" disabled={busy || !tokenId}>Confirm email</Button>
+        <Button onclick={() => verify()} loading={busy} loadingLabel="Confirming email" disabled={busy || !tokenId}>Confirm email</Button>
       {/if}
     </CardContent>
     <CardFooter><Button href={routeHref(config.signInPath)} variant="ghost">Go to sign in</Button></CardFooter>

@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
 import Btn from './Btn.svelte';
+import Spinner from './Spinner.svelte';
 
 /**
  * Inline two-step confirmation for destructive panel actions. A modal on
@@ -56,7 +57,7 @@ async function confirm() {
         aria-busy={busy || undefined}
         onclick={confirm}
       >
-        {busy ? 'Working…' : confirmLabel}
+        {#if busy}<Spinner />Working…{:else}{confirmLabel}{/if}
       </button>
       <Btn variant="ghost" disabled={busy} onclick={() => (asking = false)}>Cancel</Btn>
     </div>

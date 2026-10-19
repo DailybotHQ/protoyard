@@ -115,8 +115,7 @@ Boot: `parseScenarioLink(location.search)` → `createPrototypeRuntime(definitio
 App mounted with the runtime in context → DevTools (dynamic import) unless
 `?devtools=0`. Also renders the storage-degraded banner, a "Load linked
 scenario" prompt when a link disagrees with stored data (never automatic),
-a thin top progress bar (+ screen-reader status) while any caller loads a
-scenario (`scenarios.subscribeProgress`), the optional "Prototype · simulated data" badge, and a recovery screen
+the global pending indicator (see [Pending feedback](#pending-feedback)), the optional "Prototype · simulated data" badge, and a recovery screen
 (reload / reset only this prototype's databases) when boot fails.
 In offline-enabled builds a waiting new version shows an "Update available · Reload" toast
 (`protoyard:offline-update`); nothing reloads on its own.
@@ -135,10 +134,48 @@ script on the origin) and the simulation is not a security boundary.
 | `useScenario()` | `{ active, list }` |
 | `useClock()` | `{ now, committed, reference, previewing, state }` |
 | `can(capability, resource?)` | reactive boolean (services must still `assert`) |
+| `usePending()` | `{ active, count, operations, label }` for `runtime.pending` (operations in flight) |
 
 `describeLoadProgress(progress)` turns a core `LoadProgress` into
 `{ label, fraction }` ("Writing 6,000 of 15,000 rows…", `0.4`; `fraction: null`
 while generating/validating) for custom loading UIs.
+
+## Pending feedback
+
+Every prototype gets loading feedback with no code of its own. The runtime
+counts operations in flight in `runtime.pending` (`@protoyard/core`
+`PendingTracker`). Each entry has a `kind` (`service`, `scenario`, `time`,
+`snapshot`, `session`) and a `label`. It is fed by every
+`environment.run` (simulated latency included), scenario load and reset,
+time advance, snapshot restore and import, and persona, sign-in, sign-out and
+organization switches. The root that `mountPrototype` renders turns it into:
+
+- **`aria-busy`** on the app's scroll root (`[data-py-scroll-root]`) while
+  anything is pending.
+- **A 3 px top bar** (`[data-py-pending-bar]`, `role="progressbar"`) that
+  appears only once work has run for **150 ms**, so instant operations never
+  flicker. It is determinate while a scenario writes rows. It sits at the top
+  of the app screen, inside every shell frame (under a phone's status bar via
+  `--py-safe-top`), is `position: fixed` and pointer-transparent, so it never
+  shifts layout, and holds still under reduced motion (OS setting or the
+  prototype's toggle).
+- **A polite announcement** after **1 s** (`aria-live="polite"`):
+  "Working…" for service calls, or the operation's own label ("Switching
+  persona…", "Writing 6,000 of 15,000 rows…").
+
+`runService()` also counts its call in the mounted runtime's signal (opt out
+with `{ trackPending: false }`), and it returns a promise. So
+`<Button onclick={() => runService(…)}>` from `@protoyard/ui` shows its own
+spinner until the call settles, while errors still become toasts. For local
+"saving…" text, read `usePending()`:
+
+```svelte
+<script lang="ts">
+  import { usePending } from '@protoyard/renderer-svelte';
+  const pending = usePending();
+</script>
+{#if pending.active}<span class="text-xs text-muted-foreground">Saving…</span>{/if}
+```
 
 ## Router
 
@@ -229,5 +266,7 @@ if (!result.ok && isValidationError(result.error)) errors = result.error.issues;
 ```
 
 `PermissionDeniedError` and `SimulatedServiceError` become toasts; errors with
-an `issues` object are returned for inline display. Services throw them with
+an `issues` object are returned for inline display. The call counts as pending
+(global bar), and a `Button` whose `onclick` returns it shows `loading`
+([Pending feedback](#pending-feedback)). Services throw them with
 `parseInput(schema, input)` / `ValidationError` from `@protoyard/core`.

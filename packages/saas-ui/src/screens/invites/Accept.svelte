@@ -158,7 +158,7 @@ const ERRORS: Record<
         {:else}
           <p class="text-sm text-muted-foreground">You already have an account with this email. Accepting adds you to the workspace.</p>
         {/if}
-        <Button onclick={() => void accept()} loading={busy} loadingLabel="Joining workspace" disabled={busy}>
+        <Button onclick={() => accept()} loading={busy} loadingLabel="Joining workspace" disabled={busy}>
           Accept and join
         </Button>
       </CardContent>

@@ -96,6 +96,131 @@ describe('DevTools panel', () => {
     expect(runtime.overrides.get()).toEqual({});
   });
 
+  it("a click on a control's inner text or icon reaches its handler (persona, tab, theme)", async () => {
+    const { runtime, panel } = await open();
+    // Click the label span INSIDE the tab, not the tab button itself.
+    const tabLabel = within(panel).getByRole('tab', { name: 'Personas' }).querySelector('span');
+    await fireEvent.click(tabLabel as Element);
+    await settle();
+    const row = within(panel).getByRole('button', { name: /Victor Viewer/ });
+    const name = within(row).getByText('Victor Viewer');
+    expect(name).not.toBe(row);
+    await fireEvent.click(name);
+    await settle();
+    expect(runtime.session.principal()?.persona.id).toBe('user_0002');
+
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Look' }));
+    await settle();
+    const swatch = within(panel).getByRole('radio', { name: /Ocean/ });
+    await fireEvent.click(swatch.querySelector('span') as Element);
+    await settle();
+    expect(runtime.theme.appearance().theme.value).toBe('ocean');
+  });
+
+  it('a persona switch shows immediate busy feedback, blocks double triggers and clears', async () => {
+    const runtime = createFakeRuntime();
+    const realSwitch = runtime.session.switchActor;
+    let release!: () => void;
+    const calls: string[] = [];
+    runtime.session.switchActor = (id) => {
+      calls.push(id);
+      return new Promise<void>((r) => (release = r)).then(() => realSwitch(id));
+    };
+    const { panel } = await open(runtime);
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Personas' }));
+    await settle();
+    const row = within(panel).getByRole('button', { name: /Victor Viewer/ });
+    await fireEvent.click(row);
+    flushSync();
+    expect(row.getAttribute('aria-busy')).toBe('true');
+    expect(row.getAttribute('aria-pressed')).toBe('true');
+    expect(row.querySelector('.animate-spin')).not.toBeNull();
+    expect(panel.querySelector('[data-dt-working]')).not.toBeNull();
+    expect(panel.querySelector('header')?.getAttribute('aria-busy')).toBe('true');
+    // Every persona control waits: no second switch can start.
+    const rows = [...panel.querySelectorAll<HTMLButtonElement>('ul button[aria-pressed]')];
+    expect(rows.length).toBeGreaterThan(1);
+    for (const other of rows) expect(other.disabled).toBe(true);
+    expect(
+      (within(panel).getByRole('combobox', { name: /Role override/ }) as HTMLSelectElement).disabled
+    ).toBe(true);
+    await fireEvent.click(row);
+    expect(calls).toEqual(['user_0002']);
+    release();
+    await settle();
+    expect(runtime.session.principal()?.persona.id).toBe('user_0002');
+    expect(row.hasAttribute('aria-busy')).toBe(false);
+    expect(panel.querySelector('[data-dt-working]')).toBeNull();
+  });
+
+  it('shows a failed switch inline, next to the control', async () => {
+    const runtime = createFakeRuntime();
+    runtime.session.switchActor = () => Promise.reject(new Error('Persona store is locked.'));
+    const { panel } = await open(runtime);
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Personas' }));
+    await settle();
+    await fireEvent.click(within(panel).getByRole('button', { name: /Victor Viewer/ }));
+    await settle();
+    const alert = within(panel).getByRole('alert');
+    expect(alert.textContent).toContain('Persona store is locked.');
+    expect(alert.closest('section')?.textContent).toContain('Switch persona');
+  });
+
+  it('environment, theme and time controls show busy state while their change applies', async () => {
+    const runtime = createFakeRuntime();
+    const realSet = runtime.overrides.set;
+    let releaseEnv!: () => void;
+    runtime.overrides.set = (patch) =>
+      new Promise<void>((r) => (releaseEnv = r)).then(() => realSet(patch));
+    const { panel } = await open(runtime);
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Env' }));
+    await settle();
+    const offline = within(panel).getByRole('radio', { name: 'Offline' });
+    await fireEvent.click(offline);
+    flushSync();
+    expect(offline.querySelector('.animate-spin')).not.toBeNull();
+    expect((within(panel).getByRole('radio', { name: 'Slow' }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
+    expect(panel.querySelector('[data-dt-working]')).not.toBeNull();
+    releaseEnv();
+    await settle();
+    expect(runtime.overrides.get().environment?.network).toBe('offline');
+    expect(offline.querySelector('.animate-spin')).toBeNull();
+
+    const realOverride = runtime.theme.setOverride;
+    let releaseTheme!: () => void;
+    runtime.theme.setOverride = (patch) =>
+      new Promise<void>((r) => (releaseTheme = r)).then(() => realOverride(patch));
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Look' }));
+    await settle();
+    const ocean = within(panel).getByRole('radio', { name: /Ocean/ });
+    await fireEvent.click(ocean);
+    flushSync();
+    expect(ocean.getAttribute('aria-busy')).toBe('true');
+    expect(ocean.querySelector('.animate-spin')).not.toBeNull();
+    releaseTheme();
+    await settle();
+    expect(ocean.hasAttribute('aria-busy')).toBe(false);
+
+    const realAdvance = runtime.scenarios.advance;
+    let releaseAdvance!: () => void;
+    runtime.scenarios.advance = (d) =>
+      new Promise<void>((r) => (releaseAdvance = r)).then(() => realAdvance(d));
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Time' }));
+    await settle();
+    const one = within(panel).getByRole('button', { name: /Advance 1 day/ });
+    await fireEvent.click(one);
+    flushSync();
+    expect(one.getAttribute('aria-busy')).toBe('true');
+    expect(
+      (within(panel).getByRole('button', { name: /Advance 7 days/ }) as HTMLButtonElement).disabled
+    ).toBe(true);
+    releaseAdvance();
+    await settle();
+    expect(one.hasAttribute('aria-busy')).toBe(false);
+  });
+
   it('loads a scenario only after confirmation', async () => {
     const { runtime, panel } = await open();
     await fireEvent.click(within(panel).getByRole('radio', { name: /Busy/ }));

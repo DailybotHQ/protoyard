@@ -9,6 +9,7 @@ import {
   type ValueSource,
 } from '@protoyard/core';
 import Btn from '../primitives/Btn.svelte';
+import InlineError from '../primitives/InlineError.svelte';
 import Section from '../primitives/Section.svelte';
 import Segmented from '../primitives/Segmented.svelte';
 import SourceBadge from '../primitives/SourceBadge.svelte';
@@ -38,7 +39,11 @@ function flagSource(flag: string): ValueSource {
   return 'default';
 }
 
+/** An environment change in flight: controls wait for it (no double triggers). */
+const applying = $derived(dt.isBusy('env'));
+
 async function patch(change: EnvironmentPatch, message?: string) {
+  if (applying) return;
   await dt.run(
     'env',
     () => runtime.overrides.set({ environment: { ...overrideEnv, ...change } }),
@@ -99,6 +104,7 @@ function addScope() {
       { value: 'slow', label: 'Slow' },
       { value: 'offline', label: 'Offline' },
     ]}
+    busy={applying}
     onchange={(network: NetworkMode) => patch({ network })}
   />
   <label class="mt-2.5 flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -111,15 +117,17 @@ function addScope() {
       class="min-h-touch w-24 rounded-md border border-input bg-surface px-2 text-right font-mono text-xs text-surface-foreground sm:min-h-7"
       bind:value={latencyDraft}
       onchange={commitLatency}
+      disabled={applying}
     />
   </label>
   <p class="mt-1.5 text-[11px] text-muted-foreground">
     Affects services that run through <code class="font-mono">environment.run()</code>, not native browser requests.
   </p>
+  <InlineError message={dt.errorFor('env')} />
 </Section>
 
 <Section title="Failures" description="Reproducible: the same operation fails the same way on every run.">
-  <div class="space-y-2.5">
+  <fieldset class="m-0 min-w-0 space-y-2.5 border-0 p-0" disabled={applying} aria-busy={applying || undefined}>
     <label class="flex items-center gap-2 text-[11px] text-muted-foreground">
       <span class="flex-1">Mode <SourceBadge source={sourceOf('failureMode')} /></span>
       <select
@@ -172,10 +180,11 @@ function addScope() {
         <Btn type="submit" disabled={!newScope.trim()}><Plus class="size-3.5" aria-hidden="true" />Add</Btn>
       </form>
     </div>
-  </div>
+  </fieldset>
 </Section>
 
 <Section title="Subscription & flags">
+  <fieldset class="m-0 min-w-0 border-0 p-0" disabled={applying} aria-busy={applying || undefined}>
   <label class="flex items-center gap-2 text-[11px] text-muted-foreground">
     <span class="flex-1">Subscription <SourceBadge source={sourceOf('subscription')} /></span>
     <select
@@ -213,6 +222,7 @@ function addScope() {
     <input id="py-dt-flag" class="min-h-touch min-w-0 flex-1 rounded-md border border-input bg-surface px-2 font-mono text-xs text-surface-foreground sm:min-h-7" placeholder="new-flag" bind:value={newFlag} />
     <Btn type="submit" disabled={!newFlag.trim()}><Plus class="size-3.5" aria-hidden="true" />Flag</Btn>
   </form>
+  </fieldset>
 </Section>
 
 <Section title="Reset">

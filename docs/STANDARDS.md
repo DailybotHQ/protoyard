@@ -72,6 +72,16 @@ UI ─► service ─► session.assert(capability, record)  ─► zod validati
   `runService()`.
 - Destructive actions confirm through `AlertDialog`. A failure must never look
   like success.
+- Every async action shows that it is pending. A `@protoyard/ui` `Button`
+  whose `onclick` returns a promise shows a spinner, sets `aria-busy` and
+  blocks double clicks until it settles. So return the promise
+  (`onclick={() => runService(() => save(input))}`) instead of discarding it
+  (`() => void save()`), or pass `loading={busy}` for form submits. Custom
+  controls set `aria-busy` and disable themselves the same way. The renderer
+  adds a global top bar and `aria-busy` on the app root for every runtime
+  operation (`environment.run`, scenario loads, time advances, snapshot
+  restores, identity switches) after 150 ms, with no prototype code. Use
+  `usePending()` for local "saving…" hints.
 
 ## Accessibility
 

@@ -1,6 +1,7 @@
 import {
   type ActiveScenarioInfo,
   type AppearanceState,
+  createPendingTracker,
   createPermissionPolicy,
   createSimulationClock,
   createSimulationEnvironment,
@@ -14,6 +15,7 @@ import {
   type Membership,
   type Organization,
   type Overrides,
+  type PendingTracker,
   type PermissionPolicy,
   type Persona,
   type Principal,
@@ -62,8 +64,13 @@ export interface Kernel {
   readonly customThemeIds: Set<string>;
   readonly policy: PermissionPolicy;
   readonly clock: SimulationClock;
-  /** The raw environment; `runtime.environment` wraps it to persist changes. */
+  /**
+   * The raw environment; `runtime.environment` wraps it to persist changes.
+   * Its `run` counts as pending in `pending` while it waits and works.
+   */
   readonly env: SimulationEnvironment;
+  /** Operations in flight (`runtime.pending`). */
+  readonly pending: PendingTracker;
   readonly now: () => number;
   readonly serial: <T>(job: () => Promise<T>) => Promise<T>;
   readonly report: (error: unknown) => void;
@@ -163,6 +170,16 @@ export async function createKernel(
   let lastEnvKey = '';
   let silentClock = false;
 
+  const pending = createPendingTracker({ onError: report });
+  const rawEnv = createSimulationEnvironment(options.sleep ? { sleep: options.sleep } : {});
+  // Every simulated service call (members, identity, prototype services, the
+  // mock HTTP layer) shows as pending, including its simulated latency.
+  const env: SimulationEnvironment = {
+    ...rawEnv,
+    run: (operation, fn) =>
+      pending.track({ kind: 'service', label: operation }, () => rawEnv.run(operation, fn)),
+  };
+
   const kernel: Kernel = {
     definition,
     db,
@@ -175,7 +192,8 @@ export async function createKernel(
     customThemeIds,
     policy: createPermissionPolicy(definition.policy ?? DEFAULT_POLICY),
     clock,
-    env: createSimulationEnvironment(options.sleep ? { sleep: options.sleep } : {}),
+    env,
+    pending,
     now,
     serial: createSerialQueue(),
     report,

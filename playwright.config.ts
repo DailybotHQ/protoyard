@@ -16,6 +16,12 @@ import { defineConfig, devices } from '@playwright/test';
  * Prototype targets: PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo
  * (each gets its own port from 4401 and is reachable in specs through
  * `prototypeUrl(slug)` in tests/e2e/targets.ts).
+ *
+ * DevTools targets: PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo builds
+ * each slug WITH the DevTools panel into tmp/e2e-devtools/<slug> (the standard
+ * build stays DevTools-free) and serves it from port 4451
+ * (PROTOYARD_E2E_DEVTOOLS_PORT_BASE overrides it); specs use
+ * `devtoolsPrototypeUrl(slug)`.
  */
 
 const GALLERY_PORT = 4329;
@@ -27,6 +33,19 @@ const prototypes = (process.env.PROTOYARD_E2E_PROTOTYPES ?? '')
   .filter(Boolean);
 for (const slug of prototypes) {
   if (!SLUG.test(slug)) throw new Error(`PROTOYARD_E2E_PROTOTYPES: invalid slug "${slug}"`);
+}
+const devtoolsPrototypes = (process.env.PROTOYARD_E2E_DEVTOOLS_PROTOTYPES ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+for (const slug of devtoolsPrototypes) {
+  if (!SLUG.test(slug)) {
+    throw new Error(`PROTOYARD_E2E_DEVTOOLS_PROTOTYPES: invalid slug "${slug}"`);
+  }
+}
+const DEVTOOLS_PORT_BASE = Number(process.env.PROTOYARD_E2E_DEVTOOLS_PORT_BASE ?? 4451);
+if (!Number.isInteger(DEVTOOLS_PORT_BASE) || DEVTOOLS_PORT_BASE < 1024) {
+  throw new Error('PROTOYARD_E2E_DEVTOOLS_PORT_BASE must be a port number');
 }
 const ci = Boolean(process.env.CI);
 /** PROTOYARD_E2E_SHOWCASE=1 builds `protoyard showcase` and runs tests/e2e/showcase.spec.ts. */
@@ -92,6 +111,12 @@ export default defineConfig({
           },
         ]
       : []),
+    ...devtoolsPrototypes.map((slug, i) => ({
+      command: `pnpm protoyard build ${slug} --include-devtools --out tmp/e2e-devtools/${slug} && pnpm exec tsx tests/e2e/support/serve-static.ts tmp/e2e-devtools/${slug} ${DEVTOOLS_PORT_BASE + i}`,
+      url: `http://127.0.0.1:${DEVTOOLS_PORT_BASE + i}/`,
+      reuseExistingServer: !ci,
+      timeout: 180_000,
+    })),
     ...prototypes.map((slug, i) => ({
       command: `pnpm protoyard build ${slug} && pnpm protoyard preview ${slug} --port ${4401 + i} --strict-port`,
       url: `http://127.0.0.1:${4401 + i}/`,

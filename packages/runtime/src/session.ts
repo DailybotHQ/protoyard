@@ -47,32 +47,38 @@ export function createSessionController(k: Kernel): SessionController {
     organizations: () => k.organizations,
     memberships: () => k.memberships,
 
-    switchActor: (personaId) => act(personaId, k.signedOut),
+    switchActor: (personaId) =>
+      k.pending.track({ kind: 'session', label: 'Switching persona…' }, () =>
+        act(personaId, k.signedOut)
+      ),
 
-    signIn: (personaId) => act(personaId, false),
+    signIn: (personaId) =>
+      k.pending.track({ kind: 'session', label: 'Signing in…' }, () => act(personaId, false)),
 
-    async signOut() {
-      k.signedOut = true;
-      await dropActorOverride(k.writeControl({ signedOut: true }));
-    },
+    signOut: () =>
+      k.pending.track({ kind: 'session', label: 'Signing out…' }, async () => {
+        k.signedOut = true;
+        await dropActorOverride(k.writeControl({ signedOut: true }));
+      }),
 
     isSignedIn: () => k.principal !== null,
     authState: () => (k.principal ? 'signed-in' : 'signed-out'),
 
-    async switchOrganization(organizationId) {
-      if (!k.organizations.some((o) => o.id === organizationId)) {
-        throw new Error(`Unknown organization "${organizationId}".`);
-      }
-      k.organizationId = organizationId;
-      const writes = k.writeControl({ organizationId });
-      if (k.overrides.organizationId !== undefined) {
-        const { organizationId: _drop, ...rest } = k.overrides;
-        await Promise.all([writes, applyOverrides(k, rest as Overrides)]);
-      } else {
-        k.refreshDerived();
-        await writes;
-      }
-    },
+    switchOrganization: (organizationId) =>
+      k.pending.track({ kind: 'session', label: 'Switching organization…' }, async () => {
+        if (!k.organizations.some((o) => o.id === organizationId)) {
+          throw new Error(`Unknown organization "${organizationId}".`);
+        }
+        k.organizationId = organizationId;
+        const writes = k.writeControl({ organizationId });
+        if (k.overrides.organizationId !== undefined) {
+          const { organizationId: _drop, ...rest } = k.overrides;
+          await Promise.all([writes, applyOverrides(k, rest as Overrides)]);
+        } else {
+          k.refreshDerived();
+          await writes;
+        }
+      }),
 
     can: (capability, resource) => k.policy.can(k.principal, capability, resource),
     assert: (capability, resource) => k.policy.assert(k.principal, capability, resource),

@@ -4,6 +4,7 @@ export * from './environment.ts';
 export * from './events.ts';
 export * from './manifest.ts';
 export * from './overrides.ts';
+export * from './pending.ts';
 export * from './prototype.ts';
 export * from './random.ts';
 export * from './runtime.ts';

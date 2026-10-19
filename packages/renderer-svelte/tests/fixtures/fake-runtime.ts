@@ -1,6 +1,7 @@
 import {
   type ActiveScenarioInfo,
   type AppearanceState,
+  createPendingTracker,
   createPermissionPolicy,
   createSimulationClock,
   createSimulationEnvironment,
@@ -40,7 +41,14 @@ const persona = (id: string, name: string): Persona => ({
 });
 
 export function createFakeRuntime(
-  options: { db?: unknown; persistent?: boolean; sandbox?: string; onDiscard?: () => void } = {}
+  options: {
+    db?: unknown;
+    persistent?: boolean;
+    sandbox?: string;
+    onDiscard?: () => void;
+    /** Simulated latency sleep for `environment.run` (default: instant). */
+    sleep?: (ms: number) => Promise<void>;
+  } = {}
 ): PrototypeRuntime {
   const manifest = parseManifest({
     id: 'test.fake',
@@ -91,7 +99,16 @@ export function createFakeRuntime(
   ];
   const policy = createPermissionPolicy();
   const clock = createSimulationClock({ referenceTime: '2026-10-16T10:00:00Z' });
-  const environment = createSimulationEnvironment({ sleep: async () => {} });
+  const pending = createPendingTracker();
+  const rawEnvironment = createSimulationEnvironment(
+    options.sleep ? { sleep: options.sleep } : { sleep: async () => {} }
+  );
+  // Like the real runtime: every simulated service call counts as pending.
+  const environment = {
+    ...rawEnvironment,
+    run: <T>(operation: string, fn: () => T | Promise<T>) =>
+      pending.track({ kind: 'service', label: operation }, () => rawEnvironment.run(operation, fn)),
+  };
   const preferences = new Map<string, Persona['preferences']>();
 
   let overrides: Overrides = {};
@@ -229,7 +246,10 @@ export function createFakeRuntime(
       ensureSeeded: async () => {
         if (!active) await load('empty');
       },
-      load,
+      load: (id, opts) =>
+        pending.track({ kind: 'scenario', label: `Loading scenario “${id}”…` }, () =>
+          load(id, opts)
+        ),
       reset: async (o = {}) => {
         if (active) await load(active.scenario.id, { seed: active.seed, ...o });
       },
@@ -246,11 +266,12 @@ export function createFakeRuntime(
       personas: () => personas,
       organizations: () => [org],
       memberships: () => memberships,
-      switchActor: async (id) => {
-        actorId = id;
-        overrides = { ...overrides, actorId: undefined };
-        emit();
-      },
+      switchActor: (id) =>
+        pending.track({ kind: 'session', label: 'Switching persona…' }, async () => {
+          actorId = id;
+          overrides = { ...overrides, actorId: undefined };
+          emit();
+        }),
       signIn: async (id) => {
         actorId = id;
         signedOut = false;
@@ -397,6 +418,7 @@ export function createFakeRuntime(
       options.persistent === false
         ? { backend: 'memory', persistent: false, warning: 'IndexedDB is unavailable (test).' }
         : { backend: 'indexeddb', persistent: true },
+    pending,
     environmentState: () => ({ ...environment.get(), ...overrides.environment }),
     destroy: async () => {},
     close: () => {},

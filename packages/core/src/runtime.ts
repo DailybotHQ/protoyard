@@ -10,6 +10,7 @@ import type {
   ViewportPreset,
 } from './manifest.ts';
 import type { Effective, Overrides } from './overrides.ts';
+import type { PendingTracker } from './pending.ts';
 import type { PrototypeDefinition } from './prototype.ts';
 import type { Scenario } from './scenario.ts';
 import type { Membership, Organization, PermissionPolicy, Persona, Principal } from './session.ts';
@@ -308,6 +309,13 @@ export interface PrototypeRuntime<TDatabase = unknown> {
   readonly policy: PermissionPolicy;
   readonly data: DataInspector;
   storage(): StorageStatus;
+  /**
+   * Operations in flight (service calls through `environment.run`, scenario
+   * loads, time advances, snapshot restores, identity switches). Renderers
+   * show a global progress indicator from it. Optional so hand-written
+   * runtimes and older test doubles keep working.
+   */
+  readonly pending?: PendingTracker;
   /** Effective environment (scenario + overrides). */
   environmentState(): EnvironmentState;
   /**

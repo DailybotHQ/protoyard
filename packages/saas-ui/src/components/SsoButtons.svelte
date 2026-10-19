@@ -65,7 +65,7 @@ async function start(provider: SaasProvider): Promise<void> {
       loading={busyProvider === provider}
       loadingLabel={`Opening ${name}`}
       aria-describedby={noteId}
-      onclick={() => void start(provider)}
+      onclick={() => start(provider)}
     >
       <KeyRound class="size-4 shrink-0" aria-hidden="true" />
       <span>Continue with {name}</span>

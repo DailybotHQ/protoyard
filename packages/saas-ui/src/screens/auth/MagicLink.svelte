@@ -81,7 +81,7 @@ onMount(() => {
         <p role="status" class="text-sm">{message || 'Check your simulated inbox for a sign-in link. Nothing was emailed.'}</p>
       {:else if tokenId}
         {#if message}<p role="alert" class="text-sm text-destructive">{message}</p>{/if}
-        <Button onclick={() => void consume(tokenId)}>Try this link again</Button>
+        <Button onclick={() => consume(tokenId)}>Try this link again</Button>
       {:else}
         <form class="grid gap-4" onsubmit={(event) => { event.preventDefault(); void submit(); }}>
           <FormField label="Email" required error={issues.email} description="Use an address at example.com.">

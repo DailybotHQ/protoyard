@@ -127,6 +127,13 @@ Components never write to the database directly; they call services.
 errors into toasts, and returns validation errors to the form for inline
 display.
 
+While any of this is in flight, `runtime.pending` counts it (every
+`environment.run`, scenario load, time advance, snapshot restore and identity
+switch), and the renderer shows a global top bar plus `aria-busy` on the app
+root after 150 ms. A `@protoyard/ui` `Button` whose `onclick` returns the
+service promise shows its own spinner (see
+[renderer README → Pending feedback](../packages/renderer-svelte/README.md#pending-feedback)).
+
 ## Optional mock HTTP layer
 
 `@protoyard/http` turns a prototype's services into a fetch-compatible mock

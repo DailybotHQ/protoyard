@@ -19,6 +19,11 @@ export function setMountedRuntime(runtime: PrototypeRuntime | null): void {
   mounted = runtime;
 }
 
+/** The runtime `mountPrototype` mounted, or null (no throw; for optional integrations). */
+export function mountedRuntime(): PrototypeRuntime | null {
+  return mounted;
+}
+
 /** The active runtime, typed with your prototype's database. */
 export function getRuntime<TDatabase = unknown>(): PrototypeRuntime<TDatabase> {
   let fromContext: PrototypeRuntime | undefined;

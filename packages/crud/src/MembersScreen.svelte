@@ -227,7 +227,7 @@ function roleDisabled(targetRole: string, currentRole: string): boolean {
                   class="text-destructive"
                   disabled={isSelf || (member.membership.role === OWNER_ROLE && !canTransfer)}
                   data-testid="member-remove"
-                  onclick={() => void removeMember(member.membership.id, member.persona.name)}
+                  onclick={() => removeMember(member.membership.id, member.persona.name)}
                 >
                   Remove
                 </Button>

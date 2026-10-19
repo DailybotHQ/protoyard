@@ -22,6 +22,20 @@ export function prototypeUrl(slug: string): string {
   return `http://127.0.0.1:${PROTOTYPE_PORT_BASE + i}/`;
 }
 
+/** Slugs served as DevTools builds (PROTOYARD_E2E_DEVTOOLS_PROTOTYPES, see playwright.config.ts). */
+export const DEVTOOLS_TARGETS = (process.env.PROTOYARD_E2E_DEVTOOLS_PROTOTYPES ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const DEVTOOLS_PORT_BASE = Number(process.env.PROTOYARD_E2E_DEVTOOLS_PORT_BASE ?? 4451);
+
+export function devtoolsPrototypeUrl(slug: string): string {
+  const i = DEVTOOLS_TARGETS.indexOf(slug);
+  if (i === -1) throw new Error(`${slug} is not in PROTOYARD_E2E_DEVTOOLS_PROTOTYPES`);
+  return `http://127.0.0.1:${DEVTOOLS_PORT_BASE + i}/`;
+}
+
 export interface RegistryEntryLite {
   kind: 'prototype' | 'template';
   slug: string;

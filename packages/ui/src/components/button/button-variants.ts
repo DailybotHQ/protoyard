@@ -39,8 +39,17 @@ export type ButtonProps = WithElementRef<HTMLButtonAttributes> &
   WithElementRef<HTMLAnchorAttributes> & {
     variant?: ButtonVariant;
     size?: ButtonSize;
-    /** Shows a spinner, sets `aria-busy` and blocks interaction. */
+    /**
+     * Shows a spinner over the (kept, invisible) label so the width never
+     * changes, sets `aria-busy` and blocks interaction.
+     */
     loading?: boolean;
     /** Accessible text announced while loading (defaults to the visible label). */
     loadingLabel?: string;
+    /**
+     * When `onclick` returns a promise (an async handler, `runService(...)`),
+     * the button is `loading` until it settles. Default `true`; set `false`
+     * for handlers that start long-lived work the button should not wait for.
+     */
+    autoLoading?: boolean;
   };

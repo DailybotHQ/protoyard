@@ -67,6 +67,22 @@ with `?shell=` (`phone`, `tablet`, `desktop-window`, `browser`, `widget-host`, `
 PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo pnpm test:e2e tests/e2e/shell-layout.spec.ts
 ```
 
+## Pending feedback
+
+`pending-feedback.spec.ts` checks that DevTools switches react at once and
+show progress (timed in the page from `pointerdown` to the first frame with
+the result), and that slow simulated operations show the Button spinner, the
+global `[data-py-pending-bar]` and `aria-busy` on the app root, then clear.
+The DevTools tests need a DevTools build, which
+`PROTOYARD_E2E_DEVTOOLS_PROTOTYPES` adds next to the standard build (served
+from port 4451; `devtoolsPrototypeUrl(slug)` in `targets.ts`):
+
+```bash
+PROTOYARD_E2E_PROTOTYPES=mobile-banking-demo,crm-demo,helpdesk-demo \
+PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo \
+pnpm test:e2e tests/e2e/pending-feedback.spec.ts
+```
+
 ## Known gaps
 
 - `ai-chat-demo`'s outage flow runs on desktop only, because its Home pane is hidden at `#/` on
