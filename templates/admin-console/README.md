@@ -101,3 +101,9 @@ pnpm vitest run templates/admin-console
 pnpm --filter @protoyard-template/admin-console typecheck
 pnpm protoyard validate admin-console --build
 ```
+
+## Layouts
+
+The admin console starts with the sidebar layout. DevTools can switch it to the
+icon rail, top navigation or dual sidebar; navigation and the active persona
+are supplied as data to `LayoutHost`.

@@ -13,6 +13,9 @@ export const LATTICE_SAAS_DEMO = 'lattice-saas-demo';
 /** PLAN_002 flagship generated from a blueprint (`protoyard generate`). */
 export const HELPDESK_DEMO = 'helpdesk-demo';
 
+/** PLAN_003 flagship product analytics (charts + analytics kits). */
+export const PEBBLESTAT_DEMO = 'pebblestat-analytics-demo';
+
 /** PLAN_003 artifact-pack browser harness target. */
 export const ARTIFACT_PACK_TARGET = 'relay-chat-demo';
 

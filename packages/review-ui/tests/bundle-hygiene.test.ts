@@ -64,7 +64,7 @@ export function dynamicUiBarrelImport(text: string): boolean {
   return /import\(\s*['"]@protoyard\/ui['"]\s*\)/.test(text);
 }
 
-const UI_PARTS = ['overlay', 'panel', 'toolbar', 'mount'] as const;
+const UI_PARTS = ['overlay', 'thread', 'panel', 'toolbar', 'mount'] as const;
 const ENGINE_PARTS = [
   'anchors',
   'store',
@@ -90,7 +90,7 @@ export function crossPartImports(ownPart: string, text: string): string[] {
 }
 
 describe('review packages: exports', () => {
-  it('review-ui exposes overlay, panel, toolbar, mount and styles.css, and no root barrel', () => {
+  it('review-ui exposes overlay, thread, panel, toolbar, mount and styles.css, and no root barrel', () => {
     const pkg = JSON.parse(readFileSync(join(UI, 'package.json'), 'utf8')) as {
       exports: Record<string, unknown>;
     };

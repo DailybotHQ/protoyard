@@ -128,6 +128,11 @@ function indexAt(target: EventTarget | null): number | null {
       hover = indexAt(e.target);
       dismissed = false;
     }}
+    // A tap has no pointermove before it: set the hover on pointerdown so the tooltip shows on touch.
+    onpointerdown={(e) => {
+      hover = indexAt(e.target);
+      dismissed = false;
+    }}
     onpointerleave={() => (hover = null)}
     onclick={(e) => {
       const i = indexAt(e.target);

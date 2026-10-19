@@ -21,6 +21,10 @@ failures, passing tests, a production build and a portable ZIP.
 ## When to use
 
 - "Build a prototype / demo / clickable mock of …" (`/new-prototype`).
+- When the request starts from a prose brief, route to
+  `brief-to-prototype` (`/new-from-brief`) for blueprint synthesis and review,
+  then return here for deeper domain, scenario, UI and test work beyond the
+  generated starting point.
 - A variant of an existing prototype: always a **new slug**, never edits to
   the original.
 

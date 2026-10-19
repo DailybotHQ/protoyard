@@ -73,3 +73,9 @@ pnpm vitest run templates/task-manager
 pnpm --filter @protoyard-template/task-manager typecheck
 pnpm --filter @protoyard-template/task-manager build
 ```
+
+## Layouts
+
+The task manager starts with the sidebar layout and supports the icon rail and
+top navigation. The navigation model includes the live project list so it
+stays current as projects are added.

@@ -10,6 +10,7 @@ review comments pays no cost for them.
 | Subpath | What it will hold | Task |
 | --- | --- | --- |
 | `./overlay` | Comment mode (crosshair, Esc, keyboard placement), accessible pins and clusters inside device frames | T-review-ui-overlay-pins |
+| `./thread` | A pin's lazy comment thread in a desktop popover or phone bottom sheet | T-review-ui-thread |
 | `./panel` | The list of threads with filters, counts and "go to pin" | T-review-ui-panel-toolbar |
 | `./toolbar` | The floating review toolbar for builds without DevTools | T-review-ui-panel-toolbar |
 | `./mount` | The entry the renderer imports lazily when review is enabled | T-review-ui-renderer-wiring |
@@ -36,6 +37,16 @@ When the host grants only Claude's composer capability, pass its
 the Claude composer on the selected element instead of saving a Protoyard
 thread. Render `ClaudeComposerNotice` in the panel to tell viewers that threads
 live in Claude's comment panel.
+
+## Pin thread
+
+Import `ReviewThread` from `@protoyard/review-ui/thread` only after a pin opens.
+It adapts validated review comments to `@protoyard/views-ui/activity`'s
+`CommentThread`, and accepts adapter-backed callbacks for replies, edits,
+deletes, reactions and resolve/reopen. On phones pass `mobile` to use a
+bottom sheet that stays within the app viewport. The first visit asks for a
+display name, explains that it is not a login, and stores the reviewer name and
+browser id in local storage for that prototype slug.
 
 ## 0 bytes until review is enabled
 

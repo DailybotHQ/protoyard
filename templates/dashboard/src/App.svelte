@@ -6,8 +6,14 @@ import {
   ShoppingCart,
   Users,
 } from '@lucide/svelte';
-import { avatarImage, createRouter, Router, usePrincipal } from '@protoyard/renderer-svelte';
-import { AppShell, Avatar, Badge, Header, Sidebar } from '@protoyard/ui';
+import {
+  avatarImage,
+  createRouter,
+  Router,
+  useAppearance,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
+import { LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideDashboard } from './lib/context.ts';
@@ -15,6 +21,7 @@ import { routes } from './routes.ts';
 
 const { runtime, settings } = provideDashboard();
 const principal = usePrincipal();
+const appearance = useAppearance();
 
 /** Hash routes work on refresh and back/forward on any static host. Add screens here AND in `nav`. */
 const router = createRouter(routes, { titleSuffix: runtime.manifest.name });
@@ -34,42 +41,24 @@ const nav = $derived([
 const workspaceName = $derived(
   settings.current?.workspaceName ?? principal.current?.organization?.name ?? 'Workspace'
 );
+const layoutNav = $derived(
+  navFromSidebar(nav, {
+    brand: { label: workspaceName, icon: 'chart-column' },
+    ...(principal.current
+      ? {
+          user: {
+            image: avatarImage(principal.current.persona.avatar),
+            name: principal.current.persona.name,
+            detail: ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role ?? '',
+          },
+        }
+      : {}),
+  })
+);
 </script>
 
-<AppShell sidebarLabel="Main navigation">
-  {#snippet sidebar()}
-    <Sidebar items={nav} label="Sections" collapsible={false}>
-      {#snippet header()}
-        <a href="#/" class="flex min-w-0 items-center gap-2.5 rounded-md px-1">
-          <span class="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm" aria-hidden="true">
-            <ChartNoAxesColumn class="size-4" />
-          </span>
-          <span class="truncate text-sm font-semibold">{workspaceName}</span>
-        </a>
-      {/snippet}
-      {#snippet footer()}
-        {#if principal.current}
-          <!-- Bottom margin keeps the card clear of the fixed "Prototype" badge. -->
-          <div class="mb-8 flex items-center gap-3 rounded-lg border border-sidebar-border bg-surface p-3">
-            <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" />
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium">{principal.current.persona.name}</p>
-              <p class="truncate text-xs text-muted-foreground">{principal.current.persona.title}</p>
-            </div>
-            <Badge variant={principal.current.role === 'viewer' ? 'outline' : 'secondary'}>
-              {ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role}
-            </Badge>
-          </div>
-        {/if}
-      {/snippet}
-    </Sidebar>
-  {/snippet}
-
-  {#snippet header()}
-    <Header class="lg:hidden" title={workspaceName} />
-  {/snippet}
-
+<LayoutHost layout={appearance.current.layout.value} nav={layoutNav} storageKey={runtime.manifest.storage.namespace}>
   <div class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8">
     <Router {router} />
   </div>
-</AppShell>
+</LayoutHost>

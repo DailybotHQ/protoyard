@@ -28,3 +28,9 @@ pnpm protoyard validate crud-app --build
 Roles and notifications are **simulated**. Services still run `session.assert` →
 zod → `environment.run` → `db.transaction`. The generator is loaded lazily so
 Faker stays out of the initial JS chunk.
+
+## Layouts
+
+The CRUD app starts with the sidebar layout and supports the icon rail and top
+navigation. `LayoutHost` receives a data-only navigation model; search and
+notifications remain available above the routed screen.

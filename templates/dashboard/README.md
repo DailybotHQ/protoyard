@@ -143,3 +143,9 @@ pnpm vitest run prototypes/my-admin
 pnpm --filter @prototype/my-admin typecheck
 pnpm protoyard build my-admin
 ```
+
+## Layouts
+
+The dashboard starts with the sidebar layout and supports the icon rail, top
+navigation and dashboard grid. `LayoutHost` receives the workspace navigation
+and the currently selected layout from the runtime appearance state.

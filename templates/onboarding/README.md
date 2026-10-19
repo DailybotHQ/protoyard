@@ -123,3 +123,8 @@ pnpm vitest run prototypes/my-setup
 pnpm --filter @prototype/my-setup typecheck
 pnpm protoyard build my-setup
 ```
+
+## Layouts
+
+The onboarding template starts with the wizard layout and supports the
+split-screen auth layout. The routed setup flow is mounted by `LayoutHost`.

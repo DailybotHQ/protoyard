@@ -142,7 +142,12 @@ async function retry() {
     {/if}
   </figcaption>
 
-  <div bind:this={container} class="relative w-full min-w-0" style:height="{height}px">
+  <!--
+    contain: inline-size: the plot is drawn at the measured pixel width, so without containment its
+    SVG would become the container's min-content width and grid/flex ancestors could never shrink it
+    (the chart kept its width when the window narrowed, overflowing the page).
+  -->
+  <div bind:this={container} class="relative w-full min-w-0 [contain:inline-size]" style:height="{height}px">
     {#if loading}
       <div
         role="status"
