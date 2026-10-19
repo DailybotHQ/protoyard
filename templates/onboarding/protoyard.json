@@ -27,7 +27,10 @@
   "defaultScenario": "half-complete",
   "defaultTheme": "violet",
   "defaultMode": "system",
-  "preview": { "viewport": "desktop" },
+  "preview": {
+    "viewport": "desktop",
+    "layout": { "id": "wizard", "supported": ["wizard", "auth-split"] }
+  },
   "storage": { "namespace": "template-onboarding", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["not-started", "half-complete", "completed", "viewer"]
