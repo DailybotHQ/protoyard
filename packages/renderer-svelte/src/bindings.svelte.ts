@@ -4,6 +4,7 @@ import type {
   ClockState,
   EnvironmentState,
   Overrides,
+  PendingOperation,
   Principal,
   PrototypeRuntime,
   Scenario,
@@ -98,6 +99,47 @@ export function useOverrides(runtime?: PrototypeRuntime): Reactive<Overrides> {
     () => rt.overrides.get(),
     (notify) => rt.overrides.subscribe(notify)
   );
+}
+
+export interface PendingView {
+  /** True while at least one runtime operation is in flight. */
+  readonly active: boolean;
+  readonly count: number;
+  /** In-flight operations, oldest first. */
+  readonly operations: readonly PendingOperation[];
+  /** Label of the oldest in-flight operation, if any. */
+  readonly label: string | undefined;
+}
+
+const NO_OPERATIONS: readonly PendingOperation[] = [];
+
+/**
+ * Runtime operations in flight (`runtime.pending`): service calls through
+ * `environment.run`, scenario loads, time advances, snapshot restores and
+ * identity switches. The renderer already shows a global progress bar from
+ * it; use this for local "saving…" hints. A runtime without the signal
+ * reports nothing pending.
+ */
+export function usePending(runtime?: PrototypeRuntime): PendingView {
+  const rt = runtimeOr(runtime);
+  const view = fromController(
+    () => rt.pending?.list() ?? NO_OPERATIONS,
+    (notify) => rt.pending?.subscribe(notify) ?? (() => {})
+  );
+  return {
+    get active() {
+      return view.current.length > 0;
+    },
+    get count() {
+      return view.current.length;
+    },
+    get operations() {
+      return view.current;
+    },
+    get label() {
+      return view.current[0]?.label;
+    },
+  };
 }
 
 export interface ClockView {

@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { describe, expect, it } from 'vitest';
 import { describeLoadProgress } from '../src/progress.ts';
-import LoadProgressBar from '../src/shell/LoadProgressBar.svelte';
+import PendingIndicator from '../src/shell/PendingIndicator.svelte';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
 
 describe('scenario load progress', () => {
@@ -28,11 +28,11 @@ describe('scenario load progress', () => {
     const runtime = createFakeRuntime();
     const seen: string[] = [];
     runtime.scenarios.subscribeProgress((p) => seen.push(p ? p.phase : 'null'));
-    render(LoadProgressBar, { runtime });
-    expect(screen.queryByRole('status')).toBeNull();
+    render(PendingIndicator, { runtime, delayMs: 0 });
+    expect(screen.queryByRole('progressbar')).toBeNull();
     await runtime.scenarios.load('busy');
     flushSync();
     expect(seen).toEqual(['generate', 'validate', 'write', 'done', 'null']);
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 });

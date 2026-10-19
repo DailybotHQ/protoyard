@@ -1,5 +1,6 @@
 import { PermissionDeniedError, SimulatedServiceError } from '@protoyard/core';
 import { toast } from '@protoyard/ui';
+import { mountedRuntime } from './context.ts';
 
 /**
  * Consistent feedback for domain services. Wrap UI-triggered mutations:
@@ -10,6 +11,11 @@ import { toast } from '@protoyard/ui';
  * Permission and simulated-environment failures become toasts; validation
  * errors (anything with an `issues` object) are returned untouched so forms
  * can show them inline.
+ *
+ * Pending feedback comes for free: the call counts in the mounted runtime's
+ * `pending` signal (the global progress bar), and because `runService`
+ * returns a promise, a `@protoyard/ui` Button wired as
+ * `onclick={() => runService(...)}` shows its spinner until it settles.
  */
 
 export type ServiceResult<T> = { ok: true; value: T } | { ok: false; error: unknown };
@@ -21,6 +27,8 @@ export interface RunServiceOptions {
   errorTitle?: string;
   /** Skip toasts for validation errors (default true). */
   silentValidation?: boolean;
+  /** Count the call in the runtime's pending signal (default true). */
+  trackPending?: boolean;
 }
 
 export function isValidationError(
@@ -73,7 +81,10 @@ export async function runService<T>(
   options: RunServiceOptions = {}
 ): Promise<ServiceResult<T>> {
   try {
-    const value = await fn();
+    const pending = options.trackPending === false ? undefined : mountedRuntime()?.pending;
+    const value = pending
+      ? await pending.track({ kind: 'service', label: 'runService' }, fn)
+      : await fn();
     if (options.success) {
       const s = typeof options.success === 'string' ? { title: options.success } : options.success;
       toast.success(s.title, s.description ? { description: s.description } : undefined);
