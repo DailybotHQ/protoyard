@@ -6,15 +6,11 @@ files, settings, states and an app command palette. They are built on
 `@protoyard/ui` tokens, and the engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status:** `./settings`, `./states` and `./commands` are implemented; the
-> other subpaths exist and are empty until their PLAN_003 task lands, and
-> this README documents each view then.
-> **Status:** `./calendar`, `./map`, `./settings` and `./states` are implemented; the other subpaths
-> exist and are empty until their PLAN_003 task lands, and this README
-> documents each view then.
-> **Status:** `./settings`, `./states`, `./commands` and `./editor` are
-> implemented; the other subpaths exist and are empty until their PLAN_003
-> task lands, and this README documents each view then.
+> **Status:** `./board`, `./calendar`, `./commands`, `./editor`, `./map`,
+> `./settings` and `./states` are implemented; `./activity`, `./files`,
+> `./grid`, `./notifications`, `./scenarios`, `./timeline` and `./tree` are
+> empty until their PLAN_003 task lands, and this README documents each view
+> then.
 
 ## Install
 
@@ -412,4 +408,62 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   load as a separate 4.5 KB chunk on the first preview (at once in `split`).
 - **Limits:** toolbar commands set the textarea value directly, so the
   browser's undo history does not include them.
+
+## Board (`@protoyard/views-ui/board`)
+
+`BoardView` is the rich kanban, on the `@protoyard/views/board` engine. The
+simple `Kanban` in `@protoyard/ui` is unchanged; use it for small boards
+without ranks, lanes or WIP limits.
+
+```svelte
+<script lang="ts">
+  import { liveQuery, runService } from '@protoyard/renderer-svelte';
+  import { BoardView } from '@protoyard/views-ui/board';
+
+  const tasks = liveQuery(() => services.listTasks(), { initial: [], deps: () => [] });
+</script>
+
+<BoardView
+  query={tasks}
+  label="Sprint board"
+  columns={[
+    { id: 'todo', title: 'To do' },
+    { id: 'doing', title: 'Doing', wip: { soft: 3, hard: 5 } },
+    { id: 'done', title: 'Done' },
+  ]}
+  lanes={[{ id: 'web', title: 'Web' }, { id: 'mobile', title: 'Mobile' }]}
+  getId={(t) => t.id} getColumn={(t) => t.status} getLane={(t) => t.team}
+  getRank={(t) => t.rank} getLabel={(t) => t.title}
+  onMove={(move) => services.moveTask(move)}
+  onOpen={(t) => navigate(`/tasks/${t.id}`)}
+>
+  {#snippet card(task, { pending })}<span class="font-medium">{task.title}</span>{/snippet}
+</BoardView>
+```
+
+- **Moves** go through `onMove(move, item)`: the service writes the column,
+  lane and rank (and `move.rerank`, when older data needed fresh ranks) in one
+  transaction and must enforce hard WIP limits too. The card moves at once,
+  shows a spinner and `aria-busy` until the promise settles, and goes back
+  (with an announcement and `runService`'s toast) when it fails.
+- **Pointer drag:** mouse and pen drag from anywhere on the card after 4 px
+  (a click still opens it), with a placeholder at the drop position and
+  auto-scroll near the board's edges. On touch, drag from the grip, so a swipe
+  still scrolls the board. A drop the rules reject shows a toast and the
+  reason.
+- **Keyboard:** each card is a focusable control whose description explains
+  the keys: Space picks it up, the arrows move it (Shift + Up/Down changes
+  lane), Space drops, Escape cancels, Enter opens. The held card previews
+  where it would land, and every step is announced.
+- **"Move to…" menu** on each card: columns and lanes, with full or
+  disallowed targets disabled.
+- **WIP:** each column shows `count / limit` with warn and full styling; a
+  full column refuses drops.
+- **Lanes** collapse and expand like an accordion. **Phones:** one column per
+  screen with snap scrolling. Motion only with `motion-safe`.
+- **States:** loading, errors (with `onRetry`) and offline come from
+  `QueryState`; an empty column says "No cards".
+- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
+  ui, renderer, lucide, Bits UI and zod external; 2026-10-19): 9.3 KB with
+  the board engine (6.6 KB component, 3.1 KB engine).
 
