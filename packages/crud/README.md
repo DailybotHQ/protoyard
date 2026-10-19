@@ -38,6 +38,34 @@ blueprint's entity services and `runtime.members` (`session.assert` → zod →
 Lists lay out as a single `minmax(0, 1fr)` grid column, so a wide table scrolls inside its
 card instead of widening the page on phones.
 
+## Calendar screen (`@protoyard/crud/screens/calendar`)
+
+A blueprint `calendar` screen (`entity`, `dateField`, `endField`, `colorBy`, `view`) on top of
+`CalendarView` from `@protoyard/views-ui/calendar`, in its own lazy entry:
+
+```svelte
+<script lang="ts">
+import { CalendarScreen } from '@protoyard/crud/screens/calendar';
+</script>
+
+<CalendarScreen {runtime} {blueprint} {services} screen={calendarScreen} />
+```
+
+- A `date` field shows all-day events (`endField` is the last day, inclusive); a `datetime`
+  field shows timed events (one hour without an end). Generated ISO instants in date fields
+  land on their civil day in the persona's zone. Records without a date are counted under the
+  calendar, not hidden silently.
+- Moving or resizing an event calls the entity service's `update` (pending, then saved, or
+  rolled back on error). An empty slot or day opens the create form prefilled with that date
+  and time. Both follow the persona's `<entity>:update` / `:create` capabilities, so a viewer
+  gets a read-only calendar.
+- `colorBy` colors events by enum value in declared order, with a legend. Today, the
+  now-line and the week follow the persona's zone and locale and the runtime clock.
+- Below 640 px it starts in the agenda list; otherwise in the screen's `view`.
+- It brings in `@protoyard/views-ui` and `@protoyard/views` (lazy, with this entry only).
+  Prototypes that use it add `@source` for `@protoyard/views-ui` in their CSS so Tailwind
+  sees the view's classes (see the views-ui README).
+
 ## Settings screen (`@protoyard/crud/screens/settings`)
 
 A separate entry, so the screen loads only with its route. Sections come from a blueprint

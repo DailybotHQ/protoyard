@@ -122,7 +122,8 @@ services.
   `change.writes` is `splitSeries` output for that scope (`newId` names the
   series a "following" edit creates).
 - **Read-only** without `onChange` (nothing to drag or grab); no create
-  without `onCreate`. Data states (loading, offline, denied, failed) come from
+  without `onCreate`. An `onCreate` that only opens a form returns `false`, so
+  the view does not announce a creation the form has not made. Data states (loading, offline, denied, failed) come from
   `QueryState`.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9, with svelte,
   core, `@protoyard/ui`, the renderer, lucide, Bits UI and zod external;
