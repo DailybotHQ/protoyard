@@ -1,12 +1,13 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, join, posix } from 'node:path';
 import {
   AVATAR_DIR,
   AVATAR_IMAGE_SIZES,
   listAvatarFiles,
 } from '@protoyard/renderer-svelte/avatars-plugin';
+import { ARTIFACT_LIMITS, type ArtifactPackManifest, packArtifact } from '../lib/artifact-pack.ts';
 import { buildPrototype, scanForForeignCode } from '../lib/build.ts';
 import { digestDirectory } from '../lib/checksum.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
@@ -106,9 +107,90 @@ export function showcaseEntries(
     }));
 }
 
+/** Selects showcase demos by slug while keeping the normal prototype/template rules. */
+export function selectShowcaseEntries(
+  entries: readonly RegistryEntry[],
+  options: { templates: boolean; slugs?: readonly string[] }
+): ShowcaseEntry[] {
+  const candidates = showcaseEntries(entries, { templates: options.templates });
+  if (!options.slugs) return candidates;
+  const wanted = new Set(options.slugs);
+  const found = new Set(
+    candidates.filter((item) => wanted.has(item.entry.slug)).map((item) => item.entry.slug)
+  );
+  const missing = options.slugs.filter((slug) => !found.has(slug));
+  if (missing.length > 0) {
+    throw new CliError(
+      'not_found',
+      `No showcase prototype or template for: ${missing.join(', ')}.`,
+      {
+        hint: 'Check the slugs with `pnpm protoyard list --kind prototype` or omit --slugs.',
+      }
+    );
+  }
+  return candidates.filter((item) => wanted.has(item.entry.slug));
+}
+
 /** The one avatar folder every showcase app points at: `<base>avatars/`. */
-export function showcaseAvatarBase(base: string): string {
+export function showcaseAvatarBase(base: string, appPath?: string): string {
+  if (base === './' && appPath) return `${posix.relative(appPath, AVATAR_DIR)}/`;
   return `${base}${AVATAR_DIR}/`;
+}
+
+/** Refuses the exact artifact-version file count before writing any pack. */
+export function assertShowcaseArtifactLimit(fileCount: number, slugs?: readonly string[]): void {
+  if (fileCount <= ARTIFACT_LIMITS.filesPerVersion) return;
+  const selection = slugs?.length ? ` for selection ${slugs.join(', ')}` : '';
+  throw new CliError(
+    'validation',
+    `Showcase artifact${selection} has ${fileCount} files; one Artifact version allows at most ${ARTIFACT_LIMITS.filesPerVersion}.`,
+    {
+      hint: 'Reduce the bundled demos with `--slugs prototype-a,prototype-b` and try again.',
+    }
+  );
+}
+
+export async function packShowcaseArtifact(
+  distDir: string,
+  outDir: string,
+  options: { slugs?: readonly string[] } = {}
+): Promise<ArtifactPackManifest> {
+  const files = await digestDirectory(distDir);
+  assertShowcaseArtifactLimit(files.length, options.slugs);
+  const result = await packArtifact({
+    distDir,
+    outDir,
+    slug: 'showcase',
+    manifest: {
+      id: 'protoyard.showcase',
+      name: 'Protoyard showcase',
+      description: 'A selected set of functional Protoyard prototype demos.',
+      category: 'marketplace',
+    },
+    allowStaticPage: true,
+  });
+  if (!result.ok) {
+    const versionLimit = result.issues.find((issue) => issue.path === '(version)');
+    if (versionLimit?.reason.includes('file limit')) {
+      const count = files.length;
+      assertShowcaseArtifactLimit(count, options.slugs);
+    }
+    throw new CliError(
+      'validation',
+      `Showcase breaks ${result.issues.length} Claude artifact rule(s).`,
+      { hint: result.issues.map((issue) => `${issue.path}: ${issue.reason}`).join('\n') }
+    );
+  }
+  return result.manifest;
+}
+
+function parseShowcaseSlugs(value: string | undefined): string[] | undefined {
+  if (value === undefined) return undefined;
+  const slugs = value.split(',').map((slug) => slug.trim());
+  if (slugs.some((slug) => slug.length === 0)) {
+    throw new CliError('usage', '--slugs needs a comma-separated list of non-empty slugs.');
+  }
+  return [...new Set(slugs)];
 }
 
 /**
@@ -170,6 +252,33 @@ export function showcaseRegistry(registry: Registry, targets: readonly ShowcaseT
       return url ? { ...entry, embedded: { url, scenarioLinks: true } } : entry;
     }),
   } as Registry;
+}
+
+function showcaseRegistryForSelection(
+  registry: Registry,
+  entries: readonly ShowcaseEntry[]
+): Registry {
+  const selected = new Set(entries.map(({ entry }) => `${entry.kind}:${entry.slug}`));
+  return {
+    ...registry,
+    entries: registry.entries.filter((entry) => selected.has(`${entry.kind}:${entry.slug}`)),
+  } as Registry;
+}
+
+/** Astro emits `./` assets as `/./...`; normalize those URLs for an Artifact page. */
+export function rewriteAstroRelativeBase(value: string): string {
+  return value.replaceAll('/./', './');
+}
+
+async function normalizeShowcaseRelativeAssets(distDir: string): Promise<void> {
+  const textExtensions = /\.(?:css|html|js|json|mjs|svg|txt)$/i;
+  for (const file of await digestDirectory(distDir)) {
+    if (!textExtensions.test(file.path)) continue;
+    const path = join(distDir, file.path);
+    const content = await readFile(path, 'utf8');
+    const normalized = rewriteAstroRelativeBase(content);
+    if (normalized !== content) await writeFile(path, normalized, 'utf8');
+  }
 }
 
 /** Same allow-list as build outputs; an existing site is only replaced when it is ours. */
@@ -236,8 +345,20 @@ async function serve(dir: string, base: string, options: Record<string, unknown>
 }
 
 export const showcaseCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
-  const base = normalizeBase(opt(options, 'base') ?? '/');
-  if (base === './') {
+  const target = opt(options, 'target') ?? 'site';
+  const artifactTarget = target === 'artifact';
+  const slugs = parseShowcaseSlugs(opt(options, 'slugs'));
+  if (slugs && !artifactTarget) {
+    throw new CliError('usage', '--slugs is only available with --target artifact.');
+  }
+  const requestedBase = opt(options, 'base');
+  const base = normalizeBase(requestedBase ?? (artifactTarget ? './' : '/'));
+  if (artifactTarget && base !== './') {
+    throw new CliError('usage', 'Showcase artifact packs require the relative base "./".', {
+      hint: 'Drop --base or pass --base ./ so every gallery link stays inside the artifact.',
+    });
+  }
+  if (!artifactTarget && base === './') {
     throw new CliError(
       'usage',
       'A showcase needs an absolute --base such as "/" or "/protoyard/".'
@@ -247,6 +368,15 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   const requestedProject = opt(options, 'project');
   const branch = opt(options, 'branch');
   const dryRun = flag(options, 'dryRun');
+  if (
+    artifactTarget &&
+    (publishId !== undefined || flag(options, 'serve') || flag(options, 'skipBuild'))
+  ) {
+    throw new CliError(
+      'usage',
+      'The artifact target only creates a local pack; remove --publish, --serve and --skip-build.'
+    );
+  }
   if (
     publishId === undefined &&
     (requestedProject !== undefined || branch !== undefined || dryRun)
@@ -284,16 +414,25 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   const { registry } = await buildIndex(ctx.paths);
   // Templates are bundled by default (the marketplace tries every product type);
   // `--no-templates` leaves them out. `--include-templates` is still accepted.
-  const entries = showcaseEntries(registry.entries, { templates: options.templates !== false });
+  const entries = selectShowcaseEntries(registry.entries, {
+    templates: options.templates !== false,
+    ...(slugs ? { slugs } : {}),
+  });
   const includeDevtools = options.devtools !== false;
   const staging = `${out}.staging-${process.pid}`;
   const appsStaging = `${out}.apps-${process.pid}`;
+  const artifactStaging = join(
+    ctx.paths.artifacts,
+    'showcase-builds',
+    `artifact-pack-${process.pid}`
+  );
   await rm(staging, { recursive: true, force: true });
   await rm(appsStaging, { recursive: true, force: true });
+  await rm(artifactStaging, { recursive: true, force: true });
 
   const targets: ShowcaseTarget[] = [];
-  const avatarBase = showcaseAvatarBase(base);
   let avatars: { path: string; files: number; bytes: number } | undefined;
+  let artifactManifest: ArtifactPackManifest | undefined;
   try {
     // 1. Every demo, sequentially, each with its final public base.
     for (const { entry, appPath, marketplacePath, storageNamespace } of entries) {
@@ -303,12 +442,12 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
       try {
         const appOut = join(appsStaging, appPath);
         const result = await buildPrototype(ctx, entry, join(ctx.root, entry.path), {
-          base: `${base}${appPath}`,
+          base: artifactTarget ? './' : `${base}${appPath}`,
           includeDevtools,
           out: appOut,
           allowExternalOut: allowExternal,
           // One shared copy at the site root (step 3), none inside the app.
-          avatarBase,
+          avatarBase: showcaseAvatarBase(base, artifactTarget ? appPath : undefined),
           ...(flag(options, 'offline') ? { offline: true } : {}),
           ...(storageNamespace ? { storageNamespace } : {}),
           manifestPath: join(
@@ -343,11 +482,15 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
         });
       }
     }
+    if (artifactTarget) assertShowcasePublishable(targets);
 
     // 2. The gallery, from a showcase registry that marks the bundled builds.
     // It lives in the workspace's .protoyard/ so thumbnail paths still resolve.
     const registryPath = join(ctx.paths.state, 'showcase-registry.json');
-    await writeJsonAtomic(registryPath, showcaseRegistry(registry, targets));
+    const galleryRegistry = artifactTarget
+      ? showcaseRegistryForSelection(registry, entries)
+      : registry;
+    await writeJsonAtomic(registryPath, showcaseRegistry(galleryRegistry, targets));
     ctx.out.info('Building the gallery…');
     const gallery = await buildGallery(ctx, staging, registryPath, base, quiet);
     if (gallery.code !== 0) {
@@ -355,6 +498,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
         hint: gallery.log.trim().split('\n').slice(-10).join('\n') || 'See the output above.',
       });
     }
+    if (artifactTarget) await normalizeShowcaseRelativeAssets(staging);
 
     // 3. Move each app under its detail page folder, then swap the site in.
     for (const target of targets.filter((t) => t.ok)) {
@@ -367,29 +511,57 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
     // The one shared avatar folder every app points at.
     if (targets.some((t) => t.ok)) avatars = await shareAvatars(staging);
     // The marker lets a later run replace this site, and only this site.
-    await writeJsonAtomic(join(staging, SHOWCASE_MARKER), {
+    const marker = {
       generator: '@protoyard/cli',
       builtAt: new Date().toISOString(),
-    });
+    };
+    await writeJsonAtomic(join(staging, SHOWCASE_MARKER), marker);
+    if (artifactTarget) {
+      // Local ownership markers are not part of the artifact page or its files.
+      await rm(join(staging, SHOWCASE_MARKER), { force: true });
+      try {
+        await mkdir(dirname(artifactStaging), { recursive: true });
+        artifactManifest = await packShowcaseArtifact(staging, artifactStaging, { slugs });
+      } finally {
+        await writeJsonAtomic(join(staging, SHOWCASE_MARKER), marker);
+      }
+    }
     // Re-check right before deleting: the guard ran minutes ago, before the builds.
     resolveShowcaseOut(ctx, out, allowExternal);
     await rm(out, { recursive: true, force: true });
     await mkdir(dirname(out), { recursive: true });
     await rename(staging, out);
+    if (artifactTarget) {
+      await rename(artifactStaging, join(out, 'artifact'));
+    }
   } finally {
     await rm(staging, { recursive: true, force: true });
     await rm(appsStaging, { recursive: true, force: true });
+    await rm(artifactStaging, { recursive: true, force: true });
   }
 
   const files = await digestDirectory(out);
   const totalBytes = files.reduce((sum, f) => sum + f.size, 0);
   const summary = {
     out: toPosixRelative(ctx.root, out),
+    target,
     base,
     includeDevtools,
     files: files.length,
     totalBytes,
     ...(avatars ? { avatars } : {}),
+    ...(artifactManifest
+      ? {
+          artifact: {
+            outDir: toPosixRelative(ctx.root, join(out, 'artifact')),
+            fileCount: artifactManifest.files.length + 1,
+            files: artifactManifest.files.length,
+            batches: artifactManifest.batches,
+            buildSha256: artifactManifest.buildSha256,
+            totalBytes: artifactManifest.totalBytes,
+          },
+        }
+      : {}),
     targets,
   };
   await writeJsonAtomic(join(ctx.paths.artifacts, 'showcase-builds', 'showcase.json'), {
@@ -457,6 +629,11 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
       o.always(
         `${mark(c, failed.length ? 'warn' : 'pass')} Showcase → ${c.cyan(summary.out)} (${files.length} files, ${formatBytes(totalBytes)}, base ${base}, DevTools ${includeDevtools ? 'included' : 'excluded'})`
       );
+      if (artifactManifest) {
+        o.always(
+          `${mark(c, 'pass')} Artifact pack → ${c.cyan(toPosixRelative(ctx.root, join(out, 'artifact')))} (${artifactManifest.files.length + 1} files, ${artifactManifest.batches.length} publish batch${artifactManifest.batches.length === 1 ? '' : 'es'})`
+        );
+      }
       if (server) {
         o.always(`  Serving at ${c.cyan(server.url)}`);
         for (const url of lan) o.always(`  LAN: ${c.cyan(url)}`);
