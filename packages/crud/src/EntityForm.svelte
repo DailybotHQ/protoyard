@@ -1,5 +1,11 @@
 <script lang="ts">
-import type { Blueprint, BlueprintEntity, EntityInput, EntityServices } from '@protoyard/blueprint';
+import type {
+  Blueprint,
+  BlueprintEntity,
+  BlueprintField,
+  EntityInput,
+  EntityServices,
+} from '@protoyard/blueprint';
 import { fieldLabel, inputProperty } from '@protoyard/blueprint';
 import type { PrototypeRuntime, Row } from '@protoyard/core';
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
@@ -78,6 +84,26 @@ $effect(() => {
   seededFor = key;
 });
 
+/**
+ * Saved records shuffle their face through the entity service (session.assert →
+ * zod → environment.run → db.transaction); new records shuffle the draft.
+ */
+function shuffleFor(field: BlueprintField): (() => Promise<string | null | undefined>) | undefined {
+  const service = services?.[entity.name];
+  const recordId = initial?.id;
+  if (mode !== 'edit' || !service || typeof recordId !== 'string') return undefined;
+  return async () => {
+    const result = await runService(() => service.shuffleAvatar(recordId, field.name), {
+      errorTitle: 'Could not shuffle face',
+      silentValidation: false,
+      success: 'New face saved',
+    });
+    if (!result.ok) return undefined;
+    const saved = result.value[inputProperty(field)];
+    return typeof saved === 'string' ? saved : null;
+  };
+}
+
 async function submit(event: SubmitEvent) {
   event.preventDefault();
   if (busy || disabled) return;
@@ -136,6 +162,8 @@ async function submit(event: SubmitEvent) {
             error={errors[key]}
             disabled={disabled || busy}
             id={props.id}
+            shuffleKey={`${entity.name}:${String(initial?.id ?? 'new')}:${field.name}`}
+            onShuffle={field.kind === 'avatar' ? shuffleFor(field) : undefined}
           />
         {/if}
       {/snippet}

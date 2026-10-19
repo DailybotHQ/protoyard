@@ -12,8 +12,9 @@ blueprint's entity services and `runtime.members` (`session.assert` → zod →
 | Component | What it does |
 | --- | --- |
 | `EntityList` | `DataTable` with search, sort, pagination, row selection and bulk delete; Trash and an **Undo** toast for `softDelete` entities; CSV export and import when `features.csv` is on (the codec loads lazily). Related records and personas are shown by name; money is formatted from integer cents with the blueprint currency. |
-| `EntityForm` | A `FormField` per blueprint field with inline zod errors through `runService`. Pass `runtime`, `blueprint` and `services` to edit relation and persona fields with pickers. |
+| `EntityForm` | A `FormField` per blueprint field with inline zod errors through `runService`. Pass `runtime`, `blueprint` and `services` to edit relation and persona fields with pickers. `avatar` fields use a lazy picker chunk: Choose face opens a searchable grid of thumbnails (arrow keys, Home and End move; Enter or Space picks) and Shuffle face picks the next face. In edit mode with `services`, Shuffle face calls `shuffleAvatar` and saves at once (the button shows pending feedback); otherwise it changes the draft only. |
 | `EntityDetail` | A record with its fields, indexed related records, attachments and audit history. Uses an `h2` heading by default; set `headingLevel` when embedding it under another page heading. |
+| `RecordAvatar` | A record's face from an `avatar` field: a lazy library image (64 px at 1x, 128 px at 2x) with initials as the fallback. `EntityList` shows it next to the title and `EntityDetail` in the header and the field. |
 | `RelationPicker` | Searches indexed relation options and can create a related record inline when the persona may create it. |
 | `NotificationsBell` | Unread badge and list from `createNotificationService`; mark one or all read (`features.notifications`). |
 | `MembersScreen` | Invite, change role and remove members; hidden or disabled without `members:*`. The service refuses to remove the last owner. |

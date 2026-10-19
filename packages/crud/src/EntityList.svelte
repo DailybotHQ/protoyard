@@ -6,6 +6,8 @@ import {
   type EntityService,
   type EntityServices,
   entityTable,
+  inputProperty,
+  primaryAvatarField,
 } from '@protoyard/blueprint';
 import type { Row } from '@protoyard/core';
 import { can, getRuntime, liveQuery, runService } from '@protoyard/renderer-svelte';
@@ -17,6 +19,7 @@ import {
   entitySearchKeys,
   loadEntityListDisplayNames,
 } from './columns.ts';
+import RecordAvatar from './fields/RecordAvatar.svelte';
 
 /**
  * Blueprint-driven list: DataTable with selection, bulk delete, optional CSV
@@ -44,7 +47,18 @@ const caps = $derived(entity ? CAPABILITIES(blueprint)[entity.name] : undefined)
 const runtime = getRuntime();
 
 let displayNames = $state<EntityListDisplayNames>({});
-const columns = $derived(entity ? entityListColumns(entity, displayNames) : []);
+const avatarField = $derived(entity ? primaryAvatarField(entity) : undefined);
+const titleField = $derived(entity?.fields.find((f) => f.name === entity.titleField));
+const columns = $derived.by(() => {
+  if (!entity) return [];
+  const base = entityListColumns(entity, displayNames);
+  if (!avatarField || !titleField) return base;
+  // People get their face next to the record title.
+  const titleKey = inputProperty(titleField);
+  return base.map((column) =>
+    column.key === titleKey ? { ...column, cell: titleWithFace } : column
+  );
+});
 const searchKeys = $derived(entity ? entitySearchKeys(entity) : []);
 
 $effect(() => {
@@ -228,6 +242,17 @@ async function onImportFile(event: Event) {
     );
 }
 </script>
+
+{#snippet titleWithFace(row: Row)}
+  {@const title = titleField ? row[inputProperty(titleField)] : row.id}
+  <span class="inline-flex min-w-0 items-center gap-2">
+    <RecordAvatar
+      avatar={avatarField ? row[inputProperty(avatarField)] : null}
+      name={String(title ?? row.id)}
+    />
+    <span class="truncate">{title === null || title === undefined || title === '' ? '—' : String(title)}</span>
+  </span>
+{/snippet}
 
 {#if !entity || !service || !caps}
   <p class="text-sm text-destructive" role="alert">Unknown entity “{entityName}”.</p>
