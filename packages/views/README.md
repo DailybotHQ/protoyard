@@ -7,9 +7,9 @@ scenario generators run in Node tests, in services and in generators, so this
 package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
-> **Status:** `./board`, `./calendar`, `./grid`, `./map` and `./editor` are
-> implemented; the other subpaths exist and are empty until their PLAN_003
-> task lands, and this README documents each one then.
+> **Status:** `./board`, `./calendar`, `./grid`, `./map`, `./editor` and
+> `./scenarios` are implemented; the other subpaths exist and are empty until
+> their PLAN_003 task lands, and this README documents each one then.
 
 ## Subpaths
 
@@ -248,4 +248,46 @@ text and selection out), used by `@protoyard/views-ui/editor`:
 quote, for every selected line), `setHeading`, `insertCodeBlock`,
 `continueList` (Enter in a list), `triggerAt` (the `@`/`#` being typed,
 never inside an email or a word) and `applyCompletion`.
+
+## Scenario generators (`@protoyard/views/scenarios`)
+
+Deterministic rows for the views kit, in the kit's own shapes. Each generator
+draws from its own rng keyed by the scenario id, seed and generator name (the
+way `dayRng` keys days in `@protoyard/scenarios`), takes ids from `ctx.ids` and
+time from `ctx.time`, and never reads an ambient random source or the system
+clock. Import it from your lazy generator module.
+
+```ts
+import { composeScenario, PRESETS } from '@protoyard/scenarios';
+import { defaultPeople, generateCalendarEvents, generateTaskPlan, viewsFragments } from '@protoyard/views/scenarios';
+
+// A scenario with a dense calendar (fragments set generators.views.<kit>):
+export const crunch = composeScenario(PRESETS['busy-week'], viewsFragments.calendar('dense'), { id: 'crunch' });
+
+// In generate(ctx):
+const people = defaultPeople(ctx); // or your personas as { id, name, handle, email }
+const events = generateCalendarEvents(ctx, { people, timeZone: 'America/Bogota' });
+const { tasks, dependencies } = generateTaskPlan(ctx, { people });
+```
+
+| Generator | Rows | Integrity |
+| --- | --- | --- |
+| `generateCalendarEvents` | `CalendarSeries` (calendar engine): weekly stand-ups with one cancelled and one moved day, a biweekly retro, a monthly first-Tuesday review, one-off meetings, an all-day off-site | rules pass `RecurrenceRuleSchema`; EXDATE and override keys are real occurrences; one-offs on working days; wall time kept in `timeZone` |
+| `generateTaskPlan` | tasks (working-day dates, milestones, progress, integer `costCents`) and FS/SS dependencies with lag | acyclic by construction; every FS successor starts after its predecessor ends, every SS successor on or after it starts |
+| `generateGeoWorld` | sites, depot routes and geofences on Port Meridian | sites inside their district on land; routes visit the nearest remaining stop; regular-polygon fences that never cross themselves |
+| `generateOutline` | outline or page tree with board ranks | parents listed first; depth-bounded; unique ordered ranks per parent |
+| `generateFileTree` | folders and files with MIME types, integer sizes and ranks | parents are folders; folders are 0 bytes |
+| `generateComments` | threads with replies and `@handle` mentions | mentions resolve to `people`; replies stay in their subject and move forward in time |
+| `generateActivity` | created / updated / commented / assigned / completed entries | each subject starts with `created`; newest first |
+| `generateNotifications` | mention / assigned / comment notifications, some read | recipients are `people`; `readAt` is after `at`; newest first |
+
+- **Levels:** `empty`, `typical`, `dense` and `edge` (awkward cases:
+  overlapping and midnight-crossing events, very long titles, a fan-in task,
+  a six-deep outline, zero-byte and unicode file names, two sites at the same
+  spot, a 50 m geofence, all-unread notifications). The level comes from the
+  `level` option, else the scenario's `generators.views.<kit>` knob (set by
+  `viewsFragments.<kit>(level)`), else its density.
+- **Speed** (all eight kits, best of five, on a heavily loaded machine,
+  2026-10-19): typical 2.0 ms, dense 21.8 ms, edge 1.8 ms, inside the 50 ms
+  `generateMs` budget. Bump `VIEWS_GENERATOR_VERSION` when output changes.
 
