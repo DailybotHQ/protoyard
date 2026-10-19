@@ -5,11 +5,14 @@ import { describe, expect, it } from 'vitest';
 import {
   appPathFor,
   assertShowcasePublishable,
+  marketplacePathFor,
   publishShowcaseDirectory,
+  showcaseEntries,
   showcaseRegistry,
 } from '../src/commands/showcase.ts';
 import { SHOWCASE_MARKER } from '../src/lib/output-guard.ts';
 import type { Registry, RegistryEntry } from '../src/lib/registry.ts';
+import { buildEnv } from '../src/lib/vite.ts';
 import type { CommandContext } from '../src/lib/workspace.ts';
 import type { PublishProvider } from '../src/publish/types.ts';
 import { createWorkspace } from './helpers.ts';
@@ -20,6 +23,61 @@ describe('showcase', () => {
   it('places apps under their gallery detail pages', () => {
     expect(appPathFor(entry('prototype', 'crm-demo'))).toBe('p/crm-demo/app/');
     expect(appPathFor(entry('template', 'blank'))).toBe('t/blank/app/');
+  });
+
+  it('bundles every prototype and template demo by default, never blueprints', () => {
+    const entries = [
+      entry('prototype', 'crm-demo'),
+      entry('template', 'chat-widget'),
+      entry('blueprint', 'booking-scheduling'),
+      entry('template', 'blank'),
+    ];
+    const all = showcaseEntries(entries, { templates: true });
+    expect(
+      all.map((e) => [e.entry.slug, e.appPath, e.marketplacePath, e.storageNamespace])
+    ).toEqual([
+      ['crm-demo', 'p/crm-demo/app/', 'marketplace/prototype/crm-demo/', undefined],
+      [
+        'chat-widget',
+        't/chat-widget/app/',
+        'marketplace/template/chat-widget/',
+        'template-demo-chat-widget',
+      ],
+      ['blank', 't/blank/app/', 'marketplace/template/blank/', 'template-demo-blank'],
+    ]);
+    // --no-templates: prototypes only.
+    expect(showcaseEntries(entries, { templates: false }).map((e) => e.entry.slug)).toEqual([
+      'crm-demo',
+    ]);
+    expect(marketplacePathFor(entry('template', 'blank'))).toBe('marketplace/template/blank/');
+  });
+
+  it('builds a template demo with its demo namespace, and never inherits one', () => {
+    const base = { outDir: '/tmp/out', base: '/t/blank/app/', includeDevtools: false };
+    expect(
+      buildEnv({ ...base, storageNamespace: 'template-demo-blank' }).PROTOYARD_STORAGE_NAMESPACE
+    ).toBe('template-demo-blank');
+    const previous = process.env.PROTOYARD_STORAGE_NAMESPACE;
+    process.env.PROTOYARD_STORAGE_NAMESPACE = 'leaked-from-the-shell';
+    try {
+      // An empty value makes the renderer use the manifest's own namespace.
+      expect(buildEnv(base).PROTOYARD_STORAGE_NAMESPACE).toBe('');
+    } finally {
+      if (previous === undefined) delete process.env.PROTOYARD_STORAGE_NAMESPACE;
+      else process.env.PROTOYARD_STORAGE_NAMESPACE = previous;
+    }
+  });
+
+  it('marks template demos as embedded so the marketplace can play them', () => {
+    const registry = {
+      entries: [entry('template', 'blank'), entry('blueprint', 'booking')],
+    } as Registry;
+    const result = showcaseRegistry(registry, [
+      { kind: 'template', slug: 'blank', appPath: 't/blank/app/', ok: true, durationMs: 1 },
+    ]);
+    expect(
+      result.entries.map((e) => (e as RegistryEntry & { embedded?: unknown }).embedded ?? null)
+    ).toEqual([{ url: 't/blank/app/', scenarioLinks: true }, null]);
   });
 
   it('marks only successfully built entries as embedded', () => {

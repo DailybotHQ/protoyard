@@ -397,7 +397,9 @@ export function createProgram(env: RunnerEnv): Command {
 
   program
     .command('showcase')
-    .description('ONE static site: the gallery + every prototype build at <base>p/<slug>/app/')
+    .description(
+      'ONE static site: the gallery and marketplace + a live demo of every prototype (<base>p/<slug>/app/) and template (<base>t/<name>/app/)'
+    )
     .option('--out <dir>', 'output folder', 'artifacts/showcase')
     .option(
       '--allow-external-out',
@@ -405,7 +407,8 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--base <path>', 'absolute public base of the site', '/')
     .option('--no-devtools', 'leave the DevTools panel out of the bundled prototypes')
-    .option('--include-templates', 'also bundle templates at <base>t/<name>/app/')
+    .option('--no-templates', 'leave the template demos out (prototypes only)')
+    .option('--include-templates', 'accepted for older scripts: templates are bundled by default')
     .option('--offline', 'build every bundled prototype with the offline service worker')
     .option('--publish <provider>', 'publish the completed showcase (Cloudflare Pages only)')
     .option('--project <name>', 'Cloudflare Pages project (default protoyard-showcase)')

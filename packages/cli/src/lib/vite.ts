@@ -72,12 +72,20 @@ export interface ViteBuildOptions {
   includeDevtools: boolean;
   /** Ask the renderer config to add the offline service worker (PROTOYARD_OFFLINE=1). */
   offline?: boolean;
+  /**
+   * Storage namespace baked into the build instead of the manifest's
+   * (PROTOYARD_STORAGE_NAMESPACE; template demos use `template-demo-<name>`).
+   */
+  storageNamespace?: string;
   /** Pipe output (for --json) instead of inheriting the terminal. */
   quiet: boolean;
 }
 
 export function buildEnv(
-  options: Pick<ViteBuildOptions, 'outDir' | 'base' | 'includeDevtools' | 'offline'>
+  options: Pick<
+    ViteBuildOptions,
+    'outDir' | 'base' | 'includeDevtools' | 'offline' | 'storageNamespace'
+  >
 ) {
   return {
     ...process.env,
@@ -87,6 +95,8 @@ export function buildEnv(
     PROTOYARD_INCLUDE_DEVTOOLS: options.includeDevtools ? '1' : '0',
     // Only forced on by --offline; otherwise the manifest's build.offline decides.
     ...(options.offline ? { PROTOYARD_OFFLINE: '1' } : {}),
+    // Set explicitly either way, so an inherited value never renames a build's storage.
+    PROTOYARD_STORAGE_NAMESPACE: options.storageNamespace ?? '',
   };
 }
 
