@@ -1,0 +1,285 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Gridline Utility Ops",
+  "description": "Outage incidents, service areas and restoration crews for a fictional utility.",
+  "icon": "\u26a1",
+  "category": "operations",
+  "tags": ["utilities", "outages", "restoration"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Utility Operations",
+    "platforms": ["web"],
+    "features": ["incident-response", "restoration-tracking"],
+    "highlights": ["Outage map", "Restoration timeline", "Crew dispatch"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "utility-outages-brand",
+    "name": "Gridline Utility Ops",
+    "seed": "#a34f24",
+    "styleProfile": "crisp",
+    "font": "mono"
+  },
+  "entities": [
+    {
+      "name": "outage",
+      "plural": "outages",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "cause",
+          "kind": "text"
+        },
+        {
+          "name": "location",
+          "kind": "geo",
+          "region": "harbor-bay"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["reported", "crew-assigned", "repairing", "restored"],
+          "default": "reported",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "startedAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "restoredAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    },
+    {
+      "name": "crew",
+      "plural": "crews",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "specialty",
+          "kind": "enum",
+          "values": ["line", "substation", "tree-clearance"],
+          "default": "line",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "availability",
+          "kind": "enum",
+          "values": ["available", "assigned", "off-duty"],
+          "default": "available",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "service-area",
+      "plural": "service-areas",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "center",
+          "kind": "geo",
+          "region": "harbor-bay"
+        },
+        {
+          "name": "customersServed",
+          "kind": "integer",
+          "min": 0,
+          "trend": "growth",
+          "max": 50000
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "restoration-update",
+      "plural": "restoration-updates",
+      "titleField": "summary",
+      "fields": [
+        {
+          "name": "summary",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "outage",
+          "kind": "relation",
+          "to": "outage",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "crew",
+          "kind": "relation",
+          "to": "crew",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "recordedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["summary"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Gridline Utility Ops overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total outages",
+          "entity": "outage",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "outages over time",
+          "entity": "outage",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "outage",
+      "columns": ["reference", "cause", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "outage"
+    },
+    {
+      "type": "list",
+      "entity": "crew",
+      "columns": ["name", "specialty", "availability"]
+    },
+    {
+      "type": "form",
+      "entity": "crew"
+    },
+    {
+      "type": "list",
+      "entity": "service-area",
+      "columns": ["name", "customersServed"]
+    },
+    {
+      "type": "form",
+      "entity": "service-area"
+    },
+    {
+      "type": "list",
+      "entity": "restoration-update",
+      "columns": ["summary", "outage", "recordedAt"]
+    },
+    {
+      "type": "form",
+      "entity": "restoration-update"
+    },
+    {
+      "type": "map",
+      "entity": "outage",
+      "geoField": "location",
+      "path": "/outages/map",
+      "title": "Outage map",
+      "nav": {
+        "label": "Map",
+        "icon": "zap",
+        "order": 20
+      }
+    },
+    {
+      "type": "timeline",
+      "entity": "outage",
+      "startField": "startedAt",
+      "endField": "restoredAt",
+      "groupBy": "status",
+      "zoom": "week",
+      "path": "/outages/timeline",
+      "title": "Restoration timeline",
+      "nav": {
+        "label": "Restoration",
+        "icon": "chart-gantt",
+        "order": 21
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

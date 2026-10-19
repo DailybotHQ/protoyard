@@ -1,0 +1,289 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Pinecone Veterinary Care",
+  "description": "Pet patients, visits and care plans for a fictional veterinary clinic.",
+  "icon": "\ud83d\udc3e",
+  "category": "health",
+  "tags": ["veterinary", "clinic", "appointments"],
+  "catalog": {
+    "category": "health",
+    "productType": "Veterinary Clinic",
+    "platforms": ["web"],
+    "features": ["patient-records", "visit-planning"],
+    "highlights": ["Visit calendar", "Patient records", "Care plan follow-up"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "veterinary-clinic-brand",
+    "name": "Pinecone Veterinary Care",
+    "seed": "#277d78",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "patient",
+      "plural": "patients",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "species",
+          "kind": "text"
+        },
+        {
+          "name": "breed",
+          "kind": "text"
+        },
+        {
+          "name": "owner",
+          "kind": "relation",
+          "to": "pet-owner",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "bornAt",
+          "kind": "date",
+          "window": "past"
+        },
+        {
+          "name": "careDocument",
+          "kind": "file",
+          "accept": ["application/pdf"]
+        }
+      ],
+      "searchable": ["name"],
+      "features": {
+        "audit": true,
+        "files": true
+      }
+    },
+    {
+      "name": "pet-owner",
+      "plural": "pet-owners",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "phone",
+          "kind": "text"
+        },
+        {
+          "name": "email",
+          "kind": "text"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "visit",
+      "plural": "visits",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "patient",
+          "kind": "relation",
+          "to": "patient",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "veterinarian",
+          "kind": "relation",
+          "to": "veterinarian",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["scheduled", "in-progress", "follow-up", "complete"],
+          "default": "scheduled",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "scheduledAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "reason",
+          "kind": "text"
+        }
+      ],
+      "searchable": ["reference"]
+    },
+    {
+      "name": "veterinarian",
+      "plural": "veterinarians",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "specialty",
+          "kind": "text"
+        },
+        {
+          "name": "availability",
+          "kind": "enum",
+          "values": ["available", "in-surgery", "off-duty"],
+          "default": "available",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Pinecone Veterinary Care overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total patients",
+          "entity": "patient",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "patients over time",
+          "entity": "patient",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "patient",
+      "columns": ["name", "species", "owner"]
+    },
+    {
+      "type": "form",
+      "entity": "patient"
+    },
+    {
+      "type": "list",
+      "entity": "pet-owner",
+      "columns": ["name", "phone"]
+    },
+    {
+      "type": "form",
+      "entity": "pet-owner"
+    },
+    {
+      "type": "list",
+      "entity": "visit",
+      "columns": ["reference", "patient", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "visit"
+    },
+    {
+      "type": "list",
+      "entity": "veterinarian",
+      "columns": ["name", "specialty", "availability"]
+    },
+    {
+      "type": "form",
+      "entity": "veterinarian"
+    },
+    {
+      "type": "calendar",
+      "entity": "visit",
+      "dateField": "scheduledAt",
+      "view": "week",
+      "path": "/visits/calendar",
+      "title": "Visit calendar",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "patient",
+      "tabs": ["overview", "activity", "files", "related:visit"],
+      "path": "/patients/:id",
+      "title": "Patient chart",
+      "nav": {
+        "label": "Patient chart",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

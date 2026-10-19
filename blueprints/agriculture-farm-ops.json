@@ -1,0 +1,307 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Fieldnote Farm Operations",
+  "description": "Fields, crop plans and harvest records for a fictional growing cooperative.",
+  "icon": "🌱",
+  "category": "operations",
+  "tags": ["agriculture", "farm-ops", "harvest"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Farm Operations",
+    "platforms": ["web"],
+    "features": ["field-planning", "harvest-tracking"],
+    "highlights": ["Farm map", "Crop performance", "Harvest trends"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "agriculture-farm-ops-brand",
+    "name": "Fieldnote Farm Operations",
+    "seed": "#62852b",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "field",
+      "plural": "fields",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "location",
+          "kind": "geo",
+          "region": "north-valley"
+        },
+        {
+          "name": "areaAcres",
+          "kind": "number",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 8000
+        },
+        {
+          "name": "soilStatus",
+          "kind": "enum",
+          "values": ["healthy", "monitor", "resting"],
+          "default": "healthy",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "crop-plan",
+      "plural": "crop-plans",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "field",
+          "kind": "relation",
+          "to": "field",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "crop",
+          "kind": "enum",
+          "values": ["oats", "beans", "sunflower"],
+          "default": "oats",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "plantedAt",
+          "kind": "date",
+          "window": "past"
+        },
+        {
+          "name": "harvestBy",
+          "kind": "date",
+          "window": "around"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "harvest",
+      "plural": "harvests",
+      "titleField": "batch",
+      "fields": [
+        {
+          "name": "batch",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "field",
+          "kind": "relation",
+          "to": "field",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "cropPlan",
+          "kind": "relation",
+          "to": "crop-plan",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "yieldKg",
+          "kind": "number",
+          "min": 0,
+          "trend": "growth",
+          "max": 120000
+        },
+        {
+          "name": "harvestedAt",
+          "kind": "date",
+          "window": "past"
+        }
+      ],
+      "searchable": ["batch"]
+    },
+    {
+      "name": "field-task",
+      "plural": "field-tasks",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "field",
+          "kind": "relation",
+          "to": "field",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "done"],
+          "default": "planned",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "dueAt",
+          "kind": "date",
+          "window": "around"
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Fieldnote Farm Operations overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total fields",
+          "entity": "field",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "fields over time",
+          "entity": "field",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "field",
+      "columns": ["name", "areaAcres", "soilStatus"]
+    },
+    {
+      "type": "form",
+      "entity": "field"
+    },
+    {
+      "type": "list",
+      "entity": "crop-plan",
+      "columns": ["name", "field", "crop"]
+    },
+    {
+      "type": "form",
+      "entity": "crop-plan"
+    },
+    {
+      "type": "list",
+      "entity": "harvest",
+      "columns": ["batch", "field", "yieldKg"]
+    },
+    {
+      "type": "form",
+      "entity": "harvest"
+    },
+    {
+      "type": "list",
+      "entity": "field-task",
+      "columns": ["name", "field", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "field-task"
+    },
+    {
+      "type": "map",
+      "entity": "field",
+      "geoField": "location",
+      "path": "/fields/map",
+      "title": "Farm map",
+      "nav": {
+        "label": "Map",
+        "icon": "map",
+        "order": 20
+      }
+    },
+    {
+      "type": "analytics",
+      "entity": "harvest",
+      "dateField": "harvestedAt",
+      "measures": [
+        {
+          "label": "Harvest yield",
+          "aggregate": "sum",
+          "field": "yieldKg"
+        }
+      ],
+      "dimensions": ["field"],
+      "path": "/harvests/analytics",
+      "title": "Harvest analytics",
+      "nav": {
+        "label": "Analytics",
+        "icon": "chart-line",
+        "order": 21
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

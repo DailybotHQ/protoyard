@@ -1,0 +1,286 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Brightcover Claims",
+  "description": "Policyholders, coverage and claim reviews for a fictional insurer.",
+  "icon": "🧾",
+  "category": "finance",
+  "tags": ["insurance", "claims", "adjusters"],
+  "catalog": {
+    "category": "finance",
+    "productType": "Claims",
+    "platforms": ["web"],
+    "features": ["claim-review", "policy-lookup"],
+    "highlights": ["Claims triage board", "Coverage details", "Adjuster workload"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "insurance-claims-brand",
+    "name": "Brightcover Claims",
+    "seed": "#355d9a",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "claim",
+      "plural": "claims",
+      "titleField": "claimNumber",
+      "fields": [
+        {
+          "name": "claimNumber",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "policy",
+          "kind": "relation",
+          "to": "policy",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "claimant",
+          "kind": "relation",
+          "to": "policyholder",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["submitted", "review", "investigation", "approved", "closed"],
+          "default": "submitted",
+          "required": true,
+          "weights": [5, 4, 3, 2, 1]
+        },
+        {
+          "name": "filedAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "reserve",
+          "kind": "money",
+          "min": 0,
+          "trend": "growth",
+          "max": 350000
+        }
+      ],
+      "searchable": ["claimNumber"]
+    },
+    {
+      "name": "policy",
+      "plural": "policies",
+      "titleField": "policyNumber",
+      "fields": [
+        {
+          "name": "policyNumber",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "policyholder",
+          "kind": "relation",
+          "to": "policyholder",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "coverage",
+          "kind": "enum",
+          "values": ["home", "auto", "business"],
+          "default": "home",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "limit",
+          "kind": "money",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 1000000
+        }
+      ],
+      "searchable": ["policyNumber"]
+    },
+    {
+      "name": "policyholder",
+      "plural": "policyholders",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "region",
+          "kind": "text"
+        },
+        {
+          "name": "segment",
+          "kind": "enum",
+          "values": ["individual", "family", "small-business"],
+          "default": "individual",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "assessment",
+      "plural": "assessments",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "claim",
+          "kind": "relation",
+          "to": "claim",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "result",
+          "kind": "enum",
+          "values": ["pending", "documented", "escalated"],
+          "default": "pending",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "assessedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Brightcover Claims overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total claims",
+          "entity": "claim",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "claims over time",
+          "entity": "claim",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "claim",
+      "columns": ["claimNumber", "claimant", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "claim"
+    },
+    {
+      "type": "list",
+      "entity": "policy",
+      "columns": ["policyNumber", "policyholder", "coverage"]
+    },
+    {
+      "type": "form",
+      "entity": "policy"
+    },
+    {
+      "type": "list",
+      "entity": "policyholder",
+      "columns": ["name", "region", "segment"]
+    },
+    {
+      "type": "form",
+      "entity": "policyholder"
+    },
+    {
+      "type": "list",
+      "entity": "assessment",
+      "columns": ["reference", "claim", "result"]
+    },
+    {
+      "type": "form",
+      "entity": "assessment"
+    },
+    {
+      "type": "board",
+      "entity": "claim",
+      "groupBy": "status",
+      "cardFields": ["claimNumber", "claimant", "reserve"],
+      "sumField": "reserve",
+      "path": "/claims/board",
+      "title": "Claims review",
+      "nav": {
+        "label": "Board",
+        "icon": "kanban",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

@@ -1,0 +1,279 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Stonepath Construction",
+  "description": "Project phases, field crews and inspections for a fictional construction studio.",
+  "icon": "🏗️",
+  "category": "operations",
+  "tags": ["construction", "projects", "inspections"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Construction",
+    "platforms": ["web"],
+    "features": ["project-planning", "field-inspections"],
+    "highlights": ["Project milestones", "Crew assignments", "Permit tracking"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "construction-projects-brand",
+    "name": "Stonepath Construction",
+    "seed": "#9a5b24",
+    "styleProfile": "flat",
+    "font": "system"
+  },
+  "entities": [
+    {
+      "name": "project",
+      "plural": "projects",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "phase",
+          "kind": "enum",
+          "values": ["planning", "foundation", "framing", "finishing"],
+          "default": "planning",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "startsAt",
+          "kind": "date",
+          "window": "past"
+        },
+        {
+          "name": "endsAt",
+          "kind": "date",
+          "window": "around"
+        },
+        {
+          "name": "budget",
+          "kind": "money",
+          "min": 0,
+          "trend": "growth",
+          "max": 12000000
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "task",
+      "plural": "tasks",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "project",
+          "kind": "relation",
+          "to": "project",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "blocked", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "startsAt",
+          "kind": "date",
+          "window": "past"
+        },
+        {
+          "name": "endsAt",
+          "kind": "date",
+          "window": "around"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "crew",
+      "plural": "crews",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "trade",
+          "kind": "text"
+        },
+        {
+          "name": "headcount",
+          "kind": "integer",
+          "min": 0,
+          "trend": "seasonal"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "inspection",
+      "plural": "inspections",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "project",
+          "kind": "relation",
+          "to": "project",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "result",
+          "kind": "enum",
+          "values": ["scheduled", "passed", "follow-up"],
+          "default": "scheduled",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "inspectedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Stonepath Construction overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total projects",
+          "entity": "project",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "projects over time",
+          "entity": "project",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "project",
+      "columns": ["name", "phase", "endsAt"]
+    },
+    {
+      "type": "form",
+      "entity": "project"
+    },
+    {
+      "type": "list",
+      "entity": "task",
+      "columns": ["name", "project", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "task"
+    },
+    {
+      "type": "list",
+      "entity": "crew",
+      "columns": ["name", "trade", "headcount"]
+    },
+    {
+      "type": "form",
+      "entity": "crew"
+    },
+    {
+      "type": "list",
+      "entity": "inspection",
+      "columns": ["reference", "project", "result"]
+    },
+    {
+      "type": "form",
+      "entity": "inspection"
+    },
+    {
+      "type": "timeline",
+      "entity": "project",
+      "startField": "startsAt",
+      "endField": "endsAt",
+      "groupBy": "phase",
+      "zoom": "month",
+      "path": "/projects/timeline",
+      "title": "Build schedule",
+      "nav": {
+        "label": "Timeline",
+        "icon": "chart-gantt",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

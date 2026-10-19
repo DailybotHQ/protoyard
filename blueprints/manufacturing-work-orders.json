@@ -1,0 +1,295 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Forgewell Manufacturing",
+  "description": "Production orders, machines and quality checks for a fictional factory.",
+  "icon": "🏭",
+  "category": "operations",
+  "tags": ["manufacturing", "work-orders", "production"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Manufacturing",
+    "platforms": ["web"],
+    "features": ["production-planning", "quality"],
+    "highlights": ["Production board", "Machine utilization", "Quality inspections"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "manufacturing-work-orders-brand",
+    "name": "Forgewell Manufacturing",
+    "seed": "#b53d35",
+    "styleProfile": "crisp",
+    "font": "mono"
+  },
+  "entities": [
+    {
+      "name": "work-order",
+      "plural": "work-orders",
+      "titleField": "orderNumber",
+      "fields": [
+        {
+          "name": "orderNumber",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "machine",
+          "kind": "relation",
+          "to": "machine",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "product",
+          "kind": "relation",
+          "to": "product",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["queued", "setup", "running", "quality-check", "complete"],
+          "default": "queued",
+          "required": true,
+          "weights": [5, 4, 3, 2, 1]
+        },
+        {
+          "name": "dueAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "unitsPlanned",
+          "kind": "integer",
+          "min": 0,
+          "trend": "growth",
+          "max": 5000
+        }
+      ],
+      "searchable": ["orderNumber"]
+    },
+    {
+      "name": "machine",
+      "plural": "machines",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "cell",
+          "kind": "text"
+        },
+        {
+          "name": "condition",
+          "kind": "enum",
+          "values": ["ready", "setup", "maintenance"],
+          "default": "ready",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "product",
+      "plural": "products",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "sku",
+          "kind": "text"
+        },
+        {
+          "name": "unitPrice",
+          "kind": "money",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 50000
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "quality-check",
+      "plural": "quality-checks",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "workOrder",
+          "kind": "relation",
+          "to": "work-order",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "result",
+          "kind": "enum",
+          "values": ["pending", "pass", "rework"],
+          "default": "pending",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "checkedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Forgewell Manufacturing overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total work-orders",
+          "entity": "work-order",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "work-orders over time",
+          "entity": "work-order",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "work-order",
+      "columns": ["orderNumber", "product", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "work-order"
+    },
+    {
+      "type": "list",
+      "entity": "machine",
+      "columns": ["name", "cell", "condition"]
+    },
+    {
+      "type": "form",
+      "entity": "machine"
+    },
+    {
+      "type": "list",
+      "entity": "product",
+      "columns": ["name", "sku", "unitPrice"]
+    },
+    {
+      "type": "form",
+      "entity": "product"
+    },
+    {
+      "type": "list",
+      "entity": "quality-check",
+      "columns": ["reference", "workOrder", "result"]
+    },
+    {
+      "type": "form",
+      "entity": "quality-check"
+    },
+    {
+      "type": "board",
+      "entity": "work-order",
+      "groupBy": "status",
+      "cardFields": ["orderNumber", "product", "dueAt"],
+      "sumField": "unitsPlanned",
+      "path": "/work-orders/board",
+      "title": "Production board",
+      "nav": {
+        "label": "Board",
+        "icon": "kanban",
+        "order": 20
+      }
+    },
+    {
+      "type": "analytics",
+      "entity": "work-order",
+      "dateField": "createdAt",
+      "measures": [
+        {
+          "label": "Units planned",
+          "aggregate": "sum",
+          "field": "unitsPlanned"
+        }
+      ],
+      "dimensions": ["status"],
+      "path": "/work-orders/analytics",
+      "title": "Production analytics",
+      "nav": {
+        "label": "Analytics",
+        "icon": "chart-line",
+        "order": 21
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}
