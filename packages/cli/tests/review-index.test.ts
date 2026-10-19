@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -290,6 +290,7 @@ describe('protoyard review-index (CLI)', () => {
       '--no-personas',
       '--out',
       'artifacts/review-published',
+      '--allow-publish-out',
       '--publish',
       'cloudflare',
       '--dry-run',
@@ -322,6 +323,41 @@ describe('protoyard review-index (CLI)', () => {
     expect(readFileSync(marker, 'utf8')).toBe('');
   });
 
+  it('never publishes the deploy ledger, a non-default folder by accident, or stray files', async () => {
+    const base = ['--root', ws.root, '--json', 'review-index', '--no-personas'];
+    const publish = ['--publish', 'cloudflare', '--dry-run'];
+    // A ledger inside the published folder (an owned review folder, via --ledger).
+    expect((await cli([...base, '--out', 'artifacts/review-ledger'])).code).toBe(0);
+    await appendLedgerEntry(join(ws.root, 'artifacts/review-ledger/ledger.jsonl'), ledgerLine({}));
+    const ledger = await cli([
+      ...base,
+      '--out',
+      'artifacts/review-ledger',
+      '--ledger',
+      'artifacts/review-ledger/ledger.jsonl',
+      '--allow-publish-out',
+      ...publish,
+    ]);
+    expect(ledger.code).toBe(2);
+    expect(ledger.json<{ error: { message: string } }>().error.message).toMatch(/deploy ledger/);
+
+    const other = await cli([...base, '--out', 'artifacts/review-other', ...publish]);
+    expect(other.code).toBe(2);
+    expect(other.json<{ error: { hint: string } }>().error.hint).toMatch(/--allow-publish-out/);
+
+    expect((await cli([...base, '--out', 'artifacts/review-stray'])).code).toBe(0);
+    writeFileSync(join(ws.root, 'artifacts/review-stray/notes.txt'), 'private\n');
+    const stray = await cli([
+      ...base,
+      '--out',
+      'artifacts/review-stray',
+      '--allow-publish-out',
+      ...publish,
+    ]);
+    expect(stray.code).toBe(2);
+    expect(stray.json<{ error: { message: string } }>().error.message).toMatch(/notes\.txt/);
+  });
+
   it('requires --yes before a real production review deploy', async () => {
     const run = await cli([
       '--root',
@@ -331,6 +367,7 @@ describe('protoyard review-index (CLI)', () => {
       '--no-personas',
       '--out',
       'artifacts/review-production',
+      '--allow-publish-out',
       '--publish',
       'cloudflare',
       '--production',
