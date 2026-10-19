@@ -6,6 +6,7 @@ import type {
   ViewportPreset,
 } from '@protoyard/core';
 import { composeScenario, deepMerge, type ScenarioFragment } from './compose.ts';
+import type { Seasonality } from './series.ts';
 
 /**
  * Reusable, domain-free scenario building blocks. Fragments describe ONE axis
@@ -53,6 +54,26 @@ export const fragments = {
     viewport?: ViewportPreset;
   }): ScenarioFragment => ({ appearance }),
   tags: (...tags: string[]): ScenarioFragment => ({ tags }),
+  /**
+   * Days of history for time series (`scenarioSeriesOptions`); also ages the
+   * organization so records and series start together.
+   */
+  history: (days: number): ScenarioFragment => ({
+    organization: { ageDays: days },
+    generators: { series: { historyDays: days } },
+  }),
+  /** Seasonal rhythm for time series and event streams. */
+  seasonality: (kind: Seasonality): ScenarioFragment => ({
+    generators: { series: { seasonality: kind } },
+  }),
+  /** A lift `daysAgo` days before the reference time that decays over `decayDays`. */
+  spike: (daysAgo: number, factor: number, decayDays = 3): ScenarioFragment => ({
+    generators: { series: { spikes: [{ daysAgo, factor, decayDays }] } },
+  }),
+  /** Share of free calendar time that is booked (`schedule()` default), in [0, 1]. */
+  occupancy: (occupancy: number): ScenarioFragment => ({
+    generators: { schedule: { occupancy } },
+  }),
 } as const;
 
 const base: ScenarioFragment = {
@@ -241,6 +262,46 @@ export const PRESETS = {
     fragments.activity('intense'),
     fragments.subscription('enterprise'),
     fragments.tags('scale')
+  ),
+  'quarter-of-history': preset(
+    'quarter-of-history',
+    'Quarter of history',
+    'Data',
+    'Ninety days of steady use with a weekly rhythm: full charts and analytics.',
+    fragments.accountAge(90),
+    fragments.history(90),
+    fragments.seasonality('weekly'),
+    fragments.organizationSize(10),
+    fragments.density('normal'),
+    fragments.activity('normal'),
+    fragments.tags('data', 'series')
+  ),
+  'launch-spike': preset(
+    'launch-spike',
+    'Launch spike',
+    'Data',
+    'A launch three days ago multiplied traffic by five; it is still settling.',
+    fragments.accountAge(45),
+    fragments.history(45),
+    fragments.seasonality('weekly'),
+    fragments.spike(3, 5, 4),
+    fragments.organizationSize(10),
+    fragments.density('dense'),
+    fragments.activity('intense'),
+    fragments.tags('data', 'series', 'spike')
+  ),
+  'busy-week': preset(
+    'busy-week',
+    'Busy week',
+    'Data',
+    'Calendars are nearly full this week: few free slots, many conflicts to avoid.',
+    fragments.accountAge(60),
+    fragments.history(60),
+    fragments.occupancy(0.9),
+    fragments.organizationSize(12),
+    fragments.density('dense'),
+    fragments.activity('intense'),
+    fragments.tags('data', 'schedule')
   ),
 } as const satisfies Record<string, ScenarioFragment>;
 
