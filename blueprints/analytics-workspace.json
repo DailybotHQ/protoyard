@@ -38,7 +38,8 @@
         {
           "name": "rowCount",
           "kind": "integer",
-          "min": 0
+          "min": 0,
+          "trend": "growth"
         },
         {
           "name": "owner",
@@ -70,7 +71,8 @@
           "kind": "enum",
           "values": ["line", "bar", "pie", "table"],
           "default": "line",
-          "required": true
+          "required": true,
+          "weights": [4, 3, 2, 1]
         },
         {
           "name": "query",
@@ -106,6 +108,46 @@
       ],
       "titleField": "name",
       "ownerField": "owner"
+    },
+    {
+      "name": "report",
+      "plural": "reports",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "dashboard",
+          "kind": "relation",
+          "to": "dashboard",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "growth"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -129,6 +171,38 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Signalboard Analytics overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total datasets",
+          "entity": "dataset",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "datasets over time",
+          "entity": "dataset",
+          "aggregate": "sum",
+          "field": "rowCount",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "dataset",
@@ -155,6 +229,49 @@
     {
       "type": "form",
       "entity": "dashboard"
+    },
+    {
+      "type": "analytics",
+      "entity": "dataset",
+      "dateField": "createdAt",
+      "measures": [
+        {
+          "label": "Dataset rows",
+          "aggregate": "sum",
+          "field": "rowCount"
+        }
+      ],
+      "dimensions": [],
+      "path": "/datasets/analytics",
+      "title": "Dataset analytics",
+      "nav": {
+        "label": "Analytics",
+        "icon": "chart-line",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "dataset",
+      "tabs": ["overview"],
+      "path": "/datasets/:id",
+      "title": "Dataset details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

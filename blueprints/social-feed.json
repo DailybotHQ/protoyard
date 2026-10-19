@@ -43,7 +43,15 @@
         },
         {
           "name": "postedAt",
-          "kind": "datetime"
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "workflowStatus",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "weights": [5, 3, 2]
         }
       ],
       "titleField": "label",
@@ -70,7 +78,8 @@
           "kind": "enum",
           "values": ["like", "love", "wow", "sad"],
           "default": "like",
-          "required": true
+          "required": true,
+          "weights": [4, 3, 2, 1]
         }
       ],
       "titleField": "emoji"
@@ -96,6 +105,46 @@
         }
       ],
       "titleField": "label"
+    },
+    {
+      "name": "community",
+      "plural": "communities",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "post",
+          "kind": "relation",
+          "to": "post",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "growth"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -119,6 +168,44 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Neighborhood Feed overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total posts",
+          "entity": "post",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "posts over time",
+          "entity": "post",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "posts by status",
+          "entity": "post",
+          "groupBy": "workflowStatus",
+          "span": 2
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "post",
@@ -145,6 +232,42 @@
     {
       "type": "form",
       "entity": "follow"
+    },
+    {
+      "type": "board",
+      "entity": "post",
+      "groupBy": "workflowStatus",
+      "cardFields": ["label"],
+      "path": "/posts/board",
+      "title": "Posts board",
+      "nav": {
+        "label": "Board",
+        "icon": "kanban",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "post",
+      "tabs": ["overview"],
+      "path": "/posts/:id",
+      "title": "Post details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

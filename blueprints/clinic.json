@@ -43,7 +43,8 @@
         },
         {
           "name": "dob",
-          "kind": "date"
+          "kind": "date",
+          "window": "past"
         }
       ],
       "titleField": "fullName",
@@ -67,7 +68,8 @@
         {
           "name": "visitedAt",
           "kind": "datetime",
-          "required": true
+          "required": true,
+          "window": "around"
         },
         {
           "name": "reason",
@@ -108,10 +110,51 @@
           "kind": "enum",
           "values": ["active", "completed", "stopped"],
           "default": "active",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         }
       ],
       "titleField": "medication"
+    },
+    {
+      "name": "care-plan",
+      "plural": "care-plans",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "patient",
+          "kind": "relation",
+          "to": "patient",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "seasonal"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -135,6 +178,37 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Harbor Clinic overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total patients",
+          "entity": "patient",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "patients over time",
+          "entity": "patient",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "patient",
@@ -161,6 +235,42 @@
     {
       "type": "form",
       "entity": "prescription"
+    },
+    {
+      "type": "calendar",
+      "entity": "patient",
+      "dateField": "dob",
+      "view": "month",
+      "path": "/patients/calendar",
+      "title": "Patients calendar",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "patient",
+      "tabs": ["overview"],
+      "path": "/patients/:id",
+      "title": "Patient details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

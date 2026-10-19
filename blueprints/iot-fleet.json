@@ -41,11 +41,18 @@
           "kind": "enum",
           "values": ["online", "offline", "maintenance"],
           "default": "online",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         },
         {
           "name": "lastSeenAt",
-          "kind": "datetime"
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "location",
+          "kind": "geo",
+          "region": "harbor-bay"
         }
       ],
       "titleField": "name",
@@ -71,12 +78,14 @@
         {
           "name": "value",
           "kind": "number",
-          "required": true
+          "required": true,
+          "trend": "seasonal"
         },
         {
           "name": "recordedAt",
           "kind": "datetime",
-          "required": true
+          "required": true,
+          "window": "around"
         }
       ],
       "titleField": "metric"
@@ -102,20 +111,62 @@
           "kind": "enum",
           "values": ["info", "warn", "critical"],
           "default": "info",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         },
         {
           "name": "status",
           "kind": "enum",
           "values": ["open", "acked", "resolved"],
           "default": "open",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         }
       ],
       "titleField": "message",
       "features": {
         "notifications": true
       }
+    },
+    {
+      "name": "site",
+      "plural": "sites",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "device",
+          "kind": "relation",
+          "to": "device",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "growth"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -139,6 +190,44 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Fleetpulse IoT overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total devices",
+          "entity": "device",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "devices over time",
+          "entity": "device",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "devices by status",
+          "entity": "device",
+          "groupBy": "status",
+          "span": 2
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "device",
@@ -165,6 +254,42 @@
     {
       "type": "form",
       "entity": "alert"
+    },
+    {
+      "type": "map",
+      "entity": "device",
+      "geoField": "location",
+      "colorBy": "status",
+      "path": "/devices/map",
+      "title": "Devices map",
+      "nav": {
+        "label": "Map",
+        "icon": "map",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "device",
+      "tabs": ["overview"],
+      "path": "/devices/:id",
+      "title": "Device details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

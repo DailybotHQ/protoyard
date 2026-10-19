@@ -35,13 +35,20 @@
           "name": "durationMin",
           "kind": "integer",
           "min": 15,
-          "required": true
+          "required": true,
+          "trend": "seasonal"
         },
         {
           "name": "price",
           "kind": "money",
           "currency": "USD",
-          "min": 0
+          "min": 0,
+          "trend": "seasonal"
+        },
+        {
+          "name": "scheduledAt",
+          "kind": "datetime",
+          "window": "future"
         }
       ],
       "titleField": "name"
@@ -60,13 +67,15 @@
         {
           "name": "startsAt",
           "kind": "datetime",
-          "required": true
+          "required": true,
+          "window": "around"
         },
         {
           "name": "capacity",
           "kind": "integer",
           "min": 1,
-          "default": 1
+          "default": 1,
+          "trend": "seasonal"
         }
       ],
       "titleField": "capacity"
@@ -98,13 +107,54 @@
           "kind": "enum",
           "values": ["booked", "checked-in", "cancelled"],
           "default": "booked",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         }
       ],
       "titleField": "guestName",
       "features": {
         "notifications": true
       }
+    },
+    {
+      "name": "resource",
+      "plural": "resources",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "service",
+          "kind": "relation",
+          "to": "service",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "seasonal"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -128,6 +178,38 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Calendar Booking overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total services",
+          "entity": "service",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "services over time",
+          "entity": "service",
+          "aggregate": "sum",
+          "field": "durationMin",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "service",
@@ -154,6 +236,42 @@
     {
       "type": "form",
       "entity": "appointment"
+    },
+    {
+      "type": "calendar",
+      "entity": "service",
+      "dateField": "scheduledAt",
+      "view": "month",
+      "path": "/services/calendar",
+      "title": "Services calendar",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "service",
+      "tabs": ["overview"],
+      "path": "/services/:id",
+      "title": "Service details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

@@ -46,6 +46,13 @@
         {
           "name": "owner",
           "kind": "persona"
+        },
+        {
+          "name": "value",
+          "kind": "number",
+          "min": 0,
+          "max": 100,
+          "trend": "growth"
         }
       ],
       "titleField": "name",
@@ -100,14 +107,16 @@
           "kind": "enum",
           "values": ["qualify", "proposal", "negotiation", "won", "lost"],
           "default": "qualify",
-          "required": true
+          "required": true,
+          "weights": [5, 4, 3, 2, 1]
         },
         {
           "name": "amount",
           "kind": "money",
           "currency": "USD",
           "min": 0,
-          "required": true
+          "required": true,
+          "trend": "seasonal"
         },
         {
           "name": "account",
@@ -122,7 +131,8 @@
         },
         {
           "name": "closeOn",
-          "kind": "date"
+          "kind": "date",
+          "window": "past"
         }
       ],
       "titleField": "title",
@@ -131,6 +141,46 @@
       "features": {
         "audit": true
       }
+    },
+    {
+      "name": "activity",
+      "plural": "activities",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "contact",
+          "kind": "relation",
+          "to": "contact",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "growth"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -154,6 +204,38 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Northstar CRM overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total accounts",
+          "entity": "account",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "accounts over time",
+          "entity": "account",
+          "aggregate": "sum",
+          "field": "value",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "account",
@@ -180,6 +262,49 @@
     {
       "type": "form",
       "entity": "deal"
+    },
+    {
+      "type": "analytics",
+      "entity": "account",
+      "dateField": "createdAt",
+      "measures": [
+        {
+          "label": "Total value",
+          "aggregate": "sum",
+          "field": "value"
+        }
+      ],
+      "dimensions": [],
+      "path": "/accounts/analytics",
+      "title": "Accounts analytics",
+      "nav": {
+        "label": "Analytics",
+        "icon": "chart-line",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "account",
+      "tabs": ["overview"],
+      "path": "/accounts/:id",
+      "title": "Account details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

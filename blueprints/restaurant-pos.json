@@ -37,14 +37,16 @@
           "kind": "money",
           "currency": "USD",
           "min": 0,
-          "required": true
+          "required": true,
+          "trend": "decline"
         },
         {
           "name": "course",
           "kind": "enum",
           "values": ["starter", "main", "dessert", "drink"],
           "default": "starter",
-          "required": true
+          "required": true,
+          "weights": [4, 3, 2, 1]
         }
       ],
       "titleField": "name",
@@ -66,7 +68,8 @@
           "kind": "enum",
           "values": ["open", "sent", "paid", "void"],
           "default": "open",
-          "required": true
+          "required": true,
+          "weights": [4, 3, 2, 1]
         },
         {
           "name": "server",
@@ -74,7 +77,8 @@
         },
         {
           "name": "openedAt",
-          "kind": "datetime"
+          "kind": "datetime",
+          "window": "around"
         }
       ],
       "titleField": "table",
@@ -102,7 +106,8 @@
           "name": "quantity",
           "kind": "integer",
           "min": 1,
-          "default": 1
+          "default": 1,
+          "trend": "decline"
         },
         {
           "name": "note",
@@ -110,6 +115,46 @@
         }
       ],
       "titleField": "note"
+    },
+    {
+      "name": "table",
+      "plural": "tables",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "ticket",
+          "kind": "relation",
+          "to": "ticket",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "seasonal"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -133,6 +178,45 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Tablefire POS overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total menu-items",
+          "entity": "menu-item",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "menu-items over time",
+          "entity": "menu-item",
+          "aggregate": "sum",
+          "field": "price",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "menu-items by status",
+          "entity": "menu-item",
+          "groupBy": "course",
+          "span": 2
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "menu-item",
@@ -159,6 +243,42 @@
     {
       "type": "form",
       "entity": "ticket-line"
+    },
+    {
+      "type": "board",
+      "entity": "menu-item",
+      "groupBy": "course",
+      "cardFields": ["name"],
+      "path": "/menu-items/board",
+      "title": "Menu-items board",
+      "nav": {
+        "label": "Board",
+        "icon": "kanban",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "menu-item",
+      "tabs": ["overview"],
+      "path": "/menu-items/:id",
+      "title": "Menu-item details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

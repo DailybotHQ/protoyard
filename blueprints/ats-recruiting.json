@@ -37,7 +37,8 @@
           "kind": "enum",
           "values": ["open", "paused", "closed"],
           "default": "open",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         },
         {
           "name": "location",
@@ -72,7 +73,8 @@
           "kind": "enum",
           "values": ["applied", "screen", "onsite", "offer", "hired", "rejected"],
           "default": "applied",
-          "required": true
+          "required": true,
+          "weights": [6, 5, 4, 3, 2, 1]
         },
         {
           "name": "job",
@@ -107,7 +109,8 @@
         {
           "name": "scheduledAt",
           "kind": "datetime",
-          "required": true
+          "required": true,
+          "window": "around"
         },
         {
           "name": "interviewer",
@@ -117,7 +120,8 @@
           "name": "score",
           "kind": "integer",
           "min": 1,
-          "max": 5
+          "max": 5,
+          "trend": "decline"
         },
         {
           "name": "notes",
@@ -125,6 +129,46 @@
         }
       ],
       "titleField": "score"
+    },
+    {
+      "name": "offer",
+      "plural": "offers",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "candidate",
+          "kind": "relation",
+          "to": "candidate",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "seasonal"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -148,6 +192,44 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Hirepath ATS overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total jobs",
+          "entity": "job",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "jobs over time",
+          "entity": "job",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "jobs by status",
+          "entity": "job",
+          "groupBy": "status",
+          "span": 2
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "job",
@@ -174,6 +256,42 @@
     {
       "type": "form",
       "entity": "interview"
+    },
+    {
+      "type": "board",
+      "entity": "job",
+      "groupBy": "status",
+      "cardFields": ["title"],
+      "path": "/jobs/board",
+      "title": "Jobs board",
+      "nav": {
+        "label": "Board",
+        "icon": "kanban",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "job",
+      "tabs": ["overview"],
+      "path": "/jobs/:id",
+      "title": "Job details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

@@ -42,13 +42,25 @@
           "name": "unitCost",
           "kind": "money",
           "currency": "USD",
-          "min": 0
+          "min": 0,
+          "trend": "seasonal"
         },
         {
           "name": "reorderAt",
           "kind": "integer",
           "min": 0,
-          "default": 10
+          "default": 10,
+          "trend": "seasonal"
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "past"
+        },
+        {
+          "name": "endsAt",
+          "kind": "datetime",
+          "window": "around"
         }
       ],
       "titleField": "name",
@@ -97,20 +109,63 @@
           "kind": "enum",
           "values": ["receive", "ship", "adjust"],
           "default": "receive",
-          "required": true
+          "required": true,
+          "weights": [3, 2, 1]
         },
         {
           "name": "quantity",
           "kind": "integer",
           "min": 1,
-          "required": true
+          "required": true,
+          "trend": "seasonal"
         },
         {
           "name": "movedAt",
-          "kind": "datetime"
+          "kind": "datetime",
+          "window": "around"
         }
       ],
       "titleField": "kind"
+    },
+    {
+      "name": "supplier",
+      "plural": "suppliers",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "sku",
+          "kind": "relation",
+          "to": "sku",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "growth"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -134,6 +189,38 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Stockroom Inventory overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total skus",
+          "entity": "sku",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "skus over time",
+          "entity": "sku",
+          "aggregate": "sum",
+          "field": "unitCost",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "sku",
@@ -160,6 +247,43 @@
     {
       "type": "form",
       "entity": "stock-move"
+    },
+    {
+      "type": "timeline",
+      "entity": "sku",
+      "startField": "startsAt",
+      "endField": "endsAt",
+      "zoom": "month",
+      "path": "/skus/timeline",
+      "title": "Skus timeline",
+      "nav": {
+        "label": "Timeline",
+        "icon": "clock",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "sku",
+      "tabs": ["overview"],
+      "path": "/skus/:id",
+      "title": "Sku details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }

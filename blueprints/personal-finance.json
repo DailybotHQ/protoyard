@@ -36,12 +36,20 @@
           "kind": "enum",
           "values": ["checking", "savings", "credit", "cash"],
           "default": "checking",
-          "required": true
+          "required": true,
+          "weights": [4, 3, 2, 1]
         },
         {
           "name": "currency",
           "kind": "text",
           "default": "USD"
+        },
+        {
+          "name": "value",
+          "kind": "number",
+          "min": 0,
+          "max": 100,
+          "trend": "growth"
         }
       ],
       "titleField": "name"
@@ -67,19 +75,22 @@
           "name": "amount",
           "kind": "money",
           "currency": "USD",
-          "required": true
+          "required": true,
+          "trend": "decline"
         },
         {
           "name": "category",
           "kind": "enum",
           "values": ["income", "housing", "food", "transport", "fun", "other"],
           "default": "income",
-          "required": true
+          "required": true,
+          "weights": [6, 5, 4, 3, 2, 1]
         },
         {
           "name": "bookedOn",
           "kind": "date",
-          "required": true
+          "required": true,
+          "window": "past"
         }
       ],
       "titleField": "payee",
@@ -97,14 +108,16 @@
           "kind": "enum",
           "values": ["housing", "food", "transport", "fun", "other"],
           "default": "housing",
-          "required": true
+          "required": true,
+          "weights": [5, 4, 3, 2, 1]
         },
         {
           "name": "limit",
           "kind": "money",
           "currency": "USD",
           "min": 0,
-          "required": true
+          "required": true,
+          "trend": "decline"
         },
         {
           "name": "month",
@@ -113,6 +126,46 @@
         }
       ],
       "titleField": "category"
+    },
+    {
+      "name": "goal",
+      "plural": "goals",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "account",
+          "kind": "relation",
+          "to": "account",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [5, 3, 2]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "value",
+          "kind": "money",
+          "min": 5000,
+          "max": 250000,
+          "trend": "seasonal"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
     }
   ],
   "roles": [
@@ -136,6 +189,45 @@
     }
   ],
   "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Ledgerly Finance overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total accounts",
+          "entity": "account",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "accounts over time",
+          "entity": "account",
+          "aggregate": "sum",
+          "field": "value",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        },
+        {
+          "kind": "board-summary",
+          "label": "accounts by status",
+          "entity": "account",
+          "groupBy": "kind",
+          "span": 2
+        }
+      ]
+    },
     {
       "type": "list",
       "entity": "account",
@@ -162,6 +254,49 @@
     {
       "type": "form",
       "entity": "budget"
+    },
+    {
+      "type": "analytics",
+      "entity": "account",
+      "dateField": "createdAt",
+      "measures": [
+        {
+          "label": "Total value",
+          "aggregate": "sum",
+          "field": "value"
+        }
+      ],
+      "dimensions": ["kind"],
+      "path": "/accounts/analytics",
+      "title": "Accounts analytics",
+      "nav": {
+        "label": "Analytics",
+        "icon": "chart-line",
+        "order": 20
+      }
+    },
+    {
+      "type": "detail",
+      "entity": "account",
+      "tabs": ["overview"],
+      "path": "/accounts/:id",
+      "title": "Account details",
+      "nav": {
+        "label": "Details",
+        "icon": "file-text",
+        "hidden": true
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
     }
   ]
 }
