@@ -156,6 +156,12 @@ importers:
         specifier: ^5.57.0
         version: 5.57.2
 
+  packages/avatars:
+    devDependencies:
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@24.19.2)
+
   packages/blueprint:
     dependencies:
       '@protoyard/core':
@@ -4253,8 +4259,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@img/colour@1.1.0':
-    optional: true
+  '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.35.5':
     optionalDependencies:
@@ -5573,7 +5578,6 @@ snapshots:
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
       '@types/node': 24.19.2
-    optional: true
 
   shiki@4.5.0:
     dependencies:
