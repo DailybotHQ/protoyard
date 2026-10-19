@@ -6,7 +6,7 @@ thread in one list. This package has no Svelte; the UI is
 [`@protoyard/review-ui`](../review-ui/README.md). The comment schemas live in
 `@protoyard/core/review`.
 
-> **Status:** `./anchors` and `./store` are implemented. The other subpaths
+> **Status:** `./anchors`, `./store` and `./adapters/artifact` are implemented. The other subpaths
 > exist and are empty; each one is filled by its PLAN_003 task, and this README documents
 > it when it lands.
 
@@ -16,6 +16,7 @@ thread in one list. This package has no Svelte; the UI is
 | `./store` | The small `ReviewAdapter` contract and its conformance suite | T-review-adapter-contract |
 | `./adapters/local` | IndexedDB adapter (its own database, untouched by scenario loads) with export / import | T-review-adapter-local |
 | `./adapters/http` | Adapter for any endpoint with the comments REST shape (also the Cloudflare mode) | T-review-adapter-http |
+| `./adapters/artifact` | Adapter on a Claude Artifact's shared database (`db` + `user` capabilities), falling back to a local adapter | T-art-review-artifact-adapter |
 | `./server` | The comments API handler on plain `Request` / `Response` | T-review-server-handler |
 | `./report` | Review reports (`REVIEW.md`, JSON) for `protoyard comments pull` | T-review-cli-comments |
 
@@ -187,3 +188,26 @@ Real layout and the 200-pin budget are covered in E2E (review-e2e).
 **Size:** 2.5 KB gzip of its own code. zod and the `@protoyard/core/review`
 schemas are external and shared with the rest of the review chunk; bundled
 in, the total is 6.1 KB.
+
+## Artifact adapter (`@protoyard/review/adapters/artifact`)
+
+When a prototype is shared as a Claude Artifact, comments can live in the
+artifact's shared database, so every viewer sees the same threads.
+
+```ts
+import { createArtifactReviewAdapter } from '@protoyard/review/adapters/artifact';
+
+const adapter = await createArtifactReviewAdapter(localAdapter);
+```
+
+- **Fallback:** it asks for the `db` and `user` capabilities. If either is
+  missing or refused, it returns the local adapter you pass in, and
+  `LOCAL_REVIEW_FALLBACK_NOTICE` tells the viewer that comments are saved
+  only in their browser.
+- **Authors:** it stores author ids only and resolves profile names on read.
+  It serializes writes per document and keeps live subscriptions to at most
+  64 collections per view.
+- **Conformance:** it passes `tests/conformance.ts`, tested against a fake
+  Claude capability surface (`tests/fixtures/fake-claude.ts`).
+- **Not live-verified:** no real Artifact runtime has exercised it yet; that
+  happens in T-art-real-private-publish.
