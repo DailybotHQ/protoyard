@@ -389,6 +389,10 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--base <path>', "public base of the review page ('./' or /sub/path/)")
     .option('--title <text>', 'page title (default "Prototype review")')
     .option('--publish <provider>', 'publish the review site with cloudflare, netlify or vercel')
+    .option(
+      '--allow-publish-out',
+      'with --publish, allow an --out other than artifacts/review (it is uploaded whole)'
+    )
     .option('--project <name>', 'provider project name (default protoyard-review)')
     .option('--dry-run', 'print the provider command without contacting or deploying')
     .option('--production', 'deploy to the provider production target (requires --yes)')
@@ -435,6 +439,10 @@ export function createProgram(env: RunnerEnv): Command {
     .option('-p, --port <port>', 'gallery port', '4321')
     .option('--control-port <port>', 'control server port', '4300')
     .option('--allow-origin <origins>', 'extra comma-separated origins for the control API')
+    .option(
+      '--allow-create',
+      'let the gallery create prototypes (POST /api/new writes prototypes/<slug>/); off by default'
+    )
     .action(def('gallery', galleryCommand));
 
   program
@@ -443,6 +451,10 @@ export function createProgram(env: RunnerEnv): Command {
     .option('-p, --port <port>', 'port', '4300')
     .option('--gallery-port <port>', 'gallery port allowed as Origin', '4321')
     .option('--allow-origin <origins>', 'extra comma-separated allowed origins')
+    .option(
+      '--allow-create',
+      'enable POST /api/new (writes prototypes/<slug>/ and runs the copy); off by default'
+    )
     .action(def('control-server', controlServerCommand));
 
   return program;

@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkSlug } from '@protoyard/core';
 import { CliError } from './output.ts';
 
 /**
@@ -132,11 +133,45 @@ export function nodeVersionFromEngines(enginesNode: string | undefined): string 
   return match?.[1] ?? DEFAULT_CI_NODE_VERSION;
 }
 
+/** A rendered `PROTOTYPES` value: empty, or comma-separated slugs only (no quotes, spaces, newlines). */
+const PROTOTYPE_LIST = /^(?:[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:,[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*)?$/;
+
+/**
+ * Validates `ci init --prototypes`: every comma-separated value must be a
+ * valid slug and, when the registry is known, a registered prototype. The
+ * value is rendered into YAML and a single-quoted bash string, so anything
+ * else is refused (exit 2) instead of becoming code in a workflow.
+ */
+export function parsePrototypeList(value: string, known?: ReadonlySet<string>): string {
+  const slugs = value
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  for (const slug of slugs) {
+    const check = checkSlug(slug);
+    if (!check.ok || slug !== slug.toLowerCase()) {
+      throw new CliError('usage', `--prototypes: "${slug}" is not a valid prototype slug.`, {
+        hint: `${check.ok ? 'Use lowercase kebab-case.' : check.reason} Separate slugs with commas, e.g. --prototypes crm-demo,ui-kit.`,
+      });
+    }
+    if (known && !known.has(slug)) {
+      throw new CliError('usage', `--prototypes: "${slug}" is not a prototype in this workspace.`, {
+        hint: 'Run `pnpm protoyard list --kind prototype` to see the registered slugs.',
+      });
+    }
+  }
+  return [...new Set(slugs)].join(',');
+}
+
 export function renderTemplate(
   source: string,
   placeholders: CiTemplatePlaceholders | Readonly<Record<string, string>>
 ): string {
   const map = placeholders as Readonly<Record<string, string>>;
+  // Defense in depth: whatever the caller, PROTOTYPES never carries quotes, spaces or newlines.
+  if (map.PROTOTYPES !== undefined && !PROTOTYPE_LIST.test(map.PROTOTYPES)) {
+    throw new CliError('usage', 'PROTOTYPES must be a comma-separated list of slugs.');
+  }
   const rendered = source.replace(/\{\{([A-Z0-9_]+)\}\}/g, (_full, key: string) => {
     if (!(key in map) || map[key] === undefined) {
       throw new CliError('failure', `Template uses unknown placeholder {{${key}}}.`);

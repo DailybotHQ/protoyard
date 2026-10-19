@@ -142,6 +142,24 @@ registry, and never interpolates input into a shell. It can start or stop a
 prototype's dev server. Hosted as a static site, the gallery is read-only and
 shows terminal commands instead.
 
+**Amendment (PLAN_002): creating prototypes.** The control server can also
+create a prototype: `POST /api/new` copies a registry template or prototype
+into a new `prototypes/<slug>/` (never over existing files), runs
+`pnpm install --offline`, fills the spec by running the copy's code, and
+starts its dev server. Because that writes files and runs code, it is
+**opt-in**: the endpoint answers 403 with a hint unless the server runs with
+`--allow-create` (`protoyard gallery --allow-create` or `control-server
+--allow-create`). On top of the loopback bind, Host check and exact Origin
+allow-list (missing and `null` origins refused), each request needs an
+`X-Protoyard-Token` header matching a random token generated per run and
+compared in constant time. The token reaches only allowed origins, through
+`GET /api/status`; the custom header also forces a CORS preflight. The body is
+JSON only, at most 8 KB, with a strict schema; blueprints are never copied.
+*Why:* the default allow-list is identified by port, and 4321 is Astro's
+default, so another local site on that port should not be able to write files
+just because the gallery is not running. *Reversal:* drop the flag and token
+only together with a fresh security review.
+
 ## ADR-014 — Publishing adapters report only what providers report
 
 **Decision.** `publish` builds, verifies, then calls a provider adapter, and

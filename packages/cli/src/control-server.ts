@@ -1,3 +1,4 @@
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { checkSlug } from '@protoyard/core';
@@ -107,6 +108,25 @@ export interface ControlServerOptions {
   newInstall?: 'offline' | 'skip';
   /** Injected for tests; defaults to the same code path as `protoyard new`. */
   create?: (input: CreateInput) => Promise<CreateResult>;
+  /**
+   * Enables POST /api/new, which writes `prototypes/<slug>/`, installs and runs
+   * the copy (ADR-013). Off by default: `control-server --allow-create` /
+   * `gallery --allow-create` turn it on for one run.
+   */
+  allowCreate?: boolean;
+  /** Per-run token for POST /api/new; random when omitted (tests inject one). */
+  createToken?: string;
+}
+
+/** Header that carries the per-run create token (a custom header also forces preflight). */
+export const CREATE_TOKEN_HEADER = 'x-protoyard-token';
+
+/** Constant-time comparison; different lengths are a mismatch without comparing bytes. */
+export function tokenMatches(expected: string, received: unknown): boolean {
+  if (typeof received !== 'string' || received.length === 0) return false;
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(received, 'utf8');
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export interface ControlServer {
@@ -145,6 +165,9 @@ function send(res: ServerResponse, status: number, body: unknown, origin?: strin
 export async function startControlServer(options: ControlServerOptions): Promise<ControlServer> {
   const paths = workspacePaths(options.root);
   const allowed = new Set(options.allowedOrigins ?? defaultAllowedOrigins());
+  const allowCreate = options.allowCreate === true;
+  // Never printed or logged: only allowed origins read it from GET /api/status.
+  const createToken = options.createToken ?? randomBytes(32).toString('base64url');
   const log = options.log ?? (() => {});
   const start =
     options.start ??
@@ -206,7 +229,7 @@ export async function startControlServer(options: ControlServerOptions): Promise
         ...(corsOrigin
           ? {
               'Access-Control-Allow-Origin': corsOrigin,
-              'Access-Control-Allow-Headers': 'content-type',
+              'Access-Control-Allow-Headers': `content-type, ${CREATE_TOKEN_HEADER}`,
               Vary: 'Origin',
             }
           : {}),
@@ -217,12 +240,42 @@ export async function startControlServer(options: ControlServerOptions): Promise
       return;
     }
     if (req.method === 'GET' && url.pathname === '/api/status') {
-      send(res, 200, { ok: true, version: CLI_VERSION, running: running() }, corsOrigin);
+      send(
+        res,
+        200,
+        {
+          ok: true,
+          version: CLI_VERSION,
+          running: running(),
+          // The create token goes only to an allowed Origin (the gallery page), never to
+          // curl or other tools without one, and only when creating is enabled.
+          create:
+            corsOrigin && allowCreate ? { enabled: true, token: createToken } : { enabled: false },
+        },
+        corsOrigin
+      );
       return;
     }
     if (req.method === 'POST' && url.pathname === '/api/new') {
       if (!corsOrigin) {
         send(res, 403, { ok: false, error: 'origin required' });
+        return;
+      }
+      if (!allowCreate) {
+        send(
+          res,
+          403,
+          {
+            ok: false,
+            error: 'creating prototypes from the gallery is disabled',
+            hint: 'Restart with `pnpm protoyard gallery --allow-create` (or `control-server --allow-create`), or run `pnpm protoyard new <slug> --from <source>`.',
+          },
+          corsOrigin
+        );
+        return;
+      }
+      if (!tokenMatches(createToken, req.headers[CREATE_TOKEN_HEADER])) {
+        send(res, 403, { ok: false, error: 'missing or invalid create token' }, corsOrigin);
         return;
       }
       await handleNew(req, res, corsOrigin);

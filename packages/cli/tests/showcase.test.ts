@@ -12,7 +12,7 @@ import {
 } from '../src/commands/showcase.ts';
 import { SHOWCASE_MARKER } from '../src/lib/output-guard.ts';
 import type { Registry, RegistryEntry } from '../src/lib/registry.ts';
-import { buildEnv } from '../src/lib/vite.ts';
+import { buildEnv, devEnv } from '../src/lib/vite.ts';
 import type { CommandContext } from '../src/lib/workspace.ts';
 import type { PublishProvider } from '../src/publish/types.ts';
 import { createWorkspace } from './helpers.ts';
@@ -66,6 +66,18 @@ describe('showcase', () => {
       if (previous === undefined) delete process.env.PROTOYARD_STORAGE_NAMESPACE;
       else process.env.PROTOYARD_STORAGE_NAMESPACE = previous;
     }
+  });
+
+  it('starts dev servers without inheriting a namespace from the shell', () => {
+    const shell = { PATH: '/bin', PROTOYARD_STORAGE_NAMESPACE: 'leaked-from-the-shell' };
+    expect(devEnv({}, shell)).toMatchObject({
+      PATH: '/bin',
+      PROTOYARD_INCLUDE_DEVTOOLS: '1',
+      PROTOYARD_STORAGE_NAMESPACE: '',
+    });
+    expect(
+      devEnv({ storageNamespace: 'template-demo-blank' }, shell).PROTOYARD_STORAGE_NAMESPACE
+    ).toBe('template-demo-blank');
   });
 
   it('marks template demos as embedded so the marketplace can play them', () => {

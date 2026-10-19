@@ -41,12 +41,32 @@ async function fetchJson(url: string, init: RequestInit & { timeoutMs?: number }
   }
 }
 
+/** Header the control server checks on POST /api/new (see packages/cli control-server). */
+export const CREATE_TOKEN_HEADER = 'x-protoyard-token';
+
+/**
+ * Create access from GET /api/status: the server only includes the per-run
+ * token for an allowed Origin, and only when it runs with --allow-create.
+ */
+export function readCreateAccess(body: Record<string, unknown>): {
+  enabled: boolean;
+  token: string | null;
+} {
+  const create = body.create as { enabled?: unknown; token?: unknown } | undefined;
+  const token = typeof create?.token === 'string' && create.token.length > 0 ? create.token : null;
+  return { enabled: create?.enabled === true && token !== null, token };
+}
+
 class ControlClient {
   status = $state<Status>('unknown');
   running = $state<RunningServer[]>([]);
   /** Slug → in-flight action, for button states. */
   busy = $state<Record<string, 'starting' | 'stopping'>>({});
   errors = $state<Record<string, string>>({});
+  /** True when the control server was started with --allow-create. */
+  createEnabled = $state(false);
+  /** Per-run token for POST /api/new; kept out of reactive state and never logged. */
+  #createToken: string | null = null;
   readonly baseUrl: string;
 
   constructor() {
@@ -74,6 +94,9 @@ class ControlClient {
         ? (result.body.running as RunningServer[])
         : [];
       this.running = listed.filter((r) => localDevUrl(String(r.url)) !== null);
+      const access = readCreateAccess(result.body);
+      this.#createToken = access.token;
+      this.createEnabled = access.enabled;
       this.status = 'available';
     } catch {
       this.status = 'unavailable';
@@ -125,10 +148,21 @@ class ControlClient {
    * `running`, so its own detail page and the palette see it.
    */
   async create(request: { slug: string; from: string; name?: string }) {
+    if (!this.#createToken) {
+      return {
+        ok: false,
+        status: 0,
+        body: {
+          ok: false,
+          error:
+            'Creating prototypes from the gallery is off. Start it with `pnpm protoyard gallery --allow-create`.',
+        } as Record<string, unknown>,
+      };
+    }
     try {
       const result = await fetchJson(`${this.baseUrl}/api/new`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', [CREATE_TOKEN_HEADER]: this.#createToken },
         body: JSON.stringify(request),
         timeoutMs: 180_000,
       });

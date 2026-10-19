@@ -8,7 +8,7 @@ import {
   startControlServer,
 } from '../control-server.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
-import { opt } from '../lib/command.ts';
+import { flag, opt } from '../lib/command.ts';
 import { untilSignal } from '../lib/network.ts';
 import { CliError, mark } from '../lib/output.ts';
 import { parsePort } from '../lib/ports.ts';
@@ -42,6 +42,7 @@ export const controlServerCommand: Handler = async (
     root: ctx.root,
     port: parsePort(opt(options, 'port'), DEFAULT_CONTROL_PORT),
     allowedOrigins: origins(options, galleryPort),
+    allowCreate: flag(options, 'allowCreate'),
     log: (line) => ctx.out.info(ctx.out.c.dim(`[control] ${line}`)),
   });
   return {
@@ -49,6 +50,11 @@ export const controlServerCommand: Handler = async (
     render(out) {
       out.always(
         `${mark(out.c, 'pass')} Control server on ${out.c.cyan(control.url)} (localhost only)`
+      );
+      out.info(
+        flag(options, 'allowCreate')
+          ? `${mark(out.c, 'warn')} Creating prototypes from the gallery is ON (--allow-create): allowed origins can write prototypes/ and run the copies.`
+          : `${mark(out.c, 'skip')} Creating prototypes from the gallery is off (pass --allow-create to enable it).`
       );
     },
     keepAlive: untilSignal(() => control.close()),
@@ -70,6 +76,7 @@ export const galleryCommand: Handler = async (ctx, _args, options): Promise<Comm
     root: ctx.root,
     port: parsePort(opt(options, 'controlPort'), DEFAULT_CONTROL_PORT),
     allowedOrigins: origins(options, galleryPort),
+    allowCreate: flag(options, 'allowCreate'),
     log: (line) => ctx.out.info(ctx.out.c.dim(`[control] ${line}`)),
   });
   const child = spawn(

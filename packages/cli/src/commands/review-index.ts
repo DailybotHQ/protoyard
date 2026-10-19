@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
@@ -7,7 +7,7 @@ import { inspectPrototype } from '../lib/inspect.ts';
 import { untilSignal } from '../lib/network.ts';
 import { CliError, formatBytes, mark } from '../lib/output.ts';
 import { guardOutputDir } from '../lib/output-guard.ts';
-import { toPosixRelative } from '../lib/paths.ts';
+import { isInside, toPosixRelative } from '../lib/paths.ts';
 import { parsePort } from '../lib/ports.ts';
 import { type LedgerEntry, ledgerPath, readLedger } from '../lib/publish-ledger.ts';
 import {
@@ -108,6 +108,53 @@ async function personasFor(
  * persona deep links. Prototypes without a recorded deploy are listed as
  * "not deployed" with the command to publish them; no URL is ever guessed.
  */
+/** Files `review-index` writes; `--publish` uploads a folder only when it holds nothing else. */
+const REVIEW_FILES = new Set(['index.html', 'review-manifest.json', REVIEW_MARKER]);
+
+/**
+ * `--publish` uploads `--out` as a public site. It refuses a folder that holds
+ * the deploy ledger (always), and any folder other than the default
+ * artifacts/review unless `--allow-publish-out` says so explicitly.
+ */
+function assertPublishableOut(
+  ctx: CommandContext,
+  outDir: string,
+  ledgerFile: string,
+  allowOther: boolean
+) {
+  const out = resolve(outDir);
+  if (
+    isInside(out, resolve(ledgerFile)) ||
+    isInside(out, resolve(ctx.paths.artifacts, 'publish'))
+  ) {
+    throw new CliError(
+      'usage',
+      `--out ${toPosixRelative(ctx.root, outDir)} contains the deploy ledger; it would be published.`,
+      { hint: 'Publish the review page from its own folder (default artifacts/review).' }
+    );
+  }
+  if (out !== resolve(ctx.paths.artifacts, 'review') && !allowOther) {
+    throw new CliError(
+      'usage',
+      `--publish uploads the whole --out folder; ${toPosixRelative(ctx.root, outDir)} is not the default artifacts/review.`,
+      {
+        hint: 'Use the default --out, or pass --allow-publish-out to publish this folder explicitly.',
+      }
+    );
+  }
+}
+
+async function assertOnlyReviewFiles(outDir: string) {
+  const extra = (await readdir(outDir)).filter((name) => !REVIEW_FILES.has(name));
+  if (extra.length > 0) {
+    throw new CliError(
+      'usage',
+      `--publish refuses ${outDir}: it holds files review-index did not write (${extra.slice(0, 5).join(', ')}${extra.length > 5 ? ', …' : ''}).`,
+      { hint: 'Remove them or publish from an empty folder; the whole folder is uploaded.' }
+    );
+  }
+}
+
 export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
   const fromLedger = flag(options, 'fromLedger');
   const rawSlugs = opt(options, 'slugs');
@@ -160,6 +207,9 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
   if (ledgerOption !== undefined && !existsSync(ledgerFile)) {
     throw new CliError('not_found', `No ledger file at ${ledgerOption}.`);
   }
+  if (publishProvider) {
+    assertPublishableOut(ctx, outDir, ledgerFile, flag(options, 'allowPublishOut'));
+  }
   const { entries: ledgerEntries, skipped } = await readLedger(ledgerFile);
   const deployments = latestDeployments(ledgerEntries);
   const selected = selectEntries(registry.entries, deployments, { fromLedger, slugs }).sort(
@@ -202,6 +252,8 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
 
   let publication: PublishRunResult | undefined;
   if (publishProvider) {
+    // The whole folder is uploaded, so it must hold only what this command wrote.
+    await assertOnlyReviewFiles(outDir);
     // This marker protects future local regeneration; it is not part of the site.
     await rm(markerPath, { force: true });
     try {

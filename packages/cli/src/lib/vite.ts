@@ -153,6 +153,22 @@ export interface ViteDevOptions {
   storageNamespace?: string;
 }
 
+/**
+ * Environment for a dev server. Like `buildEnv`, it always sets
+ * PROTOYARD_STORAGE_NAMESPACE (empty unless a template demo asks for one), so a
+ * value inherited from the parent shell never renames a prototype's IndexedDB.
+ */
+export function devEnv(
+  options: Pick<ViteDevOptions, 'storageNamespace'>,
+  base: NodeJS.ProcessEnv = process.env
+): NodeJS.ProcessEnv {
+  return {
+    ...base,
+    PROTOYARD_INCLUDE_DEVTOOLS: '1',
+    PROTOYARD_STORAGE_NAMESPACE: options.storageNamespace ?? '',
+  };
+}
+
 export function spawnViteDev(options: ViteDevOptions): ChildProcess {
   const config = findViteConfig(options.dir);
   if (!config) {
@@ -171,13 +187,7 @@ export function spawnViteDev(options: ViteDevOptions): ChildProcess {
   args.push('--host', options.host ? '0.0.0.0' : '127.0.0.1');
   return spawn(process.execPath, args, {
     cwd: options.dir,
-    env: {
-      ...process.env,
-      PROTOYARD_INCLUDE_DEVTOOLS: '1',
-      ...(options.storageNamespace
-        ? { PROTOYARD_STORAGE_NAMESPACE: options.storageNamespace }
-        : {}),
-    },
+    env: devEnv(options),
     shell: false,
     stdio: options.stdio === 'inherit' ? 'inherit' : ['ignore', 'pipe', 'pipe'],
   });

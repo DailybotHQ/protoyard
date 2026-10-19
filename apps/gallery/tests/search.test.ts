@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { agentPrompt, newCommand, shellQuote } from '../src/lib/commands';
-import { localDevUrl } from '../src/lib/control.svelte';
+import { localDevUrl, readCreateAccess } from '../src/lib/control.svelte';
 import { clampDimension, fitScale, safePreviewUrl } from '../src/lib/devices';
 import {
   applyQuery,
@@ -107,5 +107,22 @@ describe('gallery helpers', () => {
     expect(clampDimension(99999)).toBe(3840);
     expect(fitScale(640, 1280)).toBe(0.5);
     expect(fitScale(2000, 1280)).toBe(1);
+  });
+
+  it('enables gallery creates only with a per-run token from /api/status', () => {
+    expect(readCreateAccess({ ok: true, create: { enabled: true, token: 'abc' } })).toEqual({
+      enabled: true,
+      token: 'abc',
+    });
+    expect(readCreateAccess({ ok: true, create: { enabled: false } })).toEqual({
+      enabled: false,
+      token: null,
+    });
+    expect(readCreateAccess({ ok: true, create: { enabled: true, token: '' } }).enabled).toBe(
+      false
+    );
+    expect(readCreateAccess({ ok: true, create: { enabled: true, token: 7 } }).enabled).toBe(false);
+    // An older control server with no `create` field: creating stays off.
+    expect(readCreateAccess({ ok: true, running: [] }).enabled).toBe(false);
   });
 });

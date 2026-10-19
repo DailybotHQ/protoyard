@@ -66,7 +66,10 @@ registry's `catalog` blocks: category rails, search, filters (kind, category,
 platform, shell, features) kept in the URL, and a detail page per entry. Try it,
 Use this template and Remix use the local control server (`POST /api/dev/<slug>`,
 `POST /api/new`) and fall back to the exact CLI commands when the site is
-read-only (a published showcase).
+read-only (a published showcase). Creating from the gallery writes files and
+runs code, so it is off unless the gallery runs with
+`pnpm protoyard gallery --allow-create`; the client sends the per-run token
+from `GET /api/status`.
 
 ## Live preview modes
 

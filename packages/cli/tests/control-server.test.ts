@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { request } from 'node:http';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { type ControlServer, startControlServer } from '../src/control-server.ts';
+import { type ControlServer, startControlServer, tokenMatches } from '../src/control-server.ts';
 import type { DevServerHandle } from '../src/lib/dev-server.ts';
 import { templateDemoNamespace } from '../src/lib/registry.ts';
 import { addPrototype, addTemplate, createWorkspace, type TempWorkspace } from './helpers.ts';
@@ -17,6 +17,7 @@ const started: Array<{
   dir: string;
 }> = [];
 const ORIGIN = 'http://localhost:4321';
+const TOKEN = 'test-create-token-0123456789';
 
 function fakeHandle(slug: string, port: number): DevServerHandle {
   let exit: (code: number) => void = () => {};
@@ -114,13 +115,26 @@ describe('control server', () => {
     });
     expect(preflight.status).toBe(204);
     expect(preflight.cors).toBe(ORIGIN);
-    expect(preflight.allowHeaders).toBe('content-type');
+    expect(preflight.allowHeaders).toBe('content-type, x-protoyard-token');
     const foreign = await call('OPTIONS', '/api/new', {
       Origin: 'https://evil.example',
       'Access-Control-Request-Method': 'POST',
     });
     expect(foreign.status).toBe(403);
     expect(foreign.allowHeaders).toBeUndefined();
+  });
+
+  it('keeps creating off by default: no token in status, POST /api/new refused with a hint', async () => {
+    const status = await call('GET', '/api/status', { Origin: ORIGIN });
+    expect(status.body.create).toEqual({ enabled: false });
+    const res = await call('POST', '/api/new', {
+      Origin: ORIGIN,
+      'Content-Type': 'application/json',
+      'X-Protoyard-Token': 'anything',
+    });
+    expect(res.status).toBe(403);
+    expect(String(res.body.error)).toMatch(/disabled/);
+    expect(String(res.body.hint)).toMatch(/--allow-create/);
   });
 
   it('accepts only registry slugs', async () => {
@@ -212,6 +226,16 @@ describe('control server', () => {
   });
 });
 
+describe('tokenMatches', () => {
+  it('compares in constant time and treats any length mismatch as a mismatch', () => {
+    expect(tokenMatches('abc', 'abc')).toBe(true);
+    expect(tokenMatches('abc', 'abd')).toBe(false);
+    expect(tokenMatches('abc', 'abcd')).toBe(false);
+    expect(tokenMatches('abc', '')).toBe(false);
+    expect(tokenMatches('abc', undefined)).toBe(false);
+  });
+});
+
 describe('templateDemoNamespace', () => {
   it('builds a kebab-case demo namespace from the template slug', () => {
     expect(templateDemoNamespace('blank')).toBe('template-demo-blank');
@@ -238,6 +262,7 @@ describe('POST /api/new', () => {
             Host: `127.0.0.1:${server.port}`,
             'Content-Type': 'application/json',
             'Content-Length': String(Buffer.byteLength(payload)),
+            'X-Protoyard-Token': TOKEN,
             ...headers,
           },
         },
@@ -269,6 +294,8 @@ describe('POST /api/new', () => {
       root: nws.root,
       port: 0,
       newInstall: 'skip',
+      allowCreate: true,
+      createToken: TOKEN,
       start: async ({ slug }) => {
         starts.push(slug);
         return fakeHandle(slug, 5300 + starts.length);
@@ -333,6 +360,47 @@ describe('POST /api/new', () => {
     expect(manifestOf('my-app').template).toBe('blank');
   });
 
+  it('gives the per-run token only to an allowed origin', async () => {
+    const status = (headers: Record<string, string>) =>
+      new Promise<Record<string, unknown>>((resolve, reject) => {
+        const req = request(
+          {
+            host: '127.0.0.1',
+            port: server.port,
+            method: 'GET',
+            path: '/api/status',
+            headers: { Host: `127.0.0.1:${server.port}`, ...headers },
+          },
+          (r) => {
+            let data = '';
+            r.on('data', (c) => (data += c));
+            r.on('end', () => resolve({ status: r.statusCode, ...JSON.parse(data || '{}') }));
+          }
+        );
+        req.on('error', reject);
+        req.end();
+      });
+    expect((await status({ Origin: ORIGIN })).create).toEqual({ enabled: true, token: TOKEN });
+    const bare = await status({});
+    expect(JSON.stringify(bare)).not.toContain(TOKEN);
+    expect(JSON.stringify(await status({ Origin: 'null' }))).not.toContain(TOKEN);
+    expect(JSON.stringify(await status({ Origin: 'https://evil.example' }))).not.toContain(TOKEN);
+  });
+
+  it('refuses Origin: null and a missing, wrong or wrong-length token', async () => {
+    const body = { slug: 'tok-app', from: 'blank' };
+    expect((await post(body, { Origin: 'null' })).status).toBe(403);
+    const missing = await post(body, { Origin: ORIGIN, 'X-Protoyard-Token': '' });
+    expect(missing.status).toBe(403);
+    expect(String(missing.body.error)).toMatch(/token/);
+    const wrong = TOKEN.replace(/.$/, (c) => (c === 'x' ? 'y' : 'x'));
+    expect((await post(body, { Origin: ORIGIN, 'X-Protoyard-Token': wrong })).status).toBe(403);
+    expect((await post(body, { Origin: ORIGIN, 'X-Protoyard-Token': `${TOKEN}x` })).status).toBe(
+      403
+    );
+    expect(existsSync(join(nws.root, 'prototypes/tok-app'))).toBe(false);
+  });
+
   it('refuses path traversal and invalid slugs before touching the disk', async () => {
     for (const body of [
       { slug: '../evil', from: 'blank' },
@@ -383,6 +451,8 @@ describe('POST /api/new', () => {
     const offline = await startControlServer({
       root: nws.root,
       port: 0,
+      allowCreate: true,
+      createToken: TOKEN,
       start: async ({ slug }) => {
         launched.push(slug);
         return fakeHandle(slug, 5400);
@@ -417,6 +487,7 @@ describe('POST /api/new', () => {
                 Host: `127.0.0.1:${offline.port}`,
                 Origin: ORIGIN,
                 'Content-Type': 'application/json',
+                'X-Protoyard-Token': TOKEN,
               },
             },
             (r) => {
