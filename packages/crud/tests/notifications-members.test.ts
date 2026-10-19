@@ -128,6 +128,27 @@ describe('MembersScreen', () => {
     expect(runtime.members.list().some((m) => m.persona.email === 'blair@example.com')).toBe(true);
   });
 
+  it('shows each member face next to the name, initials when there is none', async () => {
+    const runtime = await harness.boot('owner');
+    const members = runtime.members.list();
+    expect(members.some((m) => m.persona.avatar)).toBe(true);
+    render(TeamUiHarness, { runtime, mode: 'members' });
+    await waitFor(() => expect(screen.getAllByTestId('member-row').length).toBe(members.length));
+    for (const member of members) {
+      const row = document.querySelector(
+        `[data-membership-id="${member.membership.id}"]`
+      ) as HTMLElement;
+      const face = row.querySelector('img');
+      if (member.persona.avatar) {
+        expect(face?.getAttribute('src')).toBe(`./avatars/64/${member.persona.avatar}.webp`);
+        expect(face?.getAttribute('alt')).toBe('');
+      } else {
+        expect(face).toBeNull();
+        expect(row.querySelector('[data-avatar="initials"]')).not.toBeNull();
+      }
+    }
+  });
+
   it('hides invite controls for viewers', async () => {
     const runtime = await harness.boot('viewer');
     render(TeamUiHarness, { runtime, mode: 'members' });

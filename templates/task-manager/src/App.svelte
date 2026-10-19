@@ -1,6 +1,7 @@
 <script lang="ts">
 import { CheckSquare, LayoutDashboard, ListTodo } from '@lucide/svelte';
 import {
+  avatarImage,
   can,
   createRouter,
   Link,
@@ -87,7 +88,7 @@ const navClass =
       {#if principal.current}
         <div class="rounded-lg border border-sidebar-border bg-surface p-3">
           <div class="flex items-center gap-3">
-            <Avatar name={principal.current.persona.name} size="sm" />
+            <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" />
             <div class="min-w-0 flex-1">
               <p class="truncate text-sm font-medium">{principal.current.persona.name}</p>
               <p class="truncate text-xs text-muted-foreground">

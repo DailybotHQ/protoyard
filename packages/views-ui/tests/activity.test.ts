@@ -6,6 +6,7 @@ import {
   type ActivityPerson,
   CommentThread,
   type EditorLoader,
+  personImage,
 } from '../src/activity/index.ts';
 import { MarkdownEditor } from '../src/editor/index.ts';
 
@@ -71,13 +72,19 @@ describe('CommentThread', () => {
     // Stored text is shown as text, never HTML.
     expect(article(/Yesterday/).textContent).toContain('Notes <b>not html</b>');
     expect(article(/Yesterday/).querySelector('b')).toBeNull();
-    // A URL avatar is shown; a library id needs `avatarSrc`, so initials stay.
+    // A URL avatar is shown as is; a library id resolves to the 64/128 px faces.
     expect(
       article(/Yesterday/)
         .querySelector('img')
         ?.getAttribute('src')
     ).toBe('/avatars/li.webp');
-    expect(first.querySelector('img')).toBeNull();
+    const face = first.querySelector('img');
+    expect(face?.getAttribute('src')).toBe('./avatars/64/av-012.webp');
+    expect(face?.getAttribute('srcset')).toBe(
+      './avatars/64/av-012.webp 1x, ./avatars/128/av-012.webp 2x'
+    );
+    // Decorative next to the visible name: empty alt.
+    expect(face?.getAttribute('alt')).toBe('');
     expect(screen.getByRole('list', { name: 'Replies to Marta Ruiz' })).toBeTruthy();
   });
 
@@ -247,6 +254,15 @@ describe('ActivityFeed', () => {
     render(ActivityFeed, { query: query(ITEMS), people: PEOPLE, now: NOW, ...props });
   const headings = () => screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
 
+  it("shows each actor's face, with initials when there is none", () => {
+    feed();
+    const yesterday = screen.getByRole('region', { name: 'Yesterday' });
+    expect(yesterday.querySelector('img')?.getAttribute('src')).toBe('./avatars/64/av-012.webp');
+    const older = screen.getByRole('region', { name: 'Oct 12' });
+    expect(older.querySelector('img')).toBeNull();
+    expect(older.querySelector('[data-avatar="initials"]')?.textContent?.trim()).toBe('SO');
+  });
+
   it('groups newest first by day, as plain text', () => {
     const onOpenRecord = vi.fn();
     feed({ onOpenRecord });
@@ -291,5 +307,23 @@ describe('ActivityFeed', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(25);
     await fireEvent.click(screen.getByRole('button', { name: 'Load older activity' }));
     await waitFor(() => expect(onLoadMore).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('personImage', () => {
+  it('resolves persona avatars through the renderer, and honors an override', () => {
+    expect(personImage(undefined)).toEqual({});
+    expect(personImage({ id: 'p-sam', name: 'Sam Okafor' })).toEqual({});
+    expect(personImage({ id: 'p-x', name: 'X', avatar: 'javascript:alert(1)' })).toEqual({});
+    expect(personImage({ id: 'p-x', name: 'X', avatar: 'av-999' })).toEqual({});
+    expect(personImage({ id: 'p-x', name: 'X', avatar: 'av-003' })).toEqual({
+      src: './avatars/64/av-003.webp',
+      srcset: './avatars/64/av-003.webp 1x, ./avatars/128/av-003.webp 2x',
+    });
+    const override = (person: ActivityPerson) => `/custom/${person.id}.webp`;
+    expect(personImage({ id: 'p-x', name: 'X', avatar: 'av-003' }, override)).toEqual({
+      src: '/custom/p-x.webp',
+    });
+    expect(personImage({ id: 'p-x', name: 'X' }, () => null)).toEqual({});
   });
 });

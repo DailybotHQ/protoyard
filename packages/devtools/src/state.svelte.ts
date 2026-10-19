@@ -10,6 +10,11 @@ import type {
   Theme,
 } from '@protoyard/core';
 
+/** `persona.avatar` → image props; `{}` means "show initials". */
+export type AvatarImageResolver = (avatar: unknown) => { src?: string; srcset?: string };
+
+const NO_AVATAR_IMAGE: AvatarImageResolver = () => ({});
+
 /**
  * One reactive mirror of the runtime for the whole panel. Every value is
  * re-read from its controller on change (never from the listener payload),
@@ -18,6 +23,8 @@ import type {
 export interface DevtoolsState {
   readonly runtime: PrototypeRuntime;
   readonly themes: readonly Theme[];
+  /** Persona faces (the renderer's `avatarImage`); initials only when absent. */
+  readonly avatarImage: AvatarImageResolver;
   readonly principal: Principal | null;
   readonly appearance: AppearanceState;
   readonly active: ActiveScenarioInfo | null;
@@ -50,7 +57,8 @@ export interface DevtoolsState {
 
 export function createDevtoolsState(
   runtime: PrototypeRuntime,
-  themes: readonly Theme[]
+  themes: readonly Theme[],
+  avatarImage: AvatarImageResolver = NO_AVATAR_IMAGE
 ): DevtoolsState {
   let principal = $state.raw(runtime.session.principal());
   let appearance = $state.raw(runtime.theme.appearance());
@@ -112,6 +120,7 @@ export function createDevtoolsState(
   return {
     runtime,
     themes,
+    avatarImage,
     get principal() {
       return principal;
     },

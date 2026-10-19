@@ -6,3 +6,4 @@ export {
   mountDevtools,
 } from './mount.ts';
 export { default as DevtoolsPanel } from './Panel.svelte';
+export type { AvatarImageResolver } from './state.svelte.ts';

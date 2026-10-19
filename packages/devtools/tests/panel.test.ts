@@ -1,6 +1,7 @@
 import { fireEvent, screen, within } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { avatarImage } from '../../renderer-svelte/src/avatars.ts';
 import { createFakeRuntime } from '../../renderer-svelte/tests/fixtures/fake-runtime.ts';
 import { BUILTIN_THEMES } from '../../themes/src/index.ts';
 import { type DevtoolsHandle, mountDevtools, reproducibleLink } from '../src/index.ts';
@@ -99,6 +100,53 @@ describe('DevTools panel', () => {
     expect(String(assign.mock.calls[0]?.[0])).toContain('devtools=0');
     expect(loadPrefs('fake').open).toBe(false);
     vi.unstubAllGlobals();
+  });
+
+  it('shows persona faces from the avatar resolver, initials as the fallback', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.ensureSeeded();
+    const [owner, viewer] = runtime.session.personas();
+    if (!owner || !viewer) throw new Error('The fake runtime needs two personas');
+    owner.avatar = 'av-005';
+    viewer.avatar = 'javascript:alert(1)';
+    handle = mountDevtools({ runtime, themes: BUILTIN_THEMES, avatarImage });
+    flushSync();
+    await fireEvent.keyDown(window, { key: '.', ctrlKey: true });
+    await settle();
+    const panel = screen.getByRole('complementary', { name: 'Protoyard DevTools' });
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Personas' }));
+    await settle();
+    const ownerButton = within(panel).getByRole('button', { name: /Olivia Owner/ });
+    const face = ownerButton.querySelector('img');
+    expect(face?.getAttribute('src')).toBe('./avatars/64/av-005.webp');
+    expect(face?.getAttribute('srcset')).toBe(
+      './avatars/64/av-005.webp 1x, ./avatars/128/av-005.webp 2x'
+    );
+    expect(face?.getAttribute('alt')).toBe('');
+    expect(face?.getAttribute('loading')).toBe('lazy');
+    // The button keeps its text name; the photo adds nothing to it.
+    expect(ownerButton.getAttribute('aria-label') ?? ownerButton.textContent).toMatch(
+      /Olivia Owner/
+    );
+    // An unsafe value never reaches an <img>: initials show.
+    const viewerButton = within(panel).getByRole('button', { name: /Victor Viewer/ });
+    expect(viewerButton.querySelector('img')).toBeNull();
+    expect(viewerButton.textContent).toContain('VV');
+    // A face that fails to load falls back to initials.
+    await fireEvent.error(face as HTMLImageElement);
+    await settle();
+    expect(ownerButton.querySelector('img')).toBeNull();
+    expect(ownerButton.textContent).toContain('OO');
+  });
+
+  it('shows initials only when no avatar resolver is given', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.ensureSeeded();
+    for (const persona of runtime.session.personas()) persona.avatar = 'av-006';
+    const { panel } = await open(runtime);
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Personas' }));
+    await settle();
+    expect(panel.querySelector('img[data-persona-avatar]')).toBeNull();
   });
 
   it('switches persona and overrides role without touching data', async () => {

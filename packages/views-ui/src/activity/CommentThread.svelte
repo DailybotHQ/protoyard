@@ -10,9 +10,9 @@ import Segments from './Segments.svelte';
 import {
   type ActivityPerson,
   type ActivityRecord,
-  directAvatar,
   type EditorLoader,
   handleOf,
+  personImage,
 } from './types.ts';
 
 /**
@@ -33,7 +33,7 @@ let {
   onReact,
   onOpenReference,
   loadEditor,
-  avatarSrc = (person: ActivityPerson) => directAvatar(person),
+  avatarSrc,
   reactions = ['👍', '🎉', '❤️', '👀'],
   now,
   timeZone = 'UTC',
@@ -55,6 +55,7 @@ let {
   onOpenReference?: (id: string) => void;
   /** Lazily loads the rich composer: a function resolving to the editor view's MarkdownEditor (see the README). */
   loadEditor?: EditorLoader;
+  /** Overrides how a person's image resolves (default: `persona.avatar` through the renderer's `avatarImage`). */
   avatarSrc?: (person: ActivityPerson) => string | null | undefined;
   reactions?: readonly string[];
   /** The runtime clock's now, for "Today, 3:04 PM". */
@@ -136,7 +137,7 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
 
 {#snippet person(id: string, size: 'sm' | 'xs' = 'sm')}
   {@const who = byId.get(id)}
-  <Avatar name={who?.name ?? 'Someone'} src={who ? avatarSrc(who) : undefined} {size} decorative />
+  <Avatar name={who?.name ?? 'Someone'} {...personImage(who, avatarSrc)} {size} decorative />
 {/snippet}
 
 {#snippet commentItem(comment: C, isReply: boolean)}

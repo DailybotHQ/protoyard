@@ -1,5 +1,12 @@
 import type { Persona, PrototypeRuntime } from '@protoyard/core';
-import { getRuntime, type LiveQuery, liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  type AvatarImage,
+  avatarImage,
+  getRuntime,
+  type LiveQuery,
+  liveQuery,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import { getContext, setContext } from 'svelte';
 import type { ChatDatabase, Conversation } from '../database/schema.ts';
 import { ASSISTANT } from '../domain/assistant.ts';
@@ -70,15 +77,18 @@ export interface Author {
   name: string;
   color: string;
   isAssistant: boolean;
+  /** The persona's face (`{}` for the assistant or when there is none: initials show). */
+  image: AvatarImage;
 }
 
 export function authorOf(people: Map<string, Persona> | undefined, id: string): Author {
   if (id === ASSISTANT.id)
-    return { name: ASSISTANT.name, color: ASSISTANT.color, isAssistant: true };
+    return { name: ASSISTANT.name, color: ASSISTANT.color, isAssistant: true, image: {} };
   const person = people?.get(id);
   return {
     name: person?.name ?? 'Former member',
     color: person?.avatarColor ?? '#64748b',
     isAssistant: false,
+    image: avatarImage(person?.avatar),
   };
 }

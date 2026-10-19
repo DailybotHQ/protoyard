@@ -184,8 +184,13 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   // Presentation mode (`?devtools=0`) hides the panel even in dev.
   if (devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false))) {
     try {
-      const { mountDevtools } = await import('@protoyard/devtools');
-      const panel = mountDevtools({ runtime: rt, themes });
+      // The avatar resolver rides along with the lazy DevTools chunk, so it
+      // never reaches the initial JavaScript of a prototype without faces.
+      const [{ mountDevtools }, { avatarImage }] = await Promise.all([
+        import('@protoyard/devtools'),
+        import('./avatars.ts'),
+      ]);
+      const panel = mountDevtools({ runtime: rt, themes, avatarImage });
       cleanups.push(() => panel.destroy());
     } catch (error) {
       console.error('[protoyard] DevTools failed to load', error);

@@ -34,18 +34,37 @@ function avatarColors(hex: string): { bg: string; fg: string } {
   return { bg: `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`, fg: '#ffffff' };
 }
 const colors = $derived(avatarColors(author.color));
+// The face that failed to load last: initials show instead, a new face retries.
+let failed = $state<string | null>(null);
+const photo = $derived(author.image.src !== undefined && failed !== author.image.src);
 </script>
 
 <!-- Decorative: the name is always shown next to it. -->
-<span
-  aria-hidden="true"
-  class={[
-    'grid shrink-0 place-items-center font-semibold select-none',
-    size === 'sm' ? 'size-7 text-[0.65rem]' : 'size-9 text-xs',
-    author.isAssistant ? 'rounded-lg' : 'rounded-full',
-  ]}
-  style:background-color={colors.bg}
-  style:color={colors.fg}
->
-  {initials}
-</span>
+{#if photo}
+  <img
+    src={author.image.src}
+    srcset={author.image.srcset}
+    alt=""
+    width={size === 'sm' ? 28 : 36}
+    height={size === 'sm' ? 28 : 36}
+    loading="lazy"
+    decoding="async"
+    class={['shrink-0 rounded-full object-cover', size === 'sm' ? 'size-7' : 'size-9']}
+    style:background-color={colors.bg}
+    data-author-avatar=""
+    onerror={() => (failed = author.image.src ?? null)}
+  />
+{:else}
+  <span
+    aria-hidden="true"
+    class={[
+      'grid shrink-0 place-items-center font-semibold select-none',
+      size === 'sm' ? 'size-7 text-[0.65rem]' : 'size-9 text-xs',
+      author.isAssistant ? 'rounded-lg' : 'rounded-full',
+    ]}
+    style:background-color={colors.bg}
+    style:color={colors.fg}
+  >
+    {initials}
+  </span>
+{/if}

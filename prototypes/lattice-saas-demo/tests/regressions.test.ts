@@ -250,7 +250,7 @@ describe('bug 3: every signed-in persona can sign out', () => {
 
 describe('bug 4: one price source for plans and seeded subscriptions', () => {
   it('seeds every subscription and invoice at the catalog price (integer cents)', () => {
-    expect(definition.generatorVersion).toBe(2);
+    expect(definition.generatorVersion).toBe(3);
     let checked = 0;
     for (const scenario of resolveScenarios(definition.scenarios, PRESETS)) {
       const world = generateB2bSaasWorld(createGenerateContext(scenario));
@@ -387,5 +387,17 @@ describe('bug 5: onboarding steps commit atomically through the service pipeline
     expect((await runtime.db.rows<Persona>('py_personas').get('user_0001'))?.name).toBe(before);
     expect(runtime.session.principal()?.persona.name).toBe(before);
     expect(await row(runtime)).toBeUndefined();
+  });
+});
+
+describe('avatars: seeded people look real', () => {
+  it('gives every persona a library avatar, deterministically', () => {
+    for (const scenario of resolveScenarios(definition.scenarios, PRESETS)) {
+      const first = generateB2bSaasWorld(createGenerateContext(scenario));
+      const again = generateB2bSaasWorld(createGenerateContext(scenario));
+      expect(first.personas.length).toBeGreaterThan(0);
+      for (const persona of first.personas) expect(persona.avatar).toMatch(/^av-\d{3}$/);
+      expect(again.personas.map((p) => p.avatar)).toEqual(first.personas.map((p) => p.avatar));
+    }
   });
 });

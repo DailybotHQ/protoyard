@@ -94,7 +94,7 @@ $effect(() => {
     {#if head}
       <div class={cn('mt-3 flex gap-2.5 first:mt-0', own && 'flex-row-reverse')}>
         {#if !own}
-          <Avatar name={head.author.name} src={head.author.avatarUrl} size="sm" decorative class="mt-5" />
+          <Avatar name={head.author.name} src={head.author.avatarUrl} srcset={head.author.avatarSrcset} size="sm" decorative class="mt-5" />
         {/if}
         <div class={cn('flex max-w-[85%] min-w-0 flex-col gap-1 sm:max-w-[70%]', own ? 'items-end' : 'items-start')}>
           <p class="flex items-baseline gap-2 px-1 text-xs text-muted-foreground">

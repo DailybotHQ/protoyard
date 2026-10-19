@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Package, ShoppingBag, ShoppingCart, Store, Wrench } from '@lucide/svelte';
 import {
+  avatarImage,
   can,
   createRouter,
   Link,
@@ -95,7 +96,7 @@ const navClass =
             <p class="truncate text-sm font-medium">{principal.current.persona.name}</p>
             <p class="truncate text-xs text-muted-foreground">{ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role}</p>
           </div>
-          <Avatar name={principal.current.persona.name} size="sm" />
+          <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" />
         {/if}
       </div>
     </div>

@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { PrototypeRuntime } from '@protoyard/core';
-import { runService, usePrincipal } from '@protoyard/renderer-svelte';
+import { avatarImage, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { createSettingsServices } from '@protoyard/saas';
-import { Button, FormField, Input } from '@protoyard/ui';
+import { Avatar, Button, FormField, Input } from '@protoyard/ui';
 import { getSaas } from '../../context.ts';
 
 const runtime = getSaas().runtime as Parameters<typeof createSettingsServices>[0];
@@ -31,9 +31,14 @@ async function save(): Promise<void> {
 </script>
 
 <section class="grid gap-5" aria-labelledby="settings-profile-title" data-testid="settings-profile">
-  <div>
-    <h2 id="settings-profile-title" class="text-lg font-semibold">Profile</h2>
-    <p class="text-sm text-muted-foreground">Update the simulated profile used in this prototype.</p>
+  <div class="flex items-center gap-4">
+    {#if principal.current}
+      <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="lg" data-testid="settings-profile-avatar" />
+    {/if}
+    <div>
+      <h2 id="settings-profile-title" class="text-lg font-semibold">Profile</h2>
+      <p class="text-sm text-muted-foreground">Update the simulated profile used in this prototype.</p>
+    </div>
   </div>
   <form class="grid max-w-xl gap-4" onsubmit={(event) => { event.preventDefault(); void save(); }}>
     <FormField label="Display name" required>

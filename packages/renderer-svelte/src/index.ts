@@ -1,8 +1,10 @@
 export { bindAppearance } from './appearance.ts';
 export {
   AVATAR_BASE,
+  type AvatarImage,
   type AvatarImageSize,
   type AvatarUrlOptions,
+  avatarImage,
   avatarSrcset,
   avatarUrl,
   isAvatarId,

@@ -61,7 +61,7 @@ function filter(value: string, search: string): number {
           onSelect={() => onPick(user)}
           class="flex min-h-touch cursor-default items-center gap-3 rounded-md px-2 py-1.5 text-sm outline-none select-none data-disabled:opacity-50 data-selected:bg-muted sm:min-h-10"
         >
-          <Avatar name={user.name} src={user.avatarUrl} size="sm" decorative />
+          <Avatar name={user.name} src={user.avatarUrl} srcset={user.avatarSrcset} size="sm" decorative />
           <span class="grid min-w-0 flex-1">
             <span class="truncate font-medium text-foreground">{user.name}</span>
             {#if user.subtitle}<span class="truncate text-xs text-muted-foreground">{user.subtitle}</span>{/if}

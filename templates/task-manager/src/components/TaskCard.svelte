@@ -1,6 +1,6 @@
 <script lang="ts">
 import { MessageSquare } from '@lucide/svelte';
-import { Link } from '@protoyard/renderer-svelte';
+import { avatarImage, Link } from '@protoyard/renderer-svelte';
 import { Avatar } from '@protoyard/ui';
 import type { Project, Task } from '../database/schema.ts';
 import { taskKey } from '../domain/tasks.ts';
@@ -44,7 +44,7 @@ const assignee = $derived(task.assigneeId ? workspace.peopleById.get(task.assign
   {/if}
   <span class="ml-auto">
     {#if assignee}
-      <Avatar name={assignee.name} size="xs" title={`Assigned to ${assignee.name}`} aria-label={`Assigned to ${assignee.name}`} />
+      <Avatar name={assignee.name} {...avatarImage(assignee.avatar)} size="xs" title={`Assigned to ${assignee.name}`} aria-label={`Assigned to ${assignee.name}`} />
     {:else}
       <span class="text-[0.7rem] text-muted-foreground">Unassigned</span>
     {/if}

@@ -17,7 +17,7 @@ blueprint's entity services and `runtime.members` (`session.assert` → zod →
 | `BoardScreen` | Enum columns with filtered counts and optional sums; drag, keyboard and **Move to…** call the entity service, show pending state, roll back on failure and offer Undo. Viewers get a read-only board. |
 | `RelationPicker` | Searches indexed relation options and can create a related record inline when the persona may create it. |
 | `NotificationsBell` | Unread badge and list from `createNotificationService`; mark one or all read (`features.notifications`). |
-| `MembersScreen` | Invite, change role and remove members; hidden or disabled without `members:*`. The service refuses to remove the last owner. |
+| `MembersScreen` | Invite, change role and remove members; hidden or disabled without `members:*`. The service refuses to remove the last owner. Each row shows the persona's avatar photo (initials as the fallback). |
 
 ```svelte
 <script lang="ts">
@@ -153,7 +153,7 @@ import { SettingsScreen } from '@protoyard/crud/screens/settings';
 
 | Section | What it does | Who |
 | --- | --- | --- |
-| Profile | Renames the signed-in persona and sets its avatar color (`py_personas`) | Every signed-in persona, own profile only |
+| Profile | Shows the signed-in persona's avatar photo, renames the persona and sets its avatar color (`py_personas`) | Every signed-in persona, own profile only |
 | Workspace | Renames the active organization (`py_organizations`) | Owners and admins (`members:update`); read-only otherwise |
 | Appearance | Theme and color mode through `runtime.theme.setPreference` (per persona); `library` adds themes loaded on demand | Everyone |
 | Notifications | The blueprint rules that reach your role, the unread count and Mark all as read | Everyone |

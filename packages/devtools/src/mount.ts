@@ -1,6 +1,7 @@
 import type { PrototypeRuntime, Theme } from '@protoyard/core';
 import { mount, unmount } from 'svelte';
 import Panel from './Panel.svelte';
+import type { AvatarImageResolver } from './state.svelte.ts';
 
 export interface MountDevtoolsOptions {
   runtime: PrototypeRuntime;
@@ -8,6 +9,11 @@ export interface MountDevtoolsOptions {
   themes?: readonly Theme[];
   /** Defaults to a new element appended to `document.body`. */
   target?: HTMLElement;
+  /**
+   * Resolves a `persona.avatar` to image props (the renderer passes its
+   * `avatarImage`). Without it the persona list shows initials only.
+   */
+  avatarImage?: AvatarImageResolver;
 }
 
 export interface DevtoolsHandle {
@@ -33,7 +39,11 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
   const releaseIsolation = isolateFromAppLayers(host);
   const component = mount(Panel, {
     target: mountPoint,
-    props: { runtime: options.runtime, themes: options.themes ?? [] },
+    props: {
+      runtime: options.runtime,
+      themes: options.themes ?? [],
+      ...(options.avatarImage ? { avatarImage: options.avatarImage } : {}),
+    },
   });
   return {
     async destroy() {

@@ -26,12 +26,24 @@ import ScenarioSection from './sections/ScenarioSection.svelte';
 import ShareSection from './sections/ShareSection.svelte';
 import SnapshotsSection from './sections/SnapshotsSection.svelte';
 import TimeSection from './sections/TimeSection.svelte';
-import { createDevtoolsState, type DevtoolsState } from './state.svelte.ts';
+import {
+  type AvatarImageResolver,
+  createDevtoolsState,
+  type DevtoolsState,
+} from './state.svelte.ts';
 
-let { runtime, themes = [] }: { runtime: PrototypeRuntime; themes?: readonly Theme[] } = $props();
+let {
+  runtime,
+  themes = [],
+  avatarImage,
+}: {
+  runtime: PrototypeRuntime;
+  themes?: readonly Theme[];
+  avatarImage?: AvatarImageResolver;
+} = $props();
 
 // svelte-ignore state_referenced_locally
-const dt = createDevtoolsState(runtime, themes);
+const dt = createDevtoolsState(runtime, themes, avatarImage);
 // svelte-ignore state_referenced_locally
 const namespace = runtime.manifest.storage.namespace;
 const initial = loadPrefs(namespace);
