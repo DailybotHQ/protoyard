@@ -117,6 +117,27 @@ import { MapScreen } from '@protoyard/crud/screens/map';
   **Pick on map** control. It loads the offline map on demand; clicking a point or
   focusing the map and pressing Enter updates the same inputs.
 
+## Dashboard screen (`@protoyard/crud/screens/dashboard`)
+
+A blueprint `dashboard` screen rendered from its KPI, chart, list and board-summary widgets:
+
+```svelte
+<script lang="ts">
+import { DashboardScreen } from '@protoyard/crud/screens/dashboard';
+</script>
+
+<DashboardScreen {runtime} {blueprint} {services} screen={dashboardScreen} />
+```
+
+- KPI tiles show the selected period and its previous-period change. The 7, 30 and 90 day
+  selector follows simulated runtime time.
+- Charts render line, area, bar and donut aggregate data with an accessible table control.
+  Chart families and the dashboard entry load on demand.
+- Lists show the configured top records and open their detail routes. Board summaries open
+  the matching board route when the blueprint declares one, or the entity list otherwise.
+- Widgets read through entity services and update from `liveQuery`; denied entity access is
+  shown as a per-widget permission state. No data is fetched from a network service.
+
 ## Settings screen (`@protoyard/crud/screens/settings`)
 
 A separate entry, so the screen loads only with its route. Sections come from a blueprint
