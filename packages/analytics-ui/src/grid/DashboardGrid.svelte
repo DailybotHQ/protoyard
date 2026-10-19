@@ -1,5 +1,16 @@
 <script lang="ts">
 import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  FoldHorizontal,
+  FoldVertical,
+  GripVertical,
+  UnfoldHorizontal,
+  UnfoldVertical,
+} from '@lucide/svelte';
+import {
   compactLayout,
   type DashboardLayout,
   type DashboardWidget,
@@ -146,15 +157,15 @@ function onkeydown(event: KeyboardEvent, id: string) {
   }
 }
 
-const controls: { label: string; glyph: string; run: (id: string) => Promise<void> }[] = [
-  { label: 'Move up', glyph: '↑', run: (id) => move(id, 'up') },
-  { label: 'Move down', glyph: '↓', run: (id) => move(id, 'down') },
-  { label: 'Move left', glyph: '←', run: (id) => move(id, 'left') },
-  { label: 'Move right', glyph: '→', run: (id) => move(id, 'right') },
-  { label: 'Narrower', glyph: '⇤', run: (id) => resize(id, { dw: -1 }) },
-  { label: 'Wider', glyph: '⇥', run: (id) => resize(id, { dw: 1 }) },
-  { label: 'Shorter', glyph: '⤒', run: (id) => resize(id, { dh: -1 }) },
-  { label: 'Taller', glyph: '⤓', run: (id) => resize(id, { dh: 1 }) },
+const controls: { label: string; icon: typeof ArrowUp; run: (id: string) => Promise<void> }[] = [
+  { label: 'Move up', icon: ArrowUp, run: (id) => move(id, 'up') },
+  { label: 'Move down', icon: ArrowDown, run: (id) => move(id, 'down') },
+  { label: 'Move left', icon: ArrowLeft, run: (id) => move(id, 'left') },
+  { label: 'Move right', icon: ArrowRight, run: (id) => move(id, 'right') },
+  { label: 'Narrower', icon: FoldHorizontal, run: (id) => resize(id, { dw: -1 }) },
+  { label: 'Wider', icon: UnfoldHorizontal, run: (id) => resize(id, { dw: 1 }) },
+  { label: 'Shorter', icon: FoldVertical, run: (id) => resize(id, { dh: -1 }) },
+  { label: 'Taller', icon: UnfoldVertical, run: (id) => resize(id, { dh: 1 }) },
 ];
 </script>
 
@@ -195,7 +206,7 @@ const controls: { label: string; glyph: string; run: (id: string) => Promise<voi
             aria-disabled={pending ? 'true' : undefined}
             onkeydown={(event) => onkeydown(event, item.id)}
           >
-            <span aria-hidden="true">⠿</span>
+            <GripVertical class="size-4" aria-hidden="true" />
           </button>
           {#each controls as control (control.label)}
             <Button
@@ -207,7 +218,7 @@ const controls: { label: string; glyph: string; run: (id: string) => Promise<voi
               disabled={pending}
               onclick={() => control.run(item.id)}
             >
-              <span aria-hidden="true">{control.glyph}</span>
+              <control.icon class="size-3.5" aria-hidden="true" />
             </Button>
           {/each}
         </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Ellipsis, Maximize2 } from '@lucide/svelte';
 import { Button, Dialog, DropdownMenu, type DropdownMenuEntry } from '@protoyard/ui';
 import type { Snippet } from 'svelte';
 
@@ -82,14 +83,14 @@ const emptyMessage = $derived(typeof empty === 'string' ? empty : 'No data yet')
           aria-label="Expand {title}"
           onclick={() => (expanded = true)}
         >
-          <span aria-hidden="true">⤢</span>
+          <Maximize2 class="size-4" aria-hidden="true" />
         </Button>
       {/if}
       {#if menu.length > 0}
         <DropdownMenu items={menu}>
           {#snippet trigger({ props })}
             <Button {...props} variant="ghost" size="icon" class="size-8 min-h-0 min-w-0" aria-label="{title} options">
-              <span aria-hidden="true">⋯</span>
+              <Ellipsis class="size-4" aria-hidden="true" />
             </Button>
           {/snippet}
         </DropdownMenu>

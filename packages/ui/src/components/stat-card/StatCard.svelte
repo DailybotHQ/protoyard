@@ -3,8 +3,7 @@ import { Minus, TrendingDown, TrendingUp } from '@lucide/svelte';
 import type { HTMLAttributes } from 'svelte/elements';
 import { cn } from '../../lib/cn.ts';
 import type { IconComponent } from '../../lib/types.ts';
-
-type Trend = 'up' | 'down' | 'neutral';
+import { formatDelta, resolveTrend, type Trend, trendTone, trendWord } from './trend.ts';
 
 type Props = HTMLAttributes<HTMLDivElement> & {
   label: string;
@@ -31,23 +30,10 @@ let {
   ...rest
 }: Props = $props();
 
-const resolvedTrend: Trend = $derived(
-  trend ??
-    (typeof delta === 'number' ? (delta > 0 ? 'up' : delta < 0 ? 'down' : 'neutral') : 'neutral')
-);
-const deltaText = $derived(
-  typeof delta === 'number' ? `${delta > 0 ? '+' : ''}${delta.toLocaleString()}` : delta
-);
-const tone = $derived(
-  resolvedTrend === 'neutral'
-    ? 'text-muted-foreground'
-    : resolvedTrend === positive
-      ? 'text-success'
-      : 'text-destructive'
-);
-const trendWord = $derived(
-  resolvedTrend === 'up' ? 'Increased' : resolvedTrend === 'down' ? 'Decreased' : 'No change'
-);
+const resolvedTrend = $derived(resolveTrend(delta, trend));
+const deltaText = $derived(formatDelta(delta));
+const tone = $derived(trendTone(resolvedTrend, positive));
+const word = $derived(trendWord(resolvedTrend));
 const TrendIcon = $derived(
   resolvedTrend === 'up' ? TrendingUp : resolvedTrend === 'down' ? TrendingDown : Minus
 );
@@ -74,7 +60,7 @@ const TrendIcon = $derived(
       {#if deltaText !== undefined}
         <span class={cn('inline-flex items-center gap-1 font-medium tabular-nums', tone)}>
           <TrendIcon class="size-3.5" aria-hidden="true" />
-          <span class="sr-only">{trendWord}:</span>
+          <span class="sr-only">{word}:</span>
           {deltaText}
         </span>
       {/if}

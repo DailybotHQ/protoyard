@@ -2,4 +2,13 @@
 // (they are small enough for a first screen); every other view lives on its
 // subpath so it stays out of initial bundles.
 export type { AnalyticsEvent, Granularity, MetricPoint } from '@protoyard/analytics';
+export {
+  formatKpi,
+  type KpiDelta,
+  KpiRow,
+  KpiTile,
+  type KpiUnit,
+  kpiDelta,
+  LiveCounter,
+} from './kpi/index.ts';
 export { ANALYTICS_VIEWS, type AnalyticsView } from './views.ts';

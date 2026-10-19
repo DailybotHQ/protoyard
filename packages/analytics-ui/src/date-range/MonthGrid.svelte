@@ -1,4 +1,5 @@
 <script lang="ts">
+import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 import { DAY_MS } from '@protoyard/analytics';
 import { tick } from 'svelte';
 import { isoDay, monthGrid, weekdayNames } from './model.ts';
@@ -84,14 +85,14 @@ function onkeydown(event: KeyboardEvent) {
       type="button"
       class="inline-flex size-8 items-center justify-center rounded-md text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       aria-label="Previous month"
-      onclick={() => (focused = shiftMonths(focused, -1))}><span aria-hidden="true">‹</span></button
+      onclick={() => (focused = shiftMonths(focused, -1))}><ChevronLeft class="size-4" aria-hidden="true" /></button
     >
     <p class="text-sm font-medium" aria-live="polite">{title}</p>
     <button
       type="button"
       class="inline-flex size-8 items-center justify-center rounded-md text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       aria-label="Next month"
-      onclick={() => (focused = shiftMonths(focused, 1))}><span aria-hidden="true">›</span></button
+      onclick={() => (focused = shiftMonths(focused, 1))}><ChevronRight class="size-4" aria-hidden="true" /></button
     >
   </div>
   <table bind:this={grid} role="grid" aria-label={title} class="w-full border-collapse text-center text-xs" {onkeydown}>
