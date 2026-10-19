@@ -168,6 +168,40 @@ const easing = z
 
 export const ELEVATION_STYLES = ['flat', 'soft', 'crisp', 'glow', 'layered'] as const;
 export type ElevationStyle = (typeof ELEVATION_STYLES)[number];
+/**
+ * Style preset ids (the values live in `@protoyard/themes` style presets; a
+ * test keeps both lists in sync). Overrides and scenarios name presets by id,
+ * never free CSS.
+ */
+export const RADIUS_PRESET_IDS = ['square', 'sharp', 'default', 'round', 'pill'] as const;
+export type RadiusPresetId = (typeof RADIUS_PRESET_IDS)[number];
+export const MOTION_PRESET_IDS = ['none', 'subtle', 'standard', 'expressive'] as const;
+export type MotionPresetId = (typeof MOTION_PRESET_IDS)[number];
+/** The `FONT_CATALOG` pairing ids. */
+export const FONT_PAIRING_IDS = [
+  'system',
+  'humanist',
+  'geometric',
+  'grotesk',
+  'editorial',
+  'rounded',
+  'condensed',
+  'mono',
+] as const;
+export type FontPairingId = (typeof FONT_PAIRING_IDS)[number];
+
+/** A live style choice layered on the effective theme; omitted keys keep the theme's own value. */
+export const StylePresetOverridesSchema = z.object({
+  radius: z.enum(RADIUS_PRESET_IDS).optional(),
+  elevation: z.enum(ELEVATION_STYLES).optional(),
+  font: z.enum(FONT_PAIRING_IDS).optional(),
+  motion: z.enum(MOTION_PRESET_IDS).optional(),
+});
+export type StylePresetOverrides = z.infer<typeof StylePresetOverridesSchema>;
+/** The style dimensions an override or scenario can set. */
+export const STYLE_OVERRIDE_KEYS = ['radius', 'elevation', 'font', 'motion'] as const;
+export type StyleOverrideKey = (typeof STYLE_OVERRIDE_KEYS)[number];
+
 export const SURFACE_STYLES = ['solid', 'glass'] as const;
 export type SurfaceStyle = (typeof SURFACE_STYLES)[number];
 export const FOCUS_RING_STYLES = ['ring', 'outline', 'glow', 'inset'] as const;

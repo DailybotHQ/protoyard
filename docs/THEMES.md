@@ -161,6 +161,37 @@ const roomyViolet = applyStylePresets(violetTheme, {
 });
 ```
 
+### Live style overrides
+
+The radius, elevation, font and motion presets also work as live overrides,
+like density: a reviewer can try a prototype "more rounded", "flatter" or
+"editorial" without creating a theme.
+
+```ts
+await runtime.theme.setOverride({ radius: 'round', elevation: 'flat', font: 'editorial' });
+runtime.theme.appearance().radius; // { value: 'round', source: 'override' }
+await runtime.theme.clearOverride(); // back to the scenario, then the theme
+```
+
+- **Ids only.** `OverridesSchema` and a scenario's `appearance` accept the
+  preset ids (`RADIUS_PRESET_IDS`, `ELEVATION_STYLES`, `FONT_PAIRING_IDS`,
+  `MOTION_PRESET_IDS` in `@protoyard/core`), never free CSS. Anything else is
+  rejected.
+- **Resolution.** Each dimension resolves override › scenario `appearance` ›
+  the effective theme's own value, which the runtime reports as
+  `{ value: null, source: 'default' }`.
+- **Application.** `bindAppearance` (`@protoyard/renderer-svelte`) merges
+  them on top of the theme (the same result as `applyStylePresets`) before
+  `applyAppearance`, so the page updates live and component profiles follow
+  (`pill` gives pill buttons, `flat` bordered cards). The preset data loads
+  as a small lazy chunk the first time a preset is active; until it arrives
+  the page keeps what it shows. The density override and reduced motion
+  still win. The no-flash cache replays the merged `--py-*` variables, so a
+  reload paints the overridden look first.
+- **Storage.** Overrides live in the prototype's control DB only, never the
+  data DB (ADR-005), and `theme.clearOverride()` or DevTools' "Clear
+  overrides" removes them.
+
 ### Fonts
 
 `FONT_CATALOG` (`packages/themes/src/fonts.ts`) has eight system-first

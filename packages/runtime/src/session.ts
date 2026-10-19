@@ -1,4 +1,9 @@
-import type { Overrides, SessionController, ThemeController } from '@protoyard/core';
+import {
+  type Overrides,
+  type SessionController,
+  STYLE_OVERRIDE_KEYS,
+  type ThemeController,
+} from '@protoyard/core';
 import type { Kernel } from './kernel.ts';
 import { applyOverrides } from './overrides.ts';
 
@@ -135,6 +140,7 @@ export function createThemeController(k: Kernel): ThemeController {
         layout: _l,
         ...rest
       } = k.overrides;
+      for (const key of STYLE_OVERRIDE_KEYS) delete rest[key];
       await applyOverrides(k, rest);
     },
 

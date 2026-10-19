@@ -24,7 +24,7 @@ organization that is a year old.
 | Data volume | `density` | `empty`, `sparse`, `normal`, `dense`, `massive` |
 | Activity | `activity.level` | `none`, `low`, `normal`, `intense`, `dormant`, `reactivated` |
 | Conditions | `environment` | `network`, `latencyMs`, `failureMode`, `failureRate`, `failureScope`, `subscription`, `featureFlags` |
-| Look | `appearance` | `themeId`, `mode`, `reducedMotion`, `viewport`, `shell`, `device`, `orientation` |
+| Look | `appearance` | `themeId`, `mode`, `reducedMotion`, `viewport`, `shell`, `device`, `orientation`, `layout`, and the style presets `radius`, `elevation`, `font`, `motion` (see [THEMES.md](THEMES.md#live-style-overrides)) |
 | Prototype knobs | `generators` | Anything; passed untouched to your generator |
 
 The platform never decides what "dense" means. Each generator interprets
