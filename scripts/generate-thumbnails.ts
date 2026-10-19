@@ -25,16 +25,14 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
-  realpathSync,
-  statSync,
   writeFileSync,
 } from 'node:fs';
-import { createServer, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { extname, join, normalize, resolve, sep } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { crc32, deflateSync, inflateSync } from 'node:zlib';
-import { chromium } from '@playwright/test';
+import { type Browser, chromium } from '@playwright/test';
+import { screenshot, withReadyPage } from './lib/capture.ts';
+import { optimizePng } from './lib/png.ts';
+import { serveDirectory } from './lib/static-server.ts';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const WIDTH = 1280;
@@ -46,18 +44,6 @@ interface Target {
   dir: string;
   defaultScenario: string | undefined;
 }
-
-const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2',
-  '.webmanifest': 'application/manifest+json',
-};
 
 function discover(only: readonly string[]): Target[] {
   const base = join(ROOT, 'prototypes');
@@ -82,117 +68,14 @@ function discover(only: readonly string[]): Target[] {
   return targets;
 }
 
-/** Static server for one dist folder; never serves outside it. */
-function serve(dist: string): Promise<Server> {
-  const root = realpathSync(dist);
-  const inside = (path: string) => path === root || path.startsWith(root + sep);
-  const server = createServer((req, res) => {
-    let pathname: string;
-    try {
-      pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
-    } catch {
-      res.writeHead(400).end();
-      return;
-    }
-    let file = join(root, normalize(pathname).replace(/^([/\\])+/, ''));
-    if (!inside(file)) {
-      res.writeHead(403).end();
-      return;
-    }
-    if (!existsSync(file) || statSync(file).isDirectory()) file = join(root, 'index.html');
-    // Resolve symlinks too: a link inside dist must not serve files from elsewhere.
-    if (!inside(realpathSync(file))) {
-      res.writeHead(403).end();
-      return;
-    }
-    res.writeHead(200, {
-      'content-type': MIME[extname(file)] ?? 'application/octet-stream',
-      'cache-control': 'no-store',
-      'x-content-type-options': 'nosniff',
-    });
-    res.end(readFileSync(file));
-  });
-  return new Promise((done) => server.listen(0, '127.0.0.1', () => done(server)));
+function capture(browser: Browser, url: string): Promise<Buffer> {
+  return withReadyPage(
+    browser,
+    url,
+    { viewport: { width: WIDTH, height: HEIGHT }, colorScheme: 'light' },
+    screenshot
+  );
 }
-
-/**
- * Lossless PNG re-compression: re-deflates the image data at level 9 and drops
- * ancillary chunks. No pixels change.
- */
-export function optimizePng(png: Buffer): Buffer {
-  const signature = png.subarray(0, 8);
-  const chunks: { type: string; data: Buffer }[] = [];
-  const idat: Buffer[] = [];
-  for (let offset = 8; offset < png.length; ) {
-    const length = png.readUInt32BE(offset);
-    const type = png.toString('latin1', offset + 4, offset + 8);
-    const data = png.subarray(offset + 8, offset + 8 + length);
-    offset += 12 + length;
-    if (type === 'IDAT') idat.push(data);
-    else if (type === 'IHDR' || type === 'PLTE' || type === 'tRNS' || type === 'IEND') {
-      chunks.push({ type, data });
-    }
-  }
-  const image = deflateSync(inflateSync(Buffer.concat(idat)), { level: 9, memLevel: 9 });
-  const encode = (type: string, data: Buffer) => {
-    const head = Buffer.alloc(8);
-    head.writeUInt32BE(data.length, 0);
-    head.write(type, 4, 'latin1');
-    const crc = Buffer.alloc(4);
-    crc.writeUInt32BE(crc32(Buffer.concat([head.subarray(4), data])) >>> 0, 0);
-    return Buffer.concat([head, data, crc]);
-  };
-  const parts = [signature];
-  for (const chunk of chunks) {
-    if (chunk.type === 'IEND') parts.push(encode('IDAT', image));
-    parts.push(encode(chunk.type, chunk.data));
-  }
-  const optimized = Buffer.concat(parts);
-  return optimized.length < png.length ? optimized : png;
-}
-
-async function capture(
-  browser: Awaited<ReturnType<typeof chromium.launch>>,
-  url: string
-): Promise<Buffer> {
-  const context = await browser.newContext({
-    viewport: { width: WIDTH, height: HEIGHT },
-    deviceScaleFactor: 1,
-    reducedMotion: 'reduce',
-    colorScheme: 'light',
-    locale: 'en-US',
-    timezoneId: 'UTC',
-  });
-  try {
-    const page = await context.newPage();
-    const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(String(error)));
-    await page.goto(url, { waitUntil: 'networkidle' });
-    await page.waitForFunction(() => document.documentElement.dataset.pyReady !== undefined, null, {
-      timeout: 30_000,
-    });
-    const state = await page.evaluate(() => document.documentElement.dataset.pyReady);
-    if (state !== 'true') throw new Error(`prototype failed to boot (data-py-ready="${state}")`);
-    await page.evaluate(() => document.fonts.ready);
-    await page.waitForLoadState('networkidle');
-    // liveQuery results land a few ticks after mount; wait until the DOM is quiet.
-    // liveQuery results land a few ticks after mount; wait until the DOM is quiet.
-    // A string, because tsx rewrites named functions with a helper the page lacks.
-    await page.evaluate(QUIET_DOM);
-    if (errors.length) throw new Error(`page errors: ${errors.join(' | ')}`);
-    return await page.screenshot({ type: 'png', animations: 'disabled', caret: 'hide' });
-  } finally {
-    await context.close();
-  }
-}
-
-const QUIET_DOM = `new Promise((done) => {
-  let timer;
-  const observer = new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(stop, 400); });
-  const stop = () => { observer.disconnect(); done(); };
-  timer = setTimeout(stop, 400);
-  observer.observe(document.body, { subtree: true, childList: true, characterData: true });
-})`;
 
 const sha = (buffer: Buffer) => createHash('sha256').update(buffer).digest('hex').slice(0, 12);
 
@@ -216,12 +99,11 @@ async function main() {
         }
         const dist = join(ROOT, 'artifacts', target.slug, 'dist');
         if (!existsSync(join(dist, 'index.html'))) throw new Error(`no build at ${dist}`);
-        const server = await serve(dist);
+        const server = await serveDirectory(dist);
         try {
-          const { port } = server.address() as AddressInfo;
           const query = new URLSearchParams({ devtools: '0' });
           if (target.defaultScenario) query.set('scenario', target.defaultScenario);
-          const url = `http://127.0.0.1:${port}/?${query}`;
+          const url = `${server.origin}/?${query}`;
           const raw = await capture(browser, url);
           const png = optimizePng(raw);
           if (check) {
@@ -246,7 +128,7 @@ async function main() {
             `✓ ${target.slug}: ${WIDTH}×${HEIGHT} ${kb} KB (raw ${(raw.length / 1024).toFixed(1)} KB)${note} sha ${sha(png)}${check ? ' · deterministic' : ''} · ${((performance.now() - started) / 1000).toFixed(1)} s`
           );
         } finally {
-          server.close();
+          await server.close();
         }
       } catch (error) {
         failures++;
