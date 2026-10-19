@@ -12,12 +12,16 @@ export interface ThemeCardData {
   name: string;
   description: string;
   category: string;
+  collection: string;
+  mood: readonly string[];
   tags: readonly string[];
   source: 'builtin' | 'library';
   /** Inline style applying light-mode `--py-*` tokens. */
   lightStyle: string;
   /** Inline style applying dark-mode `--py-*` tokens. */
   darkStyle: string;
+  /** Chart series colors, derived from the precomputed mode styles. */
+  chartColors: readonly string[];
   seed?: string;
 }
 
@@ -32,18 +36,29 @@ function cardFromTheme(
   theme: Theme,
   source: 'builtin' | 'library',
   category: string,
+  collection: string,
+  mood: readonly string[],
   tags: readonly string[],
   seed?: string
 ): ThemeCardData {
+  const lightStyle = styleAttr(theme, 'light');
+  const darkStyle = styleAttr(theme, 'dark');
+  const chartColors = [...lightStyle.matchAll(/--py-chart([1-8]):([^;]+)/g)]
+    .sort((a, b) => Number(a[1]) - Number(b[1]))
+    .map((match) => match[2] ?? '')
+    .filter(Boolean);
   return {
     id: theme.id,
     name: theme.name,
     description: theme.description,
     category,
+    collection,
+    mood,
     tags,
     source,
-    lightStyle: styleAttr(theme, 'light'),
-    darkStyle: styleAttr(theme, 'dark'),
+    lightStyle,
+    darkStyle,
+    chartColors,
     ...(seed ? { seed } : {}),
   };
 }
@@ -53,7 +68,7 @@ export async function buildThemeCatalog(): Promise<ThemeCardData[]> {
   const library = await loadAllLibraryThemes();
   const metaById = new Map(THEME_LIBRARY_META.map((meta) => [meta.id, meta]));
   const cards: ThemeCardData[] = BUILTIN_THEMES.map((theme) =>
-    cardFromTheme(theme, 'builtin', 'builtin', ['builtin', 'core'])
+    cardFromTheme(theme, 'builtin', 'builtin', 'builtin', [], ['builtin', 'core'])
   );
   for (const theme of library) {
     const meta = metaById.get(theme.id);
@@ -62,6 +77,8 @@ export async function buildThemeCatalog(): Promise<ThemeCardData[]> {
         theme,
         'library',
         meta?.category ?? 'library',
+        meta?.collection ?? 'industry',
+        meta?.mood ?? [],
         meta?.tags ?? ['library'],
         meta?.seed
       )
@@ -84,15 +101,19 @@ export function themeCategories(cards: readonly ThemeCardData[]): string[] {
 
 export function filterThemeCards(
   cards: readonly ThemeCardData[],
-  options: { category?: string; q?: string } = {}
+  options: { category?: string; collection?: string; mood?: string; q?: string } = {}
 ): ThemeCardData[] {
   const category = options.category?.trim() ?? '';
+  const collection = options.collection?.trim() ?? '';
+  const mood = options.mood?.trim() ?? '';
   const needle = (options.q ?? '').trim().toLowerCase();
   return cards.filter((card) => {
     if (category && category !== 'all' && card.category !== category) return false;
+    if (collection && collection !== 'all' && card.collection !== collection) return false;
+    if (mood && mood !== 'all' && !card.mood.includes(mood)) return false;
     if (!needle) return true;
     const haystack =
-      `${card.id} ${card.name} ${card.description} ${card.category} ${card.tags.join(' ')}`.toLowerCase();
+      `${card.id} ${card.name} ${card.description} ${card.category} ${card.collection} ${card.mood.join(' ')} ${card.tags.join(' ')}`.toLowerCase();
     return needle.split(/\s+/).every((term) => haystack.includes(term));
   });
 }

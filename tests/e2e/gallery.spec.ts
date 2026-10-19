@@ -152,6 +152,45 @@ test.describe('gallery', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   });
 
+  test('theme explorer filters by collection and mood and links a prototype in the selected mode', async ({
+    page,
+  }, testInfo) => {
+    test.skip(prototypes.length === 0, 'no prototypes indexed');
+    await page.goto('/themes/');
+    await hydrated(page, '[data-testid="theme-explorer"]');
+    await expectAccessible(page, testInfo, { label: 'gallery-theme-explorer' });
+
+    const search = page.getByTestId('theme-search');
+    await search.fill('health-clinic');
+    await expect(page.getByTestId('theme-count')).toContainText('Showing 1 of');
+    await expect(page).toHaveURL(/[?&]q=health-clinic/);
+    const card = page.locator('[data-theme-card][data-theme-id="health-clinic"]');
+    await expect(card).toBeVisible();
+    await expect(card.locator('[aria-label="Chart palette preview"] span')).toHaveCount(5);
+
+    await page.getByTestId('theme-collection').selectOption('brand-like');
+    await expect(page.getByTestId('theme-count')).toContainText('Showing 0 of');
+    await expect(page).toHaveURL(/[?&]collection=brand-like/);
+    await page.getByRole('button', { name: 'Clear filters' }).click();
+    await page.getByTestId('theme-mood').selectOption('calm');
+    await expect(card).toBeVisible();
+    await expect(page).toHaveURL(/[?&]mood=calm/);
+    await page.getByRole('button', { name: 'Clear filters' }).click();
+    await search.fill('health-clinic');
+    await page.getByRole('button', { name: 'Dark' }).click();
+    await expect(page).toHaveURL(/[?&]mode=dark/);
+
+    const target = prototypes[0];
+    if (!target) return;
+    await page.getByTestId('theme-prototype').selectOption(target.slug);
+    const link = card.getByRole('link', { name: `Open ${target.name} in this theme` });
+    await expect(link).toHaveAttribute('href', /theme=health-clinic.*mode=dark/);
+    await expect(link).toHaveAttribute('target', '_blank');
+    const prototypePage = page.context().waitForEvent('page');
+    await link.click();
+    await expect(await prototypePage).toHaveURL(/theme=health-clinic.*mode=dark/);
+  });
+
   test('command palette opens from the shortcut, searches and navigates by keyboard', async ({
     page,
   }, testInfo) => {
