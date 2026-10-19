@@ -175,16 +175,13 @@ function select(a: ActivePoint) {
   if (s && p) onselect?.({ series: s, index: a.index, datum: p.datum });
 }
 
-function onpointermove(event: PointerEvent) {
+/** The point under the pointer: the hit test, or the nearest position along the axis. */
+function locate(event: MouseEvent): ActivePoint | null {
   const svg = event.currentTarget as SVGSVGElement;
   const rect = svg.getBoundingClientRect();
   const px = event.clientX - rect.left;
   const py = event.clientY - rect.top;
-  if (hitTest) {
-    hover = hitTest(px, py);
-    dismissed = false;
-    return;
-  }
+  if (hitTest) return hitTest(px, py);
   const [x, y] = orientation === 'y' ? [py, px] : [px, py];
   // Nearest position along the axis first, then the series whose point is closest across it.
   let best: ActivePoint | null = null;
@@ -201,8 +198,27 @@ function onpointermove(event: PointerEvent) {
       best = { series: k, index: i };
     }
   });
-  hover = best;
+  return best;
+}
+
+function onpointermove(event: PointerEvent) {
+  hover = locate(event);
   dismissed = false;
+}
+
+/**
+ * A click selects the point under it. Taps have no pointermove first, and the
+ * browser fires pointerleave between a touch's pointerup and its click, so the
+ * click locates its own point (and shows its tooltip) instead of relying on
+ * the hover; a synthetic click (no pointer position) uses the hover.
+ */
+function onclick(event: MouseEvent) {
+  const target = event.detail === 0 ? hover : (locate(event) ?? hover);
+  if (!target) return;
+  hover = target;
+  dismissed = false;
+  setActive(target);
+  select(target);
 }
 
 function onfocus() {
@@ -235,13 +251,9 @@ function onfocus() {
     {onfocus}
     onblur={() => (focused = false)}
     {onpointermove}
+    onpointerdown={onpointermove}
     onpointerleave={() => (hover = null)}
-    onclick={() => {
-      if (hover) {
-        setActive(hover);
-        select(hover);
-      }
-    }}
+    {onclick}
   >
     {@render children?.()}
 

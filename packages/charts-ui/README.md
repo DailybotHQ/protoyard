@@ -238,6 +238,11 @@ pixel points (`PlotSeries` → `PlotPoint { x, y, xValue, yValue, datum }`)
 and pass formatters (`{ x, y }`); the same formatters feed the tooltip, the
 live region and the table.
 
+Three details that only show up in a real browser (covered by `tests/e2e/charts.spec.ts`):
+- **Touch:** a tap selects the point under the finger and shows its tooltip. The click locates its own point, because a touch fires `pointerleave` before its click.
+- **Shrinking:** the measured plot container uses `contain: inline-size`, so a chart narrows with its container when the window shrinks or a phone rotates. Without it, the drawn SVG width would hold grid and flex parents open.
+- **Table toggle:** it references the table with `aria-controls` only while the table exists.
+
 - **`InteractivePlot`:** the plot `<svg>`. It is one tab stop
   (`role="group"`, `aria-roledescription="chart"`, `aria-activedescendant`
   on a single focus marker, so it scales to any number of points).
