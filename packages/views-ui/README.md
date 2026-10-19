@@ -6,8 +6,8 @@ files, settings, states and an app command palette. They are built on
 `@protoyard/ui` tokens, and the engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status:** `./board`, `./calendar`, `./commands`, `./editor`, `./map`,
-> `./settings`, `./states` and `./tree` are implemented; the other subpaths
+> **Status:** `./board`, `./calendar`, `./commands`, `./editor`, `./grid`,
+> `./map`, `./settings`, `./states` and `./tree` are implemented; the other subpaths
 > are empty until their PLAN_003 task lands, and this README documents each
 > view then.
 
@@ -516,3 +516,77 @@ of inline titles), on the `@protoyard/views/tree` engine over
   8.2 KB and `OutlineEditor` 7.3 KB, each including the tree engine, ranks
   and (for TreeView) the virtualizer; 10.7 KB for the whole subpath.
 
+## Grid (`@protoyard/views-ui/grid`)
+
+`DataGrid` (tables of records), `FilterBuilder` and `SavedViews`, on the
+`@protoyard/views/grid` engine.
+
+```svelte
+<DataGrid
+  query={deals} label="Deals" getRowId={(d) => d.id}
+  columns={[
+    { key: 'name', header: 'Name', type: 'text', editable: true, width: 220 },
+    { key: 'stage', header: 'Stage', type: 'enum', options: ['lead', 'won', 'lost'], editable: true },
+    { key: 'amountCents', header: 'Amount', type: 'number', format: (v) => money(v) },
+  ]}
+  bind:view onViewChange={(v) => services.saveGridState(v)}
+  aggregates={[{ fn: 'sum', key: 'amountCents' }]}
+  onCommit={(deal, key, value) => services.updateDeal(deal.id, { [key]: value })}
+  savedViews={views.current ?? []} bind:activeViewId
+  onCreateView={(name, v) => services.createView({ name, ...v })}
+  onRenameView={(v, name) => services.renameView(v.id, name)}
+  onDeleteView={(v) => services.deleteView(v.id)}
+  onRowOpen={(deal) => navigate(`/deals/${deal.id}`)}
+/>
+```
+
+- **ARIA grid with roving focus:** one tab stop. The arrows move, Home/End
+  go to the row's first or last cell, Ctrl+Home/End to the first or last
+  cell, and PageUp/PageDown move by a page. The target is scrolled into view
+  and the grid carries `aria-rowcount` and `aria-colcount`.
+- **Virtualized both ways:** only the visible rows and center columns are in
+  the DOM, under a sticky header, with pinned columns sticky on either side.
+  A 1,000-row test renders at most 60 rows. A full-height grid on a 1080p
+  screen needs about 30 at the default density: about 25 visible rows plus
+  overscan. Density (compact, comfortable, spacious) sets
+  the row height.
+- **Columns:**
+  - Click a header to sort (asc → desc → off). Shift+click adds a sort key.
+  - Each header has a menu: sort, pin left or right, move, group by, hide.
+    The **Columns** menu shows hidden ones again.
+  - Resize by dragging the edge, or with ←/→ on the focused handle (±16 px).
+  - Reorder by dragging a header, or with Alt+Shift+←/→ on its button.
+- **Groups:** `view.groupBy` makes group rows with counts and your
+  `aggregates` (count, sum, min, max). Enter, Space or a click opens or
+  closes a group.
+- **Inline edit:** Enter or F2 on an `editable` cell opens an editor by
+  type:
+  - text and number: an input
+  - date: `input type=date`
+  - enum: the ui `Select`
+  - boolean: the ui `Switch`
+
+  Enter or blur commits, and Escape cancels. The commit goes through
+  `onCommit` in `runService`. The cell shows the new value with a spinner
+  and `aria-busy` until the promise settles. If it rejects, the cell goes
+  back to the saved value and shows the reason: the field's zod issue or the
+  error message, set with `aria-invalid` and announced.
+- **Filters:** `FilterBuilder` edits the engine's filter AST as nested
+  and/or fieldsets. Every control is labelled, add and remove buttons are
+  named, and the operators match each column type. While a condition has no
+  value yet, the grid applies the rest and says so (`completeFilter`). A
+  filter the engine rejects is not applied, and its message is shown.
+- **Saved views:** `SavedViews` picks, saves, renames and deletes through
+  your callbacks, with pending feedback and a confirm step before deleting.
+  Applying a view runs `sanitizeView`, which drops columns that no longer
+  exist and announces the drop.
+- **View state:** `view` is plain data (columns, sort, groupBy, filter,
+  density). Bind it, or persist it from `onViewChange`.
+- **Phones:** below `md` the same rows show as cards, under the same
+  toolbar (saved views, filters, density). The first visible column is the
+  title and the next four are details, 50 cards at a time with **Show
+  more**.
+- **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
+  ui, renderer, lucide, Bits UI and zod external; 2026-10-19): 13.9 KB for
+  the subpath's components, or 17.8 KB with the grid engine bundled in
+  (about 4 KB of that is the engine).
