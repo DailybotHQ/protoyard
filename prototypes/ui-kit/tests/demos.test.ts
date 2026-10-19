@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CATALOG_IDS } from '../src/catalog/entries.ts';
+import { CATALOG, CATALOG_IDS } from '../src/catalog/entries.ts';
 import { DEMOS } from '../src/catalog/registry.ts';
 import FormsPage from '../src/screens/FormsPage.svelte';
 
@@ -16,7 +16,9 @@ describe('catalog registry', () => {
     // Chart entries import their family subpath; the states snippet shows chart props only.
     if (id.startsWith('chart-')) {
       if (id !== 'chart-states') expect(demo?.snippet).toContain("from '@protoyard/charts-ui/");
-    } else expect(demo?.snippet).toContain("from '@protoyard/ui'");
+    } else if (CATALOG.find((entry) => entry.id === id)?.group === 'views')
+      expect(demo?.snippet).toContain("from '@protoyard/views-ui/");
+    else expect(demo?.snippet).toContain("from '@protoyard/ui'");
     expect((demo?.a11y?.length ?? 0) > 0).toBe(true);
   });
 });
@@ -43,6 +45,14 @@ describe('demos', () => {
         { timeout: 3000 }
       )
     ).toBeTruthy();
+  });
+
+  it('grid demo toggles to the 100,000-row virtualized data set', async () => {
+    const demo = DEMOS.grid;
+    if (!demo) throw new Error('missing grid demo');
+    render(await demo.load(), {});
+    await fireEvent.click(screen.getByRole('button', { name: 'Load 100,000 rows' }));
+    expect(screen.getAllByText(/100,000 rows/).length).toBeGreaterThan(0);
   });
 });
 

@@ -1,5 +1,6 @@
 @import "@protoyard/renderer-svelte/app.css";
 @import "@protoyard/charts-ui/styles.css";
+@import "@protoyard/views-ui/styles.css";
 
 /* Let Tailwind see this prototype's own markup. */
 @source "./";
