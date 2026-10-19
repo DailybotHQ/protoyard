@@ -117,6 +117,38 @@ export function stripBinaryFields<T extends { name: string; rows: unknown[] }>(
   return { tables: out, excluded };
 }
 
+/**
+ * Row fields that hold typed secrets. Simulated auth keeps what people type as
+ * plain text in this browser; an exported file leaves the browser, so these
+ * values are blanked (set to `null`) on export. Saved snapshots stay local and
+ * keep them, so restoring one in place still signs in.
+ */
+export const SNAPSHOT_REDACTED_FIELDS: readonly string[] = ['simulatedPassword'];
+
+/** Copies `tables` with every non-null redacted field set to `null`. */
+export function redactSecretFields<T extends { name: string; rows: unknown[] }>(
+  tables: T[],
+  fields: readonly string[] = SNAPSHOT_REDACTED_FIELDS
+): { tables: T[]; redacted: number } {
+  let redacted = 0;
+  const out = tables.map((table) => ({
+    ...table,
+    rows: table.rows.map((row) => {
+      if (!row || typeof row !== 'object') return row;
+      let copy: Record<string, unknown> | null = null;
+      for (const field of fields) {
+        const value = (row as Record<string, unknown>)[field];
+        if (value === undefined || value === null) continue;
+        copy ??= { ...(row as Record<string, unknown>) };
+        copy[field] = null;
+        redacted += 1;
+      }
+      return copy ?? row;
+    }),
+  }));
+  return { tables: out, redacted };
+}
+
 export function createSnapshotController(k: Kernel): SnapshotController & SnapshotControllerExtras {
   const manifest = k.definition.manifest;
   const target = () => ({
@@ -290,9 +322,14 @@ export function createSnapshotController(k: Kernel): SnapshotController & Snapsh
     async exportJson(id) {
       const snapshot = id ? await k.control.getSnapshot(id) : await build();
       if (!snapshot) throw new Error(`Snapshot "${id}" was not found.`);
+      // The file leaves this browser: typed simulated passwords never go with it.
+      const exported: Snapshot = {
+        ...snapshot,
+        tables: redactSecretFields(snapshot.tables).tables,
+      };
       return {
         filename: snapshotFilename(manifest.slug, snapshot.name, snapshot.createdAt),
-        json: `${JSON.stringify(snapshot, null, 2)}\n`,
+        json: `${JSON.stringify(exported, null, 2)}\n`,
       };
     },
 
