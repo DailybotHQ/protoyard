@@ -6,8 +6,9 @@ files, settings, states and an app command palette. They are built on
 `@protoyard/ui` tokens, and the engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status: scaffold.** The subpaths exist and are empty. Each one is filled
-> by its PLAN_003 task, and this README documents each view when it lands.
+> **Status:** `./settings` is implemented; the other subpaths exist and are
+> empty until their PLAN_003 task lands, and this README documents each view
+> then.
 
 ## Install
 
@@ -62,3 +63,71 @@ re-exported from `@protoyard/ui`.
 pnpm vitest run packages/views-ui
 pnpm --filter @protoyard/views-ui typecheck
 ```
+
+## Settings (`@protoyard/views-ui/settings`)
+
+Settings page patterns. Writes go through the prototype's services with
+`runService`; nothing here touches data.
+
+| Component | What it does |
+| --- | --- |
+| `SettingsLayout` | Title, a section nav (`aria-current` on the open one) and the open section, rendered fresh per section (`{#key}`). Below `md` it is a list → detail flow: picking a section focuses its heading, and the back button returns focus to the list. |
+| `SettingsSection` | A titled card for a group of rows, with an optional footer. |
+| `SwitchRow`, `SelectRow`, `RadioRow` | Labelled preference rows with descriptions (`aria-describedby`); a disabled switch says why (`disabledReason`). |
+| `SaveBar` | Appears while `dirty`. Save runs `onSave` and shows the Button spinner until its promise settles; a failed `runService` result with validation issues fills `errors` (bindable) and lists them. While dirty it **guards navigation**: hash changes are stopped before the router sees them and an in-app "Leave without saving?" dialog asks ("Keep editing" / "Discard and leave"); a reload or tab close asks through the browser (`beforeunload`). |
+| `DangerZone` | A destructive action behind a dialog where the person types the exact `confirmText`; a failed result keeps the dialog open. |
+| `guardHashNavigation` | The guard on its own, for custom forms. |
+
+### Composing with the SaaS kit
+
+`@protoyard/saas-ui` ships a complete `Settings` screen (profile, security,
+members, notifications) and does not need changing. When a prototype wants
+its own settings page, build it from these patterns on top of the same
+`@protoyard/saas` engine services:
+
+```svelte
+<script lang="ts">
+  import { getRuntime, runService } from '@protoyard/renderer-svelte';
+  import { createSettingsServices, DEFAULT_SAAS_NOTIFICATION_PREFERENCES } from '@protoyard/saas';
+  import { SaveBar, SettingsLayout, SettingsSection, SwitchRow } from '@protoyard/views-ui/settings';
+
+  const settings = createSettingsServices(getRuntime());
+  let saved = $state({ ...DEFAULT_SAAS_NOTIFICATION_PREFERENCES });
+  let draft = $state({ ...DEFAULT_SAAS_NOTIFICATION_PREFERENCES });
+  let errors = $state({});
+  const dirty = $derived(JSON.stringify(draft) !== JSON.stringify(saved));
+
+  $effect(() => {
+    void runService(() => settings.notificationPreferences()).then((result) => {
+      if (!result.ok) return;
+      saved = { ...result.value };
+      draft = { ...result.value };
+    });
+  });
+
+  async function save() {
+    const result = await runService(() => settings.updateNotificationPreferences(draft), { success: 'Preferences saved' });
+    if (result.ok) saved = { ...draft };
+    return result; // validation issues show in the SaveBar
+  }
+</script>
+
+<SettingsLayout sections={[{ id: 'notifications', label: 'Notifications' }]}>
+  {#snippet children(section)}
+    <SettingsSection title="Email">
+      <SwitchRow label="Product updates" bind:checked={draft.productUpdates} />
+      <SwitchRow label="Security alerts" bind:checked={draft.securityAlerts} />
+      <SwitchRow label="Workspace activity" bind:checked={draft.workspaceActivity} />
+    </SettingsSection>
+  {/snippet}
+</SettingsLayout>
+<SaveBar {dirty} bind:errors onSave={save} onDiscard={() => (draft = { ...saved })} />
+```
+
+- **Size** (Svelte 5 client output, esbuild minified, gzip -9, with `svelte`,
+  `@protoyard/ui`, the renderer, lucide and Bits UI external because
+  prototypes already load them; 2026-10-19): all of `./settings` is 5.2 KB;
+  per component SettingsLayout 1.7, SaveBar 1.7, DangerZone 1.3, each row or
+  SettingsSection about 0.6, the guard 0.4. A typical screen (layout, a
+  section, the save bar, a few rows) is about 4.5 KB. Lazy, 0 KB initial.
+
