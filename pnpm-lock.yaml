@@ -220,6 +220,9 @@ importers:
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../renderer-svelte
+      '@protoyard/review':
+        specifier: workspace:*
+        version: link:../review
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../themes
