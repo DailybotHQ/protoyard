@@ -201,6 +201,11 @@ describe('PhoneFrame', () => {
     expect(frame?.getAttribute('data-py-device')).toBe('phone-pill');
     expect(frame?.getAttribute('data-py-cutout')).toBe('pill');
     expect(container.querySelector('[data-py-cutout-shape="pill"]')).not.toBeNull();
+    // The cutout paints above the status bar layer (z-30); it was hidden under it before.
+    const pill = container.querySelector('[data-py-cutout-shape="pill"]') as HTMLElement;
+    const clip = container.querySelector('[data-py-screen-clip]') as HTMLElement;
+    expect(pill.className).toContain('z-[31]');
+    expect(clip.className).toContain('z-[30]');
 
     const status = container.querySelector<HTMLElement>('[data-py-status-bar]');
     expect(status).not.toBeNull();

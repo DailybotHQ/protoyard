@@ -73,20 +73,35 @@ async function toggleOrientation(): Promise<void> {
     aria-hidden="true"
   ></div>
 
-  <!-- Camera cutout -->
+  <!-- Camera cutout: above the status bar layer (z-30) so it shows; on the short edge in landscape. -->
   {#if cutout === 'pill'}
     <div
-      class="absolute top-[11px] left-1/2 z-[25] h-[28px] w-[96px] -translate-x-1/2 rounded-full bg-zinc-950 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.5)] dark:bg-black"
+      class={[
+        'absolute z-[31] rounded-full bg-zinc-950 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.5)] dark:bg-black',
+        spec.orientation === 'landscape'
+          ? 'top-1/2 left-[11px] h-[96px] w-[28px] -translate-y-1/2'
+          : 'top-[11px] left-1/2 h-[28px] w-[96px] -translate-x-1/2',
+      ]}
       aria-hidden="true"
       data-py-cutout-shape="pill"
     >
       <span
-        class="absolute top-1/2 left-[22%] size-[9px] -translate-y-1/2 rounded-full bg-zinc-800 ring-1 ring-zinc-700/80"
+        class={[
+          'absolute size-[9px] rounded-full bg-zinc-800 ring-1 ring-zinc-700/80',
+          spec.orientation === 'landscape'
+            ? 'top-[22%] left-1/2 -translate-x-1/2'
+            : 'top-1/2 left-[22%] -translate-y-1/2',
+        ]}
       ></span>
     </div>
   {:else if cutout === 'punch-hole'}
     <div
-      class="absolute top-[12px] left-1/2 z-[25] size-[11px] -translate-x-1/2 rounded-full bg-zinc-950 ring-1 ring-zinc-700 dark:bg-black"
+      class={[
+        'absolute z-[31] size-[11px] rounded-full bg-zinc-950 ring-1 ring-zinc-700 dark:bg-black',
+        spec.orientation === 'landscape'
+          ? 'top-1/2 left-[12px] -translate-y-1/2'
+          : 'top-[12px] left-1/2 -translate-x-1/2',
+      ]}
       aria-hidden="true"
       data-py-cutout-shape="punch-hole"
     ></div>
