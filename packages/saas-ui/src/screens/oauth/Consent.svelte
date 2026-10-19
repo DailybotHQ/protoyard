@@ -126,8 +126,8 @@ async function respond(action: 'approve' | 'deny'): Promise<void> {
       {#if redirecting}<p role="status" class="text-sm text-muted-foreground">Redirecting…</p>{/if}
     </CardContent>
     <CardFooter class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-      <Button variant="outline" disabled={!details || busy || redirecting} onclick={() => void respond('deny')}>Deny</Button>
-      <Button disabled={!details || busy || redirecting} loading={busy} loadingLabel="Completing simulated sign-in" onclick={() => void respond('approve')}>Approve</Button>
+      <Button variant="outline" disabled={!details || busy || redirecting} onclick={() => respond('deny')}>Deny</Button>
+      <Button disabled={!details || busy || redirecting} loading={busy} loadingLabel="Completing simulated sign-in" onclick={() => respond('approve')}>Approve</Button>
     </CardFooter>
   </Card>
 </main>

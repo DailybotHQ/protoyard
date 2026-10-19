@@ -152,7 +152,7 @@ function statusBadge(status: string): string {
         </dl>
         <div class="flex flex-wrap gap-2 pt-2">
           {#if subscription.cancelAtPeriodEnd}
-            <Button disabled={busy} loading={busy} onclick={() => void resume()} variant="default">
+            <Button disabled={busy} loading={busy} onclick={() => resume()} variant="default">
               Resume subscription
             </Button>
           {:else if subscription.status === 'active' || subscription.status === 'trialing'}

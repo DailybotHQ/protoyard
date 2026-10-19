@@ -120,10 +120,10 @@ onMount(() => {
         <FormField label="Enter the code to confirm enrollment" required>
           {#snippet children(control)}<Input {...control.props} inputmode="numeric" bind:value={confirmationCode} maxlength={6} required disabled={busy} />{/snippet}
         </FormField>
-        <Button disabled={!allowed || busy} onclick={() => void confirmMfa()}>Confirm MFA</Button>
+        <Button disabled={!allowed || busy} onclick={() => confirmMfa()}>Confirm MFA</Button>
       </div>
     {:else if mfaStatus !== 'active'}
-      <Button variant="outline" disabled={!allowed || busy} onclick={() => void beginMfa()}>Set up simulated MFA</Button>
+      <Button variant="outline" disabled={!allowed || busy} onclick={() => beginMfa()}>Set up simulated MFA</Button>
     {/if}
   </div>
   <div class="grid max-w-xl gap-2">
@@ -134,5 +134,5 @@ onMount(() => {
   </div>
   {#if !allowed}<p class="text-sm text-muted-foreground">Your simulated role cannot change security settings.</p>{/if}
   {#if message}<p role="status" class="text-sm text-muted-foreground">{message}</p>{/if}
-  <div><Button variant="destructive" disabled={!allowed || busy} onclick={() => void signOut()}>Sign out</Button><p class="mt-1 text-xs text-muted-foreground">This ends the active simulated session. The prototype does not model sessions on other tabs or devices.</p></div>
+  <div><Button variant="destructive" disabled={!allowed || busy} onclick={() => signOut()}>Sign out</Button><p class="mt-1 text-xs text-muted-foreground">This ends the active simulated session. The prototype does not model sessions on other tabs or devices.</p></div>
 </section>
