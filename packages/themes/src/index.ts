@@ -14,3 +14,4 @@ export {
   type PaletteStep,
 } from './palette.ts';
 export * from './presets.ts';
+export * from './style-presets.ts';

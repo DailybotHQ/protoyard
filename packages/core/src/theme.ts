@@ -146,7 +146,7 @@ const easing = z
     'Use a CSS easing keyword or cubic-bezier(a, b, c, d)'
   );
 
-export const ELEVATION_STYLES = ['flat', 'soft', 'crisp', 'glow'] as const;
+export const ELEVATION_STYLES = ['flat', 'soft', 'crisp', 'glow', 'layered'] as const;
 export type ElevationStyle = (typeof ELEVATION_STYLES)[number];
 export const SURFACE_STYLES = ['solid', 'glass'] as const;
 export type SurfaceStyle = (typeof SURFACE_STYLES)[number];
@@ -213,7 +213,7 @@ export type ThemeFocusRing = z.infer<typeof ThemeFocusRingSchema>;
 export const ThemeStyleSchema = z.object({
   typography: ThemeTypographySchema.prefault({}),
   shape: ThemeShapeSchema.prefault({}),
-  /** Shadow character: none (`flat`), today's diffuse `soft`, tight `crisp`, colored `glow`. */
+  /** Shadow character: none (`flat`), today's diffuse `soft`, tight `crisp`, colored `glow`, stacked `layered`. */
   elevation: z.enum(ELEVATION_STYLES).default('soft'),
   /** `glass` is translucent with a backdrop blur; renderers fall back to solid without support. */
   surface: z.enum(SURFACE_STYLES).default('solid'),

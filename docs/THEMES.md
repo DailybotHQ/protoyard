@@ -104,7 +104,7 @@ profile with the defaults.
 | `typography.tracking` | `body`, `heading`: `0`, `normal` or an `em` value | `0`, `0` |
 | `shape.radiusScale` | `0`–`4`, multiplies the steps around `radius` | `1` |
 | `shape.borderWidth` | a length | `1px` |
-| `elevation` | `flat` (no shadow), `soft`, `crisp`, `glow` (primary-tinted) | `soft` |
+| `elevation` | `flat` (no shadow), `soft`, `crisp`, `glow` (primary-tinted), `layered` (stacked contact, key and ambient shadows) | `soft` |
 | `surface` | `solid`, `glass` | `solid` |
 | `motion.durations` | `fast`, `base`, `slow`: 0–2000 ms | `150`, `200`, `300` |
 | `motion.easing` | CSS keyword or `cubic-bezier(a, b, c, d)` | `cubic-bezier(0.4, 0, 0.2, 1)` |
@@ -125,6 +125,40 @@ only where the theme departs from the default look:
 `glass` is progressive enhancement: `bg-surface` and `bg-elevated` become
 translucent with a backdrop blur only in browsers that support
 `backdrop-filter`; others keep solid fills.
+
+### Style presets
+
+`packages/themes/src/style-presets.ts` names the common choices so the Theme
+Studio, DevTools, the CLI and blueprints share one vocabulary. Each preset is
+plain data (`id`, `label`, `description` and its values):
+
+| Dimension | Export | Presets |
+| --- | --- | --- |
+| Density | `DENSITY_PRESETS` | `compact` 0.875, `default` 1, `comfortable` 1.125, `spacious` 1.25 |
+| Corner radius | `RADIUS_PRESETS` | `square` (`0`, radius scale 0, so every step is square), `sharp` (`0.25rem`, 0.5), `default` (`0.625rem`, 1), `round` (`1rem`, 1.25), `pill` (`9999px`, 1) |
+| Elevation | `ELEVATION_PRESETS` | `flat`, `soft`, `crisp`, `glow`, `layered` (one per `ELEVATION_STYLES` value) |
+| Font pairing | `FONT_PRESETS` | The `FONT_CATALOG` ids |
+| Motion | `MOTION_PRESETS` | `none` (0 ms, linear), `subtle` (100/150/200 ms, ease-out), `standard` (150/200/300 ms, the default curve), `expressive` (200/300/500 ms, slight overshoot) |
+
+`stylePresetInput(selection)` turns a selection such as
+`{ radius: 'round', motion: 'subtle' }` into theme fields (`radius`,
+`density`, the font stacks) plus a `ThemeStyleInput`.
+`applyStylePresets(theme, selection)` applies it on top of a theme, keeps
+every style field the selection does not touch, and validates the result with
+`ThemeSchema`. An unknown id throws a `TypeError` that lists the known ids.
+The default presets (`default`, `default`, `soft`, `standard`) reproduce
+`DEFAULT_THEME_STYLE` exactly.
+
+```ts
+import { applyStylePresets, violetTheme } from '@protoyard/themes';
+
+const roomyViolet = applyStylePresets(violetTheme, {
+  density: 'comfortable',
+  radius: 'round',
+  elevation: 'layered',
+  motion: 'subtle',
+});
+```
 
 ### Fonts
 
@@ -434,7 +468,7 @@ lazy chunk: its code loads only when you press **Open studio**.
 
 | Area | What you can do |
 | --- | --- |
-| Build | Name the theme; pick a seed color (color picker or hex field) and, optionally, a secondary color; choose a font pairing from `FONT_CATALOG`, a corner radius (Square, Small, Medium, Default, Large, XL, Pill), elevation (`flat`, `soft`, `crisp`, `glow`), surface (Solid, Glass), motion (None, Subtle, Standard, Expressive), focus ring (`ring`, `outline`, `glow`, `inset`) and density (0.75–1.25 in 0.125 steps). The draft is built with `createThemeFromSeed`. |
+| Build | Name the theme; pick a seed color (color picker or hex field) and, optionally, a secondary color; choose a font pairing from `FONT_CATALOG`, a corner radius and motion from the [style presets](#style-presets) (Square, Sharp, Default, Round, Pill; None, Subtle, Standard, Expressive), elevation (`flat`, `soft`, `crisp`, `glow`, `layered`), surface (Solid, Glass), focus ring (`ring`, `outline`, `glow`, `inset`) and density (0.75–1.25 in 0.125 steps). The draft is built with `createThemeFromSeed`. |
 | Preview | A sample card, buttons, badge and input themed by the draft only (scoped with `applyAppearance` on the preview box, cleared on close), with its own Light / Dark toggle. |
 | Contrast | Live WCAG warnings for every text pair (4.5:1) and focus pair (3:1) in both modes, or a confirmation that all pass. An invalid name or seed shows an inline error and nothing can be saved. |
 | Save | **Save** stores the theme; **Save and preview** also applies it as a temporary override. The id is a slug of the name, and saving again with the same name replaces it. |

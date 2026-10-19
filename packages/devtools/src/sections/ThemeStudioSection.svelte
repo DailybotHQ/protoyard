@@ -1,6 +1,5 @@
 <script lang="ts">
 import {
-  ELEVATION_STYLES,
   type ElevationStyle,
   FOCUS_RING_STYLES,
   type FocusRingStyle,
@@ -15,8 +14,14 @@ import {
   clearAppearance,
   contrastRatio,
   createThemeFromSeed,
+  ELEVATION_PRESETS,
   FONT_CATALOG,
+  MOTION_PRESETS,
+  type MotionPresetId,
   parseHex,
+  RADIUS_PRESETS,
+  type RadiusPresetId,
+  stylePresetInput,
   TEXT_CONTRAST_PAIRS,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
@@ -50,33 +55,15 @@ const api = $derived(
     : null
 );
 
-const RADII = [
-  { value: '0', label: 'Square' },
-  { value: '0.25rem', label: 'Small' },
-  { value: '0.5rem', label: 'Medium' },
-  { value: '0.625rem', label: 'Default' },
-  { value: '0.875rem', label: 'Large' },
-  { value: '1.25rem', label: 'XL' },
-  { value: '9999px', label: 'Pill' },
-] as const;
-
-type MotionPreset = 'none' | 'subtle' | 'standard' | 'expressive';
-const MOTION: Record<MotionPreset, { fast: number; base: number; slow: number; easing: string }> = {
-  none: { fast: 0, base: 0, slow: 0, easing: 'linear' },
-  subtle: { fast: 100, base: 150, slow: 200, easing: 'ease-out' },
-  standard: { fast: 150, base: 200, slow: 300, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-  expressive: { fast: 200, base: 300, slow: 500, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
-};
-
 let name = $state('My theme');
 let seed = $state('#7c3aed');
 let useSecondary = $state(false);
 let secondary = $state('#0ea5e9');
 let fontId = $state<string>(FONT_CATALOG[0]?.id ?? 'system');
-let radius = $state<string>('0.625rem');
+let radius = $state<RadiusPresetId>('default');
 let elevation = $state<ElevationStyle>('soft');
 let density = $state(1);
-let motion = $state<MotionPreset>('standard');
+let motion = $state<MotionPresetId>('standard');
 let surface = $state<SurfaceStyle>('solid');
 let focusRing = $state<FocusRingStyle>('ring');
 // Starts in the app's current mode; afterwards it is the Studio's own toggle.
@@ -105,7 +92,8 @@ const draft = $derived.by((): { theme: Theme } | { error: string } => {
     return { error: 'The secondary color must be a hex color like #0ea5e9.' };
   }
   const font = FONT_CATALOG.find((f) => f.id === fontId) ?? FONT_CATALOG[0];
-  const m = MOTION[motion];
+  // Radius and motion come from the shared style presets (`@protoyard/themes`).
+  const presets = stylePresetInput({ radius, motion });
   try {
     const generated = createThemeFromSeed({
       id: slug(name),
@@ -113,16 +101,16 @@ const draft = $derived.by((): { theme: Theme } | { error: string } => {
       seed,
       ...(useSecondary ? { secondary } : {}),
       style: {
+        ...presets.style,
         elevation,
         surface,
-        motion: { durations: { fast: m.fast, base: m.base, slow: m.slow }, easing: m.easing },
         focusRing: { style: focusRing },
       },
     });
     return {
       theme: {
         ...generated,
-        radius,
+        radius: presets.radius ?? generated.radius,
         density,
         ...(font
           ? {
@@ -281,8 +269,8 @@ const inputClass =
         <label class="grid gap-1 text-[11px] text-muted-foreground">
           Corner radius
           <select class={inputClass} bind:value={radius} aria-label="Corner radius">
-            {#each RADII as option (option.value)}
-              <option value={option.value}>{option.label}</option>
+            {#each RADIUS_PRESETS as option (option.id)}
+              <option value={option.id}>{option.label}</option>
             {/each}
           </select>
         </label>
@@ -292,7 +280,7 @@ const inputClass =
         <Segmented
           label="Elevation"
           value={elevation}
-          options={ELEVATION_STYLES.map((value) => ({ value, label: value[0]?.toUpperCase() + value.slice(1) }))}
+          options={ELEVATION_PRESETS.map((preset) => ({ value: preset.id, label: preset.label }))}
           onchange={(value) => (elevation = value)}
         />
       </div>
@@ -310,13 +298,8 @@ const inputClass =
         <Segmented
           label="Motion"
           value={motion}
-          options={[
-            { value: 'none', label: 'None' },
-            { value: 'subtle', label: 'Subtle' },
-            { value: 'standard', label: 'Standard' },
-            { value: 'expressive', label: 'Expressive' },
-          ]}
-          onchange={(value: MotionPreset) => (motion = value)}
+          options={MOTION_PRESETS.map((preset) => ({ value: preset.id, label: preset.label }))}
+          onchange={(value: MotionPresetId) => (motion = value)}
         />
       </div>
       <div class="grid gap-1 text-[11px] text-muted-foreground">
