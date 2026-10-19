@@ -603,6 +603,99 @@ the header strip and (past 150 ms) the app's global bar show it.
 
 Every prototype stays under the 250 KB initial-JS budget.
 
+## Charts
+
+Method: `pnpm exec tsx scripts/bench-charts.ts --runs <n> [--check]`.
+Build the gallery first with `pnpm protoyard build ui-kit`. Results, with
+the machine and every threshold, go to `tmp/bench-charts.json`. The bench
+has three parts:
+
+1. **Node:** `linearScale` maps the points, `largestTriangleThreeBuckets`
+   reduces them to the threshold for an 800 px plot (1,600 points), and
+   `linePath` builds the path. Each is the median of `max(15, runs × 10)`
+   in-process iterations after three warm-ups.
+2. **Chromium:** the ui-kit stress demo (`#/c/chart-stress`, 10,000 points
+   from a fixed seed, one chart mounted at a time), served from
+   `artifacts/ui-kit/dist` on an OS-assigned port. It uses a fresh headless
+   context per run at 1280×900. Each renderer is switched to twice first, so
+   the Canvas chunk is already downloaded; then it is measured:
+   - **render:** from the renderer switch to the chart in the DOM and laid out. Polling uses MessageChannel turns, so no frame wait is added; Canvas includes its single draw frame, by design.
+   - **painted:** to the frame after that, which includes the display's vsync. Reported only.
+   - **hover:** a 200-step `pointermove` sweep across the plot, one step per animation frame. Latency is from dispatch to the DOM updated and laid out (Svelte flushes in a microtask), without the vsync wait. The sweep must show the tooltip, or the check fails.
+   - **long tasks:** `PerformanceObserver('longtask')` entries over 50 ms during the sweep.
+3. **Bundles:** a real Vite 8 production build with one lazy `import()` per
+   charts-ui family subpath. Each family's size is what loading it downloads
+   beyond the app entry (gzip level 9, the whole subpath with every
+   component). A second build of the bundle-guard fixture measures the
+   LineChart + BarChart view and splits it by source area, using each
+   module's share of the minified chunk (an estimate).
+
+Thresholds (`THRESHOLDS` in the script):
+
+| Gate | Threshold |
+| --- | --- |
+| LTTB of 10k points | < 2 ms |
+| 10k-point render | < 50 ms per renderer |
+| Hover | p95 < 16 ms |
+| Long tasks during the sweep | 0 |
+| Line + bar view | ≤ 17,000 B (the bundle guard's ceiling) |
+
+Measured 2026-10-19 on the Apple M1 Max (10 cores, 64 GB), macOS 27.0,
+Node 26.11.1, headless Chromium 156.0.8078.4, with `--runs 3`. The machine
+was shared with other builds (load average 60–100), so treat these as
+upper bounds.
+
+| Node (median) | Scale | LTTB → 1,600 | Path | Total |
+| --- | ---: | ---: | ---: | ---: |
+| 10,000 points | 0.43 ms | **0.25 ms** | 0.35 ms | 1.05 ms |
+| 100,000 points | 4.2 ms | 1.62 ms | 0.50 ms | 7.04 ms |
+
+| Chromium, 10k-point line | Render (median) | Painted (median) | Hover p50 / p95 | Long tasks |
+| --- | ---: | ---: | ---: | ---: |
+| SVG (LTTB) | **6.9 ms** | 26.4 ms | 1.3 / **1.5 ms** | **0** |
+| Canvas | **10.5 ms** | 30.1 ms | 1.3 / **1.5 ms** | **0** |
+
+The stress route itself was ready 334 ms after navigation start (app boot,
+scenario, lazy chunks; informational).
+
+| Subpath (whole family, gzip) | Bytes |
+| --- | ---: |
+| `cartesian` | 20,704 |
+| `part-whole` | 19,016 |
+| `matrix` | 21,145 |
+| `compact` | 4,554 |
+| `canvas` | 2,493 |
+| `geo` | 14,056 |
+
+A prototype rarely loads a whole family: unused components are tree-shaken,
+as the line + bar view below shows.
+
+**Line + bar view: 15,959 B** (target 10 KB, not met). Estimated split:
+
+| Area | Approx. bytes |
+| --- | ---: |
+| cartesian (LineChart, BarChart, their shell, plots and model) | 5,169 |
+| interaction (InteractivePlot, Axis, Grid, Tooltip, model) | 3,727 |
+| frame | 2,015 |
+| scales | 1,897 |
+| downsample | 924 |
+| shapes | 885 |
+| palette tokens | 859 |
+| rest | about 480 |
+
+The structural options proposed for the 10 KB target cannot reach it on
+their own:
+- Removing the whole interaction layer would still leave about 12.2 KB.
+- A lighter InteractivePlot for single-series charts could save only part of
+  its 3.7 KB, while multi-series charts would keep the full one.
+- Merging Axis and Grid into the plot saves component boilerplate, not their
+  logic.
+
+These were not prototyped. Reaching 10 KB would mean cutting chart features
+(keyboard model, tooltip, axes formatting) or the scales and frame, and the
+plan's accessibility contract rules that out. 15,959 B is the honest number,
+held under 17,000 B by the guard.
+
 ## Charts and analytics kits
 
 Method: `pnpm vitest run packages/cli/tests/charts-bundle.test.ts`. This is a
@@ -627,7 +720,8 @@ The guard fails above 2,750 B and 17,000 B, when any module under
 `charts-ui/src/{cartesian,interaction,frame}` reaches initial JS, or when unused
 siblings (Gauge, RadialProgress) are bundled. The plan's 10 KB target for line +
 bar is not met: the remaining bytes are chart code (Svelte's runtime is only
-132 B of the view chunk, because the first screen already has it).
+132 B of the view chunk, because the first screen already has it); see the
+breakdown in [Charts](#charts).
 
 **`sideEffects` and Svelte components.** A real Vite 8 build tree-shakes unused
 Svelte components re-exported from a barrel whether or not `package.json`
