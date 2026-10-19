@@ -16,7 +16,7 @@ plain TypeScript tested in Node. Svelte components live in
 | `@protoyard/charts/scales` | `linearScale`, `logScale`, `sqrtScale`, `timeScale` (UTC), `bandScale`, `pointScale`; `ticks`, `tickStep`, `niceDomain`, `timeTicks`, `chooseTimeInterval`, `floorTime`; formatters `formatNumber`, `formatCompact`, `formatTick`, `formatCents` (integer cents only), `formatPercent`, `formatTimeTick`, `formatDate`; `extent` |
 | `@protoyard/charts/shapes` | `linePath(points, { curve, defined })` and `areaPath(points)` with `linear`, `monotone-x`, `step`, `step-before`, `step-after` curves and gaps; `stack(series, { offset: 'none' \| 'expand' \| 'diverging' })`, `stackExtent`, `groupOffsets(bandwidth, n, padding)`; `pie(values, { padAngle, sort })`, `arcPath({ innerRadius, outerRadius, startAngle, endAngle, cornerRadius, padAngle })`, `arcCentroid`; `symbolPath(type, x, y, area)` (circle, square, diamond, triangle, cross); `bin(values, { thresholds \| count, domain })` with Sturges default; `roundCoord` |
 | `@protoyard/charts/downsample` | `largestTriangleThreeBuckets(points, threshold)` (keeps gaps, returns the input when small), `lttbIndices(xs, ys, threshold)` (plain or typed arrays), `minMaxBuckets(xs, ys, { buckets, x0?, x1? })` (first/min/max/last per pixel column, for canvas), `bisectX` / `bisectLeft` (O(log n) crosshair lookup), `downsampleThreshold(plotWidthPx)` (2 per pixel, 200–4,000) |
-| `@protoyard/charts/layout` | `plotArea(width, height, margin)`: the plot rectangle inside a frame |
+| `@protoyard/charts/layout` | `treemap(root, { width, height, padding, paddingTop })` (squarified; validates sums, `TreemapError`); `sankey(nodes, links, { width, height, nodeWidth, nodePadding, iterations })` (DAG only, `SankeyError` with `code: 'cycle' \| 'unknown-node' \| 'invalid-value' \| 'duplicate-node'`); `funnelLayout(steps, { width, height, orientation, gap })` (geometry + conversion/drop-off); `calendarLayout({ start, end }, { values, weekStartsOn })` (UTC week columns × weekday rows, missing days `null`); `matrixLayout(rows, cols, { width, height, gap })`; `gaugeLayout(value, { min, max, startAngle, endAngle, thresholds })`; `plotArea` |
 | `@protoyard/charts/palette` | `chartPalette(themePalette, mode)` → 8 categorical + 9-step sequential + 9-step diverging hex colors, repaired to pass; `validateChartPalette()`; `chartPaletteVariables()` (`--py-chart1…8`, `--py-seq-1…9`, `--py-div-1…9` for a chart root); `readChartPaletteInput()`; `seriesColor(i)`, `sequentialColor(t)`, `divergingColor(t)`; color math (`contrastRatio`, OKLCH, `simulateDeficiency`) |
 
 Scales are complete (PLAN_003 `T-charts-scales`): the whole `./scales` module
@@ -32,9 +32,13 @@ points 1.3–1.6 ms. Shapes are complete (`T-charts-shapes`): the whole
 are 1.1 KB, `pie` + `arcPath` 0.9 KB. Shapes work in pixel space (scale the
 data first), use radians clockwise from 12 o'clock for arcs, round every
 coordinate to two decimals, and treat `null`/`NaN` y values as gaps (lines
-break, never drop to 0). Treemap/sankey/funnel/calendar/gauge layouts are
-added by the following PLAN_003 charts tasks; this table lists only what
-exists.
+break, never drop to 0). Layouts are complete (`T-charts-layouts`), each
+tree-shaken on its own: treemap 1.0 KB, sankey 1.5 KB, funnel 0.4 KB,
+calendar + matrix 0.7 KB, gauge 0.4 KB gzip (3.5 KB for all). The sankey
+puts nodes in columns by longest path from the sources, sinks in the last
+column, then runs six relaxation passes. Node heights equal their flow on
+both sides. Gauge angles use the `arcPath` convention, so its bands and value
+arc draw directly with `arcPath`.
 
 ### Chart palettes
 

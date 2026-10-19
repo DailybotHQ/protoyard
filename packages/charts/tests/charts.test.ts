@@ -50,7 +50,7 @@ describe('@protoyard/charts scaffold', () => {
       import('../src/scales/index.ts'),
       import('../src/shapes/index.ts'),
       import('../src/downsample/index.ts'),
-      import('../src/layout.ts'),
+      import('../src/layout/index.ts'),
       import('../src/palette/index.ts'),
     ]);
     for (const mod of subpaths) expect(Object.keys(mod).length).toBeGreaterThan(0);
