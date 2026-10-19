@@ -12,6 +12,7 @@ meaningful exit codes: 0 ok · 1 failure · 2 usage · 3 not found ·
 | --- | --- |
 | `pnpm install` | Install and link every workspace package (honors `minimumReleaseAge`) |
 | `pnpm dev` | `protoyard gallery`: index, start the 127.0.0.1 control server, run the gallery in dev |
+| `pnpm dev:create` | `protoyard gallery --allow-create`: the same, with the marketplace's create flow turned on (`POST /api/new` writes files and runs code; per-run token, allowed origins only) |
 | `pnpm build` | Index and build the static gallery |
 | `pnpm preview` | Serve the built gallery |
 | `pnpm lint` / `pnpm biome:check` | Biome lint + format check (full) |

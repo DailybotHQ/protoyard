@@ -90,7 +90,7 @@ protoyard/
 | Task | Full | Scoped |
 | --- | --- | --- |
 | Install | `pnpm install` | — |
-| Gallery (dev) | `pnpm dev` | — |
+| Gallery (dev) | `pnpm dev` (`pnpm dev:create` enables the marketplace create flow) | — |
 | Run one prototype | — | `pnpm protoyard dev <slug>` |
 | Lint + format | `pnpm lint` | `npx biome check <path>` |
 | Type check | `pnpm typecheck` | `pnpm --filter <package> typecheck` |

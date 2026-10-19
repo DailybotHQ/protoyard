@@ -17,6 +17,7 @@
   },
   "scripts": {
     "dev": "pnpm protoyard gallery",
+    "dev:create": "pnpm protoyard gallery --allow-create",
     "build": "pnpm protoyard index --quiet && pnpm --filter @protoyard/gallery build",
     "preview": "pnpm --filter @protoyard/gallery preview",
     "protoyard": "tsx packages/cli/src/bin.ts",

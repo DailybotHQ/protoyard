@@ -103,7 +103,8 @@ chat with an AI teammate and huddles) and **Northwind Help** ·
 `admin-console` · `desktop-app` · `chat-widget` · `plugin-panel` ·
 `ai-assistant` · `team-chat` · `agent-console`. Open the gallery's
 Marketplace (`pnpm dev` → `/marketplace/`) to try every product type and
-start your own with **Use this template** or **Remix**. Each template is a working app
+start your own with **Use this template** or **Remix** (`pnpm dev:create` lets
+those buttons create the prototype directly). Each template is a working app
 with a database, roles, scenarios, tests and a spec, not a screenshot. Start
 from one with `new --template`, remix any prototype with `new --from`, or
 run a template as a live demo with `pnpm protoyard dev <template>`. See
