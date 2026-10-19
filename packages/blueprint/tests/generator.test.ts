@@ -11,7 +11,7 @@ import {
   hashBlueprint,
   topologicalEntities,
 } from '../src/generator.ts';
-import { deriveIntegrity, parseBlueprint } from '../src/index.ts';
+import { deriveIntegrity, parseBlueprint, safeParseBlueprint } from '../src/index.ts';
 
 const densitites: DataDensity[] = ['empty', 'sparse', 'normal', 'dense', 'massive'];
 
@@ -144,5 +144,189 @@ describe('generator source hygiene', () => {
     // Here we only assert the module exports the factory used by that file.
     expect(typeof createBlueprintGenerator).toBe('function');
     expect(BLUEPRINT_GENERATOR_SDK).toBeGreaterThan(0);
+  });
+});
+
+/** A fictional booking desk that uses every distribution hint. */
+const distBlueprint = parseBlueprint({
+  formatVersion: 1,
+  name: 'Distribution fixture',
+  entities: [
+    {
+      name: 'booking',
+      plural: 'bookings',
+      seedCount: 60,
+      fields: [
+        { name: 'title', kind: 'text', required: true, fake: 'company.buzzPhrase' },
+        {
+          name: 'status',
+          kind: 'enum',
+          values: ['requested', 'confirmed', 'done', 'cancelled'],
+          default: 'requested',
+          required: true,
+        },
+        {
+          name: 'channel',
+          kind: 'enum',
+          values: ['web', 'phone', 'walk-in'],
+          weights: [6, 3, 0],
+        },
+        { name: 'startsAt', kind: 'datetime', window: 'future' },
+        { name: 'heldOn', kind: 'date', window: { from: -10, to: 10 } },
+        { name: 'loggedOn', kind: 'date', window: 'past' },
+        { name: 'amount', kind: 'money', min: 0, max: 200_000, trend: 'growth' },
+        { name: 'rating', kind: 'number', min: 0, max: 5, trend: 'decline' },
+        { name: 'guests', kind: 'integer', min: 1, max: 40, trend: 'seasonal' },
+        { name: 'street', kind: 'text', fake: 'location.streetAddress' },
+      ],
+      titleField: 'title',
+    },
+  ],
+  roles: [{ name: 'owner', permissions: { '*': ['*'] } }],
+});
+
+describe('generator distributions', () => {
+  const world = (density: DataDensity = 'normal', seed = 4_242) =>
+    createBlueprintGenerator(distBlueprint).generate(
+      createGenerateContext(parseScenario(scenario(density, seed)))
+    );
+  const rows = (w = world()) => (w.tables.bookings ?? []) as Array<Record<string, unknown>>;
+  const now = Date.parse('2026-06-01T09:00:00.000Z');
+  const DAY = 86_400_000;
+
+  it('honors seedCount at normal density and scales it', () => {
+    expect(rows()).toHaveLength(60);
+    expect(rows(world('sparse'))).toHaveLength(15);
+  });
+
+  it('spreads enums over every value, and weights skip zero-weight values', () => {
+    const status = new Set(rows().map((r) => r.status));
+    expect([...status].sort()).toEqual(['cancelled', 'confirmed', 'done', 'requested']);
+    const channels = rows().map((r) => r.channel);
+    expect(channels).not.toContain('walk-in');
+    const web = channels.filter((c) => c === 'web').length;
+    const phone = channels.filter((c) => c === 'phone').length;
+    expect(web).toBeGreaterThan(phone);
+  });
+
+  it('places dates inside their windows, with future dates and business hours', () => {
+    const all = rows();
+    const starts = all.map((r) => Date.parse(String(r.startsAt)));
+    expect(starts.some((ms) => ms > now)).toBe(true);
+    for (const ms of starts) {
+      expect(ms).toBeGreaterThanOrEqual(now - DAY);
+      expect(ms).toBeLessThanOrEqual(now + 30 * DAY);
+      const hour = new Date(ms).getUTCHours();
+      if (ms > now) {
+        expect(hour).toBeGreaterThanOrEqual(9);
+        expect(hour).toBeLessThan(17);
+        expect(new Date(ms).getUTCMinutes() % 15).toBe(0);
+      }
+    }
+    const held = all.map((r) => Date.parse(String(r.heldOn)));
+    expect(held.some((ms) => ms < now) && held.some((ms) => ms > now)).toBe(true);
+    for (const ms of held) {
+      expect(ms).toBeGreaterThanOrEqual(now - 10 * DAY);
+      expect(ms).toBeLessThanOrEqual(now + 10 * DAY);
+    }
+    expect(all.every((r) => Date.parse(String(r.loggedOn)) <= now)).toBe(true);
+  });
+
+  it('keeps future windows out of the reference-time check and the world valid', () => {
+    const integrity = deriveIntegrity(distBlueprint);
+    expect(integrity.timestamps?.bookings).toEqual(['createdAt', 'updatedAt', 'loggedOn']);
+    for (const density of densitites) {
+      const s = parseScenario(scenario(density, 900 + densitites.indexOf(density)));
+      const w = createBlueprintGenerator(distBlueprint).generate(createGenerateContext(s));
+      expect(validateWorld(w, { ...integrity, referenceTime: s.referenceTime }), density).toEqual(
+        []
+      );
+    }
+  });
+
+  it('follows the trend over createdAt: monthly averages rise for growth, fall for decline', () => {
+    const all = rows(world('dense', 77));
+    const monthly = (prop: string) => {
+      const sums = new Map<string, { sum: number; n: number }>();
+      for (const r of all) {
+        const month = String(r.createdAt).slice(0, 7);
+        const cell = sums.get(month) ?? { sum: 0, n: 0 };
+        cell.sum += r[prop] as number;
+        cell.n += 1;
+        sums.set(month, cell);
+      }
+      return [...sums.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, c]) => c.sum / c.n);
+    };
+    const amount = monthly('amount');
+    expect(amount.length).toBeGreaterThanOrEqual(3);
+    for (let i = 1; i < amount.length; i++) {
+      expect(amount[i]).toBeGreaterThan(amount[i - 1] as number);
+    }
+    const rating = monthly('rating');
+    expect(rating.at(-1)).toBeLessThan(rating[0] as number);
+    for (const r of all) {
+      expect(Number.isInteger(r.amount)).toBe(true);
+      expect(r.amount as number).toBeLessThanOrEqual(200_000);
+      expect(Number.isInteger(r.guests)).toBe(true);
+      expect(r.guests as number).toBeGreaterThanOrEqual(1);
+      expect(r.guests as number).toBeLessThanOrEqual(40);
+    }
+  });
+
+  it('is byte-identical for the same seed and fills the new fake paths', () => {
+    expect(JSON.stringify(world())).toBe(JSON.stringify(world()));
+    expect(JSON.stringify(world('normal', 4_243))).not.toBe(JSON.stringify(world()));
+    for (const path of [
+      'location.streetAddress',
+      'commerce.department',
+      'company.buzzPhrase',
+      'word.words',
+    ]) {
+      expect(ALLOWED_FAKE_PATHS).toContain(path);
+    }
+    expect(rows().every((r) => typeof r.street === 'string' && r.street.length > 0)).toBe(true);
+  });
+
+  it('changes the generator version when a distribution hint changes', () => {
+    const changed = parseBlueprint({
+      ...distBlueprint,
+      entities: distBlueprint.entities.map((e) => ({ ...e, seedCount: 61 })),
+    });
+    expect(blueprintGeneratorVersion(changed)).not.toBe(blueprintGeneratorVersion(distBlueprint));
+  });
+});
+
+describe('distribution hints in the schema', () => {
+  const issues = (field: Record<string, unknown>) => {
+    const result = safeParseBlueprint({
+      formatVersion: 1,
+      name: 'Bad',
+      entities: [
+        {
+          name: 'thing',
+          plural: 'things',
+          fields: [{ name: 'title', kind: 'text' }, field],
+          titleField: 'title',
+        },
+      ],
+      roles: [{ name: 'owner', permissions: { '*': ['*'] } }],
+    });
+    return result.success
+      ? []
+      : result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+  };
+
+  it('checks weights length and positivity, and window order', () => {
+    expect(issues({ name: 'state', kind: 'enum', values: ['a', 'b'], weights: [1] })).toContain(
+      'entities.0.fields.1.weights: weights needs one entry per value (2)'
+    );
+    expect(issues({ name: 'state', kind: 'enum', values: ['a', 'b'], weights: [0, 0] })).toContain(
+      'entities.0.fields.1.weights: weights needs at least one positive entry'
+    );
+    expect(issues({ name: 'due', kind: 'date', window: { from: 5, to: -5 } })).toContain(
+      'entities.0.fields.1.window: window.from must not be after window.to'
+    );
+    expect(issues({ name: 'due', kind: 'date', window: 'around' })).toEqual([]);
+    expect(issues({ name: 'amount', kind: 'money', trend: 'seasonal' })).toEqual([]);
   });
 });

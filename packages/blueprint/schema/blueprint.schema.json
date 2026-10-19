@@ -347,6 +347,10 @@
                     },
                     "default": {
                       "type": "number"
+                    },
+                    "trend": {
+                      "type": "string",
+                      "enum": ["flat", "growth", "decline", "seasonal"]
                     }
                   },
                   "required": ["name", "kind"],
@@ -398,6 +402,10 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "trend": {
+                      "type": "string",
+                      "enum": ["flat", "growth", "decline", "seasonal"]
                     }
                   },
                   "required": ["name", "kind"],
@@ -454,6 +462,10 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "trend": {
+                      "type": "string",
+                      "enum": ["flat", "growth", "decline", "seasonal"]
                     }
                   },
                   "required": ["name", "kind"],
@@ -529,6 +541,31 @@
                     "kind": {
                       "type": "string",
                       "const": "date"
+                    },
+                    "window": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["past", "future", "around"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "integer",
+                              "minimum": -3650,
+                              "maximum": 3650
+                            },
+                            "to": {
+                              "type": "integer",
+                              "minimum": -3650,
+                              "maximum": 3650
+                            }
+                          },
+                          "required": ["from", "to"],
+                          "additionalProperties": false
+                        }
+                      ]
                     }
                   },
                   "required": ["name", "kind"],
@@ -565,6 +602,31 @@
                     "kind": {
                       "type": "string",
                       "const": "datetime"
+                    },
+                    "window": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["past", "future", "around"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "from": {
+                              "type": "integer",
+                              "minimum": -3650,
+                              "maximum": 3650
+                            },
+                            "to": {
+                              "type": "integer",
+                              "minimum": -3650,
+                              "maximum": 3650
+                            }
+                          },
+                          "required": ["from", "to"],
+                          "additionalProperties": false
+                        }
+                      ]
                     }
                   },
                   "required": ["name", "kind"],
@@ -622,6 +684,13 @@
                     },
                     "default": {
                       "type": "string"
+                    },
+                    "weights": {
+                      "type": "array",
+                      "items": {
+                        "type": "number",
+                        "minimum": 0
+                      }
                     }
                   },
                   "required": ["name", "kind", "values"],
@@ -1035,6 +1104,11 @@
             },
             "required": ["field"],
             "additionalProperties": false
+          },
+          "seedCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
           },
           "features": {
             "default": {

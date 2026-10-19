@@ -3,6 +3,7 @@ import {
   type Blueprint,
   type BlueprintEntity,
   type BlueprintField,
+  dateWindowDays,
   entityTable,
 } from './schema.ts';
 
@@ -162,7 +163,10 @@ export function deriveIntegrity(blueprint: Blueprint): IntegrityRules {
         const property = relationProperty(field);
         if (property) rels[property] = FEATURE_TABLES.files;
       } else if (field.kind === 'date' || field.kind === 'datetime') {
-        times.push(field.name);
+        // A window that reaches past now (due dates, bookings) is allowed in
+        // the future, so only its "not before the organization" bound applies
+        // through generation; it is left out of the reference-time check.
+        if (dateWindowDays(field.window).to <= 0) times.push(field.name);
       }
     }
     if (entity.features.softDelete) times.push('deletedAt');

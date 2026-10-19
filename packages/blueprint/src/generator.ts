@@ -4,9 +4,11 @@ import {
   type GeoRegionId,
   generateTeam,
   geoPoints,
+  type Seasonality,
+  timeSeries,
 } from '@protoyard/scenarios';
 import type { Blueprint, BlueprintEntity, BlueprintField } from './schema.ts';
-import { entityTable } from './schema.ts';
+import { dateWindowDays, entityTable } from './schema.ts';
 import { FEATURE_TABLES } from './storage.ts';
 import { inputProperty } from './validation.ts';
 
@@ -18,7 +20,7 @@ import { inputProperty } from './validation.ts';
  */
 
 /** Bump when the same blueprint + seed can produce a different world shape. */
-export const BLUEPRINT_GENERATOR_SDK = 2;
+export const BLUEPRINT_GENERATOR_SDK = 3;
 
 /** Region for geo fields that do not name one. */
 export const DEFAULT_GEO_REGION: GeoRegionId = 'metro-grid';
@@ -41,6 +43,10 @@ export const ALLOWED_FAKE_PATHS = [
   'commerce.productName',
   'location.city',
   'location.country',
+  'location.streetAddress',
+  'commerce.department',
+  'company.buzzPhrase',
+  'word.words',
 ] as const;
 
 export type AllowedFakePath = (typeof ALLOWED_FAKE_PATHS)[number];
@@ -68,6 +74,7 @@ export function hashBlueprint(blueprint: Blueprint): number {
       table: entity.table ?? null,
       titleField: entity.titleField,
       ownerField: entity.ownerField ?? null,
+      seedCount: entity.seedCount ?? null,
       features: entity.features,
       fields: entity.fields.map((field) => ({
         name: field.name,
@@ -81,6 +88,9 @@ export function hashBlueprint(blueprint: Blueprint): number {
           : {}),
         ...('cardinality' in field ? { to: field.to, cardinality: field.cardinality } : {}),
         ...(field.kind === 'geo' ? { region: field.region ?? null } : {}),
+        ...('weights' in field ? { weights: field.weights ?? null } : {}),
+        ...('window' in field ? { window: field.window ?? null } : {}),
+        ...('trend' in field ? { trend: field.trend ?? null } : {}),
         ...('default' in field ? { default: field.default ?? null } : {}),
       })),
     })),
@@ -157,6 +167,68 @@ function emailFrom(faker: GenerateContext['faker'], rng: GenerateContext['rng'])
   return `${local}@${domain}`;
 }
 
+const MS_PER_DAY = 86_400_000;
+
+/**
+ * An instant inside a date field's window: a uniform day, then business hours
+ * (09:00–17:00 UTC, quarter hours) for datetimes and noon for dates. Never
+ * before the organization started; after now only when the window says so.
+ */
+function windowInstant(
+  field: Extract<BlueprintField, { kind: 'date' | 'datetime' }>,
+  ctx: GenerateContext,
+  orgStart: Date
+): number {
+  const { from, to } = dateWindowDays(field.window);
+  const now = ctx.time.now.getTime();
+  const floor = orgStart.getTime();
+  const lo = from === null ? floor : Math.max(floor, now + from * MS_PER_DAY);
+  const hi = Math.max(lo, now + to * MS_PER_DAY);
+  const day = Math.floor((lo + ctx.rng.next() * (hi - lo)) / MS_PER_DAY) * MS_PER_DAY;
+  const minutes =
+    field.kind === 'date'
+      ? 12 * 60
+      : ctx.rng.int(9, 16) * 60 + ctx.rng.pick([0, 15, 30, 45] as const);
+  return Math.min(hi, Math.max(lo, day + minutes * 60_000));
+}
+
+const TREND_RATES = { flat: 0, growth: 0.2, decline: -0.12, seasonal: 0 } as const;
+
+type TrendField = Extract<BlueprintField, { kind: 'number' | 'integer' | 'money' }>;
+
+/**
+ * Daily values for a trended field from the organization start to now, built
+ * with `timeSeries` (level at now = middle of the field's range). A row takes
+ * the value of its `createdAt` day, so charts over createdAt show the trend.
+ */
+function trendByDay(
+  field: TrendField,
+  entity: BlueprintEntity,
+  ctx: GenerateContext,
+  orgCreatedAt: string
+): Map<string, number> {
+  const lo = field.min ?? 0;
+  const hi = field.max ?? (field.kind === 'money' ? 100_000 : lo + 100);
+  const days = Math.max(
+    1,
+    Math.ceil((ctx.time.now.getTime() - Date.parse(orgCreatedAt)) / MS_PER_DAY) + 1
+  );
+  const seasonality: Seasonality = field.trend === 'seasonal' ? 'weekly+annual' : 'none';
+  const points = timeSeries({
+    ctx,
+    key: `blueprint:${entity.name}.${field.name}`,
+    days,
+    base: (lo + hi) / 2,
+    trend: TREND_RATES[field.trend ?? 'flat'],
+    seasonality,
+    noise: 0.08,
+    min: lo,
+    max: hi,
+    integer: field.kind !== 'number',
+  });
+  return new Map(points.map((p) => [p.at.slice(0, 10), p.value]));
+}
+
 function valueForField(
   field: BlueprintField,
   ctx: GenerateContext,
@@ -227,12 +299,17 @@ function valueForField(
       // Integrity compares parsed instants to org.createdAt. Date-only
       // `YYYY-MM-DD` is UTC midnight and can fall before org.createdAt on the
       // same calendar day, so both kinds store full ISO instants ≥ org start.
-      const d = time.between(orgStart, time.now, rng.next);
-      const ms = Math.max(d.getTime(), orgStart.getTime());
-      return new Date(ms).toISOString();
+      if (field.window === undefined) {
+        const d = time.between(orgStart, time.now, rng.next);
+        const ms = Math.max(d.getTime(), orgStart.getTime());
+        return new Date(ms).toISOString();
+      }
+      return new Date(windowInstant(field, ctx, orgStart)).toISOString();
     }
     case 'enum':
-      return field.default ?? rng.pick(field.values);
+      return field.weights
+        ? rng.weighted(field.values.map((value, i) => [value, field.weights?.[i] ?? 0] as const))
+        : rng.pick(field.values);
     case 'email':
       return emailFrom(faker, rng);
     case 'url':
@@ -373,7 +450,7 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
 
     for (const entity of order) {
       const table = entityTable(entity);
-      const count = ctx.scale(baseCountFor(entity, blueprint));
+      const count = ctx.scale(entity.seedCount ?? baseCountFor(entity, blueprint));
       const rows: Row[] = [];
       const rng = ctx.rng.fork(`entity:${entity.name}`);
       // One point set per geo field: point i belongs to row i, and more rows keep earlier points.
@@ -391,6 +468,12 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
                 }),
               },
             ]
+          : []
+      );
+      const trends = entity.fields.flatMap((field) =>
+        (field.kind === 'number' || field.kind === 'integer' || field.kind === 'money') &&
+        field.trend !== undefined
+          ? [{ prop: inputProperty(field), byDay: trendByDay(field, entity, ctx, orgCreatedAt) }]
           : []
       );
       for (let i = 0; i < count; i++) {
@@ -417,6 +500,9 @@ export function createBlueprintGenerator(blueprint: Blueprint): BlueprintGenerat
               : null;
         }
         const stamps = stampRow(fieldCtx, orgCreatedAt);
+        for (const { prop, byDay } of trends) {
+          values[prop] = byDay.get(stamps.createdAt.slice(0, 10)) ?? values[prop];
+        }
         rows.push({
           id: ctx.ids.next(entity.name.replace(/-/g, '_')),
           ...values,
