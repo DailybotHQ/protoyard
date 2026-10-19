@@ -176,6 +176,13 @@ export const CatalogSchema = z
   .strict();
 export type Catalog = z.infer<typeof CatalogSchema>;
 
+/** A theme id reference, the same shape as `ThemeSchema.id` (kebab-case). */
+export const ThemeIdRefSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z][a-z0-9-]*$/, { message: 'theme id must be lowercase kebab-case' });
+
 export const ProjectKindSchema = z.enum(['prototype', 'template']);
 export type ProjectKind = z.infer<typeof ProjectKindSchema>;
 
@@ -293,7 +300,12 @@ export const PrototypeManifestSchema = z
     /** Path relative to the prototype folder, e.g. `public/thumbnail.png`. */
     thumbnail: z.string().optional(),
     defaultScenario: z.string().min(1).optional(),
-    defaultTheme: z.string().min(1).default('violet'),
+    /**
+     * Theme id: a built-in preset, one of the prototype's own `themes`, or any
+     * `@protoyard/themes` library id, which the renderer loads on demand
+     * (ADR-023). `protoyard validate` warns on ids none of those know.
+     */
+    defaultTheme: ThemeIdRefSchema.default('violet'),
     defaultMode: ColorModeSchema.default('system'),
     preview: PreviewSchema.default({ viewport: 'desktop', shell: 'auto' }),
     storage: z.object({

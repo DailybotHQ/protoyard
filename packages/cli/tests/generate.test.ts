@@ -199,6 +199,47 @@ describe('protoyard generate', () => {
     );
   });
 
+  it('ships a brand libraryTheme by id: defaultTheme set, no brand-theme.ts', async () => {
+    const file = writeBlueprint(
+      blueprintInput({ brand: { name: 'Acme Ledger', libraryTheme: 'fintech-ledger' } }),
+      'library.json'
+    );
+    const run = await generate('ledger-desk', '--blueprint', file, '--no-install');
+    expect(run.code).toBe(0);
+    const { data } = run.json<Envelope>();
+    expect(data.hashesIntact).toBe(true);
+    expect(data.generated as string[]).not.toContain('src/generated/brand-theme.ts');
+
+    const manifest = JSON.parse(read('prototypes/ledger-desk/protoyard.json'));
+    expect(manifest.defaultTheme).toBe('fintech-ledger');
+    expect(existsSync(join(ws.root, 'prototypes/ledger-desk/src/generated/brand-theme.ts'))).toBe(
+      false
+    );
+    // The template's own prototype.ts stays: no brand theme to register.
+    expect(read('prototypes/ledger-desk/src/prototype.ts')).toBe(
+      read('templates/crud-app/src/prototype.ts')
+    );
+
+    const emitted = emitPrototype(
+      parseBlueprint(blueprintInput({ brand: { libraryTheme: 'fintech-ledger' } })),
+      'ledger-desk',
+      '{}'
+    ).map((f) => f.path);
+    expect(emitted).not.toContain('src/generated/brand-theme.ts');
+    expect(emitted).not.toContain('src/prototype.ts');
+  });
+
+  it('rejects a brand libraryTheme the library does not know', async () => {
+    const file = writeBlueprint(
+      blueprintInput({ brand: { libraryTheme: 'fintech-ledgr' } }),
+      'unknown-library.json'
+    );
+    const run = await generate('ledger-typo', '--blueprint', file, '--dry-run');
+    expect(run.code).not.toBe(0);
+    expect(run.json<Envelope>().error?.message ?? run.stdout).toMatch(/fintech-ledger/);
+    expect(existsSync(join(ws.root, 'prototypes/ledger-typo'))).toBe(false);
+  });
+
   it('is a no-op for the same blueprint and refuses hand-edited generated files', async () => {
     const file = writeBlueprint();
     expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(0);

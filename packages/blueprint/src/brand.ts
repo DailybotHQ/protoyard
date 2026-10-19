@@ -12,7 +12,9 @@ import {
   contrastRatio,
   createThemeFromSeed,
   getFontPairing,
+  getLibraryThemeMeta,
   TEXT_CONTRAST_PAIRS,
+  THEME_LIBRARY_META,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
 import type { BlueprintBrand } from './schema.ts';
@@ -112,8 +114,69 @@ export interface BrandContrastFailure {
   ratio: number;
 }
 
-/** Stable theme id from brand or blueprint name (`Acme Labs` → `acme-labs`). */
+/** Edit distance between two short ids (single-row Levenshtein). */
+function editDistance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let diagonal = row[0] as number;
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const above = row[j] as number;
+      row[j] = Math.min(
+        above + 1,
+        (row[j - 1] as number) + 1,
+        diagonal + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+      diagonal = above;
+    }
+  }
+  return row[b.length] as number;
+}
+
+/**
+ * Up to `limit` ids from `known` nearest to `id`: ids that contain it (or that
+ * it contains) first, then by edit distance, ties in `known` order. Only ids
+ * within half the longer length are suggested, so unrelated names stay out.
+ */
+export function closestIds(id: string, known: readonly string[], limit = 3): string[] {
+  return known
+    .map((candidate, index) => {
+      const contains = candidate.includes(id) || id.includes(candidate);
+      return { candidate, index, distance: contains ? 0 : editDistance(id, candidate) };
+    })
+    .filter(
+      ({ candidate, distance }) => distance <= Math.ceil(Math.max(id.length, candidate.length) / 2)
+    )
+    .sort((a, b) => a.distance - b.distance || a.index - b.index)
+    .slice(0, limit)
+    .map(({ candidate }) => candidate);
+}
+
+/**
+ * The library theme a brand names (`brand.libraryTheme`), or `undefined` when
+ * the brand builds its own theme. A library brand needs no generated module:
+ * the prototype's `defaultTheme` is the library id and the renderer loads it.
+ * Throws `BrandThemeError` (with the closest ids) when the library does not
+ * know the id.
+ */
+export function brandLibraryThemeId(brand: BlueprintBrand): string | undefined {
+  const id = brand.libraryTheme;
+  if (id === undefined || getLibraryThemeMeta(id)) return id;
+  const near = closestIds(
+    id,
+    THEME_LIBRARY_META.map((meta) => meta.id)
+  );
+  throw new BrandThemeError(
+    `Unknown library theme "${id}"${near.length > 0 ? ` (closest: ${near.join(', ')})` : ''}.`
+  );
+}
+
+/**
+ * Stable theme id from brand or blueprint name (`Acme Labs` → `acme-labs`);
+ * a library brand's id is the library theme id.
+ */
 export function brandThemeId(brand: BlueprintBrand, blueprintName?: string): string {
+  if (brand.libraryTheme) return brand.libraryTheme;
   if (brand.id) return brand.id;
   const source = brand.name ?? blueprintName ?? 'brand';
   const slug = source
@@ -205,12 +268,18 @@ function applyFinishes(
 
 /**
  * Build a complete Theme from a validated blueprint brand block.
- * Throws `BrandThemeError` when the result fails AA or a catalog id is unknown.
+ * Throws `BrandThemeError` when the result fails AA or a catalog id is unknown,
+ * and for a library brand, which ships by id (see `brandLibraryThemeId`).
  */
 export function resolveBlueprintBrand(
   brand: BlueprintBrand,
   options: ResolveBrandOptions = {}
 ): Theme {
+  if (brand.libraryTheme) {
+    throw new BrandThemeError(
+      `Brand uses library theme "${brand.libraryTheme}"; it ships by id, so there is no theme to build.`
+    );
+  }
   const id = brandThemeId(brand, options.blueprintName);
   const name = themeDisplayName(brand, options.blueprintName);
   const profile = brand.styleProfile ? getStyleProfile(brand.styleProfile) : undefined;

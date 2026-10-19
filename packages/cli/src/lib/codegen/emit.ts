@@ -1,6 +1,7 @@
 import {
   type Blueprint,
   type BlueprintEntity,
+  brandLibraryThemeId,
   brandThemeExportName,
   emitBrandThemeModule,
   entityTable,
@@ -480,7 +481,8 @@ export function emitPrototype(
     owned('README.md', readme(blueprint, slug)),
   ];
 
-  if (blueprint.brand) {
+  // A library brand ships by id (defaultTheme); only built brands emit a theme module.
+  if (blueprint.brand && !brandLibraryThemeId(blueprint.brand)) {
     const theme = resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name });
     const exportName = brandThemeExportName(theme.id);
     files.push(generated('src/generated/brand-theme.ts', emitBrandThemeModule(theme)));
@@ -494,5 +496,7 @@ export function emitPrototype(
 /** Theme id written to protoyard.json when the blueprint declares a brand. */
 export function brandDefaultThemeId(blueprint: Blueprint): string | null {
   if (!blueprint.brand) return null;
+  const libraryTheme = brandLibraryThemeId(blueprint.brand);
+  if (libraryTheme) return libraryTheme;
   return resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name }).id;
 }

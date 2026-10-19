@@ -8,6 +8,7 @@ import {
   ARCHETYPE_IDS,
   type BriefResult,
   blueprintFromBrief,
+  brandLibraryThemeId,
   latestSchemaVersion,
   MAX_BRIEF_LENGTH,
   safeParseBlueprint,
@@ -73,6 +74,16 @@ export const blueprintValidateCommand: Handler = async (_ctx, args): Promise<Com
         },
       }
     );
+  }
+  if (blueprint.brand) {
+    try {
+      brandLibraryThemeId(blueprint.brand);
+    } catch (error) {
+      const message = (error as Error).message;
+      throw new CliError('validation', `Invalid blueprint brand: ${message}`, {
+        data: { file, valid: false, issues: [{ path: 'brand.libraryTheme', message }] },
+      });
+    }
   }
   const entities = blueprint.entities.map((e) => ({
     name: e.name,

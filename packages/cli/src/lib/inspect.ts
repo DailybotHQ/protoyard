@@ -97,6 +97,8 @@ export interface SpecScenario {
   density: string;
   tags: string[];
   knobs: Record<string, unknown>;
+  /** `appearance.themeId`, when the scenario sets one. */
+  themeId?: string;
 }
 
 export interface SpecRoute {
