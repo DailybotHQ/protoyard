@@ -157,6 +157,42 @@ export function themeVariables(input: AppearanceInput): Record<string, string> {
   vars['--py-motion-easing'] = input.reducedMotion ? 'linear' : style.motion.easing;
   vars['--py-focus-ring-width'] = style.focusRing.width;
   vars['--py-focus-ring-offset'] = style.focusRing.offset;
+  Object.assign(vars, chartVariables(input.theme, input.resolvedMode, palette));
+  return vars;
+}
+
+/**
+ * The chart variables a theme block sets beyond `--py-chart1…5`: series 6–8
+ * and the 9-step sequential and diverging ramps (the names the charts kit
+ * reads). Cleared when the next theme has no `charts` block.
+ */
+export const CHART_EXTENSION_VARIABLES: readonly string[] = [
+  ...[6, 7, 8].map((n) => `--py-chart${n}`),
+  ...Array.from({ length: 9 }, (_, i) => `--py-seq-${i + 1}`),
+  ...Array.from({ length: 9 }, (_, i) => `--py-div-${i + 1}`),
+];
+
+/** Chart grid and axis colors always; the full series and ramps when the theme carries them. */
+function chartVariables(
+  theme: Theme,
+  mode: ResolvedMode,
+  palette: ThemePalette
+): Record<string, string> {
+  const charts = theme.charts?.[mode];
+  const vars: Record<string, string> = {
+    '--py-chart-grid': charts?.grid ?? palette.border,
+    '--py-chart-axis': charts?.axis ?? palette.mutedForeground,
+  };
+  if (!charts) return vars;
+  charts.categorical.forEach((color, i) => {
+    vars[`--py-chart${i + 1}`] = color;
+  });
+  charts.sequential.forEach((color, i) => {
+    vars[`--py-seq-${i + 1}`] = color;
+  });
+  charts.diverging.forEach((color, i) => {
+    vars[`--py-div-${i + 1}`] = color;
+  });
   return vars;
 }
 
@@ -236,6 +272,9 @@ export interface AppliedAppearance {
  */
 export function applyAppearance(target: HTMLElement, input: AppearanceInput): AppliedAppearance {
   const vars = themeVariables(input);
+  for (const name of CHART_EXTENSION_VARIABLES) {
+    if (!(name in vars)) target.style.removeProperty(name);
+  }
   for (const [name, value] of Object.entries(vars)) target.style.setProperty(name, value);
   const reducedMotion = input.reducedMotion ?? false;
   target.dataset.pyTheme = input.theme.id;
@@ -265,6 +304,7 @@ export function clearAppearance(target: HTMLElement): void {
   )) {
     target.style.removeProperty(name);
   }
+  for (const name of CHART_EXTENSION_VARIABLES) target.style.removeProperty(name);
   delete target.dataset.pyTheme;
   delete target.dataset.pyMode;
   delete target.dataset.pyMotion;

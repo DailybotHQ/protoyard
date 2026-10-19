@@ -118,6 +118,26 @@ export const ThemePaletteSchema = z.object({
 export type ThemePalette = z.infer<typeof ThemePaletteSchema>;
 export type ThemeTokenName = keyof ThemePalette;
 
+/** Colors that mark data are plain hex so contrast and color-vision checks can read them. */
+const hexColor = z.string().regex(/^#[0-9a-f]{6}$/i, 'Use a #rrggbb color');
+
+/**
+ * Chart colors for one mode (optional on a theme). `categorical` is the series
+ * set (its first five are the theme's `chart1`…`chart5`), `sequential` runs
+ * from low to high values, `diverging` from the negative end through a
+ * neutral midpoint (index 4) to the positive end. `grid` and `axis` are the
+ * chart chrome. Themes without this block get the charts kit's derived
+ * palette from `chart1`…`chart5` at run time.
+ */
+export const ThemeChartTokensSchema = z.object({
+  categorical: z.array(hexColor).length(8),
+  sequential: z.array(hexColor).length(9),
+  diverging: z.array(hexColor).length(9),
+  grid: color,
+  axis: color,
+});
+export type ThemeChartTokens = z.infer<typeof ThemeChartTokensSchema>;
+
 /*
  * Style dimensions beyond color. Every field has a default equal to how
  * Protoyard renders today, so a theme without `style` (every existing preset)
@@ -252,6 +272,8 @@ export const ThemeSchema = z.object({
   dark: ThemePaletteSchema,
   /** Optional style profile; omitted fields keep today's look. */
   style: ThemeStyleSchema.prefault({}),
+  /** Optional chart palettes per mode (generated themes always carry them). */
+  charts: z.object({ light: ThemeChartTokensSchema, dark: ThemeChartTokensSchema }).optional(),
 });
 export type Theme = z.infer<typeof ThemeSchema>;
 export type ThemeInput = z.input<typeof ThemeSchema>;
