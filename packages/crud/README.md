@@ -40,6 +40,13 @@ blueprint's entity services and `runtime.members` (`session.assert` → zod →
 Lists lay out as a single `minmax(0, 1fr)` grid column, so a wide table scrolls inside its
 card instead of widening the page on phones.
 
+When a matching blueprint `detail` screen declares `tabs`, `EntityDetail` renders those
+sections as hash-shareable tabs. The overview keeps the same field display; `related:<entity>`
+shows the child list filtered to the record and creates children with the back-relation fixed to
+the parent. `activity`, `files`, and `audit` appear only when their entity feature is enabled,
+and their panel components load on demand. Without declared tabs, the existing `EntityDetail`
+layout and API remain unchanged.
+
 ## Board screen (`@protoyard/crud/screens/board`)
 
 A blueprint `board` screen (`entity`, enum `groupBy`, optional `cardFields` and numeric or
