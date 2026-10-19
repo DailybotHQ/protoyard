@@ -1,8 +1,8 @@
 # @protoyard/gallery
 
 The Protoyard gallery: a static Astro 7 site, with Svelte 5 islands and Tailwind 4, that lists
-every prototype and template in the workspace. It reads **only** the generated metadata registry
-and never imports prototype code.
+every prototype and template in the workspace. It reads the generated metadata registry and optional
+pulled review comment files at build time; it never imports prototype code.
 
 ```bash
 pnpm dev                                  # index + local control server + gallery on :4321
@@ -18,6 +18,7 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
                                                               │  (data only)
                      src/integrations/registry-plugin.mjs ◀───┘
                        virtual:protoyard-registry  →  { registry, registryError, thumbnails }
+                       + artifacts/review/comments/<slug>.json → static counts
                                 │
         src/pages/index.astro ──┼── Browser.svelte (search / filters / pagination)
         src/pages/p/[slug].astro┼── LivePreview.svelte (device frame + control server / bundled build)
@@ -27,8 +28,8 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 | Path | Role |
 | --- | --- |
 | `astro.config.mjs` | Static output, `@/*` alias, Tailwind via `@tailwindcss/vite`, `GALLERY_BASE` / `GALLERY_SITE` for sub-path hosting. |
-| `src/integrations/registry-plugin.mjs` | Astro integration plus Vite plugin. It provides the registry as a virtual module, reloads dev on every `protoyard index`, serves thumbnails in dev and copies them into `dist/thumbnails/` after a build. |
-| `src/lib/registry.ts`, `types.ts` | The registry contract (a mirror of `packages/cli/src/lib/registry.ts`) and the compact per-card index. |
+| `src/integrations/registry-plugin.mjs` | Astro integration plus Vite plugin. It provides the registry as a virtual module, decorates prototype entries with validated review counts from local pulled files, reloads watched data in dev, serves thumbnails and copies them into `dist/thumbnails/` after a build. |
+| `src/lib/registry.ts`, `types.ts` | The CLI registry contract plus its build-time review-count enrichment, and the compact per-card index. |
 | `src/lib/search.ts` | Pure filtering and sorting over a pre-normalized index, plus query ⇄ URL sync. |
 | `src/lib/library.svelte.ts` | Favorites and recently opened entries, in guarded `localStorage`. |
 | `src/lib/control.svelte.ts` | Client for the local control server. |
@@ -54,6 +55,9 @@ The gallery consumes `protoyard.registry` v1 (`format`, `version`, `generatedAt`
   or a `..` path are dropped.
 - **`embedded: { url }`** (added only by `protoyard showcase`): the prototype's static build ships
   inside the site at `<base><url>`.
+- **`reviewCounts: { open, resolved, pulledAt }`** (optional): derived at build time from a validated
+  `artifacts/review/comments/<slug>.json` pulled file. Missing or invalid files add no count, and
+  the gallery does not fetch comment summaries in the browser.
 
 Scale: the home page inlines a compact index (about 380 KB raw, 38 KB gzip, for 1,000 entries),
 renders 24 cards per page, and filters in a few milliseconds per keystroke. Run

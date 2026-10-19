@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { PulledReviewCommentsSchema } from '@protoyard/review/report';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { inspectPrototype } from '../lib/inspect.ts';
@@ -43,6 +44,29 @@ const MAX_PERSONAS = 12;
 
 /** Written into the review folder; required before an existing folder is reused. */
 export const REVIEW_MARKER = '.protoyard-review';
+
+async function reviewCountsFor(
+  ctx: CommandContext,
+  slug: string
+): Promise<{ open: number; resolved: number; pulledAt: string } | undefined> {
+  const path = join(ctx.paths.artifacts, 'review', 'comments', `${slug}.json`);
+  let value: unknown;
+  try {
+    const content = await readFile(path);
+    if (content.byteLength > 5 * 1024 * 1024) return undefined;
+    value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(content)) as unknown;
+  } catch {
+    return undefined;
+  }
+  const parsed = PulledReviewCommentsSchema.safeParse(value);
+  if (!parsed.success || parsed.data.slug !== slug) return undefined;
+  const roots = parsed.data.comments.filter((comment) => comment.id === comment.threadId);
+  return {
+    open: roots.filter((comment) => !comment.resolvedAt).length,
+    resolved: roots.filter((comment) => Boolean(comment.resolvedAt)).length,
+    pulledAt: parsed.data.pulledAt,
+  };
+}
 
 /** The latest REAL deploy per slug (dry runs and ZIPs carry no URL). */
 export function latestDeployments(entries: readonly LedgerEntry[]): Map<string, LedgerEntry> {
@@ -241,6 +265,7 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
     const deployed = deployments.get(entry.slug);
     const deployment = deployed ? toDeployment(deployed) : null;
     const artifactShare = artifactShares.get(entry.slug);
+    const reviewCounts = await reviewCountsFor(ctx, entry.slug);
     entries.push({
       slug: entry.slug,
       name: entry.name,
@@ -255,6 +280,7 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
         deployment && withPersonas
           ? personaLinks(deployment.url, (await personasFor(ctx, entry)).slice(0, MAX_PERSONAS))
           : [],
+      ...(reviewCounts ? { reviewCounts } : {}),
       publishCommand: `pnpm protoyard publish ${entry.slug} --provider ${provider}`,
     });
   }

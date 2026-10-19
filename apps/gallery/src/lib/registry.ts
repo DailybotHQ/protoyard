@@ -36,6 +36,7 @@ export function compact(entry: RegistryEntry): CompactEntry {
     m: entry.modifiedAt,
     th: thumbnailUrl(entry),
     e: entry.embedded?.url ?? null,
+    ...(entry.reviewCounts ? { rv: entry.reviewCounts } : {}),
   };
 }
 

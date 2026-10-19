@@ -30,12 +30,20 @@ export interface ReviewLink {
   url: string;
 }
 
+export interface ReviewCounts {
+  open: number;
+  resolved: number;
+  pulledAt: string;
+}
+
 export interface ReviewEntry {
   slug: string;
   name: string;
   description: string;
   icon: string | null;
   deployment: ReviewDeployment | null;
+  /** Counts from the latest validated pulled comments file, when present. */
+  reviewCounts?: ReviewCounts;
   /** The latest URL recorded from the Claude Artifact tool, if shared. */
   artifactShare?: ReviewArtifactShare;
   scenarioLinks: ReviewLink[];
@@ -161,7 +169,10 @@ function renderEntry(entry: ReviewEntry): string {
   const sharedArtifact = entry.artifactShare
     ? `<p class="meta"><span class="badge">Shared as artifact (private by default)</span> Opens only for people the owner shared it with. ${link(entry.artifactShare.url, 'Open Claude artifact')}</p>`
     : '';
-  return `<li><article aria-labelledby="p-${escapeHtml(entry.slug)}"><div class="head"><h2 id="p-${escapeHtml(entry.slug)}">${icon}${escapeHtml(entry.name)}</h2>${status}</div><p>${escapeHtml(entry.description)}</p>${body}${sharedArtifact}</article></li>`;
+  const reviewCounts = entry.reviewCounts
+    ? `<p class="meta">Review comments: ${entry.reviewCounts.open} open · ${entry.reviewCounts.resolved} resolved. Pulled ${escapeHtml(entry.reviewCounts.pulledAt)}.</p>`
+    : '';
+  return `<li><article aria-labelledby="p-${escapeHtml(entry.slug)}"><div class="head"><h2 id="p-${escapeHtml(entry.slug)}">${icon}${escapeHtml(entry.name)}</h2>${status}</div><p>${escapeHtml(entry.description)}</p>${body}${reviewCounts}${sharedArtifact}</article></li>`;
 }
 
 /** Renders the whole page. Deterministic: no clock, no randomness, no environment. */

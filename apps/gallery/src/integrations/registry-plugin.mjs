@@ -10,11 +10,13 @@ import {
 import { copyFile, mkdir } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ReviewCommentSchema } from '@protoyard/core/review';
 
 const VIRTUAL_ID = 'virtual:protoyard-registry';
 const RESOLVED_ID = `\0${VIRTUAL_ID}`;
 const THUMBNAIL_DIR = 'thumbnails';
 const THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024;
+const REVIEW_COMMENTS_MAX_BYTES = 5 * 1024 * 1024;
 /**
  * Raster formats only: an SVG opened directly from the gallery origin can run
  * script, so it is never published as a thumbnail.
@@ -35,13 +37,14 @@ const IMAGE_TYPES = {
  */
 
 /** @param {string} registryPath */
-function readRegistry(registryPath) {
+export function readRegistry(registryPath) {
   if (!existsSync(registryPath)) return { registry: null, error: null };
   try {
     const parsed = JSON.parse(readFileSync(registryPath, 'utf8'));
     if (parsed && parsed.format === 'protoyard.registry' && Array.isArray(parsed.entries)) {
       // Slugs become page routes and file names: drop entries that could
       // escape (e.g. slug "../../x") instead of trusting the file.
+      const workspaceRoot = dirname(dirname(registryPath));
       const entries = parsed.entries.filter(
         (/** @type {Record<string, unknown>} */ e) =>
           e &&
@@ -52,7 +55,10 @@ function readRegistry(registryPath) {
           !isAbsolute(e.path) &&
           !e.path.split(/[\\/]/).includes('..')
       );
-      return { registry: { ...parsed, entries }, error: null };
+      return {
+        registry: { ...parsed, entries: attachReviewCounts(workspaceRoot, entries) },
+        error: null,
+      };
     }
     return { registry: null, error: 'The registry file has an unexpected format.' };
   } catch (e) {
@@ -61,6 +67,61 @@ function readRegistry(registryPath) {
       error: `The registry file is not valid JSON (${/** @type {Error} */ (e).message}).`,
     };
   }
+}
+
+/**
+ * Read only a valid, pulled review export. Missing or malformed files add no
+ * summary; counts are derived from thread roots, never guessed from replies.
+ * @param {string} workspaceRoot
+ * @param {string} slug
+ * @returns {{ open: number; resolved: number; pulledAt: string } | null}
+ */
+export function readReviewCounts(workspaceRoot, slug) {
+  if (!SLUG_PATTERN.test(slug)) return null;
+  const file = resolve(workspaceRoot, 'artifacts', 'review', 'comments', `${slug}.json`);
+  let value;
+  try {
+    if (lstatSync(file).isSymbolicLink()) return null;
+    const stat = statSync(file);
+    if (!stat.isFile() || stat.size > REVIEW_COMMENTS_MAX_BYTES) return null;
+    value = JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
+  if (
+    value?.format !== 'protoyard-review-comments' ||
+    value.version !== 1 ||
+    value.slug !== slug ||
+    typeof value.namespace !== 'string' ||
+    typeof value.pulledAt !== 'string' ||
+    !Number.isFinite(Date.parse(value.pulledAt)) ||
+    !Array.isArray(value.comments)
+  ) {
+    return null;
+  }
+  const ids = new Set();
+  const comments = [];
+  for (const raw of value.comments) {
+    const parsed = ReviewCommentSchema.safeParse(raw);
+    if (!parsed.success || parsed.data.slug !== slug || ids.has(parsed.data.id)) return null;
+    ids.add(parsed.data.id);
+    comments.push(parsed.data);
+  }
+  const roots = comments.filter((comment) => comment.id === comment.threadId);
+  return {
+    open: roots.filter((comment) => !comment.resolvedAt).length,
+    resolved: roots.filter((comment) => Boolean(comment.resolvedAt)).length,
+    pulledAt: value.pulledAt,
+  };
+}
+
+/** @param {string} workspaceRoot @param {Record<string, unknown>[]} entries */
+export function attachReviewCounts(workspaceRoot, entries) {
+  return entries.map((entry) => {
+    if (entry.kind !== 'prototype' || typeof entry.slug !== 'string') return entry;
+    const reviewCounts = readReviewCounts(workspaceRoot, entry.slug);
+    return reviewCounts ? { ...entry, reviewCounts } : entry;
+  });
 }
 
 /** Mirrors core SLUG_PATTERN; a registry file is untrusted input (PROTOYARD_REGISTRY). */
@@ -171,6 +232,18 @@ export function protoyardRegistry(options) {
       if (id !== RESOLVED_ID) return undefined;
       this.addWatchFile(registryPath);
       const { registry, error } = readRegistry(registryPath);
+      for (const entry of registry?.entries ?? []) {
+        if (entry.kind === 'prototype' && SLUG_PATTERN.test(entry.slug)) {
+          const reviewFile = resolve(
+            workspaceRoot,
+            'artifacts',
+            'review',
+            'comments',
+            `${entry.slug}.json`
+          );
+          if (existsSync(reviewFile)) this.addWatchFile(reviewFile);
+        }
+      }
       const urls = Object.fromEntries(
         [...resolveThumbnails(workspaceRoot, registry?.entries ?? [])].map(([key, t]) => [
           key,

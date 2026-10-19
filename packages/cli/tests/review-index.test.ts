@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -300,6 +300,67 @@ describe('protoyard review-index (CLI)', () => {
 
     await cli(['--root', ws.root, '--json', 'review-index', '--no-personas']);
     expect(read('artifacts/review/index.html')).toBe(html);
+  });
+
+  it('shows counts and pulled time only for valid pulled comments, with stable static HTML', async () => {
+    const commentsDir = join(ws.root, 'artifacts', 'review', 'comments');
+    mkdirSync(commentsDir, { recursive: true });
+    const reviewer = { name: 'Alex Reviewer', clientId: 'client_12345678' };
+    const anchor = {
+      route: { pattern: '/', path: '/' },
+      locators: [{ kind: 'id', value: 'main-title' }],
+      offset: { x: 0.5, y: 0.5 },
+    };
+    const rootComment = {
+      formatVersion: 1,
+      id: 'thread_open_12345',
+      threadId: 'thread_open_12345',
+      slug: 'alpha-app',
+      body: 'Review the title.',
+      author: reviewer,
+      createdAt: '2026-10-18T12:00:00.000Z',
+      anchor,
+      context: { viewport: { width: 1280, height: 800 } },
+    };
+    const resolvedComment = {
+      ...rootComment,
+      id: 'thread_done_12345',
+      threadId: 'thread_done_12345',
+      body: 'This is resolved.',
+      resolvedAt: '2026-10-19T11:00:00.000Z',
+      resolvedBy: reviewer,
+    };
+    writeFileSync(
+      join(commentsDir, 'alpha-app.json'),
+      JSON.stringify({
+        format: 'protoyard-review-comments',
+        version: 1,
+        namespace: 'alpha-app',
+        slug: 'alpha-app',
+        pulledAt: '2026-10-19T12:00:00.000Z',
+        comments: [rootComment, { ...rootComment, id: 'reply_open_12345' }, resolvedComment],
+      })
+    );
+
+    const first = await cli(['--root', ws.root, '--json', 'review-index', '--no-personas']);
+    expect(first.code, first.stdout).toBe(0);
+    const html = read('artifacts/review/index.html');
+    expect(html).toContain(
+      'Review comments: 1 open · 1 resolved. Pulled 2026-10-19T12:00:00.000Z.'
+    );
+    expect(html).not.toContain('<script');
+    const manifest = JSON.parse(read('artifacts/review/review-manifest.json')) as ReviewModel;
+    expect(manifest.entries.find((entry) => entry.slug === 'alpha-app')?.reviewCounts).toEqual({
+      open: 1,
+      resolved: 1,
+      pulledAt: '2026-10-19T12:00:00.000Z',
+    });
+    expect(
+      manifest.entries.find((entry) => entry.slug === 'beta-app')?.reviewCounts
+    ).toBeUndefined();
+    await cli(['--root', ws.root, '--json', 'review-index', '--no-personas']);
+    expect(read('artifacts/review/index.html')).toBe(html);
+    rmSync(join(commentsDir, 'alpha-app.json'));
   });
 
   it('filters with --from-ledger or --slugs, and names --provider in the command', async () => {
