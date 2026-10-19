@@ -6,8 +6,11 @@ import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
  * Boots a real runtime on an isolated in-memory IndexedDB. `reload()` closes
  * it and reopens against the same storage, like a browser page reload.
  */
-export function createHarness<TDb>(definition: PrototypeDefinition) {
-  const indexedDB = new IDBFactory();
+export function createHarness<TDb>(
+  definition: PrototypeDefinition,
+  options: { indexedDB?: IDBFactory } = {}
+) {
+  const indexedDB = options.indexedDB ?? new IDBFactory();
   const open: PrototypeRuntime[] = [];
   const boot = async (scenario?: string): Promise<PrototypeRuntime<TDb>> => {
     const runtime = (await createPrototypeRuntime(definition, {
