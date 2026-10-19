@@ -29,7 +29,7 @@
   "defaultTheme": "violet",
   "defaultMode": "system",
   "preview": { "viewport": "desktop" },
-  "storage": { "namespace": "template-task-manager", "schemaVersion": 1 },
+  "storage": { "namespace": "template-task-manager", "schemaVersion": 2 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["empty", "active-team", "overdue-crunch", "viewer"]
 }
