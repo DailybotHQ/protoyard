@@ -59,6 +59,27 @@ describe('DevTools panel', () => {
     expect(runtime.overrides.get()).toEqual({});
   });
 
+  it("a click on a control's inner text or icon reaches its handler (persona, tab, theme)", async () => {
+    const { runtime, panel } = await open();
+    // Click the label span INSIDE the tab, not the tab button itself.
+    const tabLabel = within(panel).getByRole('tab', { name: 'Personas' }).querySelector('span');
+    await fireEvent.click(tabLabel as Element);
+    await settle();
+    const row = within(panel).getByRole('button', { name: /Victor Viewer/ });
+    const name = within(row).getByText('Victor Viewer');
+    expect(name).not.toBe(row);
+    await fireEvent.click(name);
+    await settle();
+    expect(runtime.session.principal()?.persona.id).toBe('user_0002');
+
+    await fireEvent.click(within(panel).getByRole('tab', { name: 'Look' }));
+    await settle();
+    const swatch = within(panel).getByRole('radio', { name: /Ocean/ });
+    await fireEvent.click(swatch.querySelector('span') as Element);
+    await settle();
+    expect(runtime.theme.appearance().theme.value).toBe('ocean');
+  });
+
   it('loads a scenario only after confirmation', async () => {
     const { runtime, panel } = await open();
     await fireEvent.click(within(panel).getByRole('radio', { name: /Busy/ }));

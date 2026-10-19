@@ -22,15 +22,24 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
   const host = options.target ?? document.body.appendChild(document.createElement('div'));
   host.classList.add('py-devtools');
   host.dataset.protoyardDevtools = '';
+  // Svelte delegates `click` & co. to the element it mounts into and walks the
+  // event path from there; it stops at the first `stopPropagation()`. The
+  // isolation listeners must therefore sit on an ANCESTOR of the mount point:
+  // on the same element they would run first and cut the walk short, so a
+  // click on a button's child (a persona's name or avatar) would never reach
+  // the button's handler.
+  const mountPoint = host.appendChild(document.createElement('div'));
+  mountPoint.style.display = 'contents';
   const releaseIsolation = isolateFromAppLayers(host);
   const component = mount(Panel, {
-    target: host,
+    target: mountPoint,
     props: { runtime: options.runtime, themes: options.themes ?? [] },
   });
   return {
     async destroy() {
       await unmount(component);
       releaseIsolation();
+      mountPoint.remove();
       if (!options.target) host.remove();
     },
   };
