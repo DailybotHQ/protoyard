@@ -67,7 +67,8 @@ const auditedBlueprint = parseBlueprint({
 describe('entity CSV export', () => {
   it('exports visible rows as CSV text for an owner', async () => {
     const { services } = await boot();
-    const csv = await services.customer!.exportCsv();
+    const exportCsv = services.customer!.exportCsv;
+    const csv = await exportCsv();
     expect(csv).toMatch(/^Name,Email,Account manager/i);
     expect(csv).toContain('Customer 1');
     expect(csv).toContain('customer1@example.com');

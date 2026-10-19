@@ -2,7 +2,7 @@
 import { Bell } from '@lucide/svelte';
 import { type BlueprintNotificationService, createNotificationService } from '@protoyard/blueprint';
 import type { PrototypeRuntime, Row } from '@protoyard/core';
-import { liveQuery, runService } from '@protoyard/renderer-svelte';
+import { liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, Popover } from '@protoyard/ui';
 
 /**
@@ -21,7 +21,8 @@ let {
 } = $props();
 
 const service = $derived(serviceProp ?? createNotificationService(runtime));
-const personaId = $derived(runtime.session.principal()?.persona.id ?? '');
+const principal = usePrincipal(runtime);
+const personaId = $derived(principal.current?.persona.id ?? '');
 
 let open = $state(false);
 

@@ -250,7 +250,7 @@ const NotificationRuleSchema = z
       .string()
       .min(1)
       .max(120)
-      .refine((value) => !/<\/?[a-z][^>]*>/i.test(value), {
+      .refine((value) => value.length <= 120 && !/<\/?[a-z][^>]*>/i.test(value), {
         message: 'notification titles must be plain text, not HTML',
       }),
   })
@@ -547,8 +547,14 @@ export function blueprintIssues(blueprint: Shape): Issue[] {
       }
     }
     for (const match of rule.title.matchAll(/\{([^{}]+)\}/g)) {
-      if (!fields.has(match[1] ?? '')) {
+      const field = fields.get(match[1] ?? '');
+      if (!field) {
         add([...path, 'title'], `unknown title placeholder "${match[1]}" on "${entity.name}"`);
+      } else if (field.sensitive) {
+        add(
+          [...path, 'title'],
+          `sensitive field "${field.name}" cannot be used in a notification title`
+        );
       }
     }
   });

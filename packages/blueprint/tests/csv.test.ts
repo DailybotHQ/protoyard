@@ -67,7 +67,10 @@ describe('parseCsv / serializeCsv', () => {
   it('guards formula injection on export', () => {
     expect(escapeCsvCell('=1+1')).toBe("'=1+1");
     expect(escapeCsvCell('+cmd')).toBe("'+cmd");
-    expect(escapeCsvCell('-1')).toBe("'-1");
+    expect(escapeCsvCell('-1')).toBe('-1');
+    expect(escapeCsvCell('+1-555-0100')).toBe('+1-555-0100');
+    expect(escapeCsvCell('\t=1+1')).toBe("'\t=1+1");
+    expect(escapeCsvCell('\r=1+1')).toBe('"\'\r=1+1"');
     expect(escapeCsvCell('@sum')).toBe("'@sum");
     expect(escapeCsvCell('safe')).toBe('safe');
     expect(escapeCsvCell('=1+1', { guardFormulas: false })).toBe('=1+1');
@@ -76,6 +79,36 @@ describe('parseCsv / serializeCsv', () => {
     expect(csv).toContain("'=cmd");
     // Re-parse keeps the leading quote so spreadsheets see text, not a formula.
     expect(parseCsv(csv)[1]![0]).toBe("'=cmd|'/c calc'!A0");
+  });
+
+  it('round-trips negative money, international phones, and generated ISO date timestamps', () => {
+    const roundTripEntity = parseBlueprint({
+      formatVersion: 1,
+      name: 'Round trip',
+      entities: [
+        {
+          name: 'entry',
+          plural: 'entries',
+          fields: [
+            { name: 'amount', kind: 'money', currency: 'USD' },
+            { name: 'quantity', kind: 'number' },
+            { name: 'phone', kind: 'phone' },
+            { name: 'dueOn', kind: 'date' },
+          ],
+          titleField: 'phone',
+        },
+      ],
+      roles: [{ name: 'owner', permissions: { '*': ['*'] } }],
+    }).entities[0]!;
+    const source = [
+      { amount: -90337, quantity: -2, phone: '+1-555-0100', dueOn: '2026-03-02T09:30:00.000Z' },
+    ];
+    const csv = serializeEntityCsv(roundTripEntity, source);
+    const parsed = validateCsv(roundTripEntity, csv);
+    expect(parsed.errors).toEqual([]);
+    expect(parsed.valid).toEqual([
+      { amount: -90337, quantity: -2, phone: '+1-555-0100', dueOn: '2026-03-02T09:30:00.000Z' },
+    ]);
   });
 
   it('enforces byte and row limits', () => {

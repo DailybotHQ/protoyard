@@ -12,7 +12,7 @@ import { deriveInputSchemas, type EntityInput, fieldLabel, inputProperty } from 
 export const CSV_MAX_BYTES = 2 * 1024 * 1024;
 export const CSV_MAX_ROWS = 10_000;
 
-const FORMULA_PREFIX = /^[=+\-@]/;
+const FORMULA_PREFIX = /^(?:[=@\t\r]|[+-](?!\d))/;
 
 export type CsvErrorCode = 'too-large' | 'too-many-rows' | 'empty' | 'header' | 'parse' | 'columns';
 
@@ -169,7 +169,7 @@ export function parseCsv(text: string, options: CsvParseOptions = {}): string[][
     throw new CsvError('parse', 'CSV ends inside a quoted field (missing closing quote)');
   }
   // Final field/row when the file does not end with a newline.
-  if (field.length > 0 || row.length > 0 || source.endsWith(',') || source.length > 0) {
+  if (field.length > 0 || row.length > 0 || source.endsWith(',')) {
     pushField();
     // Avoid double-pushing an empty row when the file ended with a newline
     // (pushRow already ran) and we have nothing left.

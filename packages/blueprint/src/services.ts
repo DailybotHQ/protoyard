@@ -163,20 +163,7 @@ export type EntityServices = Record<string, EntityService>;
 export const BULK_CHUNK = 1_000;
 export const UNDO_WINDOW_MS = 30_000;
 
-const UndoPayloadSchema = z.strictObject({
-  version: z.literal(1),
-  entity: z.string().min(1),
-  deletedAt: z.string().min(1),
-  expiresAt: z.number().finite(),
-  rows: z.array(z.strictObject({ entity: z.string().min(1), ids: z.array(z.string().min(1)) })),
-  nullified: z.array(
-    z.strictObject({
-      entity: z.string().min(1),
-      id: z.string().min(1),
-      fields: z.record(z.string(), z.union([z.string(), z.array(z.string()), z.null()])),
-    })
-  ),
-});
+const UndoPayloadSchema = z.strictObject({ version: z.literal(2), rootId: z.string().min(1) });
 type UndoPayload = z.infer<typeof UndoPayloadSchema>;
 
 class UndoTokenError extends Error {
@@ -187,11 +174,11 @@ class UndoTokenError extends Error {
 }
 
 function encodeUndoToken(payload: UndoPayload): string {
-  return `blueprint-undo-v1:${encodeURIComponent(JSON.stringify(payload))}`;
+  return `blueprint-undo-v2:${encodeURIComponent(JSON.stringify(payload))}`;
 }
 
 function decodeUndoToken(token: string): UndoPayload {
-  const prefix = 'blueprint-undo-v1:';
+  const prefix = 'blueprint-undo-v2:';
   if (!token.startsWith(prefix)) throw new UndoTokenError('This undo token is invalid.');
   try {
     const result = UndoPayloadSchema.safeParse(
@@ -221,7 +208,11 @@ interface DeleteEffects {
 
 interface SoftDeleteResult {
   rows: Array<{ entity: string; ids: string[] }>;
-  nullified: UndoPayload['nullified'];
+  nullified: Array<{
+    entity: string;
+    id: string;
+    fields: Record<string, string | string[] | null>;
+  }>;
   count: number;
 }
 
@@ -445,7 +436,8 @@ export function createEntityServices(
       if (!table) continue;
       const ids = Array.isArray(value) ? (value as string[]) : [value as string];
       for (const id of ids) {
-        if (!(await db.table(table).get(id))) {
+        const target = await db.table(table).get(id);
+        if (!target || (field.kind === 'relation' && Boolean(target.deletedAt))) {
           issues[property] = `${fieldLabel(field)} not found`;
           break;
         }
@@ -541,15 +533,28 @@ export function createEntityServices(
     const effects = await collectDeleteEffects(entity, ids, softDeleteAt !== undefined);
     for (const [table, rows] of effects.nullified) {
       const originals = effects.originalReferences.get(table);
-      const updated = [...rows.values()].map((row) =>
-        softDeleteAt && deleteGroupId
-          ? {
-              ...row,
-              deleteGroupId,
-              deleteGroupReferences: originals?.get(row.id) ?? {},
-            }
-          : row
-      );
+      const updated = [...rows.values()].map((row) => {
+        if (!softDeleteAt || !deleteGroupId) return row;
+        const fields = originals?.get(row.id) ?? {};
+        const order: Record<string, unknown> =
+          row.deleteGroupReferenceOrder && typeof row.deleteGroupReferenceOrder === 'object'
+            ? { ...(row.deleteGroupReferenceOrder as Record<string, unknown>) }
+            : {};
+        for (const [property, value] of Object.entries(fields)) {
+          if (!(property in order) && Array.isArray(value)) order[property] = value;
+        }
+        return {
+          ...row,
+          deleteGroupId,
+          deleteGroupReferences: {
+            ...(row.deleteGroupReferences && typeof row.deleteGroupReferences === 'object'
+              ? row.deleteGroupReferences
+              : {}),
+            [deleteGroupId]: fields,
+          },
+          deleteGroupReferenceOrder: order,
+        };
+      });
       await putChunked(db.table(table), updated);
     }
     let count = 0;
@@ -591,7 +596,21 @@ export function createEntityServices(
 
     for (const [name, set] of effects.doomed) {
       count += set.size;
-      await db.table(entityTable(byName.get(name) as BlueprintEntity)).bulkDelete([...set]);
+      const target = byName.get(name) as BlueprintEntity;
+      const targetTable = db.table(entityTable(target));
+      const doomedRows = await Promise.all([...set].map((id) => targetTable.get(id)));
+      if (filesEnabled) {
+        const fileIds = target.fields
+          .filter((field) => field.kind === 'file')
+          .flatMap((field) =>
+            doomedRows.flatMap((row) => {
+              const value = row?.[inputProperty(field)];
+              return Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
+            })
+          );
+        if (fileIds.length > 0) await db.table(FEATURE_TABLES.files).bulkDelete(fileIds);
+      }
+      await targetTable.bulkDelete([...set]);
     }
     return count;
   }
@@ -618,6 +637,126 @@ export function createEntityServices(
       });
     };
 
+    async function restoreGroup(root: Row, checkExpiry: boolean): Promise<number> {
+      const groupId = typeof root.deleteGroupId === 'string' ? root.deleteGroupId : '';
+      const expiresAt = root.deleteGroupExpiresAt;
+      if (!groupId || !Array.isArray(root.deleteGroupRows)) {
+        throw new UndoTokenError('This undo set is no longer available.');
+      }
+      if (checkExpiry && (typeof expiresAt !== 'number' || clock.nowMs() > expiresAt)) {
+        throw new UndoTokenError('The undo window has expired.');
+      }
+      const restored: Array<{ entity: BlueprintEntity; rows: Row[] }> = [];
+      for (const item of root.deleteGroupRows as Array<{ entity: string; ids: string[] }>) {
+        const target = byName.get(item.entity);
+        if (!target || !Array.isArray(item.ids))
+          throw new UndoTokenError('This undo set is invalid.');
+        const targetTable = db.table(entityTable(target));
+        const rows = await Promise.all(item.ids.map((id) => targetTable.get(id)));
+        if (rows.some((row) => !row || row.deleteGroupId !== groupId || !row.deletedAt)) {
+          throw new UndoTokenError('The rows in this undo set are no longer available.');
+        }
+        restored.push({
+          entity: target,
+          rows: rows.map((row) => ({
+            ...(row as Row),
+            deletedAt: null,
+            deletedBy: null,
+            deleteGroupId: null,
+            updatedAt: clock.now().toISOString(),
+          })),
+        });
+      }
+      // Restore the deleted targets before restoring survivor references.
+      let count = 0;
+      for (const group of restored) {
+        await putChunked(db.table(entityTable(group.entity)), group.rows);
+        count += group.rows.length;
+      }
+      const nullified = Array.isArray(root.deleteGroupNullified)
+        ? (root.deleteGroupNullified as Array<{ entity: string; id: string }>)
+        : [];
+      const changed = new Map<string, Map<string, Row>>();
+      for (const item of nullified) {
+        const target = byName.get(item.entity);
+        if (!target) continue;
+        const targetTable = entityTable(target);
+        const row = await db.table(targetTable).get(item.id);
+        if (!row || row.deletedAt) continue;
+        const groupReferences = row.deleteGroupReferences;
+        if (
+          !groupReferences ||
+          typeof groupReferences !== 'object' ||
+          Array.isArray(groupReferences)
+        )
+          continue;
+        const fields = (groupReferences as Record<string, unknown>)[groupId];
+        if (!fields || typeof fields !== 'object' || Array.isArray(fields)) continue;
+        const next = { ...row };
+        const restoreFields: EntityInput = {};
+        for (const [property, original] of Object.entries(fields as Record<string, unknown>)) {
+          const current = next[property];
+          if (Array.isArray(original)) {
+            const values = Array.isArray(current) ? [...current] : [];
+            const storedOrder = row.deleteGroupReferenceOrder;
+            const order =
+              storedOrder &&
+              typeof storedOrder === 'object' &&
+              !Array.isArray(storedOrder) &&
+              Array.isArray((storedOrder as Record<string, unknown>)[property])
+                ? ((storedOrder as Record<string, unknown>)[property] as unknown[])
+                : original;
+            const field = target.fields.find((candidate) => inputProperty(candidate) === property);
+            const eligible: string[] = [];
+            for (const id of order) {
+              if (typeof id !== 'string') continue;
+              if (field?.kind === 'relation') {
+                const targetEntity = byName.get(field.to);
+                const targetRow = targetEntity
+                  ? await db.table(entityTable(targetEntity)).get(id)
+                  : undefined;
+                if (!targetRow || targetRow.deletedAt) continue;
+              }
+              eligible.push(id);
+            }
+            const restoredValues = [...eligible, ...values.filter((id) => !order.includes(id))];
+            next[property] = restoredValues;
+            restoreFields[property] = restoredValues;
+          } else if (current === null || current === undefined) {
+            next[property] = original;
+            restoreFields[property] = original;
+          }
+        }
+        await assertReferences(target, restoreFields);
+        const remaining = { ...(groupReferences as Record<string, unknown>) };
+        delete remaining[groupId];
+        next.deleteGroupReferences = Object.keys(remaining).length > 0 ? remaining : null;
+        next.deleteGroupReferenceOrder =
+          Object.keys(remaining).length > 0 ? row.deleteGroupReferenceOrder : null;
+        if (Object.keys(remaining).length === 0) next.deleteGroupId = null;
+        next.updatedAt = clock.now().toISOString();
+        const rows = changed.get(targetTable) ?? new Map<string, Row>();
+        rows.set(item.id, next);
+        changed.set(targetTable, rows);
+      }
+      for (const [targetTable, rows] of changed)
+        await putChunked(db.table(targetTable), [...rows.values()]);
+      const rootAfter = await db.table(table).get(root.id);
+      if (rootAfter) {
+        const after = {
+          ...rootAfter,
+          deleteGroupId: null,
+          deleteGroupRows: null,
+          deleteGroupNullified: null,
+          deleteGroupExpiresAt: null,
+          updatedAt: clock.now().toISOString(),
+        };
+        await db.table(table).put(after);
+        await audit({ action: 'restore', entity, recordId: root.id, before: root, after });
+      }
+      return count;
+    }
+
     /** `:own` actions fall back to the record rule; denial names the full capability. */
     const assertOn = (action: 'update' | 'delete', row: Row) => {
       if (session.can(cap(action)) || session.can(cap(`${action}:own`), row)) return;
@@ -631,14 +770,16 @@ export function createEntityServices(
     };
 
     const visible = (row: Row) => !row.deletedAt;
+    const readVisibleRows = async () => {
+      session.assert(cap('read'));
+      return sortRows((await db.table(table).toArray()).filter(visible));
+    };
 
     return {
       entity,
       table,
       async list() {
-        session.assert(cap('read'));
-        const rows = (await db.table(table).toArray()).filter(visible);
-        return sortRows(rows);
+        return readVisibleRows();
       },
 
       async trash() {
@@ -722,6 +863,18 @@ export function createEntityServices(
               );
               if (typeof result === 'number')
                 throw new Error('Soft delete did not create an undo set.');
+              const storedRoot = await db.table(table).get(id);
+              if (storedRoot) {
+                await db.table(table).put({
+                  ...storedRoot,
+                  deleteGroupRows: result.rows,
+                  deleteGroupNullified: result.nullified.map(({ entity: name, id: rowId }) => ({
+                    entity: name,
+                    id: rowId,
+                  })),
+                  deleteGroupExpiresAt: clock.nowMs() + UNDO_WINDOW_MS,
+                });
+              }
               await audit({
                 action: 'delete',
                 entity,
@@ -729,14 +882,7 @@ export function createEntityServices(
                 before: current,
                 after: { ...current, deletedAt, deletedBy: actorId(), deleteGroupId },
               });
-              const payload: UndoPayload = {
-                version: 1,
-                entity: entity.name,
-                deletedAt,
-                expiresAt: clock.nowMs() + UNDO_WINDOW_MS,
-                rows: result.rows,
-                nullified: result.nullified,
-              };
+              const payload: UndoPayload = { version: 2, rootId: id };
               return encodeUndoToken(payload);
             })
           );
@@ -759,77 +905,16 @@ export function createEntityServices(
 
       async restore(undoToken) {
         const payload = decodeUndoToken(undoToken);
-        if (payload.entity !== entity.name)
-          throw new UndoTokenError('This undo token belongs to another entity.');
-        if (clock.nowMs() > payload.expiresAt)
-          throw new UndoTokenError('The undo window has expired.');
-        const rootIds = payload.rows.find((item) => item.entity === entity.name)?.ids ?? [];
-        if (rootIds.length !== 1) throw new UndoTokenError('This undo token is invalid.');
-        const root = await db.table(table).get(rootIds[0] as string);
-        if (!root || root.deletedAt !== payload.deletedAt)
-          throw new EntityNotFoundError(entity.name, rootIds[0] as string);
+        const root = await db.table(table).get(payload.rootId);
+        if (!root?.deletedAt || typeof root.deleteGroupId !== 'string')
+          throw new EntityNotFoundError(entity.name, payload.rootId);
         assertOn('delete', root);
         return environment.run(op('restore'), () =>
           db.transaction('rw', writeTables, async () => {
-            if (clock.nowMs() > payload.expiresAt)
-              throw new UndoTokenError('The undo window has expired.');
-            const restored = new Map<string, Row[]>();
-            for (const group of payload.rows) {
-              const target = byName.get(group.entity);
-              if (!target) throw new UndoTokenError('This undo token is invalid.');
-              const targetTable = db.table(entityTable(target));
-              const rows = await Promise.all(group.ids.map((rowId) => targetTable.get(rowId)));
-              if (rows.some((row) => !row || row.deletedAt !== payload.deletedAt)) {
-                throw new UndoTokenError('The rows in this undo set are no longer available.');
-              }
-              restored.set(
-                group.entity,
-                rows.map((row) => ({
-                  ...(row as Row),
-                  deletedAt: null,
-                  deletedBy: null,
-                  deleteGroupId: null,
-                  updatedAt: clock.now().toISOString(),
-                }))
-              );
-            }
-            const restoredNullifications: Map<string, Map<string, Row>> = new Map();
-            for (const item of payload.nullified) {
-              const target = byName.get(item.entity);
-              if (!target) throw new UndoTokenError('This undo token is invalid.');
-              const targetTable = entityTable(target);
-              const row = await db.table(targetTable).get(item.id);
-              if (!row || row.deletedAt) throw new EntityNotFoundError(target.name, item.id);
-              await assertReferences(target, item.fields as EntityInput);
-              const rows = restoredNullifications.get(targetTable) ?? new Map<string, Row>();
-              rows.set(item.id, {
-                ...row,
-                ...item.fields,
-                deleteGroupId: null,
-                deleteGroupReferences: null,
-                updatedAt: clock.now().toISOString(),
-              });
-              restoredNullifications.set(targetTable, rows);
-            }
-            for (const [targetTable, rows] of restoredNullifications) {
-              await putChunked(db.table(targetTable), [...rows.values()]);
-            }
-            let count = 0;
-            for (const [name, rows] of restored) {
-              await putChunked(db.table(entityTable(byName.get(name) as BlueprintEntity)), rows);
-              count += rows.length;
-            }
-            const restoredRoot = restored.get(entity.name)?.[0];
-            if (restoredRoot) {
-              await audit({
-                action: 'restore',
-                entity,
-                recordId: restoredRoot.id,
-                before: root,
-                after: restoredRoot,
-              });
-            }
-            return count;
+            const current = await db.table(table).get(payload.rootId);
+            if (!current?.deletedAt) throw new EntityNotFoundError(entity.name, payload.rootId);
+            assertOn('delete', current);
+            return restoreGroup(current, true);
           })
         );
       },
@@ -845,64 +930,7 @@ export function createEntityServices(
             const root = await db.table(table).get(recordId);
             if (!root?.deletedAt) throw new EntityNotFoundError(entity.name, recordId);
             assertOn('delete', root);
-            const groupId = root.deleteGroupId;
-            const restored: Array<{ entity: BlueprintEntity; row: Row }> = [];
-            for (const target of blueprint.entities) {
-              const targetTable = db.table(entityTable(target));
-              const candidates = await targetTable.toArray();
-              for (const row of candidates) {
-                if (row.id === recordId && target.name === entity.name) {
-                  restored.push({ entity: target, row });
-                } else if (
-                  typeof groupId === 'string' &&
-                  row.deleteGroupId === groupId &&
-                  (Boolean(row.deletedAt) || Boolean(row.deleteGroupReferences))
-                ) {
-                  restored.push({ entity: target, row });
-                }
-              }
-            }
-            if (
-              !restored.some((item) => item.entity.name === entity.name && item.row.id === recordId)
-            ) {
-              throw new EntityNotFoundError(entity.name, recordId);
-            }
-            const now = clock.now().toISOString();
-            let count = 0;
-            for (const item of restored) {
-              const references = item.row.deleteGroupReferences;
-              if (references && typeof references === 'object' && !Array.isArray(references)) {
-                await assertReferences(item.entity, references as EntityInput);
-              }
-              const row = {
-                ...item.row,
-                ...(references && typeof references === 'object' && !Array.isArray(references)
-                  ? references
-                  : {}),
-                deletedAt: null,
-                deletedBy: null,
-                deleteGroupId: null,
-                deleteGroupReferences: null,
-                updatedAt: now,
-              };
-              await db.table(entityTable(item.entity)).put(row);
-              if (item.row.deletedAt) count += 1;
-            }
-            await audit({
-              action: 'restore',
-              entity,
-              recordId,
-              before: root,
-              after: {
-                ...root,
-                deletedAt: null,
-                deletedBy: null,
-                deleteGroupId: null,
-                deleteGroupReferences: null,
-                updatedAt: now,
-              },
-            });
-            return count;
+            return restoreGroup(root, false);
           })
         );
       },
@@ -982,7 +1010,7 @@ export function createEntityServices(
 
       async exportCsv(filter, options) {
         session.assert(cap('export'));
-        let rows = await this.list();
+        let rows = await readVisibleRows();
         if (filter?.ids && filter.ids.length > 0) {
           const want = new Set(filter.ids);
           rows = rows.filter((row) => want.has(row.id));

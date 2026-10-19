@@ -99,15 +99,24 @@ function addActionCapabilities(
     const entityQualified = entities.some((entity) => denied.startsWith(`${entity.name}:`));
     if (denied.includes(':') && entityQualified) {
       capabilities.add(`-${denied}`);
+      if (denied.endsWith(':delete')) capabilities.add(`-${denied}:own`);
+      if (denied.endsWith(':update')) capabilities.add(`-${denied}:own`);
       return;
     }
     if (denied === '*') {
       for (const entity of entities) {
         for (const action of ENTITY_ACTIONS) capabilities.add(`-${entity.name}:${action}`);
+        capabilities.add(`-${entity.name}:delete:own`);
+        capabilities.add(`-${entity.name}:update:own`);
       }
       return;
     }
-    for (const entity of entities) capabilities.add(`-${entity.name}:${denied}`);
+    for (const entity of entities) {
+      capabilities.add(`-${entity.name}:${denied}`);
+      if (denied === 'delete' || denied === 'update') {
+        capabilities.add(`-${entity.name}:${denied}:own`);
+      }
+    }
     return;
   }
   if (rawAction === '*') {

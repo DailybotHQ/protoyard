@@ -213,6 +213,59 @@ describe('diffBlueprints', () => {
     expect(allowed?.stores.labels).toBe(deriveStores(withoutNotes).labels);
   });
 
+  it('requires allowDrop for field kind changes and enum removals, then resets incompatible data', () => {
+    const prev = parseBlueprint({
+      ...baseNotes(),
+      entities: [
+        {
+          name: 'note',
+          plural: 'notes',
+          fields: [
+            { name: 'title', kind: 'text', required: true },
+            { name: 'body', kind: 'enum', values: ['draft', 'published'], default: 'draft' },
+          ],
+          titleField: 'title',
+        },
+      ],
+    });
+    const next = parseBlueprint({
+      ...baseNotes(),
+      entities: [
+        {
+          name: 'note',
+          plural: 'notes',
+          fields: [
+            { name: 'title', kind: 'text', required: true },
+            { name: 'body', kind: 'enum', values: ['draft'], default: 'draft' },
+          ],
+          titleField: 'title',
+        },
+      ],
+    });
+    expect(() => diffBlueprints(prev, next)).toThrow(/allowDrop/);
+    expect(diffBlueprints(prev, next, { allowDrop: true })?.ops).toContainEqual({
+      op: 'resetField',
+      table: 'notes',
+      field: 'body',
+      value: 'draft',
+    });
+    const changedKind = parseBlueprint({
+      ...baseNotes(),
+      entities: [
+        {
+          name: 'note',
+          plural: 'notes',
+          fields: [
+            { name: 'title', kind: 'text', required: true },
+            { name: 'body', kind: 'number' },
+          ],
+          titleField: 'title',
+        },
+      ],
+    });
+    expect(() => diffBlueprints(prev, changedKind)).toThrow(/allowDrop/);
+  });
+
   it('renames a field via renamedFrom and preserves values', async () => {
     const prev = parseBlueprint(baseNotes());
     const next = parseBlueprint({

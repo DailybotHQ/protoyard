@@ -81,11 +81,12 @@ describe('NotificationsBell', () => {
       assigneeId,
     });
 
-    await runtime.session.switchActor(assigneeId);
     const notifications = createNotificationService(runtime);
-    expect(await notifications.unreadCount()).toBeGreaterThanOrEqual(1);
-
     render(TeamUiHarness, { runtime, mode: 'bell', notifications });
+    // The bell is already mounted when the principal changes; usePrincipal
+    // must update its persona scope reactively.
+    await runtime.session.switchActor(assigneeId);
+    expect(await notifications.unreadCount()).toBeGreaterThanOrEqual(1);
 
     await waitFor(() =>
       expect(screen.getByTestId('notifications-unread-badge').textContent?.trim()).toMatch(/^[1-9]/)

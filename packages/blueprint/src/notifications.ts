@@ -1,6 +1,8 @@
 import { createRuntimeId, type PrototypeRuntime, type Row } from '@protoyard/core';
 import type { Blueprint, BlueprintEntity, BlueprintNotificationRule } from './schema.ts';
+import { entityTable } from './schema.ts';
 import { FEATURE_TABLES } from './storage.ts';
+import { inputProperty } from './validation.ts';
 
 interface Collection {
   toArray(): Promise<Row[]>;
@@ -49,8 +51,39 @@ function text(value: unknown): string {
   return String(value);
 }
 
-function titleFor(template: string, row: Row): string {
-  return template.replace(/\{([^{}]+)\}/g, (_match, field: string) => text(row[field]));
+async function titleFor(
+  template: string,
+  entity: BlueprintEntity,
+  row: Row,
+  db: Db,
+  blueprint: Blueprint
+): Promise<string> {
+  const fields = new Map(entity.fields.map((field) => [field.name, field]));
+  const matches = [...template.matchAll(/\{([^{}]+)\}/g)];
+  let title = template;
+  for (const match of matches) {
+    const name = match[1] ?? '';
+    const field = fields.get(name);
+    if (!field) continue;
+    const value = row[inputProperty(field)];
+    let display = value;
+    if (field.kind === 'persona' && typeof value === 'string') {
+      display = (await db.table('py_personas').get(value))?.name ?? value;
+    } else if (field.kind === 'relation' && typeof value === 'string') {
+      const targetEntity = blueprint.entities.find((item) => item.name === field.to);
+      const target = targetEntity
+        ? await db.table(entityTable(targetEntity)).get(value)
+        : undefined;
+      const titleField = targetEntity?.titleField;
+      const displayField = targetEntity?.fields.find((candidate) => candidate.name === titleField);
+      display =
+        target && titleField && !displayField?.sensitive && typeof target[titleField] === 'string'
+          ? target[titleField]
+          : value;
+    }
+    title = title.replace(match[0], text(display));
+  }
+  return title;
 }
 
 /** Writes rule matches into the caller's existing mutation transaction. */
@@ -113,7 +146,7 @@ export function createNotificationWriter(runtime: PrototypeRuntime, blueprint: B
           id: createRuntimeId('notification'),
           personaId,
           kind: `${event.entity.name}.${rule.on}`,
-          title: titleFor(rule.title, event.row),
+          title: await titleFor(rule.title, event.entity, event.row, db, blueprint),
           body: '',
           createdAt: now,
           readAt: null,

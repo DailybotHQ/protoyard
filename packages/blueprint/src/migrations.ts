@@ -43,6 +43,13 @@ export type UpgradeOp =
       op: 'copyTable';
       from: string;
       to: string;
+    }
+  | {
+      /** Replace existing values after an explicitly allowed incompatible schema change. */
+      op: 'resetField';
+      table: string;
+      field: string;
+      value: unknown;
     };
 
 export interface DiffBlueprintsOptions {
@@ -197,6 +204,33 @@ function planFieldChanges(args: {
       );
     }
     ops.push({ op: 'renameField', table: nextTable, from, to });
+  }
+
+  for (const [property, previous] of prevByProp) {
+    const next = nextByProp.get(property);
+    if (!next) continue;
+    const kindChanged = previous.kind !== next.kind;
+    const removedEnumValues =
+      previous.kind === 'enum' && next.kind === 'enum'
+        ? previous.values.filter((value) => !next.values.includes(value))
+        : [];
+    if (!kindChanged && removedEnumValues.length === 0) continue;
+    const change = kindChanged
+      ? `Changing field "${property}" from ${previous.kind} to ${next.kind}`
+      : `Removing enum values from field "${property}"`;
+    if (!allowDrop) {
+      throw new MigrationError(
+        'drop-requires-allow',
+        `${change} on table "${nextTable}" requires allowDrop: true`
+      );
+    }
+    const fallback =
+      next.kind === 'enum'
+        ? next.default && next.values.includes(next.default)
+          ? next.default
+          : next.values[0]
+        : defaultForField(next);
+    ops.push({ op: 'resetField', table: nextTable, field: property, value: fallback });
   }
 
   for (const nextProp of [...nextByProp.keys()].sort()) {
@@ -385,6 +419,13 @@ export async function applyUpgradeOps(tx: unknown, ops: readonly UpgradeOp[]): P
       if (rows.length > 0) {
         await transaction.table(op.to).bulkPut(rows);
       }
+    } else if (op.op === 'resetField') {
+      await transaction
+        .table(op.table)
+        .toCollection()
+        .modify((row: Record<string, unknown>) => {
+          row[op.field] = op.value;
+        });
     }
   }
 }

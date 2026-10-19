@@ -306,6 +306,12 @@ describe('field kinds', () => {
   });
 });
 
+it('parses money input in linear time for long whitespace input', () => {
+  const started = performance.now();
+  expect(parseMoneyText(`${' '.repeat(40_000)}x`)).toBeNull();
+  expect(performance.now() - started).toBeLessThan(100);
+});
+
 describe('parseMoneyText', () => {
   it.each([
     ['0', 0],
