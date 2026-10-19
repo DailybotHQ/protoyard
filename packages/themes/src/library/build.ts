@@ -10,6 +10,7 @@ export function buildLibraryTheme(definition: LibraryThemeDefinition): Theme {
     name: definition.name,
     seed: definition.seed,
     ...(definition.secondary ? { secondary: definition.secondary } : {}),
+    ...(definition.neutral ? { neutral: definition.neutral } : {}),
     ...(definition.style ? { style: definition.style } : {}),
   });
 }
