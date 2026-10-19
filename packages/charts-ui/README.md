@@ -32,7 +32,8 @@ import the styles after Tailwind and the theme/UI styles:
 
 **Status:** `./cartesian` ships LineChart, AreaChart, BarChart, ComboChart and
 ScatterChart; `./part-whole` ships DonutChart, PieChart, FunnelChart, Treemap
-and SankeyChart; `./compact` ships Sparkline, Gauge and RadialProgress. The other
+and SankeyChart; `./matrix` ships Heatmap, CalendarHeatmap and Histogram;
+`./geo` ships TileMap; `./compact` ships Sparkline, Gauge and RadialProgress. The other
 family subpaths currently export only their `FAMILY` name; their components
 are added by the following PLAN_003 charts tasks. `sideEffects` lists only CSS,
 so a bundler keeps just the components a screen imports from a subpath. Load a family from a lazy route (`load: () => import('./Screen.svelte')`)
@@ -94,6 +95,30 @@ its own: DonutChart 10.6 KB, FunnelChart 9.6 KB, Treemap 10.3 KB, SankeyChart
 10.3 KB; all five 16.5 KB. Most of each is the shared frame + `ItemPlot`
 (7.3 KB, including the palette builder). That is over the 6 KB target for the
 subpath; the same frame reductions as for the cartesian family apply.
+
+## Matrix and tile charts (`./matrix`, `./geo`)
+
+Heatmaps, calendars and tile maps share one 2-D keyboard grid (`CellPlot`):
+arrows move by row and column, skipping gaps (a calendar starting mid-week),
+Home and End go to the ends of the row, Ctrl+Home and Ctrl+End to the first
+and last cell, and Enter selects. A live region reads each cell, and the
+tooltip follows focus and pointer. Each chart has a ramp legend with its
+minimum and maximum, a "No data" swatch when values are missing, and a lazy
+"View as table". Colors come from the theme's 9-step sequential ramp
+(`--py-seq-*`), or the diverging one.
+
+| Chart | Highlights |
+| --- | --- |
+| `Heatmap` | `rows`, `cols` and `values[row][col]`. `null` cells are dashed "no data", distinct from 0. Values print in a cell only when it fits and white or near-black text reaches 4.5:1 on the actual ramp color. `diverging` with `mid` for changes around a midpoint. |
+| `CalendarHeatmap` | `start` and `end` days with `values` by `YYYY-MM-DD`. One cell per UTC day in week columns (53 for a year) and weekday rows (`weekStartsOn`), month labels, and empty days distinct from zero. |
+| `Histogram` | `values` binned with `bin()` (Sturges by default, or `bins: { count | thresholds }`); optional `rules: ['mean', 'median']`. It uses the cartesian keyboard layer over its bins. |
+| `TileMap` (`./geo`) | A choropleth on a data-only tile grid: `layout: [{ id, label, abbr, col, row }]` and `data` by id. Ships `WORLD_TILES` (large world regions, no borders) and `REGION_TILES` (fictional districts). |
+
+Size (esbuild minify + gzip -9, splitting, `svelte` external), each chart on
+its own: Heatmap 10.9 KB, CalendarHeatmap 11.2 KB, Histogram 13.8 KB (it uses
+the cartesian layer), TileMap 10.9 KB; the tile layouts alone are 0.6 KB. Most
+of each is the shared frame. This is over the 5 KB (`./matrix`) and 3 KB
+(`./geo`) targets; see the frame reductions in the PLAN_003 reports.
 
 ## Compact charts (`./compact`)
 
