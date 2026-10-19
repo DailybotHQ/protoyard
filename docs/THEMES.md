@@ -532,9 +532,27 @@ registered once and applied like any other theme. The no-flash cache then
 replays it before the next boot, and a stored override keeps it across
 reloads. An id the library does not know falls back visibly to the manifest
 default. The gallery's Themes page (`apps/gallery/src/pages/themes.astro`),
-the UI Kit prototype's Theme Lab and the CLI list them too. DevTools → Look
-still shows only the presets, the prototype's own themes and saved custom
-themes; the searchable library browser is a separate task.
+the UI Kit prototype's Theme Lab and the CLI list them too.
+
+**DevTools → Look → Theme** is a theme browser
+(`packages/devtools/src/sections/ThemeBrowser.svelte`). It groups the
+prototype's own themes, the built-in presets and saved custom themes, with
+the whole library collapsed behind **Browse N more themes**:
+
+- **Search** matches name, id, description, tags, mood, category and
+  collection across every group (`searchThemeLibrary` for the library). A
+  status line announces how many themes match. Searching or filtering shows
+  library matches without expanding it.
+- **Collection chips** (industry, brand-like, high-contrast,
+  colorblind-safe, seasonal, mono, with counts) and a **tag** filter narrow
+  the library.
+- **Library cards** show the seed and secondary colors until the theme is
+  loaded, then its primary, accent, surface and foreground. Choosing one
+  loads it through the runtime's resolver; the card shows a spinner until it
+  applies.
+- The choice is a temporary override or the persona's preference, per "Apply
+  changes as" above. Each group is a radio group: arrow keys, Home and End
+  move within it, and Tab moves between groups.
 
 ## Custom themes per prototype
 
