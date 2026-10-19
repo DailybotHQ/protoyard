@@ -1,4 +1,11 @@
-import { defineTheme, type Theme, type ThemeInput, type ThemePalette } from '@protoyard/core';
+import {
+  defineTheme,
+  type Theme,
+  type ThemeChartTokens,
+  type ThemeInput,
+  type ThemePalette,
+} from '@protoyard/core';
+import { deriveChartTokens } from './charts.ts';
 import { contrastRatio, parseHex } from './contrast.ts';
 import { oklchToHex, rgbToOklch } from './oklch.ts';
 
@@ -270,6 +277,24 @@ function paletteFor(
   return palette;
 }
 
+/**
+ * Derives the validated chart tokens for a mode and writes the repaired series
+ * colors back into `chart1`…`chart5`, so the palette's own chart tokens already
+ * pass the charts kit's contrast and separation checks.
+ */
+function withChartTokens(palette: ThemePalette, mode: 'light' | 'dark'): ThemeChartTokens {
+  const charts = deriveChartTokens(palette, mode);
+  const [chart1, chart2, chart3, chart4, chart5] = charts.categorical as [
+    string,
+    string,
+    string,
+    string,
+    string,
+  ];
+  Object.assign(palette, { chart1, chart2, chart3, chart4, chart5 });
+  return charts;
+}
+
 export interface CreateThemeFromSeedInput {
   id: string;
   name: string;
@@ -291,12 +316,14 @@ export function createThemeFromSeed(input: CreateThemeFromSeedInput): Theme {
   }
   const light = paletteFor(scale, secondaryScale, 'light', input.neutral);
   const dark = paletteFor(scale, secondaryScale, 'dark', input.neutral);
+  const charts = { light: withChartTokens(light, 'light'), dark: withChartTokens(dark, 'dark') };
   return defineTheme({
     id: input.id,
     name: input.name,
     description: `Generated from ${input.seed}${input.secondary ? ` and ${input.secondary}` : ''}.`,
     light,
     dark,
+    charts,
     ...(input.style ? { style: input.style } : {}),
   });
 }
