@@ -161,6 +161,10 @@ export function createFakeRuntime(
       viewport: resolveEffective({ override: overrides.viewport }, manifest.preview.viewport),
       density: resolveEffective({ override: overrides.density }, 1),
       ...fakeShell(),
+      layout: resolveEffective(
+        { override: overrides.layout },
+        manifest.preview.layout?.id ?? 'custom'
+      ),
     };
   };
   // Simplified mirror of the kernel's shell resolution (no fit fallbacks).

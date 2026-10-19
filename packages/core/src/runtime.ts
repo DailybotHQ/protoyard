@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Duration, SimulationClock } from './clock.ts';
 import type { DeviceId, Orientation } from './devices.ts';
 import type { EnvironmentState, SimulationEnvironment } from './environment.ts';
+import type { LayoutId } from './layouts.ts';
 import type {
   ColorMode,
   PrototypeManifest,
@@ -234,6 +235,12 @@ export interface AppearanceState {
   device: Effective<DeviceId>;
   /** Device orientation; non-rotatable devices always report their own. */
   orientation: Effective<Orientation>;
+  /**
+   * App layout (ADR-023): override › scenario › `preview.layout.id` (default
+   * `custom`). A layout outside the prototype's choices (`layoutChoices`)
+   * falls back to the manifest layout with source `default`.
+   */
+  layout: Effective<LayoutId>;
 }
 
 export interface ThemeController {
@@ -256,6 +263,7 @@ export interface ThemeController {
     shell?: Shell;
     device?: DeviceId;
     orientation?: Orientation;
+    layout?: LayoutId;
   }): Promise<void>;
   clearOverride(): Promise<void>;
   subscribe(listener: (state: AppearanceState) => void): Unsubscribe;

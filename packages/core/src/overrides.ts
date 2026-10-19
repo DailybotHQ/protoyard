@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { DeviceIdSchema, OrientationSchema } from './devices.ts';
 import { EnvironmentPatchSchema } from './environment.ts';
+import { LayoutIdSchema } from './layouts.ts';
 import { ColorModeSchema, ShellSchema, ViewportPresetSchema } from './manifest.ts';
 
 /**
@@ -32,6 +33,8 @@ export const OverridesSchema = z
     shell: ShellSchema.optional(),
     device: DeviceIdSchema.optional(),
     orientation: OrientationSchema.optional(),
+    /** App layout (ADR-023); like the shell, never touches data. */
+    layout: LayoutIdSchema.optional(),
     environment: EnvironmentPatchSchema.optional(),
   })
   .strict();

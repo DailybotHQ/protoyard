@@ -7,6 +7,7 @@ import {
   type LoadPhase,
   type LoadProgress,
   type LoadScenarioOptions,
+  layoutChoices,
   type Row,
   SANDBOX_PATTERN,
   type Scenario,
@@ -340,16 +341,20 @@ export function createScenarioController(
         }
         // Link appearance is a visible, clearable override — never a persona preference.
         const themeOk = link.theme && k.themes.some((t) => t.id === link.theme);
+        const layoutOk =
+          link.layout && layoutChoices(k.definition.manifest.preview.layout).includes(link.layout);
         if (
           (themeOk && link.theme !== k.overrides.themeId) ||
           (link.mode && link.mode !== k.overrides.mode) ||
-          (link.shell && link.shell !== k.overrides.shell)
+          (link.shell && link.shell !== k.overrides.shell) ||
+          (layoutOk && link.layout !== k.overrides.layout)
         ) {
           await applyOverrides(k, {
             ...k.overrides,
             ...(themeOk ? { themeId: link.theme } : {}),
             ...(link.mode ? { mode: link.mode } : {}),
             ...(link.shell ? { shell: link.shell } : {}),
+            ...(layoutOk ? { layout: link.layout } : {}),
           });
         }
       }),
