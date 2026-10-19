@@ -6,8 +6,8 @@ thread in one list. This package has no Svelte; the UI is
 [`@protoyard/review-ui`](../review-ui/README.md). The comment schemas live in
 `@protoyard/core/review`.
 
-> **Status:** `./anchors` is implemented. The other subpaths exist and are
-> empty; each one is filled by its PLAN_003 task, and this README documents
+> **Status:** `./anchors` and `./store` are implemented. The other subpaths
+> exist and are empty; each one is filled by its PLAN_003 task, and this README documents
 > it when it lands.
 
 | Subpath | What it will hold | Task |
@@ -34,6 +34,76 @@ thread in one list. This package has no Svelte; the UI is
 pnpm --filter @protoyard/review typecheck
 pnpm vitest run packages/review-ui/tests/bundle-hygiene.test.ts
 ```
+
+## Store (`@protoyard/review/store`)
+
+One small interface for every place comments can live: local IndexedDB, the
+Cloudflare Function, any http endpoint and the artifact database. The UI
+never branches on the backend.
+
+```ts
+interface ReviewAdapter {
+  list(slug: string, options?: { since?: string }): Promise<ReviewComment[]>; // oldest first
+  put(comment: ReviewCommentInput): Promise<ReviewComment>; // upsert by id, stamps updatedAt
+  remove(id: string): Promise<void>; // a missing id resolves too
+  info(): { kind: 'local' | 'cloudflare' | 'http' | 'artifact'; shared: boolean; live: boolean };
+  subscribe?(slug: string, onChange: () => void): () => void; // when live
+}
+```
+
+- **Documents keyed by a client-generated id, last write wins.** The
+  adapter (or its server) stamps `updatedAt` and ignores the client's copy.
+  An edit, a resolve (`resolvedAt` and `resolvedBy`) and a reopen (the
+  document without them) are each a `put` of the whole comment. That means a
+  key-value or document store needs no special verbs.
+- **Ordering and polling:** `list` returns a slug's comments by `createdAt`,
+  then id. `since` keeps only comments whose `updatedAt` is later, for
+  polling.
+- **Validation** uses the core zod schema on both sides:
+  `parseReviewComment` before writing, and `acceptStoredComments` to drop
+  invalid rows read back from storage or the network.
+- **Permissions are not here.** Rules such as "edit only your own comment"
+  live in the UI and the server. Reviewer names are self-declared, so this
+  is not authentication.
+- **Helpers for adapters:**
+  - `createStamper` makes strictly increasing stamps, even for several
+    writes in one millisecond.
+  - `sortReviewComments` and `changedSince` cover ordering and the `since`
+    filter.
+  - `watchReviewComments(adapter, slug, onChange)` uses `subscribe` when
+    the adapter is live. Otherwise it polls `list` and compares ids and
+    stamps, so removals are noticed too.
+- **Reference adapter:** `createMemoryReviewAdapter()` keeps comments in
+  memory, for tests and demos. It defines the contract's behavior.
+
+### Conformance suite
+
+Every backend must pass `tests/conformance.ts`. It checks:
+- a round trip with the adapter's own stamp
+- idempotent upserts for edit, resolve and reopen
+- remove
+- ordering and slug isolation
+- the `since` filter
+- schema rejection, with nothing stored
+- change notification through `subscribe` or the polling fallback
+
+```ts
+import { runAdapterConformance } from '../../review/tests/conformance.ts';
+
+runAdapterConformance('artifact adapter', () => createArtifactReviewAdapter(db), {
+  cleanup: (adapter) => clearTables(),
+});
+```
+
+Each case gets a fresh adapter and its own slug. The memory adapter runs the
+suite twice: live, and as a polling-only backend.
+
+```bash
+pnpm vitest run packages/review/tests/adapter-contract.test.ts
+```
+
+**Size:** the contract helpers are 0.55 KB gzip, and 0.8 KB with the memory
+adapter. zod and the `@protoyard/core/review` schemas are external.
 
 ## Anchors (`@protoyard/review/anchors`)
 
