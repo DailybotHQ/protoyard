@@ -51,3 +51,38 @@ export function formatJson(value: unknown): string {
   };
   return `${render(value, '', 0)}\n`;
 }
+
+const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+
+/**
+ * A TypeScript object or array literal the way Biome formats it: bare keys
+ * when they are identifiers, `tsString` strings, trailing commas on expanded
+ * lines, and primitive arrays inline when they fit (the same rule as `formatJson`).
+ */
+export function formatTs(value: unknown): string {
+  const scalar = (node: unknown) =>
+    typeof node === 'string' ? tsString(node) : JSON.stringify(node);
+  const render = (node: unknown, indent: string, prefixWidth: number): string => {
+    if (Array.isArray(node)) {
+      if (node.length === 0) return '[]';
+      if (node.every(isPrimitive)) {
+        const inline = `[${node.map(scalar).join(', ')}]`;
+        if (prefixWidth + inline.length + 1 <= LINE_WIDTH) return inline;
+      }
+      const inner = `${indent}  `;
+      return `[\n${node.map((v) => `${inner}${render(v, inner, inner.length)},`).join('\n')}\n${indent}]`;
+    }
+    if (node !== null && typeof node === 'object') {
+      const entries = Object.entries(node).filter(([, v]) => v !== undefined);
+      if (entries.length === 0) return '{}';
+      const inner = `${indent}  `;
+      const lines = entries.map(([k, v]) => {
+        const key = `${IDENTIFIER.test(k) ? k : tsString(k)}: `;
+        return `${inner}${key}${render(v, inner, inner.length + key.length)},`;
+      });
+      return `{\n${lines.join('\n')}\n${indent}}`;
+    }
+    return scalar(node);
+  };
+  return render(value, '', 0);
+}

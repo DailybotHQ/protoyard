@@ -57,9 +57,9 @@ describe('generated layouts', () => {
       const app = files.find((file) => file.path === 'src/App.svelte');
 
       expect(generatedLayout?.generated, id).toBe(true);
-      expect(generatedLayout?.content, id).toContain(`"id": "${id}"`);
-      expect(generatedLayout?.content, id).toContain('"label": "Records"');
-      expect(generatedLayout?.content, id).toContain('"paths": ["/projects"]');
+      expect(generatedLayout?.content, id).toContain(`id: '${id}'`);
+      expect(generatedLayout?.content, id).toContain("label: 'Records'");
+      expect(generatedLayout?.content, id).toContain("paths: ['/projects']");
       expect(app?.content, id).toContain("from './generated/layout.ts'");
       expect(app?.content, id).toContain('<LayoutHost layout={activeLayout}');
     }
@@ -145,7 +145,7 @@ describe('generated layouts', () => {
     ]);
     expect(
       readFileSync(path('prototypes/layout-example/src/generated/layout.ts'), 'utf8')
-    ).toContain('"id": "top-nav"');
+    ).toContain("id: 'top-nav'");
 
     const validation = await run('validate', 'layout-example', '--strict-spec', '--build');
     expect(validation.code, validation.stderr || validation.stdout).toBe(0);
