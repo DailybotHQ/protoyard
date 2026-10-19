@@ -49,3 +49,12 @@ export function avatarFile(id: string, size: AvatarSize = 128): string {
   if (!isAvatarSize(size)) throw new RangeError(`Unsupported avatar size: ${String(size)}`);
   return `assets/${size}/${id}.webp`;
 }
+
+export {
+  type AvatarPool,
+  type AvatarPoolOptions,
+  type AvatarRng,
+  assignAvatars,
+  createAvatarPool,
+  pickAvatar,
+} from './pick.ts';

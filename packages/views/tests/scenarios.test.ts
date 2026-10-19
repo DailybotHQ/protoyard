@@ -1,7 +1,14 @@
 // @vitest-environment node
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createIdFactory, createRng, createTimeHelpers, type Scenario } from '@protoyard/core';
+import { isAvatarId } from '@protoyard/avatars';
+import {
+  createIdFactory,
+  createRng,
+  createTimeHelpers,
+  isPersonaAvatar,
+  type Scenario,
+} from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
 import { dateIn, weekdayOf } from '../src/calendar/dates.ts';
 import { expandAll, hasOccurrence, RecurrenceRuleSchema } from '../src/calendar/recurrence.ts';
@@ -131,6 +138,32 @@ describe('levels and fragments', () => {
     const people = defaultPeople(ctx(), 12);
     expect(new Set(people.map((p) => p.handle)).size).toBe(12);
     expect(people.every((p) => p.email.endsWith('@example.com'))).toBe(true);
+  });
+
+  it('gives default people seeded, unique library avatars', () => {
+    const people = defaultPeople(ctx(), 12);
+    expect(people.every((p) => isAvatarId(p.avatar) && isPersonaAvatar(p.avatar))).toBe(true);
+    expect(new Set(people.map((p) => p.avatar)).size).toBe(12);
+    expect(defaultPeople(ctx(), 12)).toEqual(people);
+    expect(defaultPeople(ctx(7), 12).map((p) => p.avatar)).not.toEqual(people.map((p) => p.avatar));
+    // A smaller cast keeps the same first people, faces included.
+    expect(defaultPeople(ctx(), 6)).toEqual(people.slice(0, 6));
+  });
+
+  it('authors, actors and recipients are default people with faces', () => {
+    const { people, comments, activity, notifications } = world();
+    const faces = new Map(people.map((p) => [p.id, p.avatar]));
+    const ids = [
+      ...comments.map((c) => c.authorId),
+      ...activity.map((a) => a.actorId),
+      ...notifications.map((n) => n.recipientId),
+    ];
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) expect(isAvatarId(faces.get(id)), id).toBe(true);
+  });
+
+  it('a whole views world is byte-identical across two runs', () => {
+    expect(JSON.stringify(world(42))).toBe(JSON.stringify(world(42)));
   });
 });
 

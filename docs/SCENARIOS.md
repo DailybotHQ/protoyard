@@ -193,7 +193,9 @@ export function generateBlankWorld(ctx: GenerateContext): WorldSeed {
 
 `generateTeam(ctx, options?)` from `@protoyard/scenarios` builds an
 organization, the scenario actor and teammates with memberships, if you do
-not need a fixed cast. See its section in the package README.
+not need a fixed cast. Every persona gets a seeded library avatar
+(`av-NNN`, from `@protoyard/avatars`); use `createAvatarPool(ctx.rng.fork('<key>'))`
+for people your own generator creates. See its section in the package README.
 
 Faker is the largest dependency, so the runtime loads it lazily with
 `createGenerateContextAsync()` only when a world is generated (first seed,
@@ -224,7 +226,7 @@ DevTools:
 
 | Version | Where | Bump when |
 | --- | --- | --- |
-| `generatorVersion` | `GENERATOR_SDK_VERSION` in `@protoyard/scenarios` (currently `1`) | SDK helper output changes (faker upgrade, density mapping) |
+| `generatorVersion` | `GENERATOR_SDK_VERSION` in `@protoyard/scenarios` (currently `3`) | SDK helper output changes (faker upgrade, density mapping) |
 | `prototypeGeneratorVersion` | `generatorVersion` in your `definePrototype()` (CRM: `CRM_GENERATOR_VERSION = 2`) | Your generator would produce a different world for the same seed |
 
 Protoyard promises reproducibility for the same versions, not identical output

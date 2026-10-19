@@ -1,3 +1,4 @@
+import { createAvatarPool } from '@protoyard/avatars';
 import {
   type GenerateContext,
   type Membership,
@@ -141,13 +142,17 @@ function tenureSummary(title: string, days: number): string {
 
 /**
  * Builds one organization and its people. Deterministic for the same
- * context. Role and avatar picks use a forked rng, but names come from the
- * shared `ctx.faker` and ids from `ctx.ids`: changing the team size DOES shift
+ * context. Every persona gets a library `avatar` (`av-NNN`) from a pool on its
+ * own fork (`protoyard:avatars:team`): no face repeats until all 175 are used,
+ * and the draws shift no other value. Role and color picks use a forked rng,
+ * but names come from the shared `ctx.faker` and ids from `ctx.ids`: changing
+ * the team size DOES shift
  * later faker values and `user_*` ids, so generate the team first.
  */
 export function generateTeam(ctx: GenerateContext, options: GenerateTeamOptions = {}): Team {
   const { scenario, faker, time } = ctx;
   const rng = ctx.rng.fork('protoyard:team');
+  const avatars = createAvatarPool(ctx.rng.fork('protoyard:avatars:team'));
   const nowMs = time.now.getTime();
   const orgCreatedMs = nowMs - scenario.organization.ageDays * MS_PER_DAY;
   const size = Math.max(1, options.size ?? scenario.organization.size);
@@ -203,6 +208,7 @@ export function generateTeam(ctx: GenerateContext, options: GenerateTeamOptions 
       name,
       email: uniqueEmail(nameFirst, rest.join(' ') || last),
       avatarColor: rng.pick(AVATAR_COLORS),
+      avatar: avatars.next(),
       title,
       locale: 'en-US',
       timezone: 'UTC',

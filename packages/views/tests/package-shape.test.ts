@@ -74,8 +74,12 @@ describe('@protoyard/views package shape', () => {
     expect(runtime).toEqual([]);
   });
 
-  it('depends only on core and zod, and is side-effect free', () => {
-    expect(Object.keys(pkg.dependencies).sort()).toEqual(['@protoyard/core', 'zod']);
+  it('depends only on avatars (data only), core and zod, and is side-effect free', () => {
+    expect(Object.keys(pkg.dependencies).sort()).toEqual([
+      '@protoyard/avatars',
+      '@protoyard/core',
+      'zod',
+    ]);
     expect(pkg.sideEffects).toBe(false);
   });
 

@@ -14,7 +14,7 @@ import {
  * mapping tuned). It is recorded in `ActiveScenarioInfo.generatorVersion` so a
  * world can be traced back to the code that built it.
  */
-export const GENERATOR_SDK_VERSION = 2;
+export const GENERATOR_SDK_VERSION = 3;
 
 export const DENSITY_FACTORS: Record<DataDensity, number> = {
   empty: 0,

@@ -266,7 +266,7 @@ import { defaultPeople, generateCalendarEvents, generateTaskPlan, viewsFragments
 export const crunch = composeScenario(PRESETS['busy-week'], viewsFragments.calendar('dense'), { id: 'crunch' });
 
 // In generate(ctx):
-const people = defaultPeople(ctx); // or your personas as { id, name, handle, email }
+const people = defaultPeople(ctx); // or your personas as { id, name, handle, email, avatar? }
 const events = generateCalendarEvents(ctx, { people, timeZone: 'America/Bogota' });
 const { tasks, dependencies } = generateTaskPlan(ctx, { people });
 ```
@@ -288,6 +288,10 @@ const { tasks, dependencies } = generateTaskPlan(ctx, { people });
   spot, a 50 m geofence, all-unread notifications). The level comes from the
   `level` option, else the scenario's `generators.views.<kit>` knob (set by
   `viewsFragments.<kit>(level)`), else its density.
+- **Faces:** `defaultPeople` gives each person a seeded library `avatar`
+  (`av-NNN` from `@protoyard/avatars`, no repeats) on its own stream, so names
+  and every other row stay the same (generator version 2). Comment, activity
+  and notification rows refer to people by id, so they show the same faces.
 - **Speed** (all eight kits, best of five, on a heavily loaded machine,
   2026-10-19): typical 2.0 ms, dense 21.8 ms, edge 1.8 ms, inside the 50 ms
   `generateMs` budget. Bump `VIEWS_GENERATOR_VERSION` when output changes.
