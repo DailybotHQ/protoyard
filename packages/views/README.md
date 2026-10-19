@@ -8,9 +8,9 @@ package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
 > **Status:** `./board`, `./calendar`, `./grid`, `./map`, `./editor`,
-> `./scenarios` and `./tree` are implemented; the other subpaths exist and are
-> empty until their PLAN_003 task lands, and this README documents each one
-> then.
+> `./scenarios`, `./timeline` and `./tree` are implemented; the other
+> subpaths exist and are empty until their PLAN_003 task lands, and this
+> README documents each one then.
 
 ## Subpaths
 
@@ -303,4 +303,41 @@ rejects moves into its own subtree; `indent`, `outdent`, `moveSibling` and
 `newSibling` implement outline editing; `validParents` lists where a node may
 go; `isWithin` and `pathTo` answer ancestry. Flattening 10,000 nodes took
 1.2 ms (best of three, loaded machine, 2026-10-19).
+
+## Timeline scheduling (`@protoyard/views/timeline`)
+
+Scheduling rules that services and the gantt UI share. Dates are civil and
+inclusive (a task runs from its first to its last working day; a milestone
+has `start === end`).
+
+```ts
+import { cascade, criticalPath, DependencyListSchema } from '@protoyard/views/timeline';
+
+// In the service: links must stay acyclic (a zod error names the cycle).
+const links = DependencyListSchema.parse(input.dependencies);
+// Moving a task: write exactly these rows in one transaction.
+const { changes, violations } = cascade(tasks, links, { id, start }, { holidays });
+// For the gantt: early/late dates, slack and the critical chain.
+const { critical, tasks: info, finish } = criticalPath(tasks, links, { holidays });
+```
+
+- **Working days** (`workDays(calendar)`): a work week (default Monday to
+  Friday, any set of weekdays) and holidays; durations count working days.
+- **Dependencies:** FS (start after the predecessor finishes), SS (start once
+  it starts), FF (finish once it finishes), SF (finish once it starts), each
+  with `lagDays` (negative for lead).
+- **Order and cycles:** `topoOrder` returns predecessors first, or the cycle
+  as a path; `cycleMessage` says "Dependencies form a cycle: a → b → a";
+  `DependencyListSchema` rejects self-links and cycles as zod errors.
+- **Critical path:** a forward pass (a task starts at its own start or as soon
+  as its predecessors allow) and a backward pass to the project finish give
+  each task its early and late dates and slack; zero-slack tasks are critical.
+- **Cascade:** applies a move (keeping the duration unless `end` is given) and
+  pushes successors later only as far as their links require, never earlier.
+  It returns only the rows whose dates changed, plus `violations`: links into
+  the moved task that it now breaks (it moved earlier than they allow), for
+  the UI to warn about.
+- **Speed and size** (2026-10-19, loaded machine): cascading a 2,000-task plan
+  took 8.4 ms (budget 20 ms); the subpath is 2.5 KB gzip (esbuild, zod
+  external).
 
