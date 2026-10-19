@@ -128,7 +128,7 @@ route title ("Assistant" or "Settings", suffixed with "Nova Assistant").
 The layout adapts with breakpoints: the sidebar appears from `lg`, the
 history panel from `md`.
 
-The default theme is `amethyst` in `system` mode, but the app shell and
+The default theme is `ai-lab` (a library theme) in `system` mode, but the app shell and
 screens use mostly fixed colors, so theme and dark mode mainly change the
 `@protoyard/ai-ui` components. DevTools are not included in builds
 (`build.includeDevtools: false`); use `pnpm protoyard dev` to switch

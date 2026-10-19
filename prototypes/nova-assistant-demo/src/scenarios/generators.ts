@@ -6,6 +6,7 @@ import type {
   Persona,
   WorldSeed,
 } from '@protoyard/core';
+import { createAvatarPool } from '@protoyard/scenarios';
 import type { Conversation, Message, Project, WorkspaceSettings } from '../database/schema.ts';
 
 const PEOPLE = [
@@ -44,11 +45,14 @@ export function generateAssistantWorld(ctx: GenerateContext): WorldSeed {
     size: PEOPLE.length,
     featureFlags: {},
   };
+  // Library faces (`av-NNN`) from their own fork: no other seeded value shifts.
+  const faces = createAvatarPool(ctx.rng.fork('nova-assistant-demo:avatars:people'));
   const personas: Persona[] = PEOPLE.map((person, index) => {
     const joinedDays = Math.max(0, age - index * 8);
     return {
       id: person.id,
       name: person.name,
+      avatar: faces.next(),
       email: `${person.name.split(' ')[0]?.toLowerCase()}@example.com`,
       title: person.title,
       avatarColor: person.color,

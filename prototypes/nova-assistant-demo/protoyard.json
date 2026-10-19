@@ -26,7 +26,7 @@
   "status": "active",
   "icon": "✦",
   "defaultScenario": "active-workspace",
-  "defaultTheme": "amethyst",
+  "defaultTheme": "ai-lab",
   "defaultMode": "system",
   "preview": {
     "viewport": "desktop",
