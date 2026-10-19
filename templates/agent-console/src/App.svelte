@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Bot, ChartNoAxesColumn, FlaskConical, History } from '@lucide/svelte';
 import {
+  avatarImage,
   createRouter,
   getRuntime,
   Router,
@@ -49,6 +50,7 @@ const layoutNav = $derived(
     ...(principal.current
       ? {
           user: {
+            image: avatarImage(principal.current.persona.avatar),
             name: principal.current.persona.name,
             detail: ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role ?? '',
           },

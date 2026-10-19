@@ -1,6 +1,12 @@
 <script lang="ts">
 import { CheckSquare, FolderKanban, LayoutDashboard, Users } from '@lucide/svelte';
-import { createRouter, Router, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  avatarImage,
+  createRouter,
+  Router,
+  useAppearance,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import { LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import AppSearch from './components/AppSearch.svelte';
@@ -45,6 +51,7 @@ const layoutNav = $derived(
     ...(principal.current
       ? {
           user: {
+            image: avatarImage(principal.current.persona.avatar),
             name: principal.current.persona.name,
             detail: principal.current.persona.title ?? principal.current.role ?? '',
           },

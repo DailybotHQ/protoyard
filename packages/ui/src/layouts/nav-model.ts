@@ -112,6 +112,8 @@ export interface NavUser {
   /** Role, email or workspace shown under the name. */
   detail?: string;
   href?: string;
+  /** The persona's photo, resolved by the renderer (`avatarImage(persona.avatar)`); initials when absent. */
+  image?: { src?: string | null; srcset?: string | null };
 }
 
 export interface NavModel {

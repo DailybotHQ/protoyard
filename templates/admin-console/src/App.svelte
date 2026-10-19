@@ -1,6 +1,13 @@
 <script lang="ts">
 import { Building2, LayoutDashboard, ScrollText, ShieldCheck, Users } from '@lucide/svelte';
-import { can, createRouter, Router, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  avatarImage,
+  can,
+  createRouter,
+  Router,
+  useAppearance,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import { EmptyState, LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import ImpersonationBanner from './components/ImpersonationBanner.svelte';
@@ -30,6 +37,7 @@ const layoutNav = $derived(
     ...(principal.current
       ? {
           user: {
+            image: avatarImage(principal.current.persona.avatar),
             name: principal.current.persona.name,
             detail: ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role ?? '',
           },

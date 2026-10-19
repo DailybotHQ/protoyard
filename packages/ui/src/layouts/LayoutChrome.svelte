@@ -4,6 +4,7 @@ export type ChromePart = 'skip' | 'brand' | 'actions' | 'user';
 </script>
 
 <script lang="ts">
+import Avatar from '../components/avatar/Avatar.svelte';
 import Button from '../components/button/Button.svelte';
 import { cn } from '../lib/cn.ts';
 import NavIcon from './NavIcon.svelte';
@@ -71,12 +72,6 @@ let { part, nav, mainId, compact = false, class: className }: Props = $props();
     {/each}
   </div>
 {:else if part === 'user' && nav?.user}
-  {@const initials = nav.user.name
-    .split(/\s+/)
-    .map((word) => word[0] ?? '')
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()}
   <svelte:element
     this={nav.user.href ? 'a' : 'div'}
     href={nav.user.href}
@@ -87,10 +82,7 @@ let { part, nav, mainId, compact = false, class: className }: Props = $props();
       className
     )}
   >
-    <span
-      class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground"
-      aria-hidden="true">{initials}</span
-    >
+    <Avatar name={nav.user.name} src={nav.user.image?.src} srcset={nav.user.image?.srcset} size="sm" decorative />
     <span class={compact ? 'sr-only' : 'grid min-w-0'}>
       <span class="truncate font-medium">{nav.user.name}</span>
       {#if nav.user.detail}<span class="truncate text-xs text-muted-foreground">{nav.user.detail}</span>{/if}

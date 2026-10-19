@@ -6,7 +6,13 @@ import {
   ShoppingCart,
   Users,
 } from '@lucide/svelte';
-import { createRouter, Router, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  avatarImage,
+  createRouter,
+  Router,
+  useAppearance,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import { LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { ROLE_LABELS } from './domain/policy.ts';
@@ -41,6 +47,7 @@ const layoutNav = $derived(
     ...(principal.current
       ? {
           user: {
+            image: avatarImage(principal.current.persona.avatar),
             name: principal.current.persona.name,
             detail: ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role ?? '',
           },
