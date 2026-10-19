@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@protoyard/ui';
+import { onDestroy } from 'svelte';
 import { getSaas } from '../../context.ts';
 import { applyServiceError, hashParam } from '../auth/helpers.ts';
 
@@ -45,6 +46,15 @@ const accents: Record<SaasProvider, string> = {
 };
 const tokenState = $derived(query?.get('state') ?? hashParam('state'));
 
+// The short pause lets the person read the outcome before the redirect. A screen
+// that unmounts first (they navigated away) must not navigate later.
+let redirectTimer: ReturnType<typeof setTimeout> | undefined;
+function redirectSoon(path: string): void {
+  redirecting = true;
+  redirectTimer = setTimeout(() => navigate(path), 650);
+}
+onDestroy(() => clearTimeout(redirectTimer));
+
 async function respond(action: 'approve' | 'deny'): Promise<void> {
   if (!provider || !tokenState || busy || redirecting) {
     if (!tokenState)
@@ -69,8 +79,7 @@ async function respond(action: 'approve' | 'deny'): Promise<void> {
       return;
     }
     message = 'Access was denied. No account changes were made.';
-    redirecting = true;
-    window.setTimeout(() => navigate(config.signInPath), 650);
+    redirectSoon(config.signInPath);
     return;
   }
   const result = await runService(() => oauth.approve(tokenState));
@@ -85,8 +94,7 @@ async function respond(action: 'approve' | 'deny'): Promise<void> {
   }
   if (result.value.status === 'denied') {
     message = 'Access was denied. No account changes were made.';
-    redirecting = true;
-    window.setTimeout(() => navigate(config.signInPath), 650);
+    redirectSoon(config.signInPath);
     return;
   }
   if (result.value.status === 'error') {
@@ -98,8 +106,7 @@ async function respond(action: 'approve' | 'deny'): Promise<void> {
   }
   if (!('route' in result.value)) return;
   const redirectRoute = result.value.route.replace(/^#/, '');
-  redirecting = true;
-  window.setTimeout(() => navigate(redirectRoute), 650);
+  redirectSoon(redirectRoute);
 }
 </script>
 

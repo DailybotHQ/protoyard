@@ -270,6 +270,23 @@ describe('auth screens', () => {
     });
   });
 
+  it('cancels the pending consent redirect when the consent screen unmounts', async () => {
+    const runtime = await boot();
+    render(AuthHarness, { props: { runtime, screen: 'sso' } });
+    await submit('Continue with Google');
+    await waitFor(() => expect(location.hash).toContain('#/oauth/google/consent?state='));
+    cleanup();
+    render(AuthHarness, { props: { runtime, screen: 'oauth-consent' } });
+    await submit('Deny');
+    await screen.findByText('Access was denied. No account changes were made.');
+    // The person leaves before the 650 ms redirect: the timer must not outlive the screen
+    // (it used to fire into whatever came next, e.g. a later test's sign-in `next` path).
+    cleanup();
+    location.hash = '#/elsewhere';
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    expect(location.hash).toBe('#/elsewhere');
+  });
+
   it('shows inline sign-up validation, then hands off to the simulated inbox', async () => {
     const runtime = await boot();
     render(AuthHarness, { props: { runtime, screen: 'sign-up' } });
@@ -325,7 +342,10 @@ describe('auth screens', () => {
     await screen.findByTestId('auth-simulated-code');
     await type('Authenticator code', mfa.authenticatorPanel(enrollment.mfa.seed).code);
     await submit('Verify and sign in');
-    await waitFor(() => expect(runtime.session.isSignedIn()).toBe(true));
+    // The session opens inside the service; the screen navigates only after it resolves.
+    // Wait for that navigation so no continuation leaks into the next test.
+    await waitFor(() => expect(location.hash).toBe('#/'));
+    expect(runtime.session.isSignedIn()).toBe(true);
   });
 
   it('preserves settings next paths through password sign-in and its MFA challenge', async () => {
@@ -365,12 +385,13 @@ describe('auth screens', () => {
     const issued = await createMagicLinkServices(runtime).issue({ email: EMAIL });
     location.hash = `#/auth/magic?token=${issued.token!.id}`;
     render(AuthHarness, { props: { runtime, screen: 'magic' } });
-    await waitFor(() => expect(runtime.session.isSignedIn()).toBe(true));
+    // Signing in happens before the screen's navigation: wait for the final outcome.
+    await waitFor(() => expect(location.hash).toBe('#/'));
+    expect(runtime.session.isSignedIn()).toBe(true);
     expect(runtime.session.principal()?.persona.id).toBe(
       issued.token?.accountId &&
         (await runtime.db.rows<SaasAccount>('saas_accounts').get(issued.token.accountId))?.personaId
     );
-    expect(location.hash).toBe('#/');
   });
 
   it('hands off magic-link and password-reset requests without revealing unknown accounts', async () => {

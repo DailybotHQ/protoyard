@@ -10,6 +10,15 @@ export interface RuntimeOptions {
    * presets plus `definition.themes`; definition themes missing here are added.
    */
   themes?: readonly Theme[];
+  /**
+   * Loads a theme that is not in `themes` (a library theme, ADR-023). Called
+   * for an override, a persona preference, a scenario appearance, a snapshot
+   * or a `?theme=` link that names an unknown id. The result is validated with
+   * `ThemeSchema`, must carry the requested id, and is registered once. Return
+   * `undefined` (or throw) for ids it cannot provide: the appearance then
+   * falls back visibly to the manifest default.
+   */
+  resolveTheme?: (id: string) => Promise<Theme | undefined>;
   /** Parsed `?scenario=…&actor=…&seed=…` link, applied by `ensureSeeded()`. */
   link?: ScenarioLinkParams;
   /** IndexedDB implementation (tests inject fake-indexeddb). */

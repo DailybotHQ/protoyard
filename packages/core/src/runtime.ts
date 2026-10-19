@@ -246,14 +246,27 @@ export interface AppearanceState {
 export interface ThemeController {
   themes(): readonly Theme[];
   get(id: string): Theme | undefined;
+  /**
+   * Returns a known theme, or loads an unknown id through the runtime's
+   * optional async theme resolver (library themes, ADR-023) and registers it
+   * so `themes()` and `get()` include it. Resolves `undefined` for ids nobody
+   * can provide; it never rejects. Optional so older runtimes stay valid.
+   */
+  ensure?(id: string): Promise<Theme | undefined>;
   appearance(): AppearanceState;
-  /** Persisted per active persona. */
+  /**
+   * Persisted per active persona. A `themeId` the runtime does not know yet is
+   * loaded through the theme resolver first (see `ensure`).
+   */
   setPreference(patch: {
     themeId?: string;
     mode?: ColorMode;
     reducedMotion?: boolean;
   }): Promise<void>;
-  /** Temporary design-preview override (does not touch the persona preference). */
+  /**
+   * Temporary design-preview override (does not touch the persona preference).
+   * An unknown `themeId` is loaded through the theme resolver first.
+   */
   setOverride(patch: {
     themeId?: string;
     mode?: ColorMode;

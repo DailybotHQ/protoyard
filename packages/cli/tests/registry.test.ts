@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { workspacePaths } from '../src/lib/paths.ts';
+import { resolvePackageBin, run, stripAnsi } from '../src/lib/process.ts';
 import { buildIndex, filterEntries, findEntry, readRegistry } from '../src/lib/registry.ts';
 import {
   addPrototype,
@@ -328,17 +329,67 @@ describe('discovery and registry', () => {
         slug
       ).toEqual([]);
       expect(firstRun.data.checks.find((c) => c.id === 'typecheck')?.status, slug).toBe('skip');
-      // Refresh the spec, then re-validate with typecheck.
+      // Refresh the spec, then re-validate: every non-type check must now pass.
       await cli(['--root', ws.root, '--json', 'spec', `from-${slug}`, '--write']);
-      const typed = await cli(['--root', ws.root, '--json', 'validate', `from-${slug}`]);
-      const { ok, data } = typed.json<{
+      const refreshed = await cli([
+        '--root',
+        ws.root,
+        '--json',
+        'validate',
+        `from-${slug}`,
+        '--skip-typecheck',
+      ]);
+      const { ok, data } = refreshed.json<{
         ok: boolean;
         data: { checks: { id: string; status: string; details: string[] }[] };
       }>();
       const failed = data.checks.filter((c) => c.status === 'fail');
       expect(failed, slug).toEqual([]);
       expect(ok, slug).toBe(true);
-      expect(data.checks.find((c) => c.id === 'typecheck')?.status, slug).toBe('pass');
     }
+
+    // Type-check all three generated prototypes in ONE svelte-check pass, with the
+    // same compiler options and threshold `validate` uses per prototype. Three
+    // sequential `validate` typechecks took ~180 s under heavy machine load; the
+    // `validate` → svelte-check `pass` path itself is covered in generate.test.ts.
+    const prototypeTsconfig = JSON.parse(readFileSync(join(TEMPLATE, 'tsconfig.json'), 'utf8')) as {
+      compilerOptions: Record<string, unknown>;
+      include: string[];
+    };
+    writeFileSync(
+      join(ws.root, 'tsconfig.catalog.json'),
+      JSON.stringify({
+        extends: './tsconfig.base.json',
+        compilerOptions: prototypeTsconfig.compilerOptions,
+        include: CATALOG_SAMPLE.flatMap((slug) =>
+          prototypeTsconfig.include.map((pattern) => `prototypes/from-${slug}/${pattern}`)
+        ),
+      })
+    );
+    const svelteCheck = resolvePackageBin('svelte-check', 'svelte-check', [TEMPLATE, REPO]);
+    expect(svelteCheck, 'svelte-check is installed').toBeTruthy();
+    const typed = await run(
+      process.execPath,
+      [
+        svelteCheck as string,
+        '--tsconfig',
+        './tsconfig.catalog.json',
+        '--threshold',
+        'error',
+        '--output',
+        'machine',
+      ],
+      { cwd: ws.root, timeoutMs: 170_000 }
+    );
+    const checked = stripAnsi(typed.stdout);
+    expect(
+      checked.split('\n').filter((line) => / ERROR /.test(line)),
+      'svelte-check errors'
+    ).toEqual([]);
+    expect(typed.code, typed.stderr).toBe(0);
+    // Guard against an empty include: every sample's files were actually checked.
+    expect(checked).toMatch(/COMPLETED (\d+) FILES/);
+    const fileCount = Number(/COMPLETED (\d+) FILES/.exec(checked)?.[1]);
+    expect(fileCount).toBeGreaterThan(CATALOG_SAMPLE.length * 10);
   }, 180_000);
 });
