@@ -1,0 +1,217 @@
+import { expect, type Page, test } from '@playwright/test';
+import { expectAccessible } from './support/a11y.ts';
+import { waitForPrototypeReady } from './support/ready.ts';
+import { readRegistry } from './targets.ts';
+
+/**
+ * The gallery marketplace on its REAL static build (`astro preview`, no control
+ * server, so the hosted read-only mode): category rails, search, feature
+ * filters and URL state, the empty state, detail pages for each kind, "Try it"
+ * and "Use this template" in read-only mode, axe in light and dark, and no
+ * horizontal overflow on a phone.
+ *
+ * With PROTOYARD_E2E_SHOWCASE=1 one more test plays a bundled template demo
+ * inside its marketplace frame on the showcase site (port 4501, or
+ * PROTOYARD_E2E_SHOWCASE_PORT).
+ */
+
+type Shelved = {
+  kind: 'prototype' | 'template' | 'blueprint';
+  slug: string;
+  name: string;
+  catalog?: { category?: string; features?: string[] } | null;
+};
+
+const shelved = ((readRegistry()?.entries ?? []) as unknown as Shelved[]).filter(
+  (e) => ['prototype', 'template', 'blueprint'].includes(e.kind) && e.catalog?.category
+);
+const categories = new Set(shelved.map((e) => e.catalog?.category));
+const first = (kind: Shelved['kind']) => shelved.find((e) => e.kind === kind);
+
+async function openMarketplace(page: Page, search = '') {
+  await page.goto(`/marketplace/${search}`);
+  await expect(
+    page.locator('section[aria-labelledby="market-browse-title"][data-hydrated="true"]')
+  ).toHaveCount(1);
+}
+
+async function expectNoHorizontalOverflow(page: Page, label: string) {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow, `${label}: horizontal overflow`).toBeLessThanOrEqual(0);
+}
+
+test.describe('marketplace', () => {
+  test.skip(shelved.length === 0, 'no catalog entries indexed');
+
+  test('shows every shelved item in category rails', async ({ page }) => {
+    await openMarketplace(page);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Start from a product that already works.'
+    );
+    await expect(page.getByTestId('market-rail')).toHaveCount(categories.size);
+    await expect(page.getByTestId('market-card')).toHaveCount(shelved.length);
+    for (const kind of ['prototype', 'template', 'blueprint'] as const) {
+      const expected = shelved.filter((e) => e.kind === kind).length;
+      await expect(page.locator(`[data-testid="market-card"][data-kind="${kind}"]`)).toHaveCount(
+        expected
+      );
+    }
+  });
+
+  test('search, feature filters and kind compose and survive a reload through the URL', async ({
+    page,
+  }) => {
+    await openMarketplace(page);
+    // Only the most common features get a chip: filter by the first one shown.
+    const chip = page.getByRole('group', { name: 'Features' }).getByRole('button').first();
+    const feature = ((await chip.textContent()) ?? '').trim().split(/\s+/)[0] ?? '';
+    const target = shelved.find(
+      (e) => e.kind === 'template' && e.catalog?.features?.includes(feature)
+    );
+    test.skip(!target, `no template with feature ${feature}`);
+    if (!target) return;
+
+    await chip.click();
+    await expect(page).toHaveURL(new RegExp(`[?&]feature=${feature}`));
+    const withFeature = shelved.filter((e) => e.catalog?.features?.includes(feature)).length;
+    await expect(page.getByTestId('market-count')).toHaveText(
+      `${withFeature} ${withFeature === 1 ? 'result' : 'results'}`
+    );
+
+    await page
+      .getByRole('group', { name: 'Kind' })
+      .getByRole('button', { name: /^Templates/ })
+      .click();
+    await page.getByTestId('market-search').fill(target.name);
+    const results = page.getByTestId('market-results').getByTestId('market-card');
+    await expect(results.first()).toHaveAttribute('data-slug', target.slug);
+    await expect(page).toHaveURL(/[?&]kind=template/);
+    await expect(page).toHaveURL(/[?&]q=/);
+
+    await page.reload();
+    await expect(
+      page.locator('section[aria-labelledby="market-browse-title"][data-hydrated="true"]')
+    ).toHaveCount(1);
+    await expect(page.getByTestId('market-search')).toHaveValue(target.name);
+    await expect(
+      page.getByTestId('market-results').getByTestId('market-card').first()
+    ).toHaveAttribute('data-slug', target.slug);
+  });
+
+  test('explains an empty result and restores everything', async ({ page }) => {
+    await openMarketplace(page);
+    await page.getByTestId('market-search').fill('zz-no-such-product-zz');
+    await expect(page.getByTestId('market-count')).toHaveText('No matches');
+    await expect(page.getByText('Nothing matches these filters')).toBeVisible();
+    await page.getByRole('button', { name: 'Show everything' }).click();
+    await expect(page.getByTestId('market-rail')).toHaveCount(categories.size);
+    await expect(page).toHaveURL(/\/marketplace\/?$/);
+  });
+
+  test('opens a detail page for a prototype, a template and a blueprint', async ({ page }) => {
+    for (const kind of ['prototype', 'template', 'blueprint'] as const) {
+      const entry = first(kind);
+      if (!entry) continue;
+      await openMarketplace(page, `?kind=${kind}`);
+      await page.getByTestId('market-results').locator(`[data-slug="${entry.slug}"] a`).click();
+      await expect(page).toHaveURL(new RegExp(`/marketplace/${kind}/${entry.slug}/?$`));
+      await expect(page.getByTestId('market-detail-title')).toHaveText(entry.name);
+      if (kind === 'blueprint') {
+        await expect(page.getByRole('heading', { name: 'Try it' })).toBeVisible();
+        await expect(
+          page.getByText(`--blueprint blueprints/${entry.slug}.json`).first()
+        ).toBeVisible();
+      } else {
+        await expect(page.getByRole('heading', { name: /^Scenarios/ })).toBeVisible();
+        await expect(page.getByText(`pnpm protoyard spec ${entry.slug} --check`)).toBeVisible();
+      }
+    }
+  });
+
+  test('read-only: Try it shows the dev command and Use this template the exact CLI command', async ({
+    page,
+  }) => {
+    const template = first('template');
+    test.skip(!template, 'no template indexed');
+    if (!template) return;
+    await page.goto(`/marketplace/template/${template.slug}/`);
+    await expect(
+      page.locator('section[aria-labelledby="create-title"][data-hydrated="true"]')
+    ).toHaveCount(1);
+
+    // Try it: no local control server on a static host, so the preview offers the command.
+    const preview = page.locator('section[aria-labelledby="preview-title"]');
+    await preview.scrollIntoViewIfNeeded();
+    await expect(page.getByTestId('control-status')).toContainText(
+      `pnpm protoyard dev ${template.slug}`
+    );
+
+    // Use this template: the slug is suggested from the name; the command is exact.
+    const create = page.locator('section[aria-labelledby="create-title"]');
+    await create.getByLabel('Name', { exact: true }).fill('Team Help Desk');
+    await create.getByLabel('Name', { exact: true }).blur();
+    await expect(create.getByTestId('create-slug')).toHaveValue('team-help-desk');
+    await expect(
+      create.getByText(
+        `pnpm protoyard new team-help-desk --from ${template.slug} --name 'Team Help Desk'`
+      )
+    ).toBeVisible();
+    await expect(create.getByTestId('create-submit')).toHaveCount(0);
+  });
+
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`has no axe violations in ${scheme} mode`, async ({ page }, testInfo) => {
+      await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+      await openMarketplace(page);
+      await expect(page.locator('html')).toHaveAttribute('data-theme', scheme);
+      await expectAccessible(page, testInfo, { label: `marketplace-${scheme}` });
+
+      const template = first('template');
+      if (!template) return;
+      await page.goto(`/marketplace/template/${template.slug}/`);
+      await expect(
+        page.locator('section[aria-labelledby="create-title"][data-hydrated="true"]')
+      ).toHaveCount(1);
+      await expectAccessible(page, testInfo, { label: `marketplace-detail-${scheme}` });
+    });
+  }
+
+  test('has no horizontal overflow at 390 px', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openMarketplace(page);
+    await expectNoHorizontalOverflow(page, '/marketplace/');
+    const template = first('template');
+    if (!template) return;
+    await page.goto(`/marketplace/template/${template.slug}/`);
+    await expect(page.getByTestId('market-detail-title')).toBeVisible();
+    await expectNoHorizontalOverflow(page, `/marketplace/template/${template.slug}/`);
+  });
+});
+
+test.describe('marketplace on the showcase site', () => {
+  test.skip(process.env.PROTOYARD_E2E_SHOWCASE !== '1', 'set PROTOYARD_E2E_SHOWCASE=1');
+  const origin = `http://127.0.0.1:${process.env.PROTOYARD_E2E_SHOWCASE_PORT ?? 4501}`;
+  const base = process.env.PROTOYARD_E2E_SHOWCASE_BASE ?? '/';
+
+  test('Try it plays the bundled template demo inside its frame', async ({ page }) => {
+    const template =
+      shelved.find((e) => e.kind === 'template' && e.slug === 'chat-widget') ?? first('template');
+    test.skip(!template, 'no template indexed');
+    if (!template) return;
+    await page.goto(`${origin}${base}marketplace/template/${template.slug}/`);
+    const preview = page.locator('section[aria-labelledby="preview-title"]');
+    await preview.scrollIntoViewIfNeeded();
+    await expect(page.getByTestId('control-status')).toContainText('Live demo');
+    const frame = page.frameLocator(`iframe[title^="${template.name} preview"]`);
+    await waitForPrototypeReady(page, { slug: template.slug, root: frame, timeoutMs: 20_000 });
+    // The demo runs in its own demo namespace, never the template's authoring one.
+    const demo = page.frames().find((f) => f.url().includes(`/t/${template.slug}/app/`));
+    expect(demo, 'the bundled demo frame').toBeDefined();
+    const databases = await demo?.evaluate(async () =>
+      (await indexedDB.databases()).map((d) => d.name)
+    );
+    expect(databases).toContain(`protoyard.template-demo-${template.slug}.data`);
+  });
+});
