@@ -280,6 +280,7 @@ slug, and re-indexes.
 | `src/generated/services.ts` | generated | `createEntityServices(runtime, blueprint)`. |
 | `src/generated/scenarios.ts` | generated | The world generator, loaded lazily so Faker stays out of the initial chunk. |
 | `src/generated/routes.ts` | generated | Hash routes (`#/`, `#/<plural>`, `#/<plural>/:id`, `#/members`) and sidebar entries. Every screen is a lazy chunk. |
+| `src/generated/layout.ts` | generated | The selected `layout.id`, optional mobile layout, and grouped navigation derived from blueprint screens. |
 | `src/generated/screens/<Entity>Page.svelte` | generated | One lazy screen per entity. |
 | `src/generated/brand-theme.ts` | generated | Only with `brand`. |
 | `src/generated/blueprint.snapshot.json` | managed | The blueprint the generated code reflects, and its schema version. |
@@ -291,6 +292,13 @@ the template's scenarios (`empty`, `active`, `viewer`, `massive`) and the
 blueprint name and description. All written files are already in the
 repository's Biome style, so `pnpm lint` passes and `biome check --write` never
 rewrites them.
+
+Set the optional top-level `layout` to `{ "id": "top-nav", "mobile": "mobile-tabs" }`
+to choose a registered desktop layout and an optional narrow-screen layout.
+The default is `sidebar`. Regeneration updates `src/generated/layout.ts` while
+leaving the owned `src/App.svelte` untouched. If an older owned App does not
+consume that module, `generate` warns that the selected layout is not applied;
+update the App to read the generated layout module to adopt it.
 
 ## Ownership rules
 
