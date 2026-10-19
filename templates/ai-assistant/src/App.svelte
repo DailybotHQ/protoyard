@@ -113,7 +113,7 @@ function messageOf(error: unknown) {
 </script>
 
 <div class="flex h-[var(--py-app-height,100dvh)] min-h-0 bg-[#f5f4f8] text-[#242235]">
-  <aside class="hidden w-64 shrink-0 flex-col border-r border-[#e8e6ed] bg-[#faf9fc] p-4 lg:flex" aria-label="Assistant workspace navigation">
+  <aside class="hidden w-64 shrink-0 flex-col border-r border-[#e8e6ed] bg-[#faf9fc] p-4 lg:flex overflow-y-auto" aria-label="Assistant workspace navigation">
     <a href="#/" class="mb-6 flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-semibold">
       <span class="flex size-9 items-center justify-center rounded-xl bg-[#272255] text-[#ded2ff]"><Sparkles class="size-5" aria-hidden="true" /></span>
       <span>Orbit <span class="font-normal text-[#858194]">Assistant</span></span>
@@ -130,7 +130,7 @@ function messageOf(error: unknown) {
       {/each}
     </nav>
     <div class="mt-6 flex items-center gap-2 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-[#898598]"><Folder class="size-3.5" aria-hidden="true" /> History</div>
-    <div class="min-h-0 flex-1 overflow-y-auto">
+    <div class="min-h-24 flex-1 overflow-y-auto">
       {#each projectConversations.slice(0, 10) as conversation (conversation.id)}
         <button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs hover:bg-[#efedf4] ${conversation.id === activeConversation?.id ? 'bg-[#efedf4] text-[#37314e]' : 'text-[#777386]'}`} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</button>
       {/each}
@@ -160,10 +160,11 @@ function messageOf(error: unknown) {
         {:else}<div class="py-10 text-center text-sm text-[#817c90]" role="status">Loading voice mode…</div>{/if}
       </section>
     {:else}
-      <div class="min-h-0 flex-1">
+      <!-- A definite-height, clipped box: the screen scrolls inside it and never runs under the footer. -->
+      <div class="min-h-0 flex-1 overflow-hidden *:h-full">
         <Router {router} />
       </div>
     {/if}
-    <footer class="flex items-center justify-center gap-1 pt-2 text-[0.65rem] text-[#888497]"><Archive class="size-3" aria-hidden="true" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Check class="size-3" aria-hidden="true" /></footer>
+    <footer class="flex shrink-0 items-center justify-center gap-1 pt-2 text-[0.65rem] text-[#888497]"><Archive class="size-3" aria-hidden="true" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Check class="size-3" aria-hidden="true" /></footer>
   </main>
 </div>
