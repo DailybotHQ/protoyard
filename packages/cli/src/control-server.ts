@@ -201,7 +201,15 @@ export async function startControlServer(options: ControlServerOptions): Promise
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        ...(corsOrigin ? { 'Access-Control-Allow-Origin': corsOrigin, Vary: 'Origin' } : {}),
+        // JSON bodies (POST /api/new) need the content-type header allowed, or browsers
+        // reject the request after preflight. Only allowed origins get CORS headers at all.
+        ...(corsOrigin
+          ? {
+              'Access-Control-Allow-Origin': corsOrigin,
+              'Access-Control-Allow-Headers': 'content-type',
+              Vary: 'Origin',
+            }
+          : {}),
         'Access-Control-Allow-Methods': 'GET, POST',
         'Access-Control-Max-Age': '600',
       });

@@ -14,9 +14,16 @@ import type { CompactEntry } from '@/lib/types.ts';
 
 interface Props {
   homeUrl: string;
+  /**
+   * The header button when the palette is loaded lazily by
+   * CommandPaletteTrigger: no own button is rendered, focus returns to it.
+   */
+  externalTrigger?: HTMLElement;
+  /** Receives `show` once mounted, so a lazy loader can open it right away. */
+  onReady?: (api: { show: () => void }) => void;
 }
 
-let { homeUrl }: Props = $props();
+let { homeUrl, externalTrigger, onReady }: Props = $props();
 let entries = $state<CompactEntry[]>([]);
 let query = $state('');
 let open = $state(false);
@@ -27,7 +34,8 @@ let indexLoaded = $state(false);
 let indexError = $state(false);
 let dialog: HTMLDialogElement;
 let input: HTMLInputElement;
-let trigger: HTMLButtonElement;
+// $state: the own button only renders without an external trigger.
+let trigger = $state<HTMLButtonElement>();
 let returnFocusTo: HTMLElement | null = null;
 
 const commands = $derived(
@@ -71,6 +79,7 @@ onMount(() => {
     }
   };
   window.addEventListener('keydown', onShortcut);
+  onReady?.({ show });
   return () => window.removeEventListener('keydown', onShortcut);
 });
 
@@ -80,7 +89,7 @@ function show(): void {
   returnFocusTo =
     activeElement instanceof HTMLElement && activeElement !== document.body
       ? activeElement
-      : trigger;
+      : (externalTrigger ?? trigger ?? null);
   query = '';
   activeIndex = 0;
   status = '';
@@ -180,7 +189,12 @@ async function run(action: PaletteAction): Promise<void> {
 }
 </script>
 
-<div class="flex items-center" data-testid="command-palette" data-hydrated={hydrated}>
+<div
+  class="flex items-center"
+  data-testid={externalTrigger ? undefined : 'command-palette'}
+  data-hydrated={hydrated}
+>
+  {#if !externalTrigger}
   <button
     bind:this={trigger}
     type="button"
@@ -193,6 +207,7 @@ async function run(action: PaletteAction): Promise<void> {
     <span class="hidden sm:inline">Search</span>
     <kbd class="rounded border border-line bg-bg px-1.5 py-0.5 font-mono text-[10px] text-muted">⌘K</kbd>
   </button>
+  {/if}
 
   <dialog
     bind:this={dialog}

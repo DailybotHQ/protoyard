@@ -1,6 +1,7 @@
 ---
 import CommandBlock from '@/components/CommandBlock.svelte';
 import LivePreview from '@/components/LivePreview.svelte';
+import CreatedPreview from '@/components/marketplace/CreatedPreview.svelte';
 import CreateFlow from '@/components/marketplace/CreateFlow.svelte';
 import DeviceThumb from '@/components/marketplace/DeviceThumb.svelte';
 import { label } from '@/components/marketplace/model';
@@ -50,6 +51,9 @@ const kindNote =
       <p class="mt-2 text-sm text-muted">{kindNote}</p>
     </div>
   </header>
+
+  {/* Full width: the post-create frame needs room to render at a readable scale. */}
+  <CreatedPreview client:load />
 
   <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
     <div class="min-w-0 space-y-6">
