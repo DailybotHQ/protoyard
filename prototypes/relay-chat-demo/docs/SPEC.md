@@ -116,7 +116,7 @@ chosen here. See
 | default theme | `ocean` |
 | storage namespace | `relay-chat-demo` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

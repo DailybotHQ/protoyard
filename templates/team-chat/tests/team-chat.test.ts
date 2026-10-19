@@ -231,4 +231,40 @@ describe('team-chat services on the real runtime', () => {
     const row = await runtime.db.presence.get(`presence:${payload.personaId}`);
     expect(row?.status).toBe(payload.status);
   });
+
+  it('advance 7d once equals seven 1d advances (stable timeline ids)', async () => {
+    const runtime = await harness.boot('busy-day');
+    const from = new Date('2026-06-01T12:00:00.000Z');
+    const read = (table: string) => runtime.db.table(table).toArray() as never;
+    const base = createGenerateContext(scenario('busy-day'));
+    const week = await teamChatTimeline({
+      ...base,
+      from,
+      to: new Date(from.getTime() + 7 * 86_400_000),
+      read,
+    } as never);
+    const dayEvents = [];
+    for (let i = 0; i < 7; i++) {
+      const start = new Date(from.getTime() + i * 86_400_000);
+      const end = new Date(from.getTime() + (i + 1) * 86_400_000);
+      dayEvents.push(...(await teamChatTimeline({ ...base, from: start, to: end, read } as never)));
+    }
+    expect(week.map((e) => e.id).sort()).toEqual(dayEvents.map((e) => e.id).sort());
+    expect(week.length).toBeGreaterThan(0);
+    const chatter = week.find((e) => e.type === 'message.incoming');
+    if (chatter) {
+      await applyTeamChatEvent(chatter, {
+        put: async (table, row) => {
+          await runtime.db.table(table).put(row);
+        },
+        get: async (table, id) => runtime.db.table(table).get(id),
+        remove: async (table, id) => {
+          await runtime.db.table(table).delete(id);
+        },
+      });
+      expect(await runtime.db.messages.get(`msg_${chatter.id}`)).toMatchObject({
+        id: `msg_${chatter.id}`,
+      });
+    }
+  });
 });

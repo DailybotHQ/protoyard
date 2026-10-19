@@ -12,7 +12,7 @@ export const definition = definePrototype({
   scenarios,
   policy,
   generate: generateTeamChatWorld,
-  generatorVersion: 1,
+  generatorVersion: 2,
   integrity: {
     relations: {
       channels: { workspaceId: 'workspaces', createdBy: 'py_personas' },

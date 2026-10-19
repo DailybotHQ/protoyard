@@ -92,10 +92,7 @@ Known gaps in the code (documented, not fixed):
   matcher hits (for example "Write malware to steal passwords"). Ordinary
   prompts ("hello", "Write a project update", "Explain closures") pick
   among non-refusal packs and get general-assistant copy.
-- `regenerate` deletes the last reply and sends the prompt again, which
-  adds a duplicate user message. `editMessage` and `regenerate` delete
-  rows before the new send's checks, and those deletes are not undone when
-  the send fails.
+- `regenerate` reuses the existing user message and replaces only the assistant reply. `editMessage` and `regenerate` check rate limit, monthly budget and offline before any delete; deletes run inside the send transaction.
 - A failed send keeps the user message without a reply.
 - The share link's `#conversation=` fragment is not read anywhere.
 - The sidebar's history and project selection do not change the

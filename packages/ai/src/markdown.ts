@@ -69,7 +69,10 @@ const ID = /^[\w-]{1,64}$/;
 export function safeHref(raw: string): string | null {
   // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point.
   const url = raw.replace(/[\u0000- \u007f-\u009f]/g, '');
-  if (!url || /^[/\\]{2}|^\\/.test(url)) return null;
+  if (!url) return null;
+  // Reject protocol-relative forms browsers normalize, including `/\host` and `\/host`.
+  const normalizedSlashes = url.replace(/\\/g, '/');
+  if (/^\/{2}/.test(normalizedSlashes) || normalizedSlashes.startsWith('\\')) return null;
   if (SAFE_SCHEME.test(url)) return url;
   return HAS_SCHEME.test(url) ? null : url;
 }
@@ -77,7 +80,10 @@ export function safeHref(raw: string): string | null {
 /** Images come only from the prototype: relative paths, never remote or `data:` URLs. */
 export function safeImageSrc(raw: string): string | null {
   const url = safeHref(raw);
-  return url && !SAFE_SCHEME.test(url) && !url.startsWith('#') ? url : null;
+  if (!url || SAFE_SCHEME.test(url) || url.startsWith('#')) return null;
+  // Extra guard: `/\host` must never become a remote image.
+  if (/^[/\\]{2}/.test(url.replace(/\\/g, '/'))) return null;
+  return url;
 }
 
 const attachmentRef = (href: string) => {

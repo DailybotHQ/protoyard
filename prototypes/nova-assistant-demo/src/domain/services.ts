@@ -107,7 +107,12 @@ export function createAssistantServices(
     prompt: string,
     model: AiModel,
     files: readonly File[] = [],
-    agentApproved = false
+    agentApproved = false,
+    options: {
+      reuseUserMessageId?: string;
+      deleteMessageIds?: readonly string[];
+      attempt?: number;
+    } = {}
   ) {
     authorize(CAPABILITIES.write);
     const cleanPrompt = promptSchema.parse(prompt);
@@ -125,29 +130,13 @@ export function createAssistantServices(
         'The simulated model request limit was reached. Wait for the simulated minute to pass.'
       );
     }
-    requestTimes.push(nowMs);
-    const at = clock.now().toISOString();
-    const user: Message = {
-      id: createRuntimeId('ai_user'),
-      conversationId,
-      role: 'user',
-      content: cleanPrompt,
-      createdAt: at,
-      ...(files.length ? { attachments: files.map((file) => file.name).slice(0, 8) } : {}),
-    };
-    const replyId = createRuntimeId('ai_reply');
-    const reply: Message = {
-      id: replyId,
-      conversationId,
-      role: 'assistant',
-      content: '',
-      createdAt: at,
-      model: modelToUse.id,
-    };
     const history = await db.messages
       .where('conversationId')
       .equals(conversationId)
       .sortBy('createdAt');
+    const historyForContext = options.deleteMessageIds?.length
+      ? history.filter((message) => !options.deleteMessageIds!.includes(message.id))
+      : history;
     const contextualPrompt = [
       settings.customInstructions && `Workspace instructions: ${settings.customInstructions}`,
       settings.dataControls !== 'private' &&
@@ -158,7 +147,7 @@ export function createAssistantServices(
     ]
       .filter(Boolean)
       .join('\n\n');
-    const contextMessages = history.map((message) => ({
+    const contextMessages = historyForContext.map((message) => ({
       id: message.id,
       role: message.role,
       content: message.content,
@@ -180,22 +169,51 @@ export function createAssistantServices(
       );
     }
 
-    const streamState = { stopped: false };
-    activeStreams.set(conversationId, streamState);
+    await environment.run('ai.conversation.precheck', async () => undefined);
+
+    requestTimes.push(nowMs);
+    const at = clock.now().toISOString();
+    const attempt = options.attempt ?? 0;
+    const user: Message = {
+      id: options.reuseUserMessageId ?? createRuntimeId('ai_user'),
+      conversationId,
+      role: 'user',
+      content: cleanPrompt,
+      createdAt: at,
+      ...(files.length ? { attachments: files.map((file) => file.name).slice(0, 8) } : {}),
+    };
+    const replyId = createRuntimeId('ai_reply');
+    const reply: Message = {
+      id: replyId,
+      conversationId,
+      role: 'assistant',
+      content: '',
+      createdAt: at,
+      model: modelToUse.id,
+    };
+
     try {
       await environment.run('ai.conversation.send', async () => {
         await db.transaction('rw', db.messages, db.conversations, async () => {
-          await db.messages.add(user);
+          for (const id of options.deleteMessageIds ?? []) {
+            await db.messages.delete(id);
+          }
+          if (!options.reuseUserMessageId) {
+            await db.messages.add(user);
+          }
           await db.messages.add(reply);
           await db.conversations.update(conversationId, { updatedAt: at, modelId: modelToUse.id });
         });
       });
+
       let answer: string;
       if (modelToUse.id === USER_MODEL.id) {
         const runner = createAiAgentRunner({
           context: {
             seed: runtime.manifest.id,
-            rng: createRng(hashString(`${runtime.manifest.id}:${conversationId}:${cleanPrompt}`)),
+            rng: createRng(
+              hashString(`${runtime.manifest.id}:${conversationId}:${cleanPrompt}:${attempt}`)
+            ),
             clock: { now: () => clock.now(), nowMs: () => clock.nowMs(), sleep: async () => {} },
             environment,
           },
@@ -225,8 +243,7 @@ export function createAssistantServices(
         });
         const run = runner.start(cleanPrompt);
         if (agentApproved) {
-          for (let attempt = 0; attempt < 4 && run.status === 'running'; attempt++)
-            await Promise.resolve();
+          for (let wait = 0; wait < 4 && run.status === 'running'; wait++) await Promise.resolve();
           if (run.status === 'awaiting-approval') run.approve();
         }
         const result = await run.done;
@@ -235,17 +252,20 @@ export function createAssistantServices(
         const responsePack = selectResponsePack(
           DEFAULT_RESPONSE_PACKS,
           runtime.manifest.id,
-          contextualPrompt
+          contextualPrompt,
+          attempt
         );
         const input: ResponseInput = {
           prompt: contextualPrompt,
           history: contextMessages,
           model: modelToUse,
-          rng: responseRng(runtime.manifest.id, contextualPrompt),
+          rng: responseRng(runtime.manifest.id, contextualPrompt, attempt),
         };
         answer = await environment.run('ai.generate', () => responsePack.generate(input));
       }
 
+      const streamState = { stopped: false };
+      activeStreams.set(conversationId, streamState);
       let streamed = '';
       for (const token of splitTokens(answer)) {
         if (streamState.stopped) break;
@@ -253,7 +273,7 @@ export function createAssistantServices(
         await db.messages.update(replyId, { content: streamed });
         if (chunkDelay > 0) await sleep(chunkDelay);
       }
-      const completionTokens = estimateTokens(streamed);
+      const completionTokens = estimateTokens(answer);
       if (usedTokens + modelPromptTokens + completionTokens > settings.monthlyLimit) {
         throw new RangeError(
           'This reply would exceed the simulated monthly token limit. Raise the limit in Settings or try a shorter prompt.'
@@ -424,15 +444,31 @@ export function createAssistantServices(
         .where('conversationId')
         .equals(conversationId)
         .sortBy('createdAt');
-      const lastAssistant = messages.at(-1)?.role === 'assistant' ? messages.pop() : undefined;
-      const prompt = messages.at(-1);
+      // Prefer the latest assistant reply and the user turn immediately before it
+      // (equal createdAt can make `.at(-1)` ambiguous).
+      let lastAssistant: (typeof messages)[number] | undefined;
+      let prompt: (typeof messages)[number] | undefined;
+      for (let i = messages.length - 1; i >= 0; i -= 1) {
+        const row = messages[i]!;
+        if (!lastAssistant && row.role === 'assistant') lastAssistant = row;
+        if (lastAssistant && row.role === 'user') {
+          prompt = row;
+          break;
+        }
+      }
+      if (!prompt) prompt = [...messages].reverse().find((row) => row.role === 'user');
       if (prompt?.role !== 'user')
         throw new RangeError('No user message is available to regenerate.');
-      if (lastAssistant) await db.messages.delete(lastAssistant.id);
       const conversation = await getConversation(conversationId);
       const model = MODELS.find((item) => item.id === conversation.modelId) ?? AI_MODELS.at(0);
       if (!model) throw new RangeError('No simulated models are available.');
-      await generateReply(conversationId, prompt.content, model);
+      const attempt = messages.filter((row) => row.role === 'assistant').length;
+      const deleteIds = lastAssistant ? [lastAssistant.id] : [];
+      await generateReply(conversationId, prompt.content, model, [], false, {
+        reuseUserMessageId: prompt.id,
+        deleteMessageIds: deleteIds,
+        attempt,
+      });
     },
     async editMessage(conversationId, messageId, content, model) {
       authorize(CAPABILITIES.write);
@@ -440,12 +476,16 @@ export function createAssistantServices(
       if (!message || message.conversationId !== conversationId || message.role !== 'user')
         throw new RangeError('Choose a user message in this conversation.');
       promptSchema.parse(content);
-      await db.messages
+      const messages = await db.messages
         .where('conversationId')
         .equals(conversationId)
+        .sortBy('createdAt');
+      const deleteIds = messages
         .filter((item) => Date.parse(item.createdAt) >= Date.parse(message.createdAt))
-        .delete();
-      await generateReply(conversationId, content, model);
+        .map((item) => item.id);
+      await generateReply(conversationId, content, model, [], false, {
+        deleteMessageIds: deleteIds,
+      });
     },
   };
 }

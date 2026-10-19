@@ -173,3 +173,60 @@ describe('@protoyard/ai', () => {
     expect(selectResponsePack(multi, 99, 'hello').id).not.toBe(refusalPack.id);
   });
 });
+
+describe('@protoyard/ai regenerate and safety', () => {
+  it('regenerates without losing the user message when rate-limited', async () => {
+    const { context } = makeContext();
+    const engine = createAiEngine({
+      context,
+      packs: [scriptedPack('fixed', ['first answer here'])],
+      maxRequestsPerMinute: 1,
+    });
+    const chat = engine.createConversation('regen');
+    await collect(engine.stream(chat.id, 'hello world', { cadenceMs: 0 }));
+    expect(engine.getConversation(chat.id).messages.map((m) => m.role)).toEqual([
+      'user',
+      'assistant',
+    ]);
+    await expect(collect(engine.regenerate(chat.id, { cadenceMs: 0 }))).rejects.toBeInstanceOf(
+      AiRateLimitError
+    );
+    expect(engine.getConversation(chat.id).messages.map((m) => m.role)).toEqual([
+      'user',
+      'assistant',
+    ]);
+    expect(engine.getConversation(chat.id).messages[0]?.content).toBe('hello world');
+  });
+
+  it('varies regenerated answers deterministically by attempt', async () => {
+    const { context } = makeContext(11);
+    const engine = createAiEngine({
+      context,
+      packs: [
+        scriptedPack('a', ['alpha reply']),
+        scriptedPack('b', ['bravo reply']),
+        scriptedPack('c', ['charlie reply']),
+      ],
+    });
+    const chat = engine.createConversation('vary');
+    const first = await collect(engine.stream(chat.id, 'same prompt', { cadenceMs: 0 }));
+    const second = await collect(engine.regenerate(chat.id, { cadenceMs: 0 }));
+    const third = await collect(engine.regenerate(chat.id, { cadenceMs: 0 }));
+    // Same seed + prompt + attempt is stable; different attempts can differ.
+    expect(first.length).toBeGreaterThan(0);
+    expect(second.length).toBeGreaterThan(0);
+    expect(third.length).toBeGreaterThan(0);
+    const again = makeContext(11);
+    const engine2 = createAiEngine({
+      context: again.context,
+      packs: [
+        scriptedPack('a', ['alpha reply']),
+        scriptedPack('b', ['bravo reply']),
+        scriptedPack('c', ['charlie reply']),
+      ],
+    });
+    const chat2 = engine2.createConversation('vary');
+    expect(await collect(engine2.stream(chat2.id, 'same prompt', { cadenceMs: 0 }))).toBe(first);
+    expect(await collect(engine2.regenerate(chat2.id, { cadenceMs: 0 }))).toBe(second);
+  });
+});

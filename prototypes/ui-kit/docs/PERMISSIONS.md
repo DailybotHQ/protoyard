@@ -34,11 +34,11 @@ Capabilities in `src/domain/policy.ts`:
   favorites list is a direct `liveQuery` on the `favorites` table
   (`src/lib/favorites.svelte.ts`), filtered by the acting persona.
 - `theme:apply` is held by designer and viewer. Theme Lab "Use in prototype"
-  asserts it inside `environment.run('theme.activate')`.
-- `theme:manage` is designer-only (`*`). Saving a Theme Studio draft or
-  registering a brand-new custom theme id asserts it inside
-  `environment.run('theme.saveCustom')`. Failures (including the 24-theme
-  limit) toast via `runService({ silentValidation: false })`.
+  asserts it inside `environment.run('theme.activate')` and may register a
+  library theme that is not yet on the runtime list (viewers included).
+- `theme:manage` is designer-only (`*`). Saving a Theme Studio draft asserts
+  it inside `environment.run('theme.saveCustom')`. Failures (including the
+  24-theme limit) toast via `runService({ silentValidation: false })`.
 
 Browsing the catalog, demos, Forms and inspecting Theme Lab tokens stay open
 to every persona. The header shows a "Read-only" badge for the viewer.

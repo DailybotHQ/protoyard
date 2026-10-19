@@ -67,7 +67,9 @@ export function templatedPack(id: string, template: string): ResponsePack {
 export function selectResponsePack(
   packs: readonly ResponsePack[],
   seed: number | string,
-  prompt: string
+  prompt: string,
+  /** Deterministic attempt index so regenerate can vary without non-determinism. */
+  attempt = 0
 ): ResponsePack {
   if (packs.length === 0) throw new RangeError('At least one response pack is required');
   if (REFUSAL.test(prompt)) {
@@ -76,13 +78,15 @@ export function selectResponsePack(
   }
   const candidates = packs.filter((pack) => pack.id !== refusalPack.id);
   const pool = candidates.length > 0 ? candidates : packs;
-  const key = `${String(seed)}:${prompt.trim().toLowerCase().replace(/\s+/g, ' ')}`;
+  const key = `${String(seed)}:${prompt.trim().toLowerCase().replace(/\s+/g, ' ')}:${Math.max(0, Math.floor(attempt))}`;
   return pool[createRng(hashString(key)).int(0, pool.length - 1)] as ResponsePack;
 }
 
-export function responseRng(seed: number | string, prompt: string) {
+export function responseRng(seed: number | string, prompt: string, attempt = 0) {
   return createRng(
-    hashString(`${String(seed)}:${prompt.trim().toLowerCase().replace(/\s+/g, ' ')}`)
+    hashString(
+      `${String(seed)}:${prompt.trim().toLowerCase().replace(/\s+/g, ' ')}:${Math.max(0, Math.floor(attempt))}`
+    )
   );
 }
 

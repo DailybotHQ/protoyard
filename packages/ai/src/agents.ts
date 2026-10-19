@@ -160,7 +160,8 @@ export function createAiAgentRunner(options: AgentRunnerOptions) {
             tool: tool.name,
             input: call.input,
           });
-          if (call.requiresApproval ?? tool.requiresApproval ?? false) {
+          // A plan may require extra approval, never lower a tool's requirement.
+          if (tool.requiresApproval === true || call.requiresApproval === true) {
             const decision = await askForApproval(call, tool);
             approvalResolver = undefined;
             if (decision.kind === 'cancelled' || cancelled) return finish('cancelled');

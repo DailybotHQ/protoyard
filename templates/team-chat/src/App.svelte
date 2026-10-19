@@ -81,10 +81,12 @@ $effect(() => {
 });
 
 $effect(() => {
+  const personaId = principal.current?.persona.id;
   if (!channelId) {
     memberOfChannel = false;
     return;
   }
+  void personaId;
   void services.isMember(channelId).then((ok) => {
     memberOfChannel = ok;
   });
@@ -103,6 +105,27 @@ function showDenied(action: string) {
 
 async function send() {
   if (!channelId || !draft.trim()) return;
+  const trimmed = draft.trim();
+  // /search <query> runs workspace search without posting a literal message.
+  const searchMatch = /^\/search(?:\s+(.*))?$/i.exec(trimmed);
+  if (searchMatch) {
+    const q = (searchMatch[1] ?? '').trim();
+    if (!workspaceId) return;
+    error = null;
+    if (q.length < 2) {
+      error = 'Search needs at least 2 characters after /search.';
+      return;
+    }
+    try {
+      searchQ = q;
+      searchHits = await services.search(workspaceId, q);
+      draft = '';
+      if (searchHits.length === 0) toast = 'No search results.';
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+    return;
+  }
   if (!canPost) {
     showDenied('Send');
     return;

@@ -40,11 +40,14 @@ let speechAvailable = $state(false);
 let micLevel = $state(0);
 let micEnabled = $state(false);
 let micError = $state('');
+let micPending = $state(false);
 let mediaStream: MediaStream | null = null;
 let audioContext: AudioContext | null = null;
 let animationFrame = 0;
 let utterance: SpeechSynthesisUtterance | null = null;
 let lastSpokenReply = '';
+/** Set in onDestroy so a late getUserMedia resolve cannot leak a stream. */
+let destroyed = false;
 
 const session = $derived.by(() =>
   createVoiceSession({
@@ -107,16 +110,24 @@ function interrupt(): void {
 
 async function toggleMicMeter(): Promise<void> {
   micError = '';
-  if (micEnabled) {
-    stopMicMeter();
+  if (micEnabled || micPending) {
+    if (micEnabled) stopMicMeter();
     return;
   }
   if (!navigator.mediaDevices?.getUserMedia || typeof AudioContext === 'undefined') {
     micError = 'A local microphone level meter is unavailable in this browser.';
     return;
   }
+  micPending = true;
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (destroyed || !micPending) {
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+      return;
+    }
+    mediaStream = stream;
     audioContext = new AudioContext();
     const source = audioContext.createMediaStreamSource(mediaStream);
     const analyser = audioContext.createAnalyser();
@@ -125,7 +136,7 @@ async function toggleMicMeter(): Promise<void> {
     const samples = new Uint8Array(analyser.fftSize);
     micEnabled = true;
     const sampleLevel = () => {
-      if (!audioContext || !micEnabled) return;
+      if (!audioContext || !micEnabled || destroyed) return;
       analyser.getByteTimeDomainData(samples);
       let squareSum = 0;
       for (const sample of samples) {
@@ -138,7 +149,11 @@ async function toggleMicMeter(): Promise<void> {
     sampleLevel();
   } catch {
     stopMicMeter();
-    micError = 'Microphone access was not enabled. Voice simulation still works with captions.';
+    if (!destroyed) {
+      micError = 'Microphone access was not enabled. Voice simulation still works with captions.';
+    }
+  } finally {
+    micPending = false;
   }
 }
 
@@ -155,6 +170,8 @@ function stopMicMeter(): void {
 }
 
 onDestroy(() => {
+  destroyed = true;
+  micPending = false;
   session.stop();
   if (speechAvailable) window.speechSynthesis.cancel();
   stopMicMeter();
@@ -190,7 +207,7 @@ onDestroy(() => {
   {#if !speechAvailable}<p class="mt-2 text-center text-xs text-muted-foreground">Speech output is muted in this browser; captions remain available.</p>{/if}
   {#if showMicLevelMeter}
     <div class="mt-4 border-t border-border pt-3">
-      <button type="button" class="min-h-10 rounded-lg px-3 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-pressed={micEnabled} onclick={() => void toggleMicMeter()}>{micEnabled ? 'Disable local mic level meter' : 'Enable local mic level meter'}</button>
+      <button type="button" class="min-h-10 rounded-lg px-3 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" aria-pressed={micEnabled} disabled={micPending} onclick={() => void toggleMicMeter()}>{micEnabled ? 'Disable local mic level meter' : micPending ? 'Waiting for microphone…' : 'Enable local mic level meter'}</button>
       {#if micEnabled}<div class="mt-2 h-2 overflow-hidden rounded-full bg-muted" role="meter" aria-label="Local microphone amplitude" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(micLevel * 100)}><div class="h-full bg-primary transition-[width]" style={`width:${micLevel * 100}%`}></div></div><p class="mt-1 text-[0.65rem] text-muted-foreground">Amplitude only. Audio is not recorded or uploaded.</p>{/if}
       {#if micError}<p class="mt-2 text-xs text-destructive" role="alert">{micError}</p>{/if}
     </div>

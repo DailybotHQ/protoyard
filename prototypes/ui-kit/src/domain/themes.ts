@@ -21,14 +21,17 @@ export function createThemeLabServices(
 
     /**
      * Register a theme if needed (library / draft) then set the override.
-     * Viewers may apply themes; only designers can invent new custom ids.
+     * Viewers may apply any theme, including library themes that are not yet
+     * on the runtime list (registered under theme:apply without manage).
+     * Only designers may save brand-new Theme Studio drafts via saveCustom.
      */
     async activate(theme: Theme): Promise<Theme> {
       session.assert(CAPABILITIES.themeApply);
       return environment.run('theme.activate', async () => {
         const known = runtime.theme.themes().some((entry) => entry.id === theme.id);
         if (!known) {
-          session.assert(CAPABILITIES.themeManage);
+          // Library/preview registration is allowed for theme:apply holders so
+          // viewers can use library cards. saveCustom still enforces the 24 cap.
           await themeExtras.saveCustom(theme);
         }
         await runtime.theme.setOverride({ themeId: theme.id });

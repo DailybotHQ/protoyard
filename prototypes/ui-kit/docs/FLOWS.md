@@ -75,10 +75,12 @@ wrong". In every failure case nothing is written.
    (via `activateTheme` in src/lib/theme-lab.ts): `session.assert` →
    `environment.run('theme.activate')` → register unknown themes with
    `saveCustom` when needed → `setOverride`.
-3. Capability: `theme:apply` (designer and viewer). Registering a brand-new
-   custom id also needs `theme:manage` (designer only).
+3. Capability: `theme:apply` (designer and viewer). Library themes that are
+   not yet on the runtime list are registered under `theme:apply` (viewers
+   included). Brand-new Theme Studio drafts still need `theme:manage`
+   (designer) via `saveCustom`.
 4. Writes: the prototype's control database (appearance override and, when
-   registering a library/draft theme, the custom-theme list).
+   registering a library theme, the custom-theme list).
 5. Failure states: permission denied, schema errors and the 24-theme limit
    surface as toasts (`runService` with `silentValidation: false`). Simulated
    offline/failure modes apply through `environment.run`.
