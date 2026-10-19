@@ -28,6 +28,11 @@
       "types": "./src/screens/map/index.ts",
       "svelte": "./src/screens/map/index.ts",
       "default": "./src/screens/map/index.ts"
+    },
+    "./screens/board": {
+      "types": "./src/screens/board/index.ts",
+      "svelte": "./src/screens/board/index.ts",
+      "default": "./src/screens/board/index.ts"
     }
   },
   "scripts": {
