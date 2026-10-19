@@ -147,7 +147,7 @@ const kinds = [
           aria-pressed={query.features.includes(feature)}
           onclick={() => toggleFeature(feature)}
         >
-          {feature} <span class="opacity-70">{n}</span>
+          {feature} <span class="tabular-nums">{n}</span>
         </button>
       {/each}
     </div>
