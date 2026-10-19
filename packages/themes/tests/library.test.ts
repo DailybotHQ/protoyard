@@ -1,6 +1,12 @@
 import { ThemeSchema, ThemeStyleSchema } from '@protoyard/core';
 import { afterEach, describe, expect, it } from 'vitest';
-import { contrastRatio, TEXT_CONTRAST_PAIRS, UI_CONTRAST_PAIRS } from '../src/contrast.ts';
+import { chartColorDistance, validateChartTokens } from '../src/charts.ts';
+import {
+  contrastRatio,
+  parseHex,
+  TEXT_CONTRAST_PAIRS,
+  UI_CONTRAST_PAIRS,
+} from '../src/contrast.ts';
 import { FONT_CATALOG } from '../src/fonts.ts';
 import { themeFromDefinition } from '../src/library/build.ts';
 import {
@@ -18,6 +24,7 @@ import {
   THEME_LIBRARY_META,
   THEME_MOODS,
 } from '../src/library/index.ts';
+import { rgbToOklch } from '../src/oklch.ts';
 import { NEUTRAL_FAMILIES } from '../src/palette.ts';
 import { BUILTIN_THEMES } from '../src/presets.ts';
 
@@ -252,5 +259,101 @@ describe('library schema v2', () => {
     expect(warm.light.background).not.toBe(plain.light.background);
     expect(warm.dark.surface).not.toBe(plain.dark.surface);
     expect(ThemeSchema.parse(warm)).toEqual(warm);
+  });
+});
+
+const oklab = (hex: string) => {
+  const { l, c, h } = rgbToOklch(parseHex(hex) as [number, number, number]);
+  const angle = (h * Math.PI) / 180;
+  return [l, c * Math.cos(angle), c * Math.sin(angle)] as const;
+};
+const deltaE = (a: string, b: string) => {
+  const [l1, a1, b1] = oklab(a);
+  const [l2, a2, b2] = oklab(b);
+  return Math.hypot(l1 - l2, a1 - a2, b1 - b2);
+};
+const hueGap = (a: string, b: string) => {
+  const d =
+    Math.abs(
+      rgbToOklch(parseHex(a) as [number, number, number]).h -
+        rgbToOklch(parseHex(b) as [number, number, number]).h
+    ) % 360;
+  return d > 180 ? 360 - d : d;
+};
+
+describe('the 64-theme library', () => {
+  it('ships at least 64 themes across every collection', () => {
+    expect(THEME_LIBRARY_META.length).toBeGreaterThanOrEqual(64);
+    const count = (collection: string) =>
+      listThemeLibrary({ collection: collection as never }).length;
+    expect(count('industry')).toBeGreaterThanOrEqual(12);
+    expect(count('brand-like')).toBeGreaterThanOrEqual(8);
+    expect(count('high-contrast')).toBeGreaterThanOrEqual(4);
+    expect(count('colorblind-safe')).toBeGreaterThanOrEqual(4);
+    const highContrast = listThemeLibrary({ collection: 'high-contrast' });
+    expect(highContrast.every((meta) => meta.contrastLevel === 'AAA')).toBe(true);
+    expect(highContrast.some((meta) => meta.darkFirst)).toBe(true);
+    expect(highContrast.some((meta) => !meta.darkFirst)).toBe(true);
+    for (const mood of ['calm', 'bold', 'playful', 'corporate', 'editorial'] as const) {
+      expect(listThemeLibrary({ mood }).length, mood).toBeGreaterThan(0);
+    }
+  });
+
+  it('gives every theme its own neutral, font, radius and elevation combination', () => {
+    const combos = LIBRARY_THEME_DEFINITIONS.map((definition) =>
+      [
+        definition.neutral ?? 'original',
+        definition.font ?? 'default',
+        definition.radius ?? '0.625rem',
+        definition.style?.elevation ?? 'soft',
+      ].join(' | ')
+    );
+    const repeated = combos.filter((combo, index) => combos.indexOf(combo) !== index);
+    expect(repeated).toEqual([]);
+  });
+
+  it('keeps primaries apart: no two themes with one neutral family within ΔE_OK 0.04 in both modes', async () => {
+    const themes = await loadAllLibraryThemes();
+    const family = (id: string) =>
+      LIBRARY_THEME_DEFINITIONS.find((definition) => definition.id === id)?.neutral ?? 'original';
+    const close: string[] = [];
+    themes.forEach((a, i) => {
+      for (const b of themes.slice(0, i)) {
+        if (family(a.id) !== family(b.id)) continue;
+        const light = deltaE(a.light.primary, b.light.primary);
+        const dark = deltaE(a.dark.primary, b.dark.primary);
+        if (light < 0.04 && dark < 0.04)
+          close.push(`${b.id} ~ ${a.id} (${light.toFixed(3)}, ${dark.toFixed(3)})`);
+      }
+    });
+    expect(close).toEqual([]);
+  });
+
+  it('builds colorblind-safe chart palettes from Okabe-Ito seeds that pass the chart checks', async () => {
+    const safe = listThemeLibrary({ collection: 'colorblind-safe' });
+    expect(safe.length).toBeGreaterThanOrEqual(4);
+    for (const meta of safe) {
+      const definition = LIBRARY_THEME_DEFINITIONS.find((entry) => entry.id === meta.id);
+      const seeds = definition?.chartSeeds ?? [];
+      expect(seeds, meta.id).toHaveLength(5);
+      const theme = await loadLibraryTheme(meta.id);
+      for (const mode of ['light', 'dark'] as const) {
+        const charts = theme.charts?.[mode];
+        if (!charts) throw new Error(`${meta.id} has no ${mode} charts`);
+        expect(validateChartTokens(charts, theme[mode], mode), `${meta.id}/${mode}`).toEqual([]);
+        charts.categorical.forEach((color, i) => {
+          for (const other of charts.categorical.slice(0, i)) {
+            expect(chartColorDistance(color, other, 'tritanopia')).toBeGreaterThanOrEqual(0.04);
+          }
+        });
+        // Repair moves lightness only, so each series keeps its Okabe-Ito hue.
+        seeds.forEach((seed, i) => {
+          expect(
+            hueGap(seed, charts.categorical[i] as string),
+            `${meta.id}/${mode} series ${i + 1}`
+          ).toBeLessThan(12);
+        });
+      }
+    }
   });
 });

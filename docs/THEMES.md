@@ -381,11 +381,14 @@ prototype's theme list, and `violet` (`DEFAULT_THEME_ID`) is the fallback.
 
 ### The theme library (loaded on demand)
 
-`packages/themes/src/library/definitions.ts` declares **32 library themes**
-across 31 categories (two share `accessible`). Each entry is data only: id,
-name, description, category, tags, a seed and secondary color, a font
-pairing id, radius, density and an optional style profile. Tokens are not
-stored; they are built by the palette engine when a theme is loaded.
+The library holds **64 themes**: the 32 product-category themes of
+`packages/themes/src/library/definitions.ts` (first table) and 32 more in
+`definitions-extra.ts` (second table). Each entry is data only: id, name,
+description, category, tags, collection, mood, a seed and secondary color,
+a neutral family, a font pairing id, radius, density, an optional style
+profile and, for colorblind-safe themes, five chart seeds. Tokens are not
+stored; they are built by the palette engine when a theme is loaded. All
+names are fictional.
 
 | Id | Name | Category | Seed / secondary | Font | Radius | Density | Elevation |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -425,6 +428,67 @@ stored; they are built by the palette engine when a theme is loaded.
 Elevation `soft` in this table is the schema default for entries that do not
 set one. Several entries also set typography, radius scale, border width,
 motion or focus-ring values; see `definitions.ts` for the full profile.
+
+Twenty of the first 32 now use a neutral family, so no two themes in one
+family have nearly the same primary (the table above does not list the
+neutral; see `definitions.ts`). `accessible-high-contrast` and
+`accessible-dark-contrast` are AAA themes in the `high-contrast` collection,
+and `brutalist-block` and `productivity-minimal` are in `mono`: their black
+and near-black seeds now keep a gray primary (seeds below OKLCH chroma 0.04
+stay achromatic) instead of a saturated one.
+
+The second set:
+
+| Id | Name | Collection | Seed / secondary | Neutral | Font | Radius | Elevation |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `harbor-teal` | Harbor Teal | industry | `#0e7490` / `#f59e0b` | stone | grotesk | `0.5rem` | crisp |
+| `midnight-ops` | Midnight Ops | industry, dark-first | `#0891b2` / `#22c55e` | cool | mono | `0.375rem` | glow |
+| `paper-ledger` | Paper Ledger | industry | `#374151` / `#b45309` | warm | editorial | `0.25rem` | flat |
+| `citrus-market` | Citrus Market | industry | `#ea580c` / `#65a30d` | stone | rounded | `1rem` | soft |
+| `aurora-analytics` | Aurora Analytics | industry | `#7c3aed` / `#06b6d4` | gray | condensed | `0.5rem` | layered |
+| `clinic-calm` | Clinic Calm | industry | `#0d9488` / `#6366f1` | zinc | humanist | `0.875rem` | soft |
+| `campus-ivy` | Campus Ivy | industry | `#166534` / `#a16207` | warm | editorial | `0.625rem` | crisp |
+| `fieldwork` | Fieldwork | industry | `#4d7c0f` / `#92400e` | stone | humanist | `0.5rem` | flat |
+| `studio-reel` | Studio Reel | industry | `#be185d` / `#0ea5e9` | zinc | geometric | `0.75rem` | glow |
+| `transit-line` | Transit Line | industry | `#0369a1` / `#dc2626` | gray | grotesk | `0.375rem` | layered |
+| `hearth-home` | Hearth Home | industry | `#b45309` / `#0f766e` | warm | rounded | `0.875rem` | layered |
+| `civic-hall` | Civic Hall | industry | `#1e40af` / `#b91c1c` | cool | system | `0.25rem` | flat |
+| `nimbus-cloud` | Nimbus Cloud | brand-like | `#0ea5e9` / `#8b5cf6` | tinted | geometric | `0.75rem` | soft |
+| `ember-pay` | Ember Pay | brand-like | `#dc2626` / `#f59e0b` | stone | grotesk | `0.625rem` | crisp |
+| `lumen-notes` | Lumen Notes | brand-like | `#ca8a04` / `#475569` | stone | editorial | `0.5rem` | flat |
+| `orbit-chat` | Orbit Chat | brand-like | `#4f46e5` / `#ec4899` | tinted | rounded | `1.25rem` | soft |
+| `quartz-people` | Quartz People | brand-like | `#db2777` / `#0d9488` | gray | humanist | `0.75rem` | layered |
+| `summit-crm` | Summit CRM | brand-like | `#0f766e` / `#1d4ed8` | cool | system | `0.5rem` | crisp |
+| `pixel-forge` | Pixel Forge | brand-like, dark-first | `#a855f7` / `#f97316` | warm | mono | `0.25rem` | glow |
+| `velvet-shop` | Velvet Shop | brand-like | `#9d174d` / `#a16207` | warm | editorial | `0` | soft |
+| `contrast-paper` | Contrast Paper | high-contrast (AAA) | `#1d4ed8` / `#15803d` | gray | system | `0.5rem` | flat |
+| `contrast-ink` | Contrast Ink | high-contrast (AAA) | `#6d28d9` / `#b91c1c` | zinc | humanist | `0.375rem` | crisp |
+| `contrast-night` | Contrast Night | high-contrast (AAA), dark-first | `#38bdf8` / `#facc15` | slate | system | `0.5rem` | crisp |
+| `contrast-amber` | Contrast Amber | high-contrast (AAA), dark-first | `#f59e0b` / `#22d3ee` | warm | grotesk | `0.25rem` | flat |
+| `okabe-blue` | Okabe Blue | colorblind-safe | `#0072b2` / `#e69f00` | zinc | system | `0.5rem` | soft |
+| `okabe-orange` | Okabe Orange | colorblind-safe | `#d55e00` / `#56b4e9` | slate | geometric | `0.75rem` | layered |
+| `safe-signal` | Safe Signal | colorblind-safe, dark-first | `#56b4e9` / `#e69f00` | slate | condensed | `0.375rem` | crisp |
+| `clear-sight` | Clear Sight | colorblind-safe | `#009e73` / `#cc79a7` | gray | humanist | `0.875rem` | flat |
+| `winter-frost` | Winter Frost | seasonal | `#0284c7` / `#6366f1` | cool | geometric | `1rem` | soft |
+| `autumn-harvest` | Autumn Harvest | seasonal | `#c2410c` / `#854d0e` | warm | editorial | `0.625rem` | soft |
+| `graphite` | Graphite | mono | `#3f3f46` / `#71717a` | slate | grotesk | `0.25rem` | flat |
+| `sepia-print` | Sepia Print | mono | `#57534e` / `#a8a29e` | stone | editorial | `0.125rem` | flat |
+
+| Collection | Themes | What it promises (checked by `tests/library.test.ts`) |
+| --- | ---: | --- |
+| `industry` | 40 | Product-category moods |
+| `brand-like` | 8 | Fictional brand looks |
+| `high-contrast` | 6 | Every text pair at 7:1 (WCAG AAA) in both modes; light-first and dark-first |
+| `colorblind-safe` | 4 | Okabe-Ito chart seeds, repaired to the chart rules with their hues kept, distinct under protan, deutan and tritan simulation |
+| `seasonal` | 2 | Seasonal looks |
+| `mono` | 4 | Gray or near-gray primaries |
+
+Every theme has its own neutral family, font, radius and elevation
+combination, and no two themes that share a neutral family have primaries
+closer than ΔE_OK 0.04 in both modes. `createThemeFromSeed({ contrast: 'AAA' })`
+searches every text pair to 7:1 and needs a `neutral` family;
+`chartSeeds` (five hex colors) replaces the derived chart series before the
+chart repair.
 
 Each definition can also set catalog metadata (`packages/themes/src/library/types.ts`):
 
@@ -620,7 +684,7 @@ pairs in both modes before writing, refuse to overwrite an existing
 with `--dry-run`. They write the file only; register the exported theme in
 `definePrototype({ themes })` yourself.
 
-**List** the six presets and the 32 library themes:
+**List** the six presets and the 64 library themes:
 
 ```text
 $ pnpm protoyard theme list

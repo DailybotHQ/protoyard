@@ -56,6 +56,8 @@ export interface LibraryThemeDefinition {
   secondary?: string;
   /** Neutral family for surfaces, text and borders (absent: the original neutrals). */
   neutral?: NeutralFamily;
+  /** Five `#rrggbb` chart seeds (e.g. Okabe-Ito for colorblind-safe themes); repaired like any series. */
+  chartSeeds?: readonly string[];
   /** Id from `FONT_CATALOG` (`system`, `editorial`, …). */
   font?: string;
   radius?: string;
