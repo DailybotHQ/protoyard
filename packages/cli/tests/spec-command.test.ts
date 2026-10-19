@@ -307,7 +307,9 @@ describe('spec files on disk (real crm-demo facts)', { timeout: 120_000 }, () =>
 });
 
 describe('protoyard spec (CLI)', { timeout: 120_000 }, () => {
-  it('reports a prototype with no spec files and passes --check', async () => {
+  // Every prototype in the repository now ships a spec; the missing-files path is covered by
+  // 'validate: missing spec files warn, and fail with --strict-spec' below.
+  it('reports ui-kit spec files as present and current with --check', async () => {
     const run = await cli(['--root', ROOT, '--json', 'spec', 'ui-kit', '--check']);
     expect(run.code, run.stdout).toBe(0);
     const data = run.json<{
@@ -318,7 +320,7 @@ describe('protoyard spec (CLI)', { timeout: 120_000 }, () => {
       };
     }>().data;
     expect(data).toMatchObject({ mode: 'check', stale: 0 });
-    expect(data.results[0]?.files.every((f) => !f.exists)).toBe(true);
+    expect(data.results[0]?.files.every((f) => f.exists)).toBe(true);
   });
 
   it('rejects conflicting or missing arguments', async () => {
@@ -387,7 +389,7 @@ describe('validate spec check', () => {
     expect((await checkSpec(dir, 'notes-app', null, true)).status).toBe('skip');
   });
 
-  it('validate: real prototypes: crm-demo passes --strict-spec, ui-kit (no spec yet) warns or fails', {
+  it('validate: real prototypes: crm-demo and ui-kit pass --strict-spec', {
     timeout: 120_000,
   }, async () => {
     const validate = (slug: string, ...extra: string[]) =>
@@ -397,16 +399,11 @@ describe('validate spec check', () => {
         .json<{ data: { checks: { id: string; status: string }[] } }>()
         .data.checks.find((c) => c.id === 'spec');
 
-    const crm = await validate('crm-demo', '--strict-spec');
-    expect(crm.code, crm.stdout).toBe(0);
-    expect(specOf(crm)?.status).toBe('pass');
-
-    const kit = await validate('ui-kit');
-    expect(kit.code, kit.stdout).toBe(0);
-    expect(specOf(kit)?.status).toBe('warn');
-    const strict = await validate('ui-kit', '--strict-spec');
-    expect(strict.code).toBe(4);
-    expect(strict.json<{ error: { hint: string } }>().error.hint).toContain('spec');
+    for (const slug of ['crm-demo', 'ui-kit']) {
+      const run = await validate(slug, '--strict-spec');
+      expect(run.code, run.stdout).toBe(0);
+      expect(specOf(run)?.status).toBe('pass');
+    }
   });
 });
 
