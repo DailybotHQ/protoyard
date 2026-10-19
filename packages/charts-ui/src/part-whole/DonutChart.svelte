@@ -53,6 +53,8 @@ let {
   onselect,
 }: Props = $props();
 
+const uid = $props.id();
+let tableShown = $state(false);
 const format = $derived(valueFormatter({ unit, ...(currency ? { currency } : {}) }));
 const slices = $derived(groupSmallSlices(data, otherThreshold, otherLabel));
 const total = $derived(slices.reduce((s, x) => s + x.value, 0));
@@ -68,6 +70,14 @@ const text = $derived(
       .map((s) => `${s.label} ${formatShare(s.value, total)}`)
       .join(', ')}${slices.length > 3 ? `, and ${slices.length - 3} more` : ''}.`
 );
+
+const table = $derived({
+  headers: ['Slice', 'Value', 'Share'],
+  rows: slices.map((s) => ({
+    id: s.id,
+    cells: [s.label, format(s.value), formatShare(s.value, total)],
+  })),
+});
 
 /** Slices, outside labels (only where they fit) and tooltip anchors for a given box. */
 function layout(width: number, h: number) {
@@ -133,6 +143,14 @@ function layout(width: number, h: number) {
   {onretry}
 >
   {#snippet children(size)}
+    {#if tableShown}
+      <div id="{uid}-table" class="absolute inset-0 overflow-auto">
+        <!-- Loaded on demand: most viewers never open the table. -->
+        {#await import('../interaction/ValueTable.svelte') then { default: ValueTable }}
+          <ValueTable caption={title} headers={table.headers} rows={table.rows} />
+        {/await}
+      </div>
+    {:else}
     {@const view = layout(size.width, size.height)}
     <ItemPlot
       label={title}
@@ -176,6 +194,7 @@ function layout(width: number, h: number) {
         {/if}
       {/snippet}
     </ItemPlot>
+    {/if}
   {/snippet}
   {#snippet footer()}
     <ul class="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-x-4 gap-y-1 p-0 text-xs" aria-label="{title} values">
@@ -189,5 +208,12 @@ function layout(width: number, h: number) {
         </li>
       {/each}
     </ul>
+    <div class="mt-1 flex justify-end">
+      {#if table.rows.length > 0 && !loading && !error}
+        {#await import('../interaction/TableToggle.svelte') then { default: TableToggle }}
+          <TableToggle bind:showing={tableShown} controls="{uid}-table" />
+        {/await}
+      {/if}
+    </div>
   {/snippet}
 </ChartFrame>

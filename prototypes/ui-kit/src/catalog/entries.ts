@@ -10,6 +10,11 @@ export const CATALOG_GROUPS = [
   { id: 'feedback', name: 'Feedback', description: 'Toasts, progress and page states.' },
   { id: 'display', name: 'Display', description: 'Badges, avatars, cards and stats.' },
   { id: 'data', name: 'Data', description: 'Tables and boards.' },
+  {
+    id: 'charts',
+    name: 'Charts',
+    description: 'Every @protoyard/charts-ui family, states and a stress test.',
+  },
   { id: 'layout', name: 'Layout', description: 'App shell, sidebar and header.' },
   { id: 'chat', name: 'Chat', description: 'Threads, composer and people pickers.' },
   { id: 'flows', name: 'Flows', description: 'Steppers and wizards.' },
@@ -71,6 +76,18 @@ export const CATALOG: readonly CatalogEntryMeta[] = [
   e('display', 'card-grid', 'CardGrid', 'Responsive grid of cards.'),
   e('data', 'data-table', 'DataTable', 'Sort, search, filter, paginate, row click.'),
   e('data', 'kanban', 'Kanban', 'Columns with drag and drop and a move menu.'),
+  e('charts', 'chart-cartesian', 'Cartesian charts', 'Line, area, bar, combo and scatter.'),
+  e('charts', 'chart-part-whole', 'Part-whole charts', 'Donut, pie, funnel, Sankey and treemap.'),
+  e('charts', 'chart-matrix', 'Matrix charts', 'Heatmaps, calendar heatmap and histogram.'),
+  e('charts', 'chart-compact', 'Compact charts', 'Sparklines, gauges and radial progress.'),
+  e('charts', 'chart-geo', 'Tile maps', 'Equal-area tile maps for regions.'),
+  e(
+    'charts',
+    'chart-states',
+    'Chart states',
+    'Loading, empty, error, light/dark and reduced motion.'
+  ),
+  e('charts', 'chart-stress', 'Chart stress test', '10,000 points with an SVG/Canvas toggle.'),
   e('layout', 'app-shell', 'AppShell', 'Sidebar + header + main with a mobile drawer.'),
   e('layout', 'sidebar', 'Sidebar', 'Collapsible navigation with sections and badges.'),
   e('layout', 'header', 'Header', 'Page title, description and actions.'),
@@ -96,6 +113,14 @@ export const CATALOG: readonly CatalogEntryMeta[] = [
 ];
 
 export const CATALOG_IDS: readonly string[] = CATALOG.map((entry) => entry.id);
+
+/**
+ * Ids the seed generator may pick as favorites: everything before the charts
+ * group was added, so existing scenarios generate the same rows as before.
+ */
+export const FAVORITE_CANDIDATE_IDS: readonly string[] = CATALOG.filter(
+  (entry) => entry.group !== 'charts'
+).map((entry) => entry.id);
 
 export function catalogEntry(id: string): CatalogEntryMeta | undefined {
   return CATALOG.find((entry) => entry.id === id);

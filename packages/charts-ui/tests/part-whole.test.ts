@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { computeFunnel } from '../../analytics/src/funnel.ts';
 import DonutChart from '../src/part-whole/DonutChart.svelte';
@@ -272,5 +272,82 @@ describe('SankeyChart', () => {
       ],
     });
     expect(screen.getByRole('alert').textContent).toContain('cycle');
+  });
+});
+
+describe('tabular alternative for part-whole charts', () => {
+  const rowsOf = (table: HTMLElement) =>
+    [...table.querySelectorAll('tbody tr')].map((tr) =>
+      [...tr.children].map((c) => c.textContent?.trim())
+    );
+  const openTable = async () => {
+    const toggle = await screen.findByRole('button', { name: 'View as table' });
+    await fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(toggle.textContent?.trim()).toBe('View as chart');
+    return screen.findByRole('table');
+  };
+
+  it('Donut and Pie list every slice with its value and share', async () => {
+    render(DonutChart, { title: 'Plans', data: PLANS });
+    const table = await openTable();
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map((h) => h.textContent)
+    ).toEqual(['Slice', 'Value', 'Share']);
+    expect(rowsOf(table)[0]).toEqual(['Free', '620', '62%']);
+    expect(rowsOf(table).at(-1)?.[0]).toBe('Other');
+    expect(document.querySelector('[data-slice]')).toBeNull();
+    await fireEvent.click(screen.getByRole('button', { name: 'View as chart' }));
+    expect(document.querySelectorAll('[data-slice]').length).toBeGreaterThan(0);
+    cleanup();
+    render(PieChart, { title: 'Pie', data: PLANS.slice(0, 2), otherThreshold: 0 });
+    expect(rowsOf(await openTable())).toEqual([
+      ['Free', '620', '68.9%'],
+      ['Pro', '280', '31.1%'],
+    ]);
+  });
+
+  it('Funnel lists steps with counts, conversions and drop-off', async () => {
+    render(FunnelChart, {
+      title: 'Signup funnel',
+      steps: [
+        { id: 'visit', label: 'Visit', count: 1000 },
+        { id: 'signup', label: 'Sign up', count: 400 },
+        { id: 'paid', label: 'Paid', count: 100 },
+      ],
+    });
+    const table = await openTable();
+    expect(rowsOf(table)).toEqual([
+      ['Visit', '1,000', '100%', '—', '—'],
+      ['Sign up', '400', '40%', '40%', '600'],
+      ['Paid', '100', '10%', '25%', '300'],
+    ]);
+  });
+
+  it('Sankey lists every link source → target with its value', async () => {
+    render(SankeyChart, {
+      title: 'Flow',
+      nodes: [
+        { id: 'visit', label: 'Visit' },
+        { id: 'signup', label: 'Signup' },
+        { id: 'paid', label: 'Paid' },
+      ],
+      links: [
+        { source: 'visit', target: 'signup', value: 60 },
+        { source: 'signup', target: 'paid', value: 25 },
+      ],
+    });
+    expect(rowsOf(await openTable())).toEqual([
+      ['Visit → Signup', 'Visit', 'Signup', '60'],
+      ['Signup → Paid', 'Signup', 'Paid', '25'],
+    ]);
+  });
+
+  it('offers no table toggle while loading', async () => {
+    render(DonutChart, { title: 'Plans', data: PLANS, loading: true });
+    await Promise.resolve();
+    expect(screen.queryByRole('button', { name: 'View as table' })).toBeNull();
   });
 });
