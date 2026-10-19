@@ -361,6 +361,9 @@ importers:
       '@protoyard/offline':
         specifier: workspace:*
         version: link:../offline
+      '@protoyard/review-ui':
+        specifier: workspace:*
+        version: link:../review-ui
       '@protoyard/runtime':
         specifier: workspace:*
         version: link:../runtime
@@ -410,9 +413,6 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
-      '@protoyard/renderer-svelte':
-        specifier: workspace:*
-        version: link:../renderer-svelte
       '@protoyard/review':
         specifier: workspace:*
         version: link:../review
