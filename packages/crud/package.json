@@ -23,6 +23,11 @@
       "types": "./src/screens/calendar/index.ts",
       "svelte": "./src/screens/calendar/index.ts",
       "default": "./src/screens/calendar/index.ts"
+    },
+    "./screens/map": {
+      "types": "./src/screens/map/index.ts",
+      "svelte": "./src/screens/map/index.ts",
+      "default": "./src/screens/map/index.ts"
     }
   },
   "scripts": {
