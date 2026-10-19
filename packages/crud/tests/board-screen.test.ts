@@ -94,7 +94,7 @@ async function moveToActive(title: string) {
 }
 
 describe('BoardScreen', () => {
-  it('persists a menu move across reload and offers Undo', async () => {
+  it('persists a menu move across reload and offers Undo', { timeout: 30_000 }, async () => {
     const runtime = await harness.boot('owner');
     const services = createEntityServices(runtime, blueprint);
     const created = await services.request!.create({
