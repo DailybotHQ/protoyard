@@ -4,16 +4,32 @@ Svelte 5 UI for review comments on published prototypes, on `@protoyard/ui`
 tokens: comment mode and pins, threads, the comments panel and the floating
 review toolbar. The engine is [`@protoyard/review`](../review/README.md).
 
-> **Status: scaffold.** The subpaths exist and are empty. Each one is filled
-> by its PLAN_003 task, and this README documents it when it lands.
+The package is split into lazy subpaths so a prototype that does not enable
+review comments pays no cost for them.
 
 | Subpath | What it will hold | Task |
 | --- | --- | --- |
-| `./overlay` | Comment mode (crosshair, Esc, keyboard placement) and pins inside device frames | T-review-ui-overlay-pins |
+| `./overlay` | Comment mode (crosshair, Esc, keyboard placement), accessible pins and clusters inside device frames | T-review-ui-overlay-pins |
 | `./panel` | The list of threads with filters, counts and "go to pin" | T-review-ui-panel-toolbar |
 | `./toolbar` | The floating review toolbar for builds without DevTools | T-review-ui-panel-toolbar |
 | `./mount` | The entry the renderer imports lazily when review is enabled | T-review-ui-renderer-wiring |
 | `./styles.css` | `@source "./"` for Tailwind; import it only where review is enabled | — |
+
+## Overlay
+
+`createReviewOverlay({ root, comments, onPlace, onOpen })` mounts the comment
+mode toggle and resolves comment anchors against the prototype root. It also
+detects `[data-py-portal-root]`, which the renderer places inside a device
+screen, so pins follow the frame's scale. The caller supplies validated
+comments and persists a newly placed anchor through its review service in
+`onPlace`; the overlay does not write to an adapter directly.
+
+Press **C** outside an editable control to enter or leave comment mode. In
+that mode, clicks place a pin, **Escape** exits, and the keyboard crosshair can
+be moved with the arrow keys before **Enter** places a pin. **Shift+C** places
+a comment on the focused prototype element. Resolved comments stay hidden by
+default; orphaned anchors are left to the comments list. Nearby pins cluster
+into a count button that expands to the individual threads.
 
 ## 0 bytes until review is enabled
 
