@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import type { FintechDatabase, Transaction } from '../src/database/schema.ts';
+import { readFinances } from '../src/domain/queries.ts';
 import { definition } from '../src/prototype.ts';
 import { scenarios } from '../src/scenarios/index.ts';
 
@@ -12,6 +13,24 @@ function ledgerEffect(row: Transaction) {
 }
 
 describe('fintech dashboard generator', () => {
+  it('runs every Money overview read against IndexedDB and sorts accounts in memory', async () => {
+    const harness = createHarness<FintechDatabase>(definition);
+    try {
+      const runtime = await harness.boot('active');
+      const overview = await readFinances(runtime.db);
+
+      expect(overview.accounts.map((account) => account.name)).toEqual([
+        'Everyday checking',
+        'Rainy day savings',
+      ]);
+      expect(overview.transactions.length).toBeGreaterThan(0);
+      expect(overview.snapshots.length).toBeGreaterThan(0);
+      expect(overview.budgets).toHaveLength(5);
+    } finally {
+      harness.closeAll();
+    }
+  });
+
   it('repeats the account ledger, payday history and budgets for every scenario', async () => {
     for (const scenario of scenarios) {
       const harness = createHarness<FintechDatabase>(definition);
@@ -23,6 +42,7 @@ describe('fintech dashboard generator', () => {
           budgets: await first.db.budgets.orderBy('id').toArray(),
           history: await first.db.balanceSnapshots.orderBy('id').toArray(),
         };
+        const personas = await first.db.table('py_personas').toArray();
         const second = await harness.boot(scenario.id);
         expect({
           accounts: await second.db.accounts.orderBy('id').toArray(),
@@ -31,6 +51,7 @@ describe('fintech dashboard generator', () => {
           history: await second.db.balanceSnapshots.orderBy('id').toArray(),
         }).toEqual(snapshot);
         expect(snapshot.accounts).toHaveLength(2);
+        expect(personas.every((persona) => /^av-\d{3}$/.test(persona.avatar ?? ''))).toBe(true);
         expect(snapshot.budgets).toHaveLength(5);
         if (scenario.id === 'active') {
           expect(
