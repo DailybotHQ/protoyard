@@ -151,6 +151,8 @@ describe('billing UI', () => {
     expect(screen.getByTestId('portal-seats').textContent).toMatch(/\d+/);
 
     await fireEvent.click(screen.getByRole('button', { name: 'Cancel at period end' }));
+    await screen.findByRole('alertdialog');
+    await fireEvent.click(screen.getByRole('button', { name: 'Schedule cancellation' }));
     await screen.findByRole('button', { name: 'Resume subscription' });
     expect((await billing.subscription())?.cancelAtPeriodEnd).toBe(true);
     expect(screen.getByText(/Cancels at period end/i)).toBeTruthy();
@@ -161,6 +163,34 @@ describe('billing UI', () => {
       expect(sub?.cancelAtPeriodEnd).toBe(false);
     });
     await screen.findByRole('button', { name: 'Cancel at period end' });
+  });
+
+  it('asks before cancelling at period end: the dialog names the plan, Keep does nothing', async () => {
+    const { runtime, billing } = await boot('billing-ui-cancel-confirm');
+    await billing.startTrial({ planId: 'starter' });
+    await billing.checkout({ planId: 'starter', outcome: 'success' });
+    render(ProvideBillingHarness, { props: { runtime, billing, screen: 'portal' } });
+    await screen.findByTestId('portal-seats');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel at period end' }));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog.textContent).toContain('Cancel the Starter plan at period end?');
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    expect(document.activeElement).not.toBe(
+      screen.getByRole('button', { name: 'Schedule cancellation' })
+    );
+    expect((await billing.subscription())?.cancelAtPeriodEnd).toBe(false);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Keep subscription' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect((await billing.subscription())?.cancelAtPeriodEnd).toBe(false);
+    expect(screen.queryByRole('button', { name: 'Resume subscription' })).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel at period end' }));
+    await screen.findByRole('alertdialog');
+    await fireEvent.click(screen.getByRole('button', { name: 'Schedule cancellation' }));
+    await screen.findByRole('button', { name: 'Resume subscription' });
+    expect((await billing.subscription())?.cancelAtPeriodEnd).toBe(true);
   });
 
   it('shows a trial banner countdown from the simulated clock', async () => {

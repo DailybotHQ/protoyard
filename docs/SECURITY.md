@@ -16,8 +16,8 @@ covers Protoyard's threat model and the rules contributors and agents follow.
   users, contact identity providers, provide a second security factor or charge
   money. Accounts, tokens and billing state stay in browser storage. See the
   [SaaS kits guide](SAAS_KITS.md) for each kit's behavior and current limits.
-  Simulated passwords are stored as **plain text** in browser storage and are
-  included in exported snapshots. Never type a real password into a
+  Simulated passwords are stored as **plain text** in browser storage (exported
+  snapshot files blank them). Never type a real password into a
   prototype; sign-up accepts only fictional `example.com` addresses.
 - **No real money, identity or personal data.** The demos are fictional.
   `mobile-banking-demo` never collects card or bank details.
@@ -35,6 +35,7 @@ covers Protoyard's threat model and the rules contributors and agents follow.
 | Static outputs (showcase, review index) ↔ public internet | Shipping markup or links from untrusted strings | `showcase` and `review-index` write only to `artifacts/` (or a marked folder with `--allow-external-out`). The review page escapes all text, has no script, and links only `https:`/`http:` URLs recorded in the deploy ledger. `review-index --publish` uploads only `artifacts/review` unless `--allow-publish-out` is passed, never a folder that holds the deploy ledger, and refuses folders with files it did not write. |
 | CI templates ↔ repository secrets | Leaking a provider token, injecting into workflows | `protoyard ci init` writes workflows whose actions are pinned to commit SHAs, with `contents: read` and `persist-credentials: false`. `--prototypes` must list registry slugs, so no other text reaches the YAML or its shell steps. `protoyard-preview.yml` skips fork pull requests but still runs same-repository pull request code next to `CLOUDFLARE_API_TOKEN`. Use a token limited to Cloudflare Pages: Edit on one account, store it as an environment secret with required reviewers, and rotate it when collaborators change. |
 | AI voice ↔ microphone and speech | Recording or uploading audio | The voice panel never requests the microphone by default. The optional level meter reads amplitude only with Web Audio and never records, stores or uploads audio. Spoken replies use the browser's `speechSynthesis`, which may use a network voice depending on the browser and the selected voice. |
+| Simulated passwords ↔ browser storage | A reviewer types a real password into a SaaS demo | Simulated auth stores what is typed as **plain text** in IndexedDB (readable by other prototypes on the same origin). Every password field warns "do not use a real password" and uses `autocomplete="off"`. Exported snapshot files blank `simulatedPassword`; in-browser saved snapshots keep it so an in-place restore still signs in. Never enter a real password in a prototype. |
 | Indexing ↔ prototype code | Running untrusted code just to list it | `index` reads data-only `protoyard.json` files and validates them with zod. **No prototype code runs** (ADR-003). |
 | Snapshot import ↔ browser data | Malformed or malicious files | `parseSnapshotText` / `validateSnapshot`: JSON only, 25 MB limit, strict schema, prototype id must match, newer schemas rejected. Import is validated before anything is written, and failures leave current data untouched. Snapshots are never evaluated, and strings render as escaped text. |
 | Prototype ↔ prototype (same origin) | One app reading another's IndexedDB | **Not prevented.** Database names are namespaces, not a security boundary. Serve untrusted prototypes from separate origins. |

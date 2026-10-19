@@ -41,7 +41,7 @@ async function submit() {
   const next = nextPath(new URLSearchParams(location.hash.split('?')[1] ?? ''), config.homePath);
   if (result.value.status === 'mfa-required') {
     navigate(
-      `/auth/mfa?account=${encodeURIComponent(result.value.account.id)}&next=${encodeURIComponent(next)}`
+      `/auth/mfa?challenge=${encodeURIComponent(result.value.challenge.id)}&next=${encodeURIComponent(next)}`
     );
     return;
   }
@@ -64,7 +64,7 @@ async function submit() {
         </FormField>
         <FormField label="Password" required error={issues.password}>
           {#snippet children(control)}
-            <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="current-password" bind:value={password} required />
+            <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="off" bind:value={password} required />
           {/snippet}
         </FormField>
         <Button variant="ghost" size="sm" onclick={() => (showPassword = !showPassword)} aria-pressed={showPassword}>
@@ -88,5 +88,5 @@ async function submit() {
       <Button href="#/auth/reset" variant="link">Forgot password?</Button>
     </CardFooter>
   </Card>
-  <p class="mt-4 text-center text-xs text-muted-foreground">Simulation only — never enter a real password.</p>
+  <p class="mt-4 text-center text-xs text-muted-foreground" data-testid="simulated-password-notice">Simulation only — do not use a real password. What you type is kept as plain text in this browser and in exported snapshots.</p>
 </main>

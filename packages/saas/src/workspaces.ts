@@ -8,6 +8,7 @@ import {
   ValidationError,
 } from '@protoyard/core';
 import { z } from 'zod';
+import { assertInOrg } from './org-access.ts';
 
 /**
  * Simulated multi-workspace services (ADR-018).
@@ -18,7 +19,9 @@ import { z } from 'zod';
  * reuses `runtime.members.transferOwnership`.
  *
  * Record rule: the last owner of an organization cannot leave (transfer
- * first). Simulation only — not security.
+ * first). Rename and leave check the capability against the actor's role in
+ * the TARGET organization (`assertInOrg`), not the active one. Simulation
+ * only — not security.
  */
 
 /** Capabilities asserted by workspace mutations (grant via the prototype policy). */
@@ -179,12 +182,13 @@ export function createWorkspaces(runtime: WorkspacesRuntime): WorkspacesService 
     input: RenameWorkspaceInput
   ): Promise<Organization> {
     const principal = requirePrincipal(runtime);
-    runtime.session.assert(WORKSPACE_CAPABILITIES.rename, { organizationId });
     if (!membershipFor(runtime, principal.persona.id, organizationId)) {
       throw new ValidationError({
         organizationId: 'You are not a member of that workspace.',
       });
     }
+    // The role that counts is the actor's role in the workspace being renamed.
+    assertInOrg(runtime, WORKSPACE_CAPABILITIES.rename, organizationId);
     const data = parseInput(RenameWorkspaceSchema, input);
 
     return runtime.environment.run('workspaces.rename', () =>
@@ -206,14 +210,13 @@ export function createWorkspaces(runtime: WorkspacesRuntime): WorkspacesService 
     if (!orgId) {
       throw new ValidationError({ organizationId: 'No active workspace to leave.' });
     }
-    runtime.session.assert(WORKSPACE_CAPABILITIES.leave, { organizationId: orgId });
-
     const mine = membershipFor(runtime, principal.persona.id, orgId);
     if (!mine) {
       throw new ValidationError({
         organizationId: 'You are not a member of that workspace.',
       });
     }
+    assertInOrg(runtime, WORKSPACE_CAPABILITIES.leave, orgId);
 
     await runtime.environment.run('workspaces.leave', () =>
       runtime.identity.write(async (ops) => {

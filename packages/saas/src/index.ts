@@ -53,11 +53,16 @@ export {
 } from './magic-link.ts';
 export {
   createMfaServices,
+  MFA_CHALLENGE_TTL_MS,
   MFA_WINDOW_MS,
+  type MfaChallenge,
+  type MfaChallengeMethod,
+  type MfaChallengeView,
   MfaCodeSchema,
   type MfaOptions,
   type MfaServices,
   type MfaSignInResult,
+  mfaChallengeHref,
   type PasswordSignInInput,
   PasswordSignInSchema,
   RecoveryCodeInputSchema,
@@ -86,6 +91,7 @@ export {
   type StepEffect,
   ValidationError,
 } from './onboarding.ts';
+export { assertInOrg, membershipInOrg, type OrgAccessRuntime } from './org-access.ts';
 export {
   defaultOAuthProviderScenarios,
   OAUTH_PROVIDER_REGISTRY,

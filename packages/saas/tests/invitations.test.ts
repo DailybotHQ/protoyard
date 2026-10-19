@@ -16,6 +16,7 @@ import {
   mergeIntegrity,
   type SaasAccount,
   type SaasInvitation,
+  type SaasToken,
   saasIntegrity,
   saasStores,
   saasTables,
@@ -296,5 +297,108 @@ describe('workspace invitations', () => {
     expect(
       (await runtime.db.rows<SaasInvitation>('saas_invitations').get(late.invitation.id))?.status
     ).toBe('pending');
+  });
+
+  /** Actor is `admin` of the active org A; org B gets a pending invitation created by the actor. */
+  async function crossOrgInvitation() {
+    const runtime = await signedInRuntime();
+    const invites = createInvitationServices(runtime);
+    const principal = runtime.session.principal();
+    const own = principal?.membership;
+    if (!principal || !own) throw new Error('The fixture owner has no membership');
+    const orgA = own.organizationId;
+    const membershipB = await runtime.identity.write(async (ops) => {
+      await ops.putMembership({ ...own, role: 'admin' });
+      const organization = await ops.putOrganization({ name: 'Org B', type: 'company', size: 1 });
+      return ops.putMembership({
+        personaId: principal.persona.id,
+        organizationId: organization.id,
+        role: 'admin',
+      });
+    });
+    await runtime.session.switchOrganization(membershipB.organizationId);
+    const invite = await invites.create({ email: 'margaret@example.com', role: 'member' });
+    expect(invite.invitation.organizationId).toBe(membershipB.organizationId);
+    await runtime.session.switchOrganization(orgA);
+    expect(runtime.session.principal()).toMatchObject({
+      organization: { id: orgA },
+      role: 'admin',
+    });
+    return { runtime, invites, invite, membershipB };
+  }
+
+  it('denies resend and revoke of another workspace invitation to a non-member or a member without the capability', async () => {
+    const { runtime, invites, invite, membershipB } = await crossOrgInvitation();
+    const stored = () =>
+      runtime.db.rows<SaasInvitation>('saas_invitations').get(invite.invitation.id);
+
+    // Not a member of B at all.
+    await runtime.identity.write((ops) => ops.removeMembership(membershipB.id));
+    await expect(invites.resend(invite.invitation.id)).rejects.toBeInstanceOf(
+      PermissionDeniedError
+    );
+    await expect(invites.revoke(invite.invitation.id)).rejects.toBeInstanceOf(
+      PermissionDeniedError
+    );
+
+    // A member of B whose role there lacks members:invite.
+    await runtime.identity.write((ops) => ops.putMembership({ ...membershipB, role: 'member' }));
+    await expect(invites.resend(invite.invitation.id)).rejects.toBeInstanceOf(
+      PermissionDeniedError
+    );
+    await expect(invites.revoke(invite.invitation.id)).rejects.toBeInstanceOf(
+      PermissionDeniedError
+    );
+
+    expect(await stored()).toMatchObject({ status: 'pending', tokenId: invite.token.id });
+  });
+
+  it('lets an admin of the invitation workspace resend and revoke it while another workspace is active', async () => {
+    const { runtime, invites, invite } = await crossOrgInvitation();
+    const resent = await invites.resend(invite.invitation.id);
+    expect(resent.token.id).not.toBe(invite.token.id);
+    const revoked = await invites.revoke(invite.invitation.id);
+    expect(revoked.status).toBe('revoked');
+    expect(runtime.session.principal()?.role).toBe('admin');
+  });
+
+  it('accept refuses a disabled or locked existing account without signing in or writing', async () => {
+    for (const status of ['disabled', 'locked'] as const) {
+      const runtime = await signedInRuntime();
+      const owner = runtime.session.principal()?.persona.id;
+      const email = `${status}-person@example.com`;
+      const persona = await runtime.identity.write((ops) =>
+        ops.putPersona({ name: `${status} person`, email })
+      );
+      await runtime.db.rows<SaasAccount>('saas_accounts').add({
+        id: `acct_${status}`,
+        personaId: persona.id,
+        email,
+        emailVerified: true,
+        simulatedPassword: 'simulated password',
+        providers: [],
+        status,
+        failedAttempts: 0,
+        createdAt: REFERENCE_TIME,
+        lastSignInAt: null,
+      });
+      const invites = createInvitationServices(runtime);
+      const invite = await invites.create({ email, role: 'member' });
+      await expect(invites.accept({ tokenId: invite.token.id })).rejects.toMatchObject({
+        name: 'ValidationError',
+        issues: { form: 'This account is not available.' },
+      });
+      expect(runtime.session.principal()?.persona.id).toBe(owner);
+      expect(runtime.session.memberships().some((m) => m.personaId === persona.id)).toBe(false);
+      expect(
+        (await runtime.db.rows<SaasInvitation>('saas_invitations').get(invite.invitation.id))
+          ?.status
+      ).toBe('pending');
+      expect(await runtime.db.rows<SaasToken>('saas_tokens').get(invite.token.id)).toMatchObject({
+        consumedAt: null,
+      });
+      harness.closeAll();
+      harness = createHarness<Db>(definition);
+    }
   });
 });

@@ -1,23 +1,26 @@
 <script lang="ts">
 import { ArrowLeft, CircleDashed, Plus, Rocket, Trash2 } from '@lucide/svelte';
-import { getRuntime, liveQuery, runService } from '@protoyard/renderer-svelte';
+import { getRuntime, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, Input } from '@protoyard/ui';
 import type { B2bSaasDatabase, Project } from '../database/schema.ts';
 import { createProjectServices } from '../domain/projects.ts';
 
 const runtime = getRuntime<B2bSaasDatabase>();
 const services = createProjectServices(runtime);
-const organizationId = $derived(runtime.session.principal()?.organization?.id);
-const canCreate = $derived(runtime.session.can('projects:create', { organizationId }));
-const canUpdate = $derived(runtime.session.can('projects:update', { organizationId }));
-const canDelete = $derived(runtime.session.can('projects:delete', { organizationId }));
+// The reactive principal: a workspace switch re-runs the query and the checks.
+const principal = usePrincipal(runtime);
+const can = (capability: string) =>
+  runtime.session.can(capability, { organizationId: principal.current?.organization?.id });
+const canCreate = $derived(can('projects:create'));
+const canUpdate = $derived(can('projects:update'));
+const canDelete = $derived(can('projects:delete'));
 const projects = liveQuery(
   () =>
     runtime.db.projects
       .where('organizationId')
-      .equals(runtime.session.principal()?.organization?.id ?? '')
+      .equals(principal.current?.organization?.id ?? '')
       .toArray(),
-  { initial: [], deps: () => [runtime.session.principal()?.organization?.id] }
+  { initial: [], deps: () => [principal.current?.organization?.id] }
 );
 const projectRows = $derived(projects.current ?? []);
 let name = $state('');

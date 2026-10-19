@@ -105,18 +105,21 @@ The service accepts a new name and summary too, but no screen edits them.
 4. Writes (one transaction): `saas_sessions_log` (success or failure with a reason); on success `saas_accounts` (failedAttempts 0, lastSignInAt), then the simulated session signs in
 5. Failure states: "No account uses this email", "Incorrect password.", "Confirm your email first. Check your simulated inbox.", locked or disabled account, simulated offline or failure (nothing written)
 
-This path does not count failed attempts or lock accounts (the kit's
-`auth.signIn` does, but no screen calls it).
+Wrong passwords count toward a lock: the account locks at the kit's
+`lockoutThreshold` (5), the same rule as `auth.signIn`.
 
 ## Complete an MFA challenge
 
 1. After a password or magic-link sign-in on an account with active MFA →
-   Multi-factor (`#/auth/mfa?account=…`). The screen shows the simulated
-   authenticator code; type it (or switch to a recovery code) → submit.
-2. Service: `mfa.completeChallenge(accountId, { code } | { recoveryCode })` (packages/saas/src/mfa.ts)
+   Multi-factor (`#/auth/mfa?challenge=…`, a single-use challenge minted by
+   the first factor). The screen shows the simulated authenticator code of
+   that challenge's account only; type it (or switch to a recovery code) →
+   submit. A Google/Microsoft/GitHub sign-in for an account with active MFA
+   lands here too.
+2. Service: `mfa.completeChallenge(challengeId, { code } | { recoveryCode })` (packages/saas/src/mfa.ts)
 3. Capability: none (signed-out flow)
 4. Writes (one transaction): `saas_accounts` (lastSignInAt), `saas_mfa` (the recovery code's usedAt when one is used), `saas_sessions_log`; then the session signs in
-5. Failure states: wrong or used code, "This account does not have an active simulated MFA challenge.", simulated offline or failure
+5. Failure states: wrong code or recovery code (logged as `wrong-code` / `bad-recovery`), an unknown, used or expired challenge, simulated offline or failure
 
 ## Sign in with a magic link
 

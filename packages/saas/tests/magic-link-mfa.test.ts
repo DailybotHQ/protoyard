@@ -9,11 +9,14 @@ import { generateTeam } from '@protoyard/scenarios';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
+  createAuthServices,
   createMagicLinkServices,
   createMfaServices,
   MFA_WINDOW_MS,
   mergeIntegrity,
   type SaasAccount,
+  type SaasSessionLog,
+  type SaasToken,
   saasIntegrity,
   saasStores,
   saasTables,
@@ -79,6 +82,18 @@ afterEach(() => {
 });
 
 const asRuntime = (runtime: unknown) => runtime as ProtoyardRuntime;
+
+/** The challenge id of an `mfa-required` result (fails the test otherwise). */
+function challengeOf(result: { status: string; challenge?: { id: string } }): string {
+  if (result.status !== 'mfa-required' || !result.challenge) {
+    throw new Error(`Expected an mfa-required result, got ${result.status}`);
+  }
+  return result.challenge.id;
+}
+
+async function signInLog(runtime: ProtoyardRuntime) {
+  return runtime.db.rows<SaasSessionLog>('saas_sessions_log').toArray();
+}
 const boot = async () => asRuntime(await harness.boot('visitor'));
 
 async function enrollActiveMfa(runtime: ProtoyardRuntime) {
@@ -150,12 +165,12 @@ describe('MFA', () => {
     expect(runtime.session.isSignedIn()).toBe(false);
 
     await expect(
-      mfa.completeChallenge(password.account.id, { code: '000000' })
+      mfa.completeChallenge(challengeOf(password), { code: '000000' })
     ).rejects.toMatchObject({ issues: { code: expect.stringMatching(/not correct/i) } });
     expect(runtime.session.isSignedIn()).toBe(false);
 
     const code = simulatedTotpCode(seed, runtime.clock.now().getTime());
-    const finished = await mfa.completeChallenge(password.account.id, { code });
+    const finished = await mfa.completeChallenge(challengeOf(password), { code });
     expect(finished.email).toBe(SEEDED.email);
     expect(runtime.session.isSignedIn()).toBe(true);
 
@@ -167,7 +182,7 @@ describe('MFA', () => {
     expect(runtime.session.isSignedIn()).toBe(false);
 
     const nextCode = createMfaServices(runtime).authenticatorPanel(seed).code;
-    await mfa.completeChallenge(consumed.account.id, { code: nextCode });
+    await mfa.completeChallenge(challengeOf(consumed), { code: nextCode });
     expect(runtime.session.isSignedIn()).toBe(true);
   });
 
@@ -177,7 +192,7 @@ describe('MFA', () => {
 
     const challenge = await mfa.signInWithPassword(SEEDED);
     expect(challenge.status).toBe('mfa-required');
-    await mfa.completeChallenge(challenge.account.id, {
+    await mfa.completeChallenge(challengeOf(challenge), {
       recoveryCode: recoveryCodes[0]!,
     });
     expect(runtime.session.isSignedIn()).toBe(true);
@@ -186,7 +201,7 @@ describe('MFA', () => {
     await runtime.session.signOut();
     const again = await mfa.signInWithPassword(SEEDED);
     await expect(
-      mfa.completeChallenge(again.account.id, { recoveryCode: recoveryCodes[0]! })
+      mfa.completeChallenge(challengeOf(again), { recoveryCode: recoveryCodes[0]! })
     ).rejects.toMatchObject({
       issues: { recoveryCode: expect.stringMatching(/not valid/i) },
     });
@@ -195,7 +210,7 @@ describe('MFA', () => {
     runtime.clock.commitAdvance({ seconds: 31 });
     const after = simulatedTotpCode(seed, runtime.clock.now().getTime());
     expect(after).not.toBe(before);
-    await mfa.completeChallenge(again.account.id, { code: after });
+    await mfa.completeChallenge(challengeOf(again), { code: after });
     expect(runtime.session.isSignedIn()).toBe(true);
   });
 
@@ -203,7 +218,7 @@ describe('MFA', () => {
     const runtime = await boot();
     const { mfa, seed } = await enrollActiveMfa(runtime);
     const gate = await mfa.signInWithPassword(SEEDED);
-    await mfa.completeChallenge(gate.account.id, {
+    await mfa.completeChallenge(challengeOf(gate), {
       code: simulatedTotpCode(seed, runtime.clock.now().getTime()),
     });
     await mfa.disable({
@@ -214,5 +229,172 @@ describe('MFA', () => {
     const open = await mfa.signInWithPassword(SEEDED);
     expect(open.status).toBe('signed-in');
     expect(runtime.session.isSignedIn()).toBe(true);
+  });
+});
+
+describe('MFA challenge tokens (H1)', () => {
+  it('refuses a bare account id, a reused challenge and an expired challenge', async () => {
+    const runtime = await boot();
+    const { mfa, seed } = await enrollActiveMfa(runtime);
+    const codeNow = () => simulatedTotpCode(seed, runtime.clock.now().getTime());
+    const account = await runtime.db
+      .rows<SaasAccount>('saas_accounts')
+      .where('email')
+      .equals(SEEDED.email)
+      .first();
+    if (!account) throw new Error('The seeded account is missing');
+
+    // No first factor at all: the account id is not a challenge.
+    await expect(mfa.completeChallenge(account.id, { code: codeNow() })).rejects.toMatchObject({
+      issues: { form: expect.stringMatching(/not valid/i) },
+    });
+    expect(await mfa.describeChallenge(account.id)).toBeNull();
+    expect(runtime.session.isSignedIn()).toBe(false);
+
+    const first = await mfa.signInWithPassword(SEEDED);
+    const challengeId = challengeOf(first);
+    expect(challengeId).not.toBe(account.id);
+    const token = await runtime.db.rows<SaasToken>('saas_tokens').get(challengeId);
+    expect(token).toMatchObject({ kind: 'mfa-challenge', accountId: account.id, consumedAt: null });
+    expect(await mfa.describeChallenge(challengeId)).toMatchObject({
+      email: SEEDED.email,
+      code: codeNow(),
+      simulated: true,
+    });
+
+    await mfa.completeChallenge(challengeId, { code: codeNow() });
+    expect(runtime.session.isSignedIn()).toBe(true);
+    await runtime.session.signOut();
+
+    // Single use.
+    await expect(mfa.completeChallenge(challengeId, { code: codeNow() })).rejects.toMatchObject({
+      issues: { form: expect.stringMatching(/already used/i) },
+    });
+    expect(await mfa.describeChallenge(challengeId)).toBeNull();
+    expect(runtime.session.isSignedIn()).toBe(false);
+
+    // Short-lived.
+    const late = challengeOf(await mfa.signInWithPassword(SEEDED));
+    runtime.clock.commitAdvance({ minutes: 11 });
+    await expect(mfa.completeChallenge(late, { code: codeNow() })).rejects.toBeInstanceOf(
+      ValidationError
+    );
+    await expect(mfa.completeChallenge(late, { code: codeNow() })).rejects.toMatchObject({
+      issues: { form: expect.stringMatching(/expired/i) },
+    });
+    expect(runtime.session.isSignedIn()).toBe(false);
+  });
+
+  it('mints a challenge for an MFA-active magic-link sign-in', async () => {
+    const runtime = await boot();
+    const { mfa, seed } = await enrollActiveMfa(runtime);
+    const magic = createMagicLinkServices(runtime);
+    const link = await magic.issue({ email: SEEDED.email });
+    const consumed = await magic.consume(link.token!.id);
+    const challengeId = challengeOf(consumed);
+    expect(runtime.session.isSignedIn()).toBe(false);
+    await expect(
+      mfa.completeChallenge(consumed.account.id, {
+        code: simulatedTotpCode(seed, runtime.clock.now().getTime()),
+      })
+    ).rejects.toBeInstanceOf(ValidationError);
+    await mfa.completeChallenge(challengeId, {
+      code: simulatedTotpCode(seed, runtime.clock.now().getTime()),
+    });
+    expect(runtime.session.isSignedIn()).toBe(true);
+  });
+});
+
+describe('signInWithPassword attempts (M4, N5)', () => {
+  it('counts wrong passwords and locks the account at lockoutThreshold', async () => {
+    const runtime = await boot();
+    const mfa = createMfaServices(runtime, { lockoutThreshold: 3 });
+    const wrong = { email: SEEDED.email, password: 'not the password' };
+    await expect(mfa.signInWithPassword(wrong)).rejects.toMatchObject({
+      issues: { password: 'Incorrect password. 2 attempts left.' },
+    });
+    await expect(mfa.signInWithPassword(wrong)).rejects.toMatchObject({
+      issues: { password: 'Incorrect password. 1 attempt left.' },
+    });
+    await expect(mfa.signInWithPassword(wrong)).rejects.toMatchObject({
+      issues: { password: 'Incorrect password. The account is now locked.' },
+    });
+    const account = await runtime.db
+      .rows<SaasAccount>('saas_accounts')
+      .where('email')
+      .equals(SEEDED.email)
+      .first();
+    expect(account).toMatchObject({ status: 'locked', failedAttempts: 3 });
+    // The right password no longer opens a locked account.
+    await expect(mfa.signInWithPassword(SEEDED)).rejects.toMatchObject({
+      issues: { form: expect.stringMatching(/locked/i) },
+    });
+    expect(runtime.session.isSignedIn()).toBe(false);
+    const reasons = (await signInLog(runtime))
+      .filter((row) => row.method === 'password' && row.outcome === 'failure')
+      .map((row) => row.reason)
+      .sort();
+    expect(reasons).toEqual(['locked', 'locked', 'wrong-password', 'wrong-password']);
+  });
+
+  it('uses the default lockout of 5 and resets the counter on success', async () => {
+    const runtime = await boot();
+    const mfa = createMfaServices(runtime);
+    const wrong = { email: SEEDED.email, password: 'not the password' };
+    await expect(mfa.signInWithPassword(wrong)).rejects.toMatchObject({
+      issues: { password: 'Incorrect password. 4 attempts left.' },
+    });
+    await mfa.signInWithPassword(SEEDED);
+    const account = await createAuthServices(runtime).account();
+    expect(account).toMatchObject({ status: 'active', failedAttempts: 0 });
+  });
+
+  it('honors requireVerifiedEmail like auth.signIn', async () => {
+    const runtime = await boot();
+    const pending = { email: 'grace.pending@example.com', password: 'simulated secret' };
+    await createAuthServices(runtime).signUp({ name: 'Grace Pending', ...pending });
+    expect(runtime.session.isSignedIn()).toBe(false);
+    await expect(createMfaServices(runtime).signInWithPassword(pending)).rejects.toMatchObject({
+      issues: { form: expect.stringMatching(/confirm your email/i) },
+    });
+    const relaxed = createMfaServices(runtime, { requireVerifiedEmail: false });
+    const result = await relaxed.signInWithPassword(pending);
+    expect(result.status).toBe('signed-in');
+    expect(runtime.session.isSignedIn()).toBe(true);
+  });
+});
+
+describe('MFA failure log (M5)', () => {
+  it('persists wrong-code and bad-recovery rows from completeChallenge and disable', async () => {
+    const runtime = await boot();
+    const { mfa, seed } = await enrollActiveMfa(runtime);
+    const challengeId = challengeOf(await mfa.signInWithPassword(SEEDED));
+    await expect(mfa.completeChallenge(challengeId, { code: '000000' })).rejects.toBeInstanceOf(
+      ValidationError
+    );
+    await expect(
+      mfa.completeChallenge(challengeId, { recoveryCode: 'NOTACODE' })
+    ).rejects.toBeInstanceOf(ValidationError);
+    const afterChallenge = (await signInLog(runtime)).filter(
+      (row) => row.method === 'mfa' && row.outcome === 'failure'
+    );
+    expect(afterChallenge.map((row) => row.reason).sort()).toEqual(['bad-recovery', 'wrong-code']);
+
+    // A failed proof keeps the challenge usable until it expires.
+    await mfa.completeChallenge(challengeId, {
+      code: simulatedTotpCode(seed, runtime.clock.now().getTime()),
+    });
+    await expect(mfa.disable({ code: '000000' })).rejects.toMatchObject({
+      issues: { code: expect.stringMatching(/not correct/i) },
+    });
+    const failures = (await signInLog(runtime)).filter(
+      (row) => row.method === 'mfa' && row.outcome === 'failure'
+    );
+    expect(failures.map((row) => row.reason).sort()).toEqual([
+      'bad-recovery',
+      'wrong-code',
+      'wrong-code',
+    ]);
+    expect(await mfa.isActive()).toBe(true);
   });
 });

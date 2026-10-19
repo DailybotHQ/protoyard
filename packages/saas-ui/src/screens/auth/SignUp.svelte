@@ -78,7 +78,7 @@ async function submit() {
           </FormField>
           <FormField label="Password" required error={issues.password}>
             {#snippet children(control)}
-              <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="new-password" bind:value={password} required />
+              <Input {...control.props} type={showPassword ? 'text' : 'password'} autocomplete="off" bind:value={password} required />
             {/snippet}
           </FormField>
           <Button variant="ghost" size="sm" onclick={() => (showPassword = !showPassword)} aria-pressed={showPassword}>
@@ -99,5 +99,5 @@ async function submit() {
       <CardFooter><Button href={routeHref(config.signInPath)} variant="ghost">I already have an account</Button></CardFooter>
     {/if}
   </Card>
-  <p class="mt-4 text-center text-xs text-muted-foreground">Simulation only — do not use real credentials.</p>
+  <p class="mt-4 text-center text-xs text-muted-foreground" data-testid="simulated-password-notice">Simulation only — do not use a real password. What you type is kept as plain text in this browser and in exported snapshots.</p>
 </main>

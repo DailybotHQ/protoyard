@@ -1,18 +1,20 @@
 <script lang="ts">
-import { getRuntime, liveQuery, runService } from '@protoyard/renderer-svelte';
+import { getRuntime, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { Button, Input } from '@protoyard/ui';
 import type { B2bSaasDatabase } from '../database/schema.ts';
 import { createProjectServices } from '../domain/projects.ts';
 
 const runtime = getRuntime<B2bSaasDatabase>();
 const services = createProjectServices(runtime);
+// The reactive principal: a workspace switch re-runs the query.
+const principal = usePrincipal(runtime);
 const projects = liveQuery(
   () =>
     runtime.db.projects
       .where('organizationId')
-      .equals(runtime.session.principal()?.organization?.id ?? '')
+      .equals(principal.current?.organization?.id ?? '')
       .toArray(),
-  { initial: [], deps: () => [runtime.session.principal()?.organization?.id] }
+  { initial: [], deps: () => [principal.current?.organization?.id] }
 );
 let name = $state('');
 let summary = $state('');

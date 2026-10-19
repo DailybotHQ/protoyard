@@ -10,12 +10,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
   createAuthServices,
+  createMfaServices,
   createOAuthSimulator,
   OAUTH_PROVIDER_REGISTRY,
   type OAuthIdentity,
   type OAuthProviderScenarios,
   SAAS_PROVIDERS,
   type SaasAccount,
+  type SaasSessionLog,
   saasIntegrity,
   saasStores,
   saasTables,
@@ -243,5 +245,61 @@ describe('createOAuthSimulator on the real runtime', () => {
     expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
     expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
     expect(await runtime.db.rows('saas_accounts').count()).toBe(2);
+  });
+});
+
+describe('OAuth sign-in and MFA (M7)', () => {
+  /** Signs in with the password, links GitHub, optionally turns MFA on, then signs out. */
+  async function linkedAccount(runtime: ProtoyardRuntime, withMfa: boolean) {
+    const identity = { ...generatedIdentity, email: SEEDED.email };
+    const oauth = createOAuthSimulator(runtime, scenariosFor('github', identity));
+    await createAuthServices(runtime).signIn(SEEDED);
+    const link = await oauth.start('github', 'link');
+    expect((await oauth.approve(link.state)).status).toBe('signed-in');
+    const mfa = createMfaServices(runtime);
+    let seed = '';
+    if (withMfa) {
+      const enrollment = await mfa.enroll();
+      await mfa.confirmEnroll(enrollment.currentCode);
+      seed = enrollment.mfa.seed;
+    }
+    await runtime.session.signOut();
+    return { oauth, mfa, seed };
+  }
+
+  it('requires the MFA challenge for a linked account with active MFA', async () => {
+    const runtime = await boot();
+    const { oauth, mfa, seed } = await linkedAccount(runtime, true);
+    const started = await oauth.start('github', 'sign-in');
+    const result = await oauth.approve(started.state);
+    expect(result).toMatchObject({ status: 'mfa-required', provider: 'github' });
+    if (result.status !== 'mfa-required') throw new Error('Expected an MFA challenge');
+    expect(result.route).toBe(`#/auth/mfa?challenge=${encodeURIComponent(result.challenge.id)}`);
+    expect(runtime.session.isSignedIn()).toBe(false);
+    await expect(oauth.approve(started.state)).rejects.toBeInstanceOf(ValidationError);
+
+    // The account id alone does not finish the sign-in; the challenge does.
+    const code = mfa.authenticatorPanel(seed).code;
+    await expect(mfa.completeChallenge(result.account.id, { code })).rejects.toBeInstanceOf(
+      ValidationError
+    );
+    const account = await mfa.completeChallenge(result.challenge.id, { code });
+    expect(runtime.session.principal()?.persona.id).toBe(account.personaId);
+    const log = await runtime.db.rows<SaasSessionLog>('saas_sessions_log').toArray();
+    expect(log).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ method: 'oauth', provider: 'github', reason: 'mfa-required' }),
+        expect.objectContaining({ method: 'mfa', outcome: 'success', reason: 'totp-sim' }),
+      ])
+    );
+  });
+
+  it('signs a linked account without MFA in directly', async () => {
+    const runtime = await boot();
+    const { oauth } = await linkedAccount(runtime, false);
+    const started = await oauth.start('github', 'sign-in');
+    const result = await oauth.approve(started.state);
+    expect(result).toMatchObject({ status: 'signed-in', provider: 'github', route: '#/' });
+    expect(runtime.session.isSignedIn()).toBe(true);
   });
 });

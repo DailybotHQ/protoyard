@@ -13,9 +13,11 @@ import { z } from 'zod';
  * The simulated inbox of an account that signed up but has not confirmed its
  * email yet. Sign-up leaves the visitor signed out, so the regular inbox
  * (signed-in only) cannot show the confirmation message. The sign-up screen
- * links here with the new account id (`#/inbox?account=…`, the same pattern
- * as the kit's `#/auth/mfa?account=…`), and this service shows that
- * account's own messages and nothing else.
+ * links here with the new account id (`#/inbox?account=…`), and this service
+ * shows that account's own messages and nothing else. Anyone who knows an
+ * unverified account's id could therefore confirm that sign-up; it never
+ * opens a session (sign-in still needs the password). A single-use hand-off
+ * token, like the kit's MFA `?challenge=`, would close that gap.
  *
  * No capability is checked: there is no principal yet, and the link stands
  * for owning the mailbox (like a verification link). Simulation only, not

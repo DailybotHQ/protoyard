@@ -7,7 +7,8 @@ import {
 } from '@protoyard/core';
 import type { ProtoyardRuntime } from '@protoyard/runtime';
 import { z } from 'zod';
-import type { SaasAccount, SaasMfa, SaasSessionLog } from './schema.ts';
+import { type AuthOptions, checkPasswordAttempt } from './auth.ts';
+import type { SaasAccount, SaasMfa, SaasSessionLog, SaasToken } from './schema.ts';
 import { SaasMfaSchema } from './schema.ts';
 
 /**
@@ -23,6 +24,10 @@ export const MFA_WINDOW_MS = 30_000;
 const ACCOUNTS = 'saas_accounts';
 const MFA = 'saas_mfa';
 const LOG = 'saas_sessions_log';
+const TOKENS = 'saas_tokens';
+
+/** How long an `mfa-challenge` token stays valid on the simulated clock (10 minutes). */
+export const MFA_CHALLENGE_TTL_MS = 10 * 60_000;
 
 interface TableLike<T> {
   get(id: string): Promise<T | undefined>;
@@ -36,10 +41,53 @@ interface DatabaseLike {
   transaction<R>(mode: 'rw', tables: string[], scope: () => Promise<R>): Promise<R>;
 }
 
-export interface MfaOptions {
+export interface MfaOptions extends Pick<AuthOptions, 'lockoutThreshold' | 'requireVerifiedEmail'> {
   /** How many one-time recovery codes to mint at enroll (default 8). */
   recoveryCodeCount?: number;
   productName?: string;
+  /** Minutes an MFA challenge stays valid on the simulated clock (default 10). */
+  challengeTtlMinutes?: number;
+}
+
+/**
+ * The handle a first factor (password, magic link, OAuth) returns when MFA
+ * is active. Pass `id` to `completeChallenge`. It is single-use and expires;
+ * an account id is never accepted in its place.
+ */
+export interface MfaChallenge {
+  id: string;
+  expiresAt: string;
+}
+
+/** Which first factor minted a challenge (kept in the token payload). */
+export type MfaChallengeMethod = 'password' | 'magic-link' | 'oauth';
+
+/**
+ * Builds the `saas_tokens` row for a fresh MFA challenge. The caller adds it
+ * inside the same transaction that verified the first factor.
+ */
+export function createMfaChallengeToken(
+  account: Pick<SaasAccount, 'id' | 'email'>,
+  method: MfaChallengeMethod,
+  at: Date,
+  ttlMs: number = MFA_CHALLENGE_TTL_MS
+): SaasToken {
+  return {
+    id: createRuntimeId('mfachallenge'),
+    kind: 'mfa-challenge',
+    email: account.email,
+    accountId: account.id,
+    payload: { method },
+    createdAt: at.toISOString(),
+    expiresAt: new Date(at.getTime() + ttlMs).toISOString(),
+    consumedAt: null,
+  };
+}
+
+/** The kit's MFA screen route for a challenge (hash router), with an optional `next`. */
+export function mfaChallengeHref(challengeId: string, next?: string): string {
+  const query = `challenge=${encodeURIComponent(challengeId)}`;
+  return `#/auth/mfa?${query}${next ? `&next=${encodeURIComponent(next)}` : ''}`;
 }
 
 const EmailSchema = z
@@ -64,7 +112,19 @@ export type PasswordSignInInput = z.input<typeof PasswordSignInSchema>;
 
 export type MfaSignInResult =
   | { status: 'signed-in'; account: SaasAccount }
-  | { status: 'mfa-required'; account: SaasAccount };
+  | { status: 'mfa-required'; account: SaasAccount; challenge: MfaChallenge };
+
+/** What the MFA screen may show for a live challenge (simulation only). */
+export interface MfaChallengeView {
+  email: string;
+  expiresAt: string;
+  /** Current simulated code for the challenge's account only. */
+  code: string;
+  secondsRemaining: number;
+  simulated: true;
+}
+
+type ProofIssues = { error: Record<string, string> };
 
 /** Deterministic 6-digit code for a seed at a given instant (simulation only). */
 export function simulatedTotpCode(seed: string, nowMs: number): string {
@@ -103,7 +163,7 @@ function mintSeed(accountId: string, nowIso: string): string {
  * await mfa.confirmEnroll(currentCode);
  * const result = await mfa.signInWithPassword({ email, password });
  * if (result.status === 'mfa-required') {
- *   await mfa.completeChallenge(result.account.id, { code: mfa.currentCode() });
+ *   await mfa.completeChallenge(result.challenge.id, { code: mfa.currentCode(seed) });
  * }
  * ```
  */
@@ -111,11 +171,13 @@ export function createMfaServices(runtime: ProtoyardRuntime, options: MfaOptions
   const db = runtime.db as unknown as DatabaseLike;
   const { session, environment, clock } = runtime;
   const recoveryCount = options.recoveryCodeCount ?? 8;
+  const challengeTtlMs = (options.challengeTtlMinutes ?? 10) * 60_000;
   const now = () => clock.now().toISOString();
   const nowMs = () => clock.now().getTime();
 
   const accounts = () => db.table<SaasAccount>(ACCOUNTS);
   const mfaTable = () => db.table<SaasMfa>(MFA);
+  const tokens = () => db.table<SaasToken>(TOKENS);
   const findAccountByEmail = (email: string) => accounts().where('email').equals(email).first();
   const findMfa = (accountId: string) => mfaTable().where('accountId').equals(accountId).first();
 
@@ -143,44 +205,70 @@ export function createMfaServices(runtime: ProtoyardRuntime, options: MfaOptions
     return simulatedTotpCode(seed, nowMs());
   }
 
-  async function assertActiveCode(row: SaasMfa, code: string): Promise<void> {
+  /**
+   * Checks a code or recovery code against an active MFA row. A wrong proof
+   * is logged and RETURNED (not thrown): throwing inside the transaction
+   * would roll the failure row back. Callers throw after the commit.
+   */
+  async function checkProof(
+    row: SaasMfa,
+    proof: { code: string } | { recoveryCode: string },
+    personaId: string | null
+  ): Promise<ProofIssues | null> {
     if (row.status !== 'active') {
-      throw new ValidationError({ form: 'MFA is not active on this account.' });
+      return { error: { form: 'MFA is not active on this account.' } };
     }
-    if (codeFor(row.seed) !== code) {
+    if ('code' in proof) {
+      const code = parseInput(MfaCodeSchema, proof.code);
+      if (codeFor(row.seed) === code) return null;
       await log({
         accountId: row.accountId,
-        personaId: null,
+        personaId,
         method: 'mfa',
         outcome: 'failure',
         reason: 'wrong-code',
       });
-      throw new ValidationError({ code: 'That simulated code is not correct.' });
+      return { error: { code: 'That simulated code is not correct.' } };
     }
-  }
-
-  async function consumeRecovery(row: SaasMfa, raw: string): Promise<SaasMfa> {
-    const code = parseInput(RecoveryCodeInputSchema, raw).toUpperCase();
+    const code = parseInput(RecoveryCodeInputSchema, proof.recoveryCode).toUpperCase();
     const match = row.recoveryCodes.find((entry) => entry.code === code && !entry.usedAt);
     if (!match) {
       await log({
         accountId: row.accountId,
-        personaId: null,
+        personaId,
         method: 'mfa',
         outcome: 'failure',
         reason: 'bad-recovery',
       });
-      throw new ValidationError({ recoveryCode: 'That recovery code is not valid.' });
+      return { error: { recoveryCode: 'That recovery code is not valid.' } };
     }
     const at = now();
-    const next: SaasMfa = {
+    await mfaTable().put({
       ...row,
       recoveryCodes: row.recoveryCodes.map((entry) =>
         entry.code === code ? { ...entry, usedAt: at } : entry
       ),
-    };
-    await mfaTable().put(next);
-    return next;
+    });
+    return null;
+  }
+
+  /** A live (known, unused, unexpired) challenge token, or an inline error. */
+  async function loadChallenge(
+    challengeId: string
+  ): Promise<{ token: SaasToken & { accountId: string } } | ProofIssues> {
+    const invalid = { error: { form: 'This verification step is not valid. Sign in again.' } };
+    if (typeof challengeId !== 'string' || !challengeId || challengeId.length > 256) {
+      return invalid;
+    }
+    const token = await tokens().get(challengeId);
+    if (token?.kind !== 'mfa-challenge' || !token.accountId) return invalid;
+    if (token.consumedAt) {
+      return { error: { form: 'This verification step was already used. Sign in again.' } };
+    }
+    if (Date.parse(token.expiresAt) <= nowMs()) {
+      return { error: { form: 'This verification step has expired. Sign in again.' } };
+    }
+    return { token: { ...token, accountId: token.accountId } };
   }
 
   return {
@@ -297,58 +385,37 @@ export function createMfaServices(runtime: ProtoyardRuntime, options: MfaOptions
       const outcome = await environment.run('mfa.signInWithPassword', () =>
         db.transaction(
           'rw',
-          [ACCOUNTS, MFA, LOG],
-          async (): Promise<MfaSignInResult | { error: Record<string, string> }> => {
-            const account = await findAccountByEmail(data.email);
-            if (!account) {
-              await log({
-                accountId: null,
-                personaId: null,
-                method: 'password',
-                outcome: 'failure',
-                reason: 'unknown-email',
-              });
-              return { error: { email: 'No account uses this email' } };
-            }
-            if (account.status !== 'active') {
-              await log({
-                accountId: account.id,
-                personaId: account.personaId,
-                method: 'password',
-                outcome: 'failure',
-                reason: account.status,
-              });
-              return {
-                error: {
-                  form:
-                    account.status === 'locked'
-                      ? 'This account is locked after too many attempts.'
-                      : 'This account is disabled.',
-                },
-              };
-            }
-            if (account.simulatedPassword !== data.password) {
-              await log({
-                accountId: account.id,
-                personaId: account.personaId,
-                method: 'password',
-                outcome: 'failure',
-                reason: 'wrong-password',
-              });
-              return { error: { password: 'Incorrect password.' } };
-            }
-            if (!account.emailVerified) {
-              await log({
-                accountId: account.id,
-                personaId: account.personaId,
-                method: 'password',
-                outcome: 'failure',
-                reason: 'unverified',
-              });
-              return { error: { form: 'Confirm your email first. Check your simulated inbox.' } };
-            }
+          [ACCOUNTS, MFA, LOG, TOKENS],
+          async (): Promise<MfaSignInResult | ProofIssues> => {
+            // Same attempt counter, lockout and verified-email rule as auth.signIn.
+            const checked = await checkPasswordAttempt(
+              {
+                putAccount: (row) => accounts().put(row),
+                logFailure: (account, reason) =>
+                  log({
+                    accountId: account?.id ?? null,
+                    personaId: account?.personaId ?? null,
+                    method: 'password',
+                    outcome: 'failure',
+                    reason,
+                  }),
+                lockoutThreshold: options.lockoutThreshold,
+                requireVerifiedEmail: options.requireVerifiedEmail,
+              },
+              await findAccountByEmail(data.email),
+              data.password
+            );
+            if (!checked.ok) return { error: checked.issues };
+            const account = checked.account;
             const mfa = await findMfa(account.id);
             if (mfa?.status === 'active') {
+              const token = createMfaChallengeToken(
+                account,
+                'password',
+                clock.now(),
+                challengeTtlMs
+              );
+              await tokens().add(token);
               await log({
                 accountId: account.id,
                 personaId: account.personaId,
@@ -356,7 +423,11 @@ export function createMfaServices(runtime: ProtoyardRuntime, options: MfaOptions
                 outcome: 'success',
                 reason: 'mfa-required',
               });
-              return { status: 'mfa-required', account };
+              return {
+                status: 'mfa-required',
+                account,
+                challenge: { id: token.id, expiresAt: token.expiresAt },
+              };
             }
             const signedIn = { ...account, failedAttempts: 0, lastSignInAt: now() };
             await accounts().put(signedIn);
@@ -379,57 +450,89 @@ export function createMfaServices(runtime: ProtoyardRuntime, options: MfaOptions
     },
 
     /**
-     * Finish a password or magic-link sign-in that required MFA.
-     * Does not open the session until the code (or recovery code) is valid.
+     * What the MFA screen may show for a challenge: the account email and the
+     * current simulated code of THAT account only. Read-only. Unknown, used
+     * or expired challenges return `null` (the screen shows no code).
+     */
+    async describeChallenge(challengeId: string): Promise<MfaChallengeView | null> {
+      const loaded = await loadChallenge(challengeId);
+      if ('error' in loaded) return null;
+      const row = await findMfa(loaded.token.accountId);
+      if (row?.status !== 'active') return null;
+      return {
+        email: loaded.token.email,
+        expiresAt: loaded.token.expiresAt,
+        code: codeFor(row.seed),
+        secondsRemaining: simulatedTotpSecondsRemaining(nowMs()),
+        simulated: true,
+      };
+    },
+
+    /**
+     * Finish a password, magic-link or OAuth sign-in that required MFA.
+     * `challengeId` is the single-use challenge the first factor returned
+     * (`result.challenge.id`); the account comes from that token, never from
+     * the caller. Unknown, used or expired challenges are refused. A wrong
+     * code is logged and the challenge stays usable until it expires; the
+     * session opens only after a valid code or recovery code.
      */
     async completeChallenge(
-      accountId: string,
+      challengeId: string,
       proof: { code: string } | { recoveryCode: string }
     ): Promise<SaasAccount> {
-      const account = await environment.run('mfa.completeChallenge', () =>
-        db.transaction('rw', [ACCOUNTS, MFA, LOG], async () => {
-          const row = await accounts().get(accountId);
-          if (!row) throw new ValidationError({ form: 'This account no longer exists.' });
-          const mfa = await findMfa(accountId);
-          if (!mfa || mfa.status !== 'active') {
-            throw new ValidationError({ form: 'MFA is not required for this account.' });
+      if ('code' in proof) parseInput(MfaCodeSchema, proof.code);
+      else parseInput(RecoveryCodeInputSchema, proof.recoveryCode);
+      const outcome = await environment.run('mfa.completeChallenge', () =>
+        db.transaction(
+          'rw',
+          [ACCOUNTS, MFA, LOG, TOKENS],
+          async (): Promise<{ account: SaasAccount } | ProofIssues> => {
+            const loaded = await loadChallenge(challengeId);
+            if ('error' in loaded) return loaded;
+            const { token } = loaded;
+            const row = await accounts().get(token.accountId);
+            if (!row) return { error: { form: 'This account no longer exists.' } };
+            if (row.status !== 'active') {
+              return { error: { form: 'This account is not available. Sign in again.' } };
+            }
+            const mfa = await findMfa(row.id);
+            if (mfa?.status !== 'active') {
+              return { error: { form: 'MFA is not required for this account. Sign in again.' } };
+            }
+            const failed = await checkProof(mfa, proof, row.personaId);
+            if (failed) return failed;
+            await tokens().put({ ...token, consumedAt: now() });
+            const signedIn = { ...row, failedAttempts: 0, lastSignInAt: now() };
+            await accounts().put(signedIn);
+            await log({
+              accountId: row.id,
+              personaId: row.personaId,
+              method: 'mfa',
+              outcome: 'success',
+              reason: 'code' in proof ? 'totp-sim' : 'recovery',
+            });
+            return { account: signedIn };
           }
-          if ('code' in proof) {
-            const code = parseInput(MfaCodeSchema, proof.code);
-            await assertActiveCode(mfa, code);
-          } else {
-            await consumeRecovery(mfa, proof.recoveryCode);
-          }
-          const signedIn = { ...row, failedAttempts: 0, lastSignInAt: now() };
-          await accounts().put(signedIn);
-          await log({
-            accountId: row.id,
-            personaId: row.personaId,
-            method: 'mfa',
-            outcome: 'success',
-            reason: 'code' in proof ? 'totp-sim' : 'recovery',
-          });
-          return signedIn;
-        })
+        )
       );
-      await session.signIn(account.personaId);
-      return account;
+      if ('error' in outcome) throw new ValidationError(outcome.error);
+      await session.signIn(outcome.account.personaId);
+      return outcome.account;
     },
 
     /** Disable active MFA after a valid simulated code or recovery code. */
     async disable(proof: { code: string } | { recoveryCode: string }) {
       const account = await requireAccount();
-      return environment.run('mfa.disable', () =>
-        db.transaction('rw', [MFA, LOG], async () => {
+      if ('code' in proof) parseInput(MfaCodeSchema, proof.code);
+      else parseInput(RecoveryCodeInputSchema, proof.recoveryCode);
+      const outcome = await environment.run('mfa.disable', () =>
+        db.transaction('rw', [MFA, LOG], async (): Promise<ProofIssues | null> => {
           const mfa = await findMfa(account.id);
           if (!mfa || mfa.status !== 'active') {
-            throw new ValidationError({ form: 'MFA is not active on this account.' });
+            return { error: { form: 'MFA is not active on this account.' } };
           }
-          if ('code' in proof) {
-            await assertActiveCode(mfa, parseInput(MfaCodeSchema, proof.code));
-          } else {
-            await consumeRecovery(mfa, proof.recoveryCode);
-          }
+          const failed = await checkProof(mfa, proof, account.personaId);
+          if (failed) return failed;
           await mfaTable().delete(mfa.id);
           await log({
             accountId: account.id,
@@ -438,8 +541,10 @@ export function createMfaServices(runtime: ProtoyardRuntime, options: MfaOptions
             outcome: 'success',
             reason: 'disabled',
           });
+          return null;
         })
       );
+      if (outcome) throw new ValidationError(outcome.error);
     },
   };
 }

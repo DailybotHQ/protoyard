@@ -42,6 +42,8 @@ let {
 const portal = useOverlayPortalTarget();
 
 let pending = $state(false);
+/** Cancel is the safe default: it receives focus when the dialog opens. */
+let cancelButton = $state<HTMLElement | null>(null);
 let error = $state<string | null>(null);
 
 async function confirm(): Promise<void> {
@@ -85,6 +87,10 @@ function blockWhilePending(event: Event): void {
     <AlertDialogPrimitive.Overlay class={overlayBackdrop} />
     <AlertDialogPrimitive.Content
       onEscapeKeydown={blockWhilePending}
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        cancelButton?.focus();
+      }}
       aria-busy={pending || undefined}
       class={cn(
         'fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 sm:max-w-md',
@@ -122,7 +128,9 @@ function blockWhilePending(event: Event): void {
         </p>
       {/if}
       <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button variant="outline" disabled={pending} onclick={cancel}>{cancelLabel}</Button>
+        <Button bind:ref={cancelButton} variant="outline" disabled={pending} onclick={cancel}
+          >{cancelLabel}</Button
+        >
         <Button
           variant={destructive ? 'destructive' : 'default'}
           loading={pending}
