@@ -1,7 +1,13 @@
 @import "@protoyard/renderer-svelte/app.css";
+@import "@protoyard/views-ui/styles.css";
+@import "@protoyard/charts-ui/styles.css";
+@import "@protoyard/analytics-ui/styles.css";
 
 /* Let Tailwind see this prototype's own markup. */
 @source "./";
+@source "../../../packages/views-ui/src";
+@source "../../../packages/charts-ui/src";
+@source "../../../packages/analytics-ui/src";
 
 html,
 body,

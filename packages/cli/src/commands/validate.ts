@@ -310,7 +310,7 @@ export async function checkBlueprint(
   manifest: PrototypeManifest
 ): Promise<Check | null> {
   if (!existsSync(join(dir, 'blueprint.json'))) return null;
-  const label = 'Blueprint (generated files fresh, versions agree)';
+  const label = 'Blueprint (generated screens fresh, versions agree)';
   if (!existsSync(join(dir, SNAPSHOT_PATH))) {
     return check('blueprint', label, 'skip', [
       'hand-wired blueprint (not made by `protoyard generate`)',

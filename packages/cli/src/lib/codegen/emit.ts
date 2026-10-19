@@ -1,6 +1,7 @@
 import {
   type Blueprint,
   type BlueprintEntity,
+  type BlueprintScreen,
   brandLibraryThemeId,
   brandThemeExportName,
   emitBrandThemeModule,
@@ -125,115 +126,242 @@ let props: RouteProps = $props();
 `;
 }
 
+const SCREEN_ICONS: Record<string, string> = {
+  activity: 'Activity',
+  bell: 'Bell',
+  'book-open': 'BookOpen',
+  briefcase: 'Briefcase',
+  building: 'Building',
+  calendar: 'Calendar',
+  'calendar-days': 'CalendarDays',
+  'chart-bar': 'ChartBar',
+  'chart-gantt': 'ChartGantt',
+  'chart-line': 'ChartLine',
+  'chart-pie': 'ChartPie',
+  clock: 'Clock',
+  cpu: 'Cpu',
+  database: 'Database',
+  'dollar-sign': 'DollarSign',
+  'file-text': 'FileText',
+  folder: 'Folder',
+  globe: 'Globe',
+  'graduation-cap': 'GraduationCap',
+  'heart-pulse': 'HeartPulse',
+  house: 'House',
+  inbox: 'Inbox',
+  kanban: 'Kanban',
+  'layout-dashboard': 'LayoutDashboard',
+  list: 'List',
+  map: 'Map',
+  'map-pin': 'MapPin',
+  'message-square': 'MessageSquare',
+  package: 'Package',
+  receipt: 'Receipt',
+  settings: 'Settings',
+  'shopping-cart': 'ShoppingCart',
+  star: 'Star',
+  table: 'Table',
+  tag: 'Tag',
+  ticket: 'Ticket',
+  truck: 'Truck',
+  users: 'Users',
+  wallet: 'Wallet',
+  wrench: 'Wrench',
+  zap: 'Zap',
+};
+
+function defaultScreenIcon(screen: BlueprintScreen): string {
+  switch (screen.type) {
+    case 'dashboard':
+      return 'LayoutDashboard';
+    case 'settings':
+      return 'Settings';
+    case 'board':
+      return 'Kanban';
+    case 'calendar':
+      return 'CalendarDays';
+    case 'timeline':
+      return 'ChartGantt';
+    case 'map':
+      return 'Map';
+    case 'analytics':
+      return 'ChartLine';
+    default:
+      return 'Database';
+  }
+}
+
+function screenTitle(screen: BlueprintScreen, blueprint: Blueprint): string {
+  if (screen.nav?.label) return screen.nav.label;
+  if (screen.title) return screen.title;
+  if ('entity' in screen) {
+    const entity = blueprint.entities.find((candidate) => candidate.name === screen.entity);
+    if (entity) return `${entityLabel(entity)} ${screen.type === 'list' ? '' : screen.type}`.trim();
+  }
+  return screen.type.charAt(0).toUpperCase() + screen.type.slice(1);
+}
+
+function screenName(screen: BlueprintScreen, index: number, previous: Set<string>): string {
+  const entity = 'entity' in screen ? screen.entity : undefined;
+  const base =
+    screen.type === 'dashboard'
+      ? `Dashboard${index + 1}Screen`
+      : screen.type === 'settings'
+        ? 'SettingsScreen'
+        : `${pascal(screen.type)}${entity ? pascal(entity) : index + 1}Screen`;
+  let name = base;
+  for (let suffix = 2; previous.has(name); suffix += 1)
+    name = base.replace(/Screen$/, `${suffix}Screen`);
+  previous.add(name);
+  return name;
+}
+
+function screenWrapper(screen: BlueprintScreen, index: number): string | null {
+  const entity = 'entity' in screen ? screen.entity : undefined;
+  const component: Record<string, string> = {
+    board: 'BoardScreen',
+    calendar: 'CalendarScreen',
+    map: 'MapScreen',
+    analytics: 'AnalyticsScreen',
+    timeline: 'TimelineScreen',
+    dashboard: 'DashboardScreen',
+    settings: 'SettingsScreen',
+  };
+  const hasTabs = screen.type === 'detail' && Boolean(screen.tabs?.length);
+  if (!hasTabs && !component[screen.type]) return null;
+  const check = `const found = blueprint.screens[${index}];\nif (found?.type !== '${screen.type}') throw new Error('blueprint screen ${index} is not a ${screen.type}: regenerate');\nconst screen = found;`;
+  if (screen.type === 'settings') {
+    return `<script lang="ts">\nimport { SettingsScreen } from '@protoyard/crud/screens/settings';\nimport { THEME_LIBRARY_META } from '@protoyard/themes/library';\nimport { useCrudApp } from '../../lib/context.ts';\n\nconst { runtime, blueprint } = useCrudApp();\n${check}\nconst library = THEME_LIBRARY_META.map(({ id, name }) => ({ id, name }));\n</script>\n\n<SettingsScreen {runtime} {blueprint} sections={screen.sections} title={screen.title} {library} />\n`;
+  }
+  if (hasTabs && entity) {
+    return `<script lang="ts">\nimport { EntityDetail } from '@protoyard/crud';\nimport type { RouteProps } from '@protoyard/renderer-svelte';\nimport { useCrudApp } from '../../lib/context.ts';\n\nlet props: RouteProps = $props();\nconst { runtime, services, blueprint } = useCrudApp();\n${check}\n</script>\n\n<EntityDetail {runtime} {blueprint} {services} entityName={${lit(entity)}} recordId={props.params.id ?? ''} />\n`;
+  }
+  if (!entity && screen.type !== 'dashboard') return null;
+  return `<script lang="ts">\nimport { ${component[screen.type]} } from '@protoyard/crud/screens/${screen.type}';\nimport { useCrudApp } from '../../lib/context.ts';\n\nconst { runtime, services, blueprint } = useCrudApp();\n${check}\n</script>\n\n<${component[screen.type]} {runtime} {services} {blueprint} {screen} />\n`;
+}
+
 function routesModule(blueprint: Blueprint): string {
-  const dashboards = blueprint.screens.flatMap((screen, index) => {
-    if (screen.type !== 'dashboard') return [];
+  const names = new Set<string>();
+  const entries = blueprint.screens.flatMap((screen, index) => {
     const path = screenPath(screen, blueprint.entities);
     if (!path) return [];
-    const name = `dashboard-${index + 1}`;
+    const name = screenName(screen, index, names);
+    const wrapper = screenWrapper(screen, index);
+    const entity =
+      'entity' in screen
+        ? blueprint.entities.find((item) => item.name === screen.entity)
+        : undefined;
     return [
       {
+        screen,
+        index,
         path,
         name,
-        label: screen.nav?.label ?? screen.title ?? 'Dashboard',
-        hidden: screen.nav?.hidden ?? false,
-        load: `load: () => import('./screens/${pascal(name)}.svelte')`,
+        wrapper,
+        label: screenTitle(screen, blueprint),
+        description: `${screen.type.charAt(0).toUpperCase()}${screen.type.slice(1)} screen${entity ? ` for ${entityLabel(entity)}` : ''}`,
+        load: wrapper
+          ? `load: () => import('./screens/${name}.svelte')`
+          : `load: () => import('./screens/${pascal(entity?.name ?? '')}Page.svelte')`,
       },
     ];
   });
-  const entityRoutes = blueprint.entities.flatMap((entity) => {
-    const load = `load: () => import('./screens/${pascal(entity.name)}Page.svelte')`;
+  const rootDashboard = entries.find(
+    (entry) => entry.screen.type === 'dashboard' && entry.path === '/'
+  );
+  const routeRows = new Map<string, string>();
+  routeRows.set(
+    '/',
+    rootDashboard
+      ? `  {\n    name: 'home',\n    description: ${lit(rootDashboard.description)},\n    path: '/',\n    title: ${lit(rootDashboard.screen.title ?? rootDashboard.label)},\n    ${rootDashboard.load},\n  },`
+      : `  {\n    name: 'home',\n    description: 'Overview with a count per entity',\n    path: '/',\n    title: 'Home',\n    load: () => import('../screens/Home.svelte'),\n  },`
+  );
+  for (const entity of blueprint.entities) {
     const label = entityLabel(entity);
+    const load = `load: () => import('./screens/${pascal(entity.name)}Page.svelte')`;
+    const detail = entries.find(
+      (entry) =>
+        entry.screen.type === 'detail' &&
+        'entity' in entry.screen &&
+        entry.screen.entity === entity.name &&
+        Boolean(entry.screen.tabs?.length)
+    );
+    const list = entries.find(
+      (entry) =>
+        entry.screen.type === 'list' &&
+        'entity' in entry.screen &&
+        entry.screen.entity === entity.name
+    );
+    routeRows.set(
+      `/${entity.plural}`,
+      `  {\n    name: ${lit(`${entity.name}-list`)},\n    description: ${lit(`${label}: list, create, edit and delete`)},\n    path: ${lit(`/${entity.plural}`)},\n    title: ${lit(label)},\n    ${list?.path === `/${entity.plural}` ? list.load : load},\n  },`
+    );
+    routeRows.set(
+      `/${entity.plural}/:id`,
+      `  {\n    name: ${lit(`${entity.name}-detail`)},\n    description: ${lit(detail ? `${label}: record detail with tabs` : `One ${entity.name.replace(/-/g, ' ')}: edit form`)},\n    path: ${lit(`/${entity.plural}/:id`)},\n    title: ${lit(label)},\n    ${detail?.path === `/${entity.plural}/:id` ? detail.load : load},\n  },`
+    );
+  }
+  for (const entry of entries) {
+    if (entry.path === '/' && entry.screen.type === 'dashboard') continue;
+    routeRows.set(
+      entry.path,
+      `  {\n    name: ${lit(`screen-${entry.name.replace(/Screen$/, '')}`)},\n    description: ${lit(entry.description)},\n    path: ${lit(entry.path)},\n    title: ${lit(entry.label)},\n    ${entry.load},\n  },`
+    );
+  }
+  routeRows.set(
+    '/members',
+    `  {\n    name: 'members',\n    description: 'Workspace people and their simulated roles',\n    path: '/members',\n    title: 'Members',\n    load: () => import('../screens/Members.svelte'),\n  },`
+  );
+
+  const navEntries = entries.filter(({ screen }) => screen.nav?.hidden !== true);
+  const usedIcons = new Set(['Database', 'Users']);
+  usedIcons.add(
+    rootDashboard
+      ? (SCREEN_ICONS[rootDashboard.screen.nav?.icon ?? ''] ??
+          defaultScreenIcon(rootDashboard.screen))
+      : 'LayoutDashboard'
+  );
+  for (const { screen } of navEntries)
+    usedIcons.add(SCREEN_ICONS[screen.nav?.icon ?? ''] ?? defaultScreenIcon(screen));
+  const iconImports = [...usedIcons].sort().join(', ');
+  const entityNav = blueprint.entities.flatMap((entity) => {
+    if (
+      entries.some(
+        (entry) =>
+          entry.screen.type === 'list' &&
+          'entity' in entry.screen &&
+          entry.screen.entity === entity.name
+      )
+    )
+      return [];
     return [
-      `  {
-    name: ${lit(`${entity.name}-list`)},
-    description: ${lit(`${label}: list, create, edit and delete`)},
-    path: ${lit(`/${entity.plural}`)},
-    title: ${lit(label)},
-    ${load},
-  },`,
-      `  {
-    name: ${lit(`${entity.name}-detail`)},
-    description: ${lit(`One ${entity.name.replace(/-/g, ' ')}: edit form`)},
-    path: ${lit(`/${entity.plural}/:id`)},
-    title: ${lit(label)},
-    ${load},
-  },`,
+      `  { path: ${lit(`/${entity.plural}`)}, label: ${lit(entityLabel(entity))}, icon: Database },`,
     ];
   });
-  const navItems = blueprint.entities.map(
-    (entity) =>
-      `  { path: ${lit(`/${entity.plural}`)}, label: ${lit(entityLabel(entity))}, icon: Database },`
-  );
-  return `import { Database, LayoutDashboard, Users } from '@lucide/svelte';
+  const screenNav = navEntries
+    .filter(({ screen }) => screen.type !== 'form' && screen.type !== 'detail')
+    .sort(
+      (a, b) =>
+        (a.screen.nav?.order ?? Infinity) - (b.screen.nav?.order ?? Infinity) || a.index - b.index
+    )
+    .map(
+      ({ screen, path, label }) =>
+        `  { path: ${lit(path)}, label: ${lit(label)}, icon: ${SCREEN_ICONS[screen.nav?.icon ?? ''] ?? defaultScreenIcon(screen)} },`
+    );
+  const navRows = [
+    `  { path: '/', label: ${lit(rootDashboard?.label ?? 'Home')}, icon: ${rootDashboard ? (SCREEN_ICONS[rootDashboard.screen.nav?.icon ?? ''] ?? defaultScreenIcon(rootDashboard.screen)) : 'LayoutDashboard'}, exact: true },`,
+    ...entityNav,
+    ...screenNav.filter((row) => !row.includes("path: '/'")),
+    `  { path: '/members', label: 'Members', icon: Users },`,
+  ];
+  return `import { ${iconImports} } from '@lucide/svelte';
 import { defineRoutes } from '@protoyard/renderer-svelte';
 
-/** Hash routes. Every screen is a lazy chunk, so adding entities does not grow the initial JS. */
-export const routes = defineRoutes([
-  {
-    name: 'home',
-    description: 'Overview with a count per entity',
-    path: '/',
-    title: 'Home',
-    load: () => import('../screens/Home.svelte'),
-  },
-${entityRoutes.join('\n')}${
-  dashboards.length
-    ? `\n${dashboards
-        .map(
-          (dashboard) => `  {
-    name: ${lit(dashboard.name)},
-    description: 'Dashboard metrics, charts and records',
-    path: ${lit(dashboard.path)},
-    title: ${lit(dashboard.label)},
-    ${dashboard.load},
-  },`
-        )
-        .join('\n')}`
-    : ''
-}
-  {
-    name: 'members',
-    description: 'Workspace people and their simulated roles',
-    path: '/members',
-    title: 'Members',
-    load: () => import('../screens/Members.svelte'),
-  },
-]);
+/** Hash routes. Blueprint screens load through separate chunks. */
+export const routes = defineRoutes([\n${[...routeRows.values()].join('\n')}\n]);
 
-/** Sidebar entries in blueprint order. */
-export const nav = [
-  { path: '/', label: 'Home', icon: LayoutDashboard, exact: true },
-${navItems.join('\n')}${
-  dashboards.some((dashboard) => !dashboard.hidden)
-    ? `\n${dashboards
-        .filter((dashboard) => !dashboard.hidden)
-        .map(
-          (dashboard) =>
-            `  { path: ${lit(dashboard.path)}, label: ${lit(dashboard.label)}, icon: LayoutDashboard },`
-        )
-        .join('\n')}`
-    : ''
-}
-  { path: '/members', label: 'Members', icon: Users },
-];
-`;
-}
-
-function dashboardScreen(index: number): string {
-  // The screen comes from the parsed blueprint (defaults applied, legacy `metrics`
-  // kept), so the component sees exactly the validated dashboard spec.
-  return `<script lang="ts">
-import { DashboardScreen } from '@protoyard/crud/screens/dashboard';
-import { useCrudApp } from '../../lib/context.ts';
-
-const { runtime, services, blueprint } = useCrudApp();
-const found = blueprint.screens[${index}];
-if (found?.type !== 'dashboard') throw new Error('blueprint screen ${index} is not a dashboard: regenerate');
-const screen = found;
-</script>
-
-<DashboardScreen {runtime} {services} {blueprint} {screen} />
+/** Sidebar entries: entities first, then blueprint screens by nav order. */
+export const nav = [\n${navRows.join('\n')}\n];
 `;
 }
 
@@ -478,6 +606,7 @@ ${rows}
 
 - \`blueprint.json\` is the source of truth. Files under \`src/generated/\` carry a hash
   header and are rewritten by regeneration; do not edit them.
+- A dashboard declaring \`path: "/"\` owns the home route; the generated Home screen remains available only when no root dashboard is declared.
 - Everything else (screens, components, scenarios, tests) is yours to change.
 - Roles and permissions are a simulation for UX, not security. Data is fictional.
 
@@ -487,6 +616,16 @@ pnpm vitest run prototypes/${slug}
 pnpm protoyard validate ${slug} --build
 \`\`\`
 `;
+}
+
+function screenFiles(blueprint: Blueprint): EmittedFile[] {
+  const names = new Set<string>();
+  return blueprint.screens.flatMap((screen, index) => {
+    const body = screenWrapper(screen, index);
+    if (!body) return [];
+    const name = screenName(screen, index, names);
+    return [generated(`src/generated/screens/${name}.svelte`, body)];
+  });
 }
 
 const HTML_ESCAPES: Record<string, string> = {
@@ -531,16 +670,7 @@ export function emitPrototype(
     ...blueprint.entities.map((entity) =>
       generated(`src/generated/screens/${pascal(entity.name)}Page.svelte`, entityScreen(entity))
     ),
-    ...blueprint.screens.flatMap((screen, index) =>
-      screen.type === 'dashboard'
-        ? [
-            generated(
-              `src/generated/screens/${pascal(`dashboard-${index + 1}`)}.svelte`,
-              dashboardScreen(index)
-            ),
-          ]
-        : []
-    ),
+    ...screenFiles(blueprint),
     owned('src/App.svelte', appComponent(blueprint)),
     owned('src/screens/Home.svelte', homeScreen()),
     owned('tests/generators.test.ts', generatorsTest()),
