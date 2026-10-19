@@ -52,7 +52,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
 | Data | `DataTable`, `FilterBar` (+ `applyFilters`), `Pagination`, `Kanban` |
-| Layout | `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid` |
+| Layout | `LayoutHost`, `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid` |
 | Shells | `WindowChrome` |
 | Collaboration | `ChatThread`, `MessageList`, `Composer`, `TypingIndicator` |
 | Flows | `Stepper`, `Wizard` |
@@ -101,6 +101,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Pagination` | `bind:page`, `pageCount` or `total` + `pageSize` |
 | `Kanban` | `columns: { id, title }[]`, `items`, `getColumn`, `getItemId`, `getItemLabel`, `onMove(item, columnId)` (async ok), `canMove`, `card` snippet; HTML5 drag and drop + a keyboard "Move to…" menu per card |
 | `AppShell` | `sidebar`, `header`, `bottomNav`, children, `bind:sidebarOpen` (mobile drawer, auto-closes at `lg`), `sidebarClass`, `mainClass`, `mainId`, `mainElement` (`div` when nested in another `<main>`), skip link; frame uses `min-h-app` / sidebar column `h-app` (`--py-app-height`) so framed shells match the device screen |
+| `LayoutHost` | `layout: LayoutId`, routed screen snippet, `class`; measures its own container, applies the core layout fallback below its breakpoint, and lazy-loads the registered module with a skeleton while loading. Layout modules call `mountScreen(target)` to place the stable routed-screen outlet without remounting its local state. Unregistered layouts leave the screen in the host's default content frame. |
 | `MobileAppShell` | Fixed `h-app` flex column with optional `header`, one focusable scrolling `<main>`, optional `stickyFooter`, and an in-flow `bottomNav` snippet. Compose the nav with `<BottomNav fixed={false}>` so it remains visible below the scroll region in any frame. Resets main scroll on hash navigation. |
 | `Sidebar` | `items` or `sections: { label?, items: { label, href, icon?, badge?, active? }[] }[]`, `bind:collapsed`, `header`/`footer({ collapsed })` |
 | `Header` | `title`, `titleAs` (default `h1`; use `p` when the page has its own `h1`), `description`, `leading`, `actions`, `onMenuClick` (defaults to the AppShell drawer), `sticky` |
@@ -168,6 +169,19 @@ const sections = resolveNav(model, location.hash); // exactly one `active` item,
   updates wherever a layout reads it.
 - **Actions** either navigate (`href`) or run `onSelect`; a returned promise
   drives the layout's pending state.
+
+## Shared layout host
+
+Wrap the routed screen in `LayoutHost` when a prototype opts into a shared
+layout. The host uses the measured container width and the core `LAYOUTS`
+catalog's fallback rules, so a shell's inner screen width drives the choice.
+Each registered layout is loaded through its own relative dynamic import in
+`src/layouts/registry.ts`. A layout provides a target with `mountScreen(target)`;
+the host moves one stable screen outlet between targets, preserving the route's
+component state while the layout chrome changes. While the selected module is
+loading, the current screen stays mounted under a chrome skeleton. Until a
+layout has registered its loader, the screen renders in the host's default
+content frame.
 
 ## Toasts
 

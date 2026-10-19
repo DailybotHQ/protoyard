@@ -64,6 +64,36 @@ describe('protoyard blueprint validate <file>', () => {
     expect(error.message).toContain('Invalid blueprint (2 issues)');
   });
 
+  it('checks a brand libraryTheme against the theme library', async () => {
+    const ok = await cli([
+      '--json',
+      'blueprint',
+      'validate',
+      writeBlueprint(
+        { ...helpdeskBlueprint(), brand: { libraryTheme: 'fintech-ledger' } },
+        'ok.json'
+      ),
+    ]);
+    expect(ok.code).toBe(0);
+
+    const typo = await cli([
+      '--json',
+      'blueprint',
+      'validate',
+      writeBlueprint(
+        { ...helpdeskBlueprint(), brand: { libraryTheme: 'fintech-ledgr' } },
+        'typo.json'
+      ),
+    ]);
+    expect(typo.code).toBe(4);
+    const { data } = typo.json<{
+      data: { valid: boolean; issues: { path: string; message: string }[] };
+    }>();
+    expect(data.valid).toBe(false);
+    expect(data.issues[0]?.path).toBe('brand.libraryTheme');
+    expect(data.issues[0]?.message).toMatch(/closest: fintech-ledger/);
+  });
+
   it('exits 4 for invalid JSON or a history that does not rebuild, 3 for a missing file', async () => {
     expect(
       (await cli(['--json', 'blueprint', 'validate', writeBlueprint('{ nope', 'x.json')])).code

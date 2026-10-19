@@ -585,6 +585,18 @@ export const BlueprintHistoryEntrySchema = z.strictObject({
 });
 export type BlueprintHistoryEntry = z.infer<typeof BlueprintHistoryEntrySchema>;
 
+/** Brand fields a `libraryTheme` replaces; setting any of them alongside it is an error. */
+const LIBRARY_EXCLUSIVE_KEYS = [
+  'id',
+  'seed',
+  'secondary',
+  'preset',
+  'styleProfile',
+  'font',
+  'radius',
+  'density',
+] as const;
+
 /** Brand hex seed (`#rgb` or `#rrggbb`). */
 const brandHex = z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, {
   message: 'brand colors must be #rgb or #rrggbb hex',
@@ -593,7 +605,9 @@ const brandHex = z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, {
 /**
  * Optional product brand for `protoyard generate`. When set, the CLI builds a
  * WCAG AA theme (seed palette and/or built-in preset + style profile + font)
- * and wires it as the prototype default. Absent brand → template default theme.
+ * and wires it as the prototype default. `libraryTheme` instead names one of
+ * the `@protoyard/themes` library looks: the prototype ships it by id, with no
+ * generated theme module. Absent brand → template default theme.
  */
 export const BlueprintBrandSchema = z
   .strictObject({
@@ -641,13 +655,39 @@ export const BlueprintBrandSchema = z
       .optional(),
     /** Spacing multiplier 0.75–1.25. */
     density: z.number().min(0.75).max(1.25).optional(),
+    /**
+     * `THEME_LIBRARY_META` id (`fintech-ledger`, `health-clinic`, …) used as-is.
+     * Its palette, fonts, radius and density come from the library (AA-tested
+     * there), so it excludes `id`, `seed`, `secondary`, `preset`,
+     * `styleProfile`, `font`, `radius` and `density`. The id is checked against
+     * the library by `brandLibraryThemeId` (generate, `blueprint validate`), not
+     * here: `parseBlueprint` runs in prototype bundles, which load the library
+     * lazily.
+     */
+    libraryTheme: z
+      .string()
+      .regex(/^[a-z][a-z0-9-]*$/, { message: 'libraryTheme must be a lowercase kebab-case id' })
+      .max(40)
+      .optional(),
   })
   .superRefine((brand, ctx) => {
+    if (brand.libraryTheme !== undefined) {
+      for (const key of LIBRARY_EXCLUSIVE_KEYS) {
+        if (brand[key] !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `brand.${key} cannot be combined with libraryTheme (the library theme is used as-is)`,
+          });
+        }
+      }
+      return;
+    }
     if (!brand.seed && !brand.preset) {
       ctx.addIssue({
         code: 'custom',
         path: ['seed'],
-        message: 'brand needs a seed color or a theme preset',
+        message: 'brand needs a seed color, a theme preset or a libraryTheme',
       });
     }
   });

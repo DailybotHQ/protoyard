@@ -36,6 +36,8 @@ let {
   onselect,
 }: Props = $props();
 
+const uid = $props.id();
+let tableShown = $state(false);
 const format = $derived(valueFormatter({ unit }));
 const LABEL = 96;
 // Cycles, unknown nodes and bad values become the error state instead of throwing.
@@ -54,6 +56,21 @@ const colorOf = (id: string) =>
       nodes.findIndex((n) => n.id === id)
     )
   );
+const nameOf = (id: string) => nodes.find((n) => n.id === id)?.label ?? id;
+const table = $derived({
+  headers: ['Flow', 'From', 'To', 'Value'],
+  rows: problem
+    ? []
+    : links.map((l, i) => ({
+        id: `${l.source}>${l.target}:${i}`,
+        cells: [
+          `${nameOf(l.source)} → ${nameOf(l.target)}`,
+          nameOf(l.source),
+          nameOf(l.target),
+          format(l.value),
+        ],
+      })),
+});
 const text = $derived(summary ?? `${title}: ${nodes.length} stages and ${links.length} flows.`);
 
 function layout(width: number, h: number) {
@@ -95,6 +112,14 @@ function layout(width: number, h: number) {
   {onretry}
 >
   {#snippet children(size)}
+    {#if tableShown}
+      <div id="{uid}-table" class="absolute inset-0 overflow-auto">
+        <!-- Loaded on demand: most viewers never open the table. -->
+        {#await import('../interaction/ValueTable.svelte') then { default: ValueTable }}
+          <ValueTable caption={title} headers={table.headers} rows={table.rows} />
+        {/await}
+      </div>
+    {:else}
     {@const view = layout(size.width, size.height)}
     <ItemPlot
       label={title}
@@ -128,5 +153,15 @@ function layout(width: number, h: number) {
         {/each}
       {/snippet}
     </ItemPlot>
+    {/if}
+  {/snippet}
+  {#snippet footer()}
+    <div class="flex justify-end">
+      {#if table.rows.length > 0 && !loading && !error}
+        {#await import('../interaction/TableToggle.svelte') then { default: TableToggle }}
+          <TableToggle bind:showing={tableShown} controls="{uid}-table" />
+        {/await}
+      {/if}
+    </div>
   {/snippet}
 </ChartFrame>

@@ -1,5 +1,6 @@
 import { createRng } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
+import { CHART_SPEC_MAX_LENGTH, chartBlock, parseChartSpec } from '../src/chart.ts';
 import {
   inlineText,
   MARKDOWN_MAX_LENGTH,
@@ -10,6 +11,7 @@ import {
   safeHref,
   safeImageSrc,
 } from '../src/markdown.ts';
+import type { AiChartSpec } from '../src/types.ts';
 
 const blocks = (md: string) => parseMarkdown(md).blocks;
 const inlines = (md: string) => {
@@ -333,5 +335,57 @@ describe('sanitization', () => {
     const huge = 'x'.repeat(MARKDOWN_MAX_LENGTH + 10);
     expect(inlineText(inlines(huge))).toHaveLength(MARKDOWN_MAX_LENGTH);
     expect(parseMarkdown(undefined as unknown as string)).toEqual({ blocks: [], sources: [] });
+  });
+});
+
+describe('chart answers', () => {
+  const spec: AiChartSpec = {
+    kind: 'bar',
+    title: 'Signups last week',
+    unit: 'number',
+    labels: ['Mon', 'Tue', 'Wed'],
+    series: [{ label: 'Signups', values: [12, null, 30] }],
+  };
+
+  it('keeps a chart fence as a code block unless charts are enabled', () => {
+    const md = `Here you go:\n\n${chartBlock(spec)}\n\nAnything else?`;
+    expect(parseMarkdown(md).blocks[1]).toMatchObject({ type: 'code', lang: 'chart' });
+    const chart = parseMarkdown(md, { charts: true }).blocks[1];
+    expect(chart).toMatchObject({ type: 'chart', closed: true });
+    // The block carries raw text only; validation happens in the renderer.
+    expect(parseChartSpec((chart as { text: string }).text)).toEqual({ ok: true, spec });
+  });
+
+  it('marks a chart fence that is still streaming as open', () => {
+    const doc = parseMarkdown('```chart\n{"kind":"bar"', { charts: true });
+    expect(doc.blocks[0]).toEqual({ type: 'chart', text: '{"kind":"bar"', closed: false });
+  });
+
+  it('rejects malformed, oversized, unknown-key and inconsistent specs with a short message', () => {
+    expect(parseChartSpec('{nope')).toEqual({
+      ok: false,
+      error: 'The chart data is not valid JSON',
+    });
+    expect(parseChartSpec(' '.repeat(CHART_SPEC_MAX_LENGTH + 1))).toMatchObject({ ok: false });
+    const bad = (patch: object) => parseChartSpec(JSON.stringify({ ...spec, ...patch }));
+    expect(bad({ kind: 'script' })).toMatchObject({ ok: false });
+    expect(bad({ onload: 'alert(1)' })).toMatchObject({ ok: false });
+    expect(bad({ series: [{ label: 'A', values: [1] }] })).toEqual({
+      ok: false,
+      error: 'series.0.values: Needs one value per label (3)',
+    });
+    expect(bad({ kind: 'donut', series: [{ label: 'A', values: [1, -2, 3] }] })).toMatchObject({
+      ok: false,
+      error: expect.stringContaining('non-negative'),
+    });
+    expect(bad({ currency: 'usd' })).toMatchObject({ ok: false });
+    expect(() => chartBlock({ ...spec, labels: [] })).toThrow();
+  });
+
+  it('treats markup in spec strings as data', () => {
+    const result = parseChartSpec(
+      JSON.stringify({ ...spec, title: '<img src=x onerror=alert(1)>' })
+    );
+    expect(result).toMatchObject({ ok: true, spec: { title: '<img src=x onerror=alert(1)>' } });
   });
 });

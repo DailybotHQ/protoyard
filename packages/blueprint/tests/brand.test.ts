@@ -4,8 +4,11 @@ import type { Theme } from '@protoyard/core';
 import { contrastRatio, TEXT_CONTRAST_PAIRS, UI_CONTRAST_PAIRS } from '@protoyard/themes';
 import { describe, expect, it } from 'vitest';
 import {
+  BrandThemeError,
+  brandLibraryThemeId,
   brandThemeExportName,
   brandThemeId,
+  closestIds,
   emitBrandThemeModule,
   parseBlueprint,
   resolveBlueprintBrand,
@@ -55,7 +58,7 @@ describe('blueprint brand schema', () => {
         ...baseBlueprint,
         brand: { name: 'No color' },
       })
-    ).toThrow(/seed color or a theme preset/i);
+    ).toThrow(/seed color, a theme preset or a libraryTheme/i);
 
     const without = parseBlueprint(baseBlueprint);
     expect(without.brand).toBeUndefined();
@@ -150,4 +153,64 @@ describe('brand across seed hues', () => {
       assertAa(theme);
     });
   }
+});
+
+describe('blueprint brand libraryTheme', () => {
+  it('accepts a library id and uses it as the theme id', () => {
+    const blueprint = parseBlueprint({
+      ...baseBlueprint,
+      brand: { name: 'Acme Ledger', libraryTheme: 'fintech-ledger' },
+    });
+    const brand = blueprint.brand as NonNullable<typeof blueprint.brand>;
+    expect(brandLibraryThemeId(brand)).toBe('fintech-ledger');
+    expect(brandThemeId(brand, blueprint.name)).toBe('fintech-ledger');
+    expect(() => resolveBlueprintBrand(brand)).toThrow(BrandThemeError);
+  });
+
+  it('rejects an unknown library id with the closest ids', () => {
+    const brand = parseBlueprint({ ...baseBlueprint, brand: { libraryTheme: 'fintech-ledgr' } })
+      .brand as NonNullable<ReturnType<typeof parseBlueprint>['brand']>;
+    expect(() => brandLibraryThemeId(brand)).toThrow(BrandThemeError);
+    expect(() => brandLibraryThemeId(brand)).toThrow(
+      /Unknown library theme "fintech-ledgr" \(closest: fintech-ledger/
+    );
+  });
+
+  it('is mutually exclusive with the fields that build a theme', () => {
+    for (const extra of [
+      { seed: '#0f766e' },
+      { preset: 'ocean' },
+      { secondary: '#c2410c' },
+      { styleProfile: 'soft' },
+      { font: 'grotesk' },
+      { radius: '8px' },
+      { density: 1 },
+      { id: 'acme' },
+    ]) {
+      const key = Object.keys(extra)[0] as string;
+      expect(() =>
+        parseBlueprint({ ...baseBlueprint, brand: { libraryTheme: 'fintech-ledger', ...extra } })
+      ).toThrow(new RegExp(`brand.${key} cannot be combined with libraryTheme`));
+    }
+  });
+
+  it('builds brands without a libraryTheme exactly as before', () => {
+    const brand = parseBlueprint({ ...baseBlueprint, brand: { preset: 'ocean' } }).brand;
+    expect(brandLibraryThemeId(brand as NonNullable<typeof brand>)).toBeUndefined();
+  });
+});
+
+describe('closestIds', () => {
+  const known = ['violet', 'ocean', 'emerald', 'fintech-ledger', 'health-clinic'];
+
+  it('ranks containing ids first, then by edit distance, in known order on ties', () => {
+    expect(closestIds('ledger', known)).toEqual(['fintech-ledger']);
+    expect(closestIds('ocaen', known)).toEqual(['ocean']);
+    expect(closestIds('violett', known)).toEqual(['violet']);
+  });
+
+  it('suggests nothing for unrelated ids and honors the limit', () => {
+    expect(closestIds('zzzzzzzz', known)).toEqual([]);
+    expect(closestIds('e', known, 2)).toHaveLength(2);
+  });
 });

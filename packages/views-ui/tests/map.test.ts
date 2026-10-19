@@ -243,6 +243,39 @@ describe('SimulatedMap', () => {
     expect(ms).toBeLessThan(10_000);
   });
 
+  it('picks a point with Enter at the center cross, or by clicking without dragging', async () => {
+    const onPick = vi.fn();
+    render(SimulatedMap, { onPick });
+    expect(document.querySelector('[data-crosshair]')).toBeTruthy();
+    expect(region().getAttribute('aria-label')).toMatch(/Enter picks the point/);
+    await fireEvent.keyDown(region(), { key: 'Enter' });
+    const [lng, lat] = center();
+    expect(onPick).toHaveBeenLastCalledWith({
+      lng: expect.closeTo(lng, 4),
+      lat: expect.closeTo(lat, 4),
+    });
+
+    const svg = region().querySelector('svg') as SVGElement;
+    await fireEvent.pointerDown(svg, { pointerId: 2, clientX: 420, clientY: 200 });
+    await fireEvent.pointerUp(region(), { pointerId: 2, clientX: 421, clientY: 201 });
+    expect(onPick).toHaveBeenCalledTimes(2);
+    const picked = onPick.mock.lastCall?.[0] as { lng: number } | undefined;
+    if (!picked) throw new Error('Expected a point to be picked');
+    expect(picked.lng).toBeGreaterThan(lng);
+
+    // A drag pans and does not pick.
+    await fireEvent.pointerDown(svg, { pointerId: 3, clientX: 300, clientY: 200 });
+    await fireEvent.pointerMove(region(), { pointerId: 3, clientX: 250, clientY: 200 });
+    await fireEvent.pointerUp(region(), { pointerId: 3, clientX: 250, clientY: 200 });
+    expect(onPick).toHaveBeenCalledTimes(2);
+  });
+
+  it('has no crosshair and does not pick without onPick', async () => {
+    render(SimulatedMap, {});
+    expect(document.querySelector('[data-crosshair]')).toBeNull();
+    await fireEvent.keyDown(region(), { key: 'Enter' });
+  });
+
   it('helpers: route progress and ring checks', () => {
     const { travelled, at } = routeProgress({ ...ROUTE, progress: 1 });
     expect(at).toEqual({ lng: -17.5, lat: -30.2 });

@@ -96,6 +96,14 @@ describe('CommentThread', () => {
     expect(article(/^Marta Ruiz/).textContent).toContain('Can @Li Wei-Chen check');
   });
 
+  it('keeps record references actionable after Markdown preview loads', async () => {
+    const onOpenReference = vi.fn();
+    thread({ onOpenReference });
+    const reference = await screen.findByRole('link', { name: '#Renewal for Acme' });
+    await fireEvent.click(reference);
+    expect(onOpenReference).toHaveBeenCalledWith('deal-42');
+  });
+
   it('sends a comment with mentions stored as ids, showing it as sending', async () => {
     let finish: () => void = () => {};
     const onSend = vi.fn(

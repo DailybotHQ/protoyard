@@ -38,6 +38,8 @@ let {
   onselect,
 }: Props = $props();
 
+const uid = $props.id();
+let tableShown = $state(false);
 const format = $derived(valueFormatter({ unit }));
 const input = $derived(
   steps.map((s) => ({ id: s.id, label: s.label, value: s.value ?? s.count ?? 0 }))
@@ -49,6 +51,23 @@ const text = $derived(
   summary ??
     `${title}: ${format(first)} entered, ${format(last)} reached ${input.at(-1)?.label ?? 'the end'} (${formatShare(last, first)} overall).`
 );
+
+const table = $derived({
+  headers: ['Step', 'Count', 'Of entered', 'From previous', 'Dropped off'],
+  rows: input.map((step, i) => {
+    const prev = input[i - 1]?.value ?? null;
+    return {
+      id: step.id,
+      cells: [
+        step.label,
+        format(step.value),
+        pct(first > 0 ? step.value / first : null),
+        i === 0 ? '—' : pct(prev ? step.value / prev : null),
+        i === 0 || prev === null ? '—' : format(Math.max(0, prev - step.value)),
+      ],
+    };
+  }),
+});
 
 const LABEL = 132;
 const VALUE = 96;
@@ -91,6 +110,14 @@ function layout(width: number, h: number) {
   {onretry}
 >
   {#snippet children(size)}
+    {#if tableShown}
+      <div id="{uid}-table" class="absolute inset-0 overflow-auto">
+        <!-- Loaded on demand: most viewers never open the table. -->
+        {#await import('../interaction/ValueTable.svelte') then { default: ValueTable }}
+          <ValueTable caption={title} headers={table.headers} rows={table.rows} />
+        {/await}
+      </div>
+    {:else}
     {@const view = layout(size.width, size.height)}
     <ItemPlot
       label={title}
@@ -134,5 +161,15 @@ function layout(width: number, h: number) {
         {/if}
       {/snippet}
     </ItemPlot>
+    {/if}
+  {/snippet}
+  {#snippet footer()}
+    <div class="flex justify-end">
+      {#if table.rows.length > 0 && !loading && !error}
+        {#await import('../interaction/TableToggle.svelte') then { default: TableToggle }}
+          <TableToggle bind:showing={tableShown} controls="{uid}-table" />
+        {/await}
+      {/if}
+    </div>
   {/snippet}
 </ChartFrame>

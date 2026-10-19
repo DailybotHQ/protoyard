@@ -80,3 +80,27 @@ export interface AiEngineOptions {
   maxRequestsPerMinute?: number;
   defaultCadenceMs?: number;
 }
+
+/** Chart kinds a response may ask for; each maps to a `@protoyard/charts-ui` component. */
+export type AiChartKind = 'line' | 'area' | 'bar' | 'donut' | 'pie' | 'funnel';
+
+/** How chart values are formatted: `cents` are integer cents, `percent` values are ratios. */
+export type AiChartUnit = 'number' | 'compact' | 'cents' | 'percent';
+
+/**
+ * A chart in a simulated answer, written as JSON in a ```` ```chart ```` fence.
+ * It is plain data checked by `ChartSpecSchema` (`@protoyard/ai/chart`); it is
+ * never evaluated and its strings render only as text.
+ */
+export interface AiChartSpec {
+  kind: AiChartKind;
+  title: string;
+  description?: string;
+  unit?: AiChartUnit;
+  /** ISO 4217 code for `cents` (default USD). */
+  currency?: string;
+  /** x categories (cartesian) or slice / step names (donut, pie, funnel). */
+  labels: string[];
+  /** One value per label; donut, pie and funnel take exactly one series. */
+  series: { label: string; values: (number | null)[] }[];
+}

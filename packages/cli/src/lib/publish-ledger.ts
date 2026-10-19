@@ -86,12 +86,17 @@ export function secretLikeKeys(value: unknown, prefix = ''): string[] {
   return found;
 }
 
-/** Validates one entry; a credential-like key is refused before the schema runs. */
-export function parseLedgerEntry(value: unknown): LedgerEntry {
+/** Refuses credential-like keys before any kind of local ledger write. */
+export function assertNoSecretLikeKeys(value: unknown): void {
   const secrets = secretLikeKeys(value);
   if (secrets.length > 0) {
     throw new Error(`Refusing ledger fields that look like credentials: ${secrets.join(', ')}.`);
   }
+}
+
+/** Validates one entry; a credential-like key is refused before the schema runs. */
+export function parseLedgerEntry(value: unknown): LedgerEntry {
+  assertNoSecretLikeKeys(value);
   return LedgerEntrySchema.parse(value);
 }
 
@@ -124,10 +129,16 @@ export async function gitState(
  * `O_APPEND` write, so concurrent publishes never interleave inside a line
  * and a crash never leaves a half-written entry before an earlier one.
  */
+export async function appendJsonlEntry<T extends object>(path: string, entry: T): Promise<T> {
+  assertNoSecretLikeKeys(entry);
+  await mkdir(dirname(path), { recursive: true });
+  await appendFile(path, `${JSON.stringify(entry)}\n`, { encoding: 'utf8', flag: 'a' });
+  return entry;
+}
+
 export async function appendLedgerEntry(path: string, entry: unknown): Promise<LedgerEntry> {
   const parsed = parseLedgerEntry(entry);
-  await mkdir(dirname(path), { recursive: true });
-  await appendFile(path, `${JSON.stringify(parsed)}\n`, { encoding: 'utf8', flag: 'a' });
+  await appendJsonlEntry(path, parsed);
   return parsed;
 }
 

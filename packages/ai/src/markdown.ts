@@ -10,6 +10,12 @@
  * quotes, tables, thematic breaks, links and bare URLs, images from the
  * prototype (relative paths or `attachment:<id>`), attachment links and
  * footnote-style citations (`[^1]` with `[^1]: Title https://…`).
+ *
+ * With `{ charts: true }`, a ```` ```chart ```` fence becomes a `chart` block
+ * holding its raw text. The parser never interprets it: a renderer validates
+ * it with `parseChartSpec` from `@protoyard/ai/chart` (zod) and shows a chart,
+ * a table or an error note. Without the option it stays a code block, so other
+ * consumers of this parser see no new block type.
  */
 
 export type MdInline =
@@ -28,6 +34,8 @@ export type MdBlock =
   | { type: 'paragraph'; children: MdInline[] }
   | { type: 'heading'; level: 1 | 2 | 3 | 4 | 5 | 6; children: MdInline[] }
   | { type: 'code'; lang: string; text: string; closed: boolean }
+  /** Only with `parseMarkdown(input, { charts: true })`; `text` is unvalidated JSON. */
+  | { type: 'chart'; text: string; closed: boolean }
   | { type: 'list'; ordered: boolean; start: number; items: MdListItem[] }
   | { type: 'quote'; children: MdBlock[] }
   | { type: 'table'; align: MdAlign[]; header: MdInline[][]; rows: MdInline[][][] }
@@ -45,6 +53,11 @@ export interface MdSource {
   index: number;
   title: string;
   href: string | null;
+}
+
+export interface MarkdownOptions {
+  /** Turn ```` ```chart ```` fences into `chart` blocks (default false). */
+  charts?: boolean;
 }
 
 export interface MdDocument {
@@ -284,7 +297,12 @@ function startsBlock(line: string, next: string | undefined): boolean {
   );
 }
 
-function parseBlocks(lines: string[], citations: Map<string, number>, depth: number): MdBlock[] {
+function parseBlocks(
+  lines: string[],
+  citations: Map<string, number>,
+  depth: number,
+  charts = false
+): MdBlock[] {
   const blocks: MdBlock[] = [];
   const inline = (s: string) => parseInline(s, citations);
   let i = 0;
@@ -310,12 +328,12 @@ function parseBlocks(lines: string[], citations: Map<string, number>, depth: num
         }
         body.push(l);
       }
-      blocks.push({
-        type: 'code',
-        lang: (fence[2] ?? '').toLowerCase(),
-        text: body.join('\n'),
-        closed,
-      });
+      const lang = (fence[2] ?? '').toLowerCase();
+      blocks.push(
+        charts && lang === 'chart'
+          ? { type: 'chart', text: body.join('\n'), closed }
+          : { type: 'code', lang, text: body.join('\n'), closed }
+      );
       continue;
     }
 
@@ -339,7 +357,7 @@ function parseBlocks(lines: string[], citations: Map<string, number>, depth: num
         body.push((lines[i] as string).replace(QUOTE, ''));
         i++;
       }
-      blocks.push({ type: 'quote', children: parseBlocks(body, citations, depth + 1) });
+      blocks.push({ type: 'quote', children: parseBlocks(body, citations, depth + 1, charts) });
       continue;
     }
 
@@ -362,7 +380,7 @@ function parseBlocks(lines: string[], citations: Map<string, number>, depth: num
         if (task) body[0] = (body[0] as string).slice(task[0].length);
         items.push({
           checked: task ? task[1] !== ' ' : null,
-          children: parseBlocks(body, citations, depth + 1),
+          children: parseBlocks(body, citations, depth + 1, charts),
         });
         while (i < lines.length && isBlank(lines[i] as string)) i++;
         match = ITEM.exec(lines[i] ?? '');
@@ -416,7 +434,7 @@ function parseSource(id: string, index: number, raw: string): MdSource {
 }
 
 /** Parses simulated model output into a render-safe document. Never throws. */
-export function parseMarkdown(input: string): MdDocument {
+export function parseMarkdown(input: string, options: MarkdownOptions = {}): MdDocument {
   const lines = String(input ?? '')
     .slice(0, MARKDOWN_MAX_LENGTH)
     .replace(/\r\n?/g, '\n')
@@ -435,7 +453,7 @@ export function parseMarkdown(input: string): MdDocument {
       sources.push(parseSource(id, sources.length + 1, source[2] as string));
     } else body.push(line);
   }
-  return { blocks: parseBlocks(body, citations, 0), sources };
+  return { blocks: parseBlocks(body, citations, 0, options.charts === true), sources };
 }
 
 /** Plain text of inline nodes (copy buttons, previews, accessible labels). */

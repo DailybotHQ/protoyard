@@ -1,7 +1,9 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { closestIds } from '@protoyard/blueprint';
 import { MANIFEST_FILENAME, type PrototypeManifest } from '@protoyard/core';
+import { BUILTIN_THEMES, THEME_LIBRARY_META } from '@protoyard/themes';
 import { buildPrototype } from '../lib/build.ts';
 import { checkBlueprintDrift, SNAPSHOT_PATH } from '../lib/codegen/regenerate.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
@@ -193,6 +195,41 @@ export function definitionChecks(
   return checks;
 }
 
+/**
+ * Theme ids the prototype asks for (manifest `defaultTheme`, scenario
+ * `appearance.themeId`) must name a built-in preset, one of the prototype's
+ * own themes, or a library theme. Unknown ids warn with the closest known
+ * ids: the runtime falls back to another theme instead of failing. Without a
+ * loadable definition the prototype's own themes are unknown, so only
+ * built-in and library ids are accepted.
+ */
+export function checkThemes(manifest: PrototypeManifest, inspection: Inspection | null): Check {
+  const label = 'Theme ids';
+  const own = inspection?.spec?.themes.map((t) => t.id) ?? [];
+  const known = [
+    ...new Set([
+      ...own,
+      ...BUILTIN_THEMES.map((t) => t.id),
+      ...THEME_LIBRARY_META.map((m) => m.id),
+    ]),
+  ];
+  const requested: { id: string; where: string }[] = [
+    { id: manifest.defaultTheme, where: 'defaultTheme' },
+    ...(inspection?.spec?.scenarios ?? []).flatMap((s) =>
+      s.themeId ? [{ id: s.themeId, where: `scenario "${s.id}" appearance.themeId` }] : []
+    ),
+  ];
+  const details = requested
+    .filter((r) => !known.includes(r.id))
+    .map((r) => {
+      const near = closestIds(r.id, known);
+      return `${r.where}: unknown theme "${r.id}"${near.length > 0 ? `; closest: ${near.join(', ')}` : ''}`;
+    });
+  if (details.length > 0) return check('themes', label, 'warn', details);
+  const ids = [...new Set(requested.map((r) => r.id))];
+  return check('themes', label, 'pass', [ids.join(', ')]);
+}
+
 async function checkTypes(ctx: CommandContext, dir: string): Promise<Check> {
   const bin = resolvePackageBin('svelte-check', 'svelte-check', [dir, ctx.root]);
   if (!bin) return check('typecheck', 'svelte-check', 'skip', ['svelte-check is not installed']);
@@ -362,6 +399,7 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
     }
   }
 
+  if (parsed.manifest) checks.push(checkThemes(parsed.manifest, inspection));
   checks.push(await checkSpec(dir, slug, inspection, flag(options, 'strictSpec')));
 
   checks.push(

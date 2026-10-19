@@ -269,6 +269,7 @@ async function main() {
         tags: s.tags,
         // Knobs are data passed to the generator; round-trip to keep them JSON-safe.
         knobs: JSON.parse(JSON.stringify(s.generators ?? {})) as Record<string, unknown>,
+        ...(s.appearance?.themeId ? { themeId: s.appearance.themeId } : {}),
       })),
       themes: (definition.themes ?? []).map((t) => ({ id: t.id, name: t.name })),
       timeline: typeof definition.timeline === 'function',

@@ -4,7 +4,11 @@ import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createPrototypeRuntime, type ProtoyardRuntime } from '../../runtime/src/index.ts';
 import { createTasksDefinition } from '../../runtime/tests/fixtures/tasks-prototype.ts';
-import { BUILTIN_THEMES, createThemeFromSeed } from '../../themes/src/index.ts';
+import {
+  BUILTIN_THEMES,
+  createThemeFromSeed,
+  generateThemeHarmonies,
+} from '../../themes/src/index.ts';
 import { type DevtoolsHandle, mountDevtools } from '../src/index.ts';
 
 /**
@@ -64,6 +68,44 @@ const type = async (element: HTMLElement, value: string) => {
 };
 
 describe('Theme Studio (DevTools)', () => {
+  it('selects a contrast-safe harmony and starts from a library theme definition', async () => {
+    const runtime = await storage()();
+    const panel = await openStudio(runtime);
+
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Use Complementary harmony' }));
+    const selectedSecondary = (within(panel).getByLabelText('Secondary color') as HTMLInputElement)
+      .value;
+    expect(selectedSecondary).toBe(generateThemeHarmonies('#7c3aed')[0]?.secondary);
+    expect(
+      (within(panel).getByLabelText('Use a secondary color') as HTMLInputElement).checked
+    ).toBe(true);
+
+    await fireEvent.change(within(panel).getByLabelText('Start from a theme'), {
+      target: { value: 'library:health-clinic' },
+    });
+    await settle();
+    await fireEvent.click(within(panel).getByRole('button', { name: 'Load' }));
+    await waitFor(() =>
+      expect((within(panel).getByLabelText('Seed color') as HTMLInputElement).value).toBe('#059669')
+    );
+    const studio = within(panel).getByTestId('theme-studio');
+    expect((within(studio).getByLabelText('Theme name') as HTMLInputElement).value).toBe(
+      'Health Clinic'
+    );
+    expect((within(studio).getByLabelText('Secondary color') as HTMLInputElement).value).toBe(
+      '#0284c7'
+    );
+    expect((within(studio).getByLabelText('Neutral family') as HTMLSelectElement).value).toBe(
+      'zinc'
+    );
+    expect(
+      within(panel).getByTestId('theme-studio-preview').style.getPropertyValue('--py-radius')
+    ).toBe('0.75rem');
+    expect((within(studio).getByLabelText('Font pairing') as HTMLSelectElement).value).toBe(
+      'humanist'
+    );
+  });
+
   it('builds a theme from a seed, previews it, saves it and keeps it across a reload', async () => {
     const boot = storage();
     let runtime = await boot();

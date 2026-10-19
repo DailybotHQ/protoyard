@@ -45,6 +45,17 @@ export {
   REGISTRY_VERSION,
   readRegistry,
 } from './lib/registry.ts';
+export {
+  latestShareEntries,
+  parseShareLedgerEntry,
+  readShareLedger,
+  recordArtifactShare,
+  SHARE_LEDGER_FORMAT,
+  type ShareLedgerEntry,
+  ShareLedgerEntrySchema,
+  type ShareLedgerRead,
+  shareLedgerPath,
+} from './lib/share-ledger.ts';
 export { zipDirectory } from './lib/zip.ts';
 export { createProgram, runCli } from './program.ts';
 export { createProvider, PROVIDER_IDS } from './publish/index.ts';

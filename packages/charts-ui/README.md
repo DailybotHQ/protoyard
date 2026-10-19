@@ -120,6 +120,16 @@ Home and End jump to the ends, and Enter selects. A polite live region reads
 each item ("Pro, 280, 28%. 2 of 4."), and the shared tooltip follows pointer
 and focus.
 
+Donut, pie, funnel and Sankey charts also have the same lazy "View as table"
+toggle as the cartesian charts, backed by `ValueTable` (loaded only when it is
+opened):
+- donut and pie list each slice with its value and share;
+- funnel lists each step with its count, share of entered, conversion from
+  the previous step and drop-off;
+- Sankey lists each link source → target with its value.
+
+Treemap uses its breadcrumb and drill-in instead.
+
 | Chart | Highlights |
 | --- | --- |
 | `DonutChart` / `PieChart` | `data: [{ id, label, value, color? }]`. Slices under `otherThreshold` (3 %) fold into "Other" (`groupSmallSlices`; the selection keeps its `members`). Outside labels appear only for slices of 6 % or more, pushed apart so they never overlap. The total sits in the hole (`centerLabel`), and a legend lists every value and share. `PieChart` has no hole. |

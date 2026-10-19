@@ -14,7 +14,9 @@ pnpm vitest run prototypes/ui-kit
 
 Pages: Overview (`#/`), component groups (`#/components/<group>`), one
 component (`#/c/<id>`), Theme lab (`#/themes`), Forms (`#/forms`),
-patterns (`#/components/patterns`), Accessibility (`#/a11y`) and Favorites
+patterns (`#/components/patterns`), charts (`#/components/charts`: one demo per
+`@protoyard/charts-ui` family, states with light/dark and reduced motion, and a
+deterministic 10,000-point SVG/Canvas stress test, the charts bench target), Accessibility (`#/a11y`) and Favorites
 (`#/favorites`). Scenarios: `default` (designer with favorites),
 `dark-viewer` (read-only viewer in dark mode) and `empty`.
 

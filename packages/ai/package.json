@@ -10,12 +10,14 @@
     "./markdown": "./src/markdown.ts",
     "./packs": "./src/packs.ts",
     "./scenarios": "./src/scenarios.ts",
-    "./voice": "./src/voice.ts"
+    "./voice": "./src/voice.ts",
+    "./chart": "./src/chart.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@protoyard/core": "workspace:*"
+    "@protoyard/core": "workspace:*",
+    "zod": "^4.6.0"
   }
 }

@@ -15,6 +15,8 @@ interface Props {
   label?: string;
   /** Shown when the source is empty. */
   emptyText?: string;
+  /** Lets a host handle selected safe links, for example record references. */
+  onLinkClick?: (href: string) => boolean;
   class?: string;
 }
 
@@ -22,6 +24,7 @@ let {
   source,
   label = 'Preview',
   emptyText = 'Nothing to preview yet.',
+  onLinkClick,
   class: className,
 }: Props = $props();
 
@@ -42,7 +45,10 @@ const external = (href: string) => /^https?:/i.test(href);
           {href}
           class="text-primary underline underline-offset-4"
           target={external(href) ? '_blank' : undefined}
-          rel={external(href) ? 'noreferrer noopener' : undefined}>{@render inline(node.children)}</a
+          rel={external(href) ? 'noreferrer noopener' : undefined}
+          onclick={(event) => {
+            if (onLinkClick?.(href)) event.preventDefault();
+          }}>{@render inline(node.children)}</a
         >
       {:else}{@render inline(node.children)}{/if}
     {:else if node.type === 'image'}

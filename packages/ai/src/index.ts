@@ -21,6 +21,7 @@ export {
 export {
   inlineText,
   MARKDOWN_MAX_LENGTH,
+  type MarkdownOptions,
   type MdAlign,
   type MdBlock,
   type MdDocument,
@@ -60,6 +61,9 @@ export {
 } from './tools.ts';
 export type {
   AiBranch,
+  AiChartKind,
+  AiChartSpec,
+  AiChartUnit,
   AiChunk,
   AiClock,
   AiContext,
