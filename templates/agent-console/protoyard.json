@@ -28,7 +28,10 @@
   "defaultScenario": "active",
   "defaultTheme": "ocean",
   "defaultMode": "system",
-  "preview": { "viewport": "desktop" },
+  "preview": {
+    "viewport": "desktop",
+    "layout": { "id": "sidebar", "supported": ["sidebar", "rail", "top-nav"] }
+  },
   "storage": { "namespace": "template-agent-console", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["empty", "active", "member", "viewer", "tool-outage"]

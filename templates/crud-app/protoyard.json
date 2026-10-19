@@ -27,7 +27,11 @@
   "defaultScenario": "active",
   "defaultTheme": "ocean",
   "defaultMode": "system",
-  "preview": { "viewport": "desktop", "shell": "browser" },
+  "preview": {
+    "viewport": "desktop",
+    "shell": "browser",
+    "layout": { "id": "sidebar", "supported": ["sidebar", "rail", "top-nav"] }
+  },
   "storage": { "namespace": "template-crud-app", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["empty", "active", "viewer", "massive"]

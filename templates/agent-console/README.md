@@ -69,3 +69,9 @@ Generator determinism and integrity for every scenario; traces; the judge and us
 and services on the real runtime (persistence across reload, validation, playground
 approve/reject/cancel, viewer and builder permissions, offline and tool outages,
 deterministic evaluations, cascading deletes).
+
+## Layouts
+
+The agent console starts with the sidebar layout and supports the icon rail and
+top navigation. `LayoutHost` receives the section links and current persona as
+a data-only navigation model.
