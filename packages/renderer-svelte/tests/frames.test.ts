@@ -512,6 +512,30 @@ describe('desktop window frame', () => {
     expect(setMaximized).toHaveBeenLastCalledWith(false);
   });
 
+  it('desktop window: minimizing a maximized window keeps the dock reachable and restores it maximized', async () => {
+    const { setMaximized, setScreenHidden, container, rerender } = renderWindow({ os: 'mac' });
+    await fireEvent.click(screen.getByRole('button', { name: 'Maximize' }));
+    expect(setMaximized).toHaveBeenLastCalledWith(true);
+    await rerender({ maximized: true });
+    expect(container.querySelector('[data-py-dock]')).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Minimize' }));
+    expect(setScreenHidden).toHaveBeenLastCalledWith(true);
+    // The frame hands the stage back so the dock is on screen again…
+    expect(setMaximized).toHaveBeenLastCalledWith(false);
+    // …and the dock renders even before the host applies that change.
+    const dock = screen.getByRole('button', { name: 'Restore Fake Prototype' });
+    expect(container.querySelector('[data-py-dock]')).not.toBeNull();
+    await rerender({ maximized: false });
+
+    await fireEvent.click(dock);
+    expect(setScreenHidden).toHaveBeenLastCalledWith(false);
+    expect(setMaximized).toHaveBeenLastCalledWith(true);
+    expect(container.querySelector('[data-window-chrome]')?.getAttribute('data-state')).toBe(
+      'open'
+    );
+  });
+
   it('desktop window: registers a lazy frame with a title-bar inset and a fixed minimum width', async () => {
     const entry = FRAMES['desktop-window'];
     expect(entry).toBeDefined();
@@ -578,6 +602,41 @@ describe('desktop window shell in ShellHost', () => {
     await fireEvent.click(screen.getByRole('button', { name: /^Restore / }));
     expect(screenEl?.style.visibility).toBe('');
     expect(screen.getByTestId('who')).toBe(app);
+  });
+  it('desktop window: maximize, minimize, then restore from the dock in the mounted shell', async () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const runtime = createFakeRuntime();
+    const mounted = await mountPrototype({
+      definition: runtime.definition,
+      App: ProbeApp,
+      target,
+      search: '',
+      devtools: false,
+      createRuntime: () => runtime,
+    });
+    destroy = mounted.destroy;
+    await runtime.theme.setOverride({ shell: 'desktop-window' });
+    flushSync();
+    await vi.waitFor(() => expect(target.querySelector('[data-window-chrome]')).not.toBeNull());
+    const device = target.querySelector<HTMLElement>('[data-py-shell-part="device"]');
+    const screenEl = target.querySelector<HTMLElement>('[data-py-shell-part="screen"]');
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Maximize' }));
+    expect(device?.hasAttribute('data-py-maximized')).toBe(true);
+    expect(target.querySelector('[data-py-dock]')).toBeNull();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Minimize' }));
+    expect(screenEl?.style.visibility).toBe('hidden');
+    // Never stranded: the stage is handed back and the dock can restore the window.
+    expect(device?.hasAttribute('data-py-maximized')).toBe(false);
+    const dock = target.querySelector<HTMLButtonElement>('[data-py-dock-app]');
+    expect(dock).not.toBeNull();
+    expect(dock?.getAttribute('aria-label')).toMatch(/^Restore /);
+
+    await fireEvent.click(dock as HTMLButtonElement);
+    expect(screenEl?.style.visibility).toBe('');
+    expect(device?.hasAttribute('data-py-maximized')).toBe(true);
+    expect(target.querySelector('[data-window-chrome]')?.getAttribute('data-state')).toBe('open');
   });
 });
 
