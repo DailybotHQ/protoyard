@@ -7,9 +7,9 @@ scenario generators run in Node tests, in services and in generators, so this
 package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
-> **Status:** `./board` and `./calendar` are implemented; the other subpaths
-> exist and are empty until their PLAN_003 task lands, and this README
-> documents each one then.
+> **Status:** `./board`, `./calendar` and `./grid` are implemented; the other
+> subpaths exist and are empty until their PLAN_003 task lands, and this
+> README documents each one then.
 
 ## Subpaths
 
@@ -130,4 +130,61 @@ const writes = splitSeries(series, occurrenceId, 'following', { start }, { newId
 - **Limits:** no BYMONTH, BYSETPOS, BYHOUR or BYWEEKNO; weekly rules use WKST
   Monday; a "this and following" edit that changes the time of day keeps the
   later exceptions shifted by the same amount.
+
+## Grid (`@protoyard/views/grid`)
+
+```ts
+import { applyView, compileFilter, createAxis, resolveColumns, sanitizeView, windowGrid } from '@protoyard/views/grid';
+
+const columns = [
+  { key: 'name', header: 'Name', type: 'text' },
+  { key: 'amount', header: 'Amount', type: 'number', accessor: (d) => d.amountCents },
+];
+const { view, dropped } = sanitizeView(storedView, columns); // stored data may be stale or untrusted
+const { rows, groups } = applyView(deals, view, columns, { aggregates: [{ key: 'amount', fn: 'sum' }] });
+const layout = resolveColumns(columns, view.columns); // left / center / right / hidden
+const visible = windowGrid({ rows: createAxis({ count: rows.length, size: 36 }), columns: centerAxis, … });
+```
+
+- **Virtualization** (`createAxis`, `windowAxis`, `windowGrid`): a default
+  size plus sparse measured sizes (prefix sums over sorted indices), so
+  100,000 rows cost nothing until measured and lookups are O(log n). Pinned
+  columns are always rendered and only the center region is windowed. The
+  chat virtualizer in `@protoyard/ai-ui` (`virtual.ts`) follows the same idea
+  for one axis; the kits do not import each other, so the logic is duplicated
+  on purpose.
+- **Column state** (`ColumnStateSchema`, `resolveColumns`, `moveColumn`,
+  `resizeColumn`, `pinColumn`, `setColumnHidden`): order, width (clamped to
+  each column's min/max), pin side and visibility, as plain JSON. New columns
+  appear at the end and stale entries are ignored.
+- **Sorting** (`sortRows`, `SortSchema`): stable, multi-key, empty values last
+  in both directions. Text uses `Intl.Collator` with an explicit locale
+  (default `en`, never the system locale) when a column has up to 5,000
+  distinct values; above that it sorts by a folded key (case and accents
+  folded, digit runs padded) at native speed, which matches the collator for
+  Latin text and keeps code-point order for other scripts.
+- **Filters** (`compileFilter`, `FilterNodeSchema`, `filterSchemaFor`,
+  `OPERATORS_BY_TYPE`): an and/or tree of conditions (`eq`, `neq`,
+  `contains`, `in`, `between`, `before`, `after`, `isEmpty`, `isNotEmpty`),
+  validated with zod against the columns (unknown fields, operators that do
+  not fit the type and bad values are `ZodError`s), bounded to 6 levels and
+  200 nodes, and compiled to closures (never `eval` or `new Function`). Text
+  comparisons ignore case.
+- **Grouping** (`groupRows`, `flattenGroups`): one column, groups ordered by
+  value with the empty group last, `count`/`sum`/`min`/`max` aggregates, and a
+  flat header-plus-rows list (honoring collapsed groups) for the virtualizer.
+- **Saved views** (`SavedViewSchema`, `applyView`, `sanitizeView`):
+  `{ id, name, columns, sort, groupBy, filter, density }`, strict and bounded,
+  safe to store in IndexedDB and import from snapshots. `sanitizeView` removes
+  references to columns that no longer exist and lists what it removed.
+- **Speed** (100,000 in-memory rows): `tests/grid.test.ts` asserts each of
+  multi-key sort, unique-text sort, filter and group in under 150 ms, scaled
+  by a same-process calibration (a native sort of 100,000 numbers) on a busy
+  machine. Measured on 2026-10-19 on the reference M1 Max while the machine
+  was heavily loaded (load average 70–130), best of three: multi-key sort
+  101–273 ms, unique-text sort 174–676 ms, filter 9–32 ms, group 16–56 ms.
+  Quiet-machine numbers are not measured yet; the browser benchmark is
+  T-grid-perf-bench.
+- **Size** (esbuild, minified, gzip -9, zod excluded): the whole subpath is
+  4.6 KB; what a grid view imports is 4.0 KB; the virtualizer alone 0.6 KB.
 
