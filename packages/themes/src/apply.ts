@@ -103,6 +103,12 @@ function elevationShadows(elevation: Theme['style']['elevation']): [string, stri
         '0 0 12px color-mix(in oklab, var(--py-primary) 24%, transparent)',
         '0 0 28px color-mix(in oklab, var(--py-primary) 32%, transparent)',
       ];
+    case 'layered':
+      // Contact, key and ambient layers: depth grows with distance from the surface.
+      return [
+        '0 1px 1px 0 var(--py-shadow), 0 2px 4px -1px var(--py-shadow), 0 4px 8px -2px var(--py-shadow)',
+        '0 1px 2px 0 var(--py-shadow), 0 4px 8px -2px var(--py-shadow), 0 12px 24px -6px var(--py-shadow), 0 24px 48px -12px var(--py-shadow)',
+      ];
     default:
       return [
         '0 1px 2px 0 var(--py-shadow), 0 1px 3px 0 var(--py-shadow)',
