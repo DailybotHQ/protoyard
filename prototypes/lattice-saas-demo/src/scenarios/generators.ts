@@ -4,8 +4,11 @@ import { generateTeam } from '@protoyard/scenarios';
 import type { Project } from '../database/schema.ts';
 import { seededPlanPrices } from '../domain/plans.ts';
 
-/** v2: seeded subscriptions and invoices use the Lattice plan catalog prices. */
-export const B2B_SAAS_GENERATOR_VERSION = 2;
+/**
+ * v2: seeded subscriptions and invoices use the Lattice plan catalog prices.
+ * v3: personas carry library avatars (`generateTeam`), shown as photos.
+ */
+export const B2B_SAAS_GENERATOR_VERSION = 3;
 
 const PROJECT_NAMES = [
   'Website relaunch',
