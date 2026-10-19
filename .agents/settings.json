@@ -22,11 +22,12 @@
       "Bash(pnpm protoyard list:*)",
       "Bash(pnpm protoyard scenario list:*)",
       "Bash(pnpm protoyard snapshot list:*)",
-      "Bash(bash scripts/check-public-hygiene.sh:*)"
+      "Bash(bash scripts/check-public-hygiene.sh:*)",
+      "Bash(git push origin main)",
+      "Bash(git push origin main:*)"
     ],
     "ask": [
       "Bash(pnpm protoyard publish:*)",
-      "Bash(git push:*)",
       "Bash(npx wrangler:*)"
     ],
     "deny": [
