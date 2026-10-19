@@ -119,7 +119,7 @@ not need redirect or rewrite rules.
 | Item | Default | Change it |
 | --- | --- | --- |
 | DevTools panel | **Excluded.** The code is removed from the bundle, not just hidden. | `--include-devtools`, or `"build": { "includeDevtools": true }` in `protoyard.json` |
-| "Prototype · simulated data" badge | **Shown** (below the frame, or in a corner free of controls when full-bleed; its tooltip says data is simulated and stored only in this browser) | `"build": { "demoBadge": false }` in `protoyard.json` |
+| "Prototype · simulated data" badge | **Shown** (below the frame, or in a corner free of controls when full-bleed, else a small info dot in a free gap; its tooltip says data is simulated and stored only in this browser) | `"build": { "demoBadge": false }` in `protoyard.json` |
 | Device or host frame inside an iframe | **Off**: an embedded page renders full-bleed | `"build": { "frameWhenEmbedded": true }` keeps an explicit (non-`auto`) shell frame when the page is embedded, for example as a Claude artifact ([SHELLS.md](SHELLS.md#when-the-app-goes-full-bleed)) |
 | Faker | In a separate chunk, downloaded only when a world is generated (first visit, scenario load) | |
 | Your scenarios and generator | Included, so the first visit can seed the default scenario | |

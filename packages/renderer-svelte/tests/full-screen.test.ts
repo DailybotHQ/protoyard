@@ -5,10 +5,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mountPrototype } from '../src/index.ts';
 import {
   BADGE_CORNERS,
+  COMPACT_INSET,
+  COMPACT_SIZE,
+  compactSpots,
   cornerRect,
+  everyCornerBlocked,
   pickCorner,
   placeBadge,
+  placeCompact,
   samplePoints,
+  spotCost,
 } from '../src/shell/badge-placement.ts';
 import DemoBadge from '../src/shell/DemoBadge.svelte';
 import {
@@ -453,6 +459,39 @@ describe('demo badge placement (full-bleed)', () => {
     expect(placeBadge(container, size, hit)).toBe('top-right');
     const crowded = (_x: number, y: number) => (y > 500 ? nav : heading);
     expect(placeBadge(container, size, crowded)).toBe('top-left');
+  });
+
+  it('shrinks to an info dot in the first gap when every corner holds a control', () => {
+    const phone = { left: 0, top: 0, width: 390, height: 844 };
+    const button = document.createElement('button');
+    const plain = document.createElement('div');
+    // Back and "More actions" in the header corners, a full-width tab bar at the bottom.
+    const hit = (x: number, y: number) =>
+      y > 784 || (y < 56 && (x < 56 || x > 334)) ? button : plain;
+    expect(everyCornerBlocked(phone, size, hit)).toBe(true);
+    const spot = placeCompact(phone, hit);
+    expect(spot).toMatchObject({ width: COMPACT_SIZE, height: COMPACT_SIZE });
+    // The bottom edge is all tab bar, so the dot lands on the top edge between the corner controls.
+    expect(spot.top).toBe(COMPACT_INSET);
+    expect(spot.left).toBeGreaterThanOrEqual(56);
+    expect(spot.left + spot.width).toBeLessThanOrEqual(334);
+    expect(spotCost(spot, hit, 6)).toBe(0);
+  });
+
+  it('keeps the full badge whenever one corner is free, and orders the dot spots corners first', () => {
+    const button = document.createElement('button');
+    const plain = document.createElement('div');
+    const hit = (x: number) => (x < 500 ? button : plain);
+    expect(everyCornerBlocked(container, size, hit)).toBe(false);
+    const spots = compactSpots(container);
+    expect(spots.slice(0, 4).map((s) => [s.left, s.top])).toEqual([
+      [COMPACT_INSET, 600 - COMPACT_INSET - COMPACT_SIZE],
+      [1000 - COMPACT_INSET - COMPACT_SIZE, 600 - COMPACT_INSET - COMPACT_SIZE],
+      [COMPACT_INSET, COMPACT_INSET],
+      [1000 - COMPACT_INSET - COMPACT_SIZE, COMPACT_INSET],
+    ]);
+    // Everything covered: the least covered spot, never undefined.
+    expect(placeCompact(container, () => button)).toBeDefined();
   });
 
   it('renders as a labelled, non-interactive landmark', () => {
