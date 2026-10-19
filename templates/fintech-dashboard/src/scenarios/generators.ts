@@ -5,7 +5,7 @@ import type {
   Persona,
   WorldSeed,
 } from '@protoyard/core';
-import { timeSeries } from '@protoyard/scenarios';
+import { createAvatarPool, timeSeries } from '@protoyard/scenarios';
 import type { Account, BalanceSnapshot, Budget, Transaction } from '../database/schema.ts';
 
 const PEOPLE = [
@@ -30,6 +30,7 @@ export function generateFintechWorld(ctx: GenerateContext): WorldSeed {
     createdAt: time.daysAgo(organizationAgeDays).toISOString(),
     size: PEOPLE.length,
   };
+  const avatars = createAvatarPool(rng.fork('fintech-dashboard:avatars:people'));
   const personas: Persona[] = PEOPLE.map((person, index) => {
     const joinedDaysAgo = organizationAgeDays ? 120 - index * 25 : 0;
     const joinedAt = time.daysAgo(joinedDaysAgo).toISOString();
@@ -39,6 +40,7 @@ export function generateFintechWorld(ctx: GenerateContext): WorldSeed {
       name: person.name,
       email: `${person.name.split(' ')[0]?.toLowerCase()}@example.com`,
       title: person.title,
+      avatar: avatars.next(),
       avatarColor: ['#4263eb', '#2b8a3e', '#9c36b5'][index] ?? '#4263eb',
       locale: 'en-US',
       timezone: 'UTC',

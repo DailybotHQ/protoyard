@@ -12,11 +12,13 @@ test('a transfer updates both accounts and persists paired ledger entries', asyn
   await expect(transferButton).toHaveCount(1);
   await page.getByLabel('Amount (USD)').fill('100.00');
   await transferButton.click();
-  await expect(page.getByRole('status')).toContainText('Transfer saved to both account ledgers.');
+  await expect(
+    page.getByText('Transfer saved to both account ledgers.', { exact: true })
+  ).toBeVisible();
   await expect(page.getByText('Transfer', { exact: true }).first()).toBeVisible();
 
   await page.reload();
   await waitForPrototypeReady(page, { slug: 'fintech-dashboard' });
-  await expect(page.getByText('Move to savings', { exact: true })).toBeVisible();
+  await expect(page.getByText('Monthly savings transfer', { exact: true })).toHaveCount(2);
   await expect(page.getByRole('button', { name: 'Transfer funds' })).toHaveCount(1);
 });

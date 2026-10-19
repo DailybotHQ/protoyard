@@ -1,5 +1,11 @@
 <script lang="ts">
-import { createRouter, Router, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  avatarImage,
+  createRouter,
+  Router,
+  useAppearance,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import { LayoutHost, type NavModel } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { provideFintech } from './lib/context.ts';
@@ -24,7 +30,11 @@ const nav = $derived({
     },
   ],
   user: principal.current
-    ? { name: principal.current.persona.name, detail: principal.current.role ?? 'Member' }
+    ? {
+        image: avatarImage(principal.current.persona.avatar),
+        name: principal.current.persona.name,
+        detail: principal.current.role ?? 'Member',
+      }
     : undefined,
 } satisfies NavModel);
 </script>

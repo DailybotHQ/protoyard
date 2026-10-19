@@ -5,16 +5,20 @@ import { Button, Card, EmptyState, ErrorState, Skeleton } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import type { Transaction } from '../database/schema.ts';
 import { CAPABILITIES } from '../domain/policy.ts';
+import {
+  readAccounts,
+  readBalanceSnapshots,
+  readBudgets,
+  readTransactions,
+} from '../domain/queries.ts';
 import { useFintech } from '../lib/context.ts';
 
 const { db, runtime, services } = useFintech();
 const principal = usePrincipal();
-const accounts = liveQuery(() => db.accounts.orderBy('name').toArray(), { initial: [] });
-const transactions = liveQuery(() => db.transactions.orderBy('occurredAt').reverse().toArray(), {
-  initial: [],
-});
-const snapshots = liveQuery(() => db.balanceSnapshots.orderBy('at').toArray(), { initial: [] });
-const budgets = liveQuery(() => db.budgets.orderBy('category').toArray(), { initial: [] });
+const accounts = liveQuery(() => readAccounts(db), { initial: [] });
+const transactions = liveQuery(() => readTransactions(db), { initial: [] });
+const snapshots = liveQuery(() => readBalanceSnapshots(db), { initial: [] });
+const budgets = liveQuery(() => readBudgets(db), { initial: [] });
 const canTransfer = $derived(can(CAPABILITIES.transfersCreate));
 let fromAccountId = $state('account-checking');
 let toAccountId = $state('account-savings');

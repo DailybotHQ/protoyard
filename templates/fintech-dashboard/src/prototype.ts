@@ -11,7 +11,7 @@ export const definition = definePrototype({
   scenarios,
   policy,
   generate: generateFintechWorld,
-  generatorVersion: 1,
+  generatorVersion: 2,
   integrity: {
     relations: {
       accounts: { ownerId: 'py_personas' },

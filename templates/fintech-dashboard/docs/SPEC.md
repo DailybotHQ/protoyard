@@ -69,7 +69,7 @@ Keep the generated world only as synthetic development fixtures.
 | default theme | `violet` |
 | storage namespace | `template-fintech-dashboard` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 2 |
 | timeline | no |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->
