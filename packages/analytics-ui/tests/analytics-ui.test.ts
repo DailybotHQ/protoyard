@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 // longer than a test timeout to transform on a busy machine; collection time has no such limit.
 import * as cohort from '../src/cohort/index.ts';
 import * as dateRange from '../src/date-range/index.ts';
+import * as drill from '../src/drill/index.ts';
 import * as filters from '../src/filters/index.ts';
 import * as funnel from '../src/funnel/index.ts';
 import * as grid from '../src/grid/index.ts';
@@ -25,6 +26,7 @@ describe('@protoyard/analytics-ui scaffold', () => {
   it('each view subpath resolves and names its view', () => {
     const modules: Record<string, { VIEW: string }> = {
       'date-range': dateRange,
+      drill,
       filters,
       cohort,
       funnel,

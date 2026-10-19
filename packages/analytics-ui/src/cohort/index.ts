@@ -1,5 +1,15 @@
 // @protoyard/analytics-ui/cohort — Cohort retention table.
-// Components are added by the PLAN_003 analytics tasks; this entry fixes the subpath.
 import type { AnalyticsView } from '../views.ts';
 
 export const VIEW = 'cohort' satisfies AnalyticsView;
+
+export { default as CohortTable } from './CohortTable.svelte';
+export {
+  type CohortDisplay,
+  type CohortPalette,
+  cohortLabel,
+  formatCount,
+  formatRate,
+  periodLabel,
+  readSequentialRamp,
+} from './model.ts';

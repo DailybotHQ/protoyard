@@ -27,15 +27,14 @@ and import the styles after Tailwind and the theme, UI and charts styles:
 | `@protoyard/analytics-ui` | `KpiTile`, `KpiRow`, `LiveCounter`, `formatKpi`, `kpiDelta`; `ANALYTICS_VIEWS` and the data contract types (imports no view) |
 | `@protoyard/analytics-ui/date-range` | `DateRangePicker`, `DateRangePanel`, `MonthGrid`; `toDateRangeQuery` / `fromDateRangeQuery`, `allowedGranularities`, `fitGranularity`, `describeDateRange` |
 | `@protoyard/analytics-ui/filters` | `FilterBuilder`, `FilterGroupEditor`, `SegmentPicker`, `BreakdownSelect`; `describeFilter`, `validateFilter`, `saveErrorOf` |
-| `@protoyard/analytics-ui/cohort` | Cohort retention table |
-| `@protoyard/analytics-ui/funnel` | Funnel analysis |
+| `@protoyard/analytics-ui/cohort` | `CohortTable`; `formatRate`, `cohortLabel`, `periodLabel`, `readSequentialRamp` |
+| `@protoyard/analytics-ui/funnel` | `FunnelAnalysis`; `funnelSeries`, `formatConversion`, `formatDuration` |
 | `@protoyard/analytics-ui/grid` | `DashboardGrid`, `WidgetCard` (and the layout helpers from `@protoyard/analytics`) |
+| `@protoyard/analytics-ui/drill` | `DrillDown`; `drillStep`, `pushDrill`, `truncateDrill`, `drillFilter`, `toDrillQuery` / `fromDrillQuery` |
 
-**Status:** scaffold (PLAN_003 `T-analytics-scaffold`). Each subpath currently
-exports only its `VIEW` name; components arrive with the following PLAN_003
-analytics tasks. Every mutation (save a segment, move a widget) will be a
-callback that returns the prototype's service promise, so a `Button` shows
-pending feedback; the kit never writes to the database itself.
+Every mutation (save a segment, move a widget) is a callback that returns the
+prototype's service promise, so a `Button` shows pending feedback; the kit
+never writes to the database itself.
 
 ## KPI tiles and live counters (root entry)
 
@@ -199,6 +198,51 @@ inside whatever app shell the prototype uses, not a shell itself.
 Size (esbuild minify + gzip -9, `svelte` and `@protoyard/ui` external since
 prototypes already ship them): `DashboardGrid` + `WidgetCard` 3.6 KB, or
 4.3 KB with the layout engine. Widgets load their chart chunks themselves.
+
+## Explore: drill-down, cohorts, funnels (`./drill`, `./cohort`, `./funnel`)
+
+```svelte
+<DrillDown title="Tickets" {rows} {columns} getRowId={(r) => r.id} {path} onchange={(p) => go(`#/tickets?${toDrillQuery(p)}`)}>
+  {#snippet chart({ drill })}
+    <BarChart title="Tickets by priority" {series} onselect={(s) => drill(drillStep('priority', s.datum.priority))} />
+  {/snippet}
+</DrillDown>
+<CohortTable title="Weekly retention" result={computeRetention(events, { interval: 'week', periods: 8, now })} />
+<FunnelAnalysis title="Activation" result={computeFunnel(events, steps, { breakdown: 'properties.plan' })} breakdownLabel="Plan" />
+```
+
+- **`DrillDown`**: the chart snippet calls `drill(step)` from its `onselect`;
+  the rows matching the path (ANDed with an optional `base` filter, via
+  `compileFilter`) fill a `DataTable`, and a breadcrumb `nav` walks back
+  (`aria-current` on the last step, a polite row count).
+  - The path is data (`{ steps: [{ label, filter }] }`). `toDrillQuery` /
+    `fromDrillQuery` round-trip it through the hash query, so a reload or a
+    shared link restores it. The parser validates every filter with
+    `FilterConditionSchema` and drops anything else (the query is untrusted).
+  - A step on a property already in the path replaces it and drops the
+    steps after it.
+- **`CohortTable`**: a real `<table>` with a caption, `scope="col"` period
+  headers, `scope="row"` cohort headers and an average row.
+  - Cells use the sequential ramp (`var(--py-seq-N)`). Text is colored on the
+    fill only when it reaches 4.5:1 against that step's hex, read from the
+    theme's `--py-seq-*` (or a `palette` prop). Otherwise the value sits on a
+    surface chip, so contrast never depends on a guess.
+  - The % / Count toggle uses `aria-pressed` buttons and is bindable
+    (`display`). Incomplete periods are outlined and marked with an asterisk
+    and "(incomplete)" for screen readers. Period 0 is unfilled because it is
+    always 100%.
+- **`FunnelAnalysis`**: a `FunnelChart` plus a step table (users, overall
+  conversion, conversion from the previous step, drop-off, median time to
+  convert).
+  - With a breakdown, `aria-pressed` buttons (each with its overall
+    conversion) switch the chart and the table to that series. `selected` is
+    bindable, and `onstepselect` passes the clicked step on (for example, to
+    a `DrillDown`).
+
+Size (esbuild minify + gzip -9; svelte, `@protoyard/ui`, charts and analytics
+external): DrillDown 1.3 KB (2.7 KB with its filter code, zod external),
+CohortTable 2.7 KB, FunnelAnalysis 2.0 KB. All are under the 6 KB budget
+beyond the charts they use.
 
 ## Tests
 
