@@ -14,6 +14,11 @@
       "svelte": "./src/overlay/index.ts",
       "default": "./src/overlay/index.ts"
     },
+    "./thread": {
+      "types": "./src/thread/index.ts",
+      "svelte": "./src/thread/index.ts",
+      "default": "./src/thread/index.ts"
+    },
     "./panel": {
       "types": "./src/panel/index.ts",
       "svelte": "./src/panel/index.ts",
@@ -40,6 +45,8 @@
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/review": "workspace:*",
     "@protoyard/ui": "workspace:*",
+    "@protoyard/views": "workspace:*",
+    "@protoyard/views-ui": "workspace:*",
     "bits-ui": "^2.19.0"
   },
   "devDependencies": {
