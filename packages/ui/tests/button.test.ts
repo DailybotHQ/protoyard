@@ -69,3 +69,75 @@ describe('Button', () => {
     expect(link?.getAttribute('tabindex')).toBe('-1');
   });
 });
+
+describe('Button pending feedback', () => {
+  function deferred() {
+    let resolve!: () => void;
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<void>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+  const settle = () => new Promise((r) => setTimeout(r, 0));
+
+  it('an async onclick shows the spinner, aria-busy and blocks double clicks until it settles', async () => {
+    const work = deferred();
+    const onclick = vi.fn(() => work.promise);
+    render(ButtonHarness, { onclick });
+    const button = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement;
+    await fireEvent.click(button);
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    expect(button.disabled).toBe(true);
+    expect(button.querySelector('[data-ui-button-spinner] svg')).not.toBeNull();
+    await fireEvent.click(button);
+    expect(onclick).toHaveBeenCalledTimes(1);
+    work.resolve();
+    await settle();
+    expect(button.hasAttribute('aria-busy')).toBe(false);
+    expect(button.disabled).toBe(false);
+    expect(button.querySelector('[data-ui-button-spinner]')).toBeNull();
+  });
+
+  it('clears loading after a rejected promise too', async () => {
+    const work = deferred();
+    render(ButtonHarness, { onclick: () => work.promise.catch(() => undefined) });
+    const button = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement;
+    await fireEvent.click(button);
+    expect(button.disabled).toBe(true);
+    work.reject(new Error('nope'));
+    await settle();
+    expect(button.disabled).toBe(false);
+  });
+
+  it('keeps the label in place while loading, so the width cannot change', () => {
+    render(ButtonHarness, { loading: true, loadingLabel: 'Saving' });
+    const button = screen.getByRole('button', { name: /Save/ });
+    const label = [...button.querySelectorAll('span')].find((s) => s.textContent === 'Save');
+    expect(label?.className).toContain('opacity-0');
+    expect(button.querySelector('[data-ui-button-spinner]')?.className).toContain('absolute');
+  });
+
+  it('autoLoading={false} opts out', async () => {
+    const work = deferred();
+    render(ButtonHarness, { onclick: () => work.promise, autoLoading: false });
+    const button = screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement;
+    await fireEvent.click(button);
+    expect(button.disabled).toBe(false);
+    expect(button.hasAttribute('aria-busy')).toBe(false);
+    work.resolve();
+  });
+
+  it('icon buttons keep their icon slot and show the spinner over it', async () => {
+    const work = deferred();
+    render(ButtonHarness, { size: 'icon', label: 'Delete', onclick: () => work.promise });
+    const button = screen.getByRole('button', { name: 'Delete' }) as HTMLButtonElement;
+    await fireEvent.click(button);
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    expect(button.querySelector('[data-ui-button-spinner]')).not.toBeNull();
+    work.resolve();
+    await settle();
+    expect(button.hasAttribute('aria-busy')).toBe(false);
+  });
+});
