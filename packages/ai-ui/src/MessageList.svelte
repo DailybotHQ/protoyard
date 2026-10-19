@@ -132,7 +132,7 @@ function saveEdit(message: AssistantMessage): void {
 
 <div
   bind:this={viewport}
-  class="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-8"
+  class="@container min-h-0 flex-1 overflow-y-auto px-4 py-5 @xl:px-8"
   role="log"
   aria-label="Conversation messages"
   aria-live="polite"
@@ -145,7 +145,7 @@ function saveEdit(message: AssistantMessage): void {
       {#if message}
         <article
           use:observeMessage={message.id}
-          class={`group min-w-0 pb-8 ${message.role === 'user' ? 'ml-auto max-w-[92%] sm:max-w-[85%]' : 'max-w-full'}`}
+          class={`group min-w-0 pb-8 ${message.role === 'user' ? 'ml-auto max-w-[92%] @xl:max-w-[85%]' : 'max-w-full'}`}
           aria-label={message.role === 'user' ? 'Your message' : 'Assistant message'}
           style={`position:absolute;top:${item.start}px;left:0;right:0`}
         >
@@ -162,10 +162,10 @@ function saveEdit(message: AssistantMessage): void {
             </form>
           {:else if message.role === 'user'}
             <div class="rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-sm leading-6 text-primary-foreground whitespace-pre-wrap">{message.content}</div>
-            {#if onEditMessage}<button type="button" class="mt-1 min-h-9 rounded-lg px-2 text-xs text-muted-foreground opacity-100 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100" aria-label="Edit your message" onclick={() => { editingId = message.id; editDraft = message.content; }}><span class="inline-flex items-center gap-1"><ChevronUp class="size-3" aria-hidden="true" /> Edit</span></button>{/if}
+            {#if onEditMessage}<button type="button" class="mt-1 min-h-9 rounded-lg px-2 text-xs text-muted-foreground opacity-100 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring @xl:opacity-0 @xl:group-hover:opacity-100 @xl:focus-visible:opacity-100" aria-label="Edit your message" onclick={() => { editingId = message.id; editDraft = message.content; }}><span class="inline-flex items-center gap-1"><ChevronUp class="size-3" aria-hidden="true" /> Edit</span></button>{/if}
           {:else}
             <RichAnswer content={message.content} />
-            <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-muted-foreground opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+            <div class="mt-2 flex flex-wrap items-center gap-1 text-xs text-muted-foreground opacity-100 @xl:opacity-0 @xl:group-hover:opacity-100 @xl:focus-within:opacity-100">
               {#if onFeedback}<button type="button" class={`inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${message.feedback === 'up' ? 'text-primary' : ''}`} aria-label="Helpful response" aria-pressed={message.feedback === 'up'} onclick={() => onFeedback?.(message.id, 'up')}><ThumbsUp class="size-3.5" aria-hidden="true" />Helpful</button><button type="button" class={`inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${message.feedback === 'down' ? 'text-primary' : ''}`} aria-label="Unhelpful response" aria-pressed={message.feedback === 'down'} onclick={() => onFeedback?.(message.id, 'down')}><ThumbsDown class="size-3.5" aria-hidden="true" />Not helpful</button>{/if}
               {#if message.branchCount && message.branchCount > 1}<span class="ml-1 inline-flex items-center gap-1"><button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40" aria-label="Previous response version" disabled={message.branchIndex === 0 || !onBranchChange} onclick={() => onBranchChange?.(message.id, -1)}><ArrowLeft class="size-3.5" aria-hidden="true" /></button><span>{(message.branchIndex ?? 0) + 1} / {message.branchCount}</span><button type="button" class="inline-flex size-9 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40" aria-label="Next response version" disabled={(message.branchIndex ?? 0) >= message.branchCount - 1 || !onBranchChange} onclick={() => onBranchChange?.(message.id, 1)}><ArrowRight class="size-3.5" aria-hidden="true" /></button></span>{/if}
               {#if lastAssistantId === message.id && onRegenerate}<button type="button" class="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={streaming} aria-label="Regenerate response" onclick={onRegenerate}><RefreshCw class="size-3.5" aria-hidden="true" /> Regenerate</button>{/if}

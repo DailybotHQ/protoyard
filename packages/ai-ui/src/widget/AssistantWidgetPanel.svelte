@@ -5,6 +5,7 @@ import type { AssistantWidgetProps } from './types.ts';
 let { prototypeId: _prototypeId, ...workspaceProps }: AssistantWidgetProps = $props();
 </script>
 
-<div class="h-full min-h-0 w-full">
+<!-- The panel sets the height: the workspace's own 32rem minimum would overflow a short panel and clip the composer. -->
+<div class="h-full min-h-0 w-full *:min-h-0">
   <AssistantWorkspace {...workspaceProps} />
 </div>

@@ -201,15 +201,15 @@ function formatDate(date: string): string {
 }
 </script>
 
-<div class="relative flex h-full min-h-[32rem] min-w-0 overflow-hidden rounded-2xl border border-border bg-background text-foreground shadow-soft">
-  {#if sidebarOpen}<button type="button" class="fixed inset-0 z-20 bg-black/30 lg:hidden" aria-label="Close conversation navigation" onclick={() => (sidebarOpen = false)}></button>{/if}
-  <aside class={`absolute inset-y-0 left-0 z-30 flex w-[min(19rem,85vw)] min-w-0 flex-col border-r border-border bg-surface transition-transform lg:static lg:w-72 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`} aria-label="Conversation history">
+<div class="@container relative flex h-full min-h-[32rem] min-w-0 overflow-hidden rounded-2xl border border-border bg-background text-foreground shadow-soft">
+  {#if sidebarOpen}<button type="button" class="absolute inset-0 z-20 bg-black/30 @3xl:hidden" aria-label="Close conversation navigation" onclick={() => (sidebarOpen = false)}></button>{/if}
+  <aside class={`absolute inset-y-0 left-0 z-30 flex w-[min(19rem,85%)] min-w-0 flex-col border-r border-border bg-surface transition-transform @3xl:static @3xl:w-72 @3xl:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full @3xl:translate-x-0'}`} aria-label="Conversation history">
     <div class="flex items-center gap-2 p-3">
       <button type="button" class="flex min-h-11 flex-1 items-center gap-2 rounded-xl border border-border bg-background px-3 text-left text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" disabled={!onCreateConversation} onclick={newConversation}>
         <MessageSquarePlus class="size-4" aria-hidden="true" /> New chat
         <span class="ml-auto text-xs text-muted-foreground">⌘ K</span>
       </button>
-      <button type="button" class="inline-flex size-11 items-center justify-center rounded-xl hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden" aria-label="Close conversation navigation" onclick={() => (sidebarOpen = false)}><X class="size-4" aria-hidden="true" /></button>
+      <button type="button" class="inline-flex size-11 items-center justify-center rounded-xl hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring @3xl:hidden" aria-label="Close conversation navigation" onclick={() => (sidebarOpen = false)}><X class="size-4" aria-hidden="true" /></button>
     </div>
     <div class="px-3 pb-2">
       <label for="conversation-search" class="sr-only">Search conversations</label>
@@ -267,13 +267,13 @@ function formatDate(date: string): string {
   </aside>
 
   <section class="flex min-w-0 flex-1 flex-col" aria-label="Assistant conversation">
-    <header class="flex min-h-14 items-center gap-2 border-b border-border px-3 sm:px-5">
-      <button type="button" class="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden" aria-label="Open conversation history" onclick={() => (sidebarOpen = true)}><Menu class="size-4" aria-hidden="true" /></button>
+    <header class="flex min-h-14 items-center gap-2 border-b border-border px-3 @xl:px-5">
+      <button type="button" class="inline-flex size-10 items-center justify-center rounded-lg hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring @3xl:hidden" aria-label="Open conversation history" onclick={() => (sidebarOpen = true)}><Menu class="size-4" aria-hidden="true" /></button>
       <div class="min-w-0 flex-1">
         <h1 class="truncate text-sm font-semibold">{activeConversation?.title || 'New conversation'}</h1>
         <p class="text-[0.68rem] text-muted-foreground">{activeModel?.name ?? 'Simulated assistant'} · Simulated</p>
       </div>
-      {#if onShare}<button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40" aria-label="Create share link" disabled={!activeId} onclick={() => void createShareLink()}><Share2 class="size-4" aria-hidden="true" /><span class="hidden sm:inline">Share</span></button>{/if}
+      {#if onShare}<button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40" aria-label="Create share link" disabled={!activeId} onclick={() => void createShareLink()}><Share2 class="size-4" aria-hidden="true" /><span class="hidden @xl:inline">Share</span></button>{/if}
       {#if canvas}<span class="inline-flex min-h-8 items-center gap-1 rounded-full border border-border px-2 text-[0.68rem] text-muted-foreground"><FileText class="size-3" aria-hidden="true" /> Canvas open</span>{/if}
     </header>
     {#if shareUrl || shareError}
@@ -297,15 +297,15 @@ function formatDate(date: string): string {
             {onFeedback}
           />
         {:else}
-          <div class="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-8">
+          <div class="min-h-0 flex-1 overflow-y-auto px-4 py-5 @xl:px-8">
           {#if messages.length === 0}
             <div class="mx-auto flex min-h-full max-w-2xl flex-col justify-center py-8">
               <div class="mb-8 text-center">
                 <div class="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><MessageSquarePlus class="size-5" aria-hidden="true" /></div>
-                <h2 class="text-xl font-semibold tracking-tight sm:text-2xl">What would you like to explore?</h2>
+                <h2 class="text-xl font-semibold tracking-tight @xl:text-2xl">What would you like to explore?</h2>
                 <p class="mt-2 text-sm text-muted-foreground">Draft, reason, and experiment with a deterministic simulated assistant.</p>
               </div>
-              <div class="grid gap-2 sm:grid-cols-2">
+              <div class="grid gap-2 @xl:grid-cols-2">
                 {#each suggestions as suggestion (suggestion)}
                   <button type="button" class="min-h-14 rounded-xl border border-border bg-surface px-4 py-3 text-left text-sm text-muted-foreground shadow-soft transition-colors hover:border-ring/50 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!activeId || !activeModel || streaming} onclick={() => chooseSuggestion(suggestion)}><span>{suggestion}</span><ArrowDown class="mt-1 size-3 text-muted-foreground/60" aria-hidden="true" /></button>
                 {/each}
@@ -314,12 +314,12 @@ function formatDate(date: string): string {
           {/if}
           </div>
         {/if}
-        <footer class="space-y-2 border-t border-border bg-background/90 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
+        <footer class="space-y-2 border-t border-border bg-background/90 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] @xl:px-5">
           <AssistantComposer models={models} modelId={modelId} streaming={streaming} disabled={!activeId} onModelChange={(id) => (modelId = id)} onStop={onStop} onSubmit={(input) => activeId ? onSend(activeId, input) : false} />
           <p class="text-center text-[0.65rem] text-muted-foreground">AI responses are generated by local deterministic simulation and may be inaccurate.</p>
         </footer>
       </div>
-      {#if canvas}<div class="fixed inset-0 z-20 flex bg-background lg:static lg:z-auto lg:w-[min(42%,34rem)] lg:min-w-72"><CanvasPanel document={canvas} onChange={onCanvasChange} onClose={onCloseCanvas} /></div>{/if}
+      {#if canvas}<div class="absolute inset-0 z-30 flex bg-background @3xl:static @3xl:z-auto @3xl:w-[min(42%,34rem)] @3xl:min-w-72"><CanvasPanel document={canvas} onChange={onCanvasChange} onClose={onCloseCanvas} /></div>{/if}
     </div>
   </section>
 </div>

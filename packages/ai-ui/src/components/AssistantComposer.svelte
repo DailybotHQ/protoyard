@@ -117,7 +117,7 @@ function addFiles(event: Event): void {
 }
 </script>
 
-<div class="relative mx-auto w-full max-w-3xl rounded-3xl border border-border bg-surface shadow-soft focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25">
+<div class="@container relative mx-auto w-full max-w-3xl rounded-3xl border border-border bg-surface shadow-soft focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/25">
   {#if suggestions.length}
     <div class="absolute bottom-full left-3 z-10 mb-2 max-h-52 w-64 overflow-y-auto rounded-xl border border-border bg-elevated p-1 shadow-float" role="listbox" aria-label={trigger?.[1]?.startsWith('/') ? 'Slash commands' : 'People'}>
       {#each suggestions as item, index (`${item.kind}-${item.id}`)}
@@ -154,12 +154,12 @@ function addFiles(event: Event): void {
       <input class="sr-only" type="file" multiple aria-label="Choose attachments" onchange={addFiles} />
     </label>
     <label for="assistant-model" class="sr-only">Simulated model</label>
-    <select id="assistant-model" class="h-9 max-w-48 rounded-full border border-border bg-background px-3 text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" value={modelId} disabled={disabled || streaming || !onModelChange} onchange={(event) => onModelChange?.(event.currentTarget.value)}>
+    <select id="assistant-model" class="h-9 min-w-0 max-w-48 rounded-full border border-border bg-background px-3 text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" value={modelId} disabled={disabled || streaming || !onModelChange} onchange={(event) => onModelChange?.(event.currentTarget.value)}>
       {#each models as model (model.id)}
         <option value={model.id}>{model.name} · Simulated</option>
       {/each}
     </select>
-    <span class="ml-auto hidden text-[0.7rem] text-muted-foreground sm:inline">Simulated AI · no provider connection</span>
+    <span class="ml-auto hidden text-[0.7rem] text-muted-foreground @md:inline">Simulated AI · no provider connection</span>
   <button type="button" class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40" disabled={streaming ? !onStop : !value.trim() || disabled || !selectedModel} aria-label={streaming ? 'Stop response' : 'Send message'} onclick={() => void submit()}>
       {#if streaming}<Square class="size-4 fill-current" aria-hidden="true" />{:else}<ArrowUp class="size-5" aria-hidden="true" />{/if}
     </button>

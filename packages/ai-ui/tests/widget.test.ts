@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AssistantWidget from '../src/widget/AssistantWidget.svelte';
 import AssistantWidgetPanel from '../src/widget/AssistantWidgetPanel.svelte';
@@ -93,5 +93,51 @@ describe('AssistantWidget', () => {
     last.focus();
     await fireEvent.keyDown(panel, { key: 'Tab' });
     expect(document.activeElement).toBe(panel.querySelector('header button'));
+  });
+});
+
+describe('AssistantWidget sidebar layout', () => {
+  // happy-dom applies no stylesheet, so this pins the layout contract: every layout
+  // switch in the workspace follows its own width (container queries), never the
+  // window. A 28rem sidebar on a wide window used to get the two-column desktop
+  // layout (`lg:`), squeezing the chat column to a few words per line.
+  it('uses container queries, not viewport breakpoints, in the panel workspace', async () => {
+    const { readFileSync } = await import('node:fs');
+    const viewportBreakpoint = /(?<![\w@-])(sm|md|lg|xl|2xl):/;
+    for (const file of [
+      '../src/components/AssistantWorkspace.svelte',
+      '../src/components/AssistantComposer.svelte',
+      '../src/MessageList.svelte',
+    ]) {
+      const markup = readFileSync(new URL(file, import.meta.url), 'utf8')
+        .split('</script>')
+        .at(-1);
+      expect(markup?.match(viewportBreakpoint)?.[0], file).toBeUndefined();
+      // Overlays stay inside the panel instead of covering the host page.
+      expect(markup, file).not.toMatch(/\bfixed inset-0\b|\d+vw\b/);
+    }
+  });
+
+  it('opens single-column in sidebar mode: chat and composer, history behind a toggle', async () => {
+    const { container } = render(AssistantWidget, props);
+    await fireEvent.click(screen.getByRole('button', { name: 'Open simulated assistant' }));
+    const prompt = await screen.findByRole('textbox', { name: 'Message the simulated assistant' });
+    const root = container.querySelector('[data-widget-panel] .\\@container');
+    expect(root, 'workspace is a size container').toBeTruthy();
+    // The panel, not the workspace's 32rem page minimum, sets the height.
+    expect(root?.parentElement?.className).toContain('*:min-h-0');
+    const history = screen.getByRole('complementary', { name: 'Conversation history' });
+    // Off-canvas until the wide (@3xl) layout or the history toggle shows it.
+    expect(history.className).toMatch(/-translate-x-full/);
+    expect(history.className).toMatch(/@3xl:static/);
+    const toggle = screen.getByRole('button', { name: 'Open conversation history' });
+    expect(toggle.className).toMatch(/@3xl:hidden/);
+    await fireEvent.click(toggle);
+    expect(history.className).toMatch(/(^|\s)translate-x-0/);
+    await fireEvent.click(
+      within(history).getByRole('button', { name: 'Close conversation navigation' })
+    );
+    expect(history.className).toMatch(/-translate-x-full/);
+    expect(prompt.isConnected).toBe(true);
   });
 });
