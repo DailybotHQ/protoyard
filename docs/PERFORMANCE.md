@@ -294,14 +294,30 @@ Lazy chunks, loaded only when used (gzip):
 
 Builds without DevTools (the default) do not contain the Studio at all.
 
+**Library themes in every prototype (2026-10-19).** `mountPrototype` passes
+the runtime a resolver that imports `@protoyard/themes/library` on first use.
+Measured on `crm-demo` with `pnpm protoyard build crm-demo` (the
+`initialJsGzip` field of `build-manifest.json`), the same tree with and without
+the resolver in `mount.ts`: **176,656 B → 176,978 B initial JS (+322 B
+gzip)**. The library loads as two lazy chunks: the metadata and registry
+(`library-*.js`, 3,758 B gzip) and the token builder with the palette engine
+and chart palettes (`build-*.js`, 4,283 B gzip), only when a page asks for a
+library theme. A string check over the ten initial files (the entry plus its
+`modulepreload` links in `index.html`) found no library id or description,
+no palette-engine error text and no chart-palette text.
+`packages/renderer-svelte/tests/bundle-hygiene.test.ts` keeps it that way:
+no dynamic import of the `@protoyard/themes` barrel, and no static import of
+the library from the renderer, runtime or core.
+
 **Library metadata (2026-10-19, schema v2).** Method: Vite library build of
 `packages/themes/src/library/registry.ts` (minified, `@protoyard/*` external,
 gzip level 9), entry chunk only; the token builder stays a separate lazy
 chunk. The entry holds the 32 definitions plus the registry, search and
 collection code: **3,808 B gzip before the v2 fields, 4,226 B after
-(+418 B)**, about **1.3 KB gzip per 10 entries**. It is downloaded only where
-the library is imported (the gallery's Themes page, the `ui-kit` Theme Lab);
-no prototype's initial JS contains it.
+(+418 B)**, about **1.3 KB gzip per 10 entries**. It is downloaded where the library is imported
+(the gallery's Themes page, the `ui-kit` Theme Lab) and, lazily, by any
+prototype the first time it is asked for a library theme; no prototype's
+initial JS contains it.
 
 ## Scenario generation
 

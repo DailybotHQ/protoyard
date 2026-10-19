@@ -35,6 +35,29 @@ describe('bundle hygiene', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('never imports the @protoyard/themes barrel dynamically (it is already in every entry chunk)', () => {
+    const offenders = SCANNED.flatMap((top) => sourceFiles(join(ROOT, top)))
+      .filter((file) =>
+        /import\(\s*['"]@protoyard\/themes['"]\s*\)/.test(readFileSync(file, 'utf8'))
+      )
+      .map((file) => relative(ROOT, file));
+    expect(offenders).toEqual([]);
+  });
+
+  it('keeps the theme library out of the boot path: renderer, runtime and core load it only lazily', () => {
+    const boot = ['packages/renderer-svelte/src', 'packages/runtime/src', 'packages/core/src'];
+    const files = boot.flatMap((dir) => sourceFiles(join(ROOT, dir)));
+    const staticImport =
+      /(?:^|\n)\s*import\s+(?!type\b)[^;]*from\s*['"]@protoyard\/themes\/library['"]|import\s*['"]@protoyard\/themes\/library['"]/;
+    const offenders = files
+      .filter((file) => staticImport.test(readFileSync(file, 'utf8')))
+      .map((file) => relative(ROOT, file));
+    expect(offenders).toEqual([]);
+    // The one way in: mount.ts imports the subpath on first use.
+    const mount = readFileSync(join(ROOT, 'packages/renderer-svelte/src/mount.ts'), 'utf8');
+    expect(mount).toMatch(/await import\(['"]@protoyard\/themes\/library['"]\)/);
+  });
+
   it('scans real sources (a scan that finds nothing proves nothing)', () => {
     const files = sourceFiles(join(ROOT, 'packages/renderer-svelte/src'));
     expect(files.some((f) => f.endsWith('ExtensionPopupFrame.svelte'))).toBe(true);

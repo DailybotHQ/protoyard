@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./presets": "./src/presets.ts",
     "./no-flash": "./src/no-flash.ts",
+    "./library": "./src/library/index.ts",
     "./base.css": "./src/base.css",
     "./fonts.css": "./src/fonts.css"
   },
