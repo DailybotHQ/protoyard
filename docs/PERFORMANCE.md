@@ -381,7 +381,7 @@ upper bounds.
 | --- | --- | --- |
 | Gallery build (synthetic) | 5.9 s | 3,005 pages over the synthetic registry, marketplace detail pages included |
 | `/marketplace/` HTML | 99.9 KB gzip | 1,000 cards and rails rendered at build time |
-| `/marketplace/` JS | 62.0 KB gzip | About 55 KB of it is the shared gallery layout (theme toggle, ⌘K palette, Svelte runtime) |
+| `/marketplace/` JS | 62.0 KB gzip | Measured before the ⌘K palette became lazy. On the real registry after that change: `/marketplace/` 57.4 KiB, detail pages 60.9 KiB, `/` 33.8 KiB (the palette loads on first ⌘K, 32.2 KiB) |
 | Interactive | **326 ms** (309–623) | 3 long tasks or fewer |
 | Search update | **18.4 ms** | Typing into the search box |
 | Feature-filter update | **54.9 ms** | Toggling a feature chip |

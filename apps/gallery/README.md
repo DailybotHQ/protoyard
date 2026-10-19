@@ -59,6 +59,15 @@ Scale: the home page inlines a compact index (about 380 KB raw, 38 KB gzip, for 
 renders 24 cards per page, and filters in a few milliseconds per keystroke. Run
 `pnpm bench:index --gallery` for measured numbers on your machine.
 
+## Marketplace
+
+`/marketplace/` lists every prototype, template and blueprint from the
+registry's `catalog` blocks: category rails, search, filters (kind, category,
+platform, shell, features) kept in the URL, and a detail page per entry. Try it,
+Use this template and Remix use the local control server (`POST /api/dev/<slug>`,
+`POST /api/new`) and fall back to the exact CLI commands when the site is
+read-only (a published showcase).
+
 ## Live preview modes
 
 | Where the gallery runs | Detail page behavior |
