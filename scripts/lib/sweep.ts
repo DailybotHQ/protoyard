@@ -2,7 +2,7 @@
  * The pure half of the visual QA sweep (scripts/visual-sweep.ts): arguments,
  * the shot matrix, the densest scenario, layout-fit flags and the contact
  * sheet. No browser and no file system, so all of it is unit-tested
- * (tests/unit/visual-sweep.test.ts).
+ * (tests/scripts/visual-sweep.test.ts).
  */
 
 export const SHELL_VALUES = [

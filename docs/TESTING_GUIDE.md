@@ -59,8 +59,8 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Marketplace performance | `pnpm bench:index --marketplace --check` (needs `pnpm test:e2e:install`) | full |
 | All current CLI tests (includes the rows above) | `pnpm vitest run packages/cli` | scoped |
 | CI performance job (local mirror) | `pnpm protoyard build --all && pnpm protoyard budget --all --skip-build && pnpm bench:index --runs 3 --check` | full |
-| Visual QA sweep (contact sheet, see below) | `pnpm exec tsx scripts/visual-sweep.ts --only crm-demo,mobile-banking-demo` | scoped |
-| Visual sweep logic (matrix, flags, PNG decode, contact sheet) | `pnpm vitest run tests/unit/visual-sweep.test.ts` | scoped |
+| Visual QA sweep (contact sheet, see below) | `pnpm visual:sweep --only crm-demo,mobile-banking-demo` | scoped |
+| Visual sweep logic (matrix, flags, PNG decode, contact sheet) | `pnpm vitest run tests/scripts/visual-sweep.test.ts` | scoped |
 | Thumbnails stay deterministic | `pnpm exec tsx scripts/generate-thumbnails.ts crm-demo --check` | scoped |
 
 `protoyard spec <slug> --check` (or `spec --all --check`) is the drift check
@@ -231,8 +231,8 @@ combination and writes a contact sheet for a human to review. It complements
 the E2E checks; it is not a gate.
 
 ```bash
-pnpm exec tsx scripts/visual-sweep.ts --only crm-demo,mobile-banking-demo   # build, capture, write the sheet
-pnpm exec tsx scripts/visual-sweep.ts --skip-build --out tmp/visual-sweep-after --compare tmp/visual-sweep
+pnpm visual:sweep --only crm-demo,mobile-banking-demo   # build, capture, write the sheet
+pnpm visual:sweep --skip-build --out tmp/visual-sweep-after --compare tmp/visual-sweep
 open tmp/visual-sweep/index.html
 ```
 

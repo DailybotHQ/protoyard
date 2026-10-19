@@ -18,6 +18,7 @@ export default defineConfig({
       'templates/*/tests/**/*.test.ts',
       'prototypes/*/tests/**/*.test.ts',
       'tests/unit/**/*.test.ts',
+      'tests/scripts/**/*.test.ts',
     ],
     exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**'],
     // These ship raw .svelte files; Vitest must transform them, not externalize.
