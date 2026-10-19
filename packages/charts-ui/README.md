@@ -30,10 +30,39 @@ import the styles after Tailwind and the theme/UI styles:
 | `@protoyard/charts-ui/canvas` | Canvas renderer for dense series |
 | `@protoyard/charts-ui/geo` | Tile-grid choropleth |
 
-**Status:** scaffold (PLAN_003 Task 5). Each subpath currently exports only
-its `FAMILY` name; the components are added by the following PLAN_003 charts
-tasks. Load a family from a lazy route (`load: () => import('./Screen.svelte')`)
+**Status:** `./compact` ships Sparkline, Gauge and RadialProgress. The other
+family subpaths currently export only their `FAMILY` name; their components
+are added by the following PLAN_003 charts tasks. `sideEffects` lists only CSS,
+so a bundler keeps just the components a screen imports from a subpath. Load a family from a lazy route (`load: () => import('./Screen.svelte')`)
 so charts stay out of the initial chunk.
+
+## Compact charts (`./compact`)
+
+Tiny inline charts for KPI tiles and table cells. Each one carries a text
+equivalent instead of the keyboard layer and imports neither the frame nor
+the interaction layer, so it can sit on a first screen.
+
+- **`Sparkline`** (`values`, `variant: 'line' | 'area' | 'bar'`): fills its
+  container width (or `width`) at `height` (32 px), using a stretched
+  viewBox with non-scaling strokes, so it needs no resize observer.
+  - It marks the last value (`showLast`) and optionally the minimum and
+    maximum (`showMinMax`). Gaps (`null`) break the line. Bars stand on a
+    zero baseline.
+  - It is `role="img"` with `label`, or a generated sentence:
+    `trendLabel(values, period)` gives "Trend: up 12% over 30 days".
+  - It fades in, except under `data-py-motion="reduce"` or
+    `prefers-reduced-motion`.
+- **`Gauge`** (`value`, `min`, `max`, `thresholds`, `bandLabels`,
+  `bandColors`, `format`): a 270° track with a threshold band ring
+  (success / warning / destructive by default) and a value arc in the
+  current band's color. It is `role="meter"` with `aria-valuemin/max/now`
+  and `aria-valuetext` such as "72%, Busy".
+- **`RadialProgress`** (`value`, `max`): a ring with a percentage, as
+  `role="progressbar"`.
+
+Size (esbuild minify + gzip -9, `svelte` external, each component on its
+own): Sparkline 1.9 KB (including the trend text), Gauge 2.1 KB,
+RadialProgress 1.4 KB.
 
 ## ChartFrame (shared by every family)
 
