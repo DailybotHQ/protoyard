@@ -1,0 +1,51 @@
+{
+  "name": "@protoyard/review-ui",
+  "version": "0.1.0",
+  "description": "Svelte 5 review UI for published Protoyard prototypes: comment mode and pins, threads, the comments panel and review toolbar, and the lazy mount entry. Loaded only when review is enabled.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.svelte"
+  ],
+  "exports": {
+    "./overlay": {
+      "types": "./src/overlay/index.ts",
+      "svelte": "./src/overlay/index.ts",
+      "default": "./src/overlay/index.ts"
+    },
+    "./panel": {
+      "types": "./src/panel/index.ts",
+      "svelte": "./src/panel/index.ts",
+      "default": "./src/panel/index.ts"
+    },
+    "./toolbar": {
+      "types": "./src/toolbar/index.ts",
+      "svelte": "./src/toolbar/index.ts",
+      "default": "./src/toolbar/index.ts"
+    },
+    "./mount": {
+      "types": "./src/mount/index.ts",
+      "svelte": "./src/mount/index.ts",
+      "default": "./src/mount/index.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/review": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "bits-ui": "^2.19.0"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  }
+}
