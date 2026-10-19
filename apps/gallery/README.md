@@ -63,13 +63,27 @@ renders 24 cards per page, and filters in a few milliseconds per keystroke. Run
 
 `/marketplace/` lists every prototype, template and blueprint from the
 registry's `catalog` blocks: category rails, search, filters (kind, category,
-platform, shell, features) kept in the URL, and a detail page per entry. Try it,
+platform, shell, features, theme collection) kept in the URL, and a detail page per entry. Try it,
 Use this template and Remix use the local control server (`POST /api/dev/<slug>`,
 `POST /api/new`) and fall back to the exact CLI commands when the site is
 read-only (a published showcase). Creating from the gallery writes files and
 runs code, so it is off unless the gallery runs with
 `pnpm protoyard gallery --allow-create`; the client sends the per-run token
 from `GET /api/status`.
+
+**Themes on the shelf.** Each card shows its default theme: a swatch and the
+name, mapped at build time from the registry's `defaultTheme` to library
+metadata (`src/components/marketplace/theme-facet.ts`, never loaded by the
+browse island, and no request per card). Library themes show their seed and
+secondary colors, built-ins their light and dark primary, and a prototype's
+own theme its id (collection `custom`). The **Theme** filter narrows the
+shelf by that theme's collection (`?collection=high-contrast`). Prototype and
+template cards have a **Try in theme** list with one library theme per
+collection and a link to all themes. It renders only once opened, so a large
+shelf ships no extra links. Each entry opens the detail page with
+`?theme=<id>`, and the live preview then frames the demo with the same
+`?theme=` link parameter (the runtime loads library themes on demand) and
+says which theme it shows, with a link back to the default.
 
 ## Live preview modes
 

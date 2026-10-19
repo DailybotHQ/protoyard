@@ -1,6 +1,7 @@
 import { entries, thumbnailUrl } from '@/lib/registry';
 import type { RegistryEntry } from '@/lib/types';
 import { type MarketEntry, type MarketSource, toMarketEntry } from './model';
+import { marketTheme } from './theme-facet';
 
 /** A shelved item with its full registry entry (detail pages need every field). */
 export interface ShelfItem {
@@ -16,7 +17,11 @@ export interface ShelfItem {
 export function shelf(): ShelfItem[] {
   const items: ShelfItem[] = [];
   for (const source of entries()) {
-    const entry = toMarketEntry(source as unknown as MarketSource, thumbnailUrl(source));
+    const entry = toMarketEntry(
+      source as unknown as MarketSource,
+      thumbnailUrl(source),
+      marketTheme(source.defaultTheme)
+    );
     if (entry) items.push({ entry, source });
   }
   return items;

@@ -2,6 +2,7 @@
 import MarketplaceBrowser from '@/components/marketplace/MarketplaceBrowser.svelte';
 import { facets } from '@/components/marketplace/model';
 import { shelf } from '@/components/marketplace/shelf';
+import { themeChoices } from '@/components/marketplace/theme-facet';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { withBase } from '@/lib/format';
 
@@ -33,7 +34,7 @@ const kindCount = (kind: string) => counts.kind.find(([value]) => value === kind
 
   {
     items.length > 0 ? (
-      <MarketplaceBrowser client:load entries={items} facets={counts} />
+      <MarketplaceBrowser client:load entries={items} facets={counts} themes={themeChoices()} />
     ) : (
       <div class="rounded-xl border border-dashed border-line p-10 text-center" data-testid="market-empty">
         <p class="font-medium">Nothing is shelved yet</p>

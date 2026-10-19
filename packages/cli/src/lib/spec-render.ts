@@ -30,6 +30,7 @@ export const SPEC_REGIONS = {
   rules: 'docs/PERMISSIONS.md',
   personas: 'docs/PERMISSIONS.md',
   routes: 'docs/SCREENS.md',
+  screens: 'docs/SCREENS.md',
 } as const satisfies Record<string, SpecFile>;
 export type SpecRegionId = keyof typeof SPEC_REGIONS;
 
@@ -285,6 +286,15 @@ function renderRoutes(facts: SpecFacts): string {
   );
 }
 
+function renderScreens(facts: SpecFacts): string {
+  if (facts.routes === null) return '_No generated route map; list the screens by hand._';
+  if (facts.routes.length === 0) return '_No routes declared._';
+  return table(
+    ['Screen', 'Route', 'Description'],
+    facts.routes.map((route) => [route.name, code(`#${route.path}`), route.description])
+  );
+}
+
 const RENDERERS: Record<SpecRegionId, (facts: SpecFacts) => string> = {
   commands: renderCommands,
   manifest: renderManifest,
@@ -296,6 +306,7 @@ const RENDERERS: Record<SpecRegionId, (facts: SpecFacts) => string> = {
   rules: renderRules,
   personas: renderPersonas,
   routes: renderRoutes,
+  screens: renderScreens,
 };
 
 export function renderRegion(id: SpecRegionId, facts: SpecFacts): string {
@@ -511,7 +522,9 @@ ${region('routes', facts)}
 
 ## Screens
 
-TODO: for each screen, its purpose, the data shown, the actions, and the empty, loading, error and denied states.
+${region('screens', facts)}
+
+Describe the data, actions, and empty, loading, error and denied states for each screen above.
 
 ## Shell
 

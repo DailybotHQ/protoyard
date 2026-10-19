@@ -326,6 +326,75 @@ collection code: **3,808 B gzip before the v2 fields, 4,226 B after
 prototype the first time it is asked for a library theme; no prototype's
 initial JS contains it.
 
+## Layout and theme payloads (PLAN_003, measured 2026-10-19)
+
+The layout measurement is a production Vite build in
+`packages/renderer-svelte/tests/bundle-hygiene.test.ts`, with sourcemaps and
+gzip level 9. It builds paired entries with the same UI, core layout helper,
+built-in themes and lazy library resolver; one adds `LayoutHost layout="custom"`.
+This isolates the host's first-screen delta. The fixture also verifies that all
+12 page-layout modules have separate output chunks, none of those modules or
+theme palette/library modules are in the custom-layout initial graph, and the
+theme library entry remains lazy.
+
+| Measure | Gzip-9 | Budget | Result |
+| --- | ---: | ---: | --- |
+| `LayoutHost` + registry/preload initial delta | **1,558 B** | 2,000 B | PASS |
+| Theme initial delta (source-restore comparison above) | **328 B** | 2,000 B | PASS |
+
+Layout component chunk sizes are the gzip-9 size of each component's own
+production output chunk. Shared imports are reported separately by Vite and
+are not added to these per-component rows.
+
+| Layout | Chunk gzip |
+| --- | ---: |
+| `sidebar` | 1,275 B |
+| `rail` | 1,492 B |
+| `top-nav` | 11,093 B |
+| `dual-sidebar` | 2,800 B |
+| `master-detail` | 1,440 B |
+| `dashboard-grid` | 528 B |
+| `docs` | 1,581 B |
+| `marketing` | 883 B |
+| `mobile-tabs` | 4,271 B |
+| `mobile-drawer` | 1,217 B |
+| `wizard` | 3,287 B |
+| `auth-split` | 1,333 B |
+
+`top-nav` and `mobile-tabs` exceed the plan's 4 KB per-layout reference
+target; they remain lazy and do not affect a custom-layout first screen.
+Reducing their own chunks is a follow-up. All 12 loaders stay out of the
+`@protoyard/ui` barrel.
+
+The same fixture measured the 64-theme library registry/definitions chunk at
+**6,831 B gzip** and its lazy builder at **5,404 B**. A real
+`crm-demo --include-devtools` production build measured the Theme Studio
+section at **7,201 B gzip**, the library chunk at **6,645 B**, and the lazy
+palette chunk at **4,308 B**. The Studio is absent from default builds. Its
+registry, palette and Studio code are only downloaded when their feature is
+opened or used.
+
+The all-prototype gate was rebuilt on 2026-10-19 after the layout and theme
+work. Every prototype passed the existing initial-JS 250 KB and CSS 30 KB
+budgets:
+
+| Prototype | Initial JS gzip | Headroom to 250 KB |
+| --- | ---: | ---: |
+| `helpdesk-demo` | 215.58 KB | 34.42 KB |
+| `lattice-saas-demo` | 209.64 KB | 40.36 KB |
+| `mobile-banking-demo` | 204.79 KB | 45.21 KB |
+| `support-widget-demo` | 152.92 KB | 97.08 KB |
+| `nova-assistant-demo` | 170.51 KB | 79.49 KB |
+| `pebblestat-analytics-demo` | 205.58 KB | 44.42 KB |
+| `crm-demo` | 174.03 KB | 75.97 KB |
+| `ui-kit` | 193.54 KB | 56.46 KB |
+| `ai-chat-demo` | 204.40 KB | 45.60 KB |
+| `relay-chat-demo` | 153.93 KB | 96.07 KB |
+
+Reproduce the workspace gate with
+`bash -c 'pnpm protoyard build --all && pnpm protoyard budget --all --skip-build'`.
+The fixture test prints the chunk measurements with `--silent=false`.
+
 ## Scenario generation
 
 Method: `pnpm protoyard scenario bench <slug> [--check]` runs the generator
