@@ -15,6 +15,14 @@ export const PerformanceBudgetSchema = z
     coldStartMs: PositiveBudgetSchema.nullable(),
     generateMs: PositiveBudgetSchema,
     indexColdMs: PositiveBudgetSchema,
+    /** End-to-end idea → first paint target; null until calibrated. */
+    ideaToRunningMs: PositiveBudgetSchema.nullable().default(null),
+    /** Optional phase thresholds used by scripts/bench-idea.ts. */
+    briefToBlueprintMs: PositiveBudgetSchema.nullable().default(null),
+    blueprintValidationMs: PositiveBudgetSchema.nullable().default(null),
+    prototypeGenerationMs: PositiveBudgetSchema.nullable().default(null),
+    prototypeBuildMs: PositiveBudgetSchema.nullable().default(null),
+    previewReadyMs: PositiveBudgetSchema.nullable().default(null),
   })
   .strict();
 
@@ -39,6 +47,12 @@ export const DEFAULT_PERFORMANCE_BUDGETS: PerformanceBudget = {
   coldStartMs: null,
   generateMs: 50,
   indexColdMs: 100,
+  ideaToRunningMs: null,
+  briefToBlueprintMs: null,
+  blueprintValidationMs: null,
+  prototypeGenerationMs: null,
+  prototypeBuildMs: null,
+  previewReadyMs: null,
 };
 
 export const DEFAULT_BUDGET_CONFIG: BudgetConfig = {
