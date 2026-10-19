@@ -35,6 +35,7 @@ to concrete models in your harness, in one place (see [../README.md](../README.m
 | [add-theme](../skills/add-theme/SKILL.md) | standard | create | Prototype theme via `defineTheme` or a built-in preset in `BUILTIN_THEMES`, with the contrast test |
 | [validate-and-export](../skills/validate-and-export/SKILL.md) | light | validate | `validate --build`, preview, `export` with the isolation check |
 | [publish-prototype](../skills/publish-prototype/SKILL.md) | standard | deploy | Dry run first; real Cloudflare (wrangler) or other provider publish only with explicit authorization |
+| [share-as-artifact](../skills/share-as-artifact/SKILL.md) | standard | publish | Pack and read every file, publish through Claude's Artifact tool with approval, record its returned URL, and reuse it on updates |
 | [fix-lint](../skills/fix-lint/SKILL.md) | light | fix | Biome, tsc / svelte-check errors, erasable-syntax and strict-mode pitfalls |
 | [write-e2e](../skills/write-e2e/SKILL.md) | standard | test | Playwright specs in `tests/e2e` against real builds via `PROTOYARD_E2E_PROTOTYPES` |
 
@@ -50,6 +51,7 @@ to concrete models in your harness, in one place (see [../README.md](../README.m
 | Command | Routes to |
 | --- | --- |
 | `/new-prototype` | `create-prototype` skill |
+| `/share-artifact` | `share-as-artifact` skill |
 | `/commit` | Commit rules in `AGENTS.md` and `docs/AI_AGENT_COLLAB.md` |
 | `/code-review` | `ai-diff-reviewer` skill (local review) |
 | `/pr` | `ai-diff-reviewer` → `open-pr` sub-skill |
