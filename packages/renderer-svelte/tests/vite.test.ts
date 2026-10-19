@@ -118,8 +118,24 @@ describe('defineProtoyardConfig', () => {
     // The CLI's bundle analysis reads this manifest and removes it from dist.
     expect(config.build?.manifest).toBe(VITE_MANIFEST_PATH);
     expect(config.define?.__PROTOYARD_DEVTOOLS__).toBe('false');
+    expect(config.define?.__PROTOYARD_REVIEW__).toBe('false');
     expect(JSON.parse(config.define?.__PROTOYARD_BUILD__ as string).slug).toBe('crm-demo');
     expect(config.server?.strictPort).toBe(false);
+  });
+
+  it('resolves the manifest review flag and PROTOYARD_REVIEW override without exposing endpoints', () => {
+    const configured = parseManifest({
+      ...manifest,
+      build: { review: { enabled: true, adapter: 'http', endpoint: '/api/comments' } },
+    });
+    expect(resolveProtoyardSettings(configured, 'build', {}, '/proj').reviewEnabled).toBe(true);
+    expect(
+      resolveProtoyardSettings(configured, 'build', { PROTOYARD_REVIEW: '0' }, '/proj')
+        .reviewEnabled
+    ).toBe(false);
+    expect(
+      resolveProtoyardSettings(manifest, 'build', { PROTOYARD_REVIEW: '1' }, '/proj').reviewEnabled
+    ).toBe(true);
   });
 
   it('fails with an actionable message when the manifest is missing', () => {

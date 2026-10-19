@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { ReviewAuthor, ReviewComment } from '@protoyard/core/review';
 import { ReviewAuthorSchema } from '@protoyard/core/review';
-import { runService } from '@protoyard/renderer-svelte';
 import { BottomSheet, Button, Popover, type TriggerSnippet } from '@protoyard/ui';
 import { type ActivityComment } from '@protoyard/views/activity';
 import { type ActivityPerson, CommentThread } from '@protoyard/views-ui/activity';
@@ -109,11 +108,13 @@ async function resolveThread() {
   if (!author || !root || resolving) return;
   resolving = true;
   actionError = '';
-  const result = await runService(() => onResolve(root, author as ReviewAuthor, !root.resolvedAt));
-  resolving = false;
-  if (!result.ok)
-    actionError =
-      result.error instanceof Error ? result.error.message : 'Could not update this thread.';
+  try {
+    await onResolve(root, author, !root.resolvedAt);
+  } catch (error) {
+    actionError = error instanceof Error ? error.message : 'Could not update this thread.';
+  } finally {
+    resolving = false;
+  }
 }
 
 async function edit(comment: ActivityComment, body: string) {

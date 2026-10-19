@@ -1,6 +1,5 @@
 <script lang="ts">
 import type { ReviewComment, ReviewContext } from '@protoyard/core/review';
-import { navigate } from '@protoyard/renderer-svelte';
 import { resolveAnchor } from '@protoyard/review/anchors';
 import { onMount, tick } from 'svelte';
 import type { ReviewPanelProps } from './types.ts';
@@ -135,7 +134,7 @@ async function openThread(thread: ReviewComment): Promise<void> {
   if (!thread.anchor) return;
   const path = thread.anchor.route.path;
   if (onNavigate) await onNavigate(path);
-  else navigate(path);
+  else if (location.hash !== `#${path}`) location.hash = path;
   selectedThread = thread.id;
   await tick();
   await new Promise<void>((resolve) => setTimeout(resolve, 0));

@@ -21,6 +21,7 @@ the no-flash appearance script. The CLI drives it through env vars:
 | `PROTOYARD_OUT_DIR` | `build.outDir` (`emptyOutDir: true`) | `<root>/dist` |
 | `PROTOYARD_INCLUDE_DEVTOOLS` | `__PROTOYARD_DEVTOOLS__` in builds (`1/0`) | manifest `build.includeDevtools`; always on in dev |
 | `PROTOYARD_DEMO_BADGE` | `__PROTOYARD_DEMO_BADGE__` in builds | manifest `build.demoBadge`; off in dev |
+| `PROTOYARD_REVIEW` | `__PROTOYARD_REVIEW__` and `build-manifest.json.review.enabled` (`1/0`) | manifest `build.review.enabled` (false) |
 | `PROTOYARD_PORT` | dev/preview port (`strictPort: false`) | Vite default |
 | `PROTOYARD_BUILT_AT` | `__PROTOYARD_BUILD__.builtAt` | build time |
 | `PROTOYARD_OFFLINE` | ship the `@protoyard/offline` service worker (`1/0`; builds only) | manifest `build.offline` (false) |
@@ -35,6 +36,9 @@ exposes other prototypes or workspace files to the LAN; Vite's default `fs.deny`
 The config module only imports erasable TypeScript (`@protoyard/core/manifest`,
 `@protoyard/themes/no-flash`), so plain `vite` loads it under Node type
 stripping. With DevTools disabled the panel is tree-shaken out of the bundle.
+Review UI is loaded only for `build.review.enabled` / `PROTOYARD_REVIEW=1`, or
+from an enabled DevTools build when `?comments=1` is present. `build-manifest.json`
+records the effective `{ enabled, adapter }`; it never records the endpoint.
 Globals are typed in `@protoyard/renderer-svelte/env`.
 
 ## Avatars

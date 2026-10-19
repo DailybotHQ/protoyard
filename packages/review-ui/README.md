@@ -7,13 +7,13 @@ review toolbar. The engine is [`@protoyard/review`](../review/README.md).
 The package is split into lazy subpaths so a prototype that does not enable
 review comments pays no cost for them.
 
-| Subpath | What it will hold | Task |
+| Subpath | What it contains | Task |
 | --- | --- | --- |
 | `./overlay` | Comment mode (crosshair, Esc, keyboard placement), accessible pins and clusters inside device frames | T-review-ui-overlay-pins |
 | `./thread` | A pin's lazy comment thread in a desktop popover or phone bottom sheet | T-review-ui-thread |
 | `./panel` | The list of threads with filters, counts and "go to pin" | T-review-ui-panel-toolbar |
 | `./toolbar` | The floating review toolbar for builds without DevTools | T-review-ui-panel-toolbar |
-| `./mount` | The entry the renderer imports lazily when review is enabled | T-review-ui-renderer-wiring |
+| `./mount` | The renderer's lazy adapter and UI integration | T-review-ui-renderer-wiring |
 | `./styles.css` | `@source "./"` for Tailwind; import it only where review is enabled | — |
 
 ## Overlay
@@ -56,6 +56,12 @@ build without review contains none of it. Overlay, panel and toolbar stay
 separate chunks; only `mount` composes them. Nothing here imports
 `@protoyard/ui` dynamically (that would put the ui barrel in every initial
 chunk; see docs/PERFORMANCE.md, Shells).
+
+The renderer configures the adapter from `manifest.build.review`: local
+IndexedDB by default, or the HTTP/Cloudflare endpoint or Claude Artifact shell
+when selected. The HTTP adapter's `pendingCount()` and `subscribePending()` are
+shown in the toolbar as comments waiting to sync. Local rows are reconciled on
+startup, so offline comments are retried after a page reload.
 
 ```bash
 pnpm --filter @protoyard/review-ui typecheck

@@ -177,7 +177,11 @@ const unsubscribePending = adapter.subscribePending(() => {
 
 The local adapter must use the same client identity as the review author for
 locally queued edits and deletes. Queue metadata itself is in memory; comments
-remain in IndexedDB, but queued operations are not automatically restored
+remain in IndexedDB. On each successful list, the adapter reconciles local rows:
+missing rows and rows with a newer `updatedAt` are uploaded, while a newer
+server row wins. This restores sync after reload even though the retry queue
+itself is not persisted. The renderer exposes any transiently queued writes as
+visible “comments waiting to sync” feedback.
 after a page reload.
 
 ## Reports (`@protoyard/review/report`)

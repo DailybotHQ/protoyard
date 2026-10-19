@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+
+import { ReviewCommentSchema } from '@protoyard/core/review';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createHttpReviewAdapter, resolveReviewApiBase } from '../src/adapters/http.ts';
@@ -179,6 +181,111 @@ describe('HTTP ReviewAdapter', () => {
     expect((await store.list('demo-app'))[0]?.body).toBe('Updated once the connection returned.');
   });
 
+  it('reconciles a local IndexedDB write after reload without an in-memory queue', async () => {
+    let offline = true;
+    const indexedDB = new IDBFactory();
+    const namespace = `http-review-reload-${++namespaceSequence}`;
+    const store = createMemoryCommentsStore();
+    const localBeforeReload = createLocalReviewAdapter({
+      namespace,
+      clientId: 'client-http-test',
+      indexedDB,
+      IDBKeyRange,
+    });
+    localAdapters.add(localBeforeReload);
+    const beforeReload = createHttpReviewAdapter({
+      clientId: 'client-http-test',
+      localAdapter: localBeforeReload,
+      fetcher: fetchShim(store, { fail: () => offline }),
+      baseURI: `${ORIGIN}/p/demo-app/app/`,
+    });
+    const input = sampleComment('demo-app', {
+      id: 'http-reload-0001',
+      threadId: 'http-reload-0001',
+    });
+
+    const localComment = await beforeReload.put(input);
+    expect(beforeReload.pendingCount()).toBe(1);
+    beforeReload.subscribePending(() => undefined)();
+    localBeforeReload.close();
+
+    // A new adapter instance models a page reload: its in-memory queue starts empty.
+    const localAfterReload = createLocalReviewAdapter({
+      namespace,
+      clientId: 'client-http-test',
+      indexedDB,
+      IDBKeyRange,
+    });
+    localAdapters.add(localAfterReload);
+    const afterReload = createHttpReviewAdapter({
+      clientId: 'client-http-test',
+      localAdapter: localAfterReload,
+      fetcher: fetchShim(store, { fail: () => offline }),
+      baseURI: `${ORIGIN}/p/demo-app/app/`,
+    });
+
+    await expect(afterReload.list('demo-app')).resolves.toMatchObject([
+      { id: localComment.id, body: localComment.body },
+    ]);
+    expect(afterReload.pendingCount()).toBe(1);
+    expect(afterReload.pendingWrites()).toEqual([
+      { id: localComment.id, slug: 'demo-app', operation: 'put' },
+    ]);
+    offline = false;
+    await afterReload.retryPending('demo-app');
+    expect(await store.list('demo-app')).toMatchObject([{ id: localComment.id, body: input.body }]);
+    expect(afterReload.pendingCount()).toBe(0);
+  });
+
+  it('uploads a newer local edit and keeps a newer server edit during reconciliation', async () => {
+    const store = createMemoryCommentsStore();
+    const input = sampleComment('demo-app', {
+      id: 'http-reconcile-0001',
+      threadId: 'http-reconcile-0001',
+    });
+    await store.put(
+      ReviewCommentSchema.parse({
+        ...input,
+        body: 'Older server version.',
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-02T00:00:00.000Z',
+      })
+    );
+    const local = createLocalReviewAdapter({
+      namespace: `http-review-reconcile-${++namespaceSequence}`,
+      clientId: 'client-http-test',
+      now: () => Date.parse('2025-01-03T00:00:00.000Z'),
+      indexedDB: new IDBFactory(),
+      IDBKeyRange,
+    });
+    localAdapters.add(local);
+    await local.put({ ...input, body: 'Newer local version.' });
+    const adapter = createHttpReviewAdapter({
+      clientId: 'client-http-test',
+      localAdapter: local,
+      fetcher: fetchShim(store),
+      baseURI: `${ORIGIN}/p/demo-app/app/`,
+    });
+
+    await expect(adapter.list('demo-app')).resolves.toMatchObject([
+      { id: input.id, body: 'Newer local version.' },
+    ]);
+    expect(await store.list('demo-app')).toMatchObject([{ body: 'Newer local version.' }]);
+
+    await store.put(
+      ReviewCommentSchema.parse({
+        ...input,
+        body: 'Newest server version.',
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-04T00:00:00.000Z',
+      })
+    );
+    await expect(adapter.list('demo-app')).resolves.toMatchObject([
+      { id: input.id, body: 'Newest server version.' },
+    ]);
+    expect(await store.list('demo-app')).toMatchObject([{ body: 'Newest server version.' }]);
+  });
+
   it('polls on focus and every 30 seconds only while a subscriber is open', async () => {
     vi.useFakeTimers();
     const requests: Array<{ url: string; key: string | null }> = [];
@@ -191,7 +298,10 @@ describe('HTTP ReviewAdapter', () => {
     });
     const changed = vi.fn();
     const unsubscribe = adapter.subscribe?.('demo-app', changed);
-    await vi.waitFor(() => expect(requests).toHaveLength(1));
+    await vi.waitFor(() => {
+      expect(requests).toHaveLength(1);
+      expect(changed).toHaveBeenCalled();
+    });
     window.dispatchEvent(new Event('focus'));
     await vi.waitFor(() => expect(requests).toHaveLength(2));
     await vi.advanceTimersByTimeAsync(30_000);

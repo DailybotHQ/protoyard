@@ -68,6 +68,7 @@ describe('build and export (real Vite)', () => {
       id: 'example.alpha-app',
       base: './',
       includeDevtools: false,
+      review: { enabled: false, adapter: 'local' },
     });
     expect(manifest.files.length).toBe(data.fileCount);
     expect(manifest.totalBytes).toBe(

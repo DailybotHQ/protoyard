@@ -318,7 +318,10 @@ export function createHttpReviewAdapter(options: HttpReviewAdapterOptions): Http
     async list(slug, { since } = {}) {
       knownSlugs.add(slug);
       try {
-        const url = urlFor(slug, undefined, since);
+        // Fetch the complete set before reconciling IndexedDB. A `since`
+        // response cannot tell us whether an older local row is missing or
+        // newer than the server copy.
+        const url = urlFor(slug);
         const body = await request(url);
         if (typeof body !== 'object' || body === null || !('comments' in body)) {
           throw new HttpReviewError(
@@ -331,18 +334,50 @@ export function createHttpReviewAdapter(options: HttpReviewAdapterOptions): Http
           Array.isArray(body.comments) ? body.comments : []
         ).filter((comment) => comment.slug === slug);
         const merged = new Map(remote.map((comment) => [comment.id, comment]));
+        const local = await options.localAdapter.list(slug);
+        for (const comment of local) {
+          const serverComment = merged.get(comment.id);
+          const localStamp = Date.parse(comment.updatedAt ?? comment.createdAt);
+          const serverStamp = serverComment
+            ? Date.parse(serverComment.updatedAt ?? serverComment.createdAt)
+            : Number.NEGATIVE_INFINITY;
+          if (!serverComment || localStamp > serverStamp) {
+            try {
+              const saved = await serialize(comment.id, () => sendPut(comment));
+              clearPending(comment.id);
+              merged.set(comment.id, saved);
+            } catch (error) {
+              if (!isTransient(error)) throw error;
+              enqueue(comment.id, { operation: 'put', comment });
+              merged.set(comment.id, comment);
+            }
+          }
+        }
         for (const [id, write] of pending) {
           if (write.operation === 'delete' && write.slug === slug) merged.delete(id);
-          if (write.operation === 'put' && write.comment.slug === slug)
-            merged.set(id, write.comment);
+          if (write.operation === 'put' && write.comment.slug === slug) {
+            const serverComment = merged.get(id);
+            const queuedStamp = Date.parse(write.comment.updatedAt ?? write.comment.createdAt);
+            const serverStamp = serverComment
+              ? Date.parse(serverComment.updatedAt ?? serverComment.createdAt)
+              : Number.NEGATIVE_INFINITY;
+            if (serverStamp > queuedStamp) clearPending(id);
+            else merged.set(id, write.comment);
+          }
         }
         const result = sortReviewComments([...merged.values()]);
+        const filtered = since
+          ? result.filter(
+              (comment) => Date.parse(comment.updatedAt ?? comment.createdAt) > Date.parse(since)
+            )
+          : result;
         for (const comment of result) slugsById.set(comment.id, slug);
-        return result;
+        return filtered;
       } catch (error) {
         if (!isTransient(error)) throw error;
         const local = await options.localAdapter.list(slug, { ...(since ? { since } : {}) });
         const merged = new Map(local.map((comment) => [comment.id, comment]));
+        for (const comment of local) enqueue(comment.id, { operation: 'put', comment });
         for (const [id, write] of pending) {
           if (write.operation === 'delete' && write.slug === slug) merged.delete(id);
           if (write.operation === 'put' && write.comment.slug === slug)

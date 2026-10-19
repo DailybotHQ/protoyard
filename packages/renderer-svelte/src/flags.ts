@@ -13,5 +13,8 @@ export const DEVTOOLS_ENABLED: boolean =
 export const DEMO_BADGE_ENABLED: boolean =
   typeof __PROTOYARD_DEMO_BADGE__ !== 'undefined' ? __PROTOYARD_DEMO_BADGE__ : false;
 
+export const REVIEW_ENABLED: boolean =
+  typeof __PROTOYARD_REVIEW__ !== 'undefined' ? __PROTOYARD_REVIEW__ : false;
+
 export const BUILD_INFO: typeof __PROTOYARD_BUILD__ | null =
   typeof __PROTOYARD_BUILD__ !== 'undefined' ? __PROTOYARD_BUILD__ : null;

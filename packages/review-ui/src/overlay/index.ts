@@ -24,6 +24,7 @@ export interface ReviewOverlayOptions {
 }
 
 export interface ReviewOverlayHandle {
+  setActive(active: boolean): void;
   setComments(comments: readonly ReviewComment[]): void;
   focusThread(threadId: string | undefined): void;
   setShowResolved(show: boolean): void;
@@ -437,6 +438,7 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
   render();
 
   return {
+    setActive,
     setComments(next) {
       comments = [...next];
       render();

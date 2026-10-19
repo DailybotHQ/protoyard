@@ -5,6 +5,7 @@ import {
   NamespaceSchema,
   type PrototypeManifest,
   parseManifest,
+  resolveReviewBuild,
 } from '@protoyard/core/manifest';
 // Subpath imports keep the config graph erasable-only TS (Node strip-types can load it).
 import { protoyardOffline } from '@protoyard/offline';
@@ -169,6 +170,7 @@ export interface ResolvedProtoyardSettings {
   outDir: string;
   includeDevtools: boolean;
   demoBadge: boolean;
+  reviewEnabled: boolean;
   /** Opt-in offline service worker (builds only; never in dev). */
   offline: boolean;
   port: number | undefined;
@@ -204,6 +206,11 @@ export function resolveProtoyardSettings(
   const isBuild = command === 'build';
   const base = env.PROTOYARD_BASE || manifest.build.base || './';
   const offline = isBuild ? (envFlag(env.PROTOYARD_OFFLINE) ?? manifest.build.offline) : false;
+  const configuredReview = resolveReviewBuild(manifest.build.review);
+  const review = {
+    enabled: envFlag(env.PROTOYARD_REVIEW) ?? configuredReview.enabled,
+    adapter: configuredReview.adapter,
+  };
   const port = env.PROTOYARD_PORT ? Number.parseInt(env.PROTOYARD_PORT, 10) : undefined;
   return {
     base,
@@ -215,6 +222,7 @@ export function resolveProtoyardSettings(
     offline,
     port: port !== undefined && Number.isFinite(port) && port > 0 ? port : undefined,
     avatars: resolveAvatarSettings(base, env, options),
+    reviewEnabled: review.enabled,
     build: {
       id: manifest.id,
       slug: manifest.slug,
@@ -281,6 +289,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
       define: {
         __PROTOYARD_DEVTOOLS__: JSON.stringify(settings.includeDevtools),
         __PROTOYARD_DEMO_BADGE__: JSON.stringify(settings.demoBadge),
+        __PROTOYARD_REVIEW__: JSON.stringify(settings.reviewEnabled),
         __PROTOYARD_BUILD__: JSON.stringify(settings.build),
         __PROTOYARD_AVATARS__: JSON.stringify({
           base: settings.avatars.base,
