@@ -24,7 +24,7 @@ and import the styles after Tailwind and the theme, UI and charts styles:
 
 | Import | View |
 | --- | --- |
-| `@protoyard/analytics-ui` | `ANALYTICS_VIEWS` and the data contract types (imports no view); KPI tiles will live here |
+| `@protoyard/analytics-ui` | `KpiTile`, `KpiRow`, `LiveCounter`, `formatKpi`, `kpiDelta`; `ANALYTICS_VIEWS` and the data contract types (imports no view) |
 | `@protoyard/analytics-ui/date-range` | `DateRangePicker`, `DateRangePanel`, `MonthGrid`; `toDateRangeQuery` / `fromDateRangeQuery`, `allowedGranularities`, `fitGranularity`, `describeDateRange` |
 | `@protoyard/analytics-ui/filters` | `FilterBuilder`, `FilterGroupEditor`, `SegmentPicker`, `BreakdownSelect`; `describeFilter`, `validateFilter`, `saveErrorOf` |
 | `@protoyard/analytics-ui/cohort` | Cohort retention table |
@@ -36,6 +36,45 @@ exports only its `VIEW` name; components arrive with the following PLAN_003
 analytics tasks. Every mutation (save a segment, move a widget) will be a
 callback that returns the prototype's service promise, so a `Button` shows
 pending feedback; the kit never writes to the database itself.
+
+## KPI tiles and live counters (root entry)
+
+KPI tiles are small enough for a first screen, so they live on the root
+entry; every view stays on its subpath.
+
+```svelte
+<KpiRow label="Key metrics">
+  <KpiTile label="Signups" value={now.signups} previous={before.signups} trend={series} trendPeriod="30 days" href="#/insights/signups" />
+  <KpiTile label="Churn" value={0.031} previous={0.04} unit="percent" positive="down" />
+  <KpiTile label="MRR" value={1_245_000} previous={1_180_000} unit="cents" />
+</KpiRow>
+<LiveCounter label="Active users" query={activeUsers} />
+```
+
+- **`KpiTile`** formats the value by unit (`number`, `compact`, `percent` ratios,
+  `cents` = integer cents).
+  - The delta comes from `previous`: a signed percentage, or the signed absolute
+    change when the previous value is 0.
+  - Tone and wording come from the same helpers as `@protoyard/ui` `StatCard`
+    (`resolveTrend`, `trendTone`, `trendWord`): success when the change goes the
+    `positive` way, destructive otherwise, with "Increased / Decreased / No
+    change:" read first.
+  - An optional Sparkline speaks its trend sentence. `href` makes the whole
+    tile a drill-down link named by the label and described by the value.
+  - `loading` shows a skeleton with `aria-busy`; `empty` shows "—" and a
+    message.
+- **`KpiRow`** wraps tiles to fit their container (`auto-fit`, minimum
+  `12rem`): one column in a phone shell, a row on a desktop.
+- **`LiveCounter`** follows a liveQuery result (`query.current`) and never
+  writes data; new values arrive from timeline events.
+  - It counts up visually over `duration`, or shows the value at once under
+    reduced motion.
+  - Its polite live region speaks at most once per `announceEvery` (5 s),
+    always with the latest value.
+
+Size (esbuild minify + gzip -9, `svelte` and `@protoyard/ui` external):
+KpiTile with its Sparkline and three Lucide icons is 5.1 KB, or 3.5 KB if
+Lucide is counted as shared with the UI kit. LiveCounter is 1.3 KB.
 
 ## Filters and segments (`./filters`)
 

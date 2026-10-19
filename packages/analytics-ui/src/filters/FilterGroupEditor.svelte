@@ -1,4 +1,5 @@
 <script lang="ts">
+import { X } from '@lucide/svelte';
 import { type FilterCondition, type FilterGroup, OPERATOR_LABELS } from '@protoyard/analytics';
 import FilterGroupEditor from './FilterGroupEditor.svelte';
 import {
@@ -200,7 +201,7 @@ const inputType = (p: FilterProperty | undefined) =>
             {/if}
           {/if}
           <button type="button" class={ghost} aria-label="Remove condition {i + 1}" onclick={() => removeAt(i)}>
-            <span aria-hidden="true">✕</span>
+            <X class="size-3.5" aria-hidden="true" />
           </button>
         </div>
         {#if message}<p id={errorId} class="m-0 text-xs text-destructive">{message}</p>{/if}
