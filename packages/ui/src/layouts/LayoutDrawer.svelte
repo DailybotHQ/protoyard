@@ -4,6 +4,7 @@ import { Dialog as DialogPrimitive } from 'bits-ui';
 import type { Snippet } from 'svelte';
 import DrawerScope from '../components/app-shell/DrawerScope.svelte';
 import { overlayBackdrop } from '../lib/overlay.ts';
+import { useOverlayPortalTarget } from '../lib/use-overlay-portal.svelte.ts';
 import { onNavigate } from './layout-kit.ts';
 
 /*
@@ -20,6 +21,9 @@ interface Props {
 
 let { open = $bindable(false), label, children }: Props = $props();
 
+// Inside a phone or tablet frame the drawer opens on the device screen, not the page.
+const portal = useOverlayPortalTarget();
+
 $effect(() => {
   if (!open) return;
   return onNavigate(() => {
@@ -33,7 +37,7 @@ function closeOnLink(event: MouseEvent): void {
 </script>
 
 <DialogPrimitive.Root bind:open>
-  <DialogPrimitive.Portal>
+  <DialogPrimitive.Portal to={portal.current}>
     <DialogPrimitive.Overlay class={overlayBackdrop} />
     <DialogPrimitive.Content
       class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-sidebar text-sidebar-foreground shadow-float outline-none ui-anim-drawer"
@@ -41,7 +45,7 @@ function closeOnLink(event: MouseEvent): void {
     >
       <DialogPrimitive.Title class="sr-only">{label}</DialogPrimitive.Title>
       <DialogPrimitive.Close
-        class="absolute top-[max(0.5rem,env(safe-area-inset-top))] right-2 z-10 inline-flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        class="absolute top-[max(0.5rem,env(safe-area-inset-top),var(--py-safe-top,0px))] right-2 z-10 inline-flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-foreground/5 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         <X class="size-5" aria-hidden="true" />
         <span class="sr-only">Close navigation</span>

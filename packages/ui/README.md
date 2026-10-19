@@ -207,7 +207,7 @@ to mark the current section; when intersection observation is unavailable, the
 TOC remains usable as a set of fragment links.
 ## Desktop layouts
 
-Four layouts are registered (`sidebar`, `rail`, `top-nav`, `dual-sidebar`).
+Four desktop layouts are registered (`sidebar`, `rail`, `top-nav`, `dual-sidebar`), plus the two mobile ones below.
 Each one is its own lazy module, measured at 1.3 to 2.8 KB gzip, and they
 share one chunk of about 7.5 KB gzip (the drawer, the chrome and the
 `NavIcon` table). They all render the `nav` the host passes, follow
@@ -229,6 +229,25 @@ navigation closes the drawer, and it also closes if the layout grows wide.
 | `rail` | 40rem | the same `<Sidebar>` collapsed to icons with tooltips. Its toggle expands it to labels, and the choice is saved per prototype in localStorage (`protoyard:layout:<storageKey or page path>:rail-expanded`, best effort) |
 | `top-nav` | 48rem | brand, primary links (the first `options.visibleItems`, default 5) and a **More** menu for the rest, actions and user, then the current item's `children` as secondary tabs |
 | `dual-sidebar` | 64rem | a switcher column with one button per nav section (arrow keys, Home and End move between them; it follows the current page until another section is picked), the section's pages with one level of children, and the `aside` snippet as a right context panel |
+
+### Mobile layouts
+
+`mobile-tabs` (2.1 KB gzip of its own) and `mobile-drawer` (1.2 KB, both
+plus the shared layout chunk) are where the host falls back for every desktop layout
+below its breakpoint. They also work as a prototype's own layout
+(`platform: mobile`).
+
+| Layout | What it renders |
+| --- | --- |
+| `mobile-tabs` | `MobileAppShell` with a `MobileHeader` (the current page's name and compact actions) and a `BottomNav` of the top-level items. Five or fewer fit. With more, the first four stay and a **More** tab opens a `BottomSheet` with the rest and the user; the tab is marked when it holds the current page. |
+| `mobile-drawer` | `MobileAppShell` with a `MobileHeader` (the current page's name, actions and a menu button) and the whole nav model (brand, sections, actions, user) in a side drawer. There is no bottom bar. |
+
+The tab bar sits in normal flow below the scroll region, so a screen's
+composer stays above it (the layout-fit rule). The header and bar pad for
+the safe area (`pt-safe`, `pb-safe`, `px-safe`), and both use `h-app`. On a
+wide window the layout is a centred column (`max-w-2xl`), which
+`device-frame:max-w-none` lifts inside a phone or tablet frame. Drawers and
+sheets open on the device screen inside a frame (`useOverlayPortalTarget`).
 
 Only the exact current page gets `aria-current="page"`. Its parents are
 tinted (`data-trail`), and in a collapsed or one-level list the visible
