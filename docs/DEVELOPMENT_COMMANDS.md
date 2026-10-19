@@ -54,8 +54,8 @@ meaningful exit codes: 0 ok · 1 failure · 2 usage · 3 not found ·
 | `preview <slug> [--port] [--strict-port] [--host]` | Serve the built artifact like a static host |
 | `publish <slug>… \| --all \| --tag <tag> --provider cloudflare\|netlify\|vercel\|static [--project] [--branch] [--preview\|--production] [--dry-run] [--ensure-project] [--base] [--include-devtools] [--offline]` | Build, verify and deploy through a provider adapter, one target after another (continues past failures). `--dry-run` contacts no provider. `--production` requires `--yes`. `--branch` sets the Cloudflare preview branch; `--ensure-project` creates the Cloudflare Pages project when missing (shown on dry-run). Every completed publish is appended to `artifacts/publish/ledger.jsonl`. |
 | `publish --history [<slug>…] [--provider <p>] [--limit <n>]` | Print the last recorded publishes from the ledger (provider-printed URLs only, never credentials) |
-| `review-index [--from-ledger \| --slugs a,b] [--ledger <file>] [--out] [--allow-external-out] [--base] [--title] [--provider <p>] [--no-personas] [--serve [--port] [--strict-port]] [--publish <provider> [--project] [--dry-run] [--production]]` | One static, script-free team review page (`artifacts/review/`) linking real deployments with scenario and persona links; undeployed prototypes show the publish command. `--publish` deploys it through a provider adapter; production requires `--yes`. |
-| `ci init [--provider github] [--with check,build,e2e,preview] [--deploy cloudflare] [--prototypes <csv>] [--dry-run] [--force]` | Render versioned workflows into `.github/workflows/`. Prints secret names only and never changes repository settings. `--dry-run` shows diffs and writes nothing. |
+| `review-index [--from-ledger \| --slugs a,b] [--ledger <file>] [--out] [--allow-external-out] [--base] [--title] [--provider <p>] [--no-personas] [--serve [--port] [--strict-port]] [--publish <provider> [--project] [--dry-run] [--production] [--allow-publish-out]]` | One static, script-free team review page (`artifacts/review/`) linking real deployments with scenario and persona links; undeployed prototypes show the publish command. `--publish` deploys it through a provider adapter; production requires `--yes`. It uploads only `artifacts/review` unless `--allow-publish-out`, never a folder holding the deploy ledger, and refuses stray files. |
+| `ci init [--provider github] [--with check,build,e2e,preview] [--deploy cloudflare] [--prototypes <csv>] [--dry-run] [--force]` | Render versioned workflows into `.github/workflows/`. Prints secret names only and never changes repository settings. `--prototypes` must be registry slugs. `--dry-run` shows diffs and writes nothing. |
 | `ci check [--provider github] [--strict]` | Report scaffolded `protoyard-*.yml` as up-to-date, outdated, modified, unhashed or unmanaged; `--strict` exits 4 on drift. Reads only. |
 | `scenario list <slug> [--details]` | Scenario ids and names (static; `--details` runs local code) |
 | `scenario validate <slug> [-s <id>]` | Run the generator for every scenario and check integrity (**executes local prototype code**) |
@@ -65,8 +65,8 @@ meaningful exit codes: 0 ok · 1 failure · 2 usage · 3 not found ·
 | `theme import <slug> <file> [--force] [--dry-run]` | Write a validated JSON theme into a prototype |
 | `theme export <id> \| --from <file> [--format css\|tailwind\|tokens]` | Export a built-in, library or custom JSON theme as CSS variables (default), Tailwind tokens or W3C design tokens |
 | `snapshot list <slug>` | Snapshot files committed in the prototype folder, validated |
-| `gallery [--port] [--control-port]` | What `pnpm dev` runs |
-| `control-server` | Only the local control API used by the gallery (starts prototype dev servers and template demos, and `new --from`) |
+| `gallery [--port] [--control-port] [--allow-create]` | What `pnpm dev` runs. `--allow-create` turns on the marketplace's create flow (`POST /api/new`, which writes files and runs code); it is off by default |
+| `control-server [--allow-create]` | Only the local control API used by the gallery (starts prototype dev servers and template demos; with `--allow-create`, also `new --from`) |
 
 Target commands (`dev`, `validate`, `build`, `export`, `preview`, `publish`,
 `scenario`, `snapshot`) also accept template names; template artifacts go to
