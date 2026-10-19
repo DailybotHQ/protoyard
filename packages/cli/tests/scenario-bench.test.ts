@@ -63,9 +63,10 @@ describe('protoyard scenario bench', () => {
     // under a load average of 100+ the median exceeds it while the rows stay deterministic.
     // Run: PROTOYARD_BENCH=1 pnpm vitest run packages/cli/tests/scenario-bench.test.ts
     if (process.env.PROTOYARD_BENCH) expect(result?.withinBudget).toBe(true);
-    // Each figure is rounded on its own, so the sum may differ by a few hundredths.
-    const sum = (result?.generateMs ?? 0) + (result?.validateMs ?? 0);
-    expect(Math.abs((result?.durationMs ?? 0) - sum)).toBeLessThan(0.5);
+    // Each figure is a median over the runs, so duration is not the sum of the other two medians.
+    // Every run's total is at least its generate and validate parts, and the median is monotone.
+    const parts = Math.max(result?.generateMs ?? 0, result?.validateMs ?? 0);
+    expect(result?.durationMs ?? 0).toBeGreaterThanOrEqual(parts - 0.01);
   });
 
   it('fails with validation exit code 4 when --check exceeds the generation budget', {
