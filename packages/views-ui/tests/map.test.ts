@@ -221,7 +221,7 @@ describe('SimulatedMap', () => {
     expect(document.querySelectorAll('[data-vertex]')).toHaveLength(0);
   });
 
-  it('renders 5,000 markers as clusters while the list keeps every one', () => {
+  it('renders 5,000 markers as clusters while the list keeps every one', async () => {
     // A deterministic grid over Port Meridian (no Math.random).
     const many: MapMarker[] = Array.from({ length: 5_000 }, (_, i) => ({
       id: `job-${i}`,
@@ -238,9 +238,37 @@ describe('SimulatedMap', () => {
     );
     expect(drawn).toBeLessThan(500);
     expect(document.querySelectorAll('[data-cluster]').length).toBeGreaterThan(0);
-    expect(document.querySelectorAll('[data-list-item]')).toHaveLength(5_000);
+    // The list is virtualized: a window of rows, each announcing its place in all 5,000.
+    const rows = document.querySelectorAll<HTMLElement>('[data-list-item]');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThan(40);
+    expect(rows[0]?.closest('li')?.getAttribute('aria-setsize')).toBe('5000');
     // The browser budget (100 ms) is measured in E2E; happy-dom is far slower.
     expect(ms).toBeLessThan(10_000);
+
+    // Every marker stays reachable by keyboard: one tab stop, End reaches the last.
+    const first = document.querySelector<HTMLElement>('[data-list-index="0"]') as HTMLElement;
+    expect(first.tabIndex).toBe(0);
+    expect(document.querySelector<HTMLElement>('[data-list-index="1"]')?.tabIndex).toBe(-1);
+    first.focus();
+    await fireEvent.keyDown(first, { key: 'End' });
+    await waitFor(() =>
+      expect(document.activeElement?.getAttribute('data-list-item')).toBe('job-4999')
+    );
+    const last = document.activeElement as HTMLElement;
+    expect(last.closest('li')?.getAttribute('aria-posinset')).toBe('5000');
+    await fireEvent.keyDown(last, { key: 'ArrowUp' });
+    await waitFor(() =>
+      expect(document.activeElement?.getAttribute('data-list-item')).toBe('job-4998')
+    );
+    await fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Home' });
+    await waitFor(() =>
+      expect(document.activeElement?.getAttribute('data-list-item')).toBe('job-0')
+    );
+    await fireEvent.click(document.activeElement as HTMLElement);
+    expect(document.querySelector('[data-list-item="job-0"]')?.getAttribute('aria-current')).toBe(
+      'true'
+    );
   });
 
   it('picks a point with Enter at the center cross, or by clicking without dragging', async () => {

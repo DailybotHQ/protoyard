@@ -174,7 +174,15 @@ Fictional city, not real geography." is always visible.
   bindable and `onSelect` reports changes.
 - **List alternative:** every marker is also in a list under the map. Picking
   a list row selects the marker and centers the map on it, and selecting on
-  the map marks the row (`aria-current`).
+  the map marks the row (`aria-current`). The list is virtualized with the
+  grid's axis (`createAxis`/`windowAxis`, 32 px rows, at most 224 px tall), so
+  5,000 markers render about 13 rows instead of 5,000 buttons. Each row keeps
+  `aria-setsize`/`aria-posinset`. The list is one tab stop: ArrowUp/Down,
+  Home, End and PageUp/PageDown move focus through every marker and scroll as
+  needed, and a marker picked on the map becomes the list's tab stop. In
+  Chromium (M1 Max, ui-kit build) the map with 5,000 markers paints 22–30 ms
+  after loading them; the list alone took 174–198 ms before virtualization
+  (`tests/e2e/views.spec.ts` asserts under 100 ms).
 - **Moving markers and routes:** positions come from props only. The
   prototype advances them through its services and the runtime clock (for
   example `pointAlong` on a route by simulated time), and the map animates the
