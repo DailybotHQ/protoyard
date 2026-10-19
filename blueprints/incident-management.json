@@ -1,0 +1,298 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Signalpath Incident Desk",
+  "description": "Incident response, affected services and follow-up actions for a fictional engineering team.",
+  "icon": "🚨",
+  "category": "developer-tools",
+  "tags": ["incidents", "reliability", "on-call"],
+  "catalog": {
+    "category": "developer-tools",
+    "productType": "Incident Management",
+    "platforms": ["web"],
+    "features": ["incident-response", "postmortems"],
+    "highlights": ["Incident timeline", "Severity triage", "Follow-up actions"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "incident-management-brand",
+    "name": "Signalpath Incident Desk",
+    "seed": "#bd493c",
+    "styleProfile": "crisp",
+    "font": "mono"
+  },
+  "entities": [
+    {
+      "name": "incident",
+      "plural": "incidents",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "summary",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["investigating", "mitigating", "monitoring", "resolved"],
+          "default": "investigating",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "severity",
+          "kind": "enum",
+          "values": ["sev-1", "sev-2", "sev-3"],
+          "default": "sev-1",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "startedAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "resolvedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    },
+    {
+      "name": "service",
+      "plural": "services",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "tier",
+          "kind": "enum",
+          "values": ["critical", "important", "standard"],
+          "default": "critical",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "availability",
+          "kind": "number",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 100
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "incident-update",
+      "plural": "incident-updates",
+      "titleField": "summary",
+      "fields": [
+        {
+          "name": "summary",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "incident",
+          "kind": "relation",
+          "to": "incident",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "kind",
+          "kind": "enum",
+          "values": ["status", "impact", "mitigation"],
+          "default": "status",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "recordedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["summary"]
+    },
+    {
+      "name": "follow-up",
+      "plural": "follow-ups",
+      "titleField": "action",
+      "fields": [
+        {
+          "name": "action",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "incident",
+          "kind": "relation",
+          "to": "incident",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["open", "in-progress", "done"],
+          "default": "open",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "dueAt",
+          "kind": "date",
+          "window": "around"
+        }
+      ],
+      "searchable": ["action"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Signalpath Incident Desk overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total incidents",
+          "entity": "incident",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "incidents over time",
+          "entity": "incident",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "incident",
+      "columns": ["reference", "summary", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "incident"
+    },
+    {
+      "type": "list",
+      "entity": "service",
+      "columns": ["name", "tier", "availability"]
+    },
+    {
+      "type": "form",
+      "entity": "service"
+    },
+    {
+      "type": "list",
+      "entity": "incident-update",
+      "columns": ["summary", "incident", "kind"]
+    },
+    {
+      "type": "form",
+      "entity": "incident-update"
+    },
+    {
+      "type": "list",
+      "entity": "follow-up",
+      "columns": ["action", "incident", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "follow-up"
+    },
+    {
+      "type": "timeline",
+      "entity": "incident",
+      "startField": "startedAt",
+      "endField": "resolvedAt",
+      "groupBy": "severity",
+      "zoom": "week",
+      "path": "/incidents/timeline",
+      "title": "Incident timeline",
+      "nav": {
+        "label": "Timeline",
+        "icon": "chart-gantt",
+        "order": 20
+      }
+    },
+    {
+      "type": "board",
+      "entity": "incident",
+      "groupBy": "status",
+      "cardFields": ["reference", "summary", "severity"],
+      "path": "/incidents/board",
+      "title": "Response board",
+      "nav": {
+        "label": "Response board",
+        "icon": "kanban",
+        "order": 21
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

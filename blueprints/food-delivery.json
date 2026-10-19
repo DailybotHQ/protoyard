@@ -1,0 +1,301 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Dashdish Delivery Ops",
+  "description": "Restaurant orders, courier assignments and delivery progress for a fictional food network.",
+  "icon": "🥡",
+  "category": "commerce",
+  "tags": ["food-delivery", "couriers", "dispatch"],
+  "catalog": {
+    "category": "commerce",
+    "productType": "Food Delivery",
+    "platforms": ["web"],
+    "features": ["order-dispatch", "courier-tracking"],
+    "highlights": ["Delivery map", "Order dispatch board", "Courier workload"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "food-delivery-brand",
+    "name": "Dashdish Delivery Ops",
+    "seed": "#d05a35",
+    "styleProfile": "flat",
+    "font": "system"
+  },
+  "entities": [
+    {
+      "name": "delivery",
+      "plural": "deliveries",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "restaurant",
+          "kind": "relation",
+          "to": "restaurant",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "courier",
+          "kind": "relation",
+          "to": "courier",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["placed", "preparing", "picked-up", "delivered"],
+          "default": "placed",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "destination",
+          "kind": "geo",
+          "region": "harbor-bay"
+        },
+        {
+          "name": "promisedAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "subtotal",
+          "kind": "money",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 25000
+        }
+      ],
+      "searchable": ["reference"]
+    },
+    {
+      "name": "restaurant",
+      "plural": "restaurants",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "location",
+          "kind": "geo",
+          "region": "harbor-bay"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["open", "busy", "closed"],
+          "default": "open",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "courier",
+      "plural": "couriers",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "transport",
+          "kind": "enum",
+          "values": ["bike", "scooter", "car"],
+          "default": "bike",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "availability",
+          "kind": "enum",
+          "values": ["ready", "assigned", "break"],
+          "default": "ready",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "menu-item",
+      "plural": "menu-items",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "restaurant",
+          "kind": "relation",
+          "to": "restaurant",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "price",
+          "kind": "money",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 5000
+        },
+        {
+          "name": "availability",
+          "kind": "enum",
+          "values": ["available", "sold-out"],
+          "default": "available",
+          "required": true,
+          "weights": [2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Dashdish Delivery Ops overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total deliveries",
+          "entity": "delivery",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "deliveries over time",
+          "entity": "delivery",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "delivery",
+      "columns": ["reference", "restaurant", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "delivery"
+    },
+    {
+      "type": "list",
+      "entity": "restaurant",
+      "columns": ["name", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "restaurant"
+    },
+    {
+      "type": "list",
+      "entity": "courier",
+      "columns": ["name", "transport", "availability"]
+    },
+    {
+      "type": "form",
+      "entity": "courier"
+    },
+    {
+      "type": "list",
+      "entity": "menu-item",
+      "columns": ["name", "restaurant", "availability"]
+    },
+    {
+      "type": "form",
+      "entity": "menu-item"
+    },
+    {
+      "type": "map",
+      "entity": "delivery",
+      "geoField": "destination",
+      "colorBy": "status",
+      "path": "/deliveries/map",
+      "title": "Delivery map",
+      "nav": {
+        "label": "Map",
+        "icon": "map",
+        "order": 20
+      }
+    },
+    {
+      "type": "board",
+      "entity": "delivery",
+      "groupBy": "status",
+      "cardFields": ["reference", "restaurant", "promisedAt", "subtotal"],
+      "sumField": "subtotal",
+      "path": "/deliveries/board",
+      "title": "Dispatch board",
+      "nav": {
+        "label": "Dispatch",
+        "icon": "kanban",
+        "order": 21
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

@@ -1,0 +1,299 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Harborlight Customer Success",
+  "description": "Accounts, health signals and success plans for a fictional customer team.",
+  "icon": "💚",
+  "category": "support",
+  "tags": ["customer-success", "accounts", "health"],
+  "catalog": {
+    "category": "support",
+    "productType": "Customer Success",
+    "platforms": ["web"],
+    "features": ["health-scoring", "success-plans"],
+    "highlights": ["Account health", "Renewal readiness", "Success plans"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "customer-success-health-brand",
+    "name": "Harborlight Customer Success",
+    "seed": "#21827b",
+    "styleProfile": "soft",
+    "font": "system"
+  },
+  "entities": [
+    {
+      "name": "account",
+      "plural": "accounts",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "health",
+          "kind": "enum",
+          "values": ["healthy", "watch", "at-risk"],
+          "default": "healthy",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "lifecycle",
+          "kind": "enum",
+          "values": ["onboarding", "adopted", "renewal"],
+          "default": "onboarding",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "recurringRevenue",
+          "kind": "money",
+          "min": 0,
+          "trend": "growth",
+          "max": 900000
+        },
+        {
+          "name": "renewalAt",
+          "kind": "date",
+          "window": "around"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "success-plan",
+      "plural": "success-plans",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "account",
+          "kind": "relation",
+          "to": "account",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["planned", "active", "complete"],
+          "default": "planned",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "startsAt",
+          "kind": "date",
+          "window": "past"
+        },
+        {
+          "name": "endsAt",
+          "kind": "date",
+          "window": "around"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "health-signal",
+      "plural": "health-signals",
+      "titleField": "label",
+      "fields": [
+        {
+          "name": "label",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "account",
+          "kind": "relation",
+          "to": "account",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "signal",
+          "kind": "enum",
+          "values": ["usage", "sentiment", "support"],
+          "default": "usage",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "trend",
+          "kind": "enum",
+          "values": ["improving", "steady", "declining"],
+          "default": "improving",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "observedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["label"]
+    },
+    {
+      "name": "touchpoint",
+      "plural": "touchpoints",
+      "titleField": "summary",
+      "fields": [
+        {
+          "name": "summary",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "account",
+          "kind": "relation",
+          "to": "account",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "channel",
+          "kind": "enum",
+          "values": ["call", "email", "meeting"],
+          "default": "call",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "occurredAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["summary"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Harborlight Customer Success overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total accounts",
+          "entity": "account",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "accounts over time",
+          "entity": "account",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "account",
+      "columns": ["name", "health", "lifecycle"]
+    },
+    {
+      "type": "form",
+      "entity": "account"
+    },
+    {
+      "type": "list",
+      "entity": "success-plan",
+      "columns": ["name", "account", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "success-plan"
+    },
+    {
+      "type": "list",
+      "entity": "health-signal",
+      "columns": ["label", "account", "signal"]
+    },
+    {
+      "type": "form",
+      "entity": "health-signal"
+    },
+    {
+      "type": "list",
+      "entity": "touchpoint",
+      "columns": ["summary", "account", "channel"]
+    },
+    {
+      "type": "form",
+      "entity": "touchpoint"
+    },
+    {
+      "type": "board",
+      "entity": "account",
+      "groupBy": "health",
+      "cardFields": ["name", "lifecycle", "recurringRevenue"],
+      "sumField": "recurringRevenue",
+      "path": "/accounts/board",
+      "title": "Account health",
+      "nav": {
+        "label": "Health board",
+        "icon": "kanban",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

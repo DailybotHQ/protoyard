@@ -1,0 +1,265 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Tandem Podcast Studio",
+  "description": "Podcast shows, episode production and recording sessions for a fictional audio network.",
+  "icon": "🎙️",
+  "category": "media",
+  "tags": ["podcast", "production", "recording"],
+  "catalog": {
+    "category": "media",
+    "productType": "Podcast Studio",
+    "platforms": ["web"],
+    "features": ["episode-production", "recording-schedule"],
+    "highlights": ["Recording calendar", "Episode pipeline", "Show roster"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "podcast-studio-brand",
+    "name": "Tandem Podcast Studio",
+    "seed": "#4b638b",
+    "styleProfile": "soft",
+    "font": "grotesk"
+  },
+  "entities": [
+    {
+      "name": "episode",
+      "plural": "episodes",
+      "titleField": "title",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "show",
+          "kind": "relation",
+          "to": "show",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["pitched", "recording", "editing", "published"],
+          "default": "pitched",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "recordingAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "releaseAt",
+          "kind": "date",
+          "window": "around"
+        },
+        {
+          "name": "durationMinutes",
+          "kind": "integer",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 180
+        }
+      ],
+      "searchable": ["title"]
+    },
+    {
+      "name": "show",
+      "plural": "shows",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "category",
+          "kind": "text"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["active", "paused", "archived"],
+          "default": "active",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "host",
+      "plural": "hosts",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "role",
+          "kind": "text"
+        },
+        {
+          "name": "availability",
+          "kind": "enum",
+          "values": ["available", "booked", "away"],
+          "default": "available",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "guest",
+      "plural": "guests",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "expertise",
+          "kind": "text"
+        },
+        {
+          "name": "relationship",
+          "kind": "enum",
+          "values": ["invited", "confirmed", "recorded"],
+          "default": "invited",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Tandem Podcast Studio overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total episodes",
+          "entity": "episode",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "episodes over time",
+          "entity": "episode",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "episode",
+      "columns": ["title", "show", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "episode"
+    },
+    {
+      "type": "list",
+      "entity": "show",
+      "columns": ["name", "category", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "show"
+    },
+    {
+      "type": "list",
+      "entity": "host",
+      "columns": ["name", "role", "availability"]
+    },
+    {
+      "type": "form",
+      "entity": "host"
+    },
+    {
+      "type": "list",
+      "entity": "guest",
+      "columns": ["name", "expertise", "relationship"]
+    },
+    {
+      "type": "form",
+      "entity": "guest"
+    },
+    {
+      "type": "calendar",
+      "entity": "episode",
+      "dateField": "recordingAt",
+      "view": "week",
+      "path": "/episodes/calendar",
+      "title": "Recording calendar",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar-days",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

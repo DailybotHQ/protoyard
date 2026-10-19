@@ -14,6 +14,53 @@ for every file.
 Fictional data only (`.example` domains via generator fakes). Blueprints are
 never bundled into a running prototype’s JS — they are source for generate.
 
+## Catalog
+
+The catalog contains 40 blueprints across operations, services, business, people, content, and other product areas. The gallery count is derived from the indexed blueprint registry.
+
+| Blueprint | Category | Screens |
+| --- | --- | --- |
+| [Fieldnote Farm Operations](./agriculture-farm-ops.json) | operations | dashboard, list, form, map, analytics, settings |
+| [Signalboard Analytics](./analytics-workspace.json) | analytics | dashboard, list, form, analytics, detail, settings |
+| [Hirepath ATS](./ats-recruiting.json) | hr | dashboard, list, form, board, detail, settings |
+| [Calendar Booking](./booking-scheduling.json) | operations | dashboard, list, form, calendar, detail, settings |
+| [Switchback Car Rental](./car-rental.json) | travel | dashboard, list, form, calendar, map, settings |
+| [Harbor Clinic](./clinic.json) | health | dashboard, list, form, calendar, detail, settings |
+| [Quill CMS](./cms-blog.json) | media | dashboard, list, form, analytics, detail, settings |
+| [Stonepath Construction](./construction-projects.json) | operations | dashboard, list, form, timeline, settings |
+| [Commonroom Workspaces](./coworking-spaces.json) | real-estate | dashboard, list, form, calendar, map, settings |
+| [Northstar CRM](./crm.json) | sales | dashboard, list, form, analytics, detail, settings |
+| [Harborlight Customer Success](./customer-success-health.json) | support | dashboard, list, form, board, settings |
+| [Gatepass Events](./events-ticketing.json) | media | dashboard, list, form, calendar, detail, settings |
+| [Waymark Field Service](./field-service-dispatch.json) | operations | dashboard, list, form, map, calendar, settings |
+| [Stride Fitness](./fitness-mobile.json) | health | dashboard, list, form, timeline, detail, settings |
+| [Northstar Fleet Care](./fleet-maintenance.json) | operations | dashboard, list, form, calendar, settings |
+| [Dashdish Delivery Ops](./food-delivery.json) | commerce | dashboard, list, form, map, board, settings |
+| [Openfield Grant Desk](./grant-management.json) | finance | dashboard, list, form, board, settings |
+| [Signalpath Incident Desk](./incident-management.json) | developer-tools | dashboard, list, form, timeline, board, settings |
+| [Brightcover Claims](./insurance-claims.json) | finance | dashboard, list, form, board, settings |
+| [Stockroom Inventory](./inventory.json) | operations | dashboard, list, form, timeline, detail, settings |
+| [Fleetpulse IoT](./iot-fleet.json) | operations | dashboard, list, form, map, detail, settings |
+| [Casebook Legal](./legal-matters.json) | internal-tools | dashboard, list, form, timeline, detail, settings |
+| [Campus LMS](./lms.json) | education | dashboard, list, form, board, detail, settings |
+| [Routeline Logistics](./logistics.json) | operations | dashboard, list, form, map, detail, settings |
+| [Forgewell Manufacturing](./manufacturing-work-orders.json) | operations | dashboard, list, form, board, analytics, settings |
+| [Lumen Campaign Studio](./marketing-campaigns.json) | marketing | dashboard, list, form, calendar, analytics, settings |
+| [Morrow Museum Catalog](./museum-collections.json) | media | dashboard, list, form, detail, board, settings |
+| [Kindling Donors](./nonprofit-donors.json) | finance | dashboard, list, form, map, detail, settings |
+| [Northstar Goals](./okr-goals.json) | productivity | dashboard, list, form, analytics, settings |
+| [Ledgerly Finance](./personal-finance.json) | finance | dashboard, list, form, analytics, detail, settings |
+| [Tandem Podcast Studio](./podcast-studio.json) | media | dashboard, list, form, calendar, settings |
+| [Launchpad Projects](./project-management.json) | productivity | dashboard, list, form, board, detail, settings |
+| [Lotline Realty](./real-estate.json) | real-estate | dashboard, list, form, map, detail, settings |
+| [Tablefire POS](./restaurant-pos.json) | commerce | dashboard, list, form, board, detail, settings |
+| [Juniper Salon Studio](./salon-booking.json) | operations | dashboard, list, form, calendar, settings |
+| [Neighborhood Feed](./social-feed.json) | social | dashboard, list, form, board, detail, settings |
+| [Waypoint Travel](./travel-booking.json) | travel | dashboard, list, form, calendar, detail, settings |
+| [Gridline Utility Ops](./utility-outages.json) | operations | dashboard, list, form, map, timeline, settings |
+| [Pinecone Veterinary Care](./veterinary-clinic.json) | health | dashboard, list, form, calendar, detail, settings |
+| [Stackline Warehouse](./warehouse-wms.json) | operations | dashboard, list, form, map, settings |
+
 Blueprint notification rules currently apply to all matching writes. They do
 not yet support per-persona notification preferences that mute selected rules;
 there are no per-rule preference switches in generated Settings screens.

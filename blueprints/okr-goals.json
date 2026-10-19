@@ -1,0 +1,294 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Northstar Goals",
+  "description": "Objectives, measurable outcomes and check-ins for a fictional product organization.",
+  "icon": "🎯",
+  "category": "productivity",
+  "tags": ["okr", "goals", "planning"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Goals and OKRs",
+    "platforms": ["web"],
+    "features": ["goal-tracking", "check-ins"],
+    "highlights": ["Company objectives", "Key result progress", "Team alignment"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "okr-goals-brand",
+    "name": "Northstar Goals",
+    "seed": "#4059a8",
+    "styleProfile": "crisp",
+    "font": "grotesk"
+  },
+  "entities": [
+    {
+      "name": "objective",
+      "plural": "objectives",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "team",
+          "kind": "relation",
+          "to": "team",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "at-risk", "complete"],
+          "default": "draft",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "startsAt",
+          "kind": "date",
+          "window": "past"
+        },
+        {
+          "name": "endsAt",
+          "kind": "date",
+          "window": "around"
+        },
+        {
+          "name": "owner",
+          "kind": "text",
+          "required": true
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "key-result",
+      "plural": "key-results",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "objective",
+          "kind": "relation",
+          "to": "objective",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "target",
+          "kind": "number",
+          "min": 0,
+          "trend": "growth",
+          "max": 1000
+        },
+        {
+          "name": "current",
+          "kind": "number",
+          "min": 0,
+          "trend": "growth",
+          "max": 1000
+        },
+        {
+          "name": "confidence",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "default": "low",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "check-in",
+      "plural": "check-ins",
+      "titleField": "summary",
+      "fields": [
+        {
+          "name": "summary",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "keyResult",
+          "kind": "relation",
+          "to": "key-result",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "confidence",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "default": "low",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "recordedAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["summary"]
+    },
+    {
+      "name": "team",
+      "plural": "teams",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "department",
+          "kind": "text"
+        },
+        {
+          "name": "headcount",
+          "kind": "integer",
+          "min": 0,
+          "trend": "growth",
+          "max": 120
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Northstar Goals overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total objectives",
+          "entity": "objective",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "objectives over time",
+          "entity": "objective",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "objective",
+      "columns": ["name", "team", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "objective"
+    },
+    {
+      "type": "list",
+      "entity": "key-result",
+      "columns": ["name", "objective", "current"]
+    },
+    {
+      "type": "form",
+      "entity": "key-result"
+    },
+    {
+      "type": "list",
+      "entity": "check-in",
+      "columns": ["summary", "keyResult", "confidence"]
+    },
+    {
+      "type": "form",
+      "entity": "check-in"
+    },
+    {
+      "type": "list",
+      "entity": "team",
+      "columns": ["name", "department", "headcount"]
+    },
+    {
+      "type": "form",
+      "entity": "team"
+    },
+    {
+      "type": "analytics",
+      "entity": "key-result",
+      "dateField": "createdAt",
+      "measures": [
+        {
+          "label": "Current progress",
+          "aggregate": "sum",
+          "field": "current"
+        }
+      ],
+      "dimensions": ["confidence"],
+      "path": "/key-results/analytics",
+      "title": "Goal progress",
+      "nav": {
+        "label": "Progress",
+        "icon": "chart-line",
+        "order": 20
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

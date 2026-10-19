@@ -1,0 +1,298 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Commonroom Workspaces",
+  "description": "Workspace locations, rooms and member bookings for a fictional coworking network.",
+  "icon": "\ud83c\udfe2",
+  "category": "real-estate",
+  "tags": ["coworking", "spaces", "booking"],
+  "catalog": {
+    "category": "real-estate",
+    "productType": "Coworking",
+    "platforms": ["web"],
+    "features": ["space-booking", "member-management"],
+    "highlights": ["Location map", "Room calendar", "Member directory"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "coworking-spaces-brand",
+    "name": "Commonroom Workspaces",
+    "seed": "#3d716f",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "location",
+      "plural": "locations",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "address",
+          "kind": "geo",
+          "region": "metro-grid"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["open", "renovation", "full"],
+          "default": "open",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "capacity",
+          "kind": "integer",
+          "min": 0,
+          "trend": "growth",
+          "max": 1200
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "room",
+      "plural": "rooms",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "location",
+          "kind": "relation",
+          "to": "location",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "kind",
+          "kind": "enum",
+          "values": ["meeting", "focus", "event"],
+          "default": "meeting",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "seats",
+          "kind": "integer",
+          "min": 0,
+          "trend": "seasonal",
+          "max": 40
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "booking",
+      "plural": "bookings",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "room",
+          "kind": "relation",
+          "to": "room",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "member",
+          "kind": "relation",
+          "to": "member",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["requested", "confirmed", "checked-in", "complete"],
+          "default": "requested",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "endsAt",
+          "kind": "datetime",
+          "window": "around"
+        }
+      ],
+      "searchable": ["reference"]
+    },
+    {
+      "name": "member",
+      "plural": "coworking-members",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "plan",
+          "kind": "enum",
+          "values": ["day-pass", "resident", "team"],
+          "default": "day-pass",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "joinedAt",
+          "kind": "date",
+          "window": "past"
+        }
+      ],
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Commonroom Workspaces overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total locations",
+          "entity": "location",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "locations over time",
+          "entity": "location",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "location",
+      "columns": ["name", "status", "capacity"]
+    },
+    {
+      "type": "form",
+      "entity": "location"
+    },
+    {
+      "type": "list",
+      "entity": "room",
+      "columns": ["name", "location", "kind"]
+    },
+    {
+      "type": "form",
+      "entity": "room"
+    },
+    {
+      "type": "list",
+      "entity": "booking",
+      "columns": ["reference", "room", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "booking"
+    },
+    {
+      "type": "list",
+      "entity": "member",
+      "columns": ["name", "plan", "joinedAt"]
+    },
+    {
+      "type": "form",
+      "entity": "member"
+    },
+    {
+      "type": "calendar",
+      "entity": "booking",
+      "dateField": "startsAt",
+      "endField": "endsAt",
+      "colorBy": "status",
+      "view": "week",
+      "path": "/bookings/calendar",
+      "title": "Room bookings",
+      "nav": {
+        "label": "Calendar",
+        "icon": "calendar-days",
+        "order": 20
+      }
+    },
+    {
+      "type": "map",
+      "entity": "location",
+      "geoField": "address",
+      "path": "/locations/map",
+      "title": "Workspace locations",
+      "nav": {
+        "label": "Locations",
+        "icon": "map",
+        "order": 21
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}
