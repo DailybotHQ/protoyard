@@ -351,6 +351,62 @@ the 40.6 ms in the table above; machine load was not controlled for.
 `--ci-factor 0.01` forces a 1 ms
 threshold and fails, which is how the gate itself was verified.
 
+Since the marketplace landed, every synthetic manifest also carries a
+`catalog` block (category, product type, platforms, shell, features,
+highlights, difficulty). The index therefore validates catalog blocks as
+well. An A/B run against the script without them showed no measurable
+difference under the same load.
+
+### Marketplace at 1,000 catalog entries
+
+Method: `pnpm bench:index --runs 5 --marketplace --check` builds the gallery
+over the 1,000 synthetic manifests, serves the static `dist/` on an ephemeral
+local port, and opens `/marketplace/` in headless Chromium (Playwright).
+Every run uses a fresh browser context:
+
+- **Interactive** is the time from navigation until the browse section reports
+  `data-hydrated="true"`, read from `performance.now()`.
+- **Long tasks** are counted with a `PerformanceObserver`.
+- On the last run, search and feature-filter updates are timed: an input or
+  chip-click event followed by `setTimeout(0)`, 20 times each, reporting the
+  median.
+- Page weight is gzip-9 of the HTML and of every JS file the page loads,
+  following static imports.
+
+The numbers below come from an M1 Max (64 GB) on 2026-10-18. The machine was
+heavily loaded during the run (load average about 20–40), so treat them as
+upper bounds.
+
+| Measure | Median | Notes |
+| --- | --- | --- |
+| Gallery build (synthetic) | 5.9 s | 3,005 pages over the synthetic registry, marketplace detail pages included |
+| `/marketplace/` HTML | 99.9 KB gzip | 1,000 cards and rails rendered at build time |
+| `/marketplace/` JS | 62.0 KB gzip | About 55 KB of it is the shared gallery layout (theme toggle, ⌘K palette, Svelte runtime) |
+| Interactive | **326 ms** (309–623) | 3 long tasks or fewer |
+| Search update | **18.4 ms** | Typing into the search box |
+| Feature-filter update | **54.9 ms** | Toggling a feature chip |
+
+**Gate:** `--marketplace --check` also compares those medians with
+`MARKETPLACE_BUDGET` in `scripts/bench-index.ts`. The budget is interactive
+1,000 ms, search 50 ms and filter 100 ms, each multiplied by `--ci-factor`.
+The run exits `1` when any median is over, or when `--marketplace` produced
+no measurement. The figures above passed at `--ci-factor 1`.
+`--ci-factor 0.01` fails, which is how the gate was verified.
+
+`--marketplace` needs Playwright's Chromium (`pnpm test:e2e:install`). CI's
+perf job runs only the index gate (`--runs 3 --check`), so the marketplace
+budget is checked locally for now.
+
+Behavior is covered separately by `tests/e2e/marketplace.spec.ts`:
+
+- rails and cards;
+- search, feature, kind and URL state across a reload;
+- the empty state;
+- detail pages for each kind;
+- read-only Try it and Use this template;
+- axe in light and dark;
+- no horizontal overflow at 390 px.
+
 ## Large worlds (scenario loads)
 
 Measured with the `crm-demo` **`enterprise-scale`** scenario: **16,075 rows**
