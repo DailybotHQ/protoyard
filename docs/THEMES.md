@@ -60,6 +60,7 @@ Tailwind 4 theme, so you style with ordinary utilities:
 | `destructive`, `success`, `warning`, `info` (+ `…Foreground`) | `--py-destructive` … | `bg-destructive`, `text-success`, `bg-warning text-warning-foreground`… |
 | `sidebar`, `sidebarForeground`, `sidebarBorder` | `--py-sidebar` … | `bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border` |
 | `chart1` … `chart5` | `--py-chart1` … `--py-chart5` | `bg-chart-1` … `bg-chart-5`, `text-chart-1`… |
+| [Chart palette](#chart-palettes) (optional `theme.charts`) | `--py-chart6` … `--py-chart8`, `--py-seq-1` … `--py-seq-9`, `--py-div-1` … `--py-div-9`, `--py-chart-grid`, `--py-chart-axis` | `bg-chart-6` … `bg-chart-8` (fall back to series 1–3), `stroke-chart-grid`, `text-chart-axis` |
 | `shadow` | `--py-shadow` | used inside `shadow-soft`, `shadow-float` |
 | (computed) | `--py-primary-hover`, `--py-destructive-hover` | `bg-primary-hover`, `bg-destructive-hover` |
 
@@ -222,7 +223,7 @@ The colored tokens are searched, not guessed:
 | `secondary` | A light (or dark) tint of the secondary hue, searched until the foreground reaches 4.5:1. |
 | `accent` | Step 100 (light) or 900 (dark) of the seed scale. |
 | `secondary`, `accent` repair | If either still fails 4.5:1 with its foreground, it is replaced with a neutral. |
-| `chart1` … `chart5` | Step 600 of the seed and secondary scales, plus three fixed hues. |
+| `chart1` … `chart5` | Step 600 of the seed and secondary scales plus three fixed hues, then repaired by the [chart palette](#chart-palettes) rules. |
 
 ### Neutral families
 
@@ -281,6 +282,53 @@ export const harborTheme = createThemeFromSeed({
   style: { elevation: 'crisp', shape: { radiusScale: 0.8 } },
 });
 ```
+
+## Chart palettes
+
+Chart colors belong to the theme. `packages/themes/src/charts.ts` derives, per
+mode, the colors a chart needs from `chart1` … `chart5` and checks them with
+the same rules as the charts kit (`validateChartPalette` in
+`packages/charts/src/palette`):
+
+| Rule | Minimum |
+| --- | --- |
+| Every series color and both ramp ends against `surface` and `background` (WCAG 1.4.11) | 3 : 1 |
+| Any two series colors, OKLab distance | 0.08 |
+| Any two series colors under simulated protanopia and deuteranopia (Machado 2009) | 0.04 |
+| Any two series colors under simulated tritanopia (stricter than the charts kit) | 0.04 |
+| Sequential ramp; each half of the diverging ramp | lightness changes monotonically toward the data end |
+
+A color that fails moves in lightness only (the hue stays recognizable);
+the three derived series colors may also shift hue a little.
+`deriveChartTokens(palette, mode)` returns the block below, and
+`validateChartTokens(tokens, palette, mode)` lists any rule a block breaks.
+
+| Field | Content | CSS variables |
+| --- | --- | --- |
+| `categorical` | 8 series colors; the first five are `chart1` … `chart5` | `--py-chart1` … `--py-chart8` |
+| `sequential` | 9 steps, low → high values | `--py-seq-1` … `--py-seq-9` |
+| `diverging` | 9 steps, negative end → neutral midpoint (step 5) → positive end | `--py-div-1` … `--py-div-9` |
+| `grid`, `axis` | The palette's `border` and `mutedForeground` | `--py-chart-grid`, `--py-chart-axis` |
+
+Where the colors come from:
+
+- **Generated themes** (`createThemeFromSeed`, so every library theme and
+  every blueprint `brand` seed) carry a full `charts` block for both modes,
+  and their `chart1` … `chart5` are the repaired series.
+- **Built-in presets** have no `charts` block, to keep the always-loaded
+  presets small; their `chart1` … `chart5` already pass the rules (a few scale
+  steps were replaced by hex values for that). The charts kit derives series
+  6–8 and the ramps from them at run time.
+- **Your own themes** may set `charts` (validated by `ThemeSchema`: hex colors,
+  8 / 9 / 9 entries); without it they behave like the presets, and the charts
+  kit repairs any `chart1` … `chart5` that fail.
+
+`applyAppearance` always writes `--py-chart-grid` and `--py-chart-axis`, and
+writes the series 1–8 and the ramps when the theme has a `charts` block. It
+removes series 6–8 and the ramps again when the next theme has none.
+`packages/themes/tests/charts.test.ts` checks every preset and library theme
+in both modes, 120 generated themes, and that the charts kit has nothing left
+to repair.
 
 ## Built-in presets and the theme library
 

@@ -32,6 +32,10 @@ interface Accent {
   dark: { primary: string; primaryForeground: string; ring: string };
   /** Tinted hover/selection surface. */
   scale: ColorScale;
+  /**
+   * chart1…chart5 per mode. Hex entries replace a scale step that missed 3:1
+   * on the surfaces or the series separation rules (tests/charts.test.ts).
+   */
   charts: { light: readonly string[]; dark: readonly string[] };
 }
 
@@ -153,8 +157,8 @@ export const violetTheme = preset({
     dark: { primary: violet[400], primaryForeground: violet[950], ring: violet[400] },
     scale: violet,
     charts: {
-      light: [violet[600], sky[600], hues.teal600, amber[500], rose[500]],
-      dark: [violet[400], sky[400], hues.teal400, amber[400], rose[400]],
+      light: [violet[600], sky[600], '#27a094', '#c88000', rose[500]],
+      dark: [violet[400], sky[400], '#42e1cc', amber[400], rose[400]],
     },
   },
 });
@@ -169,8 +173,8 @@ export const oceanTheme = preset({
     dark: { primary: blue[400], primaryForeground: blue[950], ring: blue[400] },
     scale: blue,
     charts: {
-      light: [blue[600], hues.cyan600, hues.indigo600, emerald[600], amber[500]],
-      dark: [blue[400], hues.cyan400, hues.indigo400, emerald[400], amber[400]],
+      light: [blue[600], hues.cyan600, '#4637d7', '#00885f', '#c88000'],
+      dark: [blue[400], hues.cyan400, '#767fea', emerald[400], amber[400]],
     },
   },
 });
@@ -185,8 +189,8 @@ export const emeraldTheme = preset({
     dark: { primary: emerald[400], primaryForeground: emerald[950], ring: emerald[400] },
     scale: emerald,
     charts: {
-      light: [emerald[600], hues.teal600, sky[600], hues.lime600, amber[500]],
-      dark: [emerald[400], hues.teal400, sky[400], hues.lime400, amber[400]],
+      light: [emerald[600], '#007a70', '#2090d4', '#62a003', '#a86b00'],
+      dark: [emerald[400], '#54efd9', '#23b0ea', hues.lime400, '#edb200'],
     },
   },
 });
@@ -202,8 +206,8 @@ export const roseTheme = preset({
     dark: { primary: rose[400], primaryForeground: rose[950], ring: rose[400] },
     scale: rose,
     charts: {
-      light: [rose[600], hues.pink600, hues.orange600, violet[600], amber[500]],
-      dark: [rose[400], hues.pink400, hues.orange400, violet[400], amber[400]],
+      light: [rose[600], '#ea3983', '#ea6730', violet[600], '#986000'],
+      dark: [rose[400], '#ff82c2', '#ffa461', violet[400], amber[400]],
     },
   },
 });
@@ -218,8 +222,8 @@ export const amberTheme = preset({
     dark: { primary: amber[400], primaryForeground: amber[950], ring: amber[400] },
     scale: amber,
     charts: {
-      light: [amber[600], hues.orange600, rose[600], emerald[600], sky[600]],
-      dark: [amber[400], hues.orange400, rose[400], emerald[400], sky[400]],
+      light: [amber[600], '#d84e00', '#bd0037', emerald[600], '#2090d4'],
+      dark: [amber[400], hues.orange400, rose[400], emerald[400], '#23b0ea'],
     },
   },
 });
@@ -235,8 +239,8 @@ export const monochromeTheme = preset({
     dark: { primary: zinc[50], primaryForeground: zinc[900], ring: zinc[400] },
     scale: zinc,
     charts: {
-      light: [zinc[900], zinc[700], zinc[500], zinc[400], zinc[300]],
-      dark: [zinc[50], zinc[300], zinc[400], zinc[500], zinc[600]],
+      light: [zinc[900], zinc[700], zinc[500], '#8f8f97', '#555559'],
+      dark: [zinc[50], '#d2d2d6', '#888891', '#65656e', '#acacb7'],
     },
   },
 });

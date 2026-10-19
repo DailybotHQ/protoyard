@@ -1,3 +1,4 @@
+import type { ThemePalette } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
 import {
   contrastRatio,
@@ -57,7 +58,10 @@ describe('palette generation', () => {
     expect(theme.light.primary).toMatch(/^#[0-9a-f]{6}$/);
   });
 
-  it('meets WCAG AA for text and UI pairs across 500 deterministic seeds in both modes', () => {
+  // Each theme also derives its chart palettes (charts.ts): give 500 seeds room under parallel load.
+  it('meets WCAG AA for text and UI pairs across 500 deterministic seeds in both modes', {
+    timeout: 120_000,
+  }, () => {
     const failures: string[] = [];
     for (const [index, seed] of FIXED_SEEDS.entries()) {
       const theme = createThemeFromSeed({
@@ -192,8 +196,11 @@ describe('neutral families', () => {
       seed: '#0f766e',
       secondary: '#1d4ed8',
     });
-    expect(theme.light).toEqual(ORIGINAL_FINTECH_LEDGER.light);
-    expect(theme.dark).toEqual(ORIGINAL_FINTECH_LEDGER.dark);
+    // chart1…chart5 are repaired by the chart palette (tests/charts.test.ts); the rest is unchanged.
+    const withoutCharts = ({ chart1, chart2, chart3, chart4, chart5, ...rest }: ThemePalette) =>
+      rest;
+    expect(withoutCharts(theme.light)).toEqual(withoutCharts(ORIGINAL_FINTECH_LEDGER.light));
+    expect(withoutCharts(theme.dark)).toEqual(withoutCharts(ORIGINAL_FINTECH_LEDGER.dark));
   });
 
   // Several families × 500 seeds × 2 modes is ~15 s on a laptop: give it room under parallel load.
