@@ -76,6 +76,69 @@ type SignInOutcome =
   | { ok: true; account: SaasAccount }
   | { ok: false; issues: Record<string, string> };
 
+/** What {@link checkPasswordAttempt} needs from the calling service. */
+export interface PasswordAttemptContext {
+  /** Persists the account row (failed-attempt counter and lock). */
+  putAccount(row: SaasAccount): Promise<unknown>;
+  /** Adds a `password` row to the sign-in log. */
+  logFailure(account: SaasAccount | undefined, reason: string): Promise<unknown>;
+  /** Failed password attempts before the account locks (default 5). */
+  lockoutThreshold?: number;
+  /** Refuse sign-in until the email is verified (default true). */
+  requireVerifiedEmail?: boolean;
+}
+
+/**
+ * The first-factor check shared by `auth.signIn` and `mfa.signInWithPassword`
+ * (simulation only): unknown email, locked or disabled accounts, wrong
+ * passwords (counted toward the lockout) and unverified emails. Failures are
+ * logged and RETURNED, never thrown, so the caller's transaction commits the
+ * attempt and the caller throws a `ValidationError` afterwards. Call it inside
+ * a transaction that covers `saas_accounts` and `saas_sessions_log`.
+ */
+export async function checkPasswordAttempt(
+  context: PasswordAttemptContext,
+  account: SaasAccount | undefined,
+  password: string
+): Promise<SignInOutcome> {
+  const lockoutThreshold = context.lockoutThreshold ?? 5;
+  const requireVerified = context.requireVerifiedEmail ?? true;
+  const fail = async (reason: string, issues: Record<string, string>) => {
+    await context.logFailure(account, reason);
+    return { ok: false as const, issues };
+  };
+  if (!account) return fail('unknown-email', { email: 'No account uses this email' });
+  if (account.status !== 'active') {
+    return fail(account.status, {
+      form:
+        account.status === 'locked'
+          ? 'This account is locked after too many attempts. Reset your password to unlock it.'
+          : 'This account is disabled.',
+    });
+  }
+  if (account.simulatedPassword !== password) {
+    const failedAttempts = account.failedAttempts + 1;
+    const locked = failedAttempts >= lockoutThreshold;
+    await context.putAccount({
+      ...account,
+      failedAttempts,
+      status: locked ? 'locked' : 'active',
+    });
+    const left = lockoutThreshold - failedAttempts;
+    return fail(locked ? 'locked' : 'wrong-password', {
+      password: locked
+        ? 'Incorrect password. The account is now locked.'
+        : `Incorrect password. ${left} ${left === 1 ? 'attempt' : 'attempts'} left.`,
+    });
+  }
+  if (requireVerified && !account.emailVerified) {
+    return fail('unverified', {
+      form: 'Confirm your email first. Check your simulated inbox.',
+    });
+  }
+  return { ok: true as const, account };
+}
+
 export function createAuthServices(runtime: ProtoyardRuntime, options: AuthOptions = {}) {
   const db = runtime.db as unknown as DatabaseLike;
   const { session, environment, clock, identity } = runtime;
@@ -243,46 +306,25 @@ export function createAuthServices(runtime: ProtoyardRuntime, options: AuthOptio
         'auth.signIn',
         (): Promise<SignInOutcome> =>
           db.transaction('rw', [ACCOUNTS, LOG], async () => {
-            const account = await findByEmail(data.email);
-            const fail = async (reason: string, issues: Record<string, string>) => {
-              await log({
-                accountId: account?.id ?? null,
-                personaId: account?.personaId ?? null,
-                method: 'password',
-                outcome: 'failure',
-                reason,
-              });
-              return { ok: false as const, issues };
-            };
-            if (!account) return fail('unknown-email', { email: 'No account uses this email' });
-            if (account.status !== 'active') {
-              return fail(account.status, {
-                form:
-                  account.status === 'locked'
-                    ? 'This account is locked after too many attempts. Reset your password to unlock it.'
-                    : 'This account is disabled.',
-              });
-            }
-            if (account.simulatedPassword !== data.password) {
-              const failedAttempts = account.failedAttempts + 1;
-              const locked = failedAttempts >= lockoutThreshold;
-              await accounts().put({
-                ...account,
-                failedAttempts,
-                status: locked ? 'locked' : 'active',
-              });
-              const left = lockoutThreshold - failedAttempts;
-              return fail(locked ? 'locked' : 'wrong-password', {
-                password: locked
-                  ? 'Incorrect password. The account is now locked.'
-                  : `Incorrect password. ${left} ${left === 1 ? 'attempt' : 'attempts'} left.`,
-              });
-            }
-            if (requireVerified && !account.emailVerified) {
-              return fail('unverified', {
-                form: 'Confirm your email first. Check your simulated inbox.',
-              });
-            }
+            const checked = await checkPasswordAttempt(
+              {
+                putAccount: (row) => accounts().put(row),
+                logFailure: (account, reason) =>
+                  log({
+                    accountId: account?.id ?? null,
+                    personaId: account?.personaId ?? null,
+                    method: 'password',
+                    outcome: 'failure',
+                    reason,
+                  }),
+                lockoutThreshold,
+                requireVerifiedEmail: requireVerified,
+              },
+              await findByEmail(data.email),
+              data.password
+            );
+            if (!checked.ok) return checked;
+            const account = checked.account;
             const signedIn = { ...account, failedAttempts: 0, lastSignInAt: now() };
             await accounts().put(signedIn);
             await log({

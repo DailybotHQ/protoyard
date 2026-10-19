@@ -149,6 +149,9 @@ describe('auth screens', () => {
     const revokeButton = screen.getByRole('button', { name: 'Revoke' });
     await waitFor(() => expect((revokeButton as HTMLButtonElement).disabled).toBe(false));
     await fireEvent.click(revokeButton);
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog.textContent).toContain('settings-member@example.com');
+    await fireEvent.click(screen.getByRole('button', { name: 'Revoke invitation' }));
     await waitFor(async () => {
       const stored = await runtime.db
         .rows('saas_invitations')
@@ -314,7 +317,7 @@ describe('auth screens', () => {
     await type('Email', EMAIL);
     await type('Password', PASSWORD);
     await submit('Sign in');
-    await waitFor(() => expect(location.hash).toContain('#/auth/mfa?account='));
+    await waitFor(() => expect(location.hash).toContain('#/auth/mfa?challenge='));
     expect(runtime.session.isSignedIn()).toBe(false);
 
     cleanup();
@@ -345,7 +348,7 @@ describe('auth screens', () => {
     await type('Email', EMAIL);
     await type('Password', PASSWORD);
     await submit('Sign in');
-    await waitFor(() => expect(location.hash).toContain('#/auth/mfa?account='));
+    await waitFor(() => expect(location.hash).toContain('#/auth/mfa?challenge='));
     expect(new URLSearchParams(location.hash.split('?')[1]).get('next')).toBe(linkPath);
 
     cleanup();

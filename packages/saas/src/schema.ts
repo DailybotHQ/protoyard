@@ -97,6 +97,8 @@ export const TOKEN_KINDS = [
   'password-reset',
   'invite',
   'oauth-state',
+  /** Short-lived, single-use proof that a first factor succeeded (simulated MFA step). */
+  'mfa-challenge',
 ] as const;
 
 export const SaasTokenSchema = z.object({

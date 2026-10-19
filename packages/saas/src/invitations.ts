@@ -8,6 +8,7 @@ import {
 import type { ProtoyardRuntime } from '@protoyard/runtime';
 import { z } from 'zod';
 import { createInbox } from './inbox.ts';
+import { assertInOrg } from './org-access.ts';
 import type {
   SaasAccount,
   SaasInboxMessage,
@@ -107,8 +108,12 @@ export function createInvitationServices(
   const tokens = () => db.table<SaasToken>(TOKENS);
   const invitations = () => db.table<SaasInvitation>(INVITATIONS);
 
+  /**
+   * `members:invite` with the actor's role in the invitation's organization
+   * (which may not be the active one); non-members are denied.
+   */
   function assertInviteCapability(organizationId: string) {
-    runtime.session.assert(INVITE_CAPABILITY, { organizationId });
+    assertInOrg(runtime, INVITE_CAPABILITY, organizationId);
   }
 
   async function create(input: CreateInvitationInput): Promise<{
@@ -339,6 +344,11 @@ export function createInvitationServices(
           if (!organization)
             throw new ValidationError({ form: 'This workspace is no longer available.' });
           let account = await accounts().where('email').equals(invitationRows.email).first();
+          // A disabled or locked account is never joined or signed in through an
+          // invite link (same rule as magic links); throwing rolls back the write.
+          if (account && account.status !== 'active') {
+            throw new ValidationError({ form: 'This account is not available.' });
+          }
           let createdAccount = false;
           if (!account) {
             const localName =

@@ -54,7 +54,7 @@ async function consume(token: string) {
     return;
   }
   if (result.value.status === 'mfa-required') {
-    navigate(`/auth/mfa?account=${encodeURIComponent(result.value.account.id)}`);
+    navigate(`/auth/mfa?challenge=${encodeURIComponent(result.value.challenge.id)}`);
     return;
   }
   complete = true;

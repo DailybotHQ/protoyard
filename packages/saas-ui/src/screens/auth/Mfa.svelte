@@ -17,7 +17,8 @@ import { applyServiceError, authServices, hashParam, routeHref } from './helpers
 
 const { runtime, config } = authServices();
 const mfa = createMfaServices(runtime);
-let accountId = $state('');
+let challengeId = $state('');
+let challengeEmail = $state('');
 let code = $state('');
 let recovery = $state(false);
 let simulatedCode = $state('');
@@ -35,14 +36,14 @@ async function complete() {
       parsed.error.issues[0]?.message ?? 'Enter a valid code.';
     return;
   }
-  if (!accountId) {
-    message = 'Open this challenge from a password or magic-link sign-in.';
+  if (!challengeId) {
+    message = 'Open this challenge from a password, magic-link or SSO sign-in.';
     return;
   }
   busy = true;
   const result = await runService(() =>
     mfa.completeChallenge(
-      accountId,
+      challengeId,
       recovery ? { recoveryCode: parsed.data } : { code: parsed.data }
     )
   );
@@ -59,13 +60,23 @@ async function complete() {
 }
 
 onMount(() => {
-  accountId = hashParam('account');
-  if (!accountId) return;
+  // Only a single-use challenge from a successful first factor opens this
+  // step; an account id in the URL is never accepted (simulation, not security).
+  challengeId = hashParam('challenge');
+  if (!challengeId) {
+    message = 'Open this challenge from a password, magic-link or SSO sign-in.';
+    return;
+  }
   void mfa
-    .get(accountId)
-    .then((row) => {
-      if (row?.status === 'active') simulatedCode = mfa.authenticatorPanel(row.seed).code;
-      else message = 'This account does not have an active simulated MFA challenge.';
+    .describeChallenge(challengeId)
+    .then((view) => {
+      if (view) {
+        simulatedCode = view.code;
+        challengeEmail = view.email;
+      } else {
+        message =
+          'This verification step is not valid, was already used or has expired. Sign in again.';
+      }
     })
     .catch((error: unknown) => {
       message = error instanceof Error ? error.message : 'The simulated challenge could not load.';
@@ -77,7 +88,9 @@ onMount(() => {
   <Card>
     <CardHeader>
       <CardTitle>Verify it is you</CardTitle>
-      <CardDescription>Enter a code from the simulated authenticator to finish signing in.</CardDescription>
+      <CardDescription>
+        Enter a code from the simulated authenticator to finish signing in{challengeEmail ? ` as ${challengeEmail}` : ''}.
+      </CardDescription>
     </CardHeader>
     <CardContent class="grid gap-4">
       {#if simulatedCode && !recovery}
@@ -93,7 +106,7 @@ onMount(() => {
             <Input {...control.props} inputmode={recovery ? 'text' : 'numeric'} autocomplete="one-time-code" bind:value={code} required />
           {/snippet}
         </FormField>
-        <Button type="submit" loading={busy} loadingLabel="Verifying code" disabled={busy || !accountId}>Verify and sign in</Button>
+        <Button type="submit" loading={busy} loadingLabel="Verifying code" disabled={busy || !challengeId}>Verify and sign in</Button>
       </form>
       <Button variant="ghost" onclick={() => { recovery = !recovery; code = ''; issues = {}; }}>
         {recovery ? 'Use an authenticator code' : 'Use a recovery code'}

@@ -41,7 +41,8 @@ const result = await magic.consume(token!.id);
 if (result.status === 'mfa-required') {
   const mfa = createMfaServices(runtime);
   const row = await mfa.get(result.account.id);
-  await mfa.completeChallenge(result.account.id, {
+  // result.challenge: a single-use challenge token minted with the first factor
+  await mfa.completeChallenge(result.challenge.id, {
     code: mfa.authenticatorPanel(row!.seed).code, // simulated panel only
   });
 }
@@ -61,13 +62,22 @@ await mfa.confirmEnroll(currentCode);
 
 const step = await mfa.signInWithPassword({ email, password });
 if (step.status === 'mfa-required') {
-  await mfa.completeChallenge(step.account.id, { code: mfa.authenticatorPanel(row.seed).code });
+  await mfa.completeChallenge(step.challenge.id, { code: mfa.authenticatorPanel(row.seed).code });
   // or { recoveryCode: recoveryCodes[0] }
 }
 ```
 
 - Codes are **deterministic** from the stored seed and a 30s window of `clock.now()` — not real TOTP.
-- Active MFA blocks password and magic-link sign-in until `completeChallenge`.
+- Active MFA blocks password, magic-link and OAuth sign-in until `completeChallenge`. A
+  successful first factor mints a single-use `mfa-challenge` token (10 minutes on the
+  simulated clock; `challengeTtlMinutes`); `completeChallenge(challengeId, proof)` derives
+  the account from that token, so a bare account id, a used or an expired challenge is
+  refused. The MFA screen takes `#/auth/mfa?challenge=…` and shows the simulated code only
+  for that challenge's account (`describeChallenge`).
+- `signInWithPassword` (what the kit's Sign in screen calls) counts failed attempts and
+  locks at `lockoutThreshold`, and honors `requireVerifiedEmail`, exactly like `auth.signIn`.
+- Wrong codes and bad recovery codes are logged (`wrong-code`, `bad-recovery`) even though
+  the call fails.
 - Recovery codes are single-use; `disable` requires a valid code or recovery code.
 
 ### Password reset (`createPasswordResetServices`)
@@ -92,7 +102,10 @@ const accepted = await invites.accept({ tokenId: token.id });
 // await invites.revoke(invitation.id) while it is pending
 ```
 
-- Create, resend and revoke require the `members:invite` capability for the active workspace.
+- Create, resend and revoke require `members:invite` under the actor's role **in the
+  invitation's workspace** (`assertInOrg`), not in whichever workspace is active.
+- Accepting refuses an existing account that is `disabled` or `locked` ("This account is not
+  available.") and writes nothing.
 - Accepting an unexpired link consumes it and creates one membership. Existing accounts are
   matched by email; a new invitee gets a persona and simulated account. Optional `name` and
   `password` fields supply the new account details.
@@ -165,6 +178,7 @@ await inbox.markRead(messages[0]!.id);
 import { createWorkspaces, WORKSPACE_CAPABILITIES } from '@protoyard/saas';
 
 // Policy roles should grant workspaces:create / rename / leave (or `*`).
+// rename and leave check the actor's role in the TARGET workspace, not the active one.
 const workspaces = createWorkspaces(runtime);
 const { organization } = await workspaces.create({ name: 'Acme Labs' });
 await workspaces.switchTo(organization.id); // also happens automatically after create

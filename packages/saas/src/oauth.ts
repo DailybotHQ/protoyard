@@ -1,6 +1,7 @@
 import { createRuntimeId, parseInput, ValidationError } from '@protoyard/core';
 import type { ProtoyardRuntime } from '@protoyard/runtime';
 import { z } from 'zod';
+import { createMfaChallengeToken, type MfaChallenge, mfaChallengeHref } from './mfa.ts';
 import {
   OAUTH_PROVIDER_REGISTRY,
   OAuthIdentitySchema,
@@ -12,6 +13,7 @@ import {
   type LinkedProvider,
   type SaasAccount,
   SaasAccountSchema,
+  type SaasMfa,
   type SaasProvider,
   SaasProviderSchema,
   type SaasSessionLog,
@@ -22,6 +24,7 @@ import {
 const ACCOUNTS = 'saas_accounts';
 const TOKENS = 'saas_tokens';
 const LOG = 'saas_sessions_log';
+const MFA = 'saas_mfa';
 const STATE_TTL_MS = 10 * 60_000;
 
 export const OAuthIntentSchema = z.enum(['sign-in', 'sign-up', 'link']);
@@ -64,6 +67,14 @@ const OAuthPayloadSchema = z.object({
 export type OAuthResult =
   | { status: 'signed-in'; provider: SaasProvider; account: SaasAccount; route: '#/' }
   | { status: 'signed-up'; provider: SaasProvider; account: SaasAccount; route: '#/onboarding' }
+  | {
+      /** Linked account with active MFA: finish on the MFA screen with `challenge.id`. */
+      status: 'mfa-required';
+      provider: SaasProvider;
+      account: SaasAccount;
+      challenge: MfaChallenge;
+      route: string;
+    }
   | { status: 'account-linking'; provider: SaasProvider; email: string; route: string }
   | { status: 'denied'; provider: SaasProvider; reason: 'consent-denied' }
   | { status: 'error'; provider: SaasProvider; reason: 'email-not-shared' | 'provider-error' };
@@ -298,6 +309,29 @@ export function createOAuthSimulator(
               status: 'error',
               provider: payload.provider,
               reason: 'provider-error',
+            } as const;
+          }
+          const mfaRow = await db.table<SaasMfa>(MFA).where('accountId').equals(account.id).first();
+          if (mfaRow?.status === 'active') {
+            // Same rule as password and magic link: SSO is a first factor only.
+            const challenge = createMfaChallengeToken(account, 'oauth', now());
+            await db.transaction('rw', [TOKENS, LOG], async () => {
+              await consume(token);
+              await tokens().add(challenge);
+              await log({
+                accountId: account.id,
+                personaId: account.personaId,
+                provider: payload.provider,
+                outcome: 'success',
+                reason: 'mfa-required',
+              });
+            });
+            return {
+              status: 'mfa-required',
+              provider: payload.provider,
+              account,
+              challenge: { id: challenge.id, expiresAt: challenge.expiresAt },
+              route: mfaChallengeHref(challenge.id),
             } as const;
           }
           const signedIn = SaasAccountSchema.parse({

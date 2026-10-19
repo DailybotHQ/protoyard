@@ -1,6 +1,7 @@
 import {
   definePolicy,
   definePrototype,
+  PermissionDeniedError,
   type PrototypeDefinition,
   parseManifest,
   SimulatedServiceError,
@@ -150,6 +151,59 @@ describe('createWorkspaces', () => {
     const renamed = await workspaces.rename(created.organization.id, { name: 'New Name' });
     expect(renamed.name).toBe('New Name');
     expect(runtime.session.principal()?.organization?.name).toBe('New Name');
+  });
+
+  /** Make the actor `activeRole` in the active org A and `roleInB` in a new org B. */
+  async function twoOrgs(namespace: string, activeRole: string, roleInB: string) {
+    const booted = await boot(namespace);
+    const { runtime } = booted;
+    const principal = runtime.session.principal();
+    const own = principal?.membership;
+    if (!principal || !own) throw new Error('The fixture actor has no membership');
+    const orgB = await runtime.identity.write(async (ops) => {
+      await ops.putMembership({ ...own, role: activeRole });
+      const organization = await ops.putOrganization({ name: 'Org B', type: 'company', size: 1 });
+      await ops.putMembership({
+        personaId: principal.persona.id,
+        organizationId: organization.id,
+        role: roleInB,
+      });
+      return organization;
+    });
+    expect(runtime.session.principal()?.organization?.id).toBe(own.organizationId);
+    expect(runtime.session.principal()?.role).toBe(activeRole);
+    return { ...booted, orgA: own.organizationId, orgB: orgB.id };
+  }
+
+  it('denies renaming another workspace where the actor is only a viewer, even as owner of the active one', async () => {
+    const { runtime, workspaces, orgB } = await twoOrgs('saas-ws-cross-rename', 'owner', 'viewer');
+    await expect(workspaces.rename(orgB, { name: 'Hijacked' })).rejects.toBeInstanceOf(
+      PermissionDeniedError
+    );
+    expect(runtime.session.organizations().find((o) => o.id === orgB)?.name).toBe('Org B');
+  });
+
+  it('lets an admin or owner of another workspace rename it while a different one is active', async () => {
+    for (const role of ['admin', 'owner']) {
+      const { runtime, workspaces, orgA, orgB } = await twoOrgs(
+        `saas-ws-cross-rename-${role}`,
+        'viewer',
+        role
+      );
+      const renamed = await workspaces.rename(orgB, { name: `Renamed by ${role}` });
+      expect(renamed.name).toBe(`Renamed by ${role}`);
+      expect(runtime.session.principal()?.organization?.id).toBe(orgA);
+      // The active org still uses the active role: a viewer cannot rename A.
+      await expect(workspaces.rename(orgA, { name: 'Nope' })).rejects.toBeInstanceOf(
+        PermissionDeniedError
+      );
+    }
+  });
+
+  it('checks leave against the role in the workspace being left', async () => {
+    const { workspaces, orgB } = await twoOrgs('saas-ws-cross-leave', 'owner', 'viewer');
+    await expect(workspaces.leave(orgB)).rejects.toBeInstanceOf(PermissionDeniedError);
+    expect(workspaces.list().some((w) => w.organization.id === orgB)).toBe(true);
   });
 
   it('denies leave when the actor is the last owner', async () => {

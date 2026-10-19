@@ -2,7 +2,7 @@ import { createRuntimeId, isExampleEmail, parseInput, ValidationError } from '@p
 import type { ProtoyardRuntime } from '@protoyard/runtime';
 import { z } from 'zod';
 import { createInbox } from './inbox.ts';
-import { createMfaServices } from './mfa.ts';
+import { createMfaChallengeToken, createMfaServices, type MfaChallenge } from './mfa.ts';
 import type { SaasAccount, SaasInboxMessage, SaasSessionLog, SaasToken } from './schema.ts';
 
 /**
@@ -35,6 +35,8 @@ export interface MagicLinkOptions {
   ttlMinutes?: number;
   /** Build the in-app action href (default `#/auth/magic?token=…`). */
   href?: (tokenId: string) => string;
+  /** Minutes the MFA challenge minted for MFA-active accounts stays valid (default 10). */
+  challengeTtlMinutes?: number;
   productName?: string;
 }
 
@@ -52,7 +54,7 @@ export type IssueMagicLinkInput = z.input<typeof IssueMagicLinkSchema>;
 
 export type MagicLinkConsumeResult =
   | { status: 'signed-in'; account: SaasAccount }
-  | { status: 'mfa-required'; account: SaasAccount };
+  | { status: 'mfa-required'; account: SaasAccount; challenge: MfaChallenge };
 
 /**
  * Magic-link issue / consume bound to a prototype runtime.
@@ -131,7 +133,8 @@ export function createMagicLinkServices(runtime: ProtoyardRuntime, options: Magi
 
     /**
      * Consume a magic-link token (single-use, clock expiry). When MFA is
-     * active, returns `mfa-required` without opening the session.
+     * active, returns `mfa-required` with a single-use `challenge` for
+     * `mfa.completeChallenge` and does not open the session.
      */
     async consume(tokenId: string): Promise<MagicLinkConsumeResult> {
       const result = await environment.run('magicLink.consume', () =>
@@ -157,6 +160,13 @@ export function createMagicLinkServices(runtime: ProtoyardRuntime, options: Magi
 
           const mfaActive = await mfa.isActive(account.id);
           if (mfaActive) {
+            const challenge = createMfaChallengeToken(
+              account,
+              'magic-link',
+              clock.now(),
+              (options.challengeTtlMinutes ?? 10) * 60_000
+            );
+            await tokens().add(challenge);
             await log({
               accountId: account.id,
               personaId: account.personaId,
@@ -164,7 +174,11 @@ export function createMagicLinkServices(runtime: ProtoyardRuntime, options: Magi
               outcome: 'success',
               reason: 'mfa-required',
             });
-            return { status: 'mfa-required' as const, account };
+            return {
+              status: 'mfa-required' as const,
+              account,
+              challenge: { id: challenge.id, expiresAt: challenge.expiresAt },
+            };
           }
 
           const signedIn = { ...account, failedAttempts: 0, lastSignInAt: at };
