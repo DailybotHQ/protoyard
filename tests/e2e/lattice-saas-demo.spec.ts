@@ -214,6 +214,8 @@ test.describe('Lattice flagship SaaS journeys', () => {
     await openPrototype(page);
     const href = await addOAuthState(page, 'e2e-oauth-deny', 'deny@example.com');
     await page.goto(`${prototypeUrl(LATTICE_SAAS_DEMO)}?scenario=signed-out${href}`);
+    // The consent screen is a lazy route: wait for it before axe looks for it.
+    await expect(page.getByTestId('oauth-consent')).toBeVisible();
     await checkAuthA11y(page, testInfo, '[data-testid="oauth-consent"]', 'lattice-sso-deny');
     await page.getByRole('button', { name: 'Deny' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Access was denied' })).toBeVisible();
@@ -252,6 +254,50 @@ test.describe('Lattice flagship SaaS journeys', () => {
     await page.getByRole('button', { name: 'Verify and sign in' }).click();
     await expect(page).toHaveURL(/#\/projects$/, { timeout: 10_000 });
     await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
+  });
+
+  test('members and the profile show real avatar photos, axe clean', async ({ page }, testInfo) => {
+    await signIn(page, 'owner@example.com', '/app', 'trial-ending');
+    await expect(page).toHaveURL(/#\/app$/, { timeout: 10_000 });
+    // Navigate in-app (as a person would) so the signed-in session carries over.
+    await page.getByRole('link', { name: 'Manage members' }).click();
+    await expect(page).toHaveURL(/#\/settings\/members$/);
+    const members = page.locator('li', { has: page.getByRole('combobox', { name: /^Role for / }) });
+    await expect(members.first()).toBeVisible();
+    const count = await members.count();
+    expect(count).toBeGreaterThan(1);
+    const faces = members.locator('img');
+    await expect(faces).toHaveCount(count);
+    for (let i = 0; i < count; i++) {
+      const face = faces.nth(i);
+      await face.scrollIntoViewIfNeeded();
+      await expect(face).toHaveAttribute('src', /^\.\/avatars\/64\/av-\d{3}\.webp$/);
+      await expect(face).toHaveAttribute('srcset', /avatars\/128\/av-\d{3}\.webp 2x$/);
+      await expect(face).toHaveAttribute('alt', '');
+      // The image really loaded (not a broken icon): initials would replace it.
+      await expect
+        .poll(() => face.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+        .toBeGreaterThan(0);
+    }
+    await expectAccessible(page, testInfo, {
+      include: '[data-testid="settings-members"], main',
+      label: 'lattice-members-avatars',
+    });
+    await testInfo.attach('lattice-members-avatars.png', {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    });
+
+    await page.getByRole('tab', { name: 'Profile' }).click();
+    const own = page.getByTestId('settings-profile-avatar').locator('img');
+    await expect(own).toHaveAttribute('src', /^\.\/avatars\/64\/av-\d{3}\.webp$/);
+    await expect
+      .poll(() => own.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
+      .toBeGreaterThan(0);
+    await expectAccessible(page, testInfo, {
+      include: '[data-testid="settings-profile"]',
+      label: 'lattice-profile-avatar',
+    });
   });
 
   test('trial converts to a paid plan through simulated checkout', async ({ page }, testInfo) => {

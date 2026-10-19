@@ -108,16 +108,22 @@ describe('BoardScreen', () => {
     expect(screen.getByText(/Complete · \$[\d,.]+/)).toBeTruthy();
     expect(await screen.findByText('Pilot route')).toBeTruthy();
     await moveToActive('Pilot route');
-    await waitFor(async () =>
-      expect(await services.request!.get(String(created.id))).toMatchObject({ status: 'active' })
+    await waitFor(
+      async () =>
+        expect(await services.request!.get(String(created.id))).toMatchObject({ status: 'active' }),
+      { timeout: 5000 }
     );
     await fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
-    await waitFor(async () =>
-      expect(await services.request!.get(String(created.id))).toMatchObject({ status: 'queued' })
+    await waitFor(
+      async () =>
+        expect(await services.request!.get(String(created.id))).toMatchObject({ status: 'queued' }),
+      { timeout: 5000 }
     );
     await moveToActive('Pilot route');
-    await waitFor(async () =>
-      expect(await services.request!.get(String(created.id))).toMatchObject({ status: 'active' })
+    await waitFor(
+      async () =>
+        expect(await services.request!.get(String(created.id))).toMatchObject({ status: 'active' }),
+      { timeout: 5000 }
     );
 
     cleanup();

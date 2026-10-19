@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Compass } from '@lucide/svelte';
-import { usePrincipal } from '@protoyard/renderer-svelte';
+import { avatarImage, usePrincipal } from '@protoyard/renderer-svelte';
 import { Avatar, Badge } from '@protoyard/ui';
 import { ROLE_LABELS } from '../domain/policy.ts';
 import { useOnboarding } from '../lib/context.ts';
@@ -26,7 +26,7 @@ const { workspace } = useOnboarding();
         <Badge variant={principal.current.role === 'viewer' ? 'outline' : 'secondary'}>
           {ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role}
         </Badge>
-        <Avatar name={principal.current.persona.name} size="sm" />
+        <Avatar name={principal.current.persona.name} {...avatarImage(principal.current.persona.avatar)} size="sm" />
       </div>
     {/if}
   </div>

@@ -72,7 +72,11 @@ async function setOrganization(event: Event) {
 <Section title="Acting as">
   {#if principal}
     <div class="flex items-center gap-3 rounded-lg border border-border bg-surface p-3">
-      <Initials name={principal.persona.name} color={principal.persona.avatarColor} />
+      <Initials
+        name={principal.persona.name}
+        color={principal.persona.avatarColor}
+        {...dt.avatarImage(principal.persona.avatar)}
+      />
       <div class="min-w-0 flex-1">
         <p class="truncate text-sm font-semibold">{principal.persona.name}</p>
         <p class="truncate text-[11px] text-muted-foreground">
@@ -121,7 +125,7 @@ async function setOrganization(event: Event) {
           disabled={current || switching}
           onclick={() => switchTo(persona.id)}
         >
-          <Initials name={persona.name} color={persona.avatarColor} size="sm" />
+          <Initials name={persona.name} color={persona.avatarColor} size="sm" {...dt.avatarImage(persona.avatar)} />
           <span class="min-w-0 flex-1">
             <span class="block truncate text-xs font-medium">{persona.name}</span>
             <span class="block truncate text-[11px] text-muted-foreground">{persona.summary ?? persona.title ?? persona.id}</span>

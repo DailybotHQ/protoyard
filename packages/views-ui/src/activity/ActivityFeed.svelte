@@ -11,7 +11,7 @@ import {
   tokenize,
 } from '@protoyard/views/activity';
 import QueryState from '../states/QueryState.svelte';
-import { type ActivityPerson, type ActivityRecord, directAvatar } from './types.ts';
+import { type ActivityPerson, type ActivityRecord, personImage } from './types.ts';
 
 /**
  * A history feed: newest first, grouped by day relative to the runtime clock,
@@ -30,7 +30,7 @@ let {
   hasMore = false,
   onLoadMore,
   onOpenRecord,
-  avatarSrc = (person: ActivityPerson) => directAvatar(person),
+  avatarSrc,
   showFilters = true,
   label = 'Activity',
   onRetry,
@@ -53,6 +53,7 @@ let {
   hasMore?: boolean;
   onLoadMore?: () => unknown;
   onOpenRecord?: (item: ActivityItem) => void;
+  /** Overrides how a person's image resolves (default: `persona.avatar` through the renderer's `avatarImage`). */
   avatarSrc?: (person: ActivityPerson) => string | null | undefined;
   showFilters?: boolean;
   label?: string;
@@ -147,7 +148,7 @@ function text(item: ActivityItem): string {
             {#each day.items as item (item.id)}
               {@const who = byId.get(item.actorId)}
               <li class="flex gap-3 text-sm">
-                <Avatar name={who?.name ?? 'Someone'} src={who ? avatarSrc(who) : undefined} size="sm" decorative />
+                <Avatar name={who?.name ?? 'Someone'} {...personImage(who, avatarSrc)} size="sm" decorative />
                 <p class="min-w-0 flex-1 break-words">
                   <span class="font-medium">{who?.name ?? 'Someone'}</span>
                   {text(item)}

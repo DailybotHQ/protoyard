@@ -1,7 +1,8 @@
 <script lang="ts">
 import { MEMBER_CAPABILITIES, type Member, OWNER_ROLE } from '@protoyard/core';
+import { avatarImage } from '@protoyard/renderer-svelte';
 import { createInvitationServices, type SaasInvitation } from '@protoyard/saas';
-import { AlertDialog, Button, FormField, Input } from '@protoyard/ui';
+import { AlertDialog, Avatar, Button, FormField, Input } from '@protoyard/ui';
 import { onMount } from 'svelte';
 import { getSaas } from '../../context.ts';
 
@@ -118,7 +119,7 @@ onMount(() => {
     <ul class="divide-y divide-border rounded-md border border-border">
       {#each members as member (member.membership.id)}
         <li class="flex flex-wrap items-center justify-between gap-3 p-3">
-          <span><span class="block font-medium">{member.persona.name}</span><span class="text-sm text-muted-foreground">{member.persona.email ?? 'No email on profile'}</span></span>
+          <span class="flex min-w-0 items-center gap-3"><Avatar name={member.persona.name} {...avatarImage(member.persona.avatar)} decorative /><span class="min-w-0"><span class="block font-medium">{member.persona.name}</span><span class="text-sm text-muted-foreground">{member.persona.email ?? 'No email on profile'}</span></span></span>
           <div class="flex items-center gap-2">
             <select aria-label={`Role for ${member.persona.name}`} class="h-9 rounded-md border border-input bg-background px-2 text-sm" value={member.membership.role} disabled={!canUpdate || busy || (member.membership.role === OWNER_ROLE && !canTransfer)} onchange={(event) => void changeRole(member, event.currentTarget.value)}>{#each roles as candidate (candidate)}<option value={candidate} disabled={candidate === OWNER_ROLE && !canTransfer}>{candidate}</option>{/each}</select>
             <Button variant="outline" size="sm" disabled={!canRemove || busy || (member.membership.role === OWNER_ROLE && !canTransfer)} onclick={() => { removing = member; removeOpen = true; }}>Remove</Button>
@@ -130,7 +131,7 @@ onMount(() => {
   <div class="grid gap-2">
     <h3 class="font-medium">Pending invitations</h3>
     {#if pending.length}
-      <ul class="grid gap-2">{#each pending as invitation (invitation.id)}<li class="flex items-center justify-between gap-2 rounded-md border border-border p-3"><span>{invitation.email} · {invitation.role}</span><button type="button" class="ui-button h-8 min-h-touch shrink-0 rounded-md border border-input bg-surface px-3 text-xs font-medium text-foreground hover:bg-muted disabled:pointer-events-none disabled:opacity-50" disabled={!canInvite || busy} onclick={() => { revoking = invitation; revokeOpen = true; }}>Revoke</button></li>{/each}</ul>
+      <ul class="grid gap-2">{#each pending as invitation (invitation.id)}<li class="flex items-center justify-between gap-2 rounded-md border border-border p-3"><span class="flex min-w-0 items-center gap-3"><Avatar name={invitation.email} {...avatarImage(invitation.avatar)} size="sm" decorative /><span class="min-w-0 truncate">{invitation.email} · {invitation.role}</span></span><button type="button" class="ui-button h-8 min-h-touch shrink-0 rounded-md border border-input bg-surface px-3 text-xs font-medium text-foreground hover:bg-muted disabled:pointer-events-none disabled:opacity-50" disabled={!canInvite || busy} onclick={() => { revoking = invitation; revokeOpen = true; }}>Revoke</button></li>{/each}</ul>
     {:else}<p class="text-sm text-muted-foreground">No pending invitations.</p>{/if}
   </div>
   {#if !canInvite && !canUpdate && !canRemove}<p class="text-sm text-muted-foreground">Your simulated role cannot manage members.</p>{/if}

@@ -18,7 +18,7 @@ blueprint's entity services and `runtime.members` (`session.assert` → zod →
 | `RecordAvatar` | A record's face from an `avatar` field: a lazy library image (64 px at 1x, 128 px at 2x) with initials as the fallback. `EntityList` and `BoardScreen` cards show it next to the title, and `EntityDetail` in the header and the field. |
 | `RelationPicker` | Searches indexed relation options and can create a related record inline when the persona may create it. |
 | `NotificationsBell` | Unread badge and list from `createNotificationService`; mark one or all read (`features.notifications`). |
-| `MembersScreen` | Invite, change role and remove members; hidden or disabled without `members:*`. The service refuses to remove the last owner. |
+| `MembersScreen` | Invite, change role and remove members; hidden or disabled without `members:*`. The service refuses to remove the last owner. Each row shows the persona's avatar photo (initials as the fallback). |
 
 ```svelte
 <script lang="ts">
@@ -118,6 +118,27 @@ import { MapScreen } from '@protoyard/crud/screens/map';
   **Pick on map** control. It loads the offline map on demand; clicking a point or
   focusing the map and pressing Enter updates the same inputs.
 
+## Dashboard screen (`@protoyard/crud/screens/dashboard`)
+
+A blueprint `dashboard` screen rendered from its KPI, chart, list and board-summary widgets:
+
+```svelte
+<script lang="ts">
+import { DashboardScreen } from '@protoyard/crud/screens/dashboard';
+</script>
+
+<DashboardScreen {runtime} {blueprint} {services} screen={dashboardScreen} />
+```
+
+- KPI tiles show the selected period and its previous-period change. The 7, 30 and 90 day
+  selector follows simulated runtime time.
+- Charts render line, area, bar and donut aggregate data with an accessible table control.
+  Chart families and the dashboard entry load on demand.
+- Lists show the configured top records and open their detail routes. Board summaries open
+  the matching board route when the blueprint declares one, or the entity list otherwise.
+- Widgets read through entity services and update from `liveQuery`; denied entity access is
+  shown as a per-widget permission state. No data is fetched from a network service.
+
 ## Settings screen (`@protoyard/crud/screens/settings`)
 
 A separate entry, so the screen loads only with its route. Sections come from a blueprint
@@ -133,7 +154,7 @@ import { SettingsScreen } from '@protoyard/crud/screens/settings';
 
 | Section | What it does | Who |
 | --- | --- | --- |
-| Profile | Renames the signed-in persona and sets its avatar color (`py_personas`) | Every signed-in persona, own profile only |
+| Profile | Shows the signed-in persona's avatar photo, renames the persona and sets its avatar color (`py_personas`) | Every signed-in persona, own profile only |
 | Workspace | Renames the active organization (`py_organizations`) | Owners and admins (`members:update`); read-only otherwise |
 | Appearance | Theme and color mode through `runtime.theme.setPreference` (per persona); `library` adds themes loaded on demand | Everyone |
 | Notifications | The blueprint rules that reach your role, the unread count and Mark all as read | Everyone |

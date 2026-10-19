@@ -21,7 +21,7 @@ await panel.destroy();
 | Tab | What it does |
 | --- | --- |
 | Scenario | Active scenario (seed, reference time, SDK + prototype generator versions), live load progress (indeterminate while generating/validating, determinate while writing rows), grouped picker, load with confirm + "snapshot first" + custom seed, reset, copy reproducible link |
-| Personas | Acting principal (role, org, capabilities), quick switch (non-destructive), role override, organization switch |
+| Personas | Acting principal (role, org, capabilities), quick switch (non-destructive), role override, organization switch. Each persona shows its avatar photo when `mountDevtools` gets an `avatarImage` resolver (`mountPrototype` passes the renderer's), else initials; a broken image falls back to initials |
 | Time | UI time vs committed vs reference; preview ±1/7/30 days or at an instant; clear preview; advance 1/7 days with applied/skipped counts; reset clock |
 | Data | Row counts per table, paginated read-only inspector, storage (world/sandbox, database name, backend, eviction protection, usage/quota, request persistence), sandboxes (discard the current one, or clear all others from the default world), reset scenario data |
 | Env | Network online/slow/offline, latency, failure mode + rate + scope prefixes, subscription, feature flags, and the mock API request log (`@protoyard/http`: method · url · status chip · duration, expandable route/request/response previews, Clear) |

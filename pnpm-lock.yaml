@@ -259,9 +259,18 @@ importers:
       '@lucide/svelte':
         specifier: ^1.50.0
         version: 1.57.0(svelte@5.57.2)
+      '@protoyard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
+      '@protoyard/analytics-ui':
+        specifier: workspace:*
+        version: link:../analytics-ui
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../blueprint
+      '@protoyard/charts-ui':
+        specifier: workspace:*
+        version: link:../charts-ui
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
@@ -991,6 +1000,49 @@ importers:
       axe-core:
         specifier: ^4.13.0
         version: 4.13.0
+
+  templates/analytics:
+    dependencies:
+      '@lucide/svelte':
+        specifier: ^1.50.0
+        version: 1.57.0(svelte@5.57.2)
+      '@protoyard/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
+      '@protoyard/analytics-ui':
+        specifier: workspace:*
+        version: link:../../packages/analytics-ui
+      '@protoyard/charts-ui':
+        specifier: workspace:*
+        version: link:../../packages/charts-ui
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../../packages/scenarios
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      dexie:
+        specifier: ^4.4.0
+        version: 4.4.6
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.2
+      zod:
+        specifier: ^4.6.0
+        version: 4.6.7
+    devDependencies:
+      '@faker-js/faker':
+        specifier: ^10.6.0
+        version: 10.6.0
+      '@protoyard/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
 
   templates/b2b-saas:
     dependencies:

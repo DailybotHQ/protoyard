@@ -1,6 +1,7 @@
 <script lang="ts">
 import { ArrowLeft, FileQuestion, MessageSquare, Pencil, Trash2 } from '@lucide/svelte';
 import {
+  avatarImage,
   back,
   can,
   isValidationError,
@@ -70,6 +71,8 @@ const deletable = $derived(task.current ? can(CAPABILITIES.tasksDelete, task.cur
 const canComment = $derived(can(CAPABILITIES.commentsCreate));
 const name = (personId: string | null) =>
   personId ? (workspace.peopleById.get(personId)?.name ?? 'Former member') : 'Unassigned';
+const face = (personId: string | null) =>
+  avatarImage(personId ? workspace.peopleById.get(personId)?.avatar : undefined);
 
 async function changeStatus(status: string) {
   const current = task.current;
@@ -169,7 +172,7 @@ async function removeComment() {
           <ol class="space-y-3">
             {#each comments.current ?? [] as comment (comment.id)}
               <li class="flex gap-3">
-                <Avatar name={name(comment.authorId)} size="sm" decorative />
+                <Avatar name={name(comment.authorId)} {...face(comment.authorId)} size="sm" decorative />
                 <div class="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2">
                   <p class="flex flex-wrap items-baseline gap-x-2 text-sm">
                     <span class="font-medium">{name(comment.authorId)}</span>
@@ -232,7 +235,7 @@ async function removeComment() {
           </dd>
           <dt class="text-muted-foreground">Assignee</dt>
           <dd class="flex min-w-0 items-center gap-2">
-            {#if current.assigneeId}<Avatar name={name(current.assigneeId)} size="xs" decorative />{/if}
+            {#if current.assigneeId}<Avatar name={name(current.assigneeId)} {...face(current.assigneeId)} size="xs" decorative />{/if}
             <span class="truncate">{name(current.assigneeId)}</span>
           </dd>
           <dt class="text-muted-foreground">Priority</dt>

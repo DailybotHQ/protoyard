@@ -53,8 +53,11 @@ function sampleCard(overrides: Partial<ThemeCardData> = {}): ThemeCardData {
     name: 'Ocean',
     description: 'Cool slate surfaces and a confident blue.',
     category: 'builtin',
+    collection: 'builtin',
+    mood: [],
     tags: ['builtin', 'core'],
     source: 'builtin',
+    chartColors: ['#2563eb', '#0ea5e9'],
     lightStyle:
       '--py-background:#fff;--py-foreground:#111;--py-primary:#2563eb;--py-primary-foreground:#fff;--py-muted-foreground:#52525b;--py-border:#e4e4e7;--py-surface:#fff;--py-surface-foreground:#111;--py-secondary:#f4f4f5;--py-secondary-foreground:#18181b;--py-destructive:#b91c1c;--py-destructive-foreground:#fff;--py-success:#15803d;--py-chart1:#2563eb;--py-chart2:#0ea5e9;--py-radius:0.5rem;--py-font-sans:system-ui;--py-font-heading:system-ui;--py-letter-spacing-body:0;--py-letter-spacing-heading:0;--py-font-weight-heading:600;--py-shadow-soft:none',
     darkStyle:

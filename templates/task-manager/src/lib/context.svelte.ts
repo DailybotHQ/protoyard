@@ -1,5 +1,5 @@
 import type { PrototypeRuntime } from '@protoyard/core';
-import { getRuntime, liveQuery } from '@protoyard/renderer-svelte';
+import { avatarImage, getRuntime, liveQuery } from '@protoyard/renderer-svelte';
 import type { PickerUser } from '@protoyard/ui';
 import { getContext, setContext } from 'svelte';
 import type { TaskDatabase } from '../database/schema.ts';
@@ -13,6 +13,8 @@ export interface Person {
   name: string;
   title: string;
   role: string;
+  /** `persona.avatar` (library id or URL); resolve with `avatarImage`. */
+  avatar?: string;
 }
 
 export interface Workspace {
@@ -34,7 +36,7 @@ export function provideWorkspace(): Workspace {
     async (): Promise<Person[]> => {
       const [personas, memberships] = await Promise.all([
         db.table('py_personas').toArray() as Promise<
-          { id: string; name: string; title?: string }[]
+          { id: string; name: string; title?: string; avatar?: string }[]
         >,
         db.table('py_memberships').toArray() as Promise<{ personaId: string; role: string }[]>,
       ]);
@@ -45,6 +47,7 @@ export function provideWorkspace(): Workspace {
           name: p.name,
           title: p.title ?? '',
           role: roles.get(p.id) ?? 'viewer',
+          ...(p.avatar ? { avatar: p.avatar } : {}),
         }))
         .sort((a, b) => a.name.localeCompare(b.name));
     },
@@ -54,7 +57,16 @@ export function provideWorkspace(): Workspace {
   const assignable = $derived(
     (people.current ?? [])
       .filter((p) => p.role !== 'viewer')
-      .map((p) => ({ id: p.id, name: p.name, subtitle: p.title || ROLE_LABELS[p.role] }))
+      .map((p) => {
+        const image = avatarImage(p.avatar);
+        return {
+          id: p.id,
+          name: p.name,
+          subtitle: p.title || ROLE_LABELS[p.role],
+          ...(image.src ? { avatarUrl: image.src } : {}),
+          ...(image.srcset ? { avatarSrcset: image.srcset } : {}),
+        };
+      })
   );
   const workspace: Workspace = {
     runtime,

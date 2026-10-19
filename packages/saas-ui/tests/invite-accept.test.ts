@@ -14,6 +14,7 @@ import {
   createInvitationServices,
   generateSaasWorld,
   type SaasAccount,
+  type SaasInvitation,
   saasFragments,
   saasIntegrity,
   saasStores,
@@ -152,6 +153,25 @@ describe('invite accept screen', () => {
       organization: { id: orgId },
       role: 'admin',
     });
+  });
+
+  it("shows the invitation's face when it has one, initials otherwise", async () => {
+    const { runtime, created } = await invite('ada@example.com');
+    render(InviteAcceptHarness, { runtime });
+    const plain = await screen.findByTestId('invite-avatar');
+    expect(plain.querySelector('img')).toBeNull();
+    expect(plain.dataset.avatar).toBe('initials');
+    cleanup();
+    // Seeded invitations carry a library avatar (the scenario fragment assigns one).
+    await runtime.db.rows<SaasInvitation>('saas_invitations').update(created.invitation.id, {
+      avatar: 'av-010',
+    });
+    render(InviteAcceptHarness, { runtime });
+    const face = await screen.findByTestId('invite-avatar');
+    await waitFor(() =>
+      expect(face.querySelector('img')?.getAttribute('src')).toBe('./avatars/64/av-010.webp')
+    );
+    expect(face.querySelector('img')?.getAttribute('alt')).toBe('');
   });
 
   it('warns when someone else is signed in, then continues as the invitee', async () => {

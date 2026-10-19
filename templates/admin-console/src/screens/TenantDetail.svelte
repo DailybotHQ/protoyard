@@ -1,6 +1,6 @@
 <script lang="ts">
 import { ArrowLeft } from '@lucide/svelte';
-import { can, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
+import { avatarImage, can, liveQuery, runService, useClock } from '@protoyard/renderer-svelte';
 import {
   AlertDialog,
   Avatar,
@@ -110,7 +110,7 @@ const setDisabled = (person: TenantPerson, disabled: boolean) =>
           {#each people.current ?? [] as person (person.persona.id)}
             <li class="flex flex-wrap items-center justify-between gap-3 py-3">
               <span class="flex min-w-0 items-center gap-3">
-                <Avatar name={person.persona.name} size="sm" decorative />
+                <Avatar name={person.persona.name} {...avatarImage(person.persona.avatar)} size="sm" decorative />
                 <span class="min-w-0">
                   <span class="block truncate text-sm font-medium">{person.persona.name}</span>
                   <span class="block truncate text-xs text-muted-foreground">

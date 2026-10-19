@@ -6,6 +6,7 @@ import {
   emitBrandThemeModule,
   entityTable,
   resolveBlueprintBrand,
+  screenPath,
 } from '@protoyard/blueprint';
 import { tsString } from './format.ts';
 import { withHeader } from './header.ts';
@@ -125,6 +126,21 @@ let props: RouteProps = $props();
 }
 
 function routesModule(blueprint: Blueprint): string {
+  const dashboards = blueprint.screens.flatMap((screen, index) => {
+    if (screen.type !== 'dashboard') return [];
+    const path = screenPath(screen, blueprint.entities);
+    if (!path) return [];
+    const name = `dashboard-${index + 1}`;
+    return [
+      {
+        path,
+        name,
+        label: screen.nav?.label ?? screen.title ?? 'Dashboard',
+        hidden: screen.nav?.hidden ?? false,
+        load: `load: () => import('./screens/${pascal(name)}.svelte')`,
+      },
+    ];
+  });
   const entityRoutes = blueprint.entities.flatMap((entity) => {
     const load = `load: () => import('./screens/${pascal(entity.name)}Page.svelte')`;
     const label = entityLabel(entity);
@@ -161,7 +177,21 @@ export const routes = defineRoutes([
     title: 'Home',
     load: () => import('../screens/Home.svelte'),
   },
-${entityRoutes.join('\n')}
+${entityRoutes.join('\n')}${
+  dashboards.length
+    ? `\n${dashboards
+        .map(
+          (dashboard) => `  {
+    name: ${lit(dashboard.name)},
+    description: 'Dashboard metrics, charts and records',
+    path: ${lit(dashboard.path)},
+    title: ${lit(dashboard.label)},
+    ${dashboard.load},
+  },`
+        )
+        .join('\n')}`
+    : ''
+}
   {
     name: 'members',
     description: 'Workspace people and their simulated roles',
@@ -174,9 +204,34 @@ ${entityRoutes.join('\n')}
 /** Sidebar entries in blueprint order. */
 export const nav = [
   { path: '/', label: 'Home', icon: LayoutDashboard, exact: true },
-${navItems.join('\n')}
+${navItems.join('\n')}${
+  dashboards.some((dashboard) => !dashboard.hidden)
+    ? `\n${dashboards
+        .filter((dashboard) => !dashboard.hidden)
+        .map(
+          (dashboard) =>
+            `  { path: ${lit(dashboard.path)}, label: ${lit(dashboard.label)}, icon: LayoutDashboard },`
+        )
+        .join('\n')}`
+    : ''
+}
   { path: '/members', label: 'Members', icon: Users },
 ];
+`;
+}
+
+function dashboardScreen(
+  screen: Extract<Blueprint['screens'][number], { type: 'dashboard' }>
+): string {
+  return `<script lang="ts">
+import { DashboardScreen } from '@protoyard/crud/screens/dashboard';
+import { useCrudApp } from '../lib/context.ts';
+
+const { runtime, services, blueprint } = useCrudApp();
+const screen = ${JSON.stringify(screen).replace(/</g, '\\u003c')};
+</script>
+
+<DashboardScreen {runtime} {services} {blueprint} {screen} />
 `;
 }
 
@@ -473,6 +528,16 @@ export function emitPrototype(
     generated('src/generated/routes.ts', routesModule(blueprint)),
     ...blueprint.entities.map((entity) =>
       generated(`src/generated/screens/${pascal(entity.name)}Page.svelte`, entityScreen(entity))
+    ),
+    ...blueprint.screens.flatMap((screen, index) =>
+      screen.type === 'dashboard'
+        ? [
+            generated(
+              `src/generated/screens/${pascal(`dashboard-${index + 1}`)}.svelte`,
+              dashboardScreen(screen)
+            ),
+          ]
+        : []
     ),
     owned('src/App.svelte', appComponent(blueprint)),
     owned('src/screens/Home.svelte', homeScreen()),

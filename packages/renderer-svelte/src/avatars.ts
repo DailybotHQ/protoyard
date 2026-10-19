@@ -1,5 +1,7 @@
 /// <reference path="./env.d.ts" />
 
+import { isPersonaAvatar } from '@protoyard/core';
+
 /**
  * Avatar ids (`av-001` … `av-175`, the @protoyard/avatars library) → image
  * URLs. The renderer's Vite config emits the images into every build under
@@ -111,4 +113,30 @@ export function avatarSrcset(
   const sizes = options.sizes ?? BUILD_AVATARS.sizes;
   if (!sizes.includes(64) || !sizes.includes(128)) return undefined;
   return `${avatarUrl(avatar, 64, options)} 1x, ${avatarUrl(avatar, 128, options)} 2x`;
+}
+
+/** What `<Avatar>` from `@protoyard/ui` takes to show a face (`{}` when there is none). */
+export interface AvatarImage {
+  src?: string;
+  srcset?: string;
+}
+
+/**
+ * Image props for a persona's (or person record's) `avatar`, ready to spread
+ * on `@protoyard/ui`'s `Avatar`:
+ *
+ * ```svelte
+ * <Avatar name={persona.name} {...avatarImage(persona.avatar)} />
+ * ```
+ *
+ * The value is re-checked with `isPersonaAvatar` (snapshot imports do not
+ * re-validate personas), then resolved like `avatarUrl` (64 px, 128 px at 2x).
+ * Anything missing, unsafe or unknown gives `{}`, so the initials show.
+ */
+export function avatarImage(avatar: unknown, options: AvatarUrlOptions = {}): AvatarImage {
+  if (!isPersonaAvatar(avatar)) return {};
+  const src = avatarUrl(avatar, 64, options);
+  if (src === undefined) return {};
+  const srcset = avatarSrcset(avatar, options);
+  return srcset === undefined ? { src } : { src, srcset };
 }

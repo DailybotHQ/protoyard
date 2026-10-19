@@ -191,6 +191,17 @@ describe('SettingsScreen', () => {
     expect(personas.some((p) => p.name === 'Morgan Example')).toBe(true);
   });
 
+  it('shows the signed-in persona face on the profile, named by its alt', async () => {
+    const runtime = await harness.boot('owner');
+    const persona = runtime.session.principal()?.persona;
+    expect(persona?.avatar).toMatch(/^av-\d{3}$/);
+    renderSettings(runtime);
+    const avatar = await screen.findByTestId('settings-profile-avatar');
+    const face = avatar.querySelector('img');
+    expect(face?.getAttribute('src')).toBe(`./avatars/64/${persona?.avatar}.webp`);
+    expect(face?.getAttribute('alt')).toBe(persona?.name);
+  });
+
   it('renames the workspace from the form for an owner', async () => {
     const runtime = await harness.boot('owner');
     renderSettings(runtime);

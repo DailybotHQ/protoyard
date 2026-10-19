@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Membership, Persona } from '@protoyard/core';
-import { liveQuery } from '@protoyard/renderer-svelte';
+import { avatarImage, liveQuery } from '@protoyard/renderer-svelte';
 import { Avatar, Badge } from '@protoyard/ui';
 import { useCrudApp } from '../lib/context.ts';
 
@@ -37,7 +37,7 @@ const members = liveQuery(
   <ul class="divide-y divide-border rounded-lg border border-border bg-card">
     {#each members.current ?? [] as row (row.persona.id)}
       <li class="flex items-center gap-3 px-4 py-3">
-        <Avatar name={row.persona.name} size="sm" />
+        <Avatar name={row.persona.name} {...avatarImage(row.persona.avatar)} size="sm" />
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium">{row.persona.name}</p>
           <p class="truncate text-xs text-muted-foreground">

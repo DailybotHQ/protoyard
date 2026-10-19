@@ -128,7 +128,7 @@ chosen here. See
 | default theme | `violet` |
 | storage namespace | `lattice-saas-demo` |
 | schema version | 1 |
-| generator version | 2 |
+| generator version | 3 |
 | timeline | yes (simulated time advances apply events) |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

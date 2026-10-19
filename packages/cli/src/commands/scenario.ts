@@ -126,7 +126,8 @@ type TimedScenarioRun = NonNullable<Inspection['runs']>[number] & {
 };
 
 export const scenarioBenchCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
-  const { entry, dir } = await resolveTarget(ctx, args[0], 'prototype');
+  // Templates are runnable too: their scenarios ship in every prototype made from them.
+  const { entry, dir } = await resolveTarget(ctx, args[0]);
   const scenarioId = opt(options, 'scenario');
   const runCountText = opt(options, 'runs') ?? '3';
   const runCount = Number(runCountText);

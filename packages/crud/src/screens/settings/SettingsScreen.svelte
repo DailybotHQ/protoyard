@@ -6,6 +6,7 @@ import {
 } from '@protoyard/blueprint';
 import type { PrototypeRuntime } from '@protoyard/core';
 import {
+  avatarImage,
   can,
   isValidationError,
   liveQuery,
@@ -13,7 +14,7 @@ import {
   useAppearance,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
-import { AlertDialog, Button, FormField, Input, Select } from '@protoyard/ui';
+import { AlertDialog, Avatar, Button, FormField, Input, Select } from '@protoyard/ui';
 import { createSettingsServices, type SettingsServices, WORKSPACE_CAPABILITY } from './services.ts';
 import {
   notificationRulesFor,
@@ -160,9 +161,17 @@ async function resetData() {
         aria-labelledby="settings-profile-title"
         data-testid="settings-profile"
       >
-        <div>
-          <h2 id="settings-profile-title" class="font-heading text-lg font-semibold">Profile</h2>
-          <p class="text-sm text-muted-foreground">How you appear to your team.</p>
+        <div class="flex items-center gap-4">
+          <Avatar
+            name={persona.name}
+            {...avatarImage(persona.avatar)}
+            size="lg"
+            data-testid="settings-profile-avatar"
+          />
+          <div>
+            <h2 id="settings-profile-title" class="font-heading text-lg font-semibold">Profile</h2>
+            <p class="text-sm text-muted-foreground">How you appear to your team.</p>
+          </div>
         </div>
         {#if services.canWriteIdentity}
           <form

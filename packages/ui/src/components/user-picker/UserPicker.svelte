@@ -76,7 +76,7 @@ function pick(user: PickerUser): void {
       )}
     >
       {#if selected}
-        <Avatar name={selected.name} src={selected.avatarUrl} size="xs" decorative />
+        <Avatar name={selected.name} src={selected.avatarUrl} srcset={selected.avatarSrcset} size="xs" decorative />
         <span class="min-w-0 flex-1 truncate">{selected.name}</span>
       {:else}
         <span class="min-w-0 flex-1 truncate text-muted-foreground">{placeholder}</span>

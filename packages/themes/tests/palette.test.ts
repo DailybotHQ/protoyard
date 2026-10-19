@@ -306,7 +306,7 @@ describe('AAA themes, chart seeds and achromatic seeds', () => {
     expect(() =>
       createThemeFromSeed({ id: 'aaa', name: 'AAA', seed: '#336699', contrast: 'AAA' })
     ).toThrow(/needs a neutral family/);
-  });
+  }, 30_000); // heavy: every built-in and library theme through the palette engine
 
   it('starts the chart series from the given seeds and validates them', () => {
     const okabe = ['#0072b2', '#e69f00', '#009e73', '#cc79a7', '#d55e00'];

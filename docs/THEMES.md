@@ -561,6 +561,14 @@ because the runtime falls back instead of failing.
 The gallery's Themes page (`apps/gallery/src/pages/themes.astro`),
 the UI Kit prototype's Theme Lab and the CLI list them too.
 
+The gallery Themes page renders 70 cards (64 library themes and six built-ins) as static HTML with
+precomputed light and dark CSS variables, then hydrates a small filter island.
+Search, collection and mood filters stay in `?q=`, `?collection=` and `?mood=`;
+the page mode toggle changes every card's palette and the `?theme=<id>` link
+for the selected prototype. Chart series previews use the same mode-specific
+variables as each card, so the palette engine does not ship to the gallery
+page.
+
 **DevTools → Look → Theme** is a theme browser
 (`packages/devtools/src/sections/ThemeBrowser.svelte`). It groups the
 prototype's own themes, the built-in presets and saved custom themes, with

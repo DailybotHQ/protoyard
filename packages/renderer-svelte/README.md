@@ -47,6 +47,21 @@ server serves the same paths. Turn it off with
 `defineProtoyardConfig({ root, avatars: false })` (or `PROTOYARD_AVATARS=0`);
 avatar ids then resolve to `undefined`, so the UI shows initials.
 
+Show a persona's face with `@protoyard/ui`'s `Avatar` (initials when there is
+no usable image or it fails to load):
+
+```svelte
+<script lang="ts">
+  import { avatarImage } from '@protoyard/renderer-svelte';
+  import { Avatar } from '@protoyard/ui';
+  let { persona } = $props();
+</script>
+
+<Avatar name={persona.name} {...avatarImage(persona.avatar)} decorative />
+```
+
+Or build the `<img>` yourself:
+
 ```svelte
 <script lang="ts">
   import { avatarSrcset, avatarUrl } from '@protoyard/renderer-svelte';
@@ -67,6 +82,11 @@ avatar ids then resolve to `undefined`, so the UI shows initials.
   the build does not ship resolves to the next shipped one.
 - `avatarSrcset(avatar)`: `<64> 1x, <128> 2x` for an id; `undefined` for URL
   avatars and single-size builds (artifact packs ship 128 px only).
+- `avatarImage(avatar)`: `{ src, srcset }` for `Avatar` (64 px, 128 px at
+  2x). It re-checks the value with `isPersonaAvatar` from `@protoyard/core`
+  first (snapshot imports do not re-validate personas) and returns `{}` for
+  anything missing, unsafe or unknown. Only screens that import it pay for
+  it; `mountPrototype` hands it to DevTools inside the lazy DevTools chunk.
 - `isAvatarId`, `isAvatarUrl`, `AVATAR_BASE`. The id rules mirror
   `@protoyard/avatars` (a test keeps them equal), so the renderer has no
   dependency on it and never bundles its manifest.
