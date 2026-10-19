@@ -24,6 +24,8 @@ const dots = [{ id: 'samples', label: 'Samples', points: cloud }];
 
 type Renderer = 'auto' | 'svg' | 'canvas';
 let renderer = $state<Renderer>('auto');
+// One chart at a time, so a renderer switch (and scripts/bench-charts.ts) times one 10k-point chart.
+let chart = $state<'line' | 'scatter'>('line');
 const RENDERERS: { id: Renderer; label: string }[] = [
   { id: 'auto', label: 'Auto' },
   { id: 'svg', label: 'SVG' },
@@ -40,8 +42,17 @@ const RENDERERS: { id: Renderer; label: string }[] = [
     {/each}
     <span class="text-xs text-muted-foreground">{POINTS.toLocaleString()} points per chart · seed 20261019</span>
   </div>
-  {#key renderer}
-    <LineChart title="Requests per interval (10k points)" series={line} xKind="linear" xHeader="Interval" {renderer} />
-    <ScatterChart title="Latency samples (10k points)" series={dots} xKind="linear" xHeader="Load" {renderer} />
+  <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Chart">
+    <Button size="sm" variant={chart === 'line' ? 'secondary' : 'ghost'} aria-pressed={chart === 'line'} onclick={() => (chart = 'line')}>Line</Button>
+    <Button size="sm" variant={chart === 'scatter' ? 'secondary' : 'ghost'} aria-pressed={chart === 'scatter'} onclick={() => (chart = 'scatter')}>Scatter</Button>
+  </div>
+  {#key `${chart}:${renderer}`}
+    <div data-stress-chart={chart} data-stress-renderer={renderer}>
+      {#if chart === 'line'}
+        <LineChart title="Requests per interval (10k points)" series={line} xKind="linear" xHeader="Interval" {renderer} />
+      {:else}
+        <ScatterChart title="Latency samples (10k points)" series={dots} xKind="linear" xHeader="Load" {renderer} />
+      {/if}
+    </div>
   {/key}
 </div>
