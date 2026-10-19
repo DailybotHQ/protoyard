@@ -313,10 +313,22 @@ export const PrototypeManifestSchema = z
          * caches the app shell; data is already local in IndexedDB).
          */
         offline: z.boolean().default(false),
+        /**
+         * Keep an explicit (non-`auto`) shell frame when the page is embedded
+         * in an iframe (a Claude artifact, ADR-026), as long as the frame is
+         * wide enough. Off by default: embedded pages render full-bleed.
+         */
+        frameWhenEmbedded: z.boolean().default(false),
         /** Opt-in review comments (ADR-025). Absent means off. */
         review: ReviewBuildSchema.optional(),
       })
-      .default({ includeDevtools: false, demoBadge: true, base: './', offline: false }),
+      .default({
+        includeDevtools: false,
+        demoBadge: true,
+        base: './',
+        offline: false,
+        frameWhenEmbedded: false,
+      }),
     /** Marketplace metadata (optional; indexed by the registry). */
     catalog: CatalogSchema.optional(),
     /** Scenario ids declared by the prototype (indexed for the gallery). */

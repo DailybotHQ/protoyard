@@ -76,6 +76,7 @@ describe('manifest build.review', () => {
       demoBadge: true,
       base: './',
       offline: false,
+      frameWhenEmbedded: false,
     });
     expect(parsed.build.review).toBeUndefined();
     expect(resolveReviewBuild(parsed.build.review)).toEqual({ enabled: false, adapter: 'local' });

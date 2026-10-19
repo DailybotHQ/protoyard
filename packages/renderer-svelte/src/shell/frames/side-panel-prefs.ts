@@ -1,3 +1,4 @@
+import { localStorageOrUndefined } from '@protoyard/themes';
 /** Persist side-panel width per prototype namespace (local preference, not persona). */
 
 export const SIDE_PANEL_WIDTH_MIN = 240;
@@ -16,7 +17,7 @@ export function clampSidePanelWidth(width: number, max = SIDE_PANEL_WIDTH_MAX): 
 
 export function loadSidePanelWidth(
   namespace: string,
-  storage: Storage | undefined = globalThis.localStorage
+  storage: Storage | undefined = localStorageOrUndefined()
 ): number {
   try {
     const raw = storage?.getItem(sidePanelWidthKey(namespace));
@@ -32,7 +33,7 @@ export function loadSidePanelWidth(
 export function saveSidePanelWidth(
   namespace: string,
   width: number,
-  storage: Storage | undefined = globalThis.localStorage
+  storage: Storage | undefined = localStorageOrUndefined()
 ): void {
   try {
     storage?.setItem(sidePanelWidthKey(namespace), String(clampSidePanelWidth(width)));

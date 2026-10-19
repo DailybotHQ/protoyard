@@ -72,7 +72,12 @@ Templates that start in a shell: `chat-widget` (`widget-host`), `plugin-panel`
 The renderer shows the bare app, with no frame, when:
 
 - the effective shell is `none`;
-- the prototype runs inside an iframe (the gallery preview draws its own device frame);
+- the prototype runs inside an iframe (the gallery preview draws its own device frame),
+  unless the build sets `"build": { "frameWhenEmbedded": true }` and the requested shell
+  is explicit (not `auto`). The override, then the scenario, then `preview.shell` decide
+  that. A prototype shared as a Claude artifact is framed in the viewer, so this keeps
+  a phone or widget prototype looking like its product there (ADR-026). The window must
+  still be wide enough for the frame;
 - the window is too narrow. Phones and tablets need the device width plus the frame and a
   gutter, so a real phone is always full-bleed. `desktop-window` and `browser` need 768 px
   and scale down on smaller desktops. The panel shells (`widget-host`, `side-panel`,

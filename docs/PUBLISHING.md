@@ -119,13 +119,14 @@ not need redirect or rewrite rules.
 | --- | --- | --- |
 | DevTools panel | **Excluded.** The code is removed from the bundle, not just hidden. | `--include-devtools`, or `"build": { "includeDevtools": true }` in `protoyard.json` |
 | "Prototype · simulated data" badge | **Shown** (below the frame, or in a corner free of controls when full-bleed; its tooltip says data is simulated and stored only in this browser) | `"build": { "demoBadge": false }` in `protoyard.json` |
+| Device or host frame inside an iframe | **Off**: an embedded page renders full-bleed | `"build": { "frameWhenEmbedded": true }` keeps an explicit (non-`auto`) shell frame when the page is embedded, for example as a Claude artifact ([SHELLS.md](SHELLS.md#when-the-app-goes-full-bleed)) |
 | Faker | In a separate chunk, downloaded only when a world is generated (first visit, scenario load) | |
 | Your scenarios and generator | Included, so the first visit can seed the default scenario | |
 
 With DevTools included, visitors can still hide them with `?devtools=0`
 (presentation mode). Without them, no URL parameter can bring them back.
 
-Visitors' data lives in their own browser (IndexedDB). Nothing is shared
+Visitors' data lives in their own browser (IndexedDB). Where storage is blocked (some private windows, previews, blocked site data), the prototype runs from memory and shows a "Changes won't be saved" banner; it never claims data was saved. Nothing is shared
 between visitors, and nothing reaches you. See
 [DATABASE.md](DATABASE.md#persistence-caveats).
 

@@ -17,10 +17,24 @@ export interface CachedAppearance extends AppliedAppearance {
   v: typeof APPEARANCE_CACHE_VERSION;
 }
 
+/**
+ * `localStorage`, or `undefined` where reading it throws (blocked site data,
+ * some private windows, sandboxed frames). Use it as the default storage
+ * argument: a plain `= globalThis.localStorage` default would throw before
+ * any `try` runs.
+ */
+export function localStorageOrUndefined(): Storage | undefined {
+  try {
+    return globalThis.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 export function cacheAppearance(
   namespace: string,
   applied: AppliedAppearance,
-  storage: Pick<Storage, 'setItem'> | undefined = globalThis.localStorage
+  storage: Pick<Storage, 'setItem'> | undefined = localStorageOrUndefined()
 ): boolean {
   try {
     if (!storage) return false;
@@ -34,7 +48,7 @@ export function cacheAppearance(
 
 export function readCachedAppearance(
   namespace: string,
-  storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage
+  storage: Pick<Storage, 'getItem'> | undefined = localStorageOrUndefined()
 ): CachedAppearance | null {
   try {
     const raw = storage?.getItem(appearanceCacheKey(namespace));
