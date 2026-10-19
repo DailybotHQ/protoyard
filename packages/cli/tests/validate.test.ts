@@ -3,7 +3,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CATALOG_CATEGORIES, parseManifest } from '@protoyard/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { checkCatalog } from '../src/commands/validate.ts';
+import { checkCatalog, checkThemes } from '../src/commands/validate.ts';
+import type { Inspection } from '../src/lib/inspect.ts';
 import {
   addPrototype,
   addTemplate,
@@ -45,6 +46,48 @@ describe('checkCatalog', () => {
       'support · Help desk',
       'platforms: web',
       'features: tickets, sla',
+    ]);
+  });
+});
+
+describe('checkThemes', () => {
+  const inspection = (
+    themes: string[],
+    scenarios: { id: string; themeId?: string }[] = []
+  ): Inspection =>
+    ({
+      spec: {
+        themes: themes.map((id) => ({ id, name: id })),
+        scenarios: scenarios.map((s) => ({ ...s, name: s.id })),
+      },
+    }) as unknown as Inspection;
+
+  it('passes built-in, library and prototype-own theme ids', () => {
+    expect(checkThemes(parseManifest(manifest({ defaultTheme: 'ocean' })), null)).toMatchObject({
+      id: 'themes',
+      status: 'pass',
+      details: ['ocean'],
+    });
+    const result = checkThemes(
+      parseManifest(manifest({ defaultTheme: 'acme-teal' })),
+      inspection(['acme-teal'], [{ id: 'night', themeId: 'fintech-ledger' }, { id: 'plain' }])
+    );
+    expect(result).toMatchObject({ status: 'pass', details: ['acme-teal, fintech-ledger'] });
+  });
+
+  it('warns on unknown ids in defaultTheme and scenarios, listing the closest ids', () => {
+    const result = checkThemes(
+      parseManifest(manifest({ defaultTheme: 'fintech-ledgr' })),
+      inspection([], [{ id: 'night', themeId: 'ocaen' }])
+    );
+    expect(result.status).toBe('warn');
+    expect(result.details).toEqual([
+      expect.stringMatching(
+        /^defaultTheme: unknown theme "fintech-ledgr"; closest: fintech-ledger/
+      ),
+      expect.stringMatching(
+        /^scenario "night" appearance\.themeId: unknown theme "ocaen"; closest: ocean/
+      ),
     ]);
   });
 });

@@ -175,6 +175,11 @@
           "type": "number",
           "minimum": 0.75,
           "maximum": 1.25
+        },
+        "libraryTheme": {
+          "type": "string",
+          "maxLength": 40,
+          "pattern": "^[a-z][a-z0-9-]*$"
         }
       },
       "additionalProperties": false

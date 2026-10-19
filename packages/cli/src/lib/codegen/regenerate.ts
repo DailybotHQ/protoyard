@@ -70,7 +70,7 @@ function parseOrThrow(raw: unknown, label: string): Blueprint {
   );
 }
 
-/** `emitPrototype`, with brand-theme contrast failures reported as validation errors (exit 4). */
+/** `emitPrototype`, with brand-theme errors (contrast, unknown ids) reported as validation errors (exit 4). */
 export function emitOrThrow(
   blueprint: Blueprint,
   slug: string,
@@ -81,7 +81,10 @@ export function emitOrThrow(
   } catch (error) {
     if (error instanceof BrandThemeError) {
       throw new CliError('validation', error.message, {
-        hint: 'Adjust brand.seed / preset / styleProfile so text pairs reach WCAG AA 4.5:1.',
+        hint:
+          error.failures.length > 0
+            ? 'Adjust brand.seed / preset / styleProfile so text pairs reach WCAG AA 4.5:1.'
+            : 'Fix the brand block (`pnpm protoyard theme list` shows the library ids).',
         data: { failures: error.failures },
       });
     }
