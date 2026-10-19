@@ -12,4 +12,6 @@ declare const __PROTOYARD_BUILD__: {
   builtAt: string;
   mode: 'dev' | 'build';
   offline: boolean;
+  /** Keep an explicit shell frame when embedded (absent in builds before ADR-026). */
+  frameWhenEmbedded?: boolean;
 };

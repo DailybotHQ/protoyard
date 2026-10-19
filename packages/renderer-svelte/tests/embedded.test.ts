@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // The runtime's own test prototype: a real world generator and Dexie schema.
 import { createTasksDefinition } from '../../runtime/tests/fixtures/tasks-prototype.ts';
 import { mountPrototype } from '../src/index.ts';
+import { applyBuildInfo } from '../src/mount.ts';
 import { keepsFrameWhenEmbedded, requestedShell } from '../src/shell/frame-mode.ts';
 import { SHELL_CSS_MARKER } from '../src/shell/frames/registry.ts';
 import { createFakeRuntime } from './fixtures/fake-runtime.ts';
@@ -146,6 +147,28 @@ describe('embedded frames (build.frameWhenEmbedded)', () => {
   });
 });
 
+describe('the artifact build flag', () => {
+  const definition = createFakeRuntime().definition;
+
+  it('turns on frameWhenEmbedded when the build baked it in (export --target artifact)', () => {
+    expect(definition.manifest.build.frameWhenEmbedded).toBe(false);
+    const applied = applyBuildInfo(definition, { namespace: 'fake', frameWhenEmbedded: true });
+    expect(applied.manifest.build.frameWhenEmbedded).toBe(true);
+    expect(applied.manifest.storage).toEqual(definition.manifest.storage);
+    expect(definition.manifest.build.frameWhenEmbedded).toBe(false);
+  });
+
+  it('keeps the definition unchanged without build info or the flag, and still renames storage', () => {
+    expect(applyBuildInfo(definition, null)).toBe(definition);
+    expect(applyBuildInfo(definition, { namespace: 'fake', frameWhenEmbedded: false })).toBe(
+      definition
+    );
+    const demo = applyBuildInfo(definition, { namespace: 'template-demo-fake' });
+    expect(demo.manifest.storage.namespace).toBe('template-demo-fake');
+    expect(demo.manifest.build.frameWhenEmbedded).toBe(false);
+  });
+});
+
 /** An IndexedDB that refuses to open, as a private window or blocked site data does. */
 function blockedIndexedDB(name = 'SecurityError'): IDBFactory {
   const refuse = () => {
@@ -195,7 +218,8 @@ describe('blocked storage in an artifact view', () => {
       expect(mounted.runtime?.scenarios.active()?.scenario.id).toBe(
         definition.manifest.defaultScenario
       );
-      expect(await (mounted.runtime?.db as Dexie).table('tasks').count()).toBeGreaterThan(0);
+      const db = mounted.runtime?.db as Dexie | undefined;
+      expect(await db?.table('tasks').count()).toBeGreaterThan(0);
       // Appearance changes keep working (the no-flash cache write is skipped, not fatal).
       await mounted.runtime?.theme.setOverride({ mode: 'dark' });
       flushSync();

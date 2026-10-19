@@ -69,26 +69,40 @@ declare global {
 }
 
 /**
+ * Applies what the build baked into `__PROTOYARD_BUILD__` to the definition:
+ * template live demos (and any CLI override) set PROTOYARD_STORAGE_NAMESPACE
+ * so IndexedDB never shares the template's authoring world, and the Claude
+ * artifact target turns on `build.frameWhenEmbedded` (ADR-026). Without build
+ * info (dev, tests) the definition is returned unchanged.
+ */
+export function applyBuildInfo(
+  definition: PrototypeDefinition,
+  build: { namespace?: string; frameWhenEmbedded?: boolean } | null
+): PrototypeDefinition {
+  const manifest = definition.manifest;
+  const namespace =
+    build?.namespace && build.namespace !== manifest.storage.namespace
+      ? build.namespace
+      : undefined;
+  const frameWhenEmbedded = build?.frameWhenEmbedded === true && !manifest.build.frameWhenEmbedded;
+  if (!namespace && !frameWhenEmbedded) return definition;
+  return {
+    ...definition,
+    manifest: {
+      ...manifest,
+      ...(namespace ? { storage: { ...manifest.storage, namespace } } : {}),
+      ...(frameWhenEmbedded ? { build: { ...manifest.build, frameWhenEmbedded: true } } : {}),
+    },
+  };
+}
+
+/**
  * Boots a prototype: runtime → first-run seed → appearance → app → DevTools.
  * Any boot failure renders a recovery screen instead of a blank page.
  */
 export async function mountPrototype(options: MountPrototypeOptions): Promise<MountedPrototype> {
   const { App, target } = options;
-  // Template live demos (and any CLI override) set PROTOYARD_STORAGE_NAMESPACE →
-  // __PROTOYARD_BUILD__.namespace so IndexedDB never shares the template's authoring world.
-  const definition =
-    BUILD_INFO?.namespace && BUILD_INFO.namespace !== options.definition.manifest.storage.namespace
-      ? {
-          ...options.definition,
-          manifest: {
-            ...options.definition.manifest,
-            storage: {
-              ...options.definition.manifest.storage,
-              namespace: BUILD_INFO.namespace,
-            },
-          },
-        }
-      : options.definition;
+  const definition = applyBuildInfo(options.definition, BUILD_INFO);
   const link = parseScenarioLink(options.search ?? location.search);
   const themes = mergeThemes(BUILTIN_THEMES, definition.themes);
   const root = document.documentElement;

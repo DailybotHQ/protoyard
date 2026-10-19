@@ -40,6 +40,18 @@ export const ARTIFACT_LIMITS = {
   titleWords: 4,
 } as const;
 
+/**
+ * Runtime capabilities declared when a pack enables review comments (`export
+ * --target artifact --comments`): a shared `db` store under `review/` that
+ * every admitted viewer reads and Contributors and above write, and the
+ * `user` capability for author ids and display names. The shape follows the
+ * Artifact capability docs (db rules by sharing level, user scopes).
+ */
+export const ARTIFACT_COMMENT_CAPABILITIES: Readonly<Record<string, unknown>> = {
+  db: { rules: [{ path: 'review', read: 'view', write: 'interact' }] },
+  user: { scopes: ['profile'] },
+};
+
 /** Hosts the Artifact tool accepts for external scripts (https only). */
 export const SCRIPT_CDN_PREFIXES = [
   'https://cdnjs.cloudflare.com/',

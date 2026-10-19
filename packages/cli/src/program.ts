@@ -270,6 +270,18 @@ export function createProgram(env: RunnerEnv): Command {
       .argument('[slug]', 'prototype slug (or use --all)')
       .option('--all', 'export every prototype sequentially (continue past failures)')
       .option('--skip-build', 'zip the existing build (verified against build-manifest.json)')
+      .addOption(
+        new Option(
+          '--target <target>',
+          'zip (default) or artifact: a folder ready to publish as a Claude artifact'
+        ).choices(['zip', 'artifact'])
+      )
+      .option(
+        '--no-devtools',
+        'artifact target: leave the DevTools panel out (included by default)'
+      )
+      .option('--comments', 'artifact target: declare the shared review-comment capabilities')
+      .option('--dry-run', 'artifact target: check every artifact rule without writing the pack')
   ).action(def('export', exportCommand));
 
   program

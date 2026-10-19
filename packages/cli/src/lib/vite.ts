@@ -77,6 +77,8 @@ export interface ViteBuildOptions {
    * (PROTOYARD_STORAGE_NAMESPACE; template demos use `template-demo-<name>`).
    */
   storageNamespace?: string;
+  /** Keep an explicit shell frame when embedded (PROTOYARD_FRAME_WHEN_EMBEDDED; the artifact target). */
+  frameWhenEmbedded?: boolean;
   /** Pipe output (for --json) instead of inheriting the terminal. */
   quiet: boolean;
 }
@@ -84,7 +86,7 @@ export interface ViteBuildOptions {
 export function buildEnv(
   options: Pick<
     ViteBuildOptions,
-    'outDir' | 'base' | 'includeDevtools' | 'offline' | 'storageNamespace'
+    'outDir' | 'base' | 'includeDevtools' | 'offline' | 'storageNamespace' | 'frameWhenEmbedded'
   >
 ) {
   return {
@@ -97,6 +99,8 @@ export function buildEnv(
     ...(options.offline ? { PROTOYARD_OFFLINE: '1' } : {}),
     // Set explicitly either way, so an inherited value never renames a build's storage.
     PROTOYARD_STORAGE_NAMESPACE: options.storageNamespace ?? '',
+    // Only forced on by the artifact target; otherwise the manifest decides.
+    PROTOYARD_FRAME_WHEN_EMBEDDED: options.frameWhenEmbedded ? '1' : '',
   };
 }
 
