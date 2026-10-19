@@ -91,7 +91,7 @@ let {
   newId?: (series: CalendarSeries<TData>) => string;
   /** Without it the calendar is read-only: nothing can be dragged or grabbed. */
   onChange?: (change: CalendarChange<TData>) => unknown;
-  /** Without it empty slots and days do nothing. */
+  /** Without it empty slots and days do nothing. Return `false` when it only opened a form. */
   onCreate?: (slot: CalendarSlot) => unknown;
   onOpen?: (occurrence: Occurrence<TData>) => void;
   onRetry?: () => void;
@@ -219,6 +219,8 @@ async function create(slot: CalendarSlot) {
   creating = true;
   try {
     const result = await runService(() => onCreate(slot));
+    // `false`: the handler opened a form instead of creating; that form reports.
+    if (result.ok && result.value === false) return;
     announce(
       result.ok ? `Created an event on ${fmt.longDate(slot.date)}` : 'The event was not created'
     );

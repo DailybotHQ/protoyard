@@ -18,6 +18,11 @@
       "types": "./src/screens/settings/index.ts",
       "svelte": "./src/screens/settings/index.ts",
       "default": "./src/screens/settings/index.ts"
+    },
+    "./screens/calendar": {
+      "types": "./src/screens/calendar/index.ts",
+      "svelte": "./src/screens/calendar/index.ts",
+      "default": "./src/screens/calendar/index.ts"
     }
   },
   "scripts": {
@@ -29,6 +34,8 @@
     "@protoyard/core": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
+    "@protoyard/views": "workspace:*",
+    "@protoyard/views-ui": "workspace:*",
     "zod": "^4.6.0"
   },
   "devDependencies": {
