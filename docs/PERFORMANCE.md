@@ -294,6 +294,15 @@ Lazy chunks, loaded only when used (gzip):
 
 Builds without DevTools (the default) do not contain the Studio at all.
 
+**Library metadata (2026-10-19, schema v2).** Method: Vite library build of
+`packages/themes/src/library/registry.ts` (minified, `@protoyard/*` external,
+gzip level 9), entry chunk only; the token builder stays a separate lazy
+chunk. The entry holds the 32 definitions plus the registry, search and
+collection code: **3,808 B gzip before the v2 fields, 4,226 B after
+(+418 B)**, about **1.3 KB gzip per 10 entries**. It is downloaded only where
+the library is imported (the gallery's Themes page, the `ui-kit` Theme Lab);
+no prototype's initial JS contains it.
+
 ## Scenario generation
 
 Method: `pnpm protoyard scenario bench <slug> [--check]` runs the generator

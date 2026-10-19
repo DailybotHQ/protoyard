@@ -395,12 +395,30 @@ Elevation `soft` in this table is the schema default for entries that do not
 set one. Several entries also set typography, radius scale, border width,
 motion or focus-ring values; see `definitions.ts` for the full profile.
 
+Each definition can also set catalog metadata (`packages/themes/src/library/types.ts`):
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `collection` | `industry`, `brand-like`, `high-contrast`, `colorblind-safe`, `seasonal`, `mono` (`THEME_COLLECTIONS`) | `industry` |
+| `mood` | any of `calm`, `bold`, `playful`, `corporate`, `editorial`, `technical`, `warm`, `fresh`, `luxurious`, `minimal` (`THEME_MOODS`) | none |
+| `darkFirst` | `true` when the theme is meant to be shown in dark mode first | `false` |
+| `contrastLevel` | `AA` (text 4.5:1) or `AAA` (text 7:1, enforced by `tests/library.test.ts`) | `AA` |
+| `neutral` | a [neutral family](#neutral-families) | the original neutrals |
+
+The 32 current entries set none of these yet, so they all sit in `industry`
+at `AA`. `tests/library.test.ts` checks every definition: unique kebab-case
+ids, `#rrggbb` seeds, known fonts, neutrals, collections, moods and contrast
+levels, density range, and the style profile through core's
+`ThemeStyleSchema`.
+
 The registry API (`packages/themes/src/library/registry.ts`):
 
 | Export | What it does |
 | --- | --- |
-| `THEME_LIBRARY_META` | Eager metadata only (id, name, description, category, tags, seed, secondary), no palette tokens |
-| `listThemeLibrary({ category?, tag? })` | Filters the metadata |
+| `THEME_LIBRARY_META` | Eager metadata only (id, name, description, category, tags, collection, mood, darkFirst, contrastLevel, seed, secondary, neutral), no palette tokens. Optional definition fields arrive with their defaults. |
+| `listThemeLibrary({ category?, tag?, collection?, mood? })` | Filters the metadata |
+| `searchThemeLibrary(query)` | Case-insensitive search over name, id, tags, mood, category, collection and description. Every word must match; results rank name and id matches first (3), then tags, mood, category and collection (2), then the description (1), with ties in library order. An empty query returns the whole library. |
+| `listCollections()` | Every collection in a fixed order with its theme count |
 | `getLibraryThemeMeta(id)`, `getLibraryThemeDefinition(id)` | Lookups |
 | `loadLibraryTheme(id)` | Async. Dynamically imports the builder (`import('./build.ts')`), runs `createThemeFromSeed`, then applies the font pairing, radius and density. Results are cached in memory. Unknown ids reject with the list of known ids. |
 | `loadAllLibraryThemes()` | Loads every library theme (tests, galleries) |
