@@ -42,6 +42,43 @@ describe('DevTools panel', () => {
     expect(screen.getByRole('button', { name: /Open Protoyard DevTools/ })).toBeTruthy();
   });
 
+  it('opens and closes when the pointer lands on a button icon, not the button box', async () => {
+    // Real clicks on an icon-only button target the inner <svg>/<path>. The host's
+    // app-layer isolation must not stop Svelte's delegated handler from seeing them.
+    const { panel } = await open();
+    const closeIcon = within(panel)
+      .getByRole('button', { name: 'Close DevTools' })
+      .querySelector('svg');
+    expect(closeIcon).toBeTruthy();
+    await fireEvent.click(closeIcon?.firstElementChild ?? (closeIcon as Element));
+    await settle();
+    expect(screen.queryByRole('complementary')).toBeNull();
+    expect(loadPrefs('fake').open).toBe(false);
+
+    const launcherIcon = screen
+      .getByRole('button', { name: /Open Protoyard DevTools/ })
+      .querySelector('svg');
+    await fireEvent.click(launcherIcon as Element);
+    await settle();
+    expect(screen.getByRole('complementary', { name: 'Protoyard DevTools' })).toBeTruthy();
+    expect(loadPrefs('fake').open).toBe(true);
+  });
+
+  it('presentation mode reloads without DevTools and remembers the panel as closed', async () => {
+    const assign = vi.fn();
+    vi.stubGlobal('location', { ...location, href: 'http://x.test/#/', assign });
+    const { panel } = await open();
+    const icon = within(panel)
+      .getByRole('button', { name: /Presentation mode/ })
+      .querySelector('svg');
+    await fireEvent.click(icon as Element);
+    await settle();
+    expect(assign).toHaveBeenCalledTimes(1);
+    expect(String(assign.mock.calls[0]?.[0])).toContain('devtools=0');
+    expect(loadPrefs('fake').open).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
   it('switches persona and overrides role without touching data', async () => {
     const { runtime, panel } = await open();
     await fireEvent.click(within(panel).getByRole('tab', { name: 'Personas' }));

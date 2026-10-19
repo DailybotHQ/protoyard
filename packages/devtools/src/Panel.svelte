@@ -156,6 +156,9 @@ async function resetOverrides() {
 }
 
 function presentationMode() {
+  // Leaving presentation mode later shows the launcher, not a panel reopened over the app.
+  open = false;
+  savePrefs(namespace, { open: false, tab });
   location.assign(reproducibleLink(runtime, { presentation: true }));
 }
 </script>
