@@ -1,5 +1,3 @@
-/**
- * `@protoyard/review-ui/toolbar` — the floating review toolbar.
- * Filled by the PLAN_003 task T-review-ui-panel-toolbar; empty until then.
- */
-export {};
+/** `@protoyard/review-ui/toolbar` — floating controls for published builds. */
+export { default as ReviewToolbar } from './ReviewToolbar.svelte';
+export type { ReviewToolbarAdapter, ReviewToolbarProps } from './types.ts';
