@@ -516,7 +516,11 @@ describe('codegen emitters', () => {
     expect(byPath['src/generated/screens/Dashboard1.svelte']).toContain(
       "import { DashboardScreen } from '@protoyard/crud/screens/dashboard';"
     );
-    expect(byPath['src/generated/screens/Dashboard1.svelte']).toContain('aggregate');
+    // The screen reads the parsed spec from the app context (src/generated/screens → src/lib).
+    expect(byPath['src/generated/screens/Dashboard1.svelte']).toContain(
+      "import { useCrudApp } from '../../lib/context.ts';"
+    );
+    expect(byPath['src/generated/screens/Dashboard1.svelte']).toContain('blueprint.screens[0]');
   });
 
   it('formats JSON like Biome: short primitive arrays inline, objects expanded', () => {

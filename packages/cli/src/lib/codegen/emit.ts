@@ -220,15 +220,17 @@ ${navItems.join('\n')}${
 `;
 }
 
-function dashboardScreen(
-  screen: Extract<Blueprint['screens'][number], { type: 'dashboard' }>
-): string {
+function dashboardScreen(index: number): string {
+  // The screen comes from the parsed blueprint (defaults applied, legacy `metrics`
+  // kept), so the component sees exactly the validated dashboard spec.
   return `<script lang="ts">
 import { DashboardScreen } from '@protoyard/crud/screens/dashboard';
-import { useCrudApp } from '../lib/context.ts';
+import { useCrudApp } from '../../lib/context.ts';
 
 const { runtime, services, blueprint } = useCrudApp();
-const screen = ${JSON.stringify(screen).replace(/</g, '\\u003c')};
+const found = blueprint.screens[${index}];
+if (found?.type !== 'dashboard') throw new Error('blueprint screen ${index} is not a dashboard: regenerate');
+const screen = found;
 </script>
 
 <DashboardScreen {runtime} {services} {blueprint} {screen} />
@@ -534,7 +536,7 @@ export function emitPrototype(
         ? [
             generated(
               `src/generated/screens/${pascal(`dashboard-${index + 1}`)}.svelte`,
-              dashboardScreen(screen)
+              dashboardScreen(index)
             ),
           ]
         : []
