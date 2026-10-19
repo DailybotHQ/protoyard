@@ -11,23 +11,23 @@ import { LayoutHost, type NavModel } from '@protoyard/ui';
 import { onDestroy } from 'svelte';
 import { ROLE_LABELS } from './domain/policy.ts';
 import { provideWorkspace } from './lib/context.svelte.ts';
-import MyTasks from './screens/MyTasks.svelte';
-import Overview from './screens/Overview.svelte';
-import TaskDetail from './screens/TaskDetail.svelte';
 
 const workspace = provideWorkspace();
 const principal = usePrincipal();
 const appearance = useAppearance();
 
-/** Hash routes work on refresh and back/forward on any static host. */
+/**
+ * Hash routes work on refresh and back/forward on any static host. Every
+ * screen is its own chunk, so the shell stays small (initial JS budget).
+ */
 const router = createRouter(
   [
-    { path: '/', component: Overview, title: 'Overview' },
-    { path: '/my-tasks', component: MyTasks, title: 'My tasks' },
+    { path: '/', load: () => import('./screens/Overview.svelte'), title: 'Overview' },
+    { path: '/my-tasks', load: () => import('./screens/MyTasks.svelte'), title: 'My tasks' },
     { path: '/projects/:id', load: () => import('./screens/Board.svelte'), title: 'Board' },
     { path: '/timeline', load: () => import('./screens/Timeline.svelte'), title: 'Timeline' },
     { path: '/workload', load: () => import('./screens/Workload.svelte'), title: 'Workload' },
-    { path: '/tasks/:id', component: TaskDetail, title: 'Task' },
+    { path: '/tasks/:id', load: () => import('./screens/TaskDetail.svelte'), title: 'Task' },
   ],
   { titleSuffix: workspace.runtime.manifest.name }
 );
