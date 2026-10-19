@@ -1,5 +1,6 @@
 <script lang="ts">
 import {
+  avatarImage,
   createRouter,
   liveQuery,
   Router,
@@ -67,6 +68,7 @@ const layoutNav = $derived({
         user: {
           name: principal.current.persona.name,
           detail: ROLE_LABELS[principal.current.role ?? ''] ?? principal.current.role ?? '',
+          image: avatarImage(principal.current.persona.avatar),
         },
       }
     : {}),
