@@ -133,7 +133,7 @@ function messageOf(error: unknown) {
 </script>
 
 <div class="flex h-[var(--py-app-height,100dvh)] min-h-0 bg-background text-foreground">
-  <aside class="hidden w-64 shrink-0 flex-col border-r border-border bg-surface p-4 lg:flex" aria-label="Assistant workspace navigation">
+  <aside class="hidden w-64 shrink-0 flex-col border-r border-border bg-surface p-4 lg:flex overflow-y-auto" aria-label="Assistant workspace navigation">
     <a href="#/" class="mb-6 flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-semibold">
       <span class="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Sparkles class="size-5" aria-hidden="true" /></span>
       <span>Nova <span class="font-normal text-muted-foreground">Assistant</span></span>
@@ -150,7 +150,7 @@ function messageOf(error: unknown) {
       {/each}
     </nav>
     <div class="mt-6 flex items-center gap-2 px-2 pb-2 text-[0.65rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground"><Folder class="size-3.5" aria-hidden="true" /> History</div>
-    <div class="min-h-0 flex-1 overflow-y-auto">
+    <div class="min-h-24 flex-1 overflow-y-auto">
       {#each projectConversations.slice(0, 10) as conversation (conversation.id)}
         <button type="button" class={`mb-1 w-full truncate rounded-lg px-2 py-2 text-left text-xs hover:bg-muted ${conversation.id === activeConversation?.id ? 'bg-muted text-foreground' : 'text-muted-foreground'}`} onclick={() => (selectedConversationId = conversation.id)}>{conversation.pinned ? '★ ' : ''}{conversation.title}</button>
       {/each}
@@ -183,10 +183,11 @@ function messageOf(error: unknown) {
     {:else if activeTab === 'widget'}
       <div class="min-h-0 flex-1"><WidgetDemo /></div>
     {:else}
-      <div class="min-h-0 flex-1">
+      <!-- A definite-height, clipped box: the screen scrolls inside it and never runs under the footer. -->
+      <div class="min-h-0 flex-1 overflow-hidden *:h-full">
         <Router {router} />
       </div>
     {/if}
-    <footer class="flex items-center justify-center gap-1 pt-2 text-[0.65rem] text-muted-foreground"><Archive class="size-3" aria-hidden="true" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Check class="size-3" aria-hidden="true" /></footer>
+    <footer class="flex shrink-0 items-center justify-center gap-1 pt-2 text-[0.65rem] text-muted-foreground"><Archive class="size-3" aria-hidden="true" /> Simulation only · responses use deterministic local packs · no model provider is contacted <Check class="size-3" aria-hidden="true" /></footer>
   </main>
 </div>

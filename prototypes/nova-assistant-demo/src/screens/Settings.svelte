@@ -71,7 +71,7 @@ async function clearMemory() {
 }
 </script>
 
-<section class="mx-auto w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-8" aria-labelledby="settings-title">
+<section class="mx-auto max-h-full w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-surface p-5 shadow-sm sm:p-8" aria-labelledby="settings-title">
   <a href="#/" class="mb-6 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted"><ArrowLeft class="size-3.5" aria-hidden="true" /> Back to assistant</a>
   <div class="mb-7 flex items-start gap-3">
     <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-primary"><Sparkles class="size-5" aria-hidden="true" /></span>
