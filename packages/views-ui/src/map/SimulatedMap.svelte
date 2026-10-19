@@ -2,6 +2,7 @@
 import { Locate, Minus, Plus } from '@lucide/svelte';
 import { runService } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
+import { createAxis, windowAxis } from '@protoyard/views/grid';
 import {
   type Basemap,
   basemapPaths,
@@ -18,7 +19,7 @@ import {
   unproject,
   zoomAround,
 } from '@protoyard/views/map';
-import { onMount } from 'svelte';
+import { onMount, tick } from 'svelte';
 import FenceEditor from './FenceEditor.svelte';
 import {
   circleRadiusPx,
@@ -122,6 +123,69 @@ const byId = $derived(new Map(markers.map((m) => [m.id, m])));
 function select(id: string | null) {
   selected = id;
   onSelect?.(id);
+}
+
+// The place list is virtualized (5,000 markers would otherwise mean 5,000
+// buttons): only rows in the scroll window render, plus the keyboard-active
+// one. It has one tab stop; arrows, Home, End and Page keys reach every row.
+const LIST_ROW_PX = 32;
+const LIST_MAX_PX = 224;
+let listEl = $state<HTMLElement | null>(null);
+let listScroll = $state(0);
+let active = $state(0);
+const listCount = $derived(markers.length + routes.length);
+const listAxis = $derived(createAxis({ count: listCount, size: LIST_ROW_PX }));
+const listHeight = $derived(Math.min(LIST_MAX_PX, listAxis.total));
+const listRows = $derived.by(() => {
+  const shown = windowAxis(listAxis, listScroll, listHeight, 6).items.map((item) => item.index);
+  const focusIndex = Math.min(active, Math.max(0, markers.length - 1));
+  if (markers.length > 0 && !shown.includes(focusIndex)) shown.push(focusIndex);
+  return shown;
+});
+// Picking a marker on the map moves the list's tab stop to it.
+$effect.pre(() => {
+  if (!selected) return;
+  const index = markers.findIndex((m) => m.id === selected);
+  if (index !== -1) active = index;
+});
+$effect.pre(() => {
+  if (active >= markers.length) active = Math.max(0, markers.length - 1);
+});
+
+async function focusRow(index: number) {
+  active = index;
+  if (listEl) {
+    const top = index * LIST_ROW_PX;
+    if (top < listEl.scrollTop) listEl.scrollTop = top;
+    else if (top + LIST_ROW_PX > listEl.scrollTop + listHeight)
+      listEl.scrollTop = top + LIST_ROW_PX - listHeight;
+    listScroll = listEl.scrollTop;
+  }
+  await tick();
+  listEl?.querySelector<HTMLElement>(`[data-list-index="${index}"]`)?.focus();
+}
+
+function onListKeydown(event: KeyboardEvent) {
+  const last = markers.length - 1;
+  if (last < 0) return;
+  const page = Math.max(1, Math.floor(listHeight / LIST_ROW_PX) - 1);
+  const next =
+    event.key === 'ArrowDown'
+      ? Math.min(last, active + 1)
+      : event.key === 'ArrowUp'
+        ? Math.max(0, active - 1)
+        : event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? last
+            : event.key === 'PageDown'
+              ? Math.min(last, active + page)
+              : event.key === 'PageUp'
+                ? Math.max(0, active - page)
+                : null;
+  if (next === null) return;
+  event.preventDefault();
+  void focusRow(next);
 }
 
 function centerOn(id: string) {
@@ -448,31 +512,51 @@ async function saveFence() {
     {#if markers.length === 0 && routes.length === 0}
       <p class="p-3 text-sm text-muted-foreground">Nothing on the map yet.</p>
     {:else}
-      <ul class="grid max-h-56 overflow-y-auto">
-        {#each markers as m (m.id)}
-          <li>
-            <button
-              type="button"
-              class={[
-                'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm outline-none hover:bg-muted focus-visible:bg-muted',
-                selected === m.id && 'bg-primary/10 font-medium',
-              ]}
-              aria-current={selected === m.id ? 'true' : undefined}
-              data-list-item={m.id}
-              onclick={() => {
-                select(m.id);
-                centerOn(m.id);
-              }}
-            >
-              <span class={['size-2.5 shrink-0 rounded-full', TONE_FILL[m.tone ?? 'primary']]} aria-hidden="true"></span>
-              <span class="min-w-0 flex-1 truncate">{m.label}</span>
-              {#if m.detail}<span class="truncate text-xs text-muted-foreground">{m.detail}</span>{/if}
-            </button>
-          </li>
-        {/each}
-        {#each routes as route (route.id)}
-          <li class="px-3 py-1.5 text-sm text-muted-foreground" data-route-item={route.id}>
-            {route.label}: {Math.round((route.progress ?? 0) * 100)}% done
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <ul
+        bind:this={listEl}
+        class="relative overflow-y-auto"
+        style={`height: ${listHeight}px`}
+        onscroll={() => (listScroll = listEl?.scrollTop ?? 0)}
+        onkeydown={onListKeydown}
+        data-list-count={listCount}
+      >
+        <li aria-hidden="true" class="pointer-events-none" style={`height: ${listAxis.total}px`}></li>
+        {#each listRows as index (index)}
+          {@const m = markers[index]}
+          {@const route = index >= markers.length ? routes[index - markers.length] : undefined}
+          <li
+            class="absolute inset-x-0"
+            style={`top: ${index * LIST_ROW_PX}px; height: ${LIST_ROW_PX}px`}
+            aria-setsize={listCount}
+            aria-posinset={index + 1}
+          >
+            {#if m}
+              <button
+                type="button"
+                class={[
+                  'flex h-full w-full items-center gap-2 px-3 text-left text-sm outline-none hover:bg-muted focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+                  selected === m.id && 'bg-primary/10 font-medium',
+                ]}
+                tabindex={index === active ? 0 : -1}
+                aria-current={selected === m.id ? 'true' : undefined}
+                data-list-item={m.id}
+                data-list-index={index}
+                onclick={() => {
+                  active = index;
+                  select(m.id);
+                  centerOn(m.id);
+                }}
+              >
+                <span class={['size-2.5 shrink-0 rounded-full', TONE_FILL[m.tone ?? 'primary']]} aria-hidden="true"></span>
+                <span class="min-w-0 flex-1 truncate">{m.label}</span>
+                {#if m.detail}<span class="truncate text-xs text-muted-foreground">{m.detail}</span>{/if}
+              </button>
+            {:else if route}
+              <p class="flex h-full items-center px-3 text-sm text-muted-foreground" data-route-item={route.id}>
+                {route.label}: {Math.round((route.progress ?? 0) * 100)}% done
+              </p>
+            {/if}
           </li>
         {/each}
       </ul>
