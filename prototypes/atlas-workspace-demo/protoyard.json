@@ -1,0 +1,62 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.atlas-workspace-demo",
+  "slug": "atlas-workspace-demo",
+  "kind": "prototype",
+  "name": "Atlas Workspace Demo",
+  "description": "A fictional operations workspace that demonstrates every desktop and content layout, simulated access, guided onboarding, and a library analytics theme.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "dashboard", "saas", "admin", "crud", "roles"],
+  "catalog": {
+    "category": "analytics",
+    "productType": "SaaS dashboard",
+    "platforms": ["web"],
+    "features": ["dashboard", "charts", "crud", "audit-log", "roles"],
+    "highlights": [
+      "Overview metrics and a revenue chart",
+      "Customers with search, filters and detail pages",
+      "Orders with audited status changes",
+      "Role-gated settings for four personas"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "📊",
+  "defaultScenario": "active",
+  "defaultTheme": "aurora-analytics",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "layout": {
+      "id": "sidebar",
+      "supported": [
+        "sidebar",
+        "rail",
+        "top-nav",
+        "dual-sidebar",
+        "master-detail",
+        "dashboard-grid",
+        "docs",
+        "marketing",
+        "wizard",
+        "auth-split"
+      ]
+    }
+  },
+  "storage": {
+    "namespace": "atlas-workspace-demo",
+    "schemaVersion": 2
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": ["empty", "active", "massive", "viewer"],
+  "template": "dashboard",
+  "createdAt": "2026-10-19T22:41:25.422Z",
+  "updatedAt": "2026-10-19T22:41:25.422Z"
+}
