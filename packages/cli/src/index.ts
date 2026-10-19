@@ -3,6 +3,11 @@
  * over these functions; scripts (benchmarks, CI helpers) import them directly.
  */
 
+export {
+  commentsExportCommand,
+  commentsImportCommand,
+  commentsPullCommand,
+} from './commands/comments.ts';
 export type { ControlServer, ControlServerOptions } from './control-server.ts';
 export {
   DEFAULT_CONTROL_PORT,
