@@ -9,6 +9,7 @@ Simulated permissions: UX only, not security. Services enforce them with
 | Capability | `designer` | `viewer` |
 | --- | --- | --- |
 | `favorites:read` | ✓ | ✓ |
+| `theme:apply` | ✓ | ✓ |
 
 `designer` holds every capability (`*`), including ones this table cannot list because no role names them.
 <!-- /protoyard:generated:capability-matrix -->
@@ -32,12 +33,15 @@ Capabilities in `src/domain/policy.ts`:
 - `favorites:read` is held by both roles but is not asserted anywhere: the
   favorites list is a direct `liveQuery` on the `favorites` table
   (`src/lib/favorites.svelte.ts`), filtered by the acting persona.
+- `theme:apply` is held by designer and viewer. Theme Lab "Use in prototype"
+  asserts it inside `environment.run('theme.activate')`.
+- `theme:manage` is designer-only (`*`). Saving a Theme Studio draft or
+  registering a brand-new custom theme id asserts it inside
+  `environment.run('theme.saveCustom')`. Failures (including the 24-theme
+  limit) toast via `runService({ silentValidation: false })`.
 
-Everything outside favorites is open to every persona: browsing the
-catalog, demos, the Forms page and the whole Theme Lab, including "Use in
-prototype" and "Save draft as custom theme", which change the theme for the
-prototype in this browser without any capability check. The header shows a
-"Read-only" badge for the viewer.
+Browsing the catalog, demos, Forms and inspecting Theme Lab tokens stay open
+to every persona. The header shows a "Read-only" badge for the viewer.
 
 ## Persona switching
 

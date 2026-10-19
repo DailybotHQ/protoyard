@@ -1,4 +1,4 @@
-import { AI_MODELS } from '@protoyard/ai';
+import { AI_MODELS, DEFAULT_RESPONSE_PACKS, refusalPack, selectResponsePack } from '@protoyard/ai';
 import { PermissionDeniedError, parseScenario } from '@protoyard/core';
 import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -61,6 +61,32 @@ describe('AI assistant template', () => {
     expect(
       validateWorld(first, { ...definition.integrity, referenceTime: scenario.referenceTime })
     ).toEqual([]);
+  });
+
+  it('does not answer ordinary prompts with the safety-refusal pack', async () => {
+    const ordinary = ['hello', 'Write a project update', 'Explain closures'] as const;
+    for (const prompt of ordinary) {
+      expect(
+        selectResponsePack(DEFAULT_RESPONSE_PACKS, definition.manifest.id, prompt).id
+      ).not.toBe(refusalPack.id);
+    }
+    const runtime = await harness.boot('fresh-workspace');
+    const services = createAssistantServices(runtime, { chunkDelayMs: 0 });
+    const [project] = await runtime.db.projects.toArray();
+    for (const prompt of ordinary) {
+      const conversationId = await services.createConversation(project?.id);
+      await services.send(conversationId, prompt, AI_MODELS[0]!);
+      const rows = await runtime.db.messages
+        .where('conversationId')
+        .equals(conversationId)
+        .sortBy('createdAt');
+      const reply = rows.find((row) => row.role === 'assistant');
+      expect(reply?.content, prompt).toBeTruthy();
+      expect(reply?.content, prompt).not.toMatch(
+        /can.?t help with instructions that could cause harm/i
+      );
+      expect(reply?.content, prompt).toMatch(/practical|starting point|manageable|You asked/i);
+    }
   });
 
   it('persists conversations and deterministic assistant replies with usage', async () => {

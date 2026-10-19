@@ -71,21 +71,17 @@ wrong". In every failure case nothing is written.
 1. Theme lab → a theme card → "Use in prototype". A "Prototype theme set to
    <name>" toast appears, the whole kit re-themes and the card shows an
    "Active" badge.
-2. Service: none in the domain. `activateTheme(theme, runtime.theme,
-   saveCustom)` in src/lib/theme-lab.ts calls the runtime theme controller:
-   `saveCustom(theme)` first when the theme is not yet registered (library
-   themes), then `runtime.theme.setOverride({ themeId })`.
-3. Capability: none. No `session.assert`; every persona, including a
-   viewer, can change the theme.
-4. Writes: the prototype's control database (not a domain table): the
-   appearance override (`themeId`), and for a library theme the custom-theme
-   list. Both apply to the prototype for every persona in this browser.
-5. Failure states: a library theme that fails the theme schema or would
-   exceed 24 custom themes ("You can keep up to 24 custom themes. Delete one
-   first.") throws a `ValidationError`, which `runService` does not toast,
-   so nothing changes and nothing is shown. A failed control-database write
-   shows "Something went wrong". No `environment.run`, so simulated offline
-   mode does not affect it.
+2. Service: `themeLabService().activate(theme)` in src/domain/themes.ts
+   (via `activateTheme` in src/lib/theme-lab.ts): `session.assert` →
+   `environment.run('theme.activate')` → register unknown themes with
+   `saveCustom` when needed → `setOverride`.
+3. Capability: `theme:apply` (designer and viewer). Registering a brand-new
+   custom id also needs `theme:manage` (designer only).
+4. Writes: the prototype's control database (appearance override and, when
+   registering a library/draft theme, the custom-theme list).
+5. Failure states: permission denied, schema errors and the 24-theme limit
+   surface as toasts (`runService` with `silentValidation: false`). Simulated
+   offline/failure modes apply through `environment.run`.
 
 ## Save a Theme Studio draft
 
@@ -94,16 +90,18 @@ wrong". In every failure case nothing is written.
    Comfortable) and corner radius (0–20 px); the light and dark previews
    update live → "Save draft as custom theme". A "Saved and previewing
    “<name>”" toast appears and the kit switches to the new theme.
-2. Service: none in the domain. `runtime.theme.saveCustom(studioTheme)`
-   then `runtime.theme.setOverride({ themeId })` (ThemeLabPage). The draft
-   is built with `createThemeFromSeed` from `@protoyard/themes`.
-3. Capability: none (any persona).
+2. Service: `themeLabService().saveCustom(studioTheme)` then
+   `setOverride` (ThemeLabPage). The draft is built with
+   `createThemeFromSeed` from `@protoyard/themes`. Path:
+   assert → `environment.run('theme.saveCustom')` → control DB.
+3. Capability: `theme:manage` (designer). Viewers are denied.
 4. Writes: the control database's custom-theme list (id
    `<selected theme id>-lab`, so saving again from the same selected theme
    replaces the previous draft) and the appearance override.
-5. Failure states: theme-schema errors and the 24-theme limit are
-   `ValidationError`s, which `runService` does not toast: nothing is saved
-   and nothing is shown. Other errors show "Something went wrong".
+5. Failure states: permission denied, theme-schema errors and the 24-theme
+   limit ("You can keep up to 24 custom themes…") show as error toasts
+   (`silentValidation: false`). Simulated offline applies via
+   `environment.run`.
 
 ## Inspect and copy theme tokens
 

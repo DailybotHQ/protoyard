@@ -60,12 +60,12 @@ and [Run the simulated agent with approval](#run-the-simulated-agent-with-approv
      `conversations` (updatedAt, modelId).
    - The answer. For the three Orbit models it comes from
      `environment.run('ai.generate')` around a response pack from
-     `@protoyard/ai`: `selectResponsePack` picks the safety-refusal pack for
-     prompts that ask for harmful instructions, otherwise it picks one of
-     `DEFAULT_RESPONSE_PACKS` (general assistant or safety refusal) by a hash
-     of the manifest id and the prompt. The general pack returns one of
-     three templated sentences that quote the prompt, chosen by a seeded
-     generator. The prompt it sees is the workspace's custom instructions,
+     `@protoyard/ai`: `selectResponsePack` returns the safety-refusal pack
+     only when the refusal matcher hits; otherwise it picks deterministically
+     among non-refusal packs (the general assistant in the default catalog).
+     The general pack returns one of three templated sentences that quote the
+     prompt, chosen by a seeded generator. The prompt it sees is the
+     workspace's custom instructions,
      the saved memory (only when memory is on and data controls are
      `standard`) and the prompt. It is deterministic, never calls a model,
      and the chosen model only changes the stamped id and the simulated cost.

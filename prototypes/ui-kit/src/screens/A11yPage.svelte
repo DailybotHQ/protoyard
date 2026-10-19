@@ -1,23 +1,52 @@
 <script lang="ts">
 import { CircleCheck } from '@lucide/svelte';
-import { useAppearance } from '@protoyard/renderer-svelte';
-import { contrastRatio, getTheme, TEXT_CONTRAST_PAIRS } from '@protoyard/themes';
+import { getRuntime, useAppearance } from '@protoyard/renderer-svelte';
+import type { ThemeControllerExtras } from '@protoyard/runtime';
+import {
+  BUILTIN_THEMES,
+  getTheme,
+  loadAllLibraryThemes,
+  TEXT_CONTRAST_PAIRS,
+} from '@protoyard/themes';
 import { Badge, Kbd } from '@protoyard/ui';
+import { onMount } from 'svelte';
+import { auditThemeContrast, auditThemesContrast } from '../lib/theme-lab.ts';
 
+const runtime = getRuntime();
 const appearance = useAppearance();
-// Live audit of the theme the prototype is using right now.
+const themeExtras = runtime.theme as typeof runtime.theme & ThemeControllerExtras;
+
+let libraryThemes = $state<import('@protoyard/core').Theme[]>([]);
+let libraryError = $state('');
+
+onMount(() => {
+  void loadAllLibraryThemes()
+    .then((themes) => {
+      libraryThemes = [...themes];
+    })
+    .catch(() => {
+      libraryError = 'Library themes could not be loaded for the catalog audit.';
+    });
+});
+
+/** Live audit of the theme the prototype is using (built-in, library or custom). */
 const audit = $derived.by(() => {
-  const theme = getTheme(appearance.current.theme.value);
-  const palette = theme[appearance.current.resolvedMode];
-  const results = TEXT_CONTRAST_PAIRS.map(([fg, bg]) => ({
-    fg,
-    bg,
-    ratio: contrastRatio(palette[fg], palette[bg]),
-  }));
+  const extras = [...runtime.theme.themes(), ...themeExtras.customThemes(), ...libraryThemes];
+  const theme = getTheme(appearance.current.theme.value, extras);
+  return auditThemeContrast(theme, appearance.current.resolvedMode);
+});
+
+/** Catalog sweep: built-ins + custom + loaded library, both modes. */
+const catalogAudit = $derived.by(() => {
+  const themes = [...BUILTIN_THEMES, ...themeExtras.customThemes(), ...libraryThemes];
+  // Dedupe by id (custom may already be in runtime.themes).
+  const byId = new Map(themes.map((theme) => [theme.id, theme]));
+  const results = auditThemesContrast([...byId.values()]);
+  const failing = results.filter((row) => row.failing.length > 0);
   return {
-    theme,
-    failing: results.filter((r) => r.ratio < 4.5),
-    lowest: Math.min(...results.map((r) => r.ratio)),
+    total: results.length,
+    themeCount: byId.size,
+    failing,
   };
 });
 
@@ -28,7 +57,7 @@ const principles = [
   },
   {
     title: 'Contrast is tested, not hoped for',
-    body: 'All text pairs in every built-in theme reach WCAG AA 4.5:1 in light and dark; the test suite fails otherwise.',
+    body: 'All text pairs in every built-in, library and custom theme reach WCAG AA 4.5:1 in light and dark; the test suite fails otherwise.',
   },
   {
     title: '44px touch targets on phones',
@@ -84,7 +113,32 @@ const keys = [
       {#each audit.failing as f (`${f.fg}-${f.bg}`)}<li><Badge variant="destructive">{f.fg} on {f.bg}: {f.ratio.toFixed(2)}</Badge></li>{/each}
     </ul>
   {/if}
-  <p class="mt-3 text-xs text-muted-foreground">Change the theme or mode in DevTools and this audit follows.</p>
+  <p class="mt-3 text-xs text-muted-foreground">Change the theme or mode in DevTools or the Theme lab and this audit follows (built-in, library and custom).</p>
+</section>
+
+<section aria-labelledby="catalog-audit-title" class="mt-6 rounded-xl border border-border bg-surface p-5">
+  <h2 id="catalog-audit-title" class="font-semibold">Catalog contrast sweep</h2>
+  <p class="mt-1 text-sm text-muted-foreground">
+    {catalogAudit.themeCount} themes · {catalogAudit.total} mode checks (built-in, library and custom).
+  </p>
+  {#if libraryError}
+    <p class="mt-2 text-sm text-warning" role="status">{libraryError}</p>
+  {/if}
+  {#if catalogAudit.failing.length === 0}
+    <p class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-success">
+      <CircleCheck class="size-4" aria-hidden="true" />Every loaded theme passes text and UI contrast.
+    </p>
+  {:else}
+    <ul class="mt-3 max-h-40 space-y-1 overflow-y-auto">
+      {#each catalogAudit.failing as row (`${row.theme.id}-${row.mode}`)}
+        <li>
+          <Badge variant="destructive">
+            {row.theme.name} · {row.mode}: {row.failing.length} pair(s), lowest {row.lowest.toFixed(2)}:1
+          </Badge>
+        </li>
+      {/each}
+    </ul>
+  {/if}
 </section>
 
 <section class="mt-8" aria-labelledby="principles-title">
@@ -118,6 +172,5 @@ const keys = [
     <li>Use one <code class="font-mono">h1</code> per screen and keep heading levels in order.</li>
     <li>Use <code class="font-mono">warning</code> as a fill with <code class="font-mono">warning-foreground</code> text, never as text on a surface.</li>
     <li>Wrap mutations in <code class="font-mono">runService()</code> so failures are announced as toasts.</li>
-    <li>Prefer real links (<code class="font-mono">href="#/…"</code>) for navigation and buttons for actions.</li>
   </ul>
 </section>

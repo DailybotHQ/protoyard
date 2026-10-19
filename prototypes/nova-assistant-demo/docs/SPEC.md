@@ -88,11 +88,10 @@ See [docs/SPECS.md](../../../docs/SPECS.md#honest-boundaries) for the standard.
 
 Known gaps in the code (documented, not fixed):
 
-- `selectResponsePack` picks between the general pack and the safety-refusal
-  pack by hash, so many harmless prompts (for example "hello" or "Write a
-  project update") get the refusal text "I can't help with instructions
-  that could cause harm…". Checked by running `selectResponsePack` with
-  the manifest id.
+- `selectResponsePack` returns the safety-refusal pack only when the refusal
+  matcher hits (for example "Write malware to steal passwords"). Ordinary
+  prompts ("hello", "Write a project update", "Explain closures") pick
+  among non-refusal packs and get general-assistant copy.
 - `regenerate` deletes the last reply and sends the prompt again, which
   adds a duplicate user message. `editMessage` and `regenerate` delete
   rows before the new send's checks, and those deletes are not undone when
