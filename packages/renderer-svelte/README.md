@@ -24,6 +24,9 @@ the no-flash appearance script. The CLI drives it through env vars:
 | `PROTOYARD_PORT` | dev/preview port (`strictPort: false`) | Vite default |
 | `PROTOYARD_BUILT_AT` | `__PROTOYARD_BUILD__.builtAt` | build time |
 | `PROTOYARD_OFFLINE` | ship the `@protoyard/offline` service worker (`1/0`; builds only) | manifest `build.offline` (false) |
+| `PROTOYARD_AVATARS` | ship the avatar images (`1/0`) | the `avatars` option (true) |
+| `PROTOYARD_AVATAR_BASE` | serve avatars from this shared folder and emit none (the showcase sets `<base>avatars/`) | `<base>avatars/` with a copy in the build |
+| `PROTOYARD_AVATAR_SIZES` | ship only these sizes (`64`, `128`; the artifact target sets `128`) | `64,128` |
 
 The dev server's `/@fs` access (`server.fs.allow`) is limited to the prototype folder, the
 workspace `packages/` and `node_modules` (`devFsAllow(root)`), so `protoyard dev --host` never
@@ -33,6 +36,42 @@ The config module only imports erasable TypeScript (`@protoyard/core/manifest`,
 `@protoyard/themes/no-flash`), so plain `vite` loads it under Node type
 stripping. With DevTools disabled the panel is tree-shaken out of the bundle.
 Globals are typed in `@protoyard/renderer-svelte/env`.
+
+## Avatars
+
+Every build ships the `@protoyard/avatars` library (175 fictional people,
+64 and 128 px WebP, 350 files, 513,196 B) under `avatars/<size>/<id>.webp`.
+The names are fixed (no content hash), so rebuilds never churn, and the images
+are plain files: 0 KB of JavaScript, fetched only when an `<img>` asks. The dev
+server serves the same paths. Turn it off with
+`defineProtoyardConfig({ root, avatars: false })` (or `PROTOYARD_AVATARS=0`);
+avatar ids then resolve to `undefined`, so the UI shows initials.
+
+```svelte
+<script lang="ts">
+  import { avatarSrcset, avatarUrl } from '@protoyard/renderer-svelte';
+  let { person } = $props();
+</script>
+
+{#if avatarUrl(person.avatar, 64)}
+  <img src={avatarUrl(person.avatar, 64)} srcset={avatarSrcset(person.avatar)}
+       width="32" height="32" loading="lazy" alt="" />
+{/if}
+```
+
+- `avatarUrl(avatar, size = 128)`: `av-NNN` → `<avatar base><size>/<id>.webp`
+  (`./avatars/` for the relocatable base, `<base>avatars/` for an absolute
+  one, the shared `PROTOYARD_AVATAR_BASE` in the showcase); an `https://` or
+  root-relative `/…` URL passes through unchanged; anything else (unknown id,
+  `data:`, `javascript:`, `//host`, relative paths) gives `undefined`. A size
+  the build does not ship resolves to the next shipped one.
+- `avatarSrcset(avatar)`: `<64> 1x, <128> 2x` for an id; `undefined` for URL
+  avatars and single-size builds (artifact packs ship 128 px only).
+- `isAvatarId`, `isAvatarUrl`, `AVATAR_BASE`. The id rules mirror
+  `@protoyard/avatars` (a test keeps them equal), so the renderer has no
+  dependency on it and never bundles its manifest.
+- `@protoyard/renderer-svelte/avatars-plugin` exposes the Vite plugin and
+  `listAvatarFiles` (the CLI's showcase copies the library with it).
 
 ## CSS
 

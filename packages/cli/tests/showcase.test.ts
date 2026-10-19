@@ -1,12 +1,16 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { listAvatarFiles } from '@protoyard/renderer-svelte/avatars-plugin';
 import { describe, expect, it } from 'vitest';
 import {
   appPathFor,
   assertShowcasePublishable,
   marketplacePathFor,
   publishShowcaseDirectory,
+  shareAvatars,
+  showcaseAvatarBase,
   showcaseEntries,
   showcaseRegistry,
 } from '../src/commands/showcase.ts';
@@ -65,6 +69,51 @@ describe('showcase', () => {
     } finally {
       if (previous === undefined) delete process.env.PROTOYARD_STORAGE_NAMESPACE;
       else process.env.PROTOYARD_STORAGE_NAMESPACE = previous;
+    }
+  });
+
+  it('points every app at one shared avatar folder and never inherits avatar settings', () => {
+    expect(showcaseAvatarBase('/')).toBe('/avatars/');
+    expect(showcaseAvatarBase('/protoyard/')).toBe('/protoyard/avatars/');
+    const base = { outDir: '/tmp/out', base: '/p/crm-demo/app/', includeDevtools: false };
+    expect(buildEnv({ ...base, avatarBase: '/avatars/' })).toMatchObject({
+      PROTOYARD_AVATAR_BASE: '/avatars/',
+      PROTOYARD_AVATAR_SIZES: '',
+    });
+    expect(buildEnv({ ...base, avatarSizes: [128] }).PROTOYARD_AVATAR_SIZES).toBe('128');
+    const previous = process.env.PROTOYARD_AVATAR_BASE;
+    process.env.PROTOYARD_AVATAR_BASE = '/leaked/';
+    try {
+      // Empty: a standalone build emits its own relocatable copy.
+      expect(buildEnv(base).PROTOYARD_AVATAR_BASE).toBe('');
+    } finally {
+      if (previous === undefined) delete process.env.PROTOYARD_AVATAR_BASE;
+      else process.env.PROTOYARD_AVATAR_BASE = previous;
+    }
+  });
+
+  it('copies the avatar library once to the site root', async () => {
+    const site = mkdtempSync(join(tmpdir(), 'protoyard-showcase-avatars-'));
+    try {
+      const shared = await shareAvatars(site);
+      const library = listAvatarFiles([64, 128]);
+      const libraryBytes = library.reduce(
+        (sum, file) => sum + readFileSync(file.source).byteLength,
+        0
+      );
+      expect(shared).toEqual({ path: 'avatars/', files: 350, bytes: libraryBytes });
+      // About half a megabyte for the whole site, not per app.
+      expect(libraryBytes).toBeLessThan(600 * 1024);
+      expect(readdirSync(site)).toEqual(['avatars']);
+      expect(readdirSync(join(site, 'avatars')).sort()).toEqual(['128', '64']);
+      expect(readdirSync(join(site, 'avatars', '64'))).toHaveLength(175);
+      expect(
+        readFileSync(join(site, 'avatars/128/av-042.webp')).equals(
+          readFileSync(library.find((f) => f.fileName === 'avatars/128/av-042.webp')!.source)
+        )
+      ).toBe(true);
+    } finally {
+      rmSync(site, { recursive: true, force: true });
     }
   });
 

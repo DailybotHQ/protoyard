@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { ARTIFACT_COMMENT_CAPABILITIES } from '../src/lib/artifact-pack.ts';
+import { ARTIFACT_AVATAR_SIZES, ARTIFACT_COMMENT_CAPABILITIES } from '../src/lib/artifact-pack.ts';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 /*
@@ -54,7 +54,7 @@ function addSharable(
   workspace.write(`${base}/package.json`, { name: `@prototype/${slug}`, private: true });
   workspace.write(
     `${base}/vite.config.ts`,
-    'export default { logLevel: "silent", define: { __FRAME__: JSON.stringify(process.env.PROTOYARD_FRAME_WHEN_EMBEDDED ?? "") } };\n'
+    'export default { logLevel: "silent", define: { __FRAME__: JSON.stringify(process.env.PROTOYARD_FRAME_WHEN_EMBEDDED ?? ""), __AVATAR_SIZES__: JSON.stringify(process.env.PROTOYARD_AVATAR_SIZES ?? "") } };\n'
   );
   workspace.write(
     `${base}/index.html`,
@@ -62,7 +62,7 @@ function addSharable(
   );
   workspace.write(
     `${base}/src/main.ts`,
-    'declare const __FRAME__: string;\ndocument.getElementById("app")!.textContent = "frame-when-embedded=" + __FRAME__;\n'
+    'declare const __FRAME__: string;\ndeclare const __AVATAR_SIZES__: string;\ndocument.getElementById("app")!.textContent = "frame-when-embedded=" + __FRAME__ + " avatar-sizes=" + __AVATAR_SIZES__;\n'
   );
 }
 
@@ -109,6 +109,9 @@ describe('protoyard export --target artifact', () => {
     expect(scripts.length).toBeGreaterThan(0);
     const bundle = scripts.map((file) => readFileSync(join(pack, file.path), 'utf8')).join('\n');
     expect(bundle).toContain('frame-when-embedded=1');
+    // Artifact builds ship 128 px avatars only (half the files; see ARTIFACT_AVATAR_SIZES).
+    expect(bundle).toContain('avatar-sizes=128');
+    expect(ARTIFACT_AVATAR_SIZES).toEqual([128]);
     const record = JSON.parse(
       readFileSync(join(ws.root, 'artifacts/share-app/artifact-build.json'), 'utf8')
     );

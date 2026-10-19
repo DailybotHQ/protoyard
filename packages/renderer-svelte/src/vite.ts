@@ -20,6 +20,8 @@ import {
   type UserConfig,
   type UserConfigFnObject,
 } from 'vite';
+import type { AvatarImageSize } from './avatars.ts';
+import { AVATAR_DIR, AVATAR_IMAGE_SIZES, protoyardAvatars } from './avatars-plugin.ts';
 
 /**
  * Vite config factory shared by every prototype and template:
@@ -31,12 +33,19 @@ import {
  * The CLI drives builds through environment variables so the config file
  * never needs editing: PROTOYARD_BASE, PROTOYARD_OUT_DIR,
  * PROTOYARD_INCLUDE_DEVTOOLS, PROTOYARD_DEMO_BADGE, PROTOYARD_PORT,
- * PROTOYARD_BUILT_AT.
+ * PROTOYARD_BUILT_AT, and for avatar images PROTOYARD_AVATARS,
+ * PROTOYARD_AVATAR_BASE and PROTOYARD_AVATAR_SIZES.
  */
 
 export interface ProtoyardConfigOptions extends UserConfig {
   /** The prototype folder (the one containing protoyard.json). */
   root: string;
+  /**
+   * Ship the avatar library images (default true: people appear everywhere).
+   * False keeps them out of the build and makes `avatarUrl` return undefined
+   * for avatar ids, so the UI falls back to initials.
+   */
+  avatars?: boolean;
 }
 
 /** Shape of the `__PROTOYARD_BUILD__` global. */
@@ -103,6 +112,58 @@ export function devFsAllow(root: string): string[] {
   return [resolve(root), resolve(workspace, 'packages'), resolve(workspace, 'node_modules')];
 }
 
+/** Where avatar images come from in this build (see src/avatars.ts). */
+export interface AvatarSettings {
+  /** Folder the app requests `<size>/<id>.webp` from, ending in `/`. */
+  base: string;
+  /** Sizes shipped and served; empty when avatars are off. */
+  sizes: AvatarImageSize[];
+  /** Emit the images into this build (false when a shared base serves them). */
+  emit: boolean;
+}
+
+const AVATAR_BASE_PATTERN = /^(?:\.\/|\.\.\/|\/(?!\/)|https:\/\/)[A-Za-z0-9._~\-/:%@]*$/;
+
+/**
+ * Avatar settings from the env and the factory option. PROTOYARD_AVATAR_BASE
+ * (the showcase's shared `/avatars/` folder) means another copy serves the
+ * images, so this build emits none. PROTOYARD_AVATAR_SIZES narrows the sizes
+ * (the artifact target ships `128` only).
+ */
+export function resolveAvatarSettings(
+  base: string,
+  env: Env,
+  options: { avatars?: boolean } = {}
+): AvatarSettings {
+  const enabled = envFlag(env.PROTOYARD_AVATARS) ?? options.avatars ?? true;
+  let sizes: AvatarImageSize[] = [...AVATAR_IMAGE_SIZES];
+  const rawSizes = env.PROTOYARD_AVATAR_SIZES?.trim();
+  if (rawSizes) {
+    const parsed = rawSizes.split(',').map((part) => Number(part.trim()));
+    const valid = parsed.filter((n): n is AvatarImageSize =>
+      (AVATAR_IMAGE_SIZES as readonly number[]).includes(n)
+    );
+    if (valid.length !== parsed.length) {
+      throw new Error(
+        `PROTOYARD_AVATAR_SIZES must list ${AVATAR_IMAGE_SIZES.join(' and/or ')} (got ${JSON.stringify(rawSizes.slice(0, 40))})`
+      );
+    }
+    sizes = [...new Set(valid)].sort((a, b) => a - b);
+  }
+  const shared = env.PROTOYARD_AVATAR_BASE?.trim();
+  if (shared && !AVATAR_BASE_PATTERN.test(shared)) {
+    throw new Error(
+      `PROTOYARD_AVATAR_BASE must be a path such as /avatars/ or ./avatars/, or an https URL (got ${JSON.stringify(shared.slice(0, 80))})`
+    );
+  }
+  const folder = shared || `${base.endsWith('/') ? base : `${base}/`}${AVATAR_DIR}/`;
+  return {
+    base: folder.endsWith('/') ? folder : `${folder}/`,
+    sizes: enabled ? sizes : [],
+    emit: enabled && !shared,
+  };
+}
+
 export interface ResolvedProtoyardSettings {
   base: string;
   outDir: string;
@@ -111,6 +172,7 @@ export interface ResolvedProtoyardSettings {
   /** Opt-in offline service worker (builds only; never in dev). */
   offline: boolean;
   port: number | undefined;
+  avatars: AvatarSettings;
   build: ProtoyardBuildInfo;
 }
 
@@ -136,13 +198,15 @@ export function resolveProtoyardSettings(
   manifest: PrototypeManifest,
   command: ConfigEnv['command'],
   env: Env,
-  root: string
+  root: string,
+  options: { avatars?: boolean } = {}
 ): ResolvedProtoyardSettings {
   const isBuild = command === 'build';
+  const base = env.PROTOYARD_BASE || manifest.build.base || './';
   const offline = isBuild ? (envFlag(env.PROTOYARD_OFFLINE) ?? manifest.build.offline) : false;
   const port = env.PROTOYARD_PORT ? Number.parseInt(env.PROTOYARD_PORT, 10) : undefined;
   return {
-    base: env.PROTOYARD_BASE || manifest.build.base || './',
+    base,
     outDir: env.PROTOYARD_OUT_DIR ? resolve(env.PROTOYARD_OUT_DIR) : resolve(root, 'dist'),
     includeDevtools: isBuild
       ? (envFlag(env.PROTOYARD_INCLUDE_DEVTOOLS) ?? manifest.build.includeDevtools)
@@ -150,6 +214,7 @@ export function resolveProtoyardSettings(
     demoBadge: isBuild ? (envFlag(env.PROTOYARD_DEMO_BADGE) ?? manifest.build.demoBadge) : false,
     offline,
     port: port !== undefined && Number.isFinite(port) && port > 0 ? port : undefined,
+    avatars: resolveAvatarSettings(base, env, options),
     build: {
       id: manifest.id,
       slug: manifest.slug,
@@ -192,10 +257,12 @@ function protoyardHtml(manifest: PrototypeManifest, namespace: string): Plugin {
 }
 
 export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConfigFnObject {
-  const { root, ...overrides } = options;
+  const { root, avatars, ...overrides } = options;
   return defineConfig((configEnv) => {
     const manifest = readPrototypeManifest(root);
-    const settings = resolveProtoyardSettings(manifest, configEnv.command, process.env, root);
+    const settings = resolveProtoyardSettings(manifest, configEnv.command, process.env, root, {
+      ...(avatars !== undefined ? { avatars } : {}),
+    });
     const base: UserConfig = {
       root,
       base: settings.base,
@@ -203,6 +270,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
         svelte(),
         tailwindcss(),
         protoyardHtml(manifest, settings.build.namespace),
+        protoyardAvatars({ sizes: settings.avatars.sizes, emit: settings.avatars.emit }),
         // Structurally typed Vite plugin (the offline package has no vite dependency).
         ...(settings.offline ? (protoyardOffline({ enabled: true }) as unknown as Plugin[]) : []),
       ],
@@ -214,6 +282,10 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
         __PROTOYARD_DEVTOOLS__: JSON.stringify(settings.includeDevtools),
         __PROTOYARD_DEMO_BADGE__: JSON.stringify(settings.demoBadge),
         __PROTOYARD_BUILD__: JSON.stringify(settings.build),
+        __PROTOYARD_AVATARS__: JSON.stringify({
+          base: settings.avatars.base,
+          sizes: settings.avatars.sizes,
+        }),
       },
       server: {
         ...(settings.port ? { port: settings.port } : {}),
