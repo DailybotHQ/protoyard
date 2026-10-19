@@ -14,7 +14,7 @@ plain TypeScript tested in Node. Svelte components live in
 | --- | --- |
 | `@protoyard/charts` | Everything below plus the data contract types (`ChartPoint`, `ChartSeries`, `Extent`, `Margin`, `Rect`) |
 | `@protoyard/charts/scales` | `linearScale`, `logScale`, `sqrtScale`, `timeScale` (UTC), `bandScale`, `pointScale`; `ticks`, `tickStep`, `niceDomain`, `timeTicks`, `chooseTimeInterval`, `floorTime`; formatters `formatNumber`, `formatCompact`, `formatTick`, `formatCents` (integer cents only), `formatPercent`, `formatTimeTick`, `formatDate`; `extent` |
-| `@protoyard/charts/shapes` | `roundCoord(value, digits?)`: stable coordinates for SVG paths |
+| `@protoyard/charts/shapes` | `linePath(points, { curve, defined })` and `areaPath(points)` with `linear`, `monotone-x`, `step`, `step-before`, `step-after` curves and gaps; `stack(series, { offset: 'none' \| 'expand' \| 'diverging' })`, `stackExtent`, `groupOffsets(bandwidth, n, padding)`; `pie(values, { padAngle, sort })`, `arcPath({ innerRadius, outerRadius, startAngle, endAngle, cornerRadius, padAngle })`, `arcCentroid`; `symbolPath(type, x, y, area)` (circle, square, diamond, triangle, cross); `bin(values, { thresholds \| count, domain })` with Sturges default; `roundCoord` |
 | `@protoyard/charts/downsample` | `largestTriangleThreeBuckets(points, threshold)` (keeps gaps, returns the input when small), `lttbIndices(xs, ys, threshold)` (plain or typed arrays), `minMaxBuckets(xs, ys, { buckets, x0?, x1? })` (first/min/max/last per pixel column, for canvas), `bisectX` / `bisectLeft` (O(log n) crosshair lookup), `downsampleThreshold(plotWidthPx)` (2 per pixel, 200–4,000) |
 | `@protoyard/charts/layout` | `plotArea(width, height, margin)`: the plot rectangle inside a frame |
 | `@protoyard/charts/palette` | `chartPalette(themePalette, mode)` → 8 categorical + 9-step sequential + 9-step diverging hex colors, repaired to pass; `validateChartPalette()`; `chartPaletteVariables()` (`--py-chart1…8`, `--py-seq-1…9`, `--py-div-1…9` for a chart root); `readChartPaletteInput()`; `seriesColor(i)`, `sequentialColor(t)`, `divergingColor(t)`; color math (`contrastRatio`, OKLCH, `simulateDeficiency`) |
@@ -27,9 +27,14 @@ Measured in Node 26.11.1 on an Apple M1 Max (median of 9, three runs of
 `PROTOYARD_BENCH=1 pnpm vitest run packages/charts/tests/downsample.test.ts`):
 LTTB 10k → 1k points 0.29–0.71 ms, 100k → 2k 1.27–1.37 ms; min-max 100k
 points into 1,600 columns 2.6–4.0 ms; 10,000 `bisectX` lookups on 100k
-points 1.3–1.6 ms. Path
-generators and treemap/sankey/funnel/calendar/gauge layouts are added by the
-following PLAN_003 charts tasks; this table lists only what exists.
+points 1.3–1.6 ms. Shapes are complete (`T-charts-shapes`): the whole
+`./shapes` module is 2.9 KB gzip; `linePath` + `areaPath` + `stack` alone
+are 1.1 KB, `pie` + `arcPath` 0.9 KB. Shapes work in pixel space (scale the
+data first), use radians clockwise from 12 o'clock for arcs, round every
+coordinate to two decimals, and treat `null`/`NaN` y values as gaps (lines
+break, never drop to 0). Treemap/sankey/funnel/calendar/gauge layouts are
+added by the following PLAN_003 charts tasks; this table lists only what
+exists.
 
 ### Chart palettes
 
