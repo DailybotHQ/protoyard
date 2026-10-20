@@ -525,6 +525,8 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/templates: {}
+
   packages/themes:
     dependencies:
       '@protoyard/core':

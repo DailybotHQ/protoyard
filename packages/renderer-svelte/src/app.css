@@ -7,10 +7,13 @@
 @import "tailwindcss";
 @import "@protoyard/themes/base.css";
 @import "@protoyard/ui/styles.css";
+/*
+ * Shared components live in other packages, outside the prototype root. Each
+ * package's stylesheet registers its own folder with `@source "./"`, so the
+ * paths stay valid from the repository, a packed dist and node_modules.
+ */
+@import "@protoyard/devtools/styles.css";
 
-/* Shared components live in workspace packages, outside the prototype root. */
-@source "../../ui/src";
-@source "../../devtools/src";
 @source "./";
 
 /*

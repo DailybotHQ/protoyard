@@ -152,3 +152,11 @@ pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check
 The browser E2E row for this surface is in the
 [testing guide](TESTING_GUIDE.md#where-tests-live-source--test-mapping) and is
 run by the lead during integration.
+
+## For agents
+
+The distributable Protoyard skill routes kit choices through its `kits`
+sub-skill ([`skills/protoyard/kits/SKILL.md`](../skills/protoyard/kits/SKILL.md))
+and its catalog ([`skills/protoyard/references/kits.md`](../skills/protoyard/references/kits.md)),
+which link back to this guide. Keep the catalog's entry for this kit in step
+when its entry points or limits change.

@@ -150,6 +150,14 @@ export {
   parseJsonPointer,
 } from './patch.ts';
 export { CAPABILITIES, derivePolicy, type EntityCapabilityMap } from './policy.ts';
+export {
+  BLUEPRINT_DEFAULT_SCENARIO,
+  blueprintBrandTheme,
+  brandDefaultThemeId,
+  definePrototypeFromBlueprint,
+  type RuntimeDefinition,
+  type RuntimeDefinitionOptions,
+} from './runtime-definition.ts';
 export { blueprintScenarios } from './scenarios.ts';
 export {
   AGGREGATES,
@@ -221,6 +229,19 @@ export {
   type ImportCsvResult,
   UNDO_WINDOW_MS,
 } from './services.ts';
+export {
+  blueprintShareFragment,
+  decodeBlueprintShare,
+  encodeBlueprintShare,
+  MAX_SHARE_DECODED_BYTES,
+  MAX_SHARE_ENCODED_LENGTH,
+  readBlueprintShareFragment,
+  SHARE_FRAGMENT_PARAM,
+  SHARE_LINK_VERSION,
+  type ShareDecodeResult,
+  type ShareLinkIssue,
+  ShareLinkTooLargeError,
+} from './share.ts';
 export {
   deriveIntegrity,
   deriveStores,

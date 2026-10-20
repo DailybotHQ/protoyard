@@ -4,6 +4,13 @@
   "description": "The Protoyard gallery: a static Astro site that lists prototypes and templates from the generated metadata registry.",
   "license": "MIT",
   "type": "module",
+  "files": [
+    "src",
+    "public",
+    "astro.config.mjs",
+    "tsconfig.json",
+    "README.md"
+  ],
   "scripts": {
     "dev": "astro dev",
     "build": "astro check && astro build",
@@ -23,5 +30,8 @@
   },
   "devDependencies": {
     "axe-core": "^4.14.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

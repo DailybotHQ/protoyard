@@ -229,8 +229,19 @@ A prototype's `src/app.css` gets all of this with one import
 @source "./";
 ```
 
-That file imports Tailwind, `@protoyard/themes/base.css` and
-`@protoyard/ui/styles.css` in the right order.
+That file imports Tailwind, `@protoyard/themes/base.css`,
+`@protoyard/ui/styles.css` and `@protoyard/devtools/styles.css` in the right order.
+
+**How Tailwind finds package classes.** Tailwind resolves an `@source` path
+relative to the stylesheet that declares it. So each kit's stylesheet
+(`@protoyard/ui/styles.css`, `@protoyard/devtools/styles.css`,
+`@protoyard/charts-ui/styles.css`, `@protoyard/ai-ui/styles.css`, …) registers
+its own folder with `@source "./"`. A stylesheet that needs another package's
+classes imports that package's stylesheet by name
+(`@import "@protoyard/charts-ui/styles.css";`), never with a path into its folder.
+The same CSS then works from this repository, from packed packages and from a
+consumer's `node_modules`. `packages/cli/tests/package-boundaries.test.ts`
+rejects any cross-package `@source` or `@import` path in `packages/*/src`.
 
 **Use tokens, not raw colors.** `bg-primary text-primary-foreground` follows
 every theme and both modes; `bg-violet-600` does not.

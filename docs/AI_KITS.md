@@ -256,3 +256,11 @@ live.
 - [SECURITY.md](SECURITY.md) — trust boundaries; snapshots are untrusted
 - [STANDARDS.md](STANDARDS.md) — TypeScript, Svelte 5, a11y
 - [SHELLS.md](SHELLS.md) — `widget-host` and other device frames
+
+## For agents
+
+The distributable Protoyard skill routes kit choices through its `kits`
+sub-skill ([`skills/protoyard/kits/SKILL.md`](../skills/protoyard/kits/SKILL.md))
+and its catalog ([`skills/protoyard/references/kits.md`](../skills/protoyard/references/kits.md)),
+which link back to this guide. Keep the catalog's entry for this kit in step
+when its entry points or limits change.

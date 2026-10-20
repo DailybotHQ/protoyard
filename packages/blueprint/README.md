@@ -29,9 +29,11 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | `.` |
 | aggregate | count/sum/avg/min/max with groups and UTC date buckets for dashboards and analytics | `.` |
 | app-model | routes, navigation rows with icon ids, navigation groups and layout (`deriveAppModel`) | `.` |
+| runtime-definition | a complete `definePrototype`-valid definition plus the app model (`definePrototypeFromBlueprint`) | `.` (the generator stays lazy) |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | csv-shape | bounded CSV header/sample inference into a reviewable entity draft | `./import/csv-shape` (lazy authoring) |
 | json-shape | bounded JSON object/array shape inference into reviewable entity drafts | `./import/json-shape` (lazy authoring) |
+| sqlite-schema | bounded SQLite `CREATE TABLE` DDL inference into reviewable entity drafts | `./import/sqlite-schema` (lazy authoring) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 | search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
 
@@ -362,6 +364,44 @@ Higher caller limits are clamped to these hard caps. Output entity and field
 ordering is stable regardless of JSON key insertion order, and notes/errors do
 not echo source values.
 
+### SQLite schema authoring
+
+SQLite schema import accepts SQL text and never opens a database, runs a
+statement or reads table rows. Import it only while authoring a draft:
+
+```ts
+import { importSqliteSchema } from '@protoyard/blueprint/import/sqlite-schema';
+
+const { entities, primaryKeys, notes } = importSqliteSchema(`
+  CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+  CREATE TABLE orders (
+    id INTEGER PRIMARY KEY,
+    customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE
+  );
+`);
+```
+
+The supported grammar is one or more `CREATE [TEMP|TEMPORARY] TABLE [IF NOT
+EXISTS]` declarations with plain or quoted identifiers, comma-separated
+columns, optional declared types and column or table `PRIMARY KEY`, `NOT NULL`,
+`NULL`, `UNIQUE`, `CHECK`, `DEFAULT`, `COLLATE`, `REFERENCES` and `FOREIGN KEY`
+constraints. Foreign keys must reference one local column and one declared
+table. `ON DELETE CASCADE`, `SET NULL`, `RESTRICT` and `NO ACTION` map to the
+blueprint's delete behavior. Table and target names match case-insensitively.
+
+`INTEGER PRIMARY KEY` maps to Protoyard's generated `id`; other primary-key
+fields become required and are listed in `primaryKeys`, since blueprint fields
+do not enforce uniqueness. The returned `notes` call out that limitation.
+`INT` maps to `integer`; `REAL`, `FLOAT`, `DOUBLE`, `NUMERIC` and `DECIMAL` map
+to `number`; character, text and CLOB types map to `text`; `BOOLEAN`, `DATE`,
+`DATETIME` and `TIMESTAMP` map to their corresponding blueprint kinds. BLOB
+and absent types use conservative reviewable representations. Defaults, checks,
+unique constraints and collations do not become behavior; default literals are
+discarded. Composite foreign keys, unsupported types and non-CREATE statements
+are rejected with a path-aware `SqliteSchemaError`. Input is limited to 256 KiB,
+50 tables, 100 columns per table and 40,000 tokens. SQL literal values and
+database rows never appear in the output.
+
 ## World generator
 
 Lazy entry so Faker stays out of the initial chunk:
@@ -380,6 +420,8 @@ const world = generate(createGenerateContext(scenario));
 - Optional `field.fake` must be an allow-listed path such as `company.name` or `person.fullName`.
 - Emails always use `example.com` / `example.org`.
 - `generatorVersion` mixes a blueprint content hash with the generator SDK and scenarios SDK versions.
+  `blueprintGeneratorVersion` lives in a small module (`src/generator-version.ts`, re-exported here)
+  so the runtime definition reads it without loading the generator.
 - `geo` fields get points from `geoPoints()` inside their `region` (default `metro-grid`), one
   point set per entity field, so the same seed gives the same points (generator SDK 2).
 - Team personas come from `generateTeam`, so each one carries a seeded library `avatar`
@@ -669,6 +711,32 @@ claim an entity's default list or detail route. `screenNavIcon`, `screenHasOwnVi
 and `entityLabel` expose the per-screen rules. The model matches what
 `protoyard generate` writes to `src/generated/routes.ts` and `layout.ts` for every
 catalog blueprint; `tests/app-model.test.ts` checks this byte for byte.
+
+## Runtime definition
+
+`definePrototypeFromBlueprint(blueprint, { namespace, slug?, version? })` builds in
+memory what `protoyard generate` writes as files ([ADR-029](../../docs/DECISIONS.md)),
+so the player can run a blueprint with no build. It returns
+`{ definition, appModel }`; the definition passes `definePrototype`:
+
+- `manifest`: `id` `local.<slug>`, the slug (default: the namespace), the blueprint's
+  name, description, category, tags and icon, `defaultScenario: "active"`,
+  `defaultTheme` from `brandDefaultThemeId` (`violet` without a brand),
+  `preview.layout.id` from the app model, `storage.schemaVersion` from
+  `latestSchemaVersion`, and the scenario ids;
+- `database.versions` from `deriveDatabaseVersions`, `policy`, `integrity` and the
+  default `blueprintScenarios`;
+- `themes`: the theme a seed or preset brand builds (a library brand ships by id);
+- `generate` loads `./generator` on first use, and `generatorVersion` is
+  `blueprintGeneratorVersion`.
+
+`brandDefaultThemeId` is the same function codegen uses for `protoyard.json`.
+Measured with Vite 8 (minified, gzip -9) on an entry that imports
+`definePrototypeFromBlueprint` from the package entry: about 20.0 KB entry plus a
+40.5 KB shared chunk at start, and the generator as a separate 5.5 KB lazy chunk.
+`tests/runtime-definition.test.ts` boots the definition on the real runtime
+(fake IndexedDB): it seeds every default scenario, keeps created rows across a
+reload, and seeds the same world twice for the same seed.
 
 ## Tests
 
