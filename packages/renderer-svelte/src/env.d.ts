@@ -15,6 +15,8 @@ declare const __PROTOYARD_BUILD__: {
   offline: boolean;
   /** Keep an explicit shell frame when embedded (absent in builds before ADR-026). */
   frameWhenEmbedded?: boolean;
+  /** Review adapter set by the CLI for this build (`publish --comments`); absent otherwise. */
+  review?: { adapter: 'local' | 'cloudflare' | 'http' | 'artifact'; endpoint?: string };
 };
 /**
  * Where avatar images are served from and which sizes the build ships

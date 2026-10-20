@@ -22,6 +22,7 @@ the no-flash appearance script. The CLI drives it through env vars:
 | `PROTOYARD_INCLUDE_DEVTOOLS` | `__PROTOYARD_DEVTOOLS__` in builds (`1/0`) | manifest `build.includeDevtools`; always on in dev |
 | `PROTOYARD_DEMO_BADGE` | `__PROTOYARD_DEMO_BADGE__` in builds | manifest `build.demoBadge`; off in dev |
 | `PROTOYARD_REVIEW` | `__PROTOYARD_REVIEW__` and `build-manifest.json.review.enabled` (`1/0`) | manifest `build.review.enabled` (false) |
+| `PROTOYARD_REVIEW_ADAPTER`, `PROTOYARD_REVIEW_ENDPOINT` | review adapter and endpoint for this build (`__PROTOYARD_BUILD__.review`, checked by the manifest schema; `publish --comments` sets `http` and `/api/comments`) | manifest `build.review` |
 | `PROTOYARD_PORT` | dev/preview port (`strictPort: false`) | Vite default |
 | `PROTOYARD_BUILT_AT` | `__PROTOYARD_BUILD__.builtAt` | build time |
 | `PROTOYARD_OFFLINE` | ship the `@protoyard/offline` service worker (`1/0`; builds only) | manifest `build.offline` (false) |

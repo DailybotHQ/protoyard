@@ -72,12 +72,17 @@ declare global {
  * Applies what the build baked into `__PROTOYARD_BUILD__` to the definition:
  * template live demos (and any CLI override) set PROTOYARD_STORAGE_NAMESPACE
  * so IndexedDB never shares the template's authoring world, and the Claude
- * artifact target turns on `build.frameWhenEmbedded` (ADR-026). Without build
- * info (dev, tests) the definition is returned unchanged.
+ * artifact target turns on `build.frameWhenEmbedded` (ADR-026), and
+ * `publish --comments` points review at the same-origin comments Function.
+ * Without build info (dev, tests) the definition is returned unchanged.
  */
 export function applyBuildInfo(
   definition: PrototypeDefinition,
-  build: { namespace?: string; frameWhenEmbedded?: boolean } | null
+  build: {
+    namespace?: string;
+    frameWhenEmbedded?: boolean;
+    review?: { adapter: 'local' | 'cloudflare' | 'http' | 'artifact'; endpoint?: string };
+  } | null
 ): PrototypeDefinition {
   const manifest = definition.manifest;
   const namespace =
@@ -85,13 +90,26 @@ export function applyBuildInfo(
       ? build.namespace
       : undefined;
   const frameWhenEmbedded = build?.frameWhenEmbedded === true && !manifest.build.frameWhenEmbedded;
-  if (!namespace && !frameWhenEmbedded) return definition;
+  const review = build?.review;
+  if (!namespace && !frameWhenEmbedded && !review) return definition;
   return {
     ...definition,
     manifest: {
       ...manifest,
       ...(namespace ? { storage: { ...manifest.storage, namespace } } : {}),
-      ...(frameWhenEmbedded ? { build: { ...manifest.build, frameWhenEmbedded: true } } : {}),
+      build: {
+        ...manifest.build,
+        ...(frameWhenEmbedded ? { frameWhenEmbedded: true } : {}),
+        ...(review
+          ? {
+              review: {
+                enabled: true,
+                adapter: review.adapter,
+                ...(review.endpoint ? { endpoint: review.endpoint } : {}),
+              },
+            }
+          : {}),
+      },
     },
   };
 }

@@ -5,6 +5,7 @@ import {
   NamespaceSchema,
   type PrototypeManifest,
   parseManifest,
+  type ReviewAdapterKind,
   resolveReviewBuild,
 } from '@protoyard/core/manifest';
 // Subpath imports keep the config graph erasable-only TS (Node strip-types can load it).
@@ -34,8 +35,9 @@ import { AVATAR_DIR, AVATAR_IMAGE_SIZES, protoyardAvatars } from './avatars-plug
  * The CLI drives builds through environment variables so the config file
  * never needs editing: PROTOYARD_BASE, PROTOYARD_OUT_DIR,
  * PROTOYARD_INCLUDE_DEVTOOLS, PROTOYARD_DEMO_BADGE, PROTOYARD_PORT,
- * PROTOYARD_BUILT_AT, and for avatar images PROTOYARD_AVATARS,
- * PROTOYARD_AVATAR_BASE and PROTOYARD_AVATAR_SIZES.
+ * PROTOYARD_BUILT_AT, for avatar images PROTOYARD_AVATARS,
+ * PROTOYARD_AVATAR_BASE and PROTOYARD_AVATAR_SIZES, and for review comments
+ * PROTOYARD_REVIEW, PROTOYARD_REVIEW_ADAPTER and PROTOYARD_REVIEW_ENDPOINT.
  */
 
 export interface ProtoyardConfigOptions extends UserConfig {
@@ -65,6 +67,12 @@ export interface ProtoyardBuildInfo {
    * The CLI's Claude artifact target sets it.
    */
   frameWhenEmbedded: boolean;
+  /**
+   * Review adapter baked in by the CLI (`publish --comments` sets `http` and
+   * the same-origin `/api/comments`). Absent unless PROTOYARD_REVIEW_ADAPTER
+   * is set; the manifest's `build.review` applies then.
+   */
+  review?: { adapter: ReviewAdapterKind; endpoint?: string };
 }
 
 type Env = Record<string, string | undefined>;
@@ -195,6 +203,32 @@ function storageNamespace(manifest: PrototypeManifest, env: Env): string {
   return parsed.data;
 }
 
+/**
+ * PROTOYARD_REVIEW_ADAPTER (and PROTOYARD_REVIEW_ENDPOINT) override the
+ * manifest's review adapter for one build, checked by the manifest schema.
+ * The endpoint is public: it never carries a key.
+ */
+function reviewOverride(env: Env): ProtoyardBuildInfo['review'] {
+  const adapter = env.PROTOYARD_REVIEW_ADAPTER?.trim();
+  if (!adapter) return undefined;
+  const endpoint = env.PROTOYARD_REVIEW_ENDPOINT?.trim();
+  try {
+    const resolved = resolveReviewBuild({
+      enabled: true,
+      adapter: adapter as ReviewAdapterKind,
+      ...(endpoint ? { endpoint } : {}),
+    });
+    return {
+      adapter: resolved.adapter,
+      ...(resolved.endpoint ? { endpoint: resolved.endpoint } : {}),
+    };
+  } catch {
+    throw new Error(
+      `PROTOYARD_REVIEW_ADAPTER/PROTOYARD_REVIEW_ENDPOINT are invalid (got ${JSON.stringify(adapter.slice(0, 40))}, ${JSON.stringify((endpoint ?? '').slice(0, 80))}); http needs a root-relative or https endpoint`
+    );
+  }
+}
+
 /** Pure resolution step (unit-tested): manifest + env + command → settings. */
 export function resolveProtoyardSettings(
   manifest: PrototypeManifest,
@@ -212,6 +246,7 @@ export function resolveProtoyardSettings(
     adapter: configuredReview.adapter,
   };
   const port = env.PROTOYARD_PORT ? Number.parseInt(env.PROTOYARD_PORT, 10) : undefined;
+  const reviewAdapter = reviewOverride(env);
   return {
     base,
     outDir: env.PROTOYARD_OUT_DIR ? resolve(env.PROTOYARD_OUT_DIR) : resolve(root, 'dist'),
@@ -236,6 +271,7 @@ export function resolveProtoyardSettings(
       frameWhenEmbedded: isBuild
         ? (envFlag(env.PROTOYARD_FRAME_WHEN_EMBEDDED) ?? manifest.build.frameWhenEmbedded)
         : manifest.build.frameWhenEmbedded,
+      ...(reviewAdapter ? { review: reviewAdapter } : {}),
     },
   };
 }
