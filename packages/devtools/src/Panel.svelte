@@ -252,14 +252,17 @@ function presentationMode() {
         style:bottom={navOffset > 0
           ? `calc(${navOffset + 12}px + var(--py-devtools-offset, 0px))`
           : 'calc(1rem + env(safe-area-inset-bottom, 0px) + var(--py-devtools-offset, 0px))'}
-        aria-label="Open Protoyard DevTools (Ctrl or Command + period)"
+        aria-label={overrideCount > 0
+          ? `Open Protoyard DevTools ${overrideCount} active overrides (Ctrl or Command + period)`
+          : 'Open Protoyard DevTools (Ctrl or Command + period)'}
         aria-expanded="false"
         onclick={() => setOpen(true)}
       >
         <FlaskConical class="size-4 text-primary" aria-hidden="true" />
         DevTools
         {#if overrideCount > 0}
-          <span class="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground" aria-label={`${overrideCount} active overrides`}>{overrideCount}</span>
+          <!-- The visible count is part of the button's name (label-content-name-mismatch). -->
+          <span class="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{overrideCount}</span>
         {/if}
       </button>
     {/if}
