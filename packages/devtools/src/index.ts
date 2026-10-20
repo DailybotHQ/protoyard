@@ -1,6 +1,7 @@
 export { reproducibleLink } from './link.ts';
 export {
   type DevtoolsHandle,
+  type DevtoolsTab,
   isolateFromAppLayers,
   type MountDevtoolsOptions,
   mountDevtools,

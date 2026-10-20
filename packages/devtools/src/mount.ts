@@ -1,7 +1,16 @@
 import type { PrototypeRuntime, Theme } from '@protoyard/core';
+import type { Component } from 'svelte';
 import { mount, unmount } from 'svelte';
 import Panel from './Panel.svelte';
 import type { AvatarImageResolver } from './state.svelte.ts';
+
+export interface DevtoolsTab {
+  id: string;
+  label: string;
+  icon: Component<{ class?: string }>;
+  load: () => Promise<unknown>;
+  props?: object;
+}
 
 export interface MountDevtoolsOptions {
   runtime: PrototypeRuntime;
@@ -14,6 +23,8 @@ export interface MountDevtoolsOptions {
    * `avatarImage`). Without it the persona list shows initials only.
    */
   avatarImage?: AvatarImageResolver;
+  /** Additional tab entries. Each view module loads only after its tab is selected. */
+  extraTabs?: readonly DevtoolsTab[];
 }
 
 export interface DevtoolsHandle {
@@ -43,6 +54,7 @@ export function mountDevtools(options: MountDevtoolsOptions): DevtoolsHandle {
       runtime: options.runtime,
       themes: options.themes ?? [],
       ...(options.avatarImage ? { avatarImage: options.avatarImage } : {}),
+      ...(options.extraTabs ? { extraTabs: options.extraTabs } : {}),
     },
   });
   return {
