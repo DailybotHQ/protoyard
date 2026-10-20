@@ -9,6 +9,7 @@ import {
   resolveBlueprintBrand,
   screenPath,
 } from '@protoyard/blueprint';
+import { getScreenKindMetadata } from '@protoyard/crud/registry-meta';
 import { formatTs, tsString } from './format.ts';
 import { withHeader } from './header.ts';
 
@@ -218,26 +219,18 @@ function screenName(screen: BlueprintScreen, index: number, previous: Set<string
 
 function screenWrapper(screen: BlueprintScreen, index: number): string | null {
   const entity = 'entity' in screen ? screen.entity : undefined;
-  const component: Record<string, string> = {
-    board: 'BoardScreen',
-    calendar: 'CalendarScreen',
-    map: 'MapScreen',
-    analytics: 'AnalyticsScreen',
-    timeline: 'TimelineScreen',
-    dashboard: 'DashboardScreen',
-    settings: 'SettingsScreen',
-  };
+  const metadata = getScreenKindMetadata(screen.type);
   const hasTabs = screen.type === 'detail' && Boolean(screen.tabs?.length);
-  if (!hasTabs && !component[screen.type]) return null;
+  if (!hasTabs && !metadata.codegenWrapper) return null;
   const check = `const found = blueprint.screens[${index}];\nif (found?.type !== '${screen.type}') {\n  throw new Error('blueprint screen ${index} is not a ${screen.type}: regenerate');\n}\nconst screen = found;`;
   if (screen.type === 'settings') {
-    return `<script lang="ts">\nimport { SettingsScreen } from '@protoyard/crud/screens/settings';\nimport { THEME_LIBRARY_META } from '@protoyard/themes/library';\nimport { useCrudApp } from '../../lib/context.ts';\n\nconst { runtime, blueprint } = useCrudApp();\n${check}\nconst library = THEME_LIBRARY_META.map(({ id, name }) => ({ id, name }));\n</script>\n\n<SettingsScreen {runtime} {blueprint} sections={screen.sections} title={screen.title} {library} />\n`;
+    return `<script lang="ts">\nimport { ${metadata.exportName} } from '${metadata.subpath}';\nimport { THEME_LIBRARY_META } from '@protoyard/themes/library';\nimport { useCrudApp } from '../../lib/context.ts';\n\nconst { runtime, blueprint } = useCrudApp();\n${check}\nconst library = THEME_LIBRARY_META.map(({ id, name }) => ({ id, name }));\n</script>\n\n<${metadata.exportName} {runtime} {blueprint} sections={screen.sections} title={screen.title} {library} />\n`;
   }
   if (hasTabs && entity) {
-    return `<script lang="ts">\nimport { EntityDetail } from '@protoyard/crud';\nimport type { RouteProps } from '@protoyard/renderer-svelte';\nimport { useCrudApp } from '../../lib/context.ts';\n\nlet props: RouteProps = $props();\nconst { runtime, services, blueprint } = useCrudApp();\n${check}\n</script>\n\n<EntityDetail {runtime} {blueprint} {services} entityName={${lit(entity)}} recordId={props.params.id ?? ''} />\n`;
+    return `<script lang="ts">\nimport { ${metadata.exportName} } from '${metadata.subpath}';\nimport type { RouteProps } from '@protoyard/renderer-svelte';\nimport { useCrudApp } from '../../lib/context.ts';\n\nlet props: RouteProps = $props();\nconst { runtime, services, blueprint } = useCrudApp();\n${check}\n</script>\n\n<${metadata.exportName} {runtime} {blueprint} {services} entityName={${lit(entity)}} recordId={props.params.id ?? ''} />\n`;
   }
   if (!entity && screen.type !== 'dashboard') return null;
-  return `<script lang="ts">\nimport { ${component[screen.type]} } from '@protoyard/crud/screens/${screen.type}';\nimport { useCrudApp } from '../../lib/context.ts';\n\nconst { runtime, services, blueprint } = useCrudApp();\n${check}\n</script>\n\n<${component[screen.type]} {runtime} {services} {blueprint} {screen} />\n`;
+  return `<script lang="ts">\nimport { ${metadata.exportName} } from '${metadata.subpath}';\nimport { useCrudApp } from '../../lib/context.ts';\n\nconst { runtime, services, blueprint } = useCrudApp();\n${check}\n</script>\n\n<${metadata.exportName} {runtime} {services} {blueprint} {screen} />\n`;
 }
 
 function routesModule(blueprint: Blueprint): string {

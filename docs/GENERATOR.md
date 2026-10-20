@@ -248,8 +248,11 @@ this is still a simulation, not security. The crud-app scenarios use the roles
   its screen config is read from `blueprint.screens` through `useCrudApp()`, so
   generated files do not inline stale JSON literals. Independently, every
   entity still gets its standard list and detail routes, plus a create route.
-  Screen behavior is provided by the matching `@protoyard/crud/screens/*`
-  entry. For styling, see the CSS setup below and the CRUD README.
+  Screen behavior comes from the typed `screenKinds` registry in
+  `@protoyard/crud`; codegen reads Svelte-free import metadata from
+  `@protoyard/crud/registry-meta`, while each view-kit component stays in its
+  matching lazy `@protoyard/crud/screens/*` entry. For styling, see the CSS
+  setup below and the CRUD README.
 - `brand`: a `seed` color (`#rrggbb`) and/or a built-in `preset`, plus optional
   `secondary`, `styleProfile`, `font`, `radius` and `density`. `generate`
   writes a hash-headed `src/generated/brand-theme.ts`, registers it and sets
