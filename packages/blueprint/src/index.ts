@@ -109,6 +109,12 @@ export {
   type FileUploadProgress,
 } from './files.ts';
 export {
+  BLUEPRINT_NAMESPACE_PREFIX,
+  type BlueprintIdentity,
+  blueprintIdentity,
+  canonicalJson,
+} from './identity.ts';
+export {
   appendMigration,
   applyUpgradeOps,
   type BlueprintMigration,
