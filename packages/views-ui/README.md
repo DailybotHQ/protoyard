@@ -6,11 +6,10 @@ files, settings, states and an app command palette. They are built on
 `@protoyard/ui` tokens, and the engines live in
 [`@protoyard/views`](../views/README.md).
 
-> **Status:** `./activity`, `./board`, `./calendar`, `./commands`,
-> `./editor`, `./files`, `./grid`, `./map`, `./settings`, `./states` and
-> `./tree` are implemented; the other subpaths
-> are empty until their PLAN_003 task lands, and this README documents each
-> view then.
+> **Status:** all listed UI subpaths are implemented. Several smaller engine
+> subpaths currently reserve names without runtime helpers; see the [views kit guide](../../docs/VIEWS.md)
+> for the component selection guide, service contract, responsive behavior,
+> measured UI chunks and current limitations.
 
 ## Install
 
@@ -475,6 +474,49 @@ without ranks, lanes or WIP limits.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
   ui, renderer, lucide, Bits UI and zod external; 2026-10-19): 9.3 KB with
   the board engine (6.6 KB component, 3.1 KB engine).
+
+## Timeline (`@protoyard/views-ui/timeline`)
+
+`TimelineView` renders a virtualized Gantt plan, dependency links, critical
+path, progress and a runtime-clock today line. It accepts schedule task rows
+and dependencies from `@protoyard/views/timeline`:
+
+```svelte
+<TimelineView
+  query={tasks}
+  dependencies={dependencies}
+  bind:zoom
+  now={runtime.clock.now()}
+  getTitle={(task) => task.title}
+  getProgress={(task) => task.progress}
+  onReschedule={(changes) => services.rescheduleTasks(changes)}
+  onOpen={(task) => navigate(`/tasks/${task.id}`)}
+/>
+```
+
+`onReschedule` receives every date change produced by the dependency cascade;
+persist the full list in one service transaction and validate permissions and
+dependency rules there. Without the callback the timeline is read-only. A
+failed save restores the original dates and announces the failure.
+
+- **Zoom:** bindable `zoom` accepts `day`, `week`, `month` or `quarter`. The
+  timeline's date canvas scrolls horizontally; rows are windowed vertically.
+- **Keyboard:** Tab reaches each task bar. Space picks up a task; ←/→ changes
+  its dates one day at a time; Shift+Space picks up its end for resizing; Enter
+  saves the preview and Escape cancels it. A live region announces previews
+  and results.
+- **Pointer:** drag a bar to move it or drag either end to resize it. The
+  preview includes successor dates from the cascade and dependency links.
+- **Phones:** the date canvas is hidden and each row shows a compact schedule
+  bar with task dates; zoom controls stay visible.
+- **States:** loading, empty, denied, offline and error are rendered through
+  `QueryState`; pass `onRetry` for an actionable retry.
+- **Size:** the isolated Vite shell build is 8,458 B gzip, under the 9,100 B
+  guard ceiling (see [docs/VIEWS.md](../../docs/VIEWS.md#bundle-measurements)).
+
+```bash
+pnpm vitest run packages/views-ui/tests/timeline.test.ts
+```
 
 ## Tree (`@protoyard/views-ui/tree`)
 
