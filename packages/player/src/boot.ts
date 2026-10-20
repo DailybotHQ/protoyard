@@ -59,5 +59,19 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
     // Honest labelling: every player prototype says its data is simulated.
     build: { namespace: storage.namespace, demoBadge: true },
   });
+  // Validation tasks: a lazy panel, loaded only for blueprints that declare tasks.
+  const tasks = blueprint.validation?.tasks.length ?? 0;
+  if (tasks > 0 && mounted.runtime) {
+    const runtime = mounted.runtime;
+    const panel = import('./validation/index.ts').then(({ mountValidationPanel }) =>
+      mountValidationPanel({ blueprint, namespace: storage.namespace, runtime })
+    );
+    panel.catch((error) => console.error('[protoyard player] validation panel', error));
+    const destroy = mounted.destroy;
+    mounted.destroy = async () => {
+      await (await panel.catch(() => null))?.destroy();
+      await destroy();
+    };
+  }
   return Object.assign(mounted, { namespace: storage.namespace });
 }
