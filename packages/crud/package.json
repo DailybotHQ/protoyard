@@ -54,20 +54,20 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.50.0",
-    "@protoyard/blueprint": "workspace:*",
-    "@protoyard/core": "workspace:*",
+    "@lucide/svelte": "^1.59.0",
     "@protoyard/analytics": "workspace:*",
     "@protoyard/analytics-ui": "workspace:*",
+    "@protoyard/blueprint": "workspace:*",
     "@protoyard/charts-ui": "workspace:*",
+    "@protoyard/core": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "zod": "^4.6.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "svelte": "^5.57.0"
+    "svelte": "^5.57.2"
   },
   "peerDependencies": {
     "svelte": "^5.57.0"

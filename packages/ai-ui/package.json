@@ -30,13 +30,13 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.50.0",
+    "@lucide/svelte": "^1.59.0",
     "@protoyard/ai": "workspace:*",
     "@protoyard/charts-ui": "workspace:*"
   },
   "devDependencies": {
-    "axe-core": "^4.13.0",
-    "svelte": "^5.57.0"
+    "axe-core": "^4.14.0",
+    "svelte": "^5.57.2"
   },
   "peerDependencies": {
     "svelte": "^5.57.0"

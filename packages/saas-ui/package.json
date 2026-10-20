@@ -20,15 +20,15 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.50.0",
+    "@lucide/svelte": "^1.59.0",
     "@protoyard/core": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/saas": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "zod": "^4.6.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "svelte": "^5.57.0"
+    "svelte": "^5.57.2"
   },
   "peerDependencies": {
     "svelte": "^5.57.0"

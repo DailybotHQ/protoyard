@@ -12,12 +12,12 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.50.0",
+    "@lucide/svelte": "^1.59.0",
     "@protoyard/core": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
-    "dexie": "^4.4.0",
-    "svelte": "^5.57.0"
+    "dexie": "^4.4.6",
+    "svelte": "^5.57.2"
   },
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",

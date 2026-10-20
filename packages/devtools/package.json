@@ -1,7 +1,7 @@
 {
   "name": "@protoyard/devtools",
   "version": "1.0.0",
-  "description": "The Protoyard DevTools panel: scenarios, personas, lifecycle, data, environment, appearance and snapshots \u2014 in the browser.",
+  "description": "The Protoyard DevTools panel: scenarios, personas, lifecycle, data, environment, appearance and snapshots — in the browser.",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
@@ -19,7 +19,7 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.50.0",
+    "@lucide/svelte": "^1.59.0",
     "@protoyard/core": "workspace:*",
     "@protoyard/database": "workspace:*",
     "@protoyard/http": "workspace:*",
@@ -27,7 +27,7 @@
     "@protoyard/ui": "workspace:*"
   },
   "devDependencies": {
-    "svelte": "^5.57.0"
+    "svelte": "^5.57.2"
   },
   "peerDependencies": {
     "svelte": "^5.57.0"

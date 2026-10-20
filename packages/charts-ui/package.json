@@ -52,7 +52,7 @@
     "@protoyard/charts": "workspace:*"
   },
   "devDependencies": {
-    "svelte": "^5.57.0"
+    "svelte": "^5.57.2"
   },
   "peerDependencies": {
     "svelte": "^5.57.0"

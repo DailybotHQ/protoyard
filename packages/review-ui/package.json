@@ -40,16 +40,16 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.50.0",
+    "@lucide/svelte": "^1.59.0",
     "@protoyard/core": "workspace:*",
     "@protoyard/review": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views": "workspace:*",
     "@protoyard/views-ui": "workspace:*",
-    "bits-ui": "^2.19.0"
+    "bits-ui": "^2.19.5"
   },
   "devDependencies": {
-    "svelte": "^5.57.0"
+    "svelte": "^5.57.2"
   },
   "peerDependencies": {
     "svelte": "^5.57.0"

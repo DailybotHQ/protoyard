@@ -14,7 +14,7 @@
   "dependencies": {
     "@protoyard/avatars": "workspace:*",
     "@protoyard/core": "workspace:*",
-    "zod": "^4.6.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",

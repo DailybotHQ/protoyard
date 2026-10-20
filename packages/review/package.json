@@ -21,6 +21,6 @@
   "dependencies": {
     "@protoyard/core": "workspace:*",
     "@protoyard/database": "workspace:*",
-    "zod": "^4.6.0"
+    "zod": "^4.6.7"
   }
 }
