@@ -42,6 +42,7 @@ import type { CommandContext } from '../lib/workspace.ts';
 import { createProvider } from '../publish/index.ts';
 import type { PublishProvider } from '../publish/types.ts';
 import { commentsSetupLines } from './publish.ts';
+import { requireGalleryDir } from './serve.ts';
 
 /**
  * `protoyard showcase` builds ONE static site: the gallery (with its
@@ -346,7 +347,7 @@ function buildGallery(
   quiet: boolean,
   site?: string
 ) {
-  const galleryDir = join(ctx.root, 'apps', 'gallery');
+  const galleryDir = requireGalleryDir(ctx.root).dir;
   const astro = resolvePackageBin('astro', 'astro', [galleryDir, ctx.root]);
   if (!astro)
     throw new CliError('not_found', 'Astro is not installed.', { hint: 'Run `pnpm install`.' });
