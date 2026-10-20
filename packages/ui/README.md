@@ -172,6 +172,9 @@ const sections = resolveNav(model, location.hash); // exactly one `active` item,
 
 ## Shared layout host
 
+For the complete layout catalog, manifest contract, responsive behavior and
+contributor checklist, see [the Layouts guide](../../docs/LAYOUTS.md).
+
 Wrap the routed screen in `LayoutHost` when a prototype opts into a shared
 layout. The host uses the measured container width and the core `LAYOUTS`
 catalog's fallback rules, so a shell's inner screen width drives the choice.
@@ -181,8 +184,9 @@ the host moves one stable screen outlet between targets, preserving the route's
 component state while the layout chrome changes. While the selected module is
 loading, the current screen stays mounted under a chrome skeleton. The registry
 currently includes `sidebar`, `rail`, `top-nav`, `dual-sidebar`,
-`master-detail`, `dashboard-grid`, `docs`, `marketing`, `wizard` and
-`auth-split`. Layout modules stay out of the `@protoyard/ui` barrel, so a
+`mobile-tabs`, `mobile-drawer`, `master-detail`, `dashboard-grid`, `docs`,
+`marketing`, `wizard` and `auth-split`. Layout modules stay out of the
+`@protoyard/ui` barrel, so a
 prototype loads a layout only when its host selects it. If a layout has no
 registered loader, the screen renders in the host's default content frame.
 

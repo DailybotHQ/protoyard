@@ -1,6 +1,6 @@
 # @protoyard/themes
 
-Theme engine for Protoyard prototypes: six AA-checked built-in presets, a 30+
+Theme engine for Protoyard prototypes: six AA-checked built-in presets, a 64-theme
 product-category **theme library**, light/dark/system resolution, scoped
 CSS-variable application and a no-flash boot script.
 
@@ -18,7 +18,7 @@ applyAppearance(document.documentElement, {
 | Export | Purpose |
 | --- | --- |
 | `BUILTIN_THEMES`, `violetTheme` … `monochromeTheme` | Core six presets (every token for light and dark) |
-| `THEME_LIBRARY_META`, `listThemeLibrary`, `loadLibraryTheme(id)` | 30+ category presets: eager metadata, lazy token load via the palette engine |
+| `THEME_LIBRARY_META`, `listThemeLibrary`, `searchThemeLibrary`, `listCollections`, `loadLibraryTheme(id)` | 64 category and curated themes: eager metadata and lazy token load through the palette engine |
 | `createThemeFromSeed({ id, name, seed, secondary?, neutral?, style? })` | Build an AA light/dark theme from brand hex colors; `neutral` picks a family from `NEUTRAL_FAMILIES` (`zinc`, `slate`, `stone`, `gray`, `warm`, `cool`, `tinted`) |
 | `generateThemeHarmonies(seed, neutral?)` | Deterministic OKLCH complementary, analogous, triadic, split-complementary and monochrome secondary suggestions, filtered to AA-safe light/dark themes |
 | `DENSITY_PRESETS`, `RADIUS_PRESETS`, `ELEVATION_PRESETS`, `FONT_PRESETS`, `MOTION_PRESETS`, `stylePresetInput(selection)`, `applyStylePresets(theme, selection)` | Named density, radius, elevation, font and motion presets as data, resolved to validated theme fields |
@@ -34,7 +34,7 @@ applyAppearance(document.documentElement, {
 | `DEFAULT_THEME_ID`, `prefersDark(matchMedia?)`, `densityScale(density, theme?)` | Small helpers behind `getTheme` / `resolveMode` / `applyAppearance` |
 | `appearanceCacheKey(namespace)`, `APPEARANCE_CACHE_VERSION` | Cache key/version shared by `cacheAppearance` and the inline script |
 
-Subpath exports: `@protoyard/themes/presets`, `@protoyard/themes/no-flash`,
+Subpath exports: `@protoyard/themes/presets`, `@protoyard/themes/library`, `@protoyard/themes/no-flash`,
 `@protoyard/themes/base.css`, `@protoyard/themes/fonts.css` (optional font-stack
 variables).
 
