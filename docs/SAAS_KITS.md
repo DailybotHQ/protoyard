@@ -21,6 +21,13 @@ UX, never security or real provider behavior. See the
 The blueprint integration test checks the public `saasRoutes` entry and verifies its
 onboarding loader is dynamic and does not set an eager route component.
 
+A quick starter, [`blueprints/quick/saas-onboarding.json`](../blueprints/quick/saas-onboarding.json),
+declares that archetype for a fictional workspace signup: workspaces and teammates, a
+create-workspace form and a team list, plus two validation tasks (create a workspace,
+invite a teammate). Generated with the default seed it has 3 workspaces and 8 teammates
+(a 5.5 KB world, 1.5 KB gzip). Its description states that sign-in, invitations and
+plans are simulated, and the test refuses credential or provider fields.
+
 The engine owns data and behavior; the UI package composes those services into
 screens. A prototype can use the engine alone, the UI alone with compatible
 services, or both. Keep domain changes in services instead of writing database

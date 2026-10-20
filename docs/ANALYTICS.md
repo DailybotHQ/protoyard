@@ -20,6 +20,13 @@ its event and metric entity slots, dashboard route, scenario defaults, and the
 public `@protoyard/analytics` plus lazy analytics UI entry points. It is
 validated data and does not load Svelte components by itself. See the
 [`@protoyard/blueprint` archetype contract](../packages/blueprint/README.md#the-schema).
+
+A quick starter, [`blueprints/quick/analytics.json`](../blueprints/quick/analytics.json),
+declares that archetype for a fictional product: weighted signup, activation and
+purchase events with a channel and integer-cent revenue, a dashboard (three KPIs and a
+weekly bar chart by type), an event explorer on `/explore`, and a metrics list, plus two
+validation tasks. At its `dense` default it generates 160 events and 16 metrics
+(a 37 KB world, 7.5 KB gzip), byte-identical for the same seed.
 The blueprint integration test checks analytics' public engine, grid and date-range export
 targets, plus the callback contracts used to save layout and range changes.
 
