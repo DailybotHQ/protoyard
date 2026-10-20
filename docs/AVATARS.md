@@ -166,7 +166,11 @@ What a prototype ships:
 
 - **Every standalone build copies the whole library**, not only the faces it
   references. The renderer's Vite plugin emits all 350 files as
-  `avatars/64/` and `avatars/128/`, with fixed names and no content hash. In
+  `avatars/64/` and `avatars/128/`, with fixed names and no content hash. It
+  finds them by Node package resolution of `@protoyard/avatars` (a renderer
+  dependency), so builds work in this repository, from packed packages and
+  from a consumer's `node_modules`. When the package cannot be resolved, the
+  build fails and says to install it or set `avatars: false`. In
   the `crm-demo` build these are 350 of the 413 files in `dist` and
   513,196 of 2,151,178 bytes (about 24%). They are byte-identical to the
   library. WebP does not compress further: gzip -9 over the 350 files gives
@@ -236,6 +240,7 @@ To **add** faces (generated, fictional people only, see above):
 | `packages/avatars/tests/pick.test.ts` | Seeded assignment: determinism, no repeats within 175, valid ids, `avoid`. |
 | `packages/core/tests/persona-avatar.test.ts` | `PersonaAvatarSchema` and `isPersonaAvatar`: accepted and refused forms. |
 | `packages/renderer-svelte/tests/avatars.test.ts`, `avatar-image.test.ts`, `avatars-build.test.ts` | URL and `srcset` resolution, `avatarImage`, the id rules in sync with the library, images emitted into builds. |
+| `packages/renderer-svelte/tests/avatars-resolution.test.ts` | The library is found by package resolution in the monorepo, in pnpm (symlinked) and npm (flat) consumer `node_modules` with dist-only exports, and an uninstalled package fails with the fix. |
 | `packages/ui/tests/avatar.test.ts` | Lazy fixed-size `<img>` with `srcset`, unsafe sources falling back to initials, retry after an error. |
 | `packages/blueprint/tests/avatar.test.ts` | The avatar field, seeded faces and `shuffleAvatar` / `nextAvatar`. |
 
