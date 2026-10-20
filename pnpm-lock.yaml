@@ -226,6 +226,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+      '@protoyard/crud':
+        specifier: workspace:*
+        version: link:../crud
       '@protoyard/offline':
         specifier: workspace:*
         version: link:../offline
