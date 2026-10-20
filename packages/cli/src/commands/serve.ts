@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   DEFAULT_CONTROL_PORT,
   DEFAULT_GALLERY_PORT,
@@ -61,12 +62,79 @@ export const controlServerCommand: Handler = async (
   };
 };
 
+export const GALLERY_PACKAGE = '@protoyard/gallery';
+
+export interface GalleryLocation {
+  /** Real path of the gallery's Astro project. */
+  dir: string;
+  /** `package`: resolved as @protoyard/gallery; `workspace`: this repository's apps/gallery. */
+  source: 'package' | 'workspace';
+}
+
+/** The folder is the gallery when its package.json names it and it has an Astro config. */
+function isGallery(dir: string): boolean {
+  try {
+    const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { name?: unknown };
+    return pkg.name === GALLERY_PACKAGE && existsSync(join(dir, 'astro.config.mjs'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The `node_modules/@protoyard/gallery` folder nearest to `from`, walking up
+ * like Node does. Unlike `require.resolve`, it ignores NODE_PATH (which pnpm
+ * sets for scripts), so a consumer workspace never picks up an unrelated copy.
+ */
+function installedGallery(from: string): string | null {
+  let dir = from;
+  while (true) {
+    const candidate = join(dir, 'node_modules', GALLERY_PACKAGE);
+    if (existsSync(join(candidate, 'package.json'))) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+/**
+ * Finds the Astro gallery: first as the `@protoyard/gallery` package installed
+ * in the workspace (a consumer workspace that added it) and then next to the
+ * CLI itself, then `<root>/apps/gallery` in this repository. Package-manager
+ * symlinks resolve to the real folder, and a folder only counts when its
+ * package.json names the gallery and it has an Astro config.
+ */
+export function resolveGalleryDir(
+  root: string,
+  options: { fromDirs?: readonly string[] } = {}
+): GalleryLocation | null {
+  const fromDirs = options.fromDirs ?? [root, dirname(fileURLToPath(import.meta.url))];
+  for (const from of fromDirs) {
+    const found = installedGallery(from);
+    if (!found) continue;
+    const dir = realpathSync(found);
+    if (isGallery(dir)) return { dir, source: 'package' };
+  }
+  const workspace = join(root, 'apps', 'gallery');
+  return isGallery(workspace) ? { dir: realpathSync(workspace), source: 'workspace' } : null;
+}
+
+/** resolveGalleryDir or a `not_found` CliError with an install hint. */
+export function requireGalleryDir(
+  root: string,
+  options: { fromDirs?: readonly string[] } = {}
+): GalleryLocation {
+  const gallery = resolveGalleryDir(root, options);
+  if (gallery) return gallery;
+  throw new CliError('not_found', `The Protoyard gallery (${GALLERY_PACKAGE}) is not installed.`, {
+    hint: `Add ${GALLERY_PACKAGE} to this workspace (pnpm add -D ${GALLERY_PACKAGE}), or run inside the Protoyard repository.`,
+  });
+}
+
 /** `protoyard gallery`: index, control server and the Astro gallery in one process tree (`pnpm dev`). */
 export const galleryCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
-  const galleryDir = join(ctx.root, 'apps', 'gallery');
-  if (!existsSync(join(galleryDir, 'package.json'))) {
-    throw new CliError('not_found', 'apps/gallery is missing.');
-  }
+  const gallery = requireGalleryDir(ctx.root);
+  const galleryDir = gallery.dir;
   const astro = resolvePackageBin('astro', 'astro', [galleryDir, ctx.root]);
   if (!astro)
     throw new CliError('not_found', 'Astro is not installed.', { hint: 'Run `pnpm install`.' });
@@ -86,7 +154,16 @@ export const galleryCommand: Handler = async (ctx, _args, options): Promise<Comm
     [astro, 'dev', '--ignore-lock', '--port', String(galleryPort), '--host', '127.0.0.1'],
     {
       cwd: galleryDir,
-      env: { ...process.env, PUBLIC_PROTOYARD_CONTROL_URL: control.url },
+      env: {
+        ...process.env,
+        PUBLIC_PROTOYARD_CONTROL_URL: control.url,
+        // The gallery may live in node_modules: point it at this workspace's registry.
+        PROTOYARD_REGISTRY: ctx.paths.registry,
+        // Keep Astro and Vite caches in the workspace, not in an installed package.
+        ...(gallery.source === 'package' && !process.env.PROTOYARD_GALLERY_CACHE_DIR
+          ? { PROTOYARD_GALLERY_CACHE_DIR: join(ctx.paths.state, 'gallery-cache') }
+          : {}),
+      },
       shell: false,
       stdio: ctx.out.options.json ? 'ignore' : 'inherit',
     }

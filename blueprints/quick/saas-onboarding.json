@@ -1,0 +1,181 @@
+{
+  "formatVersion": 1,
+  "name": "Quick Workspace Onboarding",
+  "description": "A fictional team workspace signup: create a workspace and invite teammates. Sign-in, invitations and plans are simulated in the browser, with no real accounts, email or payments.",
+  "archetype": {
+    "id": "saas-onboarding",
+    "kits": ["@protoyard/saas", "@protoyard/saas-ui"],
+    "entities": {
+      "workspaces": "workspace",
+      "members": "teammate"
+    },
+    "screens": [
+      {
+        "kind": "saas-onboarding",
+        "path": "/onboarding"
+      }
+    ],
+    "scenarioDefaults": {
+      "density": "normal",
+      "activity": "normal"
+    }
+  },
+  "entities": [
+    {
+      "name": "workspace",
+      "plural": "workspaces",
+      "label": "Workspace",
+      "seedCount": 3,
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "kind": "text",
+          "required": true,
+          "fake": "company.name"
+        },
+        {
+          "name": "plan",
+          "label": "Plan",
+          "kind": "enum",
+          "values": ["free", "team", "business"],
+          "default": "free"
+        },
+        {
+          "name": "status",
+          "label": "Status",
+          "kind": "enum",
+          "values": ["setting-up", "active"],
+          "default": "setting-up"
+        },
+        {
+          "name": "seats",
+          "label": "Seats",
+          "kind": "integer",
+          "min": 1,
+          "max": 50,
+          "default": 5
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
+    },
+    {
+      "name": "teammate",
+      "plural": "teammates",
+      "label": "Teammate",
+      "seedCount": 8,
+      "fields": [
+        {
+          "name": "fullName",
+          "label": "Name",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "email",
+          "label": "Email",
+          "kind": "email",
+          "required": true
+        },
+        {
+          "name": "workspace",
+          "label": "Workspace",
+          "kind": "relation",
+          "to": "workspace",
+          "required": true,
+          "cardinality": "one",
+          "onDelete": "cascade"
+        },
+        {
+          "name": "role",
+          "label": "Role",
+          "kind": "enum",
+          "values": ["owner", "admin", "member"],
+          "default": "member"
+        },
+        {
+          "name": "status",
+          "label": "Status",
+          "kind": "enum",
+          "values": ["invited", "active"],
+          "default": "invited"
+        }
+      ],
+      "titleField": "fullName",
+      "searchable": ["fullName", "email"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "workspace": ["read"],
+        "teammate": ["read", "create"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "workspace",
+      "path": "/workspaces",
+      "title": "Workspaces"
+    },
+    {
+      "type": "form",
+      "entity": "workspace",
+      "path": "/workspaces/new",
+      "title": "New workspace"
+    },
+    {
+      "type": "list",
+      "entity": "teammate",
+      "path": "/team",
+      "title": "Team"
+    }
+  ],
+  "validation": {
+    "tasks": [
+      {
+        "id": "create-workspace",
+        "prompt": "Create a workspace for your team.",
+        "timeLimitSeconds": 120,
+        "success": {
+          "route": {
+            "path": "/workspaces",
+            "match": "prefix"
+          },
+          "data": {
+            "op": "count>=",
+            "entity": "workspace",
+            "value": 1
+          }
+        }
+      },
+      {
+        "id": "invite-teammate",
+        "prompt": "Invite a teammate to one of your workspaces.",
+        "timeLimitSeconds": 120,
+        "success": {
+          "route": {
+            "path": "/team",
+            "match": "prefix"
+          },
+          "data": {
+            "op": "count>=",
+            "entity": "teammate",
+            "value": 1
+          }
+        }
+      }
+    ]
+  }
+}

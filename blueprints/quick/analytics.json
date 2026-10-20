@@ -1,0 +1,128 @@
+{
+  "formatVersion": 1,
+  "name": "Quick Product Analytics",
+  "description": "A fictional product's signups, activations and purchases on a dashboard. Every event is simulated and deterministic for the scenario seed; nothing is tracked or sent anywhere.",
+  "archetype": {
+    "id": "analytics",
+    "kits": [
+      "@protoyard/analytics",
+      "@protoyard/analytics-ui/grid",
+      "@protoyard/analytics-ui/date-range"
+    ],
+    "entities": { "events": "event", "metrics": "metric" },
+    "screens": [{ "kind": "analytics-dashboard", "path": "/analytics" }],
+    "scenarioDefaults": { "density": "dense", "activity": "normal" }
+  },
+  "entities": [
+    {
+      "name": "event",
+      "plural": "events",
+      "label": "Event",
+      "seedCount": 40,
+      "fields": [
+        {
+          "name": "type",
+          "label": "Type",
+          "kind": "enum",
+          "values": ["signup", "activation", "purchase"],
+          "weights": [5, 3, 1],
+          "required": true
+        },
+        {
+          "name": "occurredAt",
+          "label": "Occurred",
+          "kind": "datetime",
+          "window": "past",
+          "required": true
+        },
+        {
+          "name": "channel",
+          "label": "Channel",
+          "kind": "enum",
+          "values": ["organic", "referral", "paid"]
+        },
+        { "name": "revenue", "label": "Revenue", "kind": "money", "min": 0, "max": 50000 }
+      ],
+      "titleField": "type",
+      "indexes": ["occurredAt"]
+    },
+    {
+      "name": "metric",
+      "plural": "metrics",
+      "label": "Metric",
+      "seedCount": 4,
+      "fields": [
+        { "name": "name", "label": "Name", "kind": "text", "required": true, "fake": "word.words" },
+        { "name": "value", "label": "Value", "kind": "number", "min": 0, "max": 100 },
+        { "name": "notes", "label": "Notes", "kind": "longText", "fake": "lorem.sentence" }
+      ],
+      "titleField": "name",
+      "searchable": ["name"]
+    }
+  ],
+  "roles": [
+    { "name": "owner", "permissions": { "*": ["*"] } },
+    { "name": "viewer", "permissions": { "*": ["read"] } }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/",
+      "title": "Overview",
+      "widgets": [
+        { "kind": "kpi", "label": "Events", "entity": "event" },
+        {
+          "kind": "kpi",
+          "label": "Signups",
+          "entity": "event",
+          "filter": { "field": "type", "op": "eq", "value": "signup" }
+        },
+        {
+          "kind": "kpi",
+          "label": "Revenue",
+          "entity": "event",
+          "aggregate": "sum",
+          "field": "revenue"
+        },
+        {
+          "kind": "chart",
+          "label": "Events by week",
+          "entity": "event",
+          "chart": "bar",
+          "groupBy": "type",
+          "bucket": { "field": "occurredAt", "unit": "week" },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "analytics",
+      "entity": "event",
+      "path": "/explore",
+      "title": "Explore events",
+      "dateField": "occurredAt",
+      "measures": [{ "label": "Events", "aggregate": "count" }],
+      "dimensions": ["type", "channel"]
+    },
+    { "type": "list", "entity": "metric", "path": "/metrics", "title": "Metrics" }
+  ],
+  "validation": {
+    "tasks": [
+      {
+        "id": "find-signups",
+        "prompt": "Open the event explorer and compare sign-ups by channel.",
+        "timeLimitSeconds": 90,
+        "success": { "route": { "path": "/explore" } }
+      },
+      {
+        "id": "record-metric",
+        "prompt": "Record this week's activation rate as a metric.",
+        "timeLimitSeconds": 120,
+        "success": {
+          "route": { "path": "/metrics", "match": "prefix" },
+          "data": { "op": "count>=", "entity": "metric", "value": 1 }
+        }
+      }
+    ]
+  }
+}
