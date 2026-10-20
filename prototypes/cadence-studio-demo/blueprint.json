@@ -1,0 +1,283 @@
+{
+  "$schema": "../../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Cadence Studio",
+  "description": "A warm, neighborhood creative studio coordinating classes, instructors and customer bookings.",
+  "tags": ["booking"],
+  "brand": {
+    "name": "Cadence Studio",
+    "seed": "#a35f47",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "entities": [
+    {
+      "name": "booking",
+      "plural": "bookings",
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true,
+          "fake": "commerce.productName"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["confirmed", "cancelled", "completed", "no-show"],
+          "default": "confirmed",
+          "required": true,
+          "weights": [7, 1, 1, 1]
+        },
+        {
+          "name": "startsAt",
+          "kind": "datetime",
+          "window": "around",
+          "required": true
+        },
+        {
+          "name": "price",
+          "kind": "money",
+          "min": 1500,
+          "max": 12000
+        },
+        {
+          "name": "client",
+          "kind": "relation",
+          "to": "client"
+        },
+        {
+          "name": "instructor",
+          "kind": "relation",
+          "to": "instructor"
+        },
+        {
+          "name": "class",
+          "kind": "relation",
+          "to": "class"
+        },
+        {
+          "name": "room",
+          "kind": "relation",
+          "to": "room"
+        },
+        {
+          "name": "coordinator",
+          "kind": "persona"
+        }
+      ],
+      "titleField": "title",
+      "ownerField": "coordinator",
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "client",
+      "plural": "clients",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "email",
+          "kind": "email"
+        },
+        {
+          "name": "phone",
+          "kind": "phone"
+        },
+        {
+          "name": "avatar",
+          "kind": "avatar",
+          "label": "Photo"
+        }
+      ],
+      "titleField": "name",
+      "features": {
+        "csv": true
+      }
+    },
+    {
+      "name": "class",
+      "plural": "classes",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "commerce.productName"
+        },
+        {
+          "name": "description",
+          "kind": "text"
+        },
+        {
+          "name": "capacity",
+          "kind": "number",
+          "min": 1,
+          "max": 16,
+          "default": 8,
+          "required": true
+        },
+        {
+          "name": "instructor",
+          "kind": "relation",
+          "to": "instructor"
+        },
+        {
+          "name": "room",
+          "kind": "relation",
+          "to": "room"
+        }
+      ],
+      "titleField": "name",
+      "features": {
+        "csv": true
+      }
+    },
+    {
+      "name": "instructor",
+      "plural": "instructors",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        {
+          "name": "specialty",
+          "kind": "text"
+        },
+        {
+          "name": "avatar",
+          "kind": "avatar",
+          "label": "Photo"
+        }
+      ],
+      "titleField": "name",
+      "features": {
+        "csv": true
+      }
+    },
+    {
+      "name": "room",
+      "plural": "rooms",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true,
+          "fake": "location.city"
+        },
+        {
+          "name": "capacity",
+          "kind": "number",
+          "min": 1,
+          "max": 20,
+          "default": 8,
+          "required": true
+        }
+      ],
+      "titleField": "name",
+      "features": {
+        "csv": true
+      }
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "label": "Owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "admin",
+      "label": "Admin",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "member",
+      "label": "Member",
+      "permissions": {
+        "booking": ["read", "create", "update"],
+        "client": ["read", "create", "update"],
+        "class": ["read"],
+        "instructor": ["read"],
+        "room": ["read"]
+      }
+    },
+    {
+      "name": "viewer",
+      "label": "Viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/",
+      "title": "Studio overview",
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Bookings",
+          "entity": "booking"
+        },
+        {
+          "kind": "kpi",
+          "label": "Classes",
+          "entity": "class"
+        },
+        {
+          "kind": "kpi",
+          "label": "Clients",
+          "entity": "client"
+        },
+        {
+          "kind": "chart",
+          "label": "Bookings by status",
+          "entity": "booking",
+          "chart": "donut",
+          "groupBy": "status"
+        }
+      ]
+    },
+    {
+      "type": "calendar",
+      "entity": "booking",
+      "dateField": "startsAt",
+      "colorBy": "status",
+      "view": "week"
+    },
+    {
+      "type": "list",
+      "entity": "booking"
+    },
+    {
+      "type": "detail",
+      "entity": "booking",
+      "tabs": ["overview", "activity"]
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "workspace", "appearance"]
+    }
+  ],
+  "layout": {
+    "id": "sidebar",
+    "mobile": "mobile-tabs"
+  }
+}

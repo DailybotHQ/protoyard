@@ -1,0 +1,50 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.cadence-studio-demo",
+  "slug": "cadence-studio-demo",
+  "kind": "prototype",
+  "name": "Cadence Studio",
+  "description": "Class scheduling and customer bookings for a fictional neighborhood creative studio.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "productivity",
+  "tags": ["booking", "calendar", "classes", "creative-studio", "scheduling"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Studio scheduling",
+    "platforms": ["web"],
+    "features": ["bookings", "calendar", "class-scheduling", "appearance-settings"],
+    "highlights": [
+      "Weekly class calendar with direct slot booking",
+      "Booking details with activity history",
+      "Studio dashboard and saved appearance settings"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "\ud83c\udfa8",
+  "defaultScenario": "active",
+  "defaultTheme": "cadence-studio",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "layout": {
+      "id": "sidebar",
+      "supported": ["sidebar", "rail", "top-nav", "mobile-tabs"]
+    }
+  },
+  "storage": {
+    "namespace": "cadence-studio-demo",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": ["empty", "active", "viewer", "massive"],
+  "template": "crud-app",
+  "createdAt": "2026-10-20T00:09:19.262Z",
+  "updatedAt": "2026-10-20T00:09:19.262Z"
+}
