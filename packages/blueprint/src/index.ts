@@ -230,6 +230,19 @@ export {
   UNDO_WINDOW_MS,
 } from './services.ts';
 export {
+  blueprintShareFragment,
+  decodeBlueprintShare,
+  encodeBlueprintShare,
+  MAX_SHARE_DECODED_BYTES,
+  MAX_SHARE_ENCODED_LENGTH,
+  readBlueprintShareFragment,
+  SHARE_FRAGMENT_PARAM,
+  SHARE_LINK_VERSION,
+  type ShareDecodeResult,
+  type ShareLinkIssue,
+  ShareLinkTooLargeError,
+} from './share.ts';
+export {
   deriveIntegrity,
   deriveStores,
   entityStoreString,
