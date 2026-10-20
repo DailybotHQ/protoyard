@@ -33,11 +33,34 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 ## The schema
 
 ```ts
-import { parseBlueprint, safeParseBlueprint, entityTable } from '@protoyard/blueprint';
+import {
+  parseBlueprint,
+  safeParseBlueprint,
+  validateBlueprintForAuthoring,
+  entityTable,
+} from '@protoyard/blueprint';
 
 const blueprint = parseBlueprint(JSON.parse(text)); // throws a ZodError with paths
 entityTable(blueprint.entities[0]); // `support-tickets` → `supportTickets` unless `table` is set
 ```
+
+Agent authoring tools can use `validateBlueprintForAuthoring(input)` for stable JSON paths and
+repair hints. Its `valid` flag comes from the complete blueprint parser, including cross-reference
+checks; passing the JSON Schema shape alone does not make a blueprint valid:
+
+```ts
+const result = validateBlueprintForAuthoring(untrustedJson);
+if (!result.valid) {
+  for (const diagnostic of result.diagnostics) {
+    console.log(diagnostic.jsonPath, diagnostic.message, diagnostic.hint);
+  }
+}
+```
+
+Each diagnostic includes a machine-readable `code`, path segments in `path`, an unambiguous
+`jsonPath`, the original validation `message` and a concise next step in `hint`. `parseBlueprint`
+and `safeParseBlueprint` keep their existing behavior. The helper is in the package entry module
+and is tree-shakeable for consumers that do not import it.
 
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
