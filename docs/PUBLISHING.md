@@ -6,6 +6,17 @@ exporting, previewing and putting it on a host. Design decisions: ADR-009
 (hash routing) and ADR-014 (publishing adapters) in
 [DECISIONS.md](DECISIONS.md).
 
+## Agent-assisted ship flow
+
+The distributable [`protoyard-ship` skill](../skills/protoyard/ship/SKILL.md)
+wraps this CLI contract with a reviewable sequence: verify with
+`validate --build`, export or artifact-dry-run, then run
+`publish --provider <p> --dry-run`. The CLI itself does not prompt before a
+preview upload, so the skill requires the developer's explicit approval of
+the provider, project, target and exact command before it runs a live publish.
+Production still requires the CLI's `--yes` guard. npm publication is a
+separate consent checkpoint and is never run as part of prototype export.
+
 ## The commands
 
 | Command | Does | Contacts a provider |
