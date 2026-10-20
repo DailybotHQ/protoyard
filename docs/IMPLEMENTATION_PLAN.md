@@ -227,7 +227,7 @@ and is not recorded here yet.
 
 **Still open in PLAN_003:**
 
-- Task 169, the Final Review, runs the full suites, the default-port E2E and the AI Diff Reviewer local review on integrated `main`.
+- Task 169, the Final Review: a security review of the plan range in four slices (2 critical, 1 high and 5 medium findings, all fixed; the worker's storage limits are only partly done, see REVIEW_COMMENTS) [`bc5ec1c`, `ea66412`, `4b57ac2`, `b4ce28d`, `17d7ca7`, `0528ac9`, `2540932`]; final suites on `main`: lint, typecheck, `pnpm test` (410 files, 4,454 tests), default E2E (72 passed), flagship and template E2E (43 passed, one load flake that passed 6/6 on rerun), `budget --all` (15/15). The security sign-off is the developer's.
 
 **Known gaps after PLAN_003 (from the lane reports):**
 

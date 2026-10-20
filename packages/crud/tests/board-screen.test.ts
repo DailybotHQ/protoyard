@@ -119,6 +119,10 @@ describe('BoardScreen', () => {
         expect(await services.request!.get(String(created.id))).toMatchObject({ status: 'queued' }),
       { timeout: 5000 }
     );
+    // Wait for the board to show the undone card before moving it again.
+    await waitFor(() => expect(cell('queued')?.textContent).toContain('Pilot route'), {
+      timeout: 5000,
+    });
     await moveToActive('Pilot route');
     await waitFor(
       async () =>
