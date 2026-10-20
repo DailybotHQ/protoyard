@@ -2,7 +2,10 @@ import { fileURLToPath } from 'node:url';
 import { CliError } from './output.ts';
 import { resolvePackageBin, run } from './process.ts';
 
-const RUNNER = fileURLToPath(new URL('../runners/inspect-prototype.ts', import.meta.url));
+const runnerFile = import.meta.url.endsWith('.ts')
+  ? '../runners/inspect-prototype.ts'
+  : '../runners/inspect-prototype.js';
+const RUNNER = fileURLToPath(new URL(runnerFile, import.meta.url));
 const RESULT_MARKER = '@@PROTOYARD_RESULT@@';
 
 export interface InspectedScenario {
@@ -156,7 +159,8 @@ export async function inspectPrototype(
   mode: 'inspect' | 'generate' | 'spec',
   scenarioId?: string
 ): Promise<Inspection> {
-  const tsx = resolvePackageBin('tsx', 'tsx', [root, dir]);
+  const cliPackageDir = fileURLToPath(new URL('../..', import.meta.url));
+  const tsx = resolvePackageBin('tsx', 'tsx', [root, dir, cliPackageDir]);
   if (!tsx)
     throw new CliError('not_found', 'tsx is not installed.', { hint: 'Run `pnpm install`.' });
   const args = [tsx, RUNNER, dir, root, mode, ...(scenarioId ? [scenarioId] : [])];
