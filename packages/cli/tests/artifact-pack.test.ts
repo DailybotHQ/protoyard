@@ -296,6 +296,35 @@ describe('packArtifact', () => {
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
+  it('escapes U+FFFD in bundled JS and CSS so the Artifact accepts them', async () => {
+    write('assets/chunk-def.js', 'export const nul = `�`;');
+    write('assets/index-ghi.css', '.a::after{content:"�"}');
+    const result = await pack();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const js = readFileSync(join(out, 'assets/chunk-def.js'), 'utf8');
+    expect(js).toBe('export const nul = `\\uFFFD`;');
+    expect(readFileSync(join(out, 'assets/index-ghi.css'), 'utf8')).toBe(
+      '.a::after{content:"\\fffd "}'
+    );
+    const entry = result.manifest.files.find((file) => file.path === 'assets/chunk-def.js');
+    expect(entry).toMatchObject({
+      bytes: Buffer.byteLength(js),
+      sha256: createHash('sha256').update(js).digest('hex'),
+    });
+  });
+
+  it('refuses U+FFFD in a text file type that has no escape', async () => {
+    write('favicon.svg', '<svg xmlns="http://www.w3.org/2000/svg"><title>�</title></svg>');
+    const result = await pack();
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues).toContainEqual({
+      path: 'favicon.svg',
+      reason: 'contains the replacement character U+FFFD, which the Artifact refuses',
+    });
+  });
+
   it('writes the page, every asset and a complete manifest', async () => {
     const result = await pack();
     expect(result.ok).toBe(true);

@@ -417,6 +417,21 @@ export function checkTextAsset(path: string, text: string): PackIssue[] {
   return issues;
 }
 
+/**
+ * The Artifact tool refuses text files that contain U+FFFD, the replacement
+ * character, because it usually marks a broken decode. Bundled libraries can
+ * hold it on purpose (a `CSS.escape` polyfill returns it for NUL), so a JS,
+ * JSON or CSS file gets the escape sequence instead, which means the same
+ * character. Returns null when the text has none, or when this file type has
+ * no escape.
+ */
+export function escapeReplacementCharacters(path: string, text: string): string | null {
+  if (!text.includes('�')) return null;
+  if (/\.(?:m?js|json)$/i.test(path)) return text.replaceAll('�', '\\uFFFD');
+  if (/\.css$/i.test(path)) return text.replaceAll('�', '\\fffd ');
+  return null;
+}
+
 // ── Batches ─────────────────────────────────────────────────────────────────
 
 export interface PackBatch {
@@ -633,6 +648,8 @@ export async function packArtifact(options: PackArtifactOptions): Promise<PackAr
   const issues: PackIssue[] = [...transformed.issues];
   const warnings: string[] = [...transformed.warnings];
   const files: ArtifactPackFile[] = [];
+  /** Text files whose packed content differs from dist (escaped U+FFFD). */
+  const rewritten = new Map<string, string>();
 
   for (const digest of digests) {
     if (digest.path === 'index.html') continue;
@@ -659,15 +676,23 @@ export async function packArtifact(options: PackArtifactOptions): Promise<PackAr
         reason: `${digest.size} bytes exceed the ${limit}-byte limit for a ${kind.text ? 'text' : 'binary'} file`,
       });
     }
+    let packed: string | null = null;
     if (kind.text) {
-      issues.push(
-        ...checkTextAsset(digest.path, await readFile(join(distDir, digest.path), 'utf8'))
-      );
+      const text = await readFile(join(distDir, digest.path), 'utf8');
+      issues.push(...checkTextAsset(digest.path, text));
+      packed = escapeReplacementCharacters(digest.path, text);
+      if (packed === null && text.includes('�')) {
+        issues.push({
+          path: digest.path,
+          reason: 'contains the replacement character U+FFFD, which the Artifact refuses',
+        });
+      }
     }
+    if (packed !== null) rewritten.set(digest.path, packed);
     files.push({
       path: digest.path,
-      bytes: digest.size,
-      sha256: digest.sha256,
+      bytes: packed === null ? digest.size : Buffer.byteLength(packed),
+      sha256: packed === null ? digest.sha256 : sha256Text(packed),
       contentType: kind.type,
     });
   }
@@ -718,7 +743,9 @@ export async function packArtifact(options: PackArtifactOptions): Promise<PackAr
   for (const file of files) {
     const target = join(outDir, ...file.path.split('/'));
     await mkdir(dirname(target), { recursive: true });
-    await copyFile(join(distDir, ...file.path.split('/')), target);
+    const packed = rewritten.get(file.path);
+    if (packed === undefined) await copyFile(join(distDir, ...file.path.split('/')), target);
+    else await writeFile(target, packed);
   }
   await writeFile(join(outDir, ARTIFACT_MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
   return { ok: true, manifest, outDir, written: true };
