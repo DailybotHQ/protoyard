@@ -417,6 +417,12 @@ importers:
         specifier: workspace:*
         version: link:../scenarios
 
+  packages/protoyard:
+    dependencies:
+      '@protoyard/cli':
+        specifier: workspace:*
+        version: link:../cli
+
   packages/renderer-svelte:
     dependencies:
       '@protoyard/avatars':
