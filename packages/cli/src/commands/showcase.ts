@@ -403,12 +403,33 @@ function buildPlayer(ctx: CommandContext, outDir: string, quiet: boolean) {
 }
 
 /** Copies the built player and all of its runtime chunks under `<site>/player/`. */
-export async function copyPlayerAssets(playerDist: string, siteDir: string): Promise<void> {
+export async function copyPlayerAssets(
+  playerDist: string,
+  siteDir: string,
+  base = '/'
+): Promise<void> {
   if (!existsSync(join(playerDist, 'index.html')))
     throw new CliError('validation', 'The player build did not emit index.html.');
+  const playerHeadersPath = join(playerDist, '_headers');
+  if (!existsSync(playerHeadersPath))
+    throw new CliError('validation', 'The player build did not emit _headers.');
   const destination = join(siteDir, 'player');
   await mkdir(destination, { recursive: true });
   await cp(playerDist, destination, { recursive: true, force: true });
+  const playerHeaders = await readFile(playerHeadersPath, 'utf8');
+  const siteHeadersPath = join(siteDir, '_headers');
+  const siteHeaders = existsSync(siteHeadersPath) ? await readFile(siteHeadersPath, 'utf8') : '';
+  await writeFile(siteHeadersPath, mergePlayerHeaders(siteHeaders, playerHeaders, base), 'utf8');
+}
+
+/** Adds the player host rules to the Pages file at the artifact root. */
+export function mergePlayerHeaders(siteHeaders: string, playerHeaders: string, base = '/'): string {
+  const playerPath = `${base === '/' ? '' : base.replace(/\/$/, '')}/player/*`;
+  const scoped = playerHeaders.replace(/^\/\*(\s*)$/gm, `${playerPath}$1`).trim();
+  if (!scoped) throw new CliError('validation', 'The player _headers file is empty.');
+  const existing = siteHeaders.trim();
+  if (existing.includes(playerPath)) return `${existing}\n`;
+  return `${[existing, scoped].filter(Boolean).join('\n\n')}\n`;
 }
 
 async function serve(dir: string, base: string, options: Record<string, unknown>) {
@@ -605,7 +626,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
           hint: player.log.trim().split('\n').slice(-10).join('\n') || 'See the output above.',
         });
       }
-      await copyPlayerAssets(playerOut, staging);
+      await copyPlayerAssets(playerOut, staging, base);
       await rm(playerOut, { recursive: true, force: true });
     }
 

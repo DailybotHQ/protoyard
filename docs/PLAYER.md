@@ -39,6 +39,13 @@ than 16 KB and decoded input larger than 256 KB. Pasted text is capped at 256
 KB before JSON parsing. The `/play/` landing page is indexable, but a visit
 with a share fragment is marked `noindex`.
 
+The hosted player sends a Content Security Policy from the showcase root
+`_headers` file under `/player/*`; this includes `frame-ancestors` because a
+meta policy cannot set it. Its `style-src` keeps `'unsafe-inline'` for the
+runtime style attributes and elements Svelte and the theme engine create.
+Cloudflare Pages reads `_headers` only at the output root, so showcase builds
+merge the player rules there rather than relying on the nested player file.
+
 ## Validate and promote
 
 ```bash

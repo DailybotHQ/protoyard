@@ -8,6 +8,8 @@ import { NO_FLASH_SCRIPT } from '@/lib/theme';
 interface Props {
   title?: string;
   description?: string;
+  /** Base-relative path to use for canonical and social metadata. */
+  canonicalPath?: string;
   active?: 'home' | 'templates' | 'marketplace' | 'themes' | 'new';
   /** Keep the page out of search results (404, compare, create flow). */
   noindex?: boolean;
@@ -16,6 +18,7 @@ interface Props {
 const {
   title,
   description = 'Build prototypes that feel real. Real behavior. Fake infrastructure.',
+  canonicalPath,
   active,
   noindex = false,
 } = Astro.props;
@@ -23,7 +26,16 @@ const fullTitle = title ? `${title} · Protoyard` : 'Protoyard — Build prototy
 // With a site (`protoyard showcase --site https://…` or GALLERY_SITE), links
 // and images are absolute so search engines and link previews resolve them.
 const absolute = (path: string) => (Astro.site ? new URL(path, Astro.site).href : path);
-const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : null;
+// Astro.url.pathname is route-relative, while showcase links include the
+// configured base. Normalize both forms so canonical URLs match that base.
+const configuredBase = import.meta.env.BASE_URL.replace(/\/$/, '');
+const routePath =
+  configuredBase && Astro.url.pathname.startsWith(`${configuredBase}/`)
+    ? Astro.url.pathname.slice(configuredBase.length)
+    : Astro.url.pathname;
+const canonical = Astro.site
+  ? new URL(canonicalPath ?? withBase(routePath), Astro.site).href
+  : null;
 // One brand card for every page, so a shared protoyard.app link always shows it.
 const socialImage = absolute(withBase('/og-image.jpg'));
 const socialImageAlt =
