@@ -57,23 +57,8 @@ directory only after the new checkout has been inspected. The manual route
 does not create a `skills-lock.json` entry; record the selected tag in the
 workspace's normal setup notes when reproducibility matters.
 
-## Supported manual host paths
-
-These are user-level paths. A host may also support a project-local equivalent
-under the repository's own configuration directory; prefer the skills CLI for
-project-scoped installs because it records the lock entry.
-
-| Host | Manual skill directory |
-| --- | --- |
-| Claude Code | `~/.claude/skills/protoyard/` |
-| Cursor | `~/.cursor/skills/protoyard/` |
-| OpenAI Codex | `~/.codex/skills/protoyard/` |
-| Gemini CLI | `~/.gemini/skills/protoyard/` |
-| GitHub Copilot | `~/.copilot/skills/protoyard/` |
-| OpenCode | `~/.config/opencode/skills/protoyard/` |
-| Windsurf | `~/.codeium/windsurf/skills/protoyard/` |
-| OpenClaw | `<workspace>/skills/protoyard/` or `~/.openclaw/skills/protoyard/` |
-
+Host-specific manual locations, the supported host set, the OpenClaw native
+route, and discovery checks live in the [host installation reference](hosts.md).
 The directory must contain the router at `SKILL.md`, the `install/` sub-skill,
 and the `references/` directory. Do not flatten the contents into the parent
 skills directory.

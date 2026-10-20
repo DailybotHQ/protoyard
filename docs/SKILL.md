@@ -21,7 +21,9 @@ Replace `vX.Y.Z` with the desired Protoyard release tag. The pinned URL keeps
 the skill aligned with that release's CLI. The router is the `protoyard`
 entrypoint; the `install` sub-skill contains host-specific installation and
 verification steps. See the [installation reference](../skills/protoyard/references/install.md)
-for skills CLI, OpenClaw-native, manual host paths, and version checks.
+for the pinned routes, and the [host installation reference](../skills/protoyard/references/hosts.md)
+for supported hosts, manual destinations, OpenClaw-native installation, and
+discovery checks.
 
 The agent skill and the Protoyard CLI are separate installs. Check `protoyard
 --help` and `protoyard --version` before following CLI examples; available
