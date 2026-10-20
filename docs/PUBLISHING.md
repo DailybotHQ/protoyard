@@ -931,6 +931,11 @@ empty and `robots.txt` has no `Sitemap:` line. `pnpm build:showcase` passes
 `--site https://protoyard.app`, the official site. A fork hosted elsewhere
 changes that script or runs `pnpm protoyard showcase --site <its origin>`.
 
+The standalone player is copied to `<base>player/`. Its CSP and framing rules
+are merged into the showcase root `_headers` under `<base>player/*` so
+Cloudflare Pages applies them; the player build's nested `_headers` alone is
+not read from that location.
+
 The official showcase is served by Cloudflare Pages from this repository:
 build command `pnpm build:showcase`, output directory `artifacts/showcase`,
 environment `NODE_VERSION=24.20.0` and `PNPM_VERSION=11.23.0`, and the custom

@@ -1,11 +1,13 @@
 ---
 import Playground from '@/components/player/Playground.svelte';
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { withBase } from '@/lib/format';
 ---
 
 <BaseLayout
   title="Play a blueprint"
   description="Paste a Protoyard blueprint or open a share link to run a working prototype in your browser."
+  canonicalPath={withBase('/play/')}
 >
   <h1 class="text-3xl font-semibold tracking-tight">Play a blueprint</h1>
   <p class="mt-2 mb-8 max-w-3xl text-muted">
@@ -13,12 +15,11 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
     its simulated data stays in this browser.
   </p>
   <Playground client:load />
-  <script is:inline>
-    if (window.location.hash.includes('bp=')) {
-      const tag = document.createElement('meta');
-      tag.name = 'robots';
-      tag.content = 'noindex';
-      document.head.append(tag);
-    }
+  <script>
+    import { syncShareRobots } from '@/lib/play-robots';
+
+    const updateShareRobots = () => syncShareRobots(window.location.hash, document.head);
+    updateShareRobots();
+    window.addEventListener('hashchange', updateShareRobots);
   </script>
 </BaseLayout>

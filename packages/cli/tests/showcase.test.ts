@@ -9,6 +9,7 @@ import {
   assertShowcasePublishable,
   copyPlayerAssets,
   marketplacePathFor,
+  mergePlayerHeaders,
   parseShowcaseSite,
   publishShowcaseDirectory,
   shareAvatars,
@@ -31,11 +32,18 @@ describe('showcase', () => {
     const site = mkdtempSync(join(tmpdir(), 'protoyard-showcase-player-'));
     try {
       writeFileSync(join(player, 'index.html'), '<script src="./assets/player.js"></script>');
+      writeFileSync(
+        join(player, '_headers'),
+        "/*\n  Content-Security-Policy: default-src 'self'\n  X-Content-Type-Options: nosniff\n"
+      );
       mkdirSync(join(player, 'assets'));
       writeFileSync(join(player, 'assets/player.js'), 'void 0;');
       await copyPlayerAssets(player, site);
       expect(readFileSync(join(site, 'player/index.html'), 'utf8')).toContain('./assets/player.js');
       expect(readFileSync(join(site, 'player/assets/player.js'), 'utf8')).toBe('void 0;');
+      const siteHeaders = readFileSync(join(site, '_headers'), 'utf8');
+      expect(siteHeaders).toContain("/player/*\n  Content-Security-Policy: default-src 'self'");
+      expect(siteHeaders).toContain('X-Content-Type-Options: nosniff');
     } finally {
       rmSync(player, { recursive: true, force: true });
       rmSync(site, { recursive: true, force: true });
@@ -51,6 +59,35 @@ describe('showcase', () => {
       rmSync(player, { recursive: true, force: true });
       rmSync(site, { recursive: true, force: true });
     }
+  });
+
+  it('rejects a player build without host security headers', async () => {
+    const player = mkdtempSync(join(tmpdir(), 'protoyard-player-without-headers-'));
+    const site = mkdtempSync(join(tmpdir(), 'protoyard-site-without-headers-'));
+    try {
+      writeFileSync(join(player, 'index.html'), '<main>player</main>');
+      await expect(copyPlayerAssets(player, site)).rejects.toThrow('did not emit _headers');
+    } finally {
+      rmSync(player, { recursive: true, force: true });
+      rmSync(site, { recursive: true, force: true });
+    }
+  });
+
+  it('merges the player CSP into root Pages headers without replacing gallery rules', () => {
+    expect(
+      mergePlayerHeaders(
+        '/*\n  X-Frame-Options: SAMEORIGIN\n',
+        "/*\n  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'\n  Referrer-Policy: no-referrer\n"
+      )
+    ).toBe(
+      "/*\n  X-Frame-Options: SAMEORIGIN\n\n/player/*\n  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'\n  Referrer-Policy: no-referrer\n"
+    );
+  });
+
+  it('prefixes the player header path when the showcase uses a base path', () => {
+    expect(mergePlayerHeaders('', '/*\n  Referrer-Policy: no-referrer\n', '/protoyard/')).toBe(
+      '/protoyard/player/*\n  Referrer-Policy: no-referrer\n'
+    );
   });
 
   it('places apps under their gallery detail pages', () => {
