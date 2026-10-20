@@ -162,5 +162,15 @@ describe('AnalyticsScreen', () => {
       'status'
     );
     expect(csv).toContain('\'=HYPERLINK(""bad"")');
+    const signed = analyticsCsv(
+      [{ bucket: "-1+cmd|' /C calc'!A0", dimension: null, value: -5, records: 1 }],
+      blueprint.entities[0] ??
+        (() => {
+          throw new RangeError('missing test entity');
+        })(),
+      null
+    );
+    expect(signed).toContain('"\'-1+cmd|');
+    expect(signed).toContain('"-5"');
   });
 });

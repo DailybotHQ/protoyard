@@ -240,7 +240,7 @@ const { valid, errors } = validateCsv(entity, text);
   `<label> lng`); import needs both halves or neither.
 - An `avatar` field exports its id (`av-007`) and imports only library ids.
 - Money and dates go through `deriveInputSchemas` create coercion (`12.50` → 1250 cents).
-- Export prefixes cells starting with `= + - @` with `'` (spreadsheet formula guard).
+- Export prefixes with `'` cells starting with `= + - @` (also after leading spaces or full-width), a tab or a carriage return, unless the whole cell is a plain number such as `-5` (spreadsheet formula guard, `guardCsvFormula`). Import strips only a prefix the export would have added, so values round-trip.
 - Hard limits: `CSV_MAX_BYTES` (2 MiB) and `CSV_MAX_ROWS` (10,000 data rows); override per call.
 
 ## World generator

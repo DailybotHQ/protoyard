@@ -14,6 +14,7 @@ import {
   aggregate,
   type BlueprintEntity,
   type BlueprintScreen,
+  guardCsvFormula,
   inputProperty,
 } from '@protoyard/blueprint';
 import type { Row } from '@protoyard/core';
@@ -189,8 +190,7 @@ export function analyticsCsv(
   dimension: string | null
 ): string {
   const cell = (value: unknown) => {
-    let text = String(value ?? '');
-    if (typeof value === 'string' && /^[\s]*[=+@-]/.test(text)) text = `'${text}`;
+    const text = guardCsvFormula(String(value ?? ''));
     return `"${text.replaceAll('"', '""')}"`;
   };
   const rows = [
