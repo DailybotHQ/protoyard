@@ -5,6 +5,7 @@ import { checkCiDrift } from '../lib/ci-templates.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag } from '../lib/command.ts';
 import { CliError, mark } from '../lib/output.ts';
+import { workspaceLayout } from '../lib/paths.ts';
 import { pnpmCommand } from '../lib/pnpm.ts';
 import { run, which } from '../lib/process.ts';
 import { loadRegistry } from '../lib/registry.ts';
@@ -91,8 +92,12 @@ async function pnpmCheck(expected: string | undefined): Promise<DoctorCheck> {
   return item('pnpm', 'pnpm', 'pass', version, true);
 }
 
-function dependenciesCheck(ctx: CommandContext): DoctorCheck {
-  if (!existsSync(join(ctx.root, 'node_modules', '.modules.yaml'))) {
+function dependenciesCheck(ctx: CommandContext, layout: 'monorepo' | 'consumer'): DoctorCheck {
+  const installed =
+    layout === 'monorepo'
+      ? existsSync(join(ctx.root, 'node_modules', '.modules.yaml'))
+      : existsSync(join(ctx.root, 'node_modules'));
+  if (!installed) {
     return item(
       'deps',
       'Dependencies',
@@ -102,6 +107,7 @@ function dependenciesCheck(ctx: CommandContext): DoctorCheck {
       'Run `pnpm install`.'
     );
   }
+  if (layout === 'consumer') return item('deps', 'Dependencies', 'pass', 'installed', true);
   // A prototype created by hand (or with --no-install) is not linked yet.
   const unlinked: string[] = [];
   for (const base of [ctx.paths.prototypes, ctx.paths.templates]) {
@@ -125,6 +131,10 @@ function dependenciesCheck(ctx: CommandContext): DoctorCheck {
 }
 
 function layoutCheck(ctx: CommandContext): DoctorCheck {
+  const layout = workspaceLayout(ctx.root);
+  if (layout === 'consumer') {
+    return item('layout', 'Workspace layout', 'pass', `${ctx.root} (consumer)`, true);
+  }
   const expected = ['pnpm-workspace.yaml', 'packages/core/package.json', 'prototypes', 'templates'];
   const missing = expected.filter((p) => !existsSync(join(ctx.root, p)));
   return missing.length > 0
@@ -136,7 +146,7 @@ function layoutCheck(ctx: CommandContext): DoctorCheck {
         true,
         'Run inside a Protoyard checkout, or pass --root.'
       )
-    : item('layout', 'Workspace layout', 'pass', ctx.root, true);
+    : item('layout', 'Workspace layout', 'pass', `${ctx.root} (monorepo)`, true);
 }
 
 async function gitCheck(ctx: CommandContext): Promise<DoctorCheck> {
@@ -271,6 +281,7 @@ async function providerChecks(ctx: CommandContext, offline: boolean): Promise<Do
 }
 
 export const doctorCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
+  const layout = workspaceLayout(ctx.root) ?? 'monorepo';
   const rootPkg = readPackageJson(join(ctx.root, 'package.json')) as
     | ({ engines?: { node?: string }; packageManager?: string } & Record<string, unknown>)
     | null;
@@ -281,38 +292,44 @@ export const doctorCommand: Handler = async (ctx, _args, options): Promise<Comma
     nodeCheck(minimumNode),
     await pnpmCheck(pinnedPnpm),
     layoutCheck(ctx),
-    dependenciesCheck(ctx),
+    dependenciesCheck(ctx, layout),
   ];
-  try {
-    const registry = await loadRegistry(ctx.paths);
-    const templates = registry.entries.filter((e) => e.kind === 'template').map((e) => e.slug);
-    const prototypes = registry.stats.prototypes;
+  if (layout === 'monorepo') {
+    try {
+      const registry = await loadRegistry(ctx.paths);
+      const templates = registry.entries.filter((e) => e.kind === 'template').map((e) => e.slug);
+      const prototypes = registry.stats.prototypes;
+      checks.push(
+        templates.length > 0
+          ? item('templates', 'Templates', 'pass', templates.join(', '), true)
+          : item(
+              'templates',
+              'Templates',
+              'warn',
+              'none found',
+              true,
+              '`protoyard new` needs at least one template under templates/.'
+            )
+      );
+      checks.push(
+        registry.invalid.length > 0
+          ? item(
+              'registry',
+              'Registry',
+              'warn',
+              `${prototypes} prototypes, ${registry.invalid.length} invalid manifest(s)`,
+              false,
+              'Run `pnpm protoyard index` for details.'
+            )
+          : item('registry', 'Registry', 'pass', `${prototypes} prototypes indexed`, false)
+      );
+    } catch (error) {
+      checks.push(item('registry', 'Registry', 'fail', (error as Error).message, true));
+    }
+  } else {
     checks.push(
-      templates.length > 0
-        ? item('templates', 'Templates', 'pass', templates.join(', '), true)
-        : item(
-            'templates',
-            'Templates',
-            'warn',
-            'none found',
-            true,
-            '`protoyard new` needs at least one template under templates/.'
-          )
+      item('registry', 'Registry', 'skip', 'not applicable to a consumer workspace', false)
     );
-    checks.push(
-      registry.invalid.length > 0
-        ? item(
-            'registry',
-            'Registry',
-            'warn',
-            `${prototypes} prototypes, ${registry.invalid.length} invalid manifest(s)`,
-            false,
-            'Run `pnpm protoyard index` for details.'
-          )
-        : item('registry', 'Registry', 'pass', `${prototypes} prototypes indexed`, false)
-    );
-  } catch (error) {
-    checks.push(item('registry', 'Registry', 'fail', (error as Error).message, true));
   }
   checks.push(await gitCheck(ctx));
   checks.push(playwrightCheck());

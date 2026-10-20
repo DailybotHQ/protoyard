@@ -1,4 +1,4 @@
-import { existsSync, realpathSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { CliError } from './output.ts';
 
@@ -14,6 +14,37 @@ export interface WorkspacePaths {
   state: string;
   registry: string;
   indexCache: string;
+}
+
+export type WorkspaceLayout = 'monorepo' | 'consumer';
+
+type WorkspacePackage = {
+  protoyard?: unknown;
+  workspaces?: unknown;
+};
+
+function readWorkspacePackage(root: string): WorkspacePackage | null {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
+    return parsed && typeof parsed === 'object' ? (parsed as WorkspacePackage) : null;
+  } catch {
+    return null;
+  }
+}
+
+function hasConsumerMarker(pkg: WorkspacePackage | null): boolean {
+  if (!pkg) return false;
+  if (pkg.protoyard !== undefined) return true;
+  if (Array.isArray(pkg.workspaces)) return pkg.workspaces.length > 0;
+  if (!pkg.workspaces || typeof pkg.workspaces !== 'object') return false;
+  const packages = (pkg.workspaces as { packages?: unknown }).packages;
+  return Array.isArray(packages) && packages.length > 0;
+}
+
+/** Returns the supported workspace layout at an already-resolved root. */
+export function workspaceLayout(root: string): WorkspaceLayout | null {
+  if (existsSync(join(root, 'pnpm-workspace.yaml'))) return 'monorepo';
+  return hasConsumerMarker(readWorkspacePackage(root)) ? 'consumer' : null;
 }
 
 export function workspacePaths(root: string): WorkspacePaths {
@@ -33,8 +64,9 @@ export function workspacePaths(root: string): WorkspacePaths {
 /**
  * Resolves the workspace root. An explicit `--root`/`PROTOYARD_ROOT` is used
  * as-is (benchmarks and tests point it at temp dirs); otherwise we walk up from
- * the working directory to the folder holding `pnpm-workspace.yaml`, so the CLI
- * works from inside a prototype folder too.
+ * the working directory to the folder holding `pnpm-workspace.yaml` or a
+ * consumer package.json with a Protoyard/workspaces marker, so the CLI works
+ * from inside a prototype folder too.
  */
 export function resolveWorkspaceRoot(options: { root?: string; cwd?: string } = {}): string {
   const cwd = resolve(options.cwd ?? process.cwd());
@@ -52,13 +84,13 @@ export function resolveWorkspaceRoot(options: { root?: string; cwd?: string } = 
   }
   let dir = cwd;
   while (true) {
-    if (existsSync(join(dir, 'pnpm-workspace.yaml'))) return realpathSync(dir);
+    if (workspaceLayout(dir)) return realpathSync(dir);
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
   }
   throw new CliError('not_found', `No Protoyard workspace found from ${cwd}.`, {
-    hint: 'Run inside the repository (it has pnpm-workspace.yaml) or pass --root <dir>.',
+    hint: 'Run inside a Protoyard workspace (pnpm-workspace.yaml or a marked package.json) or pass --root <dir>.',
   });
 }
 
