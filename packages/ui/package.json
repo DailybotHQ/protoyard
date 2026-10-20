@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/ui",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Svelte 5 UI primitives and product patterns for Protoyard prototypes (Bits UI + Tailwind CSS 4 + Lucide).",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/review",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Review comments engine for published Protoyard prototypes: pin anchors, a small storage adapter contract with local (IndexedDB) and http adapters, a Request/Response comments handler for the opt-in shared mode, and review reports. Self-declared names are not authentication.",
   "license": "MIT",
   "type": "module",

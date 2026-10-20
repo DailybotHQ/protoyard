@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/blueprint",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Data-only blueprints for Protoyard: schema validation and the derivations (stores, integrity, migrations, inputs, policy, generators, entity services) that turn a blueprint into a working prototype.",
   "license": "MIT",
   "type": "module",

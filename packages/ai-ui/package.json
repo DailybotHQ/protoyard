@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/ai-ui",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Svelte 5 assistant interface components for simulated AI prototypes.",
   "license": "MIT",
   "type": "module",

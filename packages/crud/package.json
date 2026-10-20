@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/crud",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Blueprint-driven EntityList and EntityForm for Protoyard (DataTable, filters, CSV, soft-delete undo).",
   "license": "MIT",
   "type": "module",

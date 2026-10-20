@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/saas-ui",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Svelte 5 screens and route helpers for Protoyard simulated SaaS kits (auth, inbox, onboarding, workspaces). Simulation UX only — never security.",
   "license": "MIT",
   "type": "module",

@@ -6,6 +6,103 @@ All notable changes to Protoyard are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-20
+
+The first stable release: Protoyard grows from a prototype runtime into a
+workspace where people and agents can imagine almost any product, generate it
+from a brief or a blueprint, review it with pinned comments and share it. The
+platform packages, the CLI and the gallery move to 1.0.0. Prototypes and
+templates keep their own app versions.
+
+### Added
+
+- **Kits beyond CRUD**, each on lazy subpaths so a prototype pays only for
+  what it uses:
+  - **Rich views** (`@protoyard/views`, `@protoyard/views-ui`): board with WIP
+    limits, calendar with recurrence, Gantt timeline with dependencies, a
+    virtualized data grid (measured on 100,000 rows), trees, an offline
+    fictional map, a Markdown editor, activity, a file manager and a command
+    palette.
+  - **Charts** (`@protoyard/charts`, `@protoyard/charts-ui`): Protoyard's own
+    chart kit (cartesian, part-whole, matrix, compact, Canvas and geo) with
+    keyboard access, "View as table" fallbacks and theme-token palettes.
+  - **Analytics** (`@protoyard/analytics`, `@protoyard/analytics-ui`): events,
+    metrics, date ranges, filters and segments, funnels, cohorts, drill-down
+    and an editable dashboard grid over deterministic generators.
+  - **SaaS kits** (`@protoyard/saas`, `@protoyard/saas-ui`): simulated sign-up
+    and sign-in, a fake OAuth round trip, magic links, MFA, invitations,
+    workspaces, onboarding, plans, checkout, invoices and an in-app inbox.
+  - **AI kits** (`@protoyard/ai`, `@protoyard/ai-ui`): scripted streaming
+    assistants, agents with tool calls and approvals, safe rich answers
+    (including validated chart answers), a canvas, voice mode and widget modes.
+  - **Avatars** (`@protoyard/avatars`): 175 fictional portraits with a verified
+    manifest, assigned deterministically by every people generator.
+- **Blueprints and the generator** (`@protoyard/blueprint`, `@protoyard/crud`):
+  data-only `blueprint.json` files become working prototypes with
+  `protoyard generate`: list, detail and form screens plus dashboard, board,
+  calendar, timeline, map, analytics and settings screens, selectable layouts,
+  brand themes, avatar fields and regeneration with ownership and drift checks.
+  A catalog of 40 product blueprints ships in `blueprints/`.
+- **Brief to prototype**: `protoyard blueprint new --from-brief` turns a prose
+  brief into a validated blueprint offline, ready to review and generate.
+- **Layouts and shells**: twelve shared lazy layouts (sidebar, rail, top nav,
+  dual sidebar, master-detail, dashboard grid, docs, wizard, mobile tabs,
+  mobile drawer…) and device and host shells (phone, tablet, desktop window,
+  browser, widget host, extension popup, side panel), switchable from DevTools
+  or with `?layout=` and `?shell=`.
+- **Theme library and Theme Studio**: 64 lazy library themes in six
+  collections (including AAA high contrast and colorblind-safe), a palette
+  engine from one brand color, style presets, Theme Studio with color
+  harmonies and shareable theme links, and the `protoyard theme` CLI.
+- **Review comments** (`@protoyard/review`, `@protoyard/review-ui`): opt-in
+  comments pinned to screens of a built prototype, with local, HTTP/Cloudflare
+  and Claude artifact adapters, a server handler, DevTools hosting, import and
+  export, and `protoyard comments pull` to turn them into a `REVIEW.md`.
+- **Sharing as a private Claude artifact**: `export --target artifact` packs one
+  prototype and checks every artifact rule; `artifact record` and
+  `artifact list` keep a local share ledger.
+- **Showcase**: `protoyard showcase` builds the gallery, the marketplace and a
+  live demo of every prototype and template as one static site.
+- **Specs**: every prototype carries an `AGENTS.md` and a `docs/` spec whose
+  generated regions stay in sync with the code (`protoyard spec --check`), plus
+  a rebuild kit.
+- **Templates**: 27 templates in total, now including admin console, agent
+  console, AI assistant, analytics, B2B SaaS, booking calendar, chat widget,
+  clinic, course LMS, CRUD app, desktop app, docs wiki, fintech dashboard, IoT
+  monitoring, logistics map, marketplace, plugin panel, project management,
+  social feed and team chat.
+- **Flagship prototypes**: Lattice (B2B SaaS), Nova Assistant, Relay Chat,
+  Northwind Help (support widget), Keel Projects, Pebblestat Analytics, Atlas
+  Workspace, and the blueprint-generated Beacon Help Desk, Harborlight
+  Dispatch, Cadence Studio and Pulse Revenue — 15 prototypes in total.
+- **Gallery**: a marketplace with filters and theme facets, a searchable theme
+  explorer with "try in theme", review counts and shared-artifact links.
+- **CLI**: `generate`, `blueprint`, `theme`, `budget`, `affected`, `spec`,
+  `comments`, `artifact`, `showcase` and `scenario bench`, all with `--json`.
+- **Benchmarks and QA scripts**: index, cold-start, charts, grid and idea
+  benchmarks, a visual sweep across prototypes, templates and themes, and
+  thumbnail generation.
+
+### Changed
+
+- Every template and flagship prototype adopted the shared layout host and
+  shows seeded avatar photos wherever people appear.
+- DevTools gained a layout picker, shell and device controls, the theme
+  browser, Theme Studio and lazy extension tabs, and its share link carries
+  theme, mode, layout and style overrides.
+
+### Fixed
+
+- Artifact packs escape the U+FFFD replacement character that a bundled
+  dependency ships, so the Artifact host accepts them.
+- A security review of PLAN_003 closed findings across the CLI (symlinks,
+  output confinement, `__proto__` keys), review comments (rate limits, anchor
+  sanitizing, untrusted `REVIEW.md`), blueprints (CSV formula guards, fictional
+  contact data), themes (control and bidi characters) and views (nested filter
+  limits), each with a regression test.
+- Accessibility and contrast fixes across charts, the timeline, the gallery and
+  the demo badge.
+
 ## [0.1.0] - 2026-10-17
 
 The foundation: an open-source, browser-first workspace for building functional
@@ -83,5 +180,6 @@ static site.
 - The gallery no longer ignores input typed before hydration and does not overflow
   horizontally on phones.
 
-[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/DailybotHQ/protoyard/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/DailybotHQ/protoyard/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/DailybotHQ/protoyard/releases/tag/v0.1.0

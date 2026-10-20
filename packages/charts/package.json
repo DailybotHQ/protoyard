@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/charts",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Framework-agnostic chart math for Protoyard prototypes: scales, shapes, downsampling, layouts and theme-token palettes (no Svelte, no third-party chart library).",
   "license": "MIT",
   "type": "module",

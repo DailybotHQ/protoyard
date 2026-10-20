@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/runtime",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Framework-agnostic Protoyard runtime: composes database, scenarios, session, overrides, clock, environment, themes and snapshots into one PrototypeRuntime.",
   "license": "MIT",
   "type": "module",

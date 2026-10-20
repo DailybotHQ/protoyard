@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/cli",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "The protoyard command line: discover, index, scaffold, run, validate, build, export and publish prototypes.",
   "license": "MIT",
   "type": "module",

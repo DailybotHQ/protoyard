@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/themes",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Protoyard theme engine: token presets, light/dark/system resolution and scoped CSS variable application.",
   "license": "MIT",
   "type": "module",

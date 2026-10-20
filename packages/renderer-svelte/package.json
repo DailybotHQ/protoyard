@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/renderer-svelte",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Svelte 5 + Vite renderer for Protoyard: Vite config factory, app mounting, reactive runtime bindings and live queries.",
   "license": "MIT",
   "type": "module",

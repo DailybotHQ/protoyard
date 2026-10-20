@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/saas",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Simulated SaaS kit engine for Protoyard prototypes: tables, row schemas and integrity rules for accounts, sign-in history, tokens, MFA, invitations, an inbox, subscriptions, invoices and onboarding. Simulation for UX, never security.",
   "license": "MIT",
   "type": "module",

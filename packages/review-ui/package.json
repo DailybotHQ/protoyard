@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/review-ui",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Svelte 5 review UI for published Protoyard prototypes: comment mode and pins, threads, the comments panel and review toolbar, and the lazy mount entry. Loaded only when review is enabled.",
   "license": "MIT",
   "type": "module",

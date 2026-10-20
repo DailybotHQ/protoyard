@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/analytics-ui",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Svelte 5 analytics kit for Protoyard prototypes: KPI tiles, date ranges, filters and segments, cohort and funnel views and a dashboard grid, one lazy subpath per view.",
   "license": "MIT",
   "type": "module",

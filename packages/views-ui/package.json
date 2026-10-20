@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/views-ui",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Svelte 5 components for Protoyard's rich views kit (board, calendar, timeline, data grid, tree, simulated map, editor, activity, notifications, files, settings, states, command palette). One lazy subpath per view, never re-exported from @protoyard/ui.",
   "license": "MIT",
   "type": "module",

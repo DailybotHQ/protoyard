@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/scenarios",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Scenario engine for Protoyard: presets, seeded generator SDK (faker + PRNG + fixed clock), referential-integrity checks and timeline helpers.",
   "license": "MIT",
   "type": "module",

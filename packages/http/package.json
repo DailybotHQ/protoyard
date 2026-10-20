@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/http",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Optional mock HTTP layer for Protoyard prototypes: a fetch-compatible API routed to prototype services through the simulated environment — no server, no service worker.",
   "license": "MIT",
   "type": "module",

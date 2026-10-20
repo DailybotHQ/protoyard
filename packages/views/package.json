@@ -1,6 +1,6 @@
 {
   "name": "@protoyard/views",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Framework-free engines for Protoyard's rich views kit: board ranks and WIP limits, calendar recurrence, schedule dependencies, grid virtualization and filters, trees, offline geo, comments and deterministic scenario generators. One subpath per view; no Svelte.",
   "license": "MIT",
   "type": "module",
