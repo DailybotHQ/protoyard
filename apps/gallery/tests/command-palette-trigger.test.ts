@@ -41,7 +41,7 @@ describe('CommandPaletteTrigger', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { default: Trigger } = await import('../src/components/CommandPaletteTrigger.svelte');
     render(Trigger, { homeUrl: '/' });
-    const button = screen.getByRole('button', { name: /Open command palette/ });
+    const button = screen.getByRole('button', { name: /^Search/ });
 
     await fireEvent.click(button);
     expect((await screen.findByRole('alert')).textContent).toMatch(/Search could not load/);

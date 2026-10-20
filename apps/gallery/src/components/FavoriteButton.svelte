@@ -20,7 +20,11 @@ onMount(() => library.load());
     active && 'text-warning hover:text-warning',
   ]}
   aria-pressed={active}
-  aria-label={active ? `Remove ${name} from favorites` : `Add ${name} to favorites`}
+  aria-label={withLabel
+    ? undefined
+    : active
+      ? `Remove ${name} from favorites`
+      : `Add ${name} to favorites`}
   onclick={(event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -28,5 +32,7 @@ onMount(() => library.load());
   }}
 >
   <Star size={16} fill={active ? 'currentColor' : 'none'} aria-hidden="true" />
-  {#if withLabel}<span>{active ? 'Favorited' : 'Favorite'}</span>{/if}
+  <!-- With a visible label, the name starts with that label (WCAG 2.5.3) and
+       aria-pressed carries the state, so the name never changes on toggle. -->
+  {#if withLabel}<span>Favorite</span><span class="sr-only"> {name}</span>{/if}
 </button>

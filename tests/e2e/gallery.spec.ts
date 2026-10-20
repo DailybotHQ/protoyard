@@ -205,7 +205,7 @@ test.describe('gallery', () => {
     if (!target) return;
     await page.goto('/');
     const trigger = page.getByRole('button', {
-      name: 'Open command palette (Command or Control K)',
+      name: 'Search (Command or Control K)',
     });
     await expect(trigger).toBeVisible();
     await expect(page.getByTestId('command-palette')).toHaveAttribute('data-hydrated', 'true');

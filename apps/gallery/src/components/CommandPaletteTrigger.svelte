@@ -74,12 +74,14 @@ onMount(() => {
     type="button"
     class="inline-flex h-9 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-sm text-muted hover:bg-surface-2 hover:text-fg sm:px-3"
     aria-haspopup="dialog"
-    aria-label="Open command palette (Command or Control K)"
     onclick={() => void open()}
   >
     <Search size={15} aria-hidden="true" />
-    <span class="hidden sm:inline">Search</span>
-    <kbd class="rounded border border-line bg-bg px-1.5 py-0.5 font-mono text-[10px] text-muted">⌘K</kbd>
+    <!-- The accessible name starts with the visible "Search" (WCAG 2.5.3); on
+         phones the word is visually hidden but still names the button. -->
+    <span class="sr-only sm:not-sr-only">Search</span>
+    <span class="sr-only">(Command or Control K)</span>
+    <kbd aria-hidden="true" class="rounded border border-line bg-bg px-1.5 py-0.5 font-mono text-[10px] text-muted">⌘K</kbd>
   </button>
   {#if failed}
     <p role="alert" class="ml-2 text-xs text-danger" data-testid="command-palette-error">
