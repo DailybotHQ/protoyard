@@ -7,11 +7,10 @@ scenario generators run in Node tests, in services and in generators, so this
 package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
-> **Status:** `./activity`, `./board`, `./calendar`, `./files`, `./grid`,
-> `./map`, `./editor`, `./scenarios`, `./timeline` and `./tree` are
-> implemented; the other
-> subpaths exist and are empty until their PLAN_003 task lands, and this
-> README documents each one then.
+> **Status:** board, calendar, timeline, grid, tree, map, editor, activity,
+> files and scenarios have engine helpers. `notifications`, `settings`,
+> `states` and `commands` reserve subpath names but currently have no runtime
+> exports; their UI components are documented in the [views kit guide](../../docs/VIEWS.md).
 
 ## Subpaths
 
@@ -31,11 +30,11 @@ import { rankBetween } from '@protoyard/views/board'; // once the board engine l
 | `./map` | Fictional offline basemap, projection, clustering, geofences |
 | `./editor` | Markdown text commands |
 | `./activity` | Mention tokenizer, day grouping, change summaries |
-| `./notifications` | Notification grouping helpers |
+| `./notifications` | Reserved subpath; notification UI consumes app-owned rows |
 | `./files` | File and folder helpers, deterministic thumbnails |
-| `./settings` | Settings helpers |
-| `./states` | Query state classification |
-| `./commands` | Command registry model |
+| `./settings` | Reserved subpath; settings patterns live in views-ui |
+| `./states` | Reserved subpath; query state classification lives in views-ui |
+| `./commands` | Reserved subpath; command registry lives in views-ui |
 | `./scenarios` | Deterministic generators and scenario fragments |
 
 The root entry (`@protoyard/views`) exports types only (`ViewName`).
