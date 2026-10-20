@@ -354,7 +354,7 @@
         "type": "board",
         "entity": "shipment",
         "groupBy": "status",
-        "cardFields": ["cargoType", "priority", "origin", "plannedStart"],
+        "cardFields": ["trackingCode", "cargoType", "priority", "origin", "plannedStart"],
         "path": "/dispatch/board",
         "title": "Dispatch board",
         "nav": {

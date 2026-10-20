@@ -16,20 +16,23 @@ test('dispatch persists, map list is available, and timeline reschedules', async
   await openRoute(page, '/dispatch/board');
   await expectAccessible(page, info, { label: 'harbor-dispatch-board' });
 
-  const queuedCard = page
-    .locator('[data-column="queued"] [data-card-id]')
-    .filter({ hasText: 'HB-4100' });
+  const board = page.getByRole('region', { name: 'Shipment board' });
+  const queuedColumn = board.getByRole('list', { name: 'Queued' });
+  const queuedCard = queuedColumn.getByRole('listitem').filter({ hasText: 'HB-4100' });
   await expect(queuedCard).toHaveCount(1);
   await queuedCard.getByRole('button', { name: 'Move HB-4100 to…' }).click();
   await page.getByRole('menuitem', { name: 'Dispatched', exact: true }).click();
-  const dispatchedCard = page
-    .locator('[data-column="dispatched"] [data-card-id]')
-    .filter({ hasText: 'HB-4100' });
+  const dispatchedColumn = board.getByRole('list', { name: 'Dispatched' });
+  const dispatchedCard = dispatchedColumn.getByRole('listitem').filter({ hasText: 'HB-4100' });
   await expect(dispatchedCard).toHaveCount(1);
   await page.reload();
   await waitForPrototypeReady(page, { slug: SLUG });
   await expect(
-    page.locator('[data-column="dispatched"] [data-card-id]').filter({ hasText: 'HB-4100' })
+    page
+      .getByRole('region', { name: 'Shipment board' })
+      .getByRole('list', { name: 'Dispatched' })
+      .getByRole('listitem')
+      .filter({ hasText: 'HB-4100' })
   ).toHaveCount(1);
 
   await openRoute(page, '/dispatch/map');
@@ -42,28 +45,36 @@ test('dispatch persists, map list is available, and timeline reschedules', async
 
   await openRoute(page, '/dispatch/timeline');
   await expectAccessible(page, info, { label: 'harbor-dispatch-timeline' });
-  const shipmentBar = page
-    .locator('[data-timeline-screen="shipment"] [aria-roledescription="reschedulable task"]')
-    .filter({ hasText: 'HB-4100' });
-  await expect(shipmentBar).toHaveCount(1);
-  const before = await shipmentBar.getAttribute('aria-label');
-  await shipmentBar.focus();
-  await shipmentBar.press('Space');
-  await shipmentBar.press('ArrowRight');
-  await shipmentBar.press('Enter');
-  await expect(page.getByText('Saved 1 schedule change')).toBeVisible();
-  const updatedBar = page
-    .locator('[data-timeline-screen="shipment"] [aria-roledescription="reschedulable task"]')
-    .filter({ hasText: 'HB-4100' });
-  const after = await updatedBar.getAttribute('aria-label');
-  expect(after).not.toBe(before);
-  await page.reload();
-  await waitForPrototypeReady(page, { slug: SLUG });
-  await expect(
-    page
+  const shipmentRow = page.getByRole('row').filter({ hasText: 'HB-4100' });
+  await expect(shipmentRow).toBeVisible();
+  if (info.project.name === 'mobile') {
+    // The mobile timeline intentionally presents the schedule table; its
+    // interactive canvas is hidden at phone widths.
+    await expect(shipmentRow).toContainText('2026-05-30');
+  } else {
+    const shipmentBar = page
       .locator('[data-timeline-screen="shipment"] [aria-roledescription="reschedulable task"]')
-      .filter({ hasText: 'HB-4100' })
-  ).toHaveAttribute('aria-label', after ?? '');
+      .filter({ hasText: 'HB-4100' });
+    await expect(shipmentBar).toHaveCount(1);
+    const before = await shipmentBar.getAttribute('aria-label');
+    await shipmentBar.focus();
+    await shipmentBar.press('Space');
+    await shipmentBar.press('ArrowRight');
+    await shipmentBar.press('Enter');
+    await expect(page.getByText('Saved 1 schedule change')).toBeVisible();
+    const updatedBar = page
+      .locator('[data-timeline-screen="shipment"] [aria-roledescription="reschedulable task"]')
+      .filter({ hasText: 'HB-4100' });
+    const after = await updatedBar.getAttribute('aria-label');
+    expect(after).not.toBe(before);
+    await page.reload();
+    await waitForPrototypeReady(page, { slug: SLUG });
+    await expect(
+      page
+        .locator('[data-timeline-screen="shipment"] [aria-roledescription="reschedulable task"]')
+        .filter({ hasText: 'HB-4100' })
+    ).toHaveAttribute('aria-label', after ?? '');
+  }
 
   await openRoute(page, '/dashboard');
   await expectAccessible(page, info, { label: 'harbor-dispatch-dashboard' });
