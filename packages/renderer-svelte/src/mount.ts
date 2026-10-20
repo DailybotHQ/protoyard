@@ -1,5 +1,6 @@
 /// <reference path="./env.d.ts" />
 import {
+  NamespaceSchema,
   type PrototypeDefinition,
   type PrototypeRuntime,
   parseScenarioLink,
@@ -38,6 +39,28 @@ export async function resolveLibraryTheme(id: string): Promise<Theme | undefined
   return getLibraryThemeMeta(id) ? loadLibraryTheme(id) : undefined;
 }
 
+/**
+ * Build settings chosen at mount time instead of by Vite defines, for a
+ * prebuilt app that runs many prototypes (the player, ADR-029). Each field
+ * takes precedence over its define; omitted fields keep the build's value.
+ *
+ * `devtools` and `review` can only narrow what the bundle contains: a build
+ * whose define is `false` has no DevTools or review chunk (the minifier drops
+ * it), so `true` there has no effect. Build with them on and turn them off
+ * per prototype.
+ */
+export interface MountBuildOptions {
+  /** Storage namespace (IndexedDB names); must be a valid manifest namespace. */
+  namespace?: string;
+  /** Keep explicit device frames inside an iframe (ADR-026). */
+  frameWhenEmbedded?: boolean;
+  demoBadge?: boolean;
+  /** Show the DevTools panel; `?devtools=0` still hides it when this is omitted. */
+  devtools?: boolean;
+  /** Mount review comments. */
+  review?: boolean;
+}
+
 export interface MountPrototypeOptions {
   definition: PrototypeDefinition;
   // biome-ignore lint/suspicious/noExplicitAny: prototype apps may declare optional props.
@@ -53,6 +76,8 @@ export interface MountPrototypeOptions {
   /** Force DevTools on/off (defaults to the build flag + `?devtools=0`). */
   devtools?: boolean;
   demoBadge?: boolean;
+  /** Runtime build settings; each one overrides its Vite define. */
+  build?: MountBuildOptions;
 }
 
 export interface MountedPrototype {
@@ -99,38 +124,56 @@ export function applyBuildInfo(
 }
 
 /**
+ * Applies runtime build options over the definition (after the baked build
+ * info): a `namespace` renames storage, and `frameWhenEmbedded` sets the flag
+ * either way. An invalid namespace throws, before any storage is opened.
+ */
+export function applyBuildOptions(
+  definition: PrototypeDefinition,
+  build: Pick<MountBuildOptions, 'namespace' | 'frameWhenEmbedded'> | undefined
+): PrototypeDefinition {
+  const manifest = definition.manifest;
+  const namespace =
+    build?.namespace !== undefined && build.namespace !== manifest.storage.namespace
+      ? NamespaceSchema.parse(build.namespace)
+      : undefined;
+  const frameWhenEmbedded =
+    build?.frameWhenEmbedded !== undefined &&
+    build.frameWhenEmbedded !== manifest.build.frameWhenEmbedded
+      ? build.frameWhenEmbedded
+      : undefined;
+  if (namespace === undefined && frameWhenEmbedded === undefined) return definition;
+  return {
+    ...definition,
+    manifest: {
+      ...manifest,
+      ...(namespace ? { storage: { ...manifest.storage, namespace } } : {}),
+      ...(frameWhenEmbedded !== undefined
+        ? { build: { ...manifest.build, frameWhenEmbedded } }
+        : {}),
+    },
+  };
+}
+
+/**
  * Boots a prototype: runtime → first-run seed → appearance → app → DevTools.
  * Any boot failure renders a recovery screen instead of a blank page.
  */
 export async function mountPrototype(options: MountPrototypeOptions): Promise<MountedPrototype> {
-  const { App, target } = options;
-  const definition = applyBuildInfo(options.definition, BUILD_INFO);
+  const { App, target, build } = options;
+  let definition: PrototypeDefinition;
+  try {
+    definition = applyBuildOptions(applyBuildInfo(options.definition, BUILD_INFO), build);
+  } catch (error) {
+    return showBootErrorFor(options.definition, target, error);
+  }
   const link = parseScenarioLink(options.search ?? location.search);
   const themes = mergeThemes(BUILTIN_THEMES, definition.themes);
   const root = document.documentElement;
   delete root.dataset.protoyardReady;
   const cleanups: (() => void | Promise<void>)[] = [];
 
-  const showBootError = (error: unknown): MountedPrototype => {
-    console.error('[protoyard] boot failed', error);
-    target.replaceChildren();
-    const screen = mount(BootError, {
-      target,
-      props: {
-        error,
-        namespace: definition.manifest.storage.namespace,
-        name: definition.manifest.name,
-      },
-    });
-    root.dataset.pyReady = 'error';
-    return {
-      runtime: null,
-      error,
-      destroy: async () => {
-        await unmount(screen);
-      },
-    };
-  };
+  const showBootError = (error: unknown) => showBootErrorFor(definition, target, error);
 
   let runtime: PrototypeRuntime | null = null;
   try {
@@ -163,7 +206,11 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
     // initialising must get the recovery screen, not a blank page.
     app = mount(Root, {
       target,
-      props: { runtime: rt, App, demoBadge: options.demoBadge ?? DEMO_BADGE_ENABLED },
+      props: {
+        runtime: rt,
+        App,
+        demoBadge: build?.demoBadge ?? options.demoBadge ?? DEMO_BADGE_ENABLED,
+      },
     });
   } catch (error) {
     for (const cleanup of cleanups.reverse()) await cleanup();
@@ -185,14 +232,16 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
     typeof __PROTOYARD_DEVTOOLS__ !== 'undefined' ? __PROTOYARD_DEVTOOLS__ : true;
   // Presentation mode (`?devtools=0`) hides the panel even in dev.
   const devtoolsAvailable =
-    devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
+    devtoolsBuilt &&
+    (build?.devtools ?? options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
 
   // Keep this define inline so a review-disabled production build folds away
   // the branch and has no review UI, adapter, or schema in its initial graph.
+  // A runtime `build.review` can turn a built-in review off, never add one.
   const reviewBuilt =
     typeof __PROTOYARD_REVIEW__ !== 'undefined'
-      ? __PROTOYARD_REVIEW__
-      : options.definition.manifest.build.review?.enabled === true;
+      ? __PROTOYARD_REVIEW__ && build?.review !== false
+      : (build?.review ?? options.definition.manifest.build.review?.enabled === true);
   // Review mounts before DevTools, so DevTools can host its "Comments" tab.
   let reviewTab: { id: string; label: string; load: () => Promise<unknown> } | undefined;
   if (
@@ -252,6 +301,31 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
       delete root.dataset.pyReady;
       delete root.dataset.protoyardReady;
       rt.close();
+    },
+  };
+}
+
+function showBootErrorFor(
+  definition: PrototypeDefinition,
+  target: HTMLElement,
+  error: unknown
+): MountedPrototype {
+  console.error('[protoyard] boot failed', error);
+  target.replaceChildren();
+  const screen = mount(BootError, {
+    target,
+    props: {
+      error,
+      namespace: definition.manifest.storage.namespace,
+      name: definition.manifest.name,
+    },
+  });
+  document.documentElement.dataset.pyReady = 'error';
+  return {
+    runtime: null,
+    error,
+    destroy: async () => {
+      await unmount(screen);
     },
   };
 }

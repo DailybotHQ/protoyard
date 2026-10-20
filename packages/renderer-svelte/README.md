@@ -195,6 +195,36 @@ thumbnails and benchmarks. `window.__protoyard` is exposed in production builds 
 grants nothing same-origin code couldn't already do (IndexedDB is readable and writable by any
 script on the origin) and the simulation is not a security boundary.
 
+### Build options at mount time
+
+A prebuilt app that runs many prototypes (the player, ADR-029) can't rebuild
+for each one, so `mountPrototype` takes an optional `build` object. Each field
+takes precedence over its Vite define, and an omitted field keeps the build's
+value:
+
+```ts
+void mountPrototype({
+  definition,
+  App,
+  target,
+  build: { namespace: 'bp-abc123', frameWhenEmbedded: false, demoBadge: true, devtools: true, review: false },
+});
+```
+
+| Field | Overrides | Notes |
+| --- | --- | --- |
+| `namespace` | `__PROTOYARD_BUILD__.namespace` and the manifest's `storage.namespace` | Checked with the manifest's `NamespaceSchema`. An invalid value shows the recovery screen before any storage opens. |
+| `frameWhenEmbedded` | `__PROTOYARD_BUILD__.frameWhenEmbedded` and the manifest flag | Applies in both directions. |
+| `demoBadge` | `__PROTOYARD_DEMO_BADGE__` and the top-level `demoBadge` option | |
+| `devtools` | the top-level `devtools` option, `?devtools=0` and `__PROTOYARD_DEVTOOLS__` (when on) | Can only narrow the build. |
+| `review` | `__PROTOYARD_REVIEW__` (when on) and the manifest's `build.review.enabled` | Can only narrow the build. |
+
+`devtools` and `review` can't add what the bundle doesn't contain. A build
+whose define is `false` keeps the define inline, so the minifier still drops the
+DevTools and review chunks, and `true` has no effect there. To choose per
+prototype, build with them on and pass `false` where they should be off. With
+no `build` option, every prototype behaves exactly as before.
+
 ## Bindings (`.svelte.ts`)
 
 | API | Returns |
