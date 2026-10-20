@@ -272,6 +272,28 @@ DevTools:
 Protoyard promises reproducibility for the same versions, not identical output
 across generator changes. The version makes the change explicit.
 
+**A stale world is rebuilt on boot.** `runtime.scenarios.ensureSeeded()`
+compares the stored world's two versions with the running code. If either one
+differs, the runtime reloads the active scenario with its stored seed, so the
+world matches what the current generator builds for that seed. Adding or
+removing `generatorVersion` in `definePrototype()` also counts as a change.
+When the versions match, the stored data, edits included, is kept as before.
+
+- Outside a sandbox, a safety snapshot named `Before refreshing <scenario>` is
+  saved first, so earlier edits can be restored from DevTools → Snapshots. A
+  restored snapshot is recorded with the current versions, so it is not rebuilt
+  again on the next boot.
+- A sandbox (`?sandbox=`) is disposable, so it is rebuilt without a snapshot.
+- If the safety snapshot cannot be saved (for example, storage is full), the
+  data is kept and nothing is rebuilt.
+- `runtime.scenarios.staleWorld()` reports what happened, or returns `null`
+  when the versions matched. It gives the scenario, the seed, the `stored` and
+  `current` versions, `status` (`'reseeded'` or `'kept'`), the `snapshotId`
+  and a readable `reason`. `isStaleWorld(stored, current)` from
+  `@protoyard/runtime` runs the same comparison.
+- A `?scenario=` link that differs from the rebuilt world is still offered
+  through `pendingLink()`, as before. No built-in UI shows `staleWorld()` yet.
+
 ## Integrity rules
 
 Declare referential integrity in `definePrototype({ integrity })`. The runtime
