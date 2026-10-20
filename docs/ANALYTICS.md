@@ -195,3 +195,11 @@ PROTOYARD_BENCH=1 pnpm vitest run packages/analytics/tests/generators.test.ts   
 pnpm vitest run templates/analytics prototypes/pebblestat-analytics-demo
 PROTOYARD_E2E_PROTOTYPES=pebblestat-analytics-demo,analytics pnpm test:e2e tests/e2e/pebblestat-analytics-demo.spec.ts tests/e2e/layout-fit.spec.ts
 ```
+
+## For agents
+
+The distributable Protoyard skill routes kit choices through its `kits`
+sub-skill ([`skills/protoyard/kits/SKILL.md`](../skills/protoyard/kits/SKILL.md))
+and its catalog ([`skills/protoyard/references/kits.md`](../skills/protoyard/references/kits.md)),
+which link back to this guide. Keep the catalog's entry for this kit in step
+when its entry points or limits change.
