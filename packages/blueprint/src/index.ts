@@ -209,6 +209,14 @@ export {
   relationProperty,
   storeIndexForField,
 } from './storage.ts';
+
+export {
+  DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
+  loadUntrustedBlueprint,
+  type UntrustedBlueprintIssue,
+  type UntrustedBlueprintLimits,
+  type UntrustedBlueprintResult,
+} from './untrusted.ts';
 export {
   deriveInputSchemas,
   type EntityInput,
