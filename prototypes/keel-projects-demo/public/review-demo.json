@@ -1,0 +1,384 @@
+{
+  "format": "protoyard-review-comments",
+  "version": 1,
+  "namespace": "keel-projects-demo",
+  "slug": "keel-projects-demo",
+  "comments": [
+    {
+      "formatVersion": 1,
+      "id": "demof0gztt8464zldytgc8",
+      "threadId": "demof0gztt8464zldytgc8",
+      "slug": "keel-projects-demo",
+      "body": "The ⌘K palette is a nice touch. Could it also open a task by its key, like WEB-12?",
+      "author": {
+        "name": "Omar Haddad (omar@example.com)",
+        "clientId": "demo-reviewer-omar"
+      },
+      "createdAt": "2026-10-16T10:37:00.000Z",
+      "updatedAt": "2026-10-16T10:37:00.000Z",
+      "anchor": {
+        "route": {
+          "pattern": "/",
+          "path": "/"
+        },
+        "locators": [
+          {
+            "kind": "py-anchor",
+            "value": "top-bar"
+          }
+        ],
+        "fingerprint": "Search or jump to…",
+        "offset": {
+          "x": 0.79,
+          "y": 0.32
+        }
+      },
+      "context": {
+        "scenario": "sprint-in-flight",
+        "persona": "user_0001",
+        "theme": "violet",
+        "mode": "light",
+        "layout": "sidebar",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      "reactions": {
+        "👍": ["demo-reviewer-rae"]
+      }
+    },
+    {
+      "formatVersion": 1,
+      "id": "demorzivcyccvcr4szlb4w",
+      "threadId": "demof0gztt8464zldytgc8",
+      "slug": "keel-projects-demo",
+      "body": "Good idea. Adding task keys to the palette search for the next build.",
+      "author": {
+        "name": "Maya Chen (maya@example.com)",
+        "clientId": "demo-reviewer-maya"
+      },
+      "createdAt": "2026-10-16T11:00:00.000Z",
+      "updatedAt": "2026-10-16T11:00:00.000Z"
+    },
+    {
+      "formatVersion": 1,
+      "id": "demonanci7rsa2xs9qo4s6",
+      "threadId": "demonanci7rsa2xs9qo4s6",
+      "slug": "keel-projects-demo",
+      "body": "I missed the WIP limit on In progress at first. Can the column header turn amber when it is over the limit?",
+      "author": {
+        "name": "Rae Lindqvist (rae@example.com)",
+        "clientId": "demo-reviewer-rae"
+      },
+      "createdAt": "2026-10-16T11:37:00.000Z",
+      "updatedAt": "2026-10-16T11:37:00.000Z",
+      "anchor": {
+        "route": {
+          "pattern": "/projects/:id",
+          "path": "/projects/project_0001"
+        },
+        "locators": [
+          {
+            "kind": "py-anchor",
+            "value": "board"
+          }
+        ],
+        "fingerprint": "In progress",
+        "offset": {
+          "x": 0.3,
+          "y": 0.61
+        }
+      },
+      "context": {
+        "scenario": "sprint-in-flight",
+        "persona": "user_0001",
+        "theme": "violet",
+        "mode": "light",
+        "layout": "sidebar",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      }
+    },
+    {
+      "formatVersion": 1,
+      "id": "demoh2jxm9hd78llsqolgl",
+      "threadId": "demonanci7rsa2xs9qo4s6",
+      "slug": "keel-projects-demo",
+      "body": "It does turn amber at the soft limit. We will make the count bolder too.",
+      "author": {
+        "name": "Priya Nair (priya@example.com)",
+        "clientId": "demo-reviewer-priya"
+      },
+      "createdAt": "2026-10-16T12:00:00.000Z",
+      "updatedAt": "2026-10-16T12:00:00.000Z"
+    },
+    {
+      "formatVersion": 1,
+      "id": "demonmub0z1jupgtq3fci9",
+      "threadId": "demonanci7rsa2xs9qo4s6",
+      "slug": "keel-projects-demo",
+      "body": "Perfect, thanks.",
+      "author": {
+        "name": "Rae Lindqvist (rae@example.com)",
+        "clientId": "demo-reviewer-rae"
+      },
+      "createdAt": "2026-10-16T12:23:00.000Z",
+      "updatedAt": "2026-10-16T12:23:00.000Z"
+    },
+    {
+      "formatVersion": 1,
+      "id": "demos42801yyv306q19i3v",
+      "threadId": "demos42801yyv306q19i3v",
+      "slug": "keel-projects-demo",
+      "body": "Swimlanes by assignee are exactly what our standups need. Can the board remember my choice?",
+      "author": {
+        "name": "Omar Haddad (omar@example.com)",
+        "clientId": "demo-reviewer-omar"
+      },
+      "createdAt": "2026-10-16T13:00:00.000Z",
+      "updatedAt": "2026-10-16T13:00:00.000Z",
+      "resolvedAt": "2026-10-16T14:30:00.000Z",
+      "resolvedBy": {
+        "name": "Maya Chen (maya@example.com)",
+        "clientId": "demo-reviewer-maya"
+      },
+      "anchor": {
+        "route": {
+          "pattern": "/projects/:id",
+          "path": "/projects/project_0001"
+        },
+        "locators": [
+          {
+            "kind": "py-anchor",
+            "value": "board-lanes"
+          }
+        ],
+        "fingerprint": "By assignee",
+        "offset": {
+          "x": 0.74,
+          "y": 0.34
+        }
+      },
+      "context": {
+        "scenario": "sprint-in-flight",
+        "persona": "user_0001",
+        "theme": "violet",
+        "mode": "light",
+        "layout": "sidebar",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      }
+    },
+    {
+      "formatVersion": 1,
+      "id": "demomjzz2irfd5hwuiqrwr",
+      "threadId": "demos42801yyv306q19i3v",
+      "slug": "keel-projects-demo",
+      "body": "Agreed. Remembering the lane choice per person is now on the list.",
+      "author": {
+        "name": "Maya Chen (maya@example.com)",
+        "clientId": "demo-reviewer-maya"
+      },
+      "createdAt": "2026-10-16T14:53:00.000Z",
+      "updatedAt": "2026-10-16T14:53:00.000Z"
+    },
+    {
+      "formatVersion": 1,
+      "id": "demomuewgc5qc9w2zgbzq2",
+      "threadId": "demomuewgc5qc9w2zgbzq2",
+      "slug": "keel-projects-demo",
+      "body": "Friday’s client review should show who presents each project. Today we ask in chat every time.",
+      "author": {
+        "name": "Rae Lindqvist (rae@example.com)",
+        "clientId": "demo-reviewer-rae"
+      },
+      "createdAt": "2026-10-16T15:30:00.000Z",
+      "updatedAt": "2026-10-16T15:30:00.000Z",
+      "anchor": {
+        "route": {
+          "pattern": "/calendar",
+          "path": "/calendar"
+        },
+        "locators": [
+          {
+            "kind": "py-anchor",
+            "value": "calendar"
+          }
+        ],
+        "fingerprint": "Sprint review with clients",
+        "offset": {
+          "x": 0.43,
+          "y": 0.55
+        }
+      },
+      "context": {
+        "scenario": "sprint-in-flight",
+        "persona": "user_0001",
+        "theme": "violet",
+        "mode": "light",
+        "layout": "sidebar",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      }
+    },
+    {
+      "formatVersion": 1,
+      "id": "demo9hg8t5720y8jsj6qic",
+      "threadId": "demo9hg8t5720y8jsj6qic",
+      "slug": "keel-projects-demo",
+      "body": "The critical path reads well. Please show the milestone date next to the diamond; hovering is easy to miss on a laptop.",
+      "author": {
+        "name": "Omar Haddad (omar@example.com)",
+        "clientId": "demo-reviewer-omar"
+      },
+      "createdAt": "2026-10-16T16:07:00.000Z",
+      "updatedAt": "2026-10-16T16:07:00.000Z",
+      "anchor": {
+        "route": {
+          "pattern": "/timeline",
+          "path": "/timeline"
+        },
+        "locators": [
+          {
+            "kind": "py-anchor",
+            "value": "timeline"
+          }
+        ],
+        "fingerprint": "Project schedule",
+        "offset": {
+          "x": 0.56,
+          "y": 0.62
+        }
+      },
+      "context": {
+        "scenario": "sprint-in-flight",
+        "persona": "user_0001",
+        "theme": "violet",
+        "mode": "light",
+        "layout": "sidebar",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      "reactions": {
+        "👍": ["demo-reviewer-maya", "demo-reviewer-priya"]
+      }
+    },
+    {
+      "formatVersion": 1,
+      "id": "demokn46m8wtxblfzhprvf",
+      "threadId": "demo9hg8t5720y8jsj6qic",
+      "slug": "keel-projects-demo",
+      "body": "Noted. The task table shows it today; we can label the diamond too.",
+      "author": {
+        "name": "Priya Nair (priya@example.com)",
+        "clientId": "demo-reviewer-priya"
+      },
+      "createdAt": "2026-10-16T16:30:00.000Z",
+      "updatedAt": "2026-10-16T16:30:00.000Z"
+    },
+    {
+      "formatVersion": 1,
+      "id": "demo7zu1jz0ed4qpd65v0z",
+      "threadId": "demo7zu1jz0ed4qpd65v0z",
+      "slug": "keel-projects-demo",
+      "body": "Saved views work well. For project leads, “Overdue” could be the view the grid opens with.",
+      "author": {
+        "name": "Maya Chen (maya@example.com)",
+        "clientId": "demo-reviewer-maya"
+      },
+      "createdAt": "2026-10-16T17:07:00.000Z",
+      "updatedAt": "2026-10-16T17:07:00.000Z",
+      "anchor": {
+        "route": {
+          "pattern": "/tasks",
+          "path": "/tasks"
+        },
+        "locators": [
+          {
+            "kind": "py-anchor",
+            "value": "task-grid"
+          }
+        ],
+        "fingerprint": "All tasks",
+        "offset": {
+          "x": 0.28,
+          "y": 0.62
+        }
+      },
+      "context": {
+        "scenario": "sprint-in-flight",
+        "persona": "user_0001",
+        "theme": "violet",
+        "mode": "light",
+        "layout": "sidebar",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      }
+    },
+    {
+      "formatVersion": 1,
+      "id": "demomf6cpk243lp5c80fc0",
+      "threadId": "demomf6cpk243lp5c80fc0",
+      "slug": "keel-projects-demo",
+      "body": "Mentions are handy. Showing faces in the @ suggestions would make picking the right Sam faster.",
+      "author": {
+        "name": "Rae Lindqvist (rae@example.com)",
+        "clientId": "demo-reviewer-rae"
+      },
+      "createdAt": "2026-10-16T17:44:00.000Z",
+      "updatedAt": "2026-10-16T17:44:00.000Z",
+      "anchor": {
+        "route": {
+          "pattern": "/tasks/:id",
+          "path": "/tasks/task_0001"
+        },
+        "locators": [
+          {
+            "kind": "py-anchor",
+            "value": "task-comments"
+          }
+        ],
+        "fingerprint": "Comments",
+        "offset": {
+          "x": 0.45,
+          "y": 0.62
+        }
+      },
+      "context": {
+        "scenario": "sprint-in-flight",
+        "persona": "user_0001",
+        "theme": "violet",
+        "mode": "light",
+        "layout": "sidebar",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      }
+    },
+    {
+      "formatVersion": 1,
+      "id": "demol8ewa36p7xph2ctiqk",
+      "threadId": "demomf6cpk243lp5c80fc0",
+      "slug": "keel-projects-demo",
+      "body": "Faces are already on the comments; adding them to the suggestions is a small change.",
+      "author": {
+        "name": "Priya Nair (priya@example.com)",
+        "clientId": "demo-reviewer-priya"
+      },
+      "createdAt": "2026-10-16T18:07:00.000Z",
+      "updatedAt": "2026-10-16T18:07:00.000Z"
+    }
+  ]
+}

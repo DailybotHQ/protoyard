@@ -127,7 +127,7 @@ const layoutNav = $derived({
 
 <LayoutHost layout={appearance.current.layout.value} nav={layoutNav} storageKey={workspace.runtime.manifest.storage.namespace}>
   <div class="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <div class="mb-4 flex items-center justify-end gap-2" data-keel-toolbar>
+    <div class="mb-4 flex items-center justify-end gap-2" data-keel-toolbar data-py-anchor="top-bar">
       <!-- The palette and the notifications center are their own chunks (the palette's ⌘K works once it loads). -->
       {#await import('@protoyard/views-ui/commands') then { AppCommandPalette }}
       <AppCommandPalette registry={commands} placeholder="Jump to a page, a board or an action…">

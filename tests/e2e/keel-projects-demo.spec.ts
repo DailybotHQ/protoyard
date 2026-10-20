@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
@@ -52,7 +53,8 @@ test.describe('Keel Projects flagship', () => {
       await page.mouse.move(from.x, from.y);
       await page.mouse.down();
       await page.mouse.move(from.x + 3, from.y + 3, { steps: 2 });
-      await page.mouse.move(to.x, to.box.y + to.box.height - 16, { steps: 14 });
+      // Drop near the top of the column: its bottom may be below the window.
+      await page.mouse.move(to.x, to.box.y + 24, { steps: 14 });
       await page.mouse.up();
     }
     // On a phone each column is 85vw wide: bring the moved card into view before asserting.
@@ -161,7 +163,7 @@ test.describe('Keel Projects flagship', () => {
       const grid = page.getByRole('grid', { name: 'All tasks' });
       await expect(grid).toHaveAttribute('aria-rowcount', '10005');
       expect(await grid.locator('[role="row"]').count()).toBeLessThanOrEqual(80);
-      await page.getByLabel('View').selectOption({ label: 'Urgent and high' });
+      await page.getByLabel('View', { exact: true }).selectOption({ label: 'Urgent and high' });
       await expect(grid).not.toHaveAttribute('aria-rowcount', '10005');
     }
     await expectAccessible(page, testInfo, { label: 'keel-grid' });
@@ -186,5 +188,33 @@ test.describe('Keel Projects flagship', () => {
     await page.keyboard.type('timeline');
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/timeline$/);
+  });
+
+  test('review comments: the demo review imports from the toolbar and pins to the board', async ({
+    page,
+  }) => {
+    // build.review is on (local adapter): the toolbar is docked above the app, never over it.
+    await open(page, '#/');
+    const toolbar = page.getByRole('navigation', { name: 'Prototype review toolbar' });
+    await expect(toolbar).toBeVisible();
+    const bar = (await toolbar.boundingBox()) as { y: number; height: number };
+    const topBar = (await page.locator('[data-py-anchor="top-bar"]').boundingBox()) as {
+      y: number;
+    };
+    expect(topBar.y).toBeGreaterThanOrEqual(bar.y + bar.height - 1);
+    await expect(page.getByRole('link', { name: 'download a sample review' })).toHaveAttribute(
+      'href',
+      './review-demo.json'
+    );
+    const fixture = fileURLToPath(
+      new URL('../../prototypes/keel-projects-demo/public/review-demo.json', import.meta.url)
+    );
+    await toolbar.locator('input[type="file"]').setInputFiles(fixture);
+    await expect(page.getByText('Imported 13 comments.')).toBeVisible();
+    await expect(toolbar.getByText('7 comments')).toBeVisible();
+    // The board's threads pin to its data-py-anchor regions.
+    await page.goto(`${prototypeUrl(SLUG)}#/projects/project_0001`);
+    await waitForPrototypeReady(page, { slug: SLUG });
+    await expect(page.locator('[data-py-review-pin]').first()).toBeVisible();
   });
 });
