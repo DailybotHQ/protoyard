@@ -12,6 +12,7 @@ import {
 import { formatJson } from '../lib/codegen/format.ts';
 import { checkHeader } from '../lib/codegen/header.ts';
 import {
+  assertNoGeneratedLinks,
   CODEGEN_FORMAT_VERSION,
   emitOrThrow,
   type FilePlan,
@@ -104,8 +105,20 @@ async function inspectDestination(dest: string, slug: string, template: string):
   }
 }
 
-/** A nested POSIX path under `dir`; every segment goes through `childPath`'s checks. */
-const nested = (dir: string, rel: string) => rel.split('/').reduce(childPath, dir);
+/**
+ * A nested POSIX path under `dir`. Every segment goes through `childPath`'s
+ * lexical checks, then the canonical `isInside` check follows symlinks, so a
+ * linked folder or file can never redirect a write or a delete outside `dir`.
+ */
+function nested(dir: string, rel: string): string {
+  const target = rel.split('/').reduce(childPath, dir);
+  if (!isInside(dir, target)) {
+    throw new CliError('unsafe_path', `Refusing to write through a symbolic link: ${rel}`, {
+      hint: 'Generated paths must stay inside the prototype folder. Remove the link and re-run.',
+    });
+  }
+  return target;
+}
 
 async function writeFiles(dir: string, files: readonly EmittedFile[]) {
   for (const file of files) {
@@ -414,6 +427,9 @@ async function regenerate(
   const unchanged = writes.length === 0 && removals.length === 0 && schema.from === schema.to;
 
   if (!dryRun) {
+    // Check every target before the first write, so a refused run changes nothing.
+    await assertNoGeneratedLinks(dest);
+    for (const file of [...writes, ...removals]) nested(dest, file.path);
     for (const file of writes) {
       const target = nested(dest, file.path);
       await mkdir(dirname(target), { recursive: true });

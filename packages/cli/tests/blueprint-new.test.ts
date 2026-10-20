@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { PassThrough, Readable } from 'node:stream';
 import { parseBlueprint } from '@protoyard/blueprint';
@@ -107,9 +107,61 @@ describe('protoyard blueprint new', () => {
     expect(refused.json<Envelope>().error).toMatchObject({ code: 'conflict' });
     expect(readJson('salon.json')).toEqual({ keep: true });
 
-    const forced = await run(path('salon.json'), '--from-brief', path('brief.md'), '--force');
+    // --force only replaces a file that already is a blueprint.
+    const notBlueprint = await run(path('salon.json'), '--from-brief', path('brief.md'), '--force');
+    expect(notBlueprint.code).toBe(1);
+    expect(notBlueprint.json<Envelope>().error?.message).toMatch(/not a blueprint/);
+    expect(readJson('salon.json')).toEqual({ keep: true });
+
+    expect((await run(path('first.json'), '--from-brief', path('brief.md'))).code).toBe(0);
+    const before = readJson('first.json');
+    const forced = await run(
+      path('first.json'),
+      '--from-brief',
+      path('brief.md'),
+      '--force',
+      '--name',
+      'Renamed Salon'
+    );
     expect(forced.code).toBe(0);
-    expect(readJson('salon.json').formatVersion).toBe(1);
+    expect(readJson('first.json')).toMatchObject({ formatVersion: 1, name: 'Renamed Salon' });
+    expect(readJson('first.json').name).not.toBe(before.name);
+  });
+
+  it('never writes over workspace config, generated state, dependencies or symlinks', async () => {
+    ws.write('brief.md', SALON);
+    ws.write('tsconfig.base.json', '{"compilerOptions": {}}');
+    ws.write('biome.json', '{}');
+    ws.write('prototypes/other/protoyard.json', '{"id": "local.other"}');
+    ws.write('.protoyard/registry.json', '{}');
+    ws.write('node_modules/pkg/data.json', '{}');
+    ws.write('prototypes/other/src/generated/blueprint.snapshot.json', '{}');
+    const reserved = [
+      'package.json',
+      'tsconfig.base.json',
+      'biome.json',
+      'prototypes/other/protoyard.json',
+      '.protoyard/registry.json',
+      'node_modules/pkg/data.json',
+      'prototypes/other/src/generated/blueprint.snapshot.json',
+      'prototypes/other/tsconfig.json',
+    ];
+    for (const rel of reserved) {
+      const before = existsSync(path(rel)) ? readFileSync(path(rel), 'utf8') : null;
+      for (const extra of [['--force'], ['--force', '--dry-run']]) {
+        const result = await run(path(rel), '--from-brief', path('brief.md'), ...extra);
+        expect(result.code, rel).toBe(2);
+        expect(result.json<Envelope>().error?.code).toBe('unsafe_path');
+      }
+      expect(existsSync(path(rel)) ? readFileSync(path(rel), 'utf8') : null).toBe(before);
+    }
+
+    // A symlink is refused even when it points at a blueprint inside the workspace.
+    expect((await run(path('real.json'), '--from-brief', path('brief.md'))).code).toBe(0);
+    symlinkSync(path('real.json'), path('link.json'));
+    const linked = await run(path('link.json'), '--from-brief', path('brief.md'), '--force');
+    expect(linked.code).toBe(2);
+    expect(linked.json<Envelope>().error?.code).toBe('unsafe_path');
   });
 
   it('writes nothing on --dry-run and returns the blueprint', async () => {

@@ -1,10 +1,21 @@
 // @vitest-environment node
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseBlueprint } from '@protoyard/blueprint';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { emitPrototype, personalizeHtml } from '../src/lib/codegen/emit.ts';
-import { formatJson, tsString } from '../src/lib/codegen/format.ts';
+import { formatJson, formatTs, tsString } from '../src/lib/codegen/format.ts';
 import { checkHeader, withHeader } from '../src/lib/codegen/header.ts';
 import {
   addCrudTemplate,
@@ -199,6 +210,34 @@ describe('protoyard generate', () => {
     );
   });
 
+  it('generates a valid brand theme for a product name starting with a digit', async () => {
+    const file = writeBlueprint(
+      blueprintInput({ name: '3D Print Shop', brand: { seed: '#0f766e' } }),
+      'print.json'
+    );
+    const run = await generate('print-shop', '--blueprint', file, '--no-install');
+    expect(run.code).toBe(0);
+    expect(JSON.parse(read('prototypes/print-shop/protoyard.json')).defaultTheme).toBe(
+      'brand-3d-print-shop'
+    );
+    const themeModule = read('prototypes/print-shop/src/generated/brand-theme.ts');
+    expect(themeModule).toContain('export const brand3dPrintShopTheme: Theme');
+    expect(read('prototypes/print-shop/src/prototype.ts')).toContain(
+      'themes: [brand3dPrintShopTheme]'
+    );
+
+    // A brand id ending in a hyphen is a validation error (exit 4), never a broken module.
+    const bad = await generate(
+      'bad-brand',
+      '--blueprint',
+      writeBlueprint(blueprintInput({ brand: { id: 'acme-', seed: '#0f766e' } }), 'bad.json'),
+      '--no-install'
+    );
+    expect(bad.code).toBe(4);
+    expect(bad.json<Envelope>().error?.message).toMatch(/brand\.id/);
+    expect(existsSync(join(ws.root, 'prototypes/bad-brand'))).toBe(false);
+  });
+
   it('ships a brand libraryTheme by id: defaultTheme set, no brand-theme.ts', async () => {
     const file = writeBlueprint(
       blueprintInput({ brand: { name: 'Acme Ledger', libraryTheme: 'fintech-ledger' } }),
@@ -280,6 +319,57 @@ describe('protoyard generate', () => {
     expect(forced.code).toBe(0);
     expect(checkHeader(read('prototypes/help-desk/src/generated/routes.ts')).intact).toBe(true);
     expect(JSON.parse(read('prototypes/help-desk/blueprint.json')).name).toBe('Another desk');
+  });
+
+  it('refuses a symlinked src/generated/screens on --force and deletes nothing outside', async () => {
+    const file = writeBlueprint();
+    expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(0);
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-outside-'));
+    try {
+      const screens = join(ws.root, 'prototypes/help-desk/src/generated/screens');
+      cpSync(screens, outside, { recursive: true });
+      writeFileSync(join(outside, 'notes.txt'), 'keep me\n');
+      rmSync(screens, { recursive: true });
+      symlinkSync(outside, screens, 'dir');
+      const before = readdirSync(outside).sort();
+
+      const forced = await generate(
+        'help-desk',
+        '--blueprint',
+        writeBlueprint(blueprintInput({ name: 'Another desk' }), 'other.json'),
+        '--force',
+        '--no-install'
+      );
+      expect(forced.code).not.toBe(0);
+      expect(forced.json<Envelope>().error?.code).toBe('unsafe_path');
+      expect(readdirSync(outside).sort()).toEqual(before);
+      expect(readFileSync(join(outside, 'notes.txt'), 'utf8')).toBe('keep me\n');
+      // Refused before any write: the prototype still reflects the first blueprint.
+      expect(JSON.parse(read('prototypes/help-desk/blueprint.json')).name).toBe(
+        'Help <desk> & "co"'
+      );
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
+  it('never writes generated files through a symlinked src/generated', async () => {
+    const file = writeBlueprint();
+    expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(0);
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-outside-'));
+    try {
+      const generated = join(ws.root, 'prototypes/help-desk/src/generated');
+      rmSync(generated, { recursive: true });
+      symlinkSync(outside, generated, 'dir');
+      for (const flags of [[], ['--force']]) {
+        const run = await generate('help-desk', '--blueprint', file, '--no-install', ...flags);
+        expect(run.code).not.toBe(0);
+        expect(run.json<Envelope>().error?.code).toBe('unsafe_path');
+        expect(readdirSync(outside)).toEqual([]);
+      }
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
   });
 
   it('never writes over a prototype it did not generate', async () => {
@@ -493,6 +583,16 @@ describe('codegen emitters', () => {
     // A quote in a value is escaped, never closing the literal.
     expect(tsString("it's")).toBe('"it\'s"');
     expect(tsString(`a'b"c\\`)).toBe(`'a\\'b"c\\\\'`);
+  });
+
+  it('quotes a __proto__ key and keeps the README title on one line', () => {
+    const literal = formatTs(JSON.parse('{"__proto__": {"x": 1}, "plain": 2}'));
+    expect(literal).toContain("'__proto__': {");
+    expect(literal).toContain('plain: 2');
+    const named = parseBlueprint({ ...blueprintInput(), name: 'Help\n# Injected\r\n- line' });
+    const readme = emitPrototype(named, 'x', '{}').find((f) => f.path === 'README.md');
+    expect(readme?.content.split('\n')[0]).toBe('# Help # Injected - line');
+    expect(readme?.content).not.toMatch(/^# Injected/m);
   });
 
   it('emits a lazy dashboard route and its generated screen for dashboard blueprints', () => {

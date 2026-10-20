@@ -54,8 +54,11 @@ volunteers and similar) get an optional `avatar` field labeled Photo. The brief 
 `--from-brief <file>`, from stdin with `--from-brief -`, or from seven questions
 with `--interactive` (terminal only). `--archetype <id>` and `--name` steer it;
 `--generate <slug>` chains into `generate` (add `--dry-run` to plan only: then
-nothing is written at all). It never overwrites a file without `--force` and
-never writes outside the workspace.
+nothing is written at all). It never writes outside the workspace, never
+writes workspace config (`package.json`, `protoyard.json`, `biome.json`,
+`tsconfig*.json`), `.protoyard/`, `node_modules/`, `src/generated/` or a
+symbolic link, and with `--force` it replaces an existing file only when that
+file already is a valid blueprint.
 
 Every command accepts `--json` and returns `{ ok, command, data?, error? }`.
 `generate` exits with 0 on success, 1 on a conflict (an existing prototype it did
@@ -120,7 +123,10 @@ Every field has a lowerCamelCase `name` and a `kind`, plus these optional keys:
 audit diffs) and `fake`, a generator hint taken from an allow-list such as
 `company.name`, `person.fullName`, `lorem.sentence`, `internet.email`,
 `commerce.productName`, `commerce.department`, `company.buzzPhrase`,
-`location.streetAddress` or `word.words` (`ALLOWED_FAKE_PATHS`).
+`location.streetAddress` or `word.words` (`ALLOWED_FAKE_PATHS`). Contact data
+stays fictional: `email`, `url` and `phone` fields always use example.com /
+example.org addresses and 555 numbers, and an `internet.email`, `internet.url` or
+`phone.number` hint on a text field produces the same fictional forms.
 
 | Kind | Options | Stored as |
 | --- | --- | --- |
@@ -352,7 +358,10 @@ Run `generate` again on an existing generated slug, with the edited
    Owned files are reported as `skipped`.
 4. Refuses the whole run if any generated file was edited by hand (exit 1, with
    the files listed in `data.files`). Nothing is written. `--force` overwrites
-   them.
+   them. A symbolic link at `src/`, `src/generated/`, `src/generated/screens/`
+   or any generated file is always refused (exit 2, `unsafe_path`) before
+   anything is written, and every write and delete is checked to stay inside the
+   prototype folder after links are resolved.
 5. Refuses to drop a table or field (exit 4, "Regeneration would lose data")
    unless `--allow-drop` is passed. The drop is recorded in `history`, and the
    browser data in that table or field is deleted.

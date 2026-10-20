@@ -17,6 +17,7 @@ import {
   THEME_LIBRARY_META,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
+import { z } from 'zod';
 import type { BlueprintBrand } from './schema.ts';
 
 export interface StyleProfile {
@@ -183,15 +184,28 @@ export function brandThemeId(brand: BlueprintBrand, blueprintName?: string): str
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40);
-  return slug.length > 0 ? slug : 'brand';
+    .replace(/^-+|-+$/g, '');
+  if (slug.length === 0) return 'brand';
+  // Theme ids (and so export names) start with a letter: `3D Print` → `brand-3d-print`.
+  const id = /^[a-z]/.test(slug) ? slug : `brand-${slug}`;
+  return id.slice(0, 40).replace(/-+$/, '');
 }
 
-/** `acme-labs` → `acmeLabsTheme` for the generated module export. */
+const EXPORT_NAME = /^[A-Za-z_$][\w$]*$/;
+
+/**
+ * `acme-labs` → `acmeLabsTheme` for the generated module export. Throws
+ * `BrandThemeError` for an id that cannot become a valid identifier.
+ */
 export function brandThemeExportName(themeId: string): string {
   const camel = themeId.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase());
-  return `${camel}Theme`;
+  const name = `${camel}Theme`;
+  if (!EXPORT_NAME.test(name)) {
+    throw new BrandThemeError(
+      `Brand theme id "${themeId}" does not map to a valid export name; use lowercase kebab-case.`
+    );
+  }
+  return name;
 }
 
 function themeDisplayName(brand: BlueprintBrand, blueprintName?: string): string {
@@ -275,6 +289,21 @@ export function resolveBlueprintBrand(
   brand: BlueprintBrand,
   options: ResolveBrandOptions = {}
 ): Theme {
+  try {
+    return buildBrandTheme(brand, options);
+  } catch (error) {
+    // A theme the core schema rejects is a blueprint problem, not an internal error.
+    if (error instanceof z.ZodError || (error as Error | null)?.name === 'ZodError') {
+      const issue = (error as z.ZodError).issues[0];
+      throw new BrandThemeError(
+        `Brand theme is invalid: ${issue ? `${issue.path.map(String).join('.') || '(root)'} — ${issue.message}` : 'unknown error'}`
+      );
+    }
+    throw error;
+  }
+}
+
+function buildBrandTheme(brand: BlueprintBrand, options: ResolveBrandOptions): Theme {
   if (brand.libraryTheme) {
     throw new BrandThemeError(
       `Brand uses library theme "${brand.libraryTheme}"; it ships by id, so there is no theme to build.`

@@ -150,7 +150,56 @@ describe('createBlueprintGenerator', () => {
     expect(new Set(world.personas.map((p) => p.avatar)).size).toBe(world.personas.length);
     expect(JSON.stringify(run(5))).toBe(JSON.stringify(world));
     expect(run(6).personas.map((p) => p.avatar)).not.toEqual(world.personas.map((p) => p.avatar));
-    expect(BLUEPRINT_GENERATOR_SDK).toBe(5);
+    expect(BLUEPRINT_GENERATOR_SDK).toBe(6);
+  });
+});
+
+describe('fictional contact data', () => {
+  it('keeps url, email and phone values on example domains and 555 numbers despite fake hints', () => {
+    const contactBlueprint = parseBlueprint({
+      formatVersion: 1,
+      name: 'Contact fixture',
+      entities: [
+        {
+          name: 'account',
+          plural: 'accounts',
+          seedCount: 40,
+          titleField: 'name',
+          fields: [
+            { name: 'name', kind: 'text', required: true, fake: 'company.name' },
+            { name: 'domain', kind: 'url', fake: 'internet.url' },
+            { name: 'mobile', kind: 'phone', fake: 'phone.number' },
+            { name: 'email', kind: 'email', fake: 'internet.email' },
+            { name: 'site', kind: 'text', fake: 'internet.url' },
+            { name: 'contact', kind: 'text', fake: 'internet.email' },
+            { name: 'line', kind: 'text', fake: 'phone.number' },
+          ],
+        },
+      ],
+      roles: [{ name: 'owner', permissions: { '*': ['*'] } }],
+    });
+    const gen = createBlueprintGenerator(contactBlueprint);
+    const rows =
+      gen.generate(createGenerateContext(parseScenario(scenario('normal', 11)))).tables.accounts ??
+      [];
+    expect(rows.length).toBeGreaterThan(0);
+    const url = /^https:\/\/example\.(?:com|org)\//;
+    const email = /@example\.(?:com|org)$/;
+    const phone = /^\+1-555-\d{3}-\d{4}$/;
+    for (const row of rows) {
+      for (const [key, pattern] of [
+        ['domain', url],
+        ['site', url],
+        ['email', email],
+        ['contact', email],
+        ['mobile', phone],
+        ['line', phone],
+      ] as const) {
+        const value = row[key];
+        if (value === null || value === undefined) continue;
+        expect(String(value), key).toMatch(pattern);
+      }
+    }
   });
 });
 

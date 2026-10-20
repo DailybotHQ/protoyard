@@ -674,7 +674,9 @@ function readme(blueprint: Blueprint, slug: string): string {
       (e) => `| \`${e.name}\` | \`${entityTable(e)}\` | ${e.fields.length} | \`#/${e.plural}\` |`
     )
     .join('\n');
-  return `# ${blueprint.name}
+  // One heading line: a name with newlines must not inject Markdown.
+  const title = blueprint.name.replace(/\s+/g, ' ').trim();
+  return `# ${title}
 
 Generated with \`pnpm protoyard generate ${slug} --blueprint <file>\` from
 [blueprint.json](blueprint.json), on the \`crud-app\` template.

@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { lstat, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   type Blueprint,
@@ -115,13 +115,37 @@ export async function readSnapshot(dest: string): Promise<Snapshot | null> {
   });
 }
 
+const unsafeLink = (path: string) =>
+  new CliError('unsafe_path', `Refusing to follow a symbolic link: ${path}`, {
+    hint: 'Generated folders must be real directories inside the prototype. Remove the link and re-run.',
+  });
+
+const isSymlink = (path: string) =>
+  lstat(path).then(
+    (info) => info.isSymbolicLink(),
+    () => false
+  );
+
+/**
+ * Refuses a prototype whose `src`, `src/generated` or `src/generated/screens`
+ * is a symbolic link: regeneration writes and (with --force) deletes there, and
+ * a link could point anywhere on disk.
+ */
+export async function assertNoGeneratedLinks(dest: string): Promise<void> {
+  for (const rel of ['src', 'src/generated', SCREENS_DIR]) {
+    if (await isSymlink(join(dest, rel))) throw unsafeLink(rel);
+  }
+}
+
 /** Status of every generated file against what `emitted` expects, plus stale generated screens. */
 export async function planGeneratedFiles(
   dest: string,
   emitted: readonly EmittedFile[]
 ): Promise<FilePlan[]> {
+  await assertNoGeneratedLinks(dest);
   const plans: FilePlan[] = [];
   for (const file of emitted.filter((f) => f.generated)) {
+    if (await isSymlink(join(dest, file.path))) throw unsafeLink(file.path);
     const current = await readText(join(dest, file.path));
     if (current === null) plans.push({ path: file.path, status: 'created', content: file.content });
     else if (current === file.content) plans.push({ path: file.path, status: 'unchanged' });
@@ -130,10 +154,12 @@ export async function planGeneratedFiles(
     } else plans.push({ path: file.path, status: 'conflicted', content: file.content });
   }
   const expected = new Set(emitted.map((f) => f.path));
-  const screens = await readdir(join(dest, SCREENS_DIR)).catch(() => [] as string[]);
-  for (const name of screens.sort()) {
-    const path = `${SCREENS_DIR}/${name}`;
-    if (expected.has(path)) continue;
+  const entries = await readdir(join(dest, SCREENS_DIR), { withFileTypes: true }).catch(() => []);
+  for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+    const path = `${SCREENS_DIR}/${entry.name}`;
+    if (entry.isSymbolicLink()) throw unsafeLink(path);
+    // Only regular files are generated screens; anything else is left alone.
+    if (!entry.isFile() || expected.has(path)) continue;
     const current = (await readText(join(dest, path))) ?? '';
     plans.push({ path, status: checkHeader(current).intact ? 'removed' : 'conflicted' });
   }

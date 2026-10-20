@@ -126,6 +126,28 @@ describe('resolveBlueprintBrand', () => {
     expect(brandThemeExportName('acme')).toBe('acmeTheme');
   });
 
+  it('rejects brand ids that cannot become an export name', () => {
+    for (const id of ['acme-', 'a--b', '-acme', '3d-shop']) {
+      expect(
+        () => parseBlueprint({ ...baseBlueprint, brand: { id, seed: '#2563eb' } }),
+        id
+      ).toThrow(/brand id must be lowercase kebab-case/);
+    }
+    expect(() => brandThemeExportName('acme-')).toThrow(BrandThemeError);
+    expect(() => brandThemeExportName('3d-shop')).toThrow(BrandThemeError);
+  });
+
+  it('gives a product name starting with a digit a valid theme id and export name', () => {
+    const id = brandThemeId({ seed: '#2563eb' }, '3D Print Shop');
+    expect(id).toBe('brand-3d-print-shop');
+    expect(brandThemeExportName(id)).toBe('brand3dPrintShopTheme');
+    const theme = resolveBlueprintBrand({ seed: '#2563eb' }, { blueprintName: '3D Print Shop' });
+    expect(theme.id).toBe('brand-3d-print-shop');
+    assertAa(theme);
+    // Truncation never leaves a trailing hyphen.
+    expect(brandThemeId({ seed: '#2563eb' }, `${'a'.repeat(39)} b`)).toBe('a'.repeat(39));
+  });
+
   it('emits a defineTheme module that round-trips the resolved theme', () => {
     const brand = parseBlueprint({
       ...baseBlueprint,
