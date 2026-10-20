@@ -5,6 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Protoyard player: run a blueprint as a working prototype in your browser. Simulated data only." />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <!-- Replay the last blueprint's appearance before the player runtime paints. -->
+    <script>
+      (() => {
+        var active, cached, root, key, mode;
+        try {
+          active = localStorage.getItem('protoyard.player.active-namespace');
+          if (!active || !/^(?:bp|keep)-[a-z0-9-]+$/.test(active)) return;
+          cached = JSON.parse(localStorage.getItem(`protoyard.${active}.appearance`) || 'null');
+          if (cached?.v !== 1 || !cached.vars) return;
+          root = document.documentElement;
+          for (key in cached.vars) {
+            if (/^--py-[a-z0-9-]+$/.test(key) && typeof cached.vars[key] === 'string') {
+              root.style.setProperty(key, cached.vars[key]);
+            }
+          }
+          mode = cached.mode === 'dark' ? 'dark' : 'light';
+          root.classList.add(mode);
+          root.dataset.pyMode = mode;
+          root.style.colorScheme = mode;
+          if (typeof cached.themeId === 'string') root.dataset.pyTheme = cached.themeId;
+          root.dataset.pyMotion = cached.reducedMotion ? 'reduce' : 'full';
+        } catch (_) {}
+      })();
+    </script>
     <title>Protoyard player</title>
   </head>
   <body>
