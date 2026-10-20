@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { readFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, rm, stat } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import { dirname, extname, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
@@ -24,15 +24,41 @@ function sendJson(response: import('node:http').ServerResponse, value: unknown, 
   response.end(JSON.stringify(value));
 }
 
+const exists = (path: string) =>
+  stat(path).then(
+    () => true,
+    () => false
+  );
+
+/**
+ * Packs the target once even when several workers start at the same time:
+ * the first takes an atomic mkdir lock and exports; the others wait for it.
+ * Two concurrent exports would delete each other's artifact-dist mid-copy.
+ */
 async function ensurePack(): Promise<void> {
-  try {
-    await stat(resolve(PACK_DIR, 'page.html'));
-  } catch {
-    await execFileAsync(
-      'pnpm',
-      ['protoyard', 'export', ARTIFACT_PACK_TARGET, '--target', 'artifact'],
-      { cwd: REPO_ROOT, maxBuffer: 8 * 1024 * 1024 }
-    );
+  const page = resolve(PACK_DIR, 'page.html');
+  const lock = resolve(REPO_ROOT, 'artifacts', `${ARTIFACT_PACK_TARGET}.e2e-pack.lock`);
+  const deadline = Date.now() + 5 * 60_000;
+  await mkdir(dirname(lock), { recursive: true });
+  while (!(await exists(page))) {
+    if (Date.now() > deadline) throw new Error(`timed out waiting for ${page}`);
+    try {
+      await mkdir(lock, { recursive: false });
+    } catch {
+      await new Promise((done) => setTimeout(done, 500));
+      continue;
+    }
+    try {
+      if (!(await exists(page))) {
+        await execFileAsync(
+          'pnpm',
+          ['protoyard', 'export', ARTIFACT_PACK_TARGET, '--target', 'artifact'],
+          { cwd: REPO_ROOT, maxBuffer: 8 * 1024 * 1024 }
+        );
+      }
+    } finally {
+      await rm(lock, { recursive: true, force: true });
+    }
   }
 }
 
