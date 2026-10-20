@@ -47,8 +47,10 @@ describe('player offline build', () => {
 
   it('precaches every emitted player file except the generated worker', () => {
     const config = offlineConfig();
+    // `_headers` is host configuration (the CSP header), not a page resource.
     const files = emittedFiles(DIST).filter(
-      (file) => file !== 'sw.js' && !file.startsWith('.') && !file.includes('/.')
+      (file) =>
+        file !== 'sw.js' && file !== '_headers' && !file.startsWith('.') && !file.includes('/.')
     );
     const precache = new Set(config.precache.map((file) => file.replace(/^\.\//, '')));
 

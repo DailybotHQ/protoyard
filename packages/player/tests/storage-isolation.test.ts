@@ -85,8 +85,10 @@ describe('player storage isolation', () => {
 
     await createDatabase('protoyard.bp-alpha.data');
     await createDatabase('protoyard.bp-alpha.control');
+    await createDatabase('protoyard.bp-alpha.validation');
     await createDatabase('protoyard.bp-beta.data');
     await createDatabase('protoyard.bp-beta.control');
+    await createDatabase('protoyard.bp-beta.validation');
 
     await expect(clearExploration('bp-alpha', {}, factory)).rejects.toThrow(/confirmation/i);
     await clearExploration('bp-alpha', { confirmed: true }, factory);
@@ -95,6 +97,7 @@ describe('player storage isolation', () => {
     expect(names).toEqual([
       'protoyard.bp-beta.control',
       'protoyard.bp-beta.data',
+      'protoyard.bp-beta.validation',
       PLAYER_INDEX_DATABASE,
     ]);
     expect(await listExplorations(factory)).toEqual([

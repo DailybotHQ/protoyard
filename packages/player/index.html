@@ -30,6 +30,10 @@
         } catch (_) {}
       })();
     </script>
+    <!-- Runs before any module: zod skips its eval probe, so the strict CSP reports nothing. -->
+    <script>
+      globalThis.__zod_globalConfig = Object.assign(globalThis.__zod_globalConfig || {}, { jitless: true });
+    </script>
     <title>Protoyard player</title>
   </head>
   <body>
