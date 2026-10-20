@@ -1,12 +1,20 @@
 # Development Commands
 
-The authoritative command reference. Run everything from the repository root
-with pnpm 11 and Node 24+ (`corepack enable` once). Every `protoyard` command
+The authoritative command reference. Run everything from a Protoyard monorepo
+or marked consumer workspace with pnpm 11 and Node 24+ (`corepack enable` once).
+Every `protoyard` command
 accepts `--json` (envelope `{ ok, command, data?, error? }`) and returns
 meaningful exit codes: 0 ok · 1 failure · 2 usage · 3 not found ·
 4 validation · 5 provider/auth.
 
 ## Workspace
+
+The CLI discovers the nearest ancestor containing `pnpm-workspace.yaml` as a
+`monorepo`, or a `package.json` with a `protoyard` field or non-empty npm
+`workspaces` declaration as a `consumer` workspace. `--root <dir>` and
+`PROTOYARD_ROOT` still select an existing directory explicitly; paths are
+canonicalized before containment checks. `doctor` reports the detected layout
+and checks monorepo-only templates and registry files only for monorepos.
 
 | Command | What it does |
 | --- | --- |
