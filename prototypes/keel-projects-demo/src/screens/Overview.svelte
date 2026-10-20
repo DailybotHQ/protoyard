@@ -104,12 +104,19 @@ async function removeProject() {
   {/snippet}
 </PageHeader>
 
-<section aria-label="Summary" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+<section aria-label="Summary" class="grid grid-cols-2 gap-3 lg:grid-cols-4" data-py-anchor="overview-summary">
   <StatCard label="Open tasks" value={stats.open} icon={ListTodo} />
   <StatCard label="Overdue" value={stats.overdue} icon={AlarmClock} hint={stats.overdue > 0 ? 'Past their due date' : 'Nothing late'} />
   <StatCard label="Due this week" value={stats.thisWeek} icon={CalendarRange} />
   <StatCard label="Done in 7 days" value={stats.completed} icon={CircleCheckBig} />
 </section>
+
+<!-- Review comments are on in published builds (protoyard.json build.review): a sample review to try offline. -->
+<p class="mt-3 text-sm text-muted-foreground">
+  Reviewing this prototype? Press <kbd class="rounded border border-border px-1 font-mono text-xs">C</kbd> to pin a comment, or
+  <a class="text-primary underline-offset-2 hover:underline" href="./review-demo.json" download="keel-projects-review-demo.json">download a sample review</a>
+  and choose Import in the review toolbar.
+</p>
 
 <h2 class="mt-8 mb-3 text-lg font-semibold tracking-tight">Projects</h2>
 

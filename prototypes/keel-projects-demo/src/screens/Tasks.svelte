@@ -79,6 +79,7 @@ const views = workspace.services.savedViews;
   title="All tasks"
   description={`${(tasks.current?.length ?? 0).toLocaleString('en')} tasks across every project. Sort, filter and group, then save the view.`}
 />
+<div data-py-anchor="task-grid">
 <DataGrid
   {query}
   {columns}
@@ -104,3 +105,4 @@ const views = workspace.services.savedViews;
       }
     : {})}
 />
+</div>

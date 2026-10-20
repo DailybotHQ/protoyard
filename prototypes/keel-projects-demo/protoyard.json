@@ -67,7 +67,11 @@
   "build": {
     "includeDevtools": false,
     "demoBadge": true,
-    "base": "./"
+    "base": "./",
+    "review": {
+      "enabled": true,
+      "adapter": "local"
+    }
   },
   "scenarios": ["empty", "sprint-in-flight", "overdue-crunch", "massive", "viewer"],
   "template": "project-management",
