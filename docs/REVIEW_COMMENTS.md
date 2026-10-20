@@ -24,6 +24,19 @@ or `local · this browser only · sync on refresh`. The package details are in
 adapter for one build
 ([packages/renderer-svelte/README.md](../packages/renderer-svelte/README.md)).
 
+## Shared comments on Cloudflare Pages
+
+`pnpm protoyard publish <slug> --provider cloudflare --comments [d1|kv]`
+builds with the `http` adapter on the same-origin `/api/comments`. It ships
+the comments handler as `dist/_worker.js` (under 20 KB raw), with a
+`_routes.json` that includes only `/api/comments/*`. The dry run prints the
+one-time Wrangler setup (create the D1 database or KV namespace, apply
+`packages/review/schema/d1.sql`, the binding name and an optional
+`REVIEW_KEY`). The CLI never runs these commands.
+`showcase --publish cloudflare --comments` puts one worker at the site root
+for every demo. Details:
+[PUBLISHING.md](PUBLISHING.md#shared-review-comments-on-cloudflare-pages---comments).
+
 ## The artifact adapter
 
 Use it when the prototype is shared as a private Claude artifact

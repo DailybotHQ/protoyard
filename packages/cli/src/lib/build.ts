@@ -78,6 +78,8 @@ export interface BuildOptions {
   avatarBase?: string;
   /** Ship only these avatar sizes (the artifact target ships 128). */
   avatarSizes?: readonly number[];
+  /** Force review comments on with this adapter (`publish --comments`: http, `/api/comments`). */
+  review?: { adapter: 'http' | 'cloudflare'; endpoint: string };
 }
 
 export interface BuildResult {
@@ -184,8 +186,9 @@ export async function buildPrototype(
   const frameWhenEmbedded =
     options.frameWhenEmbedded ?? manifestRaw.build?.frameWhenEmbedded ?? false;
   const reviewConfig = resolveReviewBuild(manifestRaw.build?.review);
-  const reviewEnabled =
-    process.env.PROTOYARD_REVIEW === undefined || process.env.PROTOYARD_REVIEW === ''
+  const reviewEnabled = options.review
+    ? true
+    : process.env.PROTOYARD_REVIEW === undefined || process.env.PROTOYARD_REVIEW === ''
       ? reviewConfig.enabled
       : ['1', 'true', 'yes', 'on'].includes(process.env.PROTOYARD_REVIEW.trim().toLowerCase())
         ? true
@@ -218,6 +221,7 @@ export async function buildPrototype(
     ...(options.frameWhenEmbedded ? { frameWhenEmbedded: true } : {}),
     ...(options.avatarBase ? { avatarBase: options.avatarBase } : {}),
     ...(options.avatarSizes ? { avatarSizes: options.avatarSizes } : {}),
+    ...(options.review ? { review: options.review } : {}),
     quiet: ctx.out.options.json || ctx.out.options.quiet,
   });
   if (code !== 0) {
@@ -260,7 +264,7 @@ export async function buildPrototype(
     node: process.versions.node,
     offline: await readOfflineRecord(ctx.root, outDir),
     frameWhenEmbedded,
-    review: { enabled: reviewEnabled, adapter: reviewConfig.adapter },
+    review: { enabled: reviewEnabled, adapter: options.review?.adapter ?? reviewConfig.adapter },
     ...(bundle ? { bundle } : {}),
   };
   const wantsOffline = options.offline === true || manifestRaw.build?.offline === true;

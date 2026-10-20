@@ -46,6 +46,28 @@ export interface AuthStatus {
   hint?: string;
 }
 
+/** Shared review comments store behind the Cloudflare worker (`publish --comments`). */
+export type CommentsStoreKind = 'd1' | 'kv';
+
+/**
+ * One-time Cloudflare setup for `publish --comments`, printed for the
+ * developer to run. The CLI never runs these commands: they create cloud
+ * resources and need the developer's credentials.
+ */
+export interface CommentsSetup {
+  store: CommentsStoreKind;
+  /** Binding name the worker reads (`REVIEW_DB` or `REVIEW_KV`). */
+  binding: string;
+  /** D1 database name or KV namespace title the commands create. */
+  resource: string;
+  /** Create the store (and, for D1, apply the schema), in order. */
+  commands: string[][];
+  /** Optional shared key; it discourages casual writes and is not authentication. */
+  secret: string[];
+  /** What the commands cannot do (binding the store to the Pages project). */
+  notes: string[];
+}
+
 export interface PublishProvider {
   id: 'cloudflare' | 'netlify' | 'vercel' | 'static';
   label: string;
@@ -61,6 +83,11 @@ export interface PublishProvider {
   command(input: PublishInput): string[];
   /** Commands run before `command` (e.g. linking a project), shown by --dry-run too. */
   setupCommands?(input: PublishInput): string[][];
+  /** One-time comments store setup, printed and never run (Cloudflare only). */
+  commentsSetup?(
+    input: PublishInput,
+    comments: { store: CommentsStoreKind; schemaFile: string }
+  ): CommentsSetup;
   publish(input: PublishInput): Promise<PublishResult>;
 }
 

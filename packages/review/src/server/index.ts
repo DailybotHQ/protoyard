@@ -1,11 +1,23 @@
 import { checkSlug } from '@protoyard/core';
-import {
-  REVIEW_LIMITS,
-  type ReviewComment,
-  ReviewCommentSchema,
-  ReviewIdSchema,
-} from '@protoyard/core/review';
+import type { ReviewComment } from '@protoyard/core/review';
 import { sortReviewComments } from '../store/index.ts';
+import { SERVER_REVIEW_LIMITS, validateReviewComment } from './validate.ts';
+
+export {
+  SERVER_REVIEW_LIMITS,
+  type ServerValidationIssue,
+  type ServerValidationResult,
+  validateReviewComment,
+} from './validate.ts';
+
+/**
+ * This module is bundled into the Cloudflare Pages worker (`publish
+ * --comments`), which must stay under 20 KB. Import only types from
+ * `@protoyard/core/review`: its zod schemas would add about 125 KB, so comments
+ * are checked by the dependency-free `validateReviewComment` (kept in parity
+ * with `ReviewCommentSchema` by tests).
+ */
+const REVIEW_ID = /^[A-Za-z0-9_-]{10,64}$/;
 
 const MAX_REQUEST_BYTES = 16 * 1024;
 const DEFAULT_WINDOW_MS = 60_000;
@@ -137,7 +149,7 @@ function parseRoute(
     return undefined;
   }
   if (tail === 'summary') return { kind: 'summary', slug };
-  if (!ReviewIdSchema.safeParse(tail).success) return undefined;
+  if (!REVIEW_ID.test(tail)) return undefined;
   return { kind: 'comment', slug, id: tail };
 }
 
@@ -240,16 +252,6 @@ function validSince(value: string | null): string | undefined {
   return value;
 }
 
-function zodIssues(error: {
-  issues: Array<{ path: PropertyKey[]; code: string; message: string }>;
-}) {
-  return error.issues.map((issue) => ({
-    path: issue.path.map(String),
-    code: issue.code,
-    message: issue.message,
-  }));
-}
-
 /**
  * Handles the shared comments API using only Request/Response and Web Crypto.
  * Configure `REVIEW_KEY` to discourage casual writes; names and client ids are
@@ -330,10 +332,10 @@ export async function handleCommentsRequest(
     }
 
     const raw = await readJsonBody(request);
-    const parsed = ReviewCommentSchema.safeParse(raw);
+    const parsed = validateReviewComment(raw);
     if (!parsed.success) {
       return apiError(422, 'validation_failed', 'Comment does not match the review schema.', {
-        issues: zodIssues(parsed.error),
+        issues: parsed.issues,
       });
     }
     if (parsed.data.slug !== route.slug || parsed.data.id !== route.id) {
@@ -341,11 +343,13 @@ export async function handleCommentsRequest(
     }
     const existing = await store.get(route.slug, route.id);
     const stampedAt = new Date(now).toISOString();
-    const comment = ReviewCommentSchema.parse({
+    const stamped = validateReviewComment({
       ...parsed.data,
       createdAt: existing?.createdAt ?? stampedAt,
       updatedAt: stampedAt,
     });
+    if (!stamped.success) throw new Error('stamped comment failed validation');
+    const comment = stamped.data;
     await store.put(comment);
     return json(200, { ok: true, comment });
   } catch (error) {
@@ -419,7 +423,7 @@ export function createMemoryCommentsStore(): CommentsStore {
 function parseComment(value: string | null): ReviewComment | undefined {
   if (!value) return undefined;
   try {
-    const parsed = ReviewCommentSchema.safeParse(JSON.parse(value) as unknown);
+    const parsed = validateReviewComment(JSON.parse(value) as unknown);
     return parsed.success ? parsed.data : undefined;
   } catch {
     return undefined;
@@ -574,7 +578,7 @@ export function createKvCommentsStore(kv: ReviewKvNamespace): CommentsStore {
 
 export const REVIEW_SERVER_LIMITS = {
   requestBytes: MAX_REQUEST_BYTES,
-  bodyCharacters: REVIEW_LIMITS.bodyMaxChars,
+  bodyCharacters: SERVER_REVIEW_LIMITS.bodyMaxChars,
   defaultWindowMs: DEFAULT_WINDOW_MS,
   defaultClientLimit: DEFAULT_CLIENT_LIMIT,
   defaultIpLimit: DEFAULT_IP_LIMIT,

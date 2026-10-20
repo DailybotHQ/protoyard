@@ -54,6 +54,14 @@ export const LedgerEntrySchema = z
     /** Static provider: the ZIP and its sha256. */
     zip: z.string().min(1).nullable(),
     zipSha256: Sha256.nullable(),
+    /**
+     * `publish --comments`: the review adapter and comments store the build
+     * shipped. Never a review key or binding id. Absent for older entries.
+     */
+    review: z
+      .object({ adapter: z.enum(['http', 'cloudflare']), store: z.enum(['d1', 'kv']) })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((entry, ctx) => {

@@ -30,11 +30,18 @@ import {
   templateDemoNamespace,
   writeJsonAtomic,
 } from '../lib/registry.ts';
+import {
+  COMMENTS_REVIEW_BUILD,
+  parseCommentsOption,
+  type ReviewWorkerFiles,
+  writeReviewWorker,
+} from '../lib/review-worker.ts';
 import { serveStatic } from '../lib/static-server.ts';
 import { normalizeBase } from '../lib/vite.ts';
 import type { CommandContext } from '../lib/workspace.ts';
 import { createProvider } from '../publish/index.ts';
 import type { PublishProvider } from '../publish/types.ts';
+import { commentsSetupLines } from './publish.ts';
 
 /**
  * `protoyard showcase` builds ONE static site: the gallery (with its
@@ -386,6 +393,13 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   if (publishId !== undefined && publishId !== 'cloudflare') {
     throw new CliError('usage', '--publish currently supports Cloudflare Pages only.');
   }
+  // One comments worker at the site root serves every bundled demo (/api/comments/<slug>).
+  const comments = parseCommentsOption(options.comments);
+  if (comments && publishId !== 'cloudflare') {
+    throw new CliError('usage', '--comments needs --publish cloudflare.', {
+      hint: 'Example: pnpm protoyard showcase --publish cloudflare --comments --dry-run',
+    });
+  }
   const publishProvider = publishId === undefined ? undefined : createProvider(publishId, ctx.root);
   if (publishProvider && flag(options, 'skipBuild')) {
     throw new CliError('usage', 'Publishing requires a fresh showcase build; remove --skip-build.');
@@ -433,6 +447,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   const targets: ShowcaseTarget[] = [];
   let avatars: { path: string; files: number; bytes: number } | undefined;
   let artifactManifest: ArtifactPackManifest | undefined;
+  let commentsFiles: ReviewWorkerFiles | undefined;
   try {
     // 1. Every demo, sequentially, each with its final public base.
     for (const { entry, appPath, marketplacePath, storageNamespace } of entries) {
@@ -450,6 +465,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
           avatarBase: showcaseAvatarBase(base, artifactTarget ? appPath : undefined),
           ...(flag(options, 'offline') ? { offline: true } : {}),
           ...(storageNamespace ? { storageNamespace } : {}),
+          ...(comments ? { review: COMMENTS_REVIEW_BUILD } : {}),
           manifestPath: join(
             ctx.paths.artifacts,
             'showcase-builds',
@@ -510,6 +526,8 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
     }
     // The one shared avatar folder every app points at.
     if (targets.some((t) => t.ok)) avatars = await shareAvatars(staging);
+    // The one comments worker, at the site root, before the site is digested.
+    if (comments) commentsFiles = await writeReviewWorker(staging, comments);
     // The marker lets a later run replace this site, and only this site.
     const marker = {
       generator: '@protoyard/cli',
@@ -550,6 +568,16 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
     files: files.length,
     totalBytes,
     ...(avatars ? { avatars } : {}),
+    ...(commentsFiles
+      ? {
+          comments: {
+            store: commentsFiles.store,
+            binding: commentsFiles.binding,
+            worker: { bytes: commentsFiles.worker.bytes, sha256: commentsFiles.worker.sha256 },
+            routes: commentsFiles.routes.include,
+          },
+        }
+      : {}),
     ...(artifactManifest
       ? {
           artifact: {
@@ -577,6 +605,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
       dryRun,
       ...(requestedProject !== undefined ? { project: requestedProject } : {}),
       ...(branch !== undefined ? { branch } : {}),
+      ...(comments ? { comments } : {}),
     });
   }
   const server = flag(options, 'serve') ? await serve(out, base, options) : null;
@@ -599,6 +628,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
               distDir: publication.distDir,
               fileCount: publication.files,
               totalBytes: publication.bytes,
+              ...(publication.comments ? { comments: publication.comments } : {}),
               ...(publication.kind === 'dry-run'
                 ? {
                     command: publication.command,
@@ -649,8 +679,10 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
         o.always(
           `${mark(c, 'pass')} Dry run: showcase ready (${publication.files} files, ${formatBytes(publication.bytes)}).`
         );
+        if (publication.comments)
+          for (const line of commentsSetupLines(c, publication.comments)) o.always(line);
         o.always(
-          `Would run:\n  ${c.cyan(publication.commandLine ?? publication.command?.join(' ') ?? 'Wrangler command unavailable')}`
+          `Would run${publication.comments ? ' (after the one-time setup)' : ''}:\n  ${c.cyan(publication.commandLine ?? publication.command?.join(' ') ?? 'Wrangler command unavailable')}`
         );
         o.info(c.dim('Nothing was uploaded.'));
       } else if (publication?.kind === 'published') {
@@ -658,6 +690,8 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
           `${mark(c, 'pass')} Published showcase to Cloudflare Pages (${publication.target}).`
         );
         if (publication.url) o.always(`  ${c.cyan(publication.url)}`);
+        if (publication.comments)
+          for (const line of commentsSetupLines(c, publication.comments)) o.info(line);
       }
     },
     ...(server ? { keepAlive: untilSignal(() => server.close()) } : {}),

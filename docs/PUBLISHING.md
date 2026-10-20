@@ -466,6 +466,7 @@ for you. `pnpm protoyard doctor` shows which ones are available; add
 | `--dry-run` | Build and verify, print the exact command, contact nobody. **Without it, `publish` uploads immediately**: a preview needs no confirmation, also with `--all` or `--tag`; only `--production` asks for `--yes`. Run `--dry-run` first when you only want to check. |
 | `--branch <name>` | Cloudflare only: a named preview branch (lowercase letters, digits and dashes; `main` is reserved), so each pull request or reviewer gets its own preview URL. Refused with `--production` and by the other adapters. |
 | `--ensure-project` | Cloudflare only: create the Pages project when it is missing. A dry run lists the `wrangler pages project create` command first. A real publish runs `wrangler pages project list --json` and creates the project only when its name is absent. |
+| `--comments [d1\|kv]` | Cloudflare only, one prototype: shared review comments. Builds with the http review adapter on the same-origin `/api/comments`, adds `dist/_worker.js` and `dist/_routes.json`, and prints the one-time Wrangler setup, which the CLI never runs. D1 is the default. See [Shared review comments](#shared-review-comments-on-cloudflare-pages---comments). |
 | `--history [<slug>…] [--limit <n>]` | Print the deploy ledger instead of publishing (see below) |
 
 ### Publishing several prototypes
@@ -529,6 +530,7 @@ $ pnpm protoyard publish --history
 | `commit`, `dirty` | `git rev-parse HEAD` of the workspace and whether tracked files had uncommitted changes (`null` outside git) |
 | `buildSha256`, `fileCount`, `totalBytes` | sha256 over the built files' paths and hashes (it identifies the exact build), plus its size |
 | `zip`, `zipSha256` | The static provider's ZIP |
+| `review` | Only with `--comments`: `{ adapter: "http", store: "d1" \| "kv" }`. Never a review key or a binding id. |
 
 Each line is validated before it is written, and written in a single append,
 so concurrent publishes never interleave inside a line. The schema is
@@ -635,6 +637,78 @@ Preview and production differ only in the branch passed to Wrangler: Pages
 treats `main` (the production branch) as production and any other branch as
 a preview with its own URL. The printed URL is the last `*.pages.dev` URL in
 Wrangler's output.
+
+### Shared review comments on Cloudflare Pages (`--comments`)
+
+`--comments [d1|kv]` publishes a prototype with shared review comments. Every
+reviewer of the deploy sees the same threads. The CLI changes three things:
+
+1. **The build.** Review is on, with the `http` adapter pointed at the
+   same-origin `/api/comments` (`PROTOYARD_REVIEW=1`,
+   `PROTOYARD_REVIEW_ADAPTER=http`, `PROTOYARD_REVIEW_ENDPOINT=/api/comments`).
+   The prototype's `protoyard.json` is not edited, and `build-manifest.json`
+   records `review.adapter: "http"`.
+2. **`dist/_worker.js`.** The comments handler from `@protoyard/review/server`
+   is bundled with the CLI's own Vite into one minified file
+   ([Pages advanced mode](https://developers.cloudflare.com/pages/functions/advanced-mode/)).
+   Only the chosen store ships. The bundle must stay **under 20 KB raw**, with
+   no imports and no Node built-ins. Otherwise the publish fails and nothing
+   is written. Measured on 2026-10-19: 14,443 bytes with D1 and 13,981 bytes
+   with KV. The handler validates comments with a dependency-free validator
+   that is kept in parity with `ReviewCommentSchema` by tests. zod would add
+   about 95 KB.
+3. **`dist/_routes.json`.** It includes only `/api/comments/*`, so every
+   other request is served as a static asset and never invokes the worker.
+   The worker also hands any other path to `env.ASSETS`.
+
+The worker and routes are written before the isolation check and the digest,
+so both cover the folder that deploys. `functions/` is not used, because
+Wrangler resolves it from its working directory.
+
+A dry run builds all of this and prints the one-time setup. Nothing is
+created, bound or uploaded (output of 2026-10-19, with Vite's build lines
+and the absolute path shortened):
+
+```text
+$ pnpm protoyard publish crm-demo --provider cloudflare --comments d1 --dry-run
+✓ Dry run: crm-demo built and verified (430 files, 2.1 MB).
+Comments: D1 store bound as REVIEW_DB; _worker.js (14 KB) answers /api/comments/* (_routes.json); review adapter http on /api/comments.
+Run once before the first deploy (protoyard runs none of these):
+  npx --no-install wrangler d1 create protoyard-crm-demo-comments
+  npx --no-install wrangler d1 execute protoyard-crm-demo-comments --remote --file packages/review/schema/d1.sql
+  Bind the D1 database "protoyard-crm-demo-comments" to the Pages project "protoyard-crm-demo" as REVIEW_DB (Settings > Bindings, for production and preview), then deploy.
+Optional shared review key (not authentication):
+  npx --no-install wrangler pages secret put REVIEW_KEY --project-name protoyard-crm-demo
+  REVIEW_KEY is optional: reviewers open the link once with ?review=<key> (kept in that browser). It discourages casual writes and is not authentication.
+Would run (after the one-time setup):
+  npx --no-install wrangler pages deploy /…/artifacts/crm-demo/dist --project-name protoyard-crm-demo --branch preview --commit-dirty=true
+! Cloudflare Pages CLI not found locally. Install Wrangler (`pnpm add -D wrangler` in your own fork, or `npm i -g wrangler`).
+Nothing was uploaded.
+```
+
+| Store | Binding | One-time commands |
+| --- | --- | --- |
+| `d1` (default, recommended) | `REVIEW_DB` | `wrangler d1 create <project>-comments`, then `wrangler d1 execute <project>-comments --remote --file packages/review/schema/d1.sql` |
+| `kv` | `REVIEW_KV` | `wrangler kv namespace create <project>-comments` (KV reads, writes and rate limits are eventually consistent) |
+
+Bind the store to the Pages project under the binding name, in the
+dashboard (Settings > Bindings) for both production and preview. A worker
+without its binding answers `503 store_unconfigured`. `REVIEW_KEY` is
+optional. When it is set, every request needs the `x-review-key` header,
+which the review UI sends after a reviewer opens the link once with
+`?review=<key>`. Names and keys are self-declared and shared: this mode
+discourages casual writes, and it is **not authentication**.
+
+`--comments` is refused by the other providers and in batch publishes. For
+one shared worker over many demos, use the showcase (below). Static and ZIP
+exports never ship the worker. `export` builds a fresh `dist/` without one,
+and `export --skip-build`, `publish --provider static` and a publish without
+`--comments` all refuse a folder that still holds `_worker.js`. The deploy
+ledger records `review: { adapter, store }`, never a key. As with every
+publish, real deploys need your credentials and are not run in this
+repository's checks. Only dry runs and the worker tests (bundle size,
+routes, setup commands, a KV round trip through the bundled worker) are
+verified.
 
 ### Netlify and Vercel (experimental)
 
@@ -825,6 +899,12 @@ second command with authorized Wrangler credentials. Deploys use the preview
 branch by default; `--branch` selects a named preview. The build refuses to
 publish if any selected prototype or template fails to build or fails its
 isolation check.
+`--comments [d1|kv]` (with `--publish cloudflare`) builds every demo with the
+http review adapter and writes **one** comments worker and `_routes.json` at
+the site root. All demos share it: comments are keyed by slug
+(`/api/comments/<slug>`). The dry run prints the same one-time setup as
+`publish --comments`, for the showcase project
+(`protoyard-showcase-comments`, for example).
 The local `.protoyard-showcase` ownership marker is restored after publishing
 and is never included in the uploaded site. This one-project option is useful
 for team review; per-prototype projects remain available through `protoyard

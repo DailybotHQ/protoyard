@@ -65,6 +65,15 @@ first `X-Forwarded-For` value) per 60 seconds; pass handler env overrides to
 change the limits. The summary reports comment and root-thread counts, with
 open/resolved counts calculated from root comments.
 
+Comments are validated by `validateReviewComment` (also exported), a
+dependency-free mirror of `ReviewCommentSchema`. The module imports only types
+from `@protoyard/core/review`, so the Cloudflare worker that
+`protoyard publish --comments` bundles stays under 20 KB raw (about 14 KB;
+with zod and the core schemas it was 109 KB). `tests/server-validate.test.ts`
+runs both validators on about 790 valid and invalid documents and requires the
+same verdict and the same parsed value. Change the schema and the validator
+together.
+
 Use `createD1CommentsStore(db)` for shared deployments: D1 upserts and rate
 buckets are strongly consistent. Apply [`schema/d1.sql`](schema/d1.sql)
 manually to the database; the CLI never runs it. `createKvCommentsStore(kv)`

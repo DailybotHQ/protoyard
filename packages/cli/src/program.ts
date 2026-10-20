@@ -373,6 +373,10 @@ export function createProgram(env: RunnerEnv): Command {
         '--ensure-project',
         'Cloudflare: create the Pages project when missing (shown on dry-run; run on real publish)'
       )
+      .option(
+        '--comments [store]',
+        'Cloudflare: shared review comments, d1 (default) or kv; adds dist/_worker.js and prints the one-time Wrangler setup (never run)'
+      )
   ).action(def('publish', publishCommand));
 
   const scenario = program.command('scenario').description("inspect a prototype's scenarios");
@@ -532,6 +536,10 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--include-templates', 'accepted for older scripts: templates are bundled by default')
     .option('--offline', 'build every bundled prototype with the offline service worker')
     .option('--publish <provider>', 'publish the completed showcase (Cloudflare Pages only)')
+    .option(
+      '--comments [store]',
+      'with --publish cloudflare: one shared comments worker at the site root, d1 (default) or kv'
+    )
     .option('--project <name>', 'Cloudflare Pages project (default protoyard-showcase)')
     .option('--branch <name>', 'Cloudflare Pages preview branch')
     .option('--dry-run', 'print the Cloudflare command without contacting the provider')

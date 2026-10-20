@@ -1,6 +1,8 @@
 import { run, stripAnsi } from '../lib/process.ts';
 import { lastLines, type ToolInvocation, toolAvailability } from './cli-tool.ts';
 import {
+  type CommentsSetup,
+  type CommentsStoreKind,
   ProviderError,
   type PublishInput,
   type PublishProvider,
@@ -114,6 +116,48 @@ export function parseCloudflareOutput(output: string): PublishResult | null {
   return /^[0-9a-f]{8}$/.test(first) ? { url, deploymentId: first } : { url };
 }
 
+/** D1 database or KV namespace name for a Pages project's comments. */
+export function commentsResourceName(project: string): string {
+  return `${project}-comments`;
+}
+
+/**
+ * The exact one-time Wrangler commands for the shared comments store. They
+ * are printed for the developer and never run by the CLI. Bindings for a
+ * Pages project are attached in its settings, so that step is a note.
+ */
+export function cloudflareCommentsSetup(
+  wrangler: readonly string[],
+  project: string,
+  store: CommentsStoreKind,
+  schemaFile: string
+): CommentsSetup {
+  const resource = commentsResourceName(project);
+  const binding = store === 'd1' ? 'REVIEW_DB' : 'REVIEW_KV';
+  const commands =
+    store === 'd1'
+      ? [
+          [...wrangler, 'd1', 'create', resource],
+          [...wrangler, 'd1', 'execute', resource, '--remote', '--file', schemaFile],
+        ]
+      : [[...wrangler, 'kv', 'namespace', 'create', resource]];
+  const kind = store === 'd1' ? 'D1 database' : 'KV namespace';
+  return {
+    store,
+    binding,
+    resource,
+    commands,
+    secret: [...wrangler, 'pages', 'secret', 'put', 'REVIEW_KEY', '--project-name', project],
+    notes: [
+      `Bind the ${kind} "${resource}" to the Pages project "${project}" as ${binding} (Settings > Bindings, for production and preview), then deploy.`,
+      ...(store === 'kv'
+        ? ['KV reads, writes and rate limits are eventually consistent; D1 is recommended.']
+        : []),
+      'REVIEW_KEY is optional: reviewers open the link once with ?review=<key> (kept in that browser). It discourages casual writes and is not authentication.',
+    ],
+  };
+}
+
 function wranglerBase(cached: ToolInvocation | undefined): string[] {
   return [...(cached?.argv ?? ['npx', '--no-install', 'wrangler'])];
 }
@@ -210,6 +254,14 @@ export function createCloudflareProvider(root: string): PublishProvider {
     setupCommands(input) {
       if (!input.ensureProject) return [];
       return [[...wranglerBase(cached), ...cloudflareEnsureProjectArgs(input.project)]];
+    },
+    commentsSetup(input, comments) {
+      return cloudflareCommentsSetup(
+        wranglerBase(cached),
+        input.project,
+        comments.store,
+        comments.schemaFile
+      );
     },
     async publish(input) {
       const [cmd, ...prefix] = (await invocation()).argv as [string, ...string[]];

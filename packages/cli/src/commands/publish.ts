@@ -9,12 +9,14 @@ import {
   publishPrototype,
 } from '../lib/publish-run.ts';
 import { filterEntries, loadRegistry, type RegistryEntry } from '../lib/registry.ts';
+import { parseCommentsOption } from '../lib/review-worker.ts';
 import { type CommandContext, resolveTarget } from '../lib/workspace.ts';
 import { formatCommand } from '../publish/cli-tool.ts';
 import { createProvider } from '../publish/index.ts';
 import type { PublishProvider } from '../publish/types.ts';
 
 function runOptions(options: Record<string, unknown>): PublishRunOptions {
+  const comments = parseCommentsOption(options.comments);
   return {
     preview: flag(options, 'preview'),
     production: flag(options, 'production'),
@@ -24,7 +26,25 @@ function runOptions(options: Record<string, unknown>): PublishRunOptions {
     ensureProject: flag(options, 'ensureProject'),
     base: opt(options, 'base'),
     includeDevtools: flag(options, 'includeDevtools'),
+    ...(comments ? { comments } : {}),
   };
+}
+
+/** Lines for the one-time comments setup the developer runs; the CLI runs none of them. */
+export function commentsSetupLines(
+  c: Parameters<NonNullable<CommandResult['render']>>[0]['c'],
+  comments: NonNullable<PublishRunResult['comments']>
+): string[] {
+  const { setup } = comments;
+  return [
+    `Comments: ${comments.store.toUpperCase()} store bound as ${c.bold(comments.binding)}; ${comments.worker.file} (${formatBytes(comments.worker.bytes)}) answers ${comments.routes.include.join(', ')} (${comments.routes.file}); review adapter ${comments.adapter} on ${comments.endpoint}.`,
+    'Run once before the first deploy (protoyard runs none of these):',
+    ...setup.commands.map((argv) => `  ${c.cyan(formatCommand(argv))}`),
+    ...setup.notes.slice(0, 1).map((note) => `  ${note}`),
+    'Optional shared review key (not authentication):',
+    `  ${c.cyan(formatCommand(setup.secret))}`,
+    ...setup.notes.slice(1).map((note) => c.dim(`  ${note}`)),
+  ];
 }
 
 /**
@@ -51,6 +71,11 @@ export const publishCommand: Handler = async (ctx, args, options): Promise<Comma
   const provider = createProvider(opt(options, 'provider'), ctx.root);
   if (!all && tag === undefined && args.length === 1) {
     return publishOne(ctx, args[0], provider, runOptions(options));
+  }
+  if (options.comments !== undefined) {
+    throw new CliError('usage', '--comments publishes one prototype at a time.', {
+      hint: 'For one shared comments worker over many demos: pnpm protoyard showcase --publish cloudflare --comments --dry-run',
+    });
   }
   return publishBatch(ctx, await selectTargets(ctx, args, all, tag), provider, runOptions(options));
 };
@@ -233,6 +258,7 @@ async function publishOne(
     fileCount: result.files,
     totalBytes: result.bytes,
     ...(result.ensureProject ? { ensureProject: true as const } : {}),
+    ...(result.comments ? { comments: result.comments } : {}),
     ledger: result.ledger ?? null,
   };
   if (result.kind === 'static') {
@@ -275,8 +301,10 @@ async function publishOne(
               `! The ${provider.label} adapter is experimental and untested against the live service.`
             )
           );
+        if (result.comments)
+          for (const line of commentsSetupLines(c, result.comments)) out.always(line);
         out.always(
-          `Would run:\n${[...(result.setup ?? []), result.command ?? []].map((argv) => `  ${c.cyan(formatCommand(argv))}`).join('\n')}`
+          `Would run${result.comments ? ' (after the one-time setup)' : ''}:\n${[...(result.setup ?? []), result.command ?? []].map((argv) => `  ${c.cyan(formatCommand(argv))}`).join('\n')}`
         );
         if (!result.toolAvailable)
           out.always(
@@ -301,6 +329,8 @@ async function publishOne(
       );
       out.always(`  ${c.cyan(result.url ?? '')}`);
       if (result.deploymentId) out.info(c.dim(`  deployment ${result.deploymentId}`));
+      if (result.comments)
+        for (const line of commentsSetupLines(c, result.comments)) out.info(line);
       if (result.experimental)
         out.always(c.yellow('  The adapter is experimental: please verify the URL loads.'));
     },
@@ -373,5 +403,6 @@ function historyLine(
         ? c.dim('dry run, nothing uploaded')
         : `ZIP ${c.cyan(e.zip ?? '')}`;
   const commit = e.commit ? ` ${e.commit.slice(0, 7)}${e.dirty ? '+dirty' : ''}` : '';
-  return `${e.at}  ${e.slug.padEnd(24)} ${where.padEnd(28)} ${what}${c.dim(commit)}`;
+  const review = e.review ? c.dim(` comments ${e.review.store}`) : '';
+  return `${e.at}  ${e.slug.padEnd(24)} ${where.padEnd(28)} ${what}${c.dim(commit)}${review}`;
 }
