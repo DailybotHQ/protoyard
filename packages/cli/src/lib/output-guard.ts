@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { CliError } from './output.ts';
 import { canonicalPath, isInside, samePath, type WorkspacePaths } from './paths.ts';
 
@@ -120,4 +120,63 @@ export function guardOutputDir(input: OutputGuardInput): string {
     );
   }
   return target;
+}
+
+export interface OutputFileGuardInput {
+  root: string;
+  paths: WorkspacePaths;
+  /** As typed by the user (relative to the root, or absolute). */
+  requested: string;
+  /** Extra folders a file may land in (e.g. `prototypes/<slug>/docs` for REVIEW.md). */
+  allowedDirs?: readonly string[];
+  /** Flag name for messages, e.g. `--out`. */
+  flag?: string;
+}
+
+/**
+ * Guard for a single FILE the CLI writes from untrusted data (`comments pull
+ * --out`, `comments export --out`). Stricter than guardOutputDir because the
+ * file is replaced in place: the target must be strictly inside artifacts/,
+ * tmp/ or an `allowedDirs` folder, no existing segment between the workspace
+ * root and the file may be a symlink, an existing target must be a regular
+ * file, and the deploy ledger folder (artifacts/publish) is never a target.
+ * There is no --allow-external-out escape hatch.
+ */
+export function guardOutputFile(input: OutputFileGuardInput): string {
+  const flag = input.flag ?? '--out';
+  const refuse = (why: string): never => {
+    throw new CliError('unsafe_path', `Refusing ${flag} ${input.requested}: ${why}`, {
+      hint: `Write the file under artifacts/ or tmp/ (e.g. ${flag} tmp/review.md).`,
+    });
+  };
+  const root = resolve(input.root);
+  const lexical = resolve(root, input.requested);
+  const rel = relative(root, lexical);
+  if (rel === '' || isAbsolute(rel) || rel.split(sep)[0] === '..')
+    refuse('it is outside the workspace.');
+
+  // Every existing segment, the file included, must be a real folder or file.
+  let current = root;
+  for (const segment of rel.split(sep)) {
+    current = join(current, segment);
+    let stat: ReturnType<typeof lstatSync>;
+    try {
+      stat = lstatSync(current);
+    } catch {
+      break; // the rest does not exist yet
+    }
+    if (stat.isSymbolicLink()) refuse('the path goes through a symlink.');
+    if (current === lexical && !stat.isFile()) refuse('it exists and is not a regular file.');
+  }
+
+  const target = canonicalPath(lexical);
+  if (isInside(join(input.paths.artifacts, 'publish'), target))
+    refuse('it is inside artifacts/publish/ (the deploy ledger).');
+  const zones = [input.paths.artifacts, join(root, 'tmp'), ...(input.allowedDirs ?? [])];
+  for (const zone of zones) {
+    if (isInside(zone, target) && !samePath(zone, target)) return target;
+  }
+  return refuse(
+    'only files under artifacts/ or tmp/ may be written (never source folders, .git or config files).'
+  );
 }

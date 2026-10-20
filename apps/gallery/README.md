@@ -18,7 +18,7 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
                                                               │  (data only)
                      src/integrations/registry-plugin.mjs ◀───┘
                        virtual:protoyard-registry  →  { registry, registryError, thumbnails }
-                       + artifacts/review/comments/<slug>.json → static counts
+                       + artifacts/review-comments/comments/<slug>.json → static counts
                                 │
         src/pages/index.astro ──┼── Browser.svelte (search / filters / pagination)
         src/pages/p/[slug].astro┼── LivePreview.svelte (device frame + control server / bundled build)
@@ -56,7 +56,7 @@ The gallery consumes `protoyard.registry` v1 (`format`, `version`, `generatedAt`
 - **`embedded: { url }`** (added only by `protoyard showcase`): the prototype's static build ships
   inside the site at `<base><url>`.
 - **`reviewCounts: { open, resolved, pulledAt }`** (optional): derived at build time from a validated
-  `artifacts/review/comments/<slug>.json` pulled file. Missing or invalid files add no count, and
+  `artifacts/review-comments/comments/<slug>.json` pulled file. Missing or invalid files add no count, and
   the gallery does not fetch comment summaries in the browser.
 
 Scale: the home page inlines a compact index (about 380 KB raw, 38 KB gzip, for 1,000 entries),

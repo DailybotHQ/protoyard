@@ -303,7 +303,7 @@ describe('protoyard review-index (CLI)', () => {
   });
 
   it('shows counts and pulled time only for valid pulled comments, with stable static HTML', async () => {
-    const commentsDir = join(ws.root, 'artifacts', 'review', 'comments');
+    const commentsDir = join(ws.root, 'artifacts', 'review-comments', 'comments');
     mkdirSync(commentsDir, { recursive: true });
     const reviewer = { name: 'Alex Reviewer', clientId: 'client_12345678' };
     const anchor = {
@@ -360,6 +360,22 @@ describe('protoyard review-index (CLI)', () => {
     ).toBeUndefined();
     await cli(['--root', ws.root, '--json', 'review-index', '--no-personas']);
     expect(read('artifacts/review/index.html')).toBe(html);
+    // The comments cache lives outside the published folder, so the default
+    // --publish still finds only the files review-index wrote.
+    const publish = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'review-index',
+      '--no-personas',
+      '--publish',
+      'cloudflare',
+      '--dry-run',
+    ]);
+    expect(publish.code, publish.stdout).toBe(0);
+    expect(
+      publish.json<{ data: { publication: { fileCount: number } } }>().data.publication
+    ).toMatchObject({ fileCount: 2 });
     rmSync(join(commentsDir, 'alpha-app.json'));
   });
 

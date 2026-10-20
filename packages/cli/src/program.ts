@@ -192,7 +192,10 @@ export function createProgram(env: RunnerEnv): Command {
     .command('export')
     .description('write the local adapter JSON format from the last pulled comments')
     .argument('<slug>', 'prototype slug')
-    .option('--out <file>', 'output JSON file (default artifacts/review/exports/<slug>.json)')
+    .option(
+      '--out <file>',
+      'output JSON file (default artifacts/review-comments/exports/<slug>.json)'
+    )
     .action(def('comments export', commentsExportCommand));
   commentsCmd
     .command('import')

@@ -554,6 +554,10 @@ JSON). For each prototype it shows the name, description and icon, then:
   (`?actor=<id>`, at most 12).
 - **Not deployed**: a "not deployed" badge and the command to publish it.
   No URL is ever guessed. Dry runs and ZIPs do not count as deployments.
+- **Review comments** (optional): open and resolved thread counts and the
+  pull time, read from `artifacts/review-comments/comments/<slug>.json`
+  (written by `comments pull` or `comments import`). That folder sits outside
+  `artifacts/review/`, so it is never uploaded with the page.
 
 ```bash
 pnpm protoyard review-index                          # every prototype
