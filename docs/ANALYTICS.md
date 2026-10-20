@@ -20,6 +20,8 @@ its event and metric entity slots, dashboard route, scenario defaults, and the
 public `@protoyard/analytics` plus lazy analytics UI entry points. It is
 validated data and does not load Svelte components by itself. See the
 [`@protoyard/blueprint` archetype contract](../packages/blueprint/README.md#the-schema).
+The blueprint integration test checks analytics' public engine, grid and date-range export
+targets, plus the callback contracts used to save layout and range changes.
 
 ## The data flow
 
