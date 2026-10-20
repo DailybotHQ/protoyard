@@ -150,6 +150,14 @@ export {
   parseJsonPointer,
 } from './patch.ts';
 export { CAPABILITIES, derivePolicy, type EntityCapabilityMap } from './policy.ts';
+export {
+  BLUEPRINT_DEFAULT_SCENARIO,
+  blueprintBrandTheme,
+  brandDefaultThemeId,
+  definePrototypeFromBlueprint,
+  type RuntimeDefinition,
+  type RuntimeDefinitionOptions,
+} from './runtime-definition.ts';
 export { blueprintScenarios } from './scenarios.ts';
 export {
   AGGREGATES,

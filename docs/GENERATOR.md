@@ -419,6 +419,17 @@ board `groupBy` and dashboard sums. For example:
 ✗ Invalid blueprint (1 issue): entities.1.titleField — titleField "headline" is not a field of "support-ticket"
 ```
 
+## Running a blueprint without generating
+
+`definePrototypeFromBlueprint(blueprint, { namespace })` in `@protoyard/blueprint`
+returns the same prototype definition that `generate` writes as files: the
+manifest, database versions, policy, integrity, default scenarios, brand theme
+and a lazy world generator, plus the app model (routes, navigation, layout). The
+player uses it to open a blueprint with no build. Both paths share every
+derivation, including `brandDefaultThemeId` for the default theme, so a
+blueprint behaves the same before and after `generate`. See the
+[package README](../packages/blueprint/README.md#runtime-definition).
+
 ## What `generate` writes
 
 `generate` copies `templates/crud-app` into a hidden staging folder, writes the
