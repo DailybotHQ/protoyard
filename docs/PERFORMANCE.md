@@ -988,7 +988,7 @@ scenario, lazy chunks; informational).
 A prototype rarely loads a whole family: unused components are tree-shaken,
 as the line + bar view below shows.
 
-**Line + bar view: 15,959 B** (target 10 KB, not met). Estimated split:
+**Line + bar view: 16,006 B** (target 10 KB, not met; 15,959 B before the tap-selection fix added 47 B). Estimated split, measured at 15,959 B:
 
 | Area | Approx. bytes |
 | --- | ---: |
@@ -1011,7 +1011,7 @@ their own:
 
 These were not prototyped. Reaching 10 KB would mean cutting chart features
 (keyboard model, tooltip, axes formatting) or the scales and frame, and the
-plan's accessibility contract rules that out. 15,959 B is the honest number,
+plan's accessibility contract rules that out. 16,006 B is the honest number,
 held under 17,000 B by the guard.
 
 ## Charts and analytics kits
@@ -1032,7 +1032,8 @@ Max, Node 26.11.1.
 | Before (palette builder, Legend and TableToggle eager) | 2,549 B | 17,833 B |
 | Palette builder loads only for themes without a chart block (`@protoyard/charts/palette/derive`) | 2,549 B | 16,650 B |
 | Legend and TableToggle load after the plot | 2,549 B | 16,148 B |
-| Unit formatters from one `Intl` table; Canvas pixel reduction moves into the lazy Canvas chunk | **2,549 B** | **15,959 B** |
+| Unit formatters from one `Intl` table; Canvas pixel reduction moves into the lazy Canvas chunk | 2,549 B | 15,959 B |
+| Tap selection for touch (the current state) | 2,549 B | **16,006 B** |
 
 The guard fails above 2,750 B and 17,000 B, when any module under
 `charts-ui/src/{cartesian,interaction,frame}` reaches initial JS, or when unused

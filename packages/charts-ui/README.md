@@ -74,7 +74,7 @@ All charts take `onselect({ series, index, datum })` for drill-down,
 
 Size, measured by the bundle guard (`pnpm vitest run packages/cli/tests/charts-bundle.test.ts`,
 a real Vite production build of a fixture app): opening a LineChart + BarChart
-view downloads 15,959 B gzip. Before the reductions below it was 17,833 B:
+view downloads 16,006 B gzip. Before the reductions below it was 17,833 B:
 
 | Change | Line + bar view |
 | --- | ---: |
@@ -82,6 +82,7 @@ view downloads 15,959 B gzip. Before the reductions below it was 17,833 B:
 | Palette builder loads only for themes without a chart block | 16,650 B |
 | Legend and TableToggle load after the plot | 16,148 B |
 | Unit formatters from one `Intl` table; Canvas pixel reduction moved into the lazy Canvas chunk | 15,959 B |
+| Tap selection for touch (current) | 16,006 B |
 
 A Sparkline on a first screen adds 2,549 B. The guard fails above 2,750 B and
 17,000 B. The plan's 10 KB target for line + bar is not met; the rest is chart

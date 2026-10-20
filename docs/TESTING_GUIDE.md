@@ -189,6 +189,10 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `prototypes/<slug>/src/domain/**` | `prototypes/<slug>/tests/services.test.ts` (via `tests/support/runtime.ts`, the **real runtime**) | integration |
 | `prototypes/<slug>/src/**/*.svelte` | component tests in `prototypes/<slug>/tests/` where present + `tests/e2e/prototypes.spec.ts` | component + E2E |
 | `templates/<name>/**` | `templates/<name>/tests/*.test.ts` | unit / integration |
+| `packages/cli/src/lib/output-guard.ts`, `isInside` callers (write and delete guards) | `pnpm vitest run packages/cli/tests/comments-command.test.ts packages/cli/tests/generate.test.ts packages/cli/tests/blueprint-new.test.ts packages/cli/tests/security.test.ts` | refused targets, symlinks on the path, nothing written outside |
+| `packages/blueprint/src/csv-guard.ts`, `csv.ts` | `pnpm vitest run packages/blueprint/tests/csv.test.ts packages/crud` | formula guard round trip, crud analytics export |
+| `packages/review/src/report/**`, `safe-text.ts` | `pnpm vitest run packages/review/tests/report.test.ts packages/review/tests/server-validate.test.ts` | untrusted-text report and schema parity |
+| `packages/avatars/**`, `scripts/import-avatars.ts` | `pnpm vitest run packages/avatars`; `--check` needs `--src` or `PROTOYARD_AVATARS_SRC` (owner only) | manifest and deterministic picks |
 | `templates/crud-app/src/app.css` view-based CRUD consumers | `pnpm protoyard validate <slug> --strict-spec --build` on a generated prototype that declares those screens | build verifies Tailwind styles and generated routes |
 
 **Rule of thumb:** a change in `X/src/...` runs `pnpm vitest run X`.
