@@ -148,7 +148,7 @@ onMount(() => {
   aria-label="About this prototype"
   data-py-demo-badge={corner}
   class={[
-    'pointer-events-none fixed z-30 select-none whitespace-nowrap rounded-full border border-border bg-elevated/90 px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-soft backdrop-blur',
+    'pointer-events-none fixed z-30 select-none whitespace-nowrap rounded-full border border-border bg-elevated px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-soft',
     corner.startsWith('top') ? 'top-3' : 'bottom-3 pb-safe',
     corner.endsWith('left') ? 'left-3' : 'right-3',
   ]}
