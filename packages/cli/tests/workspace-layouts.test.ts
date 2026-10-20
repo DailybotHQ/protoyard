@@ -30,6 +30,19 @@ describe('workspace layout detection', () => {
     expect(resolveWorkspaceRoot({ cwd: join(root, 'packages') })).toBe(realpathSync(root));
   });
 
+  it('treats an explicit protoyard marker as a consumer even with pnpm-workspace.yaml', () => {
+    const root = fixture(
+      { name: 'pnpm-consumer', private: true, protoyard: { workspace: 1 } },
+      'pnpm'
+    );
+    expect(workspaceLayout(root)).toBe('consumer');
+  });
+
+  it('keeps this repository a monorepo (its root package.json has no protoyard field)', () => {
+    const repo = realpathSync(join(import.meta.dirname, '..', '..', '..'));
+    expect(workspaceLayout(repo)).toBe('monorepo');
+  });
+
   it('walks up from a package folder to a protoyard consumer root', () => {
     const root = fixture({ name: 'example-consumer', protoyard: {} }, 'none');
     const child = join(root, 'apps', 'demo');

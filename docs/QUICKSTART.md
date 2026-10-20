@@ -219,6 +219,55 @@ New prototypes start with a spec. After you change the schema, policy,
 scenarios or routes, run `pnpm protoyard spec my-idea --write` to refresh
 its generated regions ([SPECS.md](SPECS.md)).
 
+### A workspace of your own: `create-protoyard`
+
+`create-protoyard` scaffolds a Protoyard workspace outside this repository.
+Nothing is published to npm yet, so `npm create protoyard` and
+`pnpm create protoyard` do not resolve today. Until the first release, run the
+scaffolder from this repository:
+
+```bash
+node packages/create-protoyard/bin/create-protoyard.mjs ../acme-lab --no-install --no-git
+```
+
+`--no-install` is needed for now, because the workspace pins
+`protoyard@<this version>`, which npm does not have yet. After the first
+release the same command becomes:
+
+```bash
+npm create protoyard acme-lab        # or: pnpm create protoyard acme-lab
+cd acme-lab && pnpm protoyard dev starter
+```
+
+It writes:
+- `package.json`, pinning `protoyard` to the scaffolder's own version (lockstep)
+  and carrying the workspace marker the CLI looks for (`"protoyard": { "workspace": 1 }`);
+- `pnpm-workspace.yaml` (pnpm) or `workspaces` (npm) for `prototypes/*`;
+- `tsconfig.base.json`, which template tsconfigs extend;
+- `AGENTS.md`, `README.md` and `.gitignore`;
+- a starter prototype in `prototypes/starter`, made by the CLI's own
+  `protoyard new` from `@protoyard/templates`, with exact package versions and
+  no `workspace:` ranges.
+
+How it behaves:
+- **Atomic:** everything is staged in a hidden folder next to the target and
+  renamed into place, so a failure leaves no target and no staging folder.
+- **Never overwrites:** the target must be new or empty. A folder with files, a
+  plain file, a symlink, the filesystem root or your home folder is refused.
+- **Install and git:** then `<pm> install` (network) and `git init` run in the
+  new folder. With `--no-install --no-git` no tool runs and nothing touches
+  the network.
+
+Flags:
+- `--template <name>` (default `blank`) and `--pm pnpm|npm`, defaulting to the
+  manager that ran `create`, else pnpm.
+- `--yes` skips the confirmation on a terminal, and `--json` prints one
+  envelope.
+- `--skill` only reports how to install the agent skill
+  ([SKILL](SKILL.md)); nothing is installed.
+- Exit codes: 0 created, 1 failed or not empty, 2 usage or unsafe path,
+  3 unknown template.
+
 ## Check, build, export, preview
 
 ```bash
