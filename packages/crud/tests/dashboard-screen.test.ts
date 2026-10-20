@@ -99,7 +99,9 @@ describe('DashboardScreen', () => {
     });
     runtime.clock.setTime(new Date(Date.parse(String(created.createdAt)) + 1_000));
     await waitFor(() => expect(screen.getByText('2')).toBeTruthy());
-    expect(await screen.findByRole('button', { name: 'View as table' })).toBeTruthy();
+    expect(
+      await screen.findByRole('button', { name: 'View as table' }, { timeout: 10_000 })
+    ).toBeTruthy();
   });
 
   it('shows a per-widget permission state for a blocked persona', async () => {

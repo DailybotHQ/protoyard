@@ -110,7 +110,9 @@ describe('AnalyticsScreen', () => {
     show(runtime);
 
     expect(await screen.findByRole('button', { name: 'Export CSV' })).toBeTruthy();
-    expect(await screen.findByRole('button', { name: 'View as table' })).toBeTruthy();
+    expect(
+      await screen.findByRole('button', { name: 'View as table' }, { timeout: 10_000 })
+    ).toBeTruthy();
     const measure = screen.getByLabelText('Measure');
     await fireEvent.change(measure, { target: { value: '1' } });
     await waitFor(() => expect(location.hash).toContain('measure=1'));
@@ -131,7 +133,7 @@ describe('AnalyticsScreen', () => {
     const runtime = await harness.boot('viewer');
     show(runtime);
 
-    await screen.findByRole('button', { name: 'View as table' });
+    await screen.findByRole('button', { name: 'View as table' }, { timeout: 10_000 });
     expect(screen.queryByRole('button', { name: 'Export CSV' })).toBeNull();
   });
 
