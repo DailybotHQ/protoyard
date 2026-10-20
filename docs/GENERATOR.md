@@ -349,6 +349,31 @@ fit the field. `evaluateValidationSuccess(success, { route, rows, baseline })`
 in `@protoyard/blueprint` is pure and deterministic. Today the library parses,
 checks and evaluates the block; no screen shows the tasks yet.
 
+### Variants
+
+`deriveVariants(blueprint, { count, seed, axes })` in `@protoyard/blueprint`
+returns 1 to 8 variants of one blueprint for side-by-side comparison. A variant
+changes the shell, never the domain: entities, fields, roles and data stay the
+same. Each variant has an id (`v1` … `v8`), a `label` of what changed
+(`Rail layout · Ocean theme · Compact · Inspections first`), the `changes`, and
+a parsed blueprint.
+
+| Axis | Values | Effect |
+| --- | --- | --- |
+| `layouts` | layout ids from `@protoyard/core` | `layout.id` (a mobile layout is kept) |
+| `themes` | a built-in preset (`violet`, `ocean`, `emerald`, `rose`, `amber`, `monochrome`) or a library theme id | `brand.preset`, or `brand.libraryTheme` used as-is (the brand `name` is kept) |
+| `densities` | `compact`, `comfortable`, `spacious` (default: all) | `brand.density` 0.85, default, 1.15; only for preset or seed brands, since a library theme carries its own |
+| `emphasis` | `true` (default) or `false` | moves one entity, and its screens, first in navigation |
+
+The caller passes the theme and layout catalogs, so the function needs no theme
+code. It is pure: it never mutates its input, and the same blueprint and seed
+give byte-identical variants (a core seeded RNG over the seed and the
+blueprint's canonical JSON). No variant equals the original, and no two
+variants are equal. When the axes cannot produce `count` distinct variants it
+throws a `RangeError`, and an unknown layout or a malformed theme id fails
+blueprint validation. Library theme ids are not checked against the library
+here; `blueprint validate` and `generate` do that.
+
 ### Checks
 
 After the shape parses, cross-references are checked, each with a path-specific
