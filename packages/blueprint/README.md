@@ -31,6 +31,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | app-model | routes, navigation rows with icon ids, navigation groups and layout (`deriveAppModel`) | `.` |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | csv-shape | bounded CSV header/sample inference into a reviewable entity draft | `./import/csv-shape` (lazy authoring) |
+| json-shape | bounded JSON object/array shape inference into reviewable entity drafts | `./import/json-shape` (lazy authoring) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 | search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
 
@@ -325,6 +326,35 @@ row data. The existing 2 MiB / 10,000-row CSV limits still apply; shape inferenc
 caps the header at 100 columns and each inspected cell at 16 KiB. Ambiguous columns
 remain `text` and are called out in `notes` for author review. Formula-like sample
 cells are unguarded only while classifying them and are never returned.
+
+### JSON shape authoring
+
+JSON shape inference is also a separate lazy authoring entry. It accepts one
+representative object or an array of objects:
+
+```ts
+import { inferJsonShape } from '@protoyard/blueprint/import/json-shape';
+
+const { entities, notes, relationCandidates } = inferJsonShape(jsonText, {
+  entityName: 'support-ticket',
+});
+```
+
+The result is a validated, value-free entity draft. Scalar fields infer
+conservative text, number, integer, boolean, email, URL, date or datetime
+kinds. Missing and null samples make a field optional; mixed shapes and
+unrecognized nested values stay `json` with a review note. A single sample
+never marks a field required; multiple samples mark it required only when every
+sample has a non-null value. Nested objects are
+kept as JSON. Arrays of objects produce related entity drafts and candidate
+one-to-many fields, which should be reviewed before generation. Arrays of
+strings can become `tags`; enum values and sample limits are never copied.
+
+Input is capped at 2 MiB, 100 sampled objects per entity, 8 levels of nesting,
+2,000 object/array nodes, 100 fields per entity and 16 KiB per string value.
+Higher caller limits are clamped to these hard caps. Output entity and field
+ordering is stable regardless of JSON key insertion order, and notes/errors do
+not echo source values.
 
 ## World generator
 
