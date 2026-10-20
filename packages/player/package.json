@@ -1,0 +1,31 @@
+{
+  "name": "@protoyard/player",
+  "version": "1.0.0",
+  "description": "A prebuilt, static Protoyard app that runs any blueprint at runtime: IndexedDB, personas, scenarios, simulated time, DevTools, themes, layouts and shells, with no build.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.59.0",
+    "@protoyard/analytics-ui": "workspace:*",
+    "@protoyard/blueprint": "workspace:*",
+    "@protoyard/charts-ui": "workspace:*",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/crud": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/themes": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "@protoyard/views-ui": "workspace:*",
+    "dexie": "^4.4.6",
+    "svelte": "^5.57.2"
+  },
+  "devDependencies": {
+    "@protoyard/runtime": "workspace:*",
+    "@protoyard/scenarios": "workspace:*"
+  }
+}

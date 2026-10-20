@@ -1,0 +1,23 @@
+@import "@protoyard/renderer-svelte/app.css";
+@import "@protoyard/views-ui/styles.css";
+@import "@protoyard/charts-ui/styles.css";
+@import "@protoyard/analytics-ui/styles.css";
+
+/* Let Tailwind see the player and every kit a blueprint screen can render. */
+@source "./";
+@source "../../crud/src";
+@source "../../views-ui/src";
+@source "../../charts-ui/src";
+@source "../../analytics-ui/src";
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+}
