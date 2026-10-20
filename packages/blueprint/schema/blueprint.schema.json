@@ -1546,6 +1546,56 @@
             "minimum": 1,
             "maximum": 500
           },
+          "screenDefaults": {
+            "type": "object",
+            "properties": {
+              "views": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["list", "detail", "form"]
+                }
+              },
+              "list": {
+                "type": "object",
+                "properties": {
+                  "columns": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]*$"
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              "detail": {
+                "type": "object",
+                "properties": {
+                  "tabs": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["overview", "activity", "files", "audit"]
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^related:[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": ["views"],
+            "additionalProperties": false
+          },
           "features": {
             "default": {
               "softDelete": false,

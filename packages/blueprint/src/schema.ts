@@ -197,6 +197,57 @@ export const EntityFeaturesSchema = z.strictObject({
   csv: z.boolean().default(false),
 });
 
+const EntityScreenDefaultsSchema = z
+  .strictObject({
+    /** Standard CRUD views; when present, this is the entity's enabled view set. */
+    views: z.array(z.enum(['list', 'detail', 'form'])).min(1),
+    list: z
+      .strictObject({
+        /** Visible list columns; defaults to the entity's ordinary columns. */
+        columns: z.array(fieldName).optional(),
+      })
+      .optional(),
+    detail: z
+      .strictObject({
+        /** Default related sections and built-in detail tabs. */
+        tabs: z
+          .array(
+            z.union([
+              z.enum(['overview', 'activity', 'files', 'audit']),
+              z.string().regex(/^related:[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, {
+                message: 'tabs are overview, activity, files, audit or related:<entity>',
+              }),
+            ])
+          )
+          .min(1)
+          .optional(),
+      })
+      .optional(),
+  })
+  .superRefine((defaults, ctx) => {
+    for (const view of duplicates(defaults.views)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['views'],
+        message: `duplicate view "${view}"`,
+      });
+    }
+    if (defaults.list && !defaults.views.includes('list')) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['list'],
+        message: 'list defaults require "list" in views',
+      });
+    }
+    if (defaults.detail && !defaults.views.includes('detail')) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['detail'],
+        message: 'detail defaults require "detail" in views',
+      });
+    }
+  });
+
 export const EntitySchema = z.strictObject({
   /** Singular kebab-case name: `deal`, `support-ticket`. */
   name: name('entity name'),
@@ -216,6 +267,8 @@ export const EntitySchema = z.strictObject({
     .optional(),
   /** Rows to generate at `normal` density (scaled by density); default 4 for roots, 8 for dependents. */
   seedCount: z.number().int().min(1).max(500).optional(),
+  /** Optional CRUD defaults; missing keeps the legacy list/detail routes. */
+  screenDefaults: EntityScreenDefaultsSchema.optional(),
   features: EntityFeaturesSchema.default({
     softDelete: false,
     audit: false,
@@ -875,6 +928,45 @@ function checkEntity(entity: BlueprintEntity, at: number, names: Set<string>, ad
   }
 }
 
+function checkEntityScreenDefaults(
+  entity: BlueprintEntity,
+  at: number,
+  entities: ReadonlyMap<string, BlueprintEntity>,
+  add: Add
+) {
+  const defaults = entity.screenDefaults;
+  if (!defaults) return;
+  const base = ['entities', at, 'screenDefaults'];
+
+  defaults.list?.columns?.forEach((field, i) => {
+    if (!entity.fields.some((candidate) => candidate.name === field)) {
+      add([...base, 'list', 'columns', i], `unknown field "${field}" on "${entity.name}"`);
+    }
+  });
+
+  defaults.detail?.tabs?.forEach((tab, i) => {
+    const path = [...base, 'detail', 'tabs', i];
+    if ((tab === 'activity' || tab === 'audit') && !entity.features.audit) {
+      add(path, `the ${tab} tab needs features.audit on "${entity.name}"`);
+    } else if (tab === 'files' && !entity.features.files) {
+      add(path, `the files tab needs features.files on "${entity.name}"`);
+    } else if (tab.startsWith('related:')) {
+      const targetName = tab.slice('related:'.length);
+      const target = entities.get(targetName);
+      if (!target) {
+        add(path, `unknown entity "${targetName}"`);
+      } else if (
+        !target.fields.some((field) => field.kind === 'relation' && field.to === entity.name)
+      ) {
+        add(path, `"${target.name}" has no relation field to "${entity.name}"`);
+      }
+    }
+  });
+  for (const tab of duplicates(defaults.detail?.tabs ?? [])) {
+    add([...base, 'detail', 'tabs'], `duplicate tab "${tab}"`);
+  }
+}
+
 /** Cross-reference checks that a JSON shape cannot express. */
 export function blueprintIssues(blueprint: Shape): Issue[] {
   const issues: Issue[] = [];
@@ -898,6 +990,7 @@ export function blueprintIssues(blueprint: Shape): Issue[] {
   }
   blueprint.entities.forEach((entity, i) => {
     checkEntity(entity, i, names, add);
+    checkEntityScreenDefaults(entity, i, entities, add);
   });
   if (blueprint.validation) validationIssues(blueprint.validation, entities, add);
   if (blueprint.archetype) {
@@ -987,6 +1080,34 @@ export function blueprintIssues(blueprint: Shape): Issue[] {
   });
 
   checkScreens(blueprint, add);
+  const explicitViews = new Set(
+    blueprint.screens.flatMap((screen) =>
+      'entity' in screen ? [`${screen.entity}:${screen.type}`] : []
+    )
+  );
+  const explicitPaths = new Set(
+    [
+      ...blueprint.screens.map((screen) => screenPath(screen, blueprint.entities)),
+      ...(blueprint.archetype?.screens.map((screen) => screen.path) ?? []),
+    ].filter(Boolean)
+  );
+  blueprint.entities.forEach((entity, entityIndex) => {
+    entity.screenDefaults?.views.forEach((view, viewIndex) => {
+      if (explicitViews.has(`${entity.name}:${view}`)) return;
+      const path =
+        view === 'list'
+          ? `/${entity.plural}`
+          : view === 'detail'
+            ? `/${entity.plural}/:id`
+            : `/${entity.plural}/new`;
+      if (explicitPaths.has(path)) {
+        add(
+          ['entities', entityIndex, 'screenDefaults', 'views', viewIndex],
+          `path "${path}" is already used by a top-level screen`
+        );
+      }
+    });
+  });
   return issues;
 }
 
@@ -1267,11 +1388,30 @@ function checkScreens(blueprint: Shape, add: Add) {
   });
 }
 
+/** Materializes entity CRUD defaults into ordinary screens for every consumer. */
+function withEntityScreenDefaults(blueprint: Shape): Shape {
+  const screens = [...blueprint.screens];
+  const explicitViews = new Set(
+    screens.flatMap((screen) => ('entity' in screen ? [`${screen.entity}:${screen.type}`] : []))
+  );
+  for (const entity of blueprint.entities) {
+    const defaults = entity.screenDefaults;
+    if (!defaults) continue;
+    for (const view of defaults.views) {
+      if (explicitViews.has(`${entity.name}:${view}`)) continue;
+      const config =
+        view === 'list' ? defaults.list : view === 'detail' ? defaults.detail : undefined;
+      screens.push(ScreenSchema.parse({ type: view, entity: entity.name, ...config }));
+    }
+  }
+  return { ...blueprint, screens };
+}
+
 export const BlueprintSchema = BlueprintShape.superRefine((blueprint, ctx) => {
   for (const issue of blueprintIssues(blueprint)) {
     ctx.addIssue({ code: 'custom', path: issue.path, message: issue.message });
   }
-});
+}).transform(withEntityScreenDefaults);
 
 export type Blueprint = z.output<typeof BlueprintSchema>;
 export type BlueprintInput = z.input<typeof BlueprintSchema>;

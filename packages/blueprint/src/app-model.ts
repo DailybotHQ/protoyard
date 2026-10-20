@@ -207,6 +207,24 @@ function screenEntries(blueprint: Blueprint): ScreenEntry[] {
   });
 }
 
+function hasDefaultListRoute(blueprint: Blueprint, entity: BlueprintEntity): boolean {
+  if (!entity.screenDefaults) return true;
+  const explicit = blueprint.screens.find(
+    (screen) => 'entity' in screen && screen.entity === entity.name && screen.type === 'list'
+  );
+  if (explicit) return screenPath(explicit, blueprint.entities) === `/${entity.plural}`;
+  return entity.screenDefaults.views.includes('list');
+}
+
+function hasDefaultDetailRoute(blueprint: Blueprint, entity: BlueprintEntity): boolean {
+  if (!entity.screenDefaults) return true;
+  const explicit = blueprint.screens.find(
+    (screen) => 'entity' in screen && screen.entity === entity.name && screen.type === 'detail'
+  );
+  if (explicit) return screenPath(explicit, blueprint.entities) === `/${entity.plural}/:id`;
+  return entity.screenDefaults.views.includes('detail');
+}
+
 /** The route fields an entry renders with: its own view, or the entity page it belongs to. */
 function entryTarget(entry: ScreenEntry): AppRouteTarget {
   if (entry.ownView) {
@@ -264,22 +282,26 @@ function deriveRoutes(blueprint: Blueprint, entries: readonly ScreenEntry[]): Ap
     );
     const listPath = `/${entity.plural}`;
     const detailPath = `/${entity.plural}/:id`;
-    routes.set(listPath, {
-      name: `${entity.name}-list`,
-      description: `${label}: list, create, edit and delete`,
-      path: listPath,
-      title: label,
-      ...(list?.path === listPath ? entryTarget(list) : page),
-    } as AppRoute);
-    routes.set(detailPath, {
-      name: `${entity.name}-detail`,
-      description: detail
-        ? `${label}: record detail with tabs`
-        : `One ${entity.name.replace(/-/g, ' ')}: edit form`,
-      path: detailPath,
-      title: label,
-      ...(detail?.path === detailPath ? entryTarget(detail) : page),
-    } as AppRoute);
+    if (hasDefaultListRoute(blueprint, entity)) {
+      routes.set(listPath, {
+        name: `${entity.name}-list`,
+        description: `${label}: list, create, edit and delete`,
+        path: listPath,
+        title: label,
+        ...(list?.path === listPath ? entryTarget(list) : page),
+      } as AppRoute);
+    }
+    if (hasDefaultDetailRoute(blueprint, entity)) {
+      routes.set(detailPath, {
+        name: `${entity.name}-detail`,
+        description: detail
+          ? `${label}: record detail with tabs`
+          : `One ${entity.name.replace(/-/g, ' ')}: edit form`,
+        path: detailPath,
+        title: label,
+        ...(detail?.path === detailPath ? entryTarget(detail) : page),
+      } as AppRoute);
+    }
   }
   for (const entry of entries) {
     if (entry.path === '/' && entry.screen.type === 'dashboard') continue;
@@ -313,11 +335,13 @@ function deriveNav(
   const icons = new Set<ScreenNavIcon>(['database', 'users', homeIcon]);
   for (const { screen } of visible) icons.add(screenNavIcon(screen));
 
-  const entityNav = blueprint.entities.flatMap((entity): AppNavItem[] =>
-    entries.some((entry) => entry.screen.type === 'list' && entry.entity === entity.name)
-      ? []
-      : [{ path: `/${entity.plural}`, label: entityLabel(entity), icon: 'database' }]
-  );
+  const entityNav = blueprint.entities.flatMap((entity): AppNavItem[] => {
+    if (entries.some((entry) => entry.screen.type === 'list' && entry.entity === entity.name)) {
+      return [];
+    }
+    if (entity.screenDefaults) return [];
+    return [{ path: `/${entity.plural}`, label: entityLabel(entity), icon: 'database' }];
+  });
   const screenNav = visible
     .filter(
       ({ screen, path }) => screen.type !== 'form' && screen.type !== 'detail' && path !== '/'
@@ -339,11 +363,12 @@ function deriveNav(
 
 function deriveNavGroups(blueprint: Blueprint, entries: readonly ScreenEntry[]): AppNavGroup[] {
   const visible = entries.filter((entry) => entry.screen.nav?.hidden !== true);
-  const recordPaths = blueprint.entities.map((entity) => {
+  const recordPaths = blueprint.entities.flatMap((entity) => {
+    if (!hasDefaultListRoute(blueprint, entity)) return [];
     const list = visible.find(
       ({ screen, entity: name }) => screen.type === 'list' && name === entity.name
     );
-    return list?.path ?? `/${entity.plural}`;
+    return [list?.path ?? `/${entity.plural}`];
   });
   const viewPaths = visible
     .filter(({ screen, path }) => path !== '/' && VIEW_GROUP_KINDS.includes(screen.type))
