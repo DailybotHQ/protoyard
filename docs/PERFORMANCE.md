@@ -941,6 +941,45 @@ worker. No measured phase turned that into a long task, but it is wasted
 transfer and parse. Skipping the main-thread context needs a runtime API change
 (proposed in PLAN_004, T-player-world-cache).
 
+## Player: blueprint to ready (measured 2026-10-20)
+
+`scripts/bench-player.ts` serves a copy of the built player on an OS-assigned port. It
+measures every blueprint in fresh headless Chromium contexts (empty IndexedDB, world
+cache and HTTP cache):
+- **First visit:** the blueprint arrives as a `#bp=` link, or `?src=` when it is too
+  large. The player decodes it, generates `active` in its worker and seeds.
+- **Repeat:** a reload, which reuses the stored world.
+- **Switch, miss:** `scenarios.load('empty')` generates a world.
+- **Switch, cache hit:** back to `active`, served from the world cache.
+
+The bench checks that every first visit seeded, every repeat visit reused the world,
+every miss started one generation worker and every hit started none. It writes samples
+and machine details to `tmp/bench-player-<timestamp>.json`. It is report-only: no player
+budget is set yet.
+
+```bash
+pnpm --filter @protoyard/player build
+pnpm exec tsx scripts/bench-player.ts --runs 3   # [--blueprints crm,clinic] [--no-large]
+```
+
+The run below is the median of 3 contexts on an Apple M1 Max (10 cores, 64 GB), macOS
+27.0, Node 26.11.1 and Chromium 156, at a load average of about 50 (other agents were
+building). Times are from navigation start to `protoyard:ready`, or the `load()` call
+for switches.
+
+| Blueprint | Link | First visit (world) | Repeat | Switch, miss | Switch, cache hit |
+| --- | --- | --- | --- | --- | --- |
+| crm | `#bp=` 1,902 chars | 190 ms (175 ms) | 99 ms | 58 ms | 9.2 ms |
+| clinic | `#bp=` 1,726 chars | 232 ms (218 ms) | 107 ms | 74 ms | 9.8 ms |
+| logistics | `#bp=` 1,789 chars | 211 ms (196 ms) | 79 ms | 58 ms | 8.0 ms |
+| lms | `#bp=` 1,757 chars | 215 ms (200 ms) | 76 ms | 55 ms | 8.4 ms |
+| project-management | `#bp=` 1,672 chars | 218 ms (204 ms) | 107 ms | 62 ms | 7.9 ms |
+| large fixture (40 entities) | `#bp=` 4,746 chars | 368 ms (355 ms) | 140 ms | 93 ms | 66 ms |
+
+During a cache hit, the runtime's generate phase takes 2–5 ms (inflating and
+validating the stored world), compared with a full generation on a miss. The large
+fixture still fits a share link, well under the 16 KB cap.
+
 ## Large blueprint on the player path (measured 2026-10-20)
 
 `packages/blueprint/tests/fixtures/large.blueprint.json` is a fictional
