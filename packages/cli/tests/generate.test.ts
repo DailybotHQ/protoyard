@@ -1,6 +1,5 @@
 // @vitest-environment node
 import {
-  cpSync,
   existsSync,
   mkdtempSync,
   readdirSync,
@@ -12,7 +11,8 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseBlueprint } from '@protoyard/blueprint';
+import { deriveAppModel, parseBlueprint } from '@protoyard/blueprint';
+import { getScreenKindMetadata } from '@protoyard/crud/registry-meta';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { emitPrototype, personalizeHtml } from '../src/lib/codegen/emit.ts';
 import { formatJson, formatTs, tsString } from '../src/lib/codegen/format.ts';
@@ -73,14 +73,16 @@ describe('protoyard generate', () => {
         'src/generated/policy.ts',
         'src/generated/services.ts',
         'src/generated/scenarios.ts',
-        'src/generated/routes.ts',
-        'src/generated/screens/SupportTicketPage.svelte',
         'src/App.svelte',
         'tests/services.test.ts',
         'protoyard.json',
       ])
     );
     expect(paths).not.toContain('src/screens/ProjectsPage.svelte');
+    // The shared app shell derives routes, layout and screens: none are emitted (ADR-029).
+    expect(
+      paths.filter((p) => /generated\/(routes|layout)\.ts$|generated\/screens\//.test(p))
+    ).toEqual([]);
     // Template tests target the template's entities; only blueprint-driven tests are emitted.
     expect(paths.filter((p) => p.startsWith('tests/')).sort()).toEqual([
       'tests/generators.test.ts',
@@ -117,7 +119,7 @@ describe('protoyard generate', () => {
     expect(existsSync(join(ws.root, 'prototypes/help-desk'))).toBe(false);
   });
 
-  it('generates a prototype with hash-headed modules, a derived manifest and lazy routes', async () => {
+  it('generates a prototype with hash-headed modules, a derived manifest and the shared app shell', async () => {
     const run = await generate('help-desk', '--blueprint', writeBlueprint(), '--no-install');
     expect(run.code).toBe(0);
     const { data } = run.json<Envelope>();
@@ -152,13 +154,17 @@ describe('protoyard generate', () => {
     expect(existsSync(join(ws.root, 'prototypes/help-desk/src/screens/ProjectsPage.svelte'))).toBe(
       false
     );
-    expect(read('prototypes/help-desk/src/generated/routes.ts')).toContain(
-      "load: () => import('./screens/SupportTicketPage.svelte')"
+    // Routes come from the blueprint at runtime: the app lazily renders BlueprintApp.
+    expect(existsSync(join(ws.root, 'prototypes/help-desk/src/generated/routes.ts'))).toBe(false);
+    expect(read('prototypes/help-desk/src/App.svelte')).toContain("import('@protoyard/crud/app')");
+    expect(read('prototypes/help-desk/src/App.svelte')).toContain(
+      '<BlueprintApp {blueprint} {themeLibrary} />'
     );
     const html = read('prototypes/help-desk/index.html');
     expect(html).toContain('<title>Help &lt;desk&gt; &amp; &quot;co&quot;</title>');
     expect(html).toContain('content="Customers and tickets: it&#39;s fictional."');
-    // No notifications feature in this blueprint: the bell (and its table) is not wired.
+    // The bell is the shell's choice: it shows only when an entity enables notifications
+    // (packages/crud/tests/blueprint-app.test.ts), so the app never names it.
     expect(read('prototypes/help-desk/src/App.svelte')).not.toContain('NotificationsBell');
   });
 
@@ -286,16 +292,16 @@ describe('protoyard generate', () => {
   it('is a no-op for the same blueprint and refuses hand-edited generated files', async () => {
     const file = writeBlueprint();
     expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(0);
-    const routes = join(ws.root, 'prototypes/help-desk/src/generated/routes.ts');
-    const before = statSync(routes).mtimeMs;
+    const policy = join(ws.root, 'prototypes/help-desk/src/generated/policy.ts');
+    const before = statSync(policy).mtimeMs;
 
     const again = await generate('help-desk', '--blueprint', file, '--no-install');
     expect(again.code).toBe(0);
     expect(again.json<Envelope>().data).toMatchObject({ created: false, unchanged: true });
-    expect(statSync(routes).mtimeMs).toBe(before);
+    expect(statSync(policy).mtimeMs).toBe(before);
 
-    writeFileSync(routes, `${readFileSync(routes, 'utf8')}// edited\n`);
-    expect(checkHeader(readFileSync(routes, 'utf8')).intact).toBe(false);
+    writeFileSync(policy, `${readFileSync(policy, 'utf8')}// edited\n`);
+    expect(checkHeader(readFileSync(policy, 'utf8')).intact).toBe(false);
     const blocked = await generate(
       'help-desk',
       '--blueprint',
@@ -307,12 +313,12 @@ describe('protoyard generate', () => {
     >();
     expect(envelope.error?.code).toBe('conflict');
     expect(envelope.data.files).toContainEqual({
-      path: 'src/generated/routes.ts',
+      path: 'src/generated/policy.ts',
       status: 'conflicted',
     });
     // Blocked means nothing was written.
     expect(JSON.parse(read('prototypes/help-desk/blueprint.json')).name).toBe('Help <desk> & "co"');
-    expect(read('prototypes/help-desk/src/generated/routes.ts')).toContain('// edited');
+    expect(read('prototypes/help-desk/src/generated/policy.ts')).toContain('// edited');
 
     const forced = await generate(
       'help-desk',
@@ -321,7 +327,7 @@ describe('protoyard generate', () => {
       '--force'
     );
     expect(forced.code).toBe(0);
-    expect(checkHeader(read('prototypes/help-desk/src/generated/routes.ts')).intact).toBe(true);
+    expect(checkHeader(read('prototypes/help-desk/src/generated/policy.ts')).intact).toBe(true);
     expect(JSON.parse(read('prototypes/help-desk/blueprint.json')).name).toBe('Another desk');
   });
 
@@ -330,10 +336,14 @@ describe('protoyard generate', () => {
     expect((await generate('help-desk', '--blueprint', file, '--no-install')).code).toBe(0);
     const outside = mkdtempSync(join(tmpdir(), 'protoyard-outside-'));
     try {
+      // A legacy screens folder (retired by the shared shell) replaced by a link outside.
       const screens = join(ws.root, 'prototypes/help-desk/src/generated/screens');
-      cpSync(screens, outside, { recursive: true });
+      writeFileSync(
+        join(outside, 'SupportTicketPage.svelte'),
+        withHeader('<p>legacy wrapper</p>\n', 'svelte')
+      );
       writeFileSync(join(outside, 'notes.txt'), 'keep me\n');
-      rmSync(screens, { recursive: true });
+      rmSync(screens, { recursive: true, force: true });
       symlinkSync(outside, screens, 'dir');
       const before = readdirSync(outside).sort();
 
@@ -481,16 +491,17 @@ describe('protoyard generate', () => {
       dryRun: true,
       schemaVersion: { from: 1, to: 2 },
     });
-    expect(
-      existsSync(join(ws.root, 'prototypes/help-desk/src/generated/screens/NotePage.svelte'))
-    ).toBe(false);
+    expect(read('prototypes/help-desk/src/generated/blueprint.snapshot.json')).not.toContain(
+      '"notes"'
+    );
 
     const added = await generate('help-desk', '--blueprint', inPlace, '--no-install');
     expect(added.code).toBe(0);
-    expect(read('prototypes/help-desk/src/generated/routes.ts')).toContain("'/notes'");
-    expect(
-      checkHeader(read('prototypes/help-desk/src/generated/screens/NotePage.svelte')).intact
-    ).toBe(true);
+    // The new entity's storage is generated; its routes come from the app model at runtime.
+    expect(read('prototypes/help-desk/src/generated/blueprint.snapshot.json')).toContain('"notes"');
+    const savedWithNote = parseBlueprint(JSON.parse(read('prototypes/help-desk/blueprint.json')));
+    expect(deriveAppModel(savedWithNote).routes.map((route) => route.path)).toContain('/notes');
+    expect(existsSync(join(ws.root, 'prototypes/help-desk/src/generated/screens'))).toBe(false);
 
     // Removing the entity drops a table: refused (exit 4) unless --allow-drop.
     const refused = await generate('help-desk', '--blueprint', writeBlueprint(), '--no-install');
@@ -505,9 +516,12 @@ describe('protoyard generate', () => {
     );
     expect(dropped.code).toBe(0);
     expect(dropped.json<Envelope>().data).toMatchObject({ schemaVersion: { from: 2, to: 3 } });
-    expect(
-      existsSync(join(ws.root, 'prototypes/help-desk/src/generated/screens/NotePage.svelte'))
-    ).toBe(false);
+    const savedWithoutNote = parseBlueprint(
+      JSON.parse(read('prototypes/help-desk/blueprint.json'))
+    );
+    expect(deriveAppModel(savedWithoutNote).routes.map((route) => route.path)).not.toContain(
+      '/notes'
+    );
     const history = JSON.parse(read('prototypes/help-desk/blueprint.json')).history;
     expect(history.map((h: { schemaVersion: number }) => h.schemaVersion)).toEqual([1, 2]);
     expect(history[1].migrateNext).toEqual({ allowDrop: true });
@@ -555,9 +569,19 @@ describe('protoyard generate', () => {
     const { data } = run.json<Envelope>();
     console.info(`generate: 10 entities in ${data.durationMs} ms`);
     expect(data.durationMs as number).toBeLessThan(2_000);
-    expect(
-      (data.generated as string[]).filter((p) => p.startsWith('src/generated/screens/'))
-    ).toHaveLength(10);
+    // Ten entities, the same data modules: routes and screens come from the app model at runtime.
+    const generated = data.generated as string[];
+    expect(generated).toEqual(
+      expect.arrayContaining([
+        'src/generated/blueprint.ts',
+        'src/generated/schema.ts',
+        'src/generated/policy.ts',
+        'src/generated/services.ts',
+        'src/generated/scenarios.ts',
+      ])
+    );
+    expect(generated.filter((path) => /\/screens\/|\/(routes|layout)\.ts$/.test(path))).toEqual([]);
+    expect(deriveAppModel(parseBlueprint(blueprintInput({ entities }))).routes).toHaveLength(22);
   });
 });
 
@@ -574,16 +598,22 @@ describe('codegen emitters', () => {
       emitPrototype(blueprint, 'help-desk', `${JSON.stringify(blueprintInput(), null, 2)}\n`)
     ).toEqual(files);
     const byPath = Object.fromEntries(files.map((f) => [f.path, f.content]));
-    expect(byPath['src/generated/routes.ts']).toMatchSnapshot();
-    expect(byPath['src/generated/screens/SupportTicketPage.svelte']).toMatchSnapshot();
+    expect(byPath['src/App.svelte']).toMatchSnapshot();
+    expect(byPath['src/generated/schema.ts']).toMatchSnapshot();
     expect(byPath['tests/services.test.ts']).toMatchSnapshot();
   });
 
   it('only reaches code through escaped string literals', () => {
-    const routes = emitPrototype(blueprint, 'x', '{}').find(
-      (f) => f.path === 'src/generated/routes.ts'
+    // Blueprint values reach code only as data: the screen title stays in blueprint.json
+    // and is never pasted into a .ts or .svelte file.
+    const files = emitPrototype(blueprint, 'x', '{}');
+    for (const file of files.filter((f) => /\.(ts|svelte)$/.test(f.path))) {
+      expect(file.content, file.path).not.toContain("</script>'");
+      expect(file.content, file.path).not.toContain('Tickets "VIP"');
+    }
+    expect(deriveAppModel(blueprint).routes.map((route) => route.title)).toContain(
+      'Tickets "VIP" </script>'
     );
-    expect(routes?.content).toContain(`title: 'Tickets "VIP" </script>'`);
     // A quote in a value is escaped, never closing the literal.
     expect(tsString("it's")).toBe('"it\'s"');
     expect(tsString(`a'b"c\\`)).toBe(`'a\\'b"c\\\\'`);
@@ -599,7 +629,7 @@ describe('codegen emitters', () => {
     expect(readme?.content).not.toMatch(/^# Injected/m);
   });
 
-  it('emits a lazy dashboard route and its generated screen for dashboard blueprints', () => {
+  it('routes a declared dashboard through the app model and its lazy kit, emitting no screen', () => {
     const dashboardBlueprint = parseBlueprint({
       ...blueprintInput(),
       screens: [
@@ -611,23 +641,22 @@ describe('codegen emitters', () => {
       ],
     });
     const files = emitPrototype(dashboardBlueprint, 'help-desk', '{}');
-    const byPath = Object.fromEntries(files.map((file) => [file.path, file.content]));
+    expect(files.filter((file) => file.path.includes('/screens/'))).toEqual([]);
 
-    expect(byPath['src/generated/routes.ts']).toContain("path: '/dashboard'");
-    expect(byPath['src/generated/routes.ts']).toContain(
-      "load: () => import('./screens/Dashboard1Screen.svelte')"
-    );
-    expect(byPath['src/generated/routes.ts']).toContain("label: 'Sales overview'");
-    expect(byPath['src/generated/screens/Dashboard1Screen.svelte']).toContain(
-      "import { DashboardScreen } from '@protoyard/crud/screens/dashboard';"
-    );
-    // The screen reads the parsed spec from the app context (src/generated/screens → src/lib).
-    expect(byPath['src/generated/screens/Dashboard1Screen.svelte']).toContain(
-      "import { useCrudApp } from '../../lib/context.ts';"
-    );
-    expect(byPath['src/generated/screens/Dashboard1Screen.svelte']).toContain(
-      'blueprint.screens[0]'
-    );
+    const model = deriveAppModel(dashboardBlueprint);
+    expect(model.routes.find((route) => route.path === '/dashboard')).toMatchObject({
+      view: 'screen',
+      screenType: 'dashboard',
+      screenIndex: 0,
+      component: 'Dashboard1Screen',
+      title: 'Sales overview',
+    });
+    expect(model.nav.find((item) => item.path === '/dashboard')?.label).toBe('Sales overview');
+    // The shell loads the dashboard kit lazily from its own entry.
+    expect(getScreenKindMetadata('dashboard')).toMatchObject({
+      subpath: '@protoyard/crud/screens/dashboard',
+      exportName: 'DashboardScreen',
+    });
   });
 
   it('formats JSON like Biome: short primitive arrays inline, objects expanded', () => {

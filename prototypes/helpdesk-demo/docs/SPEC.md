@@ -136,7 +136,7 @@ chosen here. See
 | default theme | `ocean` |
 | storage namespace | `helpdesk-demo` |
 | schema version | 2 |
-| generator version | 2 |
+| generator version | 4121424688 |
 | timeline | no |
 | themes | built-in presets only |
 <!-- /protoyard:generated:manifest -->

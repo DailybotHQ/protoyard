@@ -1,2 +1,2 @@
-/* Optional kit styles: register crud classes with Tailwind. Import after Tailwind, themes and @protoyard/ui. */
+/* Import after Tailwind and the Protoyard theme/UI styles: registers the CRUD kit and app shell markup. */
 @source "./";

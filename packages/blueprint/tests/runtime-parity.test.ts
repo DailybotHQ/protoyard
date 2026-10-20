@@ -1,6 +1,6 @@
 // @vitest-environment node
 /// <reference types="node" />
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type PrototypeDefinition, type PrototypeRuntime, parseScenario } from '@protoyard/core';
@@ -14,7 +14,12 @@ import {
   linkInstalled,
   type TempWorkspace,
 } from '../../cli/tests/helpers.ts';
-import { type AppModel, definePrototypeFromBlueprint, parseBlueprint } from '../src/index.ts';
+import {
+  type Blueprint,
+  definePrototypeFromBlueprint,
+  deriveAppModel,
+  parseBlueprint,
+} from '../src/index.ts';
 
 /**
  * Level 1 (the player) and level 2 (generated prototypes) must be the same
@@ -22,7 +27,9 @@ import { type AppModel, definePrototypeFromBlueprint, parseBlueprint } from '../
  * with the CLI, loads its definition, and compares it with
  * `definePrototypeFromBlueprint` on the same blueprint.json: storage versions,
  * policy, integrity, scenarios, generator version, theme, routes, navigation,
- * layout, and the seeded world, byte for byte.
+ * layout, and the seeded world, byte for byte. The generated app renders the
+ * shared shell (BlueprintApp) from `src/generated/blueprint.ts`, so its routes,
+ * navigation and layout are the app model of that module's blueprint.
  */
 
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
@@ -41,8 +48,10 @@ afterAll(() => workspace.cleanup());
 interface Generated {
   definition: PrototypeDefinition;
   blueprintJson: unknown;
-  routesText: string;
-  layout: { layout: AppModel['layout']; navGroups: AppModel['navGroups'] };
+  appText: string;
+  /** What the generated app hands to BlueprintApp. */
+  appBlueprint: Blueprint;
+  retired: string[];
   crudGeneratorVersion: () => Promise<number>;
 }
 
@@ -73,9 +82,9 @@ async function generateOnce(slug: string): Promise<Generated> {
   expect(run.code, `${slug}: ${run.stderr || run.stdout}`).toBe(0);
   linkInstalled(workspace, name);
   const dir = join(workspace.root, 'prototypes', name);
-  const [{ definition }, layout, scenarios] = await Promise.all([
+  const [{ definition }, { blueprint: appBlueprint }, scenarios] = await Promise.all([
     import(join(dir, 'src/prototype.ts')) as Promise<{ definition: PrototypeDefinition }>,
-    import(join(dir, 'src/generated/layout.ts')) as Promise<Generated['layout']>,
+    import(join(dir, 'src/generated/blueprint.ts')) as Promise<{ blueprint: Blueprint }>,
     import(join(dir, 'src/generated/scenarios.ts')) as Promise<{
       crudGeneratorVersion: () => Promise<number>;
     }>,
@@ -83,45 +92,14 @@ async function generateOnce(slug: string): Promise<Generated> {
   return {
     definition,
     blueprintJson: JSON.parse(readFileSync(join(dir, 'blueprint.json'), 'utf8')),
-    routesText: readFileSync(join(dir, 'src/generated/routes.ts'), 'utf8'),
-    layout,
+    appText: readFileSync(join(dir, 'src/App.svelte'), 'utf8'),
+    appBlueprint,
+    retired: ['src/generated/routes.ts', 'src/generated/layout.ts', 'src/generated/screens'].filter(
+      (file) => existsSync(join(dir, file))
+    ),
     crudGeneratorVersion: scenarios.crudGeneratorVersion,
   };
 }
-
-/** Route blocks and nav rows from routes.ts (it imports Svelte, so it is read as text). */
-function parseRoutes(text: string) {
-  const routes = [
-    ...text.matchAll(
-      /\{\n {4}name: '([^']+)',\n {4}description: (.+),\n {4}path: '([^']+)',\n {4}title: (.+),\n {4}load:/g
-    ),
-  ].map(([, name, description, path, title]) => ({
-    name,
-    path,
-    description: unquote(description!),
-    title: unquote(title!),
-  }));
-  const nav = [
-    ...text.matchAll(/^ {2}\{ path: '([^']+)', label: (.+), icon: (\w+)(, exact: true)? \},$/gm),
-  ].map(([, path, label, icon, exact]) => ({ path, label: unquote(label!), icon, exact: !!exact }));
-  return { routes, nav };
-}
-
-/** A TypeScript string literal as codegen writes it (single or double quoted). */
-function unquote(literal: string): string {
-  if (literal.startsWith('"')) return JSON.parse(literal) as string;
-  return JSON.parse(
-    `"${literal.slice(1, -1).replace(/\\'/g, "'").replace(/"/g, '\\"')}"`
-  ) as string;
-}
-
-const lucide = (icon: string) =>
-  icon === 'map'
-    ? 'MapIcon'
-    : icon
-        .split('-')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
 
 const versions = (definition: PrototypeDefinition) =>
   definition.database.versions.map((version) => ({
@@ -173,9 +151,13 @@ describe('runtime and codegen parity over the catalog', () => {
       expect(definition.manifest.scenarios).toEqual(generatedManifest.scenarios);
       expect(definition.manifest.defaultScenario).toBe(generatedManifest.defaultScenario);
 
-      // The blueprint generator's version (prototype.ts pins its own; see the known gap).
+      // The generator version: the prototype declares the blueprint generator's own version
+      // (regression: generated prototype.ts used to pin 1, so it never reseeded on change).
       expect(definition.generatorVersion, 'generator version').toBe(
         await generated.crudGeneratorVersion()
+      );
+      expect(generated.definition.generatorVersion, 'generated prototype.ts generatorVersion').toBe(
+        definition.generatorVersion
       );
 
       // Theme: the same default and the same built brand theme.
@@ -184,26 +166,18 @@ describe('runtime and codegen parity over the catalog', () => {
       );
       expect(definition.themes ?? [], 'brand themes').toEqual(generated.definition.themes ?? []);
 
-      // Routes, navigation and layout.
-      const { routes, nav } = parseRoutes(generated.routesText);
-      expect(routes, 'routes').toEqual(
-        appModel.routes.map(({ name, path, description, title }) => ({
-          name,
-          path,
-          description,
-          title,
-        }))
-      );
-      expect(nav, 'nav').toEqual(
-        appModel.nav.map((item) => ({
-          path: item.path,
-          label: item.label,
-          icon: lucide(item.icon),
-          exact: item.exact === true,
-        }))
-      );
-      expect(generated.layout.layout, 'layout').toEqual(appModel.layout);
-      expect(generated.layout.navGroups, 'nav groups').toEqual(appModel.navGroups);
+      // Routes, navigation and layout: the generated app renders BlueprintApp from the
+      // generated blueprint module, so they are that blueprint's app model, and it is the
+      // runtime definition's (no generated route or layout files remain to drift).
+      expect(generated.appText).toContain("import { blueprint } from './generated/blueprint.ts';");
+      expect(generated.appText).toContain('<BlueprintApp {blueprint}');
+      expect(generated.retired, 'retired generated files').toEqual([]);
+      expect(generated.appBlueprint, 'app blueprint').toEqual(blueprint);
+      const appModelOfGenerated = deriveAppModel(generated.appBlueprint);
+      expect(appModelOfGenerated.routes, 'routes').toEqual(appModel.routes);
+      expect(appModelOfGenerated.nav, 'nav').toEqual(appModel.nav);
+      expect(appModelOfGenerated.layout, 'layout').toEqual(appModel.layout);
+      expect(appModelOfGenerated.navGroups, 'nav groups').toEqual(appModel.navGroups);
       expect(definition.manifest.preview?.layout?.id).toBe(appModel.layout.id);
 
       // The seeded world, byte for byte, for a fixed seed.

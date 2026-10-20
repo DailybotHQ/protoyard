@@ -4,7 +4,7 @@
 @import "@protoyard/charts-ui/styles.css";
 @import "@protoyard/analytics-ui/styles.css";
 
-/* Let Tailwind see the player; each kit stylesheet above registers its own folder. */
+/* Let Tailwind see the player's own markup; each kit stylesheet above registers its own. */
 @source "./";
 
 html,

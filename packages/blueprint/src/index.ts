@@ -108,6 +108,7 @@ export {
   FileUploadError,
   type FileUploadProgress,
 } from './files.ts';
+export { BLUEPRINT_GENERATOR_SDK, blueprintGeneratorVersion } from './generator-version.ts';
 export {
   BLUEPRINT_NAMESPACE_PREFIX,
   type BlueprintIdentity,

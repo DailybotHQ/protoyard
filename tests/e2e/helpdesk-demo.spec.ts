@@ -56,8 +56,10 @@ test('creates and edits a ticket through the generated forms', async ({ page }) 
   await page
     .getByRole('textbox', { name: 'Subject' })
     .fill('Printer queue stuck on the third floor');
-  await page.getByRole('textbox', { name: 'Customer', exact: true }).fill('customer_0001');
-  await page.getByRole('button', { name: /^Create / }).click();
+  // The shared app shell picks related records by name (RelationPicker), not by raw id.
+  await page.getByRole('button', { name: 'Show options' }).first().click();
+  await page.getByRole('option').first().click();
+  await page.getByRole('button', { name: 'Create Tickets', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Tickets' })).toBeVisible();
   await page.getByRole('searchbox').fill('Printer queue');
   await page.getByRole('row', { name: 'Open Printer queue stuck on the third floor' }).click();

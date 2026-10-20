@@ -6,6 +6,7 @@ import {
 } from '@protoyard/blueprint';
 import type { PrototypeRuntime, Row } from '@protoyard/core';
 import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import type { ComponentProps } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createBlueprintDefinition,
@@ -13,6 +14,8 @@ import {
 } from '../../../tests/fixtures/blueprint-prototype.ts';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import BlueprintAppHarness from './fixtures/BlueprintAppHarness.svelte';
+import CustomHome from './fixtures/CustomHome.svelte';
+import CustomScreen from './fixtures/CustomScreen.svelte';
 
 /** The help desk fixture plus one screen of each shell-relevant kind. */
 const blueprint = parseBlueprint({
@@ -65,12 +68,12 @@ async function go(path: string) {
   window.dispatchEvent(new HashChangeEvent('hashchange'));
 }
 
-async function boot() {
+async function boot(extra: Partial<ComponentProps<typeof BlueprintAppHarness>> = {}) {
   const runtime = await harness.boot('owner');
   const themeLibrary = vi.fn(async () => [
     { id: 'fixture-library-theme', name: 'Fixture library theme' },
   ]);
-  const view = render(BlueprintAppHarness, { runtime, blueprint, themeLibrary });
+  const view = render(BlueprintAppHarness, { runtime, blueprint, themeLibrary, ...extra });
   return { runtime, view, themeLibrary };
 }
 
@@ -210,4 +213,61 @@ describe('BlueprintApp', () => {
     expect(await screen.findByText(/no longer exists or your role cannot see it/)).toBeTruthy();
     expect(await screen.findByRole('button', { name: /New/ })).toBeTruthy();
   });
+});
+
+describe('BlueprintApp extension points', () => {
+  it('opens a search result on its record route by default', async () => {
+    const { runtime } = await boot();
+    const services = createEntityServices(runtime, blueprint);
+    const row = await services.customer!.create({ name: 'Example Searchable Harbor' });
+    await screen.findByRole('heading', { name: blueprint.name });
+    await fireEvent.click(screen.getByRole('button', { name: /^Search/ }));
+    const input = await screen.findByRole('combobox', { name: 'Search commands' });
+    await fireEvent.input(input, { target: { value: 'Searchable Harbor' } });
+    await fireEvent.click(await screen.findByRole('option', { name: /Example Searchable Harbor/ }));
+    await waitFor(() =>
+      expect(location.hash).toBe(`#/customers/${encodeURIComponent(String(row.id))}`)
+    );
+    // The record's edit form opens there.
+    expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
+  }, 60_000);
+
+  it('renders a custom home, extra routes and custom header actions', async () => {
+    const { runtime } = await boot({
+      home: CustomHome,
+      extraRoutes: [
+        { path: '/tickets/:id/workspace', title: 'Workspace', component: CustomScreen },
+      ],
+      customActions: true,
+    });
+    expect(await screen.findByRole('heading', { name: 'Custom home' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Custom action' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Search/ })).toBeNull();
+    await go('/tickets/t-1/workspace');
+    expect(await screen.findByRole('heading', { name: 'Custom screen' })).toBeTruthy();
+    expect(screen.getByTestId('custom-params').textContent).toContain('"id":"t-1"');
+    // Blueprint routes still work next to the extra ones.
+    const [ticket] = await table(runtime, 'tickets').toArray();
+    await go(`/tickets/${encodeURIComponent(String(ticket?.id))}`);
+    expect(await screen.findByRole('tab', { name: /Overview/i })).toBeTruthy();
+  }, 60_000);
+
+  it('sends list rows and search results to recordHref when it returns a path', async () => {
+    const recordHref = vi.fn((entityName: string, id: string) =>
+      entityName === 'customer' ? `/customers/${encodeURIComponent(id)}/workspace` : undefined
+    );
+    const { runtime } = await boot({
+      recordHref,
+      extraRoutes: [{ path: '/customers/:id/workspace', component: CustomScreen }],
+    });
+    const services = createEntityServices(runtime, blueprint);
+    const row = await services.customer!.create({ name: 'Example Row Opener' });
+    await go('/customers');
+    await fireEvent.click(await screen.findByRole('row', { name: /Example Row Opener/ }));
+    await waitFor(() =>
+      expect(location.hash).toBe(`#/customers/${encodeURIComponent(String(row.id))}/workspace`)
+    );
+    expect(await screen.findByRole('heading', { name: 'Custom screen' })).toBeTruthy();
+    expect(recordHref).toHaveBeenCalledWith('customer', String(row.id));
+  }, 60_000);
 });

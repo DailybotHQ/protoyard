@@ -12,15 +12,16 @@ import {
   avatarImage,
   createRouter,
   getRuntime,
+  type RouteDefinition,
   Router,
   useAppearance,
   usePrincipal,
 } from '@protoyard/renderer-svelte';
 import { LayoutHost, navFromSidebar } from '@protoyard/ui';
-import { onDestroy, onMount } from 'svelte';
+import { type Component, onDestroy, onMount, type Snippet } from 'svelte';
 import NotificationsBell from '../NotificationsBell.svelte';
 import AppSearch from './AppSearch.svelte';
-import { provideBlueprintApp, type ThemeLibraryLoader } from './context.ts';
+import { provideBlueprintApp, type RecordHref, type ThemeLibraryLoader } from './context.ts';
 import { NAV_ICONS } from './icons.ts';
 import RouteView from './RouteView.svelte';
 
@@ -36,6 +37,10 @@ let {
   services: servicesProp,
   model: modelProp,
   themeLibrary,
+  home,
+  extraRoutes = [],
+  recordHref,
+  actions,
 }: {
   blueprint: Blueprint;
   /** Defaults to the runtime `mountPrototype` provides. */
@@ -45,6 +50,15 @@ let {
   model?: AppModel;
   /** Extra themes for the settings screen, such as the theme library metadata. */
   themeLibrary?: ThemeLibraryLoader;
+  /** Replaces the built-in overview (count per entity) on the `home` route. */
+  // biome-ignore lint/suspicious/noExplicitAny: app screens take route props.
+  home?: Component<any>;
+  /** Hand-written routes, matched before the blueprint's (for example a record workspace). */
+  extraRoutes?: readonly RouteDefinition[];
+  /** Where a record opens from its list row or search; default: its `/<plural>/:id` route. */
+  recordHref?: RecordHref;
+  /** Replaces the default header actions (search, and the bell when notifications are on). */
+  actions?: Snippet;
 } = $props();
 
 // svelte-ignore state_referenced_locally
@@ -57,14 +71,18 @@ const model = modelProp ?? deriveAppModel(blueprint);
 const app = blueprint;
 
 const byPath = new Map<string, AppRoute>(model.routes.map((route) => [route.path, route]));
+// svelte-ignore state_referenced_locally
+const appRoutes: RouteDefinition[] = [...extraRoutes];
 const router = createRouter(
-  model.routes.map((route) => ({
-    path: route.path,
-    name: route.name,
-    title: route.title,
-    description: route.description,
-    component: RouteView,
-  })),
+  appRoutes.concat(
+    model.routes.map((route) => ({
+      path: route.path,
+      name: route.name,
+      title: route.title,
+      description: route.description,
+      component: RouteView,
+    }))
+  ),
   { titleSuffix: runtime.manifest.name }
 );
 onDestroy(() => router.destroy());
@@ -76,8 +94,16 @@ provideBlueprintApp({
   model,
   router,
   routeFor: (path) => (path === undefined ? undefined : byPath.get(path)),
+  recordPath(entityName, id) {
+    const custom = recordHref?.(entityName, id);
+    if (custom) return custom;
+    const entity = app.entities.find((candidate) => candidate.name === entityName);
+    return entity ? `/${entity.plural}/${encodeURIComponent(id)}` : '/';
+  },
   // svelte-ignore state_referenced_locally
   ...(themeLibrary ? { themeLibrary } : {}),
+  // svelte-ignore state_referenced_locally
+  ...(home ? { home } : {}),
 });
 
 const principal = usePrincipal(runtime);
@@ -139,9 +165,13 @@ const layoutNav = $derived(
 <LayoutHost layout={activeLayout} nav={layoutNav} storageKey={runtime.manifest.storage.namespace}>
   <div class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8">
     <div class="mb-4 flex justify-end gap-2">
-      <AppSearch />
-      {#if bell}
-        <NotificationsBell {runtime} />
+      {#if actions}
+        {@render actions()}
+      {:else}
+        <AppSearch />
+        {#if bell}
+          <NotificationsBell {runtime} />
+        {/if}
       {/if}
     </div>
     <Router {router} />

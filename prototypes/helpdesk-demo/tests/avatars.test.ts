@@ -1,6 +1,8 @@
+import { blueprintGeneratorVersion } from '@protoyard/blueprint';
 import type { WorldSeed } from '@protoyard/core';
 import { describe, expect, it } from 'vitest';
 import { contextFor } from '../../../tests/support/generate-context.ts';
+import { blueprint } from '../src/generated/blueprint.ts';
 import { definition } from '../src/prototype.ts';
 
 const AVATAR = /^av-\d{3}$/;
@@ -10,8 +12,8 @@ const worldFor = async (id: string, seed?: number): Promise<WorldSeed> =>
 const faces = (world: WorldSeed) => world.personas.map((p) => p.avatar);
 
 describe('seeded people have library avatars', () => {
-  it('keeps generator version 2: faces come from the blueprint world', () => {
-    expect(definition.generatorVersion).toBe(2);
+  it('keeps enrichment version 2 on top of the blueprint generator: faces come from the blueprint world', () => {
+    expect(definition.generatorVersion).toBe(blueprintGeneratorVersion(blueprint) + 2);
   });
 
   it('gives every persona a distinct avatar, stable for the same seed', async () => {

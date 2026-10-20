@@ -68,7 +68,7 @@ See [docs/SPECS.md](../../../docs/SPECS.md#rebuild-as-a-real-app).
 | default theme | `harborlight-dispatch` |
 | storage namespace | `harbor-dispatch-demo` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 3471158092 |
 | timeline | no |
 | themes | Harborlight Dispatch (`harborlight-dispatch`) |
 <!-- /protoyard:generated:manifest -->
