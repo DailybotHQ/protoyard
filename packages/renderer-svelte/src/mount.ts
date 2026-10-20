@@ -208,6 +208,9 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
         root: target,
         place: placeFloating,
         devtools: devtoolsAvailable,
+        ...(typeof __PROTOYARD_REVIEW_ADAPTER__ !== 'undefined' && __PROTOYARD_REVIEW_ADAPTER__
+          ? { adapter: __PROTOYARD_REVIEW_ADAPTER__ }
+          : {}),
       });
       reviewTab = review.devtoolsTab;
       cleanups.push(() => review.destroy());

@@ -15,6 +15,8 @@ export interface MountReviewOptions {
   place?: ReviewToolbarPlacer;
   /** DevTools is mounted and will host the comments panel as a tab (see `devtoolsTab`). */
   devtools?: boolean;
+  /** A build-time backend (PROTOYARD_REVIEW_ADAPTER) that replaces the manifest's adapter and endpoint. */
+  adapter?: { adapter: string; endpoint?: string };
 }
 
 /** A DevTools tab entry (structurally `DevtoolsTab` from @protoyard/devtools). */
@@ -49,7 +51,13 @@ function reviewClientId(slug: string): string {
 /** Create the configured adapter and mount all review UI inside the lazy chunk. */
 export async function mountReview(options: MountReviewOptions): Promise<MountedReview> {
   const { definition, runtime, root, place, devtools = false } = options;
-  const config = definition.manifest.build.review ?? { enabled: false, adapter: 'local' as const };
+  const manifestConfig = definition.manifest.build.review ?? {
+    enabled: false,
+    adapter: 'local' as const,
+  };
+  const config = options.adapter
+    ? ({ ...manifestConfig, ...options.adapter } as typeof manifestConfig)
+    : manifestConfig;
   const clientId = reviewClientId(definition.manifest.slug);
   const { createLocalReviewAdapter } = await import('@protoyard/review/adapters/local');
   const { default: ReviewSession } = await import('./ReviewSession.svelte');

@@ -62,6 +62,7 @@ describe('floating chrome placement', () => {
   it('pins the element by its corner sides and tells the badge it moved', () => {
     vi.useFakeTimers();
     Object.defineProperty(document, 'elementFromPoint', { configurable: true, value: () => null });
+    Object.defineProperty(document, 'elementsFromPoint', { configurable: true, value: () => [] });
     const element = document.body.appendChild(document.createElement('nav'));
     const handle = element.appendChild(document.createElement('button'));
     handle.getBoundingClientRect = () => ({
@@ -91,5 +92,36 @@ describe('floating chrome placement', () => {
     expect(moved).toHaveBeenCalledTimes(1);
     placement.destroy();
     window.removeEventListener(FLOATING_EVENT, moved);
+  });
+
+  it('looks through itself: a control under its current spot still counts', () => {
+    vi.useFakeTimers();
+    const element = document.body.appendChild(document.createElement('nav'));
+    const handle = element.appendChild(document.createElement('button'));
+    handle.getBoundingClientRect = () =>
+      ({
+        ...SIZE,
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 40,
+        bottom: 40,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    const appControl = document.body.appendChild(document.createElement('a'));
+    appControl.setAttribute('href', '#/profile');
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    // The element covers the bottom-right corner; under it, an app link (a tab bar item).
+    Object.defineProperty(document, 'elementsFromPoint', {
+      configurable: true,
+      value: (x: number, y: number) => (x > W - 60 && y > H - 60 ? [handle, appControl] : []),
+    });
+    const placement = placeFloating(element, { handle: () => handle });
+    vi.advanceTimersByTime(200);
+    expect(element.dataset.pyFloatY).not.toBeUndefined();
+    expect(`${element.dataset.pyFloatX}-${element.dataset.pyFloatY}`).not.toBe('right-bottom');
+    placement.destroy();
   });
 });

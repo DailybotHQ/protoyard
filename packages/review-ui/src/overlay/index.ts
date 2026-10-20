@@ -27,6 +27,14 @@ export interface ReviewOverlayOptions {
    * floats over the app.
    */
   toggle?: boolean;
+  /**
+   * Called with the root threads anchored on the current screen whose element
+   * is gone (after a scenario switch or a data change), whenever that list
+   * changes. The comments panel shows them as orphaned.
+   */
+  onOrphans?: (threadIds: string[]) => void;
+  /** Comment mode turned on or off (toggle, C, Escape, or after placing a pin). */
+  onActiveChange?: (active: boolean) => void;
 }
 
 export interface ReviewOverlayHandle {
@@ -170,6 +178,20 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
   resize?.observe(root);
   const portalObserver =
     typeof MutationObserver === 'undefined' ? undefined : new MutationObserver(render);
+  // The app's own DOM changes (a scenario switch, a row removed) re-resolve pins once per frame.
+  let frame = 0;
+  const appObserver =
+    typeof MutationObserver === 'undefined'
+      ? undefined
+      : new MutationObserver((records) => {
+          // Pins live inside the root in a device shell: their own redraws must not loop.
+          if (frame || records.every((record) => overlay.contains(record.target))) return;
+          frame = requestAnimationFrame(() => {
+            frame = 0;
+            render();
+          });
+        });
+  appObserver?.observe(root, { childList: true, subtree: true });
   portalObserver?.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['data-py-portal-root'],
@@ -184,7 +206,9 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
     ) {
       lastFocusedElement = document.activeElement;
     }
+    const changed = active !== value;
     active = value;
+    if (changed) options.onActiveChange?.(value);
     crosshair = value ? rootCenter() : null;
     render();
     if (value) placeButton?.focus();
@@ -196,6 +220,25 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
   function rootCenter(): { x: number; y: number } {
     const rect = root.getBoundingClientRect();
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+
+  let lastOrphans = '';
+  function reportOrphans(): void {
+    if (!options.onOrphans) return;
+    const ids = comments
+      .filter(
+        (comment) =>
+          comment.id === comment.threadId &&
+          comment.anchor &&
+          anchorMatchesRoute(comment.anchor, routePath()) &&
+          resolveAnchor(comment.anchor, root).orphaned
+      )
+      .map((comment) => comment.id)
+      .sort();
+    const key = ids.join(' ');
+    if (key === lastOrphans) return;
+    lastOrphans = key;
+    options.onOrphans(ids);
   }
 
   function resolvePins(): Pin[] {
@@ -309,6 +352,8 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
     toggle.setAttribute('aria-pressed', String(active));
     toggle.disabled = placing;
     toggle.setAttribute('aria-busy', String(placing));
+    // A redraw rebuilds the crosshair button: keep keyboard focus on it.
+    const crosshairFocused = Boolean(placeButton) && document.activeElement === placeButton;
     clearPins();
     capture = undefined;
     placeButton = undefined;
@@ -348,9 +393,11 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
           if (element && crosshair) placeOn(element, crosshair);
         });
         overlay.append(placeButton);
+        if (crosshairFocused) placeButton.focus();
       }
     }
     renderPins();
+    reportOrphans();
   }
 
   async function placeOn(element: Element, point: { x: number; y: number }): Promise<void> {
@@ -507,6 +554,8 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
       window.removeEventListener('hashchange', render);
       window.removeEventListener('popstate', render);
       portalObserver?.disconnect();
+      appObserver?.disconnect();
+      if (frame) cancelAnimationFrame(frame);
       resize?.disconnect();
       overlay.remove();
     },

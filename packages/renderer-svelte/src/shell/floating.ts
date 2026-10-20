@@ -116,11 +116,13 @@ export function placeFloating(
       if (r.width && r.height)
         avoid.push({ left: r.left, top: r.top, width: r.width, height: r.height });
     }
-    const hit = (x: number, y: number) => {
-      const el = document.elementFromPoint(x, y);
-      // Neither this element nor the badge is an obstacle here (the badge is in `avoid`).
-      return el && (element.contains(el) || badge?.contains(el)) ? null : el;
-    };
+    // Look THROUGH this element and the badge: the element may already sit on the spot being
+    // tested, and the topmost hit would then hide the app control underneath.
+    const hit = (x: number, y: number) =>
+      (typeof document.elementsFromPoint === 'function'
+        ? document.elementsFromPoint(x, y)
+        : [document.elementFromPoint(x, y)]
+      ).find((el) => el && !element.contains(el) && !badge?.contains(el)) ?? null;
     const spot = pickFloatingSpot(container, { width: box.width, height: box.height }, hit, avoid);
     const right = spot.left + spot.width / 2 > container.width / 2;
     const bottom = spot.top + spot.height / 2 > container.height / 2;

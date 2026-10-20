@@ -122,9 +122,10 @@ const adapterLabel = $derived.by(() => {
     {#if onExport}<button type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'export'} onclick={() => run('export', onExport)}>Export</button>{/if}
     {#if onImport}<button type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'import'} onclick={() => fileInput?.click()}>Import</button>{/if}
     <span class="review-toolbar__adapter" title={adapterLabel}>{adapterLabel}</span>
+    {#if open}<span class="review-toolbar__pending" role="status" aria-live="polite">{pendingLabel}</span>{/if}
   </div>
   {#if onImport}<input bind:this={fileInput} class="review-toolbar__sr" type="file" accept="application/json,.json" aria-hidden="true" tabindex="-1" onchange={(event) => readImport(event.currentTarget.files?.[0])} />{/if}
-  <span class="review-toolbar__pending" class:review-toolbar__sr={!open} role="status" aria-live="polite">{pendingLabel}</span>
+  {#if !open}<span class="review-toolbar__sr" role="status" aria-live="polite">{pendingLabel}</span>{/if}
   {#if actionError}<span class="review-toolbar__error" role="alert">{actionError}</span>{/if}
 </nav>
 
@@ -140,7 +141,7 @@ const adapterLabel = $derived.by(() => {
   .review-toolbar__actions[hidden]{display:none}
   .review-toolbar button[aria-pressed="true"]{background:var(--py-primary,#6d28d9);color:var(--py-primary-foreground,#fff)}.review-toolbar button:focus-visible{outline:3px solid var(--py-ring,#7c3aed);outline-offset:2px}.review-toolbar button:disabled{opacity:.55;cursor:not-allowed}
   .review-toolbar__count,.review-toolbar__adapter,.review-toolbar__pending{flex:none;font-size:.72rem;white-space:nowrap}.review-toolbar__adapter{color:var(--py-muted-foreground,#52525b)}
-  .review-toolbar__pending{border-radius:.45rem;background:var(--py-surface,#fff);padding:.2rem .4rem;color:var(--py-foreground,#18181b)}
+  .review-toolbar__pending{color:var(--py-foreground,#18181b)}
   .review-toolbar__error{position:absolute;bottom:100%;right:0;margin-bottom:.3rem;border-radius:.375rem;background:var(--py-destructive,#b91c1c);padding:.35rem .5rem;color:#fff;font-size:.75rem}
   .review-toolbar__sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
   @media(max-width:40rem){.review-toolbar__adapter,.review-toolbar__count{display:none}}

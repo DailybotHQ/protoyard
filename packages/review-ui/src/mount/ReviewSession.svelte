@@ -261,7 +261,14 @@ onMount(() => {
     root,
     comments,
     toggle: false,
+    // Escape, C and a finished placement change the mode inside the overlay: mirror it.
+    onActiveChange: (active: boolean) => {
+      commentMode = active;
+    },
     onPlace: placeComment,
+    onOrphans: (ids: string[]) => {
+      panelProps.orphanedThreadIds = ids;
+    },
     ...(composerOnly
       ? {
           onCommentInClaude: async (element: Element) => {
@@ -315,7 +322,7 @@ onMount(() => {
 {#if status}<p class="review-status" role="alert">{status}</p>{/if}
 
 <style>
-  .review-panel-host,.review-thread-host{display:none}.review-panel-host.open{position:fixed;z-index:2147482999;top:4.25rem;right:.75rem;bottom:.75rem;display:block;width:min(28rem,calc(100vw - 1.5rem));overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);box-shadow:0 8px 32px rgb(0 0 0 / .24)}
+  .review-panel-host{display:none}.review-panel-host.open{position:fixed;z-index:2147482999;top:4.25rem;right:.75rem;bottom:.75rem;display:block;width:min(28rem,calc(100vw - 1.5rem));overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);box-shadow:0 8px 32px rgb(0 0 0 / .24)}
   .review-thread-host{position:fixed;z-index:2147483001;right:1rem;bottom:1rem;width:min(30rem,calc(100vw - 2rem));max-height:80vh;overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);padding:.75rem;color:var(--py-foreground,#18181b);box-shadow:0 8px 32px rgb(0 0 0 / .24);font:inherit}.review-thread-host header{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.review-thread-host h2{font-size:1rem}.review-thread-host ol{display:grid;gap:.5rem;padding:0;list-style:none}.review-thread-host li{border:1px solid var(--py-border,#d4d4d8);border-radius:.5rem;padding:.65rem}.review-thread-host p{white-space:pre-wrap;overflow-wrap:anywhere}.review-thread-host time{font-size:.75rem;color:var(--py-muted-foreground,#52525b)}.review-thread-host form{display:grid;gap:.4rem;margin-top:.75rem}.review-thread-host textarea{min-height:5rem;border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.5rem;color:inherit;font:inherit}.review-thread-host button{border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.45rem .65rem;color:inherit}
   .review-status{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border-radius:.5rem;background:var(--py-destructive,#b91c1c);padding:.75rem;color:#fff}
   @media(max-width:40rem){.review-panel-host.open{inset:4.25rem .5rem .5rem;width:auto}.review-thread-host{inset:auto .5rem .5rem;width:auto;max-height:70vh}}

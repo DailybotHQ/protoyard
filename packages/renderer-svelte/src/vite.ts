@@ -5,6 +5,7 @@ import {
   NamespaceSchema,
   type PrototypeManifest,
   parseManifest,
+  ReviewBuildSchema,
   resolveReviewBuild,
 } from '@protoyard/core/manifest';
 // Subpath imports keep the config graph erasable-only TS (Node strip-types can load it).
@@ -171,6 +172,12 @@ export interface ResolvedProtoyardSettings {
   includeDevtools: boolean;
   demoBadge: boolean;
   reviewEnabled: boolean;
+  /**
+   * PROTOYARD_REVIEW_ADAPTER (+ PROTOYARD_REVIEW_ENDPOINT): the comments
+   * backend for this build instead of the manifest's, e.g. a local test
+   * server. `null` keeps `build.review` from the manifest.
+   */
+  reviewAdapter: { adapter: string; endpoint?: string } | null;
   /** Opt-in offline service worker (builds only; never in dev). */
   offline: boolean;
   port: number | undefined;
@@ -193,6 +200,32 @@ function storageNamespace(manifest: PrototypeManifest, env: Env): string {
     );
   }
   return parsed.data;
+}
+
+/**
+ * PROTOYARD_REVIEW_ADAPTER=local|http|cloudflare|artifact and
+ * PROTOYARD_REVIEW_ENDPOINT, checked by the manifest's own `build.review`
+ * schema (so `http` needs an endpoint, and endpoints carry no credentials).
+ */
+function reviewAdapterOverride(env: Env): { adapter: string; endpoint?: string } | null {
+  const adapter = env.PROTOYARD_REVIEW_ADAPTER?.trim();
+  const endpoint = env.PROTOYARD_REVIEW_ENDPOINT?.trim() || undefined;
+  if (!adapter) {
+    if (endpoint) throw new Error('PROTOYARD_REVIEW_ENDPOINT needs PROTOYARD_REVIEW_ADAPTER');
+    return null;
+  }
+  const parsed = ReviewBuildSchema.safeParse({
+    enabled: true,
+    adapter,
+    ...(endpoint ? { endpoint } : {}),
+  });
+  if (!parsed.success) {
+    throw new Error(
+      `PROTOYARD_REVIEW_ADAPTER / PROTOYARD_REVIEW_ENDPOINT are invalid: ${parsed.error.issues.map((i) => i.message).join('; ')}`
+    );
+  }
+  const { adapter: kind, endpoint: url } = resolveReviewBuild(parsed.data);
+  return { adapter: kind, ...(url ? { endpoint: url } : {}) };
 }
 
 /** Pure resolution step (unit-tested): manifest + env + command → settings. */
@@ -223,6 +256,7 @@ export function resolveProtoyardSettings(
     port: port !== undefined && Number.isFinite(port) && port > 0 ? port : undefined,
     avatars: resolveAvatarSettings(base, env, options),
     reviewEnabled: review.enabled,
+    reviewAdapter: reviewAdapterOverride(env),
     build: {
       id: manifest.id,
       slug: manifest.slug,
@@ -290,6 +324,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
         __PROTOYARD_DEVTOOLS__: JSON.stringify(settings.includeDevtools),
         __PROTOYARD_DEMO_BADGE__: JSON.stringify(settings.demoBadge),
         __PROTOYARD_REVIEW__: JSON.stringify(settings.reviewEnabled),
+        __PROTOYARD_REVIEW_ADAPTER__: JSON.stringify(settings.reviewAdapter),
         __PROTOYARD_BUILD__: JSON.stringify(settings.build),
         __PROTOYARD_AVATARS__: JSON.stringify({
           base: settings.avatars.base,
