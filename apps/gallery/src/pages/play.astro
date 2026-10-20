@@ -1,0 +1,24 @@
+---
+import Playground from '@/components/player/Playground.svelte';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Play a blueprint"
+  description="Paste a Protoyard blueprint or open a share link to run a working prototype in your browser."
+>
+  <h1 class="text-3xl font-semibold tracking-tight">Play a blueprint</h1>
+  <p class="mt-2 mb-8 max-w-3xl text-muted">
+    Paste a blueprint JSON document or open a share link. The prototype runs locally in your browser;
+    its simulated data stays in this browser.
+  </p>
+  <Playground client:load />
+  <script is:inline>
+    if (window.location.hash.includes('bp=')) {
+      const tag = document.createElement('meta');
+      tag.name = 'robots';
+      tag.content = 'noindex';
+      document.head.append(tag);
+    }
+  </script>
+</BaseLayout>

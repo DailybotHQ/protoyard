@@ -4,6 +4,9 @@
   "description": "A prebuilt, static Protoyard app that runs any blueprint at runtime: IndexedDB, personas, scenarios, simulated time, DevTools, themes, layouts and shells, with no build.",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    "./embed": "./src/embed/index.ts"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
