@@ -24,11 +24,17 @@ declared lazy kit families; they are intentionally compact for idea validation.
 | --- | --- | --- | --- |
 | [Quick Assistant Workspace](./quick/assistant.json) | assistant | conversations, messages | inspect and continue a simulated assistant conversation |
 | [Quick Team Chat](./quick/team-chat.json) | team-chat | rooms, members, messages | explore fictional rooms, members and message history |
+| [Quick Workspace Onboarding](./quick/saas-onboarding.json) | saas-onboarding | workspaces, teammates | create a workspace and invite a teammate (simulated sign-in, invitations and plans) |
+| [Quick Product Analytics](./quick/analytics.json) | analytics | events, metrics | read a deterministic dashboard, explore events by channel, record a metric |
 
 These files are source blueprints, not marketplace listings. Their generated
 content is deterministic and fictional; the assistant uses a local simulation,
-not a hosted model. Validate the examples with
-`pnpm vitest run packages/blueprint/tests/quick-examples/assistant-chat.test.ts`.
+not a hosted model. The SaaS and analytics examples carry `validation.tasks`
+(each one a route and/or a `count>=` predicate) so an exploration starts with
+tasks to try; their sign-in, invitations, plans and events are simulated, with
+no credentials or provider. Validate the examples with
+`pnpm vitest run packages/blueprint/tests/quick-examples/assistant-chat.test.ts` and
+`pnpm vitest run packages/blueprint/tests/quick-examples/saas-analytics.test.ts`.
 
 ## Catalog
 
