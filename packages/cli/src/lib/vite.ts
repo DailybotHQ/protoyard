@@ -124,11 +124,15 @@ export function buildEnv(
     // Set explicitly either way, so an inherited value never drops a build's avatars.
     PROTOYARD_AVATAR_BASE: options.avatarBase ?? '',
     PROTOYARD_AVATAR_SIZES: options.avatarSizes ? options.avatarSizes.join(',') : '',
-    // Only `publish --comments` forces review on; otherwise PROTOYARD_REVIEW or the manifest decides.
-    ...(options.review ? { PROTOYARD_REVIEW: '1' } : {}),
-    // Set explicitly either way, so an inherited value never repoints a build's comments.
-    PROTOYARD_REVIEW_ADAPTER: options.review?.adapter ?? '',
-    PROTOYARD_REVIEW_ENDPOINT: options.review?.endpoint ?? '',
+    // Only `publish --comments` forces review on with its backend; otherwise
+    // PROTOYARD_REVIEW / PROTOYARD_REVIEW_ADAPTER from the shell or the manifest decide.
+    ...(options.review
+      ? {
+          PROTOYARD_REVIEW: '1',
+          PROTOYARD_REVIEW_ADAPTER: options.review.adapter,
+          PROTOYARD_REVIEW_ENDPOINT: options.review.endpoint,
+        }
+      : {}),
   };
 }
 

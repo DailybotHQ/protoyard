@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { builtinModules } from 'node:module';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sampleComment } from '../../review/tests/conformance.ts';
 import { publishShowcaseDirectory } from '../src/commands/showcase.ts';
 import { SHOWCASE_MARKER } from '../src/lib/output-guard.ts';
@@ -247,19 +247,21 @@ describe('comments setup commands', () => {
     expect(() => parseCommentsOption('postgres')).toThrow(/d1 or kv/);
   });
 
-  it('bakes the http adapter into the build env only when asked, and clears inherited values', () => {
+  it('bakes the http adapter into the build env only when asked, and keeps a shell override otherwise', () => {
     const base = { outDir: '/o', base: './', includeDevtools: false };
-    expect(buildEnv(base)).toMatchObject({
-      PROTOYARD_REVIEW_ADAPTER: '',
-      PROTOYARD_REVIEW_ENDPOINT: '',
-    });
-    expect(
-      buildEnv({ ...base, review: { adapter: 'http', endpoint: '/api/comments' } })
-    ).toMatchObject({
-      PROTOYARD_REVIEW: '1',
-      PROTOYARD_REVIEW_ADAPTER: 'http',
-      PROTOYARD_REVIEW_ENDPOINT: '/api/comments',
-    });
+    vi.stubEnv('PROTOYARD_REVIEW_ADAPTER', 'artifact');
+    try {
+      expect(buildEnv(base).PROTOYARD_REVIEW_ADAPTER).toBe('artifact');
+      expect(
+        buildEnv({ ...base, review: { adapter: 'http', endpoint: '/api/comments' } })
+      ).toMatchObject({
+        PROTOYARD_REVIEW: '1',
+        PROTOYARD_REVIEW_ADAPTER: 'http',
+        PROTOYARD_REVIEW_ENDPOINT: '/api/comments',
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 
