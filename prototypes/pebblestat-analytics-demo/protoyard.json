@@ -58,7 +58,11 @@
   "build": {
     "includeDevtools": false,
     "demoBadge": true,
-    "base": "./"
+    "base": "./",
+    "review": {
+      "enabled": true,
+      "adapter": "local"
+    }
   },
   "scenarios": [
     "new-project",
