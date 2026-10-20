@@ -1,5 +1,5 @@
 /* Import after Tailwind and the Protoyard theme/UI styles. */
-@source "./";
-
 /* Chart answers render @protoyard/charts-ui components (loaded on demand). */
-@source "../../charts-ui/src";
+@import "@protoyard/charts-ui/styles.css";
+
+@source "./";
