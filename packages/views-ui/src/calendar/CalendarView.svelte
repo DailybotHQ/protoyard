@@ -2,7 +2,7 @@
 import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 import type { PrototypeRuntime } from '@protoyard/core';
 import { runService, useClock } from '@protoyard/renderer-svelte';
-import { AlertDialog, Button } from '@protoyard/ui';
+import { Button } from '@protoyard/ui';
 import {
   addDays,
   type CalendarSeries,
@@ -19,9 +19,8 @@ import {
   weekStartFor,
 } from '@protoyard/views/calendar';
 import { tick } from 'svelte';
+import { lazyDialog } from '../lib/lazy-overlays.svelte.ts';
 import QueryState from '../states/QueryState.svelte';
-import AgendaView from './AgendaView.svelte';
-import MonthView from './MonthView.svelte';
 import {
   applyMove,
   type CalendarMode,
@@ -287,7 +286,15 @@ function commit(key: string, move: Move) {
   if (occurrence.recurring) {
     scopeRequest = { occurrence, target };
     scope = 'this';
-    scopeOpen = true;
+    // The scope dialog's Bits UI code loads on the first repeating-event edit.
+    void lazyDialog.load().then(
+      () => (scopeOpen = true),
+      () => {
+        scopeRequest = null;
+        grab = null;
+        announcement = 'The dialog could not load. Check the connection and try again.';
+      }
+    );
     return;
   }
   void apply(occurrence, target, 'this');
@@ -523,7 +530,11 @@ const MODES: { id: CalendarMode; label: string; key: string }[] = [
 
   <QueryState {query} label={`Loading ${label.toLowerCase()}`} isEmpty={() => false} {onRetry}>
     {#snippet children()}
+      <!-- Week and day render at once; month and agenda load on first use (bundle budget). -->
       {#if mode === 'month'}
+        {#await import('./MonthView.svelte')}
+          <p class="p-4 text-sm text-muted-foreground" role="status">Loading the month…</p>
+        {:then { default: MonthView }}
         <MonthView
           anchor={at}
           {today}
@@ -539,7 +550,13 @@ const MODES: { id: CalendarMode; label: string; key: string }[] = [
           onCreateDay={createDay}
           onFocusDate={(date) => (focus.date = date)}
         />
+        {:catch}
+          <p class="p-4 text-sm text-destructive" role="alert">This view could not load. Check the connection and try again.</p>
+        {/await}
       {:else if mode === 'agenda'}
+        {#await import('./AgendaView.svelte')}
+          <p class="p-4 text-sm text-muted-foreground" role="status">Loading the agenda…</p>
+        {:then { default: AgendaView }}
         <AgendaView
           startDate={range.startDate}
           endDate={range.endDate}
@@ -555,6 +572,9 @@ const MODES: { id: CalendarMode; label: string; key: string }[] = [
           onCreateDay={createDay}
           onFocusDate={(date) => (focus.date = date)}
         />
+        {:catch}
+          <p class="p-4 text-sm text-destructive" role="alert">This view could not load. Check the connection and try again.</p>
+        {/await}
       {:else}
         <TimeGridView
           dates={mode === 'week' ? weekDates(at, weekStartsOn) : [at]}
@@ -582,6 +602,8 @@ const MODES: { id: CalendarMode; label: string; key: string }[] = [
   <p class="sr-only" aria-live="polite" data-calendar-status>{announcement}</p>
 </section>
 
+{#if lazyDialog.current}
+{@const AlertDialog = lazyDialog.current}
 <AlertDialog
   bind:open={scopeOpen}
   title="Change a repeating event"
@@ -600,3 +622,4 @@ const MODES: { id: CalendarMode; label: string; key: string }[] = [
     {/each}
   </fieldset>
 </AlertDialog>
+{/if}

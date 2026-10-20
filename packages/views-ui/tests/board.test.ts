@@ -2,8 +2,9 @@ import type { BoardMove } from '@protoyard/views/board';
 import { rankSequence } from '@protoyard/views/board';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { BoardView, indexFromPointer, placementsOf } from '../src/board/index.ts';
+import { lazyMenu } from '../src/lib/lazy-overlays.svelte.ts';
 
 afterEach(() => {
   cleanup();
@@ -65,6 +66,12 @@ const list = (name: string) => screen.getByRole('list', { name });
 const control = (title: string) =>
   screen.getByText(title).closest('[data-card-control]') as HTMLElement;
 const live = () => document.querySelector('[aria-live="polite"]')?.textContent ?? '';
+
+// Menus, dialogs and some panels load on first use; load them once up front so
+// the first test that opens one never races a cold import on a busy machine.
+beforeAll(async () => {
+  await lazyMenu.load();
+}, 30_000);
 
 describe('BoardView', () => {
   it('renders each column as a labelled list with a WIP badge', () => {
