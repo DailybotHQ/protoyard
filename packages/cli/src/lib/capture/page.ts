@@ -1,12 +1,14 @@
+// Type-only: erased at runtime, so the CLI never loads Playwright through this file.
 import type { Browser, Page } from '@playwright/test';
 
 /**
- * Deterministic capture shared by the thumbnail and visual-sweep scripts: a
- * fresh browser context per page (no IndexedDB carries over), a fixed scale,
- * locale and time zone, reduced motion, and a capture only after the runtime
- * marks `html[data-py-ready="true"]`, fonts are loaded, the network is idle
- * and the DOM has been quiet for 400 ms (liveQuery results land a few ticks
- * after mount).
+ * Deterministic capture shared by the thumbnail and visual-sweep scripts and
+ * `protoyard quick` screenshots: a fresh browser context per page (no
+ * IndexedDB carries over), a fixed scale, locale and time zone, reduced
+ * motion, and a capture only after the runtime marks
+ * `html[data-py-ready="true"]`, fonts are loaded, the network is idle and the
+ * DOM has been quiet for 400 ms (liveQuery results land a few ticks after
+ * mount).
  */
 
 export interface CaptureOptions {

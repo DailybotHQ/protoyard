@@ -10,8 +10,9 @@
  *
  * Each shot opens the densest scenario (by name, see lib/sweep.ts) with
  * `?devtools=0&shell=&layout=&mode=` in a fresh browser context, after the
- * same readiness wait as the thumbnails (lib/capture.ts). It then runs axe
- * (WCAG 2.1 A/AA) and the layout-fit measurements (tests/e2e/layout-fit.spec.ts).
+ * same readiness wait as the thumbnails (packages/cli/src/lib/capture/page.ts).
+ * It then runs axe (WCAG 2.1 A/AA) and the layout-fit measurements
+ * (tests/e2e/layout-fit.spec.ts).
  * Failures are recorded and the sweep continues; the exit code is 1 when any
  * shot failed to capture. Flags and axe findings never fail the run.
  *
@@ -46,10 +47,15 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { type Browser, chromium } from '@playwright/test';
+import {
+  changedPixels,
+  decodePng,
+  optimizePng,
+  screenshot,
+  withReadyPage,
+} from '../packages/cli/src/lib/capture/index.ts';
 import { THEME_LIBRARY_META } from '../packages/themes/src/library/registry.ts';
 import { THEME_COLLECTIONS } from '../packages/themes/src/library/types.ts';
-import { screenshot, withReadyPage } from './lib/capture.ts';
-import { changedPixels, decodePng, optimizePng } from './lib/png.ts';
 import { type StaticServer, serveDirectory } from './lib/static-server.ts';
 import {
   buildMatrix,

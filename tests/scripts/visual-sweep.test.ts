@@ -1,7 +1,7 @@
 import { deflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { changedPixels, decodePng, optimizePng } from '../../packages/cli/src/lib/capture/png.ts';
 import { THEME_COLLECTIONS, THEME_LIBRARY_META } from '../../packages/themes/src/library/index.ts';
-import { changedPixels, decodePng, optimizePng } from '../../scripts/lib/png.ts';
 import {
   buildMatrix,
   densestScenario,
