@@ -14,6 +14,7 @@ await panel.destroy();
 | Export | Purpose |
 | --- | --- |
 | `mountDevtools({ runtime, themes?, target? })` | Mounts the panel in its own `.py-devtools` host (default: appended to `<body>`); returns `{ destroy }` |
+| `mountDevtools({ extraTabs })` | Adds lazy tabs shaped as `{ id, label, icon, load, props? }`; `load` resolves a Svelte view receiving `{ dt, ...props }`. Built-in tab ids take precedence. |
 | `isolateFromAppLayers(host)` | Keeps app focus traps / outside-dismiss listeners from reacting to the panel; returns a release function (used by `mountDevtools`) |
 | `reproducibleLink(runtime, { presentation?, href? })` | Current URL + `scenario`/`actor`/`seed` (+ `shell` and `layout` when overridden, + `devtools=0`), dropping stale params |
 | `DevtoolsPanel` | The Svelte component, for custom hosts |
@@ -56,6 +57,11 @@ Keyboard: **Ctrl/⌘ + .** toggles from anywhere; **Esc** closes and returns
 focus to the launcher; tabs use arrow keys / Home / End. The open state and
 tab are remembered per prototype in `localStorage` (`protoyard.<namespace>.devtools`,
 guarded). On narrow screens the panel is a bottom sheet with 44px targets.
+
+Integrations can pass `extraTabs` to `mountDevtools`. Each tab's `load` runs
+only when selected, so optional panels remain outside the initial DevTools
+module graph. Registered tabs participate in the same keyboard navigation and
+remembered selection as built-in tabs.
 
 Styling: Tailwind utilities on the app's `--py-*` tokens (the panel follows
 the active theme), mounted in its own `.py-devtools` host outside `#app`; no

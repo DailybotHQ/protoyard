@@ -1,3 +1,4 @@
+import { MessageCircle } from '@lucide/svelte';
 import { fireEvent, screen, within } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -6,6 +7,7 @@ import { createFakeRuntime } from '../../renderer-svelte/tests/fixtures/fake-run
 import { BUILTIN_THEMES } from '../../themes/src/index.ts';
 import { type DevtoolsHandle, mountDevtools, reproducibleLink } from '../src/index.ts';
 import { loadPrefs } from '../src/persist.ts';
+import ScenarioSection from '../src/sections/ScenarioSection.svelte';
 
 const STYLE_KEYS = ['radius', 'elevation', 'font', 'motion'];
 
@@ -43,6 +45,39 @@ describe('DevTools panel', () => {
     await settle();
     expect(screen.queryByRole('complementary')).toBeNull();
     expect(screen.getByRole('button', { name: /Open Protoyard DevTools/ })).toBeTruthy();
+  });
+
+  it('loads registered tabs on selection and keeps keyboard navigation and persistence', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.ensureSeeded();
+    const load = vi.fn(async () => ScenarioSection);
+    handle = mountDevtools({
+      runtime,
+      themes: BUILTIN_THEMES,
+      extraTabs: [{ id: 'comments', label: 'Comments', icon: MessageCircle, load }],
+    });
+    flushSync();
+    await fireEvent.keyDown(window, { key: '.', ctrlKey: true });
+    await settle();
+
+    const panel = screen.getByRole('complementary', { name: 'Protoyard DevTools' });
+    const tabs = within(panel).getAllByRole('tab');
+    expect(tabs).toHaveLength(9);
+    expect(load).not.toHaveBeenCalled();
+
+    await fireEvent.keyDown(tabs[0] as HTMLElement, { key: 'End' });
+    await settle();
+    const commentsTab = within(panel).getByRole('tab', { name: 'Comments' });
+    expect(commentsTab.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(commentsTab);
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(within(panel).getByText('Active scenario')).toBeTruthy();
+    expect(loadPrefs('fake').tab).toBe('comments');
+
+    await fireEvent.keyDown(commentsTab, { key: 'Home' });
+    await settle();
+    expect(document.activeElement).toBe(within(panel).getByRole('tab', { name: 'Scenario' }));
+    expect(load).toHaveBeenCalledTimes(1);
   });
 
   it('docks the launcher to the right edge on phone widths so it never covers bottom controls', async () => {

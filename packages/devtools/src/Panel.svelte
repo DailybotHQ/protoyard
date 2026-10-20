@@ -15,8 +15,10 @@ import {
 } from '@lucide/svelte';
 import type { PrototypeRuntime, Theme } from '@protoyard/core';
 import type { Component } from 'svelte';
+import { onMount } from 'svelte';
 import { on } from 'svelte/events';
 import { reproducibleLink } from './link.ts';
+import type { DevtoolsTab } from './mount.ts';
 import { loadPrefs, savePrefs } from './persist.ts';
 import AppearanceSection from './sections/AppearanceSection.svelte';
 import DataSection from './sections/DataSection.svelte';
@@ -36,10 +38,12 @@ let {
   runtime,
   themes = [],
   avatarImage,
+  extraTabs = [],
 }: {
   runtime: PrototypeRuntime;
   themes?: readonly Theme[];
   avatarImage?: AvatarImageResolver;
+  extraTabs?: readonly DevtoolsTab[];
 } = $props();
 
 // svelte-ignore state_referenced_locally
@@ -48,13 +52,26 @@ const dt = createDevtoolsState(runtime, themes, avatarImage);
 const namespace = runtime.manifest.storage.namespace;
 const initial = loadPrefs(namespace);
 
-type TabId = 'scenario' | 'personas' | 'time' | 'data' | 'env' | 'look' | 'snapshots' | 'share';
-const tabs: {
-  id: TabId;
+type BuiltinTabId =
+  | 'scenario'
+  | 'personas'
+  | 'time'
+  | 'data'
+  | 'env'
+  | 'look'
+  | 'snapshots'
+  | 'share';
+type TabId = BuiltinTabId | (string & {});
+type BuiltinTab = {
+  id: BuiltinTabId;
   label: string;
   icon: Component<{ class?: string }>;
   view: Component<{ dt: DevtoolsState }>;
-}[] = [
+};
+type Tab = BuiltinTab | DevtoolsTab;
+type ExtensionView = Component<{ dt?: DevtoolsState; [key: string]: unknown }>;
+
+const builtinTabs: BuiltinTab[] = [
   { id: 'scenario', label: 'Scenario', icon: Clapperboard, view: ScenarioSection },
   { id: 'personas', label: 'Personas', icon: Users, view: PersonasSection },
   { id: 'time', label: 'Time', icon: Clock, view: TimeSection },
@@ -64,20 +81,39 @@ const tabs: {
   { id: 'snapshots', label: 'Snaps', icon: Camera, view: SnapshotsSection },
   { id: 'share', label: 'Share', icon: Share2, view: ShareSection },
 ];
+const tabs = $derived.by(() => {
+  const registeredIds = new Set<string>(builtinTabs.map((item) => item.id));
+  return [
+    ...builtinTabs,
+    ...extraTabs.filter((item) => {
+      if (registeredIds.has(item.id)) return false;
+      registeredIds.add(item.id);
+      return true;
+    }),
+  ] as Tab[];
+});
 
 let open = $state(initial.open);
-let tab = $state<TabId>(
-  tabs.some((t) => t.id === initial.tab) ? (initial.tab as TabId) : 'scenario'
-);
+// svelte-ignore state_referenced_locally -- initialize the saved selection once, then persist later changes.
+let tab = $state<TabId>(tabs.some((t) => t.id === initial.tab) ? initial.tab : 'scenario');
+let loadedTabs = $state<Record<string, ExtensionView>>({});
+let loadingTabs = $state<string[]>([]);
+let tabErrors = $state<Record<string, string>>({});
 let launcher: HTMLButtonElement | undefined = $state();
 let heading: HTMLHeadingElement | undefined = $state();
 let tabList: HTMLDivElement | undefined = $state();
 
-const current = $derived(tabs.find((t) => t.id === tab) ?? (tabs[0] as (typeof tabs)[number]));
+const current = $derived(tabs.find((t) => t.id === tab) ?? (tabs[0] as Tab));
 const overrideCount = $derived(Object.values(dt.overrides).filter((v) => v !== undefined).length);
+const activeTabLoading = $derived(loadingTabs.includes(tab));
 
 $effect(() => {
   savePrefs(namespace, { open, tab });
+});
+
+onMount(() => {
+  const selected = tabs.find((item) => item.id === tab);
+  if (selected && !('view' in selected)) void selectTab(selected);
 });
 
 /**
@@ -162,8 +198,24 @@ function onTabKeydown(event: KeyboardEvent) {
   else if (event.key === 'End') next = tabs.length - 1;
   else return;
   event.preventDefault();
-  tab = tabs[next]?.id ?? tab;
+  const nextTab = tabs[next];
+  if (nextTab) void selectTab(nextTab);
   queueMicrotask(() => tabList?.querySelector<HTMLButtonElement>(`#py-dt-tab-${tab}`)?.focus());
+}
+
+async function selectTab(selected: Tab): Promise<void> {
+  tab = selected.id;
+  tabErrors[selected.id] = '';
+  if ('view' in selected || loadedTabs[selected.id] || loadingTabs.includes(selected.id)) return;
+  loadingTabs = [...loadingTabs, selected.id];
+  try {
+    loadedTabs[selected.id] = (await selected.load()) as ExtensionView;
+  } catch (error) {
+    tabErrors[selected.id] =
+      error instanceof Error ? error.message : `Could not load ${selected.label}.`;
+  } finally {
+    loadingTabs = loadingTabs.filter((id) => id !== selected.id);
+  }
 }
 
 async function resetOverrides() {
@@ -219,7 +271,7 @@ function presentationMode() {
       onkeydown={onPanelKeydown}
     >
       <div class="mx-auto mt-2 h-1 w-10 rounded-full bg-border sm:hidden" aria-hidden="true"></div>
-      <header class="relative flex items-center gap-2 border-b border-border px-3 py-2" aria-busy={dt.working || undefined}>
+      <header class="relative flex items-center gap-2 border-b border-border px-3 py-2" aria-busy={dt.working || activeTabLoading || undefined}>
         {#if dt.working}
           <!-- Immediate feedback for any panel action or runtime operation; overlays the border, no layout shift. -->
           <div
@@ -277,7 +329,8 @@ function presentationMode() {
         role="tablist"
         aria-label="DevTools sections"
         tabindex="-1"
-        class="grid shrink-0 grid-cols-8 gap-0.5 border-b border-border px-1.5 py-1.5"
+        class="grid shrink-0 gap-0.5 border-b border-border px-1.5 py-1.5"
+        style:grid-template-columns={`repeat(${Math.min(tabs.length, 9)}, minmax(0, 1fr))`}
         onkeydown={onTabKeydown}
       >
         {#each tabs as t (t.id)}
@@ -292,7 +345,7 @@ function presentationMode() {
             class="flex min-h-touch min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-0.5 py-1 text-[10px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring {selected
               ? 'bg-primary/10 font-semibold text-foreground [&_svg]:text-primary'
               : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-            onclick={() => (tab = t.id)}
+            onclick={() => selectTab(t)}
           >
             <t.icon class="size-4" />
             <span class="max-w-full truncate">{t.label}</span>
@@ -307,7 +360,16 @@ function presentationMode() {
         class="min-h-0 flex-1 overflow-y-auto overscroll-contain"
       >
         {#key tab}
-          <current.view {dt} />
+          {#if 'view' in current}
+            <current.view {dt} />
+          {:else if loadedTabs[tab]}
+            {@const ExtraView = loadedTabs[tab]}
+            <ExtraView {dt} {...('props' in current ? current.props : {})} />
+          {:else if activeTabLoading}
+            <p class="p-4 text-muted-foreground" role="status">Loading {current.label}…</p>
+          {:else if tabErrors[tab]}
+            <p class="p-4 text-destructive" role="alert">{tabErrors[tab]}</p>
+          {/if}
         {/key}
       </div>
 
