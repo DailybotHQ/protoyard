@@ -9,14 +9,25 @@ interface Props {
   title?: string;
   description?: string;
   active?: 'home' | 'templates' | 'marketplace' | 'themes' | 'new';
+  /** Keep the page out of search results (404, compare, create flow). */
+  noindex?: boolean;
 }
 
 const {
   title,
   description = 'Build prototypes that feel real. Real behavior. Fake infrastructure.',
   active,
+  noindex = false,
 } = Astro.props;
 const fullTitle = title ? `${title} · Protoyard` : 'Protoyard — Build prototypes that feel real';
+// With a site (`protoyard showcase --site https://…` or GALLERY_SITE), links
+// and images are absolute so search engines and link previews resolve them.
+const absolute = (path: string) => (Astro.site ? new URL(path, Astro.site).href : path);
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : null;
+// One brand card for every page, so a shared protoyard.app link always shows it.
+const socialImage = absolute(withBase('/og-image.jpg'));
+const socialImageAlt =
+  'Protoyard: build prototypes that feel real. Browser-first prototyping with mock data, scenarios, themes and publishable apps.';
 const nav = [
   { href: withBase('/'), label: 'Prototypes', id: 'home' },
   { href: withBase('/#templates'), label: 'Templates', id: 'templates' },
@@ -34,7 +45,29 @@ const nav = [
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light dark" />
-    <link rel="icon" href={withBase('/favicon.svg')} type="image/svg+xml" />
+    <meta name="theme-color" content="#4f46e5" />
+    {noindex && <meta name="robots" content="noindex" />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Protoyard" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={socialImageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
+    <meta name="twitter:image:alt" content={socialImageAlt} />
+    <link rel="icon" href={withBase('/favicon.ico')} sizes="16x16 32x32 48x48" />
+    <link rel="icon" href={withBase('/favicon-96x96.png')} type="image/png" sizes="96x96" />
+    <link rel="apple-touch-icon" href={withBase('/apple-touch-icon.png')} sizes="180x180" />
+    <link rel="manifest" href={withBase('/site.webmanifest')} />
+    {Astro.site && <link rel="sitemap" href={withBase('/sitemap.xml')} />}
     <script is:inline set:html={NO_FLASH_SCRIPT} />
   </head>
   <body class="bg-bg text-fg">
@@ -46,10 +79,7 @@ const nav = [
     <header class="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur">
       <div class="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
         <a href={withBase('/')} class="flex items-center gap-2 font-semibold tracking-tight" aria-label="Protoyard home">
-          <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
-            <rect width="32" height="32" rx="8" fill="var(--py-accent)"></rect>
-            <path d="M10 22V10h7a4 4 0 0 1 0 8h-7" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
-          </svg>
+          <img src={withBase('/logo-mark.png')} width="24" height="24" alt="" aria-hidden="true" />
           <span class="hidden sm:inline">Protoyard</span>
         </a>
         <nav aria-label="Main" class="flex min-w-0 items-center gap-0.5 overflow-x-auto whitespace-nowrap text-sm [scrollbar-width:none] sm:gap-1">

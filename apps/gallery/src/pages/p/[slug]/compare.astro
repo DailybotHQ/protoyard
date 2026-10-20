@@ -14,7 +14,7 @@ const { entry } = Astro.props as { entry: RegistryEntry };
 const embeddedUrl = entry.embedded ? withBase(`/${entry.embedded.url}`) : null;
 ---
 
-<BaseLayout title={`Compare scenarios · ${entry.name}`} description={`Compare ${entry.name} scenarios side by side.`}>
+<BaseLayout title={`Compare scenarios · ${entry.name}`} description={`Compare ${entry.name} scenarios side by side.`} noindex>
   <a href={withBase(`/p/${entry.slug}/`)} class="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
     <span aria-hidden="true">←</span> {entry.name}
   </a>

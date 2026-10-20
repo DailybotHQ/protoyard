@@ -876,7 +876,7 @@ dev servers (ADR-013).
 
 ## The showcase: gallery + live demos as one site
 
-`pnpm build:showcase` (that is, `pnpm protoyard showcase`) builds **one static
+`pnpm build:showcase` (that is, `pnpm protoyard showcase --site https://protoyard.app`) builds **one static
 site**, written to `artifacts/showcase/`. It contains the gallery and its
 marketplace, plus a live, read-only demo of every product type:
 
@@ -898,6 +898,27 @@ isolation check and keeps its own performance budget. DevTools are included,
 because a showcase is a demo site. Preview it with
 `pnpm protoyard showcase --base /protoyard/ --serve`, then open
 `http://127.0.0.1:4500/protoyard/`.
+
+### Canonical links, social cards and the sitemap
+
+`--site <origin>` (or `PROTOYARD_SITE_URL`) names the public origin, such as
+`https://protoyard.app`. It accepts an https origin only (http only for
+localhost); the path belongs to `--base`. With it, every gallery page gets a
+canonical link, Open Graph and Twitter card tags with absolute URLs, and
+`sitemap.xml` lists every page and live demo; `robots.txt` points at it.
+Every page shares one social card, `apps/gallery/public/og-image.jpg`
+(1200×630), so a shared link always shows the brand. The favicon set
+(`favicon.ico`, `favicon-96x96.png`, `apple-touch-icon.png`, `icon-192.png`,
+`icon-512.png`, a maskable icon and `site.webmanifest`) sits next to it.
+404, compare and create pages are `noindex`. Without `--site` the tags use relative URLs, the sitemap is
+empty and `robots.txt` has no `Sitemap:` line. `pnpm build:showcase` passes
+`--site https://protoyard.app`, the official site. A fork hosted elsewhere
+changes that script or runs `pnpm protoyard showcase --site <its origin>`.
+
+The official showcase is served by Cloudflare Pages from this repository:
+build command `pnpm build:showcase`, output directory `artifacts/showcase`,
+environment `NODE_VERSION=24.20.0` and `PNPM_VERSION=11.23.0`, and the custom
+domain `protoyard.app`.
 
 Avatar images are shared: every app is built with `PROTOYARD_AVATAR_BASE` set
 to `<base>avatars/`, so no app carries its own copy, and the library is copied

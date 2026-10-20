@@ -4,7 +4,7 @@
   "description": "Protoyard — an open-source playground for building, simulating, testing, and publishing realistic interactive prototypes in the browser.",
   "author": "Dailybot, Inc.",
   "license": "MIT",
-  "homepage": "https://github.com/DailybotHQ/protoyard",
+  "homepage": "https://protoyard.app",
   "repository": {
     "type": "git",
     "url": "https://github.com/DailybotHQ/protoyard"
@@ -35,7 +35,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "visual:sweep": "tsx scripts/visual-sweep.ts",
     "thumbnails": "tsx scripts/generate-thumbnails.ts",
-    "build:showcase": "pnpm protoyard showcase",
+    "build:showcase": "pnpm protoyard showcase --site https://protoyard.app",
     "preview:showcase": "pnpm protoyard showcase --skip-build --serve",
     "hygiene": "bash scripts/check-public-hygiene.sh"
   },

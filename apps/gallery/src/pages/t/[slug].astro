@@ -15,7 +15,11 @@ const { entry } = Astro.props as { entry: RegistryEntry };
 const usedBy = prototypes().filter((p) => p.template === entry.slug);
 ---
 
-<BaseLayout title={`${entry.name} template`} description={entry.description} active="templates">
+<BaseLayout
+  title={`${entry.name} template`}
+  description={entry.description}
+  active="templates"
+>
   <a href={withBase('/#templates')} class="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
     <span aria-hidden="true">←</span> All templates
   </a>

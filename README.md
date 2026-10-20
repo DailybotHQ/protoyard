@@ -17,6 +17,8 @@ in the browser, deterministic scenarios, personas and permissions, simulated
 time and network, themes, layouts and device shells, and one-command static
 export. There is no backend to run, deploy or secure.
 
+**[Try the live showcase at protoyard.app](https://protoyard.app)**: every prototype and template running in your browser.
+
 [Quickstart](docs/QUICKSTART.md) ·
 [What you can build](#what-you-can-build) ·
 [Showcase](#the-showcase) ·
@@ -137,9 +139,10 @@ own README, `AGENTS.md` and `docs/` spec.
 | <img src="prototypes/cadence-studio-demo/public/thumbnail.png" alt="Cadence Studio" width="240"> | **Cadence Studio** · `cadence-studio-demo` | Generated from a blueprint: studio bookings on a weekly calendar |
 | <img src="prototypes/pulse-revenue-demo/public/thumbnail.png" alt="Pulse Revenue" width="240"> | **Pulse Revenue** · `pulse-revenue-demo` | Generated from a blueprint: revenue dashboard, explorer and lifecycle board |
 
-`pnpm build:showcase` builds the gallery, the marketplace and a live demo of
-every prototype and template as one static site in `artifacts/showcase/`,
-with no server needed. `pnpm preview:showcase` serves it, and a manual GitHub
+All of them run live at **[protoyard.app](https://protoyard.app)**.
+`pnpm build:showcase` builds that site: the gallery, the marketplace and a
+live demo of every prototype and template as one static site in
+`artifacts/showcase/`, with no server needed. `pnpm preview:showcase` serves it, and a manual GitHub
 Pages workflow can host it ([Publishing](docs/PUBLISHING.md#the-showcase-gallery--live-demos-as-one-site)).
 
 ### Templates and blueprints
