@@ -27,6 +27,9 @@ declared lazy kit families; they are intentionally compact for idea validation.
 | [Quick Workspace Onboarding](./quick/saas-onboarding.json) | saas-onboarding | workspaces, teammates | create a workspace and invite a teammate (simulated sign-in, invitations and plans) |
 | [Quick Product Analytics](./quick/analytics.json) | analytics | events, metrics | read a deterministic dashboard, explore events by channel, record a metric |
 
+See the [quick blueprint catalog](./quick/README.md) for supported kit entry points,
+selection criteria, derived route and source-byte scope, and each example's validation exercise.
+
 These files are source blueprints, not marketplace listings. Their generated
 content is deterministic and fictional; the assistant uses a local simulation,
 not a hosted model. The SaaS and analytics examples carry `validation.tasks`
