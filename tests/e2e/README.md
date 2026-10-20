@@ -10,6 +10,7 @@ pnpm test:e2e                                                        # gallery o
 PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo,ai-chat-demo pnpm test:e2e   # what CI runs
 PROTOYARD_E2E_SHOWCASE=1 PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/ pnpm test:e2e    # + the one-site showcase
 PROTOYARD_E2E_REVIEW=1 pnpm test:e2e tests/e2e/review-index.spec.ts              # the team review index (port 4502)
+PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e tests/e2e/review-comments.spec.ts   # review comments (ports 4601+, 4651)
 ```
 
 Builds exclude DevTools, as shipped. Setup steps that the standalone build has no UI for
@@ -108,6 +109,44 @@ per test) with real mouse moves and the keyboard, never synthetic drag events:
 ```bash
 PROTOYARD_E2E_PROTOTYPES=ui-kit pnpm test:e2e tests/e2e/views.spec.ts
 ```
+
+## Review comments
+
+`review-comments.spec.ts` runs on builds made with `PROTOYARD_REVIEW=1` (local
+adapter, no DevTools). They are listed in `PROTOYARD_E2E_COMMENTS_PROTOTYPES`
+and served from `tmp/e2e-comments/<slug>` on their own ports
+(`PROTOYARD_E2E_COMMENTS_PORT_BASE`, default 4601), separate from the ordinary
+builds. `PROTOYARD_E2E_REVIEW` is not used here: it serves the publish review
+index. Each test uses a fresh context with real mouse and keyboard input, and
+answers the review prompts (the reviewer's name, then the comment).
+
+- **Comment mode:** a click lands on the capture layer, so the app does not
+  navigate. Escape leaves comment mode, and the same link then works.
+- **Pin position:**
+  - Full-bleed (crm-demo) and inside `?shell=phone` (Lumen Bank), the pin's
+    centre must sit inside its element and within 4 px of the stored offset.
+  - This holds after a viewport resize (checked one animation frame later) and
+    after an orientation change.
+  - It also holds after a reload, which proves local persistence.
+- **List to pin:** a thread opened from the panel goes to its screen, and its
+  pin pulses.
+- **Resolve and reopen:** resolving hides the pin, and reopening shows it again.
+- **Keyboard only:** C and the arrow crosshair, then Enter; then Shift+C on the
+  element that has keyboard focus.
+- **Orphans:** after a scenario switch removes the anchored row, the panel lists
+  the thread as Orphaned (and filters by it).
+- **Axe:** the toolbar, panel and pins, in light and dark.
+- **Layout fit with review on:** no horizontal overflow, the launcher inside the
+  viewport, and neither the launcher nor the demo badge over an app control.
+- **Two reviewers:** the first target is also built with
+  `PROTOYARD_REVIEW_ADAPTER=http PROTOYARD_REVIEW_ENDPOINT=/api/comments` and
+  served with `handleCommentsRequest` on an in-memory store
+  (`support/serve-comments.ts`, `PROTOYARD_E2E_COMMENTS_SHARED_PORT`, default
+  4651). Two browser contexts comment and reply to each other.
+
+The web servers for these builds go in `playwright.config.ts`, next to the
+DevTools builds. The exact entries are in the T-review-e2e report
+(`tmp/plan003/outbox/T-review-e2e.md`).
 
 ## Known gaps
 

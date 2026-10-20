@@ -13,6 +13,8 @@ import { mount, onMount, unmount } from 'svelte';
 import { createReviewOverlay, type ReviewOverlayHandle } from '../overlay/index.ts';
 import type { ReviewPanelProps } from '../panel/types.ts';
 import { ReviewToolbar } from '../toolbar/index.ts';
+import type { ReviewToolbarPlacer } from '../toolbar/types.ts';
+import { createPanelState } from './panel-state.svelte.ts';
 
 let {
   adapter,
@@ -22,6 +24,9 @@ let {
   clientId,
   composerOnly = false,
   openComposer = async () => false,
+  place,
+  panelState = createPanelState(),
+  devtoolsPanel = false,
   exportComments,
   importComments,
 }: {
@@ -32,6 +37,12 @@ let {
   clientId: string;
   composerOnly?: boolean;
   openComposer?: (element: Element) => Promise<boolean>;
+  /** The renderer's floating-chrome placement for the toolbar (shares the demo badge's rules). */
+  place?: ReviewToolbarPlacer;
+  /** Panel props, shared with DevTools when it hosts the panel. */
+  panelState?: ReviewPanelProps;
+  /** DevTools shows the comments panel in its "Comments" tab: no floating panel or toolbar button. */
+  devtoolsPanel?: boolean;
   /** Local adapter only: the comments of this prototype as a JSON file. */
   exportComments?: () => Promise<Blob>;
   /** Local adapter only: validates a comments file, merges it and returns the rows added or updated. */
@@ -72,14 +83,17 @@ let notice = $state('');
 let busy = $state(false);
 let panelHost: HTMLElement;
 let panelInstance: ReturnType<typeof mount> | undefined;
-let panelProps = $state<ReviewPanelProps>({
-  comments: [],
-  focusThread: (threadId) => {
-    overlay?.focusThread(threadId);
-    void showThread(threadId);
-  },
-  setShowResolved: (show) => overlay?.setShowResolved(show),
-});
+// svelte-ignore state_referenced_locally
+const panelProps = panelState;
+panelProps.focusThread = (threadId) => {
+  overlay?.focusThread(threadId);
+  void showThread(threadId);
+};
+panelProps.setShowResolved = (show) => overlay?.setShowResolved(show);
+// svelte-ignore state_referenced_locally
+panelProps.runtime = runtime;
+// svelte-ignore state_referenced_locally
+panelProps.root = root;
 const roots = $derived(comments.filter((comment) => comment.id === comment.threadId));
 const selectedThread = $derived(comments.find((comment) => comment.id === selectedThreadId));
 const selectedRoot = $derived(
@@ -162,7 +176,7 @@ async function save(input: ReviewCommentInput): Promise<boolean> {
   }
 }
 
-async function place(anchor: ReviewAnchor): Promise<void> {
+async function placeComment(anchor: ReviewAnchor): Promise<void> {
   if (composerOnly) return;
   const author = authorForReview();
   if (!author) return;
@@ -238,6 +252,7 @@ async function setPanelOpen(open: boolean): Promise<void> {
 
 async function showThread(threadId: string): Promise<void> {
   selectedThreadId = threadId;
+  if (devtoolsPanel) return;
   panelOpen = true;
   if (!panelInstance) {
     const { default: Panel } = await import('../panel/ReviewPanel.svelte');
@@ -272,16 +287,19 @@ function setCommentMode(active: boolean): void {
 }
 
 onMount(() => {
-  // Docks the review toolbar as a bar that takes real space (see ReviewToolbar):
-  // full-bleed apps shrink to fit below it instead of being covered.
-  const html = document.documentElement;
-  html.dataset.pyReview = '';
   const unsubscribe = adapter.subscribe?.(slug, () => void refresh());
   overlay = createReviewOverlay({
     root,
     comments,
-    showToggle: false,
-    onPlace: place,
+    toggle: false,
+    // Escape, C and a finished placement change the mode inside the overlay: mirror it.
+    onActiveChange: (active: boolean) => {
+      commentMode = active;
+    },
+    onPlace: placeComment,
+    onOrphans: (ids: string[]) => {
+      panelProps.orphanedThreadIds = ids;
+    },
     ...(composerOnly
       ? {
           onCommentInClaude: async (element: Element) => {
@@ -295,7 +313,6 @@ onMount(() => {
   });
   void refresh();
   return () => {
-    delete html.dataset.pyReview;
     unsubscribe?.();
     overlay?.destroy();
     overlay = undefined;
@@ -311,6 +328,8 @@ onMount(() => {
   {panelOpen}
   onCommentModeChange={setCommentMode}
   onPanelChange={setPanelOpen}
+  showPanelButton={!devtoolsPanel}
+  {place}
   onExport={exportComments ? downloadComments : undefined}
   onImport={importComments ? importJson : undefined}
 />
@@ -337,7 +356,7 @@ onMount(() => {
 {#if notice}<p class="review-notice" role="status">{notice}</p>{/if}
 
 <style>
-  .review-panel-host,.review-thread-host{display:none}.review-panel-host.open{position:fixed;z-index:2147482999;top:4.25rem;right:.75rem;bottom:.75rem;display:block;width:min(28rem,calc(100vw - 1.5rem));overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);box-shadow:0 8px 32px rgb(0 0 0 / .24)}
+  .review-panel-host{display:none}.review-panel-host.open{position:fixed;z-index:2147482999;top:4.25rem;right:.75rem;bottom:.75rem;display:block;width:min(28rem,calc(100vw - 1.5rem));overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);box-shadow:0 8px 32px rgb(0 0 0 / .24)}
   .review-thread-host{position:fixed;z-index:2147483001;right:1rem;bottom:1rem;width:min(30rem,calc(100vw - 2rem));max-height:80vh;overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);padding:.75rem;color:var(--py-foreground,#18181b);box-shadow:0 8px 32px rgb(0 0 0 / .24);font:inherit}.review-thread-host header{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.review-thread-host h2{font-size:1rem}.review-thread-host ol{display:grid;gap:.5rem;padding:0;list-style:none}.review-thread-host li{border:1px solid var(--py-border,#d4d4d8);border-radius:.5rem;padding:.65rem}.review-thread-host p{white-space:pre-wrap;overflow-wrap:anywhere}.review-thread-host time{font-size:.75rem;color:var(--py-muted-foreground,#52525b)}.review-thread-host form{display:grid;gap:.4rem;margin-top:.75rem}.review-thread-host textarea{min-height:5rem;border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.5rem;color:inherit;font:inherit}.review-thread-host button{border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.45rem .65rem;color:inherit}
   .review-notice{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border:1px solid var(--py-border,#d4d4d8);border-radius:.5rem;background:var(--py-surface,#fff);padding:.75rem;color:var(--py-foreground,#18181b);box-shadow:0 4px 16px rgb(0 0 0 / .16)}
   .review-status{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border-radius:.5rem;background:var(--py-destructive,#b91c1c);padding:.75rem;color:#fff}

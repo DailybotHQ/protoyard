@@ -26,6 +26,37 @@ describe('review build flag', () => {
     ).toBe(true);
   });
 
+  it('takes a comments backend for one build from PROTOYARD_REVIEW_ADAPTER, checked like the manifest', () => {
+    expect(resolveProtoyardSettings(manifest, 'build', {}, root).reviewAdapter).toBeNull();
+    expect(
+      resolveProtoyardSettings(
+        manifest,
+        'build',
+        { PROTOYARD_REVIEW_ADAPTER: 'http', PROTOYARD_REVIEW_ENDPOINT: '/api/comments' },
+        root
+      ).reviewAdapter
+    ).toEqual({ adapter: 'http', endpoint: '/api/comments' });
+    expect(
+      resolveProtoyardSettings(manifest, 'build', { PROTOYARD_REVIEW_ADAPTER: 'cloudflare' }, root)
+        .reviewAdapter
+    ).toEqual({ adapter: 'cloudflare', endpoint: '/api/comments' });
+    // http needs an endpoint; endpoints never carry credentials or queries; unknown kinds fail.
+    for (const env of [
+      { PROTOYARD_REVIEW_ADAPTER: 'http' },
+      {
+        PROTOYARD_REVIEW_ADAPTER: 'http',
+        PROTOYARD_REVIEW_ENDPOINT: 'https://user:pw@example.com/c',
+      },
+      { PROTOYARD_REVIEW_ADAPTER: 'ftp' },
+      { PROTOYARD_REVIEW_ENDPOINT: '/api/comments' },
+    ]) {
+      expect(
+        () => resolveProtoyardSettings(manifest, 'build', env, root),
+        JSON.stringify(env)
+      ).toThrow(/PROTOYARD_REVIEW_/);
+    }
+  });
+
   it('keeps the review package reachable through one guarded dynamic renderer import', () => {
     const mount = readFileSync(resolve(root, 'packages/renderer-svelte/src/mount.ts'), 'utf8');
     const sources = [

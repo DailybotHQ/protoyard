@@ -1,7 +1,13 @@
 <script lang="ts">
-import { onMount } from 'svelte';
+import { onMount, tick } from 'svelte';
 import type { ReviewToolbarProps } from './types.ts';
 
+/**
+ * The floating review toolbar. Collapsed it is one small launcher button, which
+ * the host places where it covers no app control and not the demo badge;
+ * expanded (or while commenting) it shows the actions, growing away from its
+ * corner. Escape collapses it.
+ */
 let {
   adapter,
   count,
@@ -11,11 +17,16 @@ let {
   onPanelChange,
   onExport,
   onImport,
+  showPanelButton = true,
+  place,
+  expanded = $bindable(false),
 }: ReviewToolbarProps = $props();
 let pending = $state(0);
 let busyAction = $state<'comment' | 'panel' | 'export' | 'import' | undefined>();
 let actionError = $state('');
-let fileInput: HTMLInputElement;
+let fileInput: HTMLInputElement | undefined = $state();
+let toolbar: HTMLElement | undefined = $state();
+let launcher: HTMLButtonElement | undefined = $state();
 
 function refreshPending(): void {
   pending = Math.max(0, adapter.pendingCount?.() ?? 0);
@@ -23,7 +34,13 @@ function refreshPending(): void {
 
 onMount(() => {
   refreshPending();
-  return adapter.subscribePending?.(refreshPending);
+  const unsubscribe = adapter.subscribePending?.(refreshPending);
+  const placement =
+    toolbar && place ? place(toolbar, { handle: () => launcher ?? null }) : undefined;
+  return () => {
+    unsubscribe?.();
+    placement?.destroy();
+  };
 });
 
 async function run(
@@ -48,6 +65,13 @@ async function readImport(file?: File): Promise<void> {
   if (fileInput) fileInput.value = '';
 }
 
+async function collapse(): Promise<void> {
+  expanded = false;
+  await tick();
+  launcher?.focus();
+}
+
+const open = $derived(expanded || commentMode);
 const pendingLabel = $derived(
   pending === 0
     ? 'All comments synced'
@@ -59,29 +83,66 @@ const adapterLabel = $derived.by(() => {
 });
 </script>
 
-<nav class="review-toolbar" aria-label="Prototype review toolbar">
-  <button type="button" aria-pressed={commentMode} aria-busy={busyAction === 'comment'} disabled={!onCommentModeChange || Boolean(busyAction)} onclick={() => run('comment', () => onCommentModeChange?.(!commentMode))}>
-    {commentMode ? 'Stop commenting' : 'Comment'}
+<svelte:window
+  onkeydown={(event) => {
+    if (event.key === 'Escape' && expanded && !commentMode && toolbar?.contains(document.activeElement)) {
+      event.preventDefault();
+      void collapse();
+    }
+  }}
+/>
+
+<nav
+  bind:this={toolbar}
+  class="review-toolbar"
+  class:review-toolbar--placed={Boolean(place)}
+  data-py-review-toolbar={open ? 'expanded' : 'collapsed'}
+  aria-label="Prototype review toolbar"
+>
+  <button
+    bind:this={launcher}
+    type="button"
+    class="review-toolbar__launcher"
+    aria-expanded={open}
+    aria-controls="review-toolbar-actions"
+    aria-label={`Review: ${count} comment thread${count === 1 ? '' : 's'}${pending ? `, ${pending} waiting to sync` : ''}`}
+    title="Review comments"
+    onclick={() => (open && !commentMode ? collapse() : (expanded = true))}
+  >
+    <span aria-hidden="true">💬</span><span class="review-toolbar__badge" aria-hidden="true">{count}</span>{#if pending}<span class="review-toolbar__dot" aria-hidden="true"></span>{/if}
   </button>
-  <span class="review-toolbar__count" aria-label={`${count} comment threads`}>{count} comments</span>
-  <button type="button" aria-expanded={panelOpen} aria-controls="review-comments-panel" aria-busy={busyAction === 'panel'} disabled={!onPanelChange || Boolean(busyAction)} onclick={() => run('panel', () => onPanelChange?.(!panelOpen))}>Comments</button>
-  <button type="button" disabled={!onExport || Boolean(busyAction)} aria-busy={busyAction === 'export'} onclick={() => run('export', onExport)}>Export</button>
-  <button type="button" disabled={!onImport || Boolean(busyAction)} aria-busy={busyAction === 'import'} onclick={() => fileInput?.click()}>Import</button>
-  <input bind:this={fileInput} class="review-toolbar__file" type="file" accept="application/json,.json" aria-hidden="true" tabindex="-1" onchange={(event) => readImport(event.currentTarget.files?.[0])} />
-  <span class="review-toolbar__adapter" title={adapterLabel}>{adapterLabel}</span>
-  <span class="review-toolbar__pending" role="status" aria-live="polite">{pendingLabel}</span>
+  <div id="review-toolbar-actions" class="review-toolbar__actions" hidden={!open}>
+    <button type="button" aria-pressed={commentMode} aria-busy={busyAction === 'comment'} disabled={!onCommentModeChange || Boolean(busyAction)} onclick={() => run('comment', () => onCommentModeChange?.(!commentMode))}>
+      {commentMode ? 'Stop commenting' : 'Comment'}
+    </button>
+    <span class="review-toolbar__count" aria-label={`${count} comment threads`}>{count} comments</span>
+    {#if showPanelButton}
+      <button type="button" aria-expanded={panelOpen} aria-controls="review-comments-panel" aria-busy={busyAction === 'panel'} disabled={!onPanelChange || Boolean(busyAction)} onclick={() => run('panel', () => onPanelChange?.(!panelOpen))}>Comments</button>
+    {/if}
+    {#if onExport}<button type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'export'} onclick={() => run('export', onExport)}>Export</button>{/if}
+    {#if onImport}<button type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'import'} onclick={() => fileInput?.click()}>Import</button>{/if}
+    <span class="review-toolbar__adapter" title={adapterLabel}>{adapterLabel}</span>
+    {#if open}<span class="review-toolbar__pending" role="status" aria-live="polite">{pendingLabel}</span>{/if}
+  </div>
+  {#if onImport}<input bind:this={fileInput} class="review-toolbar__sr" type="file" accept="application/json,.json" aria-hidden="true" tabindex="-1" onchange={(event) => readImport(event.currentTarget.files?.[0])} />{/if}
+  {#if !open}<span class="review-toolbar__sr" role="status" aria-live="polite">{pendingLabel}</span>{/if}
   {#if actionError}<span class="review-toolbar__error" role="alert">{actionError}</span>{/if}
 </nav>
 
 <style>
-  .review-toolbar{position:fixed;z-index:2147482998;top:calc(.75rem + env(safe-area-inset-top,0px));right:.75rem;display:flex;max-width:min(calc(100vw - 1.5rem),34rem);align-items:center;gap:.35rem;overflow-x:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);padding:.4rem;box-shadow:0 3px 14px rgb(0 0 0 / .2);color:var(--py-foreground,#18181b);font:inherit}
-  .review-toolbar button{flex:none;border:1px solid var(--py-border,#d4d4d8);border-radius:.45rem;background:var(--py-surface,#fff);padding:.4rem .55rem;color:inherit;font:inherit;font-size:.8rem;white-space:nowrap;cursor:pointer}.review-toolbar button[aria-pressed="true"]{background:var(--py-primary,#6d28d9);color:var(--py-primary-foreground,#fff)}.review-toolbar button:focus-visible{outline:3px solid var(--py-ring,#7c3aed);outline-offset:2px}.review-toolbar button:disabled{opacity:.55;cursor:not-allowed}
-  .review-toolbar__count,.review-toolbar__adapter,.review-toolbar__pending{flex:none;font-size:.72rem;white-space:nowrap}.review-toolbar__adapter{color:var(--py-muted-foreground,#52525b)}.review-toolbar__pending{color:var(--py-warning-foreground,#854d0e)}.review-toolbar__error{position:absolute;top:100%;right:0;margin-top:.3rem;border-radius:.375rem;background:var(--py-destructive,#b91c1c);padding:.35rem .5rem;color:#fff;font-size:.75rem}.review-toolbar__file{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
-  /* While a review session runs on a full-bleed page (no device frame), the toolbar is a
-     bar docked at the top that takes real space: the page starts below it and full-screen
-     apps (h-app) shrink to fit, so it never covers the app's own header controls. */
-  :global(html[data-py-review]:not([data-py-shell])){--py-review-bar:calc(2.9rem + env(safe-area-inset-top,0px));--py-app-height:calc(100dvh - var(--py-review-bar))}
-  :global(html[data-py-review]:not([data-py-shell]) body){padding-top:var(--py-review-bar)}
-  :global(html[data-py-review]:not([data-py-shell])) .review-toolbar{top:0;right:0;left:0;height:var(--py-review-bar);max-width:none;border-width:0 0 1px;border-radius:0;box-shadow:none;padding:calc(.35rem + env(safe-area-inset-top,0px)) .75rem .35rem}
-  @media(max-width:40rem){.review-toolbar{top:calc(.5rem + env(safe-area-inset-top,0px));right:calc(.5rem + env(safe-area-inset-right,0px));bottom:auto;left:calc(.5rem + env(safe-area-inset-left,0px));max-width:none;justify-content:flex-start;border-radius:.7rem}.review-toolbar__adapter{display:none}}
+  .review-toolbar{position:fixed;z-index:2147482998;right:.75rem;bottom:calc(.75rem + env(safe-area-inset-bottom,0px));display:flex;max-width:calc(100vw - 1.5rem);align-items:center;gap:.35rem;color:var(--py-foreground,#18181b);font:inherit}
+  .review-toolbar--placed{right:auto;bottom:auto}
+  .review-toolbar:global([data-py-float-x="right"]),.review-toolbar:not(.review-toolbar--placed){flex-direction:row-reverse}
+  .review-toolbar button{flex:none;border:1px solid var(--py-border,#d4d4d8);border-radius:.45rem;background:var(--py-surface,#fff);padding:.4rem .55rem;color:inherit;font:inherit;font-size:.8rem;white-space:nowrap;cursor:pointer}
+  .review-toolbar .review-toolbar__launcher{position:relative;display:inline-flex;min-width:2.25rem;height:2.25rem;align-items:center;justify-content:center;gap:.25rem;border-radius:999px;padding:0 .6rem;box-shadow:0 3px 14px rgb(0 0 0 / .2);font-size:.8rem;font-weight:600}
+  .review-toolbar__badge{font-variant-numeric:tabular-nums}
+  .review-toolbar__dot{position:absolute;top:.1rem;right:.1rem;width:.55rem;height:.55rem;border:2px solid var(--py-surface,#fff);border-radius:999px;background:var(--py-warning,#f59e0b)}
+  .review-toolbar__actions{display:flex;min-width:0;align-items:center;gap:.35rem;overflow-x:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);padding:.4rem;box-shadow:0 3px 14px rgb(0 0 0 / .2)}
+  .review-toolbar__actions[hidden]{display:none}
+  .review-toolbar button[aria-pressed="true"]{background:var(--py-primary,#6d28d9);color:var(--py-primary-foreground,#fff)}.review-toolbar button:focus-visible{outline:3px solid var(--py-ring,#7c3aed);outline-offset:2px}.review-toolbar button:disabled{opacity:.55;cursor:not-allowed}
+  .review-toolbar__count,.review-toolbar__adapter,.review-toolbar__pending{flex:none;font-size:.72rem;white-space:nowrap}.review-toolbar__adapter{color:var(--py-muted-foreground,#52525b)}
+  .review-toolbar__pending{color:var(--py-foreground,#18181b)}
+  .review-toolbar__error{position:absolute;bottom:100%;right:0;margin-bottom:.3rem;border-radius:.375rem;background:var(--py-destructive,#b91c1c);padding:.35rem .5rem;color:#fff;font-size:.75rem}
+  .review-toolbar__sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
+  @media(max-width:40rem){.review-toolbar__adapter,.review-toolbar__count{display:none}}
 </style>

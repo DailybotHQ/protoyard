@@ -28,6 +28,37 @@ export function prototypeUrl(slug: string): string {
   return `http://127.0.0.1:${PROTOTYPE_PORT_BASE + i}/`;
 }
 
+/**
+ * Review-comments E2E (tests/e2e/review-comments.spec.ts): prototypes built
+ * with PROTOYARD_REVIEW=1 (local adapter, no DevTools) on their own ports, so
+ * they never collide with the ordinary builds above. Not PROTOYARD_E2E_REVIEW,
+ * which serves the publish review index.
+ */
+export const COMMENTS_TARGETS = (process.env.PROTOYARD_E2E_COMMENTS_PROTOTYPES ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+/** First review-comments build port (default 4601). */
+export const COMMENTS_PORT_BASE = Number(process.env.PROTOYARD_E2E_COMMENTS_PORT_BASE ?? 4601);
+
+/**
+ * The shared-adapter server (default 4651): the FIRST comments target built
+ * with PROTOYARD_REVIEW_ADAPTER=http and served together with
+ * `handleCommentsRequest` on an in-memory store (tests/e2e/support/serve-comments.ts).
+ */
+export const COMMENTS_SHARED_PORT = Number(process.env.PROTOYARD_E2E_COMMENTS_SHARED_PORT ?? 4651);
+
+export function commentsUrl(slug: string): string {
+  const i = COMMENTS_TARGETS.indexOf(slug);
+  if (i === -1) throw new Error(`${slug} is not in PROTOYARD_E2E_COMMENTS_PROTOTYPES`);
+  return `http://127.0.0.1:${COMMENTS_PORT_BASE + i}/`;
+}
+
+export function commentsSharedUrl(): string {
+  return `http://127.0.0.1:${COMMENTS_SHARED_PORT}/`;
+}
+
 export interface LayoutMatrixTarget {
   slug: 'atlas-workspace-demo' | 'relay-chat-demo';
   scenario: string;
