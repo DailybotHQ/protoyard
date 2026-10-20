@@ -813,13 +813,89 @@ thread before the player's worker callback begins. This task moves blueprint
 world construction off the main thread but does not remove that runtime-owned
 context setup; doing so requires a runtime API change.
 
-One local Vite 8.3.4 production build on 2026-10-20 emitted a separate
-`generate.worker` entry at **2,555,194 B raw / 942,931 B gzip** (gzip level 9),
-and a main-thread fallback helper at **1,082 B raw / 542 B gzip**. The worker
-entry is loaded only when the first scenario generates, not in the initial
-player entry. It is a substantial first-generation transfer; generation
-timings and the player's total initial-JS budget have not been measured here.
-Use the player bench and budget tasks before setting performance thresholds.
+**Worker size.** The first build of the worker (Vite's default worker format)
+inlined its dynamic imports. That kept the whole `@faker-js/faker` namespace,
+every locale included: one `generate.worker` file of **2,555,194 B raw /
+942,931 B gzip** (gzip level 9). The player now builds workers as ES modules
+(`worker: { format: 'es' }` in `packages/player/vite.config.ts`). The worker then
+code-splits and tree-shakes like the app, keeping only `Faker`, `en` and `base`.
+
+Its whole import graph, measured 2026-10-20 (Vite 8.3.4, gzip level 9):
+
+| Chunk | Raw | Gzip |
+| --- | --- | --- |
+| `generate.worker` entry | 496 B | 308 B |
+| blueprint generator | 156,202 B | 45,407 B |
+| scenarios context | 2,396 B | 1,288 B |
+| Faker, English only | 416,073 B | 153,201 B |
+| **Total** | **575,167 B** | **200,204 B (195.5 KB)** |
+
+That is **79% less** than before, and no other locale's data ships (German and
+Japanese markers are absent). The worker is a separate Rollup build, so its
+Faker chunk is a second copy of the app's. Until the runtime stops loading Faker
+on the main thread for worker-generated definitions, a first visit downloads
+both, 153 KB gzip each.
+
+**Main-thread long tasks during boot.** Measured with the built player in
+headless Chromium, fresh context, `?src=` blueprint, 2026-10-20, with machine
+load average about 40:
+
+| CPU | Blueprint | Ready | Long tasks before ready |
+| --- | --- | --- | --- |
+| unthrottled | demo, quick/assistant, quick/team-chat (3 runs each) | 170 to 260 ms | none |
+| 4× throttled | demo (2 runs) | 524 to 572 ms | 3, total 227 to 242 ms |
+| 4× throttled | quick/assistant, quick/team-chat (2 runs each) | 469 to 487 ms | 2, total 172 to 182 ms |
+
+Long-animation-frame attribution (4× throttled, quick/assistant):
+- **About 100 to 130 ms evaluating the initial entry script.** This is not
+  generation.
+- **About 75 to 85 ms in Dexie** inside `IDBTransaction.oncomplete`, while the
+  seeded world is written.
+- **Neither is Faker:** its main-thread import never appears as a long-frame
+  script.
+
+So generation itself stays off the main thread. But "the main thread stays free
+of long tasks" holds only on a fast CPU. On a 4× slower CPU, boot still has 2 to
+3 long tasks from entry evaluation and the IndexedDB write. Every run also
+downloads and evaluates Faker on the main thread, only to build a context that
+the worker path ignores.
+
+## Player bundle budget (measured 2026-10-20)
+
+`packages/player/tests/budget.test.ts` reads the player's Vite manifest
+(`packages/player/dist/.vite/manifest.json`) with `classifyChunks`. It skips
+itself when the player is not built, so run it after
+`pnpm --filter @protoyard/player build`. One local build measured:
+
+| Graph | Gzip | Budget |
+| --- | --- | --- |
+| Initial JS (24 chunks) | **177.7 KB** | 250 KB |
+| Initial CSS | **18.1 KB** | 30 KB |
+| All CSS | 24.6 KB | 30 KB |
+| Lazy JS (162 chunks) | 591.0 KB | — |
+| Worker import graph | **195.5 KB** | 220 KB (in the test) |
+
+The test proves, by manifest key, that none of these are in the initial graph:
+Faker, DevTools, the theme library, the crud screen kits, the crud app shell
+(`@protoyard/crud/app`), charts, the analytics and views kits, the blueprint
+generator, and the main-thread generation fallback. It also checks the content:
+no Faker data and no worker reference appear in initial JS.
+
+**`@protoyard/crud/app`.** The player loads the crud app shell lazily, but
+always, right after boot. Its own chunk is 21.9 KB gzip. Its static graph adds
+**107.7 KB gzip across 53 chunks** beyond initial JS, so it is on the path to
+`protoyard:ready` for every blueprint.
+- **Icons:** `src/app/icons.ts` imports 40 Lucide icons statically. Their icon
+  data is about 11 KB raw in that graph, a small part of it.
+- **Theme library:** it is injected into `BlueprintApp` by the player (crud has
+  no themes dependency) and stays lazy (a 0.3 KB loader chunk; the data loads
+  on demand).
+
+**JS loaded before ready.** On the main thread, the page fetched 450 to 474 KB
+gzip of JS before `protoyard:ready` (unthrottled runs above). That is the
+initial graph, the crud app shell, Faker (153 KB, avoidable) and smaller lazy
+chunks, and it is the same for the demo, quick/assistant and quick/team-chat.
+The two quick examples need no extra JS before ready.
 
 ## Large blueprint on the player path (measured 2026-10-20)
 

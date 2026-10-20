@@ -7,4 +7,10 @@ import { defineProtoyardConfig } from '@protoyard/renderer-svelte/vite';
  * runtime (ADR-029). The `build.offline` flag is consumed by this shared
  * config factory, so the worker is build-only and never runs in `vite dev`.
  */
-export default defineProtoyardConfig({ root: import.meta.dirname });
+export default defineProtoyardConfig({
+  root: import.meta.dirname,
+  // The world-generation worker is a module worker. Building it as ES modules
+  // lets it code-split and tree-shake like the app: its dynamic Faker import
+  // keeps only `Faker`, `en` and `base` instead of every bundled locale.
+  worker: { format: 'es' },
+});
