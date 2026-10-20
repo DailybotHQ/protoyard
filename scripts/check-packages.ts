@@ -12,7 +12,9 @@
  *   TypeScript source unless a packed declaration map points at it;
  * - the packed manifest: no `workspace:`/`link:`/`file:` specifiers and no
  *   install lifecycle scripts;
- * - a tarball size cap and the lockstep version (the root package.json).
+ * - a tarball size cap and the lockstep version (the root package.json);
+ * - the public-hygiene rules over every packed file (scripts/lib/tarball-hygiene.ts):
+ *   keys, tokens, .env and key files, home paths (also in source maps), real emails.
  *
  * A package without `publishConfig` is not publish-ready yet: it is reported
  * as `pending` (manifest checks only, never packed) and does not fail the run
@@ -29,6 +31,7 @@ import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gunzipSync } from 'node:zlib';
+import { parseAllowFile, scanTarballFiles } from './lib/tarball-hygiene.ts';
 
 const REPO = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
@@ -46,6 +49,7 @@ export type RuleId =
   | 'size'
   | 'publint'
   | 'attw'
+  | 'hygiene'
   | 'pack';
 
 export interface Finding {
@@ -243,6 +247,27 @@ export function readTarball(gz: Uint8Array): Map<string, Uint8Array> {
   return files;
 }
 
+/**
+ * Hygiene findings as `path:line: rule` (never the matched text). An env file
+ * the allowlist already reported as forbidden is not reported twice.
+ */
+export function hygieneFindings(
+  files: Map<string, Uint8Array>,
+  packagePath: string,
+  root: string = REPO,
+  already: readonly Finding[] = []
+): Finding[] {
+  const allowPath = join(root, '.public-hygiene-allow');
+  const allow = existsSync(allowPath) ? parseAllowFile(readFileSync(allowPath, 'utf8')) : [];
+  return scanTarballFiles(files, { packagePath, allow })
+    .filter(
+      (f) =>
+        f.rule !== 'env-file' ||
+        !already.some((a) => a.message.startsWith(`${f.path} is an environment file`))
+    )
+    .map((f) => ({ rule: 'hygiene' as const, message: `${f.path}:${f.line}: ${f.rule}` }));
+}
+
 /** Packs `dir` with pnpm into `destination`; returns the tarball path. */
 export function packPackage(dir: string, destination: string): string {
   const result = spawnSync('pnpm', ['pack', '--pack-destination', destination, '--json'], {
@@ -377,7 +402,9 @@ export async function checkPackage(
           }
         }
       }
-      report.findings.push(...fileFindings(files));
+      const fileLevel = fileFindings(files);
+      report.findings.push(...fileLevel);
+      report.findings.push(...hygieneFindings(files, report.path, root, fileLevel));
       const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
       if (tarball.byteLength > maxBytes) {
         report.findings.push({
