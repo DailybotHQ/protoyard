@@ -10,6 +10,36 @@ export const MAX_THEME_SHARE_LENGTH = 1024;
 const shareId = ThemeSchema.shape.id;
 const hexColor = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
+/**
+ * C0/C1 controls, bidi embedding/override/isolate controls and line or
+ * paragraph separators: a shared name is single-line text and must not
+ * disguise itself (the same set the review-comment schema refuses in names).
+ */
+function isUnsafeNameChar(code: number): boolean {
+  return (
+    code <= 0x1f ||
+    (code >= 0x7f && code <= 0x9f) ||
+    (code >= 0x202a && code <= 0x202e) ||
+    (code >= 0x2066 && code <= 0x2069) ||
+    code === 0x2028 ||
+    code === 0x2029
+  );
+}
+
+/** Strips unsafe characters from a share-link theme name; the result must still be 1–40 chars. */
+export function cleanThemeShareName(name: string): string {
+  let out = '';
+  for (const char of name) if (!isUnsafeNameChar(char.charCodeAt(0))) out += char;
+  return out.trim();
+}
+
+/** Cleans `name` on untrusted input before the strict schema checks it. */
+function withCleanName(input: unknown): unknown {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) return input;
+  const name = (input as { name?: unknown }).name;
+  return typeof name === 'string' ? { ...input, name: cleanThemeShareName(name) } : input;
+}
+
 const ThemeShareDefinitionSchema = ThemeSchema.pick({ name: true })
   .extend({
     seed: ThemeSchema.shape.light.shape.primary.refine((value) => hexColor.test(value)),
@@ -45,7 +75,7 @@ export type ThemeShareDefinition = {
 
 /** Encodes only the Theme Studio inputs, never generated palette tokens. */
 export function encodeThemeShare(definition: ThemeShareDefinition): string {
-  const parsed = ThemeShareDefinitionSchema.parse(definition);
+  const parsed = ThemeShareDefinitionSchema.parse(withCleanName(definition));
   const bytes = new TextEncoder().encode(JSON.stringify(parsed));
   const encoded = encodeBase64Url(bytes);
   if (encoded.length > MAX_THEME_SHARE_LENGTH) {
@@ -66,7 +96,7 @@ export function decodeThemeShare(value: string): ThemeShareDefinition {
   } catch {
     throw new TypeError('Theme share definition is not valid JSON.');
   }
-  return ThemeShareDefinitionSchema.parse(input) as ThemeShareDefinition;
+  return ThemeShareDefinitionSchema.parse(withCleanName(input)) as ThemeShareDefinition;
 }
 
 /** Looks for the share parameter in a normal query or the hash-router query. */

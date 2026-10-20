@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cleanThemeShareName,
   decodeThemeShare,
   encodeThemeShare,
   getThemeShareValue,
@@ -37,6 +38,23 @@ describe('theme share definitions', () => {
       'base64url'
     );
     expect(() => decodeThemeShare(invalidDefinition)).toThrow();
+  });
+
+  it('strips control and bidi characters from a shared theme name', () => {
+    const disguised = 'Harbor\u202e thgil\u0007\u2028';
+    expect(cleanThemeShareName(disguised)).toBe('Harbor thgil');
+    const crafted = Buffer.from(JSON.stringify({ ...definition, name: disguised })).toString(
+      'base64url'
+    );
+    expect(decodeThemeShare(crafted).name).toBe('Harbor thgil');
+    expect(decodeThemeShare(encodeThemeShare({ ...definition, name: disguised })).name).toBe(
+      'Harbor thgil'
+    );
+    // Nothing left after cleaning is not a name.
+    const empty = Buffer.from(JSON.stringify({ ...definition, name: '\u202e\u0000' })).toString(
+      'base64url'
+    );
+    expect(() => decodeThemeShare(empty)).toThrow();
   });
 
   it('reads themeDef from ordinary and hash-router query strings', () => {
