@@ -15,6 +15,11 @@
       "default": "./src/index.ts"
     },
     "./registry-meta": "./src/registry-meta.ts",
+    "./app": {
+      "types": "./src/app/index.ts",
+      "svelte": "./src/app/index.ts",
+      "default": "./src/app/index.ts"
+    },
     "./screens/list": {
       "types": "./src/EntityList.svelte",
       "svelte": "./src/EntityList.svelte",

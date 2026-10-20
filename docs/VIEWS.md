@@ -27,6 +27,12 @@ in [`@protoyard/views-ui`](../packages/views-ui/README.md) and
 | Render loading, empty, error, offline or denied state | `QueryState` from `states` | — (classifier is in views-ui) |
 | Add an app command dialog | `AppCommandPalette` from `commands` | — (registry is in views-ui) |
 
+To run a whole blueprint-described app rather than one view, use `BlueprintApp` from
+`@protoyard/crud/app`. It wires the blueprint screen kinds (board, calendar, timeline, map,
+analytics, dashboard, settings and tabbed detail) to the routes of the shared app model,
+and loads each kit lazily through the screen-kind registry. See the
+[crud README](../packages/crud/README.md#blueprint-app-shell-protoyardcrudapp).
+
 Each package exposes one entry per subpath; neither package is re-exported by
 `@protoyard/ui`. `@protoyard/views` root is types-only. `views-ui` views may
 share `lib/` and `states/`; static imports between view folders are guarded.

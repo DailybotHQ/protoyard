@@ -20,6 +20,57 @@ loader and props adapter; duplicate registrations fail clearly. The `entity-page
 reserved for the CRUD app shell to register, while the blueprint's declared `SCREEN_TYPES`
 all have built-in loaders.
 
+## Blueprint app shell (`@protoyard/crud/app`)
+
+`BlueprintApp` renders a whole app from a parsed blueprint, with no generated code
+([ADR-029](../../docs/DECISIONS.md)). It reads `deriveAppModel(blueprint)` from
+`@protoyard/blueprint` (the same routes, navigation groups and layout that
+`protoyard generate` prints), so the player and a generated prototype show the same app.
+
+```svelte
+<script lang="ts">
+import { BlueprintApp } from '@protoyard/crud/app';
+let { blueprint } = $props(); // a parsed Blueprint; the runtime comes from mountPrototype
+</script>
+
+<BlueprintApp
+  {blueprint}
+  themeLibrary={() =>
+    import('@protoyard/themes/library').then((m) => m.THEME_LIBRARY_META.map(({ id, name }) => ({ id, name })))}
+/>
+```
+
+It provides:
+- `LayoutHost` navigation from the model's groups and icon ids (`NAV_ICONS` maps every
+  `SCREEN_NAV_ICONS` id to its Lucide component), with the model's mobile layout below
+  768 px unless a scenario or override pins one;
+- a hash router whose routes all render one view that reads the matched model route:
+  - home counts per entity;
+  - `MembersScreen`;
+  - the entity page (list, then create and edit through `EntityForm`, so every write goes
+    through the entity service and the submit button shows pending feedback);
+  - every other screen kind, loaded through `getScreenKind(type).load()` and its props
+    adapter, each in its own chunk;
+- `SearchPalette` behind a Search button (⌘K);
+- `NotificationsBell`, only when an entity enables notifications;
+- a crud context (`useBlueprintApp()`): runtime, services, blueprint, model and router.
+
+Props:
+- `blueprint` (required);
+- `runtime`, which defaults to the mounted runtime;
+- `services`, which defaults to `createEntityServices`;
+- `model`, which defaults to `deriveAppModel`;
+- `themeLibrary`, an optional loader for extra settings theme choices. This package doesn't
+  depend on `@protoyard/themes`, so the host passes it.
+
+A missing record shows a message instead of a blank form. A screen that fails to load
+shows a retry.
+
+`@protoyard/crud/app` is its own subpath and is never re-exported from the `@protoyard/crud`
+barrel, so prototypes that don't use it pay nothing. `tests/blueprint-app.test.ts` mounts
+it on the real runtime, opens every route of a fixture blueprint, and creates and edits a
+record through the UI.
+
 When using view-based screens, the prototype stylesheet must import their CSS and register the
 package sources with Tailwind. `templates/crud-app/src/app.css` is the working reference:
 
