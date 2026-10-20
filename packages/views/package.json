@@ -29,5 +29,11 @@
     "@protoyard/avatars": "workspace:*",
     "@protoyard/core": "workspace:*",
     "zod": "^4.6.7"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
   }
 }

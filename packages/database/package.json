@@ -15,5 +15,11 @@
     "@protoyard/core": "workspace:*",
     "dexie": "^4.4.6",
     "fake-indexeddb": "~6.2.6"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
   }
 }

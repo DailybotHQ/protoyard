@@ -22,5 +22,11 @@
     "@protoyard/core": "workspace:*",
     "@protoyard/database": "workspace:*",
     "zod": "^4.6.7"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
   }
 }

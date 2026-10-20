@@ -19,5 +19,11 @@
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",
     "@protoyard/scenarios": "workspace:*"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
   }
 }

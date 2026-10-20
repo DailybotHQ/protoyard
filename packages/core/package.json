@@ -16,5 +16,11 @@
   "dependencies": {
     "@faker-js/faker": "^10.6.0",
     "zod": "^4.6.7"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
   }
 }
