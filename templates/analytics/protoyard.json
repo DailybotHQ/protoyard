@@ -49,5 +49,6 @@
   "preview": { "viewport": "desktop" },
   "storage": { "namespace": "template-analytics", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "launch-spike", "outage", "massive", "viewer"]
+  "scenarios": ["empty", "active", "launch-spike", "outage", "massive", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }

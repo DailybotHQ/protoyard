@@ -39,5 +39,6 @@
     "rate-limited",
     "assistant-outage",
     "agent-approval"
-  ]
+  ],
+  "thumbnail": "public/thumbnail.png"
 }

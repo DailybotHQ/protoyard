@@ -30,5 +30,6 @@
   "preview": { "viewport": "desktop" },
   "storage": { "namespace": "template-blank", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "viewer"]
+  "scenarios": ["empty", "active", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }

@@ -38,5 +38,6 @@
     "offline-checkout",
     "store-admin",
     "guest-browsing"
-  ]
+  ],
+  "thumbnail": "public/thumbnail.png"
 }

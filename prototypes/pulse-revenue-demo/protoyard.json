@@ -52,5 +52,6 @@
   "scenarios": ["empty", "quarter-of-history", "launch-spike", "viewer"],
   "template": "crud-app",
   "createdAt": "2026-10-20T00:28:42.093Z",
-  "updatedAt": "2026-10-20T00:28:42.093Z"
+  "updatedAt": "2026-10-20T00:28:42.093Z",
+  "thumbnail": "public/thumbnail.png"
 }

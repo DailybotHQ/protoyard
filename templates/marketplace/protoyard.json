@@ -30,5 +30,6 @@
   "preview": { "viewport": "desktop" },
   "storage": { "namespace": "template-marketplace", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["marketplace", "seller-onboarding", "seller-active", "seller-orders"]
+  "scenarios": ["marketplace", "seller-onboarding", "seller-active", "seller-orders"],
+  "thumbnail": "public/thumbnail.png"
 }

@@ -33,5 +33,6 @@
   },
   "storage": { "namespace": "template-onboarding", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["not-started", "half-complete", "completed", "viewer"]
+  "scenarios": ["not-started", "half-complete", "completed", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }

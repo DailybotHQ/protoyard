@@ -34,5 +34,6 @@
   },
   "storage": { "namespace": "template-plugin-panel", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "connected-workspace", "sync-paused", "connect-error", "read-only"]
+  "scenarios": ["empty", "connected-workspace", "sync-paused", "connect-error", "read-only"],
+  "thumbnail": "public/thumbnail.png"
 }

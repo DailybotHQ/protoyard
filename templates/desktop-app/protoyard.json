@@ -31,5 +31,6 @@
   "preview": { "viewport": "desktop", "shell": "desktop-window", "device": "laptop-window" },
   "storage": { "namespace": "template-desktop-app", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "large"]
+  "scenarios": ["empty", "active", "large"],
+  "thumbnail": "public/thumbnail.png"
 }

@@ -46,5 +46,6 @@
   "scenarios": ["empty", "active", "viewer", "massive"],
   "template": "crud-app",
   "createdAt": "2026-10-20T00:09:19.262Z",
-  "updatedAt": "2026-10-20T00:09:19.262Z"
+  "updatedAt": "2026-10-20T00:09:19.262Z",
+  "thumbnail": "public/thumbnail.png"
 }

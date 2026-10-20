@@ -51,5 +51,6 @@
   ],
   "template": "b2b-saas",
   "createdAt": "2026-10-18T15:04:03.910Z",
-  "updatedAt": "2026-10-18T15:04:03.910Z"
+  "updatedAt": "2026-10-18T15:04:03.910Z",
+  "thumbnail": "public/thumbnail.png"
 }

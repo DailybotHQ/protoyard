@@ -31,5 +31,6 @@
   "preview": { "viewport": "desktop", "shell": "browser" },
   "storage": { "namespace": "template-team-chat", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "busy-day", "quiet-night", "viewer"]
+  "scenarios": ["empty", "busy-day", "quiet-night", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }

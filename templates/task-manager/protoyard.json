@@ -34,5 +34,6 @@
   },
   "storage": { "namespace": "template-task-manager", "schemaVersion": 2 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active-team", "overdue-crunch", "viewer"]
+  "scenarios": ["empty", "active-team", "overdue-crunch", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }

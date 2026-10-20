@@ -40,5 +40,6 @@
   "preview": { "viewport": "desktop" },
   "storage": { "namespace": "template-social-feed", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "massive", "moderator", "viewer"]
+  "scenarios": ["empty", "active", "massive", "moderator", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }

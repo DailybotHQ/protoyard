@@ -36,5 +36,6 @@
   "preview": { "viewport": "desktop" },
   "storage": { "namespace": "template-course-lms", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty-catalog", "student-active", "instructor-cohort", "network-offline"]
+  "scenarios": ["empty-catalog", "student-active", "instructor-cohort", "network-offline"],
+  "thumbnail": "public/thumbnail.png"
 }

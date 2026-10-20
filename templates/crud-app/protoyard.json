@@ -34,5 +34,6 @@
   },
   "storage": { "namespace": "template-crud-app", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "viewer", "massive"]
+  "scenarios": ["empty", "active", "viewer", "massive"],
+  "thumbnail": "public/thumbnail.png"
 }

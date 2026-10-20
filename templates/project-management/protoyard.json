@@ -35,5 +35,6 @@
   },
   "storage": { "namespace": "template-project-management", "schemaVersion": 3 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active-team", "overdue-crunch", "viewer"]
+  "scenarios": ["empty", "active-team", "overdue-crunch", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }

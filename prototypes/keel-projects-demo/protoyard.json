@@ -76,5 +76,6 @@
   "scenarios": ["empty", "sprint-in-flight", "overdue-crunch", "massive", "viewer"],
   "template": "project-management",
   "createdAt": "2026-10-19T23:10:20.537Z",
-  "updatedAt": "2026-10-19T23:10:20.537Z"
+  "updatedAt": "2026-10-19T23:10:20.537Z",
+  "thumbnail": "public/thumbnail.png"
 }

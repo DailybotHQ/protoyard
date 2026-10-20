@@ -121,21 +121,21 @@ own README, `AGENTS.md` and `docs/` spec.
 
 | | Prototype | Demonstrates |
 | --- | --- | --- |
-| ![Pipeline CRM](docs/assets/screenshots/crm.png) | **Pipeline CRM** · `crm-demo` | Desktop SaaS: companies, contacts, an accessible kanban pipeline, owner/admin/rep/viewer roles with per-record rules, a v1→v2 migration, 9 scenarios up to an enterprise-scale world |
-| ![Lumen Bank](docs/assets/screenshots/bank.png) | **Lumen Bank** · `mobile-banking-demo` | Mobile-first banking: an integer-cent ledger, atomic transfers that roll back on failure, locked and dormant accounts, transfer caps, offline |
-| ![Relay](docs/assets/screenshots/chat.png) | **Relay** · `ai-chat-demo` | Team chat with scripted AI agents: streamed replies, cancel and retry, partial outages, a 600-message thread |
-| ![UI Kit](docs/assets/screenshots/ui-kit.png) | **Protoyard UI Kit** · `ui-kit` | Every component in every state, plus a theme lab with live tokens and contrast |
-| | **Lattice** · `lattice-saas-demo` | A B2B SaaS journey: sign-up, magic links, MFA, onboarding, workspaces, invitations, an inbox and billing |
-| | **Nova Assistant** · `nova-assistant-demo` | An AI assistant with voice, agent tools and approvals, a canvas, a widget and a 5,000-message history |
-| | **Relay Chat** · `relay-chat-demo` | Slack-like team chat with an AI teammate and huddles; review comments through the artifact adapter |
-| | **Northwind Help** · `support-widget-demo` | A support widget on a fictional customer site (the widget-host shell) |
-| | **Keel Projects** · `keel-projects-demo` | Project management: board, calendar, a critical-path timeline, a 10,000-task grid, review comments |
-| | **Pebblestat Analytics** · `pebblestat-analytics-demo` | Product analytics: dashboards, insights, funnels, retention, alerts, review comments |
-| | **Atlas Workspace** · `atlas-workspace-demo` | The shared layout system: a layout gallery, a docs-style playbook and a workspace tour |
-| | **Beacon Help Desk** · `helpdesk-demo` | Generated from a blueprint: CRUD plus an owned SLA dashboard and ticket workspace |
-| | **Harborlight Dispatch** · `harbor-dispatch-demo` | Generated from a blueprint: logistics board, map, timeline, calendar and dashboard |
-| | **Cadence Studio** · `cadence-studio-demo` | Generated from a blueprint: studio bookings on a weekly calendar |
-| | **Pulse Revenue** · `pulse-revenue-demo` | Generated from a blueprint: revenue dashboard, explorer and lifecycle board |
+| <img src="prototypes/crm-demo/public/thumbnail.png" alt="Pipeline CRM" width="240"> | **Pipeline CRM** · `crm-demo` | Desktop SaaS: companies, contacts, an accessible kanban pipeline, owner/admin/rep/viewer roles with per-record rules, a v1→v2 migration, 9 scenarios up to an enterprise-scale world |
+| <img src="prototypes/mobile-banking-demo/public/thumbnail.png" alt="Lumen Bank" width="240"> | **Lumen Bank** · `mobile-banking-demo` | Mobile-first banking: an integer-cent ledger, atomic transfers that roll back on failure, locked and dormant accounts, transfer caps, offline |
+| <img src="prototypes/ai-chat-demo/public/thumbnail.png" alt="Relay" width="240"> | **Relay** · `ai-chat-demo` | Team chat with scripted AI agents: streamed replies, cancel and retry, partial outages, a 600-message thread |
+| <img src="prototypes/ui-kit/public/thumbnail.png" alt="Protoyard UI Kit" width="240"> | **Protoyard UI Kit** · `ui-kit` | Every component in every state, plus a theme lab with live tokens and contrast |
+| <img src="prototypes/lattice-saas-demo/public/thumbnail.png" alt="Lattice" width="240"> | **Lattice** · `lattice-saas-demo` | A B2B SaaS journey: sign-up, magic links, MFA, onboarding, workspaces, invitations, an inbox and billing |
+| <img src="prototypes/nova-assistant-demo/public/thumbnail.png" alt="Nova Assistant" width="240"> | **Nova Assistant** · `nova-assistant-demo` | An AI assistant with voice, agent tools and approvals, a canvas, a widget and a 5,000-message history |
+| <img src="prototypes/relay-chat-demo/public/thumbnail.png" alt="Relay Chat" width="240"> | **Relay Chat** · `relay-chat-demo` | Slack-like team chat with an AI teammate and huddles; review comments through the artifact adapter |
+| <img src="prototypes/support-widget-demo/public/thumbnail.png" alt="Northwind Help" width="240"> | **Northwind Help** · `support-widget-demo` | A support widget on a fictional customer site (the widget-host shell) |
+| <img src="prototypes/keel-projects-demo/public/thumbnail.png" alt="Keel Projects" width="240"> | **Keel Projects** · `keel-projects-demo` | Project management: board, calendar, a critical-path timeline, a 10,000-task grid, review comments |
+| <img src="prototypes/pebblestat-analytics-demo/public/thumbnail.png" alt="Pebblestat Analytics" width="240"> | **Pebblestat Analytics** · `pebblestat-analytics-demo` | Product analytics: dashboards, insights, funnels, retention, alerts, review comments |
+| <img src="prototypes/atlas-workspace-demo/public/thumbnail.png" alt="Atlas Workspace" width="240"> | **Atlas Workspace** · `atlas-workspace-demo` | The shared layout system: a layout gallery, a docs-style playbook and a workspace tour |
+| <img src="prototypes/helpdesk-demo/public/thumbnail.png" alt="Beacon Help Desk" width="240"> | **Beacon Help Desk** · `helpdesk-demo` | Generated from a blueprint: CRUD plus an owned SLA dashboard and ticket workspace |
+| <img src="prototypes/harbor-dispatch-demo/public/thumbnail.png" alt="Harborlight Dispatch" width="240"> | **Harborlight Dispatch** · `harbor-dispatch-demo` | Generated from a blueprint: logistics board, map, timeline, calendar and dashboard |
+| <img src="prototypes/cadence-studio-demo/public/thumbnail.png" alt="Cadence Studio" width="240"> | **Cadence Studio** · `cadence-studio-demo` | Generated from a blueprint: studio bookings on a weekly calendar |
+| <img src="prototypes/pulse-revenue-demo/public/thumbnail.png" alt="Pulse Revenue" width="240"> | **Pulse Revenue** · `pulse-revenue-demo` | Generated from a blueprint: revenue dashboard, explorer and lifecycle board |
 
 `pnpm build:showcase` builds the gallery, the marketplace and a live demo of
 every prototype and template as one static site in `artifacts/showcase/`,
@@ -158,6 +158,22 @@ roles, scenarios, tests and a spec, and runs as a live demo with
 | `analytics`, `fintech-dashboard`, `iot-monitoring` | Product analytics, personal finance, device monitoring on an offline map |
 | `project-management`, `booking-calendar`, `logistics-map`, `clinic` | Sprints, bookings, routes with simulated ETAs, a clinic front desk |
 | `docs-wiki`, `social-feed`, `course-lms` | A wiki with safe Markdown, a social feed, courses with quizzes |
+
+<details>
+<summary><strong>See all 27 templates</strong></summary>
+<br>
+<table>
+<tr><td align="center"><img src="templates/admin-console/public/thumbnail.png" alt="admin-console template" width="260"><br><code>admin-console</code></td><td align="center"><img src="templates/agent-console/public/thumbnail.png" alt="agent-console template" width="260"><br><code>agent-console</code></td><td align="center"><img src="templates/ai-assistant/public/thumbnail.png" alt="ai-assistant template" width="260"><br><code>ai-assistant</code></td></tr>
+<tr><td align="center"><img src="templates/analytics/public/thumbnail.png" alt="analytics template" width="260"><br><code>analytics</code></td><td align="center"><img src="templates/b2b-saas/public/thumbnail.png" alt="b2b-saas template" width="260"><br><code>b2b-saas</code></td><td align="center"><img src="templates/blank/public/thumbnail.png" alt="blank template" width="260"><br><code>blank</code></td></tr>
+<tr><td align="center"><img src="templates/booking-calendar/public/thumbnail.png" alt="booking-calendar template" width="260"><br><code>booking-calendar</code></td><td align="center"><img src="templates/chat/public/thumbnail.png" alt="chat template" width="260"><br><code>chat</code></td><td align="center"><img src="templates/chat-widget/public/thumbnail.png" alt="chat-widget template" width="260"><br><code>chat-widget</code></td></tr>
+<tr><td align="center"><img src="templates/clinic/public/thumbnail.png" alt="clinic template" width="260"><br><code>clinic</code></td><td align="center"><img src="templates/course-lms/public/thumbnail.png" alt="course-lms template" width="260"><br><code>course-lms</code></td><td align="center"><img src="templates/crud-app/public/thumbnail.png" alt="crud-app template" width="260"><br><code>crud-app</code></td></tr>
+<tr><td align="center"><img src="templates/dashboard/public/thumbnail.png" alt="dashboard template" width="260"><br><code>dashboard</code></td><td align="center"><img src="templates/desktop-app/public/thumbnail.png" alt="desktop-app template" width="260"><br><code>desktop-app</code></td><td align="center"><img src="templates/docs-wiki/public/thumbnail.png" alt="docs-wiki template" width="260"><br><code>docs-wiki</code></td></tr>
+<tr><td align="center"><img src="templates/ecommerce/public/thumbnail.png" alt="ecommerce template" width="260"><br><code>ecommerce</code></td><td align="center"><img src="templates/fintech-dashboard/public/thumbnail.png" alt="fintech-dashboard template" width="260"><br><code>fintech-dashboard</code></td><td align="center"><img src="templates/iot-monitoring/public/thumbnail.png" alt="iot-monitoring template" width="260"><br><code>iot-monitoring</code></td></tr>
+<tr><td align="center"><img src="templates/logistics-map/public/thumbnail.png" alt="logistics-map template" width="260"><br><code>logistics-map</code></td><td align="center"><img src="templates/marketplace/public/thumbnail.png" alt="marketplace template" width="260"><br><code>marketplace</code></td><td align="center"><img src="templates/mobile-app/public/thumbnail.png" alt="mobile-app template" width="260"><br><code>mobile-app</code></td></tr>
+<tr><td align="center"><img src="templates/onboarding/public/thumbnail.png" alt="onboarding template" width="260"><br><code>onboarding</code></td><td align="center"><img src="templates/plugin-panel/public/thumbnail.png" alt="plugin-panel template" width="260"><br><code>plugin-panel</code></td><td align="center"><img src="templates/project-management/public/thumbnail.png" alt="project-management template" width="260"><br><code>project-management</code></td></tr>
+<tr><td align="center"><img src="templates/social-feed/public/thumbnail.png" alt="social-feed template" width="260"><br><code>social-feed</code></td><td align="center"><img src="templates/task-manager/public/thumbnail.png" alt="task-manager template" width="260"><br><code>task-manager</code></td><td align="center"><img src="templates/team-chat/public/thumbnail.png" alt="team-chat template" width="260"><br><code>team-chat</code></td></tr>
+</table>
+</details>
 
 **40 product blueprints** in [`blueprints/`](blueprints/README.md), from CRM
 and inventory to veterinary clinics and utility outages, each one command away

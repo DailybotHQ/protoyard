@@ -31,5 +31,6 @@
   "preview": { "viewport": "desktop" },
   "storage": { "namespace": "template-clinic", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "busy-clinic", "clinician", "viewer"]
+  "scenarios": ["empty", "active", "busy-clinic", "clinician", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }

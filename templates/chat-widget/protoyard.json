@@ -34,5 +34,6 @@
   },
   "storage": { "namespace": "template-chat-widget", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["first-visit", "returning-visitor", "agent-offline", "outage"]
+  "scenarios": ["first-visit", "returning-visitor", "agent-offline", "outage"],
+  "thumbnail": "public/thumbnail.png"
 }

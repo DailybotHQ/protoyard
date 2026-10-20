@@ -34,5 +34,6 @@
   },
   "storage": { "namespace": "template-agent-console", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "member", "viewer", "tool-outage"]
+  "scenarios": ["empty", "active", "member", "viewer", "tool-outage"],
+  "thumbnail": "public/thumbnail.png"
 }

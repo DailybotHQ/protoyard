@@ -37,5 +37,6 @@
   },
   "storage": { "namespace": "template-fintech-dashboard", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["active", "empty", "viewer", "network-offline"]
+  "scenarios": ["active", "empty", "viewer", "network-offline"],
+  "thumbnail": "public/thumbnail.png"
 }

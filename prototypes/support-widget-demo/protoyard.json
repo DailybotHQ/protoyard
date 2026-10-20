@@ -37,5 +37,6 @@
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
   "scenarios": ["first-visit", "returning-customer", "open-return", "agent-offline", "outage"],
   "createdAt": "2026-10-18T00:00:00.000Z",
-  "updatedAt": "2026-10-18T00:00:00.000Z"
+  "updatedAt": "2026-10-18T00:00:00.000Z",
+  "thumbnail": "public/thumbnail.png"
 }

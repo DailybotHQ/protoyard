@@ -34,5 +34,6 @@
   },
   "storage": { "namespace": "template-admin-console", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "operations", "incident", "support-agent", "auditor"]
+  "scenarios": ["empty", "operations", "incident", "support-agent", "auditor"],
+  "thumbnail": "public/thumbnail.png"
 }

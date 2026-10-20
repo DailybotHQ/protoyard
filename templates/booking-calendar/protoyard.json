@@ -31,5 +31,6 @@
   "preview": { "viewport": "desktop" },
   "storage": { "namespace": "template-booking-calendar", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "busy-week", "viewer", "client"]
+  "scenarios": ["empty", "active", "busy-week", "viewer", "client"],
+  "thumbnail": "public/thumbnail.png"
 }

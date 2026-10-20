@@ -53,5 +53,6 @@
   ],
   "template": "ai-assistant",
   "createdAt": "2026-10-18T14:06:11.471Z",
-  "updatedAt": "2026-10-18T14:06:11.471Z"
+  "updatedAt": "2026-10-18T14:06:11.471Z",
+  "thumbnail": "public/thumbnail.png"
 }

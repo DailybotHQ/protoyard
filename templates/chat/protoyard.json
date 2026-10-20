@@ -31,5 +31,6 @@
   "preview": { "viewport": "desktop" },
   "storage": { "namespace": "template-chat", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "viewer", "assistant-outage"]
+  "scenarios": ["empty", "active", "viewer", "assistant-outage"],
+  "thumbnail": "public/thumbnail.png"
 }

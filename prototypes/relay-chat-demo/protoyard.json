@@ -45,5 +45,6 @@
   "scenarios": ["empty", "busy-day", "quiet-night", "viewer"],
   "template": "team-chat",
   "createdAt": "2026-10-18T14:57:24.946Z",
-  "updatedAt": "2026-10-18T14:57:24.946Z"
+  "updatedAt": "2026-10-18T14:57:24.946Z",
+  "thumbnail": "public/thumbnail.png"
 }

@@ -31,5 +31,6 @@
   "preview": { "viewport": "desktop" },
   "storage": { "namespace": "template-docs-wiki", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "large", "viewer"]
+  "scenarios": ["empty", "active", "large", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }

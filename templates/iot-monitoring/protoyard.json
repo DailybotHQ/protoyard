@@ -37,5 +37,6 @@
   },
   "storage": { "namespace": "template-iot-monitoring", "schemaVersion": 1 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["active", "quiet", "storm", "network-offline", "massive"]
+  "scenarios": ["active", "quiet", "storm", "network-offline", "massive"],
+  "thumbnail": "public/thumbnail.png"
 }

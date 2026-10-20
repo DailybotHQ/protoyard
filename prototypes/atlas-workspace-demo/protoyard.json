@@ -58,5 +58,6 @@
   "scenarios": ["empty", "active", "massive", "viewer"],
   "template": "dashboard",
   "createdAt": "2026-10-19T22:41:25.422Z",
-  "updatedAt": "2026-10-19T22:41:25.422Z"
+  "updatedAt": "2026-10-19T22:41:25.422Z",
+  "thumbnail": "public/thumbnail.png"
 }

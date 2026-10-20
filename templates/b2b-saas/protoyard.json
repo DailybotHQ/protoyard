@@ -38,5 +38,6 @@
     "past-due",
     "pending-invites",
     "mfa-enrolled"
-  ]
+  ],
+  "thumbnail": "public/thumbnail.png"
 }

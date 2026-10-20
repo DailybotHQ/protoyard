@@ -34,5 +34,6 @@
   },
   "storage": { "namespace": "template-dashboard", "schemaVersion": 2 },
   "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
-  "scenarios": ["empty", "active", "power-user", "viewer"]
+  "scenarios": ["empty", "active", "power-user", "viewer"],
+  "thumbnail": "public/thumbnail.png"
 }
