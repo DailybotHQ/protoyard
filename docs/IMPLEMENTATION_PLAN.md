@@ -229,6 +229,11 @@ and is not recorded here yet.
 
 - Task 169, the Final Review: a security review of the plan range in four slices (2 critical, 1 high and 5 medium findings, all fixed; the worker's storage limits are only partly done, see REVIEW_COMMENTS) [`bc5ec1c`, `ea66412`, `4b57ac2`, `b4ce28d`, `17d7ca7`, `0528ac9`, `2540932`]; final suites on `main`: lint, typecheck, `pnpm test` (410 files, 4,454 tests), default E2E (72 passed), flagship and template E2E (43 passed, one load flake that passed 6/6 on rerun), `budget --all` (15/15). The security sign-off is the developer's.
 
+**After PLAN_003 (direct changes on `main`):**
+
+- [x] `pebblestat-analytics-demo` turns on review comments with the `local` adapter (`build.review` in `protoyard.json`; initial JS 208.9 KB gzip with review on, measured with `budget` on 2026-10-20) [`f2f7132`]
+- [x] Artifact packs write U+FFFD as an equivalent escape in JS, JSON and CSS and refuse it in other text files, because the Claude Artifact tool refuses that character (`escapeReplacementCharacters`, with tests in `packages/cli/tests/artifact-pack.test.ts`) [`193acd9`]
+
 **Known gaps after PLAN_003 (from the lane reports):**
 
 - Per-persona notification preferences that mute individual rules are deferred; no placeholder toggles exist.

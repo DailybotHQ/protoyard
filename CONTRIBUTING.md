@@ -52,7 +52,9 @@ map from source to tests. A behavior change comes with a test.
 Use [Conventional Commits](https://www.conventionalcommits.org/):
 `type(scope): description`. Scopes: `core`, `database`, `scenarios`, `runtime`,
 `themes`, `ui`, `devtools`, `renderer`, `cli`, `gallery`, `http`, `offline`,
-`templates`, a prototype slug (`crm-demo`, `ui-kit`, …), `docs`, `ci`,
+`blueprint`, `crud`, `saas`, `saas-ui`, `ai`, `ai-ui`, `charts`, `charts-ui`,
+`analytics`, `analytics-ui`, `views`, `views-ui`, `review`, `review-ui`,
+`avatars`, `templates`, a prototype slug (`crm-demo`, `ui-kit`, …), `docs`, `ci`,
 `deps`, `dwp`. The canonical list is in [AGENTS.md](AGENTS.md).
 
 Keep pull requests focused, fill in the template, and link the issue.

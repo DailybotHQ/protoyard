@@ -123,7 +123,9 @@ analytics built from the template:
 - release, incident and campaign annotations;
 - owner, analyst and viewer personas.
 
-Its specs (AGENTS.md, docs/) describe every flow.
+Its specs (AGENTS.md, docs/) describe every flow. Review comments are on
+(`"build": { "review": { "enabled": true, "adapter": "local" } }`), so
+reviewers can pin notes to its dashboards ([REVIEW_COMMENTS.md](REVIEW_COMMENTS.md)).
 
 **Enterprise scale is sampled, and says so.**
 - 100,000 raw events, or even the plan's 20,000-event sample, cannot be
@@ -146,7 +148,7 @@ heavy shared load (load average 60–140): upper bounds.
 | Template scenarios (`scenario bench`, slowest: `massive`, ~10k rows) | 36–38 ms | < 50 ms |
 | Flagship scenarios (slowest: `launch-day`, 4.5k rows; `enterprise-scale` 16 ms) | 19–23 ms | < 50 ms |
 | Template initial JS (gzip) | 191.8 KB | ≤ 210 KB (plan), 250 KB |
-| Flagship initial JS (gzip) | 207.4 KB | ≤ 210 KB (plan), 250 KB |
+| Flagship initial JS (gzip) | 207.4 KB; 208.9 KB with review comments on (`budget`, 2026-10-20) | ≤ 210 KB (plan), 250 KB |
 | Flagship `enterprise-scale` dashboard, first visit (generate + render) | ~1.0 s, 0 long tasks | 0 long tasks > 200 ms |
 
 View sizes (esbuild, gzip, with `svelte`, `@protoyard/ui` and the engine

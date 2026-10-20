@@ -24,7 +24,7 @@ These docs describe what works in this repository today. Start with the
 | [AI kits](AI_KITS.md) | Simulated assistants, agents, voice and widgets; honest boundaries |
 | [Avatars](AVATARS.md) | 175 fictional portraits: provenance and license, seeded assignment, rendering and URL safety, measured sizes, re-import |
 | [Specs](SPECS.md) | The per-prototype spec harness: files, generated regions, rebuild kit, rebuild as a real app. Every prototype ships `AGENTS.md` + `docs/` (SPEC, DATA_MODEL, FLOWS, SCREENS, PERMISSIONS), checked by `pnpm protoyard validate <slug> --strict-spec`. |
-| [Publishing](PUBLISHING.md) | Static builds, ZIP export, base paths, provider adapters, batch publish, review index, CI/CD templates, sharing as a private Claude artifact |
+| [Publishing](PUBLISHING.md) | Static builds, ZIP export, base paths, provider adapters, batch publish, review index, CI/CD templates, the showcase (gallery + every live demo as one site), sharing as a private Claude artifact (one prototype per artifact) |
 | [Review comments](REVIEW_COMMENTS.md) | Opt-in review comments, storage adapters (local, http/cloudflare, the Claude artifact adapter), who sees what, honest limits |
 
 ## Understand it
@@ -49,11 +49,22 @@ These docs describe what works in this repository today. Start with the
 | [Implementation plan](IMPLEMENTATION_PLAN.md) | What is verified and what is deferred |
 
 Package and app references live next to the code: each `packages/*/README.md`,
-`apps/gallery/README.md`, `templates/*/README.md` and
-`prototypes/*/README.md`. The packages added by PLAN_002 and PLAN_003:
+[`apps/gallery/README.md`](../apps/gallery/README.md), `templates/*/README.md` and
+`prototypes/*/README.md`.
 
 | Package | For |
 | --- | --- |
+| [core](../packages/core/README.md) | Contracts: zod schemas, interfaces, PRNG, clock, environment, policy |
+| [database](../packages/database/README.md) | Dexie: per-prototype data and control databases, world I/O, storage errors |
+| [scenarios](../packages/scenarios/README.md) | Generator SDK, presets, integrity, timeline, series, schedule, event and geo helpers |
+| [runtime](../packages/runtime/README.md) | `createPrototypeRuntime()`: composes the engine |
+| [themes](../packages/themes/README.md) | Built-in presets, the lazy 64-theme library, palette engine, fonts, no-flash script |
+| [ui](../packages/ui/README.md) | Svelte 5 components, shell frames, `LayoutHost` and the 12 layouts |
+| [devtools](../packages/devtools/README.md) | The in-browser control center, theme browser and Theme Studio |
+| [renderer-svelte](../packages/renderer-svelte/README.md) | Vite config factory, `mountPrototype`, `ShellHost`, bindings, hash router |
+| [http](../packages/http/README.md) | Optional fetch-compatible mock HTTP layer (no service worker) |
+| [offline](../packages/offline/README.md) | Optional service worker for exported prototypes |
+| [cli](../packages/cli/README.md) | The `protoyard` command: every flag, exit codes, output folders, trust model |
 | [blueprint](../packages/blueprint/README.md) | Data-only `blueprint.json`: validation, derived stores, migrations, policy, entity services |
 | [crud](../packages/crud/README.md) | `EntityList`, `EntityDetail` and `EntityForm`, plus lazy dashboard, board, calendar, timeline, map, analytics and settings screens for blueprint-driven apps |
 | [saas](../packages/saas/README.md) | Simulated SaaS engine: tables, schemas, services and integrity (simulation, not security) |

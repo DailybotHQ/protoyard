@@ -81,7 +81,7 @@ publish (see [PUBLISHING.md](PUBLISHING.md)).
 | Gallery | Astro dev server on `http://localhost:4321/` (bound to `127.0.0.1`) |
 
 ```text
-✓ Indexed 7 projects · control server http://127.0.0.1:4300
+✓ Indexed 82 projects · control server http://127.0.0.1:4300
   Gallery: http://localhost:4321/ (starting…)
 ```
 
@@ -122,7 +122,8 @@ Every value in DevTools shows where it comes from: `override`, `preference`,
 `scenario` or `default`. The header's **Reset N** button clears all
 temporary overrides.
 
-The three demos run on the same engine with no shared domain code:
+The first three demos run on the same engine with no shared domain code
+(the root [README](../README.md#the-showcase) lists all 15):
 
 | Slug | Domain | Good for seeing |
 | --- | --- | --- |
@@ -222,18 +223,24 @@ pnpm protoyard preview my-idea             # http://127.0.0.1:4173/, like a stat
 pnpm vitest run prototypes/my-idea         # the prototype's own tests
 ```
 
-Real output for the CRM demo (sizes and times vary):
+Real output for the CRM demo, captured on 2026-10-20 (sizes, counts and
+times change as the workspace grows; most of the 412 files are the
+fictional avatar images):
 
 ```text
 $ pnpm protoyard validate crm-demo --skip-typecheck
 Validating crm-demo
 ✓ protoyard.json schema  example.crm v0.1.0
 ✓ Folder contract files
+✓ No symlinks leaving the folder
 ✓ package.json
+✓ Marketplace catalog  sales · CRM
 ✓ storage.schemaVersion  v2
-✓ Scenario ids  8 scenarios
+✓ Scenario ids  9 scenarios
 ✓ defaultScenario  growing-team
 ✓ Database versions  v1, v2
+✓ Theme ids  violet
+✓ Prototype spec (AGENTS.md, docs/)  6 files, 10 generated regions current
 - svelte-check
     --skip-typecheck
 
@@ -244,15 +251,29 @@ crm-demo is valid.
 $ pnpm protoyard export crm-demo
 …
 ✓ Exported crm-demo
-  artifacts/crm-demo/crm-demo.zip  385 KB  (6 files)
-  sha256 8f371b16…
-  Isolation: no references to the other 6 registered projects.
+  artifacts/crm-demo/crm-demo.zip  1.1 MB  (412 files)
+  sha256 63b5739c…
+  Isolation: no references to the other 81 registered projects.
   Relocatable (base ./): unzip into any folder of any static host.
 ```
 
 Builds exclude DevTools and show a small "Prototype · simulated data" badge.
 Both are configurable. Hosting and publishing are covered in
 [PUBLISHING.md](PUBLISHING.md).
+
+## Everything as one site: the showcase
+
+```bash
+pnpm build:showcase      # = pnpm protoyard showcase → artifacts/showcase/
+pnpm preview:showcase    # = pnpm protoyard showcase --skip-build --serve (port 4500)
+```
+
+The showcase is one static site: the gallery and marketplace, plus a live
+demo of every prototype (`p/<slug>/app/`) and every template
+(`t/<name>/app/`, unless `--no-templates`). It needs no control server, so
+it can be hosted anywhere static. It builds every project, so it takes
+longer than one prototype. Details, `--publish cloudflare` and GitHub Pages:
+[PUBLISHING.md](PUBLISHING.md#the-showcase-gallery--live-demos-as-one-site).
 
 ## Scripting the CLI
 

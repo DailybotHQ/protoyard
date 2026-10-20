@@ -335,9 +335,11 @@ parallel load (load average about 150):
 | `--only mobile-banking-demo,crm-demo` (2 builds, axe on) | 18 | 51.4 s |
 | `--only crm-demo --skip-build --no-axe --concurrency 3 --compare …` | 10 | 17.0 s, 0 changed pixels against the first run |
 
-Without `--only`, today's 9 prototypes make 90 shots and `--templates` adds
-166 for the 17 templates (counted from the manifests on 2026-10-19; layouts
-and themes multiply these). A full run has not been timed yet.
+Without `--only`, the 15 prototypes make 310 shots and `--templates` adds
+534 for the 27 templates (the sweep's own `buildMatrix` over the manifests,
+counted on 2026-10-20: every applicable shell × the manifest layouts ×
+light/dark on desktop, plus the manifest shell × layouts × light/dark on the
+phone; `--themes a,b` multiplies these). A full run has not been timed yet.
 
 ## Proposed (not yet verified)
 

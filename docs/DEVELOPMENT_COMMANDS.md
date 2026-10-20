@@ -70,8 +70,8 @@ meaningful exit codes: 0 ok · 1 failure · 2 usage · 3 not found ·
 | `scenario list <slug> [--details]` | Scenario ids and names (static; `--details` runs local code) |
 | `scenario validate <slug> [-s <id>]` | Run the generator for every scenario and check integrity (**executes local prototype code**) |
 | `scenario bench <slug> [-s <id>] [--runs 3] [--check] [--ci-factor <n>]` | Median generation + integrity time and row counts per scenario; `--check` exits 4 over `generateMs` (× `--ci-factor`) |
-| `comments pull <slug> (--from <url> \| --file <json>) --format md\|json [--out <file>]` | Pull review comments from a comments endpoint (GET only) or a local adapter export; writes an escaped, screen-grouped `prototypes/<slug>/docs/REVIEW.md` and a timestamped `artifacts/review/comments/<slug>.json`. See [REVIEW_COMMENTS.md](REVIEW_COMMENTS.md). |
-| `comments export <slug> [--out <file>]` | Write the last pulled comments in the local adapter JSON format (default `artifacts/review/exports/<slug>.json`) |
+| `comments pull <slug> (--from <url> \| --file <json>) --format md\|json [--out <file>]` | Pull review comments from a comments endpoint (GET only) or a local adapter export; writes an escaped, screen-grouped `prototypes/<slug>/docs/REVIEW.md` and a timestamped `artifacts/review-comments/comments/<slug>.json` (outside `artifacts/review/`, the folder `review-index --publish` uploads). See [REVIEW_COMMENTS.md](REVIEW_COMMENTS.md). |
+| `comments export <slug> [--out <file>]` | Write the last pulled comments in the local adapter JSON format (default `artifacts/review-comments/exports/<slug>.json`) |
 | `comments import <slug> <file>` | Import a local adapter JSON export into the workspace comments cache |
 | `theme list [--collection <collection>] [--search <query>]` | Built-in (6) and library (64) themes, filtered by library collection (`industry`, `mono`, `high-contrast`, `brand-like`, `colorblind-safe`, `seasonal`) and a deterministic search over names, ids, tags, moods and descriptions |
 | `theme show <theme-id>` | Light and dark swatches with WCAG text and UI contrast checks for a built-in or library theme |
@@ -80,8 +80,8 @@ meaningful exit codes: 0 ok · 1 failure · 2 usage · 3 not found ·
 | `theme import <slug> <file> [--force] [--dry-run]` | Write a validated JSON theme into a prototype |
 | `theme export <id> \| --from <file> [--format css\|tailwind\|tokens]` | Export a built-in, library or custom JSON theme as CSS variables (default), Tailwind tokens or W3C design tokens |
 | `snapshot list <slug>` | Snapshot files committed in the prototype folder, validated |
-| `gallery [--port] [--control-port] [--allow-create]` | What `pnpm dev` runs. `--allow-create` turns on the marketplace's create flow (`POST /api/new`, which writes files and runs code); it is off by default |
-| `control-server [--allow-create]` | Only the local control API used by the gallery (starts prototype dev servers and template demos; with `--allow-create`, also `new --from`) |
+| `gallery [--port] [--control-port] [--allow-origin <origins>] [--allow-create]` | What `pnpm dev` runs. `--allow-create` turns on the marketplace's create flow (`POST /api/new`, which writes files and runs code); it is off by default |
+| `control-server [--port] [--gallery-port] [--allow-origin <origins>] [--allow-create]` | Only the local control API used by the gallery (starts prototype dev servers and template demos; with `--allow-create`, also `new --from`) |
 
 Target commands (`dev`, `validate`, `build`, `budget`, `export`, `preview`,
 `publish`, `scenario`, `snapshot`) also accept template names; template artifacts go to

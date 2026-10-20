@@ -7,7 +7,7 @@ pulled review comment files at build time; it never imports prototype code.
 ```bash
 pnpm dev                                  # index + local control server + gallery on :4321
 pnpm --filter @protoyard/gallery build    # astro check + static build (dist/)
-pnpm protoyard showcase --serve           # gallery + every prototype build as ONE site
+pnpm protoyard showcase --serve           # gallery + every prototype and template demo as ONE site
 ```
 
 ## Architecture
@@ -35,6 +35,18 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 | `src/lib/control.svelte.ts` | Client for the local control server. |
 | `src/lib/theme.ts` | Light / dark / system, applied by an inline head script before first paint (no flash). |
 | `src/components/*` | `Browser`, `ProjectCard`, `LivePreview`, `CreateBuilder`, `CommandBlock`, `ThemeToggle`, `FavoriteButton`, `FirstRun`. |
+
+## Pages
+
+| Route | Page |
+| --- | --- |
+| `/` | Browse every prototype and template: search, filters, favorites, recently opened |
+| `/p/<slug>/` | A prototype's detail page with the live preview |
+| `/p/<slug>/compare/` | Two scenarios side by side ([below](#compare-scenarios)) |
+| `/t/<slug>/` | A template's detail page with **Use this template** and the prototypes made from it |
+| `/new/` | The create builder: the `protoyard new` command and an agent prompt |
+| `/themes/` | The theme browser: built-in and library themes with live swatches, opening any prototype in a chosen theme |
+| `/marketplace/`, `/marketplace/<kind>/<slug>/` | The marketplace shelf and one page per prototype, template or blueprint ([below](#marketplace)) |
 
 ## Registry contract
 

@@ -29,6 +29,14 @@ PROTOYARD_REVIEW=1 pnpm protoyard build crm-demo     # review on, local adapter,
 pnpm protoyard budget crm-demo                        # initial JS stays within budget
 ```
 
+Three prototypes ship with review on in their manifest:
+
+| Prototype | `build.review` |
+| --- | --- |
+| `keel-projects-demo` | `{ "enabled": true, "adapter": "local" }` |
+| `pebblestat-analytics-demo` | `{ "enabled": true, "adapter": "local" }` |
+| `relay-chat-demo` | `{ "enabled": true, "adapter": "artifact" }` ([below](#the-artifact-adapter)) |
+
 ## Where comments live
 
 The adapter decides where comments are stored and who sees them:

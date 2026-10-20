@@ -37,13 +37,34 @@ small web app with:
   without losing data. Forbidden actions are actually blocked.
 - **Simulated time and conditions.** Preview the app next month, go offline,
   add latency or make requests fail, and see how the product copes.
-- **Themes.** Light, dark or system mode and several color presets, each
+- **Themes.** Light, dark or system mode, six presets and a 64-theme library,
+  palettes generated from a brand color and a live Theme Studio, each
   prototype styled separately.
+- **Layouts and shells.** Twelve shared page layouts, and frames that present
+  the same app as a phone, tablet, desktop window, browser tab, widget on a
+  fictional site, extension popup or side panel.
 - **Snapshots.** Save the exact state after your edits, restore it later, or
   export it to a file and share it.
 - **One-command publishing.** Build a single prototype into a static site or a
   ZIP. It runs on any static host with no Protoyard installed, or it can be
-  published to Cloudflare Pages.
+  published to Cloudflare Pages or shared as a private Claude artifact.
+
+Around the single app, the workspace offers:
+
+- **Kits** a prototype opts into: rich views (board, calendar, timeline, a
+  virtualized grid, an offline map…), charts and analytics, simulated SaaS
+  flows (sign-in, SSO, MFA, workspaces, billing) and simulated AI assistants
+  and agents, and 175 fictional avatar portraits.
+- **A generator.** A data-only `blueprint.json` becomes a working prototype
+  (`protoyard generate`), and a prose brief becomes a blueprint offline
+  (`protoyard blueprint new --from-brief`). 40 blueprints ship in the
+  repository.
+- **Review comments.** Opt-in comments pinned to screens of a built
+  prototype, pulled into a `REVIEW.md` an agent can plan from.
+- **A showcase.** The gallery, the marketplace and a live demo of every
+  prototype and template as one static site (`pnpm build:showcase`).
+- **Specs.** Each prototype carries an `AGENTS.md` and `docs/` spec whose
+  generated regions stay in sync with its code.
 
 ## Who it is for
 
@@ -93,7 +114,9 @@ small web app with:
 ## Non-goals
 
 - **Not a backend or a SaaS platform.** There is no server, no cloud sync and
-  no shared multi-user editing.
+  no shared multi-user editing of prototype data. The one shared surface is
+  opt-in review comments, which need a store you provide (Cloudflare, your
+  own endpoint or a Claude artifact).
 - **Not real security.** Personas and roles simulate user experience. Data in
   the browser can be read and changed by anyone using that browser.
 - **Not a native app runtime.** Mobile prototypes run in the mobile browser,

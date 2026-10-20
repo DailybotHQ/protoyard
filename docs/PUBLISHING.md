@@ -72,8 +72,8 @@ From a real `crm-demo` build (the `files` list is shortened):
   "files": [
     { "path": "assets/dist-yVFZAMG4.js", "size": 415859, "sha256": "f9018f92…" }
   ],
-  "generator": { "name": "@protoyard/cli", "version": "0.1.0" },
-  "sdk": { "core": "0.1.0", "runtime": "0.1.0", "rendererSvelte": "0.1.0", "vite": "8.3.4" },
+  "generator": { "name": "@protoyard/cli", "version": "1.0.0" },
+  "sdk": { "core": "1.0.0", "runtime": "1.0.0", "rendererSvelte": "1.0.0", "vite": "8.3.4" },
   "node": "26.11.1"
 }
 ```
@@ -264,6 +264,14 @@ with exit 4 and lists each reason:
 - the 16 MB page and text-file limit and the 15 MB binary limit
 - 255 files and 64 MB per publish, and 511 files and 256 MB per version
 - a missing `<title>`. A title longer than four words is a warning.
+- the replacement character U+FFFD in a text file. The Artifact tool refuses
+  it, because it usually marks a broken decode, but bundled libraries can
+  hold it on purpose (a `CSS.escape` polyfill returns it for NUL). So the
+  pack writes it as an escape that means the same character: `\uFFFD` in
+  JS and JSON, `\fffd ` in CSS. Sizes and sha256 in `artifact-manifest.json`
+  describe the packed file, and the build itself is never changed. In the
+  other text files the pack copies (SVG, plain text…) the character fails
+  the export (`escapeReplacementCharacters` in `artifact-pack.ts`).
 
 `--dry-run` builds and checks everything without writing the pack.
 `--skip-build` reuses the last artifact build when it was made with the same
@@ -406,7 +414,16 @@ $ pnpm protoyard showcase --target artifact --slugs relay-chat-demo,support-widg
 ```
 
 Measured on 2026-10-19: 487 files plus the page, 4,514,818 B, in two batches
-(254 and 233 files). The skill takes a prototype slug, so a showcase pack
+(254 and 233 files).
+
+**One prototype per artifact is the normal path.** An artifact version holds
+at most 511 files, and the full showcase site is far larger (1,762 files
+measured on 2026-10-19 with 26 demos), so the whole showcase can never be
+one artifact. A showcase pack only fits with a short `--slugs` list and
+`--no-templates`, and the pack check refuses it (exit 4) when it does not.
+To share many prototypes, share each one as its own artifact
+(`/share-artifact <slug>`) and list them with `review-index --from-ledger`,
+or host the full showcase on a static host (below). The skill takes a prototype slug, so a showcase pack
 has no skill path yet. An agent publishes it by following its manifest
 batches with the same read-every-file and approval steps.
 

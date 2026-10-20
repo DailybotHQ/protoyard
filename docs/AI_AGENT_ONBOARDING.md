@@ -13,6 +13,11 @@ Read [AGENTS.md](../AGENTS.md) first; this page is the hands-on version.
    - `prototypes/crm-demo`: desktop SaaS (CRUD, kanban, roles, migration)
    - `prototypes/mobile-banking-demo`: mobile app (atomic ledger transfers)
    - `prototypes/ai-chat-demo`: streaming, real-time-feeling UI
+   - `prototypes/helpdesk-demo`: generated from a blueprint, plus owned screens
+   - `prototypes/keel-projects-demo`: rich views (board, calendar, timeline, grid)
+   - `prototypes/pebblestat-analytics-demo`: charts and analytics
+   - `prototypes/lattice-saas-demo` and `prototypes/nova-assistant-demo`:
+     the simulated SaaS and AI kits
 
 ## 2. Set up and verify the baseline
 
@@ -29,8 +34,10 @@ Don't build on a broken baseline.
 
 ## 3. Do the work
 
-- **New prototype:** `pnpm protoyard new <slug> --template <blank|dashboard|mobile-app|chat|onboarding|task-manager|ecommerce>`
-  (`pnpm protoyard list --kind template` shows what exists). Then follow
+- **New prototype:** `pnpm protoyard new <slug> --template <name>` with any
+  of the 27 templates (`pnpm protoyard list --kind template` lists them), or
+  `pnpm protoyard generate <slug> --blueprint <file>` from a blueprint
+  ([GENERATOR.md](GENERATOR.md)). Then follow
   [AGENT_GUIDE.md](AGENT_GUIDE.md).
 - **Engine or UI change:** find the owning package (see the table in
   `AGENTS.md`), read its `README.md`, and change the smallest thing.
@@ -63,6 +70,9 @@ Details and blind spots are in [TESTING_GUIDE.md](TESTING_GUIDE.md).
 | Scenario presets and helpers | `packages/scenarios/src/{presets,compose,identity}.ts` |
 | Reactive data in Svelte | `packages/renderer-svelte/src/bindings.svelte.ts` (`liveQuery`, `usePrincipal`, `can`) |
 | Components | `packages/ui/src/index.ts` (a live catalog runs in `prototypes/ui-kit`) |
-| Themes and tokens | `packages/themes/src/presets.ts`, `base.css` |
+| Themes and tokens | `packages/themes/src/presets.ts`, `library/`, `base.css` |
+| Shared layouts | `packages/ui/src/layouts/` ([LAYOUTS.md](LAYOUTS.md)) |
+| Blueprints | `blueprints/*.json`, `packages/blueprint/` ([GENERATOR.md](GENERATOR.md)) |
+| Kits (views, charts, analytics, SaaS, AI, review) | the matching `packages/<kit>/README.md` and `packages/<kit>-ui/README.md` |
 | CLI behavior | `packages/cli/src/commands/*.ts` |
 | Test helpers | `tests/support/{runtime,generate-context}.ts` |

@@ -54,5 +54,10 @@ plus a 5 % user sample:
 
 See [docs/SPEC.md](docs/SPEC.md#honest-boundaries).
 
+**Review comments** are on for this prototype (`build.review` in
+`protoyard.json`, `local` adapter): in a build, the **Review** launcher pins
+comments to screens, stored in the reviewer's own browser
+([docs/REVIEW_COMMENTS.md](../../docs/REVIEW_COMMENTS.md)).
+
 The agent spec is in [AGENTS.md](AGENTS.md) and [docs/](docs/). Refresh it
 with `pnpm protoyard spec pebblestat-analytics-demo --write`.

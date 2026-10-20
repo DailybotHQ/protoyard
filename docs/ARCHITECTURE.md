@@ -1,13 +1,18 @@
 # Architecture
 
-Protoyard is a pnpm workspace with three kinds of code:
+Protoyard is a pnpm workspace with four kinds of code:
 
 1. **The engine.** Framework-agnostic TypeScript packages that give every
    prototype a database, scenarios, sessions, time, environment, themes and
    snapshots.
 2. **The experience.** Svelte 5 packages that render prototypes: the renderer,
-   the UI library and the DevTools panel.
-3. **The tooling.** The `protoyard` CLI and the Astro gallery.
+   the UI library (with shared layouts and shell frames) and the DevTools
+   panel.
+3. **The kits.** Optional, lazy packages a prototype opts into: the blueprint
+   generator and CRUD screens, rich views, charts, analytics, simulated SaaS
+   and AI flows, review comments and fictional avatars. Each engine package
+   (no Svelte) has a matching `-ui` package where it renders.
+4. **The tooling.** The `protoyard` CLI and the Astro gallery.
 
 Prototypes and templates sit beside these as independent Vite apps.
 
@@ -20,18 +25,28 @@ protoyard/
 │   ├── database/         Dexie/IndexedDB: per-prototype data + control DBs, world I/O, storage errors
 │   ├── scenarios/        generator SDK (seeded faker/rng/ids/time), presets, integrity, timeline
 │   ├── runtime/          createPrototypeRuntime(): composes everything into one PrototypeRuntime
-│   ├── themes/           six presets, appearance engine (CSS vars), no-flash script, base.css
-│   ├── ui/               Svelte 5 components (Bits UI + Tailwind 4 + Lucide)
-│   ├── devtools/         the in-browser control center
-│   ├── renderer-svelte/  Vite config factory, mountPrototype(), reactive bindings, hash router
+│   ├── themes/           six presets + a lazy 64-theme library, palette engine, fonts, no-flash script
+│   ├── ui/               Svelte 5 components (Bits UI + Tailwind 4 + Lucide), shell frames, LayoutHost + 12 layouts
+│   ├── devtools/         the in-browser control center (incl. Theme Studio)
+│   ├── renderer-svelte/  Vite config factory, mountPrototype(), ShellHost, reactive bindings, hash router
 │   ├── http/             optional fetch-compatible mock API over prototype services (no server, no service worker)
 │   ├── offline/          optional build-time service worker for exported prototypes (opt-in)
-│   └── cli/              the `protoyard` command (index, new, dev, validate, build, export, publish…)
-├── apps/gallery/         Astro static site — reads the metadata registry only
+│   ├── blueprint/        data-only blueprints: schema, screens, brief synthesizer, entity services (no Svelte)
+│   ├── crud/             EntityList/Detail/Form + lazy dashboard, board, calendar, timeline, map, analytics, settings screens
+│   ├── views/ views-ui/  rich view engines (no Svelte) / lazy Svelte views, one subpath each
+│   ├── charts/ charts-ui/        chart math (no Svelte) / Svelte charts, one lazy subpath per family
+│   ├── analytics/ analytics-ui/  events, metrics, funnels, cohorts (no Svelte) / KPI tiles, filters, dashboard grid
+│   ├── saas/ saas-ui/    simulated auth, OAuth, MFA, workspaces, billing / their screens and routes
+│   ├── ai/ ai-ui/        simulated assistants, agents, tools, voice / assistant workspace and widget
+│   ├── review/ review-ui/        review comments engine and adapters / lazy comment overlay
+│   ├── avatars/          175 fictional portraits (WebP) + verified manifest, data only
+│   └── cli/              the `protoyard` command (index, new, generate, dev, validate, build, export, publish, showcase…)
+├── apps/gallery/         Astro static site + /marketplace/ — reads the metadata registry only
 ├── templates/<name>/     functional starting points (same layout as a prototype)
 ├── prototypes/<slug>/    independent apps (crm-demo, mobile-banking-demo, ai-chat-demo, yours…)
+├── blueprints/           data-only product blueprints for `protoyard generate`
 ├── tests/                shared test support, unit tests and Playwright E2E
-├── scripts/              repository scripts (index benchmark, hygiene check)
+├── scripts/              benchmarks, visual sweep, thumbnails, avatar import, hygiene check
 └── docs/                 this documentation
 ```
 
@@ -64,6 +79,26 @@ protoyard/
 under `core`, `database`, `scenarios` or `runtime` imports Svelte (ADR-002 in
 [DECISIONS.md](DECISIONS.md)).
 
+The kits build on that graph. Their workspace dependencies, from each
+`package.json`:
+
+| Package | Depends on (`@protoyard/…`) |
+| --- | --- |
+| `avatars` | nothing (data only); used by `scenarios`, `views` and `saas` |
+| `blueprint` | `core`, `scenarios`, `themes` |
+| `crud` | `blueprint`, `core`, `ui`, `renderer-svelte`, `views`, `views-ui`, `analytics`, `analytics-ui`, `charts-ui` |
+| `views` / `views-ui` | `avatars`, `core` / `views`, `ai`, `core`, `renderer-svelte`, `ui` |
+| `charts` / `charts-ui` | `core` / `charts` |
+| `analytics` / `analytics-ui` | `core`, `scenarios` / `analytics`, `charts-ui`, `renderer-svelte`, `ui` |
+| `saas` / `saas-ui` | `avatars`, `core` / `saas`, `core`, `renderer-svelte`, `ui` |
+| `ai` / `ai-ui` | `core` / `ai`, `charts-ui` |
+| `review` / `review-ui` | `core`, `database` / `review`, `core`, `ui`, `views`, `views-ui` |
+
+`renderer-svelte` also depends on `review-ui`, which it imports lazily only
+when a build turns review comments on, and on `offline`, whose Vite plugin
+adds the service worker only to builds that ask for it. The CLI
+uses `blueprint`, `review`, `themes`, `offline` and `renderer-svelte`.
+
 ## The prototype contract
 
 ```text
@@ -91,7 +126,7 @@ truth (ADR-003).
 
 ```text
 mountPrototype()
-  ├─ parseScenarioLink(location.search)       ?scenario=&actor=&seed=&theme=&mode=&shell=&devtools=
+  ├─ parseScenarioLink(location.search)       ?scenario=&actor=&seed=&theme=&mode=&shell=&layout=&sandbox=&devtools=&comments=
   ├─ createPrototypeRuntime(definition, { themes: BUILTIN_THEMES + definition.themes, link })
   │    ├─ open protoyard.<ns>.data      (domain tables + py_organizations/personas/memberships/events)
   │    └─ open protoyard.<ns>.control   (state, preferences, snapshots)

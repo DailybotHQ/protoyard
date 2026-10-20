@@ -39,7 +39,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | SaaS kits | [SAAS_KITS](docs/SAAS_KITS.md) | Simulated auth, OAuth, MFA, onboarding, workspaces, billing, scenario fragments, honest limits |
 | AI kits | [AI_KITS](docs/AI_KITS.md) | Simulated assistants, agents and tools, voice, widgets, safe rich answers, honest limits |
 | Avatars | [AVATARS](docs/AVATARS.md) | 175 fictional portraits: provenance and MIT license, never real people, seeded assignment, rendering and URL safety, measured sizes, re-import |
-| Publishing | [PUBLISHING](docs/PUBLISHING.md) | Build, export, preview, base paths, Cloudflare and other adapters, batch publish, review index, CI templates, sharing as a private Claude artifact |
+| Publishing | [PUBLISHING](docs/PUBLISHING.md) | Build, export, preview, base paths, Cloudflare and other adapters, batch publish, review index, CI templates, the showcase site, sharing as a private Claude artifact (one prototype per artifact) |
 | Review comments | [REVIEW_COMMENTS](docs/REVIEW_COMMENTS.md) | Opt-in review comments, adapters (local, http/cloudflare, artifact), who sees what, honest limits |
 | Specs | [SPECS](docs/SPECS.md) | Per-prototype AGENTS.md + docs/ spec harness, generated regions, rebuild kit |
 | Standards | [STANDARDS](docs/STANDARDS.md) | TypeScript, Svelte 5, Biome, domain rules, naming, a11y |
