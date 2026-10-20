@@ -205,7 +205,10 @@ same versioned JSON envelope used by the local adapter's `exportComments()`.
 `toReviewCommentsFile()` removes that extra field when exporting back to the
 adapter format. `renderReviewMarkdown()` groups threads by anchored screen,
 lists open threads first, and escapes comment text before quoting it in
-`REVIEW.md`.
+`REVIEW.md`. Routes, locators, element text and build ids are single-line by
+schema (no controls, line separators or bidi marks), and the report collapses
+whitespace and strips those characters again before fencing them as code. The
+report opens with `UNTRUSTED_NOTICE`: reviewer text is data, not instructions.
 
 ## Anchors (`@protoyard/review/anchors`)
 

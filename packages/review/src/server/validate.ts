@@ -85,6 +85,11 @@ function unsafe(value: string, name: boolean): boolean {
   return false;
 }
 
+/** Mirrors `hasUnsafeLine` in core: a name-style check that also refuses U+200E/U+200F. */
+const LINE_MESSAGE = 'must be a single line without control or bidi characters';
+const line = (v: string) =>
+  unsafe(v, true) || v.includes('\u200e') || v.includes('\u200f') ? LINE_MESSAGE : undefined;
+
 interface StringRule {
   min?: number;
   max?: number;
@@ -168,7 +173,11 @@ function author(value: unknown, path: Path, issues: Issues): boolean {
   return a && b;
 }
 
-const ROUTE_RULE: StringRule = { max: SERVER_REVIEW_LIMITS.routeMaxChars, pattern: /^\// };
+const ROUTE_RULE: StringRule = {
+  max: SERVER_REVIEW_LIMITS.routeMaxChars,
+  pattern: /^\//,
+  check: line,
+};
 const ANCHOR_KEYS = ['route', 'locators', 'fingerprint', 'offset'];
 function anchor(value: unknown, path: Path, issues: Issues): boolean {
   if (!strict(value, path, issues, ANCHOR_KEYS)) return false;
@@ -197,6 +206,7 @@ function anchor(value: unknown, path: Path, issues: Issues): boolean {
         str(locator.value, [...lp, 'value'], issues, {
           min: 1,
           max: SERVER_REVIEW_LIMITS.locatorMaxChars,
+          check: line,
         }) && ok;
     });
   }
@@ -204,6 +214,7 @@ function anchor(value: unknown, path: Path, issues: Issues): boolean {
     ok =
       str(value.fingerprint, [...path, 'fingerprint'], issues, {
         max: SERVER_REVIEW_LIMITS.fingerprintMaxChars,
+        check: line,
       }) && ok;
   const offset = value.offset;
   if (strict(offset, [...path, 'offset'], issues, ['x', 'y'])) {
@@ -232,7 +243,7 @@ const CONTEXT_RULES: Record<string, StringRule> = {
   theme: { max: 64, pattern: KEBAB },
   mode: { oneOf: COLOR_MODES },
   layout: { max: 64, pattern: KEBAB },
-  buildId: { min: 1, max: 80 },
+  buildId: { min: 1, max: 80, check: line },
 };
 function context(value: unknown, path: Path, issues: Issues): boolean {
   if (!strict(value, path, issues, CONTEXT_KEYS)) return false;

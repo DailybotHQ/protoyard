@@ -61,6 +61,23 @@ function hasUnsafeName(value: string): boolean {
   return false;
 }
 
+/**
+ * Single-line machine text (routes, locators, fingerprints, build ids): no
+ * controls at all (so no newline), no line or paragraph separators and no
+ * bidi marks, embeddings, overrides or isolates (U+200E/F included). These
+ * values reach the REVIEW.md report, so they must not be able to break a line.
+ */
+function hasUnsafeLine(value: string): boolean {
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code === 0x200e || code === 0x200f) return true;
+  }
+  return hasUnsafeName(value);
+}
+
+const safeLine = (v: string) => !hasUnsafeLine(v);
+const UNSAFE_LINE = { message: 'must be a single line without control or bidi characters' };
+
 /** Client-generated id (a ULID in practice): 10–64 URL-safe characters. */
 export const ReviewIdSchema = z
   .string()
@@ -118,7 +135,8 @@ export type ReviewLocatorKind = z.infer<typeof ReviewLocatorKindSchema>;
 const RouteSchema = z
   .string()
   .max(REVIEW_LIMITS.routeMaxChars)
-  .regex(/^\//, { message: 'route must start with /' });
+  .regex(/^\//, { message: 'route must start with /' })
+  .refine(safeLine, UNSAFE_LINE);
 
 /** Where a pin sits: route, element locators, a text fingerprint and an element-relative offset. */
 export const ReviewAnchorSchema = z
@@ -129,14 +147,22 @@ export const ReviewAnchorSchema = z
         z
           .object({
             kind: ReviewLocatorKindSchema,
-            value: z.string().min(1).max(REVIEW_LIMITS.locatorMaxChars),
+            value: z
+              .string()
+              .min(1)
+              .max(REVIEW_LIMITS.locatorMaxChars)
+              .refine(safeLine, UNSAFE_LINE),
           })
           .strict()
       )
       .min(1)
       .max(REVIEW_LIMITS.locators),
     /** Short visible text of the element, used to verify a match. */
-    fingerprint: z.string().max(REVIEW_LIMITS.fingerprintMaxChars).optional(),
+    fingerprint: z
+      .string()
+      .max(REVIEW_LIMITS.fingerprintMaxChars)
+      .refine(safeLine, UNSAFE_LINE)
+      .optional(),
     /** 0–1 on each axis, relative to the element's box (scale-independent). */
     offset: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }).strict(),
   })
@@ -167,7 +193,7 @@ export const ReviewContextSchema = z
         height: z.number().int().min(1).max(20000),
       })
       .strict(),
-    buildId: z.string().min(1).max(80).optional(),
+    buildId: z.string().min(1).max(80).refine(safeLine, UNSAFE_LINE).optional(),
   })
   .strict();
 export type ReviewContext = z.infer<typeof ReviewContextSchema>;

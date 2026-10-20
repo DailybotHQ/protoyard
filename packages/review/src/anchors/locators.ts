@@ -1,4 +1,5 @@
 import type { ReviewLocatorKind } from '@protoyard/core/review';
+import { hasUnsafeLineChar, toSafeLine } from '../safe-text.ts';
 
 export interface Locator {
   kind: ReviewLocatorKind;
@@ -86,7 +87,8 @@ export function roleOf(el: Element): string {
   return implicit[tag] ?? '';
 }
 
-const clean = (text: string | null | undefined) => (text ?? '').replace(/\s+/g, ' ').trim();
+/** Single-line page text: whitespace collapsed, controls and bidi marks dropped (schema rule). */
+const clean = (text: string | null | undefined) => toSafeLine(text ?? '').trim();
 
 /** A short accessible name: aria-label, aria-labelledby, alt, a `<label>`, then (optionally) the text. */
 export function accessibleName(el: Element, useText = true): string {
@@ -200,7 +202,7 @@ function cssPath(el: Element, root: Element): string | null {
 export function locatorsFor(el: Element, root: Element): Locator[] {
   const out: Locator[] = [];
   const push = (kind: ReviewLocatorKind, value: string | null | undefined) => {
-    if (value && value.length <= MAX) out.push({ kind, value });
+    if (value && value.length <= MAX && !hasUnsafeLineChar(value)) out.push({ kind, value });
   };
   push('py-anchor', el.getAttribute(PY_ANCHOR_ATTRIBUTE)?.trim());
   push('test-id', el.getAttribute('data-testid')?.trim());
