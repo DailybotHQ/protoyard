@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 import {
@@ -15,7 +15,7 @@ import {
 } from '@protoyard/blueprint';
 import { type CommandResult, flag, type Handler, opt } from '../lib/command.ts';
 import { CliError, mark } from '../lib/output.ts';
-import { isInside } from '../lib/paths.ts';
+import { canonicalPath, isInside } from '../lib/paths.ts';
 import { generateCommand } from './generate.ts';
 
 /**
@@ -200,6 +200,70 @@ function schemaRef(root: string, target: string): string | undefined {
   return rel.startsWith('.') ? rel : `./${rel}`;
 }
 
+/** A dry run writes nothing, so only the always-refused targets fail it. */
+const rethrowUnsafe = (error: unknown) => {
+  if (error instanceof CliError && error.code === 'unsafe_path') throw error;
+};
+
+/** Workspace files `blueprint new` never writes, even with --force. */
+const RESERVED_BASENAME = /^(?:package|protoyard|biome|tsconfig(?:\..*)?)\.json$/i;
+/** Folders `blueprint new` never writes into: generated state, dependencies, generated code. */
+const RESERVED_DIRS = ['.protoyard', 'node_modules'];
+
+/**
+ * Where `blueprint new` may write: never a workspace config file, generated
+ * state, dependencies, `src/generated/` or a symbolic link. An existing file
+ * is replaced only with --force, and only when it already is a valid
+ * blueprint, so a wrong argument cannot destroy another JSON file.
+ */
+async function assertBlueprintTarget(
+  root: string,
+  target: string,
+  file: string,
+  force: boolean
+): Promise<void> {
+  // Canonical, so a linked parent folder cannot hide a reserved location.
+  const segments = relative(canonicalPath(root), canonicalPath(target)).split(sep);
+  const lower = segments.map((s) => s.toLowerCase());
+  const underGenerated = lower.some((s, i) => s === 'src' && lower[i + 1] === 'generated');
+  if (
+    RESERVED_BASENAME.test(basename(target)) ||
+    lower.some((s) => RESERVED_DIRS.includes(s)) ||
+    underGenerated
+  ) {
+    throw new CliError('unsafe_path', `Refusing to write a blueprint over ${file}.`, {
+      hint: 'Workspace config files, .protoyard/, node_modules/ and src/generated/ are never blueprint targets. Choose another file name.',
+    });
+  }
+  const info = await lstat(target).catch(() => null);
+  if (!info) return;
+  if (info.isSymbolicLink()) {
+    throw new CliError('unsafe_path', `Refusing to write through a symbolic link: ${file}`);
+  }
+  if (!force) {
+    throw new CliError('conflict', `${file} already exists.`, {
+      hint: 'Re-run with --force to replace it, or choose another file name.',
+    });
+  }
+  let existing: unknown = null;
+  if (info.isFile() && info.size <= 1024 * 1024) {
+    try {
+      existing = JSON.parse(await readFile(target, 'utf8'));
+    } catch {
+      existing = null;
+    }
+  }
+  if (existing === null || !safeParseBlueprint(existing).success) {
+    throw new CliError(
+      'conflict',
+      `${file} exists and is not a blueprint; --force only replaces blueprints.`,
+      {
+        hint: 'Choose another file name.',
+      }
+    );
+  }
+}
+
 /**
  * `protoyard blueprint new <file> --from-brief <file|-> | --interactive`:
  * turns a product brief into a validated blueprint offline (same brief, same
@@ -242,11 +306,8 @@ export const blueprintNewCommand: Handler = async (ctx, args, options): Promise<
   if (!isInside(rootReal, parentReal) || !isInside(ctx.root, target)) {
     throw new CliError('unsafe_path', `Refusing to write outside the workspace: ${file}`);
   }
-  if (!dryRun && existsSync(target) && !flag(options, 'force')) {
-    throw new CliError('conflict', `${file} already exists.`, {
-      hint: 'Re-run with --force to replace it, or choose another file name.',
-    });
-  }
+  if (dryRun) await assertBlueprintTarget(rootReal, target, file, true).catch(rethrowUnsafe);
+  else await assertBlueprintTarget(rootReal, target, file, flag(options, 'force'));
 
   let brief: string;
   let name = opt(options, 'name');
