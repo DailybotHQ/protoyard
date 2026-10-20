@@ -22,8 +22,9 @@ const low = $derived(
       ? 'border-transparent bg-primary text-primary-foreground hover:bg-primary-hover'
       : 'border-border bg-surface text-foreground hover:bg-muted',
   ]}
-  aria-label={`${account.name}, ${ACCOUNT_TYPE_LABELS[account.type]} ${account.masked}, balance ${formatMoney(account.balanceCents)}${account.status === 'active' ? '' : `, ${account.status}`}`}
 >
+  <!-- No aria-label: the card's visible text (name, status, balance, type and
+       last digits) is its accessible name, as WCAG 2.5.3 asks. -->
   <div class="flex items-center justify-between gap-2">
     <span class="inline-flex items-center gap-2 text-sm font-medium">
       <Icon class="size-4" aria-hidden="true" />
