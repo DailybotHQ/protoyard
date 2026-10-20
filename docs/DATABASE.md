@@ -83,6 +83,18 @@ export const database: DatabaseDefinition = {
 `runtime.db.notes` is an `EntityTable<Note, 'id'>`. Use a `type` alias (not an
 `interface`) for row types so they stay assignable to the generic `Row`.
 
+### Blueprint relation direction
+
+For a blueprint relation, the declaring entity owns the stored foreign key:
+`cardinality: 'one'` stores `<field>Id`, and `cardinality: 'many'` stores
+`<field>Ids`. `required` controls whether the input must provide an id or a
+non-empty id list. The target entity does not get a mirrored column. Related
+detail screens resolve the inverse by finding target-side relation fields
+whose `to` names the current entity; their field labels are used by the form,
+and the related section uses the target entity's plural label. Adding this
+metadata does not alter v1 store strings, so existing blueprint databases need
+no migration for these semantics.
+
 `definePrototype()` enforces two rules when the app starts:
 
 - Versions must be strictly increasing.

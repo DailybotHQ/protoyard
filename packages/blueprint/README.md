@@ -141,6 +141,14 @@ aggregates, `geo` for maps), filter values and ops, chart requirements (donut ne
 line and area need a date bucket), related tabs need a relation back, feature-gated tabs and
 settings sections, archetype entity slots, and duplicate or reserved (`/members`) routes.
 
+Relations keep their stored direction explicit: the entity declaring a relation owns its
+`<field>Id` or `<field>Ids` foreign-key property. `required` means a one relation must contain an
+id and a many relation must contain at least one id; when omitted, a one relation is optional
+and a many relation may be empty. Related-detail tabs name the target entity; the generated UI finds
+the inverse relation field(s) on that entity and uses their declared labels (or field names).
+This avoids a second, unsynchronized foreign-key declaration. Relation fields retain the v1
+shape and defaults, so existing blueprints and derived stores need no migration.
+
 ## JSON Schema
 
 `schema/blueprint.schema.json` (draft 2020-12) gives editors autocompletion: point a

@@ -149,7 +149,7 @@ example.org addresses and 555 numbers, and an `internet.email`, `internet.url` o
 | `url` | — | http(s) URL |
 | `phone` | — | string |
 | `tags` | `maxItems` (default 8, max 64) | string array |
-| `relation` | `to` (an entity name), `cardinality` `one` \| `many`, `onDelete` `restrict` \| `cascade` \| `nullify` (default `restrict`) | `<name>Id` or `<name>Ids` |
+| `relation` | `to` (an entity name), `cardinality` `one` \| `many`, `required` (optional unless true), `onDelete` `restrict` \| `cascade` \| `nullify` (default `restrict`) | `<name>Id` or `<name>Ids` |
 | `persona` | — | `<name>Id`, a `py_personas` row |
 | `file` | `accept` (MIME types or `image/*`), `maxSizeBytes` (default 5 MB, max 50 MB), `multiple` | `<name>Id` or `<name>Ids` in the `files` table |
 | `json` | — | any JSON value |
@@ -164,6 +164,13 @@ Relation behavior on delete:
 
 All three run in the same transaction as the delete. A `required` relation
 cannot use `nullify`.
+
+The declaring entity owns the relation column. Related-detail tabs validate
+that the named target exists and has a relation field back to the current
+entity. That inverse field supplies its own form label; the UI groups related
+rows under the target entity's plural label. This is the v1 inverse contract:
+it adds no duplicate foreign key or persisted metadata, so legacy relation
+fields keep their parsed defaults and database stores without migration.
 
 ### Generation hints
 

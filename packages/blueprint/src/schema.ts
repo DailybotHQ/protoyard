@@ -150,9 +150,11 @@ export const FieldSchema = z.discriminatedUnion('kind', [
     maxItems: z.number().int().positive().max(64).default(8),
   }),
   field('relation', {
-    /** Target entity `name`. */
+    /** Target entity `name`; the declaring entity owns the stored foreign key. */
     to: z.string().min(1),
+    /** `required: false` is a nullable one-reference / empty many-collection. */
     cardinality: z.enum(['one', 'many']).default('one'),
+    /** Delete behavior for rows that reference this field's target. */
     onDelete: z.enum(['restrict', 'cascade', 'nullify']).default('restrict'),
   }),
   /** References a persona in the reserved `py_personas` table. */

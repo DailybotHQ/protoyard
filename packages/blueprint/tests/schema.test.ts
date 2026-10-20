@@ -135,7 +135,32 @@ describe('BlueprintSchema', () => {
     expect(refund).toMatchObject({ kind: 'money', currency: 'EUR' });
     const related = tickets?.fields.find((f) => f.name === 'related');
     expect(related).toMatchObject({ cardinality: 'many', onDelete: 'restrict' });
+    const customerRelation = tickets?.fields.find((f) => f.name === 'customer');
+    expect(customerRelation).toMatchObject({
+      kind: 'relation',
+      to: 'customer',
+      required: true,
+      cardinality: 'one',
+      onDelete: 'cascade',
+    });
+    expect(related).toMatchObject({ required: false, cardinality: 'many' });
     expect(bp.screens).toHaveLength(5);
+  });
+
+  it('requires a related detail tab to resolve an inverse relation on the target entity', () => {
+    const input = fixture();
+    input.screens = [
+      ...(input.screens ?? []),
+      { type: 'detail', entity: 'customer', tabs: ['related:support-ticket'] },
+    ];
+    expect(() => parseBlueprint(input)).not.toThrow();
+
+    expect(
+      issuesAfter((bp) => {
+        bp.screens.push({ type: 'detail', entity: 'customer', tabs: ['related:support-ticket'] });
+        ticket(bp).fields = ticket(bp).fields.filter((f) => f.name !== 'customer');
+      })
+    ).toContain('screens.5.tabs.0: "support-ticket" has no relation field to "customer"');
   });
 
   it('covers every field kind in the fixture', () => {
