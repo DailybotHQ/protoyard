@@ -210,6 +210,34 @@ describe('protoyard generate', () => {
     );
   });
 
+  it('generates a valid brand theme for a product name starting with a digit', async () => {
+    const file = writeBlueprint(
+      blueprintInput({ name: '3D Print Shop', brand: { seed: '#0f766e' } }),
+      'print.json'
+    );
+    const run = await generate('print-shop', '--blueprint', file, '--no-install');
+    expect(run.code).toBe(0);
+    expect(JSON.parse(read('prototypes/print-shop/protoyard.json')).defaultTheme).toBe(
+      'brand-3d-print-shop'
+    );
+    const themeModule = read('prototypes/print-shop/src/generated/brand-theme.ts');
+    expect(themeModule).toContain('export const brand3dPrintShopTheme: Theme');
+    expect(read('prototypes/print-shop/src/prototype.ts')).toContain(
+      'themes: [brand3dPrintShopTheme]'
+    );
+
+    // A brand id ending in a hyphen is a validation error (exit 4), never a broken module.
+    const bad = await generate(
+      'bad-brand',
+      '--blueprint',
+      writeBlueprint(blueprintInput({ brand: { id: 'acme-', seed: '#0f766e' } }), 'bad.json'),
+      '--no-install'
+    );
+    expect(bad.code).toBe(4);
+    expect(bad.json<Envelope>().error?.message).toMatch(/brand\.id/);
+    expect(existsSync(join(ws.root, 'prototypes/bad-brand'))).toBe(false);
+  });
+
   it('ships a brand libraryTheme by id: defaultTheme set, no brand-theme.ts', async () => {
     const file = writeBlueprint(
       blueprintInput({ brand: { name: 'Acme Ledger', libraryTheme: 'fintech-ledger' } }),

@@ -131,7 +131,7 @@
         "id": {
           "type": "string",
           "maxLength": 40,
-          "pattern": "^[a-z][a-z0-9-]*$"
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
         },
         "name": {
           "type": "string",

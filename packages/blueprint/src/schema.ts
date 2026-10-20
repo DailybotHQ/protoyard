@@ -616,10 +616,13 @@ const brandHex = z.string().regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, {
  */
 export const BlueprintBrandSchema = z
   .strictObject({
-    /** Theme id written into the prototype (`^[a-z][a-z0-9-]*$`). Defaults from name. */
+    /**
+     * Theme id written into the prototype (kebab-case: no leading, trailing or
+     * doubled hyphens, so it always maps to a valid export name). Defaults from name.
+     */
     id: z
       .string()
-      .regex(/^[a-z][a-z0-9-]*$/, { message: 'brand id must be lowercase kebab-case' })
+      .regex(NAME_PATTERN, { message: 'brand id must be lowercase kebab-case' })
       .max(40)
       .optional(),
     /** Display name for the generated theme (max 40; ThemeSchema limit). */
