@@ -1,0 +1,56 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.pulse-revenue-demo",
+  "slug": "pulse-revenue-demo",
+  "kind": "prototype",
+  "name": "Pulse Revenue",
+  "description": "A fictional revenue intelligence workspace with trend-shaped transaction data, an analytics explorer and lazy dashboard charts.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "analytics",
+  "tags": ["analytics", "revenue", "saas"],
+  "catalog": {
+    "category": "analytics",
+    "productType": "Revenue analytics",
+    "platforms": ["web"],
+    "features": [
+      "revenue-dashboard",
+      "analytics-explorer",
+      "lifecycle-board",
+      "scenario-data",
+      "csv-export"
+    ],
+    "highlights": [
+      "Trend-shaped quarter and launch-spike scenarios",
+      "Lazy dashboard charts and dimensioned analytics",
+      "Admin CSV export with a read-only viewer scenario"
+    ],
+    "difficulty": "beginner"
+  },
+  "status": "ready",
+  "icon": "\ud83d\uddc2\ufe0f",
+  "defaultScenario": "quarter-of-history",
+  "defaultTheme": "pulse-revenue",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "layout": {
+      "id": "sidebar",
+      "supported": ["sidebar", "mobile-tabs"]
+    }
+  },
+  "storage": {
+    "namespace": "pulse-revenue-demo",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": ["empty", "quarter-of-history", "launch-spike", "viewer"],
+  "template": "crud-app",
+  "createdAt": "2026-10-20T00:28:42.093Z",
+  "updatedAt": "2026-10-20T00:28:42.093Z"
+}

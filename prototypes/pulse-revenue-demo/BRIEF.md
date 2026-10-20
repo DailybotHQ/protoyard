@@ -1,0 +1,7 @@
+Build Pulse Revenue, a fictional SaaS revenue intelligence workspace for finance and growth teams. Analysts need to understand recurring revenue trends, launch effects, and plan mix from deterministic simulated data. There is no live billing integration or network ingestion.
+
+The core records are monthly revenue transactions. Each transaction has a customer name, integer cents amount, event date, plan, acquisition channel, region, and lifecycle status (new, expansion, renewal, contraction, churned). Show the latest transactions in a board grouped by lifecycle status. Keep records fictional and use .example emails if needed.
+
+The product home should be a dashboard with KPIs for total revenue, transaction count, average transaction, and expansion share, plus a revenue trend and plan mix. Add an analytics explorer over transaction date with measures for record count, total amount, and average amount, and breakdown dimensions for lifecycle status, plan, channel, and region. Seed a quarter of history with a clear but believable upward trend. Add a launch-spike scenario with a visible increase in transactions and amount after launch. Include empty and read-only viewer scenarios. The owner/admin can export analytics CSV; the viewer can inspect data but cannot export or modify records.
+
+Generate the screens from the blueprint. Prefer generated routes and screens over owned Svelte UI. Use the analytics and charts kits lazily so their code stays out of the initial bundle. The app is a local simulation with browser-local data and an explicitly fictional brand.
