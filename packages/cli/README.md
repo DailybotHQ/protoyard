@@ -140,6 +140,10 @@ and Windows.
   versioned `quick.json` (`protoyard.quick` v1: brief and blueprint sha256, player version,
   variants, screenshots, shares, promotion; `src/lib/quick/model.ts`). A newer format version is
   refused with an upgrade hint, and the brief text is omitted with `--no-store-brief`.
+  Explorations with variants get a static `compare.html` (`src/lib/quick/compare-html.ts`): the
+  variants side by side with labels, links and screenshots, only relative same-folder URLs, all
+  text escaped, no script, and a Content-Security-Policy that allows only its own hashed style,
+  same-origin images and same-origin frames.
 - **Never allowed:** the workspace or its parents, your home folder, `.git`, `node_modules`,
   `packages`, `apps`, `prototypes`, `templates`, `docs`, `scripts`, `tests`, `.github`,
   `.agents`, `.claude` or `.dwp`, nor a path that is itself a symlink.
