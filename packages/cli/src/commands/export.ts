@@ -24,6 +24,7 @@ import { flag, opt } from '../lib/command.ts';
 import { CliError, formatBytes, mark, toCliError } from '../lib/output.ts';
 import { toPosixRelative } from '../lib/paths.ts';
 import { loadRegistry, type Registry, type RegistryEntry } from '../lib/registry.ts';
+import { hasReviewWorker, REVIEW_WORKER_FILE } from '../lib/review-worker.ts';
 import { type CommandContext, resolveTarget } from '../lib/workspace.ts';
 import { zipDirectory } from '../lib/zip.ts';
 import { buildOptionsFrom } from './build.ts';
@@ -96,6 +97,16 @@ export async function exportOne(
     );
   }
 
+  // The comments worker belongs to a Cloudflare deploy (`publish --comments`), never a ZIP.
+  if (hasReviewWorker(outDir)) {
+    throw new CliError(
+      'validation',
+      `${REVIEW_WORKER_FILE} is in the build; ZIP exports never ship it.`,
+      {
+        hint: 'Rebuild without --skip-build (a plain build has no worker).',
+      }
+    );
+  }
   const zipPath = join(artifacts, `${entry.slug}.zip`);
   const zip = await zipDirectory(outDir, zipPath);
   return {

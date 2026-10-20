@@ -86,6 +86,11 @@ export interface ViteBuildOptions {
   avatarBase?: string;
   /** Ship only these avatar sizes (PROTOYARD_AVATAR_SIZES; the artifact target ships 128). */
   avatarSizes?: readonly number[];
+  /**
+   * Review comments forced on with this adapter and endpoint (PROTOYARD_REVIEW=1,
+   * PROTOYARD_REVIEW_ADAPTER, PROTOYARD_REVIEW_ENDPOINT; `publish --comments`).
+   */
+  review?: { adapter: 'http' | 'cloudflare'; endpoint: string };
   /** Pipe output (for --json) instead of inheriting the terminal. */
   quiet: boolean;
 }
@@ -101,6 +106,7 @@ export function buildEnv(
     | 'frameWhenEmbedded'
     | 'avatarBase'
     | 'avatarSizes'
+    | 'review'
   >
 ) {
   return {
@@ -118,6 +124,11 @@ export function buildEnv(
     // Set explicitly either way, so an inherited value never drops a build's avatars.
     PROTOYARD_AVATAR_BASE: options.avatarBase ?? '',
     PROTOYARD_AVATAR_SIZES: options.avatarSizes ? options.avatarSizes.join(',') : '',
+    // Only `publish --comments` forces review on; otherwise PROTOYARD_REVIEW or the manifest decides.
+    ...(options.review ? { PROTOYARD_REVIEW: '1' } : {}),
+    // Set explicitly either way, so an inherited value never repoints a build's comments.
+    PROTOYARD_REVIEW_ADAPTER: options.review?.adapter ?? '',
+    PROTOYARD_REVIEW_ENDPOINT: options.review?.endpoint ?? '',
   };
 }
 

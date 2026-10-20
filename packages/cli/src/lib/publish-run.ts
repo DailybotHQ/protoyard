@@ -3,13 +3,18 @@ import { join } from 'node:path';
 import { formatCommand } from '../publish/cli-tool.ts';
 import { validateCloudflareBranch } from '../publish/cloudflare.ts';
 import { STATIC_INSTRUCTIONS } from '../publish/static.ts';
-import type { PublishProvider, PublishTarget } from '../publish/types.ts';
+import type {
+  CommentsSetup,
+  PublishInput,
+  PublishProvider,
+  PublishTarget,
+} from '../publish/types.ts';
 import { ProviderError } from '../publish/types.ts';
 import { artifactDir, buildPrototype, scanForForeignCode } from './build.ts';
-import { digestDirectory } from './checksum.ts';
+import { digestDirectory, type FileDigest } from './checksum.ts';
 import { CliError } from './output.ts';
 import { BUILD_MARKER } from './output-guard.ts';
-import { toPosixRelative } from './paths.ts';
+import { isInside, toPosixRelative } from './paths.ts';
 import {
   appendLedgerEntry,
   buildDigest,
@@ -18,6 +23,16 @@ import {
   ledgerPath,
 } from './publish-ledger.ts';
 import { loadRegistry, type Registry, type RegistryEntry } from './registry.ts';
+import {
+  COMMENTS_REVIEW_BUILD,
+  type CommentsStore,
+  hasReviewWorker,
+  REVIEW_ROUTES,
+  REVIEW_ROUTES_FILE,
+  REVIEW_WORKER_FILE,
+  reviewSchemaFile,
+  writeReviewWorker,
+} from './review-worker.ts';
 import type { CommandContext } from './workspace.ts';
 import { zipDirectory } from './zip.ts';
 
@@ -31,6 +46,22 @@ export interface PublishRunOptions {
   includeDevtools?: boolean;
   /** Cloudflare: create the Pages project when missing (opt-in). */
   ensureProject?: boolean;
+  /**
+   * Shared review comments (Cloudflare): build with the http adapter on
+   * `/api/comments` and ship the comments worker backed by this store.
+   */
+  comments?: CommentsStore;
+}
+
+/** What `--comments` added to the deployable folder, and the one-time setup to run by hand. */
+export interface PublishCommentsResult {
+  adapter: 'http';
+  endpoint: string;
+  store: CommentsStore;
+  binding: string;
+  worker: { file: string; bytes: number; sha256: string };
+  routes: { file: string; include: string[] };
+  setup: CommentsSetup;
 }
 
 export interface PublishRunResult {
@@ -64,6 +95,8 @@ export interface PublishRunResult {
   url?: string;
   deploymentId?: string | null;
   details?: Record<string, string>;
+  /** Present with `--comments`. */
+  comments?: PublishCommentsResult;
 }
 
 function providerFailure(error: unknown): never {
@@ -109,6 +142,10 @@ export async function publishPrototype(
       totalBytes: result.bytes,
       zip: result.zip ?? null,
       zipSha256: result.kind === 'static' ? (result.sha256 ?? null) : null,
+      // The adapter and store only: a review key never reaches the ledger.
+      ...(result.comments
+        ? { review: { adapter: result.comments.adapter, store: result.comments.store } }
+        : {}),
     });
     return { ...result, ledger: toPosixRelative(ctx.root, path) };
   } catch (error) {
@@ -134,7 +171,10 @@ async function publishUnrecorded(
   const build = await buildPrototype(ctx, entry, dir, {
     ...(options.base !== undefined ? { base: options.base } : {}),
     ...(options.includeDevtools ? { includeDevtools: true } : {}),
+    ...(options.comments ? { review: COMMENTS_REVIEW_BUILD } : {}),
   });
+  // Written before the isolation scan and the digest, so both cover what deploys.
+  if (options.comments) await writeReviewWorker(build.outDir, options.comments);
   const foreign = await scanForForeignCode(build.outDir, entry, resolvedRegistry.entries);
   if (foreign.length > 0) {
     throw new CliError(
@@ -175,7 +215,30 @@ export async function publishDirectory(
   options: PublishRunOptions
 ): Promise<PublishRunResult> {
   const { target, dryRun, project } = preparePublish(ctx, directory.slug, provider, options);
+  if (options.comments && !hasReviewWorker(directory.distDir)) {
+    throw new CliError('validation', `--comments needs ${REVIEW_WORKER_FILE} in the folder.`, {
+      hint: 'Build with comments first (publish and showcase write it).',
+    });
+  }
+  if (!options.comments && hasReviewWorker(directory.distDir)) {
+    throw new CliError(
+      'validation',
+      `${toPosixRelative(ctx.root, directory.distDir)} contains ${REVIEW_WORKER_FILE}; only --comments deploys a worker.`,
+      { hint: 'Rebuild without --comments, or pass --comments again.' }
+    );
+  }
   const files = await digestDirectory(directory.distDir);
+  const input = {
+    slug: directory.slug,
+    distDir: directory.distDir,
+    project,
+    target,
+    ...(options.branch !== undefined ? { branch: options.branch } : {}),
+    ...(options.ensureProject ? { ensureProject: true as const } : {}),
+  };
+  const comments = options.comments
+    ? commentsResult(ctx, provider, input, options.comments, files)
+    : undefined;
   const common = {
     slug: directory.slug,
     provider: provider.id,
@@ -188,14 +251,7 @@ export async function publishDirectory(
     buildSha256: buildDigest(files),
     ...(options.branch !== undefined ? { branch: options.branch } : {}),
     ...(options.ensureProject ? { ensureProject: true as const } : {}),
-  };
-  const input = {
-    slug: directory.slug,
-    distDir: directory.distDir,
-    project,
-    target,
-    ...(options.branch !== undefined ? { branch: options.branch } : {}),
-    ...(options.ensureProject ? { ensureProject: true as const } : {}),
+    ...(comments ? { comments } : {}),
   };
 
   if (provider.id === 'static') {
@@ -260,6 +316,31 @@ export async function publishDirectory(
   };
 }
 
+function commentsResult(
+  ctx: CommandContext,
+  provider: PublishProvider,
+  input: PublishInput,
+  store: CommentsStore,
+  files: readonly FileDigest[]
+): PublishCommentsResult {
+  const schema = reviewSchemaFile();
+  const setup = provider.commentsSetup?.(input, {
+    store,
+    schemaFile: isInside(ctx.root, schema) ? toPosixRelative(ctx.root, schema) : schema,
+  });
+  if (!setup) throw new CliError('usage', `--comments is not supported by ${provider.label}.`);
+  const worker = files.find((file) => file.path === REVIEW_WORKER_FILE);
+  return {
+    adapter: COMMENTS_REVIEW_BUILD.adapter,
+    endpoint: COMMENTS_REVIEW_BUILD.endpoint,
+    store,
+    binding: setup.binding,
+    worker: { file: REVIEW_WORKER_FILE, bytes: worker?.size ?? 0, sha256: worker?.sha256 ?? '' },
+    routes: { file: REVIEW_ROUTES_FILE, include: [...REVIEW_ROUTES.include] },
+    setup,
+  };
+}
+
 function preparePublish(
   ctx: CommandContext,
   slug: string,
@@ -271,6 +352,11 @@ function preparePublish(
   }
   const target: PublishTarget = options.production ? 'production' : 'preview';
   const dryRun = options.dryRun === true;
+  if (options.comments && provider.id !== 'cloudflare') {
+    throw new CliError('usage', `--comments is not supported by the ${provider.label} adapter.`, {
+      hint: 'Shared comments deploy a Cloudflare Pages worker: use --provider cloudflare.',
+    });
+  }
   if (options.branch !== undefined) {
     if (provider.id !== 'cloudflare') {
       throw new CliError('usage', `--branch is not supported by the ${provider.label} adapter.`);
