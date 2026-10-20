@@ -150,6 +150,7 @@ These budgets are **enforced**:
 | `coldStartMs` | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --check` | report only while `null` |
 | `ideaToRunningMs` and configured phase budgets | `pnpm exec tsx scripts/bench-idea.ts --runs 3 --check` | report only while `null`; exit 1 over a configured median budget |
 | Data grid (thresholds in the script) | `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check` | exit 1 locally; report only on CI until calibrated there |
+| Views kit chunks (`CEILINGS` in the test) | `pnpm vitest run packages/cli/tests/views-bundle.test.ts` | test failure (part of `pnpm test`) |
 
 The `perf` job in [.github/workflows/ci.yml](../.github/workflows/ci.yml)
 runs the first three on every pull request and push to `main`, and reports
@@ -368,6 +369,107 @@ calibrated on a CI runner (`CI_CALIBRATED`), like `coldStartMs`.
 ```bash
 pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check
 ```
+
+## Views kit
+
+Measured on 2026-10-20 (Apple M1 Max, 10 cores, 64 GB, macOS 27.0, Node
+26.11.1, Vite 8 with Rolldown, gzip level 9; other lanes' builds and tests
+running at the same time). Two methods:
+
+1. **Per view:** `packages/cli/tests/views-bundle.test.ts`, the views bundle
+   guard. It runs a real Vite production build of the fixture app
+   `tests/fixtures/views-prototype` against the real packages, linked the
+   way pnpm links them, so `exports` and `sideEffects` apply. Each view gets
+   **its own build**: a realistic shell (`runService`, `liveQuery`, the ui
+   `Button` and toasts, which every prototype ships) plus that view on the
+   first screen. That is compared with a build of the shell alone. Separate
+   builds keep chunk boundaries independent of the other views. Run it alone
+   with `pnpm vitest run packages/cli/tests/views-bundle.test.ts`;
+   `PROTOYARD_BUNDLE_DEBUG=1` prints each view's modules by origin.
+2. **Per prototype:** `pnpm protoyard build <slug>`, then the `bundle` block of
+   `artifacts/<slug>/build-manifest.json` (initial and lazy JS). For a route,
+   the cost is what opening it downloads: its chunk's static-import closure
+   in `dist/assets`, minus the initial JS.
+
+**What each view adds over the shell** (component and engine, everything the
+view needs on first render). The target is 3–16 KB per view
+(PLAN_ANALYSIS). "Before" is the kit as merged by Tasks 38–50; "after" is
+this change.
+
+| View (subpath) | Before | After | Guard ceiling |
+| --- | ---: | ---: | ---: |
+| `BoardView` (`/board`) | 39.0 KB | **11.7 KB** | 12,800 B |
+| `CalendarView` (`/calendar`) | 42.9 KB | **15.7 KB** | 17,200 B |
+| `DataGrid` (`/grid`) | 58.8 KB | **18.7 KB** (over target) | 20,500 B |
+| `SimulatedMap` (`/map`) | 11.3 KB | 11.3 KB | 12,400 B |
+| `MarkdownEditor` (`/editor`) | 6.3 KB | 6.3 KB | 6,900 B |
+| `TimelineView` (`/timeline`) | 8.3 KB | 8.3 KB | 9,100 B |
+
+What changed:
+
+- **Menus, popovers and dialogs load on first use.** Bits UI's floating,
+  focus and dismiss layers were about 30 KB of every board, calendar and
+  grid (an app importing only `BoardView` was 119.8 KB initial, 99.6 KB over
+  a bare Svelte app).
+  - `src/lib/lazy-overlays.svelte.ts` loads `DropdownMenu`, `Popover` and
+    `AlertDialog` from three small chunks that every view shares.
+  - `LazyDropdownMenu` and `LazyPopover` render a plain trigger, prefetch on
+    hover or focus, open on the first click and keep focus on the trigger.
+  - Covered: "Move to…" (board), "+N more" (month), the column and Columns
+    menus (grid), and the repeating-event scope dialog (calendar).
+  - Covered too: the saved-view and comment delete confirmations (their
+    Delete button shows it pending).
+- **Calendar:** month and agenda load when shown. Week and day, the
+  defaults, render at once.
+- **Grid:**
+  - The filter builder loads when Filters is first opened.
+  - Enum and boolean cells edit with a native `<select>` and checkbox
+    instead of Bits `Select` and `Switch`, so a cell never mounts overlay
+    layers.
+- **`sideEffects`:** views-ui now lists only `**/*.css`.
+  - Measured with the guard, it made **no difference** under Rolldown: an
+    app importing only `CommentThread` drops `ActivityFeed` with either
+    setting.
+  - `TimelineView`'s own `<style>` CSS is still emitted. The guard asserts
+    both.
+
+**Prototypes and templates using the kit** (initial JS stays the same,
+because views are lazy routes; what opening a view route downloads, after
+the first screen):
+
+| Prototype / template | Initial JS before → after | Route downloads before → after |
+| --- | --- | --- |
+| `keel-projects-demo` | 172.89 → 172.88 KB | Board 49.58 → 17.38 KB · Calendar 49.56 → 14.31 KB · All tasks (grid) 66.43 → 16.68 KB · Timeline 10.06 KB · Task detail 75.13 → 74.71 KB |
+| `ui-kit` | 194.05 → 194.12 KB | BoardDemo 23.02 → 14.43 KB · CalendarDemo 27.10 → 19.65 KB · GridDemo 46.91 → 21.07 KB · MapDemo 11.83 KB · TimelineDemo 13.54 KB · EditorDemo 11.40 KB |
+| `booking-calendar` (template) | 184.80 → 188.65 KB | not measured |
+| `crud-app` (template) | 232.70 → 232.68 KB | not measured |
+| `logistics-map` (template) | 155.52 → 155.52 KB | not measured |
+| `project-management` (template) | 227.81 → 228.58 KB | not measured |
+
+The relay chat and nova assistant flagships do not use the views kit. After
+the change, `pnpm protoyard build --all && pnpm protoyard budget --all
+--skip-build` passed for all 12 prototypes (initial JS ≤ 250 KB gzip each).
+The 100,000-row grid bench is unchanged in method and result; see
+[Data grid at 100,000 rows](#data-grid-at-100000-rows) (first render 94 ms,
+at most 17 DOM rows, no long tasks or dropped frames in a 5 s scroll).
+
+Follow-ups (over target or regressed):
+
+- **`DataGrid` is 18.7 KB, over the 16 KB target.** Candidates: the saved
+  views bar (always in the toolbar), the phone card list and column
+  resizing. The guard ceiling is 20,500 B until then.
+- **`CalendarView` is 15.7 KB:** within the plan's 16 KB, above the 12 KB
+  aim set during integration. The time grid itself is the next candidate.
+- **Keel's task detail route downloads 74.7 KB** (`CommentThread`, its
+  composer and the markdown preview). It was not part of this pass.
+- **`booking-calendar`'s initial JS grew 3.85 KB (+2 %).** It ships the same
+  modules, but they are now split across ten files instead of one, because
+  the lazy overlay chunks share them, and gzip compresses smaller files less
+  well. A renderer chunking rule that keeps shared ui modules in the entry
+  chunk would remove it. It is still within budget.
+- **The guard measures each view on a first screen.** Prototypes load views
+  as lazy routes, where a route also pays for what the shell does not
+  already have (the second table).
 
 ## Themes: library, palette engine and Theme Studio
 

@@ -1,6 +1,6 @@
 import type { ActivityComment, ActivityItem } from '@protoyard/views/activity';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   ActivityFeed,
   type ActivityPerson,
@@ -9,6 +9,7 @@ import {
   personImage,
 } from '../src/activity/index.ts';
 import { MarkdownEditor } from '../src/editor/index.ts';
+import { lazyDialog } from '../src/lib/lazy-overlays.svelte.ts';
 
 afterEach(() => {
   cleanup();
@@ -57,6 +58,12 @@ function thread(props: Record<string, unknown> = {}) {
   return { ...handlers, ...result };
 }
 const article = (name: RegExp) => screen.getByRole('article', { name });
+
+// Menus, dialogs and some panels load on first use; load them once up front so
+// the first test that opens one never races a cold import on a busy machine.
+beforeAll(async () => {
+  await lazyDialog.load();
+}, 30_000);
 
 describe('CommentThread', () => {
   it('renders threads oldest first, with names resolved from ids and avatars', () => {

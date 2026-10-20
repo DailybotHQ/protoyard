@@ -1,7 +1,8 @@
 <script lang="ts">
 import { runService } from '@protoyard/renderer-svelte';
-import { AlertDialog, Button, Input } from '@protoyard/ui';
+import { Button, Input } from '@protoyard/ui';
 import type { SavedView } from '@protoyard/views/grid';
+import { lazyDialog } from '../lib/lazy-overlays.svelte.ts';
 
 /**
  * Picks, saves, renames and deletes saved grid views. Each write goes through
@@ -67,7 +68,7 @@ async function submit() {
   {#if mode === 'idle'}
     {#if onCreate}<Button variant="outline" size="sm" onclick={() => ((mode = 'create'), (name = ''))}>Save as new view</Button>{/if}
     {#if active && onRename}<Button variant="ghost" size="sm" onclick={() => ((mode = 'rename'), (name = active.name))}>Rename</Button>{/if}
-    {#if active && onDelete}<Button variant="ghost" size="sm" onclick={() => (confirmDelete = true)}>Delete</Button>{/if}
+    {#if active && onDelete}<Button variant="ghost" size="sm" onclick={() => lazyDialog.load().then(() => (confirmDelete = true))}>Delete</Button>{/if}
   {:else}
     <form
       class="flex items-center gap-2"
@@ -84,7 +85,9 @@ async function submit() {
   {/if}
 </div>
 
-{#if active}
+<!-- The confirmation's Bits UI code loads when Delete is pressed (the button shows it pending). -->
+{#if active && lazyDialog.current}
+  {@const AlertDialog = lazyDialog.current}
   <AlertDialog
     bind:open={confirmDelete}
     title={`Delete the view "${active.name}"?`}

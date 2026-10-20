@@ -1,7 +1,7 @@
 <script lang="ts" generics="T">
 import { ArrowRightLeft, ChevronDown, GripVertical } from '@lucide/svelte';
 import { runService } from '@protoyard/renderer-svelte';
-import { cn, DropdownMenu, type DropdownMenuEntry, Spinner, toast } from '@protoyard/ui';
+import { cn, type DropdownMenuEntry, Spinner, toast } from '@protoyard/ui';
 import {
   type BoardColumnDef,
   type BoardLaneDef,
@@ -18,6 +18,7 @@ import {
   validateMove,
 } from '@protoyard/views/board';
 import { type Snippet, tick } from 'svelte';
+import LazyDropdownMenu from '../lib/LazyDropdownMenu.svelte';
 import QueryState from '../states/QueryState.svelte';
 import {
   autoScrollDelta,
@@ -455,19 +456,19 @@ const template = $derived(`repeat(${columns.length}, minmax(var(--board-column),
                         {#if pending[id]}<Spinner class="size-4 shrink-0" /><span class="sr-only">Saving</span>{/if}
                       </div>
                       <div class="absolute top-1.5 right-1.5" data-card-menu>
-                        <DropdownMenu items={menuFor(item)} align="end">
-                          {#snippet trigger({ props })}
-                            <button
-                              {...props}
-                              type="button"
-                              disabled={pending[id]}
-                              aria-label={`Move ${getLabel(item)} to…`}
-                              class="inline-flex size-7 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0 sm:min-w-0"
-                            >
-                              <ArrowRightLeft class="size-3.5" aria-hidden="true" />
-                            </button>
-                          {/snippet}
-                        </DropdownMenu>
+                        <!-- The menu's Bits UI code loads on first use (see lib/lazy-overlays.svelte.ts). -->
+                        <LazyDropdownMenu
+                          items={menuFor(item)}
+                          align="end"
+                          button={{
+                            disabled: pending[id],
+                            'aria-label': `Move ${getLabel(item)} to…`,
+                            class:
+                              'inline-flex size-7 min-h-touch min-w-[44px] items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-0 sm:min-w-0',
+                          }}
+                        >
+                          <ArrowRightLeft class="size-3.5" aria-hidden="true" />
+                        </LazyDropdownMenu>
                       </div>
                     </li>
                   {:else}

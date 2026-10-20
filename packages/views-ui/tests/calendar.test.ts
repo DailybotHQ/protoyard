@@ -1,7 +1,7 @@
 import type { CalendarSeries } from '@protoyard/views/calendar';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   applyMove,
   type CalendarChange,
@@ -9,6 +9,7 @@ import {
   HOUR_PX,
   slotInstant,
 } from '../src/calendar/index.ts';
+import { lazyDialog, lazyPopover } from '../src/lib/lazy-overlays.svelte.ts';
 
 afterEach(() => cleanup());
 
@@ -73,6 +74,17 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
+// Menus, dialogs and some panels load on first use; load them once up front so
+// the first test that opens one never races a cold import on a busy machine.
+beforeAll(async () => {
+  await Promise.all([
+    lazyPopover.load(),
+    lazyDialog.load(),
+    import('../src/calendar/MonthView.svelte'),
+    import('../src/calendar/AgendaView.svelte'),
+  ]);
+}, 30_000);
+
 describe('CalendarView modes', () => {
   it('defaults to week on wide screens and switches with the buttons and M/W/D/A', async () => {
     render(CalendarView<Data>, { query: query(), now: NOW, timeZone: 'UTC' } as never);
@@ -81,7 +93,8 @@ describe('CalendarView modes', () => {
 
     await fireEvent.click(screen.getByRole('button', { name: 'Month' }));
     expect(view()).toBe('month');
-    expect(screen.getByRole('grid', { name: 'October 2026' })).toBeTruthy();
+    // Month and agenda load on first use.
+    expect(await screen.findByRole('grid', { name: 'October 2026' })).toBeTruthy();
     expect(document.querySelectorAll('[data-month-grid] [data-slot]')).toHaveLength(42);
 
     const slot = document.querySelector('[data-slot][data-focused]') as HTMLElement;
@@ -91,7 +104,7 @@ describe('CalendarView modes', () => {
     await key(document.querySelector('[data-slot]') as HTMLElement, 'a');
     expect(view()).toBe('agenda');
     expect(
-      screen.getByRole('heading', { level: 3, name: /Thursday, October 22, 2026/ })
+      await screen.findByRole('heading', { level: 3, name: /Thursday, October 22, 2026/ })
     ).toBeTruthy();
     await key(document.querySelector('[data-slot]') as HTMLElement, 'w');
     expect(view()).toBe('week');
@@ -114,9 +127,9 @@ describe('CalendarView modes', () => {
       data: { title: `Busy ${i}` },
     }));
     setup({ view: 'month', query: query([...SERIES, ...busy]) });
-    // Daily sync from Oct 19, ten occurrences.
-    // Ten daily occurrences; the one on Oct 27 sits behind "+2 more" (busy day).
-    expect(screen.getAllByRole('button', { name: /^Team sync/ })).toHaveLength(9);
+    // Month view loads on first use. Ten daily occurrences from Oct 19; the one on
+    // Oct 27 sits behind "+2 more" (busy day).
+    expect(await screen.findAllByRole('button', { name: /^Team sync/ })).toHaveLength(9);
     expect(screen.getByRole('button', { name: /^Offsite, All day/ })).toBeTruthy();
     expect(
       screen.getByRole('button', { name: '2 more events on Tuesday, October 27, 2026' })
@@ -223,7 +236,7 @@ describe('CalendarView keyboard reschedule', () => {
     const onCreate = vi.fn(async () => {});
     setup({ view: 'month', onCreate });
     await fireEvent.click(
-      screen.getByRole('button', { name: /^Friday, October 30, 2026, no events/ })
+      await screen.findByRole('button', { name: /^Friday, October 30, 2026, no events/ })
     );
     expect(onCreate).toHaveBeenCalledWith({
       date: '2026-10-30',
