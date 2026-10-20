@@ -18,11 +18,14 @@ export { InvalidOverrideError } from './overrides.ts';
 export {
   checkWorld,
   DEFAULT_WRITE_CHUNK,
+  isStaleWorld,
   type LoadTimings,
   type PendingLink,
   type RuntimeLoadOptions,
   type ScenarioControllerExtras,
+  type StaleWorld,
   UnknownScenarioError,
+  type WorldVersions,
 } from './scenarios.ts';
 export {
   SNAPSHOT_MAX_ROWS,
