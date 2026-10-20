@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { waitForPrototypeReady } from './support/ready.ts';
-import { prototypeUrl } from './targets.ts';
+import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+
+test.skip(
+  !PROTOTYPE_TARGETS.includes('logistics-map'),
+  'set PROTOYARD_E2E_PROTOTYPES to include logistics-map'
+);
 
 test('dispatch persists and the offline map exposes an accessible marker list', async ({
   page,

@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { waitForPrototypeReady } from './support/ready.ts';
-import { prototypeUrl } from './targets.ts';
+import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+
+test.skip(
+  !PROTOTYPE_TARGETS.includes('course-lms'),
+  'set PROTOYARD_E2E_PROTOTYPES to include course-lms'
+);
 
 test('a learner completes a lesson, passes a quiz and retains progress', async ({ page }) => {
   await page.goto(`${prototypeUrl('course-lms')}?scenario=student-active`);

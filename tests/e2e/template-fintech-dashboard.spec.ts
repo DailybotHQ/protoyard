@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { waitForPrototypeReady } from './support/ready.ts';
-import { prototypeUrl } from './targets.ts';
+import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+
+test.skip(
+  !PROTOTYPE_TARGETS.includes('fintech-dashboard'),
+  'set PROTOYARD_E2E_PROTOTYPES to include fintech-dashboard'
+);
 
 test('a transfer updates both accounts and persists paired ledger entries', async ({ page }) => {
   await page.goto(`${prototypeUrl('fintech-dashboard')}?scenario=active`);

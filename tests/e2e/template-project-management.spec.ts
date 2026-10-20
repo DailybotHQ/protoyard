@@ -1,6 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { waitForPrototypeReady } from './support/ready.ts';
-import { prototypeUrl } from './targets.ts';
+import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+
+test.skip(
+  !PROTOTYPE_TARGETS.includes('project-management'),
+  'set PROTOYARD_E2E_PROTOTYPES to include project-management'
+);
 
 test('board move persists after reload and the phone layout fits', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

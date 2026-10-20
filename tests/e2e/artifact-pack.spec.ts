@@ -135,7 +135,10 @@ test.describe('packed Claude artifact harness', () => {
     page,
   }) => {
     const firstFrame = await openPackedFrame(page, { blockStorage: true });
-    await expect(firstFrame.getByRole('status')).toContainText("Changes won't be saved.");
+    // The review toolbar adds its own live regions; pick the storage banner.
+    await expect(
+      firstFrame.getByRole('status').filter({ hasText: "Changes won't be saved." })
+    ).toBeVisible();
     expect(await installArtifactAdapter(firstFrame)).toMatchObject({
       kind: 'artifact',
       shared: true,

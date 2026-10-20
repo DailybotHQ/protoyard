@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
-import { prototypeUrl } from './targets.ts';
+import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+
+test.skip(
+  !PROTOTYPE_TARGETS.includes('harbor-dispatch-demo'),
+  'set PROTOYARD_E2E_PROTOTYPES to include harbor-dispatch-demo'
+);
 
 const SLUG = 'harbor-dispatch-demo';
 

@@ -1,7 +1,12 @@
 import { expect, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
-import { prototypeUrl } from './targets.ts';
+import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
+
+test.skip(
+  !PROTOTYPE_TARGETS.includes('pulse-revenue-demo'),
+  'set PROTOYARD_E2E_PROTOTYPES to include pulse-revenue-demo'
+);
 
 const SLUG = 'pulse-revenue-demo';
 
