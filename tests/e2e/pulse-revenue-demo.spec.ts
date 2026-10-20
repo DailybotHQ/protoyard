@@ -39,7 +39,7 @@ test('dashboard period, analytics controls, CSV export and lifecycle board work'
 
   const presets = await openRange(page);
   await presets.getByRole('button', { name: 'Last 7 days' }).click();
-  await expect(page.getByRole('button', { name: 'Date range: Last 7 days' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Date range: Last 7 days/ })).toBeVisible();
   await expectAccessible(page, testInfo, { include: 'main', label: 'pulse-revenue-analytics' });
 
   const downloadPromise = page.waitForEvent('download');

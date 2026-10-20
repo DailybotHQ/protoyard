@@ -234,7 +234,7 @@ describe('MonthGrid keyboard', () => {
 describe('DateRangePicker', () => {
   it('shows the range and comparison on its trigger', () => {
     render(DateRangePicker, { value: DEFAULT_DATE_RANGE, now: new Date(NOW), onchange: () => {} });
-    const trigger = screen.getByRole('button', { name: 'Date range: Last 30 days' });
+    const trigger = screen.getByRole('button', { name: /^Date range: Last 30 days/ });
     expect(trigger.textContent).toContain('vs previous period');
   });
 });

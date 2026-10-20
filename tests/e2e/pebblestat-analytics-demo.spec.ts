@@ -80,7 +80,7 @@ test.describe('Pebblestat Analytics (static build)', () => {
     await expect(
       page
         .locator('#main-content')
-        .getByRole('button', { name: isMobile ? /^Last 7 days/ : 'Date range: Last 7 days' })
+        .getByRole('button', { name: isMobile ? /^Last 7 days/ : /^Date range: Last 7 days/ })
     ).toBeVisible();
 
     // Turning the comparison off removes the dashed series; a comparison change keeps the panel open.

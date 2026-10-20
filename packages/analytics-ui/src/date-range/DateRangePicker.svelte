@@ -31,7 +31,9 @@ function change(next: DateRangeValue, kind: DateRangeChange) {
 
 <Popover bind:open align="start" class="w-[min(40rem,calc(100vw-2rem))]">
   {#snippet trigger({ props })}
-    <Button {...props} variant="outline" class={className} aria-label="Date range: {rangeLabel(value.range, nowMs)}">
+    <Button {...props} variant="outline" class={className} >
+      <!-- Visible text stays inside the name (WCAG 2.5.3); the prefix is for screen readers. -->
+      <span class="sr-only">Date range:</span>
       <span>{rangeLabel(value.range, nowMs)}</span>
       {#if value.comparison !== 'none'}
         <span class="text-muted-foreground">vs {COMPARISON_LABELS[value.comparison].toLowerCase()}</span>
