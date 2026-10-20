@@ -1,10 +1,16 @@
 <script lang="ts">
-import { avatarImage, createRouter, Router, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  avatarImage,
+  createRouter,
+  Router,
+  useAppearance,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import { LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { onDestroy, onMount } from 'svelte';
 import AppSearch from './components/AppSearch.svelte';
-import { nav, routes } from './generated/routes.ts';
 import { layout, navGroups } from './generated/layout.ts';
+import { nav, routes } from './generated/routes.ts';
 import { provideCrudApp } from './lib/context.ts';
 
 const { runtime } = provideCrudApp();

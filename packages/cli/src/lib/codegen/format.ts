@@ -78,6 +78,10 @@ export function formatTs(value: unknown): string {
       const inner = `${indent}  `;
       const lines = entries.map(([k, v]) => {
         const key = `${IDENTIFIER.test(k) ? k : tsString(k)}: `;
+        // Like Biome, a scalar that would overflow the line moves under its key.
+        if (isPrimitive(v) && inner.length + key.length + scalar(v).length + 1 > LINE_WIDTH) {
+          return `${inner}${key.trimEnd()}\n${inner}  ${scalar(v)},`;
+        }
         return `${inner}${key}${render(v, inner, inner.length + key.length)},`;
       });
       return `{\n${lines.join('\n')}\n${indent}}`;

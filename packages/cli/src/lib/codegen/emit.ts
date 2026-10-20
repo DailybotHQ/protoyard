@@ -152,7 +152,7 @@ const SCREEN_ICONS: Record<string, string> = {
   kanban: 'Kanban',
   'layout-dashboard': 'LayoutDashboard',
   list: 'List',
-  map: 'Map',
+  map: 'MapIcon',
   'map-pin': 'MapPin',
   'message-square': 'MessageSquare',
   package: 'Package',
@@ -183,7 +183,7 @@ function defaultScreenIcon(screen: BlueprintScreen): string {
     case 'timeline':
       return 'ChartGantt';
     case 'map':
-      return 'Map';
+      return 'MapIcon';
     case 'analytics':
       return 'ChartLine';
     default:
@@ -323,7 +323,14 @@ function routesModule(blueprint: Blueprint): string {
   );
   for (const { screen } of navEntries)
     usedIcons.add(SCREEN_ICONS[screen.nav?.icon ?? ''] ?? defaultScreenIcon(screen));
-  const iconImports = [...usedIcons].sort().join(', ');
+  // Lucide's `Map` shadows the global Map, so it is imported as `MapIcon`.
+  const specifier = (name: string) => (name === 'MapIcon' ? 'Map as MapIcon' : name);
+  const iconList = [...usedIcons].map(specifier).sort();
+  const iconInline = `import { ${iconList.join(', ')} } from '@lucide/svelte';`;
+  const iconImport =
+    iconInline.length <= 100
+      ? iconInline
+      : `import {\n${iconList.map((name) => `  ${name},`).join('\n')}\n} from '@lucide/svelte';`;
   const entityNav = blueprint.entities.flatMap((entity) => {
     if (
       entries.some(
@@ -354,7 +361,7 @@ function routesModule(blueprint: Blueprint): string {
     ...screenNav.filter((row) => !row.includes("path: '/'")),
     `  { path: '/members', label: 'Members', icon: Users },`,
   ];
-  return `import { ${iconImports} } from '@lucide/svelte';
+  return `${iconImport}
 import { defineRoutes } from '@protoyard/renderer-svelte';
 
 /** Hash routes. Blueprint screens load through separate chunks. */
@@ -416,12 +423,18 @@ export const navGroups = ${formatTs(sections)} as const;
 function appComponent(blueprint: Blueprint): string {
   const bell = blueprint.entities.some((e) => e.features.notifications);
   return `<script lang="ts">
-import { avatarImage, createRouter, Router, useAppearance, usePrincipal } from '@protoyard/renderer-svelte';
+import {
+  avatarImage,
+  createRouter,
+  Router,
+  useAppearance,
+  usePrincipal,
+} from '@protoyard/renderer-svelte';
 import { LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { onDestroy, onMount } from 'svelte';
 import AppSearch from './components/AppSearch.svelte';
-${bell ? "import NotificationsBell from './components/NotificationsBell.svelte';\n" : ''}import { nav, routes } from './generated/routes.ts';
-import { layout, navGroups } from './generated/layout.ts';
+${bell ? "import NotificationsBell from './components/NotificationsBell.svelte';\n" : ''}import { layout, navGroups } from './generated/layout.ts';
+import { nav, routes } from './generated/routes.ts';
 import { provideCrudApp } from './lib/context.ts';
 
 const { runtime } = provideCrudApp();
@@ -548,13 +561,25 @@ const counts = liveQuery(
 }
 
 /** Prototype definition that registers the blueprint brand theme as default. */
+/** `src/generated/brand-theme.ts`, formatted the way Biome writes it. */
+function brandThemeModule(theme: Parameters<typeof emitBrandThemeModule>[0]): string {
+  const exportName = brandThemeExportName(theme.id);
+  return `import { defineTheme, type Theme } from '@protoyard/core';
+
+/** On-brand theme derived from blueprint.json \`brand\`. */
+export const ${exportName}: Theme = defineTheme(${formatTs(theme)});
+
+export default ${exportName};
+`;
+}
+
 function prototypeWithBrand(exportName: string): string {
   return `import { deriveIntegrity } from '@protoyard/blueprint';
 import { definePrototype, parseManifest } from '@protoyard/core';
 import manifestJson from '../protoyard.json';
 import { database } from './database/schema.ts';
-import { ${exportName} } from './generated/brand-theme.ts';
 import { blueprint } from './generated/blueprint.ts';
+import { ${exportName} } from './generated/brand-theme.ts';
 import { policy } from './generated/policy.ts';
 import { generate } from './scenarios/generators.ts';
 import { scenarios } from './scenarios/index.ts';
@@ -737,7 +762,7 @@ export function emitPrototype(
   if (blueprint.brand && !brandLibraryThemeId(blueprint.brand)) {
     const theme = resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name });
     const exportName = brandThemeExportName(theme.id);
-    files.push(generated('src/generated/brand-theme.ts', emitBrandThemeModule(theme)));
+    files.push(generated('src/generated/brand-theme.ts', brandThemeModule(theme)));
     // Owned: replaces the template prototype so the brand theme is registered.
     files.push(owned('src/prototype.ts', prototypeWithBrand(exportName)));
   }
