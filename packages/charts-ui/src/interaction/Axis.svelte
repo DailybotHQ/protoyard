@@ -31,7 +31,8 @@ const outward = $derived(orientation === 'bottom' || orientation === 'right' ? 1
 <g aria-hidden="true" class="text-[11px]" style="color: var(--py-chart-axis, var(--py-muted-foreground))" data-axis={orientation}>
   {#if horizontal}
     <line x1={plot.x} x2={plot.x + plot.width} y1={at} y2={at} stroke="currentColor" stroke-opacity="0.5" />
-    {#each ticks as tick (tick.position)}
+    <!-- Keyed by index: positions collide when the plot area collapses to zero width or height. -->
+    {#each ticks as tick, i (i)}
       <line x1={tick.position} x2={tick.position} y1={at} y2={at + 4 * outward} stroke="currentColor" stroke-opacity="0.5" />
       <text
         x={tick.position}
@@ -45,7 +46,7 @@ const outward = $derived(orientation === 'bottom' || orientation === 'right' ? 1
     {/if}
   {:else}
     <line x1={at} x2={at} y1={plot.y} y2={plot.y + plot.height} stroke="currentColor" stroke-opacity="0.5" />
-    {#each ticks as tick (tick.position)}
+    {#each ticks as tick, i (i)}
       <text
         x={at - 8 * -outward}
         y={tick.position}

@@ -326,3 +326,52 @@ describe('ScatterChart', () => {
     expect(marks.find((m) => m.dataset.series === 'ent')?.getAttribute('d')).not.toContain('A');
   });
 });
+
+describe('charts narrower than their margins', () => {
+  afterEach(() => {
+    FixedWidthObserver.width = 600;
+  });
+
+  // A phone frame at a desktop viewport keeps the lg: sidebar, squeezing dashboard widgets to
+  // ~35 px. The plot area collapses to width 0, so every tick lands on the same pixel; keying
+  // ticks and grid lines by position threw Svelte's each_key_duplicate and broke the page.
+  const errorsWhile = (draw: () => void): unknown[] => {
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => errors.push(event.error);
+    window.addEventListener('error', onError);
+    try {
+      draw();
+    } finally {
+      window.removeEventListener('error', onError);
+    }
+    return errors;
+  };
+
+  it('renders a horizontal BarChart at 35 px without duplicate tick keys', () => {
+    FixedWidthObserver.width = 35;
+    const errors = errorsWhile(() =>
+      render(BarChart, {
+        title: 'Squeezed bars',
+        orientation: 'horizontal',
+        series: [cats('events', 'Events', { signup: 1200, view: 5400, share: 300 })],
+      })
+    );
+    expect(errors).toEqual([]);
+    expect(document.querySelectorAll('[data-grid="vertical"] line').length).toBeGreaterThan(1);
+    expect(document.querySelectorAll('[data-axis="bottom"] text').length).toBeGreaterThan(1);
+    expect(bars()).toHaveLength(3);
+  });
+
+  it('renders a LineChart at 35 px without duplicate tick keys', () => {
+    FixedWidthObserver.width = 35;
+    const errors = errorsWhile(() =>
+      render(LineChart, {
+        title: 'Squeezed line',
+        series: [daily('visits', 'Visits', [3, 5, 4, 8, 6, 9, 7, 10])],
+      })
+    );
+    expect(errors).toEqual([]);
+    expect(document.querySelectorAll('[data-axis="bottom"] text').length).toBeGreaterThan(1);
+    expect(lines()).toHaveLength(1);
+  });
+});
