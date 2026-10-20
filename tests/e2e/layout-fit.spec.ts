@@ -83,6 +83,8 @@ const FIT_TARGETS: Record<string, FitTarget> = {
   },
   // The busiest booking world on the calendar screen (week view on desktop, agenda on phones).
   'booking-calendar': { scenario: 'busy-week', hash: '#/', layout: 'document' },
+  // 1,500 pages: the home lists and search box scroll as a document.
+  'docs-wiki': { scenario: 'large', hash: '#/', layout: 'document' },
   // The busiest front desk: a long day list and stat cards scroll as a document.
   clinic: {
     scenario: 'busy-clinic',

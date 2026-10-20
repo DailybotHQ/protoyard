@@ -1,0 +1,35 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.docs-wiki",
+  "slug": "docs-wiki",
+  "kind": "template",
+  "name": "Docs Wiki",
+  "description": "A docs and wiki starter: spaces, a nested page tree with drag to reorder, a Markdown editor with a safe preview, every save kept as a version you can restore, and full-text search with highlighted matches.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["starter", "docs", "wiki", "knowledge-base", "markdown", "search", "versions"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Docs wiki",
+    "platforms": ["web"],
+    "features": ["markdown", "tree", "versions", "search", "crud", "roles"],
+    "highlights": [
+      "Nested page tree per space, drag to move",
+      "Markdown editor with a safe preview",
+      "Every save is a version; restore any of them",
+      "Full-text search with highlighted snippets"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "📚",
+  "defaultScenario": "active",
+  "defaultTheme": "productivity-minimal",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-docs-wiki", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["empty", "active", "large", "viewer"]
+}
