@@ -69,6 +69,67 @@ with source resolution.
 ```bash
 pnpm vitest run packages/player/tests/sources.test.ts
 ```
+Today `src/main.ts` boots the bundled demo blueprint
+(`src/fixtures/demo.blueprint.json`, a copy of the fictional
+`blueprints/field-service-dispatch.json`). Loading a blueprint from a `#bp=` share
+link, an adjacent `blueprint.json` or a picked file is not wired yet. The
+`postMessage` protocol below is implemented and tested, but `main.ts` does not
+start it yet. Every source goes through `loadUntrustedBlueprint` (and
+`decodeBlueprintShare` for links; see [SECURITY](../../docs/SECURITY.md)).
+
+## Embedding: `protoyard-player/1`
+
+A page that frames the player can hand it blueprints over `postMessage`
+(`src/embed/`). It is meant for protoyard.app/play, `protoyard quick` live
+iterate, and local tools.
+
+| Direction | Message | Fields |
+| --- | --- | --- |
+| player → parent | `ready` | `accepts: ['load', 'replace']`, `maxBytes` |
+| parent → player | `load` | `id`, `blueprint` (an object or its JSON text) |
+| parent → player | `replace` | `id`, `blueprint` (live iterate: swaps the running prototype) |
+| player → parent | `loaded` | `id`, `namespace` (`bp-…`), `name` |
+| player → parent | `error` | `id`, `issues` (`code`, `path`, `message`, `fix`) |
+
+Every message has `protocol: 'protoyard-player/1'`.
+
+**Who may send.** The player listens only when it is framed. It accepts
+messages only from its parent window, and only from the player's own origin
+or an origin named in `?embedder=<origin>` that also matches the build-time
+allowlist: `https://protoyard.app`, and `localhost` / `127.0.0.1` on any port.
+Origins must match exactly, so a path, credentials, another scheme or a
+look-alike host never qualifies, and `*` is never accepted. Replies always
+name the sender's exact origin.
+
+**What it accepts.**
+- A request has exactly `protocol`, `type`, `id` (1 to 64 characters of
+  `A-Za-z0-9._:-`) and `blueprint`.
+- The blueprint is at most 256 KB of UTF-8 JSON. It goes through
+  `loadUntrustedBlueprint` (limits, unsafe keys, control and bidi characters,
+  the schema) before anything derives or renders it.
+- Anything else from an allowed origin with a usable id is answered with
+  `error`, and the issues say how to fix it. Messages that are not this
+  protocol are ignored without a reply.
+
+**Each request is answered exactly once.** Requests run one at a time. While
+one runs, only the newest waiting request is kept, and the dropped one is
+answered `superseded`. A blueprint that validates but fails to start is
+answered `boot-failed`, never `loaded`.
+
+The embedding side uses the typed client:
+
+```ts
+import { connectPlayer } from '@protoyard/player/src/embed/index.ts';
+
+const iframe = document.querySelector('iframe')!; // src: …/player/?embedder=<this page's origin>
+const player = connectPlayer({ frame: iframe, playerOrigin: 'https://protoyard.app' });
+await player.ready;
+const { namespace } = await player.load(blueprint); // rejects with PlayerEmbedError { issues }
+await player.replace(editedBlueprint);
+```
+
+The client checks both the sender window and the origin. `playerOrigin` must be
+an exact origin, and every request times out (30 s by default).
 
 ## Build settings
 
@@ -87,6 +148,7 @@ pnpm --filter @protoyard/player build     # → packages/player/dist (static, ba
 pnpm --filter @protoyard/player dev
 pnpm --filter @protoyard/player preview
 pnpm vitest run packages/player/tests/boot.test.ts
+pnpm vitest run packages/player/tests/postmessage.test.ts
 ```
 
 ## Size
@@ -104,5 +166,10 @@ These budgets are enforced by a dedicated player budget gate, which is planned a
 - The no-flash appearance script is keyed by the build namespace (`player`),
   not the blueprint's, so a saved dark mode can flash on first paint.
 - Blueprints from an embedding page's `postMessage` are not loaded yet.
+- Only the bundled demo blueprint loads until the source resolution lands.
+- The embed protocol trusts the allowed origin, not the person behind it: any
+  page on protoyard.app or on localhost can send blueprints to a player that
+  names it in `?embedder=`. A blueprint is data and never runs code, but it
+  replaces what the player shows.
 - Storage isolation is by namespace on one origin. That is not a security
   boundary (see [SECURITY](../../docs/SECURITY.md)).
