@@ -31,6 +31,52 @@ commands depend on the CLI release. See the [Protoyard documentation](https://pr
 for product guides and the release-specific skill instructions for trust,
 integrity, and upgrade details.
 
+## Install with `setup.sh`
+
+The pack ships its own installer, `skills/protoyard/setup.sh`. It runs on Bash
+3.2 (the macOS default) and needs no Node. From a tagged checkout:
+
+```bash
+git clone --branch vX.Y.Z --depth 1 https://github.com/DailybotHQ/protoyard.git
+protoyard/skills/protoyard/setup.sh --list-hosts           # hosts and destinations
+protoyard/skills/protoyard/setup.sh --host claude --dry-run
+protoyard/skills/protoyard/setup.sh --host claude          # copy into ~/.claude/skills/protoyard/
+```
+
+`--host` takes one of `claude`, `cursor`, `codex`, `gemini`, `copilot`,
+`opencode` and `windsurf`, the same map as the
+[host installation reference](../skills/protoyard/references/hosts.md).
+OpenClaw uses its native registry instead.
+
+The behavior is predictable:
+- **Nothing at the destination:** the pack is copied (or symlinked with
+  `--link`, for development).
+- **The same pack is already there:** no change.
+- **Another Protoyard version is there:** the script refuses unless you pass
+  `--replace`. The old copy then moves to
+  `~/.protoyard/skill-backups/<host>-<UTC stamp>/protoyard`, outside the skills
+  directory.
+- **Anything else (an unrelated skill, a file):** always refused, and left
+  untouched.
+
+The copy is staged next to the destination and moved into place, so a failed
+install leaves the previous state. `--home <dir>` installs under another home,
+which is how the tests avoid the real one. `--dry-run` prints the plan and
+writes nothing. Exit codes: 0 done, 1 failed, 2 usage, 3 refused.
+
+`setup.sh --verify` checks the pack without installing anything. It confirms
+the required files, then checks every file against the `SHA256SUMS` from the
+matching GitHub Release: the pack's own, or `--sums <file>`, for the pack or an
+installed copy given with `--dir <dir>`. A changed, missing or unlisted file
+fails, and unsafe paths in the sums file are refused. Without a `SHA256SUMS`,
+verification fails and says where to get one.
+
+The installer never fetches anything, edits host configuration or installs the
+Protoyard CLI. Installing the skill is still a consent checkpoint
+([`TRUST.md`](../skills/protoyard/TRUST.md)): show the host, destination and
+tag first. `pnpm vitest run packages/cli/tests/skill-setup.test.ts` runs every
+host against a temporary home under `/bin/bash`.
+
 ## Validate the distributable skill
 
 From the Protoyard repository, validate every skill frontmatter file before
