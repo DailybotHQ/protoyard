@@ -1,13 +1,16 @@
 import {
+  type AppModel,
+  type AppRoute,
   type Blueprint,
   type BlueprintEntity,
   type BlueprintScreen,
   brandLibraryThemeId,
   brandThemeExportName,
+  deriveAppModel,
   emitBrandThemeModule,
   entityTable,
   resolveBlueprintBrand,
-  screenPath,
+  type ScreenNavIcon,
 } from '@protoyard/blueprint';
 import { getScreenKindMetadata } from '@protoyard/crud/registry-meta';
 import { formatTs, tsString } from './format.ts';
@@ -35,13 +38,6 @@ export function pascal(name: string): string {
     .split('-')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('');
-}
-
-/** `support-tickets` → `Support tickets`. */
-export function entityLabel(entity: Pick<BlueprintEntity, 'label' | 'plural'>): string {
-  if (entity.label) return entity.label;
-  const words = entity.plural.replace(/-/g, ' ');
-  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 const generated = (path: string, body: string): EmittedFile => ({
@@ -127,81 +123,6 @@ let props: RouteProps = $props();
 `;
 }
 
-const SCREEN_ICONS: Record<string, string> = {
-  activity: 'Activity',
-  bell: 'Bell',
-  'book-open': 'BookOpen',
-  briefcase: 'Briefcase',
-  building: 'Building',
-  calendar: 'Calendar',
-  'calendar-days': 'CalendarDays',
-  'chart-bar': 'ChartBar',
-  'chart-gantt': 'ChartGantt',
-  'chart-line': 'ChartLine',
-  'chart-pie': 'ChartPie',
-  clock: 'Clock',
-  cpu: 'Cpu',
-  database: 'Database',
-  'dollar-sign': 'DollarSign',
-  'file-text': 'FileText',
-  folder: 'Folder',
-  globe: 'Globe',
-  'graduation-cap': 'GraduationCap',
-  'heart-pulse': 'HeartPulse',
-  house: 'House',
-  inbox: 'Inbox',
-  kanban: 'Kanban',
-  'layout-dashboard': 'LayoutDashboard',
-  list: 'List',
-  map: 'MapIcon',
-  'map-pin': 'MapPin',
-  'message-square': 'MessageSquare',
-  package: 'Package',
-  receipt: 'Receipt',
-  settings: 'Settings',
-  'shopping-cart': 'ShoppingCart',
-  star: 'Star',
-  table: 'Table',
-  tag: 'Tag',
-  ticket: 'Ticket',
-  truck: 'Truck',
-  users: 'Users',
-  wallet: 'Wallet',
-  wrench: 'Wrench',
-  zap: 'Zap',
-};
-
-function defaultScreenIcon(screen: BlueprintScreen): string {
-  switch (screen.type) {
-    case 'dashboard':
-      return 'LayoutDashboard';
-    case 'settings':
-      return 'Settings';
-    case 'board':
-      return 'Kanban';
-    case 'calendar':
-      return 'CalendarDays';
-    case 'timeline':
-      return 'ChartGantt';
-    case 'map':
-      return 'MapIcon';
-    case 'analytics':
-      return 'ChartLine';
-    default:
-      return 'Database';
-  }
-}
-
-function screenTitle(screen: BlueprintScreen, blueprint: Blueprint): string {
-  if (screen.nav?.label) return screen.nav.label;
-  if (screen.title) return screen.title;
-  if ('entity' in screen) {
-    const entity = blueprint.entities.find((candidate) => candidate.name === screen.entity);
-    if (entity) return `${entityLabel(entity)} ${screen.type === 'list' ? '' : screen.type}`.trim();
-  }
-  return screen.type.charAt(0).toUpperCase() + screen.type.slice(1);
-}
-
 function screenName(screen: BlueprintScreen, index: number, previous: Set<string>): string {
   const entity = 'entity' in screen ? screen.entity : undefined;
   const base =
@@ -233,179 +154,65 @@ function screenWrapper(screen: BlueprintScreen, index: number): string | null {
   return `<script lang="ts">\nimport { ${metadata.exportName} } from '${metadata.subpath}';\nimport { useCrudApp } from '../../lib/context.ts';\n\nconst { runtime, services, blueprint } = useCrudApp();\n${check}\n</script>\n\n<${metadata.exportName} {runtime} {services} {blueprint} {screen} />\n`;
 }
 
-function routesModule(blueprint: Blueprint): string {
-  const names = new Set<string>();
-  const entries = blueprint.screens.flatMap((screen, index) => {
-    const path = screenPath(screen, blueprint.entities);
-    if (!path) return [];
-    const name = screenName(screen, index, names);
-    const wrapper = screenWrapper(screen, index);
-    const entity =
-      'entity' in screen
-        ? blueprint.entities.find((item) => item.name === screen.entity)
-        : undefined;
-    return [
-      {
-        screen,
-        index,
-        path,
-        name,
-        wrapper,
-        label: screenTitle(screen, blueprint),
-        description: `${screen.type.charAt(0).toUpperCase()}${screen.type.slice(1)} screen${entity ? ` for ${entityLabel(entity)}` : ''}`,
-        load: wrapper
-          ? `load: () => import('./screens/${name}.svelte')`
-          : `load: () => import('./screens/${pascal(entity?.name ?? '')}Page.svelte')`,
-      },
-    ];
-  });
-  const rootDashboard = entries.find(
-    (entry) => entry.screen.type === 'dashboard' && entry.path === '/'
-  );
-  const routeRows = new Map<string, string>();
-  routeRows.set(
-    '/',
-    rootDashboard
-      ? `  {\n    name: 'home',\n    description: ${lit(rootDashboard.description)},\n    path: '/',\n    title: ${lit(rootDashboard.screen.title ?? rootDashboard.label)},\n    ${rootDashboard.load},\n  },`
-      : `  {\n    name: 'home',\n    description: 'Overview with a count per entity',\n    path: '/',\n    title: 'Home',\n    load: () => import('../screens/Home.svelte'),\n  },`
-  );
-  for (const entity of blueprint.entities) {
-    const label = entityLabel(entity);
-    const load = `load: () => import('./screens/${pascal(entity.name)}Page.svelte')`;
-    const detail = entries.find(
-      (entry) =>
-        entry.screen.type === 'detail' &&
-        'entity' in entry.screen &&
-        entry.screen.entity === entity.name &&
-        Boolean(entry.screen.tabs?.length)
-    );
-    const list = entries.find(
-      (entry) =>
-        entry.screen.type === 'list' &&
-        'entity' in entry.screen &&
-        entry.screen.entity === entity.name
-    );
-    routeRows.set(
-      `/${entity.plural}`,
-      `  {\n    name: ${lit(`${entity.name}-list`)},\n    description: ${lit(`${label}: list, create, edit and delete`)},\n    path: ${lit(`/${entity.plural}`)},\n    title: ${lit(label)},\n    ${list?.path === `/${entity.plural}` ? list.load : load},\n  },`
-    );
-    routeRows.set(
-      `/${entity.plural}/:id`,
-      `  {\n    name: ${lit(`${entity.name}-detail`)},\n    description: ${lit(detail ? `${label}: record detail with tabs` : `One ${entity.name.replace(/-/g, ' ')}: edit form`)},\n    path: ${lit(`/${entity.plural}/:id`)},\n    title: ${lit(label)},\n    ${detail?.path === `/${entity.plural}/:id` ? detail.load : load},\n  },`
-    );
-  }
-  for (const entry of entries) {
-    if (entry.path === '/' && entry.screen.type === 'dashboard') continue;
-    routeRows.set(
-      entry.path,
-      `  {\n    name: ${lit(`screen-${entry.name.replace(/Screen$/, '')}`)},\n    description: ${lit(entry.description)},\n    path: ${lit(entry.path)},\n    title: ${lit(entry.label)},\n    ${entry.load},\n  },`
-    );
-  }
-  routeRows.set(
-    '/members',
-    `  {\n    name: 'members',\n    description: 'Workspace people and their simulated roles',\n    path: '/members',\n    title: 'Members',\n    load: () => import('../screens/Members.svelte'),\n  },`
-  );
+/** Lucide component for a `SCREEN_NAV_ICONS` id; `Map` shadows the global Map, so it is `MapIcon`. */
+function lucideIcon(icon: ScreenNavIcon): string {
+  return icon === 'map' ? 'MapIcon' : pascal(icon);
+}
 
-  const navEntries = entries.filter(({ screen }) => screen.nav?.hidden !== true);
-  const usedIcons = new Set(['Database', 'Users']);
-  usedIcons.add(
-    rootDashboard
-      ? (SCREEN_ICONS[rootDashboard.screen.nav?.icon ?? ''] ??
-          defaultScreenIcon(rootDashboard.screen))
-      : 'LayoutDashboard'
+/** The lazy import a route renders: the overview, members, an entity page or a screen wrapper. */
+function routeLoad(route: AppRoute): string {
+  switch (route.view) {
+    case 'home':
+      return "load: () => import('../screens/Home.svelte')";
+    case 'members':
+      return "load: () => import('../screens/Members.svelte')";
+    case 'entity':
+      return `load: () => import('./screens/${pascal(route.entity)}Page.svelte')`;
+    case 'screen':
+      return `load: () => import('./screens/${route.component}.svelte')`;
+  }
+}
+
+/** Prints the app model's routes and sidebar rows (ADR-029: one model for codegen and player). */
+function routesModule(model: AppModel): string {
+  const rows = model.routes.map(
+    (route) =>
+      `  {\n    name: ${lit(route.name)},\n    description: ${lit(route.description)},\n    path: ${lit(route.path)},\n    title: ${lit(route.title)},\n    ${routeLoad(route)},\n  },`
   );
-  for (const { screen } of navEntries)
-    usedIcons.add(SCREEN_ICONS[screen.nav?.icon ?? ''] ?? defaultScreenIcon(screen));
-  // Lucide's `Map` shadows the global Map, so it is imported as `MapIcon`.
-  const specifier = (name: string) => (name === 'MapIcon' ? 'Map as MapIcon' : name);
-  const iconList = [...usedIcons].map(specifier).sort();
+  const navRows = model.nav.map(
+    (item) =>
+      `  { path: ${lit(item.path)}, label: ${lit(item.label)}, icon: ${lucideIcon(item.icon)}${item.exact ? ', exact: true' : ''} },`
+  );
+  const iconList = model.icons
+    .map(lucideIcon)
+    .map((name) => (name === 'MapIcon' ? 'Map as MapIcon' : name))
+    .sort();
   const iconInline = `import { ${iconList.join(', ')} } from '@lucide/svelte';`;
   const iconImport =
     iconInline.length <= 100
       ? iconInline
       : `import {\n${iconList.map((name) => `  ${name},`).join('\n')}\n} from '@lucide/svelte';`;
-  const entityNav = blueprint.entities.flatMap((entity) => {
-    if (
-      entries.some(
-        (entry) =>
-          entry.screen.type === 'list' &&
-          'entity' in entry.screen &&
-          entry.screen.entity === entity.name
-      )
-    )
-      return [];
-    return [
-      `  { path: ${lit(`/${entity.plural}`)}, label: ${lit(entityLabel(entity))}, icon: Database },`,
-    ];
-  });
-  const screenNav = navEntries
-    .filter(({ screen }) => screen.type !== 'form' && screen.type !== 'detail')
-    .sort(
-      (a, b) =>
-        (a.screen.nav?.order ?? Infinity) - (b.screen.nav?.order ?? Infinity) || a.index - b.index
-    )
-    .map(
-      ({ screen, path, label }) =>
-        `  { path: ${lit(path)}, label: ${lit(label)}, icon: ${SCREEN_ICONS[screen.nav?.icon ?? ''] ?? defaultScreenIcon(screen)} },`
-    );
-  const navRows = [
-    `  { path: '/', label: ${lit(rootDashboard?.label ?? 'Home')}, icon: ${rootDashboard ? (SCREEN_ICONS[rootDashboard.screen.nav?.icon ?? ''] ?? defaultScreenIcon(rootDashboard.screen)) : 'LayoutDashboard'}, exact: true },`,
-    ...entityNav,
-    ...screenNav.filter((row) => !row.includes("path: '/'")),
-    `  { path: '/members', label: 'Members', icon: Users },`,
-  ];
   return `${iconImport}
 import { defineRoutes } from '@protoyard/renderer-svelte';
 
 /** Hash routes. Blueprint screens load through separate chunks. */
-export const routes = defineRoutes([\n${[...routeRows.values()].join('\n')}\n]);
+export const routes = defineRoutes([\n${rows.join('\n')}\n]);
 
 /** Sidebar entries: entities first, then blueprint screens by nav order. */
 export const nav = [\n${navRows.join('\n')}\n];
 `;
 }
 
-/** The selected frame and sectioned navigation are generated from the blueprint. */
-function layoutModule(blueprint: Blueprint): string {
-  const entries = blueprint.screens.flatMap((screen) => {
-    const path = screenPath(screen, blueprint.entities);
-    return path ? [{ screen, path }] : [];
-  });
-  const visible = entries.filter(({ screen }) => screen.nav?.hidden !== true);
-  const recordPaths = blueprint.entities.map((entity) => {
-    const list = visible.find(
-      ({ screen }) => screen.type === 'list' && 'entity' in screen && screen.entity === entity.name
-    );
-    return list?.path ?? `/${entity.plural}`;
-  });
-  const viewPaths = visible
-    .filter(
-      ({ screen, path }) =>
-        path !== '/' &&
-        ['board', 'calendar', 'timeline', 'map', 'analytics', 'dashboard'].includes(screen.type)
-    )
-    .map(({ path }) => path);
-  const settingsPaths = visible
-    .filter(({ screen }) => screen.type === 'settings')
-    .map(({ path }) => path);
-  const sections = [
-    { label: 'Overview', paths: ['/'] },
-    { label: 'Records', paths: recordPaths },
-    { label: 'Views', paths: viewPaths },
-    { label: 'Workspace', paths: ['/members', ...settingsPaths] },
-  ].filter((section) => section.paths.length > 0);
-  const selected = {
-    id: blueprint.layout?.id ?? 'sidebar',
-    ...(blueprint.layout?.mobile ? { mobile: blueprint.layout.mobile } : {}),
-  };
+/** Prints the app model's selected frame and sectioned navigation. */
+function layoutModule(model: AppModel): string {
   // Typed (not \`as const\`) so the shell can read \`mobile\` when the blueprint leaves it out.
   return `import type { LayoutId } from '@protoyard/core';
 
 /** Generated by protoyard; edit the blueprint instead. */
-export const layout: { readonly id: LayoutId; readonly mobile?: LayoutId } = ${formatTs(selected)};
+export const layout: { readonly id: LayoutId; readonly mobile?: LayoutId } = ${formatTs(model.layout)};
 
 /** Grouped sidebar entries consumed by every shared layout. */
-export const navGroups = ${formatTs(sections)} as const;
+export const navGroups = ${formatTs(model.navGroups)} as const;
 `;
 }
 
@@ -733,6 +540,7 @@ export function emitPrototype(
   slug: string,
   blueprintText: string
 ): EmittedFile[] {
+  const model = deriveAppModel(blueprint);
   const files: EmittedFile[] = [
     owned('blueprint.json', blueprintText),
     generated('src/generated/blueprint.ts', blueprintModule()),
@@ -740,8 +548,8 @@ export function emitPrototype(
     generated('src/generated/policy.ts', policyModule()),
     generated('src/generated/services.ts', servicesModule()),
     generated('src/generated/scenarios.ts', scenariosModule()),
-    generated('src/generated/routes.ts', routesModule(blueprint)),
-    generated('src/generated/layout.ts', layoutModule(blueprint)),
+    generated('src/generated/routes.ts', routesModule(model)),
+    generated('src/generated/layout.ts', layoutModule(model)),
     ...blueprint.entities.map((entity) =>
       generated(`src/generated/screens/${pascal(entity.name)}Page.svelte`, entityScreen(entity))
     ),

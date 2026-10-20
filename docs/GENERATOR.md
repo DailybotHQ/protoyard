@@ -414,10 +414,14 @@ slug, and re-indexes.
 `@protoyard/blueprint` ([ADR-029](DECISIONS.md)). It holds the routes (what each
 one renders), the sidebar rows with icon ids, the navigation groups and the
 layout. The same model is meant for a renderer that runs a blueprint without
-generating code. `packages/blueprint/tests/app-model.test.ts` prints the model
-and compares it, byte for byte, with what `generate` emits for every catalog
-blueprint and every generated prototype. Any drift between the two fails that
-test.
+generating code. The generator holds no navigation logic of its own:
+`routesModule` and `layoutModule` in `packages/cli/src/lib/codegen/emit.ts` only
+print the model, mapping icon ids to Lucide components and each route's `view`
+to its lazy import. `packages/blueprint/tests/app-model.test.ts` checks the model
+byte for byte against the emitted files for every catalog blueprint, and
+`packages/cli/tests/codegen-model.test.ts` checks that the printer reproduces the
+committed `routes.ts` and `layout.ts` of every generated prototype, so
+regenerating them produces no drift.
 
 The manifest gets id `local.<slug>`, namespace `<slug>`, `storage.schemaVersion: 1`,
 the template's scenarios (`empty`, `active`, `viewer`, `massive`) and the
