@@ -35,6 +35,7 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Tests affected by changes | `pnpm vitest run --changed HEAD~1` | scoped (see blind spots) |
 | E2E (gallery) | `pnpm test:e2e` | full |
 | E2E incl. prototypes | `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e` | full |
+| Player sources, share links, embed, reload persistence and namespace isolation (desktop + Pixel 7) | `PROTOYARD_E2E_PLAYER=1 pnpm exec playwright test tests/e2e/player.spec.ts` | scoped |
 | One prototype end to end | `pnpm protoyard validate crm-demo --build` | scoped |
 | Bundle size budgets (after build) | `pnpm protoyard budget --all --skip-build` | full |
 | Index scale budget (1,000 manifests) | `pnpm bench:index --runs 3 --check` | full |

@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -13,6 +14,10 @@ import { defineConfig, devices } from '@playwright/test';
  * the fixture ledger tests/e2e/fixtures/publish-ledger.jsonl (no network, no
  * deploy) and serves it on port 4502 (PROTOYARD_E2E_REVIEW_PORT overrides it).
  *
+ * Player: PROTOYARD_E2E_PLAYER=1 builds @protoyard/player into tmp/e2e-player
+ * with the quick blueprints beside it and serves it on port 4861, plus the
+ * repository on 4862 for the embedder fixture (PROTOYARD_E2E_PLAYER_PORT and
+ * PROTOYARD_E2E_PLAYER_EMBEDDER_PORT override them).
  * Prototype targets: PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo
  * (each gets its own port from 4401 and is reachable in specs through
  * `prototypeUrl(slug)` in tests/e2e/targets.ts).
@@ -91,6 +96,11 @@ if (!Number.isInteger(REVIEW_PORT) || REVIEW_PORT < 1024 || REVIEW_PORT > 65535)
   );
 }
 
+const playerE2e = process.env.PROTOYARD_E2E_PLAYER === '1';
+const PLAYER_PORT = Number(process.env.PROTOYARD_E2E_PLAYER_PORT ?? 4861);
+const PLAYER_EMBEDDER_PORT = Number(process.env.PROTOYARD_E2E_PLAYER_EMBEDDER_PORT ?? 4862);
+const PLAYER_OUT = resolve('tmp/e2e-player');
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
@@ -134,6 +144,25 @@ export default defineConfig({
             url: `http://127.0.0.1:${REVIEW_PORT}/`,
             reuseExistingServer: !ci,
             timeout: 180_000,
+          },
+        ]
+      : []),
+    ...(playerE2e
+      ? [
+          {
+            command:
+              `pnpm --filter @protoyard/player exec vite build --outDir ${PLAYER_OUT} --emptyOutDir && ` +
+              `mkdir -p ${PLAYER_OUT}/blueprints/quick && cp blueprints/quick/*.json ${PLAYER_OUT}/blueprints/quick/ && ` +
+              `pnpm exec tsx tests/e2e/support/serve-static.ts ${PLAYER_OUT} ${PLAYER_PORT}`,
+            url: `http://127.0.0.1:${PLAYER_PORT}/`,
+            reuseExistingServer: !ci,
+            timeout: 180_000,
+          },
+          {
+            command: `pnpm exec tsx tests/e2e/support/serve-static.ts . ${PLAYER_EMBEDDER_PORT}`,
+            url: `http://127.0.0.1:${PLAYER_EMBEDDER_PORT}/tests/e2e/fixtures/player-embedder.html`,
+            reuseExistingServer: !ci,
+            timeout: 30_000,
           },
         ]
       : []),
