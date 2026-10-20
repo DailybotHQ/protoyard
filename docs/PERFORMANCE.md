@@ -799,6 +799,28 @@ Reproduce:
 PROTOYARD_BENCH=1 PROTOYARD_BENCH_RUNS=3 pnpm vitest run prototypes/crm-demo/tests/enterprise-scale.test.ts --silent=false
 ```
 
+## Large blueprint on the player path (measured 2026-10-20)
+
+`packages/blueprint/tests/fixtures/large.blueprint.json` is a fictional
+40-entity blueprint: about 25 fields per entity (every field kind, plus
+relations), 60 screens (40 lists, 2 dashboards, 4 boards, 4 calendars,
+3 timelines, 3 maps, 3 analytics, settings), every entity feature on, and 16
+notification rules. It is 118 KB pretty-printed, inside the untrusted loader's
+256 KB cap. `pnpm vitest run packages/blueprint/tests/large-blueprint.test.ts`
+measures each step of the player path on it:
+
+| Step | Warm median | Cold first run | Ceiling |
+| --- | ---: | ---: | ---: |
+| `loadUntrustedBlueprint` (size, depth and row-estimate checks, then parse) | 15.7 ms | 160 ms | 2,000 ms |
+| `definePrototypeFromBlueprint` (definition + app model, 101 routes) | 4.1 ms | 25 ms | 1,000 ms |
+| Massive-density world (17,850 rows in 43 tables, deterministic) | 828 ms | 2.2 s | 25,000 ms |
+| `validateWorld` with the derived integrity rules (0 issues) | 34 ms | 176 ms | 5,000 ms |
+
+Apple Silicon laptop, Node 24, under heavy parallel load from other test runs.
+The ceilings catch order-of-magnitude regressions; the medians are what to
+compare against. Booting that world into IndexedDB is not part of this
+measurement (see [Large worlds](#large-worlds-scenario-loads)).
+
 ## AI kits
 
 Method and machine: Apple M1 Max (arm64, 64 GB, macOS 27.0), Node 26.11.1,
