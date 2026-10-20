@@ -1,0 +1,2 @@
+/* Import after Tailwind and the Protoyard theme/UI styles: registers the CRUD kit and app shell markup. */
+@source "./";

@@ -3,11 +3,8 @@
 @import "@protoyard/charts-ui/styles.css";
 @import "@protoyard/analytics-ui/styles.css";
 
-/* Let Tailwind see this prototype's own markup. */
+/* Let Tailwind see this prototype's own markup; each kit stylesheet above registers its own. */
 @source "./";
-@source "../../../packages/views-ui/src";
-@source "../../../packages/charts-ui/src";
-@source "../../../packages/analytics-ui/src";
 
 html,
 body,

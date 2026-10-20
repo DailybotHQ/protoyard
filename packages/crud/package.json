@@ -15,6 +15,7 @@
       "default": "./src/index.ts"
     },
     "./registry-meta": "./src/registry-meta.ts",
+    "./styles.css": "./src/styles.css",
     "./app": {
       "types": "./src/app/index.ts",
       "svelte": "./src/app/index.ts",
