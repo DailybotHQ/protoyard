@@ -25,6 +25,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | brand | a WCAG AA theme from `brand` (`resolveBlueprintBrand`) | `.` |
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | `.` |
 | aggregate | count/sum/avg/min/max with groups and UTC date buckets for dashboards and analytics | `.` |
+| app-model | routes, navigation rows with icon ids, navigation groups and layout (`deriveAppModel`) | `.` |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 
@@ -445,6 +446,33 @@ const revenue = liveQuery(
 
 Measured: 10,000 rows grouped by status and bucketed by day in 10.7 ms in Vitest while the
 machine was under heavy load (`pnpm vitest run packages/blueprint/tests/aggregate.test.ts`).
+
+## App model
+
+`deriveAppModel(blueprint)` returns the app a blueprint describes as plain data
+([ADR-029](../../docs/DECISIONS.md)), with no Svelte or Lucide imports:
+
+- `routes`, in router order. Each has a `name`, `path`, `title` and `description`,
+  plus a `view` that says what it renders:
+  - `home`: the overview with a count per entity;
+  - `members`: workspace people and their simulated roles;
+  - `entity`: the entity page (list, create, edit), with the `screenIndex` and
+    `screenType` of the `list`, `form` or tab-less `detail` screen that claims it;
+  - `screen`: a screen with its own view (board, calendar, timeline, map,
+    analytics, dashboard, settings, tabbed detail), with its `screenIndex`,
+    `screenType` and a unique `component` id such as `Dashboard1Screen`.
+- `nav`: sidebar rows. Home comes first (`exact: true`), then entities without a
+  list screen, then visible screens by `nav.order` and blueprint order, then
+  Members. Icons are `SCREEN_NAV_ICONS` ids.
+- `navGroups`: Overview, Records, Views and Workspace, with empty groups dropped.
+- `layout`: `{ id, mobile? }`, `sidebar` by default.
+- `icons`: every icon id the navigation may reference.
+
+A later route on the same path replaces an earlier one in place, so a screen can
+claim an entity's default list or detail route. `screenNavIcon`, `screenHasOwnView`
+and `entityLabel` expose the per-screen rules. The model matches what
+`protoyard generate` writes to `src/generated/routes.ts` and `layout.ts` for every
+catalog blueprint; `tests/app-model.test.ts` checks this byte for byte.
 
 ## Tests
 

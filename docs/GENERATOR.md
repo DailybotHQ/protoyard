@@ -297,6 +297,15 @@ slug, and re-indexes.
 | `src/App.svelte`, `src/screens/Home.svelte`, `README.md`, `tests/generators.test.ts`, `tests/services.test.ts` | owned | Written once, from the blueprint. |
 | everything else | owned | Copied from the template (entity page, search palette, members, scenarios, spec docs). |
 
+`routes.ts` and `layout.ts` print one data model, `deriveAppModel(blueprint)` from
+`@protoyard/blueprint` ([ADR-029](DECISIONS.md)). It holds the routes (what each
+one renders), the sidebar rows with icon ids, the navigation groups and the
+layout. The same model is meant for a renderer that runs a blueprint without
+generating code. `packages/blueprint/tests/app-model.test.ts` prints the model
+and compares it, byte for byte, with what `generate` emits for every catalog
+blueprint and every generated prototype. Any drift between the two fails that
+test.
+
 The manifest gets id `local.<slug>`, namespace `<slug>`, `storage.schemaVersion: 1`,
 the template's scenarios (`empty`, `active`, `viewer`, `massive`) and the
 blueprint name and description. All written files are already in the
