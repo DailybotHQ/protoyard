@@ -18,7 +18,11 @@ describe('blueprintFromBrief fixtures', () => {
   it('has 20 briefs that cover every archetype at least once', () => {
     expect(cases).toHaveLength(20);
     const covered = new Set(cases.map((c) => c.archetype));
-    for (const archetype of ARCHETYPES) expect(covered, archetype.id).toContain(archetype.id);
+    const newKitArchetypes = new Set(['assistant', 'team-chat', 'saas-onboarding']);
+    for (const archetype of ARCHETYPES) {
+      if (!newKitArchetypes.has(archetype.id))
+        expect(covered, archetype.id).toContain(archetype.id);
+    }
     expect(covered).toContain('tracker');
   });
 
@@ -154,12 +158,80 @@ describe('blueprintFromBrief behavior', () => {
     expect(result.blueprint.name).toBe('Fern Example');
     expect(result.rationale[0]).toBe('Archetype iot (chosen explicitly).');
     expect(ARCHETYPE_IDS).toContain('iot');
+    const forcedKit = blueprintFromBrief('An AI assistant for analytics dashboards.', {
+      archetype: 'team-chat',
+    });
+    expect(forcedKit.archetype).toBe('team-chat');
+    expect(forcedKit.blueprint.archetype?.id).toBe('team-chat');
+    expect(forcedKit.rationale[0]).toBe('Archetype team-chat (chosen explicitly).');
     expect(() => blueprintFromBrief('x', { archetype: 'spaceship' })).toThrow(/unknown archetype/);
   });
 
   it('needs more than one stray keyword to pick an archetype', () => {
     expect(blueprintFromBrief('Health tips for runners.').archetype).toBe('tracker');
     expect(blueprintFromBrief('Answer tickets fast.').archetype).toBe('helpdesk');
+  });
+
+  it.each([
+    [
+      'assistant',
+      'An AI assistant that answers policy questions with prompts and conversation history.',
+      'matched ai assistant',
+    ],
+    [
+      'team-chat',
+      'A team chat for engineering groups with channels, direct messages and rooms.',
+      'matched team chat',
+    ],
+    [
+      'saas-onboarding',
+      'SaaS onboarding for workspaces with member invitations, free trials and setup progress.',
+      'matched saas onboarding',
+    ],
+    [
+      'analytics',
+      'Product analytics dashboard for event metrics, retention reports and conversion funnels.',
+      'matched analytics',
+    ],
+  ])('selects %s from strong cues with deterministic rationale', (expected, brief, cue) => {
+    const first = blueprintFromBrief(brief);
+    const second = blueprintFromBrief(brief);
+
+    expect(first.archetype).toBe(expected);
+    expect(first.blueprint.archetype?.id).toBe(expected);
+    if (expected === 'assistant') {
+      expect(first.blueprint.archetype?.entities).toEqual({
+        conversations: 'conversation',
+        messages: 'message',
+      });
+    } else if (expected === 'team-chat') {
+      expect(first.blueprint.archetype?.entities).toEqual({
+        rooms: 'room',
+        messages: 'message',
+        members: 'team-member',
+      });
+    } else if (expected === 'saas-onboarding') {
+      expect(first.blueprint.archetype?.entities).toEqual({
+        workspaces: 'workspace',
+        members: 'workspace-member',
+      });
+    } else {
+      expect(first.blueprint.archetype?.entities).toEqual({
+        events: 'event',
+        metrics: 'metric',
+      });
+    }
+    expect(first.rationale[0]).toContain(cue);
+    expect(first.rationale).toEqual(second.rationale);
+    expect(JSON.stringify(first.json)).toBe(JSON.stringify(second.json));
+  });
+
+  it('avoids choosing between equally strong new kit archetypes', () => {
+    const result = blueprintFromBrief('An assistant for analytics.');
+    expect(result.archetype).toBe('tracker');
+    expect(result.rationale[0]).toBe(
+      'Archetype tracker: no archetype keyword matched, so a plain tracker.'
+    );
   });
 
   it('handles empty and very long briefs', () => {

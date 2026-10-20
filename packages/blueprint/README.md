@@ -449,9 +449,14 @@ const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
 ```
 
 - **Archetype:** keyword scoring over `ARCHETYPES` (help desk, CRM, booking, logistics,
-  analytics, projects, LMS, clinic, finance, wiki, IoT, social, marketplace; ties go to the
-  earlier one). One stray keyword is not enough unless it names an archetype entity; otherwise
-  the generic `tracker` is used and the brief's main noun becomes its entity.
+  assistant, team chat, SaaS onboarding, analytics, projects, LMS, clinic, finance, wiki, IoT,
+  social and marketplace). The assistant, team-chat, SaaS-onboarding and analytics seeds recognize
+  high-signal cues, add their portable config to `blueprint.archetype`, and expose every matched
+  cue in the rationale. When equally strong kit cues conflict, synthesis falls back to the generic
+  `tracker`; `blueprintFromBrief(..., { archetype })` explicitly overrides scoring. Other
+  archetypes retain their earlier-order tie break. A lone stray keyword is not
+  enough unless it names an archetype entity; otherwise the brief's main noun becomes the tracker
+  entity.
 - **Entities:** nouns after verbs such as *track*, *manage*, *log* or *schedule* ("track
   groomers and invoices") become entities linked to the main one; attribute words
   ("locations", "prices") do not.

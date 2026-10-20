@@ -1,3 +1,4 @@
+import type { BlueprintArchetypeInput } from '../archetypes/schema.ts';
 import type { BlueprintInput } from '../schema.ts';
 
 /**
@@ -17,6 +18,10 @@ export interface Archetype {
   label: string;
   /** Single words or phrases, matched as whole words in the brief. */
   keywords: readonly string[];
+  /** High-signal cues can select a kit archetype with one unambiguous phrase. */
+  strongCues?: readonly string[];
+  /** Portable runtime binding emitted when this brief seed is selected. */
+  kitArchetype?: BlueprintArchetypeInput;
   entities: readonly EntityInput[];
 }
 
@@ -220,8 +225,23 @@ export const ARCHETYPES: readonly Archetype[] = [
   {
     id: 'analytics',
     label: 'Analytics',
+    strongCues: ['analytics', 'product analytics', 'event analytics'],
+    kitArchetype: {
+      id: 'analytics',
+      kits: [
+        '@protoyard/analytics',
+        '@protoyard/analytics-ui/grid',
+        '@protoyard/analytics-ui/date-range',
+      ],
+      entities: { events: 'event', metrics: 'metric' },
+      screens: [{ kind: 'analytics-dashboard', path: '/analytics-dashboard' }],
+      scenarioDefaults: { density: 'dense', activity: 'normal' },
+    },
     keywords: [
       'analytics',
+      'product analytics',
+      'event analytics',
+      'event tracking',
       'metric',
       'metrics',
       'kpi',
@@ -247,6 +267,17 @@ export const ARCHETYPES: readonly Archetype[] = [
         titleField: 'name',
       },
       {
+        name: 'event',
+        plural: 'events',
+        fields: [
+          text('name', { required: true, fake: 'company.buzzPhrase', maxLength: 80 }),
+          enumOf('category', ['acquisition', 'activation', 'retention', 'revenue']),
+          of('value', 'number', { min: 0, max: 1_000, trend: 'growth' }),
+          of('occurredAt', 'datetime', { window: 'past' }),
+        ],
+        titleField: 'name',
+      },
+      {
         name: 'report',
         plural: 'reports',
         fields: [
@@ -256,6 +287,162 @@ export const ARCHETYPES: readonly Archetype[] = [
         ],
         titleField: 'title',
         ownerField: 'owner',
+      },
+    ],
+  },
+  {
+    id: 'assistant',
+    label: 'AI Assistant',
+    strongCues: ['ai assistant', 'assistant', 'copilot', 'chatbot'],
+    kitArchetype: {
+      id: 'assistant',
+      kits: ['@protoyard/ai', '@protoyard/ai-ui'],
+      entities: { conversations: 'conversation', messages: 'message' },
+      screens: [{ kind: 'assistant-workspace', path: '/assistant' }],
+      scenarioDefaults: { density: 'normal', activity: 'normal' },
+    },
+    keywords: [
+      'ai assistant',
+      'assistant',
+      'copilot',
+      'chatbot',
+      'chat bot',
+      'prompt',
+      'prompts',
+      'model response',
+      'conversation',
+      'conversations',
+    ],
+    entities: [
+      {
+        name: 'conversation',
+        plural: 'conversations',
+        fields: [
+          text('title', { required: true, fake: 'lorem.sentence' }),
+          enumOf('status', ['active', 'archived']),
+          of('owner', 'persona'),
+        ],
+        titleField: 'title',
+        ownerField: 'owner',
+      },
+      {
+        name: 'message',
+        plural: 'messages',
+        fields: [
+          text('content', { required: true, fake: 'lorem.sentence', maxLength: 200 }),
+          enumOf('role', ['user', 'assistant', 'tool']),
+          of('conversation', 'relation', { to: 'conversation', onDelete: 'cascade' }),
+          of('sentAt', 'datetime', { window: 'around' }),
+        ],
+        titleField: 'content',
+      },
+    ],
+  },
+  {
+    id: 'team-chat',
+    label: 'Team Chat',
+    strongCues: ['team chat', 'group chat', 'slack'],
+    kitArchetype: {
+      id: 'team-chat',
+      kits: ['@protoyard/ai', '@protoyard/ai-ui'],
+      entities: { rooms: 'room', messages: 'message', members: 'team-member' },
+      screens: [{ kind: 'team-chat', path: '/team-chat' }],
+      scenarioDefaults: { density: 'normal', activity: 'intense' },
+    },
+    keywords: [
+      'team chat',
+      'group chat',
+      'chat',
+      'slack',
+      'channel',
+      'channels',
+      'messaging',
+      'direct message',
+      'direct messages',
+      'room',
+      'rooms',
+    ],
+    entities: [
+      {
+        name: 'room',
+        plural: 'rooms',
+        fields: [
+          text('name', { required: true, fake: 'commerce.department' }),
+          text('topic', { maxLength: 200 }),
+          enumOf('visibility', ['public', 'private']),
+        ],
+        titleField: 'name',
+      },
+      {
+        name: 'message',
+        plural: 'messages',
+        fields: [
+          text('body', { required: true, fake: 'lorem.sentence', maxLength: 200 }),
+          of('room', 'relation', { to: 'room', onDelete: 'cascade' }),
+          of('author', 'relation', { to: 'team-member' }),
+          of('sentAt', 'datetime', { window: 'around' }),
+        ],
+        titleField: 'body',
+      },
+      {
+        name: 'team-member',
+        plural: 'team-members',
+        fields: [
+          text('name', { required: true, fake: 'person.fullName' }),
+          of('email', 'email'),
+          enumOf('presence', ['online', 'away', 'offline']),
+        ],
+        titleField: 'name',
+      },
+    ],
+  },
+  {
+    id: 'saas-onboarding',
+    label: 'SaaS Onboarding',
+    strongCues: ['saas onboarding', 'product onboarding'],
+    kitArchetype: {
+      id: 'saas-onboarding',
+      kits: ['@protoyard/saas', '@protoyard/saas-ui'],
+      entities: { workspaces: 'workspace', members: 'workspace-member' },
+      screens: [{ kind: 'saas-onboarding', path: '/onboarding' }],
+      scenarioDefaults: { density: 'normal', activity: 'normal' },
+    },
+    keywords: [
+      'saas onboarding',
+      'product onboarding',
+      'onboarding',
+      'workspace',
+      'workspaces',
+      'invite teammates',
+      'invitations',
+      'free trial',
+      'trial',
+      'subscription',
+      'activation',
+      'plan upgrade',
+    ],
+    entities: [
+      {
+        name: 'workspace',
+        plural: 'workspaces',
+        fields: [
+          text('name', { required: true, fake: 'company.name' }),
+          enumOf('plan', ['free', 'trial', 'pro']),
+          enumOf('setupStatus', ['started', 'invited', 'complete']),
+        ],
+        titleField: 'name',
+      },
+      {
+        name: 'workspace-member',
+        plural: 'workspace-members',
+        fields: [
+          text('name', { required: true, fake: 'person.fullName' }),
+          of('email', 'email'),
+          enumOf('role', ['owner', 'admin', 'member']),
+          of('workspace', 'relation', { to: 'workspace' }),
+          enumOf('status', ['invited', 'active']),
+        ],
+        titleField: 'name',
       },
     ],
   },

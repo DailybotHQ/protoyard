@@ -172,19 +172,42 @@ function chooseArchetype(
     if (!found) throw new RangeError(`blueprintFromBrief(): unknown archetype "${forced}"`);
     return { archetype: found, matched: [] };
   }
-  let best: { archetype: Archetype; matched: string[] } = {
+  let best: { archetype: Archetype; matched: string[]; score: number } = {
     archetype: GENERIC_ARCHETYPE,
     matched: [],
+    score: 0,
   };
+  const candidates: { archetype: Archetype; matched: string[]; score: number }[] = [];
   for (const archetype of ARCHETYPES) {
     const matched = archetype.keywords.filter((k) => hasPhrase(normalized, k));
+    const specificMatches = (archetype.strongCues ?? []).filter((cue) =>
+      hasPhrase(normalized, cue)
+    );
     // One stray word ("health", "book") is not enough, unless it names one of
     // the archetype's own entities ("tickets", "shipments").
     const names = archetype.entities.flatMap((e) => [e.name, e.plural]);
-    const strong = matched.length >= 2 || matched.some((k) => names.includes(k));
-    if (strong && matched.length > best.matched.length) best = { archetype, matched };
+    const entityCue = matched.some((cue) => {
+      if (!names.includes(cue)) return false;
+      if (archetype.strongCues === undefined) return true;
+      return !ARCHETYPES.some(
+        (other) =>
+          other !== archetype &&
+          other.entities.some((entity) => entity.name === cue || entity.plural === cue)
+      );
+    });
+    const strong = matched.length >= 2 || entityCue || specificMatches.length > 0;
+    const score = matched.length + (specificMatches.length > 0 ? 2 : 0);
+    if (strong) {
+      const candidate = { archetype, matched, score };
+      candidates.push(candidate);
+      if (score > best.score) best = candidate;
+    }
   }
-  return best;
+  const tied = candidates.filter((candidate) => candidate.score === best.score);
+  if (tied.length > 1 && tied.some(({ archetype }) => archetype.strongCues !== undefined)) {
+    return { archetype: GENERIC_ARCHETYPE, matched: [] };
+  }
+  return { archetype: best.archetype, matched: best.matched };
 }
 
 /** `"track invoices and vendors with amount and due date"` → nouns and field phrases. */
@@ -380,6 +403,13 @@ export function blueprintFromBrief(brief: string, options: BriefOptions = {}): B
   );
 
   const entities: EntityInput[] = clone([...archetype.entities]);
+  if (archetype.kitArchetype) {
+    rationale.push(
+      `Kit archetype ${archetype.kitArchetype.id}: ${Object.entries(archetype.kitArchetype.entities)
+        .map(([slot, entity]) => `${slot}=${entity}`)
+        .join(', ')}.`
+    );
+  }
   let focus = entities[0] as EntityInput;
   const byNoun = (noun: string) =>
     entities.find((e) => e.name === noun || e.plural === plural(noun) || e.name === singular(noun));
@@ -511,6 +541,7 @@ export function blueprintFromBrief(brief: string, options: BriefOptions = {}): B
       { name: 'viewer', label: 'Viewer', permissions: { '*': ['read'] } },
     ],
     screens,
+    ...(archetype.kitArchetype ? { archetype: clone(archetype.kitArchetype) } : {}),
   };
 
   return {
