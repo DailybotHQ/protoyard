@@ -2,6 +2,7 @@ import { type Browser, expect, type Locator, type Page, test } from '@playwright
 import { expectAccessible } from './support/a11y.ts';
 import { badgeOverlaps } from './support/badge.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
+import { launcherOverlaps } from './support/review.ts';
 import { COMMENTS_TARGETS, commentsSharedUrl, commentsUrl } from './targets.ts';
 
 /**
@@ -127,36 +128,6 @@ async function expectPinOn(
 /** Waits one animation frame in the page. */
 const frame = (page: Page) =>
   page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
-
-/** Visible app controls the collapsed launcher overlaps (none expected). */
-async function launcherOverlaps(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
-    const nav = document.querySelector('[data-py-review-toolbar]');
-    const button = nav?.querySelector('button');
-    if (!button) return ['no launcher'];
-    const b = button.getBoundingClientRect();
-    const out: string[] = [];
-    const selector =
-      'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [role="tab"], [tabindex]:not([tabindex="-1"])';
-    for (const el of document.querySelectorAll<HTMLElement>(selector)) {
-      if (
-        nav?.contains(el) ||
-        el.closest('[aria-hidden="true"], [inert], [data-py-review-overlay]')
-      )
-        continue;
-      const r = el.getBoundingClientRect();
-      const cs = getComputedStyle(el);
-      if (r.width < 4 || r.height < 4 || cs.visibility === 'hidden' || cs.opacity === '0') continue;
-      if (cs.clipPath.startsWith('inset(50%') || cs.clip === 'rect(0px, 0px, 0px, 0px)') continue;
-      if (r.left < b.right && b.left < r.right && r.top < b.bottom && b.top < r.bottom) {
-        out.push(
-          `${el.tagName.toLowerCase()} "${(el.getAttribute('aria-label') ?? el.textContent ?? '').trim().slice(0, 40)}"`
-        );
-      }
-    }
-    return out;
-  });
-}
 
 test.describe('Review comments on PROTOYARD_REVIEW=1 builds', () => {
   test('comment mode blocks app clicks and Escape leaves it', async ({ page }) => {
