@@ -52,9 +52,9 @@ async function add() {
     disabled={soldOut}
     loading={adding}
     onclick={add}
-    aria-label={soldOut ? `${product.name} is sold out` : `Add ${product.name} to cart`}
   >
     {#if !soldOut}<ShoppingCart class="size-4" aria-hidden="true" />{/if}
-    {soldOut ? 'Sold out' : 'Add to cart'}
+    <!-- The visible words start the name (WCAG 2.5.3); the product is for screen readers. -->
+    {soldOut ? 'Sold out' : 'Add to cart'}<span class="sr-only">: {product.name}</span>
   </Button>
 {/if}

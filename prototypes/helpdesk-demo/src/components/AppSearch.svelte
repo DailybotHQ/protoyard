@@ -68,10 +68,12 @@ function openShortcut(event: MouseEvent) {
 }
 </script>
 
-<Button size="sm" variant="outline" aria-label="Search workspace (⌘K)" onclick={openShortcut}>
+<Button size="sm" variant="outline" onclick={openShortcut}>
   <Search class="size-4" aria-hidden="true" />
-  <span class="hidden sm:inline">Search</span>
-  <kbd class="ml-1 hidden rounded border border-border px-1 text-[0.65rem] text-muted-foreground sm:inline">⌘K</kbd>
+  <!-- The name starts with the visible "Search" (WCAG 2.5.3); phones hide the word visually only. -->
+  <span class="sr-only sm:not-sr-only">Search</span>
+  <span class="sr-only">workspace (Command or Control K)</span>
+  <kbd aria-hidden="true" class="ml-1 hidden rounded border border-border px-1 text-[0.65rem] text-muted-foreground sm:inline">⌘K</kbd>
 </Button>
 
 <CommandPalette {search} {onSelect} recentItems={navItems} placeholder="Search tickets, customers, replies…" />

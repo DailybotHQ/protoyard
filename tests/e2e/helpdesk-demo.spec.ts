@@ -130,7 +130,7 @@ test('finds a ticket with the search palette and attaches a file by drag and dro
   const subject = (
     (await page.getByTestId('board-open').getByRole('link').first().textContent()) ?? ''
   ).trim();
-  await page.getByRole('button', { name: 'Search workspace (⌘K)' }).click();
+  await page.getByRole('button', { name: /^Search workspace/ }).click();
   await page.getByPlaceholder('Search tickets, customers, replies…').fill(subject.slice(0, 18));
   await page.getByRole('option', { name: subject }).first().click();
   await expect(page.getByRole('heading', { level: 1, name: subject }).first()).toBeVisible();
