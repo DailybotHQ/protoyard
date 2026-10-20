@@ -11,6 +11,7 @@ import {
 import PlayerApp from './PlayerApp.svelte';
 import { setPlayerBlueprint } from './player-blueprint.ts';
 import { markActiveExploration, recordExploration, resolvePlayerStorage } from './storage/index.ts';
+import { withWorkerGeneration } from './worker/generate-world.ts';
 
 export interface BootPlayerOptions {
   blueprint: Blueprint;
@@ -39,10 +40,11 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
   const identity = await blueprintIdentity(blueprint);
   const search = options.search ?? location.search;
   const storage = await resolvePlayerStorage(blueprint, identity, search);
-  const { definition, appModel } = definePrototypeFromBlueprint(blueprint, {
+  const { definition: blueprintDefinition, appModel } = definePrototypeFromBlueprint(blueprint, {
     namespace: storage.namespace,
     slug: storage.namespace,
   });
+  const definition = withWorkerGeneration(blueprintDefinition, blueprint);
   markActiveExploration(storage.namespace);
   try {
     await recordExploration(storage, options.indexFactory);

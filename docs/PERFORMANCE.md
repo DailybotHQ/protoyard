@@ -799,6 +799,28 @@ Reproduce:
 PROTOYARD_BENCH=1 PROTOYARD_BENCH_RUNS=3 pnpm vitest run prototypes/crm-demo/tests/enterprise-scale.test.ts --silent=false
 ```
 
+## Player worker generation
+
+The player sends the validated blueprint and resolved scenario data to a module
+worker for world generation. The worker creates its own `GenerateContext` and
+returns the serializable `WorldSeed`; if workers are unavailable or fail, the
+same generation helper runs from a lazy main-thread chunk. The worker/fallback
+parity test compares five catalog blueprints across all four default scenarios.
+
+The runtime currently creates a `GenerateContext` before calling
+`definition.generate`. That means its lazy Faker import still runs on the main
+thread before the player's worker callback begins. This task moves blueprint
+world construction off the main thread but does not remove that runtime-owned
+context setup; doing so requires a runtime API change.
+
+One local Vite 8.3.4 production build on 2026-10-20 emitted a separate
+`generate.worker` entry at **2,555,194 B raw / 942,931 B gzip** (gzip level 9),
+and a main-thread fallback helper at **1,082 B raw / 542 B gzip**. The worker
+entry is loaded only when the first scenario generates, not in the initial
+player entry. It is a substantial first-generation transfer; generation
+timings and the player's total initial-JS budget have not been measured here.
+Use the player bench and budget tasks before setting performance thresholds.
+
 ## Large blueprint on the player path (measured 2026-10-20)
 
 `packages/blueprint/tests/fixtures/large.blueprint.json` is a fictional
