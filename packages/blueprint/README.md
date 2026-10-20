@@ -72,6 +72,32 @@ and is tree-shakeable for consumers that do not import it.
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 
+## Agent authoring sequence
+
+For an offline end-to-end path, start from a [quick blueprint](../../blueprints/quick/README.md)
+or synthesize one with `pnpm protoyard blueprint new <file> --from-brief <brief-file>` (use `-`
+for stdin). Read the rationale, edit the JSON, and run `pnpm protoyard blueprint validate <file>`.
+For machine-actionable repairs, pass the parsed input to `validateBlueprintForAuthoring`; each
+diagnostic provides `jsonPath`, `message` and a suggested `hint`. Revalidate after every repair.
+The JSON Schema is useful for editor completion, but only the package parser checks
+cross-references such as relation targets, screen fields and archetype entity slots.
+
+If data shape is the starting point, use the lazy import modules documented below to infer entities
+from CSV headers and samples, JSON objects, or SQLite `CREATE TABLE` statements. These are schema
+imports: drafts and notes do not retain sample values or database rows. Review ambiguous kinds and
+relation candidates, combine the entities with roles, scenario defaults, routes and any selected
+`archetype`, then validate the assembled blueprint. CSV, JSON and SQLite imports currently expose
+package APIs rather than a `protoyard` CLI import command.
+
+Select `assistant`, `team-chat`, `saas-onboarding` or `analytics` in the optional portable
+`archetype` block when a matching kit adapter should be available at runtime. The player and
+generator consume this data and load declared kit entry points lazily. Standard entity
+`screenDefaults` and top-level screens cover common routes; specialized workflows still need
+owned Svelte screens and services. The separate `./workflows` module validates state-machine data,
+but formatVersion 1 and generated services do not yet persist or execute those workflows. See
+[the generator guide](../../docs/GENERATOR.md) for the complete author review, generation and
+regeneration loop.
+
 - **Brand (optional):** `seed` (`#rrggbb`) and/or built-in `preset` (`violet`, `ocean`, …),
   optional `secondary`, `styleProfile` (`soft` | `crisp` | `flat` | `rounded` | `editorial` |
   `mono`), `font` (catalog id), `radius`, `density`, `id` and `name`.

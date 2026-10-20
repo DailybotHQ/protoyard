@@ -76,6 +76,59 @@ hints. The result uses `BlueprintSchema`, so a shape-only JSON Schema pass is no
 full blueprint validity. Existing `parseBlueprint` and `safeParseBlueprint` behavior is
 unchanged.
 
+## Agent authoring loop
+
+Keep the blueprint as the source of truth and make each generated result reviewable. Brief
+synthesis, validation and shape imports run locally. Pass `--no-install` to generation when the
+workspace dependencies are already linked and the loop must not invoke a package install:
+
+```bash
+# Let the local synthesizer draft a blueprint.
+printf '%s\n' 'A fictional team assistant that organizes conversations and messages.' \
+  | pnpm protoyard blueprint new tmp/my-assistant.blueprint.json --from-brief - --dry-run
+
+# After reviewing the rationale, write the synthesized draft and check it.
+printf '%s\n' 'A fictional team assistant that organizes conversations and messages.' \
+  | pnpm protoyard blueprint new tmp/my-assistant.blueprint.json --from-brief -
+pnpm protoyard blueprint validate tmp/my-assistant.blueprint.json
+
+# Review planned paths first, then generate when the draft is ready.
+pnpm protoyard generate my-assistant --blueprint tmp/my-assistant.blueprint.json --dry-run --no-install
+pnpm protoyard generate my-assistant --blueprint tmp/my-assistant.blueprint.json --no-install
+```
+
+For hand-authored JSON, use the exported [JSON Schema](../packages/blueprint/schema/blueprint.schema.json)
+for editor completion, then run `blueprint validate`: the schema checks shape, while the package
+parser also checks entity, field, route and archetype references. For agent interfaces that need
+machine-readable repair steps, call `validateBlueprintForAuthoring(input)` and show each
+diagnostic's `jsonPath`, `message` and `hint`; apply a focused edit and validate again. The CLI
+reports issues but does not expose that helper's hint structure.
+
+When an idea starts from existing data or a database definition, the package's lazy authoring
+modules infer a value-free draft: `inferCsvEntity` from `@protoyard/blueprint/import/csv-shape`,
+`inferJsonShape` from `@protoyard/blueprint/import/json-shape`, or `importSqliteSchema` from
+`@protoyard/blueprint/import/sqlite-schema`. Review their notes and inferred relations; JSON shape
+inference also returns relation candidates, while SQLite imports map supported foreign keys. Add
+the draft entities to a complete blueprint with roles and screens, then validate it. Imports inspect
+shape only; they do not copy rows, SQL defaults or sample values. See the runnable interface
+examples and parser limits in the
+[blueprint package guide](../packages/blueprint/README.md).
+
+Choose `blueprint.archetype` when an assistant, team-chat, SaaS-onboarding or analytics kit adapter
+is part of the first experience. The portable block maps entity slots, screens, scenario defaults
+and allow-listed lazy kit entry points; it is metadata, never executable code. Start from the
+[quick catalog](../blueprints/quick/README.md) when one of its compact examples fits, or use
+`blueprint new --archetype <id>` to steer brief synthesis.
+
+Declare common list, detail, form and kit-backed views in the blueprint, including per-entity
+`screenDefaults`, so both the player and generated prototypes can render them from data. The
+optional `@protoyard/blueprint/workflows` module validates a data-only state model separately; it
+is not embedded in formatVersion 1 or wired into generated services. Product-specific transitions,
+multi-step interactions and screens therefore still belong in owned Svelte files and services.
+Never edit `src/generated/**`: refine the blueprint and regenerate, then add custom behavior in
+owned files that call the generated entity services. Use
+[From a brief to a prototype](BRIEF_TO_PROTOTYPE.md) for the full review, test and export path.
+
 ## The blueprint format
 
 A blueprint is strict: an unknown key anywhere fails validation.
