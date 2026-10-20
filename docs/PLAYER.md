@@ -11,6 +11,10 @@ they are ordinary Vite apps that can be edited, validated and exported.
 - Build a hosted showcase with
   `pnpm protoyard showcase --site https://protoyard.app`; the build contains
   `/play/` and the standalone player assets at `/player/`.
+- Open an eligible prototype or blueprint from its gallery detail page with
+  **Open in player**. The gallery builds a `/play/#bp=…` link from validated
+  blueprint data; entries without a blueprint file or links over the share
+  limit do not show the action. The configured site base is preserved.
 - `/play/` accepts a pasted blueprint JSON document up to 256 KB and opens
   share links. Its frame uses the player's exact-origin `protoyard-player/1`
   bridge. Share fragments stay in the browser URL and are not sent to the

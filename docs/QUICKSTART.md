@@ -20,6 +20,11 @@ In the gallery, open **Pipeline CRM** and press **Start Pipeline CRM**, then
 pnpm protoyard dev crm-demo
 ```
 
+Catalog blueprints and prototypes that include a `blueprint.json` also offer
+**Open in player** on their gallery detail pages. It opens the validated
+blueprint in the hosted browser player using a share link; entries without a
+blueprint source keep their existing preview and open actions.
+
 Then, in the running app:
 
 1. Create a deal. Reload the page. It is still there.
