@@ -10,10 +10,8 @@ async function openRoute(page: Page, route: string, scenario = 'quarter-of-histo
   await waitForPrototypeReady(page, { slug: SLUG });
 }
 
-async function openRange(page: Page, isMobile: boolean) {
-  const main = page.getByRole('main');
-  if (isMobile) await main.getByRole('button', { name: /^Last/ }).click();
-  else await main.getByRole('button', { name: /^Date range:/ }).click();
+async function openRange(page: Page) {
+  await page.getByRole('button', { name: /^Date range:/ }).click();
   const presets = page.getByRole('group', { name: 'Preset ranges' });
   await expect(presets).toBeVisible();
   return presets;
@@ -21,7 +19,6 @@ async function openRange(page: Page, isMobile: boolean) {
 
 test('dashboard period, analytics controls, CSV export and lifecycle board work', async ({
   page,
-  isMobile,
 }, testInfo) => {
   await openRoute(page, '/', 'launch-spike');
   await expect(page.getByRole('heading', { name: 'Revenue overview' })).toBeVisible();
@@ -35,13 +32,9 @@ test('dashboard period, analytics controls, CSV export and lifecycle board work'
   await expect(page).toHaveURL(/measure=1/);
   await expect(page).toHaveURL(/dimension=plan/);
 
-  const presets = await openRange(page, isMobile);
+  const presets = await openRange(page);
   await presets.getByRole('button', { name: 'Last 7 days' }).click();
-  await expect(
-    page.locator('#main-content').getByRole('button', {
-      name: isMobile ? /^Last 7 days/ : 'Date range: Last 7 days',
-    })
-  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Date range: Last 7 days' })).toBeVisible();
   await expectAccessible(page, testInfo, { include: 'main', label: 'pulse-revenue-analytics' });
 
   const downloadPromise = page.waitForEvent('download');
@@ -50,7 +43,7 @@ test('dashboard period, analytics controls, CSV export and lifecycle board work'
   expect(download.suggestedFilename()).toBe('transactions-analytics.csv');
 
   await openRoute(page, '/transactions/board', 'launch-spike');
-  await expect(page.getByRole('region', { name: 'Revenue lifecycle' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Revenue Transaction board' })).toBeVisible();
   await expectAccessible(page, testInfo, { include: 'main', label: 'pulse-revenue-board' });
 });
 
