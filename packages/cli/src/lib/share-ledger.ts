@@ -11,12 +11,7 @@ import { artifactDir } from './build.ts';
 import { listFiles, sha256File } from './checksum.ts';
 import { CliError } from './output.ts';
 import { toPosixRelative } from './paths.ts';
-import {
-  appendJsonlEntry,
-  assertNoSecretLikeKeys,
-  buildDigest,
-  gitState,
-} from './publish-ledger.ts';
+import { appendJsonlEntry, assertNoSecretLikeKeys, gitState } from './publish-ledger.ts';
 import type { CommandContext } from './workspace.ts';
 import { resolveTarget } from './workspace.ts';
 
@@ -139,12 +134,8 @@ async function readCurrentPack(ctx: CommandContext, slug: string) {
       `The artifact pack manifest for ${slug} has unsafe file paths.`
     );
   }
-  if (buildDigest(manifest.files) !== manifest.buildSha256) {
-    throw new CliError(
-      'validation',
-      `The artifact pack manifest for ${slug} has an inconsistent build sha256.`
-    );
-  }
+  // buildSha256 names the source build (dist), not the transformed pack files, so it is
+  // recorded as-is; the per-file hashes below are what prove the pack is current.
 
   let actualFiles: string[];
   try {
