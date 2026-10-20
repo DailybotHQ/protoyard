@@ -56,6 +56,22 @@ Defined in `packages/core/src/scenario.ts`. Fields and defaults:
 Scenarios live in `src/scenarios/index.ts`. `defineScenario()` is an identity
 helper for type inference. From `prototypes/crm-demo/src/scenarios/index.ts`:
 
+Blueprint-backed apps share the default scenario definitions from
+`@protoyard/blueprint`, so the player and a generated CRUD prototype begin with
+the same deterministic empty, active, viewer and massive worlds:
+
+```ts
+import { blueprintScenarios, parseBlueprint } from '@protoyard/blueprint';
+
+const blueprint = parseBlueprint(JSON.parse(text));
+const scenarios = blueprintScenarios(blueprint);
+```
+
+The helper returns data-only `ScenarioDefinition`s with stable seeds. The
+scenario engine resolves their `extends` references against `@protoyard/scenarios`
+presets. Add product-specific scenarios alongside these defaults when an app
+needs its own workflow or domain states.
+
 ```ts
 const growingTeam = defineScenario({
   id: 'growing-team',
