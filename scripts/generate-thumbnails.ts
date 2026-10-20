@@ -116,9 +116,12 @@ async function main() {
           const out = join(target.dir, 'public', 'thumbnail.png');
           // Never write THROUGH a symlink (a committed public/thumbnail.png -> ~/.zshrc).
           for (const path of [join(target.dir, 'public'), out]) {
-            if (existsSync(path) && lstatSync(path).isSymbolicLink()) {
-              throw new Error(`refusing to write through the symlink ${path}`);
-            }
+            // lstat, not existsSync: a dangling link reports as missing yet still redirects the write.
+            let link = false;
+            try {
+              link = lstatSync(path).isSymbolicLink();
+            } catch {}
+            if (link) throw new Error(`refusing to write through the symlink ${path}`);
           }
           writeFileSync(out, png);
           const kb = (png.length / 1024).toFixed(1);

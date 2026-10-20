@@ -90,8 +90,8 @@ pnpm exec tsx scripts/import-avatars.ts --check                   # verify commi
 pnpm vitest run packages/avatars
 ```
 
-`--src` defaults to `~/projects/ptt/avatars-grids-recortes` (the owner's
-local folder of `avatar<N>.png`; `_manifests/` and `_previews/` are ignored).
+`--src <dir>` (or `PROTOYARD_AVATARS_SRC`) is required: the owner's local
+folder of `avatar<N>.png`; `_manifests/` and `_previews/` are ignored.
 The script only writes inside `packages/avatars`. `--check` needs the
 original PNGs, and a different sharp or libwebp build can change the bytes.
 The manifest records the encoder versions it was made with.

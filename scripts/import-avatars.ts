@@ -19,13 +19,12 @@
  * or the manifest differs; it writes nothing. `--dry-run` reports what would
  * be written. The script never writes outside `packages/avatars`.
  *
- * Default `--src`: `~/projects/ptt/avatars-grids-recortes` (the owner's
- * local folder; the original PNGs are never copied into the repository).
+ * `--src` (or `PROTOYARD_AVATARS_SRC`) names the folder of original PNGs; it is
+ * required, and the original PNGs are never copied into the repository.
  */
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { homedir } from 'node:os';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -49,7 +48,6 @@ interface SharpModule {
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PKG = join(ROOT, 'packages', 'avatars');
 const MANIFEST = join(PKG, 'src', 'manifest.json');
-const DEFAULT_SRC = join(homedir(), 'projects', 'ptt', 'avatars-grids-recortes');
 
 /** Edge inset in source pixels: removes the 1–2 px light border and the rounded corners. */
 const INSET = 6;
@@ -127,7 +125,7 @@ function inPackage(path: string): string {
 }
 
 function parseArgs(argv: string[]): { src: string; check: boolean; dryRun: boolean } {
-  let src = DEFAULT_SRC;
+  let src = process.env.PROTOYARD_AVATARS_SRC ? resolve(process.env.PROTOYARD_AVATARS_SRC) : '';
   let check = false;
   let dryRun = false;
   for (let i = 0; i < argv.length; i++) {
@@ -142,6 +140,11 @@ function parseArgs(argv: string[]): { src: string; check: boolean; dryRun: boole
       console.log('usage: tsx scripts/import-avatars.ts [--src <dir>] [--check] [--dry-run]');
       process.exit(0);
     } else throw new Error(`import-avatars: unknown argument ${arg}`);
+  }
+  if (!src) {
+    throw new Error(
+      'import-avatars: pass --src <dir> (or set PROTOYARD_AVATARS_SRC) with the original PNGs'
+    );
   }
   return { src, check, dryRun };
 }

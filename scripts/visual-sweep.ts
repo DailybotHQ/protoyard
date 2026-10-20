@@ -111,11 +111,27 @@ function discover(args: SweepArgs): SweepTarget[] {
   return targets;
 }
 
+/** True for any symlink, including a dangling one that existsSync reports as missing. */
+function isSymlink(path: string): boolean {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
 /** The output folder must live under tmp/ and be empty or an earlier sweep. */
 function prepareOut(out: string, compare: string | null): string {
   const dir = resolve(ROOT, out);
   const tmp = join(ROOT, 'tmp');
   if (!dir.startsWith(tmp + sep)) throw new Error(`--out must be inside tmp/ (got ${out})`);
+  // Never follow a symlink out of tmp/: every existing part of the path must be a real folder.
+  for (let part = dir; part.length >= tmp.length; part = dirname(part)) {
+    if (isSymlink(part)) {
+      throw new Error(`--out must not pass through the symlink ${relative(ROOT, part) || part}`);
+    }
+    if (part === tmp) break;
+  }
   if (compare && resolve(ROOT, compare) === dir) {
     throw new Error(
       '--compare must point to an earlier sweep, not the --out folder this run replaces'
