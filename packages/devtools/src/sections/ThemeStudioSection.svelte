@@ -381,9 +381,19 @@ async function importTheme() {
   }
 }
 
+/** Same 64 KB cap as `MAX_THEME_JSON_BYTES` in `@protoyard/runtime`, checked before reading. */
+const MAX_THEME_FILE_BYTES = 64 * 1024;
+
 async function importFile(event: Event) {
-  const file = (event.currentTarget as HTMLInputElement).files?.[0];
+  const input = event.currentTarget as HTMLInputElement;
+  const file = input.files?.[0];
   if (!file) return;
+  if (file.size > MAX_THEME_FILE_BYTES) {
+    // Refuse before `file.text()`: a huge file would otherwise be read into memory first.
+    importError = `That file is too large for a theme (limit ${MAX_THEME_FILE_BYTES / 1024} KB).`;
+    input.value = '';
+    return;
+  }
   importText = await file.text();
   await importTheme();
 }
