@@ -195,7 +195,20 @@ differences and aggregates over declared relations. `validateComputedExpression`
 and target field references and operand/result types; `evaluateComputedExpression` reads the
 current row and caller-supplied related rows without modifying either. Computed values are not
 persisted, so they do not alter storage history or migrations. This primitive is not yet attached
-to blueprint fields or generated screens.
+to blueprint fields or generated screens. Import it from the opt-in
+`@protoyard/blueprint/computed` subpath.
+
+### Workflow state models
+
+The opt-in `@protoyard/blueprint/workflows` module represents state machines as data: a workflow
+binds an entity enum field to named states, an initial state, explicit transitions, optional labels,
+simple field-equality guards and role/capability references. `validateWorkflowDefinition` checks
+those references against a parsed blueprint; `checkWorkflowTransition` makes a deterministic
+decision for a proposed move and record. This is a pure helper, not a service authorization gate.
+No callback, expression or JavaScript is accepted. Workflows are deliberately not yet part of
+formatVersion 1 or generated CRUD services: adding that persisted block requires a separately
+versioned format and migration decision. Until then, generated product-specific workflows remain
+in owned Svelte screens and their services.
 
 Generated screens show the face next to the record title in lists, on board
 cards and in the detail header. The form edits it with a lazy picker (a searchable grid of

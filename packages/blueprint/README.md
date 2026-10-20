@@ -15,7 +15,8 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | Module | Derives | Entry |
 | --- | --- | --- |
 | schema | the zod schema, JSON Schema and cross-reference checks | `.` |
-| computed | a bounded data-only expression grammar, type/reference validation and read-time evaluation | `src/computed/index.ts` (opt-in source entry) |
+| computed | a bounded data-only expression grammar, type/reference validation and read-time evaluation | `./computed` (opt-in) |
+| workflows | data-only states, field guards, role/capability references and deterministic transition checks | `./workflows` (opt-in) |
 | archetypes | strict, portable kit archetype declarations and supported entry points | `.` |
 | storage | Dexie store strings and integrity rules | `.` |
 | migrations | appended database versions; `deriveDatabaseVersions` rebuilds them from `history` | `.` |
@@ -452,18 +453,51 @@ const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
 
 It is a heuristic starting point: read the `rationale`, then refine `blueprint.json`.
 
+## Workflow state models
+
+`@protoyard/blueprint/workflows` validates a workflow separately from the formatVersion 1
+blueprint schema. This keeps the first state model opt-in while the serialized blueprint versioning
+and migration path are decided. A workflow binds to an existing enum field; its state ids must be
+that enum's values. Transitions name explicit endpoints and can add plain equality guards and a
+role/capability authorization reference:
+
+```ts
+import {
+  checkWorkflowTransition,
+  validateWorkflowDefinition,
+} from '@protoyard/blueprint/workflows';
+
+const validation = validateWorkflowDefinition(workflowData, parsedBlueprint);
+if (validation.valid) {
+  const decision = checkWorkflowTransition(validation.workflow, 'open', 'resolved', {
+    role: 'agent',
+    capabilities: ['ticket:update'],
+    record: { priority: 1 },
+  });
+}
+```
+
+Validation checks the initial state, enum values, transition endpoints, guard fields and types,
+role references, and that each referenced role has the declared capability. The transition check
+is a deterministic, pure decision helper; it does not authorize a database write. Services must
+still enforce their normal session policy. Workflows are never JavaScript and are not yet embedded
+in blueprint formatVersion 1 or generated services.
+
+Measured workflow subpath: 4.2 KB minified (1.76 KB gzip) with zod external, using esbuild on
+`src/workflows/index.ts`. Consumers that do not import `@protoyard/blueprint/workflows` do not load
+the transition engine.
+
 ## Computed expressions
 
 Computed values use a small JSON AST and are evaluated at read time. They are never stored in a
 row, generated as JavaScript or included in storage migrations. Import the opt-in module only
-where the consumer needs computed values. The source entry is opt-in; a public `./computed`
-package export is not part of this task:
+where the consumer needs computed values. The `./computed` package subpath is opt-in:
 
 ```ts
 import {
   evaluateComputedExpression,
   validateComputedExpression,
-} from './src/computed/index.ts';
+} from '@protoyard/blueprint/computed';
 
 const expression = {
   op: 'dateDiff',

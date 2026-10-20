@@ -1,3 +1,5 @@
+import * as computed from '@protoyard/blueprint/computed';
+import * as workflows from '@protoyard/blueprint/workflows';
 import { describe, expect, it } from 'vitest';
 import pkg from '../package.json' with { type: 'json' };
 import * as blueprint from '../src/index.ts';
@@ -10,6 +12,10 @@ describe('@protoyard/blueprint package', () => {
   it('ships TypeScript source and stays framework-agnostic', () => {
     expect(pkg.name).toBe('@protoyard/blueprint');
     expect(pkg.exports['.']).toBe('./src/index.ts');
+    expect(pkg.exports['./computed']).toBe('./src/computed/index.ts');
+    expect(pkg.exports['./workflows']).toBe('./src/workflows/index.ts');
+    expect(computed.evaluateComputedExpression).toBeTypeOf('function');
+    expect(workflows.checkWorkflowTransition).toBeTypeOf('function');
     // Only framework-agnostic engine packages (never ui, renderer or Svelte) plus zod (ADR-002).
     const allowed = ['@protoyard/core', '@protoyard/scenarios', '@protoyard/themes', 'zod'];
     for (const dep of Object.keys(pkg.dependencies)) expect(allowed, dep).toContain(dep);
