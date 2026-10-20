@@ -30,6 +30,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | aggregate | count/sum/avg/min/max with groups and UTC date buckets for dashboards and analytics | `.` |
 | app-model | routes, navigation rows with icon ids, navigation groups and layout (`deriveAppModel`) | `.` |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
+| csv-shape | bounded CSV header/sample inference into a reviewable entity draft | `./import/csv-shape` (lazy authoring) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 | search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
 
@@ -288,6 +289,25 @@ const { valid, errors } = validateCsv(entity, text);
 - Money and dates go through `deriveInputSchemas` create coercion (`12.50` → 1250 cents).
 - Export prefixes with `'` cells starting with `= + - @` (also after leading spaces or full-width), a tab or a carriage return, unless the whole cell is a plain number such as `-5` (spreadsheet formula guard, `guardCsvFormula`). Import strips only a prefix the export would have added, so values round-trip.
 - Hard limits: `CSV_MAX_BYTES` (2 MiB) and `CSV_MAX_ROWS` (10,000 data rows); override per call.
+
+### CSV shape authoring
+
+Shape inference is a separate lazy authoring entry, so player consumers that only
+need the row codec do not load it:
+
+```ts
+import { inferCsvEntity } from '@protoyard/blueprint/import/csv-shape';
+
+const { entity, notes } = inferCsvEntity(csvText, { entityName: 'invoice' });
+```
+
+It normalizes headers into deterministic field names, infers conservative kinds from
+at most 100 non-empty rows, and returns a validated entity draft with review notes.
+The result never includes imported cell values, enum values, sample-derived limits or
+row data. The existing 2 MiB / 10,000-row CSV limits still apply; shape inference also
+caps the header at 100 columns and each inspected cell at 16 KiB. Ambiguous columns
+remain `text` and are called out in `notes` for author review. Formula-like sample
+cells are unguarded only while classifying them and are never returned.
 
 ## World generator
 

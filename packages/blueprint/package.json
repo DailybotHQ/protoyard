@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./csv": "./src/csv.ts",
     "./computed": "./src/computed/index.ts",
+    "./import/csv-shape": "./src/import/csv-shape.ts",
     "./generator": "./src/generator.ts",
     "./search": "./src/search.ts",
     "./workflows": "./src/workflows/index.ts"
