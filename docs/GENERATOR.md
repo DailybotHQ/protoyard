@@ -187,6 +187,16 @@ only seeded data, never validation:
   field until all 175 are used, the team's faces are dealt last, adding rows
   keeps the earlier faces, and other fields of the row do not shift.
 
+### Computed expressions
+
+The blueprint package exposes an opt-in data-only computed expression module for read-time
+derived display values. Its allow-listed JSON AST supports arithmetic, string concatenation, date
+differences and aggregates over declared relations. `validateComputedExpression` checks source
+and target field references and operand/result types; `evaluateComputedExpression` reads the
+current row and caller-supplied related rows without modifying either. Computed values are not
+persisted, so they do not alter storage history or migrations. This primitive is not yet attached
+to blueprint fields or generated screens.
+
 Generated screens show the face next to the record title in lists, on board
 cards and in the detail header. The form edits it with a lazy picker (a searchable grid of
 thumbnails: arrow keys, Home and End move, Enter or Space picks) and a
