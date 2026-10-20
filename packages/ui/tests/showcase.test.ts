@@ -7,7 +7,7 @@ afterEach(() => cleanup());
 describe('component showcase', () => {
   it('renders every inline component without runtime errors', () => {
     render(Showcase, {});
-    expect(screen.getByRole('button', { name: 'Plan' }).textContent).toContain('Beta');
+    expect(screen.getByRole('combobox', { name: 'Plan' }).textContent).toContain('Beta');
     expect((screen.getByRole('combobox', { name: 'Fruit' }) as HTMLInputElement).value).toBe(
       'Alpha'
     );

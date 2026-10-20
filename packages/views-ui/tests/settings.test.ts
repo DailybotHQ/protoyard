@@ -252,7 +252,7 @@ describe('preference rows', () => {
       value: 'UTC',
     });
     // The Select trigger is a listbox button named by the row label.
-    const trigger = screen.getByRole('button', { name: 'Time zone' });
+    const trigger = screen.getByRole('combobox', { name: 'Time zone' });
     expect(trigger.getAttribute('aria-haspopup')).toBe('listbox');
     cleanup();
     render(RadioRow, {

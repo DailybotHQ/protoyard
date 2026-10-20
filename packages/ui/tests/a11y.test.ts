@@ -14,7 +14,7 @@ describe('axe regressions', () => {
 
   it('Select never puts aria-required on its button trigger (aria-allowed-attr)', () => {
     render(A11yHarness);
-    const trigger = screen.getByRole('button', { name: /Stage/ });
+    const trigger = screen.getByRole('combobox', { name: /Stage/ });
     expect(trigger.hasAttribute('aria-required')).toBe(false);
   });
 

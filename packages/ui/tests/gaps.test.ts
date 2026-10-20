@@ -53,7 +53,7 @@ describe('Select', () => {
   it('keeps the label as the accessible name and exposes the value as description', () => {
     render(PickersHarness);
     // A labelled button: the <label> wins over its text content for the name.
-    const trigger = screen.getByRole('button', { name: 'Stage' });
+    const trigger = screen.getByRole('combobox', { name: 'Stage' });
     expect(trigger.getAttribute('aria-haspopup')).toBe('listbox');
     const describedBy = trigger.getAttribute('aria-describedby') ?? '';
     expect(document.getElementById(describedBy)?.textContent?.trim()).toBe('Won');

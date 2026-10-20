@@ -44,6 +44,8 @@ const uid = $props.id();
 const valueId = `select-value-${uid}`;
 // The accessible name stays the field label (aria-label / <label for>); the
 // current value is announced as the description, so SRs read "Stage, combobox, Won".
+// role="combobox" (the ARIA select-only combobox) keeps the visible value from
+// being judged as the name (WCAG 2.5.3, axe label-content-name-mismatch).
 const describedBy = $derived(
   [rest['aria-describedby'], selected ? valueId : null].filter(Boolean).join(' ') || undefined
 );
@@ -68,6 +70,7 @@ const describedBy = $derived(
       className
     )}
     {...rest}
+    role="combobox"
     aria-describedby={describedBy}
   >
     <span id={valueId} class={cn('truncate', !selected && 'text-muted-foreground')}>
