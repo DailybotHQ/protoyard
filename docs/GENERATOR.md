@@ -20,6 +20,7 @@ The decision is recorded in [ADR-017](DECISIONS.md#adr-017--data-only-blueprints
 | `templates/crud-app` | The base template `generate` copies: AppShell navigation, entity pages, search palette, members and notifications. |
 | `protoyard generate` / `protoyard blueprint validate` | CLI commands that validate, generate, regenerate and check drift. |
 | [`blueprints/`](../blueprints/README.md) | A catalog of branded example blueprints you can generate from. |
+| [`blueprints/quick/`](../blueprints/quick/README.md) | Compact archetype starters with kit, route, source-size and validation-exercise metadata. |
 
 ## The loop
 

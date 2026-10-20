@@ -191,6 +191,8 @@ Every template is a working app with scenarios, tests and a spec
 | `project-management`, `booking-calendar`, `logistics-map`, `clinic` | Planning and operations: sprints with a board and timeline, bookings over weekly availability, depots and routes with simulated ETAs, a clinic front desk (a simulation, no compliance claim) |
 | `docs-wiki`, `social-feed`, `course-lms` | Content and community: a wiki with versions and safe Markdown, a social feed with notifications, courses with quizzes and learner progress |
 
+For a compact blueprint starter, browse the [quick blueprint catalog](../blueprints/quick/README.md). It lists the archetype, lazy kits, generated route scope and a validation exercise for each example.
+
 Other ways to start:
 
 ```bash
