@@ -1054,6 +1054,32 @@ which keeps side-effectful re-exports. charts-ui and analytics-ui list only CSS,
 which is correct for components without module-level side effects, but it is
 not needed for Vite.
 
+## Generated CRUD screens
+
+Blueprint-declared screen routes are lazy chunks, and the template imports the shared view,
+chart and analytics styles up front so Tailwind emits their utility classes. The existing
+`crud-app` template measurement in [Views kit](#views-kit) reports **232.68 KB gzip initial JS**.
+The generated `harbor-dispatch-demo` build on 2026-10-20 measured **206,436 B initial JS gzip**,
+**432,989 B lazy JS gzip**, **22,385 B CSS gzip** and **1,184,431 B total gzip**. Initial JS is
+within the repository's 250 KB per-prototype budget.
+
+The manifest's per-file lazy chunk sizes for the generated screens were:
+
+| Screen entry | File gzip |
+| --- | ---: |
+| Board | 13,657 B |
+| Calendar | 14,163 B |
+| Dashboard | 9,297 B |
+| Map | 2,312 B |
+| Settings | 4,287 B |
+| Timeline | 8,300 B |
+
+These are entry-file sizes, not the full static-import closure downloaded for a route. Shared
+chunks and screen options change route cost. Use `pnpm protoyard build <slug>` and inspect the
+`bundle` block in `artifacts/<slug>/build-manifest.json` for the prototype-wide totals; use the
+build's chunk list when comparing specific entries. The view package's isolated chunk ceilings
+are in [Views kit](#views-kit).
+
 ## Runtime behavior worth knowing
 
 - **Reads are reactive and scoped.** `liveQuery` re-runs only when the tables

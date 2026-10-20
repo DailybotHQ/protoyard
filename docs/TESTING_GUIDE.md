@@ -157,6 +157,10 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/cli/src/commands/affected.ts`, `packages/cli/src/lib/affected.ts` | `affected.test.ts` | CLI integration |
 | `packages/cli/src/commands/generate.ts`, `blueprint` command | `generate.test.ts`, `blueprint-validate.test.ts` | CLI integration (temporary workspaces) |
 | `packages/blueprint/src/services.ts` | `packages/blueprint/tests/services.test.ts` (real runtime, fixture `tests/fixtures/blueprint-prototype.ts`); CSV paths in `csv-services.test.ts` | integration on fake IndexedDB |
+| `packages/blueprint/src/schema.ts` screen contracts and `screenPath()` | `pnpm vitest run packages/blueprint/tests/screens.test.ts packages/blueprint/tests/schema.test.ts` | schema, cross-reference and default-route contract |
+| `packages/blueprint/src/generator.ts` distributions and geo generation | `pnpm vitest run packages/blueprint/tests/generator.test.ts packages/blueprint/tests/geo.test.ts` | deterministic world and fictional geo contract |
+| `packages/crud/src/screens/**`, geo field and detail tabs | `pnpm vitest run packages/crud` | component and service-backed behavior for board, calendar, map, dashboard, analytics, timeline, settings, geo picker and detail tabs |
+| `packages/cli/src/lib/codegen/emit.ts` generated screen wrappers and layout routes | `pnpm vitest run packages/cli/tests/generate-screens.test.ts packages/cli/tests/generate-layout.test.ts packages/cli/tests/generate.test.ts` | generated files, lazy route mapping and runtime blueprint config |
 | `packages/cli/src/commands/budget.ts` | `budget-command.test.ts` + `budgets.test.ts` | CLI integration; build budgets are also gated in CI |
 | `packages/cli/src/commands/scenario.ts` (benchmark path) | `scenario-bench.test.ts` | CLI integration; CI checks each prototype's default scenarios |
 | `packages/cli/src/commands/spec.ts`, spec extraction | `spec-command.test.ts`, `spec-extract.test.ts`; `pnpm protoyard spec --all --check` for the committed specs | CLI integration + drift check |
@@ -178,6 +182,7 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `prototypes/<slug>/src/domain/**` | `prototypes/<slug>/tests/services.test.ts` (via `tests/support/runtime.ts`, the **real runtime**) | integration |
 | `prototypes/<slug>/src/**/*.svelte` | component tests in `prototypes/<slug>/tests/` where present + `tests/e2e/prototypes.spec.ts` | component + E2E |
 | `templates/<name>/**` | `templates/<name>/tests/*.test.ts` | unit / integration |
+| `templates/crud-app/src/app.css` view-based CRUD consumers | `pnpm protoyard validate <slug> --strict-spec --build` on a generated prototype that declares those screens | build verifies Tailwind styles and generated routes |
 
 **Rule of thumb:** a change in `X/src/...` runs `pnpm vitest run X`.
 

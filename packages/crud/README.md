@@ -5,6 +5,26 @@ prototypes (`protoyard generate`, see [docs/GENERATOR.md](../../docs/GENERATOR.m
 through the `crud-app` template; hand-built prototypes can use it with any
 [blueprint](../blueprint/README.md).
 
+Blueprint-declared screens are generated as lazy routes. Each generated wrapper reads its
+screen from the runtime blueprint; the screen UI is imported from a CRUD subpath such as
+`@protoyard/crud/screens/board`. `detail` tabs render through `EntityDetail`, and supporting
+panels load on demand. The route map and regeneration ownership are documented in
+[GENERATOR.md](../../docs/GENERATOR.md).
+
+When using view-based screens, the prototype stylesheet must import their CSS and register the
+package sources with Tailwind. `templates/crud-app/src/app.css` is the working reference:
+
+```css
+@import "@protoyard/views-ui/styles.css";
+@import "@protoyard/charts-ui/styles.css";
+@import "@protoyard/analytics-ui/styles.css";
+
+@source "./";
+@source "../../../packages/views-ui/src";
+@source "../../../packages/charts-ui/src";
+@source "../../../packages/analytics-ui/src";
+```
+
 Every control respects `can()` (simulated policy, not security). Mutations go through the
 blueprint's entity services and `runtime.members` (`session.assert` → zod →
 `environment.run` → `db.transaction`); components never write tables.
@@ -67,8 +87,9 @@ import { BoardScreen } from '@protoyard/crud/screens/board';
 - Update permissions determine whether the interactive board is rendered. Viewers see the
   same filtered cards and totals without move controls. Records with missing or invalid group
   values are counted below the board.
-- `FilterBar` filters the board and its counts and sums together. Add `@source` for
-  `@protoyard/views-ui` to prototype CSS so Tailwind sees the view classes.
+- `FilterBar` filters the board and its counts and sums together. Import
+  `@protoyard/views-ui/styles.css` and add its source path with `@source` so Tailwind sees the
+  view classes.
 
 ## Calendar screen (`@protoyard/crud/screens/calendar`)
 
@@ -95,8 +116,8 @@ import { CalendarScreen } from '@protoyard/crud/screens/calendar';
   now-line and the week follow the persona's zone and locale and the runtime clock.
 - Below 640 px it starts in the agenda list; otherwise in the screen's `view`.
 - It brings in `@protoyard/views-ui` and `@protoyard/views` (lazy, with this entry only).
-  Prototypes that use it add `@source` for `@protoyard/views-ui` in their CSS so Tailwind
-  sees the view's classes (see the views-ui README).
+  Prototypes import `@protoyard/views-ui/styles.css` and add its source path with `@source`
+  so Tailwind sees the view's classes (see the views-ui README).
 
 ## Map screen (`@protoyard/crud/screens/map`)
 
@@ -119,8 +140,9 @@ import { MapScreen } from '@protoyard/crud/screens/map';
   marker available to keyboard and screen-reader users. `colorBy` uses an enum legend
   with tone, shape and glyph cues.
 - The map is a fictional SVG basemap with no tile server or runtime network requests.
-  This entry loads the view only when the map route is used. Add `@source` for
-  `@protoyard/views-ui` to prototype CSS so Tailwind sees the view classes.
+  This entry loads the view only when the map route is used. Import
+  `@protoyard/views-ui/styles.css` and add its source path with `@source` so Tailwind sees the
+  view classes.
 - Blueprint `geo` fields keep editable latitude and longitude inputs and provide a
   **Pick on map** control. It loads the offline map on demand; clicking a point or
   focusing the map and pressing Enter updates the same inputs.
@@ -189,8 +211,8 @@ import { TimelineScreen } from '@protoyard/crud/screens/timeline';
 - Keyboard and pointer rescheduling moves dates one day at a time; the task menu shifts a record by
   one week. Both update through the entity service and show pending feedback. The view restores its
   optimistic dates if a save fails. Viewers get a read-only timeline.
-- Prototypes using the screen add `@source` for `@protoyard/views-ui` in their CSS so Tailwind sees
-  the view classes.
+- Prototypes using the screen import `@protoyard/views-ui/styles.css` and add its source path with
+  `@source` so Tailwind sees the view classes.
 
 ## Settings screen (`@protoyard/crud/screens/settings`)
 

@@ -395,13 +395,15 @@ const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
   owner) add a field to the main entity when it lacks that kind.
 - **Screens** follow the data: list for every entity, board for a status enum, calendar for
   upcoming dates, timeline for start/end pairs, map for geo, a dashboard at `/`, analytics for
-  amounts, a tabbed detail and settings.
+  amounts, a tabbed detail and settings. `protoyard generate` emits lazy route wrappers for
+  declared screens; wrappers read the matching config from the runtime blueprint.
 - **Faces:** people-like entities (`PEOPLE_ENTITIES`: customer, contact, lead, client,
   patient, student, member, driver, agent, volunteer, follower and similar) get an optional
   `avatar` field labeled Photo (named `photo` when `avatar` is taken).
 - Always the roles `owner`, `admin`, `member`, `viewer`; a brand seed picked by name hash from
-  the catalog's AA-checked seeds; `layout` is `mobile-tabs` for phone briefs, else `sidebar`
-  (a suggestion: blueprints have no layout key yet).
+  the catalog's AA-checked seeds; `layout` is `mobile-tabs` for phone briefs, else `sidebar`.
+  This is a suggested layout in the `blueprintFromBrief()` result and can be included as the
+  blueprint's top-level `{ "id": "mobile-tabs" }` layout configuration.
 
 It is a heuristic starting point: read the `rationale`, then refine `blueprint.json`.
 
