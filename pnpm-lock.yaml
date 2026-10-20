@@ -382,6 +382,12 @@ importers:
       '@lucide/svelte':
         specifier: ^1.59.0
         version: 1.59.0(svelte@5.57.2)
+      '@protoyard/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@protoyard/ai-ui':
+        specifier: workspace:*
+        version: link:../ai-ui
       '@protoyard/analytics-ui':
         specifier: workspace:*
         version: link:../analytics-ui
