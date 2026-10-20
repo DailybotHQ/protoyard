@@ -124,6 +124,17 @@ export function childPath(base: string, segment: string): string {
   return target;
 }
 
+/**
+ * Pulled and exported review comments live in their own folder, outside
+ * artifacts/review/ (the page `review-index --publish` uploads as a site).
+ */
+export const REVIEW_COMMENTS_DIR = 'review-comments';
+
+/** The pulled comments cache (`artifacts/review-comments/comments/<slug>.json`). */
+export function commentsPath(paths: { artifacts: string }, slug: string): string {
+  return childPath(join(paths.artifacts, REVIEW_COMMENTS_DIR, 'comments'), `${slug}.json`);
+}
+
 /** Workspace-relative POSIX path for display and registry entries. */
 export function toPosixRelative(root: string, path: string): string {
   return relative(root, path).split(sep).join('/');

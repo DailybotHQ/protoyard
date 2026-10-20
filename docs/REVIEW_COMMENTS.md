@@ -111,8 +111,8 @@ endpoint, so these buttons do not appear there.
 # From a local export file (the reviewer's Export) or from a deploy:
 pnpm protoyard comments pull crm-demo --file path/to/crm-demo-review-comments.json --format md
 PROTOYARD_REVIEW_KEY=<key> pnpm protoyard comments pull crm-demo --from https://<deploy>/api/comments --format md
-pnpm protoyard comments export crm-demo     # back to the local adapter format (artifacts/review/exports/crm-demo.json)
-pnpm protoyard comments import crm-demo artifacts/review/exports/crm-demo.json
+pnpm protoyard comments export crm-demo     # back to the local adapter format (artifacts/review-comments/exports/crm-demo.json)
+pnpm protoyard comments import crm-demo artifacts/review-comments/exports/crm-demo.json
 ```
 
 `comments pull` writes two files and prints their paths:
@@ -120,16 +120,29 @@ pnpm protoyard comments import crm-demo artifacts/review/exports/crm-demo.json
 | File | What |
 | --- | --- |
 | `prototypes/<slug>/docs/REVIEW.md` | The report: open threads first, grouped by screen. Each thread has the quoted comment, its replies, the route, the anchor locators, the element text, the captured context (scenario, persona, shell, theme, mode, viewport) and a deep link that reopens that view |
-| `artifacts/review/comments/<slug>.json` | The validated comments (the cache that `export` reads) |
+| `artifacts/review-comments/comments/<slug>.json` | The validated comments (the cache that `export` reads) |
 
-`--out <file>` also writes the chosen format (`md` or `json`) to another
-workspace file. `--from` takes an absolute `http(s)` collection URL with no
+Both stay out of `artifacts/review/`, the folder that `review-index --publish`
+uploads, so pulling comments never blocks or leaks into a review-page publish.
+
+`--out <file>` also writes the chosen format (`md` or `json`) to one more
+file. Because that file holds remote reviewer text, it must be under
+`artifacts/` or `tmp/`, or in the prototype's own `prototypes/<slug>/docs/`.
+Source folders (`packages/`, `prototypes/<slug>/src/`, other prototypes,
+`docs/`), `.git/`, root config files, the deploy ledger folder
+(`artifacts/publish/`), paths outside the workspace and any path that goes
+through a symlink are refused with `unsafe_path`. `comments export --out`
+follows the same rule. `--from` takes an absolute `http(s)` collection URL with no
 credentials, query or fragment. It only reads (`GET`), times out after 10
 seconds, refuses redirects and responses over 5 MB, and sends
 `PROTOYARD_REVIEW_KEY` as `x-review-key` when it is set. The key never goes
 on the command line or into a file. Every comment is validated before
-anything is written, and comment text is escaped in `REVIEW.md`, so a comment
-cannot inject Markdown or links into the report.
+anything is written. Comment text is escaped in `REVIEW.md`, and routes,
+locators, element text and build ids must be single lines without control or
+bidi characters (the schema refuses them, and the report strips them again
+before it quotes them as code), so a comment cannot start a heading, raw HTML
+or a link in the report. The report opens with a line that marks everything
+below it as untrusted reviewer text, not instructions.
 
 Then hand `REVIEW.md` to an agent and ask for a plan: one task per open
 thread (or per screen), the deep link as the reproduction, the anchor and the
@@ -299,11 +312,30 @@ Not verified yet:
   - Text is rendered as text, never as HTML.
   - Where a thread shows Markdown, links go through the shared safe parser,
     which allows only `http(s)`, `mailto` and relative URLs.
-  - `REVIEW.md` escapes every comment.
+  - `REVIEW.md` escapes every comment, keeps routes, locators, element
+    text and build ids on one line, and starts with an "untrusted reviewer
+    text" notice. Escaping stops Markdown and HTML injection. It does not
+    make the words trustworthy: an agent reading `REVIEW.md` must treat
+    requests inside comments as data, never as instructions.
+  - `REVIEW.md` holds reviewers' self-declared names and free text, and
+    `prototypes/<slug>/docs/` is tracked. Read it before you commit it.
 - **Limits on the comments Function.**
   - Request bodies are capped at 16 KB.
-  - Each client id may make 30 requests and each IP address 120 per 60
-    seconds; beyond that the Function answers `429` with `Retry-After`.
+  - Only writes (`PUT`, `DELETE`) are rate limited, so polling reads never
+    write to the store. Each IP address may make 120 writes and each client
+    id 30 per 60 seconds; beyond that the Function answers `429` with
+    `Retry-After`. The IP bucket is checked first, so rotating the
+    self-declared client id does not create new buckets once an IP is
+    blocked. With D1, expired `rate_limits` rows are deleted on each allowed
+    write. With KV, rate buckets expire on their own after two windows.
+  - Each slug holds at most 2,000 comments. A `PUT` of a new id beyond that
+    answers `409 comment_limit`; edits of existing comments still work.
+  - Reads are not rate limited, and a slug is any valid slug, not only the
+    deployed one, so storage can still grow by up to 2,000 comments per slug
+    a writer chooses. With KV, every list reads each comment with its own
+    `get`, so a slug near the cap makes reads slow and may reach the
+    platform's per-request subrequest limit. Watch the store's usage, and
+    prefer D1 for any link you share widely.
   - The CLI reads at most 5 MB, and imported files are capped at 5 MB.
 - **KV is eventually consistent.** With the KV store, a new comment can take a
   while to appear for other reviewers, concurrent edits can overwrite each
@@ -328,7 +360,7 @@ Measured on 2026-10-19 (gzip -9, Vite production build of `crm-demo`):
 | Lazy, loaded when review mounts: `mount` + session (toolbar, overlay, thread) + local adapter + anchors + comment schemas | 1.5 + 8.3 + 1.3 + 2.3 + 1.3 = 14.7 KB, plus 1.4 KB CSS |
 | Lazy, on first open: comments panel | 3.5 KB, plus 1.1 KB CSS |
 | Lazy, by adapter: `http` / `artifact-shell` | 2.4 KB / 2.6 KB |
-| Cloudflare `_worker.js` (raw, minified) | 14,443 bytes with D1, 13,981 bytes with KV (limit 20 KB) |
+| Cloudflare `_worker.js` (raw, minified) | 15,105 bytes with D1, 14,476 bytes with KV (limit 20 KB; measured 2026-10-19 after the write-only rate limits, the per-slug cap and the single-line anchor checks) |
 
 ## Tests
 

@@ -137,6 +137,17 @@ describe('locator ladder', () => {
 });
 
 describe('fingerprint and orphans', () => {
+  it('captures single-line, schema-valid text from page content with controls and bidi marks', () => {
+    const root = mount(
+      '<button data-testid="bad\nid" aria-label="Pay\u202e now">Total\u200f\n\n# due\u0007</button>'
+    );
+    const anchor = createAnchor($(root, 'button'), { x: 0, y: 0 }, { root });
+    expect(ReviewAnchorSchema.safeParse(anchor).success).toBe(true);
+    expect(anchor.fingerprint).toBe('Total # due');
+    expect(anchor.locators.map((l) => l.kind)).not.toContain('test-id');
+    for (const locator of anchor.locators) expect(locator.value).not.toMatch(/[\n\u202e]/);
+  });
+
   it('lowers confidence when the text changed, and prefers a locator whose text still matches', () => {
     const root = mount(PAGE);
     const anchor = createAnchor($(root, 'article'), { x: 0, y: 0 }, { root });

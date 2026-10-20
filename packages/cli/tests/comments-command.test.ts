@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 // @vitest-environment node
 import { createServer } from 'node:http';
@@ -103,6 +103,92 @@ describe('protoyard comments', () => {
     };
     expect(pulled.pulledAt).toMatch(/^\d{4}-/);
     expect(pulled.comments).toHaveLength(1);
+    expect(envelope.data.data).toBe('artifacts/review-comments/comments/demo-app.json');
+    expect(markdown.split('\n')[2]).toContain('Untrusted reviewer text.');
+  });
+
+  it('restricts --out to artifacts/, tmp/ and the prototype docs folder', async () => {
+    const ws = workspace();
+    const file = createReviewCommentsFile({
+      namespace: 'demo-app',
+      slug: 'demo-app',
+      comments: [
+        sampleComment('demo-app', { id: 'comment-out-0001', threadId: 'comment-out-0001' }),
+      ],
+    });
+    ws.write('local-review.json', file);
+    ws.write('packages/core/src/index.ts', 'export const original = true;\n');
+    ws.write('.git/hooks/pre-commit', '#!/bin/sh\n');
+    ws.write('prototypes/demo-app/src/App.svelte', '<p>original</p>\n');
+    mkdirSync(`${ws.root}/outside-target`, { recursive: true });
+    symlinkSync(`${ws.root}/packages`, `${ws.root}/tmp-link`);
+    mkdirSync(`${ws.root}/tmp`, { recursive: true });
+    symlinkSync(`${ws.root}/packages/core/src`, `${ws.root}/tmp/linked`);
+    const pull = (out: string) =>
+      cli([
+        '--root',
+        ws.root,
+        '--json',
+        'comments',
+        'pull',
+        'demo-app',
+        '--file',
+        'local-review.json',
+        '--format',
+        'md',
+        '--out',
+        out,
+      ]);
+
+    for (const out of [
+      'packages/core/src/index.ts',
+      'package.json',
+      '.git/hooks/pre-commit',
+      'prototypes/demo-app/src/App.svelte',
+      'prototypes/other-app/docs/REVIEW.md',
+      'docs/REVIEW.md',
+      'tmp-link/core/src/index.ts',
+      'tmp/linked/index.ts',
+      'tmp',
+      'artifacts/publish/ledger.jsonl',
+      '../outside.md',
+      `${ws.root}/../outside.md`,
+    ]) {
+      const refused = await pull(out);
+      expect(refused.code, out).toBe(2);
+      expect(refused.json<{ error: { code: string } }>().error.code, out).toBe('unsafe_path');
+    }
+    expect(readFileSync(`${ws.root}/packages/core/src/index.ts`, 'utf8')).toBe(
+      'export const original = true;\n'
+    );
+    expect(readFileSync(`${ws.root}/.git/hooks/pre-commit`, 'utf8')).toBe('#!/bin/sh\n');
+    expect(existsSync(`${ws.root}/prototypes/demo-app/docs/REVIEW.md`)).toBe(false);
+
+    for (const out of [
+      'tmp/review.md',
+      'artifacts/handoff/review.md',
+      'prototypes/demo-app/docs/REVIEW-copy.md',
+    ]) {
+      const ok = await pull(out);
+      expect(ok.code, `${out}: ${ok.stdout}`).toBe(0);
+      expect(readFileSync(`${ws.root}/${out}`, 'utf8')).toContain('# Review comments: demo\\-app');
+    }
+
+    const exported = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'comments',
+      'export',
+      'demo-app',
+      '--out',
+      'packages/core/src/index.ts',
+    ]);
+    expect(exported.code).toBe(2);
+    expect(exported.json<{ error: { code: string } }>().error.code).toBe('unsafe_path');
+    expect(readFileSync(`${ws.root}/packages/core/src/index.ts`, 'utf8')).toBe(
+      'export const original = true;\n'
+    );
   });
 
   it('pulls and validates the local adapter file format', async () => {
@@ -194,6 +280,8 @@ describe('protoyard comments', () => {
       { slug: 'demo-app', namespace: 'demo-app' }
     );
     expect(localExport.comments).toHaveLength(1);
+    expect(data.file).toBe('artifacts/review-comments/comments/demo-app.json');
+    expect(output).toBe('artifacts/review-comments/exports/demo-app.json');
   });
 
   it('rejects foreign, oversized, and non-HTTP remote sources without writing reports', async () => {

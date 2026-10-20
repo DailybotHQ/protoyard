@@ -51,7 +51,7 @@ function pulled(slug = 'gallery-demo') {
 }
 
 function writePulled(value: unknown) {
-  const dir = join(root, 'artifacts', 'review', 'comments');
+  const dir = join(root, 'artifacts', 'review-comments', 'comments');
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'gallery-demo.json'), JSON.stringify(value));
 }

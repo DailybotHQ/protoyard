@@ -78,7 +78,7 @@ export function readRegistry(registryPath) {
  */
 export function readReviewCounts(workspaceRoot, slug) {
   if (!SLUG_PATTERN.test(slug)) return null;
-  const file = resolve(workspaceRoot, 'artifacts', 'review', 'comments', `${slug}.json`);
+  const file = resolve(workspaceRoot, 'artifacts', 'review-comments', 'comments', `${slug}.json`);
   let value;
   try {
     if (lstatSync(file).isSymbolicLink()) return null;

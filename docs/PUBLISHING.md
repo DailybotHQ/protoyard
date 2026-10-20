@@ -554,6 +554,10 @@ JSON). For each prototype it shows the name, description and icon, then:
   (`?actor=<id>`, at most 12).
 - **Not deployed**: a "not deployed" badge and the command to publish it.
   No URL is ever guessed. Dry runs and ZIPs do not count as deployments.
+- **Review comments** (optional): open and resolved thread counts and the
+  pull time, read from `artifacts/review-comments/comments/<slug>.json`
+  (written by `comments pull` or `comments import`). That folder sits outside
+  `artifacts/review/`, so it is never uploaded with the page.
 
 ```bash
 pnpm protoyard review-index                          # every prototype
@@ -653,7 +657,7 @@ reviewer of the deploy sees the same threads. The CLI changes three things:
    ([Pages advanced mode](https://developers.cloudflare.com/pages/functions/advanced-mode/)).
    Only the chosen store ships. The bundle must stay **under 20 KB raw**, with
    no imports and no Node built-ins. Otherwise the publish fails and nothing
-   is written. Measured on 2026-10-19: 14,443 bytes with D1 and 13,981 bytes
+   is written. Measured on 2026-10-19: 15,105 bytes with D1 and 14,476 bytes
    with KV. The handler validates comments with a dependency-free validator
    that is kept in parity with `ReviewCommentSchema` by tests. zod would add
    about 95 KB.

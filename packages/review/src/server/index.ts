@@ -23,6 +23,8 @@ const MAX_REQUEST_BYTES = 16 * 1024;
 const DEFAULT_WINDOW_MS = 60_000;
 const DEFAULT_CLIENT_LIMIT = 30;
 const DEFAULT_IP_LIMIT = 120;
+/** New comment ids accepted per slug; edits of existing ids are always allowed. */
+const DEFAULT_MAX_COMMENTS_PER_SLUG = 2000;
 
 export interface ReviewSummary {
   total: number;
@@ -44,6 +46,10 @@ export interface CommentsStore {
   put(comment: ReviewComment): Promise<void>;
   remove(slug: string, id: string): Promise<void>;
   summary(slug: string): Promise<ReviewSummary>;
+  /** Comments stored for `slug`; the handler falls back to `list().length` without it. */
+  count?(slug: string): Promise<number>;
+  /** Best-effort removal of rate buckets whose window ended (D1); called on allowed writes. */
+  pruneRateLimits?(now: number, windowMs: number): Promise<void>;
   consumeRateLimit(
     key: string,
     now: number,
@@ -59,6 +65,8 @@ export interface CommentsHandlerEnv {
   perClientRateLimit?: number;
   perIpRateLimit?: number;
   rateWindowMs?: number;
+  /** Cap on comments per slug (default 2000); a PUT of a new id beyond it answers 409. */
+  maxCommentsPerSlug?: number;
 }
 
 interface KvKey {
@@ -293,10 +301,17 @@ export async function handleCommentsRequest(
 
   const now = env.now?.() ?? Date.now();
   const windowMs = Math.max(1000, env.rateWindowMs ?? DEFAULT_WINDOW_MS);
-  const limits = [
-    [`client:${clientId(request)}`, Math.max(1, env.perClientRateLimit ?? DEFAULT_CLIENT_LIMIT)],
-    [`ip:${clientIp(request)}`, Math.max(1, env.perIpRateLimit ?? DEFAULT_IP_LIMIT)],
-  ] as const;
+  // Only writes are limited, so polling reads never write rate buckets. The IP
+  // bucket is checked first: a client id rotated past a blocked IP adds no row.
+  const limits = write
+    ? ([
+        [`ip:${clientIp(request)}`, Math.max(1, env.perIpRateLimit ?? DEFAULT_IP_LIMIT)],
+        [
+          `client:${clientId(request)}`,
+          Math.max(1, env.perClientRateLimit ?? DEFAULT_CLIENT_LIMIT),
+        ],
+      ] as const)
+    : [];
   try {
     for (const [key, limit] of limits) {
       const result = await store.consumeRateLimit(key, now, limit, windowMs);
@@ -316,6 +331,7 @@ export async function handleCommentsRequest(
   } catch {
     return apiError(500, 'internal_error', 'Comments request could not be completed.');
   }
+  if (write) await store.pruneRateLimits?.(now, windowMs).catch(() => undefined);
 
   try {
     if (route.kind === 'list') {
@@ -342,6 +358,13 @@ export async function handleCommentsRequest(
       return apiError(422, 'route_mismatch', 'Comment slug and id must match the request path.');
     }
     const existing = await store.get(route.slug, route.id);
+    const max = Math.max(1, env.maxCommentsPerSlug ?? DEFAULT_MAX_COMMENTS_PER_SLUG);
+    if (
+      !existing &&
+      (store.count ? await store.count(route.slug) : (await store.list(route.slug)).length) >= max
+    ) {
+      return apiError(409, 'comment_limit', `This prototype already has ${max} comments.`);
+    }
     const stampedAt = new Date(now).toISOString();
     const stamped = validateReviewComment({
       ...parsed.data,
@@ -401,6 +424,9 @@ export function createMemoryCommentsStore(): CommentsStore {
     },
     async summary(slug) {
       return summaryOf([...comments.values()].filter((comment) => comment.slug === slug));
+    },
+    async count(slug) {
+      return [...comments.values()].filter((comment) => comment.slug === slug).length;
     },
     async consumeRateLimit(bucket, now, limit, windowMs) {
       const current = limits.get(bucket);
@@ -480,6 +506,19 @@ export function createD1CommentsStore(db: ReviewD1Database): CommentsStore {
       const comments = await this.list(slug);
       return summaryOf(comments);
     },
+    async count(slug) {
+      const row = await db
+        .prepare('SELECT COUNT(*) AS n FROM comments WHERE slug = ?')
+        .bind(slug)
+        .first<{ n: number }>();
+      return Number(row?.n ?? 0);
+    },
+    async pruneRateLimits(now, windowMs) {
+      await db
+        .prepare('DELETE FROM rate_limits WHERE window_start_ms + ? <= ?')
+        .bind(windowMs, now)
+        .run();
+    },
     async consumeRateLimit(bucket, now, limit, windowMs) {
       const row = await db
         .prepare(`INSERT INTO rate_limits (bucket_key, window_start_ms, count) VALUES (?, ?, 1)
@@ -507,15 +546,19 @@ export function createD1CommentsStore(db: ReviewD1Database): CommentsStore {
 export function createKvCommentsStore(kv: ReviewKvNamespace): CommentsStore {
   const prefix = 'protoyard:review:comments:';
   const ratePrefix = 'protoyard:review:rate:';
+  const keys = async (slug: string) => {
+    const names: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await kv.list({ prefix: `${prefix}${slug}:`, ...(cursor ? { cursor } : {}) });
+      names.push(...page.keys.map((entry) => entry.name));
+      cursor = page.list_complete ? undefined : page.cursor;
+    } while (cursor);
+    return names;
+  };
   return {
     async list(slug, since) {
-      const names: string[] = [];
-      let cursor: string | undefined;
-      do {
-        const page = await kv.list({ prefix: `${prefix}${slug}:`, ...(cursor ? { cursor } : {}) });
-        names.push(...page.keys.map((entry) => entry.name));
-        cursor = page.list_complete ? undefined : page.cursor;
-      } while (cursor);
+      const names = await keys(slug);
       const rows = await Promise.all(names.map(async (name) => parseComment(await kv.get(name))));
       return sortReviewComments(
         rows.filter((comment): comment is ReviewComment =>
@@ -539,6 +582,9 @@ export function createKvCommentsStore(kv: ReviewKvNamespace): CommentsStore {
     },
     async summary(slug) {
       return summaryOf(await this.list(slug));
+    },
+    async count(slug) {
+      return (await keys(slug)).length;
     },
     async consumeRateLimit(bucket, now, limit, windowMs) {
       const key = `${ratePrefix}${bucket}`;
@@ -582,4 +628,5 @@ export const REVIEW_SERVER_LIMITS = {
   defaultWindowMs: DEFAULT_WINDOW_MS,
   defaultClientLimit: DEFAULT_CLIENT_LIMIT,
   defaultIpLimit: DEFAULT_IP_LIMIT,
+  maxCommentsPerSlug: DEFAULT_MAX_COMMENTS_PER_SLUG,
 } as const;

@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import {
   createPulledReviewComments,
   type PulledReviewComments,
@@ -9,7 +9,8 @@ import {
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';
-import { isInside, toPosixRelative } from '../lib/paths.ts';
+import { guardOutputFile } from '../lib/output-guard.ts';
+import { commentsPath, REVIEW_COMMENTS_DIR, toPosixRelative } from '../lib/paths.ts';
 import { assertSlug, resolveTarget } from '../lib/workspace.ts';
 
 const MAX_REVIEW_FILE_BYTES = 5 * 1024 * 1024;
@@ -127,20 +128,17 @@ async function fetchComments(url: URL): Promise<unknown[]> {
   return body.comments;
 }
 
-function commentsPath(ctx: Parameters<Handler>[0], slug: string): string {
-  return resolve(ctx.paths.artifacts, 'review', 'comments', `${slug}.json`);
-}
-
+/**
+ * Every file these commands write holds remote, untrusted reviewer text, so
+ * each path (default or `--out`) goes through guardOutputFile: only
+ * artifacts/, tmp/ and, for REVIEW.md, the prototype's own docs/ folder.
+ */
 function safeOutputPath(
   ctx: Parameters<Handler>[0],
-  raw: string | undefined,
-  fallback: string
+  requested: string,
+  allowedDirs: readonly string[] = []
 ): string {
-  const path = resolve(ctx.root, raw ?? fallback);
-  if (!isInside(ctx.root, path)) {
-    throw new CliError('unsafe_path', 'Review report output must stay inside the workspace.');
-  }
-  return path;
+  return guardOutputFile({ root: ctx.root, paths: ctx.paths, requested, allowedDirs });
 }
 
 async function writeOutput(path: string, contents: string): Promise<void> {
@@ -198,10 +196,11 @@ export const commentsPullCommand: Handler = async (ctx, args, options): Promise<
   }
 
   const markdown = renderReviewMarkdown({ slug, comments: pulled.comments, pulledAt });
-  const markdownPath = safeOutputPath(ctx, resolve(dir, 'docs', 'REVIEW.md'), '');
-  const dataPath = safeOutputPath(ctx, commentsPath(ctx, slug), '');
+  const docsDir = resolve(dir, 'docs');
+  const markdownPath = safeOutputPath(ctx, resolve(docsDir, 'REVIEW.md'), [docsDir]);
+  const dataPath = safeOutputPath(ctx, commentsPath(ctx.paths, slug));
   const customOut = opt(options, 'out');
-  const customPath = customOut ? safeOutputPath(ctx, customOut, '') : undefined;
+  const customPath = customOut ? safeOutputPath(ctx, customOut, [docsDir]) : undefined;
   const selected = format === 'md' ? markdown : `${JSON.stringify(pulled, null, 2)}\n`;
   await writeOutput(markdownPath, markdown);
   await writeOutput(dataPath, `${JSON.stringify(pulled, null, 2)}\n`);
@@ -240,7 +239,7 @@ export const commentsImportCommand: Handler = async (ctx, args): Promise<Command
     slug,
     comments: localFile.comments,
   });
-  const output = commentsPath(ctx, slug);
+  const output = safeOutputPath(ctx, commentsPath(ctx.paths, slug));
   await writeOutput(output, `${JSON.stringify(pulled, null, 2)}\n`);
   return {
     data: {
@@ -264,13 +263,12 @@ export const commentsExportCommand: Handler = async (
   if (args.length !== 1) throw new CliError('usage', 'Pass exactly one prototype slug.');
   const slug = assertSlug(args[0]);
   const { entry } = await resolveTarget(ctx, slug, 'prototype');
-  const inputPath = commentsPath(ctx, slug);
+  const inputPath = commentsPath(ctx.paths, slug);
   const pulled = await readJsonFile(inputPath);
   const localFile = parseFileComments(pulled, slug, entry.namespace);
   const outputPath = safeOutputPath(
     ctx,
-    opt(options, 'out'),
-    `artifacts/review/exports/${slug}.json`
+    opt(options, 'out') ?? join('artifacts', REVIEW_COMMENTS_DIR, 'exports', `${slug}.json`)
   );
   await writeOutput(outputPath, `${JSON.stringify(localFile, null, 2)}\n`);
   return {

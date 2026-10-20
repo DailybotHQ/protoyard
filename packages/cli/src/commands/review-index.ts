@@ -8,7 +8,7 @@ import { inspectPrototype } from '../lib/inspect.ts';
 import { untilSignal } from '../lib/network.ts';
 import { CliError, formatBytes, mark } from '../lib/output.ts';
 import { guardOutputDir } from '../lib/output-guard.ts';
-import { isInside, toPosixRelative } from '../lib/paths.ts';
+import { commentsPath, isInside, toPosixRelative } from '../lib/paths.ts';
 import { parsePort } from '../lib/ports.ts';
 import { type LedgerEntry, ledgerPath, readLedger } from '../lib/publish-ledger.ts';
 import {
@@ -49,7 +49,7 @@ async function reviewCountsFor(
   ctx: CommandContext,
   slug: string
 ): Promise<{ open: number; resolved: number; pulledAt: string } | undefined> {
-  const path = join(ctx.paths.artifacts, 'review', 'comments', `${slug}.json`);
+  const path = commentsPath(ctx.paths, slug);
   let value: unknown;
   try {
     const content = await readFile(path);
