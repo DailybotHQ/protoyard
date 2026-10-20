@@ -61,5 +61,10 @@
   "peerDependencies": {
     "svelte": "^5.57.0"
   },
-  "svelte": "./src/index.ts"
+  "svelte": "./src/index.ts",
+  "protoyard": {
+    "build": {
+      "assets": []
+    }
+  }
 }
