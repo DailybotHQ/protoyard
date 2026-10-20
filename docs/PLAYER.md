@@ -28,6 +28,10 @@ they are ordinary Vite apps that can be edited, validated and exported.
   - Nothing is sent to a remote service.
   - Arrow keys choose a result, Enter opens it, Escape closes the list and
     then clears the query, and a live region announces the result count.
+- With a configured site (`--site` or `GALLERY_SITE`), `sitemap.xml` lists
+  `/play/`, `/docs/` and every published guide as absolute, base-aware URLs,
+  and `robots.txt` points at it. Share instances (`/play/#bp=…`, `?src=…`) are
+  never listed: each one is a viewer's blueprint, not a page of the site.
 
 The player also supports a `?src=./blueprint.json` URL for a JSON file next to
 the player. The picker accepts a local file or the bundled fictional demo.

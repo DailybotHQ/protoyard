@@ -920,8 +920,9 @@ because a showcase is a demo site. Preview it with
 localhost); the path belongs to `--base`. With it, every gallery page gets a
 canonical link, Open Graph and Twitter card tags with absolute URLs, and
 `sitemap.xml` lists every page and live demo; `robots.txt` points at it. The
-`/play/` landing page is in the sitemap. Share fragments are not sent to the
-server, and the page marks fragment-bearing visits `noindex`.
+`/play/` landing page, `/docs/` and every published guide are in the sitemap.
+Share fragments are not sent to the server, and the page marks fragment-bearing
+visits `noindex`.
 Every page shares one social card, `apps/gallery/public/og-image.jpg`
 (1200×630), so a shared link always shows the brand. The favicon set
 (`favicon.ico`, `favicon-96x96.png`, `apple-touch-icon.png`, `icon-192.png`,
