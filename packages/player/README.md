@@ -19,6 +19,9 @@ data" badge.
    Each blueprint stores its data in its own IndexedDB databases
    (`protoyard.bp-….data` and `.control`), so two blueprints on one origin never
    share rows, and an edited blueprint opens a fresh world.
+   `?keep=<name>` opts into a stable `keep-…` namespace; opening a newer
+   blueprint with the same name uses its derived database versions to migrate
+   that world's schema instead of creating a fresh content namespace.
 2. `definePrototypeFromBlueprint(blueprint, { namespace })` builds the manifest,
    database versions, policy, integrity, scenarios, brand theme, world generator
    and app model, all from `@protoyard/blueprint`.
@@ -32,6 +35,14 @@ data" badge.
 
 The page reaches `performance.mark('protoyard:ready')` and
 `<html data-protoyard-ready="1">` like any prototype.
+
+The player keeps a small `protoyard.player.index` database with the stored
+exploration name, last-opened time, content identity and a best-effort origin
+storage estimate. `listExplorations()` reads it, while
+`clearExploration(namespace, { confirmed: true })` deletes only that
+exploration's `.data` and `.control` databases and its index row. Clearing
+without confirmation is rejected. The estimate is origin-wide because browser
+storage APIs do not expose per-IndexedDB-database byte counts.
 
 Today `src/main.ts` boots the bundled demo blueprint
 (`src/fixtures/demo.blueprint.json`, a copy of the fictional
@@ -70,8 +81,9 @@ These budgets are enforced by a dedicated player budget gate, which is planned a
 
 ## Honest limits
 
-- The no-flash appearance script is keyed by the build namespace (`player`),
-  not the blueprint's, so a saved dark mode can flash on first paint.
+- The player replays the most recently active blueprint's appearance cache
+  before the runtime paints, keyed by its `bp-…` or `keep-…` namespace. A first
+  visit without a cached appearance still follows the system color preference.
 - Only the bundled demo blueprint loads until the source resolution lands.
 - Storage isolation is by namespace on one origin. That is not a security
   boundary (see [SECURITY](../../docs/SECURITY.md)).

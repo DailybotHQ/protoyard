@@ -376,6 +376,22 @@ Be honest with the people using a prototype:
 - **Export snapshots of anything worth keeping.** A downloaded snapshot file
   is the only copy that survives the browser.
 
+### Player explorations
+
+The static player keeps its catalog in `protoyard.player.index`, separate from
+the data and control databases of every blueprint. By default a blueprint's
+content identity supplies a `bp-…` namespace, so two blueprints on one origin
+cannot accidentally share rows. `?keep=<name>` instead derives a stable
+`keep-…` namespace; reopening that name lets the blueprint's
+`deriveDatabaseVersions` migration chain update the existing world.
+
+The player can list each stored exploration by name, last-opened time and a
+best-effort origin storage estimate. Clearing an exploration requires explicit
+confirmation and deletes only its `.data` and `.control` databases plus its
+index row. Storage estimates are origin-wide because browsers do not expose
+byte counts per IndexedDB database. This remains an origin-local convenience,
+not a security boundary.
+
 ### Uploaded files (blobs)
 
 Blueprint file fields store each upload as a row in the shared `files` table,
