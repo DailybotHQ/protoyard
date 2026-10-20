@@ -147,7 +147,8 @@ The player builds like a prototype with `defineProtoyardConfig`. Its own
 `protoyard.json` holds build settings only:
 - base `./`, so the output is relocatable;
 - DevTools included, and shown unless `?devtools=0`;
-- the demo badge.
+- the demo badge;
+- offline support, which emits a service worker and precaches the complete build.
 
 Its `storage.namespace` (`player`) is never used for a blueprint's data.
 `src/app.css` registers the crud, views, charts and analytics sources with
@@ -159,7 +160,16 @@ pnpm --filter @protoyard/player dev
 pnpm --filter @protoyard/player preview
 pnpm vitest run packages/player/tests/boot.test.ts
 pnpm vitest run packages/player/tests/postmessage.test.ts packages/player/tests/run.test.ts
+pnpm vitest run packages/player/tests/offline.test.ts
 ```
+
+The built player is installable from a secure origin. The first visit must be
+online so the service worker can precache the shell, manifest, every lazy
+screen chunk and the bundled assets; after that, `#bp=` navigations use the
+cached shell and keep blueprint data in IndexedDB. Open the player with
+`?offline=0` to unregister its worker and clear only this player's offline
+cache. This opt-in build behavior is not used by Claude artifact exports,
+which reject offline service workers.
 
 ## Size
 

@@ -1005,6 +1005,13 @@ network. Prototype data was already local in IndexedDB.
   `<base>avatars/` folder outside each app's scope, so they are not precached
   and need the network.
 
+The static `@protoyard/player` is built with this flag enabled. Its manifest
+advertises a standalone install, and its worker precaches the complete player
+build, including lazy screen chunks, so a previously opened `#bp=` link can
+reopen offline while its simulated data remains in IndexedDB. The first visit
+must be online; `?offline=0` unregisters only the player scope and clears only
+its caches. Claude artifact exports continue to reject offline builds.
+
 It requires HTTPS or localhost, and the first visit must be online. Browsers
 (especially Safari) may still evict caches and storage, so export snapshots
 of anything worth keeping.
