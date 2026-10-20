@@ -30,12 +30,16 @@ test.describe('Cadence Studio booking flow (static build)', () => {
 
     const booking = page.getByRole('button', { name: /^Clay forms for beginners,/ });
     await expect(booking).toBeVisible();
-    const originalLabel = await booking.getAttribute('aria-label');
-    await booking.focus();
-    await booking.press('Space');
-    await booking.press('ArrowDown');
-    await booking.press('Enter');
-    await expect.poll(() => booking.getAttribute('aria-label')).not.toBe(originalLabel);
+    // The phone agenda lists bookings without moving them (CalendarView: agenda has no
+    // move mode), so the keyboard reschedule runs on the desktop week grid.
+    if (!phone) {
+      const originalLabel = await booking.getAttribute('aria-label');
+      await booking.focus();
+      await booking.press('Space');
+      await booking.press('ArrowDown');
+      await booking.press('Enter');
+      await expect.poll(() => booking.getAttribute('aria-label')).not.toBe(originalLabel);
+    }
     await expectAccessible(page, testInfo, { include: 'main', label: 'calendar-booking' });
 
     await page.goto(`${prototypeUrl(SLUG)}?scenario=active#/settings`);
@@ -44,6 +48,11 @@ test.describe('Cadence Studio booking flow (static build)', () => {
     await mode.click();
     await page.getByRole('option', { name: 'Dark', exact: true }).click();
     await expect(mode).toContainText('Dark');
+    // A live mode switch animates colors; check contrast once the dark palette has settled.
+    await expect(page.locator('html')).toHaveAttribute('data-py-mode', 'dark');
+    await page.waitForFunction(() =>
+      document.getAnimations().every((a) => a.playState !== 'running')
+    );
     await expectAccessible(page, testInfo, { include: 'main', label: 'studio-appearance' });
 
     const overflow = await page.evaluate(
