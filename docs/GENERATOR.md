@@ -104,6 +104,7 @@ A blueprint is strict: an unknown key anywhere fails validation.
 | `brand` | no | A seed color or preset that `generate` turns into a WCAG AA theme, or a `libraryTheme` id it uses as-is. |
 | `catalog`, `tags`, `icon`, `category` | no | Catalog metadata for files under `blueprints/`. |
 | `history` | no | Written by `generate`; never edit it by hand (see [Migrations](#regeneration-and-migrations)). |
+| `validation` | no | Validation tasks for exploration sessions (see [Validation tasks](#validation-tasks)). |
 
 ### Entities
 
@@ -278,6 +279,44 @@ this is still a simulation, not security. The crud-app scenarios use the roles
 - `catalog`, `tags`, `icon`, `category`: shelf metadata. Files under
   `blueprints/` that set both `brand` and `catalog` are indexed as
   `kind: blueprint` (`pnpm protoyard list --kind blueprint`).
+
+### Validation tasks
+
+An optional `validation.tasks` block (1 to 20 tasks) turns an exploration into a
+small usability session. Each task has a kebab-case `id`, a plain-text `prompt`
+(up to 280 characters, never rendered as HTML), an optional `timeLimitSeconds`
+(10 to 3,600) and a `success` condition. The condition is a `route`, a `data`
+predicate, or both, and both must hold when both are given:
+
+```json
+"validation": {
+  "tasks": [
+    {
+      "id": "book-friday",
+      "prompt": "Book a class for Friday.",
+      "timeLimitSeconds": 120,
+      "success": {
+        "route": { "path": "/bookings", "match": "prefix" },
+        "data": { "op": "count>=", "entity": "booking", "value": 1 }
+      }
+    }
+  ]
+}
+```
+
+| Part | Meaning |
+| --- | --- |
+| `route` | `path` is an app route (`/bookings`, `/bookings/new`; no query, fragment or `..`). `match` is `exact` (the default) or `prefix`. Trailing slashes and queries in the current route are ignored. |
+| `data` `eq` | Some row of `entity` has `field` equal to `value` (a string, number, boolean or `null`, matching the field's kind; a `tags` field matches when it holds the value). `json`, `file` and `geo` fields cannot be compared. |
+| `data` `contains` | Some row has a text, `enum` or `tags` `field` containing `value`, ignoring case. |
+| `data` `count>=` | `entity` has at least `value` more rows than when the task started (`from: "task-start"`, the default), or at least `value` rows in total (`from: "zero"`). |
+
+There is no expression language: the operator list is closed, values are
+literals, and nothing from the blueprint is evaluated as code. Parsing checks
+that task ids are unique, that entities and fields exist, and that value types
+fit the field. `evaluateValidationSuccess(success, { route, rows, baseline })`
+in `@protoyard/blueprint` is pure and deterministic. Today the library parses,
+checks and evaluates the block; no screen shows the tasks yet.
 
 ### Checks
 
