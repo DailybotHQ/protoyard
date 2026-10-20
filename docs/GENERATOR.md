@@ -120,6 +120,7 @@ A blueprint is strict: an unknown key anywhere fails validation.
 | `indexes` | Extra Dexie indexes. Relations, personas, tags and files are always indexed. |
 | `defaultSort` | `{ "field": "slaDueAt", "direction": "asc" }`. |
 | `seedCount` | Rows the generic generator seeds at `normal` density (1–500, scaled by density). Default 4 for entities nothing points at, 8 otherwise. |
+| `screenDefaults` | Optional `{ "views": ["list", "detail"], "list": { "columns": ["title"] }, "detail": { "tabs": ["overview", "related:task"] } }`. When set, `views` selects that entity's standard list/detail/form routes. List columns and detail tabs are cross-reference checked. |
 | `features` | `softDelete`, `audit`, `notifications`, `files` and `csv`, all `false` by default. |
 
 ### Field kinds
@@ -300,8 +301,10 @@ this is still a simulation, not security. The crud-app scenarios use the roles
   can set `path` (defaults such as `/<plural>/board` or `/dashboard`), `title`
   and `nav`. Generation emits a typed lazy route wrapper for each declaration;
   its screen config is read from `blueprint.screens` through `useCrudApp()`, so
-  generated files do not inline stale JSON literals. Independently, every
-  entity still gets its standard list and detail routes, plus a create route.
+  generated files do not inline stale JSON literals. An entity without
+  `screenDefaults` keeps its legacy list and detail routes. With defaults,
+  only the listed CRUD views are synthesized as ordinary screens; a top-level
+  screen of the same entity and type remains authoritative for route and options.
   Screen behavior comes from the typed `screenKinds` registry in
   `@protoyard/crud`; codegen reads Svelte-free import metadata from
   `@protoyard/crud/registry-meta`, while each view-kit component stays in its

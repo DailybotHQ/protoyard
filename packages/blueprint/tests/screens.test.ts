@@ -4,6 +4,7 @@ import {
   type BlueprintScreen,
   blueprintJsonSchema,
   dashboardWidgets,
+  deriveAppModel,
   parseBlueprint,
   SCREEN_TYPES,
   safeParseBlueprint,
@@ -596,6 +597,91 @@ describe('screen cross-reference checks', () => {
       screen(bp, 'calendar').startField = 'startOn';
     });
     expect(issues).toContain('screens.4: Unrecognized key: "startField"');
+  });
+});
+
+describe('entity screen defaults', () => {
+  it('materializes only the declared CRUD views and their defaults', () => {
+    const input = fixture();
+    input.entities[0]!.screenDefaults = {
+      views: ['list'],
+      list: { columns: ['name'] },
+    };
+    const blueprint = parseBlueprint(input);
+    const clientList = blueprint.screens.find(
+      (candidate) => candidate.type === 'list' && candidate.entity === 'client'
+    );
+    expect(clientList).toMatchObject({ type: 'list', entity: 'client', columns: ['name'] });
+
+    const model = deriveAppModel(blueprint);
+    const paths = model.routes.map((route) => route.path);
+    expect(paths).toContain('/clients');
+    expect(paths).not.toContain('/clients/:id');
+    expect(paths).toContain('/projects');
+    expect(paths).toContain('/projects/:id');
+  });
+
+  it('keeps an explicit top-level route authoritative over entity defaults', () => {
+    const input = fixture();
+    input.entities[0]!.screenDefaults = { views: ['list', 'detail'] };
+    input.screens = [
+      ...(input.screens ?? []),
+      { type: 'list', entity: 'client', path: '/clients/custom', columns: ['name'] },
+    ];
+    const blueprint = parseBlueprint(input);
+    expect(
+      blueprint.screens.filter(
+        (candidate) =>
+          'entity' in candidate && candidate.entity === 'client' && candidate.type === 'list'
+      )
+    ).toHaveLength(1);
+    const paths = deriveAppModel(blueprint).routes.map((route) => route.path);
+    expect(paths).toContain('/clients/custom');
+    expect(paths).not.toContain('/clients');
+    expect(paths).toContain('/clients/:id');
+  });
+
+  it.each([
+    [
+      'unknown list column',
+      { views: ['list'], list: { columns: ['missing'] } },
+      'entities.0.screenDefaults.list.columns.0: unknown field "missing" on "client"',
+    ],
+    [
+      'unrelated detail section',
+      { views: ['detail'], detail: { tabs: ['related:task'] } },
+      'entities.0.screenDefaults.detail.tabs.0: "task" has no relation field to "client"',
+    ],
+    [
+      'detail config without detail view',
+      { views: ['list'], detail: { tabs: ['overview'] } },
+      'entities.0.screenDefaults.detail: detail defaults require "detail" in views',
+    ],
+  ])('reports a path-specific error for %s', (_label, defaults, expected) => {
+    expect(
+      issuesAfter((bp) => {
+        (bp.entities[0] as Record<string, unknown>).screenDefaults = defaults;
+      })
+    ).toContain(expected);
+  });
+
+  it('rejects duplicate standard views and duplicate detail tabs', () => {
+    const duplicateViewIssues = issuesAfter((bp) => {
+      (bp.entities[0] as Record<string, unknown>).screenDefaults = {
+        views: ['list', 'list'],
+      };
+    });
+    expect(duplicateViewIssues).toContain('entities.0.screenDefaults.views: duplicate view "list"');
+
+    const duplicateTabIssues = issuesAfter((bp) => {
+      (bp.entities[0] as Record<string, unknown>).screenDefaults = {
+        views: ['detail'],
+        detail: { tabs: ['overview', 'overview'] },
+      };
+    });
+    expect(duplicateTabIssues).toContain(
+      'entities.0.screenDefaults.detail.tabs: duplicate tab "overview"'
+    );
   });
 });
 

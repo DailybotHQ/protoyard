@@ -102,8 +102,12 @@ optional `screens`, `brand` and `archetype`. Every object is strict, so unknown 
 
 - **Entities:** kebab-case `name` (singular) and `plural`, optional `table`, `fields`,
   `titleField`, `searchable`, `ownerField` (a `persona` field, enables `:own` actions),
-  `indexes`, `defaultSort` and `features` (`softDelete`, `audit`, `notifications`, `files`,
-  `csv`, all off by default).
+  `indexes`, `defaultSort`, optional `screenDefaults`, and `features` (`softDelete`, `audit`,
+  `notifications`, `files`, `csv`, all off by default). `screenDefaults.views` can enable
+  `list`, `detail` and `form` for that entity; `list.columns` selects visible fields and
+  `detail.tabs` selects overview, related and feature-backed sections. When the block is absent,
+  the legacy list and detail routes remain. Entity defaults materialize as ordinary screens;
+  an explicit top-level screen of the same entity and type takes precedence and is not replaced.
 - **Field kinds:** `text`, `longText`, `number`, `integer`, `money` (integer cents plus an
   ISO 4217 `currency`, default `USD`), `boolean`, `date`, `datetime`, `enum` (`values`),
   `email`, `url`, `phone`, `tags`, `relation` (`to`, `cardinality` `one|many`, `onDelete`
@@ -140,6 +144,8 @@ referenced field exists and has the right kind (enum `groupBy`, date fields, num
 aggregates, `geo` for maps), filter values and ops, chart requirements (donut needs `groupBy`,
 line and area need a date bucket), related tabs need a relation back, feature-gated tabs and
 settings sections, archetype entity slots, and duplicate or reserved (`/members`) routes.
+Entity screen defaults receive the same field, feature, related-entity and route-collision checks
+as top-level screens; errors point back to `entities.<n>.screenDefaults`.
 
 Relations keep their stored direction explicit: the entity declaring a relation owns its
 `<field>Id` or `<field>Ids` foreign-key property. `required` means a one relation must contain an
