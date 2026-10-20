@@ -14,6 +14,17 @@
       "svelte": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./registry-meta": "./src/registry-meta.ts",
+    "./screens/list": {
+      "types": "./src/EntityList.svelte",
+      "svelte": "./src/EntityList.svelte",
+      "default": "./src/EntityList.svelte"
+    },
+    "./screens/form": {
+      "types": "./src/EntityForm.svelte",
+      "svelte": "./src/EntityForm.svelte",
+      "default": "./src/EntityForm.svelte"
+    },
     "./screens/settings": {
       "types": "./src/screens/settings/index.ts",
       "svelte": "./src/screens/settings/index.ts",

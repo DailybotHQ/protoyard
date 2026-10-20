@@ -11,6 +11,15 @@ screen from the runtime blueprint; the screen UI is imported from a CRUD subpath
 panels load on demand. The route map and regeneration ownership are documented in
 [GENERATOR.md](../../docs/GENERATOR.md).
 
+`screenKinds` in `@protoyard/crud` is the typed runtime registry for blueprint screen
+components. Each kit loader uses a dynamic import, so board, calendar, map, analytics, dashboard
+and settings code stays outside the initial chunk until that screen is opened. The
+Svelte-free `@protoyard/crud/registry-meta` entry shares the kind, subpath and export metadata
+with the CLI code generator. Archetype packages can call `registerScreenKind` with a lazy
+loader and props adapter; duplicate registrations fail clearly. The `entity-page` key is
+reserved for the CRUD app shell to register, while the blueprint's declared `SCREEN_TYPES`
+all have built-in loaders.
+
 When using view-based screens, the prototype stylesheet must import their CSS and register the
 package sources with Tailwind. `templates/crud-app/src/app.css` is the working reference:
 

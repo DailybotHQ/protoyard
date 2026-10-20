@@ -20,3 +20,11 @@ export {
 export { default as MembersScreen } from './MembersScreen.svelte';
 export { default as NotificationsBell } from './NotificationsBell.svelte';
 export { default as RelationPicker } from './RelationPicker.svelte';
+export {
+  getScreenKind,
+  loadScreenKind,
+  registerScreenKind,
+  type ScreenKindRegistration,
+  type ScreenRuntimeProps,
+  screenKinds,
+} from './registry.ts';
