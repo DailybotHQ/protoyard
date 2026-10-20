@@ -19,6 +19,8 @@ they are ordinary Vite apps that can be edited, validated and exported.
   share links. Its frame uses the player's exact-origin `protoyard-player/1`
   bridge. Share fragments stay in the browser URL and are not sent to the
   server.
+- The hosted gallery publishes this guide and other selected public guides at
+  `/docs/`; contributor and internal guides are not included.
 
 The player also supports a `?src=./blueprint.json` URL for a JSON file next to
 the player. The picker accepts a local file or the bundled fictional demo.

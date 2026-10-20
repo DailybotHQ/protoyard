@@ -13,6 +13,8 @@ pnpm install
 pnpm dev                 # gallery at http://localhost:4321/
 ```
 
+The gallery also serves selected public guides under `/docs/`.
+
 In the gallery, open **Pipeline CRM** and press **Start Pipeline CRM**, then
 **Open**. Or skip the gallery and run one prototype directly:
 
