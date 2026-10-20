@@ -44,8 +44,13 @@ function hasConsumerMarker(pkg: WorkspacePackage | null): boolean {
 
 /** Returns the supported workspace layout at an already-resolved root. */
 export function workspaceLayout(root: string): WorkspaceLayout | null {
+  const pkg = readWorkspacePackage(root);
+  // An explicit `protoyard` field marks a consumer even next to
+  // pnpm-workspace.yaml: a pnpm consumer needs that file for its prototypes.
+  // This repository's root package.json has no such field.
+  if (pkg?.protoyard !== undefined) return 'consumer';
   if (existsSync(join(root, 'pnpm-workspace.yaml'))) return 'monorepo';
-  return hasConsumerMarker(readWorkspacePackage(root)) ? 'consumer' : null;
+  return hasConsumerMarker(pkg) ? 'consumer' : null;
 }
 
 export function workspacePaths(root: string): WorkspacePaths {
