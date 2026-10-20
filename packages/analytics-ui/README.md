@@ -160,7 +160,10 @@ follows the simulated clock:
   disabled, and a range change refits the granularity.
 - **Query:** `toDateRangeQuery` writes `range=last-30-days&compare=previous-period&by=day`
   (custom: `range=2026-03-01..2026-03-07`); `fromDateRangeQuery` reads it back,
-  ignoring invalid parts.
+  ignoring invalid parts. It fits `by=` to the range (`fitGranularity`; pass
+  `now` to fit presets too), and custom ranges span at most
+  `MAX_CUSTOM_RANGE_DAYS` (3,660 days), so a shared link cannot request more
+  than `MAX_BUCKETS` buckets.
 
 Size (esbuild minify + gzip -9; svelte, @protoyard/ui and zod external):
 4.3 KB, or 4.8 KB with the analytics range code it uses.

@@ -104,7 +104,14 @@ function markdownBody(body: string): string {
 const handleMarkdownLink = (href: string) => {
   const prefix = '#/__reference/';
   if (!href.startsWith(prefix) || !onOpenReference) return false;
-  onOpenReference(decodeURIComponent(href.slice(prefix.length)));
+  let id: string;
+  try {
+    id = decodeURIComponent(href.slice(prefix.length));
+  } catch {
+    // A malformed escape (typed into a comment) is consumed: no throw, no raw hash navigation.
+    return true;
+  }
+  onOpenReference(id);
   return true;
 };
 const mentions = $derived(people.map((p) => ({ id: p.id, value: handleOf(p), label: p.name })));

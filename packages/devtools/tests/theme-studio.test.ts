@@ -212,4 +212,27 @@ describe('Theme Studio (DevTools)', () => {
     expect(runtime.theme.customThemes().map((t) => t.id)).toEqual(['ocean-x']);
     expect(within(panel).getByRole('button', { name: 'Delete Ocean X' })).toBeTruthy();
   });
+
+  it('refuses a theme file over 64 KB before reading it', async () => {
+    const runtime = await storage()();
+    const panel = await openStudio(runtime);
+    const file = new File(['x'.repeat(64 * 1024 + 1)], 'huge.theme.json', {
+      type: 'application/json',
+    });
+    let read = false;
+    file.text = async () => {
+      read = true;
+      return '';
+    };
+    const input = within(panel).getByLabelText('Theme file to import') as HTMLInputElement;
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    await fireEvent.change(input);
+    await settle();
+    expect(within(panel).getByRole('alert').textContent).toMatch(/too large.*64 KB/);
+    expect(read).toBe(false);
+    expect(
+      (within(panel).getByLabelText('Theme JSON to import') as HTMLTextAreaElement).value
+    ).toBe('');
+    expect(runtime.theme.customThemes()).toEqual([]);
+  });
 });

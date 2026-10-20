@@ -1,3 +1,9 @@
+import {
+  bucketStarts,
+  MAX_BUCKETS,
+  MAX_CUSTOM_RANGE_DAYS,
+  resolveDateRange,
+} from '@protoyard/analytics';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DateRangePanel from '../src/date-range/DateRangePanel.svelte';
@@ -57,6 +63,26 @@ describe('date range model', () => {
       DEFAULT_DATE_RANGE.range
     );
     expect(fromDateRangeQuery('').comparison).toBe('previous-period');
+  });
+
+  it('fits a shared granularity to the range and caps custom spans', () => {
+    // A long custom range cannot keep hourly buckets.
+    const long = fromDateRangeQuery('range=2020-01-01..2029-12-31&by=hour');
+    expect(long.range).toEqual({ kind: 'custom', start: '2020-01-01', end: '2029-12-31' });
+    expect(long.granularity).toBe('month');
+    const resolved = resolveDateRange(long.range, 0);
+    expect(bucketStarts(resolved, long.granularity).length).toBeLessThanOrEqual(MAX_BUCKETS);
+    // Wider than the cap: the range falls back to the default instead of throwing later.
+    const huge = fromDateRangeQuery('range=2000-01-01..2030-01-01&by=hour');
+    expect(huge.range).toEqual(DEFAULT_DATE_RANGE.range);
+    expect(huge.granularity).toBe(DEFAULT_DATE_RANGE.granularity);
+    expect(MAX_CUSTOM_RANGE_DAYS).toBe(3660);
+    // A preset is fitted when the clock is known.
+    expect(
+      fromDateRangeQuery('range=year-to-date&by=hour', DEFAULT_DATE_RANGE, NOW).granularity
+    ).not.toBe('hour');
+    // A granularity the range allows is kept.
+    expect(fromDateRangeQuery('range=2026-03-01..2026-03-07&by=hour').granularity).toBe('hour');
   });
 
   it('describes ranges and comparisons', () => {

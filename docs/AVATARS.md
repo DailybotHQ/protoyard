@@ -206,8 +206,8 @@ pnpm exec tsx scripts/import-avatars.ts [--src <dir>]      # rewrite assets/ and
 pnpm vitest run packages/avatars
 ```
 
-`--src` defaults to `~/projects/ptt/avatars-grids-recortes`, the owner's
-local folder (`_manifests/` and `_previews/` in it are ignored). `--check` and
+`--src <dir>` (or `PROTOYARD_AVATARS_SRC`) is required: it names the owner's
+local folder of original PNGs (`_manifests/` and `_previews/` in it are ignored). `--check` and
 `--dry-run` need the original PNGs, so contributors without them can only run
 the tests. A different sharp or libwebp build can change the bytes. `--check`
 then reports the version difference.

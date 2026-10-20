@@ -7,8 +7,10 @@ import {
   compileFilter,
   createAxis,
   defaultColumnState,
+  exceedsFilterLimits,
   FILTER_LIMITS,
   type FilterNode,
+  FilterNodeSchema,
   flattenGroups,
   type GridColumnDef,
   groupRows,
@@ -418,6 +420,32 @@ describe('saved views', () => {
       'grouping by region',
     ]);
     expect(() => sanitizeView({ nope: true }, COLUMNS)).toThrow(ZodError);
+  });
+
+  it('refuses a filter nested thousands of levels deep without overflowing the stack', () => {
+    let deep: unknown = { type: 'condition', field: 'won', operator: 'isEmpty' };
+    for (let i = 0; i < 5000; i++) deep = { type: 'group', op: 'and', children: [deep] };
+    expect(exceedsFilterLimits(deep)).toBe(true);
+    const parsed = FilterNodeSchema.safeParse(deep);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues[0]?.message).toContain('limited to');
+    expect(SavedViewSchema.safeParse({ ...view, filter: deep }).success).toBe(false);
+    // The documented ZodError, never a RangeError.
+    expect(() => sanitizeView({ ...view, filter: deep }, COLUMNS)).toThrow(ZodError);
+
+    const wide = {
+      type: 'group',
+      op: 'or',
+      children: Array.from({ length: FILTER_LIMITS.nodes }, () => ({
+        type: 'condition',
+        field: 'won',
+        operator: 'isEmpty',
+      })),
+    };
+    expect(exceedsFilterLimits(wide)).toBe(true);
+    expect(FilterNodeSchema.safeParse(wide).success).toBe(false);
+    expect(exceedsFilterLimits(view.filter)).toBe(false);
+    expect(FilterNodeSchema.safeParse(view.filter).success).toBe(true);
   });
 });
 

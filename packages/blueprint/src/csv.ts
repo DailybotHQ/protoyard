@@ -1,4 +1,5 @@
 import { parseInput, ValidationError } from '@protoyard/core';
+import { guardCsvFormula, unguardCsvFormula } from './csv-guard.ts';
 import type { BlueprintEntity, BlueprintField } from './schema.ts';
 import { deriveInputSchemas, type EntityInput, fieldLabel, inputProperty } from './validation.ts';
 
@@ -12,7 +13,7 @@ import { deriveInputSchemas, type EntityInput, fieldLabel, inputProperty } from 
 export const CSV_MAX_BYTES = 2 * 1024 * 1024;
 export const CSV_MAX_ROWS = 10_000;
 
-const FORMULA_PREFIX = /^(?:[=@\t\r]|[+-](?!\d))/;
+export { guardCsvFormula, needsCsvFormulaGuard, unguardCsvFormula } from './csv-guard.ts';
 
 export type CsvErrorCode = 'too-large' | 'too-many-rows' | 'empty' | 'header' | 'parse' | 'columns';
 
@@ -38,8 +39,9 @@ export interface CsvParseOptions extends CsvLimits {
 
 export interface CsvSerializeOptions {
   /**
-   * Prefix cells that start with `= + - @` with a single quote so spreadsheets
-   * do not treat them as formulas (default true).
+   * Prefix cells that start with `= + - @`, a tab or a carriage return with a
+   * single quote so spreadsheets do not treat them as formulas, unless the
+   * whole cell is a plain number such as `-5` or `+1.5` (default true).
    */
   guardFormulas?: boolean;
   /** Line ending (default `\r\n` per RFC 4180). */
@@ -192,9 +194,7 @@ export function parseCsv(text: string, options: CsvParseOptions = {}): string[][
 export function escapeCsvCell(value: unknown, options: CsvSerializeOptions = {}): string {
   let text = value === null || value === undefined ? '' : String(value);
   const guard = options.guardFormulas !== false;
-  if (guard && text.length > 0 && FORMULA_PREFIX.test(text)) {
-    text = `'${text}`;
-  }
+  if (guard) text = guardCsvFormula(text);
   if (/[",\r\n]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;
   }
@@ -341,7 +341,8 @@ export function validateCsv(
     const input: EntityInput = {};
     columns.forEach((col, colIndex) => {
       if (!col.property) return;
-      const raw = cells[colIndex] ?? '';
+      // Undo the export formula guard so exported values round-trip exactly.
+      const raw = unguardCsvFormula(cells[colIndex] ?? '');
       if (col.part) {
         // Both halves of a geo point land in one `{ lat, lng }` input.
         const point = (input[col.property] ?? {}) as Record<string, string>;

@@ -5,9 +5,12 @@ import {
   CSV_MAX_ROWS,
   CsvError,
   escapeCsvCell,
+  guardCsvFormula,
+  needsCsvFormulaGuard,
   parseCsv,
   serializeCsv,
   serializeEntityCsv,
+  unguardCsvFormula,
   validateCsv,
 } from '../src/csv.ts';
 import { parseBlueprint } from '../src/index.ts';
@@ -68,7 +71,7 @@ describe('parseCsv / serializeCsv', () => {
     expect(escapeCsvCell('=1+1')).toBe("'=1+1");
     expect(escapeCsvCell('+cmd')).toBe("'+cmd");
     expect(escapeCsvCell('-1')).toBe('-1');
-    expect(escapeCsvCell('+1-555-0100')).toBe('+1-555-0100');
+    expect(escapeCsvCell('+1-555-0100')).toBe("'+1-555-0100");
     expect(escapeCsvCell('\t=1+1')).toBe("'\t=1+1");
     expect(escapeCsvCell('\r=1+1')).toBe('"\'\r=1+1"');
     expect(escapeCsvCell('@sum')).toBe("'@sum");
@@ -79,6 +82,27 @@ describe('parseCsv / serializeCsv', () => {
     expect(csv).toContain("'=cmd");
     // Re-parse keeps the leading quote so spreadsheets see text, not a formula.
     expect(parseCsv(csv)[1]![0]).toBe("'=cmd|'/c calc'!A0");
+  });
+
+  it('guards formulas that start with a sign followed by a digit', () => {
+    expect(escapeCsvCell("-1+cmd|' /C calc'!A0")).toBe("'-1+cmd|' /C calc'!A0");
+    expect(escapeCsvCell('+1+HYPERLINK("https://x.example","y")')).toBe(
+      '"\'+1+HYPERLINK(""https://x.example"",""y"")"'
+    );
+    expect(escapeCsvCell('-1+1')).toBe("'-1+1");
+    expect(escapeCsvCell(' =1+1')).toBe("' =1+1");
+    expect(escapeCsvCell('\uFF1D1+1')).toBe("'\uFF1D1+1");
+    // Plain numbers stay numbers.
+    for (const value of ['-5', '+5', '-903.37', '+1.5', '-.5', '1e3', '-2E-4', '42']) {
+      expect(escapeCsvCell(value)).toBe(value);
+    }
+    expect(escapeCsvCell(-5)).toBe('-5');
+    expect(needsCsvFormulaGuard('-5')).toBe(false);
+    expect(guardCsvFormula('-1+1')).toBe("'-1+1");
+    expect(unguardCsvFormula("'-1+1")).toBe('-1+1');
+    // A quote the guard would not have added is user text and stays.
+    expect(unguardCsvFormula("'hello")).toBe("'hello");
+    expect(unguardCsvFormula("'-5")).toBe("'-5");
   });
 
   it('round-trips negative money, international phones, and generated ISO date timestamps', () => {

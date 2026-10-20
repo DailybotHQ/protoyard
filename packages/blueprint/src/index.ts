@@ -71,6 +71,7 @@ export {
   PEOPLE_ENTITIES,
   type SuggestedLayout,
 } from './brief/index.ts';
+export { guardCsvFormula, needsCsvFormulaGuard, unguardCsvFormula } from './csv-guard.ts';
 export {
   type BlueprintFile,
   type BlueprintFileMetadata,

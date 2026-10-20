@@ -71,28 +71,44 @@ const ConditionSchema = z
 const GroupSchema: z.ZodType<FilterGroup> = z.strictObject({
   type: z.literal('group'),
   op: z.enum(['and', 'or']),
-  children: z.array(z.lazy(() => FilterNodeSchema)).max(FILTER_LIMITS.nodes),
+  children: z.array(z.lazy(() => NodeShapeSchema)).max(FILTER_LIMITS.nodes),
 });
 
-function measure(node: FilterNode, depth: number, stats: { nodes: number; depth: number }): void {
-  stats.nodes++;
-  stats.depth = Math.max(stats.depth, depth);
-  if (node.type === 'group') for (const child of node.children) measure(child, depth + 1, stats);
+/** The recursive shape. Only reached through `FilterNodeSchema`, after the size pre-check. */
+const NodeShapeSchema: z.ZodType<FilterNode> = z.union([ConditionSchema, GroupSchema]);
+
+/**
+ * Measures untrusted input without recursion, so a tree nested thousands of
+ * levels deep is refused before the recursive zod schema could overflow the
+ * stack. Stops as soon as a limit is exceeded.
+ */
+export function exceedsFilterLimits(input: unknown): boolean {
+  const stack: { node: unknown; depth: number }[] = [{ node: input, depth: 1 }];
+  let nodes = 0;
+  while (stack.length > 0) {
+    const { node, depth } = stack.pop() as { node: unknown; depth: number };
+    nodes++;
+    if (depth > FILTER_LIMITS.depth || nodes > FILTER_LIMITS.nodes) return true;
+    const children =
+      typeof node === 'object' && node !== null
+        ? (node as { children?: unknown }).children
+        : undefined;
+    if (!Array.isArray(children)) continue;
+    if (nodes + stack.length + children.length > FILTER_LIMITS.nodes) return true;
+    for (const child of children) stack.push({ node: child, depth: depth + 1 });
+  }
+  return false;
 }
+
+const limitsMessage = `filters are limited to ${FILTER_LIMITS.depth} levels and ${FILTER_LIMITS.nodes} nodes`;
 
 /** The shape of any filter tree (structure, values and size), without knowing the columns. */
 export const FilterNodeSchema: z.ZodType<FilterNode> = z
-  .union([ConditionSchema, GroupSchema])
-  .superRefine((node, ctx) => {
-    const stats = { nodes: 0, depth: 0 };
-    measure(node, 1, stats);
-    if (stats.depth > FILTER_LIMITS.depth || stats.nodes > FILTER_LIMITS.nodes) {
-      ctx.addIssue({
-        code: 'custom',
-        message: `filters are limited to ${FILTER_LIMITS.depth} levels and ${FILTER_LIMITS.nodes} nodes`,
-      });
-    }
-  });
+  .unknown()
+  .superRefine((input, ctx) => {
+    if (exceedsFilterLimits(input)) ctx.addIssue({ code: 'custom', message: limitsMessage });
+  })
+  .pipe(NodeShapeSchema);
 
 /** Operators that make sense for each value type (the filter builder offers these). */
 export const OPERATORS_BY_TYPE: Record<GridValueType, readonly FilterOperator[]> = {
