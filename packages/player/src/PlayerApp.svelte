@@ -13,6 +13,12 @@ const shell = $derived.by(() => {
   void attempt;
   return import('@protoyard/crud/app');
 });
+const conversational = $derived.by(() => {
+  const archetype = blueprint.archetype?.id;
+  return archetype === 'assistant' || archetype === 'team-chat'
+    ? import('./archetypes/conversational/index.ts')
+    : null;
+});
 
 /** Theme library choices for the settings screen, loaded only when it opens. */
 async function themeLibrary() {
@@ -24,7 +30,22 @@ async function themeLibrary() {
 {#await shell}
   <LoadingState label="Loading the prototype" class="py-16" />
 {:then { BlueprintApp }}
-  <BlueprintApp {blueprint} {model} {themeLibrary} />
+  {#if conversational === null}
+    <BlueprintApp {blueprint} {model} {themeLibrary} />
+  {:else}
+    {#await conversational then { ConversationalApp }}
+      <ConversationalApp {blueprint} />
+    {:catch error}
+      <ErrorState
+        title="The conversational archetype could not be loaded"
+        message={error instanceof Error ? error.message : String(error)}
+        onRetry={() => {
+          attempt += 1;
+        }}
+        retryLabel="Try again"
+      />
+    {/await}
+  {/if}
 {:catch error}
   <ErrorState
     title="The prototype could not be loaded"

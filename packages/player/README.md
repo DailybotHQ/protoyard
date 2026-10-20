@@ -33,6 +33,13 @@ data" badge.
    `@protoyard/crud/app`, the same routes, navigation and screens a generated
    prototype has. The settings screen gets the theme library on demand.
 
+Blueprints with an `assistant` or `team-chat` archetype lazily load the
+conversational player entry. It binds the assistant workspace kit to the
+archetype's entity slots and persists messages through the normal blueprint
+services. Team chat uses the same safe, deterministic simulated assistant
+adapter because `@protoyard/ai-ui` has no dedicated team-chat screen. CRUD-only
+blueprints never load the AI kit entry.
+
 The page reaches `performance.mark('protoyard:ready')` and
 `<html data-protoyard-ready="1">` like any prototype.
 
