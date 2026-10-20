@@ -18,6 +18,8 @@ and the `@protoyard/saas` / `@protoyard/saas-ui` entry points. This is
 validated runtime metadata. Authentication, inbox and billing remain simulated
 UX, never security or real provider behavior. See the
 [`@protoyard/blueprint` archetype contract](../packages/blueprint/README.md#the-schema).
+The blueprint integration test checks the public `saasRoutes` entry and verifies its
+onboarding loader is dynamic and does not set an eager route component.
 
 The engine owns data and behavior; the UI package composes those services into
 screens. A prototype can use the engine alone, the UI alone with compatible

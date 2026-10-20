@@ -14,6 +14,10 @@ experience and declares its entity slots, screen route, scenario defaults, and
 the public `@protoyard/ai` / `@protoyard/ai-ui` entry points. The block is
 validated data; it does not execute imports or supply callbacks. See the
 [`@protoyard/blueprint` archetype contract](../packages/blueprint/README.md#the-schema).
+The blueprint integration test checks the public engine and UI export targets and the
+assistant's send callback contract. The current `@protoyard/ai-ui` entry exposes the
+assistant workspace, not a dedicated team-chat screen; the player needs an explicit
+adapter or a future team-chat UI entry for that archetype.
 
 ## Honest boundaries (read first)
 

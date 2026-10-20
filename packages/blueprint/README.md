@@ -100,6 +100,15 @@ optional `screens`, `brand` and `archetype`. Every object is strict, so unknown 
   }
   ```
 
+The integration contract is checked against each kit's public package export map in
+`tests/archetypes/kit-contract.test.ts`: AI archetypes target the AI engine and workspace,
+SaaS onboarding uses `saasRoutes`' lazy loader, and analytics selects only the grid and
+date-range UI subpaths it declares. The test also checks their callback and simulation
+contracts. The blueprint package keeps kit names as validated data and does not depend on
+or import the kits. The player's route registry is responsible for loading the selected
+screen lazily. `@protoyard/ai-ui` currently exports an assistant workspace but no dedicated
+team-chat screen, so the player still needs an adapter or a future UI entry for that screen.
+
 - **Entities:** kebab-case `name` (singular) and `plural`, optional `table`, `fields`,
   `titleField`, `searchable`, `ownerField` (a `persona` field, enables `:own` actions),
   `indexes`, `defaultSort` and `features` (`softDelete`, `audit`, `notifications`, `files`,
