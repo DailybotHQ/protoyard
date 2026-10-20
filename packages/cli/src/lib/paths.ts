@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { TEMPLATES_ROOT } from '@protoyard/templates';
 import { CliError } from './output.ts';
 
 /** Workspace-relative locations every command agrees on. */
@@ -49,10 +50,11 @@ export function workspaceLayout(root: string): WorkspaceLayout | null {
 
 export function workspacePaths(root: string): WorkspacePaths {
   const state = join(root, '.protoyard');
+  const templates = workspaceLayout(root) === 'consumer' ? TEMPLATES_ROOT : join(root, 'templates');
   return {
     root,
     prototypes: join(root, 'prototypes'),
-    templates: join(root, 'templates'),
+    templates,
     blueprints: join(root, 'blueprints'),
     artifacts: join(root, 'artifacts'),
     state,

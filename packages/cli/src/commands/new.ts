@@ -16,12 +16,13 @@ import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
-import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
+import { childPath, isInside, toPosixRelative, workspaceLayout } from '../lib/paths.ts';
 import { installWorkspace, runPnpm } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
 import { SPEC_FILES } from '../lib/spec-render.ts';
 import {
   assertSlug,
+  CLI_VERSION,
   type CommandContext,
   readPackageJson,
   resolveTarget,
@@ -91,6 +92,8 @@ export interface NewProjectInput {
   template: string | null;
   name: string;
   description?: string;
+  /** Set only for consumer workspaces, where workspace ranges must be published versions. */
+  consumerPackageVersion?: string;
   now: string;
 }
 
@@ -142,6 +145,9 @@ export async function personalize(dir: string, input: NewProjectInput) {
   if (pkg) {
     pkg.name = `@prototype/${input.slug}`;
     pkg.private = true;
+    if (input.consumerPackageVersion) {
+      rewriteWorkspaceDependencies(pkg as Record<string, unknown>, input.consumerPackageVersion);
+    }
     await writeFile(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
   }
 
@@ -167,6 +173,24 @@ export async function personalize(dir: string, input: NewProjectInput) {
         : `# ${input.name}: ${line.includes(': ') ? line.slice(line.lastIndexOf(': ') + 2) : 'spec'}`
     );
     if (retitled !== text) await writeFile(path, retitled);
+  }
+}
+
+/** Replaces pnpm workspace ranges in every dependency section with a published lockstep version. */
+export function rewriteWorkspaceDependencies(pkg: Record<string, unknown>, version: string): void {
+  for (const section of [
+    'dependencies',
+    'devDependencies',
+    'optionalDependencies',
+    'peerDependencies',
+  ]) {
+    const dependencies = pkg[section];
+    if (!dependencies || typeof dependencies !== 'object' || Array.isArray(dependencies)) continue;
+    for (const [name, specifier] of Object.entries(dependencies)) {
+      if (typeof specifier === 'string' && specifier.startsWith('workspace:')) {
+        (dependencies as Record<string, unknown>)[name] = version;
+      }
+    }
   }
 }
 
@@ -330,6 +354,9 @@ export async function createPrototypeFrom(
         slug,
         template: origin,
         name,
+        ...(workspaceLayout(ctx.root) === 'consumer'
+          ? { consumerPackageVersion: CLI_VERSION }
+          : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),
         now: new Date().toISOString(),
       });

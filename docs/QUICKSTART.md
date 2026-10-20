@@ -158,6 +158,11 @@ What `new` does:
   `@prototype/<slug>`.
 - Runs `pnpm install` to link the new package (`--no-install` skips it; then
   run `pnpm install` yourself before `dev`).
+- In a consumer workspace, resolves starters from the installed
+  `@protoyard/templates` package and replaces every copied `workspace:`
+  dependency range with the CLI's exact package version. `--from <prototype>`
+  applies the same rewrite. Monorepo templates and their workspace ranges stay
+  unchanged.
 - Refuses to overwrite anything. Re-running the exact same command resumes
   safely.
 
