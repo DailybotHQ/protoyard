@@ -33,6 +33,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | csv-shape | bounded CSV header/sample inference into a reviewable entity draft | `./import/csv-shape` (lazy authoring) |
 | json-shape | bounded JSON object/array shape inference into reviewable entity drafts | `./import/json-shape` (lazy authoring) |
+| sqlite-schema | bounded SQLite `CREATE TABLE` DDL inference into reviewable entity drafts | `./import/sqlite-schema` (lazy authoring) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 | search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
 
@@ -362,6 +363,44 @@ Input is capped at 2 MiB, 100 sampled objects per entity, 8 levels of nesting,
 Higher caller limits are clamped to these hard caps. Output entity and field
 ordering is stable regardless of JSON key insertion order, and notes/errors do
 not echo source values.
+
+### SQLite schema authoring
+
+SQLite schema import accepts SQL text and never opens a database, runs a
+statement or reads table rows. Import it only while authoring a draft:
+
+```ts
+import { importSqliteSchema } from '@protoyard/blueprint/import/sqlite-schema';
+
+const { entities, primaryKeys, notes } = importSqliteSchema(`
+  CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+  CREATE TABLE orders (
+    id INTEGER PRIMARY KEY,
+    customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE
+  );
+`);
+```
+
+The supported grammar is one or more `CREATE [TEMP|TEMPORARY] TABLE [IF NOT
+EXISTS]` declarations with plain or quoted identifiers, comma-separated
+columns, optional declared types and column or table `PRIMARY KEY`, `NOT NULL`,
+`NULL`, `UNIQUE`, `CHECK`, `DEFAULT`, `COLLATE`, `REFERENCES` and `FOREIGN KEY`
+constraints. Foreign keys must reference one local column and one declared
+table. `ON DELETE CASCADE`, `SET NULL`, `RESTRICT` and `NO ACTION` map to the
+blueprint's delete behavior. Table and target names match case-insensitively.
+
+`INTEGER PRIMARY KEY` maps to Protoyard's generated `id`; other primary-key
+fields become required and are listed in `primaryKeys`, since blueprint fields
+do not enforce uniqueness. The returned `notes` call out that limitation.
+`INT` maps to `integer`; `REAL`, `FLOAT`, `DOUBLE`, `NUMERIC` and `DECIMAL` map
+to `number`; character, text and CLOB types map to `text`; `BOOLEAN`, `DATE`,
+`DATETIME` and `TIMESTAMP` map to their corresponding blueprint kinds. BLOB
+and absent types use conservative reviewable representations. Defaults, checks,
+unique constraints and collations do not become behavior; default literals are
+discarded. Composite foreign keys, unsupported types and non-CREATE statements
+are rejected with a path-aware `SqliteSchemaError`. Input is limited to 256 KiB,
+50 tables, 100 columns per table and 40,000 tokens. SQL literal values and
+database rows never appear in the output.
 
 ## World generator
 
