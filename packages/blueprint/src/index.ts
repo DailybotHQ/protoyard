@@ -24,6 +24,18 @@ export {
   NO_GROUP,
 } from './aggregate.ts';
 export {
+  type AppLayout,
+  type AppModel,
+  type AppNavGroup,
+  type AppNavItem,
+  type AppRoute,
+  type AppRouteTarget,
+  deriveAppModel,
+  entityLabel,
+  screenHasOwnView,
+  screenNavIcon,
+} from './app-model.ts';
+export {
   AUDIT_REDACTED,
   type AuditAction,
   type AuditChange,
