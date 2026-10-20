@@ -56,6 +56,12 @@ export {
   createAuditWriter,
 } from './audit.ts';
 export {
+  type BlueprintAuthoringDiagnostic,
+  type BlueprintAuthoringValidation,
+  type BlueprintDiagnosticPath,
+  validateBlueprintForAuthoring,
+} from './authoring-validation.ts';
+export {
   AVATAR_IDS,
   type AvatarField,
   type AvatarId,

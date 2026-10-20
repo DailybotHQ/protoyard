@@ -68,7 +68,12 @@ would lose data.
 
 For a JSON editor with autocompletion, set `"$schema"` to
 `packages/blueprint/schema/blueprint.schema.json` (relative to the file). The
-JSON Schema covers the shape; the cross-reference checks run in `parseBlueprint`.
+JSON Schema covers the shape; the cross-reference checks run in `parseBlueprint`. Agent
+authoring tools can call `validateBlueprintForAuthoring(input)` from
+`@protoyard/blueprint` to get a full validity flag and diagnostics with JSON paths and repair
+hints. The result uses `BlueprintSchema`, so a shape-only JSON Schema pass is not reported as
+full blueprint validity. Existing `parseBlueprint` and `safeParseBlueprint` behavior is
+unchanged.
 
 ## The blueprint format
 
