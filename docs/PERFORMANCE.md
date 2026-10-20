@@ -807,11 +807,26 @@ returns the serializable `WorldSeed`; if workers are unavailable or fail, the
 same generation helper runs from a lazy main-thread chunk. The worker/fallback
 parity test compares five catalog blueprints across all four default scenarios.
 
-The runtime currently creates a `GenerateContext` before calling
-`definition.generate`. That means its lazy Faker import still runs on the main
-thread before the player's worker callback begins. This task moves blueprint
-world construction off the main thread but does not remove that runtime-owned
-context setup; doing so requires a runtime API change.
+**No Faker on the main thread.** A definition may provide
+`generateWorld(scenario)` next to `generate(ctx)`. The runtime then calls it for
+every scenario load, reset and stale-world reseed, with the effective scenario
+(seed, preset and knobs applied), and never builds a `GenerateContext` for
+them. The player's `withWorkerGeneration` supplies `generateWorld`, which
+only posts the blueprint and scenario to the worker. `generate` stays as the
+fallback and for `advance()` timelines; blueprint definitions declare no
+timeline. Measured 2026-10-20 with the built player in headless Chromium
+(`?src=./blueprints/quick/analytics.json`, until `data-protoyard-ready`),
+comparing a build without the hook to the build with it:
+
+| Build | Main-thread Faker chunk fetched | JS fetched by boot (page + worker), gzip |
+| --- | --- | --- |
+| before (`generate` only) | yes, 149.5 KB gzip | 752.7 KB (118 requests) |
+| after (`generateWorld`) | **no** | **603.2 KB** (117 requests) |
+
+Initial JS is unchanged: **177.9 KB** gzip in 25 chunks in both builds,
+because Faker was never in the static graph, only dynamically imported at boot.
+The main-thread Faker chunk still ships in `dist/`. It loads only if the worker
+fails and the lazy main-thread fallback runs.
 
 **Worker size.** The first build of the worker (Vite's default worker format)
 inlined its dynamic imports. That kept the whole `@faker-js/faker` namespace,
@@ -832,9 +847,8 @@ Its whole import graph, measured 2026-10-20 (Vite 8.3.4, gzip level 9):
 
 That is **79% less** than before, and no other locale's data ships (German and
 Japanese markers are absent). The worker is a separate Rollup build, so its
-Faker chunk is a second copy of the app's. Until the runtime stops loading Faker
-on the main thread for worker-generated definitions, a first visit downloads
-both, 153 KB gzip each.
+Faker chunk is a second copy of the app's. A normal boot downloads only the
+worker's copy; the app's copy is fetched only by the main-thread fallback.
 
 **Main-thread long tasks during boot.** Measured with the built player in
 headless Chromium, fresh context, `?src=` blueprint, 2026-10-20, with machine
@@ -856,9 +870,10 @@ Long-animation-frame attribution (4× throttled, quick/assistant):
 
 So generation itself stays off the main thread. But "the main thread stays free
 of long tasks" holds only on a fast CPU. On a 4× slower CPU, boot still has 2 to
-3 long tasks from entry evaluation and the IndexedDB write. Every run also
-downloads and evaluates Faker on the main thread, only to build a context that
-the worker path ignores.
+3 long tasks from entry evaluation and the IndexedDB write. (These runs predate
+`generateWorld`: each one also downloaded and evaluated Faker on the main
+thread, only to build a context that the worker path ignored. That no longer
+happens; the long-task table was not re-measured.)
 
 ## Player bundle budget (measured 2026-10-20)
 

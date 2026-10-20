@@ -117,6 +117,17 @@ export interface PrototypeDefinition {
   scenarios: readonly ScenarioDefinition[];
   generate(ctx: GenerateContext): WorldSeed | Promise<WorldSeed>;
   /**
+   * Optional context-free world generation for scenario loads. When present,
+   * the runtime calls it (with the effective scenario: seed, preset and knobs
+   * already applied) instead of `generate` for every load, reset and stale
+   * world reseed, and never builds a `GenerateContext` (or loads Faker) on the
+   * main thread for them. Use it to generate off-thread, for example in a Web
+   * Worker. It must return exactly the world `generate` returns for the same
+   * scenario. `generate` stays required: it is the fallback, and Node, tests
+   * and timelines (`advance()`) still use a context.
+   */
+  generateWorld?(scenario: Scenario): Promise<WorldSeed>;
+  /**
    * Version of THIS prototype's generator. Bump it whenever the same seed can
    * produce a different world; it is recorded with every scenario load.
    */

@@ -90,5 +90,7 @@ export function withWorkerGeneration(
     ...definition,
     generate: (context: GenerateContext) =>
       generatePlayerWorld(blueprint, context.scenario, options, context),
+    // Scenario loads call this, so the main thread never builds a context.
+    generateWorld: (scenario: Scenario) => generatePlayerWorld(blueprint, scenario, options),
   };
 }

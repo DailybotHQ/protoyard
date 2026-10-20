@@ -57,7 +57,12 @@ side on one origin, for example two iframes with `?sandbox=a&scenario=X` and
 
 ## Large worlds and progress
 
-Loads run in phases: **generate → validate → write → done**. The runtime yields to the event
+Loads run in phases: **generate → validate → write → done**. The generate phase calls
+`definition.generateWorld(effectiveScenario)` when the definition provides it (the player
+generates in a Web Worker this way, so no `GenerateContext` or Faker is built on the main
+thread), and otherwise `definition.generate(await createGenerateContextAsync(scenario))`.
+Loads, resets and stale-world reseeds all take this path; `advance()` timelines always
+build a context. The runtime yields to the event
 loop between phases, then writes the whole world in **one transaction** with chunked
 `bulkAdd` calls (`DEFAULT_WRITE_CHUNK = 1000`, overridable via `RuntimeOptions.writeChunkSize`
 or per load). Atomicity is kept: if any chunk fails, the previous world is untouched. Chunk
