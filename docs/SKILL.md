@@ -56,3 +56,10 @@ and obtain explicit approval before a live upload. Do not run `npm publish` or
 trigger a release workflow without explicit approval for that release. Never
 ask for or expose credentials. See the skill's [`TRUST.md`](../skills/protoyard/TRUST.md),
 the [repository security model](SECURITY.md), and the [publishing guide](PUBLISHING.md).
+
+## Check skill-local links
+
+Run `pnpm tsx scripts/validate-skill-links.ts` to check Markdown links in
+`skills/protoyard/`. The check reports missing targets and links that resolve
+outside the distributable skill directory. Explicit external URLs are allowed
+and are not fetched.

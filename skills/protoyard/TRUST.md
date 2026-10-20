@@ -60,6 +60,6 @@ passwords, personal data, financial data, or secrets into a prototype.
 
 ## References
 
-- Repository threat model: [`docs/SECURITY.md`](../../docs/SECURITY.md)
-- Export and provider behavior: [`docs/PUBLISHING.md`](../../docs/PUBLISHING.md)
-- Skill workflows: [`docs/SKILL.md`](../../docs/SKILL.md)
+- Repository threat model: [Protoyard documentation](https://protoyard.app/docs/)
+- Export and provider behavior: [Protoyard documentation](https://protoyard.app/docs/)
+- Skill workflows: [Protoyard documentation](https://protoyard.app/docs/)
