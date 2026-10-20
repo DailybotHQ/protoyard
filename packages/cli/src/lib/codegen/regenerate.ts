@@ -137,7 +137,18 @@ export async function assertNoGeneratedLinks(dest: string): Promise<void> {
   }
 }
 
-/** Status of every generated file against what `emitted` expects, plus stale generated screens. */
+/** Folder the generator owns; `blueprint.snapshot.json` there is managed, not a header file. */
+const GENERATED_DIR = 'src/generated';
+
+/**
+ * Status of every generated file against what `emitted` expects, plus stale
+ * generated files the generator no longer emits (for example `routes.ts`,
+ * `layout.ts` and screen wrappers, retired when apps moved to the shared
+ * `@protoyard/crud/app` shell). A stale file whose generated header is intact
+ * is removed; one a person edited is a conflict; a file without the header is
+ * not the generator's and is left alone (except in `screens/`, which only ever
+ * held generated wrappers).
+ */
 export async function planGeneratedFiles(
   dest: string,
   emitted: readonly EmittedFile[]
@@ -154,16 +165,29 @@ export async function planGeneratedFiles(
     } else plans.push({ path: file.path, status: 'conflicted', content: file.content });
   }
   const expected = new Set(emitted.map((f) => f.path));
-  const entries = await readdir(join(dest, SCREENS_DIR), { withFileTypes: true }).catch(() => []);
-  for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
-    const path = `${SCREENS_DIR}/${entry.name}`;
-    if (entry.isSymbolicLink()) throw unsafeLink(path);
-    // Only regular files are generated screens; anything else is left alone.
-    if (!entry.isFile() || expected.has(path)) continue;
+  for (const path of await generatedTreeFiles(dest)) {
+    if (expected.has(path) || path === SNAPSHOT_PATH) continue;
     const current = (await readText(join(dest, path))) ?? '';
-    plans.push({ path, status: checkHeader(current).intact ? 'removed' : 'conflicted' });
+    const header = checkHeader(current);
+    if (header.intact) plans.push({ path, status: 'removed' });
+    else if (header.generated || path.startsWith(`${SCREENS_DIR}/`)) {
+      plans.push({ path, status: 'conflicted' });
+    }
   }
   return plans;
+}
+
+/** Regular files under `src/generated/`, sorted; symbolic links are refused. */
+async function generatedTreeFiles(dest: string, rel = GENERATED_DIR): Promise<string[]> {
+  const entries = await readdir(join(dest, rel), { withFileTypes: true }).catch(() => []);
+  const files: string[] = [];
+  for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+    const path = `${rel}/${entry.name}`;
+    if (entry.isSymbolicLink()) throw unsafeLink(path);
+    if (entry.isDirectory()) files.push(...(await generatedTreeFiles(dest, path)));
+    else if (entry.isFile()) files.push(path);
+  }
+  return files;
 }
 
 export interface RegenerationPlan {

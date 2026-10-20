@@ -19,7 +19,7 @@ let {
   entityName: string;
 } = $props();
 
-const { blueprint, services, runtime } = useBlueprintApp();
+const { blueprint, services, runtime, recordPath } = useBlueprintApp();
 const entity = $derived(blueprint.entities.find((e) => e.name === entityName));
 const listPath = $derived(entity ? `/${entity.plural}` : '/');
 
@@ -114,6 +114,7 @@ function backToList() {
         mode = 'edit';
         navigate(`${listPath}/${row.id}`);
       }}
+      onOpen={(row) => navigate(recordPath(entityName, String(row.id)))}
     />
   {:else if mode === 'create'}
     <EntityForm {entity} mode="create" {runtime} {blueprint} {services} onSubmit={submitCreate} />

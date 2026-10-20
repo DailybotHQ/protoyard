@@ -1,4 +1,5 @@
 @import "@protoyard/renderer-svelte/app.css";
+@import "@protoyard/crud/styles.css";
 @import "@protoyard/views-ui/styles.css";
 @import "@protoyard/charts-ui/styles.css";
 @import "@protoyard/analytics-ui/styles.css";

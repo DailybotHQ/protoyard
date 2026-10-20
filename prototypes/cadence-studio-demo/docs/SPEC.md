@@ -65,7 +65,7 @@ See [docs/SPECS.md](../../../docs/SPECS.md#rebuild-as-a-real-app).
 | default theme | `cadence-studio` |
 | storage namespace | `cadence-studio-demo` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 442011791 |
 | timeline | no |
 | themes | Cadence Studio (`cadence-studio`) |
 <!-- /protoyard:generated:manifest -->

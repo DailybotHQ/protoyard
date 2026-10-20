@@ -398,9 +398,13 @@ async function regenerate(
     allowDrop: input.allowDrop,
   });
   const ownedApp = await readFile(join(dest, 'src/App.svelte'), 'utf8').catch(() => '');
+  // The shared shell (BlueprintApp) applies the blueprint layout itself; an older owned app
+  // applied it only by importing the retired src/generated/layout.ts.
   const layoutWarning =
-    plan.blueprint.layout && !ownedApp.includes("from './generated/layout.ts'")
-      ? 'layout set; owned App.svelte does not read src/generated/layout.ts — see GENERATOR.md'
+    plan.blueprint.layout &&
+    !ownedApp.includes('<BlueprintApp') &&
+    !ownedApp.includes("from './generated/layout.ts'")
+      ? 'layout set; owned App.svelte does not render BlueprintApp (@protoyard/crud/app) — see GENERATOR.md'
       : undefined;
   const report = plan.files.map(({ path, status }) => ({ path, status }));
   const count = (status: FilePlan['status']) =>

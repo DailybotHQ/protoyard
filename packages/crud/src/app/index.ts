@@ -9,6 +9,7 @@ export { default as BlueprintApp } from './BlueprintApp.svelte';
 export {
   type BlueprintAppContext,
   provideBlueprintApp,
+  type RecordHref,
   type ThemeLibraryLoader,
   useBlueprintApp,
 } from './context.ts';

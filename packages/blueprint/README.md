@@ -738,9 +738,17 @@ machine was under heavy load (`pnpm vitest run packages/blueprint/tests/aggregat
 
 A later route on the same path replaces an earlier one in place, so a screen can
 claim an entity's default list or detail route. `screenNavIcon`, `screenHasOwnView`
-and `entityLabel` expose the per-screen rules. The model matches what
-`protoyard generate` writes to `src/generated/routes.ts` and `layout.ts` for every
-catalog blueprint; `tests/app-model.test.ts` checks this byte for byte.
+and `entityLabel` expose the per-screen rules. Generated prototypes and the player
+both render this model through `BlueprintApp` (`@protoyard/crud/app`), so the
+generator emits no route or layout files. `tests/app-model.test.ts` pins the model of
+every catalog blueprint in `tests/__snapshots__/app-model.catalog.json`. The snapshot
+was taken when the model was proven byte-identical to the generator's former
+`routes.ts` and `layout.ts`, so a change is always a reviewed diff.
+
+`blueprintGeneratorVersion(blueprint)` (synchronous, no Faker) is the world
+generator's version. Generated prototypes declare it as `generatorVersion`, and so
+does the runtime definition, so a stored world reseeds when the blueprint's
+generative surface or the generator SDK changes.
 
 ## Runtime definition
 

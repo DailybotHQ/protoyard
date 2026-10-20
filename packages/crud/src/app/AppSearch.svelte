@@ -1,10 +1,11 @@
 <script lang="ts">
 import { Search } from '@lucide/svelte';
+import { navigate } from '@protoyard/renderer-svelte';
 import { Button } from '@protoyard/ui';
 import SearchPalette from '../SearchPalette.svelte';
 import { useBlueprintApp } from './context.ts';
 
-const { runtime, blueprint } = useBlueprintApp();
+const { runtime, blueprint, recordPath } = useBlueprintApp();
 
 function openPalette(event: MouseEvent) {
   event.preventDefault();
@@ -20,4 +21,8 @@ function openPalette(event: MouseEvent) {
   <kbd aria-hidden="true" class="ml-1 hidden rounded border border-border px-1 text-[0.65rem] text-muted-foreground sm:inline">⌘K</kbd>
 </Button>
 
-<SearchPalette {runtime} {blueprint} />
+<SearchPalette
+  {runtime}
+  {blueprint}
+  onNavigate={(match) => navigate(recordPath(match.entityName, match.recordId))}
+/>
