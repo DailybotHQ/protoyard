@@ -75,6 +75,28 @@ Scale: the home page inlines a compact index (about 380 KB raw, 38 KB gzip, for 
 renders 24 cards per page, and filters in a few milliseconds per keystroke. Run
 `pnpm bench:index --gallery` for measured numbers on your machine.
 
+## As an installed package
+
+The gallery is also the npm package `@protoyard/gallery`. It ships its Astro
+sources (`src`, `public`, `astro.config.mjs`, `tsconfig.json`), because Astro
+builds the site from them on the consumer's machine. The CLI finds it in this
+order (`resolveGalleryDir` in `packages/cli/src/commands/serve.ts`):
+
+1. `node_modules/@protoyard/gallery`, walking up from the workspace root (a
+   consumer workspace that added it, for example `pnpm add -D @protoyard/gallery`);
+2. the same, walking up from the CLI's own folder (installed next to the CLI);
+3. `apps/gallery` in this repository.
+
+A folder counts only when its `package.json` is named `@protoyard/gallery` and
+it has `astro.config.mjs`; package-manager symlinks resolve to the real folder.
+NODE_PATH is ignored, so a consumer workspace never picks up an unrelated copy.
+`protoyard gallery` and `protoyard showcase` pass the workspace's registry as
+`PROTOYARD_REGISTRY`, and for an installed package `protoyard gallery` keeps the
+Astro and Vite caches in `.protoyard/gallery-cache/`. Run outside the CLI,
+the config reads `PROTOYARD_REGISTRY`, then `PROTOYARD_ROOT/.protoyard/registry.json`,
+then this repository's `.protoyard/registry.json`. The published path runs
+`astro build` only; `astro check` stays a development gate in the `build` script.
+
 ## Marketplace
 
 `/marketplace/` lists every prototype, template and blueprint from the

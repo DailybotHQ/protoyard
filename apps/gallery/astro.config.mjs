@@ -7,7 +7,12 @@ import { defineConfig } from 'astro/config';
 import { protoyardRegistry } from './src/integrations/registry-plugin.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const workspaceRoot = resolve(__dirname, '../..');
+// In this repository the gallery is apps/gallery, two levels below the root.
+// Installed as @protoyard/gallery it sits in node_modules, so the CLI passes
+// PROTOYARD_REGISTRY (or PROTOYARD_ROOT) for the consumer workspace instead.
+const workspaceRoot = process.env.PROTOYARD_ROOT
+  ? resolve(process.cwd(), process.env.PROTOYARD_ROOT)
+  : resolve(__dirname, '../..');
 
 // The gallery is a static site. It reads the generated metadata registry
 // (`.protoyard/registry.json`, or PROTOYARD_REGISTRY for benchmarks and
