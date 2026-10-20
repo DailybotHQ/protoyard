@@ -90,6 +90,13 @@ describe('storeIndexForField', () => {
     expect(storeIndexForField(byName.attachments!)).toBe('*attachmentsIds');
     expect(storeIndexForField(byName.subject!)).toBeUndefined();
   });
+
+  it('stores each relation on its declaring entity and keeps one/many shape stable', () => {
+    const stores = deriveStores(parseBlueprint(fixture()));
+    expect(stores.supportTickets).toContain('customerId');
+    expect(stores.supportTickets).toContain('*relatedIds');
+    expect(stores.customers).not.toContain('supportTicket');
+  });
 });
 
 describe('deriveStores', () => {

@@ -61,7 +61,10 @@ function indexForNamedField(entity: BlueprintEntity, fieldName: string): string 
 }
 
 /**
- * Dexie store string for one entity table. Column order is deterministic:
+ * Dexie store string for one entity table. A relation's declaring entity owns
+ * its foreign key; the inverse is discovered from target-side relation fields
+ * by the generated related-detail UI and does not create a second stored key.
+ * Column order is deterministic:
  * `id`, structural field indexes in declaration order, then explicit
  * indexes / title / defaultSort, then `createdAt`, `updatedAt`, and
  * `deletedAt` when soft-delete is on.
