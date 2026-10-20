@@ -111,6 +111,26 @@ describe('CommentThread', () => {
     expect(onOpenReference).toHaveBeenCalledWith('deal-42');
   });
 
+  it('ignores a malformed reference link instead of throwing', async () => {
+    const onOpenReference = vi.fn();
+    thread({
+      onOpenReference,
+      query: query([
+        {
+          id: 'c9',
+          authorId: 'p-li',
+          body: 'See [odd](#/__reference/%E0%A4%A)',
+          createdAt: '2026-10-19T11:00:00Z',
+        },
+      ]),
+    });
+    const link = await screen.findByRole('link', { name: 'odd' });
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    expect(() => link.dispatchEvent(click)).not.toThrow();
+    expect(click.defaultPrevented).toBe(true);
+    expect(onOpenReference).not.toHaveBeenCalled();
+  });
+
   it('sends a comment with mentions stored as ids, showing it as sending', async () => {
     let finish: () => void = () => {};
     const onSend = vi.fn(
