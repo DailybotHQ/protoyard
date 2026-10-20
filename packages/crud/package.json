@@ -64,7 +64,8 @@
       "types": "./src/screens/timeline/index.ts",
       "svelte": "./src/screens/timeline/index.ts",
       "default": "./src/screens/timeline/index.ts"
-    }
+    },
+    "./styles.css": "./src/styles.css"
   },
   "scripts": {
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"

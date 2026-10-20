@@ -1,14 +1,11 @@
 @import "@protoyard/renderer-svelte/app.css";
+@import "@protoyard/crud/styles.css";
 @import "@protoyard/views-ui/styles.css";
 @import "@protoyard/charts-ui/styles.css";
 @import "@protoyard/analytics-ui/styles.css";
 
-/* Let Tailwind see the player and every kit a blueprint screen can render. */
+/* Let Tailwind see the player; each kit stylesheet above registers its own folder. */
 @source "./";
-@source "../../crud/src";
-@source "../../views-ui/src";
-@source "../../charts-ui/src";
-@source "../../analytics-ui/src";
 
 html,
 body,
