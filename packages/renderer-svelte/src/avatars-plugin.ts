@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 import { type AvatarImageSize, isAvatarId } from './avatars.ts';
@@ -19,16 +20,55 @@ export const AVATAR_IMAGE_SIZES: readonly AvatarImageSize[] = [64, 128];
 /** Output folder inside a build (and the shared folder at a showcase root). */
 export const AVATAR_DIR = 'avatars';
 
+const AVATARS_PACKAGE = '@protoyard/avatars';
+
 /**
- * The library's `assets/` folder. The avatars package is a workspace sibling
- * of the renderer, so it resolves without a package dependency (and without
- * pulling its manifest into any bundle).
+ * The library's `assets/` folder, found by Node package resolution from the
+ * renderer, so it works in this monorepo, from a packed `dist/`, and from a
+ * consumer's `node_modules` (flat or pnpm symlinks). Only the path is
+ * resolved: the manifest is never loaded, so nothing reaches a bundle.
+ * `from` is the module location to resolve from (tests point it at fixtures).
  */
-export function avatarAssetsDir(): string {
-  // `import.meta.dirname` is set by Node and Vite's config loader; the URL
-  // form covers loaders that only provide a file: `import.meta.url`.
-  const here = import.meta.dirname ?? dirname(fileURLToPath(import.meta.url));
-  return resolve(here, '../../avatars/assets');
+export function avatarAssetsDir(from: string = import.meta.url): string {
+  const require = createRequire(from);
+  const root = avatarsPackageRoot(require);
+  if (!root) {
+    throw new Error(
+      `[protoyard] ${AVATARS_PACKAGE} is not resolvable from ${from.startsWith('file:') ? fileURLToPath(from) : from}. Install it next to @protoyard/renderer-svelte, or turn avatars off with defineProtoyardConfig({ avatars: false }) or PROTOYARD_AVATARS=0.`
+    );
+  }
+  return join(root, 'assets');
+}
+
+/** The avatars package folder, or null when it cannot be resolved. */
+function avatarsPackageRoot(require: NodeJS.Require): string | null {
+  try {
+    return dirname(require.resolve(`${AVATARS_PACKAGE}/package.json`));
+  } catch {
+    // `./package.json` is not in the exports map: walk up from the entry.
+  }
+  let entry: string;
+  try {
+    entry = require.resolve(AVATARS_PACKAGE);
+  } catch {
+    return null;
+  }
+  for (let dir = dirname(entry); ; dir = dirname(dir)) {
+    const manifest = join(dir, 'package.json');
+    if (existsSync(manifest)) {
+      try {
+        if (
+          (JSON.parse(readFileSync(manifest, 'utf8')) as { name?: unknown }).name ===
+          AVATARS_PACKAGE
+        ) {
+          return dir;
+        }
+      } catch {
+        // unreadable manifest: keep walking
+      }
+    }
+    if (dirname(dir) === dir) return null;
+  }
 }
 
 export interface AvatarFile {
@@ -51,7 +91,7 @@ export function listAvatarFiles(
     const dir = join(assetsDir, String(size));
     if (!existsSync(dir)) {
       throw new Error(
-        `[protoyard] avatar images not found at ${dir}. They come from packages/avatars; turn avatars off with defineProtoyardConfig({ avatars: false }) or PROTOYARD_AVATARS=0.`
+        `[protoyard] avatar images not found at ${dir}. They come from @protoyard/avatars; turn avatars off with defineProtoyardConfig({ avatars: false }) or PROTOYARD_AVATARS=0.`
       );
     }
     const names = readdirSync(dir)
