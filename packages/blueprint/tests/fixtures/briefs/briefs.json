@@ -59,7 +59,7 @@
     "brief": "Product analytics dashboard with signup metrics, retention KPIs and weekly reports for the growth team.",
     "archetype": "analytics",
     "layout": "sidebar",
-    "entities": ["metric", "report"],
+    "entities": ["metric", "event", "report"],
     "avatars": [],
     "screens": ["analytics", "board", "dashboard", "detail", "list", "settings"]
   },

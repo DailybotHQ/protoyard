@@ -28,10 +28,15 @@ pnpm protoyard blueprint new tmp/acme-desk.blueprint.json \
 ```
 
 The command prints its selected archetype and a rationale for the entities,
-fields and screens. To inspect without writing, add `--dry-run`. To provide
+fields and screens, including the matched keywords. Strong cues can select the
+`assistant`, `team-chat`, `saas-onboarding` and `analytics` seeds. If equally
+strong kit archetypes conflict, synthesis uses the generic tracker; pass
+`--archetype <id>` to choose explicitly. To inspect without writing, add `--dry-run`. To provide
 brief text on stdin, use `--from-brief -`. Use `--interactive` to answer the
-CLI's short question flow on a terminal. `--archetype <id>` overrides automatic
-selection; supported ids are listed by `pnpm protoyard blueprint new --help`.
+CLI's short question flow on a terminal. These four seeds also write the
+portable kit declaration to `blueprint.archetype`, so the player and generator
+can retain the selected adapter and entity-slot mapping. Supported ids are
+listed by `pnpm protoyard blueprint new --help`.
 
 ### 3. Review and refine
 
