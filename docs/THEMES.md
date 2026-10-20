@@ -295,10 +295,10 @@ searched toward black or white until they reach 4.5:1 on every background
 they sit on. When a secondary or accent fill misses 4.5:1 with its text, the
 repair falls back to the family's own neutral fill.
 
-Omitting `neutral` keeps the original neutrals bit-for-bit, so every
-existing generated and library theme renders exactly as before. A library
-definition can set `neutral` too (`LibraryThemeDefinition.neutral`); no
-library theme sets one yet.
+Omitting `neutral` keeps the original neutrals bit-for-bit. A library
+definition can set `neutral` too (`LibraryThemeDefinition.neutral`); the
+64-theme library uses families across its product-category and curated
+collections.
 
 ```ts
 import { createThemeFromSeed } from '@protoyard/themes';
@@ -514,11 +514,12 @@ Each definition can also set catalog metadata (`packages/themes/src/library/type
 | `contrastLevel` | `AA` (text 4.5:1) or `AAA` (text 7:1, enforced by `tests/library.test.ts`) | `AA` |
 | `neutral` | a [neutral family](#neutral-families) | the original neutrals |
 
-The 32 current entries set none of these yet, so they all sit in `industry`
-at `AA`. `tests/library.test.ts` checks every definition: unique kebab-case
-ids, `#rrggbb` seeds, known fonts, neutrals, collections, moods and contrast
-levels, density range, and the style profile through core's
-`ThemeStyleSchema`.
+The first 32 definitions carry product categories and tags; optional metadata
+uses the defaults above when a definition omits it. The additional 32 entries
+make the collections explicit. `tests/library.test.ts` checks every
+definition: unique kebab-case ids, `#rrggbb` seeds, known fonts, neutrals,
+collections, moods and contrast levels, density range, and the style profile
+through core's `ThemeStyleSchema`.
 
 The registry API (`packages/themes/src/library/registry.ts`):
 
@@ -700,12 +701,14 @@ lazy chunk: its code loads only when you press **Open studio**.
 | Area | What you can do |
 | --- | --- |
 | Build | Name the theme; pick a seed color (color picker or hex field) and, optionally, a secondary color; choose a font pairing from `FONT_CATALOG`, a corner radius and motion from the [style presets](#style-presets) (Square, Sharp, Default, Round, Pill; None, Subtle, Standard, Expressive), elevation (`flat`, `soft`, `crisp`, `glow`, `layered`), surface (Solid, Glass), focus ring (`ring`, `outline`, `glow`, `inset`) and density (0.75–1.25 in 0.125 steps). The draft is built with `createThemeFromSeed`. |
+| Harmony | Choose a neutral family and a contrast-safe secondary-color suggestion (complementary, analogous, triadic, split-complementary or monochrome). Suggestions use deterministic OKLCH harmonies and are filtered for valid light and dark palettes. |
 | Preview | A sample card, buttons, badge and input themed by the draft only (scoped with `applyAppearance` on the preview box, cleared on close), with its own Light / Dark toggle. |
 | Contrast | Live WCAG warnings for every text pair (4.5:1) and focus pair (3:1) in both modes, or a confirmation that all pass. An invalid name or seed shows an inline error and nothing can be saved. |
 | Save | **Save** stores the theme; **Save and preview** also applies it as a temporary override. The id is a slug of the name, and saving again with the same name replaces it. |
 | Custom themes | Lists saved themes. Each can be exported or deleted; deleting the active theme falls back to a known theme. Saved themes appear in the theme grid above the Studio. |
 | Export | Shows the theme as JSON and offers a `<id>.theme.json` download. |
 | Import | Paste JSON or choose a file. It is validated before saving; errors are shown inline per field. |
+| Share draft | **Copy draft share link** encodes the Studio inputs into a compact `themeDef` URL value (at most 1,024 encoded characters). Opening it loads the draft in the Studio; the recipient explicitly saves it into their own browser. The link contains the seed and style choices, not generated palette tokens or saved domain data. |
 
 **Storage.** Custom themes are kept in this prototype's **control database**
 (`protoyard.<namespace>.control`, key `customThemes`), never in the data
@@ -719,17 +722,16 @@ enforces the rules:
 | Id clashes | A custom theme cannot reuse a built-in or prototype theme id |
 | Limit | `MAX_CUSTOM_THEMES` = 24 |
 | Import size | `MAX_THEME_JSON_BYTES` = 64 KB; parsed with `JSON.parse` only |
-| File format | `{ "format": "protoyard-theme/v1", "theme": { … } }`; import also accepts a bare theme object |
+| Import formats | Bare `Theme` JSON or `{ "format": "protoyard-theme/v1", "theme": { … } }` |
 
 The same API is on the runtime's theme controller for scripts and tests:
 `customThemes()`, `isCustom(id)`, `saveCustom(input)`, `removeCustom(id)`,
 `exportTheme(id)` and `importTheme(json)`.
 
-To make a Studio theme permanent, export it and turn it into code with the
-CLI. `protoyard theme import` and `theme create --from` read a **bare** theme
-object, so take the `theme` value out of the Studio's
-`protoyard-theme/v1` wrapper first; the wrapped file is rejected with a
-validation error.
+The Studio's download is a **bare** theme object, ready for `protoyard theme
+import` or `theme create --from`. The runtime's `exportTheme(id)` API returns
+the versioned wrapper; the Studio unwraps that response for its JSON download.
+The versioned wrapper is also accepted by Studio import.
 
 ## The CLI
 

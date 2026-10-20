@@ -295,10 +295,15 @@ rewrites them.
 
 Set the optional top-level `layout` to `{ "id": "top-nav", "mobile": "mobile-tabs" }`
 to choose a registered desktop layout and an optional narrow-screen layout.
-The default is `sidebar`. Regeneration updates `src/generated/layout.ts` while
-leaving the owned `src/App.svelte` untouched. If an older owned App does not
-consume that module, `generate` warns that the selected layout is not applied;
-update the App to read the generated layout module to adopt it.
+The default is `sidebar`. Regeneration updates `src/generated/layout.ts` and
+the generated `App.svelte` reads that module, builds grouped navigation from
+the blueprint screens and wraps the router in `LayoutHost`. Runtime layout
+overrides still take precedence; the generated mobile choice applies below
+768 px unless a scenario or explicit override selects another layout.
+Regeneration leaves an owned `src/App.svelte` untouched. For older generated
+apps that do not consume the module, `generate` warns that the selected
+layout is not applied. See [LAYOUTS.md](LAYOUTS.md) for the shared catalog and
+the manual adoption path.
 
 ## Ownership rules
 

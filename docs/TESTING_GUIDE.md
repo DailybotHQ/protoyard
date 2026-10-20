@@ -163,6 +163,7 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `apps/gallery/src/**` | `apps/gallery/tests/*.test.ts` + `tests/e2e/gallery.spec.ts` | unit + E2E |
 | `apps/gallery/src/components/marketplace/**`, `apps/gallery/src/pages/marketplace/**` | `pnpm vitest run apps/gallery` + `tests/e2e/marketplace.spec.ts` (`PROTOYARD_E2E_SHOWCASE=1` adds the bundled-demo Try it test); perf: `pnpm bench:index --marketplace --check` | unit + E2E + perf |
 | `packages/renderer-svelte/src/shell/**`, viewport presets | `tests/e2e/shell-layout.spec.ts`, `tests/e2e/viewport-fit.spec.ts` | E2E (layout + axe) |
+| `packages/core/src/layouts.ts`, `packages/ui/src/layouts/**` | `pnpm vitest run packages/core/tests/layouts.test.ts packages/ui/tests/layout-host.test.ts` + `pnpm --filter @protoyard/ui typecheck`; layout behavior in `tests/e2e/layout-fit.spec.ts` | contract + component + typecheck + browser fit |
 | `packages/charts/src/**` | `pnpm vitest run packages/charts` (scales, shapes, downsample, layouts, palette; `PROTOYARD_BENCH=1` adds the LTTB and min-max timings) | unit (Node) |
 | `packages/charts-ui/src/**` | `pnpm vitest run packages/charts-ui` (happy-dom) + `pnpm vitest run packages/cli/tests/charts-bundle.test.ts` (real Vite build: no chart code in initial JS, size ceilings) + `tests/e2e/charts.spec.ts` (`PROTOYARD_E2E_PROTOTYPES=ui-kit`: axe, keyboard, table, dark, reduced motion, 10k Canvas, touch, resize) | unit + bundle guard + E2E |
 | `packages/analytics/src/**` | `pnpm vitest run packages/analytics` (`PROTOYARD_BENCH=1` asserts the funnel and generation budgets) | unit (Node) |
@@ -235,6 +236,14 @@ No coverage quotas or test-count targets. A behavior change comes with a test
 that would have failed before it.
 
 ## Visual QA sweep
+
+For shared layouts, combine `tests/e2e/layout-fit.spec.ts` with the core
+contract tests and `packages/ui/tests/layout-host.test.ts`. Layouts use the
+host container width, not only the browser viewport, so exercise them inside
+the shells or panels they support. The sweep varies each target's manifest
+layout and supported layouts; review its screenshots and flags rather than
+treating the contact sheet as an automated pixel gate. See
+[LAYOUTS.md](LAYOUTS.md) for the catalog and layout-specific authoring rules.
 
 `scripts/visual-sweep.ts` screenshots prototypes in every applicable
 combination and writes a contact sheet for a human to review. It complements

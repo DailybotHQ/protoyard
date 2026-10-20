@@ -133,6 +133,13 @@ with no chrome.
 
 ## Laying out an app inside a shell
 
+Shared page layouts (`LayoutHost`) can be used inside any shell; they measure
+the app's available container width, so a device or plugin panel can resolve
+to a mobile fallback even in a wide desktop browser. Shells still control the
+outer frame and simulated safe areas, while the layout controls navigation
+and page structure. See [LAYOUTS.md](LAYOUTS.md) for the catalog, manifest
+settings and responsive fallbacks.
+
 Media queries and `dvh` still follow the real window, not the device (ADR-016). Inside a
 frame:
 
