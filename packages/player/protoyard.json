@@ -15,6 +15,7 @@
   "build": {
     "includeDevtools": true,
     "demoBadge": true,
-    "base": "./"
+    "base": "./",
+    "offline": true
   }
 }
