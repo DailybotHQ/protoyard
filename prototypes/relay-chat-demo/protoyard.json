@@ -39,7 +39,8 @@
   "build": {
     "includeDevtools": false,
     "demoBadge": true,
-    "base": "./"
+    "base": "./",
+    "review": { "enabled": true, "adapter": "artifact" }
   },
   "scenarios": ["empty", "busy-day", "quiet-night", "viewer"],
   "template": "team-chat",
