@@ -1,0 +1,28 @@
+{
+  "name": "@protoyard/templates",
+  "version": "1.0.0",
+  "description": "Every Protoyard starter template, packed for `protoyard new` outside this repository: listTemplates() and templateDir(name).",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "templates",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "node scripts/copy-templates.mjs",
+    "postpack": "node scripts/copy-templates.mjs --clean",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  }
+}
