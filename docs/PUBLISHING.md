@@ -699,6 +699,16 @@ which the review UI sends after a reviewer opens the link once with
 `?review=<key>`. Names and keys are self-declared and shared: this mode
 discourages casual writes, and it is **not authentication**.
 
+After a deploy, pull the threads into the prototype's `docs/REVIEW.md` for
+the agent loop (only `GET`; the key comes from the environment):
+
+```bash
+PROTOYARD_REVIEW_KEY=<key> pnpm protoyard comments pull crm-demo --from https://<deploy>/api/comments --format md
+```
+
+The reviewer guide, the agent loop, honest limits and measured sizes are in
+[REVIEW_COMMENTS.md](REVIEW_COMMENTS.md).
+
 `--comments` is refused by the other providers and in batch publishes. For
 one shared worker over many demos, use the showcase (below). Static and ZIP
 exports never ship the worker. `export` builds a fresh `dist/` without one,

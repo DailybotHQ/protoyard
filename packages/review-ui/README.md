@@ -48,6 +48,11 @@ bottom sheet that stays within the app viewport. The first visit asks for a
 display name, explains that it is not a login, and stores the reviewer name and
 browser id in local storage for that prototype slug.
 
+The mounted review session does not use `ReviewThread` yet. It shows a
+pin's thread in its own section, with the comments, a **Reply** box and
+**Resolve** / **Reopen** for the author's browser. The component is available
+to hosts that compose their own UI.
+
 ## Toolbar and the comments panel
 
 The floating toolbar never covers the app by default. It starts as one small
@@ -74,6 +79,18 @@ artifact) sync through their endpoint, so neither button renders for them. A
 prototype can ship a demo review in `public/` for reviewers to import (see
 `prototypes/keel-projects-demo/public/review-demo.json`).
 
+## Keyboard
+
+| Key | What it does |
+| --- | --- |
+| **C** | Enter or leave comment mode (ignored in text fields) |
+| **Arrow keys** / **Shift** + arrows | Move the crosshair 16 / 40 px |
+| **Enter** | Place the pin at the crosshair |
+| **Shift+C** | Comment on the element that has keyboard focus |
+| **Escape** | Leave comment mode, or collapse the toolbar |
+
+The reviewer guide is in [docs/REVIEW_COMMENTS.md](../../docs/REVIEW_COMMENTS.md#reviewer-guide).
+
 ## 0 bytes until review is enabled
 
 There is no root entry. The renderer reaches this package through one dynamic
@@ -88,6 +105,11 @@ IndexedDB by default, or the HTTP/Cloudflare endpoint or Claude Artifact shell
 when selected. The HTTP adapter's `pendingCount()` and `subscribePending()` are
 shown in the toolbar as comments waiting to sync. Local rows are reconciled on
 startup, so offline comments are retried after a page reload.
+
+Measured on 2026-10-19 (gzip, `crm-demo` with `PROTOYARD_REVIEW=1`):
+- **Loaded when review mounts:** `mount` 1.5 KB, the session (toolbar, overlay, thread) 8.3 KB, the local adapter 1.3 KB, anchors 2.3 KB and comment schemas 1.3 KB. That totals 14.7 KB, plus 1.4 KB CSS.
+- **On first open:** the panel adds 3.5 KB, plus 1.1 KB CSS.
+- **Initial JS:** goes from 174.76 KB to 177.13 KB with review on.
 
 ```bash
 pnpm --filter @protoyard/review-ui typecheck

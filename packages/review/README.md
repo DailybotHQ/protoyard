@@ -6,8 +6,9 @@ thread in one list. This package has no Svelte; the UI is
 [`@protoyard/review-ui`](../review-ui/README.md). The comment schemas live in
 `@protoyard/core/review`.
 
-> **Status:** `./anchors`, `./store`, `./adapters/local`, `./adapters/http`, `./adapters/artifact` and `./server` are implemented.
-> The remaining subpaths are filled by their PLAN_003 tasks and documented here when they land.
+Every subpath below is implemented. The reviewer guide, the agent loop
+(`protoyard comments pull` → `REVIEW.md`), the Cloudflare setup and the honest
+limits are in [docs/REVIEW_COMMENTS.md](../../docs/REVIEW_COMMENTS.md).
 
 | Subpath | Purpose | Task |
 | --- | --- | --- |
@@ -73,6 +74,10 @@ with zod and the core schemas it was 109 KB). `tests/server-validate.test.ts`
 runs both validators on about 790 valid and invalid documents and requires the
 same verdict and the same parsed value. Change the schema and the validator
 together.
+
+**The handler does not check authorship.** Anyone who can reach it (with
+the key, when set) can overwrite or delete any comment by id; "only the author
+edits" is a rule of the review UI.
 
 Use `createD1CommentsStore(db)` for shared deployments: D1 upserts and rate
 buckets are strongly consistent. Apply [`schema/d1.sql`](schema/d1.sql)
@@ -191,7 +196,6 @@ missing rows and rows with a newer `updatedAt` are uploaded, while a newer
 server row wins. This restores sync after reload even though the retry queue
 itself is not persisted. The renderer exposes any transiently queued writes as
 visible “comments waiting to sync” feedback.
-after a page reload.
 
 ## Reports (`@protoyard/review/report`)
 
