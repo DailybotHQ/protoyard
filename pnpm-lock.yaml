@@ -1009,6 +1009,52 @@ importers:
         specifier: workspace:*
         version: link:../../packages/runtime
 
+  prototypes/pulse-revenue-demo:
+    dependencies:
+      '@lucide/svelte':
+        specifier: ^1.50.0
+        version: 1.57.0(svelte@5.57.2)
+      '@protoyard/analytics-ui':
+        specifier: workspace:*
+        version: link:../../packages/analytics-ui
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../../packages/blueprint
+      '@protoyard/charts-ui':
+        specifier: workspace:*
+        version: link:../../packages/charts-ui
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/crud':
+        specifier: workspace:*
+        version: link:../../packages/crud
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      '@protoyard/themes':
+        specifier: workspace:*
+        version: link:../../packages/themes
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@protoyard/views-ui':
+        specifier: workspace:*
+        version: link:../../packages/views-ui
+      dexie:
+        specifier: ^4.4.0
+        version: 4.4.6
+      svelte:
+        specifier: ^5.57.0
+        version: 5.57.2
+    devDependencies:
+      '@protoyard/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../../packages/scenarios
+
   prototypes/relay-chat-demo:
     dependencies:
       '@lucide/svelte':
