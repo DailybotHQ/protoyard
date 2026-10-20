@@ -134,6 +134,21 @@ export {
   createNotificationWriter,
   type NotificationEvent,
 } from './notifications.ts';
+export {
+  type ApplyBlueprintPatchOptions,
+  applyBlueprintPatch,
+  applyJsonPatch,
+  BlueprintPatchError,
+  type BlueprintPatchErrorCode,
+  type BlueprintPatchResult,
+  JSON_PATCH_MAX_OPS,
+  JSON_POINTER_MAX_LENGTH,
+  type JsonPatchOperation,
+  JsonPatchOperationSchema,
+  JsonPatchSchema,
+  jsonEqual,
+  parseJsonPointer,
+} from './patch.ts';
 export { CAPABILITIES, derivePolicy, type EntityCapabilityMap } from './policy.ts';
 export { blueprintScenarios } from './scenarios.ts';
 export {
@@ -215,7 +230,6 @@ export {
   relationProperty,
   storeIndexForField,
 } from './storage.ts';
-
 export {
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
   loadUntrustedBlueprint,

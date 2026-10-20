@@ -374,6 +374,30 @@ throws a `RangeError`, and an unknown layout or a malformed theme id fails
 blueprint validation. Library theme ids are not checked against the library
 here; `blueprint validate` and `generate` do that.
 
+### Patches
+
+`applyBlueprintPatch(blueprint, operations, { allowDrop })` in
+`@protoyard/blueprint` applies an [RFC 6902](https://www.rfc-editor.org/rfc/rfc6902)
+JSON Patch (`add`, `remove`, `replace`, `move`, `copy`, `test`) with no
+dependency. A patch is untrusted input:
+
+- it is shape-checked (at most 1,000 operations, pointers up to 1,024
+  characters), and members an operation does not define are ignored, as RFC
+  6902 requires;
+- pointers may never name `__proto__`, `constructor` or `prototype`, and values
+  may not carry those keys;
+- the operations run on a copy and are atomic: a failing operation (a missing
+  path, a failed `test`) throws `BlueprintPatchError` with its index and changes
+  nothing;
+- the result must parse as a blueprint (`invalid-result` lists every issue).
+
+It returns `{ blueprint, migration, destructive }`. `migration` is the
+`diffBlueprints` result (`null` when the stored data shape is unchanged), so a
+caller knows how the current world moves to the new schema. A patch that drops
+an entity or a field, or changes a field incompatibly, loses data: it fails
+with `drop-requires-allow` unless `allowDrop` is set, and then reports
+`destructive: true`. `applyJsonPatch` is the same engine for any JSON document.
+
 ### Checks
 
 After the shape parses, cross-references are checked, each with a path-specific
