@@ -25,6 +25,7 @@ export {
 } from './columns.ts';
 export {
   compileFilter,
+  exceedsFilterLimits,
   FILTER_LIMITS,
   FILTER_OPERATORS,
   type FilterCondition,

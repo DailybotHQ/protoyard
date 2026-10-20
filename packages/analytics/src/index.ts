@@ -30,6 +30,8 @@ export {
   FilterSchema,
   filterSchemaFor,
   MAX_FILTER_DEPTH,
+  MAX_FILTER_NODES,
+  measureFilterInput,
   OPERATOR_LABELS,
   OPERATORS_BY_TYPE,
   type PropertyCatalog,

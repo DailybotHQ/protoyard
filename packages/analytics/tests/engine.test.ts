@@ -11,9 +11,12 @@ import {
   type DateRangePreset,
   delta,
   type FilterGroup,
+  FilterGroupSchema,
   FilterSchema,
   filterSchemaFor,
   MAX_BUCKETS,
+  MAX_FILTER_NODES,
+  measureFilterInput,
   percentile,
   readProperty,
   resolveDateRange,
@@ -366,6 +369,38 @@ describe('filters and segments', () => {
         filter: { combinator: 'and', conditions: [] },
       }).name
     ).toBe('Pro users');
+  });
+
+  it('refuses (never throws on) filters nested thousands of levels deep', () => {
+    let deep: unknown = { combinator: 'and', conditions: [] };
+    for (let i = 0; i < 5000; i++) deep = { combinator: 'and', conditions: [deep] };
+    expect(measureFilterInput(deep).exceeded).toBe(true);
+    expect(FilterSchema.safeParse(deep).success).toBe(false);
+    expect(FilterGroupSchema.safeParse(deep).success).toBe(false);
+    expect(SegmentSchema.safeParse({ id: 'seg_1', name: 'Deep', filter: deep }).success).toBe(
+      false
+    );
+    expect(filterSchemaFor({ type: 'string' }).safeParse(deep).success).toBe(false);
+
+    const wide = {
+      combinator: 'or',
+      conditions: Array.from({ length: 11 }, () => ({
+        combinator: 'and',
+        conditions: Array.from({ length: 50 }, () => ({
+          property: 'type',
+          operator: 'eq',
+          value: 'a',
+        })),
+      })),
+    };
+    expect(measureFilterInput(wide).exceeded).toBe(true);
+    expect(FilterSchema.safeParse(wide).success).toBe(false);
+    expect(MAX_FILTER_NODES).toBe(500);
+
+    let four: FilterGroup = { combinator: 'and', conditions: [] };
+    for (let i = 0; i < 3; i++) four = { combinator: 'and', conditions: [four] };
+    expect(measureFilterInput(four)).toEqual({ depth: 4, nodes: 4, exceeded: false });
+    expect(FilterSchema.safeParse(four).success).toBe(true);
   });
 
   it('reads own properties only', () => {

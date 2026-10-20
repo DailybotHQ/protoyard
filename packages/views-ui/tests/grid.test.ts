@@ -327,6 +327,31 @@ describe('DataGrid', () => {
     await waitFor(() => expect(screen.getByText('20 rows')).toBeTruthy());
   });
 
+  it('refuses a stored view with a filter nested thousands of levels deep', async () => {
+    let filter: FilterNode = { type: 'condition', field: 'stage', operator: 'eq', value: 'won' };
+    for (let i = 0; i < 5000; i++) filter = { type: 'group', op: 'and', children: [filter] };
+    const saved: SavedView[] = [
+      {
+        id: 'deep',
+        name: 'Deep',
+        columns: [],
+        sort: [],
+        groupBy: null,
+        filter,
+        density: 'compact',
+      },
+    ];
+    const { view } = grid({ savedViews: saved });
+    await fireEvent.change(screen.getByLabelText('View'), { target: { value: 'deep' } });
+    await waitFor(() =>
+      expect(
+        screen.getByText('This saved view could not be applied. It is not a valid view.')
+      ).toBeTruthy()
+    );
+    expect(screen.getByText('20 rows')).toBeTruthy();
+    expect(view().density).not.toBe('compact');
+  });
+
   it('filters from the builder and holds an incomplete condition back', async () => {
     const { view } = grid();
     await fireEvent.click(screen.getByRole('button', { name: /Filters/ }));

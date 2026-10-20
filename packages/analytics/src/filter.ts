@@ -134,23 +134,68 @@ export interface FilterGroup {
 /** Nesting limit keeps filters readable and bounds evaluation. */
 export const MAX_FILTER_DEPTH = 4;
 
-export const FilterGroupSchema: z.ZodType<FilterGroup> = z.lazy(() =>
+/** Hard bounds checked before any recursive parse (untrusted segments, snapshots). */
+export const MAX_FILTER_NODES = 500;
+/** Generous structural cap for `FilterGroupSchema`; `FilterSchema` applies `MAX_FILTER_DEPTH`. */
+const MAX_PARSE_DEPTH = 32;
+
+const GroupShapeSchema: z.ZodType<FilterGroup> = z.lazy(() =>
   z.strictObject({
     combinator: z.enum(['and', 'or']),
-    conditions: z.array(z.union([FilterConditionSchema, FilterGroupSchema])).max(50),
+    conditions: z.array(z.union([FilterConditionSchema, GroupShapeSchema])).max(50),
   })
 );
 
-function depth(group: FilterGroup): number {
+/**
+ * Measures untrusted input without recursion: the deepest group and the node
+ * count. Stops early once `maxDepth` or `MAX_FILTER_NODES` is exceeded, so a
+ * tree nested thousands of levels deep never reaches the recursive schema.
+ */
+export function measureFilterInput(
+  input: unknown,
+  maxDepth = MAX_PARSE_DEPTH
+): { depth: number; nodes: number; exceeded: boolean } {
+  const stack: { node: unknown; depth: number }[] = [{ node: input, depth: 1 }];
   let deepest = 0;
-  for (const c of group.conditions) if ('combinator' in c) deepest = Math.max(deepest, depth(c));
-  return deepest + 1;
+  let nodes = 0;
+  while (stack.length > 0) {
+    const { node, depth } = stack.pop() as { node: unknown; depth: number };
+    nodes++;
+    const conditions =
+      typeof node === 'object' && node !== null
+        ? (node as { conditions?: unknown }).conditions
+        : undefined;
+    if (Array.isArray(conditions)) deepest = Math.max(deepest, depth);
+    if (deepest > maxDepth) return { depth: deepest, nodes, exceeded: true };
+    if (!Array.isArray(conditions)) continue;
+    if (nodes + stack.length + conditions.length > MAX_FILTER_NODES) {
+      return { depth: deepest, nodes, exceeded: true };
+    }
+    for (const child of conditions) stack.push({ node: child, depth: depth + 1 });
+  }
+  return { depth: deepest, nodes, exceeded: false };
 }
 
+function boundedGroup(maxDepth: number, message: string): z.ZodType<FilterGroup> {
+  return z
+    .unknown()
+    .superRefine((input, ctx) => {
+      if (measureFilterInput(input, maxDepth).exceeded) ctx.addIssue({ code: 'custom', message });
+    })
+    .pipe(GroupShapeSchema);
+}
+
+/** Any filter tree, refused (not thrown) when deeper than 32 groups or over 500 nodes. */
+export const FilterGroupSchema: z.ZodType<FilterGroup> = boundedGroup(
+  MAX_PARSE_DEPTH,
+  `Filters nest at most ${MAX_PARSE_DEPTH} groups deep and hold at most ${MAX_FILTER_NODES} nodes`
+);
+
 /** A filter plus its depth limit. An empty group matches every row. */
-export const FilterSchema = FilterGroupSchema.refine((group) => depth(group) <= MAX_FILTER_DEPTH, {
-  message: `Filters nest at most ${MAX_FILTER_DEPTH} groups deep`,
-});
+export const FilterSchema: z.ZodType<FilterGroup> = boundedGroup(
+  MAX_FILTER_DEPTH,
+  `Filters nest at most ${MAX_FILTER_DEPTH} groups deep`
+);
 
 /** A saved, named filter. */
 export const SegmentSchema = z.strictObject({

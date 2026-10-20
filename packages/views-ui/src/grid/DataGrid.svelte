@@ -460,7 +460,16 @@ function applySaved(saved: SavedView | null) {
     setView(emptyView());
     return;
   }
-  const { view: clean, dropped } = sanitizeView(saved, columns);
+  // Saved views come from storage or snapshots: a malformed or oversized one
+  // is refused with a message instead of throwing inside the event handler.
+  let result: ReturnType<typeof sanitizeView<T>>;
+  try {
+    result = sanitizeView(saved, columns);
+  } catch {
+    announce('This saved view could not be applied. It is not a valid view.');
+    return;
+  }
+  const { view: clean, dropped } = result;
   setView({
     columns: clean.columns,
     sort: clean.sort,

@@ -169,7 +169,9 @@ const visible = windowGrid({ rows: createAxis({ count: rows.length, size: 36 }),
   `contains`, `in`, `between`, `before`, `after`, `isEmpty`, `isNotEmpty`),
   validated with zod against the columns (unknown fields, operators that do
   not fit the type and bad values are `ZodError`s), bounded to 6 levels and
-  200 nodes, and compiled to closures (never `eval` or `new Function`). Text
+  200 nodes (measured without recursion before the schema runs, so a tree
+  nested thousands of levels deep fails validation instead of overflowing the
+  stack; `exceedsFilterLimits`), and compiled to closures (never `eval` or `new Function`). Text
   comparisons ignore case.
 - **Grouping** (`groupRows`, `flattenGroups`): one column, groups ordered by
   value with the empty group last, `count`/`sum`/`min`/`max` aggregates, and a
