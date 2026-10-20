@@ -42,6 +42,30 @@ The validator enforces the namespaced skill names, quoted SemVer, canonical
 documentation URL, allowed tools, and OpenClaw metadata shape. It reports the
 file and field for every failure and exits nonzero when any file is invalid.
 
+## Upgrade the skill
+
+The `upgrade` sub-skill (`skills/protoyard/upgrade/SKILL.md`) replaces an
+installed skill with another release tag in three ordered phases:
+
+1. **Check (read-only):** read the installed `version:` from the router's
+   frontmatter, then list release tags with `git ls-remote` (a network read the
+   agent announces) and pick the highest stable `vX.Y.Z`, or the tag the
+   developer names.
+2. **Consent:** show the exact pinned tree URL
+   (`https://github.com/DailybotHQ/protoyard/tree/vX.Y.Z`), the install method,
+   the one directory that will be replaced, what stays untouched (other skills,
+   host settings, `AGENTS.md`, prototypes, the CLI), any local edits a
+   replacement would discard, and the rollback. Nothing changes until the
+   developer explicitly confirms.
+3. **Upgrade and verify:** rerun the same pinned install (skills CLI, OpenClaw,
+   or a manual tagged checkout with a backup kept outside the skills
+   directory), restart the host, and check that the new `version:` and the
+   `skills-lock.json` entry name the confirmed tag.
+
+A failed upgrade is rolled back by reinstalling the previous tag the same way
+or restoring the manual backup. The flow never follows `main` or `latest` and
+never runs a downloaded shell script.
+
 ## Reusable kits
 
 The `kits` sub-skill (`skills/protoyard/kits/SKILL.md`) tells an agent to pick
