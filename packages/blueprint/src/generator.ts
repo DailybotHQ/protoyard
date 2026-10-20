@@ -21,7 +21,7 @@ import { inputProperty } from './validation.ts';
  */
 
 /** Bump when the same blueprint + seed can produce a different world shape. */
-export const BLUEPRINT_GENERATOR_SDK = 5;
+export const BLUEPRINT_GENERATOR_SDK = 6;
 
 /** Region for geo fields that do not name one. */
 export const DEFAULT_GEO_REGION: GeoRegionId = 'metro-grid';
@@ -168,6 +168,30 @@ function emailFrom(faker: GenerateContext['faker'], rng: GenerateContext['rng'])
   return `${local}@${domain}`;
 }
 
+function exampleUrl(faker: GenerateContext['faker'], rng: GenerateContext['rng']): string {
+  return `https://${rng.pick([...EXAMPLE_DOMAINS])}/${faker.internet.username().toLowerCase()}`;
+}
+
+function examplePhone(rng: GenerateContext['rng']): string {
+  return `+1-555-${String(rng.int(100, 999))}-${String(rng.int(1000, 9999))}`;
+}
+
+/**
+ * Faker emails, URLs and phone numbers can name real domains and numbers, so a
+ * hint for one of them (on a text field) is replaced by the fictional form.
+ */
+function exampleOnly(
+  path: string,
+  hinted: string,
+  faker: GenerateContext['faker'],
+  rng: GenerateContext['rng']
+): string {
+  if (path === 'internet.email') return emailFrom(faker, rng);
+  if (path === 'internet.url') return exampleUrl(faker, rng);
+  if (path === 'phone.number') return examplePhone(rng);
+  return hinted;
+}
+
 const MS_PER_DAY = 86_400_000;
 
 /**
@@ -248,12 +272,13 @@ function valueForField(
     return field.default;
   }
 
-  if (field.fake) {
+  // URL and phone fields keep their example-only generators (example.com, 555 numbers).
+  if (field.fake && field.kind !== 'url' && field.kind !== 'phone') {
     const hinted = callFake(faker, field.fake);
     if (hinted !== undefined) {
       if (field.kind === 'email') return emailFrom(faker, rng);
       if (typeof hinted === 'string') {
-        let text = hinted;
+        let text = exampleOnly(field.fake, hinted, faker, rng);
         if ('maxLength' in field && typeof field.maxLength === 'number') {
           text = text.slice(0, field.maxLength);
         }
@@ -317,9 +342,9 @@ function valueForField(
     case 'email':
       return emailFrom(faker, rng);
     case 'url':
-      return `https://${rng.pick([...EXAMPLE_DOMAINS])}/${faker.internet.username().toLowerCase()}`;
+      return exampleUrl(faker, rng);
     case 'phone':
-      return `+1-555-${String(rng.int(100, 999))}-${String(rng.int(1000, 9999))}`;
+      return examplePhone(rng);
     case 'tags': {
       const n = rng.int(0, Math.min(3, field.maxItems ?? 8));
       const tags = new Set<string>();
