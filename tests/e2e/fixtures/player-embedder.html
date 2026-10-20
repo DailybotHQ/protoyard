@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Protoyard player embedder</title>
+  </head>
+  <body>
+    <h1>Player embedder fixture</h1>
+    <p id="status" data-testid="embedder-status" data-state="waiting">Waiting for player</p>
+    <iframe id="player" title="Embedded Protoyard player"></iframe>
+    <script>
+      const playerOrigin = 'http://127.0.0.1:4861';
+      const frame = document.getElementById('player');
+      const status = document.getElementById('status');
+      frame.src = `${playerOrigin}/?embedder=${encodeURIComponent(location.origin)}`;
+
+      window.addEventListener('message', async (event) => {
+        if (event.source !== frame.contentWindow || event.origin !== playerOrigin) return;
+        const message = event.data;
+        if (message?.protocol !== 'protoyard-player/1') return;
+        if (message.type === 'ready') {
+          status.dataset.state = 'ready';
+          status.textContent = 'Player ready';
+          const blueprint = await fetch('/blueprints/quick/team-chat.json').then((response) => {
+            if (!response.ok) throw new Error(`Blueprint request failed: ${response.status}`);
+            return response.json();
+          });
+          blueprint.archetype.screens[0].path = '/team-chat';
+          frame.contentWindow.postMessage(
+            {
+              protocol: 'protoyard-player/1',
+              type: 'load',
+              id: 'team-chat-browser',
+              blueprint,
+            },
+            playerOrigin
+          );
+        } else if (message.type === 'loaded') {
+          status.dataset.state = 'loaded';
+          status.textContent = `Loaded ${message.name}`;
+        } else if (message.type === 'error') {
+          status.dataset.state = 'error';
+          status.textContent = message.issues?.[0]?.message ?? 'Player rejected the blueprint';
+        }
+      });
+    </script>
+  </body>
+</html>

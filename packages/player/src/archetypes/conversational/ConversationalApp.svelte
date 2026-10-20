@@ -8,11 +8,11 @@ import { scriptedReply } from './reply.ts';
 
 let { blueprint }: { blueprint: Blueprint } = $props();
 const runtime = getRuntime();
-const services = createEntityServices(runtime, blueprint);
-const adapter = createConversationalAdapter(blueprint);
-const conversationService = services[adapter.conversationEntity];
-const messageService = services[adapter.messageEntity];
-const memberService = adapter.memberEntity ? services[adapter.memberEntity] : undefined;
+const services = $derived(createEntityServices(runtime, blueprint));
+const adapter = $derived(createConversationalAdapter(blueprint));
+const conversationService = $derived(services[adapter.conversationEntity]);
+const messageService = $derived(services[adapter.messageEntity]);
+const memberService = $derived(adapter.memberEntity ? services[adapter.memberEntity] : undefined);
 
 const conversationRows = liveQuery(() => conversationService?.list() ?? Promise.resolve([]), {
   initial: [],
@@ -54,7 +54,7 @@ async function rename(conversationId: string, title: string): Promise<void> {
   if (!clean) return;
   await conversationService.update(
     conversationId,
-    blueprint.archetype?.id === 'team-chat' ? { name: clean } : { title: clean }
+    adapter.id === 'team-chat' ? { name: clean } : { title: clean }
   );
 }
 
@@ -63,7 +63,12 @@ function selectConversation(id: string): void {
 }
 </script>
 
-<section class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8" data-testid="player-conversational-archetype" data-archetype={adapter.id}>
+<section
+  class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8"
+  data-testid="player-conversational-archetype"
+  data-archetype={adapter.id}
+  data-route={adapter.path}
+>
   <div class="mb-4">
     <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{adapter.id === 'team-chat' ? 'Team chat' : 'Assistant workspace'} · Simulated</p>
     <h1 class="text-2xl font-semibold">{blueprint.name}</h1>
