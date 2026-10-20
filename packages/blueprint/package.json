@@ -35,5 +35,80 @@
         "schema/blueprint.schema.json"
       ]
     }
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./csv": {
+        "types": "./dist/csv.d.ts",
+        "import": "./dist/csv.js",
+        "default": "./dist/csv.js"
+      },
+      "./computed": {
+        "types": "./dist/computed/index.d.ts",
+        "import": "./dist/computed/index.js",
+        "default": "./dist/computed/index.js"
+      },
+      "./import/csv-shape": {
+        "types": "./dist/import/csv-shape.d.ts",
+        "import": "./dist/import/csv-shape.js",
+        "default": "./dist/import/csv-shape.js"
+      },
+      "./import/json-shape": {
+        "types": "./dist/import/json-shape.d.ts",
+        "import": "./dist/import/json-shape.js",
+        "default": "./dist/import/json-shape.js"
+      },
+      "./import/sqlite-schema": {
+        "types": "./dist/import/sqlite-schema.d.ts",
+        "import": "./dist/import/sqlite-schema.js",
+        "default": "./dist/import/sqlite-schema.js"
+      },
+      "./generator": {
+        "types": "./dist/generator.d.ts",
+        "import": "./dist/generator.js",
+        "default": "./dist/generator.js"
+      },
+      "./search": {
+        "types": "./dist/search.d.ts",
+        "import": "./dist/search.js",
+        "default": "./dist/search.js"
+      },
+      "./workflows": {
+        "types": "./dist/workflows/index.d.ts",
+        "import": "./dist/workflows/index.js",
+        "default": "./dist/workflows/index.js"
+      }
+    },
+    "types": "./dist/index.d.ts"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/blueprint"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "blueprint",
+    "prototype",
+    "generator"
+  ]
 }

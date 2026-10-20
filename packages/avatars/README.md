@@ -105,3 +105,7 @@ files, enforces the budgets (64 px ≤ 4 KB, 128 px ≤ 12 KB per file, 128 px
 average ≤ 6 KB, all assets ≤ 1.2 MB), and covers `avatarFile`, `isAvatarId` and
 `isAvatarSize`. `tests/pick.test.ts` covers seeded assignment (determinism, no repeats
 within 175, valid ids).
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

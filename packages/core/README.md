@@ -55,3 +55,7 @@ const policy = createPermissionPolicy({
 - Tests live in `tests/*.test.ts` (`core.test.ts`, `devices.test.ts`, `review.test.ts`, `session-auth.test.ts`, `theme.test.ts`, `validation.test.ts`). Run them with
   `pnpm vitest run packages/core` and type-check with
   `pnpm --filter @protoyard/core typecheck`.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

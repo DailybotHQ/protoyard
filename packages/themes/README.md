@@ -56,3 +56,7 @@ utilities.
 Contrast rules (tested): all text pairs ≥ 4.5:1, `primary`/`destructive`/
 `success`/`info` as text on surfaces ≥ 4.5:1, focus ring ≥ 3:1. Use `warning`
 as a fill with `warning-foreground` text, not as text color.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.
