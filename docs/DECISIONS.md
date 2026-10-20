@@ -534,3 +534,188 @@ screens; each screen kind is a lazy chunk, and a legacy owned `App` that does
 not consume the generated layout gets a warning instead of a silent change.
 **Reverse:** remove the screen kinds from the blueprint and regenerate; the
 generator falls back to list, detail and form screens.
+
+## ADR-028 — Packages publish dist through publishConfig; the repository keeps source exports
+
+**Context.** Every package exports `./src/*.ts`. Node does not strip types inside
+`node_modules`. Several packages also reach into a sibling's `src` (crud imports blueprint
+search; the renderer resolves `../../avatars/assets`). Inside the repository nothing needs a
+build today, and PLAN_004 must keep it that way.
+
+**Options.** (1) Bundle each package with a bundler. (2) Make dist the only export and add a
+build step to development. (3) Emit per-file ESM with `tsc` and `svelte-package`, and swap the
+exports at pack time through `publishConfig`.
+
+**Decision.**
+- **Build:** option 3. `tsc` emits ESM, `.d.ts` and source maps for the engine packages, with
+  `rewriteRelativeImportExtensions`. `svelte-package` ships the Svelte packages. Lazy subpaths
+  stay separate entry points.
+- **Exports:** `publishConfig` replaces `exports`, `types` and `files` when packed, so the
+  workspace keeps importing `src/`.
+- **Versions:** all public packages version in lockstep on **1.x** through one Changesets fixed
+  group: `@protoyard/*`, `protoyard` and `create-protoyard`.
+- **Publishing:** `pnpm pack`, then `npm publish --provenance` per tarball, from a GitHub
+  Actions job with `id-token: write` (npm Trusted Publishing, no stored token). The first live
+  publish waits for the developer's GO.
+- **What ships:** prototypes and individual templates stay private; `@protoyard/templates`
+  packs the template folders, and `apps/gallery` publishes as `@protoyard/gallery`.
+- **Package managers:** pnpm is first-class and npm is supported.
+
+**Consequences.** Contributors never build. Consumers get standard ESM with types. A tarball
+end-to-end run with no registry is the proof. Cross-package `src` imports must become real
+package imports first.
+**Reverse:** drop `publishConfig` and the release job; the repository is unaffected.
+
+## ADR-029 — One app model for the generator and the player; a runtime prototype definition
+
+**Context.** Storage, services, policy and worlds already derive from a blueprint at runtime.
+Routes, navigation and layout exist only as strings the generator emits (`emit.ts`), and the
+app shell lives in `templates/crud-app`.
+
+**Options.** (1) Keep codegen and write a second, runtime-only path for the player. (2) Derive
+one data model that both render.
+
+**Decision.** Option 2:
+- `deriveAppModel(blueprint)` returns routes, navigation groups and layout as data, and the
+  generator renders its files from that model.
+- `definePrototypeFromBlueprint(blueprint, options)` returns a complete, `definePrototype`-valid
+  definition: manifest, database versions, policy, integrity, brand theme, scenarios, generator
+  and app model.
+- Screen kinds resolve through one typed, lazy registry, and the app shell ships as
+  `@protoyard/crud/app`.
+- Parity is proven over every catalog blueprint, down to byte-identical generated worlds.
+- `templates/crud-app` and the generated prototypes then move onto `@protoyard/crud/app`, so the
+  two levels share the app structurally.
+
+**Consequences.** Level 1 (the player) and level 2 (generated prototypes) cannot drift without
+a failing parity test. New screen kinds plug in through the registry.
+**Reverse:** the generator can keep emitting its own strings; the model is additive.
+
+## ADR-030 — Untrusted blueprints, content identity and share links
+
+**Context.** The player loads blueprints from files, links, pasted text and `postMessage`. The
+schema has no array maxima, and the repository has never had a `message` listener.
+
+**Decision.**
+- **One hardened loader** is the only entry. It applies size, depth, count and string caps, strips
+  control and bidi characters, rejects prototype keys, caps the world size, never executes and
+  never renders HTML.
+- **Identity:** a blueprint's identity is the SHA-256 of its canonical JSON. Its storage
+  namespace is `bp-<base32>`, so every edit gets a fresh world by default. `?keep=<name>` opts
+  into a stable namespace that migrates through the blueprint history, for iteration.
+- **Share links:** versioned `#bp=` fragments, deflate-raw then base64url. Links over 16 KB
+  encoded or 256 KB decompressed are refused before parsing, with file or `postMessage` offered
+  instead.
+- **`postMessage`:** accepted only from the player's own origin, plus `?embedder=` origins that
+  also match a build-time allowlist (protoyard.app, localhost, 127.0.0.1). `*` is never accepted.
+- **Page hardening:** the player ships a strict CSP and a no-code-execution guard.
+
+**Consequences.** Every untrusted path shares one set of tested limits. Links stay short enough
+for chat tools.
+**Reverse:** raise the caps in one module; the protocol is versioned.
+
+## ADR-031 — Quick explorations live in a marked .protoyard/quick zone
+
+**Context.** `protoyard quick` writes disposable prototypes. Output confinement allows only
+`artifacts/` and `tmp/` today. Explorations are not builds.
+
+**Decision.**
+- **Location:** explorations go to `.protoyard/quick/<slug>/` with a `.protoyard-quick` marker,
+  a third zone in the output guard. Outside a workspace they go to `./.protoyard/quick/`, never
+  `$HOME`.
+- **Player files:** one shared `.protoyard/quick/_player/<version>/` holds the prebuilt player,
+  and `--standalone` copies it in for a self-contained folder.
+- **Metadata:** each exploration records `quick.json` (zod-validated).
+- **Pruning:** it needs `--yes`, `--json` without `--yes` only reports, and prune never touches
+  a promoted exploration.
+- **Validation tasks:** success conditions are a restricted data predicate plus a route match,
+  never an expression language.
+
+**Consequences.** Explorations never land in `prototypes/`. They are cheap to create and safe
+to delete, and promotion is explicit.
+**Reverse:** the zone is one entry in the guard; removing it disables quick outputs.
+
+## ADR-032 — Format extensions: archetypes, workflows, computed fields, relations, per-entity screens
+
+**Context.** Practically any prototype needs more than entity CRUD. The format must stay data
+only, deterministic and safe to load from untrusted sources.
+
+**Decision.**
+- **Archetypes:** an `archetype` block (assistant, team-chat, saas-onboarding, analytics) is
+  portable runtime data. The player and the generator both read it, and it binds to the
+  existing lazy kits.
+- **Workflows:** explicit state machines (states, transitions, guards over roles and fields),
+  with no executable logic.
+- **Computed fields:** read-time expressions from a small allow-listed grammar (arithmetic,
+  concatenation, date difference, aggregates over relations). They are never persisted, so no
+  migration is needed.
+- **Relations:** cardinality, inverse and on-delete behavior are explicit.
+- **Per-entity screens:** each entity can set screen defaults and overrides.
+- **Imports:** CSV, JSON and SQLite DDL imports produce a complete playable draft and never copy
+  values.
+
+**Consequences.** One format expresses far more products, and every extension stays inside the
+hardened loader's limits.
+**Reverse:** each extension is optional; omitting it yields today's blueprints.
+
+## ADR-033 — A distributable skill lives in this repository
+
+**Context.** The developer's other skills (deepworkplan-skill, agent-skill) ship a router plus
+sub-skills, a trust file, validated frontmatter, pinned installs, checksums and a consent-gated
+upgrade. A Protoyard skill must not drift from the CLI it teaches.
+
+**Decision.**
+- **Location:** `skills/protoyard/` holds a short router and sub-skills (install, quick, new,
+  iterate, kits, review, ship, upgrade), plus `TRUST.md` and references.
+- **Install:** pin by tree URL (`npx skills add https://github.com/DailybotHQ/protoyard/tree/vX.Y.Z --skill protoyard`).
+  A bash-3.2 `setup.sh` covers claude, cursor, codex, gemini, copilot, opencode and windsurf, and
+  OpenClaw gets native instructions.
+- **Release:** releases stamp the version into every SKILL.md, attach `SHA256SUMS` for the skill
+  tree, and smoke-install the tag.
+- **Docs:** `documentation_url` is `https://protoyard.app/docs/`.
+- **Validation:** CI checks the frontmatter, the links, and that every command and flag the skill
+  names exists in `protoyard help`.
+
+**Consequences.** One tag versions the CLI, the packages and the skill together.
+**Reverse:** the skill folder can move to its own repository; install URLs change.
+
+## ADR-034 — A versioned machine interface and an MCP server
+
+**Context.** DeepWorkPlan addons detect a product by a command and an interface number. Agents
+without shell glue need typed tools.
+
+**Decision.**
+- **Interface:** `protoyard doctor --json` adds top-level `interface` (1) and `capabilities`
+  beside `ok`, `command` and `data`. `protoyard --version --json` prints `{version, interface}`,
+  and plain `--version` stays semver.
+- **Capabilities:** the stable ids are `quick`, `player`, `generate`, `mcp`, `blueprint-schema`
+  and `import`; other fields are discovery metadata.
+- **Versioning:** the interface major is independent of the package version and bumps only on a
+  breaking change (`docs/INTERFACE.md`).
+- **MCP:** `protoyard mcp` is a stdio MCP server on the current stable protocol revision. Its
+  tools map to the CLI's JSON envelopes, are confined to the workspace like the CLI, and return
+  failures as tool results with `isError: true`.
+
+**Consequences.** Detectors and agents have a contract they can test against. The CLI stays the
+only source of behavior.
+**Reverse:** additive fields; dropping them only removes the guarantees.
+
+## ADR-035 — Protoyard stays independent; DeepWorkPlan gets an addon
+
+**Context.** The developer wants DeepWorkPlan plans to spin up throwaway prototypes to validate
+ideas. DWP loads addons only from its own pack (`addons/<key>/` with an `addon.json`).
+
+**Decision.**
+- **Independence:** Protoyard never depends on DWP.
+- **The addon packet:** a Protoyard-side packet in `integrations/deepworkplan/protoyard/` holds
+  the addon: a descriptor valid against DWP's addon-descriptor schema (`detect: protoyard doctor
+  --json`, `interface_from: json:interface`), `SKILL.md`, `SPEC.md`, and exploration-task
+  templates with ready gates.
+- **Upstream:** it is contributed to deepworkplan-skill after a GO.
+- **How an exploration runs:** in a temporary directory, with only validated artifacts copied
+  into the plan's `analysis_results/prototypes/`. A missing browser is a recorded
+  `playwright-unavailable` skip, never a failed gate.
+
+**Consequences.** DWP can validate ideas with level-1 prototypes and record the decision, while
+Protoyard ships on its own cadence.
+**Reverse:** remove the addon from DWP; Protoyard is unaffected.
