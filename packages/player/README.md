@@ -141,6 +141,28 @@ await player.replace(editedBlueprint);
 The client checks both the sender window and the origin. `playerOrigin` must be
 an exact origin, and every request times out (30 s by default).
 
+## Validation tasks
+
+A blueprint with `validation.tasks` (see [GENERATOR](../../docs/GENERATOR.md#validation-tasks))
+gets a task panel in a corner of the prototype (`src/validation/`). `bootPlayer` imports it only
+for such blueprints, so others download none of it (a 3.5 KB gzip lazy chunk).
+
+- **Flow:** the participant reads the task, presses **Start task**, works in the prototype, and
+  either succeeds, presses **Give up**, or runs out of time; **Next task** moves on. All buttons
+  are `@protoyard/ui` `Button`s with pending feedback.
+- **Success** is evaluated with `evaluateValidationSuccess` on the current hash route and the live
+  rows (Dexie `liveQuery`) of the entities the tasks name, counted from when the task started;
+  soft-deleted rows do not count.
+- **Metrics:** outcome, wall-clock duration and steps (route changes plus completed service calls
+  from the runtime's pending tracker). Nothing a person types is recorded. Attempts are stored per
+  blueprint in IndexedDB (`protoyard.<namespace>.validation`), never sent anywhere, and
+  **Download metrics** saves a `protoyard-validation-metrics` v1 JSON file for
+  `protoyard quick report`.
+
+```bash
+pnpm vitest run packages/player/tests/validation.test.ts
+```
+
 ## Build settings
 
 The player builds like a prototype with `defineProtoyardConfig`. Its own
@@ -175,7 +197,6 @@ These budgets are enforced by a dedicated player budget gate, which is planned a
 
 - The no-flash appearance script is keyed by the build namespace (`player`),
   not the blueprint's, so a saved dark mode can flash on first paint.
-- Blueprints from an embedding page's `postMessage` are not loaded yet.
 - The player replays the most recently active blueprint's appearance cache
   before the runtime paints, keyed by its `bp-…` or `keep-…` namespace. A first
   visit without a cached appearance still follows the system color preference.
