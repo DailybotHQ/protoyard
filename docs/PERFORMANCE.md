@@ -897,6 +897,50 @@ initial graph, the crud app shell, Faker (153 KB, avoidable) and smaller lazy
 chunks, and it is the same for the demo, quick/assistant and quick/team-chat.
 The two quick examples need no extra JS before ready.
 
+`packages/player/tests/worker-bundle.test.ts` builds the player and enforces a
+250 KB gzip budget on the whole worker graph, plus the absence of other Faker
+locales. It fails when the worker format reverts.
+
+## Player world cache (measured 2026-10-20)
+
+The player keeps generated worlds in `protoyard.player.worlds` (IndexedDB),
+keyed by the blueprint's SHA-256, the scenario id, seed and digest, and the
+generator version (`packages/player/src/cache/`):
+- **Format:** gzip of the world JSON.
+- **Read limits:** read back with the snapshot import limits (25 MB inflated,
+  250,000 rows).
+- **Eviction:** least recently used past 48 MB of compressed data.
+- **Writes:** compressed in 64 KB slices that yield between tasks. The runtime
+  gets the world first and never waits for the write.
+
+The table below comes from a headless Chromium (Playwright) Chrome trace of the
+built player, with main-thread `RunTask` slices over 50 ms counted as long tasks.
+The trace was checked with a 120 ms busy loop, which shows as one 120 ms long
+task. Two runs at load average about 40, same results:
+
+| Blueprint | Phase | Time | Long tasks (longest) |
+| --- | --- | --- | --- |
+| Demo (4 entities) | First visit, seeds `active` | 221–238 ms | 0 |
+| Demo | Reload (stored world, no generation) | 92–105 ms | 0 |
+| Demo | Switch to `empty` (generate) | 54–55 ms | 0 |
+| Demo | Back to `active` (cache hit) | 10–12 ms | 0 |
+| Demo | Switch to `massive` (generate) / cache hit | 60–61 ms / 28–29 ms | 0 / 0 |
+| Large fixture (40 entities, 997 fields) | First visit | 364–408 ms | 0 |
+| Large fixture | Back to `active` (cache hit) | 59–64 ms | 0 |
+| Large fixture | Switch to `massive` (generate) | 1,368–1,429 ms | 1 (55–56 ms) |
+| Large fixture | `massive` again (cache hit) | 901–915 ms | 0 |
+
+Before the writes were sliced, the large `massive` generation held the main
+thread for 212–225 ms, 154 ms of it the cache's own `CompressionStream`. The 55 ms
+task that remains is the main thread receiving the worker's world.
+
+**Main-thread Faker.** Every generation still downloads and evaluates Faker
+twice: the runtime builds a `GenerateContext` (and loads its own Faker chunk,
+153 KB gzip) before it calls `definition.generate`, which then generates in the
+worker. No measured phase turned that into a long task, but it is wasted
+transfer and parse. Skipping the main-thread context needs a runtime API change
+(proposed in PLAN_004, T-player-world-cache).
+
 ## Large blueprint on the player path (measured 2026-10-20)
 
 `packages/blueprint/tests/fixtures/large.blueprint.json` is a fictional

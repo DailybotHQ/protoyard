@@ -29,6 +29,12 @@ data" badge.
    `@protoyard/renderer-svelte` boots the runtime, seeds the default scenario,
    and mounts the app. The runtime `build` options set the namespace and the
    demo badge for this blueprint.
+   Worlds generate in a module worker (`src/worker/`). Generated worlds are
+   cached by content address in IndexedDB (`src/cache/`, `protoyard.player.worlds`):
+   switching back to a scenario, resetting it, or opening a variant of the same
+   blueprint, scenario and generator version reloads the stored world instead of
+   regenerating. Cache entries are read back as untrusted data (snapshot size and
+   row limits, shape checks), and a corrupt entry is dropped and regenerated.
 4. The app (`src/PlayerApp.svelte`) lazily loads `BlueprintApp` from
    `@protoyard/crud/app`, the same routes, navigation and screens a generated
    prototype has. The settings screen gets the theme library on demand.
