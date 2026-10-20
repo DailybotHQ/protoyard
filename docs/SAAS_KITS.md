@@ -166,3 +166,11 @@ IndexedDB. Browser users and same-origin scripts can read or change that data;
 the browser can also clear it. Do not enter real credentials, personal data,
 payment details or secrets. For the repository-wide threat model, see
 [`SECURITY.md`](SECURITY.md).
+
+## For agents
+
+The distributable Protoyard skill routes kit choices through its `kits`
+sub-skill ([`skills/protoyard/kits/SKILL.md`](../skills/protoyard/kits/SKILL.md))
+and its catalog ([`skills/protoyard/references/kits.md`](../skills/protoyard/references/kits.md)),
+which link back to this guide. Keep the catalog's entry for this kit in step
+when its entry points or limits change.
