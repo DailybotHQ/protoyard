@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, posix } from 'node:path';
 import {
   AVATAR_DIR,
@@ -48,7 +48,8 @@ import { requireGalleryDir } from './serve.ts';
  * `protoyard showcase` builds ONE static site: the gallery (with its
  * marketplace) plus a live, read-only demo of every prototype at
  * `<base>p/<slug>/app/` and of every template at `<base>t/<name>/app/`
- * (`--no-templates` leaves templates out). The gallery learns which builds are
+ * (`--no-templates` leaves templates out), and the prebuilt player at
+ * `<base>player/` embedded by the blueprint playground at `<base>play/`. The gallery learns which builds are
  * bundled from an `embedded` flag in a showcase-only copy of the registry, so
  * the marketplace's "Try it", hosted previews and "Open" links work with no
  * control server.
@@ -377,6 +378,39 @@ function buildGallery(
   });
 }
 
+/** Builds the standalone player into an isolated directory for the showcase. */
+function buildPlayer(ctx: CommandContext, outDir: string, quiet: boolean) {
+  const playerDir = join(ctx.root, 'packages', 'player');
+  const vite = resolvePackageBin('vite', 'vite', [playerDir, ctx.root]);
+  if (!vite)
+    throw new CliError('not_found', 'Vite is not installed.', { hint: 'Run `pnpm install`.' });
+  return new Promise<{ code: number; log: string }>((resolvePromise) => {
+    let log = '';
+    const child = spawn(process.execPath, [vite, 'build', '--outDir', outDir], {
+      cwd: playerDir,
+      env: { ...process.env },
+      shell: false,
+      stdio: quiet ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+    });
+    const collect = (chunk: Buffer) => {
+      log = (log + chunk.toString()).slice(-8000);
+    };
+    child.stdout?.on('data', collect);
+    child.stderr?.on('data', collect);
+    child.on('error', (error) => resolvePromise({ code: 127, log: error.message }));
+    child.on('close', (code) => resolvePromise({ code: code ?? 1, log }));
+  });
+}
+
+/** Copies the built player and all of its runtime chunks under `<site>/player/`. */
+export async function copyPlayerAssets(playerDist: string, siteDir: string): Promise<void> {
+  if (!existsSync(join(playerDist, 'index.html')))
+    throw new CliError('validation', 'The player build did not emit index.html.');
+  const destination = join(siteDir, 'player');
+  await mkdir(destination, { recursive: true });
+  await cp(playerDist, destination, { recursive: true, force: true });
+}
+
 async function serve(dir: string, base: string, options: Record<string, unknown>) {
   const host = flag(options, 'host') ? '0.0.0.0' : '127.0.0.1';
   return serveStatic({
@@ -480,6 +514,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   const includeDevtools = options.devtools !== false;
   const staging = `${out}.staging-${process.pid}`;
   const appsStaging = `${out}.apps-${process.pid}`;
+  const playerOut = join(ctx.paths.artifacts, 'showcase-builds', `player-${process.pid}`);
   const artifactStaging = join(
     ctx.paths.artifacts,
     'showcase-builds',
@@ -561,6 +596,19 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
     }
     if (artifactTarget) await normalizeShowcaseRelativeAssets(staging);
 
+    if (!artifactTarget) {
+      await rm(playerOut, { recursive: true, force: true });
+      ctx.out.info('Building the hosted player…');
+      const player = await buildPlayer(ctx, playerOut, quiet);
+      if (player.code !== 0) {
+        throw new CliError('failure', `Player build failed (exit ${player.code}).`, {
+          hint: player.log.trim().split('\n').slice(-10).join('\n') || 'See the output above.',
+        });
+      }
+      await copyPlayerAssets(playerOut, staging);
+      await rm(playerOut, { recursive: true, force: true });
+    }
+
     // 3. Move each app under its detail page folder, then swap the site in.
     for (const target of targets.filter((t) => t.ok)) {
       const destination = join(staging, target.appPath);
@@ -600,6 +648,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
   } finally {
     await rm(staging, { recursive: true, force: true });
     await rm(appsStaging, { recursive: true, force: true });
+    await rm(playerOut, { recursive: true, force: true });
     await rm(artifactStaging, { recursive: true, force: true });
   }
 

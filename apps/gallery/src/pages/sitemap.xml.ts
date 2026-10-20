@@ -12,7 +12,7 @@ const escapeXml = (value: string) => value.replace(/[<>&'"]/g, (c) => `&#${c.cha
  * are listed when the build bundles them (a showcase).
  */
 export const GET: APIRoute = ({ site }) => {
-  const paths = new Set<string>(['/', '/marketplace/', '/themes/']);
+  const paths = new Set<string>(['/', '/marketplace/', '/themes/', '/play/']);
   for (const entry of prototypes()) {
     paths.add(`/p/${entry.slug}/`);
     if (entry.embedded) paths.add(`/${entry.embedded.url.replace(/^\//, '')}`);

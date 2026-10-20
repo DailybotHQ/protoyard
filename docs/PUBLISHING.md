@@ -889,7 +889,8 @@ dev servers (ADR-013).
 
 `pnpm build:showcase` (that is, `pnpm protoyard showcase --site https://protoyard.app`) builds **one static
 site**, written to `artifacts/showcase/`. It contains the gallery and its
-marketplace, plus a live, read-only demo of every product type:
+marketplace, the hosted blueprint playground, the prebuilt player runtime, and
+live demos of every product type:
 
 - every prototype's own static build at `<base>p/<slug>/app/`;
 - every template as a demo at `<base>t/<name>/app/`, built with the same
@@ -897,6 +898,8 @@ marketplace, plus a live, read-only demo of every product type:
   visitors' demo data never shares the template's own namespace.
   `--no-templates` leaves the templates out (`--include-templates` is still
   accepted and changes nothing, since templates are bundled by default).
+- the blueprint playground at `<base>play/`, with its framed player under
+  `<base>player/`.
 
 Blueprints are listed in the marketplace with their `protoyard generate`
 command, but they have no app until they are generated, so they are not
@@ -916,7 +919,9 @@ because a showcase is a demo site. Preview it with
 `https://protoyard.app`. It accepts an https origin only (http only for
 localhost); the path belongs to `--base`. With it, every gallery page gets a
 canonical link, Open Graph and Twitter card tags with absolute URLs, and
-`sitemap.xml` lists every page and live demo; `robots.txt` points at it.
+`sitemap.xml` lists every page and live demo; `robots.txt` points at it. The
+`/play/` landing page is in the sitemap. Share fragments are not sent to the
+server, and the page marks fragment-bearing visits `noindex`.
 Every page shares one social card, `apps/gallery/public/og-image.jpg`
 (1200×630), so a shared link always shows the brand. The favicon set
 (`favicon.ico`, `favicon-96x96.png`, `apple-touch-icon.png`, `icon-192.png`,

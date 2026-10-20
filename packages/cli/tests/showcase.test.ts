@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { listAvatarFiles } from '@protoyard/renderer-svelte/avatars-plugin';
@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
   appPathFor,
   assertShowcasePublishable,
+  copyPlayerAssets,
   marketplacePathFor,
   parseShowcaseSite,
   publishShowcaseDirectory,
@@ -25,6 +26,33 @@ import { createWorkspace } from './helpers.ts';
 const entry = (kind: RegistryEntry['kind'], slug: string) => ({ kind, slug }) as RegistryEntry;
 
 describe('showcase', () => {
+  it('copies the built player and runtime assets under the static site', async () => {
+    const player = mkdtempSync(join(tmpdir(), 'protoyard-player-dist-'));
+    const site = mkdtempSync(join(tmpdir(), 'protoyard-showcase-player-'));
+    try {
+      writeFileSync(join(player, 'index.html'), '<script src="./assets/player.js"></script>');
+      mkdirSync(join(player, 'assets'));
+      writeFileSync(join(player, 'assets/player.js'), 'void 0;');
+      await copyPlayerAssets(player, site);
+      expect(readFileSync(join(site, 'player/index.html'), 'utf8')).toContain('./assets/player.js');
+      expect(readFileSync(join(site, 'player/assets/player.js'), 'utf8')).toBe('void 0;');
+    } finally {
+      rmSync(player, { recursive: true, force: true });
+      rmSync(site, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a player build without its entry page', async () => {
+    const player = mkdtempSync(join(tmpdir(), 'protoyard-empty-player-'));
+    const site = mkdtempSync(join(tmpdir(), 'protoyard-empty-site-'));
+    try {
+      await expect(copyPlayerAssets(player, site)).rejects.toThrow('did not emit index.html');
+    } finally {
+      rmSync(player, { recursive: true, force: true });
+      rmSync(site, { recursive: true, force: true });
+    }
+  });
+
   it('places apps under their gallery detail pages', () => {
     expect(appPathFor(entry('prototype', 'crm-demo'))).toBe('p/crm-demo/app/');
     expect(appPathFor(entry('template', 'blank'))).toBe('t/blank/app/');
