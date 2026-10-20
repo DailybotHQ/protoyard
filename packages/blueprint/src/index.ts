@@ -36,6 +36,14 @@ export {
   screenNavIcon,
 } from './app-model.ts';
 export {
+  ARCHETYPE_IDS as KIT_ARCHETYPE_IDS,
+  ARCHETYPE_KIT_ENTRY_POINTS,
+  type ArchetypeKitEntryPoint,
+  ArchetypeSchema,
+  type BlueprintArchetype,
+  type BlueprintArchetypeInput,
+} from './archetypes/index.ts';
+export {
   AUDIT_REDACTED,
   type AuditAction,
   type AuditChange,

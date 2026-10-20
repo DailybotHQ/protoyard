@@ -9,6 +9,12 @@ Package references: [`@protoyard/ai`](../packages/ai/README.md) (engine) and
 [`@protoyard/ai-ui`](../packages/ai-ui/README.md) (Svelte UI). Measured bundle
 and long-thread numbers live in [PERFORMANCE.md → AI kits](PERFORMANCE.md#ai-kits).
 
+An optional blueprint `archetype` block selects the `assistant` or `team-chat`
+experience and declares its entity slots, screen route, scenario defaults, and
+the public `@protoyard/ai` / `@protoyard/ai-ui` entry points. The block is
+validated data; it does not execute imports or supply callbacks. See the
+[`@protoyard/blueprint` archetype contract](../packages/blueprint/README.md#the-schema).
+
 ## Honest boundaries (read first)
 
 | Claim | Reality in this repository |

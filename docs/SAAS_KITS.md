@@ -12,6 +12,13 @@ They do not provide backend services or security.
 | [`@protoyard/saas`](../packages/saas/README.md) | Framework-agnostic schemas, services, deterministic scenario fragments and generated SaaS rows. |
 | [`@protoyard/saas-ui`](../packages/saas-ui/README.md) | Lazy Svelte screens, route definitions, guards and reusable SaaS UI components. |
 
+An optional blueprint `archetype` block can declare `saas-onboarding`, its
+workspace and member entity slots, onboarding screen route, scenario defaults,
+and the `@protoyard/saas` / `@protoyard/saas-ui` entry points. This is
+validated runtime metadata. Authentication, inbox and billing remain simulated
+UX, never security or real provider behavior. See the
+[`@protoyard/blueprint` archetype contract](../packages/blueprint/README.md#the-schema).
+
 The engine owns data and behavior; the UI package composes those services into
 screens. A prototype can use the engine alone, the UI alone with compatible
 services, or both. Keep domain changes in services instead of writing database

@@ -1,6 +1,7 @@
 import { CatalogSchema, LayoutIdSchema } from '@protoyard/core';
 import { GEO_REGIONS, type GeoRegionId } from '@protoyard/scenarios';
 import { z } from 'zod';
+import { ArchetypeSchema } from './archetypes/schema.ts';
 
 /**
  * `blueprint.json` — a data-only description of a product (ADR-017):
@@ -728,6 +729,8 @@ const BlueprintShape = z.strictObject({
       mobile: LayoutIdSchema.optional(),
     })
     .optional(),
+  /** Portable kit-backed runtime data; omitted by ordinary CRUD blueprints. */
+  archetype: ArchetypeSchema.optional(),
   entities: z.array(EntitySchema).min(1, { message: 'a blueprint needs at least one entity' }),
   roles: z.array(RoleSchema).min(1, { message: 'a blueprint needs at least one role' }),
   notifications: z.array(NotificationRuleSchema).default([]),
@@ -891,6 +894,16 @@ export function blueprintIssues(blueprint: Shape): Issue[] {
   blueprint.entities.forEach((entity, i) => {
     checkEntity(entity, i, names, add);
   });
+  if (blueprint.archetype) {
+    for (const [slot, entityName] of Object.entries(blueprint.archetype.entities)) {
+      if (!entities.has(entityName)) {
+        add(
+          ['archetype', 'entities', slot],
+          `archetype entity slot "${slot}" references unknown entity "${entityName}"`
+        );
+      }
+    }
+  }
 
   blueprint.notifications.forEach((rule, i) => {
     const path = ['notifications', i];
@@ -1231,6 +1244,19 @@ function checkScreens(blueprint: Shape, add: Add) {
         break;
       case 'form':
         break;
+    }
+  });
+
+  blueprint.archetype?.screens.forEach((screen, i) => {
+    const path = ['archetype', 'screens', i, 'path'];
+    if ((RESERVED_SCREEN_PATHS as readonly string[]).includes(screen.path)) {
+      add(path, `path "${screen.path}" is reserved by the generated app`);
+    }
+    const first = seen.get(screen.path);
+    if (first !== undefined) {
+      add(path, `path "${screen.path}" is already used by screens.${first}`);
+    } else {
+      seen.set(screen.path, blueprint.screens.length + i);
     }
   });
 }
