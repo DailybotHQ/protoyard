@@ -1,0 +1,50 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.harbor-dispatch-demo",
+  "slug": "harbor-dispatch-demo",
+  "kind": "prototype",
+  "name": "Harborlight Dispatch",
+  "description": "Offline dispatch coordination for fictional harbor freight routes.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "operations",
+  "tags": ["logistics", "dispatch", "freight", "harbor"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Freight Dispatch",
+    "platforms": ["web"],
+    "features": ["dispatch-board", "offline-map", "delivery-timeline", "fleet"],
+    "highlights": [
+      "Shipment status board",
+      "Fictional offline harbor map",
+      "Reschedulable delivery timeline"
+    ],
+    "difficulty": "beginner"
+  },
+  "status": "ready",
+  "icon": "🚚",
+  "defaultScenario": "active",
+  "defaultTheme": "harborlight-dispatch",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "layout": {
+      "id": "sidebar",
+      "supported": ["sidebar", "mobile-tabs"]
+    }
+  },
+  "storage": {
+    "namespace": "harbor-dispatch-demo",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": false,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": ["empty", "active", "viewer", "massive"],
+  "template": "crud-app",
+  "createdAt": "2026-10-20T00:03:06.890Z",
+  "updatedAt": "2026-10-20T00:03:06.890Z"
+}

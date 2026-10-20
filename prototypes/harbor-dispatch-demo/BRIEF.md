@@ -1,0 +1,5 @@
+# Harborlight Logistics Dispatch
+
+Harborlight is a fictional harbor freight carrier coordinating same-day deliveries across an invented coastal city. Dispatchers assign each shipment to a driver and vehicle, choose a pickup and delivery window, and move freight through queued, dispatched, in-transit, delayed, and delivered states. They need a live-feeling dispatch board to change assignments and status, an offline map to inspect delivery and depot locations, a timeline to move delivery windows, and an at-a-glance dashboard for active shipments and on-time performance.
+
+The product manages shipments, drivers, vehicles, and depots. Each shipment has a tracking reference, cargo type, priority, origin and destination, planned start and end, assigned driver and vehicle, and current status. Drivers can update their assigned shipments; dispatchers can create, assign, reschedule, and update any shipment; managers can manage fleet and depot records; viewers can inspect without changing data. Use only fictional names, records, locations, and contact details. The coastal map and its depots are invented and must work without a network basemap.

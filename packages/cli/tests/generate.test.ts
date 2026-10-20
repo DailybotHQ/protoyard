@@ -172,7 +172,7 @@ describe('protoyard generate', () => {
     const themeModule = read('prototypes/branded-desk/src/generated/brand-theme.ts');
     expect(checkHeader(themeModule)).toEqual({ generated: true, intact: true });
     expect(themeModule).toContain('acmeTealTheme');
-    expect(themeModule).toContain('"id": "acme-teal"');
+    expect(themeModule).toContain("id: 'acme-teal'");
 
     const prototype = read('prototypes/branded-desk/src/prototype.ts');
     expect(prototype).toContain("from './generated/brand-theme.ts'");

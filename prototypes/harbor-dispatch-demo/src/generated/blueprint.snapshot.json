@@ -1,0 +1,479 @@
+{
+  "schemaVersion": 1,
+  "blueprint": {
+    "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+    "formatVersion": 1,
+    "name": "Harborlight Dispatch",
+    "description": "Offline dispatch coordination for fictional harbor freight routes.",
+    "tags": ["logistics", "dispatch", "freight", "harbor"],
+    "brand": {
+      "id": "harborlight-dispatch",
+      "name": "Harborlight Dispatch",
+      "seed": "#176b87",
+      "styleProfile": "crisp",
+      "font": "grotesk"
+    },
+    "entities": [
+      {
+        "name": "shipment",
+        "plural": "shipments",
+        "label": "Shipment",
+        "titleField": "trackingCode",
+        "searchable": ["trackingCode", "origin"],
+        "ownerField": "assignedTo",
+        "seedCount": 8,
+        "features": {
+          "audit": true,
+          "csv": true
+        },
+        "fields": [
+          {
+            "name": "trackingCode",
+            "kind": "text",
+            "required": true,
+            "maxLength": 40
+          },
+          {
+            "name": "status",
+            "kind": "enum",
+            "values": ["queued", "dispatched", "in-transit", "delayed", "delivered"],
+            "labels": {
+              "queued": "Queued",
+              "dispatched": "Dispatched",
+              "in-transit": "In transit",
+              "delayed": "Delayed",
+              "delivered": "Delivered"
+            },
+            "default": "queued",
+            "required": true,
+            "weights": [3, 3, 4, 1, 2]
+          },
+          {
+            "name": "cargoType",
+            "kind": "enum",
+            "values": ["containers", "produce", "machinery", "medical-supplies"],
+            "labels": {
+              "containers": "Containers",
+              "produce": "Produce",
+              "machinery": "Machinery",
+              "medical-supplies": "Medical supplies"
+            },
+            "default": "containers",
+            "required": true,
+            "weights": [4, 3, 2, 1]
+          },
+          {
+            "name": "priority",
+            "kind": "enum",
+            "values": ["standard", "expedited", "urgent"],
+            "labels": {
+              "standard": "Standard",
+              "expedited": "Expedited",
+              "urgent": "Urgent"
+            },
+            "default": "standard",
+            "required": true,
+            "weights": [5, 3, 1]
+          },
+          {
+            "name": "origin",
+            "kind": "text",
+            "required": true,
+            "fake": "location.city"
+          },
+          {
+            "name": "destination",
+            "kind": "geo",
+            "required": true,
+            "region": "harbor-bay"
+          },
+          {
+            "name": "plannedStart",
+            "kind": "datetime",
+            "required": true,
+            "window": "around"
+          },
+          {
+            "name": "plannedEnd",
+            "kind": "datetime",
+            "required": true,
+            "window": "around"
+          },
+          {
+            "name": "driver",
+            "kind": "relation",
+            "to": "driver",
+            "required": true,
+            "onDelete": "restrict"
+          },
+          {
+            "name": "vehicle",
+            "kind": "relation",
+            "to": "vehicle",
+            "required": true,
+            "onDelete": "restrict"
+          },
+          {
+            "name": "depot",
+            "kind": "relation",
+            "to": "depot",
+            "required": true,
+            "onDelete": "restrict"
+          },
+          {
+            "name": "assignedTo",
+            "kind": "persona",
+            "required": true
+          },
+          {
+            "name": "cargoValue",
+            "kind": "money",
+            "currency": "USD",
+            "min": 5000,
+            "max": 2500000,
+            "trend": "flat"
+          }
+        ]
+      },
+      {
+        "name": "driver",
+        "plural": "drivers",
+        "label": "Driver",
+        "titleField": "name",
+        "searchable": ["name"],
+        "seedCount": 6,
+        "fields": [
+          {
+            "name": "name",
+            "kind": "text",
+            "required": true,
+            "fake": "person.fullName"
+          },
+          {
+            "name": "phone",
+            "kind": "phone"
+          },
+          {
+            "name": "avatar",
+            "kind": "avatar"
+          },
+          {
+            "name": "shift",
+            "kind": "enum",
+            "values": ["early", "day", "late"],
+            "labels": {
+              "early": "Early",
+              "day": "Day",
+              "late": "Late"
+            },
+            "default": "day",
+            "required": true,
+            "weights": [2, 5, 2]
+          },
+          {
+            "name": "availability",
+            "kind": "enum",
+            "values": ["available", "on-route", "off-duty"],
+            "labels": {
+              "available": "Available",
+              "on-route": "On route",
+              "off-duty": "Off duty"
+            },
+            "default": "available",
+            "required": true,
+            "weights": [5, 3, 1]
+          }
+        ]
+      },
+      {
+        "name": "vehicle",
+        "plural": "vehicles",
+        "label": "Vehicle",
+        "titleField": "unit",
+        "searchable": ["unit"],
+        "seedCount": 6,
+        "fields": [
+          {
+            "name": "unit",
+            "kind": "text",
+            "required": true
+          },
+          {
+            "name": "type",
+            "kind": "enum",
+            "values": ["box-truck", "flatbed", "cargo-van"],
+            "labels": {
+              "box-truck": "Box truck",
+              "flatbed": "Flatbed",
+              "cargo-van": "Cargo van"
+            },
+            "default": "box-truck",
+            "required": true,
+            "weights": [4, 2, 3]
+          },
+          {
+            "name": "capacityKg",
+            "kind": "integer",
+            "min": 500,
+            "max": 18000,
+            "trend": "flat"
+          },
+          {
+            "name": "status",
+            "kind": "enum",
+            "values": ["ready", "in-service", "maintenance"],
+            "labels": {
+              "ready": "Ready",
+              "in-service": "In service",
+              "maintenance": "Maintenance"
+            },
+            "default": "ready",
+            "required": true,
+            "weights": [5, 4, 1]
+          }
+        ]
+      },
+      {
+        "name": "depot",
+        "plural": "depots",
+        "label": "Depot",
+        "titleField": "name",
+        "searchable": ["name"],
+        "seedCount": 4,
+        "fields": [
+          {
+            "name": "name",
+            "kind": "text",
+            "required": true,
+            "fake": "company.name"
+          },
+          {
+            "name": "location",
+            "kind": "geo",
+            "required": true,
+            "region": "harbor-bay"
+          },
+          {
+            "name": "dockCount",
+            "kind": "integer",
+            "min": 2,
+            "max": 18
+          },
+          {
+            "name": "open",
+            "kind": "boolean",
+            "default": true
+          }
+        ]
+      }
+    ],
+    "roles": [
+      {
+        "name": "owner",
+        "label": "Fleet manager",
+        "permissions": {
+          "*": ["*"]
+        }
+      },
+      {
+        "name": "admin",
+        "label": "Dispatcher",
+        "permissions": {
+          "*": ["read", "create", "update", "delete", "import", "export"]
+        }
+      },
+      {
+        "name": "member",
+        "label": "Driver",
+        "permissions": {
+          "shipment": ["read", "update:own"],
+          "driver": ["read"],
+          "vehicle": ["read"],
+          "depot": ["read"]
+        }
+      },
+      {
+        "name": "viewer",
+        "label": "Viewer",
+        "permissions": {
+          "*": ["read"]
+        }
+      }
+    ],
+    "screens": [
+      {
+        "type": "dashboard",
+        "path": "/dashboard",
+        "title": "Harborlight Dispatch overview",
+        "nav": {
+          "label": "Overview",
+          "icon": "layout-dashboard",
+          "order": 0
+        },
+        "widgets": [
+          {
+            "kind": "kpi",
+            "label": "Active shipments",
+            "entity": "shipment",
+            "filter": {
+              "field": "status",
+              "op": "in",
+              "value": ["dispatched", "in-transit"]
+            },
+            "aggregate": "count"
+          },
+          {
+            "kind": "kpi",
+            "label": "Drivers on route",
+            "entity": "driver",
+            "filter": {
+              "field": "availability",
+              "op": "eq",
+              "value": "on-route"
+            },
+            "aggregate": "count"
+          },
+          {
+            "kind": "board-summary",
+            "label": "Dispatch status",
+            "entity": "shipment",
+            "groupBy": "status"
+          },
+          {
+            "kind": "chart",
+            "label": "Shipments by status",
+            "entity": "shipment",
+            "aggregate": "count",
+            "chart": "donut",
+            "groupBy": "status",
+            "span": 2
+          }
+        ]
+      },
+      {
+        "type": "board",
+        "entity": "shipment",
+        "groupBy": "status",
+        "cardFields": ["cargoType", "priority", "origin", "plannedStart"],
+        "path": "/dispatch/board",
+        "title": "Dispatch board",
+        "nav": {
+          "label": "Board",
+          "icon": "kanban",
+          "order": 10
+        }
+      },
+      {
+        "type": "map",
+        "entity": "shipment",
+        "geoField": "destination",
+        "colorBy": "status",
+        "path": "/dispatch/map",
+        "title": "Shipments across Harbor Bay",
+        "nav": {
+          "label": "Map",
+          "icon": "map",
+          "order": 20
+        }
+      },
+      {
+        "type": "timeline",
+        "entity": "shipment",
+        "startField": "plannedStart",
+        "endField": "plannedEnd",
+        "groupBy": "driver",
+        "zoom": "week",
+        "path": "/dispatch/timeline",
+        "title": "Delivery timeline",
+        "nav": {
+          "label": "Timeline",
+          "icon": "chart-gantt",
+          "order": 30
+        }
+      },
+      {
+        "type": "calendar",
+        "entity": "shipment",
+        "dateField": "plannedStart",
+        "endField": "plannedEnd",
+        "colorBy": "priority",
+        "view": "week",
+        "path": "/dispatch/schedule",
+        "title": "Delivery schedule",
+        "nav": {
+          "label": "Schedule",
+          "icon": "calendar-days",
+          "order": 40
+        }
+      },
+      {
+        "type": "map",
+        "entity": "depot",
+        "geoField": "location",
+        "path": "/depots/map",
+        "title": "Harbor depots",
+        "nav": {
+          "label": "Depots",
+          "icon": "building",
+          "order": 50
+        }
+      },
+      {
+        "type": "list",
+        "entity": "shipment",
+        "columns": ["trackingCode", "status", "priority", "driver", "plannedStart"]
+      },
+      {
+        "type": "detail",
+        "entity": "shipment",
+        "tabs": ["overview", "activity", "audit"]
+      },
+      {
+        "type": "list",
+        "entity": "driver",
+        "columns": ["name", "shift", "availability"]
+      },
+      {
+        "type": "list",
+        "entity": "vehicle",
+        "columns": ["unit", "type", "capacityKg", "status"]
+      },
+      {
+        "type": "list",
+        "entity": "depot",
+        "columns": ["name", "dockCount", "open"]
+      },
+      {
+        "type": "settings",
+        "sections": ["profile", "workspace", "appearance"],
+        "path": "/settings",
+        "title": "Settings",
+        "nav": {
+          "label": "Settings",
+          "icon": "settings",
+          "order": 999
+        }
+      }
+    ],
+    "icon": "🚚",
+    "category": "operations",
+    "catalog": {
+      "category": "operations",
+      "productType": "Freight Dispatch",
+      "platforms": ["web"],
+      "shell": "none",
+      "features": ["dispatch-board", "offline-map", "delivery-timeline", "fleet"],
+      "highlights": [
+        "Shipment status board",
+        "Fictional offline harbor map",
+        "Reschedulable delivery timeline"
+      ],
+      "difficulty": "intermediate"
+    },
+    "layout": {
+      "id": "sidebar",
+      "mobile": "mobile-tabs"
+    }
+  },
+  "codegenFormat": 2
+}
