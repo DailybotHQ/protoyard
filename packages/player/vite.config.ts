@@ -88,4 +88,11 @@ function cspPlugin(): Plugin {
   };
 }
 
-export default defineProtoyardConfig({ root: import.meta.dirname, plugins: [cspPlugin()] });
+export default defineProtoyardConfig({
+  root: import.meta.dirname,
+  plugins: [cspPlugin()],
+  // The world-generation worker is a module worker. Building it as ES modules
+  // lets it code-split and tree-shake like the app: its dynamic Faker import
+  // keeps only `Faker`, `en` and `base` instead of every bundled locale.
+  worker: { format: 'es' },
+});
