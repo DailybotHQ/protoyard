@@ -27,3 +27,19 @@ The agent skill and the Protoyard CLI are separate installs. Check `protoyard
 commands depend on the CLI release. See the [Protoyard documentation](https://protoyard.app/docs/)
 for product guides and the release-specific skill instructions for trust,
 integrity, and upgrade details.
+
+## Trust and consent
+
+The skill routes to local instructions and does not fetch instructions or
+publish by itself. Prototype generation may write files in the workspace the
+developer asked to change; keep those edits scoped and report them. Installing
+or upgrading the skill changes host-level files and requires explicit approval
+after showing the pinned source and target paths. Package-manager installs and
+other network actions must be identified before they run.
+
+Provider publishing and npm releases are separate from local building and
+export. Run a provider dry run first when available, then show the exact target
+and obtain explicit approval before a live upload. Do not run `npm publish` or
+trigger a release workflow without explicit approval for that release. Never
+ask for or expose credentials. See the skill's [`TRUST.md`](../skills/protoyard/TRUST.md),
+the [repository security model](SECURITY.md), and the [publishing guide](PUBLISHING.md).
