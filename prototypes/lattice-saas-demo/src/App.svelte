@@ -38,9 +38,9 @@ const signedIn = $derived(principal.current !== null);
   {#if signedIn}<TrialBanner />{/if}
   <header class="sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur">
     <nav class="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center gap-3 px-4 py-2 sm:px-6" aria-label="Main navigation">
-      <a class="mr-auto inline-flex items-center gap-2 font-semibold tracking-tight" href="#/" aria-label="Lattice home">
-        <span class="grid size-8 place-items-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">L</span>
-        <span class="text-lg">lattice</span>
+      <a class="mr-auto inline-flex items-center gap-2 font-semibold tracking-tight" href="#/">
+        <span class="grid size-8 place-items-center rounded-xl bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">L</span>
+        <span class="text-lg">lattice</span><span class="sr-only"> home</span>
       </a>
       {#if signedIn}
         <WorkspaceSwitcher {runtime} />
