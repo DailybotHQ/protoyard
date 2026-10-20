@@ -1,4 +1,4 @@
-import { CSV_MAX_BYTES, CSV_MAX_ROWS, type CsvParseOptions, parseCsv } from '../csv.ts';
+import { type CsvParseOptions, parseCsv } from '../csv.ts';
 import {
   CSV_SHAPE_MAX_CELL_BYTES,
   CSV_SHAPE_MAX_COLUMNS,
@@ -6,6 +6,7 @@ import {
   unguardCsvFormula,
 } from '../csv-guard.ts';
 import { type BlueprintEntity, type BlueprintField, parseBlueprint } from '../schema.ts';
+import { IMPORT_MAX_BYTES, IMPORT_MAX_ROWS } from './limits.ts';
 
 export {
   CSV_SHAPE_MAX_CELL_BYTES,
@@ -25,7 +26,7 @@ export interface CsvShapeOptions {
   maxSampleRows?: number;
   /** Maximum number of header columns. Never exceeds 100. */
   maxColumns?: number;
-  /** Maximum UTF-8 bytes retained transiently for one sample cell. */
+  /** Maximum UTF-8 bytes accepted for a header or sampled cell. */
   maxCellBytes?: number;
 }
 
@@ -221,7 +222,7 @@ function parseLimits(options: CsvShapeOptions): {
   maxCellBytes: number;
 } {
   return {
-    maxBytes: bounded(options.maxBytes, CSV_MAX_BYTES, CSV_MAX_BYTES),
+    maxBytes: bounded(options.maxBytes, IMPORT_MAX_BYTES, IMPORT_MAX_BYTES),
     maxSampleRows: bounded(
       options.maxSampleRows,
       CSV_SHAPE_MAX_SAMPLE_ROWS,
@@ -239,7 +240,7 @@ function parseLimits(options: CsvShapeOptions): {
  */
 export function inferCsvEntity(text: string, options: CsvShapeOptions = {}): CsvShapeResult {
   const limits = parseLimits(options);
-  const parseOptions: CsvParseOptions = { maxBytes: limits.maxBytes, maxRows: CSV_MAX_ROWS };
+  const parseOptions: CsvParseOptions = { maxBytes: limits.maxBytes, maxRows: IMPORT_MAX_ROWS };
   const [headers = [], ...rows] = parseCsv(text, parseOptions);
   if (headers.length === 0 || headers.every((header) => header.trim() === '')) {
     throw new CsvShapeError('invalid-options', 'CSV shape inference needs a non-empty header row');
@@ -248,6 +249,12 @@ export function inferCsvEntity(text: string, options: CsvShapeOptions = {}): Csv
     throw new CsvShapeError(
       'too-many-columns',
       `CSV has ${headers.length.toLocaleString()} columns; the limit is ${limits.maxColumns.toLocaleString()}`
+    );
+  }
+  if (headers.some((header) => bytes(header) > limits.maxCellBytes)) {
+    throw new CsvShapeError(
+      'cell-too-large',
+      `A CSV header exceeds the ${limits.maxCellBytes.toLocaleString()}-byte limit`
     );
   }
 

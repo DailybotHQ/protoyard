@@ -1,11 +1,20 @@
 import { type BlueprintEntity, type BlueprintField, parseBlueprint } from '../schema.ts';
+import {
+  IMPORT_MAX_BYTES,
+  IMPORT_MAX_DEPTH,
+  IMPORT_MAX_FIELDS,
+  IMPORT_MAX_JSON_NODES,
+  IMPORT_MAX_JSON_OBJECTS,
+  IMPORT_MAX_SAMPLE_RECORDS,
+  IMPORT_MAX_STRING_BYTES,
+} from './limits.ts';
 
-export const JSON_SHAPE_MAX_BYTES = 2 * 1024 * 1024;
-export const JSON_SHAPE_MAX_SAMPLE_OBJECTS = 100;
-export const JSON_SHAPE_MAX_DEPTH = 8;
-export const JSON_SHAPE_MAX_OBJECTS = 2_000;
-export const JSON_SHAPE_MAX_FIELDS = 100;
-export const JSON_SHAPE_MAX_STRING_BYTES = 16 * 1024;
+export const JSON_SHAPE_MAX_BYTES = IMPORT_MAX_BYTES;
+export const JSON_SHAPE_MAX_SAMPLE_OBJECTS = IMPORT_MAX_SAMPLE_RECORDS;
+export const JSON_SHAPE_MAX_DEPTH = IMPORT_MAX_DEPTH;
+export const JSON_SHAPE_MAX_OBJECTS = IMPORT_MAX_JSON_OBJECTS;
+export const JSON_SHAPE_MAX_FIELDS = IMPORT_MAX_FIELDS;
+export const JSON_SHAPE_MAX_STRING_BYTES = IMPORT_MAX_STRING_BYTES;
 
 export interface JsonShapeOptions {
   /** Name for the root entity; normalized to blueprint kebab-case. */
@@ -34,6 +43,7 @@ export type JsonShapeErrorCode =
   | 'too-many-objects'
   | 'too-many-fields'
   | 'string-too-large'
+  | 'unsafe-key'
   | 'invalid-options';
 
 export class JsonShapeError extends Error {
@@ -75,6 +85,7 @@ interface Limits {
 }
 
 const RESERVED_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'deletedAt', 'deletedBy']);
+const BIDI_FORMATTING = /[\u202a-\u202e\u2066-\u2069]/u;
 const TITLE_KINDS = new Set<BlueprintField['kind']>([
   'text',
   'longText',
@@ -130,13 +141,64 @@ function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function hasUnsafeKeyCharacter(value: string): boolean {
+  return (
+    BIDI_FORMATTING.test(value) ||
+    Array.from(value).some((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return codePoint < 0x20 || (codePoint >= 0x7f && codePoint <= 0x9f);
+    })
+  );
+}
+
+function assertTextDepth(text: string, maximum: number): void {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (const character of text) {
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') inString = true;
+    else if (character === '{' || character === '[') {
+      depth += 1;
+      if (depth > maximum) {
+        throw new JsonShapeError(
+          'too-deep',
+          `JSON shape exceeds the maximum depth of ${maximum.toLocaleString()}`
+        );
+      }
+    } else if ((character === '}' || character === ']') && depth > 0) {
+      depth -= 1;
+    }
+  }
+}
+
 function validateTree(root: unknown, parsedLimits: Limits): void {
   const pending: Array<{ value: unknown; depth: number }> = [{ value: root, depth: 0 }];
-  let nodes = 0;
+  let objectNodes = 0;
+  let valueNodes = 0;
   while (pending.length > 0) {
     const current = pending.pop();
     if (!current) continue;
     const { value, depth } = current;
+    valueNodes += 1;
+    if (valueNodes > IMPORT_MAX_JSON_NODES) {
+      throw new JsonShapeError(
+        'too-many-objects',
+        `JSON shape exceeds the ${IMPORT_MAX_JSON_NODES.toLocaleString()} value-node limit`
+      );
+    }
+    if (Array.isArray(value) || isRecord(value)) objectNodes += 1;
+    if (objectNodes > parsedLimits.maxObjects) {
+      throw new JsonShapeError(
+        'too-many-objects',
+        `JSON shape exceeds the ${parsedLimits.maxObjects.toLocaleString()} object and array limit`
+      );
+    }
     if (typeof value === 'string' && byteLength(value) > parsedLimits.maxStringBytes) {
       throw new JsonShapeError(
         'string-too-large',
@@ -144,13 +206,6 @@ function validateTree(root: unknown, parsedLimits: Limits): void {
       );
     }
     if (!Array.isArray(value) && !isRecord(value)) continue;
-    nodes += 1;
-    if (nodes > parsedLimits.maxObjects) {
-      throw new JsonShapeError(
-        'too-many-objects',
-        `JSON shape exceeds the ${parsedLimits.maxObjects.toLocaleString()} object and array limit`
-      );
-    }
     const childDepth = depth + 1;
     if (childDepth > parsedLimits.maxDepth) {
       throw new JsonShapeError(
@@ -158,7 +213,46 @@ function validateTree(root: unknown, parsedLimits: Limits): void {
         `JSON shape exceeds the maximum depth of ${parsedLimits.maxDepth.toLocaleString()}`
       );
     }
-    const children = Array.isArray(value) ? value : Object.values(value);
+    if (Array.isArray(value)) {
+      if (valueNodes + pending.length + value.length > IMPORT_MAX_JSON_NODES) {
+        throw new JsonShapeError(
+          'too-many-objects',
+          `JSON shape exceeds the ${IMPORT_MAX_JSON_NODES.toLocaleString()} value-node limit`
+        );
+      }
+      for (const child of value) pending.push({ value: child, depth: childDepth });
+      continue;
+    }
+    const keys = Object.keys(value);
+    if (keys.length > parsedLimits.maxFields) {
+      throw new JsonShapeError(
+        'too-many-fields',
+        `A JSON object exceeds the ${parsedLimits.maxFields.toLocaleString()} field limit`
+      );
+    }
+    for (const key of keys) {
+      if (byteLength(key) > parsedLimits.maxStringBytes) {
+        throw new JsonShapeError(
+          'string-too-large',
+          `A JSON key exceeds the ${parsedLimits.maxStringBytes.toLocaleString()}-byte limit`
+        );
+      }
+      if (
+        key === '__proto__' ||
+        key === 'constructor' ||
+        key === 'prototype' ||
+        hasUnsafeKeyCharacter(key)
+      ) {
+        throw new JsonShapeError('unsafe-key', 'JSON shape contains an unsupported field name');
+      }
+    }
+    const children = Object.values(value);
+    if (valueNodes + pending.length + children.length > IMPORT_MAX_JSON_NODES) {
+      throw new JsonShapeError(
+        'too-many-objects',
+        `JSON shape exceeds the ${IMPORT_MAX_JSON_NODES.toLocaleString()} value-node limit`
+      );
+    }
     for (const child of children) pending.push({ value: child, depth: childDepth });
   }
 }
@@ -473,6 +567,7 @@ export function inferJsonShape(text: string, options: JsonShapeOptions = {}): Js
       `JSON shape input exceeds the ${parsedLimits.maxBytes.toLocaleString()}-byte limit`
     );
   }
+  assertTextDepth(text, parsedLimits.maxDepth);
 
   let parsed: unknown;
   try {
