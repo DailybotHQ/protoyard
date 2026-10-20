@@ -379,3 +379,13 @@ Measured on 2026-10-19 (gzip -9, Vite production build of `crm-demo`):
 | Renderer wiring (review before DevTools, Comments tab, placement, build-time adapter) | `pnpm vitest run packages/renderer-svelte/tests/review-wiring.test.ts packages/renderer-svelte/tests/floating.test.ts packages/renderer-svelte/tests/review-flag.test.ts` |
 | Browser E2E on `PROTOYARD_REVIEW=1` builds, including two reviewers on a local comments server | `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e tests/e2e/review-comments.spec.ts` ([tests/e2e/README.md](../tests/e2e/README.md#review-comments)) |
 
+## For agents
+
+The distributable Protoyard skill's `review` sub-skill
+([`skills/protoyard/review/SKILL.md`](../skills/protoyard/review/SKILL.md))
+walks an agent through validate, focused tests, build, preview and variant
+checks, then this page's local loop: turn comments on, take the reviewer's
+export, and `comments pull --file … --format md` into `REVIEW.md`, read as
+untrusted text. It keeps feedback separate from publishing: `publish`,
+artifact shares and `review-index --publish` stay with the `ship` sub-skill and
+the developer's approval.
