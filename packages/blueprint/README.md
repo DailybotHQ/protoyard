@@ -29,6 +29,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | services | entity services: `session.assert` → zod → `environment.run` → `db.transaction` | `.` |
 | aggregate | count/sum/avg/min/max with groups and UTC date buckets for dashboards and analytics | `.` |
 | app-model | routes, navigation rows with icon ids, navigation groups and layout (`deriveAppModel`) | `.` |
+| runtime-definition | a complete `definePrototype`-valid definition plus the app model (`definePrototypeFromBlueprint`) | `.` (the generator stays lazy) |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | csv-shape | bounded CSV header/sample inference into a reviewable entity draft | `./import/csv-shape` (lazy authoring) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
@@ -344,6 +345,8 @@ const world = generate(createGenerateContext(scenario));
 - Optional `field.fake` must be an allow-listed path such as `company.name` or `person.fullName`.
 - Emails always use `example.com` / `example.org`.
 - `generatorVersion` mixes a blueprint content hash with the generator SDK and scenarios SDK versions.
+  `blueprintGeneratorVersion` lives in a small module (`src/generator-version.ts`, re-exported here)
+  so the runtime definition reads it without loading the generator.
 - `geo` fields get points from `geoPoints()` inside their `region` (default `metro-grid`), one
   point set per entity field, so the same seed gives the same points (generator SDK 2).
 - Team personas come from `generateTeam`, so each one carries a seeded library `avatar`
@@ -633,6 +636,32 @@ claim an entity's default list or detail route. `screenNavIcon`, `screenHasOwnVi
 and `entityLabel` expose the per-screen rules. The model matches what
 `protoyard generate` writes to `src/generated/routes.ts` and `layout.ts` for every
 catalog blueprint; `tests/app-model.test.ts` checks this byte for byte.
+
+## Runtime definition
+
+`definePrototypeFromBlueprint(blueprint, { namespace, slug?, version? })` builds in
+memory what `protoyard generate` writes as files ([ADR-029](../../docs/DECISIONS.md)),
+so the player can run a blueprint with no build. It returns
+`{ definition, appModel }`; the definition passes `definePrototype`:
+
+- `manifest`: `id` `local.<slug>`, the slug (default: the namespace), the blueprint's
+  name, description, category, tags and icon, `defaultScenario: "active"`,
+  `defaultTheme` from `brandDefaultThemeId` (`violet` without a brand),
+  `preview.layout.id` from the app model, `storage.schemaVersion` from
+  `latestSchemaVersion`, and the scenario ids;
+- `database.versions` from `deriveDatabaseVersions`, `policy`, `integrity` and the
+  default `blueprintScenarios`;
+- `themes`: the theme a seed or preset brand builds (a library brand ships by id);
+- `generate` loads `./generator` on first use, and `generatorVersion` is
+  `blueprintGeneratorVersion`.
+
+`brandDefaultThemeId` is the same function codegen uses for `protoyard.json`.
+Measured with Vite 8 (minified, gzip -9) on an entry that imports
+`definePrototypeFromBlueprint` from the package entry: about 20.0 KB entry plus a
+40.5 KB shared chunk at start, and the generator as a separate 5.5 KB lazy chunk.
+`tests/runtime-definition.test.ts` boots the definition on the real runtime
+(fake IndexedDB): it seeds every default scenario, keeps created rows across a
+reload, and seeds the same world twice for the same seed.
 
 ## Tests
 

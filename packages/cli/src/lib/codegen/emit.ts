@@ -573,10 +573,8 @@ export function emitPrototype(
   return files;
 }
 
-/** Theme id written to protoyard.json when the blueprint declares a brand. */
-export function brandDefaultThemeId(blueprint: Blueprint): string | null {
-  if (!blueprint.brand) return null;
-  const libraryTheme = brandLibraryThemeId(blueprint.brand);
-  if (libraryTheme) return libraryTheme;
-  return resolveBlueprintBrand(blueprint.brand, { blueprintName: blueprint.name }).id;
-}
+/**
+ * Theme id written to protoyard.json when the blueprint declares a brand.
+ * Shared with the player's runtime definition (`@protoyard/blueprint`).
+ */
+export { brandDefaultThemeId } from '@protoyard/blueprint';
