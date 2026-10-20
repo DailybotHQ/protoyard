@@ -4,6 +4,13 @@ description: Check that a Protoyard prototype works and gather feedback on it lo
 version: "1.0.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
+metadata:
+  openclaw:
+    emoji: "🔎"
+    homepage: https://protoyard.app/docs/
+    requires:
+      anyBins:
+        - git
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

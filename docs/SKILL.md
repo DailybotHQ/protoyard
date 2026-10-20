@@ -29,6 +29,19 @@ commands depend on the CLI release. See the [Protoyard documentation](https://pr
 for product guides and the release-specific skill instructions for trust,
 integrity, and upgrade details.
 
+## Validate the distributable skill
+
+From the Protoyard repository, validate every skill frontmatter file before
+cutting or smoke-installing a release:
+
+```bash
+pnpm tsx scripts/validate-skill-frontmatter.ts
+```
+
+The validator enforces the namespaced skill names, quoted SemVer, canonical
+documentation URL, allowed tools, and OpenClaw metadata shape. It reports the
+file and field for every failure and exits nonzero when any file is invalid.
+
 ## Reusable kits
 
 The `kits` sub-skill (`skills/protoyard/kits/SKILL.md`) tells an agent to pick
