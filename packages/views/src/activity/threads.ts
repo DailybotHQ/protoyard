@@ -75,12 +75,15 @@ export function toggleReaction(
   emoji: string,
   personaId: string
 ): Record<string, string[]> {
-  const next: Record<string, string[]> = {};
-  for (const [key, ids] of Object.entries(reactions ?? {})) next[key] = [...ids];
-  const ids = next[emoji] ?? [];
-  next[emoji] = ids.includes(personaId)
+  // A Map plus Object.fromEntries: a stored `__proto__` key (JSON.parse makes it an
+  // own property) stays an ordinary key and never reassigns the result's prototype.
+  const next = new Map<string, string[]>();
+  for (const [key, ids] of Object.entries(reactions ?? {})) next.set(key, [...ids]);
+  const ids = next.get(emoji) ?? [];
+  const updated = ids.includes(personaId)
     ? ids.filter((id) => id !== personaId)
     : [...ids, personaId];
-  if (next[emoji].length === 0) delete next[emoji];
-  return next;
+  if (updated.length === 0) next.delete(emoji);
+  else next.set(emoji, updated);
+  return Object.fromEntries(next);
 }

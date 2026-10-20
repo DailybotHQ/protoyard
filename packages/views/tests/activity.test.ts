@@ -250,4 +250,16 @@ describe('threads and reactions', () => {
     expect(toggleReaction(once, '👍', 'p-li')).toEqual({});
     expect(once).toEqual({ '👍': ['p-li'] }); // not mutated
   });
+
+  it('keeps a stored __proto__ reaction key as data, never as the prototype', () => {
+    const stored = JSON.parse('{"__proto__":["p-x"],"👍":["p-li"]}') as Record<string, string[]>;
+    const next = toggleReaction(stored, '👍', 'p-marta');
+    expect(Object.getPrototypeOf(next)).toBe(Object.prototype);
+    expect(Object.hasOwn(next, '__proto__')).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(next, '__proto__')?.value).toEqual(['p-x']);
+    expect(next['👍']).toEqual(['p-li', 'p-marta']);
+    const removed = toggleReaction(next, '__proto__', 'p-x');
+    expect(Object.hasOwn(removed, '__proto__')).toBe(false);
+    expect(Object.getPrototypeOf(removed)).toBe(Object.prototype);
+  });
 });
