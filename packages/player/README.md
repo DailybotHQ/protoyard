@@ -38,7 +38,8 @@ The page reaches `performance.mark('protoyard:ready')` and
 
 ## Where the blueprint comes from
 
-`src/main.ts` calls `startPlayer` (`src/sources/start.ts`), which resolves the
+`src/main.ts` calls `runPlayer` (`src/run.ts`), which starts `startPlayer`
+(`src/sources/start.ts`). `startPlayer` resolves the
 blueprint in a fixed order:
 
 1. **`#bp=<link>`**: a share link in the URL fragment, decoded with
@@ -63,8 +64,10 @@ an accessible error screen instead of a blank page: a focused heading, every
 issue with its location and fix (as text, never HTML), and buttons to open
 another file or reload. A brand theme that fails at definition time
 (`BrandThemeError`) lands on the same screen. Changing the `#bp=` fragment
-reloads the page, so the new blueprint boots on a clean runtime. Loading from
-an embedding page's `postMessage` is not wired yet.
+reloads the page, so the new blueprint boots on a clean runtime. Only when the
+player is framed, `runPlayer` also loads the embed chunk and starts
+`protoyard-player/1`, so the embedding page can load or replace the blueprint
+(see below).
 
 The boot code (renderer and runtime) is its own chunk, fetched in parallel
 with source resolution.
@@ -80,12 +83,8 @@ exploration's `.data` and `.control` databases and its index row. Clearing
 without confirmation is rejected. The estimate is origin-wide because browser
 storage APIs do not expose per-IndexedDB-database byte counts.
 
-Today `src/main.ts` boots the bundled demo blueprint
-(`src/fixtures/demo.blueprint.json`, a copy of the fictional
-`blueprints/field-service-dispatch.json`). Loading a blueprint from a `#bp=` share
-link, an adjacent `blueprint.json` or a picked file is not wired yet. The
-`postMessage` protocol below is implemented and tested, but `main.ts` does not
-start it yet. Every source goes through `loadUntrustedBlueprint` (and
+The bundled fictional demo (`src/fixtures/demo.blueprint.json`, a copy of
+`blueprints/field-service-dispatch.json`) loads only from the picker. Every source goes through `loadUntrustedBlueprint` (and
 `decodeBlueprintShare` for links; see [SECURITY](../../docs/SECURITY.md)).
 
 ## Embedding: `protoyard-player/1`
@@ -159,7 +158,7 @@ pnpm --filter @protoyard/player build     # → packages/player/dist (static, ba
 pnpm --filter @protoyard/player dev
 pnpm --filter @protoyard/player preview
 pnpm vitest run packages/player/tests/boot.test.ts
-pnpm vitest run packages/player/tests/postmessage.test.ts
+pnpm vitest run packages/player/tests/postmessage.test.ts packages/player/tests/run.test.ts
 ```
 
 ## Size

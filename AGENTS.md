@@ -145,7 +145,7 @@ Nothing requires Docker or CI-only tooling.
    `cli`, `gallery`, `http`, `offline`, `blueprint`, `crud`, `saas`,
    `saas-ui`, `ai`, `ai-ui`, `charts`, `charts-ui`, `analytics`,
    `analytics-ui`, `views`, `views-ui`, `review`, `review-ui`, `avatars`,
-   `templates`, `<prototype-slug>`,
+   `templates`, `player`, `<prototype-slug>`,
    `docs`, `ci`, `deps`, `dwp`. **Stage exact paths**, never `git add -A`.
 3. **Validation follows the touched surface.** Pick gates from the
    source→test map in [TESTING_GUIDE](docs/TESTING_GUIDE.md). Core or root
