@@ -1,0 +1,6 @@
+/*
+ * Registers the DevTools components with Tailwind's scanner. The renderer's
+ * app.css imports it, so prototypes get the panel's classes without a path
+ * into this package. Import after Tailwind and the Protoyard theme/UI styles.
+ */
+@source "./";
