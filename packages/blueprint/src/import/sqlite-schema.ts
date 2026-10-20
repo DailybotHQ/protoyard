@@ -1,9 +1,16 @@
 import { type BlueprintEntity, parseBlueprint } from '../schema.ts';
+import {
+  IMPORT_MAX_COLUMNS,
+  IMPORT_MAX_DEPTH,
+  IMPORT_SQLITE_MAX_BYTES,
+  IMPORT_SQLITE_MAX_TABLES,
+  IMPORT_SQLITE_MAX_TOKENS,
+} from './limits.ts';
 
-export const SQLITE_SCHEMA_MAX_BYTES = 256 * 1024;
-export const SQLITE_SCHEMA_MAX_TABLES = 50;
-export const SQLITE_SCHEMA_MAX_COLUMNS = 100;
-export const SQLITE_SCHEMA_MAX_TOKENS = 40_000;
+export const SQLITE_SCHEMA_MAX_BYTES = IMPORT_SQLITE_MAX_BYTES;
+export const SQLITE_SCHEMA_MAX_TABLES = IMPORT_SQLITE_MAX_TABLES;
+export const SQLITE_SCHEMA_MAX_COLUMNS = IMPORT_MAX_COLUMNS;
+export const SQLITE_SCHEMA_MAX_TOKENS = IMPORT_SQLITE_MAX_TOKENS;
 
 export interface SqliteSchemaOptions {
   /** Maximum UTF-8 bytes accepted. Overrides are clamped to the hard maximum. */
@@ -23,6 +30,7 @@ export type SqliteSchemaErrorCode =
   | 'too-many-tables'
   | 'too-many-columns'
   | 'too-many-tokens'
+  | 'too-deep'
   | 'invalid-options';
 
 export class SqliteSchemaError extends Error {
@@ -128,6 +136,7 @@ function parseLimits(options: SqliteSchemaOptions): Limits {
 
 function tokenize(sql: string): Token[] {
   const tokens: Token[] = [];
+  let parenDepth = 0;
   let index = 0;
   while (index < sql.length) {
     const start = index;
@@ -183,6 +192,14 @@ function tokenize(sql: string): Token[] {
       index += number.length;
       tokens.push({ kind: 'number', value: number, offset: start });
     } else if ('(),.;+-*/%<>=!|&~'.includes(char)) {
+      if (char === '(') {
+        parenDepth += 1;
+        if (parenDepth > IMPORT_MAX_DEPTH) {
+          fail('too-deep', 'sql', `exceeds the maximum nesting depth of ${IMPORT_MAX_DEPTH}`);
+        }
+      } else if (char === ')' && parenDepth > 0) {
+        parenDepth -= 1;
+      }
       tokens.push({ kind: 'symbol', value: char, offset: start });
       index += 1;
     } else {

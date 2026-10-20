@@ -331,7 +331,8 @@ It normalizes headers into deterministic field names, infers conservative kinds 
 at most 100 non-empty rows, and returns a validated entity draft with review notes.
 The result never includes imported cell values, enum values, sample-derived limits or
 row data. The existing 2 MiB / 10,000-row CSV limits still apply; shape inference also
-caps the header at 100 columns and each inspected cell at 16 KiB. Ambiguous columns
+caps the header at 100 columns, header and sampled cells at 16 KiB each, and sample
+inspection at 100 non-empty rows. Caller limits can lower these caps only. Ambiguous columns
 remain `text` and are called out in `notes` for author review. Formula-like sample
 cells are unguarded only while classifying them and are never returned.
 
@@ -359,8 +360,10 @@ one-to-many fields, which should be reviewed before generation. Arrays of
 strings can become `tags`; enum values and sample limits are never copied.
 
 Input is capped at 2 MiB, 100 sampled objects per entity, 8 levels of nesting,
-2,000 object/array nodes, 100 fields per entity and 16 KiB per string value.
-Higher caller limits are clamped to these hard caps. Output entity and field
+2,000 object/array nodes, 20,000 total value nodes, 100 fields per object and
+16 KiB per string value or key. Prototype-related keys and keys with control or
+bidirectional formatting characters are rejected. Higher caller limits are
+clamped to these hard caps. Output entity and field
 ordering is stable regardless of JSON key insertion order, and notes/errors do
 not echo source values.
 
@@ -399,8 +402,9 @@ and absent types use conservative reviewable representations. Defaults, checks,
 unique constraints and collations do not become behavior; default literals are
 discarded. Composite foreign keys, unsupported types and non-CREATE statements
 are rejected with a path-aware `SqliteSchemaError`. Input is limited to 256 KiB,
-50 tables, 100 columns per table and 40,000 tokens. SQL literal values and
-database rows never appear in the output.
+50 tables, 100 columns per table, 40,000 tokens and 8 levels of parenthesis
+nesting. Caller limits can lower these caps only. SQL literal values and
+database rows never appear in the output or parser diagnostics.
 
 ## World generator
 
