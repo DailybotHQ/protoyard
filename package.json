@@ -40,7 +40,9 @@
     "hygiene": "bash scripts/check-public-hygiene.sh",
     "build:packages": "tsx scripts/build-packages.ts",
     "check:packages": "tsx scripts/check-packages.ts",
-    "verify:packages": "tsx scripts/verify-packages.ts"
+    "verify:packages": "tsx scripts/verify-packages.ts",
+    "changeset": "changeset",
+    "version-packages": "tsx scripts/version-packages.ts"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
