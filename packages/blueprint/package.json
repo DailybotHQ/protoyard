@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./csv": "./src/csv.ts",
+    "./import/csv-shape": "./src/import/csv-shape.ts",
     "./generator": "./src/generator.ts",
     "./search": "./src/search.ts"
   },

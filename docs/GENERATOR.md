@@ -216,6 +216,24 @@ face before any repeat. On a new record it changes the draft only.
 | `files` | Uploads into the `files` table: Blobs in IndexedDB, size, type and quota checks, simulated progress through `environment.run('files.upload')`. Needs at least one `file` field. |
 | `csv` | CSV export of the list and an import that validates every row before writing. |
 
+CSV row import/export and CSV shape authoring are separate surfaces. To create a
+reviewable entity draft from headers and a bounded sample, use the lazy authoring
+entry:
+
+```ts
+import { inferCsvEntity } from '@protoyard/blueprint/import/csv-shape';
+
+const draft = inferCsvEntity(csvText, { entityName: 'invoice' });
+// draft.entity is validated; draft.notes contains conservative ambiguity warnings.
+```
+
+Shape inference inspects at most 100 non-empty data rows, caps input at the existing
+2 MiB / 10,000-row CSV limits, and rejects more than 100 columns or 16 KiB sample
+cells. It emits field names, labels and kinds only: sample cell values are never
+copied into the entity draft, notes, defaults, enum values or constraints. Ambiguous
+columns stay `text` so an author can review them before generation. The importer is
+opt-in and does not enter the player package entry.
+
 ### Roles and permissions
 
 ```json
