@@ -1,0 +1,3342 @@
+{
+  "formatVersion": 1,
+  "name": "Meridian Operations Suite",
+  "description": "A large fictional operations suite used to prove that the player path scales. All data is generated, fictional and uses example.com addresses.",
+  "layout": { "id": "sidebar", "mobile": "mobile-drawer" },
+  "brand": { "preset": "ocean", "density": 0.9 },
+  "entities": [
+    {
+      "name": "station",
+      "plural": "stations",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 6,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "depot",
+      "plural": "depots",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "station",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "route",
+      "plural": "routes",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "depot",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "depot",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "vehicle",
+      "plural": "vehicles",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "route",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "depot",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "driver",
+      "plural": "drivers",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "vehicle",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "route",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "shift",
+      "plural": "shifts",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "driver",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "route",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "inspection",
+      "plural": "inspections",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "shift",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "vehicle",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "part",
+      "plural": "parts",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "inspection",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "vehicle",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "supplier",
+      "plural": "suppliers",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "part",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "driver",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "order",
+      "plural": "orders",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "supplier",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "driver",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "invoice",
+      "plural": "invoices",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "order",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "shift",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "payment",
+      "plural": "payments",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "invoice",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "shift",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "customer",
+      "plural": "customers",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "payment",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "inspection",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "contract",
+      "plural": "contracts",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "customer",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "inspection",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "ticket",
+      "plural": "tickets",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "contract",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "part",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "asset",
+      "plural": "assets",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "ticket",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "part",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "site",
+      "plural": "sites",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "asset",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "supplier",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "zone",
+      "plural": "zones",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "site",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "supplier",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "sensor",
+      "plural": "sensors",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "zone",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "order",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "reading",
+      "plural": "readings",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "sensor",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "order",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "campaign",
+      "plural": "campaigns",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "reading",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "invoice",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "lead",
+      "plural": "leads",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "campaign",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "invoice",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "deal",
+      "plural": "deals",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "lead",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "payment",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "product",
+      "plural": "products",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "deal",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "payment",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "warehouse",
+      "plural": "warehouses",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "product",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "customer",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "shipment",
+      "plural": "shipments",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "warehouse",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "customer",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "carrier",
+      "plural": "carriers",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "shipment",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "contract",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "return",
+      "plural": "returns",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "carrier",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "contract",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "review",
+      "plural": "reviews",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "return",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "ticket",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "survey",
+      "plural": "surveys",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "review",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "ticket",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "course",
+      "plural": "courses",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "survey",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "asset",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "lesson",
+      "plural": "lessons",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "course",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "asset",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "enrollment",
+      "plural": "enrollments",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "lesson",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "site",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "badge",
+      "plural": "badges",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "enrollment",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "site",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "event",
+      "plural": "events",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "badge",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "zone",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "venue",
+      "plural": "venues",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "event",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "zone",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "booking",
+      "plural": "bookings",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "venue",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "sensor",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "room",
+      "plural": "rooms",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "booking",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "sensor",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "project",
+      "plural": "projects",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "room",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "reading",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    },
+    {
+      "name": "milestone",
+      "plural": "milestones",
+      "fields": [
+        { "name": "title", "kind": "text", "required": true, "fake": "company.catchPhrase" },
+        { "name": "summary", "kind": "longText", "fake": "lorem.paragraph" },
+        { "name": "code", "kind": "text", "fake": "word.words", "maxLength": 40 },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["draft", "active", "paused", "done"],
+          "default": "draft",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "kind": "enum",
+          "values": ["low", "medium", "high"],
+          "weights": [3, 2, 1]
+        },
+        { "name": "score", "kind": "number", "min": 0, "max": 100, "trend": "growth" },
+        { "name": "quantity", "kind": "integer", "min": 0, "max": 500 },
+        { "name": "amount", "kind": "money", "currency": "USD", "min": 0, "max": 5000000 },
+        { "name": "active", "kind": "boolean", "default": true },
+        { "name": "startsOn", "kind": "date", "window": "around" },
+        { "name": "endsOn", "kind": "date", "window": "future" },
+        { "name": "lastSeenAt", "kind": "datetime", "window": "past" },
+        { "name": "contactEmail", "kind": "email" },
+        { "name": "website", "kind": "url" },
+        { "name": "phone", "kind": "phone" },
+        { "name": "labels", "kind": "tags", "maxItems": 6 },
+        { "name": "owner", "kind": "persona" },
+        { "name": "assignee", "kind": "persona" },
+        { "name": "location", "kind": "geo" },
+        { "name": "portrait", "kind": "avatar" },
+        {
+          "name": "attachment",
+          "kind": "file",
+          "accept": ["image/*", "application/pdf"],
+          "maxSizeBytes": 1048576
+        },
+        { "name": "metadata", "kind": "json" },
+        { "name": "notes", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "parent",
+          "kind": "relation",
+          "to": "project",
+          "cardinality": "one",
+          "onDelete": "nullify"
+        },
+        {
+          "name": "related",
+          "kind": "relation",
+          "to": "reading",
+          "cardinality": "many",
+          "onDelete": "nullify"
+        }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary", "code"],
+      "ownerField": "owner",
+      "indexes": ["status", "startsOn"],
+      "defaultSort": { "field": "startsOn", "direction": "desc" },
+      "seedCount": 12,
+      "features": {
+        "softDelete": true,
+        "audit": true,
+        "notifications": true,
+        "files": true,
+        "csv": true
+      }
+    }
+  ],
+  "roles": [
+    { "name": "owner", "permissions": { "*": ["*"] } },
+    { "name": "member", "permissions": { "*": ["read", "create", "update:own", "delete:own"] } },
+    { "name": "viewer", "permissions": { "*": ["read"] } }
+  ],
+  "notifications": [
+    { "on": "create", "entity": "station", "notify": "owner", "title": "New station: {title}" },
+    { "on": "create", "entity": "depot", "notify": "owner", "title": "New depot: {title}" },
+    { "on": "create", "entity": "route", "notify": "owner", "title": "New route: {title}" },
+    { "on": "create", "entity": "vehicle", "notify": "owner", "title": "New vehicle: {title}" },
+    { "on": "create", "entity": "driver", "notify": "owner", "title": "New driver: {title}" },
+    { "on": "create", "entity": "shift", "notify": "owner", "title": "New shift: {title}" },
+    {
+      "on": "create",
+      "entity": "inspection",
+      "notify": "owner",
+      "title": "New inspection: {title}"
+    },
+    { "on": "create", "entity": "part", "notify": "owner", "title": "New part: {title}" },
+    { "on": "create", "entity": "supplier", "notify": "owner", "title": "New supplier: {title}" },
+    { "on": "create", "entity": "order", "notify": "owner", "title": "New order: {title}" },
+    {
+      "on": "assign",
+      "entity": "invoice",
+      "field": "assignee",
+      "notify": "assignee",
+      "title": "You review {title}"
+    },
+    {
+      "on": "assign",
+      "entity": "payment",
+      "field": "assignee",
+      "notify": "assignee",
+      "title": "You review {title}"
+    },
+    {
+      "on": "assign",
+      "entity": "customer",
+      "field": "assignee",
+      "notify": "assignee",
+      "title": "You review {title}"
+    },
+    {
+      "on": "assign",
+      "entity": "contract",
+      "field": "assignee",
+      "notify": "assignee",
+      "title": "You review {title}"
+    },
+    {
+      "on": "assign",
+      "entity": "ticket",
+      "field": "assignee",
+      "notify": "assignee",
+      "title": "You review {title}"
+    },
+    {
+      "on": "assign",
+      "entity": "asset",
+      "field": "assignee",
+      "notify": "assignee",
+      "title": "You review {title}"
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "station",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "depot",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "route",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "vehicle",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "driver",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "shift",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "inspection",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "part",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "supplier",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "order",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "invoice",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "payment",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "customer",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "contract",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "ticket",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "asset",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "site",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "zone",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "sensor",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "reading",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "campaign",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "lead",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "deal",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "product",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "warehouse",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "shipment",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "carrier",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "return",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "review",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "survey",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "course",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "lesson",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "enrollment",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "badge",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "event",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "venue",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "booking",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "room",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "project",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "list",
+      "entity": "milestone",
+      "columns": ["title", "status", "priority", "amount", "startsOn"]
+    },
+    {
+      "type": "dashboard",
+      "path": "/",
+      "title": "Operations overview",
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Open tickets",
+          "entity": "ticket",
+          "filter": { "field": "status", "op": "eq", "value": "active" }
+        },
+        {
+          "kind": "kpi",
+          "label": "Revenue",
+          "entity": "invoice",
+          "aggregate": "sum",
+          "field": "amount"
+        },
+        {
+          "kind": "chart",
+          "label": "Orders by status",
+          "entity": "order",
+          "chart": "donut",
+          "groupBy": "status"
+        },
+        {
+          "kind": "chart",
+          "label": "Bookings per week",
+          "entity": "booking",
+          "chart": "line",
+          "bucket": { "field": "startsOn", "unit": "week" }
+        },
+        {
+          "kind": "list",
+          "label": "Latest deals",
+          "entity": "deal",
+          "limit": 5,
+          "sort": { "field": "startsOn", "direction": "desc" }
+        },
+        { "kind": "board-summary", "label": "Projects", "entity": "project", "groupBy": "status" }
+      ]
+    },
+    {
+      "type": "dashboard",
+      "path": "/insights",
+      "title": "Insights",
+      "widgets": [
+        { "kind": "kpi", "label": "Readings", "entity": "reading" },
+        {
+          "kind": "chart",
+          "label": "Shipments by priority",
+          "entity": "shipment",
+          "chart": "bar",
+          "groupBy": "priority"
+        }
+      ]
+    },
+    {
+      "type": "board",
+      "entity": "ticket",
+      "path": "/ticket-board",
+      "groupBy": "status",
+      "cardFields": ["priority", "amount"],
+      "sumField": "amount"
+    },
+    {
+      "type": "board",
+      "entity": "deal",
+      "path": "/deal-board",
+      "groupBy": "status",
+      "cardFields": ["priority", "amount"],
+      "sumField": "amount"
+    },
+    {
+      "type": "board",
+      "entity": "project",
+      "path": "/project-board",
+      "groupBy": "status",
+      "cardFields": ["priority", "amount"],
+      "sumField": "amount"
+    },
+    {
+      "type": "board",
+      "entity": "milestone",
+      "path": "/milestone-board",
+      "groupBy": "status",
+      "cardFields": ["priority", "amount"],
+      "sumField": "amount"
+    },
+    {
+      "type": "calendar",
+      "entity": "shift",
+      "path": "/shift-calendar",
+      "dateField": "startsOn",
+      "endField": "endsOn",
+      "colorBy": "priority",
+      "view": "month"
+    },
+    {
+      "type": "calendar",
+      "entity": "order",
+      "path": "/order-calendar",
+      "dateField": "startsOn",
+      "endField": "endsOn",
+      "colorBy": "priority",
+      "view": "month"
+    },
+    {
+      "type": "calendar",
+      "entity": "event",
+      "path": "/event-calendar",
+      "dateField": "startsOn",
+      "endField": "endsOn",
+      "colorBy": "priority",
+      "view": "month"
+    },
+    {
+      "type": "calendar",
+      "entity": "booking",
+      "path": "/booking-calendar",
+      "dateField": "startsOn",
+      "endField": "endsOn",
+      "colorBy": "priority",
+      "view": "month"
+    },
+    {
+      "type": "timeline",
+      "entity": "contract",
+      "path": "/contract-timeline",
+      "startField": "startsOn",
+      "endField": "endsOn",
+      "groupBy": "status"
+    },
+    {
+      "type": "timeline",
+      "entity": "enrollment",
+      "path": "/enrollment-timeline",
+      "startField": "startsOn",
+      "endField": "endsOn",
+      "groupBy": "status"
+    },
+    {
+      "type": "timeline",
+      "entity": "milestone",
+      "path": "/milestone-timeline",
+      "startField": "startsOn",
+      "endField": "endsOn",
+      "groupBy": "status"
+    },
+    {
+      "type": "map",
+      "entity": "station",
+      "path": "/station-map",
+      "geoField": "location",
+      "colorBy": "status"
+    },
+    {
+      "type": "map",
+      "entity": "site",
+      "path": "/site-map",
+      "geoField": "location",
+      "colorBy": "status"
+    },
+    {
+      "type": "map",
+      "entity": "sensor",
+      "path": "/sensor-map",
+      "geoField": "location",
+      "colorBy": "status"
+    },
+    {
+      "type": "analytics",
+      "entity": "order",
+      "path": "/order-analytics",
+      "dateField": "startsOn",
+      "measures": [
+        { "label": "Count", "aggregate": "count" },
+        { "label": "Amount", "aggregate": "sum", "field": "amount" }
+      ],
+      "dimensions": ["status", "priority"]
+    },
+    {
+      "type": "analytics",
+      "entity": "campaign",
+      "path": "/campaign-analytics",
+      "dateField": "startsOn",
+      "measures": [
+        { "label": "Count", "aggregate": "count" },
+        { "label": "Amount", "aggregate": "sum", "field": "amount" }
+      ],
+      "dimensions": ["status", "priority"]
+    },
+    {
+      "type": "analytics",
+      "entity": "product",
+      "path": "/product-analytics",
+      "dateField": "startsOn",
+      "measures": [
+        { "label": "Count", "aggregate": "count" },
+        { "label": "Amount", "aggregate": "sum", "field": "amount" }
+      ],
+      "dimensions": ["status", "priority"]
+    },
+    {
+      "type": "settings",
+      "path": "/settings",
+      "sections": ["profile", "workspace", "appearance", "notifications", "danger"]
+    }
+  ]
+}
