@@ -299,6 +299,14 @@ written under the ignored `tmp/` directory during measurement.
 | Preview ready with seeded data | 618 ms (607–619 ms) | 595 ms (592–606 ms) |
 | **Idea → running** | **39,020 ms (38,794–39,619 ms)** | **41,008 ms (36,950–42,699 ms)** |
 
+PLAN_003 Harborlight dogfood run on 2026-10-20 took **330,326 ms** from the
+first brief review to the first passing production build. It ran on Darwin
+27.0.0 arm64 with Node 26.11.1. This is one manual end-to-end observation,
+including blueprint review/refinement, and it stops at build rather than the
+benchmark's seeded preview-ready mark; do not compare it with the automated
+medians above or use it to set a budget. The prototype's initial JS gzip was
+201.53 KB (250 KB budget) and CSS gzip was 21.87 KB (30 KB budget).
+
 The plan's 1.5× calibration rule suggests a local total ceiling of 58,530 ms
 for the default install mode. The owner-held `protoyard.budgets.json` remains
 uncalibrated (`null`); the lead can propose that value there after confirming
