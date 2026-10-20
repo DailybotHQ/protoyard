@@ -1,3 +1,4 @@
+import { blueprintGeneratorVersion } from '@protoyard/blueprint';
 import { parseScenario } from '@protoyard/core';
 import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
 import { describe, expect, it } from 'vitest';
@@ -8,6 +9,18 @@ import { generate } from '../src/scenarios/generators.ts';
 const ids = ['empty', 'active', 'viewer', 'massive'] as const;
 
 describe('crud-app generator', () => {
+  it('declares the blueprint generator version, so a changed blueprint reseeds', () => {
+    // Regression: prototype.ts used to pin `generatorVersion: 1`.
+    expect(definition.generatorVersion).toBe(blueprintGeneratorVersion(blueprint));
+    const changed = {
+      ...blueprint,
+      entities: blueprint.entities.map((entity, index) =>
+        index === 0 ? { ...entity, seedCount: (entity.seedCount ?? 4) + 1 } : entity
+      ),
+    };
+    expect(blueprintGeneratorVersion(changed)).not.toBe(definition.generatorVersion);
+  });
+
   it('is deterministic and passes integrity for every scenario', async () => {
     for (const id of ids) {
       const input = definition.scenarios.find((s) => s.id === id);

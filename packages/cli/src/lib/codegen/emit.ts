@@ -374,7 +374,7 @@ export default ${exportName};
 }
 
 function prototypeWithBrand(exportName: string): string {
-  return `import { deriveIntegrity } from '@protoyard/blueprint';
+  return `import { blueprintGeneratorVersion, deriveIntegrity } from '@protoyard/blueprint';
 import { definePrototype, parseManifest } from '@protoyard/core';
 import manifestJson from '../protoyard.json';
 import { database } from './database/schema.ts';
@@ -390,8 +390,8 @@ export const definition = definePrototype({
   scenarios,
   policy,
   generate,
-  // Bumped via blueprint generator hash when the blueprint changes.
-  generatorVersion: 1,
+  // Changes whenever the blueprint's generative surface or the generator SDK does.
+  generatorVersion: blueprintGeneratorVersion(blueprint),
   integrity: deriveIntegrity(blueprint),
   themes: [${exportName}],
 });

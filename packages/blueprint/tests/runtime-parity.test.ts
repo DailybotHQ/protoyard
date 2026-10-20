@@ -173,9 +173,13 @@ describe('runtime and codegen parity over the catalog', () => {
       expect(definition.manifest.scenarios).toEqual(generatedManifest.scenarios);
       expect(definition.manifest.defaultScenario).toBe(generatedManifest.defaultScenario);
 
-      // The blueprint generator's version (prototype.ts pins its own; see the known gap).
+      // The generator version: the prototype declares the blueprint generator's own version
+      // (regression: generated prototype.ts used to pin 1, so it never reseeded on change).
       expect(definition.generatorVersion, 'generator version').toBe(
         await generated.crudGeneratorVersion()
+      );
+      expect(generated.definition.generatorVersion, 'generated prototype.ts generatorVersion').toBe(
+        definition.generatorVersion
       );
 
       // Theme: the same default and the same built brand theme.
