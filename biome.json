@@ -32,7 +32,8 @@
       "!tmp",
       "!.dwp",
       "!**/.agents",
-      "!**/pnpm-lock.yaml"
+      "!**/pnpm-lock.yaml",
+      "!**/__snapshots__"
     ]
   },
   "formatter": {
