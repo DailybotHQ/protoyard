@@ -4,6 +4,7 @@ import { isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   PackageGraphError,
+  packageCycles,
   packageLevels,
   readPackageGraph,
   selectPackageNames,
@@ -41,6 +42,8 @@ export interface BuildPackagesResult {
   ok: boolean;
   root: string;
   levels: string[][];
+  /** Dependency cycles built together in one level (reported, not fatal). */
+  cycles: string[][];
   packages: BuiltPackageResult[];
 }
 
@@ -66,9 +69,14 @@ function commandRunner(
 
 function packageCommand(pkg: WorkspacePackage): { args: string[]; strategy: 'tsc' | 'svelte' } {
   if (pkg.buildConfig === 'svelte') {
+    // tsconfig.build.json carries rewriteRelativeImportExtensions, so `.ts`
+    // imports in .ts and .svelte files point at the emitted `.js`.
+    const tsconfig = existsSync(join(pkg.dir, 'tsconfig.build.json'))
+      ? ['--tsconfig', 'tsconfig.build.json']
+      : [];
     return {
       strategy: 'svelte',
-      args: ['exec', 'svelte-package', '--input', 'src', '--output', 'dist'],
+      args: ['exec', 'svelte-package', '--input', 'src', '--output', 'dist', ...tsconfig],
     };
   }
   return { strategy: 'tsc', args: ['exec', 'tsc', '-p', 'tsconfig.build.json'] };
@@ -147,6 +155,7 @@ export async function buildPackages(
   const graph = readPackageGraph(options.root ?? process.cwd());
   const selected = selectPackageNames(graph, options.filters ?? []);
   const levels = packageLevels(graph, selected);
+  const cycles = packageCycles(graph, selected);
   const run = options.runCommand ?? commandRunner;
   const results: BuiltPackageResult[] = [];
   for (const level of levels) {
@@ -158,6 +167,7 @@ export async function buildPackages(
     ok: results.every((result) => result.status === 'built'),
     root: graph.root,
     levels: levels.map((level) => level.map((pkg) => pkg.name)),
+    cycles,
     packages: results,
   };
 }
@@ -210,8 +220,15 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     const result = await buildPackages(parsed);
     if (json) console.log(JSON.stringify(result));
     else if (result.packages.length === 0) console.log('build-packages: no opted-in packages');
-    else
-      for (const pkg of result.packages) console.log(`${pkg.status} ${pkg.name} (${pkg.strategy})`);
+    else {
+      for (const cycle of result.cycles) {
+        console.log(`note: dependency cycle built as one level: ${cycle.join(' <-> ')}`);
+      }
+      for (const pkg of result.packages) {
+        console.log(`${pkg.status} ${pkg.name} (${pkg.strategy})`);
+        if (pkg.error) console.log(`  ${pkg.error.split('\n').slice(0, 20).join('\n  ')}`);
+      }
+    }
     return result.ok ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

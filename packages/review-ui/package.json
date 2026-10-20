@@ -53,5 +53,10 @@
   },
   "peerDependencies": {
     "svelte": "^5.57.0"
+  },
+  "protoyard": {
+    "build": {
+      "assets": []
+    }
   }
 }

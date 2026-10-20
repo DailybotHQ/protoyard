@@ -181,63 +181,156 @@ export function readPackageGraph(workspaceRoot: string): PackageGraph {
   return { root, packages, byName: new Map(packages.map((pkg) => [pkg.name, pkg])) };
 }
 
-/** Return buildable packages in dependency order, grouped for parallel work. */
-export function packageLevels(
+/**
+ * Strongly connected components of `dependencies` (Tarjan), each sorted by
+ * name. A component with more than one member is a dependency cycle.
+ */
+export function stronglyConnected(
+  dependencies: ReadonlyMap<string, readonly string[]>
+): string[][] {
+  let index = 0;
+  const indices = new Map<string, number>();
+  const lowlink = new Map<string, number>();
+  const stack: string[] = [];
+  const onStack = new Set<string>();
+  const components: string[][] = [];
+  const connect = (name: string) => {
+    indices.set(name, index);
+    lowlink.set(name, index);
+    index += 1;
+    stack.push(name);
+    onStack.add(name);
+    for (const dep of dependencies.get(name) ?? []) {
+      if (!indices.has(dep)) {
+        connect(dep);
+        lowlink.set(name, Math.min(lowlink.get(name) ?? 0, lowlink.get(dep) ?? 0));
+      } else if (onStack.has(dep)) {
+        lowlink.set(name, Math.min(lowlink.get(name) ?? 0, indices.get(dep) ?? 0));
+      }
+    }
+    if (lowlink.get(name) === indices.get(name)) {
+      const component: string[] = [];
+      let member: string | undefined;
+      do {
+        member = stack.pop();
+        if (member === undefined) break;
+        onStack.delete(member);
+        component.push(member);
+      } while (member !== name);
+      components.push(component.sort());
+    }
+  };
+  for (const name of [...dependencies.keys()].sort()) if (!indices.has(name)) connect(name);
+  return components;
+}
+
+/** Dependency cycles among the selected buildable packages (each sorted by name). */
+export function packageCycles(
   graph: PackageGraph,
   selectedNames: ReadonlySet<string> = new Set(graph.packages.map((pkg) => pkg.name))
-): WorkspacePackage[][] {
+): string[][] {
+  return stronglyConnected(buildableDependencies(graph, selectedNames))
+    .filter((component) => component.length > 1)
+    .sort((a, b) => (a[0] ?? '').localeCompare(b[0] ?? ''));
+}
+
+function buildableDependencies(
+  graph: PackageGraph,
+  selectedNames: ReadonlySet<string>
+): Map<string, string[]> {
   const buildable = graph.packages.filter(
     (pkg) => pkg.buildConfig !== null && selectedNames.has(pkg.name)
   );
   const buildableNames = new Set(buildable.map((pkg) => pkg.name));
-  const dependencies = new Map(
+  return new Map(
     buildable.map((pkg) => [
       pkg.name,
       pkg.dependencies.filter((dependency) => buildableNames.has(dependency)),
     ])
   );
+}
+
+/**
+ * Return buildable packages in dependency order, grouped for parallel work.
+ * Members of a dependency cycle share one level: inside this repository every
+ * workspace import resolves to the dependency's src/, never its dist/, so
+ * packages in a cycle do not need each other's build output.
+ */
+export function packageLevels(
+  graph: PackageGraph,
+  selectedNames: ReadonlySet<string> = new Set(graph.packages.map((pkg) => pkg.name))
+): WorkspacePackage[][] {
+  const dependencies = buildableDependencies(graph, selectedNames);
+  const components = stronglyConnected(dependencies);
+  const componentOf = new Map<string, number>();
+  components.forEach((component, i) => {
+    for (const name of component) componentOf.set(name, i);
+  });
   const levels: WorkspacePackage[][] = [];
-  const remaining = new Set(buildable.map((pkg) => pkg.name));
+  const remaining = new Set(components.map((_, i) => i));
   while (remaining.size > 0) {
-    const level = buildable
-      .filter(
-        (pkg) =>
-          remaining.has(pkg.name) &&
-          (dependencies.get(pkg.name) ?? []).every((dep) => !remaining.has(dep))
+    const ready = [...remaining].filter((i) =>
+      (components[i] ?? []).every((name) =>
+        (dependencies.get(name) ?? []).every((dep) => {
+          const owner = componentOf.get(dep);
+          return owner === i || owner === undefined || !remaining.has(owner);
+        })
       )
+    );
+    if (ready.length === 0) throw new PackageGraphError('Package dependency order is unresolvable');
+    const level = ready
+      .flatMap((i) => components[i] ?? [])
+      .map((name) => graph.byName.get(name))
+      .filter((pkg): pkg is WorkspacePackage => pkg !== undefined)
       .sort((left, right) => left.name.localeCompare(right.name));
-    if (level.length === 0) {
-      const cycle = [...remaining].sort().join(' -> ');
-      throw new PackageGraphError(`Package dependency cycle: ${cycle}`);
-    }
     levels.push(level);
-    for (const pkg of level) remaining.delete(pkg.name);
+    for (const i of ready) remaining.delete(i);
   }
   return levels;
 }
 
-/** Select a package and its buildable workspace dependencies for --filter. */
+/**
+ * Group filters: `svelte` selects every package built with svelte-package,
+ * `engine` every package built with tsc (unless a package has that name).
+ */
+const FILTER_GROUPS: Record<string, WorkspacePackage['buildConfig']> = {
+  svelte: 'svelte',
+  engine: 'tsc',
+};
+
+/** Select a package (or a group) and its buildable workspace dependencies for --filter. */
 export function selectPackageNames(graph: PackageGraph, filters: readonly string[]): Set<string> {
   if (filters.length === 0) return new Set(graph.packages.map((pkg) => pkg.name));
   const selected = new Set<string>();
+  const visit = (name: string) => {
+    if (selected.has(name)) return;
+    selected.add(name);
+    const pkg = graph.byName.get(name);
+    for (const dependency of pkg?.dependencies ?? []) {
+      if (graph.byName.has(dependency)) visit(dependency);
+    }
+  };
   for (const filter of filters) {
     const packageMatch = graph.packages.find(
       (pkg) => pkg.name === filter || relative(graph.root, pkg.dir) === filter
     );
-    // A group name (`protoyard.build.group`) selects every package in that group.
-    const groupMatches = packageMatch
-      ? [packageMatch]
-      : graph.packages.filter((pkg) => pkg.group === filter);
-    if (groupMatches.length === 0) throw new PackageGraphError(`Unknown package filter: ${filter}`);
-    const visit = (name: string) => {
-      if (selected.has(name)) return;
-      selected.add(name);
-      const pkg = graph.byName.get(name);
-      for (const dependency of pkg?.dependencies ?? []) {
-        if (graph.byName.has(dependency)) visit(dependency);
-      }
-    };
-    for (const match of groupMatches) visit(match.name);
+    if (packageMatch) {
+      visit(packageMatch.name);
+      continue;
+    }
+    // A declared group (`protoyard.build.group`) wins; otherwise `svelte` / `engine`
+    // fall back to the build strategy.
+    let members = graph.packages.filter((pkg) => pkg.group === filter);
+    if (members.length === 0) {
+      const group = Object.hasOwn(FILTER_GROUPS, filter) ? FILTER_GROUPS[filter] : undefined;
+      if (!group) throw new PackageGraphError(`Unknown package filter: ${filter}`);
+      members = graph.packages.filter((pkg) => pkg.buildConfig === group);
+    }
+    // An empty group would make `--filter <group>` a silent no-op that passes.
+    if (members.length === 0) {
+      throw new PackageGraphError(`No opted-in packages in the "${filter}" group`);
+    }
+    for (const pkg of members) visit(pkg.name);
   }
   return selected;
 }
