@@ -26,15 +26,29 @@ let expanded = $state(false);
 let badge: HTMLElement | undefined = $state();
 /** Full badge size, measured while it is shown (the dot cannot measure it). */
 let fullSize = { width: 0, height: 0 };
+/** Px a docked bar reserves above the page (the review toolbar); a top corner starts below it. */
+let reservedTop = $state(0);
+/** Where `position: fixed` measures from: the transformed #app, or the viewport (0, 0). */
+let origin = { left: 0, top: 0 };
 
 /** The badge's containing block: #app under a viewport preset (it has a transform), else the window. */
 function containerRect(): Rect {
   const app = badge?.closest<HTMLElement>('#app');
   if (app && getComputedStyle(app).transform !== 'none') {
     const r = app.getBoundingClientRect();
+    origin = { left: r.left, top: r.top };
+    reservedTop = 0;
     return { left: r.left, top: r.top, width: r.width, height: r.height };
   }
-  return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+  // Space a docked bar reserves above the page (the review toolbar pads <body>) is not the app's.
+  origin = { left: 0, top: 0 };
+  reservedTop = Number.parseFloat(getComputedStyle(document.body).paddingTop) || 0;
+  return {
+    left: 0,
+    top: reservedTop,
+    width: window.innerWidth,
+    height: window.innerHeight - reservedTop,
+  };
 }
 
 function place(): void {
@@ -61,8 +75,8 @@ function place(): void {
   }
   const spot = placeCompact(container, hit);
   compact = {
-    left: spot.left - container.left,
-    top: spot.top - container.top,
+    left: spot.left - origin.left,
+    top: spot.top - origin.top,
     right: spot.left - container.left > container.width / 2,
     bottom: spot.top - container.top > container.height / 2,
   };
@@ -85,7 +99,7 @@ onMount(() => {
   });
   observer.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-py-shell', 'data-py-viewport'],
+    attributeFilter: ['data-py-shell', 'data-py-viewport', 'data-py-review'],
   });
   const collapse = () => (expanded = false);
   const onKey = (event: KeyboardEvent) => {
@@ -145,9 +159,10 @@ onMount(() => {
   data-py-demo-badge={corner}
   class={[
     'pointer-events-none fixed z-30 select-none whitespace-nowrap rounded-full border border-border bg-elevated/90 px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-soft backdrop-blur',
-    corner.startsWith('top') ? 'top-3' : 'bottom-3 pb-safe',
+    corner.startsWith('top') ? (reservedTop ? '' : 'top-3') : 'bottom-3 pb-safe',
     corner.endsWith('left') ? 'left-3' : 'right-3',
   ]}
+  style:top={corner.startsWith('top') && reservedTop ? `${reservedTop + 12}px` : undefined}
   title="{name} is an interactive prototype. Data is simulated and stored only in this browser."
 >
   <span class="mr-1 inline-block size-1.5 rounded-full bg-primary align-middle" aria-hidden="true"></span>

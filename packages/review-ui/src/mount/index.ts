@@ -74,6 +74,14 @@ export async function mountReview(options: MountReviewOptions): Promise<MountedR
       clientId,
       composerOnly,
       openComposer,
+      // Files move comments between browsers only for the browser-local store;
+      // shared adapters sync through their endpoint instead.
+      ...(config.adapter === 'local'
+        ? {
+            exportComments: () => local.exportComments(),
+            importComments: (file: Blob) => local.importComments(file),
+          }
+        : {}),
     },
   });
   return {

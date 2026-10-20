@@ -48,6 +48,28 @@ bottom sheet that stays within the app viewport. The first visit asks for a
 display name, explains that it is not a login, and stores the reviewer name and
 browser id in local storage for that prototype slug.
 
+## Toolbar and session
+
+The mounted session (`./mount`) renders one review toolbar and turns off the
+overlay's own "Add comment" button (`createReviewOverlay({ showToggle: false })`):
+the toolbar's **Comment** button drives comment mode.
+
+- **Docked, never on top of the app.** While a session runs on a full-bleed
+  page, `html[data-py-review]` docks the toolbar as a bar across the top that
+  takes real space: `<body>` is padded by `--py-review-bar` and
+  `--py-app-height` shrinks by the same amount, so full-screen apps (`h-app`)
+  fit below it and their own header controls stay clickable. The renderer's
+  demo badge treats that strip as outside the page. Inside a device frame
+  (`html[data-py-shell]`) the toolbar floats at the top right of the stage.
+- **Export and Import** (local adapter only): Export downloads this browser's
+  comments as `<slug>-review-comments.json`; Import validates a comments file
+  (`protoyard-review-comments`, the same envelope) for this prototype's
+  namespace and slug, merges it, refreshes the pins and confirms
+  "Imported N comments." in a status. Shared adapters (HTTP, Cloudflare,
+  Claude artifact) sync through their endpoint, so both buttons stay off.
+  A prototype can ship a demo review in `public/` for reviewers to import
+  (see `prototypes/keel-projects-demo/public/review-demo.json`).
+
 ## 0 bytes until review is enabled
 
 There is no root entry. The renderer reaches this package through one dynamic
