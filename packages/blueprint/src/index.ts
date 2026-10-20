@@ -103,6 +103,7 @@ export {
   type NotificationEvent,
 } from './notifications.ts';
 export { CAPABILITIES, derivePolicy, type EntityCapabilityMap } from './policy.ts';
+export { blueprintScenarios } from './scenarios.ts';
 export {
   AGGREGATES,
   type Aggregate,
