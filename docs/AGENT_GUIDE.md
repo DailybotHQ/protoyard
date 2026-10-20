@@ -11,7 +11,7 @@ idea to a published static site in this repository. It assumes the
 | --- | --- | --- | --- |
 | 1 | Explore | `pnpm protoyard list --json`, `pnpm protoyard list --kind template` (or `--kind blueprint`), the gallery's `/marketplace/`, read `templates/<t>/README.md` | You know which template fits and which slugs exist |
 | 2 | Choose a slug | Lowercase kebab-case, 2–48 chars, not reserved, not taken | `list --json` does not contain it |
-| 3 | Create | `pnpm protoyard new <slug> --template <t> --name "<Name>" --description "<one line>"` (or `--from <prototype>` to remix, or `generate <slug> --blueprint <file>` for a CRUD product) | `prototypes/<slug>/` exists and the command printed next steps |
+| 3 | Create | `pnpm protoyard new <slug> --template <t> --name "<Name>" --description "<one line>"` (or `--from <prototype>` to remix, `generate <slug> --blueprint <file>` for a blueprint-shaped product, or `blueprint new <file> --from-brief <brief\|->` to turn a product brief into a blueprint first) | `prototypes/<slug>/` exists and the command printed next steps |
 | 4 | Domain | `src/database/schema.ts` → `src/domain/policy.ts` → `src/domain/*.ts` services → `src/scenarios/index.ts` + `protoyard.json → scenarios` → `src/scenarios/generators.ts` → `integrity` in `src/prototype.ts` | `pnpm protoyard scenario validate <slug>` passes |
 | 5 | UI | `src/screens/`, `src/components/`, routes in `src/App.svelte`; components from `@protoyard/ui`, bindings from `@protoyard/renderer-svelte` | Every primary control does something real; empty, loading and error states exist |
 | 6 | Tests | `prototypes/<slug>/tests/`: generator tests and service tests on the real runtime | `pnpm vitest run prototypes/<slug>` passes |
@@ -31,10 +31,21 @@ Read before writing code:
   for components, routing (including lazy routes and guards) and
   `runService()`.
 - When the product needs them: [SHELLS.md](SHELLS.md) (device and host
-  frames), [SAAS_KITS.md](SAAS_KITS.md) (simulated SaaS kits, scenario
-  fragments and their security boundaries), [AI_KITS.md](AI_KITS.md)
-  (simulated assistants, agents, voice, widgets) and
-  [SPECS.md](SPECS.md) (the prototype's `AGENTS.md` and `docs/`).
+  frames), [LAYOUTS.md](LAYOUTS.md) (shared page layouts, the manifest
+  field, `NavModel`, shell responsiveness), [VIEWS.md](VIEWS.md) (board,
+  calendar, timeline, grid, tree, map, editor, activity, files, settings,
+  states), [CHARTS.md](CHARTS.md) and [ANALYTICS.md](ANALYTICS.md) (charts,
+  KPIs, dashboards, funnels, cohorts), [SAAS_KITS.md](SAAS_KITS.md)
+  (simulated SaaS kits, scenario fragments and their security boundaries),
+  [AI_KITS.md](AI_KITS.md) (simulated assistants, agents, voice, widgets),
+  [AVATARS.md](AVATARS.md) (fictional faces for seeded people),
+  [REVIEW_COMMENTS.md](REVIEW_COMMENTS.md) (pinned review comments on
+  builds) and [SPECS.md](SPECS.md) (the prototype's `AGENTS.md` and
+  `docs/`).
+- Before implementing a non-CRUD screen, consult [VIEWS.md](VIEWS.md) and
+  choose the lazy `@protoyard/views-ui/<subpath>` entry that matches the
+  workflow. Import views and charts from lazy routes so they stay out of
+  initial JavaScript.
 
 ## Step notes
 
@@ -63,8 +74,13 @@ and `validate`. Never edit `src/generated/**`; generated screens use
 `EntityList`, `EntityDetail` and `EntityForm` from
 [`@protoyard/crud`](../packages/crud/README.md). Generated CRUD search, forms
 and record headings follow the blueprint; relation fields use indexed
-pickers and persona fields use team-persona selects. Details and limits:
-[GENERATOR.md](GENERATOR.md); the reference is `helpdesk-demo`.
+pickers and persona fields use team-persona selects. Declare standard
+screens (dashboard, board, calendar, timeline, map, analytics, tabbed detail,
+settings) and a `layout` in `blueprint.json`; `generate` emits lazy routes
+for them backed by `@protoyard/crud/screens/<kind>`. Keep product-specific
+workflows and bespoke screens in owned files. Details and limits:
+[GENERATOR.md](GENERATOR.md); the references are `helpdesk-demo`,
+`harbor-dispatch-demo`, `cadence-studio-demo` and `pulse-revenue-demo`.
 
 **Catalog.** Each manifest's optional `catalog` block (`CatalogSchema` in
 `@protoyard/core`: a category from `CATALOG_CATEGORIES`, `productType`,
@@ -123,9 +139,24 @@ are complete examples.
 **Publish.** Building and exporting are local and safe. Deploying is not:
 it uses the user's provider account and creates something public. Run
 `--dry-run` and show the command. Deploy only when the user explicitly asked,
-never with `--production` unless they asked for production.
+never with `--production` unless they asked for production. Sharing as a
+private Claude artifact follows the same rule: `/share-artifact <slug>`
+(the `share-as-artifact` skill) prepares and checks the pack with
+`protoyard export <slug> --target artifact`, then asks for approval before
+the Artifact tool publishes it ([PUBLISHING.md](PUBLISHING.md#sharing-as-a-claude-artifact)).
 
 ## From a brief to a blueprint
+
+For prose product ideas, use `/new-from-brief` (the `brief-to-prototype`
+skill) or `blueprint new` to synthesize a blueprint offline, review it, then
+generate; add owned screens only for product-specific gaps. The loop,
+observed examples and limits are in
+[BRIEF_TO_PROTOTYPE.md](BRIEF_TO_PROTOTYPE.md):
+
+```bash
+echo "A salon that books appointments for stylists and clients" \
+  | pnpm protoyard blueprint new tmp/salon.blueprint.json --from-brief - --dry-run
+```
 
 For a CRUD-shaped product, let the generator build the data layer and the
 standard screens, then add the product-specific parts in owned files. The
@@ -214,6 +245,30 @@ Export prototypes/[my-idea] and show me the publish plan: run
 `pnpm protoyard publish [my-idea] --provider cloudflare --dry-run --json`,
 then tell me the exact command, the project name and what I need to log in
 with. Do not deploy until I confirm.
+```
+
+**5. Build an analytics dashboard**
+
+```text
+Add an analytics dashboard to prototypes/[slug] following
+.agents/skills/add-dashboard/SKILL.md and docs/ANALYTICS.md: KPI tiles against
+the previous period, an editable widget grid saved through a
+dashboards.saveLayout service (viewer denied), a shared date range with
+comparison, and lazy chart widgets from @protoyard/charts-ui. Keep charts out
+of initial JS. Prove it with `pnpm vitest run prototypes/[slug]`,
+`pnpm protoyard scenario bench [slug] --check` and
+`pnpm protoyard budget [slug]`. For a new product, start with
+`pnpm protoyard new [slug] --template analytics`.
+```
+
+**6. Use a shared layout**
+
+```text
+In prototypes/[slug], move the app chrome to a shared layout following
+docs/LAYOUTS.md: set `preview.layout` in protoyard.json, render the routed
+screens through `LayoutHost` with a `NavModel` (`navFromSidebar(...)`), and
+check desktop and phone widths in DevTools (Appearance → layout, Shell).
+Run `pnpm protoyard validate [slug] --build`.
 ```
 
 ## Machine-readable output

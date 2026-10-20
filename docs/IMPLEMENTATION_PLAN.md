@@ -149,6 +149,91 @@ integrated the work after its lane gates passed.
   - `ai-chat-demo`: inline validation instead of zod; `cancel`, `markRead` and `search` have no `session.assert`; `togglePin` checks `messages:send` and pins are shared by all personas; `agents.speed` and `agents.skills` are not used by the UI.
 
 
+## PLAN_003: imagine anything, next level
+
+The execution record is the Deep Work Plan
+`PLAN_003_imagine_anything_next_level` (git-ignored `.dwp/plans/`), built by a
+lead and parallel lanes in git worktrees (ADR-020). Evidence below is the
+merge commit on `main` that integrated each task after its lane gates passed
+(unit tests, typecheck, Biome, and `validate --build` / `budget` for
+prototypes and templates). Numbers are the ones the lane measured and
+recorded in the linked guide. Most lanes did not run the default-port
+Playwright suite; where a lane ran E2E on private ports it says so below. The
+integrated default-port E2E run belongs to the plan's Final Review (Task 169)
+and is not recorded here yet.
+
+**Charts and analytics.** See [CHARTS.md](CHARTS.md) and
+[ANALYTICS.md](ANALYTICS.md) (ADR-021).
+
+- [x] `@protoyard/charts` (scales, shapes, LTTB downsampling, layouts, theme-token palette) and `@protoyard/charts-ui` (cartesian, part-whole, matrix, compact, Canvas and geo families with keyboard, tooltip and table fallbacks); ui-kit charts gallery and a 10k-point stress demo [`aa32008`, `719ac61`, `16e1511`, `fad42cd`, `d48d86e`, `5cb934b`, `7c53902`, `28c9d9b`, `442ee3c`, `4a72c22`, `9ab830b`, `b07f8ee`, `a04267f`, `60a6c53`]
+- [x] `scripts/bench-charts.ts --check` (LTTB 10k 0.25 ms; 10k render 6.9 ms SVG and 10.5 ms Canvas; hover p95 1.5 ms; 0 long tasks) and a real-Vite bundle guard [`8a3a6a4`, `2b5612a`]
+- [x] Chart and flagship E2E: 23 + 12 passing on Chromium and Pixel 7 in the lane; fixed tap selection, charts not shrinking on resize and an invalid `aria-controls` [`42fca16`]
+- [x] `@protoyard/analytics` (date ranges and comparison, aggregates, filters and segments, funnels, retention, deterministic generators) and `@protoyard/analytics-ui` (KPI tiles, date range, filters, drill-down, cohort, funnel, dashboard grid) [`b42f2ff`, `d41a4f9`, `444a681`, `d9f8c5a`, `b3d7a95`, `f0781c8`, `fff6b75`, `f1c7263`, `1434b5d`]
+- [x] `analytics` template (initial JS 191.8 KB gzip) and `pebblestat-analytics-demo` flagship (27 tests, every scenario under 50 ms, initial JS 206.2 KB) [`f9ae72b`, `d28e35f`, `8406733`]; the `dashboard` template uses charts-ui (lazy 12.3 KB chart chunk) [`7d632f5`]; chart fences in simulated AI answers [`57a44cf`]; docs [`1d84367`]
+- [~] Line + bar measures 16,006 B gzip against the 10 KB target (the bundle guard's ceiling is 17,000 B); several family chunks are over their per-component targets ([CHARTS.md](CHARTS.md#measured-numbers))
+
+**Views kit.** See [VIEWS.md](VIEWS.md) (ADR-022).
+
+- [x] `@protoyard/views` engines and `@protoyard/views-ui` lazy subpaths: board, calendar, timeline (dependencies, critical path), data grid, tree, simulated map, Markdown editor, activity and comments, notifications, files, settings, states and an app command palette; scenario fragments [`9beac7b`, `eb080fb`, `92896e8`, `f09b204`, `775f6f4`, `91d839b`, `a71f9b6`, `0268092`, `7ec59ad`, `093d851`, `aeddffc`, `5591043`, `70256cd`, `bedc502`, `a6a9864`, `4d25933`, `4a67365`, `fe78e26`, `4aa1e15`, `bbf8ed2`, `339c1bc`]
+- [x] 100k-row grid bench: 94 ms first render, at most 17 DOM rows, 0 long tasks and 0 dropped frames over a 5 s scroll (M1 Max, 2026-10-19) [`df88320`]
+- [x] Views budget report: overlays load on first use (board 39.9 → 12.0 KB, calendar 43.9 → 16.1 KB, grid 60.2 → 19.1 KB over the shell); `build --all` and `budget --all` pass [`9e3d383`]
+- [x] ui-kit showcases every view [`609874f`]; views E2E on ui-kit, desktop and Pixel 7, 14/14 over 3 runs in the lane [`2b80c3f`]; docs [`d13110b`]
+- [x] `keel-projects-demo` flagship (board swimlanes, ritual calendar, critical-path timeline, a 10,004-task grid with saved views, mentions, notifications, ⌘K): `validate --strict-spec --build`, 28 unit tests, E2E 11/11 ×3 in the lane, initial JS 172.89 KB, `massive` 38.8 ms [`57ea1af`]
+- [~] CommentThread (7.9 KB) and the files chunk (8.6 KB) are over their 6 KB / 7 KB budgets; grid and calendar are above the plan's tighter aims while under their enforced ceilings
+
+**Layouts and themes.** See [LAYOUTS.md](LAYOUTS.md) and
+[THEMES.md](THEMES.md) (ADR-023).
+
+- [x] Layout contract (`preview.layout`, `?layout=`, runtime override), `NavModel`, `LayoutHost` and 12 lazy layouts (sidebar, rail, top-nav, dual-sidebar, master-detail, dashboard-grid, docs, marketing, wizard, auth-split, mobile-tabs, mobile-drawer) [`861a92d`, `1cada0d`, `5a152a3`, `5c76479`, `27e18d1`, `5013c9f`, `bb80292`]
+- [x] Templates adopt `LayoutHost`; `atlas-workspace-demo` exercises the desktop, content, auth and wizard layouts; relay-chat and team-chat phone layouts [`6cee12f`, `483da30`, `89976fc`, `b992ce2`]
+- [x] Theme library 64 themes in six collections (6 AAA high-contrast, 4 colorblind-safe), schema v2 search, neutral families, style presets, theme-owned chart palettes; library themes resolve lazily in every prototype [`4cec966`, `5d82e3a`, `b2fdcb2`, `255cf31`, `02dc091`, `1f4f26b`, `9bdd321`, `3ee7bfc`, `084962c`]
+- [x] DevTools theme browser, layout picker and style controls; Theme Studio harmonies and share/export; gallery Themes explorer and marketplace theme facet; `theme list --collection/--search`, `theme show`, `theme use` [`98ff327`, `3c9926d`, `9f6ddd5`, `580ff06`, `c219253`, `eae9f12`, `0b1bc8a`, `0a500ed`]
+- [x] `pnpm visual:sweep` with a theme review mode (a ui-kit run: 128 shots over 64 themes × light/dark, 0 failed, 385.6 s) [`75fa13d`, `d87d37d`]; layout E2E matrix authored [`042fe8b`]; performance gates [`b63b9c7`]; docs [`68096b3`]
+- [~] `top-nav` (11,093 B) and `mobile-tabs` (4,271 B) exceed the 4 KB per-layout reference target; both stay lazy ([PERFORMANCE.md](PERFORMANCE.md))
+
+**Generator: generate anything.** See [GENERATOR.md](GENERATOR.md) and
+[BRIEF_TO_PROTOTYPE.md](BRIEF_TO_PROTOTYPE.md) (ADR-024, ADR-027).
+
+- [x] Blueprint screens v2 (dashboard, board, calendar, timeline, map, analytics, tabbed detail, settings), the `geo` field, value distributions, aggregates; scenario series, schedule, event and geo helpers [`21f884f`, `5d52fda`, `32d8d20`, `4fbb35d`, `3fed064`]
+- [x] Lazy `@protoyard/crud/screens/*` for every screen kind, and codegen of routes, grouped navigation and an optional `layout` [`4304071`, `bb43038`, `9137336`, `cc48b66`, `99c9860`, `f2efcd4`, `37ca425`, `a468727`, `609b463`, `3a94e5a`]
+- [x] Offline brief → blueprint synthesizer (13 archetypes plus a tracker, 20 pinned fixture briefs) and `protoyard blueprint new --from-brief`; the `brief-to-prototype` skill and `/new-from-brief` [`39e7655`, `a51e076`, `791523c`]
+- [x] `scripts/bench-idea.ts` (brief → seeded first paint, with and without install) [`2f40cda`]; budgets are `null`, so it reports only
+- [x] Catalog: 40 blueprints (20 upgraded, 20 new) [`e141cfc`, `f4ea042`, `0db3378`]
+- [x] Templates `project-management`, `booking-calendar`, `logistics-map`, `social-feed`, `course-lms`, `clinic`, `fintech-dashboard`, `docs-wiki`, `iot-monitoring` [`bb0f1f8`, `afc671e`, `db4996b`, `7acf108`, `2b17beb`, `19bdfb1`, `c9bad89`, `1a792c8`, `fb7acf5`]
+- [x] Generated flagships `harbor-dispatch-demo`, `cadence-studio-demo` (initial JS 198.88 KB / 250 KB) and `pulse-revenue-demo` [`c8f5c15`, `e34b524`, `54cc644`]; docs [`6c6a312`]
+
+**Review comments.** See [REVIEW_COMMENTS.md](REVIEW_COMMENTS.md) (ADR-025).
+
+- [x] `@protoyard/core/review` schemas, `build.review`, `?comments=` and `?review=` [`6865470`]; `@protoyard/review` (anchors, adapter contract with a conformance suite, local and HTTP adapters, a Request/Response server handler) and `@protoyard/review-ui` (overlay and pins, threads, panel, toolbar, DevTools Comments tab, renderer wiring) [`bb0e0db`, `cfc91c6`, `a5af3fd`, `26a54df`, `2a8b1ae`, `2dc2ab5`, `99ea9db`, `a042112`, `8744039`, `7e76fc4`, `729f9ad`]
+- [x] `protoyard comments pull|export|import`, review counts in the review index and gallery, `keel-projects-demo` dogfoods comments (+1,220 B initial JS) [`e72ce0c`, `3f09bc5`, `39ac0d5`]
+- [x] Review E2E 24/24 in the lane; the toolbar no longer covers app controls [`19ad7d0`]
+- [x] `publish --comments` (and `showcase --publish cloudflare --comments`) for Cloudflare Pages: writes `dist/_worker.js` and prints the one-time Wrangler setup [`a5c1837`]; **no real Cloudflare deploy or KV/D1 binding was run**
+- [~] With review on, crm-demo's initial JS grows 1,668 B against a 1.5 KB target (both CLI budgets pass)
+
+**Sharing as a Claude artifact.** See
+[PUBLISHING.md](PUBLISHING.md#sharing-as-a-claude-artifact) (ADR-026).
+
+- [x] Artifact pack library and `export --target artifact` (relay-chat-demo, `--dry-run` on 2026-10-19 after the avatar library landed: 219 files plus the page, 1.7 MB, one publish batch); embedded renderer frame and blocked-storage boot [`52ab043`, `51cdc39`, `a830892`]
+- [x] Share ledger (`artifact record`, `artifact list`), artifact shares in the review index, the `share-as-artifact` skill and `/share-artifact`, the artifact review adapter and composer fallback, the showcase as one artifact pack [`be0c4f1`, `394b83b`, `2fc45a3`, `d84bb70`, `7988c74`, `d2db47e`]; artifact E2E harness authored [`965e91c`]; docs [`84ecfbc`]
+- [~] One real private publish was made; see the **Claude artifact share** entry below for what it did and did not verify
+
+**Avatars.** See [AVATARS.md](AVATARS.md).
+
+- [x] `@protoyard/avatars`: 175 fictional portraits (WebP 64 and 128 px, 513,196 B for both sets) and a reproducible import (`scripts/import-avatars.ts --check`); persona `avatar` contract, seeded assignment in generators (versions bumped), served by the Vite plugin with 0 KB of JS, `Avatar` photos with initials as the fallback across the kits, templates and prototypes; a blueprint `avatar` field [`aa871df`, `ab33d1f`, `4b0dd47`, `9b307e5`, `0d2de53`, `590fe32`, `585c862`, `4933036`]
+
+**Still open in PLAN_003:**
+
+- Task 146 (document review comments and their security boundaries in [SECURITY.md](SECURITY.md)) runs in parallel with this index update.
+- Task 169, the Final Review, runs the full suites, the default-port E2E and the AI Diff Reviewer local review on integrated `main`.
+
+**Known gaps after PLAN_003 (from the lane reports):**
+
+- Per-persona notification preferences that mute individual rules are deferred; no placeholder toggles exist.
+- The visual sweep flags layout-fit and axe findings for human review; it is not a gate. The layout E2E matrix and the artifact E2E harness were authored in lanes and still need the integrated run.
+- Review identity is self-declared and the review key is not authentication; KV writes and rate limits are eventually consistent; the D1 schema is applied manually.
+- `bench-idea` and `bench-cold-start` budgets are not calibrated (report-only); the grid bench gates locally and reports only on CI.
+- The views `notifications`, `settings`, `states` and `commands` engine subpaths reserve names but have no runtime exports.
+
 ## Deferred and known gaps
 
 - **Live provider deploys** were not run: there are no credentials, and real publishing needs the owner's explicit authorization.

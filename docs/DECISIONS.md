@@ -320,6 +320,13 @@ variables with a derived fallback.
 **Consequences.** A prototype pays for a chart family only on the screen that
 uses it. **Reverse:** remove the packages; prototypes fall back to tables.
 
+*Note (PLAN_003 integration).* `Theme.charts` is optional. Presets ship only
+valid `chart1..5`; library and generated themes ship the full block (8
+series, sequential and diverging ramps, grid, axis). CSS names follow the
+charts kit (`--py-chart1..8`, `--py-seq-N`, `--py-div-N`). Kit overlays
+(menus, popovers, dialogs) in the views and analytics kits load on first use
+through shared lazy chunks; in-cell editors use native controls.
+
 ## ADR-022 — The views kit: an engine package plus per-view Svelte subpaths
 
 **Context.** Products need more than CRUD: boards, calendars, timelines, big
@@ -354,6 +361,15 @@ library index loads lazily on first library use (DevTools browser, an unknown
 
 **Consequences.** DevTools can switch layouts live; blueprints can choose one.
 **Reverse:** set `preview.layout: custom` everywhere and drop the host.
+
+*Note (PLAN_003 integration).* `LayoutProps` carries `mountScreen`, `nav`,
+`path`, `options`, `storageKey` and `aside`; layouts read breakpoints as
+container queries on their own root. Twelve layouts are registered lazily in
+`LAYOUT_REGISTRY`. Measured `top-nav` and `mobile-tabs` chunks are above the
+4 KB per-layout reference target ([PERFORMANCE.md](PERFORMANCE.md)); they stay
+lazy and outside initial JS. Blueprint library theme ids are checked on the
+CLI side (`brandLibraryThemeId`), not in the zod schema, so `parseBlueprint`
+in prototype bundles never loads the theme library.
 
 ## ADR-024 — Blueprint screens v2, the geo field and an offline brief synthesizer
 
@@ -463,8 +479,8 @@ tool's rule for files the agent did not write), publishes with the Artifact
 tool, and re-shares to the same URL later. It then records the URL the tool
 returned in a strict JSONL share ledger (`artifacts/share/ledger.jsonl`,
 through `protoyard artifact record` and `list`). The ledger refuses URLs that
-do not match the artifact pattern, a stale build digest and
-credential-looking fields. The review index shows these links as private by
+do not match the artifact pattern, a pack whose files no longer match its
+manifest, and credential-looking fields. The review index shows these links as private by
 default.
 
 - **Comments in an artifact.** The `artifact` review adapter (ADR-025) uses
@@ -474,12 +490,15 @@ default.
   resolves. Writes need Contributor access, so the skill asks the owner to
   share as Contributor. The write-only `comments` capability is only a
   composer fallback.
-- **Embedded frame.** The prototype runs framed. An opt-in build flag keeps
-  an explicit manifest shell instead of always going full-bleed. Blocked or
-  empty storage shows the existing storage error state instead of fake
-  success. Whether query parameters (`?scenario=`, `?comments=1`) reach the
-  framed page is verified by a real private publish and documented as
-  observed.
+- **Embedded frame.** The prototype runs framed. An opt-in build flag,
+  `build.frameWhenEmbedded` (set by the artifact target), keeps an explicit
+  manifest shell instead of always going full-bleed. Storage that throws on access (a
+  `localStorage` getter, IndexedDB open) degrades to memory with the existing
+  storage banner, never fake persistence. Artifact builds live in
+  `artifacts/<slug>/artifact-dist` and never overwrite the plain `dist/`.
+  Whether query parameters (`?scenario=`, `?comments=1`) reach the framed
+  page is not yet verified: the one private publish so far did not exercise
+  it ([PUBLISHING.md](PUBLISHING.md#verified-and-not-verified)).
 - **Private by default.** An artifact is visible only to the people the owner
   shares it with. Each viewer's prototype data stays in their own browser.
   Shared comments are visible to everyone admitted and are erased with the
@@ -492,3 +511,26 @@ outward-facing action and needs the developer's confirmation, like any
 publish. **Reverse:** drop the `artifact` target, the skill and the share
 ledger. Existing artifacts stay where the owner left them on claude.ai, and
 the owner deletes them there.
+
+## ADR-027 — Blueprint-declared screens emit lazy CRUD subpath routes
+
+**Context.** ADR-024 lets a blueprint declare dashboard, board, calendar,
+timeline, map, analytics, tabbed detail and settings screens and a layout.
+The generator must turn them into routes without copying screen code into
+every prototype, and regeneration must stay safe.
+
+**Decision.** `protoyard generate` writes one small typed wrapper per declared
+screen. It reads the screen's config from `blueprint.screens[<index>]`
+through `useCrudApp()` (and throws "regenerate" when the type no longer
+matches) and imports the matching `@protoyard/crud/screens/<kind>` subpath;
+tabbed detail screens use `EntityDetail`. Routes and grouped navigation are
+generated into `src/generated/routes.ts` and `src/generated/layout.ts`, loaded
+lazily; a dashboard at `/` owns the home route. Custom workflows stay in
+owned files, and the CRUD template keeps the views, charts and analytics CSS
+imports and Tailwind sources the screens need.
+
+**Consequences.** The blueprint stays the source of truth for standard
+screens; each screen kind is a lazy chunk, and a legacy owned `App` that does
+not consume the generated layout gets a warning instead of a silent change.
+**Reverse:** remove the screen kinds from the blueprint and regenerate; the
+generator falls back to list, detail and form screens.

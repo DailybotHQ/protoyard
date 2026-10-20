@@ -28,12 +28,19 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Agents | [AGENT_GUIDE](docs/AGENT_GUIDE.md) | The build loop for a new prototype, prompts, troubleshooting |
 | Database | [DATABASE](docs/DATABASE.md) | Schemas, migrations, services, `liveQuery`, storage caveats |
 | Scenarios | [SCENARIOS](docs/SCENARIOS.md) | Axes, presets, generators, personas/policy, time, environment, snapshots |
-| Generator | [GENERATOR](docs/GENERATOR.md) | Blueprints → prototypes: format, generate/regenerate, ownership, migrations, drift |
-| Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 32-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
+| Generator | [GENERATOR](docs/GENERATOR.md) | Blueprints → prototypes: format, screens, layouts, generate/regenerate, ownership, migrations, drift |
+| Brief to prototype | [BRIEF_TO_PROTOTYPE](docs/BRIEF_TO_PROTOTYPE.md) | Prose brief → offline blueprint → review → generate → validate → export |
+| Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 64-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
+| Layouts | [LAYOUTS](docs/LAYOUTS.md) | Shared layout catalog, manifest setup, responsive fallbacks, shell composition, authoring and tests |
 | Shells | [SHELLS](docs/SHELLS.md) | Device and host shells, manifest preview fields, `?shell=`, layout inside frames |
+| Views | [VIEWS](docs/VIEWS.md) | Choose a rich view, service callbacks, keyboard and phone behavior, scenario fragments, bundle measurements and limits |
+| Charts | [CHARTS](docs/CHARTS.md) | Every chart: props, data contracts, accessibility, palette, SVG/Canvas, measured sizes and limits |
+| Analytics | [ANALYTICS](docs/ANALYTICS.md) | Analytics engine, generators, views, template and the Pebblestat flagship, with measured numbers and limits |
 | SaaS kits | [SAAS_KITS](docs/SAAS_KITS.md) | Simulated auth, OAuth, MFA, onboarding, workspaces, billing, scenario fragments, honest limits |
 | AI kits | [AI_KITS](docs/AI_KITS.md) | Simulated assistants, agents and tools, voice, widgets, safe rich answers, honest limits |
-| Publishing | [PUBLISHING](docs/PUBLISHING.md) | Build, export, preview, base paths, Cloudflare and other adapters, batch publish, review index, CI templates |
+| Avatars | [AVATARS](docs/AVATARS.md) | 175 fictional portraits: provenance and MIT license, never real people, seeded assignment, rendering and URL safety, measured sizes, re-import |
+| Publishing | [PUBLISHING](docs/PUBLISHING.md) | Build, export, preview, base paths, Cloudflare and other adapters, batch publish, review index, CI templates, sharing as a private Claude artifact |
+| Review comments | [REVIEW_COMMENTS](docs/REVIEW_COMMENTS.md) | Opt-in review comments, adapters (local, http/cloudflare, artifact), who sees what, honest limits |
 | Specs | [SPECS](docs/SPECS.md) | Per-prototype AGENTS.md + docs/ spec harness, generated regions, rebuild kit |
 | Standards | [STANDARDS](docs/STANDARDS.md) | TypeScript, Svelte 5, Biome, domain rules, naming, a11y |
 | Testing | [TESTING_GUIDE](docs/TESTING_GUIDE.md) | Full and scoped commands, source→test map, blind spots, posture |
@@ -53,31 +60,46 @@ protoyard/
 ├── packages/
 │   ├── core/              contracts: zod schemas, interfaces, rng, clock, environment, policy     (README)
 │   ├── database/          Dexie: per-prototype data + control DBs, world I/O, storage errors       (README)
-│   ├── scenarios/         generator SDK, presets, integrity, timeline helpers                     (README)
+│   ├── scenarios/         generator SDK, presets, integrity, timeline, series/schedule/event/geo helpers (README)
 │   ├── runtime/           createPrototypeRuntime() — composes the engine                          (README)
-│   ├── themes/            6 built-ins + 32-theme library, palette engine, fonts, no-flash, base.css (README)
-│   ├── ui/                Svelte 5 components (Bits UI + Tailwind 4 + Lucide), shell frames         (README)
-│   ├── devtools/          in-browser control center (shell picker, Theme Studio)                  (README)
+│   ├── themes/            6 built-ins + 64-theme library (lazy), palette engine, style presets, fonts, no-flash (README)
+│   ├── ui/                Svelte 5 components (Bits UI + Tailwind 4 + Lucide), shell frames, LayoutHost + 12 lazy layouts (README)
+│   ├── devtools/          in-browser control center (shell and layout pickers, theme browser, Theme Studio) (README)
 │   ├── renderer-svelte/   Vite config factory, mountPrototype, ShellHost, bindings, hash router    (README)
 │   ├── http/              optional mock HTTP layer (fetch-compatible, no service worker)           (README)
 │   ├── offline/           optional service worker for exported prototypes (opt-in)                (README)
-│   ├── blueprint/         data-only blueprints: schema, derivations, entity services (no Svelte)   (README)
-│   ├── crud/              blueprint EntityList, EntityDetail, EntityForm and fields (Svelte)       (README)
+│   ├── blueprint/         data-only blueprints: schema, screens, aggregates, brief synthesizer, entity services (no Svelte) (README)
+│   ├── crud/              blueprint EntityList/Detail/Form + lazy dashboard, board, calendar, timeline, map, analytics, settings screens (README)
 │   ├── saas/              simulated SaaS engine: auth, OAuth, MFA, inbox, onboarding, workspaces, billing (README)
 │   ├── saas-ui/           Svelte SaaS kit screens + saasRoutes/guards (simulation UX)              (README)
-│   ├── ai/                simulated AI engine: streaming, agents and tools, voice, safe markdown  (README)
+│   ├── ai/                simulated AI engine: streaming, agents and tools, voice, safe markdown, chart answers (README)
 │   ├── ai-ui/             Svelte assistant workspace, safe rich answers, canvas, widget modes      (README)
-│   └── cli/               `protoyard` CLI: new/generate/dev/validate/build/export/publish/spec/ci… (README)
+│   ├── charts/            chart math: scales, shapes, downsampling, layouts, theme-token palette (no Svelte) (README)
+│   ├── charts-ui/         Svelte charts, one lazy subpath per family (cartesian, part-whole, matrix, compact, canvas, geo) (README)
+│   ├── analytics/         analytics engine: events, metrics, date ranges, funnels, cohorts, deterministic generators (no Svelte) (README)
+│   ├── analytics-ui/      Svelte analytics kit: KPI tiles, date range, filters/segments, drill-down, cohort, funnel, dashboard grid (README)
+│   ├── views/             rich view engines: board, calendar, timeline, grid, tree, geo, activity, files, scenario fragments (no Svelte) (README)
+│   ├── views-ui/          Svelte rich views, one lazy subpath per view (never in the ui barrel)     (README)
+│   ├── review/            review comments engine: anchors, adapter contract, local/http/artifact adapters, server handler (no Svelte) (README)
+│   ├── review-ui/         Svelte review UI: comment mode and pins, threads, panel, toolbar, lazy mount (README)
+│   ├── avatars/           175 fictional portraits (WebP 64/128 px) + verified manifest, data only   (README)
+│   └── cli/               `protoyard` CLI: new/generate/blueprint/dev/validate/build/export/publish/artifact/comments/spec/ci… (README)
 ├── apps/gallery/          Astro static gallery + /marketplace/ (reads the registry only)           (README)
-├── templates/<name>/      admin-console, agent-console, ai-assistant, b2b-saas, blank, chat,
-│                          chat-widget, crud-app, dashboard, desktop-app, ecommerce, marketplace,
-│                          mobile-app, onboarding, plugin-panel, task-manager, team-chat
-├── prototypes/<slug>/     ai-chat-demo, crm-demo, helpdesk-demo (generated from a blueprint),
+├── templates/<name>/      admin-console, agent-console, ai-assistant, analytics, b2b-saas, blank,
+│                          booking-calendar, chat, chat-widget, clinic, course-lms, crud-app,
+│                          dashboard, desktop-app, docs-wiki, ecommerce, fintech-dashboard,
+│                          iot-monitoring, logistics-map, marketplace, mobile-app, onboarding,
+│                          plugin-panel, project-management, social-feed, task-manager, team-chat
+├── prototypes/<slug>/     ai-chat-demo, atlas-workspace-demo, cadence-studio-demo*, crm-demo,
+│                          harbor-dispatch-demo*, helpdesk-demo*, keel-projects-demo,
 │                          lattice-saas-demo, mobile-banking-demo, nova-assistant-demo,
-│                          relay-chat-demo, support-widget-demo, ui-kit, …yours
-├── blueprints/            20 data-only product blueprints for `protoyard generate`                (README)
+│                          pebblestat-analytics-demo, pulse-revenue-demo*, relay-chat-demo,
+│                          support-widget-demo, ui-kit, …yours   (* generated from a blueprint)
+├── blueprints/            40 data-only product blueprints for `protoyard generate`                (README)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/
-├── scripts/               bench-index.ts, bench-cold-start.ts, generate-thumbnails.ts, check-public-hygiene.sh, changelog-section.sh
+├── scripts/               bench-index.ts, bench-cold-start.ts, bench-charts.ts, bench-grid.ts, bench-idea.ts,
+│                          visual-sweep.ts (+ lib/), generate-thumbnails.ts, import-avatars.ts,
+│                          check-public-hygiene.sh, changelog-section.sh
 ├── docs/                  the guides above
 ├── .agents/               skills, agents, commands (.claude and .cursor symlink here)
 ├── .review/extension.md   repo rules for the AI Diff Reviewer local review
@@ -96,14 +118,19 @@ protoyard/
 | Type check | `pnpm typecheck` | `pnpm --filter <package> typecheck` |
 | Unit + integration | `pnpm test` | `pnpm vitest run <path>` · `pnpm vitest run -t "<name>"` |
 | E2E | `pnpm test:e2e` (`pnpm test:e2e:install` once) | `PROTOYARD_E2E_PROTOTYPES=<slug> pnpm test:e2e` |
+| Turn a brief into a blueprint | — | `echo "<brief>" \| pnpm protoyard blueprint new <file> --from-brief - [--generate <slug>] [--dry-run]` |
 | Generate from a blueprint | — | `pnpm protoyard blueprint validate <file>` · `pnpm protoyard generate <slug> --blueprint <file> [--dry-run]` |
+| Find or apply a theme | — | `pnpm protoyard theme list --search <query>` · `pnpm protoyard theme use <slug> <theme-id> --dry-run` |
 | Validate a prototype | — | `pnpm protoyard validate <slug> --build` |
+| Visual QA sweep | `pnpm visual:sweep` | `pnpm visual:sweep --only <slug> [--themes all]` |
 | Spec drift check | `pnpm protoyard spec --all --check` | `pnpm protoyard spec <slug> --check` |
 | Bundle budgets | `pnpm protoyard budget --all` | `pnpm protoyard budget <slug>` |
 | Affected prototypes | — | `pnpm protoyard affected --since HEAD~1 --format csv` |
 | Build / export | `pnpm protoyard build --all` | `pnpm protoyard build <slug>` · `pnpm protoyard export <slug>` |
 | Preview a build | — | `pnpm protoyard preview <slug>` |
 | Publish (needs authorization) | — | `pnpm protoyard publish <slug> --provider cloudflare --dry-run` |
+| Share as a Claude artifact (needs authorization) | — | `pnpm protoyard export <slug> --target artifact --dry-run` · `/share-artifact <slug>` |
+| Pull review comments | — | `pnpm protoyard comments pull <slug> --file <json> --format md` |
 | Everything before a PR | `pnpm check` | — |
 
 Scoped patterns are verified (selection counts in
@@ -116,7 +143,9 @@ Nothing requires Docker or CI-only tooling.
 2. **Conventional Commits**: `type(scope): summary`. Scopes: `core`,
    `database`, `scenarios`, `runtime`, `themes`, `ui`, `devtools`, `renderer`,
    `cli`, `gallery`, `http`, `offline`, `blueprint`, `crud`, `saas`,
-   `saas-ui`, `ai`, `ai-ui`, `templates`, `<prototype-slug>`,
+   `saas-ui`, `ai`, `ai-ui`, `charts`, `charts-ui`, `analytics`,
+   `analytics-ui`, `views`, `views-ui`, `review`, `review-ui`, `avatars`,
+   `templates`, `<prototype-slug>`,
    `docs`, `ci`, `deps`, `dwp`. **Stage exact paths**, never `git add -A`.
 3. **Validation follows the touched surface.** Pick gates from the
    source→test map in [TESTING_GUIDE](docs/TESTING_GUIDE.md). Core or root
@@ -252,6 +281,7 @@ owner's credentials).
 ```bash
 pnpm protoyard new my-idea --template dashboard   # any templates/<name>; or --from <template|prototype> to remix
 pnpm protoyard generate my-idea --blueprint path/to/blueprint.json   # from a data-only blueprint (docs/GENERATOR.md)
+echo "<brief>" | pnpm protoyard blueprint new tmp/my-idea.blueprint.json --from-brief - --generate my-idea   # from prose (docs/BRIEF_TO_PROTOTYPE.md)
 pnpm protoyard dev my-idea
 # edit src/database/schema.ts → src/domain/{policy,services}.ts → src/scenarios/* → screens
 pnpm protoyard spec my-idea --write               # refresh AGENTS.md + docs/ generated regions
@@ -263,5 +293,9 @@ A generated prototype (start from `blueprints/*.json`, listed by
 `pnpm protoyard list --kind blueprint`) changes through its data: edit `prototypes/<slug>/blueprint.json`
 and re-run `generate <slug> --blueprint prototypes/<slug>/blueprint.json`, then
 `validate`. Never edit `src/generated/**` by hand.
+
+Beyond CRUD, pick from the kits before writing screens by hand:
+[VIEWS](docs/VIEWS.md), [CHARTS](docs/CHARTS.md),
+[ANALYTICS](docs/ANALYTICS.md) and [LAYOUTS](docs/LAYOUTS.md).
 
 The full loop and copy-paste prompts are in [AGENT_GUIDE](docs/AGENT_GUIDE.md).

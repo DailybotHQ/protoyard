@@ -15,6 +15,7 @@ backend.
 [Agent guide](docs/AGENT_GUIDE.md) ·
 [Architecture](docs/ARCHITECTURE.md) ·
 [Scenarios](docs/SCENARIOS.md) ·
+[Brief to prototype](docs/BRIEF_TO_PROTOTYPE.md) ·
 [Publishing](docs/PUBLISHING.md)
 
 ![Protoyard gallery](docs/assets/screenshots/gallery.png)
@@ -47,15 +48,20 @@ people.
 | 🧪 **Sandboxed worlds** | `?sandbox=<name>` opens a disposable copy of a prototype's databases, so two scenarios can run side by side on one origin. |
 | 🔌 **Mock HTTP (optional)** | `@protoyard/http` exposes your services as a `fetch`-compatible API with real status codes, simulated latency and outages, and a DevTools network log. No server and no service worker. |
 | 📸 **Snapshots** | Save the exact world after your edits, restore it, export it to a file, import it with validation. |
-| 🎨 **Themes** | Six AA-checked presets plus a 32-theme product library × light/dark/system, palettes generated from a brand color, a font catalog, style profiles (shape, elevation, motion), a live **Theme Studio** in DevTools and `protoyard theme` to create, import and export themes. No flash on load. |
+| 🎨 **Themes** | Six AA-checked presets plus a 64-theme library in six collections (including high-contrast AAA and colorblind-safe) × light/dark/system, palettes generated from a brand color, a font catalog, style profiles (shape, elevation, motion), a live **Theme Studio** and theme browser in DevTools, and `protoyard theme` to search, show, apply, create, import and export themes. No flash on load. |
+| 🧱 **Layouts** | Twelve shared page layouts (sidebar, rail, top nav, dual sidebar, master-detail, dashboard grid, docs, marketing, wizard, auth split, mobile tabs, mobile drawer) rendered from a data-only navigation model, switchable live in DevTools or with `?layout=`. |
 | 📱 **Shells** | Present the same app as a phone, tablet, desktop window, browser tab, chat widget on a fictional customer site, extension popup or side-panel plugin. Brand-neutral frames, picked in the manifest, DevTools or `?shell=`. They simulate a device; they do not emulate one. |
-| 🏗️ **Generator** | Describe a CRUD product as a data-only `blueprint.json` (entities, relations, roles, brand) and `protoyard generate` builds a working prototype: list/detail/form screens, search and deterministic worlds, plus opt-in CSV import/export, soft delete and undo, an audit log, notifications and file uploads per entity. Re-run it after editing the blueprint. 20 product blueprints ship in `blueprints/`. |
+| 🏗️ **Generator** | Describe a CRUD product as a data-only `blueprint.json` (entities, relations, roles, brand) and `protoyard generate` builds a working prototype: list/detail/form screens, search and deterministic worlds, plus opt-in CSV import/export, soft delete and undo, an audit log, notifications and file uploads per entity. Blueprints can also declare dashboard, board, calendar, timeline, map, analytics, tabbed detail and settings screens and a layout. `protoyard blueprint new --from-brief` turns a prose brief into a blueprint offline. Re-run `generate` after editing the blueprint. 40 product blueprints ship in `blueprints/`. |
+| 🗂️ **Views kit** | Lazy rich views beyond CRUD: board with WIP limits, calendar with recurrence, Gantt timeline with dependencies, a virtualized data grid, trees, an offline fictional map, a Markdown editor, comments and activity, notifications, files, settings and state patterns, plus an app command palette. |
+| 📊 **Charts and analytics** | Protoyard's own chart kit (no third-party chart library): cartesian, part-whole, matrix, compact, Canvas and geo families with keyboard access and table fallbacks, colored by theme tokens. An analytics kit adds KPIs, date ranges, filters and segments, funnels, cohorts and an editable dashboard grid on deterministic simulated events. |
 | 🔐 **SaaS kits** | Simulated sign-up/sign-in, SSO with a fake OAuth round trip, magic links, MFA, password reset, invitations, workspaces, onboarding, plans, trials, checkout and invoices, with an in-app inbox for the "emails". *(Simulation, not security.)* |
 | 🤖 **AI kits** | Deterministic simulated assistants: streaming answers, agents with tool calls and approvals, safe rich answers, a canvas, scripted voice mode and a widget that opens as launcher, sidebar and full screen. No model API. |
+| 💬 **Review comments** | Opt-in comments pinned to screens of a built prototype, stored locally, on Cloudflare Pages (`publish --comments`), on any compatible HTTP endpoint or in a private Claude artifact; `protoyard comments pull` turns them into a review report. Reviewer names are self-declared, not authentication. |
+| 🧑 **Avatars** | 175 portraits of fictional people, assigned deterministically by generators and rendered with initials as the fallback. |
 | 🧰 **DevTools** | A floating in-browser control center for scenario, personas, time, data, environment, appearance, snapshots and share links. Left out of public builds by default. |
 | 🧩 **UI kit** | Svelte 5 + Bits UI + Tailwind 4 components and product patterns (data table, kanban, chat, wizard, mobile shell…). |
 | 📦 **One-command export** | Static `dist/` + ZIP + build manifest with checksums. Relocatable base path and hash routing, so it runs on any static host. |
-| 🚀 **Publishing and CI** | Cloudflare Pages adapter with a true `--dry-run`; publish one, many or `--all` prototypes, with a local deploy ledger and a static team review page. Netlify and Vercel adapters are experimental. `pnpm build:showcase` builds the gallery and every live demo as one static site. `protoyard ci init` scaffolds GitHub Actions workflows; `budget` and `affected` keep CI fast and honest. |
+| 🚀 **Publishing and CI** | Cloudflare Pages adapter with a true `--dry-run`; publish one, many or `--all` prototypes, with a local deploy ledger and a static team review page. Netlify and Vercel adapters are experimental. `export --target artifact` packs a prototype for sharing as a private Claude artifact. `pnpm build:showcase` builds the gallery and every live demo as one static site. `protoyard ci init` scaffolds GitHub Actions workflows; `budget` and `affected` keep CI fast and honest. |
 | 📝 **Specs** | Every prototype can carry an `AGENTS.md` and `docs/` spec whose generated regions stay in sync with the code (`protoyard spec`), plus a rebuild kit for turning it into a real app. |
 | 🧭 **Agent-first** | `AGENTS.md`, a CLI with `--json` on every command, templates, and a Deep Work Plan harness for long tasks. |
 
@@ -93,15 +99,26 @@ Newer flagships (no screenshots yet): **Lattice** · `lattice-saas-demo`
 ticket workspace), **Nova Assistant** ·
 `nova-assistant-demo` (assistant with voice, agent tools, a widget and a
 5,000-message history), **Relay Chat** · `relay-chat-demo` (Slack-like team
-chat with an AI teammate and huddles) and **Northwind Help** ·
-`support-widget-demo` (a support widget on the widget-host shell).
+chat with an AI teammate and huddles), **Northwind Help** ·
+`support-widget-demo` (a support widget on the widget-host shell),
+**Keel Projects** · `keel-projects-demo` (project management for a fictional
+product studio: board, calendar, critical-path timeline, a 10,000-task grid),
+**Pebblestat Analytics** · `pebblestat-analytics-demo` (product analytics with
+dashboards, funnels, retention and alerts), **Atlas Workspace** ·
+`atlas-workspace-demo` (every desktop and content layout) and three generated
+from blueprints: **Harborlight Dispatch** · `harbor-dispatch-demo`
+(logistics), **Cadence Studio** · `cadence-studio-demo` (studio bookings) and
+**Pulse Revenue** · `pulse-revenue-demo` (revenue analytics).
 
 ## Templates
 
 `blank` · `dashboard` · `mobile-app` · `chat` · `onboarding` ·
 `task-manager` · `ecommerce` · `crud-app` · `b2b-saas` · `marketplace` ·
 `admin-console` · `desktop-app` · `chat-widget` · `plugin-panel` ·
-`ai-assistant` · `team-chat` · `agent-console`. Open the gallery's
+`ai-assistant` · `team-chat` · `agent-console` · `analytics` ·
+`project-management` · `booking-calendar` · `logistics-map` ·
+`social-feed` · `course-lms` · `clinic` · `fintech-dashboard` · `docs-wiki` ·
+`iot-monitoring`. Open the gallery's
 Marketplace (`pnpm dev` → `/marketplace/`) to try every product type and
 start your own with **Use this template** or **Remix** (`pnpm dev:create` lets
 those buttons create the prototype directly). Each template is a working app
@@ -138,7 +155,10 @@ packages/renderer-svelte ─ mount + Vite    src/screens/        UI with @protoy
 packages/ui · devtools · themes          apps/gallery ─ Astro, reads only the metadata registry
 packages/blueprint · crud ─ generator    blueprints/ ─ data-only product blueprints
 packages/saas · saas-ui · ai · ai-ui ─ simulated SaaS and AI kits
-packages/cli ─ index · new · generate · dev · validate · spec · build · export · publish · ci
+packages/charts · charts-ui · analytics · analytics-ui ─ charts and analytics
+packages/views · views-ui ─ rich views      packages/review · review-ui ─ review comments
+packages/avatars ─ fictional portraits
+packages/cli ─ index · new · generate · blueprint · dev · validate · spec · build · export · publish · ci
 ```
 
 The gallery never compiles prototypes. Every CLI command targets one slug,
@@ -163,13 +183,14 @@ measured in [docs/PERFORMANCE.md](docs/PERFORMANCE.md). Read
 pnpm dev | build | lint | typecheck | test | test:e2e | check
 pnpm protoyard help | doctor | list | index | new | generate | dev | validate | spec | build | budget
 pnpm protoyard export | preview | publish | review-index | showcase | ci | affected | theme | scenario
+pnpm protoyard blueprint | artifact | comments | snapshot | gallery
 ```
 
 Full reference: [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md).
 
 ## Quality
 
-- 450+ unit and integration tests, most of them on the real runtime with an
+- 4,300+ unit and integration tests, most of them on the real runtime with an
   in-memory IndexedDB.
 - Playwright E2E on real static builds, on desktop and a Pixel 7 viewport.
 - Biome, strict erasable TypeScript, `svelte-check` and `astro check` in CI.

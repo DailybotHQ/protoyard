@@ -186,18 +186,26 @@ Every template is a working app with scenarios, tests and a spec
 | `b2b-saas`, `marketplace`, `admin-console` | SaaS products: sign-in, SSO, onboarding, workspaces, billing; a two-sided marketplace; an internal admin with impersonation |
 | `desktop-app`, `chat-widget`, `plugin-panel` | Products in a shell: a desktop window, a widget on a fictional customer site, a side-panel plugin |
 | `ai-assistant`, `team-chat`, `agent-console` | AI-era products: an assistant workspace, Slack-like team chat with AI bots, an agent playground |
+| `analytics`, `fintech-dashboard`, `iot-monitoring` | Data-heavy products: product analytics on simulated events, a personal-finance workspace with budgets and transfers, device monitoring on an offline map with telemetry and alerts |
+| `project-management`, `booking-calendar`, `logistics-map`, `clinic` | Planning and operations: sprints with a board and timeline, bookings over weekly availability, depots and routes with simulated ETAs, a clinic front desk (a simulation, no compliance claim) |
+| `docs-wiki`, `social-feed`, `course-lms` | Content and community: a wiki with versions and safe Markdown, a social feed with notifications, courses with quizzes and learner progress |
 
 Other ways to start:
 
 ```bash
 pnpm protoyard new my-bank --from mobile-banking-demo          # remix a prototype (fresh id and storage)
-pnpm protoyard list --kind blueprint                           # the 20 product blueprints
-pnpm protoyard generate my-crm --blueprint blueprints/crm.json  # a CRUD app from a data-only blueprint
+pnpm protoyard list --kind blueprint                           # the 40 product blueprints
+pnpm protoyard generate my-crm --blueprint blueprints/crm.json  # an app from a data-only blueprint
+echo "A salon that books appointments" \
+  | pnpm protoyard blueprint new tmp/salon.json --from-brief - --generate salon-demo   # from a prose brief
 ```
 
 `helpdesk-demo` shows where a generated prototype can go: a blueprint-built
 CRUD core plus an owned SLA dashboard and ticket workspace
-([GENERATOR.md](GENERATOR.md)).
+([GENERATOR.md](GENERATOR.md)). `harbor-dispatch-demo`, `cadence-studio-demo`
+and `pulse-revenue-demo` are generated with board, calendar, map, timeline,
+analytics and dashboard screens declared in their blueprints. The brief
+workflow and its limits are in [BRIEF_TO_PROTOTYPE.md](BRIEF_TO_PROTOTYPE.md).
 
 New prototypes start with a spec. After you change the schema, policy,
 scenarios or routes, run `pnpm protoyard spec my-idea --write` to refresh
@@ -275,7 +283,13 @@ validation · `5` provider/auth. Details and agent workflows:
 | Add sign-in, SSO, onboarding, workspaces or billing (simulated) | [SAAS_KITS.md](SAAS_KITS.md) |
 | Build an assistant, agents, team chat or voice (simulated) | [AI_KITS.md](AI_KITS.md) |
 | Generate a CRUD prototype from a blueprint, and regenerate it | [GENERATOR.md](GENERATOR.md) |
+| Turn a short product brief into a blueprint and a prototype | [BRIEF_TO_PROTOTYPE.md](BRIEF_TO_PROTOTYPE.md) |
+| Add a board, calendar, timeline, grid, map, editor or other rich view | [VIEWS.md](VIEWS.md) |
+| Add charts, KPIs, dashboards, funnels or cohorts | [CHARTS.md](CHARTS.md), [ANALYTICS.md](ANALYTICS.md) |
+| Pick a page layout (sidebar, top nav, docs, wizard, mobile tabs…) | [LAYOUTS.md](LAYOUTS.md) |
+| Give seeded people fictional faces | [AVATARS.md](AVATARS.md) |
+| Collect review comments on a built prototype | [REVIEW_COMMENTS.md](REVIEW_COMMENTS.md) |
 | Keep a spec that lets anyone rebuild the product | [SPECS.md](SPECS.md) |
-| Host or share a prototype, publish many, set up CI | [PUBLISHING.md](PUBLISHING.md) |
+| Host or share a prototype (also as a private Claude artifact), publish many, set up CI | [PUBLISHING.md](PUBLISHING.md) |
 | Have a coding agent build a prototype | [AGENT_GUIDE.md](AGENT_GUIDE.md) |
 | Understand the design | [ARCHITECTURE.md](ARCHITECTURE.md), [DECISIONS.md](DECISIONS.md) |
