@@ -1,0 +1,41 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.iot-monitoring",
+  "slug": "iot-monitoring",
+  "kind": "template",
+  "name": "IoT Monitoring",
+  "description": "Monitor fictional field devices on an offline map with deterministic telemetry, threshold alerts and simulated incidents.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "operations",
+  "tags": ["iot", "monitoring", "telemetry", "alerts", "map"],
+  "catalog": {
+    "category": "operations",
+    "productType": "IoT monitoring",
+    "platforms": ["web"],
+    "features": ["offline-map", "telemetry-charts", "threshold-alerts", "simulated-incidents"],
+    "highlights": [
+      "Monitor fictional devices on a hand-authored offline map",
+      "Inspect deterministic per-device telemetry charts",
+      "Acknowledge and resolve threshold alerts through validated services",
+      "Incidents evolve as simulated time advances"
+    ],
+    "difficulty": "intermediate"
+  },
+  "status": "ready",
+  "icon": "📡",
+  "defaultScenario": "active",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop",
+    "layout": {
+      "id": "sidebar",
+      "supported": ["sidebar", "rail", "top-nav", "mobile-tabs", "mobile-drawer"]
+    }
+  },
+  "storage": { "namespace": "template-iot-monitoring", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["active", "quiet", "storm", "network-offline", "massive"]
+}

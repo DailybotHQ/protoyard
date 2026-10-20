@@ -81,6 +81,12 @@ const FIT_TARGETS: Record<string, FitTarget> = {
     layout: 'document',
     ready: 'figure[data-py-chart]',
   },
+  'iot-monitoring': {
+    scenario: 'active',
+    hash: '#/',
+    layout: 'document',
+    ready: '[aria-label^="Harbor Bay device map"]',
+  },
   // The busiest booking world on the calendar screen (week view on desktop, agenda on phones).
   'booking-calendar': { scenario: 'busy-week', hash: '#/', layout: 'document' },
   // 1,500 pages: the home lists and search box scroll as a document.
