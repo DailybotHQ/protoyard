@@ -88,4 +88,11 @@ function cspPlugin(): Plugin {
   };
 }
 
-export default defineProtoyardConfig({ root: import.meta.dirname, plugins: [cspPlugin()] });
+export default defineProtoyardConfig({
+  root: import.meta.dirname,
+  plugins: [cspPlugin()],
+  // Module workers (the world generator is created with `type: 'module'`). The default
+  // IIFE format inlines the worker's dynamic imports, which keeps every Faker locale;
+  // ES format code-splits and tree-shakes them like the main bundle.
+  worker: { format: 'es' },
+});

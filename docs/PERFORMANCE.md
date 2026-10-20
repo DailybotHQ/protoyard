@@ -813,13 +813,66 @@ thread before the player's worker callback begins. This task moves blueprint
 world construction off the main thread but does not remove that runtime-owned
 context setup; doing so requires a runtime API change.
 
-One local Vite 8.3.4 production build on 2026-10-20 emitted a separate
-`generate.worker` entry at **2,555,194 B raw / 942,931 B gzip** (gzip level 9),
-and a main-thread fallback helper at **1,082 B raw / 542 B gzip**. The worker
-entry is loaded only when the first scenario generates, not in the initial
-player entry. It is a substantial first-generation transfer; generation
-timings and the player's total initial-JS budget have not been measured here.
-Use the player bench and budget tasks before setting performance thresholds.
+**Worker size.** The first build emitted the worker as one IIFE file of
+**2,555,194 B raw / 942,931 B gzip**. Vite builds workers as IIFE by default,
+which inlines their dynamic imports, so `loadFaker()`'s `import('@faker-js/faker')`
+shipped every Faker locale.
+
+The player now builds module workers (`worker: { format: 'es' }` in
+`packages/player/vite.config.ts`). The worker code-splits and tree-shakes Faker
+to `en` + `base`. Measured 2026-10-20 (Vite 8.3.4, gzip level 9):
+
+| Worker graph | Raw | Gzip |
+| --- | --- | --- |
+| Entry | 496 B | 308 B |
+| Faker (`en`) | 416,073 B | 153,201 B |
+| Blueprint generator | 156,202 B | 45,407 B |
+| Scenarios context | 2,396 B | 1,288 B |
+| **Total** | **575,167 B** | **200,204 B** |
+
+`packages/player/tests/worker-bundle.test.ts` builds the player and enforces a
+250 KB gzip budget on the whole worker graph, plus the absence of other Faker
+locales. It fails when the worker format reverts.
+
+### World cache (measured 2026-10-20)
+
+The player keeps generated worlds in `protoyard.player.worlds` (IndexedDB),
+keyed by the blueprint's SHA-256, the scenario id, seed and digest, and the
+generator version (`packages/player/src/cache/`):
+- **Format:** gzip of the world JSON.
+- **Read limits:** read back with the snapshot import limits (25 MB inflated,
+  250,000 rows).
+- **Eviction:** least recently used past 48 MB of compressed data.
+- **Writes:** compressed in 64 KB slices that yield between tasks. The runtime
+  gets the world first and never waits for the write.
+
+The table below comes from a headless Chromium (Playwright) Chrome trace of the
+built player, with main-thread `RunTask` slices over 50 ms counted as long tasks.
+The trace was checked with a 120 ms busy loop, which shows as one 120 ms long
+task. Two runs at load average about 40, same results:
+
+| Blueprint | Phase | Time | Long tasks (longest) |
+| --- | --- | --- | --- |
+| Demo (4 entities) | First visit, seeds `active` | 221–238 ms | 0 |
+| Demo | Reload (stored world, no generation) | 92–105 ms | 0 |
+| Demo | Switch to `empty` (generate) | 54–55 ms | 0 |
+| Demo | Back to `active` (cache hit) | 10–12 ms | 0 |
+| Demo | Switch to `massive` (generate) / cache hit | 60–61 ms / 28–29 ms | 0 / 0 |
+| Large fixture (40 entities, 997 fields) | First visit | 364–408 ms | 0 |
+| Large fixture | Back to `active` (cache hit) | 59–64 ms | 0 |
+| Large fixture | Switch to `massive` (generate) | 1,368–1,429 ms | 1 (55–56 ms) |
+| Large fixture | `massive` again (cache hit) | 901–915 ms | 0 |
+
+Before the writes were sliced, the large `massive` generation held the main
+thread for 212–225 ms, 154 ms of it the cache's own `CompressionStream`. The 55 ms
+task that remains is the main thread receiving the worker's world.
+
+**Main-thread Faker.** Every generation still downloads and evaluates Faker
+twice: the runtime builds a `GenerateContext` (and loads its own Faker chunk,
+153 KB gzip) before it calls `definition.generate`, which then generates in the
+worker. No measured phase turned that into a long task, but it is wasted
+transfer and parse. Skipping the main-thread context needs a runtime API change
+(proposed in PLAN_004, T-player-world-cache).
 
 ## Large blueprint on the player path (measured 2026-10-20)
 

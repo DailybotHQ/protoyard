@@ -8,6 +8,7 @@ import {
   type MountPrototypeOptions,
   mountPrototype,
 } from '@protoyard/renderer-svelte';
+import { createPlayerWorldCache, type WorldCache, withWorldCache } from './cache/index.ts';
 import PlayerApp from './PlayerApp.svelte';
 import { setPlayerBlueprint } from './player-blueprint.ts';
 import { markActiveExploration, recordExploration, resolvePlayerStorage } from './storage/index.ts';
@@ -22,6 +23,8 @@ export interface BootPlayerOptions {
   createRuntime?: MountPrototypeOptions['createRuntime'];
   /** Injected IndexedDB for the player exploration index and storage tests. */
   indexFactory?: IDBFactory;
+  /** Generated-world cache; defaults to the origin's IndexedDB cache (memory when blocked). */
+  worldCache?: WorldCache;
 }
 
 export interface BootedPlayer extends MountedPrototype {
@@ -44,7 +47,11 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
     namespace: storage.namespace,
     slug: storage.namespace,
   });
-  const definition = withWorkerGeneration(blueprintDefinition, blueprint);
+  // A cache hit reopens a scenario without regenerating; a miss generates in the worker.
+  const definition = withWorldCache(withWorkerGeneration(blueprintDefinition, blueprint), {
+    blueprintSha256: identity.sha256,
+    cache: options.worldCache ?? createPlayerWorldCache(options.indexFactory),
+  });
   markActiveExploration(storage.namespace);
   try {
     await recordExploration(storage, options.indexFactory);
