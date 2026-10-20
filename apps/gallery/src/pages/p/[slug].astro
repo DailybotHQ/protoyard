@@ -7,15 +7,21 @@ import ProjectIcon from '@/components/ProjectIcon.svelte';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { commandsFor, devCommand } from '@/lib/commands';
 import { withBase } from '@/lib/format';
+import { openInPlayerUrlForEntry } from '@/lib/open-in-player';
 import { prototypes, thumbnailUrl } from '@/lib/registry';
 import { transitionName } from '@/lib/transitions';
 import type { RegistryEntry } from '@/lib/types';
 
-export function getStaticPaths() {
-  return prototypes().map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+export async function getStaticPaths() {
+  return Promise.all(
+    prototypes().map(async (entry) => ({
+      params: { slug: entry.slug },
+      props: { entry, playerHref: await openInPlayerUrlForEntry(entry) },
+    }))
+  );
 }
 
-const { entry } = Astro.props as { entry: RegistryEntry };
+const { entry, playerHref } = Astro.props as { entry: RegistryEntry; playerHref: string | null };
 const commands = commandsFor(entry.slug);
 const embeddedUrl = entry.embedded ? withBase(`/${entry.embedded.url}`) : null;
 const thumbnail = thumbnailUrl(entry);
@@ -54,6 +60,16 @@ const thumbnail = thumbnailUrl(entry);
     </div>
     <FavoriteButton client:load slug={entry.slug} name={entry.name} withLabel />
   </header>
+
+  {playerHref && (
+    <a
+      href={playerHref}
+      class="mt-4 inline-flex items-center rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent/90"
+      data-testid="open-in-player"
+    >
+      Open in player
+    </a>
+  )}
 
   <div class="mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
     <div class="min-w-0 space-y-6">
