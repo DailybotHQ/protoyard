@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "blueprint": {
+    "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+    "formatVersion": 1,
+    "name": "Pulse Revenue",
+    "description": "A simulated revenue intelligence workspace for fictional SaaS subscriptions.",
+    "tags": ["analytics", "revenue", "saas"],
+    "brand": {
+      "id": "pulse-revenue",
+      "name": "Pulse Revenue",
+      "seed": "#0f766e",
+      "styleProfile": "crisp",
+      "font": "grotesk"
+    },
+    "entities": [
+      {
+        "name": "transaction",
+        "plural": "transactions",
+        "label": "Revenue transaction",
+        "titleField": "reference",
+        "searchable": ["reference", "customer"],
+        "seedCount": 90,
+        "features": {
+          "audit": true,
+          "csv": true
+        },
+        "fields": [
+          {
+            "name": "reference",
+            "kind": "text",
+            "required": true,
+            "maxLength": 40,
+            "fake": "commerce.productName"
+          },
+          {
+            "name": "customer",
+            "kind": "text",
+            "required": true,
+            "maxLength": 80,
+            "fake": "company.name"
+          },
+          {
+            "name": "amount",
+            "kind": "money",
+            "required": true,
+            "currency": "USD",
+            "min": 1200,
+            "max": 800000,
+            "trend": "growth"
+          },
+          {
+            "name": "lifecycleStatus",
+            "kind": "enum",
+            "values": ["new", "expansion", "renewal", "contraction", "churned"],
+            "labels": {
+              "new": "New",
+              "expansion": "Expansion",
+              "renewal": "Renewal",
+              "contraction": "Contraction",
+              "churned": "Churned"
+            },
+            "default": "renewal",
+            "required": true,
+            "weights": [2, 3, 5, 1, 1]
+          },
+          {
+            "name": "plan",
+            "kind": "enum",
+            "values": ["starter", "growth", "scale"],
+            "labels": {
+              "starter": "Starter",
+              "growth": "Growth",
+              "scale": "Scale"
+            },
+            "default": "growth",
+            "required": true,
+            "weights": [4, 4, 2]
+          },
+          {
+            "name": "channel",
+            "kind": "enum",
+            "values": ["product-led", "sales", "partner"],
+            "labels": {
+              "product-led": "Product-led",
+              "sales": "Sales",
+              "partner": "Partner"
+            },
+            "default": "product-led",
+            "required": true,
+            "weights": [5, 3, 2]
+          },
+          {
+            "name": "region",
+            "kind": "enum",
+            "values": ["americas", "emea", "apac"],
+            "labels": {
+              "americas": "Americas",
+              "emea": "EMEA",
+              "apac": "APAC"
+            },
+            "default": "americas",
+            "required": true,
+            "weights": [5, 3, 2]
+          }
+        ]
+      }
+    ],
+    "roles": [
+      {
+        "name": "owner",
+        "label": "Owner",
+        "permissions": {
+          "*": ["*"]
+        }
+      },
+      {
+        "name": "admin",
+        "label": "Administrator",
+        "permissions": {
+          "*": ["*"]
+        }
+      },
+      {
+        "name": "analyst",
+        "label": "Analyst",
+        "permissions": {
+          "transaction": ["read", "export"]
+        }
+      },
+      {
+        "name": "viewer",
+        "label": "Read-only viewer",
+        "permissions": {
+          "*": ["read"]
+        }
+      }
+    ],
+    "screens": [
+      {
+        "type": "dashboard",
+        "path": "/",
+        "title": "Revenue overview",
+        "widgets": [
+          {
+            "kind": "kpi",
+            "label": "Gross revenue",
+            "entity": "transaction",
+            "aggregate": "sum",
+            "field": "amount"
+          },
+          {
+            "kind": "kpi",
+            "label": "Transactions",
+            "entity": "transaction",
+            "aggregate": "count"
+          },
+          {
+            "kind": "kpi",
+            "label": "Average transaction",
+            "entity": "transaction",
+            "aggregate": "avg",
+            "field": "amount"
+          },
+          {
+            "kind": "board-summary",
+            "label": "Revenue lifecycle",
+            "entity": "transaction",
+            "groupBy": "lifecycleStatus",
+            "span": 2
+          },
+          {
+            "kind": "chart",
+            "label": "Monthly gross revenue",
+            "entity": "transaction",
+            "aggregate": "sum",
+            "field": "amount",
+            "chart": "line",
+            "bucket": {
+              "field": "createdAt",
+              "unit": "week"
+            },
+            "span": 2
+          },
+          {
+            "kind": "chart",
+            "label": "Revenue by plan",
+            "entity": "transaction",
+            "aggregate": "sum",
+            "field": "amount",
+            "chart": "donut",
+            "groupBy": "plan",
+            "span": 2
+          }
+        ]
+      },
+      {
+        "type": "analytics",
+        "entity": "transaction",
+        "dateField": "createdAt",
+        "title": "Revenue analytics",
+        "measures": [
+          {
+            "label": "Transactions"
+          },
+          {
+            "label": "Gross revenue",
+            "aggregate": "sum",
+            "field": "amount"
+          },
+          {
+            "label": "Average transaction",
+            "aggregate": "avg",
+            "field": "amount"
+          }
+        ],
+        "dimensions": ["lifecycleStatus", "plan", "channel", "region"],
+        "path": "/insights",
+        "nav": {
+          "label": "Analytics",
+          "icon": "chart-line",
+          "order": 10
+        }
+      },
+      {
+        "type": "board",
+        "entity": "transaction",
+        "groupBy": "lifecycleStatus",
+        "cardFields": ["reference", "amount", "plan", "channel"],
+        "path": "/transactions/board",
+        "title": "Revenue lifecycle",
+        "nav": {
+          "label": "Lifecycle",
+          "icon": "kanban",
+          "order": 20
+        }
+      },
+      {
+        "type": "list",
+        "entity": "transaction",
+        "columns": ["reference", "customer", "amount", "lifecycleStatus", "plan"],
+        "path": "/transactions",
+        "nav": {
+          "label": "Transactions",
+          "icon": "receipt",
+          "order": 30
+        }
+      },
+      {
+        "type": "settings",
+        "sections": ["profile", "workspace", "appearance"],
+        "path": "/settings",
+        "nav": {
+          "label": "Settings",
+          "icon": "settings",
+          "order": 90
+        }
+      }
+    ],
+    "layout": {
+      "id": "sidebar",
+      "mobile": "mobile-tabs"
+    }
+  },
+  "codegenFormat": 2
+}

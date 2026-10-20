@@ -92,7 +92,7 @@ A blueprint is strict: an unknown key anywhere fails validation.
 | `entities` | yes | One or more entities (see below). |
 | `roles` | yes | One or more roles with permissions. |
 | `notifications` | no | Notification rules. |
-| `screens` | no | Screen hints (`list`, `detail`, `form`, `board`, `dashboard`). |
+| `screens` | no | Route declarations for generated `list`, `detail`, `form`, `board`, `calendar`, `timeline`, `map`, `analytics`, `dashboard` and `settings` screens. |
 | `brand` | no | A seed color or preset that `generate` turns into a WCAG AA theme, or a `libraryTheme` id it uses as-is. |
 | `catalog`, `tags`, `icon`, `category` | no | Catalog metadata for files under `blueprints/`. |
 | `history` | no | Written by `generate`; never edit it by hand (see [Migrations](#regeneration-and-migrations)). |
@@ -238,9 +238,12 @@ this is still a simulation, not security. The crud-app scenarios use the roles
   full option list and every cross-reference check are in the
   [`@protoyard/blueprint` README](../packages/blueprint/README.md). Each screen
   can set `path` (defaults such as `/<plural>/board` or `/dashboard`), `title`
-  and `nav`. Today they are validated hints: generation creates a list and edit
-  route for every entity whether or not a screen is listed, and the other
-  screens are yours to build (see the worked example).
+  and `nav`. Generation emits a typed lazy route wrapper for each declaration;
+  its screen config is read from `blueprint.screens` through `useCrudApp()`, so
+  generated files do not inline stale JSON literals. Independently, every
+  entity still gets its standard list and detail routes, plus a create route.
+  Screen behavior is provided by the matching `@protoyard/crud/screens/*`
+  entry. For styling, see the CSS setup below and the CRUD README.
 - `brand`: a `seed` color (`#rrggbb`) and/or a built-in `preset`, plus optional
   `secondary`, `styleProfile`, `font`, `radius` and `density`. `generate`
   writes a hash-headed `src/generated/brand-theme.ts`, registers it and sets
@@ -282,6 +285,7 @@ slug, and re-indexes.
 | `src/generated/routes.ts` | generated | Hash routes (`#/`, `#/<plural>`, `#/<plural>/:id`, `#/members`) and sidebar entries. Every screen is a lazy chunk. |
 | `src/generated/layout.ts` | generated | The selected `layout.id`, optional mobile layout, and grouped navigation derived from blueprint screens. |
 | `src/generated/screens/<Entity>Page.svelte` | generated | One lazy screen per entity. |
+| `src/generated/screens/<DeclaredScreen>.svelte` | generated | Typed lazy wrappers for declared board, calendar, map, analytics, dashboard, settings and detail-tab routes. Wrappers read their config from `blueprint.screens`. |
 | `src/generated/brand-theme.ts` | generated | Only with `brand`. |
 | `src/generated/blueprint.snapshot.json` | managed | The blueprint the generated code reflects, and its schema version. |
 | `src/App.svelte`, `src/screens/Home.svelte`, `README.md`, `tests/generators.test.ts`, `tests/services.test.ts` | owned | Written once, from the blueprint. |
@@ -304,6 +308,12 @@ Regeneration leaves an owned `src/App.svelte` untouched. For older generated
 apps that do not consume the module, `generate` warns that the selected
 layout is not applied. See [LAYOUTS.md](LAYOUTS.md) for the shared catalog and
 the manual adoption path.
+
+The `crud-app` template also imports the stylesheets for `views-ui`,
+`charts-ui` and `analytics-ui`, and registers each package source with Tailwind
+using `@source`. Keep these imports and sources when adding view-based screens
+to a hand-built consumer; otherwise their utility classes may be absent from
+the production CSS. See [`packages/crud/README.md`](../packages/crud/README.md).
 
 ## Ownership rules
 
@@ -410,8 +420,9 @@ Build a Protoyard prototype for <product> from a blueprint.
    admin, member and viewer. Use fictional data only.
 2. Run `pnpm protoyard blueprint validate prototypes/<slug>/blueprint.json` until it passes.
 3. Run `pnpm protoyard generate <slug> --blueprint prototypes/<slug>/blueprint.json`.
-4. Never edit src/generated/**. Add the product-specific screens in owned files
-   (src/screens, src/App.svelte routes) and call the generated entity services.
+4. Never edit src/generated/**. Declare standard CRUD screens in blueprint.json; add
+   product-specific workflows and custom screens in owned files (src/screens,
+   src/App.svelte routes) and call the generated entity services.
 5. Run `pnpm vitest run prototypes/<slug>` and `pnpm protoyard validate <slug> --build`.
 6. To change the data model, edit blueprint.json and run step 3 again. Report the
    schema version change.
@@ -422,8 +433,12 @@ Build a Protoyard prototype for <product> from a blueprint.
 - The generic world generator fills fields from allow-listed Faker paths and
   the distribution hints below. For domain-specific data, wrap it in an owned
   generator, as the help desk does.
-- Boards, calendars, timelines, maps, analytics, dashboards and settings
-  declared in `screens` are not generated yet; build them in owned files.
+- Generated screen declarations provide routes and CRUD screen components;
+  domain-specific workflows and bespoke screens still belong in owned files.
+  The geo picker and map use a fictional offline basemap, not address lookup or
+  real map tiles.
+- Notification rules write in the entity mutation transaction. Per-persona
+  notification preferences that mute individual rules are not implemented.
 - Renames are a drop plus an add. The prototype's `generatorVersion` in
   `src/prototype.ts` is not bumped by regeneration.
 - Adding or removing `brand` on regeneration regenerates `brand-theme.ts` but

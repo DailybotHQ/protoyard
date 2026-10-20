@@ -26,36 +26,35 @@ describe('review build flag', () => {
     ).toBe(true);
   });
 
-  it('bakes a PROTOYARD_REVIEW_ADAPTER override into the build info, checked by the schema', () => {
-    const plain = resolveProtoyardSettings(manifest, 'build', {}, root);
-    expect(plain.build.review).toBeUndefined();
-    const http = resolveProtoyardSettings(
-      manifest,
-      'build',
-      {
-        PROTOYARD_REVIEW: '1',
-        PROTOYARD_REVIEW_ADAPTER: 'http',
-        PROTOYARD_REVIEW_ENDPOINT: '/api/comments',
-      },
-      root
-    );
-    expect(http.reviewEnabled).toBe(true);
-    expect(http.build.review).toEqual({ adapter: 'http', endpoint: '/api/comments' });
+  it('takes a comments backend for one build from PROTOYARD_REVIEW_ADAPTER, checked like the manifest', () => {
+    expect(resolveProtoyardSettings(manifest, 'build', {}, root).reviewAdapter).toBeNull();
     expect(
-      resolveProtoyardSettings(manifest, 'build', { PROTOYARD_REVIEW_ADAPTER: 'cloudflare' }, root)
-        .build.review
-    ).toEqual({ adapter: 'cloudflare', endpoint: '/api/comments' });
-    expect(() =>
-      resolveProtoyardSettings(manifest, 'build', { PROTOYARD_REVIEW_ADAPTER: 'http' }, root)
-    ).toThrow(/PROTOYARD_REVIEW_ADAPTER/);
-    expect(() =>
       resolveProtoyardSettings(
         manifest,
         'build',
-        { PROTOYARD_REVIEW_ADAPTER: 'http', PROTOYARD_REVIEW_ENDPOINT: 'https://x.example/?key=1' },
+        { PROTOYARD_REVIEW_ADAPTER: 'http', PROTOYARD_REVIEW_ENDPOINT: '/api/comments' },
         root
-      )
-    ).toThrow(/PROTOYARD_REVIEW_ADAPTER/);
+      ).reviewAdapter
+    ).toEqual({ adapter: 'http', endpoint: '/api/comments' });
+    expect(
+      resolveProtoyardSettings(manifest, 'build', { PROTOYARD_REVIEW_ADAPTER: 'cloudflare' }, root)
+        .reviewAdapter
+    ).toEqual({ adapter: 'cloudflare', endpoint: '/api/comments' });
+    // http needs an endpoint; endpoints never carry credentials or queries; unknown kinds fail.
+    for (const env of [
+      { PROTOYARD_REVIEW_ADAPTER: 'http' },
+      {
+        PROTOYARD_REVIEW_ADAPTER: 'http',
+        PROTOYARD_REVIEW_ENDPOINT: 'https://user:pw@example.com/c',
+      },
+      { PROTOYARD_REVIEW_ADAPTER: 'ftp' },
+      { PROTOYARD_REVIEW_ENDPOINT: '/api/comments' },
+    ]) {
+      expect(
+        () => resolveProtoyardSettings(manifest, 'build', env, root),
+        JSON.stringify(env)
+      ).toThrow(/PROTOYARD_REVIEW_/);
+    }
   });
 
   it('keeps the review package reachable through one guarded dynamic renderer import', () => {

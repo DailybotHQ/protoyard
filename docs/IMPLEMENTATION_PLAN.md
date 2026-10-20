@@ -152,6 +152,7 @@ integrated the work after its lane gates passed.
 ## Deferred and known gaps
 
 - **Live provider deploys** were not run: there are no credentials, and real publishing needs the owner's explicit authorization.
+- **Claude artifact share** (PLAN_003): `relay-chat-demo` was published once as a *private* artifact with `--comments` and recorded in the local share ledger (`artifacts/share/ledger.jsonl`, not tracked). Verified: the export checks, the publish, the ledger record, and an ArtifactData list of `review/relay-chat-demo/threads` as the owner and at `view` level (empty, no test comments were written). Not verified: boot, routing and DevTools inside the claude.ai viewer, writing a real comment, other viewers, and Commenter-level behavior.
 - **Visual regression snapshots** are not set up.
 - **Mobile performance** was measured only with headless desktop Chromium at phone viewports, not on real devices.
 - **Older-schema snapshots** restore rows as-is; migrations don't replay on snapshot data, and the import warning says so.

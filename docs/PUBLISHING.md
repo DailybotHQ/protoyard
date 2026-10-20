@@ -13,6 +13,7 @@ exporting, previewing and putting it on a host. Design decisions: ADR-009
 | `pnpm protoyard build <slug>` | Production build → `artifacts/<slug>/dist` + `build-manifest.json` | No |
 | `pnpm protoyard export <slug>` | Build, isolation check, ZIP → `artifacts/<slug>/<slug>.zip` | No |
 | `pnpm protoyard export <slug> --target artifact [--dry-run]` | Build for a Claude artifact, isolation check, pack → `artifacts/<slug>/artifact/` | No |
+| `pnpm protoyard artifact record <slug> --url <url>` · `artifact list` | Record and list the Claude artifact URLs the Artifact tool returned ([sharing](#sharing-as-a-claude-artifact)) | No |
 | `pnpm protoyard preview <slug>` | Serves `artifacts/<slug>/dist` like a static host | No |
 | `pnpm protoyard publish <slug> --provider static` | Build, isolation check, ZIP, upload instructions | No |
 | `pnpm protoyard publish <slug> --provider <p> --dry-run` | Build, verify, print the exact deploy command | No |
@@ -175,24 +176,62 @@ The ZIP contains the contents of `dist/` (no wrapping folder). To use it:
 - **Upload the contents, not the ZIP**, to the host.
 - A build with a custom `--base` must be served from that path.
 
-### A Claude artifact pack
+## Sharing as a Claude artifact
 
-`export <slug> --target artifact` prepares a folder an agent can publish with
-the Claude Artifact tool unchanged (ADR-026). It builds a separate copy in
+A prototype can be shared as a private Claude artifact, a page hosted on
+claude.ai, with no hosting account (ADR-026). The CLI prepares, checks and records the share.
+It never publishes, because only an agent with the Claude Artifact tool can.
+The repository skill `share-as-artifact` (`/share-artifact <slug>`) does
+that step, and only after the developer approves it.
+
+| Command | Does |
+| --- | --- |
+| `pnpm protoyard export <slug> --target artifact [--comments] [--no-devtools] [--dry-run] [--json]` | Artifact build, isolation check, every Artifact rule, pack → `artifacts/<slug>/artifact/` |
+| `pnpm protoyard artifact record <slug> --url <url>` | Records the URL the Artifact tool returned, after checking the pack is current |
+| `pnpm protoyard artifact list [--json]` | The latest recorded share per prototype |
+| `pnpm protoyard review-index --from-ledger` | The review page, with recorded shares labeled private |
+| `pnpm protoyard showcase --target artifact [--slugs a,b] [--no-templates]` | The gallery plus selected demos as one pack → `artifacts/showcase/artifact/` |
+
+### Who sees what
+
+Say this plainly whenever you share:
+
+- **Private by default.** A new artifact is visible only to its owner and
+  to the people the owner shares it with in claude.ai. The share ledger
+  records `private` at record time. Later changes to the sharing settings
+  happen in claude.ai, and the ledger does not see them.
+- **Each viewer has their own data.** The prototype's database (IndexedDB),
+  its appearance settings, scenarios and personas live in each viewer's own
+  browser. Nothing a viewer does in the app reaches other viewers or the
+  owner. That storage can be empty, blocked or wiped in previews and
+  private windows. The app then shows its storage error state, never fake
+  success.
+- **Shared comments are the one exception.** With `--comments` and the
+  `artifact` review adapter, comment threads live in the artifact's shared
+  database (the `db` capability). Everyone admitted to the artifact can read
+  them. Contributors and above can write them, and Viewers and Commenters
+  cannot. They are erased when the owner deletes the artifact.
+- **Identity comes from claude.ai.** Comment authors are claude.ai accounts,
+  stored as opaque ids and resolved to names when shown. Roles, personas and
+  sign-in *inside* the prototype are still simulated and are never security.
+
+### The pack
+
+`export <slug> --target artifact` builds a separate copy in
 `artifacts/<slug>/artifact-dist/` (manifest `artifact-build.json`), so the
 plain build in `dist/` is untouched:
 
-- DevTools included (viewers can switch scenarios and personas in the
-  page); `--no-devtools` leaves them out;
-- `build.frameWhenEmbedded` on, so an explicit shell (phone, tablet,
+- DevTools are included, so viewers can switch scenarios and personas in
+  the page. `--no-devtools` leaves them out.
+- `build.frameWhenEmbedded` is on, so an explicit shell (phone, tablet,
   browser, widget) keeps its frame inside the artifact viewer
-  ([SHELLS.md](SHELLS.md#when-the-app-goes-full-bleed));
-- always the relative base `./`; `--base` with another path, `--offline`
-  and `"build": { "offline": true }` are refused (exit 2 and 4);
-- avatar images at 128 px only (175 files, 356,386 B): 64 px requests resolve
-  to 128 px. Both sizes would be 350 files, which takes `relay-chat-demo` from
-  one publish batch to two and puts `ui-kit` (180 app files) at 531 files,
-  over the 511-file version cap.
+  ([SHELLS.md](SHELLS.md#when-the-app-goes-full-bleed)).
+- It always uses the relative base `./`. `--base` with another path,
+  `--offline` and `"build": { "offline": true }` are refused (exit 2 and 4).
+- Avatar images ship at 128 px only (175 files, 356,386 B), and 64 px
+  requests resolve to 128 px. Both sizes would be 350 files. That would take
+  `relay-chat-demo` from one publish batch to two and put `ui-kit` (180 app
+  files) at 531 files, over the 511-file version cap.
 
 It then runs the isolation check and the pack step
 (`packages/cli/src/lib/artifact-pack.ts`), which writes
@@ -202,25 +241,191 @@ It then runs the isolation check and the pack step
 | --- | --- |
 | `page.html` | The page as body content: the Artifact tool adds its own document skeleton |
 | `assets/…` and the other build files | Every file at the path the page references |
-| `artifact-manifest.json` | Sizes, sha256 and content types, publish batches, the build sha256, the icon and description |
+| `artifact-manifest.json` | Sizes, sha256 and content types, publish batches, the build sha256, the icon and description, declared capabilities, warnings |
 
-Every Artifact rule is checked, and the export fails with exit 4 and each
-reason: external scripts outside the allowed CDNs, stylesheets other than
-Google Fonts, network fetches and imports, service workers, non-web file
-types (source maps are refused), the 16 MB / 15 MB file limits, 255 files and
-64 MB per publish, 511 files and 256 MB per version, and a missing `<title>`.
-A title longer than four words is a warning. `--dry-run` checks everything
-without writing the pack, and `--skip-build` reuses the last artifact build
-when it was made with the same settings. `--comments` declares the shared
-review-comment capabilities and needs `"build": { "review": { "enabled":
-true } }`. `--json` adds the manifest and the exact Artifact tool arguments
-per batch (`file_path`, `files`, `icon`, `description`, `capabilities`).
-Measured on 2026-10-19: `relay-chat-demo` packs into 31 files plus the page,
-1.25 MB, in one batch; its artifact build loads 158,065 B gzip of initial JS
-(DevTools stay lazy) against 152.75 KB for the plain build. With avatars
-(same day, dry run): `relay-chat-demo` is 207 files plus the page, 1,626,663 B,
-still one batch; `ui-kit` is 355 files plus the page in two batches. The
-manifest's `avatars` field records the sizes, file count and bytes.
+```text
+$ pnpm protoyard export relay-chat-demo --target artifact --dry-run
+✓ Checked relay-chat-demo as a Claude artifact (dry run, nothing written)
+  page    artifacts/relay-chat-demo/artifact/page.html
+  files   219 + the page, 1.7 MB in 1 publish batch
+  sha256  81710cde384510875d92a4b3841f886e1af0914f90cb44026616fbcde6037e50 (build)
+  build   DevTools included, explicit shells keep their frame when embedded
+  Isolation: no references to the other 81 registered projects.
+  Publish it with the share-as-artifact skill (--json lists the exact Artifact tool arguments). Artifacts are private until you share them.
+```
+
+**Rules and limits.** Every Artifact rule is checked, and the export fails
+with exit 4 and lists each reason:
+
+- external scripts outside the allowed CDNs, and stylesheets other than
+  Google Fonts
+- network fetches and imports, and service workers
+- non-web file types (source maps are refused)
+- the 16 MB page and text-file limit and the 15 MB binary limit
+- 255 files and 64 MB per publish, and 511 files and 256 MB per version
+- a missing `<title>`. A title longer than four words is a warning.
+
+`--dry-run` builds and checks everything without writing the pack.
+`--skip-build` reuses the last artifact build when it was made with the same
+settings. `--json` adds the manifest and the exact Artifact tool arguments
+per batch (`file_path`, `files`, `icon`, `description`, `capabilities`). A
+pack over 255 files is split into batches that the skill publishes, one
+after another, to the same URL.
+
+Measured on 2026-10-19:
+
+- `relay-chat-demo` packs into 219 files plus the page, 1,730,943 B, in
+  one batch. Its manifest enables review comments, so the pack includes the
+  lazy review chunks.
+- `keel-projects-demo` with `--comments` is 316 files plus the page,
+  2.2 MB, in two batches.
+- The relay artifact build, measured earlier the same day, loaded
+  158,065 B gzip of initial JS (DevTools stay lazy), against 152.75 KB for
+  the plain build.
+- `ui-kit` (dry run) is 355 files plus the page, in two batches.
+
+### Review comments in an artifact
+
+`--comments` declares the runtime capabilities that shared comments need,
+and it needs `"build": { "review": { "enabled": true } }`. Without that, it
+fails with exit 4:
+
+```text
+$ pnpm protoyard export crm-demo --target artifact --comments --dry-run
+✗ --comments needs review comments enabled for crm-demo.
+  Set "build": { "review": { "enabled": true } } in its protoyard.json (docs/REVIEW_COMMENTS.md).
+```
+
+The declared capabilities are `db` (one rule: `review/` is readable at
+`view` and writable at `interact`, which is Contributor), `user` with the
+`profile` scope (author ids and names), and `comments` with
+`composer_only: true`.
+
+The capabilities are used only when the build's review adapter is
+`artifact`. `relay-chat-demo` sets
+`"review": { "enabled": true, "adapter": "artifact" }`. A prototype whose
+manifest says `local` (for example `keel-projects-demo`) still declares the
+capabilities with `--comments`, but its page keeps comments in each
+viewer's browser. To switch one build without editing the manifest, set the
+adapter for that export:
+
+```bash
+PROTOYARD_REVIEW_ADAPTER=artifact pnpm protoyard export keel-projects-demo --target artifact --comments --dry-run
+```
+
+How the adapter behaves in the viewer, the composer fallback and its limits
+are in [REVIEW_COMMENTS.md](REVIEW_COMMENTS.md#the-artifact-adapter).
+
+### Share and re-share with the skill
+
+`/share-artifact <slug> [--comments] [--no-devtools] [--dry-run]` runs the
+`share-as-artifact` skill ([SKILL.md](../.agents/skills/share-as-artifact/SKILL.md)):
+
+1. `--dry-run` runs only the dry-run export and stops. Nothing is written,
+   published or recorded.
+2. Otherwise it runs `export <slug> --target artifact --json` and stops on
+   any failure.
+3. It reads `page.html` and every file in the manifest in full. A file it
+   cannot read stops the share.
+4. It checks `artifact list --json` for an existing URL, shows the summary,
+   and **waits for the developer's explicit approval**. Sharing is an
+   outward-facing publish.
+5. It publishes each batch with the exact arguments from the export JSON.
+   On a **re-share** it first reads the recorded URL, then publishes to that
+   same URL, so the link does not change.
+6. It runs `artifact record` with the URL the Artifact tool returned, never
+   a guessed or edited one.
+7. With `--comments`, it lists the thread roots once with ArtifactData
+   (`review/<slug>/threads`) and reports exactly what that checked. It
+   writes no test comments.
+
+Never paste a private artifact URL into tracked files.
+
+### The share ledger
+
+`artifact record` appends one line to `artifacts/share/ledger.jsonl`
+(git-ignored, local to your checkout). The line goes through the same
+single-append writer and credential-key refusal as the deploy ledger.
+
+```text
+$ pnpm protoyard artifact record relay-chat-demo --url https://claude.ai/artifact/<id>
+✓ Recorded relay-chat-demo artifact share.
+  url         https://claude.ai/artifact/<id>
+  visibility  private at record time
+  build       fa92f4aa2e75a0cd0a33cd52e6b702ed8ccad9ac17b070886f470fcad62f2321 (219 files)
+  ledger      artifacts/share/ledger.jsonl
+```
+
+It refuses:
+
+- a URL that is not `https://claude.ai/artifact/<id>` or
+  `https://claude.ai/code/artifact/<id>`
+- a slug without a pack
+- a pack whose files no longer match their manifest. One edited file gives
+  `Packed file assets/… no longer matches the artifact manifest.`, exit 4.
+
+The CLI checks the URL's shape, but it cannot prove that the Artifact tool
+returned the URL. Recording only returned URLs is the skill's job.
+
+| Field | Meaning |
+| --- | --- |
+| `format`, `formatVersion` | `protoyard.share-ledger`, `1` |
+| `at`, `slug`, `kind` | When it was recorded, which prototype, `artifact` |
+| `url`, `visibility` | The returned URL, and `private` at record time |
+| `buildSha256`, `fileCount` | The source build digest from the pack manifest, and the packed file count |
+| `commit`, `dirty` | The workspace commit and whether tracked files had changes |
+| `capabilities` | The declared capability names (`comments`, `db`, `user` with `--comments`) |
+
+A re-share appends a new line. `artifact list` shows the latest line per
+prototype (`No artifact shares recorded.` when there are none), and
+`--json` returns `{ entries, total, ledger, skipped }`. Unreadable lines are
+skipped and counted.
+
+### In the review index
+
+`review-index` also reads the share ledger. A recorded share appears as
+**Shared as artifact (private by default)**, with a note that the link opens
+only for people the owner shared it with. The review manifest has it as
+`artifactShare: { url, visibility }`. `--from-ledger` includes prototypes
+that have a real deploy or a recorded share. Only recorded URLs are linked,
+never guessed ones.
+
+### The showcase as one artifact
+
+`showcase --target artifact` builds the gallery with the selected demos
+embedded, and packs it under `artifacts/showcase/artifact/`. It requires the
+base `./`. `--slugs` limits the bundled prototypes and templates, which
+keeps the pack within the caps.
+
+```text
+$ pnpm protoyard showcase --target artifact --slugs relay-chat-demo,support-widget-demo --no-templates
+✓ support-widget-demo          ./p/support-widget-demo/app/ · 1.3 MB
+✓ relay-chat-demo              ./p/relay-chat-demo/app/ · 1.3 MB
+✓ Showcase → artifacts/showcase (977 files, 8.8 MB, base ./, DevTools included)
+✓ Artifact pack → artifacts/showcase/artifact (488 files, 2 publish batches)
+```
+
+Measured on 2026-10-19: 487 files plus the page, 4,514,818 B, in two batches
+(254 and 233 files). The skill takes a prototype slug, so a showcase pack
+has no skill path yet. An agent publishes it by following its manifest
+batches with the same read-every-file and approval steps.
+
+### Verified and not verified
+
+Verified once, on 2026-10-19:
+
+- `relay-chat-demo` was published as a private artifact with `--comments`
+  and recorded in the ledger.
+- An ArtifactData list of `review/relay-chat-demo/threads` returned an empty
+  list as the owner and at `view` level.
+
+Not verified yet:
+
+- boot, routing, query parameters (`?scenario=`, `?actor=`) and DevTools
+  inside the claude.ai viewer
+- writing a real comment
+- other viewers, and Commenter-level behavior
+- a showcase pack published as an artifact.
 
 ## Preview locally
 
@@ -675,6 +880,9 @@ shared copy, where per-app copies would have added about 13.3 MB. A standalone
 The `--json` result lists every demo in `targets`: kind, slug, `appPath`, its
 `marketplacePath`, the `storageNamespace` of template demos, and whether it
 built (`ok`) with its size.
+
+`--target artifact` packs the showcase for one private Claude artifact
+instead ([The showcase as one artifact](#the-showcase-as-one-artifact)).
 
 ### Publish the showcase to Cloudflare Pages
 

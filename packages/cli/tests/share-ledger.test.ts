@@ -51,7 +51,8 @@ function pack(ws: TempWorkspace, slug = 'share-app', content = 'bundle'): string
     formatVersion: 1,
     slug,
     files: [{ ...file, contentType: 'text/javascript' }],
-    buildSha256: buildDigest([file]),
+    // The pack signs the source build (dist), which differs from the pack files.
+    buildSha256: buildDigest([{ path: 'index.html', sha256: createHash('dist') }]),
     capabilities: { db: {}, user: {} },
   });
   return outDir;

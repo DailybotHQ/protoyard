@@ -169,26 +169,6 @@ describe('the artifact build flag', () => {
   });
 });
 
-describe('the review adapter build override', () => {
-  const definition = createFakeRuntime().definition;
-
-  it('points review at the baked-in adapter and endpoint (publish --comments)', () => {
-    const applied = applyBuildInfo(definition, {
-      namespace: 'fake',
-      review: { adapter: 'http', endpoint: '/api/comments' },
-    });
-    expect(applied.manifest.build.review).toEqual({
-      enabled: true,
-      adapter: 'http',
-      endpoint: '/api/comments',
-    });
-    expect(definition.manifest.build.review).toBeUndefined();
-    expect(applied.manifest.build.frameWhenEmbedded).toBe(
-      definition.manifest.build.frameWhenEmbedded
-    );
-  });
-});
-
 /** An IndexedDB that refuses to open, as a private window or blocked site data does. */
 function blockedIndexedDB(name = 'SecurityError'): IDBFactory {
   const refuse = () => {

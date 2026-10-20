@@ -6,6 +6,7 @@ import {
   type ScenarioLinkParams,
   type Theme,
 } from '@protoyard/core';
+import type { DevtoolsTab } from '@protoyard/devtools';
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import { BUILTIN_THEMES, mergeThemes } from '@protoyard/themes';
 import { toast } from '@protoyard/ui';
@@ -14,6 +15,7 @@ import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
 import { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
 import BootError from './shell/BootError.svelte';
+import { placeFloating } from './shell/floating.ts';
 import Root from './shell/Root.svelte';
 
 export interface RuntimeFactoryOptions {
@@ -72,17 +74,12 @@ declare global {
  * Applies what the build baked into `__PROTOYARD_BUILD__` to the definition:
  * template live demos (and any CLI override) set PROTOYARD_STORAGE_NAMESPACE
  * so IndexedDB never shares the template's authoring world, and the Claude
- * artifact target turns on `build.frameWhenEmbedded` (ADR-026), and
- * `publish --comments` points review at the same-origin comments Function.
- * Without build info (dev, tests) the definition is returned unchanged.
+ * artifact target turns on `build.frameWhenEmbedded` (ADR-026). Without build
+ * info (dev, tests) the definition is returned unchanged.
  */
 export function applyBuildInfo(
   definition: PrototypeDefinition,
-  build: {
-    namespace?: string;
-    frameWhenEmbedded?: boolean;
-    review?: { adapter: 'local' | 'cloudflare' | 'http' | 'artifact'; endpoint?: string };
-  } | null
+  build: { namespace?: string; frameWhenEmbedded?: boolean } | null
 ): PrototypeDefinition {
   const manifest = definition.manifest;
   const namespace =
@@ -90,26 +87,13 @@ export function applyBuildInfo(
       ? build.namespace
       : undefined;
   const frameWhenEmbedded = build?.frameWhenEmbedded === true && !manifest.build.frameWhenEmbedded;
-  const review = build?.review;
-  if (!namespace && !frameWhenEmbedded && !review) return definition;
+  if (!namespace && !frameWhenEmbedded) return definition;
   return {
     ...definition,
     manifest: {
       ...manifest,
       ...(namespace ? { storage: { ...manifest.storage, namespace } } : {}),
-      build: {
-        ...manifest.build,
-        ...(frameWhenEmbedded ? { frameWhenEmbedded: true } : {}),
-        ...(review
-          ? {
-              review: {
-                enabled: true,
-                adapter: review.adapter,
-                ...(review.endpoint ? { endpoint: review.endpoint } : {}),
-              },
-            }
-          : {}),
-      },
+      ...(frameWhenEmbedded ? { build: { ...manifest.build, frameWhenEmbedded: true } } : {}),
     },
   };
 }
@@ -200,20 +184,8 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   const devtoolsBuilt =
     typeof __PROTOYARD_DEVTOOLS__ !== 'undefined' ? __PROTOYARD_DEVTOOLS__ : true;
   // Presentation mode (`?devtools=0`) hides the panel even in dev.
-  if (devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false))) {
-    try {
-      // The avatar resolver rides along with the lazy DevTools chunk, so it
-      // never reaches the initial JavaScript of a prototype without faces.
-      const [{ mountDevtools }, { avatarImage }] = await Promise.all([
-        import('@protoyard/devtools'),
-        import('./avatars.ts'),
-      ]);
-      const panel = mountDevtools({ runtime: rt, themes, avatarImage });
-      cleanups.push(() => panel.destroy());
-    } catch (error) {
-      console.error('[protoyard] DevTools failed to load', error);
-    }
-  }
+  const devtoolsAvailable =
+    devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
 
   // Keep this define inline so a review-disabled production build folds away
   // the branch and has no review UI, adapter, or schema in its initial graph.
@@ -221,8 +193,8 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
     typeof __PROTOYARD_REVIEW__ !== 'undefined'
       ? __PROTOYARD_REVIEW__
       : options.definition.manifest.build.review?.enabled === true;
-  const devtoolsAvailable =
-    devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
+  // Review mounts before DevTools, so DevTools can host its "Comments" tab.
+  let reviewTab: { id: string; label: string; load: () => Promise<unknown> } | undefined;
   if (
     reviewBuilt ||
     (devtoolsAvailable &&
@@ -230,10 +202,40 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   ) {
     try {
       const { mountReview } = await import('@protoyard/review-ui/mount');
-      const review = await mountReview({ definition, runtime: rt, root: target });
+      const review = await mountReview({
+        definition,
+        runtime: rt,
+        root: target,
+        place: placeFloating,
+        devtools: devtoolsAvailable,
+        ...(typeof __PROTOYARD_REVIEW_ADAPTER__ !== 'undefined' && __PROTOYARD_REVIEW_ADAPTER__
+          ? { adapter: __PROTOYARD_REVIEW_ADAPTER__ }
+          : {}),
+      });
+      reviewTab = review.devtoolsTab;
       cleanups.push(() => review.destroy());
     } catch (error) {
       console.error('[protoyard] review comments failed to load', error);
+    }
+  }
+
+  if (devtoolsAvailable) {
+    try {
+      // The avatar resolver rides along with the lazy DevTools chunk, so it
+      // never reaches the initial JavaScript of a prototype without faces.
+      const [{ mountDevtools }, { avatarImage }] = await Promise.all([
+        import('@protoyard/devtools'),
+        import('./avatars.ts'),
+      ]);
+      const panel = mountDevtools({
+        runtime: rt,
+        themes,
+        avatarImage,
+        ...(reviewTab ? { extraTabs: [reviewTab as DevtoolsTab] } : {}),
+      });
+      cleanups.push(() => panel.destroy());
+    } catch (error) {
+      console.error('[protoyard] DevTools failed to load', error);
     }
   }
 

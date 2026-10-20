@@ -48,6 +48,32 @@ bottom sheet that stays within the app viewport. The first visit asks for a
 display name, explains that it is not a login, and stores the reviewer name and
 browser id in local storage for that prototype slug.
 
+## Toolbar and the comments panel
+
+The floating toolbar never covers the app by default. It starts as one small
+launcher button ("Review: N comment threads"). The renderer places it with
+the demo badge's rules: the first spot of the window that covers no app control
+and not the badge, starting bottom-right. The badge re-places itself when the
+launcher moves (`protoyard:floating`). The launcher expands to the actions
+(Comment, Comments, the adapter and sync status), growing away from its corner,
+and stays open while commenting. Escape collapses it. The overlay's own "Add
+comment" button is off inside a session (`toggle: false`), so the launcher is
+the only floating review control.
+
+When DevTools is mounted, the renderer mounts review first and passes
+`mountReview({ devtools: true })`. The session then returns `devtoolsTab`, a lazy
+"Comments" tab for `mountDevtools({ extraTabs })` whose props are the session's
+live panel state. The toolbar hides its own "Comments" button.
+
+**Export and Import** (local adapter only) sit in the expanded toolbar. Export
+downloads this browser's comments as `<slug>-review-comments.json`; Import
+validates a comments file (`protoyard-review-comments`, the same envelope) for
+this prototype's namespace and slug, merges it, refreshes the pins and confirms
+"Imported N comments." in a status. Shared adapters (HTTP, Cloudflare, Claude
+artifact) sync through their endpoint, so neither button renders for them. A
+prototype can ship a demo review in `public/` for reviewers to import (see
+`prototypes/keel-projects-demo/public/review-demo.json`).
+
 ## 0 bytes until review is enabled
 
 There is no root entry. The renderer reaches this package through one dynamic

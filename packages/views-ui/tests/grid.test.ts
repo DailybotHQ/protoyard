@@ -1,6 +1,6 @@
 import type { FilterNode, GridValue, SavedView } from '@protoyard/views/grid';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   completeFilter,
   DataGrid,
@@ -11,6 +11,7 @@ import {
   nextSort,
   parseEditorValue,
 } from '../src/grid/index.ts';
+import { lazyDialog, lazyMenu } from '../src/lib/lazy-overlays.svelte.ts';
 
 afterEach(() => {
   cleanup();
@@ -73,6 +74,16 @@ const headers = () =>
     .map((h) => h.querySelector('button span')?.textContent);
 const press = (key: string, init: KeyboardEventInit = {}) =>
   fireEvent.keyDown(document.activeElement as Element, { key, ...init });
+
+// Menus, dialogs and some panels load on first use; load them once up front so
+// the first test that opens one never races a cold import on a busy machine.
+beforeAll(async () => {
+  await Promise.all([
+    lazyMenu.load(),
+    lazyDialog.load(),
+    import('../src/grid/FilterBuilder.svelte'),
+  ]);
+}, 30_000);
 
 describe('DataGrid', () => {
   it('renders an ARIA grid with only the windowed rows', () => {
@@ -163,6 +174,21 @@ describe('DataGrid', () => {
     await fireEvent.click(cell(0, 3));
     await press('Enter');
     expect(table().querySelector('[data-editor]')).toBeNull();
+  });
+
+  it('edits an enum cell with a native select (no overlay layers inside a cell)', async () => {
+    const { onCommit } = grid();
+    cell(0, 1).focus();
+    await press('Enter');
+    const stage = await screen.findByRole('combobox', { name: 'Stage' });
+    expect(stage.tagName).toBe('SELECT');
+    await waitFor(() => expect(document.activeElement).toBe(stage));
+    const next = [...(stage as HTMLSelectElement).options]
+      .map((o) => o.value)
+      .find((v) => v !== (stage as HTMLSelectElement).value) as string;
+    await fireEvent.change(stage, { target: { value: next } });
+    await fireEvent.keyDown(stage, { key: 'Enter' });
+    await waitFor(() => expect(onCommit).toHaveBeenCalledWith(expect.anything(), 'stage', next));
   });
 
   it('hides and pins columns through state and the column menu', async () => {
@@ -304,7 +330,8 @@ describe('DataGrid', () => {
   it('filters from the builder and holds an incomplete condition back', async () => {
     const { view } = grid();
     await fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
-    await fireEvent.click(screen.getByRole('button', { name: 'Add a filter' }));
+    // The builder loads on first open.
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add a filter' }));
     // "Name is (empty text)" is still being typed: the rows stay, with a note.
     expect(screen.getByRole('status').textContent).toMatch(/One condition needs a value/);
     expect(screen.getByText('20 rows')).toBeTruthy();

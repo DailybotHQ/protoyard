@@ -13,6 +13,8 @@ import { mount, onMount, unmount } from 'svelte';
 import { createReviewOverlay, type ReviewOverlayHandle } from '../overlay/index.ts';
 import type { ReviewPanelProps } from '../panel/types.ts';
 import { ReviewToolbar } from '../toolbar/index.ts';
+import type { ReviewToolbarPlacer } from '../toolbar/types.ts';
+import { createPanelState } from './panel-state.svelte.ts';
 
 let {
   adapter,
@@ -22,6 +24,11 @@ let {
   clientId,
   composerOnly = false,
   openComposer = async () => false,
+  place,
+  panelState = createPanelState(),
+  devtoolsPanel = false,
+  exportComments,
+  importComments,
 }: {
   adapter: ReviewAdapter;
   runtime: PrototypeRuntime;
@@ -30,7 +37,40 @@ let {
   clientId: string;
   composerOnly?: boolean;
   openComposer?: (element: Element) => Promise<boolean>;
+  /** The renderer's floating-chrome placement for the toolbar (shares the demo badge's rules). */
+  place?: ReviewToolbarPlacer;
+  /** Panel props, shared with DevTools when it hosts the panel. */
+  panelState?: ReviewPanelProps;
+  /** DevTools shows the comments panel in its "Comments" tab: no floating panel or toolbar button. */
+  devtoolsPanel?: boolean;
+  /** Local adapter only: the comments of this prototype as a JSON file. */
+  exportComments?: () => Promise<Blob>;
+  /** Local adapter only: validates a comments file, merges it and returns the rows added or updated. */
+  importComments?: (file: Blob) => Promise<number>;
 } = $props();
+
+/** Downloads this browser's comments as JSON (to hand to another reviewer). */
+async function downloadComments(): Promise<void> {
+  if (!exportComments) return;
+  const url = URL.createObjectURL(await exportComments());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${slug}-review-comments.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+/** Imports a comments file (an exported review, or the prototype's demo review). */
+async function importJson(json: string): Promise<void> {
+  if (!importComments) return;
+  const merged = await importComments(new Blob([json], { type: 'application/json' }));
+  await refresh();
+  notice =
+    merged === 0
+      ? 'Nothing new to import.'
+      : `Imported ${merged} comment${merged === 1 ? '' : 's'}.`;
+  setTimeout(() => (notice = ''), 5000);
+}
 
 let comments = $state<ReviewComment[]>([]);
 let overlay: ReviewOverlayHandle | undefined;
@@ -38,17 +78,22 @@ let panelOpen = $state(false);
 let commentMode = $state(false);
 let selectedThreadId = $state<string | undefined>();
 let status = $state('');
+/** A short confirmation (not an error), e.g. after an import. */
+let notice = $state('');
 let busy = $state(false);
 let panelHost: HTMLElement;
 let panelInstance: ReturnType<typeof mount> | undefined;
-let panelProps = $state<ReviewPanelProps>({
-  comments: [],
-  focusThread: (threadId) => {
-    overlay?.focusThread(threadId);
-    void showThread(threadId);
-  },
-  setShowResolved: (show) => overlay?.setShowResolved(show),
-});
+// svelte-ignore state_referenced_locally
+const panelProps = panelState;
+panelProps.focusThread = (threadId) => {
+  overlay?.focusThread(threadId);
+  void showThread(threadId);
+};
+panelProps.setShowResolved = (show) => overlay?.setShowResolved(show);
+// svelte-ignore state_referenced_locally
+panelProps.runtime = runtime;
+// svelte-ignore state_referenced_locally
+panelProps.root = root;
 const roots = $derived(comments.filter((comment) => comment.id === comment.threadId));
 const selectedThread = $derived(comments.find((comment) => comment.id === selectedThreadId));
 const selectedRoot = $derived(
@@ -131,7 +176,7 @@ async function save(input: ReviewCommentInput): Promise<boolean> {
   }
 }
 
-async function place(anchor: ReviewAnchor): Promise<void> {
+async function placeComment(anchor: ReviewAnchor): Promise<void> {
   if (composerOnly) return;
   const author = authorForReview();
   if (!author) return;
@@ -207,6 +252,7 @@ async function setPanelOpen(open: boolean): Promise<void> {
 
 async function showThread(threadId: string): Promise<void> {
   selectedThreadId = threadId;
+  if (devtoolsPanel) return;
   panelOpen = true;
   if (!panelInstance) {
     const { default: Panel } = await import('../panel/ReviewPanel.svelte');
@@ -245,7 +291,15 @@ onMount(() => {
   overlay = createReviewOverlay({
     root,
     comments,
-    onPlace: place,
+    toggle: false,
+    // Escape, C and a finished placement change the mode inside the overlay: mirror it.
+    onActiveChange: (active: boolean) => {
+      commentMode = active;
+    },
+    onPlace: placeComment,
+    onOrphans: (ids: string[]) => {
+      panelProps.orphanedThreadIds = ids;
+    },
     ...(composerOnly
       ? {
           onCommentInClaude: async (element: Element) => {
@@ -274,6 +328,10 @@ onMount(() => {
   {panelOpen}
   onCommentModeChange={setCommentMode}
   onPanelChange={setPanelOpen}
+  showPanelButton={!devtoolsPanel}
+  {place}
+  onExport={exportComments ? downloadComments : undefined}
+  onImport={importComments ? importJson : undefined}
 />
 
 <aside class="review-panel-host" class:open={panelOpen} aria-busy={busy} bind:this={panelHost}></aside>
@@ -295,10 +353,12 @@ onMount(() => {
 {/if}
 
 {#if status}<p class="review-status" role="alert">{status}</p>{/if}
+{#if notice}<p class="review-notice" role="status">{notice}</p>{/if}
 
 <style>
-  .review-panel-host,.review-thread-host{display:none}.review-panel-host.open{position:fixed;z-index:2147482999;top:4.25rem;right:.75rem;bottom:.75rem;display:block;width:min(28rem,calc(100vw - 1.5rem));overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);box-shadow:0 8px 32px rgb(0 0 0 / .24)}
+  .review-panel-host{display:none}.review-panel-host.open{position:fixed;z-index:2147482999;top:4.25rem;right:.75rem;bottom:.75rem;display:block;width:min(28rem,calc(100vw - 1.5rem));overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);box-shadow:0 8px 32px rgb(0 0 0 / .24)}
   .review-thread-host{position:fixed;z-index:2147483001;right:1rem;bottom:1rem;width:min(30rem,calc(100vw - 2rem));max-height:80vh;overflow:auto;border:1px solid var(--py-border,#d4d4d8);border-radius:.75rem;background:var(--py-surface,#fff);padding:.75rem;color:var(--py-foreground,#18181b);box-shadow:0 8px 32px rgb(0 0 0 / .24);font:inherit}.review-thread-host header{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.review-thread-host h2{font-size:1rem}.review-thread-host ol{display:grid;gap:.5rem;padding:0;list-style:none}.review-thread-host li{border:1px solid var(--py-border,#d4d4d8);border-radius:.5rem;padding:.65rem}.review-thread-host p{white-space:pre-wrap;overflow-wrap:anywhere}.review-thread-host time{font-size:.75rem;color:var(--py-muted-foreground,#52525b)}.review-thread-host form{display:grid;gap:.4rem;margin-top:.75rem}.review-thread-host textarea{min-height:5rem;border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.5rem;color:inherit;font:inherit}.review-thread-host button{border:1px solid var(--py-border,#d4d4d8);border-radius:.4rem;background:var(--py-surface,#fff);padding:.45rem .65rem;color:inherit}
+  .review-notice{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border:1px solid var(--py-border,#d4d4d8);border-radius:.5rem;background:var(--py-surface,#fff);padding:.75rem;color:var(--py-foreground,#18181b);box-shadow:0 4px 16px rgb(0 0 0 / .16)}
   .review-status{position:fixed;z-index:2147483003;right:1rem;bottom:1rem;max-width:min(30rem,calc(100vw - 2rem));border-radius:.5rem;background:var(--py-destructive,#b91c1c);padding:.75rem;color:#fff}
   @media(max-width:40rem){.review-panel-host.open{inset:4.25rem .5rem .5rem;width:auto}.review-thread-host{inset:auto .5rem .5rem;width:auto;max-height:70vh}}
 </style>

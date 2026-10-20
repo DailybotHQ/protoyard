@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Popover } from '@protoyard/ui';
 import {
   type IsoDate,
   type MonthCell,
@@ -7,6 +6,7 @@ import {
   parseIsoDate,
   type Weekday,
 } from '@protoyard/views/calendar';
+import LazyPopover from '../lib/LazyPopover.svelte';
 import EventChip from './EventChip.svelte';
 import { type Formats, onDate } from './model.ts';
 import type { CalendarItem } from './types.ts';
@@ -100,24 +100,24 @@ function dayLabel(cell: MonthCell, count: number) {
             <EventChip {item} {fmt} {editable} compact {onOpen} {onDragStart} />
           {/each}
           {#if dayItems.length > MAX_VISIBLE}
-            <Popover side="bottom" align="start">
-              {#snippet trigger({ props })}
-                <button
-                  {...props}
-                  type="button"
-                  class="self-start rounded px-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`${dayItems.length - MAX_VISIBLE} more events on ${fmt.longDate(cell.date)}`}
-                >
-                  +{dayItems.length - MAX_VISIBLE} more
-                </button>
-              {/snippet}
+            <!-- The popover's Bits UI code loads on first use (see lib/lazy-overlays.svelte.ts). -->
+            <LazyPopover
+              side="bottom"
+              align="start"
+              button={{
+                class:
+                  'self-start rounded px-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
+                'aria-label': `${dayItems.length - MAX_VISIBLE} more events on ${fmt.longDate(cell.date)}`,
+              }}
+            >
+              {#snippet label()}+{dayItems.length - MAX_VISIBLE} more{/snippet}
               <p class="mb-2 font-medium">{fmt.longDate(cell.date)}</p>
               <ul class="grid gap-1" aria-label={`Events on ${fmt.longDate(cell.date)}`}>
                 {#each dayItems as item (item.key)}
                   <li><EventChip {item} {fmt} {onOpen} {onDragStart} /></li>
                 {/each}
               </ul>
-            </Popover>
+            </LazyPopover>
           {/if}
         </div>
       {/each}

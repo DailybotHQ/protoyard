@@ -22,7 +22,7 @@ the no-flash appearance script. The CLI drives it through env vars:
 | `PROTOYARD_INCLUDE_DEVTOOLS` | `__PROTOYARD_DEVTOOLS__` in builds (`1/0`) | manifest `build.includeDevtools`; always on in dev |
 | `PROTOYARD_DEMO_BADGE` | `__PROTOYARD_DEMO_BADGE__` in builds | manifest `build.demoBadge`; off in dev |
 | `PROTOYARD_REVIEW` | `__PROTOYARD_REVIEW__` and `build-manifest.json.review.enabled` (`1/0`) | manifest `build.review.enabled` (false) |
-| `PROTOYARD_REVIEW_ADAPTER`, `PROTOYARD_REVIEW_ENDPOINT` | review adapter and endpoint for this build (`__PROTOYARD_BUILD__.review`, checked by the manifest schema; `publish --comments` sets `http` and `/api/comments`) | manifest `build.review` |
+| `PROTOYARD_REVIEW_ADAPTER` (+ `PROTOYARD_REVIEW_ENDPOINT`) | `__PROTOYARD_REVIEW_ADAPTER__`: the comments backend for this build (`local`, `http`, `cloudflare`, `artifact`), checked by the manifest's `build.review` schema; the review E2E points a build at a local comments server | manifest `build.review.adapter` / `endpoint` |
 | `PROTOYARD_PORT` | dev/preview port (`strictPort: false`) | Vite default |
 | `PROTOYARD_BUILT_AT` | `__PROTOYARD_BUILD__.builtAt` | build time |
 | `PROTOYARD_OFFLINE` | ship the `@protoyard/offline` service worker (`1/0`; builds only) | manifest `build.offline` (false) |
@@ -40,6 +40,12 @@ stripping. With DevTools disabled the panel is tree-shaken out of the bundle.
 Review UI is loaded only for `build.review.enabled` / `PROTOYARD_REVIEW=1`, or
 from an enabled DevTools build when `?comments=1` is present. `build-manifest.json`
 records the effective `{ enabled, adapter }`; it never records the endpoint.
+When DevTools is present, review mounts first, and DevTools shows its
+"Comments" tab (`mountReview({ devtools: true }).devtoolsTab` passed as
+`mountDevtools({ extraTabs })`). The floating review toolbar is placed by
+`placeFloating` (`src/shell/floating.ts`), which uses the demo badge's rules:
+no app control, never on the badge. The badge re-places itself on
+`protoyard:floating`.
 Globals are typed in `@protoyard/renderer-svelte/env`.
 
 ## Avatars

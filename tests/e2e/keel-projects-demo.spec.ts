@@ -1,6 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
+import { badgeOverlaps } from './support/badge.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
+import { launcherOverlaps } from './support/review.ts';
 import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
 /**
@@ -52,7 +55,8 @@ test.describe('Keel Projects flagship', () => {
       await page.mouse.move(from.x, from.y);
       await page.mouse.down();
       await page.mouse.move(from.x + 3, from.y + 3, { steps: 2 });
-      await page.mouse.move(to.x, to.box.y + to.box.height - 16, { steps: 14 });
+      // Drop near the top of the column: its bottom may be below the window.
+      await page.mouse.move(to.x, to.box.y + 24, { steps: 14 });
       await page.mouse.up();
     }
     // On a phone each column is 85vw wide: bring the moved card into view before asserting.
@@ -161,7 +165,7 @@ test.describe('Keel Projects flagship', () => {
       const grid = page.getByRole('grid', { name: 'All tasks' });
       await expect(grid).toHaveAttribute('aria-rowcount', '10005');
       expect(await grid.locator('[role="row"]').count()).toBeLessThanOrEqual(80);
-      await page.getByLabel('View').selectOption({ label: 'Urgent and high' });
+      await page.getByLabel('View', { exact: true }).selectOption({ label: 'Urgent and high' });
       await expect(grid).not.toHaveAttribute('aria-rowcount', '10005');
     }
     await expectAccessible(page, testInfo, { label: 'keel-grid' });
@@ -186,5 +190,47 @@ test.describe('Keel Projects flagship', () => {
     await page.keyboard.type('timeline');
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/#\/timeline$/);
+  });
+
+  test('review comments: the demo review imports from the toolbar and pins to the board', async ({
+    page,
+  }) => {
+    // build.review is on (local adapter): one collapsed launcher, placed where it covers no app
+    // control (the top bar's search and bell included) and not the demo badge.
+    await open(page, '#/');
+    const launcher = page.getByRole('button', { name: /^Review: \d+ comment threads?/ });
+    await expect(launcher).toBeVisible();
+    await expect
+      .poll(() => launcherOverlaps(page), { message: 'launcher over app controls' })
+      .toEqual([]);
+    await expect.poll(() => badgeOverlaps(page), { message: 'badge over controls' }).toEqual([]);
+    const topBar = page.locator('[data-py-anchor="top-bar"]');
+    const [bar, own] = await Promise.all([topBar.boundingBox(), launcher.boundingBox()]);
+    if (!bar || !own) throw new Error('the top bar and the launcher have layout boxes');
+    const overlapsBar =
+      own.x < bar.x + bar.width &&
+      bar.x < own.x + own.width &&
+      own.y < bar.y + bar.height &&
+      bar.y < own.y + own.height;
+    expect(overlapsBar, 'launcher over the app top bar').toBe(false);
+    await expect(page.getByRole('link', { name: 'download a sample review' })).toHaveAttribute(
+      'href',
+      './review-demo.json'
+    );
+    await launcher.click();
+    await expect(launcher).toHaveAttribute('aria-expanded', 'true');
+    const toolbar = page.getByRole('navigation', { name: 'Prototype review toolbar' });
+    await expect(toolbar.getByRole('button', { name: 'Export' })).toBeVisible();
+    await expect(toolbar.getByRole('button', { name: 'Import' })).toBeVisible();
+    const fixture = fileURLToPath(
+      new URL('../../prototypes/keel-projects-demo/public/review-demo.json', import.meta.url)
+    );
+    await toolbar.locator('input[type="file"]').setInputFiles(fixture);
+    await expect(page.getByText('Imported 13 comments.')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Review: 7 comment threads/ })).toBeVisible();
+    // The board's threads pin to its data-py-anchor regions.
+    await page.goto(`${prototypeUrl(SLUG)}#/projects/project_0001`);
+    await waitForPrototypeReady(page, { slug: SLUG });
+    await expect(page.locator('[data-py-review-pin]').first()).toBeVisible();
   });
 });

@@ -138,12 +138,12 @@ async function removeTask() {
 
   <div class="grid gap-6 lg:grid-cols-[1fr_20rem]">
     <div class="min-w-0 space-y-6">
-      <Card class="p-5">
+      <Card class="p-5" data-py-anchor="task-description">
         <h2 class="text-sm font-semibold">Description</h2>
         <p class="mt-2 text-sm whitespace-pre-wrap text-surface-foreground">{current.description || 'No description yet.'}</p>
       </Card>
 
-      <section aria-labelledby="comments-heading">
+      <section aria-labelledby="comments-heading" data-py-anchor="task-comments">
         <h2 id="comments-heading" class="sr-only">Comments</h2>
         <CommentThread
           query={comments}
@@ -158,7 +158,7 @@ async function removeTask() {
       </section>
     </div>
 
-    <aside class="space-y-6">
+    <aside class="space-y-6" data-py-anchor="task-details">
       <Card class="p-5">
         <dl class="grid grid-cols-[6.5rem_1fr] items-center gap-x-3 gap-y-3 text-sm">
           <dt class="text-muted-foreground">Status</dt>

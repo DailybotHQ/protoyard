@@ -143,9 +143,16 @@ geoPoints({ ctx, region: 'metro-grid', count: 200, key: 'stores' });
   level there, so more history adds older points only.
 - `schedule` never overlaps slots of one resource; occupancy defaults to the scenario's
   `generators.schedule.occupancy` (the `busy-week` preset sets 0.9), else 0.5.
-- `geoPoints` uses fictional regions (`GEO_REGIONS`) placed in open ocean.
-- Presets `quarter-of-history`, `launch-spike` and `busy-week`; fragments `history`,
-  `seasonality`, `spike` and `occupancy`.
+- `geoPoints` uses fictional regions (`GEO_REGIONS`) placed in open ocean. Each point has an
+  index-keyed random stream, so increasing `count` preserves existing points; `key` separates
+  collections in one scenario. Coordinates are clamped to the region bounds and rounded to five
+  decimals; they never identify real addresses.
+- `eventStream` delegates to `dailyEvents`, so event ids remain stable when the requested window
+  changes. `kinds` supplies relative event weights; optional seasonality and burstiness adjust
+  the daily counts.
+- `quarter-of-history`, `launch-spike` and `busy-week` are opt-in presets. The `history`,
+  `seasonality`, `spike` and `occupancy` fragments set the corresponding `generators.series` or
+  `generators.schedule` knobs read by these helpers.
 
 Full reference: [docs/SCENARIOS.md](../../docs/SCENARIOS.md#series-schedules-events-and-geo).
 

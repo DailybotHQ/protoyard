@@ -53,6 +53,7 @@ const anchor = workspace.runtime.clock
     ? 'Sprint rituals repeat on their own. Drag one to move it; repeating rituals ask whether to change this one, the following ones or all.'
     : 'Sprint rituals for the whole studio. This persona can view the calendar but not move rituals.'}
 />
+<div data-py-anchor="calendar">
 <CalendarView
   {query}
   {anchor}
@@ -66,3 +67,4 @@ const anchor = workspace.runtime.clock
     ? { onChange: (change: CalendarChange<RitualData>) => workspace.services.rituals.apply(change.writes) }
     : {})}
 />
+</div>

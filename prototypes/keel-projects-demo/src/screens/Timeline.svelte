@@ -33,6 +33,7 @@ const canEdit = $derived(Boolean(principal.current && principal.current.role !==
 </script>
 
 <PageHeader title="Project timeline" description="Move or resize a task to reschedule it. Linked tasks shift together, and the critical path is highlighted." />
+<div data-py-anchor="timeline">
 <TimelineView
   {query}
   {dependencies}
@@ -47,3 +48,4 @@ const canEdit = $derived(Boolean(principal.current && principal.current.role !==
     : undefined}
   onOpen={(task) => { window.location.hash = `#/tasks/${task.id}`; }}
 />
+</div>

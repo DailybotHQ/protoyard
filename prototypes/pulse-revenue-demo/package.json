@@ -1,0 +1,32 @@
+{
+  "name": "@prototype/pulse-revenue-demo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Protoyard generated revenue analytics flagship: dashboard, analytics explorer and lifecycle board with simulated data.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.50.0",
+    "@protoyard/blueprint": "workspace:*",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/crud": "workspace:*",
+    "@protoyard/views-ui": "workspace:*",
+    "@protoyard/charts-ui": "workspace:*",
+    "@protoyard/analytics-ui": "workspace:*",
+    "@protoyard/themes": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "dexie": "^4.4.0",
+    "svelte": "^5.57.0"
+  },
+  "devDependencies": {
+    "@protoyard/runtime": "workspace:*",
+    "@protoyard/scenarios": "workspace:*"
+  }
+}

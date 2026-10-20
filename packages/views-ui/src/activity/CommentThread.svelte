@@ -1,9 +1,10 @@
 <script lang="ts" generics="C extends ActivityComment">
 import { runService } from '@protoyard/renderer-svelte';
-import { AlertDialog, Avatar, Button, Spinner } from '@protoyard/ui';
+import { Avatar, Button, Spinner } from '@protoyard/ui';
 import { type ActivityComment, buildThreads, tokenize, whenLabel } from '@protoyard/views/activity';
 import type { Component } from 'svelte';
 import { onMount } from 'svelte';
+import { lazyDialog } from '../lib/lazy-overlays.svelte.ts';
 import QueryState from '../states/QueryState.svelte';
 import Composer from './Composer.svelte';
 import Segments from './Segments.svelte';
@@ -201,10 +202,12 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
             <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => (editing = comment.id)}>Edit</Button>
           {/if}
           {#if own && onDelete}
-            <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() => {
-              deleting = comment;
-              confirmOpen = true;
-            }}>Delete</Button>
+            <!-- The confirmation's Bits UI code loads on the first Delete (the button shows it pending). -->
+            <Button variant="ghost" size="sm" class="h-7 px-2" onclick={() =>
+              lazyDialog.load().then(() => {
+                deleting = comment;
+                confirmOpen = true;
+              })}>Delete</Button>
           {/if}
         </div>
         {#if picker === comment.id && onReact}
@@ -285,8 +288,9 @@ const nameOf = (id: string) => byId.get(id)?.name ?? 'Someone';
   </QueryState>
 </section>
 
-{#if deleting && onDelete}
+{#if deleting && onDelete && lazyDialog.current}
   {@const target = deleting}
+  {@const AlertDialog = lazyDialog.current}
   <!-- The dialog stays open with the reason when deleting fails. -->
   <AlertDialog
     bind:open={confirmOpen}

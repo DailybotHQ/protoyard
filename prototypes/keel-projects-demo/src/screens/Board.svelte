@@ -54,7 +54,7 @@ const LANE_OPTIONS: { value: LaneMode | null; label: string }[] = [
 {#if project.current}
   <PageHeader title={project.current.name} description={`${project.current.key} · ${query.current?.length ?? 0} tasks`}>
     {#snippet actions()}
-      <div role="group" aria-label="Swimlanes" class="inline-flex rounded-lg border border-border bg-surface p-0.5">
+      <div role="group" aria-label="Swimlanes" data-py-anchor="board-lanes" class="inline-flex rounded-lg border border-border bg-surface p-0.5">
         {#each LANE_OPTIONS as option (option.label)}
           <button
             type="button"
@@ -68,6 +68,8 @@ const LANE_OPTIONS: { value: LaneMode | null; label: string }[] = [
       </div>
     {/snippet}
   </PageHeader>
+  <!-- Review comments pin to stable anchors (data-py-anchor) that survive layout and data changes. -->
+  <div data-py-anchor="board">
   {#key laneMode}
     <BoardView
       {query}
@@ -89,6 +91,7 @@ const LANE_OPTIONS: { value: LaneMode | null; label: string }[] = [
       {/snippet}
     </BoardView>
   {/key}
+  </div>
 {:else}
   <PageHeader title="Project board" description="Choose a project from navigation." />
 {/if}

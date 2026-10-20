@@ -7,6 +7,7 @@ import {
   placeCompact,
   type Rect,
 } from './badge-placement.ts';
+import { FLOATING_EVENT } from './floating.ts';
 
 let { name }: { name: string } = $props();
 
@@ -92,6 +93,8 @@ onMount(() => {
     if (event.key === 'Escape') collapse();
   };
   window.addEventListener('resize', schedule);
+  // Floating chrome (the review toolbar) moved: re-check, since it is a control the badge must not cover.
+  window.addEventListener(FLOATING_EVENT, schedule);
   window.addEventListener('hashchange', schedule);
   window.addEventListener('hashchange', collapse);
   window.addEventListener('keydown', onKey);
@@ -101,6 +104,7 @@ onMount(() => {
     clearTimeout(timer);
     observer.disconnect();
     window.removeEventListener('resize', schedule);
+    window.removeEventListener(FLOATING_EVENT, schedule);
     window.removeEventListener('hashchange', schedule);
   };
 });

@@ -1,16 +1,7 @@
 <script lang="ts" generics="T">
 import { ArrowDown, ArrowUp, ChevronRight, Columns3, Filter } from '@lucide/svelte';
 import { isValidationError, runService } from '@protoyard/renderer-svelte';
-import {
-  Button,
-  cn,
-  DropdownMenu,
-  type DropdownMenuEntry,
-  Popover,
-  Select,
-  Spinner,
-  Switch,
-} from '@protoyard/ui';
+import { Button, buttonVariants, cn, type DropdownMenuEntry, Spinner } from '@protoyard/ui';
 import {
   applyView,
   compileFilter,
@@ -31,8 +22,8 @@ import {
   windowGrid,
 } from '@protoyard/views/grid';
 import { tick } from 'svelte';
+import LazyDropdownMenu from '../lib/LazyDropdownMenu.svelte';
 import QueryState from '../states/QueryState.svelte';
-import FilterBuilder from './FilterBuilder.svelte';
 import {
   completeFilter,
   type DataGridColumn,
@@ -501,11 +492,9 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
       <Filter class="size-4" aria-hidden="true" />Filters{view.filter ? ' (on)' : ''}
     </Button>
     <span class="hidden md:inline-flex">
-      <DropdownMenu items={columnsMenu()}>
-        {#snippet trigger({ props })}
-          <Button {...props} variant="outline" size="sm"><Columns3 class="size-4" aria-hidden="true" />Columns</Button>
-        {/snippet}
-      </DropdownMenu>
+      <LazyDropdownMenu items={columnsMenu()} align="start" button={{ class: buttonVariants({ variant: 'outline', size: 'sm' }) }}>
+        <Columns3 class="size-4" aria-hidden="true" />Columns
+      </LazyDropdownMenu>
     </span>
     <label class="flex items-center gap-2 text-sm text-muted-foreground">
       Density
@@ -519,7 +508,14 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
     <span class="ml-auto text-sm text-muted-foreground" aria-live="polite">{result.rows.length.toLocaleString('en')} rows</span>
   </div>
   {#if showFilters}
-    <FilterBuilder {columns} value={view.filter} onchange={(filter) => setView({ ...view, filter })} label={`${label} filters`} />
+    <!-- The filter builder loads when Filters is first opened. -->
+    {#await import('./FilterBuilder.svelte')}
+      <p class="text-sm text-muted-foreground" role="status">Loading filters…</p>
+    {:then { default: FilterBuilder }}
+      <FilterBuilder {columns} value={view.filter} onchange={(filter) => setView({ ...view, filter })} label={`${label} filters`} />
+    {:catch}
+      <p class="text-sm text-destructive" role="alert">The filter builder could not load. Check the connection and try again.</p>
+    {/await}
   {/if}
   <p class="text-sm text-muted-foreground empty:hidden" role="status">
     {#if filterError}Filter not applied: {filterError}{:else if prepared.incomplete}{prepared.incomplete === 1 ? 'One condition needs a value before it applies.' : `${prepared.incomplete} conditions need a value before they apply.`}{/if}
@@ -584,11 +580,15 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
                   <span class="truncate">{c.def.header}</span>
                   {#if direction === 'asc'}<ArrowUp class="size-3.5 shrink-0" aria-hidden="true" />{:else if direction === 'desc'}<ArrowDown class="size-3.5 shrink-0" aria-hidden="true" />{/if}
                 </button>
-                <DropdownMenu items={columnMenu(c)} align="end">
-                  {#snippet trigger({ props })}
-                    <button {...props} type="button" aria-label={`${c.def.header} column options`} class="inline-flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">⋯</button>
-                  {/snippet}
-                </DropdownMenu>
+                <LazyDropdownMenu
+                  items={columnMenu(c)}
+                  align="end"
+                  button={{
+                    'aria-label': `${c.def.header} column options`,
+                    class:
+                      'inline-flex size-6 items-center justify-center rounded text-muted-foreground hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                  }}
+                >⋯</LazyDropdownMenu>
                 <!-- A focusable separator is the ARIA window-splitter widget. -->
                 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
                 <div
@@ -674,10 +674,29 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
                   >
                     {#if isEditing && editing}
                       {#if column.type === 'boolean'}
-                        <Switch data-editor aria-label={column.header} checked={editing.draft === true} onCheckedChange={(checked) => editing && (editing = { ...editing, draft: checked })} onkeydown={(event: KeyboardEvent) => onEditorKey(event, item.row, column)} />
+                        <!-- Native controls edit in place: no Bits UI layers inside a cell. -->
+                        <input
+                          data-editor
+                          type="checkbox"
+                          role="switch"
+                          aria-label={column.header}
+                          class="size-4 accent-primary"
+                          checked={editing.draft === true}
+                          onchange={(event) => editing && (editing = { ...editing, draft: (event.currentTarget as HTMLInputElement).checked })}
+                          onkeydown={(event) => onEditorKey(event, item.row, column)}
+                        />
                         <Button size="sm" variant="ghost" onclick={() => commitEdit(item.row, column)}>Save</Button>
                       {:else if column.type === 'enum' && column.options}
-                        <Select data-editor aria-label={column.header} items={column.options.map((o) => ({ value: o, label: o }))} value={String(editing.draft)} onValueChange={(next) => editing && (editing = { ...editing, draft: next })} onkeydown={(event: KeyboardEvent) => onEditorKey(event, item.row, column)} class="h-7" />
+                        <select
+                          data-editor
+                          aria-label={column.header}
+                          class="h-7 rounded border border-input bg-background px-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          value={String(editing.draft)}
+                          onchange={(event) => editing && (editing = { ...editing, draft: (event.currentTarget as HTMLSelectElement).value })}
+                          onkeydown={(event) => onEditorKey(event, item.row, column)}
+                        >
+                          {#each column.options as option (option)}<option value={option}>{column.format ? column.format(option, item.row) : option}</option>{/each}
+                        </select>
                         <Button size="sm" variant="ghost" onclick={() => commitEdit(item.row, column)}>Save</Button>
                       {:else}
                         <input
