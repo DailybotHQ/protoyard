@@ -10,6 +10,7 @@ import {
 } from '@protoyard/renderer-svelte';
 import PlayerApp from './PlayerApp.svelte';
 import { setPlayerBlueprint } from './player-blueprint.ts';
+import { withWorkerGeneration } from './worker/generate-world.ts';
 
 export interface BootPlayerOptions {
   blueprint: Blueprint;
@@ -34,10 +35,11 @@ export interface BootedPlayer extends MountedPrototype {
 export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlayer> {
   const { blueprint, target } = options;
   const { namespace } = await blueprintIdentity(blueprint);
-  const { definition, appModel } = definePrototypeFromBlueprint(blueprint, {
+  const { definition: blueprintDefinition, appModel } = definePrototypeFromBlueprint(blueprint, {
     namespace,
     slug: namespace,
   });
+  const definition = withWorkerGeneration(blueprintDefinition, blueprint);
   setPlayerBlueprint({ blueprint, model: appModel });
   const mounted = await mountPrototype({
     definition,
