@@ -31,8 +31,7 @@ import {
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { type Browser, chromium } from '@playwright/test';
-import { screenshot, withReadyPage } from './lib/capture.ts';
-import { optimizePng } from './lib/png.ts';
+import { optimizePng, screenshot, withReadyPage } from '../packages/cli/src/lib/capture/index.ts';
 import { serveDirectory } from './lib/static-server.ts';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));

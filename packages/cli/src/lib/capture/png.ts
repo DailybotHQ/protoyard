@@ -1,9 +1,10 @@
 import { crc32, deflateSync, inflateSync } from 'node:zlib';
 
 /*
- * The PNG handling the thumbnail and visual-sweep scripts need, with no image
- * dependency: lossless re-compression of Playwright screenshots, and a decoder
- * for 8-bit RGB/RGBA PNGs (what Chromium writes) to compare two captures.
+ * The PNG handling the thumbnail and visual-sweep scripts and quick
+ * screenshots need, with no image dependency: lossless re-compression of
+ * Playwright screenshots, and a decoder for 8-bit RGB/RGBA PNGs (what Chromium
+ * writes) to compare two captures.
  */
 
 interface Chunk {
