@@ -15,6 +15,7 @@ import {
   localSpecifierFindings,
   manifestFindings,
   parseArgs,
+  payloadPrefixes,
   readTarball,
 } from '../../../scripts/check-packages.ts';
 
@@ -145,6 +146,29 @@ describe('fileFindings', () => {
         rule: 'source-file',
         message: 'src/stray.ts is TypeScript source that no packed declaration map references',
       },
+    ]);
+  });
+
+  it('lets declared payload folders ship sources and tests, but never env files', () => {
+    const payload = payloadPrefixes({
+      protoyard: { pack: { payload: ['templates', 'src/', '/abs', '../up', ''] } },
+    });
+    expect(payload).toEqual(['templates/', 'src/']);
+    const findings = fileFindings(
+      files({
+        'templates/blank/src/main.ts': 'export {};',
+        'templates/blank/tests/smoke.test.ts': '',
+        'templates/blank/.env.local': 'TOKEN=x',
+        'src/pages/index.ts': 'export {};',
+        'lib/stray.ts': 'export {};',
+        'tests/a.test.ts': '',
+      }),
+      payload
+    );
+    expect(findings.map((f) => `${f.rule} ${f.message.split(' ')[0]}`)).toEqual([
+      'source-file lib/stray.ts',
+      'forbidden-file templates/blank/.env.local',
+      'forbidden-file tests/a.test.ts',
     ]);
   });
 

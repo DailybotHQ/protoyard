@@ -91,6 +91,31 @@ interface Manifest {
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
+  protoyard?: { pack?: PackPolicy };
+}
+
+/**
+ * `protoyard.pack` in a manifest: an app or content package (the gallery, the
+ * templates aggregate) declares the folders it ships as payload. Payload files
+ * skip only the test-path and TypeScript-source rules; env and key files,
+ * hygiene, size and local-specifier rules still apply. `types: false` skips attw
+ * for a package with no importable typed API.
+ */
+export interface PackPolicy {
+  payload?: string[];
+  types?: boolean;
+}
+
+/** The payload prefixes a manifest declares, normalized to end in `/`. */
+export function payloadPrefixes(manifest: Manifest): string[] {
+  const payload = manifest.protoyard?.pack?.payload;
+  if (!Array.isArray(payload)) return [];
+  return payload
+    .filter(
+      (p): p is string =>
+        typeof p === 'string' && p.length > 0 && !p.startsWith('/') && !p.includes('..')
+    )
+    .map((p) => (p.endsWith('/') ? p : `${p}/`));
 }
 
 export interface Candidate {
@@ -171,8 +196,12 @@ const DECLARATION = /\.d\.[cm]?ts$/;
  * File-level rules over a tarball's contents (paths relative to `package/`).
  * TypeScript source may ship only as the target of a packed declaration map.
  */
-export function fileFindings(files: Map<string, Uint8Array>): Finding[] {
+export function fileFindings(
+  files: Map<string, Uint8Array>,
+  payload: readonly string[] = []
+): Finding[] {
   const findings: Finding[] = [];
+  const inPayload = (path: string) => payload.some((prefix) => path.startsWith(prefix));
   const mapped = new Set<string>();
   for (const [path, data] of files) {
     if (!path.endsWith('.d.ts.map') && !/\.d\.[cm]ts\.map$/.test(path)) continue;
@@ -188,11 +217,17 @@ export function fileFindings(files: Map<string, Uint8Array>): Finding[] {
     }
   }
   for (const path of [...files.keys()].sort()) {
-    if (TEST_PATH.test(path) || TEST_FILE.test(path)) {
+    const payloadFile = inPayload(path);
+    if (!payloadFile && (TEST_PATH.test(path) || TEST_FILE.test(path))) {
       findings.push({ rule: 'forbidden-file', message: `${path} is a test, fixture or snapshot` });
     } else if (ENV_FILE.test(path)) {
       findings.push({ rule: 'forbidden-file', message: `${path} is an environment file` });
-    } else if (TS_SOURCE.test(path) && !DECLARATION.test(path) && !mapped.has(path)) {
+    } else if (
+      !payloadFile &&
+      TS_SOURCE.test(path) &&
+      !DECLARATION.test(path) &&
+      !mapped.has(path)
+    ) {
       findings.push({
         rule: 'source-file',
         message: `${path} is TypeScript source that no packed declaration map references`,
@@ -402,7 +437,7 @@ export async function checkPackage(
           }
         }
       }
-      const fileLevel = fileFindings(files);
+      const fileLevel = fileFindings(files, payloadPrefixes(manifest));
       report.findings.push(...fileLevel);
       report.findings.push(...hygieneFindings(files, report.path, root, fileLevel));
       const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
@@ -413,7 +448,8 @@ export async function checkPackage(
         });
       }
       report.findings.push(...(await publintFindings(tarball)));
-      if (options.attw !== false) report.findings.push(...attwFindings(tarballPath));
+      const typed = manifest.protoyard?.pack?.types !== false;
+      if (options.attw !== false && typed) report.findings.push(...attwFindings(tarballPath));
     } catch (error) {
       report.findings.push({ rule: 'pack', message: (error as Error).message });
     } finally {
