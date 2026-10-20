@@ -5,15 +5,15 @@ import { importSqliteSchema, SqliteSchemaError } from '../../src/import/sqlite-s
 
 describe('schema import security bounds', () => {
   it('keeps imported values out of every generated draft and review note', () => {
-    const secret = 'DO_NOT_COPY_PRIVATE_CELL_9f4a';
-    const csv = inferCsvEntity(`name,notes\nAda,${secret}`);
-    const json = inferJsonShape(JSON.stringify({ name: 'Ada', notes: secret }));
+    const privateValue = 'DO_NOT_COPY_PRIVATE_CELL_9f4a';
+    const csv = inferCsvEntity(`name,notes\nAda,${privateValue}`);
+    const json = inferJsonShape(JSON.stringify({ name: 'Ada', notes: privateValue }));
     const sqlite = importSqliteSchema(
-      `CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT DEFAULT '${secret}');`
+      `CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT DEFAULT '${privateValue}');`
     );
 
     for (const draft of [csv, json, sqlite]) {
-      expect(JSON.stringify(draft)).not.toContain(secret);
+      expect(JSON.stringify(draft)).not.toContain(privateValue);
     }
   });
 

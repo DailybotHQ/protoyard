@@ -122,15 +122,15 @@ describe('SQLite DDL schema import', () => {
   });
 
   it('discards defaults and SQL literals without echoing them into drafts or errors', () => {
-    const secret = 'sensitive-fixture-value';
+    const privateValue = 'sensitive-fixture-value';
     const result = importSqliteSchema(
-      `CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT DEFAULT '${secret}');`
+      `CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT DEFAULT '${privateValue}');`
     );
-    expect(JSON.stringify(result)).not.toContain(secret);
+    expect(JSON.stringify(result)).not.toContain(privateValue);
     expect(result.entities[0]?.fields).toContainEqual(
       expect.objectContaining({ name: 'body', kind: 'text' })
     );
-    expect(result.notes.join(' ')).not.toContain(secret);
+    expect(result.notes.join(' ')).not.toContain(privateValue);
   });
 
   it('rejects unsupported statements, types, malformed references and composite relations safely', () => {
