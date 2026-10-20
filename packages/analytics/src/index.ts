@@ -66,6 +66,7 @@ export {
   type DateRangePreset,
   DateRangePresetSchema,
   inRange,
+  MAX_CUSTOM_RANGE_DAYS,
   PRESET_LABELS,
   resolveDateRange,
   startOfDay,

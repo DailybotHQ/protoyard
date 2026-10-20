@@ -42,6 +42,12 @@ export const PRESET_LABELS: Record<DateRangePreset, string> = {
   'last-month': 'Last month',
 };
 
+/**
+ * Longest custom span (about ten years). Shared links are untrusted input, and
+ * an unbounded span would let a fine granularity exceed `MAX_BUCKETS`.
+ */
+export const MAX_CUSTOM_RANGE_DAYS = 3660;
+
 const isoDay = z.iso.date();
 const isoInstant = z.iso.datetime({ offset: true });
 
@@ -58,14 +64,18 @@ export const DateRangeInputSchema = z.discriminatedUnion('kind', [
       start: z.union([isoDay, isoInstant]),
       end: z.union([isoDay, isoInstant]),
     })
-    .refine(
-      (range) =>
-        customBounds(range.start, range.end).end > customBounds(range.start, range.end).start,
-      {
-        message: 'The end must be after the start',
-        path: ['end'],
+    .superRefine((range, ctx) => {
+      const { start, end } = customBounds(range.start, range.end);
+      if (!(end > start)) {
+        ctx.addIssue({ code: 'custom', message: 'The end must be after the start', path: ['end'] });
+      } else if (end - start > MAX_CUSTOM_RANGE_DAYS * DAY_MS) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `A custom range spans at most ${MAX_CUSTOM_RANGE_DAYS} days`,
+          path: ['end'],
+        });
       }
-    ),
+    }),
 ]);
 export type DateRangeInput = z.infer<typeof DateRangeInputSchema>;
 

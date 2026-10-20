@@ -15,6 +15,7 @@ import {
   FilterSchema,
   filterSchemaFor,
   MAX_BUCKETS,
+  MAX_CUSTOM_RANGE_DAYS,
   MAX_FILTER_NODES,
   measureFilterInput,
   percentile,
@@ -96,6 +97,18 @@ describe('resolveDateRange', () => {
     // A single inclusive day is a valid range.
     expect(
       DateRangeInputSchema.safeParse({ kind: 'custom', start: '2026-03-01', end: '2026-03-01' })
+        .success
+    ).toBe(true);
+    // Custom spans are capped so a shared link cannot ask for unbounded buckets.
+    const huge = DateRangeInputSchema.safeParse({
+      kind: 'custom',
+      start: '2000-01-01',
+      end: '2030-01-01',
+    });
+    expect(huge.success).toBe(false);
+    expect(huge.error?.issues[0]?.message).toContain(`${MAX_CUSTOM_RANGE_DAYS} days`);
+    expect(
+      DateRangeInputSchema.safeParse({ kind: 'custom', start: '2020-01-01', end: '2029-12-31' })
         .success
     ).toBe(true);
   });

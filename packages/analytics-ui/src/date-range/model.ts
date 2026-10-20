@@ -75,26 +75,41 @@ export function toDateRangeQuery(value: DateRangeValue): string {
   return params.toString();
 }
 
-/** Parses the query back; anything missing or invalid falls back to `fallback`'s part. */
+/**
+ * Parses the query back; anything missing or invalid falls back to `fallback`'s part.
+ * The granularity is fitted to the range (`fitGranularity`), so a shared link such as
+ * `range=2000-01-01..2009-12-31&by=hour` cannot ask for more than `MAX_BUCKETS` buckets.
+ * Custom ranges resolve without a clock and span at most `MAX_CUSTOM_RANGE_DAYS`; pass
+ * `now` to fit preset ranges too (no preset reaches `MAX_BUCKETS`, even hourly).
+ */
 export function fromDateRangeQuery(
   query: string | URLSearchParams,
-  fallback: DateRangeValue = DEFAULT_DATE_RANGE
+  fallback: DateRangeValue = DEFAULT_DATE_RANGE,
+  now?: number
 ): DateRangeValue {
   const params =
     typeof query === 'string' ? new URLSearchParams(query.replace(/^[?#]/, '')) : query;
   const raw = params.get('range');
   let range = fallback.range;
+  let rangeRefused = false;
   if (raw) {
     const [start, end] = raw.split('..');
     const candidate =
       end === undefined ? { kind: 'preset', preset: raw } : { kind: 'custom', start, end };
     const parsed = DateRangeInputSchema.safeParse(candidate);
     if (parsed.success) range = parsed.data;
+    else rangeRefused = true;
   }
   // `compare` is left out of the query when it is `none`, so a query with a range but no
   // `compare` means "no comparison"; a query with neither keeps the fallback.
   const compare = ComparisonSchema.safeParse(params.get('compare'));
   const by = GranularitySchema.safeParse(params.get('by'));
+  // A refused range falls back as a whole: the fallback range with its own granularity.
+  const requested = by.success && !rangeRefused ? by.data : fallback.granularity;
+  const granularity =
+    range.kind === 'custom' || now !== undefined
+      ? fitGranularity(requested, resolveDateRange(range, now ?? 0))
+      : requested;
   return {
     range,
     comparison: compare.success
@@ -102,7 +117,7 @@ export function fromDateRangeQuery(
       : raw && !params.has('compare')
         ? 'none'
         : fallback.comparison,
-    granularity: by.success ? by.data : fallback.granularity,
+    granularity,
   };
 }
 
