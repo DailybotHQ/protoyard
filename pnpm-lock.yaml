@@ -238,6 +238,9 @@ importers:
       '@protoyard/review':
         specifier: workspace:*
         version: link:../review
+      '@protoyard/templates':
+        specifier: workspace:*
+        version: link:../templates
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../themes
