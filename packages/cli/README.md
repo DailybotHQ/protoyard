@@ -133,6 +133,13 @@ and Windows.
   build leaves a hidden `.protoyard-out` marker (it also holds that build's manifest); a showcase
   leaves `.protoyard-showcase`.
 - **Outside the workspace:** additionally needs `--allow-external-out`.
+- **Quick explorations:** `.protoyard/quick/<slug>/` (outside a workspace, `./.protoyard/quick/`
+  under the working folder, never the home folder itself). Only `protoyard quick` writes there,
+  one slug-named folder per exploration, through real folders only, and only into a new, empty or
+  `.protoyard-quick`-marked folder (`src/lib/quick/paths.ts`). Each exploration records a strict,
+  versioned `quick.json` (`protoyard.quick` v1: brief and blueprint sha256, player version,
+  variants, screenshots, shares, promotion; `src/lib/quick/model.ts`). A newer format version is
+  refused with an upgrade hint, and the brief text is omitted with `--no-store-brief`.
 - **Never allowed:** the workspace or its parents, your home folder, `.git`, `node_modules`,
   `packages`, `apps`, `prototypes`, `templates`, `docs`, `scripts`, `tests`, `.github`,
   `.agents`, `.claude` or `.dwp`, nor a path that is itself a symlink.
