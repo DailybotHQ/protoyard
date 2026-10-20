@@ -940,6 +940,11 @@ twice: the runtime builds a `GenerateContext` (and loads its own Faker chunk,
 worker. No measured phase turned that into a long task, but it is wasted
 transfer and parse. Skipping the main-thread context needs a runtime API change
 (proposed in PLAN_004, T-player-world-cache).
+The player visual review is opt-in: `pnpm visual:sweep --only player` builds
+the player into `tmp/` and captures four screenshots from the quick assistant
+blueprint (desktop and phone, light and dark), with axe and layout-fit
+findings. The player does not add shots to the normal prototype sweep, and
+these screenshots are review artifacts rather than a performance budget.
 
 ## Large blueprint on the player path (measured 2026-10-20)
 
