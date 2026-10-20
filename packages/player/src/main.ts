@@ -1,11 +1,9 @@
-import { parseBlueprint } from '@protoyard/blueprint';
-import { bootPlayer } from './boot.ts';
-import demo from './fixtures/demo.blueprint.json';
+import { startPlayer } from './sources/start.ts';
 import './app.css';
 
 const target = document.getElementById('app');
 if (!target) throw new Error('index.html must contain <div id="app"></div>');
 
-// The bundled demo blueprint. Loading from files, links and messages is added
-// by the player's source resolution (see README).
-void bootPlayer({ blueprint: parseBlueprint(demo), target });
+// Resolves the blueprint (#bp= share link, then ?src=./blueprint.json, then
+// the picker) through the untrusted loader, then boots it (see README).
+void startPlayer({ target });
