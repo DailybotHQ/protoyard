@@ -225,7 +225,13 @@ export function createScenarioController(
     // Yield between phases so a progress UI can paint before each blocking step.
     await yieldToBrowser();
     let started = performance.now();
-    const world = await k.definition.generate(await createGenerateContextAsync(effective));
+    // Every load, reset and stale-world reseed lands here. A definition that
+    // generates its own world (the player's Web Worker) gets the effective
+    // scenario, so no GenerateContext (and no Faker) is built on this thread.
+    const { generateWorld } = k.definition;
+    const world = generateWorld
+      ? await generateWorld.call(k.definition, effective)
+      : await k.definition.generate(await createGenerateContextAsync(effective));
     timings.generateMs = performance.now() - started;
     step('generate', 1, 1);
 
