@@ -14,6 +14,22 @@ for every file.
 Fictional data only (`.example` domains via generator fakes). Blueprints are
 never bundled into a running prototype’s JS — they are source for generate.
 
+## Quick examples
+
+Small archetype starters live separately from the marketplace catalog. They
+use deterministic fake generation, explicit starter routes and only their
+declared lazy kit families; they are intentionally compact for idea validation.
+
+| Blueprint | Archetype | Entities | First-run focus |
+| --- | --- | --- | --- |
+| [Quick Assistant Workspace](./quick/assistant.json) | assistant | conversations, messages | inspect and continue a simulated assistant conversation |
+| [Quick Team Chat](./quick/team-chat.json) | team-chat | rooms, members, messages | explore fictional rooms, members and message history |
+
+These files are source blueprints, not marketplace listings. Their generated
+content is deterministic and fictional; the assistant uses a local simulation,
+not a hosted model. Validate the examples with
+`pnpm vitest run packages/blueprint/tests/quick-examples/assistant-chat.test.ts`.
+
 ## Catalog
 
 The catalog contains 40 blueprints across operations, services, business, people, content, and other product areas. The gallery count is derived from the indexed blueprint registry.

@@ -19,6 +19,17 @@ assistant's send callback contract. The current `@protoyard/ai-ui` entry exposes
 assistant workspace, not a dedicated team-chat screen; the player needs an explicit
 adapter or a future team-chat UI entry for that archetype.
 
+## Quick blueprint starters
+
+[`blueprints/quick/assistant.json`](../blueprints/quick/assistant.json) and
+[`blueprints/quick/team-chat.json`](../blueprints/quick/team-chat.json) provide
+compact, fictional assistant and chat data shapes. Both declare only the
+`@protoyard/ai` and `@protoyard/ai-ui` archetype entries, generated entity
+relations, starter routes and deterministic scenario defaults. Assistant
+content is local generated fixture text; it is not produced by a real model or
+provider. The team-chat blueprint declares its archetype screen contract, while
+the current UI package still needs a dedicated adapter to render that screen.
+
 ## Honest boundaries (read first)
 
 | Claim | Reality in this repository |

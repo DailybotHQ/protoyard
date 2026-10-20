@@ -1,0 +1,119 @@
+{
+  "formatVersion": 1,
+  "name": "Quick Team Chat",
+  "description": "A fictional team chat with generated rooms, members and messages.",
+  "archetype": {
+    "id": "team-chat",
+    "kits": ["@protoyard/ai", "@protoyard/ai-ui"],
+    "entities": { "rooms": "room", "messages": "message", "members": "member" },
+    "screens": [{ "kind": "team-chat", "path": "/chat" }],
+    "scenarioDefaults": { "density": "normal", "activity": "intense" }
+  },
+  "entities": [
+    {
+      "name": "room",
+      "plural": "rooms",
+      "label": "Room",
+      "seedCount": 3,
+      "fields": [
+        {
+          "name": "name",
+          "label": "Room name",
+          "kind": "text",
+          "required": true,
+          "fake": "company.catchPhrase"
+        },
+        { "name": "topic", "label": "Topic", "kind": "longText", "fake": "lorem.sentence" },
+        {
+          "name": "visibility",
+          "label": "Visibility",
+          "kind": "enum",
+          "values": ["public", "private"],
+          "default": "public"
+        }
+      ],
+      "titleField": "name",
+      "searchable": ["name", "topic"]
+    },
+    {
+      "name": "member",
+      "plural": "members",
+      "label": "Member",
+      "seedCount": 8,
+      "fields": [
+        {
+          "name": "room",
+          "label": "Room",
+          "kind": "relation",
+          "to": "room",
+          "required": true,
+          "cardinality": "one",
+          "onDelete": "cascade"
+        },
+        {
+          "name": "displayName",
+          "label": "Display name",
+          "kind": "text",
+          "required": true,
+          "fake": "person.fullName"
+        },
+        { "name": "role", "label": "Role", "kind": "enum", "values": ["owner", "member"] },
+        { "name": "online", "label": "Online", "kind": "boolean" }
+      ],
+      "titleField": "displayName",
+      "searchable": ["displayName"]
+    },
+    {
+      "name": "message",
+      "plural": "messages",
+      "label": "Message",
+      "seedCount": 24,
+      "fields": [
+        {
+          "name": "room",
+          "label": "Room",
+          "kind": "relation",
+          "to": "room",
+          "required": true,
+          "cardinality": "one",
+          "onDelete": "cascade"
+        },
+        {
+          "name": "member",
+          "label": "Author",
+          "kind": "relation",
+          "to": "member",
+          "required": true,
+          "cardinality": "one",
+          "onDelete": "cascade"
+        },
+        {
+          "name": "kind",
+          "label": "Message type",
+          "kind": "enum",
+          "values": ["message", "announcement"]
+        },
+        {
+          "name": "content",
+          "label": "Message",
+          "kind": "longText",
+          "required": true,
+          "fake": "lorem.sentence"
+        }
+      ],
+      "titleField": "kind",
+      "searchable": ["content"]
+    }
+  ],
+  "roles": [
+    { "name": "owner", "permissions": { "*": ["*"] } },
+    {
+      "name": "member",
+      "permissions": { "room": ["read"], "member": ["read"], "message": ["read", "create"] }
+    }
+  ],
+  "screens": [
+    { "type": "list", "entity": "room", "path": "/rooms", "title": "Chat rooms" },
+    { "type": "detail", "entity": "room", "path": "/rooms/:id", "title": "Room details" }
+  ]
+}

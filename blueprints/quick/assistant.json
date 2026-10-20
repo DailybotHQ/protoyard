@@ -1,0 +1,87 @@
+{
+  "formatVersion": 1,
+  "name": "Quick Assistant Workspace",
+  "description": "A small fictional assistant workspace using deterministic simulated replies.",
+  "archetype": {
+    "id": "assistant",
+    "kits": ["@protoyard/ai", "@protoyard/ai-ui"],
+    "entities": { "conversations": "conversation", "messages": "message" },
+    "screens": [{ "kind": "assistant-workspace", "path": "/assistant" }],
+    "scenarioDefaults": { "density": "normal", "activity": "normal" }
+  },
+  "entities": [
+    {
+      "name": "conversation",
+      "plural": "conversations",
+      "label": "Conversation",
+      "seedCount": 3,
+      "fields": [
+        {
+          "name": "title",
+          "label": "Title",
+          "kind": "text",
+          "required": true,
+          "fake": "company.catchPhrase"
+        },
+        {
+          "name": "status",
+          "label": "Status",
+          "kind": "enum",
+          "values": ["active", "archived"],
+          "default": "active"
+        },
+        { "name": "summary", "label": "Summary", "kind": "longText", "fake": "lorem.sentence" }
+      ],
+      "titleField": "title",
+      "searchable": ["title", "summary"]
+    },
+    {
+      "name": "message",
+      "plural": "messages",
+      "label": "Message",
+      "seedCount": 12,
+      "fields": [
+        {
+          "name": "conversation",
+          "label": "Conversation",
+          "kind": "relation",
+          "to": "conversation",
+          "required": true,
+          "cardinality": "one",
+          "onDelete": "cascade"
+        },
+        { "name": "role", "label": "Role", "kind": "enum", "values": ["assistant", "user"] },
+        {
+          "name": "content",
+          "label": "Message",
+          "kind": "longText",
+          "required": true,
+          "fake": "lorem.paragraph"
+        }
+      ],
+      "titleField": "role",
+      "searchable": ["content"]
+    }
+  ],
+  "roles": [
+    { "name": "owner", "permissions": { "*": ["*"] } },
+    {
+      "name": "member",
+      "permissions": { "conversation": ["read", "create", "update"], "message": ["read", "create"] }
+    }
+  ],
+  "screens": [
+    {
+      "type": "list",
+      "entity": "conversation",
+      "path": "/conversations",
+      "title": "Conversation history"
+    },
+    {
+      "type": "detail",
+      "entity": "conversation",
+      "path": "/conversations/:id",
+      "title": "Conversation details"
+    }
+  ]
+}
