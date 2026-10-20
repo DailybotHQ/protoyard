@@ -43,6 +43,9 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Publish batch | `pnpm vitest run packages/cli/tests/publish-batch.test.ts` | scoped |
 | Publish ledger | `pnpm vitest run packages/cli/tests/publish-ledger.test.ts` | scoped |
 | Review index | `pnpm vitest run packages/cli/tests/review-index.test.ts` | scoped |
+| Review comments (engine + UI) | `pnpm vitest run packages/review packages/review-ui` | scoped |
+| Review comments CLI and Cloudflare worker | `pnpm vitest run packages/cli/tests/comments-command.test.ts packages/cli/tests/publish-comments.test.ts` | scoped |
+| Review comments in the browser | `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e tests/e2e/review-comments.spec.ts` | scoped |
 | CI workflow init/check | `pnpm vitest run packages/cli/tests/ci-init.test.ts` | scoped |
 | Affected-prototype selection | `pnpm vitest run packages/cli/tests/affected.test.ts` | scoped |
 | Bundle budget command | `pnpm vitest run packages/cli/tests/budget-command.test.ts` | scoped |
@@ -112,6 +115,7 @@ targets are opt-in through environment variables:
 | `PROTOYARD_E2E_SHOWCASE=1` | Include the combined gallery + prototype showcase | `4501`; `PROTOYARD_E2E_SHOWCASE_BASE=/path/` sets its public base |
 | `PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo` | Also build the listed prototypes WITH DevTools into `tmp/e2e-devtools/<slug>` and serve them, for `tests/e2e/pending-feedback.spec.ts` (the standard builds stay DevTools-free) | One server per slug from `4451` (`PROTOYARD_E2E_DEVTOOLS_PORT_BASE` overrides it) |
 | `PROTOYARD_E2E_REVIEW=1` | Run the review-index page against the checked-in fixture ledger, with no deploy | `4502`; `PROTOYARD_E2E_REVIEW_PORT` overrides the port |
+| `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo` | Build the listed prototypes with `PROTOYARD_REVIEW=1` into `tmp/e2e-comments/<slug>` for `tests/e2e/review-comments.spec.ts`; the first one is also built with the `http` adapter and served with the comments handler on an in-memory store (two reviewers) | One server per slug from `4601` (`PROTOYARD_E2E_COMMENTS_PORT_BASE`); the shared server on `4651` (`PROTOYARD_E2E_COMMENTS_SHARED_PORT`) |
 
 The gallery uses port `4329`. The standalone CLI `review-index --serve`
 defaults to `4520` (or the next free port); `--strict-port` makes a collision
@@ -153,6 +157,9 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/cli/src/commands/publish.ts`, publish batch helpers | `publish.test.ts`, `publish-batch.test.ts` | integration; batch command row above |
 | `packages/cli/src/lib/publish-ledger.ts` | `publish-ledger.test.ts`; ledger consumers in `publish-batch.test.ts` and `review-index.test.ts` | ledger persistence and consumers |
 | `packages/cli/src/commands/review-index.ts` | `review-index.test.ts` + `tests/e2e/review-index.spec.ts` | CLI integration + opt-in browser E2E |
+| `packages/review/src/**` | `packages/review/tests/*.test.ts` (every adapter runs `tests/conformance.ts`; `server-validate.test.ts` keeps the worker validator in parity with the zod schema) | unit / integration |
+| `packages/review-ui/src/**` | `packages/review-ui/tests/*.test.ts` + `tests/e2e/review-comments.spec.ts` | happy-dom unit + browser E2E (anchoring, frames, focus, capture) |
+| `packages/cli/src/commands/comments.ts`, `publish --comments` | `comments-command.test.ts`, `publish-comments.test.ts` | CLI integration; worker bundle size, routes and a KV round trip in Node |
 | `packages/cli/src/commands/ci.ts` | `ci-init.test.ts` | workflow init, drift and integrity checks |
 | `packages/cli/src/commands/affected.ts`, `packages/cli/src/lib/affected.ts` | `affected.test.ts` | CLI integration |
 | `packages/cli/src/commands/generate.ts`, `blueprint` command | `generate.test.ts`, `blueprint-validate.test.ts` | CLI integration (temporary workspaces) |
@@ -216,6 +223,10 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 - Provider deployments are not exercised by local tests or CI. Review-index
   E2E reads a fixture ledger; validate real Cloudflare, Netlify or Vercel
   behavior manually with authorized credentials and a dry run first.
+- Review comments: real Cloudflare deploys, D1 and KV bindings and
+  `REVIEW_KEY` secrets are not exercised. Only dry runs, the bundled worker in
+  Node and the handler with an in-memory store are tested. KV's eventual
+  consistency cannot be reproduced locally.
 - GitHub-hosted runner timing varies. Cold-start numbers are uploaded as
   reports, not a CI threshold, until a calibration run establishes a stable
   baseline.
