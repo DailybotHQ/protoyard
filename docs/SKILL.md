@@ -40,3 +40,18 @@ family to its guide: [LAYOUTS](LAYOUTS.md), [SHELLS](SHELLS.md),
 [SAAS_KITS](SAAS_KITS.md), [AI_KITS](AI_KITS.md) and [AVATARS](AVATARS.md). The
 catalog is a map, not an API reference; the guides and package READMEs stay
 authoritative.
+## Trust and consent
+
+The skill routes to local instructions and does not fetch instructions or
+publish by itself. Prototype generation may write files in the workspace the
+developer asked to change; keep those edits scoped and report them. Installing
+or upgrading the skill changes host-level files and requires explicit approval
+after showing the pinned source and target paths. Package-manager installs and
+other network actions must be identified before they run.
+
+Provider publishing and npm releases are separate from local building and
+export. Run a provider dry run first when available, then show the exact target
+and obtain explicit approval before a live upload. Do not run `npm publish` or
+trigger a release workflow without explicit approval for that release. Never
+ask for or expose credentials. See the skill's [`TRUST.md`](../skills/protoyard/TRUST.md),
+the [repository security model](SECURITY.md), and the [publishing guide](PUBLISHING.md).
