@@ -321,8 +321,21 @@ Not verified yet:
     `prototypes/<slug>/docs/` is tracked. Read it before you commit it.
 - **Limits on the comments Function.**
   - Request bodies are capped at 16 KB.
-  - Each client id may make 30 requests and each IP address 120 per 60
-    seconds; beyond that the Function answers `429` with `Retry-After`.
+  - Only writes (`PUT`, `DELETE`) are rate limited, so polling reads never
+    write to the store. Each IP address may make 120 writes and each client
+    id 30 per 60 seconds; beyond that the Function answers `429` with
+    `Retry-After`. The IP bucket is checked first, so rotating the
+    self-declared client id does not create new buckets once an IP is
+    blocked. With D1, expired `rate_limits` rows are deleted on each allowed
+    write. With KV, rate buckets expire on their own after two windows.
+  - Each slug holds at most 2,000 comments. A `PUT` of a new id beyond that
+    answers `409 comment_limit`; edits of existing comments still work.
+  - Reads are not rate limited, and a slug is any valid slug, not only the
+    deployed one, so storage can still grow by up to 2,000 comments per slug
+    a writer chooses. With KV, every list reads each comment with its own
+    `get`, so a slug near the cap makes reads slow and may reach the
+    platform's per-request subrequest limit. Watch the store's usage, and
+    prefer D1 for any link you share widely.
   - The CLI reads at most 5 MB, and imported files are capped at 5 MB.
 - **KV is eventually consistent.** With the KV store, a new comment can take a
   while to appear for other reviewers, concurrent edits can overwrite each
@@ -347,7 +360,7 @@ Measured on 2026-10-19 (gzip -9, Vite production build of `crm-demo`):
 | Lazy, loaded when review mounts: `mount` + session (toolbar, overlay, thread) + local adapter + anchors + comment schemas | 1.5 + 8.3 + 1.3 + 2.3 + 1.3 = 14.7 KB, plus 1.4 KB CSS |
 | Lazy, on first open: comments panel | 3.5 KB, plus 1.1 KB CSS |
 | Lazy, by adapter: `http` / `artifact-shell` | 2.4 KB / 2.6 KB |
-| Cloudflare `_worker.js` (raw, minified) | 14,443 bytes with D1, 13,981 bytes with KV (limit 20 KB) |
+| Cloudflare `_worker.js` (raw, minified) | 15,105 bytes with D1, 14,476 bytes with KV (limit 20 KB; measured 2026-10-19 after the write-only rate limits, the per-slug cap and the single-line anchor checks) |
 
 ## Tests
 

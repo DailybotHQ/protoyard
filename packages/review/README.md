@@ -59,19 +59,23 @@ Call `close()` when the adapter is no longer needed. A host can supply
 returns JSON with `nosniff` and `no-referrer` headers, validates slugs and
 comments, caps request bodies at 16 KB, and leaves comment bodies as plain text.
 Writes require a same-origin `Origin`; configure `REVIEW_KEY` to discourage
-casual access (it is not authentication). Per-client and per-IP limits use
-fixed windows and respond with `429 Retry-After` when exceeded. Defaults are
-30 requests per `x-review-client-id` and 120 per `CF-Connecting-IP` (or the
-first `X-Forwarded-For` value) per 60 seconds; pass handler env overrides to
-change the limits. The summary reports comment and root-thread counts, with
+casual access (it is not authentication). Only writes (`PUT`, `DELETE`) are rate limited, with
+fixed windows, and respond with `429 Retry-After` when exceeded: 120 per
+`CF-Connecting-IP` (or the first `X-Forwarded-For` value), checked first, then
+30 per `x-review-client-id`, per 60 seconds. Reads never write rate buckets.
+A `PUT` of a new id answers `409 comment_limit` once a slug holds 2,000
+comments (`maxCommentsPerSlug`); edits still work. Stores may implement
+`count(slug)` and `pruneRateLimits(now, windowMs)`; the D1 store deletes
+expired `rate_limits` rows on each allowed write. Pass handler env overrides
+to change the limits. The summary reports comment and root-thread counts, with
 open/resolved counts calculated from root comments.
 
 Comments are validated by `validateReviewComment` (also exported), a
 dependency-free mirror of `ReviewCommentSchema`. The module imports only types
 from `@protoyard/core/review`, so the Cloudflare worker that
-`protoyard publish --comments` bundles stays under 20 KB raw (about 14 KB;
+`protoyard publish --comments` bundles stays under 20 KB raw (about 15 KB;
 with zod and the core schemas it was 109 KB). `tests/server-validate.test.ts`
-runs both validators on about 790 valid and invalid documents and requires the
+runs both validators on about 850 valid and invalid documents and requires the
 same verdict and the same parsed value. Change the schema and the validator
 together.
 

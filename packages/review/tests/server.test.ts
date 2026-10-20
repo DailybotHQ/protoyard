@@ -3,10 +3,12 @@ import type { ReviewComment } from '@protoyard/core/review';
 import { ReviewCommentSchema } from '@protoyard/core/review';
 import { describe, expect, it } from 'vitest';
 import {
+  type CommentsStore,
   createD1CommentsStore,
   createKvCommentsStore,
   createMemoryCommentsStore,
   handleCommentsRequest,
+  REVIEW_SERVER_LIMITS,
   type ReviewD1Database,
   type ReviewD1PreparedStatement,
   type ReviewKvNamespace,
@@ -229,43 +231,101 @@ describe('comments Request/Response handler', () => {
     );
     expect(oversized.status).toBe(413);
 
+    const del = (headers: Record<string, string> = {}) =>
+      request('/api/comments/demo-app/comment-00001', 'DELETE', undefined, headers);
     const limitedStore = createMemoryCommentsStore();
     const limitedEnv = { now, perClientRateLimit: 1, perIpRateLimit: 5, rateWindowMs: 10_000 };
-    expect(
-      (await handleCommentsRequest(request('/api/comments/demo-app'), limitedEnv, limitedStore))
-        .status
-    ).toBe(200);
-    const limited = await handleCommentsRequest(
-      request('/api/comments/demo-app'),
-      limitedEnv,
-      limitedStore
-    );
+    expect((await handleCommentsRequest(del(), limitedEnv, limitedStore)).status).toBe(200);
+    const limited = await handleCommentsRequest(del(), limitedEnv, limitedStore);
     expect(limited.status).toBe(429);
     expect(limited.headers.get('retry-after')).toBe('10');
 
     const ipLimitedStore = createMemoryCommentsStore();
     const ipLimitedEnv = { now, perClientRateLimit: 5, perIpRateLimit: 1, rateWindowMs: 10_000 };
+    const reviewer = (client: string) =>
+      del({ 'x-review-client-id': client, 'cf-connecting-ip': '192.0.2.10' });
     expect(
-      (
-        await handleCommentsRequest(
-          request('/api/comments/demo-app', 'GET', undefined, {
-            'x-review-client-id': 'client-reviewer-a',
-            'cf-connecting-ip': '192.0.2.10',
-          }),
-          ipLimitedEnv,
-          ipLimitedStore
-        )
-      ).status
+      (await handleCommentsRequest(reviewer('client-reviewer-a'), ipLimitedEnv, ipLimitedStore))
+        .status
     ).toBe(200);
     const ipLimited = await handleCommentsRequest(
-      request('/api/comments/demo-app', 'GET', undefined, {
-        'x-review-client-id': 'client-reviewer-b',
-        'cf-connecting-ip': '192.0.2.10',
-      }),
+      reviewer('client-reviewer-b'),
       ipLimitedEnv,
       ipLimitedStore
     );
     expect(ipLimited.status).toBe(429);
+  });
+
+  it('limits only writes, checks the IP bucket first and prunes stale buckets', async () => {
+    const base = createMemoryCommentsStore();
+    const buckets: string[] = [];
+    let prunes = 0;
+    const store: CommentsStore = {
+      ...base,
+      consumeRateLimit(key, at, limit, windowMs) {
+        buckets.push(key);
+        return base.consumeRateLimit(key, at, limit, windowMs);
+      },
+      async pruneRateLimits() {
+        prunes += 1;
+      },
+    };
+    const env = { now, perClientRateLimit: 100, perIpRateLimit: 2, rateWindowMs: 10_000 };
+    for (let i = 0; i < 10; i++) {
+      expect(
+        (await handleCommentsRequest(request('/api/comments/demo-app'), env, store)).status
+      ).toBe(200);
+      expect(
+        (await handleCommentsRequest(request('/api/comments/demo-app/summary'), env, store)).status
+      ).toBe(200);
+    }
+    expect(buckets).toEqual([]);
+    expect(prunes).toBe(0);
+
+    for (let i = 0; i < 5; i++) {
+      await handleCommentsRequest(
+        request('/api/comments/demo-app/comment-00001', 'DELETE', undefined, {
+          'x-review-client-id': `client-rotated-${i}`,
+          'cf-connecting-ip': '192.0.2.20',
+        }),
+        env,
+        store
+      );
+    }
+    // Two allowed writes touch both buckets; the three refused ones stop at the IP bucket.
+    expect(buckets).toEqual([
+      'ip:192.0.2.20',
+      'client:client-rotated-0',
+      'ip:192.0.2.20',
+      'client:client-rotated-1',
+      'ip:192.0.2.20',
+      'ip:192.0.2.20',
+      'ip:192.0.2.20',
+    ]);
+    expect(prunes).toBe(2);
+  });
+
+  it('caps new comments per slug but still accepts edits of existing ones', async () => {
+    const store = createMemoryCommentsStore();
+    const env = { now, maxCommentsPerSlug: 2 };
+    const put = (id: string, body = 'A note.') =>
+      handleCommentsRequest(
+        request(
+          `/api/comments/demo-app/${id}`,
+          'PUT',
+          JSON.stringify(sampleComment('demo-app', { id, threadId: id, body }))
+        ),
+        env,
+        store
+      );
+    expect((await put('comment-cap-001')).status).toBe(200);
+    expect((await put('comment-cap-002')).status).toBe(200);
+    const third = await put('comment-cap-003');
+    expect(third.status).toBe(409);
+    expect((await payload(third)).error?.code).toBe('comment_limit');
+    expect((await put('comment-cap-001', 'Edited note.')).status).toBe(200);
+    expect(await store.count?.('demo-app')).toBe(2);
+    expect(REVIEW_SERVER_LIMITS.maxCommentsPerSlug).toBe(2000);
   });
 
   it('validates slugs and rejects unsupported methods', async () => {
@@ -314,6 +374,8 @@ describe('comment stores', () => {
     expect(await store.get('demo-app', comment.id)).toEqual(comment);
     expect(await store.list('demo-app')).toEqual([comment]);
     expect((await store.summary('demo-app')).threads).toBe(1);
+    expect(await store.count?.('demo-app')).toBe(1);
+    expect(await store.count?.('other-app')).toBe(0);
     expect(await store.consumeRateLimit('ip:test', 1000, 1, 10_000)).toEqual({ allowed: true });
     expect(await store.consumeRateLimit('ip:test', 1000, 1, 10_000)).toMatchObject({
       allowed: false,
@@ -354,6 +416,10 @@ describe('comment stores', () => {
               const comment = comments.get(`${slug}/${id}`);
               return (comment ? { comment_json: JSON.stringify(comment) } : null) as T | null;
             }
+            if (query.startsWith('SELECT COUNT(*) AS n FROM comments WHERE slug = ?')) {
+              const [slug] = values as [string];
+              return { n: [...comments.values()].filter((c) => c.slug === slug).length } as T;
+            }
             if (query.startsWith('INSERT INTO rate_limits')) {
               const [key, nowValue, windowMsA, nowA] = values as [
                 string,
@@ -378,6 +444,9 @@ describe('comment stores', () => {
               comments.set(`${comment.slug}/${comment.id}`, comment);
             } else if (query.startsWith('DELETE FROM comments')) {
               comments.delete(`${String(values[0])}/${String(values[1])}`);
+            } else if (query.startsWith('DELETE FROM rate_limits WHERE window_start_ms + ? <= ?')) {
+              const [windowMs, at] = values as [number, number];
+              for (const [key, rate] of rates) if (rate.start + windowMs <= at) rates.delete(key);
             }
             return { success: true };
           },
@@ -398,8 +467,14 @@ describe('comment stores', () => {
       allowed: false,
       retryAfterSeconds: 10,
     });
+    expect(await store.count?.('demo-app')).toBe(1);
+    await store.pruneRateLimits?.(5000, 10_000);
+    expect(rates.has('client:test')).toBe(true);
+    await store.pruneRateLimits?.(11_000, 10_000);
+    expect(rates.has('client:test')).toBe(false);
     await store.remove('demo-app', comment.id);
     expect(await store.get('demo-app', comment.id)).toBeUndefined();
+    expect(await store.count?.('demo-app')).toBe(0);
   });
 });
 
