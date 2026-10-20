@@ -34,7 +34,7 @@ meaningful exit codes: 0 ok · 1 failure · 2 usage · 3 not found ·
 | `pnpm exec tsx scripts/import-avatars.ts [--src <dir>] [--check] [--dry-run]` | Re-encode the owner's fictional portraits into `packages/avatars` (WebP 64/128 px + manifest). `--check` verifies the committed files byte for byte and writes nothing. See [AVATARS.md](AVATARS.md). |
 | `pnpm build:showcase` | `protoyard showcase`: the gallery plus every prototype's build as one static site in `artifacts/showcase/` |
 | `pnpm preview:showcase` | Serve the built showcase (`showcase --skip-build --serve`) |
-| `pnpm thumbnails [slug…] [--check]` | Capture gallery thumbnails from real builds with Playwright into `prototypes/<slug>/public/thumbnail.png` |
+| `pnpm thumbnails [slug…] [--check]` | Capture gallery thumbnails from real builds with Playwright for every prototype and template into `prototypes/<slug>/public/thumbnail.png` or `templates/<name>/public/thumbnail.png`, and set the manifest's `thumbnail`. `protoyard new` drops the source's thumbnail, so run it for a new prototype |
 | `pnpm hygiene` | Public-hygiene check over tracked files (secrets, tokens, stray files) |
 | `pnpm check` | `lint` + `typecheck` + `test` |
 

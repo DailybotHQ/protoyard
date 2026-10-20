@@ -1,9 +1,10 @@
 /**
  * Gallery thumbnails generated from the REAL apps (`pnpm thumbnails`).
  *
- * For each prototype: build it (`pnpm protoyard build <slug>`), serve
+ * For each prototype and template: build it (`pnpm protoyard build <slug>`), serve
  * `artifacts/<slug>/dist` from a tiny local static server, open it in
- * headless Chromium at 1280×800 and write `prototypes/<slug>/public/thumbnail.png`.
+ * headless Chromium at 1280×800, write `<prototypes|templates>/<slug>/public/thumbnail.png`
+ * and point the manifest's `thumbnail` at it.
  *
  * Deterministic by construction: the manifest's default scenario via
  * `?scenario=`, DevTools off (`?devtools=0`), reduced motion, light color
@@ -38,34 +39,66 @@ const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const WIDTH = 1280;
 const HEIGHT = 800;
 const BUDGET_BYTES = 150 * 1024;
+const THUMBNAIL = 'public/thumbnail.png';
 
 interface Target {
   slug: string;
   dir: string;
   defaultScenario: string | undefined;
+  /** Where `protoyard build` writes it (templates build under artifacts/templates/). */
+  dist: string;
 }
 
 function discover(only: readonly string[]): Target[] {
-  const base = join(ROOT, 'prototypes');
   const targets: Target[] = [];
-  for (const slug of readdirSync(base).sort()) {
-    // Same rule as the CLI's discovery: symlinked prototype folders are never
-    // processed (writing a thumbnail would go into the link's target).
-    if (lstatSync(join(base, slug)).isSymbolicLink()) continue;
-    const manifestPath = join(base, slug, 'protoyard.json');
-    if (!existsSync(manifestPath)) continue;
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
-      kind?: string;
-      status?: string;
-      defaultScenario?: string;
-    };
-    if ((manifest.kind ?? 'prototype') !== 'prototype' || manifest.status === 'archived') continue;
-    if (only.length > 0 && !only.includes(slug)) continue;
-    targets.push({ slug, dir: join(base, slug), defaultScenario: manifest.defaultScenario });
+  for (const [folder, kind] of [
+    ['prototypes', 'prototype'],
+    ['templates', 'template'],
+  ] as const) {
+    const base = join(ROOT, folder);
+    if (!existsSync(base)) continue;
+    for (const slug of readdirSync(base).sort()) {
+      // Same rule as the CLI's discovery: symlinked folders are never
+      // processed (writing a thumbnail would go into the link's target).
+      if (lstatSync(join(base, slug)).isSymbolicLink()) continue;
+      const manifestPath = join(base, slug, 'protoyard.json');
+      if (!existsSync(manifestPath)) continue;
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+        kind?: string;
+        status?: string;
+        defaultScenario?: string;
+      };
+      if ((manifest.kind ?? 'prototype') !== kind || manifest.status === 'archived') continue;
+      if (only.length > 0 && !only.includes(slug)) continue;
+      targets.push({
+        slug,
+        dir: join(base, slug),
+        defaultScenario: manifest.defaultScenario,
+        dist: join(ROOT, 'artifacts', ...(kind === 'template' ? ['templates'] : []), slug, 'dist'),
+      });
+    }
   }
   const missing = only.filter((slug) => !targets.some((t) => t.slug === slug));
-  if (missing.length) throw new Error(`Unknown prototype(s): ${missing.join(', ')}`);
+  if (missing.length) throw new Error(`Unknown prototype or template(s): ${missing.join(', ')}`);
   return targets;
+}
+
+/** Points the manifest at the captured file when it does not already. */
+function recordThumbnail(dir: string) {
+  const manifestPath = join(dir, 'protoyard.json');
+  if (lstatSync(manifestPath).isSymbolicLink()) {
+    throw new Error(`refusing to write through the symlink ${manifestPath}`);
+  }
+  const text = readFileSync(manifestPath, 'utf8');
+  const manifest = JSON.parse(text) as Record<string, unknown>;
+  if (manifest.thumbnail === THUMBNAIL) return;
+  // Edit the text, not a re-serialization, so the file keeps its formatting.
+  const next =
+    typeof manifest.thumbnail === 'string'
+      ? text.replace(/("thumbnail"\s*:\s*)"[^"]*"/, `$1"${THUMBNAIL}"`)
+      : text.replace(/\s*\}\s*$/, `,\n  "thumbnail": "${THUMBNAIL}"\n}\n`);
+  JSON.parse(next);
+  writeFileSync(manifestPath, next);
 }
 
 function capture(browser: Browser, url: string): Promise<Buffer> {
@@ -97,7 +130,7 @@ async function main() {
           });
           if (build.status !== 0) throw new Error(`build failed:\n${build.stdout}${build.stderr}`);
         }
-        const dist = join(ROOT, 'artifacts', target.slug, 'dist');
+        const dist = target.dist;
         if (!existsSync(join(dist, 'index.html'))) throw new Error(`no build at ${dist}`);
         const server = await serveDirectory(dist);
         try {
@@ -124,6 +157,7 @@ async function main() {
             if (link) throw new Error(`refusing to write through the symlink ${path}`);
           }
           writeFileSync(out, png);
+          recordThumbnail(target.dir);
           const kb = (png.length / 1024).toFixed(1);
           const note =
             png.length > BUDGET_BYTES ? ` (over the ${BUDGET_BYTES / 1024} KB budget)` : '';

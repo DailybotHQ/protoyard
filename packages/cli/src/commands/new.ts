@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import {
   copyFile,
+  lstat,
   mkdir,
   readdir,
   readFile,
@@ -9,7 +10,7 @@ import {
   rm,
   writeFile,
 } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { MANIFEST_FILENAME, safeParseManifest } from '@protoyard/core';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
@@ -93,6 +94,15 @@ export interface NewProjectInput {
   now: string;
 }
 
+/** Deletes a copied thumbnail file, only when it is a regular file inside `dir`. */
+async function removeInheritedThumbnail(dir: string, thumbnail: string) {
+  const path = resolve(dir, thumbnail);
+  if (path === resolve(dir) || !isInside(dir, path)) return;
+  try {
+    if ((await lstat(path)).isFile()) await rm(path);
+  } catch {}
+}
+
 /** Rewrites the copied template's identity files into a new prototype. */
 export async function personalize(dir: string, input: NewProjectInput) {
   const manifestPath = join(dir, MANIFEST_FILENAME);
@@ -110,6 +120,10 @@ export async function personalize(dir: string, input: NewProjectInput) {
     createdAt: input.now,
     updatedAt: input.now,
   };
+  // The source's thumbnail is a screenshot of a different app: drop it so the
+  // gallery shows a placeholder until `pnpm thumbnails <slug>` captures this one.
+  delete next.thumbnail;
+  if (typeof raw.thumbnail === 'string') await removeInheritedThumbnail(dir, raw.thumbnail);
   const parsed = safeParseManifest(next);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];

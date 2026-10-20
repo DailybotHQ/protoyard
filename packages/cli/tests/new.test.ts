@@ -69,6 +69,34 @@ describe('protoyard new', () => {
     expect(JSON.parse(read('templates/blank/protoyard.json')).kind).toBe('template');
   });
 
+  it("drops the template's thumbnail so the new prototype never shows another app", async () => {
+    const tpl = join(ws.root, 'templates/blank');
+    const manifest = JSON.parse(read('templates/blank/protoyard.json'));
+    writeFileSync(
+      join(tpl, 'protoyard.json'),
+      JSON.stringify({ ...manifest, thumbnail: 'public/thumbnail.png' })
+    );
+    mkdirSync(join(tpl, 'public'), { recursive: true });
+    writeFileSync(join(tpl, 'public/thumbnail.png'), 'png');
+    writeFileSync(join(tpl, 'public/logo.svg'), '<svg/>');
+
+    const run = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'new',
+      'shot',
+      '--template',
+      'blank',
+      '--no-install',
+    ]);
+    expect(run.code).toBe(0);
+    expect(JSON.parse(read('prototypes/shot/protoyard.json')).thumbnail).toBeUndefined();
+    expect(existsSync(join(ws.root, 'prototypes/shot/public/thumbnail.png'))).toBe(false);
+    expect(existsSync(join(ws.root, 'prototypes/shot/public/logo.svg'))).toBe(true);
+    expect(existsSync(join(tpl, 'public/thumbnail.png'))).toBe(true);
+  });
+
   it('is retry-safe: re-running the same command resumes instead of failing', async () => {
     const args = [
       '--root',
