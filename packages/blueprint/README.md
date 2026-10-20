@@ -29,6 +29,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | app-model | routes, navigation rows with icon ids, navigation groups and layout (`deriveAppModel`) | `.` |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
+| search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
 
 ## The schema
 

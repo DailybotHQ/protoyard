@@ -1,9 +1,9 @@
 <script lang="ts">
 import type { Blueprint } from '@protoyard/blueprint';
+import { type EntitySearchMatch, searchEntities } from '@protoyard/blueprint/search';
 import type { PrototypeRuntime } from '@protoyard/core';
 import { navigate } from '@protoyard/renderer-svelte';
 import { CommandPalette, type CommandPaletteItem } from '@protoyard/ui';
-import { type EntitySearchMatch, searchEntities } from '../../blueprint/src/search.ts';
 
 interface Props {
   runtime: PrototypeRuntime;

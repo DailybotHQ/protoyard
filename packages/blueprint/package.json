@@ -8,7 +8,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./csv": "./src/csv.ts",
-    "./generator": "./src/generator.ts"
+    "./generator": "./src/generator.ts",
+    "./search": "./src/search.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
