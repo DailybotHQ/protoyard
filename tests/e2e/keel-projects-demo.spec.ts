@@ -1,7 +1,9 @@
 import { fileURLToPath } from 'node:url';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
+import { badgeOverlaps } from './support/badge.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
+import { launcherOverlaps } from './support/review.ts';
 import { PROTOTYPE_TARGETS, prototypeUrl } from './targets.ts';
 
 /**
@@ -193,25 +195,39 @@ test.describe('Keel Projects flagship', () => {
   test('review comments: the demo review imports from the toolbar and pins to the board', async ({
     page,
   }) => {
-    // build.review is on (local adapter): the toolbar is docked above the app, never over it.
+    // build.review is on (local adapter): one collapsed launcher, placed where it covers no app
+    // control (the top bar's search and bell included) and not the demo badge.
     await open(page, '#/');
-    const toolbar = page.getByRole('navigation', { name: 'Prototype review toolbar' });
-    await expect(toolbar).toBeVisible();
-    const bar = (await toolbar.boundingBox()) as { y: number; height: number };
-    const topBar = (await page.locator('[data-py-anchor="top-bar"]').boundingBox()) as {
-      y: number;
-    };
-    expect(topBar.y).toBeGreaterThanOrEqual(bar.y + bar.height - 1);
+    const launcher = page.getByRole('button', { name: /^Review: \d+ comment threads?/ });
+    await expect(launcher).toBeVisible();
+    await expect
+      .poll(() => launcherOverlaps(page), { message: 'launcher over app controls' })
+      .toEqual([]);
+    await expect.poll(() => badgeOverlaps(page), { message: 'badge over controls' }).toEqual([]);
+    const topBar = page.locator('[data-py-anchor="top-bar"]');
+    const [bar, own] = await Promise.all([topBar.boundingBox(), launcher.boundingBox()]);
+    if (!bar || !own) throw new Error('the top bar and the launcher have layout boxes');
+    const overlapsBar =
+      own.x < bar.x + bar.width &&
+      bar.x < own.x + own.width &&
+      own.y < bar.y + bar.height &&
+      bar.y < own.y + own.height;
+    expect(overlapsBar, 'launcher over the app top bar').toBe(false);
     await expect(page.getByRole('link', { name: 'download a sample review' })).toHaveAttribute(
       'href',
       './review-demo.json'
     );
+    await launcher.click();
+    await expect(launcher).toHaveAttribute('aria-expanded', 'true');
+    const toolbar = page.getByRole('navigation', { name: 'Prototype review toolbar' });
+    await expect(toolbar.getByRole('button', { name: 'Export' })).toBeVisible();
+    await expect(toolbar.getByRole('button', { name: 'Import' })).toBeVisible();
     const fixture = fileURLToPath(
       new URL('../../prototypes/keel-projects-demo/public/review-demo.json', import.meta.url)
     );
     await toolbar.locator('input[type="file"]').setInputFiles(fixture);
     await expect(page.getByText('Imported 13 comments.')).toBeVisible();
-    await expect(toolbar.getByText('7 comments')).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Review: 7 comment threads/ })).toBeVisible();
     // The board's threads pin to its data-py-anchor regions.
     await page.goto(`${prototypeUrl(SLUG)}#/projects/project_0001`);
     await waitForPrototypeReady(page, { slug: SLUG });
