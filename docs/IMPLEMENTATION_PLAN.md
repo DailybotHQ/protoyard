@@ -221,9 +221,12 @@ and is not recorded here yet.
 
 - [x] `@protoyard/avatars`: 175 fictional portraits (WebP 64 and 128 px, 513,196 B for both sets) and a reproducible import (`scripts/import-avatars.ts --check`); persona `avatar` contract, seeded assignment in generators (versions bumped), served by the Vite plugin with 0 KB of JS, `Avatar` photos with initials as the fallback across the kits, templates and prototypes; a blueprint `avatar` field [`aa871df`, `ab33d1f`, `4b0dd47`, `9b307e5`, `0d2de53`, `590fe32`, `585c862`, `4933036`]
 
+**Review docs.** [REVIEW_COMMENTS.md](REVIEW_COMMENTS.md) (enabling review, adapters, reviewer guide, `comments pull` → `REVIEW.md` → tasks, Cloudflare setup, honest limits) and two trust-boundary rows in [SECURITY.md](SECURITY.md).
+
+- [x] Task 146: review comments guide and security boundaries [`b2abc92`]
+
 **Still open in PLAN_003:**
 
-- Task 146 (document review comments and their security boundaries in [SECURITY.md](SECURITY.md)) runs in parallel with this index update.
 - Task 169, the Final Review, runs the full suites, the default-port E2E and the AI Diff Reviewer local review on integrated `main`.
 
 **Known gaps after PLAN_003 (from the lane reports):**
@@ -231,6 +234,7 @@ and is not recorded here yet.
 - Per-persona notification preferences that mute individual rules are deferred; no placeholder toggles exist.
 - The visual sweep flags layout-fit and axe findings for human review; it is not a gate. The layout E2E matrix and the artifact E2E harness were authored in lanes and still need the integrated run.
 - Review identity is self-declared and the review key is not authentication; KV writes and rate limits are eventually consistent; the D1 schema is applied manually.
+- The comments handler does not check authorship: anyone with the link and key can edit or delete any comment. `ReviewThread` (popover and bottom sheet) is not wired into the mounted session; reviewers see the inline thread section. `comments pull` writes the tracked `prototypes/<slug>/docs/REVIEW.md`.
 - `bench-idea` and `bench-cold-start` budgets are not calibrated (report-only); the grid bench gates locally and reports only on CI.
 - The views `notifications`, `settings`, `states` and `commands` engine subpaths reserve names but have no runtime exports.
 
