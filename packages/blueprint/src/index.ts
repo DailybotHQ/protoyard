@@ -253,3 +253,15 @@ export {
   ValidationTaskSchema,
   validationBaseline,
 } from './validation-tasks.ts';
+export {
+  type BlueprintVariant,
+  type DeriveVariantsOptions,
+  deriveVariants,
+  VARIANT_DENSITIES,
+  VARIANT_DENSITY_SCALE,
+  VARIANT_MAX_COUNT,
+  VARIANT_THEME_PRESETS,
+  type VariantAxes,
+  type VariantChanges,
+  type VariantDensity,
+} from './variants.ts';
