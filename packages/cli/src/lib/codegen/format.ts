@@ -77,7 +77,8 @@ export function formatTs(value: unknown): string {
       if (entries.length === 0) return '{}';
       const inner = `${indent}  `;
       const lines = entries.map(([k, v]) => {
-        const key = `${IDENTIFIER.test(k) ? k : tsString(k)}: `;
+        // A bare `__proto__` key would set the prototype instead of a property.
+        const key = `${IDENTIFIER.test(k) && k !== '__proto__' ? k : tsString(k)}: `;
         // Like Biome, a scalar that would overflow the line moves under its key.
         if (isPrimitive(v) && inner.length + key.length + scalar(v).length + 1 > LINE_WIDTH) {
           return `${inner}${key.trimEnd()}\n${inner}  ${scalar(v)},`;

@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { parseBlueprint } from '@protoyard/blueprint';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { emitPrototype, personalizeHtml } from '../src/lib/codegen/emit.ts';
-import { formatJson, tsString } from '../src/lib/codegen/format.ts';
+import { formatJson, formatTs, tsString } from '../src/lib/codegen/format.ts';
 import { checkHeader, withHeader } from '../src/lib/codegen/header.ts';
 import {
   addCrudTemplate,
@@ -583,6 +583,16 @@ describe('codegen emitters', () => {
     // A quote in a value is escaped, never closing the literal.
     expect(tsString("it's")).toBe('"it\'s"');
     expect(tsString(`a'b"c\\`)).toBe(`'a\\'b"c\\\\'`);
+  });
+
+  it('quotes a __proto__ key and keeps the README title on one line', () => {
+    const literal = formatTs(JSON.parse('{"__proto__": {"x": 1}, "plain": 2}'));
+    expect(literal).toContain("'__proto__': {");
+    expect(literal).toContain('plain: 2');
+    const named = parseBlueprint({ ...blueprintInput(), name: 'Help\n# Injected\r\n- line' });
+    const readme = emitPrototype(named, 'x', '{}').find((f) => f.path === 'README.md');
+    expect(readme?.content.split('\n')[0]).toBe('# Help # Injected - line');
+    expect(readme?.content).not.toMatch(/^# Injected/m);
   });
 
   it('emits a lazy dashboard route and its generated screen for dashboard blueprints', () => {
