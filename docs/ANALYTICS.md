@@ -15,6 +15,12 @@ dashboard app, on simulated data ([ADR-021](DECISIONS.md)):
 Everything is simulated: events come from scenarios and the timeline, "now"
 is the simulated clock, and roles are a UX simulation, not security.
 
+An optional blueprint `archetype` block can declare the `analytics` experience,
+its event and metric entity slots, dashboard route, scenario defaults, and the
+public `@protoyard/analytics` plus lazy analytics UI entry points. It is
+validated data and does not load Svelte components by itself. See the
+[`@protoyard/blueprint` archetype contract](../packages/blueprint/README.md#the-schema).
+
 ## The data flow
 
 ```text

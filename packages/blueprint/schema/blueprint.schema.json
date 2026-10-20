@@ -227,6 +227,358 @@
       "required": ["id"],
       "additionalProperties": false
     },
+    "archetype": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "assistant"
+            },
+            "kits": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "const": "@protoyard/ai"
+                },
+                {
+                  "type": "string",
+                  "const": "@protoyard/ai-ui"
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "entities": {
+              "type": "object",
+              "properties": {
+                "conversations": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                },
+                "messages": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                }
+              },
+              "required": ["conversations", "messages"],
+              "additionalProperties": false
+            },
+            "screens": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "assistant-workspace"
+                    },
+                    "path": {
+                      "type": "string",
+                      "pattern": "^\\/[a-z0-9/:-]*$"
+                    }
+                  },
+                  "required": ["kind", "path"],
+                  "additionalProperties": false
+                }
+              ],
+              "items": false,
+              "minItems": 1,
+              "maxItems": 1
+            },
+            "scenarioDefaults": {
+              "default": {
+                "density": "normal",
+                "activity": "normal"
+              },
+              "type": "object",
+              "properties": {
+                "density": {
+                  "default": "normal",
+                  "type": "string",
+                  "enum": ["empty", "sparse", "normal", "dense", "massive"]
+                },
+                "activity": {
+                  "default": "normal",
+                  "type": "string",
+                  "enum": ["none", "low", "normal", "intense", "dormant", "reactivated"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": ["id", "kits", "entities", "screens"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "team-chat"
+            },
+            "kits": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "const": "@protoyard/ai"
+                },
+                {
+                  "type": "string",
+                  "const": "@protoyard/ai-ui"
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "entities": {
+              "type": "object",
+              "properties": {
+                "rooms": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                },
+                "messages": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                },
+                "members": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                }
+              },
+              "required": ["rooms", "messages", "members"],
+              "additionalProperties": false
+            },
+            "screens": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "team-chat"
+                    },
+                    "path": {
+                      "type": "string",
+                      "pattern": "^\\/[a-z0-9/:-]*$"
+                    }
+                  },
+                  "required": ["kind", "path"],
+                  "additionalProperties": false
+                }
+              ],
+              "items": false,
+              "minItems": 1,
+              "maxItems": 1
+            },
+            "scenarioDefaults": {
+              "default": {
+                "density": "normal",
+                "activity": "intense"
+              },
+              "type": "object",
+              "properties": {
+                "density": {
+                  "default": "normal",
+                  "type": "string",
+                  "enum": ["empty", "sparse", "normal", "dense", "massive"]
+                },
+                "activity": {
+                  "default": "normal",
+                  "type": "string",
+                  "enum": ["none", "low", "normal", "intense", "dormant", "reactivated"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": ["id", "kits", "entities", "screens"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "saas-onboarding"
+            },
+            "kits": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "const": "@protoyard/saas"
+                },
+                {
+                  "type": "string",
+                  "const": "@protoyard/saas-ui"
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "entities": {
+              "type": "object",
+              "properties": {
+                "workspaces": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                },
+                "members": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                }
+              },
+              "required": ["workspaces", "members"],
+              "additionalProperties": false
+            },
+            "screens": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "saas-onboarding"
+                    },
+                    "path": {
+                      "type": "string",
+                      "pattern": "^\\/[a-z0-9/:-]*$"
+                    }
+                  },
+                  "required": ["kind", "path"],
+                  "additionalProperties": false
+                }
+              ],
+              "items": false,
+              "minItems": 1,
+              "maxItems": 1
+            },
+            "scenarioDefaults": {
+              "default": {
+                "density": "normal",
+                "activity": "normal"
+              },
+              "type": "object",
+              "properties": {
+                "density": {
+                  "default": "normal",
+                  "type": "string",
+                  "enum": ["empty", "sparse", "normal", "dense", "massive"]
+                },
+                "activity": {
+                  "default": "normal",
+                  "type": "string",
+                  "enum": ["none", "low", "normal", "intense", "dormant", "reactivated"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": ["id", "kits", "entities", "screens"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "analytics"
+            },
+            "kits": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "const": "@protoyard/analytics"
+                },
+                {
+                  "type": "string",
+                  "const": "@protoyard/analytics-ui/grid"
+                },
+                {
+                  "type": "string",
+                  "const": "@protoyard/analytics-ui/date-range"
+                }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "entities": {
+              "type": "object",
+              "properties": {
+                "events": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                },
+                "metrics": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                }
+              },
+              "required": ["events", "metrics"],
+              "additionalProperties": false
+            },
+            "screens": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "analytics-dashboard"
+                    },
+                    "path": {
+                      "type": "string",
+                      "pattern": "^\\/[a-z0-9/:-]*$"
+                    }
+                  },
+                  "required": ["kind", "path"],
+                  "additionalProperties": false
+                }
+              ],
+              "items": false,
+              "minItems": 1,
+              "maxItems": 1
+            },
+            "scenarioDefaults": {
+              "default": {
+                "density": "dense",
+                "activity": "normal"
+              },
+              "type": "object",
+              "properties": {
+                "density": {
+                  "default": "normal",
+                  "type": "string",
+                  "enum": ["empty", "sparse", "normal", "dense", "massive"]
+                },
+                "activity": {
+                  "default": "normal",
+                  "type": "string",
+                  "enum": ["none", "low", "normal", "intense", "dormant", "reactivated"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": ["id", "kits", "entities", "screens"],
+          "additionalProperties": false
+        }
+      ]
+    },
     "entities": {
       "minItems": 1,
       "type": "array",

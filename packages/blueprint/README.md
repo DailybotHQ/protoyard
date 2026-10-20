@@ -15,6 +15,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | Module | Derives | Entry |
 | --- | --- | --- |
 | schema | the zod schema, JSON Schema and cross-reference checks | `.` |
+| archetypes | strict, portable kit archetype declarations and supported entry points | `.` |
 | storage | Dexie store strings and integrity rules | `.` |
 | migrations | appended database versions; `deriveDatabaseVersions` rebuilds them from `history` | `.` |
 | validation | create and update zod input schemas per entity | `.` |
@@ -38,7 +39,7 @@ entityTable(blueprint.entities[0]); // `support-tickets` → `supportTickets` un
 ```
 
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
-optional `screens` and optional `brand`. Every object is strict, so unknown keys fail.
+optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 
 - **Brand (optional):** `seed` (`#rrggbb`) and/or built-in `preset` (`violet`, `ocean`, …),
   optional `secondary`, `styleProfile` (`soft` | `crisp` | `flat` | `rounded` | `editorial` |
@@ -52,6 +53,24 @@ optional `screens` and optional `brand`. Every object is strict, so unknown keys
   `tags`, `icon` and `category`. Files under `blueprints/<slug>.json` that set **both**
   `brand` and `catalog` are indexed by `protoyard index` as `kind: blueprint` (see
   [blueprints/README.md](../../blueprints/README.md)).
+- **Kit archetype (optional):** portable runtime data for `assistant`, `team-chat`,
+  `saas-onboarding` or `analytics`. It maps stable entity slots to entities in this blueprint,
+  declares a kit screen and route, records scenario defaults, and lists only allow-listed public
+  kit entry points. These strings are validated metadata; parsing never imports or executes them.
+  `BlueprintSchema` checks entity references and route collisions. Omitting the block keeps
+  ordinary CRUD blueprints unchanged. For example:
+
+  ```json
+  {
+    "archetype": {
+      "id": "assistant",
+      "kits": ["@protoyard/ai", "@protoyard/ai-ui"],
+      "entities": { "conversations": "conversation", "messages": "message" },
+      "screens": [{ "kind": "assistant-workspace", "path": "/assistant" }],
+      "scenarioDefaults": { "density": "normal", "activity": "normal" }
+    }
+  }
+  ```
 
 - **Entities:** kebab-case `name` (singular) and `plural`, optional `table`, `fields`,
   `titleField`, `searchable`, `ownerField` (a `persona` field, enables `:own` actions),
@@ -92,7 +111,7 @@ example `entities.1.fields.3.to: relation "support-ticket.customer" targets unkn
 referenced field exists and has the right kind (enum `groupBy`, date fields, numeric
 aggregates, `geo` for maps), filter values and ops, chart requirements (donut needs `groupBy`,
 line and area need a date bucket), related tabs need a relation back, feature-gated tabs and
-settings sections, and duplicate or reserved (`/members`) routes.
+settings sections, archetype entity slots, and duplicate or reserved (`/members`) routes.
 
 ## JSON Schema
 
