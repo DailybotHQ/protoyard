@@ -1,16 +1,35 @@
 /** `@protoyard/review-ui/mount` — lazy renderer integration for review mode. */
+
+import { MessageSquare } from '@lucide/svelte';
 import type { PrototypeDefinition, PrototypeRuntime } from '@protoyard/core';
 import type { ReviewAdapter } from '@protoyard/review/store';
-import { mount, unmount } from 'svelte';
+import { type Component, mount, unmount } from 'svelte';
+import type { ReviewToolbarPlacer } from '../toolbar/types.ts';
+import { createPanelState } from './panel-state.svelte.ts';
 
 export interface MountReviewOptions {
   definition: PrototypeDefinition;
   runtime: PrototypeRuntime;
   root: HTMLElement;
+  /** Places the floating toolbar (the renderer shares the demo badge's placement rules). */
+  place?: ReviewToolbarPlacer;
+  /** DevTools is mounted and will host the comments panel as a tab (see `devtoolsTab`). */
+  devtools?: boolean;
+}
+
+/** A DevTools tab entry (structurally `DevtoolsTab` from @protoyard/devtools). */
+export interface ReviewDevtoolsTab {
+  id: string;
+  label: string;
+  icon: Component<{ class?: string }>;
+  load: () => Promise<unknown>;
+  props: object;
 }
 
 export interface MountedReview {
   adapter: ReviewAdapter;
+  /** With `devtools`: the "Comments" tab to pass to `mountDevtools({ extraTabs })`. */
+  devtoolsTab?: ReviewDevtoolsTab;
   destroy(): Promise<void>;
 }
 
@@ -29,7 +48,7 @@ function reviewClientId(slug: string): string {
 
 /** Create the configured adapter and mount all review UI inside the lazy chunk. */
 export async function mountReview(options: MountReviewOptions): Promise<MountedReview> {
-  const { definition, runtime, root } = options;
+  const { definition, runtime, root, place, devtools = false } = options;
   const config = definition.manifest.build.review ?? { enabled: false, adapter: 'local' as const };
   const clientId = reviewClientId(definition.manifest.slug);
   const { createLocalReviewAdapter } = await import('@protoyard/review/adapters/local');
@@ -61,6 +80,7 @@ export async function mountReview(options: MountReviewOptions): Promise<MountedR
     openComposer = shell.openComposer;
   }
 
+  const panelState = createPanelState();
   const host = document.createElement('div');
   host.dataset.pyReviewRoot = '';
   root.ownerDocument.body.append(host);
@@ -74,10 +94,25 @@ export async function mountReview(options: MountReviewOptions): Promise<MountedR
       clientId,
       composerOnly,
       openComposer,
+      panelState,
+      devtoolsPanel: devtools,
+      ...(place ? { place } : {}),
     },
   });
   return {
     adapter,
+    ...(devtools
+      ? {
+          devtoolsTab: {
+            id: 'review-comments',
+            label: 'Comments',
+            icon: MessageSquare as unknown as Component<{ class?: string }>,
+            // The panel loads only when the tab is first opened; the props stay live (a shared $state object).
+            load: async () => (await import('../panel/ReviewPanel.svelte')).default,
+            props: panelState,
+          },
+        }
+      : {}),
     async destroy() {
       await unmount(component);
       host.remove();

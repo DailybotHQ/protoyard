@@ -13,6 +13,8 @@ import { mount, onMount, unmount } from 'svelte';
 import { createReviewOverlay, type ReviewOverlayHandle } from '../overlay/index.ts';
 import type { ReviewPanelProps } from '../panel/types.ts';
 import { ReviewToolbar } from '../toolbar/index.ts';
+import type { ReviewToolbarPlacer } from '../toolbar/types.ts';
+import { createPanelState } from './panel-state.svelte.ts';
 
 let {
   adapter,
@@ -22,6 +24,9 @@ let {
   clientId,
   composerOnly = false,
   openComposer = async () => false,
+  place,
+  panelState = createPanelState(),
+  devtoolsPanel = false,
 }: {
   adapter: ReviewAdapter;
   runtime: PrototypeRuntime;
@@ -30,6 +35,12 @@ let {
   clientId: string;
   composerOnly?: boolean;
   openComposer?: (element: Element) => Promise<boolean>;
+  /** The renderer's floating-chrome placement for the toolbar (shares the demo badge's rules). */
+  place?: ReviewToolbarPlacer;
+  /** Panel props, shared with DevTools when it hosts the panel. */
+  panelState?: ReviewPanelProps;
+  /** DevTools shows the comments panel in its "Comments" tab: no floating panel or toolbar button. */
+  devtoolsPanel?: boolean;
 } = $props();
 
 let comments = $state<ReviewComment[]>([]);
@@ -41,14 +52,17 @@ let status = $state('');
 let busy = $state(false);
 let panelHost: HTMLElement;
 let panelInstance: ReturnType<typeof mount> | undefined;
-let panelProps = $state<ReviewPanelProps>({
-  comments: [],
-  focusThread: (threadId) => {
-    overlay?.focusThread(threadId);
-    void showThread(threadId);
-  },
-  setShowResolved: (show) => overlay?.setShowResolved(show),
-});
+// svelte-ignore state_referenced_locally
+const panelProps = panelState;
+panelProps.focusThread = (threadId) => {
+  overlay?.focusThread(threadId);
+  void showThread(threadId);
+};
+panelProps.setShowResolved = (show) => overlay?.setShowResolved(show);
+// svelte-ignore state_referenced_locally
+panelProps.runtime = runtime;
+// svelte-ignore state_referenced_locally
+panelProps.root = root;
 const roots = $derived(comments.filter((comment) => comment.id === comment.threadId));
 const selectedThread = $derived(comments.find((comment) => comment.id === selectedThreadId));
 const selectedRoot = $derived(
@@ -131,7 +145,7 @@ async function save(input: ReviewCommentInput): Promise<boolean> {
   }
 }
 
-async function place(anchor: ReviewAnchor): Promise<void> {
+async function placeComment(anchor: ReviewAnchor): Promise<void> {
   if (composerOnly) return;
   const author = authorForReview();
   if (!author) return;
@@ -207,6 +221,7 @@ async function setPanelOpen(open: boolean): Promise<void> {
 
 async function showThread(threadId: string): Promise<void> {
   selectedThreadId = threadId;
+  if (devtoolsPanel) return;
   panelOpen = true;
   if (!panelInstance) {
     const { default: Panel } = await import('../panel/ReviewPanel.svelte');
@@ -245,7 +260,8 @@ onMount(() => {
   overlay = createReviewOverlay({
     root,
     comments,
-    onPlace: place,
+    toggle: false,
+    onPlace: placeComment,
     ...(composerOnly
       ? {
           onCommentInClaude: async (element: Element) => {
@@ -274,6 +290,8 @@ onMount(() => {
   {panelOpen}
   onCommentModeChange={setCommentMode}
   onPanelChange={setPanelOpen}
+  showPanelButton={!devtoolsPanel}
+  {place}
 />
 
 <aside class="review-panel-host" class:open={panelOpen} aria-busy={busy} bind:this={panelHost}></aside>

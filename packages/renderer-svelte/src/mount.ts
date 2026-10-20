@@ -6,6 +6,7 @@ import {
   type ScenarioLinkParams,
   type Theme,
 } from '@protoyard/core';
+import type { DevtoolsTab } from '@protoyard/devtools';
 import { createPrototypeRuntime } from '@protoyard/runtime';
 import { BUILTIN_THEMES, mergeThemes } from '@protoyard/themes';
 import { toast } from '@protoyard/ui';
@@ -14,6 +15,7 @@ import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
 import { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
 import BootError from './shell/BootError.svelte';
+import { placeFloating } from './shell/floating.ts';
 import Root from './shell/Root.svelte';
 
 export interface RuntimeFactoryOptions {
@@ -182,20 +184,8 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   const devtoolsBuilt =
     typeof __PROTOYARD_DEVTOOLS__ !== 'undefined' ? __PROTOYARD_DEVTOOLS__ : true;
   // Presentation mode (`?devtools=0`) hides the panel even in dev.
-  if (devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false))) {
-    try {
-      // The avatar resolver rides along with the lazy DevTools chunk, so it
-      // never reaches the initial JavaScript of a prototype without faces.
-      const [{ mountDevtools }, { avatarImage }] = await Promise.all([
-        import('@protoyard/devtools'),
-        import('./avatars.ts'),
-      ]);
-      const panel = mountDevtools({ runtime: rt, themes, avatarImage });
-      cleanups.push(() => panel.destroy());
-    } catch (error) {
-      console.error('[protoyard] DevTools failed to load', error);
-    }
-  }
+  const devtoolsAvailable =
+    devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
 
   // Keep this define inline so a review-disabled production build folds away
   // the branch and has no review UI, adapter, or schema in its initial graph.
@@ -203,8 +193,8 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
     typeof __PROTOYARD_REVIEW__ !== 'undefined'
       ? __PROTOYARD_REVIEW__
       : options.definition.manifest.build.review?.enabled === true;
-  const devtoolsAvailable =
-    devtoolsBuilt && (options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
+  // Review mounts before DevTools, so DevTools can host its "Comments" tab.
+  let reviewTab: { id: string; label: string; load: () => Promise<unknown> } | undefined;
   if (
     reviewBuilt ||
     (devtoolsAvailable &&
@@ -212,10 +202,37 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   ) {
     try {
       const { mountReview } = await import('@protoyard/review-ui/mount');
-      const review = await mountReview({ definition, runtime: rt, root: target });
+      const review = await mountReview({
+        definition,
+        runtime: rt,
+        root: target,
+        place: placeFloating,
+        devtools: devtoolsAvailable,
+      });
+      reviewTab = review.devtoolsTab;
       cleanups.push(() => review.destroy());
     } catch (error) {
       console.error('[protoyard] review comments failed to load', error);
+    }
+  }
+
+  if (devtoolsAvailable) {
+    try {
+      // The avatar resolver rides along with the lazy DevTools chunk, so it
+      // never reaches the initial JavaScript of a prototype without faces.
+      const [{ mountDevtools }, { avatarImage }] = await Promise.all([
+        import('@protoyard/devtools'),
+        import('./avatars.ts'),
+      ]);
+      const panel = mountDevtools({
+        runtime: rt,
+        themes,
+        avatarImage,
+        ...(reviewTab ? { extraTabs: [reviewTab as DevtoolsTab] } : {}),
+      });
+      cleanups.push(() => panel.destroy());
+    } catch (error) {
+      console.error('[protoyard] DevTools failed to load', error);
     }
   }
 

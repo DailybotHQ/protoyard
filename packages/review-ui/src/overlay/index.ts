@@ -21,6 +21,12 @@ export interface ReviewOverlayOptions {
   focusedThreadId?: string;
   /** Resolved comments are hidden until the caller opts in. */
   showResolved?: boolean;
+  /**
+   * Render the overlay's own "Add comment" button (default true). Hosts with
+   * their own control (the review toolbar) pass false, so no extra button
+   * floats over the app.
+   */
+  toggle?: boolean;
 }
 
 export interface ReviewOverlayHandle {
@@ -138,6 +144,8 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
   const expandedClusters = new Set<string>();
   const overlay = document.createElement('div');
   overlay.dataset.pyReviewOverlay = '';
+  // A labelled group: a bare div may not carry aria-label (axe aria-prohibited-attr).
+  overlay.setAttribute('role', 'group');
   overlay.setAttribute('aria-label', 'Prototype review comments');
   const style = document.createElement('style');
   style.textContent = STYLE;
@@ -151,7 +159,7 @@ export function createReviewOverlay(options: ReviewOverlayOptions): ReviewOverla
   toggle.type = 'button';
   toggle.dataset.pyReviewToggle = '';
   toggle.addEventListener('click', () => setActive(!active));
-  overlay.append(toggle);
+  if (options.toggle !== false) overlay.append(toggle);
 
   let portal = currentPortal(document);
   portal.append(overlay);
