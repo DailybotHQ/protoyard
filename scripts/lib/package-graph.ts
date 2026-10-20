@@ -10,6 +10,8 @@ export interface WorkspacePackageJson {
   protoyard?: {
     build?: {
       assets?: unknown;
+      /** Optional build group name (`engine`), usable as a `--filter`. */
+      group?: unknown;
     };
   };
 }
@@ -20,6 +22,8 @@ export interface WorkspacePackage {
   manifest: WorkspacePackageJson;
   buildConfig: 'tsc' | 'svelte' | null;
   assets: string[];
+  /** `protoyard.build.group`, when the manifest names one. */
+  group: string | null;
   dependencies: string[];
 }
 
@@ -167,6 +171,10 @@ export function readPackageGraph(workspaceRoot: string): PackageGraph {
       manifest,
       buildConfig: build.config,
       assets: build.assets,
+      group:
+        typeof manifest.protoyard?.build?.group === 'string'
+          ? manifest.protoyard.build.group
+          : null,
       dependencies: dependencyNames(manifest),
     } satisfies WorkspacePackage;
   });
@@ -216,7 +224,11 @@ export function selectPackageNames(graph: PackageGraph, filters: readonly string
     const packageMatch = graph.packages.find(
       (pkg) => pkg.name === filter || relative(graph.root, pkg.dir) === filter
     );
-    if (!packageMatch) throw new PackageGraphError(`Unknown package filter: ${filter}`);
+    // A group name (`protoyard.build.group`) selects every package in that group.
+    const groupMatches = packageMatch
+      ? [packageMatch]
+      : graph.packages.filter((pkg) => pkg.group === filter);
+    if (groupMatches.length === 0) throw new PackageGraphError(`Unknown package filter: ${filter}`);
     const visit = (name: string) => {
       if (selected.has(name)) return;
       selected.add(name);
@@ -225,7 +237,7 @@ export function selectPackageNames(graph: PackageGraph, filters: readonly string
         if (graph.byName.has(dependency)) visit(dependency);
       }
     };
-    visit(packageMatch.name);
+    for (const match of groupMatches) visit(match.name);
   }
   return selected;
 }

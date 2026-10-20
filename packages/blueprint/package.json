@@ -27,5 +27,13 @@
   },
   "devDependencies": {
     "@protoyard/database": "workspace:*"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": [
+        "schema/blueprint.schema.json"
+      ]
+    }
   }
 }

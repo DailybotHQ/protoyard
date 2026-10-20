@@ -16,5 +16,11 @@
     "@protoyard/avatars": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@faker-js/faker": "^10.6.0"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
   }
 }

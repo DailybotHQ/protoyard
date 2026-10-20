@@ -19,5 +19,11 @@
   },
   "dependencies": {
     "@protoyard/core": "workspace:*"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
   }
 }

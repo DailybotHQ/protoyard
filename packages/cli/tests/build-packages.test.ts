@@ -13,7 +13,12 @@ function writeJson(path: string, value: unknown): void {
 function createPackage(
   root: string,
   name: string,
-  options: { dependencies?: Record<string, string>; optedIn?: boolean; svelte?: boolean } = {}
+  options: {
+    dependencies?: Record<string, string>;
+    optedIn?: boolean;
+    svelte?: boolean;
+    group?: string;
+  } = {}
 ): string {
   const directory = join(root, 'packages', name.replace('@fixture/', ''));
   mkdirSync(join(directory, 'src'), { recursive: true });
@@ -21,7 +26,16 @@ function createPackage(
     name,
     version: '0.0.0',
     ...(options.dependencies ? { dependencies: options.dependencies } : {}),
-    ...(options.optedIn === false ? {} : { protoyard: { build: { assets: ['src/theme.css'] } } }),
+    ...(options.optedIn === false
+      ? {}
+      : {
+          protoyard: {
+            build: {
+              assets: ['src/theme.css'],
+              ...(options.group ? { group: options.group } : {}),
+            },
+          },
+        }),
   });
   if (options.svelte) writeFileSync(join(directory, 'svelte.config.js'), 'export default {};\n');
   else writeJson(join(directory, 'tsconfig.build.json'), {});
@@ -101,6 +115,31 @@ describe('build-packages', () => {
 
     expect(result.ok).toBe(true);
     expect(result.packages.map((pkg) => pkg.name)).toEqual(['@fixture/base', '@fixture/ui']);
+  });
+
+  it("filters by build group, keeping each member's buildable dependencies", async () => {
+    const root = fixture();
+    createPackage(root, '@fixture/engine-a', { group: 'engine' });
+    createPackage(root, '@fixture/engine-b', {
+      group: 'engine',
+      dependencies: { '@fixture/base': 'workspace:*' },
+    });
+    const runner: BuildCommandRunner = async (_command, _args, cwd) => {
+      writeFileSync(join(cwd, 'dist', 'index.js'), 'export {};\n');
+      return { code: 0, stdout: '', stderr: '' };
+    };
+
+    const result = await buildPackages({ root, filters: ['engine'], runCommand: runner });
+
+    expect(result.ok).toBe(true);
+    expect(result.packages.map((pkg) => pkg.name).sort()).toEqual([
+      '@fixture/base',
+      '@fixture/engine-a',
+      '@fixture/engine-b',
+    ]);
+    await expect(
+      buildPackages({ root, filters: ['no-such-group'], runCommand: runner })
+    ).rejects.toThrow(/Unknown package filter: no-such-group/);
   });
 
   it('is a successful no-op when no package opts into publishing', async () => {
