@@ -648,7 +648,7 @@ A blueprint for `pnpm protoyard generate` can carry an optional `brand`
 | `styleProfile` | `soft`, `crisp`, `flat`, `rounded`, `editorial`, `mono`: radius, density, optional font and style knobs |
 | `font` | a `FONT_CATALOG` id (overrides the profile's font) |
 | `radius`, `density` | a CSS length; 0.75–1.25 (override the profile's values) |
-| `id`, `name` | theme id and display name; both default from the brand or blueprint name (`Acme Teal` → `acme-teal`) |
+| `id`, `name` | theme id (kebab-case, no leading, trailing or doubled hyphens) and display name; both default from the brand or blueprint name (`Acme Teal` → `acme-teal`, `3D Print Shop` → `brand-3d-print-shop`) |
 | `libraryTheme` | a theme library id (`fintech-ledger`, …), used as-is; cannot be combined with `id`, `seed`, `secondary`, `preset`, `styleProfile`, `font`, `radius` or `density` |
 
 ```json
