@@ -159,3 +159,7 @@ transactions: await only the provided context or Dexie calls there, never `fetch
 and covers determinism, integrity across all presets, permissions, non-destructive
 overrides, snapshot round-trips and rejections, v1→v2 migration, appearance isolation,
 shell precedence/persistence, idempotent advance (7×1 == 1×7), cross-prototype isolation and reopen safety.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

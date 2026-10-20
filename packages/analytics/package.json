@@ -24,5 +24,55 @@
       "group": "engine",
       "assets": []
     }
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./generators": {
+        "types": "./dist/generators/index.d.ts",
+        "import": "./dist/generators/index.js",
+        "default": "./dist/generators/index.js"
+      },
+      "./funnel": {
+        "types": "./dist/funnel.d.ts",
+        "import": "./dist/funnel.js",
+        "default": "./dist/funnel.js"
+      },
+      "./cohort": {
+        "types": "./dist/cohort.d.ts",
+        "import": "./dist/cohort.js",
+        "default": "./dist/cohort.js"
+      }
+    },
+    "types": "./dist/index.d.ts"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/analytics"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "analytics",
+    "metrics",
+    "prototype"
+  ]
 }

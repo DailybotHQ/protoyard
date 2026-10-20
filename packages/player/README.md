@@ -245,3 +245,10 @@ These budgets are enforced by a dedicated player budget gate, which is planned a
   replaces what the player shows.
 - Storage isolation is by namespace on one origin. That is not a security
   boundary (see [SECURITY](../../docs/SECURITY.md)).
+
+## Published package
+
+`@protoyard/player` publishes the typed `@protoyard/player/embed` protocol
+client and server helpers from `dist/embed/`. The static player app is built
+separately with `pnpm --filter @protoyard/player build` for hosted deployments;
+that Vite output is not the package entry point.

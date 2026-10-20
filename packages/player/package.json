@@ -32,5 +32,45 @@
   "devDependencies": {
     "@protoyard/runtime": "workspace:*",
     "@protoyard/scenarios": "workspace:*"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      "./embed": {
+        "types": "./dist/embed/index.d.ts",
+        "import": "./dist/embed/index.js",
+        "default": "./dist/embed/index.js"
+      }
+    }
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/player"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "player",
+    "blueprint",
+    "embed"
+  ],
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
   }
 }

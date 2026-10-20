@@ -25,5 +25,70 @@
       "group": "engine",
       "assets": []
     }
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./scales": {
+        "types": "./dist/scales/index.d.ts",
+        "import": "./dist/scales/index.js",
+        "default": "./dist/scales/index.js"
+      },
+      "./shapes": {
+        "types": "./dist/shapes/index.d.ts",
+        "import": "./dist/shapes/index.js",
+        "default": "./dist/shapes/index.js"
+      },
+      "./downsample": {
+        "types": "./dist/downsample/index.d.ts",
+        "import": "./dist/downsample/index.js",
+        "default": "./dist/downsample/index.js"
+      },
+      "./layout": {
+        "types": "./dist/layout/index.d.ts",
+        "import": "./dist/layout/index.js",
+        "default": "./dist/layout/index.js"
+      },
+      "./palette": {
+        "types": "./dist/palette/index.d.ts",
+        "import": "./dist/palette/index.js",
+        "default": "./dist/palette/index.js"
+      },
+      "./palette/derive": {
+        "types": "./dist/palette/chart-palette.d.ts",
+        "import": "./dist/palette/chart-palette.js",
+        "default": "./dist/palette/chart-palette.js"
+      }
+    },
+    "types": "./dist/index.d.ts"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/charts"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "charts",
+    "visualization",
+    "typescript"
+  ]
 }

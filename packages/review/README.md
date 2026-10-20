@@ -329,3 +329,7 @@ grants `comments` with `composer_only: true`, it returns the local adapter in
 only from a viewer gesture; it opens Claude's composer anchored to the chosen
 element. Claude owns those threads, so Protoyard cannot list or synchronize
 them. The review panel can show `ClaudeComposerNotice` in this mode.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

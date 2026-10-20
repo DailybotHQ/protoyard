@@ -87,3 +87,7 @@ never appears in a manifest namespace. `listProtoyardDatabases(namespace)` retur
 
 `pnpm vitest run packages/database` covers migrations, version-newer, atomic restore, the
 control store, error mapping, memory fallback and namespace-scoped deletion.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

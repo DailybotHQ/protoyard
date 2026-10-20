@@ -786,3 +786,7 @@ all derived from its blueprint.
 pnpm vitest run packages/blueprint
 pnpm --filter @protoyard/blueprint typecheck
 ```
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

@@ -83,3 +83,7 @@ export default { plugins: [...protoyardOffline({ enabled: true })] };
   a generic static server, then load → create a record → `context.setOffline(true)` →
   reload. The app boots from cache, the record is still there, there are 0 failed requests,
   and `?offline=0` leaves 0 registrations and 0 caches.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

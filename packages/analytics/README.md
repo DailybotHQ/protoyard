@@ -84,3 +84,7 @@ heavy machine load). The opt-in analytics generators bench owns the
 pnpm vitest run packages/analytics
 pnpm --filter @protoyard/analytics typecheck
 ```
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

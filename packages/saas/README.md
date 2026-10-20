@@ -408,3 +408,7 @@ pnpm vitest run packages/saas
 pnpm --filter @protoyard/saas typecheck
 pnpm exec biome check packages/saas
 ```
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

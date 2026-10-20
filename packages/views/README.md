@@ -408,3 +408,7 @@ updatedAt?, hasBlob? }`).
   reload and seed, with no network. They draw a landscape for images, a
   folder, or a page labeled with the sanitized extension.
 - **Size:** 2.0 KB gzip minified.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.
