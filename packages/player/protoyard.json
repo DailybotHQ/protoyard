@@ -1,0 +1,20 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "protoyard.player",
+  "slug": "player",
+  "kind": "prototype",
+  "name": "Protoyard player",
+  "description": "Runs any Protoyard blueprint in the browser with no build. Build settings only: each blueprint gets its own manifest and storage namespace at runtime.",
+  "version": "1.0.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "storage": {
+    "namespace": "player",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": true,
+    "demoBadge": true,
+    "base": "./"
+  }
+}
