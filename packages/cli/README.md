@@ -1,8 +1,7 @@
 # @protoyard/cli
 
 The `protoyard` command line. It discovers, indexes, scaffolds, runs, validates, builds, exports
-and publishes prototypes: one at a time, or several in one run (`publish <slug>… | --all | --tag`). It also builds the showcase, packs prototypes for Claude artifacts and pulls review comments. Inside the repository, run it with `pnpm protoyard …`.
-`bin/protoyard.mjs` is the package entry point: it registers tsx and runs `src/bin.ts`.
+and publishes prototypes: one at a time, or several in one run (`publish <slug>… | --all | --tag`). It also builds the showcase, packs prototypes for Claude artifacts and pulls review comments. Inside the repository, run it with `pnpm protoyard …`, which executes the TypeScript source. The published package compiles `src/` (including its inspect runner and review worker entry) to `dist/`; its bin and API export point to that JavaScript output. `tsx` remains a dependency for the isolated inspect runner, which loads user prototype code.
 
 ```bash
 pnpm protoyard doctor                       # environment check with actionable hints
@@ -174,8 +173,11 @@ symlinked manifests.
 - The control server binds to `127.0.0.1`. It accepts only loopback `Host` headers (a DNS
   rebinding guard) and allow-listed `Origin`s (POST requires one), starts only slugs found in the
   registry, and runs at most 8 dev servers at once.
-- Vite runs with tsx's loader (`--import tsx/esm`) so TypeScript workspace packages load the same
-  way in every Node version.
+- In the monorepo, Vite runs with tsx's loader (`--import tsx/esm`) so TypeScript workspace
+  packages load the same way in every Node version. The published CLI uses compiled JavaScript
+  dependencies and does not register that loader; Vite handles the user's erasable
+  `vite.config.ts` with Node's built-in type stripping. The published `tsx` dependency serves the
+  isolated inspect runner.
 
 ## Programmatic API
 
