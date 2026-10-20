@@ -7,18 +7,20 @@ import { definition } from '../src/prototype.ts';
 import { generate } from '../src/scenarios/generators.ts';
 
 describe('generated world', () => {
-  it('is deterministic and passes integrity for every scenario', async () => {
-    for (const input of definition.scenarios) {
+  it.each(definition.scenarios.map(({ id }) => id))(
+    'is deterministic and passes integrity for the %s scenario',
+    async (scenarioId) => {
+      const input = definition.scenarios.find(({ id }) => id === scenarioId);
+      if (!input) throw new Error(`missing ${scenarioId} scenario`);
       const scenario = parseScenario(input);
       const a = await generate(createGenerateContext(scenario));
       const b = await generate(createGenerateContext(scenario));
-      expect(a, scenario.id).toEqual(b);
+      expect(a).toEqual(b);
       expect(
-        validateWorld(a, { ...definition.integrity, referenceTime: scenario.referenceTime }),
-        scenario.id
+        validateWorld(a, { ...definition.integrity, referenceTime: scenario.referenceTime })
       ).toEqual([]);
     }
-  });
+  );
 
   it('seeds every blueprint entity in the active scenario', async () => {
     const input = definition.scenarios.find((s) => s.id === 'active');
