@@ -303,12 +303,48 @@ function resolveShowcaseOut(
   });
 }
 
+/**
+ * The public origin the gallery uses for canonical links, Open Graph images
+ * and the sitemap. Only an https origin (or http on localhost) with no path,
+ * query or hash: the path part belongs to --base.
+ */
+export function parseShowcaseSite(value: string | undefined): string | undefined {
+  if (value === undefined || value.trim() === '') return undefined;
+  let url: URL;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    throw new CliError(
+      'usage',
+      `--site must be an absolute URL such as https://protoyard.app (got "${value}").`
+    );
+  }
+  const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+  if (url.protocol !== 'https:' && !(local && url.protocol === 'http:')) {
+    throw new CliError('usage', '--site must use https:// (http:// only for localhost).');
+  }
+  if (
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    (url.pathname !== '/' && url.pathname !== '')
+  ) {
+    throw new CliError(
+      'usage',
+      '--site takes an origin only, such as https://protoyard.app; use --base for a sub-path.'
+    );
+  }
+  return url.origin;
+}
+
 function buildGallery(
   ctx: CommandContext,
   outDir: string,
   registryPath: string,
   base: string,
-  quiet: boolean
+  quiet: boolean,
+  site?: string
 ) {
   const galleryDir = join(ctx.root, 'apps', 'gallery');
   const astro = resolvePackageBin('astro', 'astro', [galleryDir, ctx.root]);
@@ -322,6 +358,7 @@ function buildGallery(
         ...process.env,
         PROTOYARD_REGISTRY: registryPath,
         GALLERY_BASE: base,
+        ...(site ? { GALLERY_SITE: site } : {}),
         PROTOYARD_SHOWCASE: '1',
         // Own caches: a concurrent regular gallery build must not share them.
         PROTOYARD_GALLERY_CACHE_DIR: join(ctx.paths.artifacts, 'showcase-builds', '.cache'),
@@ -369,6 +406,13 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
     throw new CliError(
       'usage',
       'A showcase needs an absolute --base such as "/" or "/protoyard/".'
+    );
+  }
+  const site = parseShowcaseSite(opt(options, 'site') ?? process.env.PROTOYARD_SITE_URL);
+  if (site && artifactTarget) {
+    throw new CliError(
+      'usage',
+      '--site is only available for the showcase site, not an artifact pack.'
     );
   }
   const publishId = opt(options, 'publish');
@@ -508,7 +552,7 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
       : registry;
     await writeJsonAtomic(registryPath, showcaseRegistry(galleryRegistry, targets));
     ctx.out.info('Building the gallery…');
-    const gallery = await buildGallery(ctx, staging, registryPath, base, quiet);
+    const gallery = await buildGallery(ctx, staging, registryPath, base, quiet, site);
     if (gallery.code !== 0) {
       throw new CliError('failure', `Gallery build failed (exit ${gallery.code}).`, {
         hint: gallery.log.trim().split('\n').slice(-10).join('\n') || 'See the output above.',

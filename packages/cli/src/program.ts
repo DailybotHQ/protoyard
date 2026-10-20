@@ -531,6 +531,10 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--base <path>', 'absolute site base; artifact target requires ./')
     .option(
+      '--site <url>',
+      'public origin for canonical links, social images and the sitemap (https://…; env PROTOYARD_SITE_URL)'
+    )
+    .option(
       '--slugs <list>',
       'artifact target: only bundle these comma-separated prototype or template slugs'
     )

@@ -8,6 +8,7 @@ import {
   appPathFor,
   assertShowcasePublishable,
   marketplacePathFor,
+  parseShowcaseSite,
   publishShowcaseDirectory,
   shareAvatars,
   showcaseAvatarBase,
@@ -241,6 +242,32 @@ describe('showcase', () => {
       expect(readFileSync(join(out, SHOWCASE_MARKER), 'utf8')).toBe(markerContents);
     } finally {
       ws.cleanup();
+    }
+  });
+});
+
+describe('parseShowcaseSite', () => {
+  it('keeps an https origin and accepts a trailing slash', () => {
+    expect(parseShowcaseSite('https://protoyard.app')).toBe('https://protoyard.app');
+    expect(parseShowcaseSite('https://protoyard.app/')).toBe('https://protoyard.app');
+    expect(parseShowcaseSite('http://localhost:4500')).toBe('http://localhost:4500');
+  });
+
+  it('treats a missing or blank value as no site', () => {
+    expect(parseShowcaseSite(undefined)).toBeUndefined();
+    expect(parseShowcaseSite('  ')).toBeUndefined();
+  });
+
+  it('refuses plain http, paths, queries, credentials and non-URLs', () => {
+    for (const bad of [
+      'http://protoyard.app',
+      'https://protoyard.app/sub/',
+      'https://protoyard.app/?x=1',
+      'https://user:pass@protoyard.app',
+      'javascript:alert(1)',
+      'protoyard.app',
+    ]) {
+      expect(() => parseShowcaseSite(bad), bad).toThrow(/--site/);
     }
   });
 });
