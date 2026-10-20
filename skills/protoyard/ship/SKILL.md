@@ -17,7 +17,7 @@ allowed-tools: Bash, Read, Grep, Glob
 # Ship a Protoyard prototype
 
 Use this sub-skill when the developer asks to export, share, or publish a
-prototype. Read the [publishing guide](../../../docs/PUBLISHING.md) for the
+prototype. Read the [publishing guide](https://github.com/DailybotHQ/protoyard/blob/main/docs/PUBLISHING.md) for the
 current CLI contract and provider details. The CLI is local-first, but a
 provider publish without `--dry-run` uploads immediately; the agent must keep
 that action behind an explicit approval checkpoint.
@@ -82,7 +82,7 @@ pnpm protoyard publish <slug> --provider <provider> --dry-run
 ```
 
 Use one of the providers listed by `pnpm protoyard publish --help` and in the
-[provider adapter table](../../../docs/PUBLISHING.md#publish-adapters):
+[provider adapter table](https://github.com/DailybotHQ/protoyard/blob/main/docs/PUBLISHING.md#publish-adapters):
 
 - `cloudflare`: [Wrangler](https://developers.cloudflare.com/workers/wrangler/)
   and [Pages direct upload](https://developers.cloudflare.com/pages/how-to/use-direct-upload/).

@@ -13,7 +13,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseBlueprint } from '@protoyard/blueprint';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { emitPrototype, personalizeHtml } from '../src/lib/codegen/emit.ts';
 import { formatJson, formatTs, tsString } from '../src/lib/codegen/format.ts';
 import { checkHeader, withHeader } from '../src/lib/codegen/header.ts';
@@ -26,6 +26,10 @@ import {
   linkInstalled,
   type TempWorkspace,
 } from './helpers.ts';
+
+// Each test runs a real generate (file writes, codegen, sometimes a build). That
+// takes 1.5 to 3 s alone and much longer while the whole CLI suite runs in parallel.
+vi.setConfig({ testTimeout: 30_000 });
 
 let ws: TempWorkspace;
 beforeEach(() => {
