@@ -114,7 +114,7 @@ async function removeProject() {
 <!-- Review comments are on in published builds (protoyard.json build.review): a sample review to try offline. -->
 <p class="mt-3 text-sm text-muted-foreground">
   Reviewing this prototype? Press <kbd class="rounded border border-border px-1 font-mono text-xs">C</kbd> to pin a comment, or
-  <a class="text-primary underline-offset-2 hover:underline" href="./review-demo.json" download="keel-projects-review-demo.json">download a sample review</a>
+  <a class="text-primary underline underline-offset-2" href="./review-demo.json" download="keel-projects-review-demo.json">download a sample review</a>
   and choose Import in the review toolbar.
 </p>
 
