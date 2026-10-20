@@ -14,7 +14,8 @@ let {
 </script>
 
 <g aria-hidden="true" stroke="var(--py-chart-grid, var(--py-border))" data-grid={orientation}>
-  {#each positions as p (p)}
+  <!-- Keyed by index: positions collide when the plot area collapses to zero width or height. -->
+  {#each positions as p, i (i)}
     {#if orientation === 'horizontal'}
       <line x1={plot.x} x2={plot.x + plot.width} y1={p} y2={p} />
     {:else}
