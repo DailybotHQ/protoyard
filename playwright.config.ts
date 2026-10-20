@@ -22,6 +22,12 @@ import { defineConfig, devices } from '@playwright/test';
  * build stays DevTools-free) and serves it from port 4451
  * (PROTOYARD_E2E_DEVTOOLS_PORT_BASE overrides it); specs use
  * `devtoolsPrototypeUrl(slug)`.
+ *
+ * Review-comments targets: PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo
+ * builds each slug with PROTOYARD_REVIEW=1 into tmp/e2e-comments/<slug> from port
+ * 4601 (PROTOYARD_E2E_COMMENTS_PORT_BASE), plus the first slug with the HTTP
+ * adapter behind tests/e2e/support/serve-comments.ts on 4651
+ * (PROTOYARD_E2E_COMMENTS_SHARED_PORT); specs use `commentsUrl(slug)`.
  */
 
 const GALLERY_PORT = 4329;
@@ -41,6 +47,26 @@ const devtoolsPrototypes = (process.env.PROTOYARD_E2E_DEVTOOLS_PROTOTYPES ?? '')
 for (const slug of devtoolsPrototypes) {
   if (!SLUG.test(slug)) {
     throw new Error(`PROTOYARD_E2E_DEVTOOLS_PROTOTYPES: invalid slug "${slug}"`);
+  }
+}
+/** PROTOYARD_E2E_COMMENTS_PROTOTYPES=a,b: review-comments builds (PROTOYARD_REVIEW=1, see tests/e2e/targets.ts). */
+const commentsPrototypes = (process.env.PROTOYARD_E2E_COMMENTS_PROTOTYPES ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+for (const slug of commentsPrototypes) {
+  if (!SLUG.test(slug)) {
+    throw new Error(`PROTOYARD_E2E_COMMENTS_PROTOTYPES: invalid slug "${slug}"`);
+  }
+}
+const COMMENTS_PORT_BASE = Number(process.env.PROTOYARD_E2E_COMMENTS_PORT_BASE ?? 4601);
+const COMMENTS_SHARED_PORT = Number(process.env.PROTOYARD_E2E_COMMENTS_SHARED_PORT ?? 4651);
+for (const [name, port] of [
+  ['PROTOYARD_E2E_COMMENTS_PORT_BASE', COMMENTS_PORT_BASE],
+  ['PROTOYARD_E2E_COMMENTS_SHARED_PORT', COMMENTS_SHARED_PORT],
+] as const) {
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    throw new Error(`${name} must be a port number`);
   }
 }
 const DEVTOOLS_PORT_BASE = Number(process.env.PROTOYARD_E2E_DEVTOOLS_PORT_BASE ?? 4451);
@@ -114,6 +140,25 @@ export default defineConfig({
     ...devtoolsPrototypes.map((slug, i) => ({
       command: `pnpm protoyard build ${slug} --include-devtools --out tmp/e2e-devtools/${slug} && pnpm exec tsx tests/e2e/support/serve-static.ts tmp/e2e-devtools/${slug} ${DEVTOOLS_PORT_BASE + i}`,
       url: `http://127.0.0.1:${DEVTOOLS_PORT_BASE + i}/`,
+      reuseExistingServer: !ci,
+      timeout: 180_000,
+    })),
+    ...commentsPrototypes.map((slug, i) => ({
+      command: `pnpm protoyard build ${slug} --out tmp/e2e-comments/${slug} && pnpm exec tsx tests/e2e/support/serve-static.ts tmp/e2e-comments/${slug} ${COMMENTS_PORT_BASE + i}`,
+      url: `http://127.0.0.1:${COMMENTS_PORT_BASE + i}/`,
+      env: { ...process.env, PROTOYARD_REVIEW: '1' } as Record<string, string>,
+      reuseExistingServer: !ci,
+      timeout: 180_000,
+    })),
+    ...commentsPrototypes.slice(0, 1).map((slug) => ({
+      command: `pnpm protoyard build ${slug} --out tmp/e2e-comments-shared/${slug} && pnpm exec tsx tests/e2e/support/serve-comments.ts tmp/e2e-comments-shared/${slug} ${COMMENTS_SHARED_PORT}`,
+      url: `http://127.0.0.1:${COMMENTS_SHARED_PORT}/`,
+      env: {
+        ...process.env,
+        PROTOYARD_REVIEW: '1',
+        PROTOYARD_REVIEW_ADAPTER: 'http',
+        PROTOYARD_REVIEW_ENDPOINT: '/api/comments',
+      } as Record<string, string>,
       reuseExistingServer: !ci,
       timeout: 180_000,
     })),

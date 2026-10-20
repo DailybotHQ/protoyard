@@ -19,8 +19,9 @@ pnpm protoyard dev keel-projects-demo
 ## Review comments
 
 `build.review` is on with the browser-local adapter, so every build carries
-the review toolbar (docked above the app): press **C** or **Comment** to pin
-a comment, open **Comments** for the list. Key regions carry stable
+the review launcher (one small button placed where it covers no app control,
+expanding to the review toolbar): press **C** or **Comment** to pin a comment,
+open **Comments** (or the DevTools Comments tab in dev) for the list. Key regions carry stable
 `data-py-anchor` names, so pins survive layout and data changes: `top-bar`,
 `overview-summary`, `board`, `board-lanes`, `calendar`, `timeline`,
 `task-grid`, `task-description`, `task-comments` and `task-details`.

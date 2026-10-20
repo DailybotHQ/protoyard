@@ -5,6 +5,8 @@
 declare const __PROTOYARD_DEVTOOLS__: boolean;
 declare const __PROTOYARD_DEMO_BADGE__: boolean;
 declare const __PROTOYARD_REVIEW__: boolean;
+/** A comments backend set at build time (PROTOYARD_REVIEW_ADAPTER), or null for the manifest's. */
+declare const __PROTOYARD_REVIEW_ADAPTER__: { adapter: string; endpoint?: string } | null;
 declare const __PROTOYARD_BUILD__: {
   id: string;
   slug: string;
