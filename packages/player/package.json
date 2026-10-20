@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@lucide/svelte": "^1.59.0",
+    "@protoyard/ai": "workspace:*",
+    "@protoyard/ai-ui": "workspace:*",
     "@protoyard/analytics-ui": "workspace:*",
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/charts-ui": "workspace:*",
