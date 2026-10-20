@@ -897,6 +897,12 @@ initial graph, the crud app shell, Faker (153 KB, avoidable) and smaller lazy
 chunks, and it is the same for the demo, quick/assistant and quick/team-chat.
 The two quick examples need no extra JS before ready.
 
+The player visual review is opt-in: `pnpm visual:sweep --only player` builds
+the player into `tmp/` and captures four screenshots from the quick assistant
+blueprint (desktop and phone, light and dark), with axe and layout-fit
+findings. The player does not add shots to the normal prototype sweep, and
+these screenshots are review artifacts rather than a performance budget.
+
 ## Large blueprint on the player path (measured 2026-10-20)
 
 `packages/blueprint/tests/fixtures/large.blueprint.json` is a fictional

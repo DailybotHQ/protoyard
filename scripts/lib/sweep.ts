@@ -189,7 +189,7 @@ export function resolveThemes(
 }
 
 export interface SweepTarget {
-  kind: 'prototype' | 'template';
+  kind: 'prototype' | 'template' | 'player';
   slug: string;
   platform: Platform;
   defaultScenario?: string;
@@ -198,6 +198,24 @@ export interface SweepTarget {
   previewShell?: SweepShell;
   /** `preview.layout` from the manifest. */
   layout?: { id?: string; supported?: readonly string[] };
+}
+
+/** The bounded, deterministic player sample used by the opt-in visual target. */
+export const PLAYER_TARGET: SweepTarget = {
+  kind: 'player',
+  slug: 'player',
+  platform: 'responsive',
+  scenarios: [],
+  previewShell: 'none',
+};
+export const PLAYER_BLUEPRINT_SOURCE = './blueprints/quick/assistant.json';
+
+/** Keep player screenshots opt-in so the existing default sweep stays unchanged. */
+export function selectPlayerTarget(
+  targets: readonly SweepTarget[],
+  selected: boolean
+): SweepTarget[] {
+  return selected ? [...targets, PLAYER_TARGET] : [...targets];
 }
 
 /**
@@ -337,10 +355,16 @@ export function buildMatrix(
       }
       continue;
     }
-    const viewports: [ViewportName, SweepShell[]][] = [
-      ['desktop', shellsFor(target, args.shells)],
-      ['phone', [target.previewShell ?? 'auto']],
-    ];
+    const viewports: [ViewportName, SweepShell[]][] =
+      target.kind === 'player'
+        ? [
+            ['desktop', [target.previewShell ?? 'none']],
+            ['phone', [target.previewShell ?? 'none']],
+          ]
+        : [
+            ['desktop', shellsFor(target, args.shells)],
+            ['phone', [target.previewShell ?? 'auto']],
+          ];
     for (const [viewport, shells] of viewports) {
       for (const shell of shells) {
         for (const layout of layouts) {
@@ -371,6 +395,7 @@ export function buildMatrix(
 /** The link that opens a shot: DevTools off, its scenario, shell, layout, mode and theme. */
 export function shotQuery(shot: Shot): URLSearchParams {
   const query = new URLSearchParams({ devtools: '0' });
+  if (shot.kind === 'player') query.set('src', PLAYER_BLUEPRINT_SOURCE);
   if (shot.scenario) query.set('scenario', shot.scenario);
   query.set('shell', shot.shell);
   if (shot.layout !== 'custom') query.set('layout', shot.layout);

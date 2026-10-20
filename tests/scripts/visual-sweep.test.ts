@@ -8,11 +8,14 @@ import {
   type FitMetrics,
   fitFlags,
   layoutsFor,
+  PLAYER_BLUEPRINT_SOURCE,
+  PLAYER_TARGET,
   parseSweepArgs,
   renderContactSheet,
   resolveThemes,
   type ShotResult,
   type SweepTarget,
+  selectPlayerTarget,
   shellsFor,
   shotQuery,
   shotUrl,
@@ -92,6 +95,24 @@ describe('arguments', () => {
 });
 
 describe('matrix', () => {
+  it('keeps the player opt-in and captures a bounded desktop/phone mode matrix', () => {
+    expect(selectPlayerTarget([CRM], false)).toEqual([CRM]);
+    const targets = selectPlayerTarget([], true);
+    expect(targets).toEqual([PLAYER_TARGET]);
+
+    const shots = buildMatrix(targets, { shells: null, themes: [] });
+    expect(shots).toHaveLength(4);
+    expect(shots.map((shot) => [shot.viewport, shot.mode])).toEqual([
+      ['desktop', 'light'],
+      ['desktop', 'dark'],
+      ['phone', 'light'],
+      ['phone', 'dark'],
+    ]);
+    expect(shots.map((shot) => shot.shell)).toEqual(['none', 'none', 'none', 'none']);
+    expect(shots.every((shot) => shot.scenario === undefined)).toBe(true);
+    expect(shotQuery(shots[0] as (typeof shots)[number]).get('src')).toBe(PLAYER_BLUEPRINT_SOURCE);
+  });
+
   it('picks the densest scenario by name, as layout-fit does', () => {
     expect(densestScenario(CRM.scenarios, 'growing-team')).toBe('enterprise-scale');
     expect(densestScenario(['empty', 'active', 'viewer', 'massive'])).toBe('massive');
