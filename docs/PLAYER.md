@@ -19,8 +19,15 @@ they are ordinary Vite apps that can be edited, validated and exported.
   share links. Its frame uses the player's exact-origin `protoyard-player/1`
   bridge. Share fragments stay in the browser URL and are not sent to the
   server.
-- The hosted gallery publishes this guide and other selected public guides at
-  `/docs/`; contributor and internal guides are not included.
+- The hosted gallery publishes this guide and the other user-facing guides at
+  `/docs/`; contributor and internal guides are not included. A search box on
+  the docs pages finds sections by guide title, heading and text, and opens
+  the matching heading.
+  - The index is a static file (`/docs/search-index.json`), generated at build
+    time and fetched only when a reader focuses or types in the box.
+  - Nothing is sent to a remote service.
+  - Arrow keys choose a result, Enter opens it, Escape closes the list and
+    then clears the query, and a live region announces the result count.
 
 The player also supports a `?src=./blueprint.json` URL for a JSON file next to
 the player. The picker accepts a local file or the bundled fictional demo.

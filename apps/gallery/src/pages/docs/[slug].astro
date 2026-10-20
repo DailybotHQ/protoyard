@@ -1,4 +1,5 @@
 ---
+import DocsSearch from '@/components/docs/DocsSearch.svelte';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getPublicDocs } from '@/lib/docs';
 import { withBase } from '@/lib/format';
@@ -21,6 +22,9 @@ const { doc } = Astro.props;
       <span aria-hidden="true"> / </span>
       <span aria-current="page">{doc.title}</span>
     </nav>
+    <div class="mb-8 max-w-xl">
+      <DocsSearch client:idle indexUrl={withBase('/docs/search-index.json')} />
+    </div>
     <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_14rem]">
       <div class="min-w-0">
         <div class="docs-content" set:html={doc.html} />

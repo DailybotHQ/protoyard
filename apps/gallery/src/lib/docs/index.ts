@@ -3,12 +3,57 @@ import { dirname, posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const DOCS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../docs');
-const PUBLIC_GUIDES = ['QUICK', 'PLAYER', 'PACKAGES', 'SKILL', 'INTERFACE', 'MCP', 'DWP'];
-const GITHUB_DOCS = 'https://github.com/DailybotHQ/protoyard/blob/dev/';
+/**
+ * User-facing guides published at /docs/ (lead decision, PLAN_004). Guides that
+ * do not exist yet are skipped. Contributor and internal docs (ARCHITECTURE,
+ * DECISIONS, STANDARDS, TESTING_GUIDE, DEVELOPMENT_COMMANDS, PERFORMANCE,
+ * AI_AGENT_*, IMPLEMENTATION_PLAN, PRODUCT_SPEC) stay on GitHub only.
+ */
+export const PUBLIC_GUIDES: readonly string[] = [
+  'QUICKSTART',
+  'AGENT_GUIDE',
+  'QUICK',
+  'PLAYER',
+  'GENERATOR',
+  'BRIEF_TO_PROTOTYPE',
+  'DATABASE',
+  'SCENARIOS',
+  'THEMES',
+  'LAYOUTS',
+  'SHELLS',
+  'VIEWS',
+  'CHARTS',
+  'ANALYTICS',
+  'SAAS_KITS',
+  'AI_KITS',
+  'AVATARS',
+  'PUBLISHING',
+  'REVIEW_COMMENTS',
+  'SPECS',
+  'PACKAGES',
+  'SKILL',
+  'INTERFACE',
+  'MCP',
+  'DWP',
+  'SECURITY',
+];
+/** Source links for files that are not public pages; the public site builds from main. */
+export const GITHUB_SOURCE = 'https://github.com/DailybotHQ/protoyard/blob/main/';
+const GITHUB_DOCS = GITHUB_SOURCE;
 
 export interface DocHeading {
   depth: number;
   id: string;
+  text: string;
+}
+
+/** The plain text under one heading (until the next heading), for search. */
+export interface DocSection {
+  /** The heading's anchor id (the same id the rendered page uses). */
+  id: string;
+  heading: string;
+  depth: number;
+  /** Prose, list, quote and table text; fenced code is left out. */
   text: string;
 }
 
@@ -18,6 +63,7 @@ export interface PublicDoc {
   title: string;
   description: string;
   headings: DocHeading[];
+  sections: DocSection[];
   /** Generated tags only; source text, raw HTML and code are escaped by the renderer. */
   html: string;
 }
@@ -34,14 +80,17 @@ const escapeHtml = (value: string) =>
     return entities[character] ?? character;
   });
 
+/**
+ * GitHub's heading ids (github-slugger), so anchors written against the
+ * guides on GitHub resolve on the site too: lowercase, drop punctuation except
+ * `-` and `_`, and turn every space into `-` (runs are not collapsed).
+ */
 const slugify = (value: string) =>
   value
-    .toLocaleLowerCase('en')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
     .trim()
-    .replace(/[\s-]+/g, '-');
+    .toLocaleLowerCase('en')
+    .replace(/[^\p{L}\p{M}\p{N}\p{Pc} -]/gu, '')
+    .replace(/ /g, '-');
 
 const plainText = (value: string) =>
   value
@@ -77,7 +126,8 @@ export function rewriteDocLink(sourceFilename: string, href: string, basePath = 
     const base = basePath.replace(/\/$/, '');
     return `${base}/docs/${guide.toLocaleLowerCase('en')}/${fragment}`;
   }
-  return `${GITHUB_DOCS}${relative}${fragment}`;
+  // Repository-relative path: a guide's `DECISIONS.md` is docs/DECISIONS.md.
+  return `${GITHUB_DOCS}${normalized}${fragment}`;
 }
 
 function renderInline(value: string, sourceFilename: string, basePath: string): string {
@@ -117,6 +167,22 @@ export function renderMarkdown(source: string, sourceFilename: string, basePath 
   let paragraph: string[] = [];
   let list: { ordered: boolean; items: string[] } | null = null;
   let quote: string[] = [];
+  const sections: DocSection[] = [];
+  let section: { id: string; heading: string; depth: number; text: string[] } | null = null;
+  const closeSection = () => {
+    if (section) {
+      sections.push({
+        id: section.id,
+        heading: section.heading,
+        depth: section.depth,
+        text: section.text.join(' ').replace(/\s+/g, ' ').trim(),
+      });
+    }
+  };
+  const addText = (value: string) => {
+    const text = plainText(value);
+    if (text && section) section.text.push(text);
+  };
 
   const flushParagraph = () => {
     if (paragraph.length) {
@@ -171,8 +237,11 @@ export function renderMarkdown(source: string, sourceFilename: string, basePath 
       const baseId = slugify(text) || 'section';
       const occurrence = emittedIds.get(baseId) ?? 0;
       emittedIds.set(baseId, occurrence + 1);
-      const id = occurrence ? `${baseId}-${occurrence + 1}` : baseId;
+      // GitHub numbers repeated headings -1, -2, …
+      const id = occurrence ? `${baseId}-${occurrence}` : baseId;
       headings.push({ depth, id, text });
+      closeSection();
+      section = { id, heading: text, depth, text: [] };
       blocks.push(
         `<h${depth} id="${id}">${renderInline(heading[2] ?? '', sourceFilename, basePath)}</h${depth}>`
       );
@@ -196,6 +265,7 @@ export function renderMarkdown(source: string, sourceFilename: string, basePath 
           .split('|')
           .map((cell) => cell.trim());
       const headers = cells(line);
+      addText(headers.join(' '));
       index += 2;
       const rows: string[][] = [];
       while (
@@ -204,6 +274,7 @@ export function renderMarkdown(source: string, sourceFilename: string, basePath 
         (lines[index] ?? '').trim()
       ) {
         rows.push(cells(lines[index] ?? ''));
+        addText(cells(lines[index] ?? '').join(' '));
         index += 1;
       }
       index -= 1;
@@ -229,6 +300,7 @@ export function renderMarkdown(source: string, sourceFilename: string, basePath 
       if (list && list.ordered !== ordered) flushList();
       list ??= { ordered, items: [] };
       list.items.push(listMatch[3] ?? '');
+      addText(listMatch[3] ?? '');
       continue;
     }
     const quoteMatch = line.match(/^\s*>\s?(.*)$/);
@@ -236,6 +308,7 @@ export function renderMarkdown(source: string, sourceFilename: string, basePath 
       flushParagraph();
       flushList();
       quote.push(quoteMatch[1] ?? '');
+      addText(quoteMatch[1] ?? '');
       continue;
     }
     if (!line.trim()) {
@@ -245,15 +318,17 @@ export function renderMarkdown(source: string, sourceFilename: string, basePath 
     flushList();
     flushQuote();
     paragraph.push(line.trim());
+    addText(line);
   }
   flushFlow();
+  closeSection();
 
   const title =
     headings.find((heading) => heading.depth === 1)?.text ?? sourceFilename.replace(/\.md$/i, '');
   const description = plainText(
     source.split('\n').find((line) => line.trim() && !/^#/.test(line)) ?? title
   ).slice(0, 180);
-  return { title, description, headings, html: blocks.join('\n') };
+  return { title, description, headings, sections, html: blocks.join('\n') };
 }
 
 export function getPublicDocs(basePath = ''): PublicDoc[] {
