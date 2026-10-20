@@ -11,7 +11,19 @@ describe('public documentation pages', () => {
       true
     );
     expect(docs.every((doc) => doc.title && doc.html)).toBe(true);
-    expect(docs.some((doc) => doc.filename === 'SECURITY.md')).toBe(false);
+    // Lead decision: user-facing guides are public; contributor docs are not.
+    expect(docs.some((doc) => doc.filename === 'SECURITY.md')).toBe(true);
+    for (const internal of [
+      'ARCHITECTURE.md',
+      'DECISIONS.md',
+      'TESTING_GUIDE.md',
+      'PERFORMANCE.md',
+    ]) {
+      expect(
+        docs.some((doc) => doc.filename === internal),
+        internal
+      ).toBe(false);
+    }
   });
 
   it('rewrites public guide links with anchors and configured base paths', () => {
@@ -20,7 +32,7 @@ describe('public documentation pages', () => {
     );
     expect(rewriteDocLink('PLAYER.md', 'SKILL.md#trust')).toBe('/docs/skill/#trust');
     expect(rewriteDocLink('QUICK.md', '../packages/player/README.md#embed')).toBe(
-      'https://github.com/DailybotHQ/protoyard/blob/dev/packages/player/README.md#embed'
+      'https://github.com/DailybotHQ/protoyard/blob/main/packages/player/README.md#embed'
     );
   });
 
@@ -47,7 +59,8 @@ describe('public documentation pages', () => {
     );
 
     expect(rendered.title).toBe('Safe title');
-    expect(rendered.headings.map(({ id }) => id)).toEqual(['safe-title', 'repeat', 'repeat-2']);
+    // GitHub-compatible ids: repeated headings are numbered -1, -2, …
+    expect(rendered.headings.map(({ id }) => id)).toEqual(['safe-title', 'repeat', 'repeat-1']);
     expect(rendered.html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(rendered.html).toContain('&lt;img src=x onerror=alert(1)&gt;');
     expect(rendered.html).not.toContain('<script>');
