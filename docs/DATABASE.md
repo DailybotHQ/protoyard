@@ -20,6 +20,18 @@ For `crm-demo` (namespace `crm-demo`) that is `protoyard.crm-demo.data` and
 `protoyard.crm-demo.control`. A prototype created with `protoyard new` gets
 its slug as namespace.
 
+A blueprint that runs without generated code (the player, ADR-030) has no
+`protoyard.json`. Its namespace comes from its content instead:
+`blueprintIdentity(blueprint)` in `@protoyard/blueprint` returns the SHA-256
+of the blueprint's canonical JSON (keys sorted at every depth, no whitespace,
+`$schema` left out, defaults applied by `parseBlueprint`), plus the namespace
+`bp-` followed by 26 base32 characters of that digest (130 bits), for example
+`bp-rey57uisdctysuipi7ptzjvq67`. Key order and formatting never change the
+namespace, but any content edit does, so an edited blueprint opens a fresh
+world and two blueprints on one origin never share data. `canonicalJson`
+is exported for other content-addressed uses. The digest uses Web Crypto,
+never the 32-bit `hashString` that generator versions use.
+
 Keeping them apart means a theme or persona change never writes a domain row,
 and loading a scenario never deletes your saved snapshots.
 
