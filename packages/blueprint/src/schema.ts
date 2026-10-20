@@ -2,6 +2,7 @@ import { CatalogSchema, LayoutIdSchema } from '@protoyard/core';
 import { GEO_REGIONS, type GeoRegionId } from '@protoyard/scenarios';
 import { z } from 'zod';
 import { ArchetypeSchema } from './archetypes/schema.ts';
+import { ValidationSchema, validationIssues } from './validation-tasks.ts';
 
 /**
  * `blueprint.json` — a data-only description of a product (ADR-017):
@@ -737,6 +738,8 @@ const BlueprintShape = z.strictObject({
   screens: z.array(ScreenSchema).default([]),
   /** Earlier versions, oldest first. Written by `protoyard generate`; do not edit by hand. */
   history: z.array(BlueprintHistoryEntrySchema).default([]),
+  /** Optional validation tasks for exploration sessions (see validation-tasks.ts). */
+  validation: ValidationSchema.optional(),
 });
 
 /** `plural` in lowerCamelCase unless `table` is set: `support-tickets` → `supportTickets`. */
@@ -894,6 +897,7 @@ export function blueprintIssues(blueprint: Shape): Issue[] {
   blueprint.entities.forEach((entity, i) => {
     checkEntity(entity, i, names, add);
   });
+  if (blueprint.validation) validationIssues(blueprint.validation, entities, add);
   if (blueprint.archetype) {
     for (const [slot, entityName] of Object.entries(blueprint.archetype.entities)) {
       if (!entities.has(entityName)) {

@@ -3046,6 +3046,152 @@
         "required": ["schemaVersion", "blueprint"],
         "additionalProperties": false
       }
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "tasks": {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 48,
+                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+              },
+              "prompt": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 280
+              },
+              "timeLimitSeconds": {
+                "type": "integer",
+                "minimum": 10,
+                "maximum": 3600
+              },
+              "success": {
+                "type": "object",
+                "properties": {
+                  "route": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "pattern": "^\\/(?:[A-Za-z0-9._~:@-]+(?:\\/[A-Za-z0-9._~:@-]+)*\\/?)?$"
+                      },
+                      "match": {
+                        "default": "exact",
+                        "type": "string",
+                        "enum": ["exact", "prefix"]
+                      }
+                    },
+                    "required": ["path"],
+                    "additionalProperties": false
+                  },
+                  "data": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "op": {
+                            "type": "string",
+                            "const": "eq"
+                          },
+                          "entity": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                          },
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][A-Za-z0-9]*$"
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 200
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": ["op", "entity", "field", "value"],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "op": {
+                            "type": "string",
+                            "const": "contains"
+                          },
+                          "entity": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                          },
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][A-Za-z0-9]*$"
+                          },
+                          "value": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          }
+                        },
+                        "required": ["op", "entity", "field", "value"],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "op": {
+                            "type": "string",
+                            "const": "count>="
+                          },
+                          "entity": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+                          },
+                          "value": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 100000
+                          },
+                          "from": {
+                            "default": "task-start",
+                            "type": "string",
+                            "enum": ["task-start", "zero"]
+                          }
+                        },
+                        "required": ["op", "entity", "value"],
+                        "additionalProperties": false
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": ["id", "prompt", "success"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["tasks"],
+      "additionalProperties": false
     }
   },
   "required": ["formatVersion", "name", "entities", "roles"],
