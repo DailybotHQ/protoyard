@@ -15,6 +15,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | Module | Derives | Entry |
 | --- | --- | --- |
 | schema | the zod schema, JSON Schema and cross-reference checks | `.` |
+| computed | a bounded data-only expression grammar, type/reference validation and read-time evaluation | `src/computed/index.ts` (opt-in source entry) |
 | archetypes | strict, portable kit archetype declarations and supported entry points | `.` |
 | storage | Dexie store strings and integrity rules | `.` |
 | migrations | appended database versions; `deriveDatabaseVersions` rebuilds them from `history` | `.` |
@@ -450,6 +451,46 @@ const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
   blueprint's top-level `{ "id": "mobile-tabs" }` layout configuration.
 
 It is a heuristic starting point: read the `rationale`, then refine `blueprint.json`.
+
+## Computed expressions
+
+Computed values use a small JSON AST and are evaluated at read time. They are never stored in a
+row, generated as JavaScript or included in storage migrations. Import the opt-in module only
+where the consumer needs computed values. The source entry is opt-in; a public `./computed`
+package export is not part of this task:
+
+```ts
+import {
+  evaluateComputedExpression,
+  validateComputedExpression,
+} from './src/computed/index.ts';
+
+const expression = {
+  op: 'dateDiff',
+  start: { op: 'field', field: 'startedAt' },
+  end: { op: 'field', field: 'dueAt' },
+  unit: 'days',
+};
+const check = validateComputedExpression(expression, { sourceEntity, entities });
+const result = evaluateComputedExpression(expression, {
+  sourceEntity, entities, row, relations,
+});
+```
+
+The grammar allows scalar literals, scalar field references, numeric `add` / `subtract` /
+`multiply` / `divide`, string `concat`, date `dateDiff` and relation `aggregate` (`count`,
+`sum`, `avg`, `min`, `max`). Arithmetic accepts number, integer and money fields; `concat`
+accepts text-like fields; date differences accept date/datetime fields; aggregates validate the
+relation target and the aggregate field kind. `validateComputedExpression` reports the inferred
+result type and whether it may be null. Missing field values, empty non-count aggregates,
+invalid runtime values and division by zero return `null`; count over an absent relation is zero.
+Dates are input as ISO strings or epoch milliseconds, and differences use the requested unit.
+
+`safeParseComputedExpression` and `parseComputedExpression` enforce strict object shapes, a
+maximum depth of 32 and at most 256 object/array nodes before recursive parsing. The evaluator
+walks only these fixed operators; strings remain literal data and cannot invoke code. This is a
+standalone authoring/runtime primitive: the blueprint storage schema and generated prototypes do
+not yet declare computed fields.
 
 ## Aggregates
 
