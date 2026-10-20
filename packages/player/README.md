@@ -79,7 +79,7 @@ The player keeps a small `protoyard.player.index` database with the stored
 exploration name, last-opened time, content identity and a best-effort origin
 storage estimate. `listExplorations()` reads it, while
 `clearExploration(namespace, { confirmed: true })` deletes only that
-exploration's `.data` and `.control` databases and its index row. Clearing
+exploration's `.data`, `.control` and `.validation` databases and its index row. Clearing
 without confirmation is rejected. The estimate is origin-wide because browser
 storage APIs do not expose per-IndexedDB-database byte counts.
 
@@ -153,6 +153,8 @@ for such blueprints, so others download none of it (a 3.5 KB gzip lazy chunk).
 - **Success** is evaluated with `evaluateValidationSuccess` on the current hash route and the live
   rows (Dexie `liveQuery`) of the entities the tasks name, counted from when the task started;
   soft-deleted rows do not count.
+- **Progress:** which task is current lives in memory, so reloading the page starts again at the
+  first task. Recorded attempts persist and stay in the download.
 - **Metrics:** outcome, wall-clock duration and steps (route changes plus completed service calls
   from the runtime's pending tracker). Nothing a person types is recorded. Attempts are stored per
   blueprint in IndexedDB (`protoyard.<namespace>.validation`), never sent anywhere, and
@@ -161,6 +163,19 @@ for such blueprints, so others download none of it (a 3.5 KB gzip lazy chunk).
 
 ```bash
 pnpm vitest run packages/player/tests/validation.test.ts
+```
+
+## Security
+
+The built `index.html` starts with a strict Content-Security-Policy meta tag, and `dist/_headers`
+repeats it as an HTTP header with `frame-ancestors` (a meta tag cannot set it). Hosts other than
+Cloudflare Pages or Netlify must send that header themselves; see
+[SECURITY](../../docs/SECURITY.md). Clearing an exploration (`clearExploration`) and the boot
+error screen's "Reset prototype data" delete the blueprint's data, control and validation
+databases, and nothing else on the origin.
+
+```bash
+pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/security.test.ts
 ```
 
 ## Build settings

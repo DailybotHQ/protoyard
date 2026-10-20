@@ -25,9 +25,12 @@ async function wipe() {
   wiping = true;
   wipeError = null;
   try {
-    // Only THIS prototype's two databases; nothing else on the origin.
+    // Only THIS prototype's databases; nothing else on the origin. The player
+    // also keeps validation-task attempts per blueprint; deleting a database
+    // that does not exist is a no-op for every other prototype.
     await deleteDb(`protoyard.${namespace}.data`);
     await deleteDb(`protoyard.${namespace}.control`);
+    await deleteDb(`protoyard.${namespace}.validation`);
     location.reload();
   } catch (err) {
     wipeError = err instanceof Error ? err.message : String(err);

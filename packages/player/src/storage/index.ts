@@ -182,7 +182,11 @@ function deleteDatabase(indexedDB: IDBFactory, name: string): Promise<void> {
   });
 }
 
-/** Clears only one blueprint's data and control databases after confirmation. */
+/**
+ * Clears only one blueprint's databases after confirmation: its data, control
+ * and validation-metrics stores (`protoyard.<namespace>.validation`, written
+ * by the validation-task panel), then its index entry.
+ */
 export async function clearExploration(
   namespace: string,
   options: ClearExplorationOptions = {},
@@ -196,6 +200,7 @@ export async function clearExploration(
   if (!factory) throw new Error('IndexedDB is unavailable for the player');
   await deleteDatabase(factory, `protoyard.${namespace}.data`);
   await deleteDatabase(factory, `protoyard.${namespace}.control`);
+  await deleteDatabase(factory, `protoyard.${namespace}.validation`);
   const index = await openPlayerIndex(factory);
   try {
     await index.remove(namespace);
