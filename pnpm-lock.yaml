@@ -89,9 +89,15 @@ importers:
       '@lucide/svelte':
         specifier: ^1.59.0
         version: 1.59.0(svelte@5.57.2)
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../../packages/blueprint
       '@protoyard/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../../packages/player
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../../packages/themes
