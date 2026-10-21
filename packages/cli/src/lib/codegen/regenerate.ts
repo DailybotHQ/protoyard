@@ -25,7 +25,7 @@ import { checkHeader } from './header.ts';
  */
 
 export const SNAPSHOT_PATH = 'src/generated/blueprint.snapshot.json';
-export const CODEGEN_FORMAT_VERSION = 2;
+export const CODEGEN_FORMAT_VERSION = 3;
 const SCREENS_DIR = 'src/generated/screens';
 
 export interface Snapshot {
@@ -365,7 +365,7 @@ export async function checkBlueprintDrift(
       return {
         ok: false,
         problems: [
-          `Generated code format ${snapshot.codegenFormat ?? 1} is outdated; run \`pnpm protoyard generate ${slug} --blueprint prototypes/${slug}/blueprint.json\` to regenerate and get screen routes.`,
+          `Generated code format ${snapshot.codegenFormat ?? 1} is outdated; run \`pnpm protoyard generate ${slug} --blueprint prototypes/${slug}/blueprint.json\` to regenerate it in the current format.`,
         ],
         summary: '',
       };
