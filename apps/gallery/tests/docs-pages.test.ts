@@ -202,7 +202,7 @@ describe('the public guide set (check-public-docs)', () => {
     expect(counts.routes).toBe(2);
   });
 
-  it('maps every sitemap <loc> to a built page under the site base, and lists every guide', () => {
+  it('maps every sitemap <loc> to a built, indexable page under the site base, and lists every guide', () => {
     const dir = mkdtempSync(join(tmpdir(), 'protoyard-docs-sitemap-'));
     roots.push(dir);
     const site = 'https://protoyard.example/base/';
@@ -212,6 +212,7 @@ describe('the public guide set (check-public-docs)', () => {
         site,
         `${site}docs/player/`,
         `${site}play/`,
+        `${site}player/`,
         `${site}robots.txt`,
       ]
         .map((loc) => `<url><loc>${loc}</loc></url>`)
@@ -220,12 +221,17 @@ describe('the public guide set (check-public-docs)', () => {
     write(join(dir, 'index.html'), '<!doctype html>');
     write(join(dir, 'docs', 'player', 'index.html'), '<!doctype html>');
     write(join(dir, 'robots.txt'), 'User-agent: *');
+    write(
+      join(dir, 'player', 'index.html'),
+      '<!doctype html><meta name="robots" content="noindex" />'
+    );
     const problems: string[] = [];
     const counts = { guides: 0, links: 0, routes: 0, locs: 0 };
     checkSitemap(dir, ['player', 'skill'], problems, counts);
-    expect(counts.locs).toBe(4);
+    expect(counts.locs).toBe(5);
     expect(problems).toEqual([
       `sitemap: ${site}play/ has no built page (${join(dir, 'play', 'index.html')})`,
+      `sitemap: ${site}player/ is a noindex page (${join(dir, 'player', 'index.html')})`,
       'sitemap: /docs/skill/ is not listed',
     ]);
   });

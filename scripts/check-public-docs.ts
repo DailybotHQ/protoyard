@@ -15,7 +15,8 @@
  * exist with every public guide in the index.
  *
  * With `--sitemap <dir>`: every <loc> of <dir>/sitemap.xml maps to a built
- * page in <dir>, and every public guide's page is listed.
+ * page in <dir> that is not `noindex` (the standalone player is not a landing
+ * page), and every public guide's page is listed.
  *
  * Each failure names the missing source, link or route. Exit 0 when clean,
  * 1 on any problem, 2 on usage errors.
@@ -184,6 +185,12 @@ export function checkSitemap(
     const rel = decodeURIComponent(pathname.slice(base.length));
     const file = rel === '' || rel.endsWith('/') ? join(dir, rel, 'index.html') : join(dir, rel);
     if (!existsSync(file)) problems.push(`sitemap: ${locs[i]} has no built page (${file})`);
+    else if (
+      file.endsWith('.html') &&
+      /<meta\s+name="robots"\s+content="[^"]*noindex/i.test(readFileSync(file, 'utf8'))
+    ) {
+      problems.push(`sitemap: ${locs[i]} is a noindex page (${file})`);
+    }
   }
   for (const slug of slugs) {
     if (!paths.some((p) => p.endsWith(`/docs/${slug}/`))) {
