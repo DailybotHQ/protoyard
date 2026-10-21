@@ -78,6 +78,11 @@ unchanged.
 
 ## Agent authoring loop
 
+The distributable skill walks agents through this loop in its
+[`protoyard-new` flow](../skills/protoyard/new/SKILL.md), with a
+[blueprint reference](../skills/protoyard/references/blueprints.md) that maps
+this page.
+
 Keep the blueprint as the source of truth and make each generated result reviewable. Brief
 synthesis, validation and shape imports run locally. Pass `--no-install` to generation when the
 workspace dependencies are already linked and the loop must not invoke a package install:
