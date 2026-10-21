@@ -1,0 +1,8 @@
+{
+  "schema": "https://deepworkplan.com/schema/addon-descriptor/v1.json",
+  "key": "protoyard",
+  "product": { "repo": "DailybotHQ/protoyard", "tag": "v1.1.0", "interface": 1 },
+  "detect": { "command": "protoyard --version --json", "interface_from": "json:interface" },
+  "provides_abilities": [],
+  "requires_grants": ["gate_command_exec", "fs_write_plan_scope"]
+}
