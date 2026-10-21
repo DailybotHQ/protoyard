@@ -1,0 +1,118 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`quick JSON envelopes > freezes the machine-readable envelope for every quick command 1`] = `
+[
+  {
+    "command": "quick",
+    "error": {
+      "code": "usage",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick serve",
+    "error": {
+      "code": "not_found",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick shot",
+    "error": {
+      "code": "not_found",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick export",
+    "error": {
+      "code": "usage",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick promote",
+    "error": {
+      "code": "not_found",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick iterate",
+    "error": {
+      "code": "usage",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick undo",
+    "error": {
+      "code": "not_found",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick report",
+    "error": {
+      "code": "not_found",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick feedback",
+    "error": {
+      "code": "not_found",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick list",
+    "dataKeys": [
+      "explorations",
+      "root",
+      "skipped",
+    ],
+    "ok": true,
+  },
+  {
+    "command": "quick open",
+    "error": {
+      "code": "not_found",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick index",
+    "error": {
+      "code": "not_found",
+      "hasHint": true,
+    },
+    "ok": false,
+  },
+  {
+    "command": "quick prune",
+    "dataKeys": [
+      "candidates",
+      "cutoff",
+      "deleted",
+      "dryRun",
+      "kept",
+      "olderThan",
+      "refused",
+      "root",
+      "skipped",
+    ],
+    "ok": true,
+  },
+]
+`;

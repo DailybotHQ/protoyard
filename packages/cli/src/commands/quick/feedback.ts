@@ -78,7 +78,14 @@ function renderFeedbackMarkdown(input: {
   pulledAt: string;
   sections: { group: Group; comments: readonly ReviewComment[] }[];
 }): string {
-  const lines = [`# Exploration feedback: ${markdownCell(input.name)}`, '', UNTRUSTED_NOTICE, ''];
+  const lines = [
+    `# Exploration feedback: ${markdownCell(input.name)}`,
+    '',
+    'Scope: this export covers the current blueprint and its recorded variants. Comments from earlier `quick iterate` history entries or `keep` namespaces are not included.',
+    '',
+    UNTRUSTED_NOTICE,
+    '',
+  ];
   const withComments = input.sections.filter((section) => section.comments.length > 0);
   if (withComments.length === 0) lines.push('_No comments yet._', '');
   for (const { group, comments } of withComments) {

@@ -83,7 +83,7 @@ describe('single-file building blocks', () => {
   it('rewrites only known chunk imports, stylesheet preloads and import.meta.url', () => {
     const chunks = new Set(['a-1.js', 'b-2.js']);
     const out = rewriteChunk(
-      'import"./a-1.js";import(`./b-2.js`);const k="./other.js",d=["./a.css","./a-1.js"];new URL("x",import.meta.url)',
+      'import"./a-1.js";import(`./b-2.js`);const k="./other.js",d=["./a.css","./a-1.js"];const resolve=function(dep, importerUrl){return new URL(dep, importerUrl).href};new URL("x",import.meta.url)',
       'a-1.js',
       chunks,
       new Set(['a.css'])
@@ -93,6 +93,8 @@ describe('single-file building blocks', () => {
     expect(out).toContain('"./other.js"'); // not a chunk: untouched
     expect(out).toContain('"./a.css-inlined"');
     expect(out).toContain(JSON.stringify(`${SINGLE_FILE_BASE}assets/a-1.js`));
+    expect(out).toContain('function(){return "data:application/javascript,"}');
+    expect(out).not.toContain('.invalid');
     expect(out).not.toContain('import.meta.url');
   });
 
@@ -133,6 +135,8 @@ describe('single-file building blocks', () => {
     // The bootstrap starts the entry through the import map.
     expect(html).toContain('import "py:assets/index-A1.js";');
     expect(html).toContain('vite:preloadError');
+    expect(html).not.toContain('.invalid');
+    expect(html).toContain('data:application/javascript,');
   });
 });
 
@@ -236,8 +240,11 @@ describe('single file from the real player build', () => {
     }
     const blueprintJson = readFileSync(join(REPO, 'blueprints/crm.json'), 'utf8');
     const { html } = await buildSingleFile({ playerDir, blueprintJson, title: 'Northstar CRM' });
+    // Model an artifact skeleton that strips the CSP meta; the output must
+    // still make no request except data URLs because its preload helper is inert.
+    const pageHtml = html.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/, '');
     const file = resolve(REPO, 'tmp', `single-file-crm-${process.pid}.html`);
-    writeFileSync(file, html);
+    writeFileSync(file, pageHtml);
     let browser: Awaited<ReturnType<typeof chromium.launch>>;
     try {
       browser = await chromium.launch();
@@ -250,13 +257,11 @@ describe('single file from the real player build', () => {
     try {
       const page = await browser.newPage();
       const problems: string[] = [];
-      page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
-      page.on('console', (message) => {
-        const text = message.text();
-        // Expected under the strict CSP: Vite's preloads of the .invalid base, and avatars.
-        if (message.type() === 'error' && !text.includes('.invalid/') && !/avatars\//.test(text))
-          problems.push(`console: ${text}`);
+      const networkRequests: string[] = [];
+      page.on('request', (request) => {
+        if (/^https?:/.test(request.url())) networkRequests.push(request.url());
       });
+      page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
       const ready = async () => {
         await page.waitForSelector('html[data-protoyard-ready="1"]', {
           state: 'attached',
@@ -291,6 +296,7 @@ describe('single file from the real player build', () => {
         }
       });
       expect(workers).toBe(0);
+      expect(networkRequests).toEqual([]);
       expect(problems).toEqual([]);
     } finally {
       await browser.close();

@@ -230,6 +230,8 @@ export function renderReportMarkdown(input: {
     '',
     `Exploration \`${input.slug}\`. ${input.sources} metrics file${input.sources === 1 ? '' : 's'}, ${input.groups.reduce((n, g) => n + g.attempts, 0)} attempts after removing repeats. Success rate counts every attempt; median time and steps count successful attempts only. Simulated data only.`,
     '',
+    'Scope: this report covers the current blueprint and the variants recorded in this exploration. Metrics from earlier `quick iterate` history entries and `keep` namespaces are not included.',
+    '',
     'In the player, task progress (which task is current) resets when the page reloads; recorded attempts persist in the browser until the exploration is cleared, and every download includes all of them.',
   ];
   for (const group of input.groups) {

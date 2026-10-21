@@ -15,10 +15,10 @@ import { checkTextAsset, parseAttributes } from '../artifact-pack.ts';
  *   (built by a small bootstrap script) points at the chunks' blob URLs. Bare
  *   specifiers resolve through the map whatever the importer's base, so
  *   circular chunk imports work too;
- * - `import.meta.url` becomes a fixed `https://….invalid/` URL, because a
- *   blob URL cannot be a base for `new URL(relative, base)`. Vite's preload
- *   helper then asks for files that do not exist; the strict CSP blocks the
- *   request and a `vite:preloadError` listener lets the import go on;
+ * - `import.meta.url` becomes a data URL and Vite's emitted preload resolver
+ *   is rewritten to data URLs. Relative worker URLs then fail before network
+ *   access (the player falls back to main-thread generation), while no
+ *   preload can request the reserved `.invalid` host;
  * - every stylesheet is inlined up front, so lazy screens are styled without
  *   their CSS preloads;
  * - the world-generation worker cannot start from a blob base, so the player
@@ -38,8 +38,8 @@ import { checkTextAsset, parseAttributes } from '../artifact-pack.ts';
 export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4 * 1024 * 1024;
 /** The `id` the player reads the embedded blueprint from (EMBEDDED_BLUEPRINT_ID in the player). */
 export const SINGLE_FILE_BLUEPRINT_ID = 'protoyard-blueprint';
-/** Base that `import.meta.url` is rewritten to: `.invalid` never resolves (RFC 6761). */
-export const SINGLE_FILE_BASE = 'https://protoyard-single-file.invalid/';
+/** Non-network base used by the inlined bundle; it cannot resolve external assets. */
+export const SINGLE_FILE_BASE = 'data:application/javascript,';
 
 /**
  * The single file's policy: inline scripts and blob modules only (the import
@@ -119,16 +119,25 @@ export function rewriteChunk(
   chunks: ReadonlySet<string>,
   stylesheets: ReadonlySet<string> = new Set()
 ): string {
-  return text
-    .replace(/(["'`])\.\/([\w.-]+\.js)\1/g, (match, quote: string, file: string) =>
-      chunks.has(file) ? `${quote}py:assets/${file}${quote}` : match
-    )
-    .replace(
-      /(["'`])(\.\/|assets\/)([\w.-]+\.css)\1/g,
-      (match, quote: string, prefix: string, file: string) =>
-        stylesheets.has(file) ? `${quote}${prefix}${file}-inlined${quote}` : match
-    )
-    .replace(/\bimport\.meta\.url\b/g, JSON.stringify(`${SINGLE_FILE_BASE}assets/${name}`));
+  return (
+    text
+      // Vite's emitted relative-base helper creates preload links. In a single
+      // file, every stylesheet and chunk is already embedded, so resolve those
+      // URLs to an inert data URL instead of issuing HTTP(S) requests.
+      .replace(
+        /function\s*\(\s*[\w$]+\s*,\s*[\w$]+\s*\)\s*\{\s*return\s+new URL\([\w$]+,\s*[\w$]+\)\.href\s*\}/g,
+        'function(){return "data:application/javascript,"}'
+      )
+      .replace(/(["'`])\.\/([\w.-]+\.js)\1/g, (match, quote: string, file: string) =>
+        chunks.has(file) ? `${quote}py:assets/${file}${quote}` : match
+      )
+      .replace(
+        /(["'`])(\.\/|assets\/)([\w.-]+\.css)\1/g,
+        (match, quote: string, prefix: string, file: string) =>
+          stylesheets.has(file) ? `${quote}${prefix}${file}-inlined${quote}` : match
+      )
+      .replace(/\bimport\.meta\.url\b/g, JSON.stringify(`${SINGLE_FILE_BASE}assets/${name}`))
+  );
 }
 
 /** The classic script that turns the embedded chunks into an import map and starts the app. */
