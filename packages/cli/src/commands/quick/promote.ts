@@ -47,7 +47,7 @@ export interface QuickPromoteResult {
 }
 
 /** Resolves `<slug|dir>` to a marked exploration folder; throws a CliError. */
-function resolveExploration(root: string, target: string): string {
+export function resolveExploration(root: string, target: string): string {
   if (!target) {
     throw new CliError('usage', 'Name the exploration to promote and the new prototype slug.', {
       hint: 'protoyard quick promote <exploration> <new-slug>',
@@ -78,7 +78,7 @@ function resolveExploration(root: string, target: string): string {
 }
 
 /** Reads a quick blueprint as untrusted input and checks it is the one quick.json recorded. */
-async function readRecordedBlueprint(
+export async function readRecordedBlueprint(
   path: string,
   expectedSha256: string
 ): Promise<{ blueprint: Blueprint; sha256: string }> {
