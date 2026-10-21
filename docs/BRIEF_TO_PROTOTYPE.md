@@ -95,6 +95,11 @@ You can combine synthesis and generation with `blueprint new --generate
 <slug>`. Use that shortcut when the user wants a direct result; keep the
 separate review step for briefs whose inferred model or permissions need care.
 
+If you first tried the idea with `protoyard quick` and want to keep it,
+`pnpm protoyard quick promote <exploration> acme-desk` generates the prototype
+from the exploration's blueprint instead (add `--variant vN` for one of its
+variants). See [Promoting a quick exploration](GENERATOR.md#promoting-a-quick-exploration).
+
 ### 5. Add only product-specific screens
 
 Run the generated app and compare it with the brief. The generator already

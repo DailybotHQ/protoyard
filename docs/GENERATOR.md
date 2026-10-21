@@ -97,6 +97,10 @@ pnpm protoyard generate my-assistant --blueprint tmp/my-assistant.blueprint.json
 pnpm protoyard generate my-assistant --blueprint tmp/my-assistant.blueprint.json --no-install
 ```
 
+When the idea started as a `protoyard quick` exploration, `pnpm protoyard quick promote
+<exploration> <slug>` runs the same generation from its blueprint and checks the result is the
+same app ([Promoting a quick exploration](#promoting-a-quick-exploration)).
+
 For hand-authored JSON, use the exported [JSON Schema](../packages/blueprint/schema/blueprint.schema.json)
 for editor completion, then run `blueprint validate`: the schema checks shape, while the package
 parser also checks entity, field, route and archetype references. For agent interfaces that need
@@ -482,6 +486,35 @@ player uses it to open a blueprint with no build. Both paths share every
 derivation, including `brandDefaultThemeId` for the default theme, so a
 blueprint behaves the same before and after `generate`. See the
 [package README](../packages/blueprint/README.md#runtime-definition).
+
+## Promoting a quick exploration
+
+An exploration made with `protoyard quick` already runs its blueprint in the
+player. When it should become a prototype you own and extend, promote it:
+
+```bash
+pnpm protoyard quick promote <exploration> my-idea              # its slug or its folder
+pnpm protoyard quick promote <exploration> my-idea --variant v2 # one of its --variants
+pnpm protoyard quick promote <exploration> my-idea --no-install
+```
+
+Promotion runs the `generate` pipeline in process with the exploration's
+`blueprint.json` (or the variant's), so `prototypes/my-idea` is an ordinary
+generated prototype. It needs a workspace (otherwise a `not_found` error with
+`data.reason: "no_workspace"`), and it never replaces anything: any existing
+`prototypes/<slug>` is a `conflict`, even one `generate` made. The blueprint is
+read as untrusted input and must still match the sha256 that `quick.json`
+recorded.
+
+After generating, it checks the folder contract, the blueprint drift check that
+`validate` runs, and parity with the exploration: the written `blueprint.json`
+has the same identity and derives the same database versions. Only when every
+check passes does it record `promotedTo` (`slug`, `variant`, `at`) in
+`quick.json`. A failing check exits 4 and leaves `quick.json` as it was. Since
+both paths build from the same blueprint, the generated prototype seeds the
+same world as the player for the same scenario; `packages/cli/tests/quick-promote.test.ts`
+proves it on a real promotion. Then continue with the usual loop:
+`pnpm vitest run prototypes/my-idea` and `pnpm protoyard validate my-idea --build`.
 
 ## What `generate` writes
 
