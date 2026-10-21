@@ -66,7 +66,7 @@ export {
   type Router as HashRouter,
   type RouterOptions,
   redirectWithNext,
-} from './router/router.svelte.ts';
+} from './router/hash-router.svelte.ts';
 export {
   isValidationError,
   type RunServiceOptions,

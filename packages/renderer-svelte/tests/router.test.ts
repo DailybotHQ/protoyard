@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { compilePattern, parseHash, toHref } from '../src/router/match.ts';
-import { createRouter, defineRoutes, fillParams, navigate } from '../src/router/router.svelte.ts';
+import { createRouter, defineRoutes, fillParams, navigate } from '../src/router/hash-router.svelte.ts';
 
 describe('hash route matching', () => {
   it('normalizes hashes and keeps hash queries', () => {

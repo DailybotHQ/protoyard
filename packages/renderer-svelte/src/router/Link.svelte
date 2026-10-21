@@ -2,7 +2,7 @@
 import type { Snippet } from 'svelte';
 import type { HTMLAnchorAttributes } from 'svelte/elements';
 import { toHref } from './match.ts';
-import type { Router } from './router.svelte.ts';
+import type { Router } from './hash-router.svelte.ts';
 
 /**
  * `<Link href="/deals/1">` → `<a href="#/deals/1">`. With a `router`, the
