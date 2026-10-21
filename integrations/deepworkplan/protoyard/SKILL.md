@@ -124,6 +124,10 @@ install it or claim that detection succeeded.
 Fill this template from the actual plan and repository. These are decisions,
 not a copy-paste project scaffold:
 
+Start with the [exploration task template](templates/EXPLORATION_TASK.md) and
+its [deterministic gate checklist](templates/EXPLORATION_GATES.md); fill every
+placeholder from the plan and use the commands as observed gates.
+
 ```text
 Question: <what decision will this exploration answer?>
 Input: <bounded brief | validated blueprint path>
