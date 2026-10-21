@@ -10,6 +10,8 @@ guides, and Security are also rendered as static pages with search under
 the allowlist is `PUBLIC_GUIDES` in
 [`apps/gallery/src/lib/docs/index.ts`](../apps/gallery/src/lib/docs/index.ts).
 Contributor and internal docs stay in the repository only.
+`pnpm exec tsx scripts/check-public-docs.ts` checks that every published guide
+exists and that its links and anchors resolve ([Testing guide](TESTING_GUIDE.md)).
 
 ## Use it
 
