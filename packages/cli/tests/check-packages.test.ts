@@ -8,15 +8,19 @@ import { gzipSync } from 'node:zlib';
 import { afterAll, describe, expect, it } from 'vitest';
 import {
   attwProblems,
+  caseCollisionFindings,
   checkPackages,
   fileFindings,
   findCandidates,
   formatTable,
+  isSvelteComponentDeclarationProblem,
   localSpecifierFindings,
   manifestFindings,
   parseArgs,
   payloadPrefixes,
   readTarball,
+  SVELTE_COMPONENT_EXCEPTION,
+  svelteDeclarationFindings,
 } from '../../../scripts/check-packages.ts';
 
 /**
@@ -208,6 +212,101 @@ describe('attwProblems', () => {
       'NoResolution:bundler',
       'InternalResolutionError:node16-esm',
     ]);
+  });
+});
+
+describe('the svelte-component-declaration attw exception', () => {
+  const files = new Set([
+    'package.json',
+    'dist/thread/index.d.ts',
+    'dist/thread/ReviewThread.svelte',
+    'dist/thread/ReviewThread.svelte.d.ts',
+    'dist/thread/Bare.svelte',
+  ]);
+  const problem = (over: Record<string, string>) => ({
+    kind: 'InternalResolutionError',
+    resolutionOption: 'node16',
+    fileName: '/node_modules/@protoyard/review-ui/dist/thread/index.d.ts',
+    moduleSpecifier: './ReviewThread.svelte',
+    ...over,
+  });
+  const drops = (over: Record<string, string> = {}, name = '@protoyard/review-ui') =>
+    isSvelteComponentDeclarationProblem(problem(over), name, files);
+
+  it('is named and drops only node16 `.svelte` imports whose emitted declaration ships', () => {
+    expect(SVELTE_COMPONENT_EXCEPTION).toBe('svelte-component-declaration');
+    expect(drops()).toBe(true);
+    expect(drops({ moduleSpecifier: '../thread/ReviewThread.svelte' })).toBe(true);
+  });
+
+  it('keeps every other problem', () => {
+    // The declaration is missing: a real packaging bug (the Router.svelte case).
+    expect(drops({ moduleSpecifier: './Bare.svelte' })).toBe(false);
+    expect(drops({ moduleSpecifier: './Missing.svelte' })).toBe(false);
+    // Bundler and node10 do find `X.svelte.d.ts`; failing there is real.
+    expect(drops({ resolutionOption: 'bundler' })).toBe(false);
+    expect(drops({ resolutionOption: 'node10' })).toBe(false);
+    expect(drops({ kind: 'NoResolution' })).toBe(false);
+    expect(drops({ moduleSpecifier: './helpers.js' })).toBe(false);
+    expect(drops({ moduleSpecifier: 'bits-ui/Button.svelte' })).toBe(false);
+    // Another package's file, or a path that leaves the package.
+    expect(drops({}, '@protoyard/ui')).toBe(false);
+    expect(drops({ moduleSpecifier: '../../../other/X.svelte' })).toBe(false);
+  });
+});
+
+describe('svelteDeclarationFindings', () => {
+  const bytes = (text: string) => new TextEncoder().encode(text);
+  it('flags a component declaration that imports its own name, and only that', () => {
+    const files = new Map([
+      [
+        'dist/router/Router.svelte.d.ts',
+        bytes(
+          "import type { Router } from './hash-router.svelte.ts';\ndeclare const Router: import('svelte').Component<{ router: Router }>;\nexport default Router;\n"
+        ),
+      ],
+      [
+        'dist/dialog/Dialog.svelte.d.ts',
+        bytes(
+          "import { Dialog as DialogPrimitive } from 'bits-ui';\nimport type { Snippet } from 'svelte';\ndeclare const Dialog: import('svelte').Component;\nexport default Dialog;\n"
+        ),
+      ],
+      ['dist/index.d.ts', bytes("import type { Router } from './router.ts';\n")],
+    ]);
+    expect(svelteDeclarationFindings(files)).toEqual([
+      {
+        rule: 'svelte-declaration',
+        message:
+          "dist/router/Router.svelte.d.ts imports `Router`, which shadows the component's own declaration",
+      },
+    ]);
+  });
+});
+
+describe('caseCollisionFindings', () => {
+  it('reports sources whose outputs differ only by case, and nothing else', () => {
+    const dir = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-case-')));
+    roots.push(dir);
+    writeFileSync(join(dir, 'package.json'), '{}');
+    mkdirSync(join(dir, 'src', 'router'), { recursive: true });
+    writeFileSync(join(dir, 'src', 'router', 'Link.svelte'), '');
+    writeFileSync(join(dir, 'src', 'router', 'link.ts'), '');
+    writeFileSync(join(dir, 'src', 'router', 'Router.svelte'), '');
+    expect(caseCollisionFindings(dir)).toEqual([]);
+    // `router.svelte.ts` is a different name from `Router.svelte` on every file
+    // system, but both emit `[Rr]outer.svelte.d.ts`.
+    writeFileSync(join(dir, 'src', 'router', 'router.svelte.ts'), '');
+    const findings = caseCollisionFindings(dir);
+    expect(findings.map((f) => f.rule)).toEqual(['case-collision']);
+    expect(findings[0]?.message).toMatch(
+      /Router\.svelte.*router\.svelte\.ts|router\.svelte\.ts.*Router\.svelte/
+    );
+  });
+
+  it('finds none in the real packages', () => {
+    for (const candidate of findCandidates(REPO)) {
+      expect(caseCollisionFindings(candidate.dir), String(candidate.manifest.name)).toEqual([]);
+    }
   });
 });
 

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   cleanChildEnvironment,
+  installArgs,
   packageDirectories,
   parseArgs,
 } from '../../../scripts/verify-packages.ts';
@@ -38,5 +39,17 @@ describe('verify:packages', () => {
     );
     expect(child.status).toBe(0);
     expect(child.stdout).toBe('unset');
+  });
+});
+
+describe('consumer install arguments', () => {
+  it('installs offline, and npm keeps its default peer handling', () => {
+    expect(installArgs('pnpm')).toEqual(['install', '--offline']);
+    const npm = installArgs('npm');
+    expect(npm.slice(0, 2)).toEqual(['install', '--offline']);
+    expect(npm).not.toContain('--legacy-peer-deps');
+    expect(npm.some((arg) => arg.startsWith('--omit'))).toBe(false);
+    // Only for the harness's `file:` folder dependencies (see installArgs).
+    expect(npm).toContain('--ignore-scripts');
   });
 });
