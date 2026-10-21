@@ -18,9 +18,9 @@ pnpm protoyard mcp                           # local MCP server over stdio
 ## Commands
 
 `protoyard mcp` runs a newline-delimited JSON-RPC server over stdin and stdout
-for MCP clients. The transport supports the initialize handshake and tool
-requests; see [the MCP guide](../../docs/MCP.md) for its protocol and trust
-model.
+for MCP clients, supporting the stateless 2026-07-28 revision and the legacy
+2025-11-25 initialize handshake. See [the MCP guide](../../docs/MCP.md) for the
+available tools, argument schemas and trust model.
 
 Target commands (`dev`, `validate`, `build`, `export`, `preview`, `publish`, `scenario`,
 `snapshot`) accept prototypes **and templates**. A slug resolves in `prototypes/` first, then

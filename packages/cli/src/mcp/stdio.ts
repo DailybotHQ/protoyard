@@ -3,8 +3,16 @@ import type { Readable, Writable } from 'node:stream';
 import { CliError, type Envelope, errorEnvelope } from '../lib/output.ts';
 import { CLI_VERSION } from '../lib/workspace.ts';
 
-/** The MCP revision implemented by this handshake-based stdio transport. */
-export const MCP_PROTOCOL_VERSION = '2025-11-25';
+/** Primary stateless MCP revision. */
+export const MCP_PROTOCOL_VERSION = '2026-07-28';
+/** Legacy handshake revision retained for existing MCP clients. */
+export const MCP_LEGACY_PROTOCOL_VERSION = '2025-11-25';
+export const MCP_SUPPORTED_PROTOCOL_VERSIONS = [
+  MCP_PROTOCOL_VERSION,
+  MCP_LEGACY_PROTOCOL_VERSION,
+] as const;
+const PROTOCOL_VERSION_KEY = 'io.modelcontextprotocol/protocolVersion';
+const SERVER_INFO_KEY = 'io.modelcontextprotocol/serverInfo';
 
 export interface McpTool {
   name: string;
@@ -55,11 +63,86 @@ function rpcError(
   };
 }
 
+function unsupportedVersion(id: JsonRpcRequest['id'], requested: unknown): JsonRpcResponse {
+  return rpcError(id, -32022, 'Unsupported protocol version', {
+    supported: MCP_SUPPORTED_PROTOCOL_VERSIONS,
+    requested: typeof requested === 'string' ? requested : null,
+  });
+}
+
+function protocolVersion(request: JsonRpcRequest): unknown {
+  if (!isRecord(request.params) || !isRecord(request.params._meta)) return undefined;
+  return request.params._meta[PROTOCOL_VERSION_KEY];
+}
+
+function carriesRequestMeta(request: JsonRpcRequest): boolean {
+  return isRecord(request.params) && Object.hasOwn(request.params, '_meta');
+}
+
 function envelopeText(envelope: Envelope): { type: 'text'; text: string }[] {
   return [{ type: 'text', text: JSON.stringify(envelope) }];
 }
 
-async function dispatch(
+function serverInfoMeta(): Record<string, unknown> {
+  return { [SERVER_INFO_KEY]: { name: 'protoyard', version: CLI_VERSION } };
+}
+
+function modernResponse(
+  id: JsonRpcRequest['id'],
+  result: Record<string, unknown>
+): JsonRpcResponse {
+  return response(id, { ...result, _meta: serverInfoMeta() });
+}
+
+async function dispatchTool(
+  request: JsonRpcRequest,
+  options: McpStdioOptions,
+  modern: boolean
+): Promise<JsonRpcResponse> {
+  const params = request.params;
+  if (
+    !isRecord(params) ||
+    typeof params.name !== 'string' ||
+    (params.arguments !== undefined && !isRecord(params.arguments))
+  )
+    return rpcError(request.id, -32602, 'Invalid params for tools/call');
+
+  let result: Envelope;
+  try {
+    result = options.callTool
+      ? await options.callTool(params.name, (params.arguments as Record<string, unknown>) ?? {})
+      : errorEnvelope('mcp', new CliError('not_found', `Unknown MCP tool: ${params.name}`));
+  } catch (error) {
+    result = errorEnvelope('mcp', error);
+  }
+  const body = {
+    content: envelopeText(result),
+    ...(result.ok ? {} : { isError: true }),
+  };
+  return modern ? modernResponse(request.id, body) : response(request.id, body);
+}
+
+async function dispatchModern(
+  request: JsonRpcRequest,
+  options: McpStdioOptions
+): Promise<JsonRpcResponse | null> {
+  if (request.id === undefined) return null;
+  if (request.method === 'server/discover') {
+    return modernResponse(request.id, {
+      resultType: 'complete',
+      supportedVersions: [...MCP_SUPPORTED_PROTOCOL_VERSIONS],
+      capabilities: { tools: {} },
+    });
+  }
+  if (request.method === 'tools/list') {
+    return modernResponse(request.id, { tools: options.tools ?? [] });
+  }
+  if (request.method === 'tools/call') return dispatchTool(request, options, true);
+  if (request.method === 'ping') return modernResponse(request.id, {});
+  return rpcError(request.id, -32601, `Method not found: ${request.method}`);
+}
+
+async function dispatchLegacy(
   request: JsonRpcRequest,
   options: McpStdioOptions,
   initialized: boolean
@@ -69,11 +152,14 @@ async function dispatch(
     request.method === 'notifications/cancelled'
   )
     return null;
-
   if (request.id === undefined) return null;
+
   if (request.method === 'initialize') {
+    const params = request.params;
+    const requested = isRecord(params) ? params.protocolVersion : undefined;
+    if (requested !== MCP_LEGACY_PROTOCOL_VERSION) return unsupportedVersion(request.id, requested);
     return response(request.id, {
-      protocolVersion: MCP_PROTOCOL_VERSION,
+      protocolVersion: MCP_LEGACY_PROTOCOL_VERSION,
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: 'protoyard', version: CLI_VERSION },
     });
@@ -82,40 +168,17 @@ async function dispatch(
   if (!initialized) return rpcError(request.id, -32002, 'Server not initialized');
   if (request.method === 'ping') return response(request.id, {});
   if (request.method === 'tools/list') return response(request.id, { tools: options.tools ?? [] });
-
-  if (request.method === 'tools/call') {
-    const params = request.params;
-    if (
-      !isRecord(params) ||
-      typeof params.name !== 'string' ||
-      (params.arguments !== undefined && !isRecord(params.arguments))
-    )
-      return rpcError(request.id, -32602, 'Invalid params for tools/call');
-
-    let result: Envelope;
-    try {
-      result = options.callTool
-        ? await options.callTool(params.name, (params.arguments as Record<string, unknown>) ?? {})
-        : errorEnvelope('mcp', new CliError('not_found', `Unknown MCP tool: ${params.name}`));
-    } catch (error) {
-      result = errorEnvelope('mcp', error);
-    }
-    return response(request.id, {
-      content: envelopeText(result),
-      ...(result.ok ? {} : { isError: true }),
-    });
-  }
-
+  if (request.method === 'tools/call') return dispatchTool(request, options, false);
   return rpcError(request.id, -32601, `Method not found: ${request.method}`);
 }
 
-/** Serve one MCP JSON-RPC session using newline-delimited JSON on stdio. */
+/** Serve modern stateless requests and the legacy initialize-based session on stdio. */
 export async function serveMcpStdio(options: McpStdioOptions = {}): Promise<void> {
   const input = options.input ?? process.stdin;
   const output = options.output ?? process.stdout;
   const diagnostics = options.diagnostics ?? process.stderr;
   const lines = createInterface({ input, crlfDelay: Infinity });
-  let initialized = false;
+  let legacyInitialized = false;
 
   for await (const line of lines) {
     let payload: unknown;
@@ -137,8 +200,27 @@ export async function serveMcpStdio(options: McpStdioOptions = {}): Promise<void
     }
 
     const request = payload as unknown as JsonRpcRequest;
-    const result = await dispatch(request, options, initialized);
-    if (request.method === 'initialize' && result && !result.error) initialized = true;
+    if (request.id === undefined) continue;
+    let result: JsonRpcResponse | null;
+    if (request.method === 'initialize') {
+      result = await dispatchLegacy(request, options, legacyInitialized);
+      if (result && !result.error) legacyInitialized = true;
+    } else {
+      const requested = protocolVersion(request);
+      if (
+        request.method === 'server/discover' ||
+        requested !== undefined ||
+        carriesRequestMeta(request)
+      ) {
+        if (requested !== MCP_PROTOCOL_VERSION) {
+          result = unsupportedVersion(request.id, requested);
+        } else {
+          result = await dispatchModern(request, options);
+        }
+      } else {
+        result = await dispatchLegacy(request, options, legacyInitialized);
+      }
+    }
     if (result) output.write(`${JSON.stringify(result)}\n`);
   }
 }
