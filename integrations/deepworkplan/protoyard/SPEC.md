@@ -227,6 +227,13 @@ recorded, non-blocking skip:
    approved analysis scope.
 6. No automatic promotion, source mutation, lockfile change or DWP runtime
    dependency occurred.
+7. The addon sync conformance test loads this packet's descriptor explicitly
+   without registering it in the vendored addon set. It covers compatible,
+   missing CLI, missing interface field, malformed JSON and mismatched
+   `protoyard --version --json` results, checks the sync action for each
+   state, and confirms planning leaves the repository file inventory and
+   `.dwp/config.json` unchanged. Detection may invoke only the descriptor's
+   version probe; it never installs Protoyard.
 
 The packet MUST remain usable when Protoyard is absent, when its interface is
 unknown, when doctor reports failed checks, when a developer declines, or
