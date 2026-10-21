@@ -38,10 +38,11 @@ beforeAll(async () => {
   }
 }, 600_000);
 
+// Closing Chromium can take longer than the 10 s hook default while the whole suite runs.
 afterAll(async () => {
   await browser?.close();
   server?.close();
-});
+}, 60_000);
 
 /** Opens the player on a quick blueprint at an app route and waits until it is ready. */
 async function open(name: (typeof QUICK)[number], route: string) {
