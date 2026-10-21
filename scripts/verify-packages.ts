@@ -50,6 +50,7 @@ export interface BudgetParityResult {
 
 interface PackageManifest {
   name?: string;
+  packageManager?: string;
   private?: boolean;
   version?: string;
 }
@@ -145,6 +146,16 @@ export function installArgs(pm: PackageManager): string[] {
   return pm === 'pnpm'
     ? ['install', '--offline']
     : ['install', '--offline', '--no-audit', '--no-fund', '--ignore-scripts'];
+}
+
+/**
+ * The repository's own `packageManager` pin, for the harness folders. Without
+ * one, Corepack resolves the newest release, whose offline store may not read
+ * the store this repository's pnpm filled (`ERR_PNPM_NO_OFFLINE_META`).
+ */
+export function harnessPackageManager(root: string, pm: PackageManager): string | undefined {
+  const pin = manifest(root).packageManager;
+  return typeof pin === 'string' && pin.startsWith(`${pm}@`) ? pin : undefined;
 }
 
 function run(
@@ -535,9 +546,11 @@ export async function verifyPackages(options: VerifyOptions = {}): Promise<Verif
     const packageTarballSpecs = localDependencies(packed);
     const externalSpecs = installedExternalDependencies(root, packed, pm);
     const consumerSpecs = { ...packageTarballSpecs, ...externalSpecs };
+    const packageManagerPin = harnessPackageManager(root, pm);
     writeJson(join(installRoot, 'package.json'), {
       name: 'protoyard-package-e2e-harness',
       private: true,
+      ...(packageManagerPin ? { packageManager: packageManagerPin } : {}),
       type: 'module',
       dependencies: consumerSpecs,
     });
@@ -591,6 +604,7 @@ export async function verifyPackages(options: VerifyOptions = {}): Promise<Verif
       ...consumerSpecs,
     };
     delete consumerPackage.devDependencies;
+    if (packageManagerPin) consumerPackage.packageManager = packageManagerPin;
     writeJson(consumerPackagePath, consumerPackage);
     if (pm === 'pnpm')
       writePnpmWorkspace(
