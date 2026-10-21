@@ -9,6 +9,7 @@ between tests. There are two projects: `chromium` (Desktop Chrome) and `mobile` 
 pnpm test:e2e                                                        # gallery only
 PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo,ai-chat-demo pnpm test:e2e   # what CI runs
 PROTOYARD_E2E_SHOWCASE=1 PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/ pnpm test:e2e    # + the one-site showcase
+PROTOYARD_E2E_SHOWCASE=1 pnpm test:e2e tests/e2e/showcase.spec.ts                  # hosted /play/ paste/share and axe
 PROTOYARD_E2E_REVIEW=1 pnpm test:e2e tests/e2e/review-index.spec.ts              # the team review index (port 4502)
 PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e tests/e2e/review-comments.spec.ts   # review comments (ports 4601+, 4651)
 ```
@@ -34,11 +35,12 @@ attributes the renderer sets (`data-py-ready`, `data-py-mode`, `data-py-theme`, 
 | 10 | Another prototype's build contains no CRM data/code | `isolation.spec.ts` (scans each non-CRM `dist`; a positive control proves the patterns match the CRM build) |
 | 11 | Back navigation and a direct refresh of a nested route (`#/deals/:id`) | `crm-demo.spec.ts` · *flow 11* |
 | 12 | Error/slow/offline flow with visible feedback | `crm-demo.spec.ts` · *flow 12* (offline save → "You are offline" toast, nothing saved); `ai-chat-demo.spec.ts` (agent outage → "Reply failed." → Retry recovers) |
+| 13 | Hosted player paste/share → scenario/persona switch → mutation → share-route reload and axe | `showcase.spec.ts` · *runs a pasted blueprint through a mutation and persona/scenario switch*; *opens a share-link blueprint in the hosted player route with axe coverage* |
 
 Also covered: `prototypes.spec.ts` (every target boots without errors and persists across
 reloads), `gallery.spec.ts` (favorites, device frames, theme toggle, the create builder, no
 horizontal overflow on phones) and `showcase.spec.ts` (live demo iframe write survives a reload,
-scenario links, no 404s under a sub-path), and `devtools-panel.spec.ts` (with the showcase: the
+scenario links, hosted player paste/share/reload journeys, no 404s under a sub-path), and `devtools-panel.spec.ts` (with the showcase: the
 DevTools panel closes by X, Escape and Ctrl/⌘ + ., and stays closed after a reload).
 
 ## Accessibility
