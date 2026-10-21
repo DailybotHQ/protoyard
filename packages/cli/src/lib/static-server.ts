@@ -1,5 +1,5 @@
 import { createReadStream, existsSync, realpathSync } from 'node:fs';
-import { createServer, type Server } from 'node:http';
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import sirv from 'sirv';
 import { isInside } from './paths.ts';
@@ -48,6 +48,12 @@ export async function serveStatic(options: {
   strictPort?: boolean;
   /** SPA fallback to index.html (default). Multi-page sites use 404.html instead. */
   spa?: boolean;
+  /** Optional same-origin route handled before static files (for example a local comments API). */
+  route?: (request: IncomingMessage, response: ServerResponse) => boolean;
+  /** Optional allowlist applied to decoded request paths before static lookup. */
+  allowPathname?: (pathname: string) => boolean;
+  /** Optional Host allowlist for loopback servers that must resist DNS rebinding. */
+  allowHost?: (host: string) => boolean;
 }): Promise<StaticServer> {
   const prefix = options.base === './' ? '/' : options.base;
   const spa = options.spa ?? true;
@@ -58,6 +64,12 @@ export async function serveStatic(options: {
   const realRoot = realpathSync.native(options.dir);
   const server = createServer((req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    if (options.allowHost && !options.allowHost(req.headers.host ?? '')) {
+      res.writeHead(421, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Misdirected request.');
+      return;
+    }
+    if (options.route?.(req, res)) return;
     const url = req.url ?? '/';
     if (prefix !== '/') {
       if (url === '/' || url === prefix.slice(0, -1)) {
@@ -83,6 +95,11 @@ export async function serveStatic(options: {
         res.end('Bad request: malformed URL escape.');
         return;
       }
+    }
+    if (options.allowPathname && !options.allowPathname(pathname)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not found.');
+      return;
     }
     // Containment on the REAL path of every file sirv might answer with: a
     // symlink inside the folder must never serve a file from elsewhere.

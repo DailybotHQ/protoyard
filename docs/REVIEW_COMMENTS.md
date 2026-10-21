@@ -206,6 +206,23 @@ PROTOYARD_REVIEW=1 PROTOYARD_REVIEW_ADAPTER=http PROTOYARD_REVIEW_ENDPOINT=/api/
 pnpm exec tsx tests/e2e/support/serve-comments.ts tmp/crm-review 4651
 ```
 
+### Quick explorations
+
+`protoyard quick serve <slug>` enables the same comments API on the local
+server origin. Comments are validated by the review handler and saved beside
+the selected exploration at `review/comments.json`; they survive stopping and
+restarting the server. The server scopes static requests to that exploration
+and its matching shared player version, and returns 404 for other explorations
+and player versions. It binds to `127.0.0.1`, accepts only its printed Host,
+and refuses cross-origin writes. Request size and write rate limits are the
+same as the shared review handler.
+
+This is a local collaboration convenience, not authentication. Any process or
+application running locally with access to loopback may read the selected
+exploration and its comments; browser same-origin rules still apply to page
+scripts. Comment names are self-declared. Do not serve an exploration
+containing information you would not share with local software.
+
 ## The artifact adapter
 
 Use it when the prototype is shared as a private Claude artifact
