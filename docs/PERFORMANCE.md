@@ -1404,3 +1404,36 @@ are in [Views kit](#views-kit).
   when the browser exposes them.
 - **The dev server is per prototype.** `protoyard dev <slug>` starts Vite for
   one app only, so HMR cost doesn't grow with the number of prototypes.
+
+## CLI integration startup and protocol budgets
+
+`pnpm exec tsx scripts/bench-integrations.ts --runs 3` measures three local
+process boundaries without building a prototype or starting a network server:
+
+- **Doctor startup:** a fresh Node + tsx process runs `doctor --json --offline`
+  through exit, and the benchmark verifies the successful machine-readable
+  envelope.
+- **MCP startup:** a fresh `protoyard mcp` process starts and answers the
+  stateless `server/discover` request over stdio.
+- **MCP round trip:** the same process answers a `tools/call` for offline
+  `doctor`; the benchmark checks the JSON text envelope and then closes stdin.
+
+The report records each sample, the median, machine details, and the pass/fail
+result in `tmp/bench-integrations-<timestamp>.json`. It exits nonzero when a
+median exceeds these local ceilings:
+
+| Measure | Median budget | Three-run baseline |
+| --- | ---: | ---: |
+| Doctor startup and check | 10,000 ms | 3,642.1 ms |
+| MCP startup to `server/discover` | 4,000 ms | 2,189.6 ms |
+| MCP `doctor` tool round trip | 5,000 ms | 1,459.4 ms |
+
+Baseline measured 2026-10-20 on Apple M1 Max, 10 cores, Node 26.11.1. The
+ceilings are rounded above the observed samples (maximums: 3,675.2 ms,
+2,291.2 ms, and 1,767.2 ms respectively) to leave headroom for local variance.
+They are local development thresholds, not a claim about other machines; run
+the same benchmark on a CI runner before tightening or treating them as CI
+service-level guarantees. Keep the MCP transport lazy: `commands/mcp.ts`
+imports the stdio server and tool registry only when `protoyard mcp` runs.
+`packages/cli/tests/integration-performance.test.ts` guards the median budget
+calculation and that lazy import boundary.
