@@ -176,7 +176,8 @@ describe('the real probes', () => {
       capabilities: [...CAPABILITIES],
       issues: [],
     });
-    expect(readInterfaceProbe(run.stdout, { capabilities: ['mcp'] }).compatible).toBe(false);
+    // `import` is a defined capability id this CLI does not implement yet.
+    expect(readInterfaceProbe(run.stdout, { capabilities: ['import'] }).compatible).toBe(false);
   }, 120_000);
 
   it('keeps ordinary doctor failures on their exit codes and reads them as degraded', async () => {
