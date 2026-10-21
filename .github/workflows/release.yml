@@ -58,6 +58,12 @@ jobs:
         run: bash scripts/check-public-hygiene.sh
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Skill versions match the release tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=${TAG#v}
+          pnpm exec tsx scripts/stamp-skill-version.ts "$version" --check
       - name: Every public package is on the lockstep version
         run: pnpm version-packages --check
       - name: Lint, types, unit tests
