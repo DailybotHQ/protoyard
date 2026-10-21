@@ -29,7 +29,7 @@ configure({ asyncUtilTimeout: 20_000 });
 const analytics = parseBlueprint(analyticsJson);
 const saas = parseBlueprint(saasJson);
 const ROOT = join(process.cwd());
-const DIST = join(ROOT, 'packages/player/dist');
+const DIST = join(ROOT, 'packages/player/dist/app');
 
 let booted: BootedPlayer | undefined;
 afterEach(async () => {

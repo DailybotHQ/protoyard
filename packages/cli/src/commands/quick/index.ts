@@ -1,22 +1,28 @@
-import { lstat, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import {
   type Blueprint,
+  type BlueprintVariant,
   blueprintFromBrief,
   blueprintIdentity,
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
+  deriveVariants,
   encodeBlueprintShare,
   loadUntrustedBlueprint,
   ShareLinkTooLargeError,
+  VARIANT_MAX_COUNT,
+  VARIANT_THEME_PRESETS,
 } from '@protoyard/blueprint';
-import { checkSlug } from '@protoyard/core';
+import { checkSlug, LAYOUT_IDS } from '@protoyard/core';
+import { THEME_LIBRARY_META } from '@protoyard/themes/library';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { flag, opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { QUICK_MARKER } from '../../lib/output-guard.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
-import { createQuickRecord, writeQuickRecord } from '../../lib/quick/model.ts';
+import { compareModelFromRecord, renderComparePage } from '../../lib/quick/compare-html.ts';
+import { createQuickRecord, parseQuickRecord, writeQuickRecord } from '../../lib/quick/model.ts';
 import { resolveQuickDir } from '../../lib/quick/paths.ts';
 import {
   type LocatePlayerOptions,
@@ -36,6 +42,12 @@ import {
  *   index.html       a script-free launcher that opens the player on it
  *   .protoyard-quick the marker that makes the folder ours
  *
+ * With `--variants N` (1–8) it also writes `v1/`…`vN/`, each with its own
+ * `blueprint.json` and launcher, from `deriveVariants` (layout, theme,
+ * density and first entity change; the domain does not). Variants share the
+ * one player, and each opens its own world: the player stores data per
+ * blueprint content hash. `compare.html` shows them side by side.
+ *
  * The prebuilt player is shared per version (`.protoyard/quick/_player/<v>/`)
  * and the launcher hands it the blueprint as a `#bp=` share link. With
  * `--standalone`, a custom `--out`, or a blueprint too large for a link, the
@@ -47,6 +59,32 @@ import {
 export const QUICK_MAX_BRIEF_BYTES = 64 * 1024;
 const MAX_BLUEPRINT_BYTES = DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS.maxBytes;
 const SEED = /^\d{1,10}$/;
+/** Variant folders an exploration may own (`v1`…`v8`). */
+const VARIANT_DIRS = Array.from({ length: VARIANT_MAX_COUNT }, (_, i) => `v${i + 1}`);
+
+/**
+ * The catalogs variants choose from: every shared layout, and themes that are
+ * either built-in presets or library ids (deriveVariants does not validate
+ * library ids, so only catalog ids are passed).
+ */
+export function variantAxes() {
+  return {
+    layouts: [...LAYOUT_IDS],
+    themes: [...VARIANT_THEME_PRESETS, ...THEME_LIBRARY_META.map((theme) => theme.id)],
+  };
+}
+
+/** `--variants` as a count, or null when absent. */
+export function parseVariantCount(value: string | undefined): number | null {
+  if (value === undefined) return null;
+  if (!/^\d{1,2}$/.test(value) || Number(value) < 1 || Number(value) > VARIANT_MAX_COUNT) {
+    throw new CliError(
+      'usage',
+      `--variants must be a whole number from 1 to ${VARIANT_MAX_COUNT} (got "${value}").`
+    );
+  }
+  return Number(value);
+}
 
 /** Finds the prebuilt player. Tests swap it for a fixture player. */
 let locatePlayer: (options: LocatePlayerOptions) => PlayerAssets = locatePlayerAssets;
@@ -179,6 +217,10 @@ export interface QuickResult {
   replaced: boolean;
   /** Archetype and inference notes from the brief synthesizer. */
   rationale: string[];
+  /** One entry per `--variants` variant, in order. */
+  variants: { id: string; label: string; dir: string; open: string; blueprintSha256: string }[];
+  /** The side-by-side page, when there are variants. */
+  compare: string | null;
 }
 
 export const quickCommand: Handler = async (
@@ -204,6 +246,7 @@ export const quickCommand: Handler = async (
       `--seed must be a whole number from 0 to 4294967295 (got "${seed}").`
     );
   }
+  const variantCount = parseVariantCount(opt(options, 'variants'));
 
   let blueprint: Blueprint;
   let brief: string | undefined;
@@ -291,9 +334,43 @@ export const quickCommand: Handler = async (
       standaloneReason = 'too-large-for-link';
     }
   }
+  // Variants are derived (and their share links encoded) before anything is
+  // written, so a refusal leaves the folder as it was.
+  let variants: BlueprintVariant[] = [];
+  if (variantCount !== null) {
+    try {
+      variants = deriveVariants(blueprint, {
+        count: variantCount,
+        // The same blueprint and seed always give the same variants.
+        seed: seed ?? '',
+        axes: variantAxes(),
+      });
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+      throw new CliError('validation', error.message, { hint: 'Ask for fewer --variants.' });
+    }
+  }
+  const variantShares: (string | null)[] = [];
+  for (const variant of variants) {
+    if (standaloneReason !== null) {
+      variantShares.push(null);
+      continue;
+    }
+    try {
+      variantShares.push(await encodeBlueprintShare(variant.blueprint));
+    } catch (error) {
+      if (!(error instanceof ShareLinkTooLargeError)) throw error;
+      // One variant too large for a link: the whole exploration goes standalone.
+      standaloneReason = 'too-large-for-link';
+    }
+  }
   const standalone = standaloneReason !== null;
 
   await mkdir(quick.dir, { recursive: true });
+  // A replaced exploration never keeps variant folders from an earlier run.
+  for (const name of VARIANT_DIRS)
+    await rm(join(quick.dir, name), { recursive: true, force: true });
+  await rm(join(quick.dir, 'compare.html'), { force: true });
   const player = await materializePlayer(
     assets,
     standalone ? { kind: 'exploration', dir: quick.dir } : { kind: 'shared', zone: quick.zone }
@@ -310,14 +387,60 @@ export const quickCommand: Handler = async (
   }
   await writeAtomic(join(quick.dir, 'index.html'), launcherHtml(blueprint.name, href));
 
-  const record = createQuickRecord({
+  const variantEntries: QuickResult['variants'] = [];
+  for (const [index, variant] of variants.entries()) {
+    const dir = join(quick.dir, variant.id);
+    await mkdir(dir, { recursive: true });
+    const variantJson = `${JSON.stringify(variant.blueprint, null, 2)}\n`;
+    await writeAtomic(join(dir, 'blueprint.json'), variantJson);
+    let variantHref: string;
+    if (standalone) {
+      // Next to the player, so `?src=` stays a plain relative path.
+      const file = `${variant.id}.blueprint.json`;
+      await writeAtomic(join(player.dir, file), variantJson);
+      variantHref = `${toUrlPath(dir, join(player.dir, 'index.html'))}${params}src=./${file}`;
+    } else {
+      variantHref = `${toUrlPath(dir, join(player.dir, 'index.html'))}${params.replace(/[?&]$/, '')}#bp=${variantShares[index]}`;
+    }
+    await writeAtomic(
+      join(dir, 'index.html'),
+      launcherHtml(`${variant.blueprint.name} · ${variant.label}`, variantHref)
+    );
+    const variantIdentity = await blueprintIdentity(variant.blueprint);
+    variantEntries.push({
+      id: variant.id,
+      label: variant.label,
+      dir: variant.id,
+      open: `${variant.id}/index.html`,
+      blueprintSha256: variantIdentity.sha256,
+    });
+  }
+
+  const baseRecord = createQuickRecord({
     slug,
     ...(brief !== undefined ? { brief, storeBrief: options.storeBrief !== false } : {}),
     blueprintSha256: identity.sha256,
     seed: seed ?? null,
     player: { version: player.version, standalone },
   });
+  const record = parseQuickRecord({
+    ...baseRecord,
+    variants: variantEntries.map(({ id, label, dir, blueprintSha256 }) => ({
+      id,
+      label,
+      dir,
+      blueprintSha256,
+    })),
+  });
   await writeQuickRecord(quick.dir, record);
+  if (variantEntries.length > 0) {
+    await writeAtomic(
+      join(quick.dir, 'compare.html'),
+      renderComparePage(
+        compareModelFromRecord(record, blueprint.name, (variant) => `${variant.dir}/index.html`)
+      )
+    );
+  }
   await writeAtomic(
     join(quick.dir, QUICK_MARKER),
     `${JSON.stringify({ format: 'protoyard.quick-marker', slug }, null, 2)}\n`
@@ -337,6 +460,12 @@ export const quickCommand: Handler = async (
     open: rel(join(quick.dir, 'index.html')),
     replaced: quick.state === 'marked',
     rationale,
+    variants: variantEntries.map((variant) => ({
+      ...variant,
+      dir: rel(join(quick.dir, variant.dir)),
+      open: rel(join(quick.dir, variant.open)),
+    })),
+    compare: variantEntries.length > 0 ? rel(join(quick.dir, 'compare.html')) : null,
   };
   return {
     data,
@@ -354,6 +483,11 @@ export const quickCommand: Handler = async (
       output.always(
         `  open       ${data.open} (serve the workspace over http; browsers block modules from file://)`
       );
+      for (const variant of data.variants) {
+        output.info(`  ${variant.id.padEnd(9)}  ${variant.open} (${variant.label})`);
+      }
+      if (data.compare)
+        output.always(`  compare    ${data.compare} (serve it over http, like the launcher)`);
       if (data.rationale.length > 0)
         output.info(c.dim(`  ${data.rationale.slice(0, 3).join(' · ')}`));
     },
