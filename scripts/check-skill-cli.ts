@@ -350,7 +350,7 @@ export function checkReference(tree: CliTree, markdown: string, file: string): S
         if (head.length > 1) {
           at(
             planned.offset + index + 1,
-            `\`protoyard ${head.join(' ')}\` exists now; move it from Planned to New in PLAN_004`
+            `\`protoyard ${head.join(' ')}\` exists now; move it from Planned to New since 1.0.0`
           );
         }
       }

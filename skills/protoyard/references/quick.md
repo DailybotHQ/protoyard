@@ -63,7 +63,7 @@ exploration artifacts, not access-controlled deployments.
 
 ## Workflow ideas not yet implemented in the current CLI
 
-The following shapes are from the PLAN_004 proposal. They are documentation of
+The following shapes are on the roadmap. They are documentation of
 planned work, not commands to try on a release whose help does not list them.
 
 | Planned activity | Proposed form | Current status |
@@ -73,7 +73,6 @@ planned work, not commands to try on a release whose help does not list them.
 | Export local review comments | `protoyard quick feedback <dir>` | Not in current help; record feedback through an existing review workflow or local notes. |
 | Summarize validation sessions | `protoyard quick report <dir>` | Not in current help. Blueprint `validation.tasks` already run in the player's validation panel, which keeps attempts in the browser and downloads a metrics file; there is no CLI report yet. |
 | Browse, open or prune entries by age | `protoyard quick list`, `quick open`, `quick prune --older-than <days>` | Not in current help; do not invent subcommands. Deletion requires showing the exact path and user confirmation. |
-| Generate and validate a full prototype in one command | `protoyard quick promote <dir> <slug>` | Not in current help; use `protoyard generate <slug> --blueprint <file>` followed by `protoyard validate <slug> --build`. |
 
 These proposals may change before release. The CLI's installed help is the
 source of truth.

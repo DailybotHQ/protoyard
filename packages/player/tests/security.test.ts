@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Player hardening (PLAN_004 Task 48):
+ * Player hardening:
  *  1. the sources that turn untrusted blueprints into UI (player, crud,
  *     blueprint) never use {@html}, eval, new Function, HTML string sinks or a
  *     dynamic import of a computed specifier;

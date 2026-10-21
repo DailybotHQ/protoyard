@@ -418,8 +418,10 @@ There is no expression language: the operator list is closed, values are
 literals, and nothing from the blueprint is evaluated as code. Parsing checks
 that task ids are unique, that entities and fields exist, and that value types
 fit the field. `evaluateValidationSuccess(success, { route, rows, baseline })`
-in `@protoyard/blueprint` is pure and deterministic. Today the library parses,
-checks and evaluates the block; no screen shows the tasks yet.
+in `@protoyard/blueprint` is pure and deterministic. The player shows them in a
+validation panel (lazy, loaded only when the blueprint has tasks): it times each
+task, keeps attempts in the browser and downloads a metrics file. There is no
+CLI report of those sessions yet.
 
 ### Variants
 

@@ -34,8 +34,8 @@ protoyard quick --help
 
 The current `quick` command supports one brief or one blueprint file and the
 options shown in [the quick reference](../references/quick.md). If a later
-release adds screenshots, feedback, validation reports, pruning or
-promotion subcommands, use them only when that installed CLI's help lists them.
+release adds screenshots, feedback, validation reports or pruning
+subcommands, use them only when that installed CLI's help lists them.
 Their planned forms are marked as planned in the reference; they are not
 available in every release.
 
@@ -108,19 +108,21 @@ before using any of their planned command forms.
 
 ## Promote a useful result
 
-There is no `quick promote` command in the current CLI. In a Protoyard
-workspace, promote the saved blueprint through the supported generator and
-then validate the full prototype:
+Promote an exploration, or one of its variants, to a full prototype in a
+Protoyard workspace:
 
 ```bash
-protoyard generate gym-bookings --blueprint .protoyard/quick/gym-bookings/blueprint.json
-protoyard validate gym-bookings --build
+protoyard quick promote gym-bookings gym-bookings-app           # or --variant v2
+protoyard validate gym-bookings-app --build
 ```
 
-This creates a full project under `prototypes/gym-bookings/`; inspect the
-generated changes and run its tests before treating it as ready. One-command
-quick promotion is planned and must not be presented as available until help
-shows it.
+`quick promote` runs `generate` with the exploration's blueprint, refuses an
+existing `prototypes/<slug>` or a blueprint changed since the exploration was
+made, checks that the generated prototype is the same app (blueprint identity
+and database versions), and records `promotedTo` in `quick.json`. Use
+`--no-install` to skip installing dependencies. Inspect the generated changes and run
+its tests before treating it as ready. The player's browser data does not carry
+over; the prototype regenerates the same world from the same seed.
 
 ## Clean up
 

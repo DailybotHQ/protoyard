@@ -25,7 +25,7 @@ Inside the Protoyard repository the same CLI runs as `pnpm protoyard <command>`.
 | --- | --- |
 | Released (1.0.0) | In the `v1.0.0` release, with the same name and flags. |
 | Released; new options marked | The command is in 1.0.0; options marked "(new)" were added after it. |
-| New in PLAN_004 | Added after 1.0.0 and present in this CLI, not in 1.0.0. |
+| New since 1.0.0 | Added after 1.0.0 and present in this CLI, not in 1.0.0. |
 | Planned (not available) | Named in the plan but not implemented in this CLI; never run it. |
 
 "Released" was checked by comparing every command name and `--flag` spelling
@@ -48,14 +48,13 @@ Every command accepts these:
 With `--json`, every command prints exactly one envelope on stdout:
 `{ "ok", "command", "data" }` on success or `{ "ok": false, "command", "error": { "code", "message", "hint" } }`.
 `protoyard doctor --json` also carries the machine interface at the top
-level, beside `ok`, `command` and `data`, on every outcome (new in PLAN_004):
+level, beside `ok`, `command` and `data`, on every outcome (new since 1.0.0):
 `"interface": 1` and `"capabilities"`, the sorted ids this CLI implements
 (`blueprint-schema`, `generate`, `mcp`, `player`, `quick`; `import` is defined
 but not implemented yet). Tools detect Protoyard by reading
 `interface`.
 
-`protoyard --version` stays plain semver. `protoyard --version --json` (new in
-PLAN_004) prints exactly `{"version":"<semver>","interface":1}` and exits 0
+`protoyard --version` stays plain semver. `protoyard --version --json` (new since 1.0.0) prints exactly `{"version":"<semver>","interface":1}` and exits 0
 anywhere, even outside a workspace, so it is the detection probe. See the
 [interface guide](https://protoyard.app/docs/interface/).
 
@@ -75,13 +74,13 @@ deploy.
 
 | Command | Options | What it does | Status |
 | --- | --- | --- | --- |
-| `protoyard doctor` | `--offline` | check Node, pnpm, dependencies, layout, templates, git, Playwright and provider CLIs. With `--json`, the envelope also has top-level `interface` and `capabilities` (new in PLAN_004) | Released; new output (`interface`, `capabilities`) |
+| `protoyard doctor` | `--offline` | check Node, pnpm, dependencies, layout, templates, git, Playwright and provider CLIs. With `--json`, the envelope also has top-level `interface` and `capabilities` (new since 1.0.0) | Released; new output (`interface`, `capabilities`) |
 | `protoyard list` | `--kind <kind>`, `--tag <tag>`, `--category <category>`, `--platform <platform>`, `--search <text>`, `--sort <field>` | list prototypes and templates from the registry | Released (1.0.0) |
 | `protoyard index` | `--force` | scan protoyard.json manifests (no code runs) and write .protoyard/registry.json | Released (1.0.0) |
 | `protoyard affected` | `--since <ref>`, `--format <fmt>` | list prototype slugs affected by changes since a git ref (for selective CI builds) | Released (1.0.0) |
 | `protoyard gallery` | `-p, --port <port>`, `--control-port <port>`, `--allow-origin <origins>`, `--allow-create` | index, start the control server and run the gallery (what `pnpm dev` runs) | Released (1.0.0) |
 | `protoyard control-server` | `-p, --port <port>`, `--gallery-port <port>`, `--allow-origin <origins>`, `--allow-create` | only the local control API (127.0.0.1) the gallery uses to start dev servers | Released (1.0.0) |
-| `protoyard mcp` | — | serve the MCP JSON-RPC protocol over newline-delimited stdio | New in PLAN_004 |
+| `protoyard mcp` | — | serve the MCP JSON-RPC protocol over newline-delimited stdio | New since 1.0.0 |
 
 ### Create prototypes
 
@@ -89,15 +88,15 @@ deploy.
 | --- | --- | --- | --- |
 | `protoyard new <slug>` | `-t, --template <name>`, `--from <slug>`, `--name <name>`, `--description <text>`, `--force`, `--no-install` | create prototypes/<slug> from a template or by remixing an existing prototype | Released (1.0.0) |
 | `protoyard generate <slug>` | `-b, --blueprint <file>`, `-t, --template <name>`, `--name <name>`, `--description <text>`, `--dry-run`, `--force`, `--allow-drop`, `--no-install` | create prototypes/<slug> from a data-only blueprint, or regenerate it after the blueprint changes | Released (1.0.0) |
-| `protoyard quick [brief]` | `--blueprint <file>`, `--slug <slug>`, `--name <name>`, `--out <dir>`, `--allow-external-out`, `--seed <n>`, `--variants <n>`, `--standalone`, `--no-store-brief`, `--force` | a disposable, playable exploration from a brief or a blueprint, with no build | New in PLAN_004 |
-| `protoyard quick serve <slug\|dir>` | `--port <port>`, `--strict-port`, `--open` | serve an exploration on 127.0.0.1 until Ctrl+C (marked explorations only) | New in PLAN_004 |
-| `protoyard quick promote <slug\|dir> <slug>` | `--variant <id>`, `--no-install` | turn an exploration (or one variant) into a full prototype in prototypes/<slug> through `generate`; checks the result is the same app and records `promotedTo` in quick.json; never replaces an existing prototype; needs a workspace | New in PLAN_004 |
-| `protoyard quick iterate <slug\|dir>` | `--patch <file>`, `--allow-drop` | change an exploration with an RFC 6902 JSON Patch (`--patch -` reads stdin; 512 KB cap): validated before any write, written with temp files and renames, recorded in `history/NNNN.json`; the envelope's `world.preserved` says whether the data migration keeps every row (kept player worlds, `?keep=<name>`) | New in PLAN_004 |
-| `protoyard quick undo <slug\|dir>` | — | restore the blueprint from before the last `quick iterate`, byte for byte (refused when blueprint.json changed since) | New in PLAN_004 |
-| `protoyard quick list` | — | list the explorations in the quick zone (marked folders only; never the prototype registry), newest first, with variants, compare page and REVIEW.md | New in PLAN_004 |
-| `protoyard quick open <slug>` | `--port <port>`, `--strict-port` | find an exploration by slug, then serve it on 127.0.0.1 and open the browser (like `quick serve --open`) | New in PLAN_004 |
-| `protoyard quick index` | — | write `.protoyard/quick/index.html`: a static, escaped, script-free page linking every exploration, its variants, compare page and REVIEW.md | New in PLAN_004 |
-| `protoyard quick export <slug\|dir>` | `--single-file`, `--target <target>`, `--url <url>`, `--out <file>`, `--force` | export an exploration as one self-contained HTML file that opens from file:// (no server, no network, no service worker), or with `--target artifact` pack that file as a Claude artifact page plus its publish arguments (never publishes); `--target artifact --url <url>` records the returned URL in quick.json | New in PLAN_004 |
+| `protoyard quick [brief]` | `--blueprint <file>`, `--slug <slug>`, `--name <name>`, `--out <dir>`, `--allow-external-out`, `--seed <n>`, `--variants <n>`, `--standalone`, `--no-store-brief`, `--force` | a disposable, playable exploration from a brief or a blueprint, with no build | New since 1.0.0 |
+| `protoyard quick serve <slug\|dir>` | `--port <port>`, `--strict-port`, `--open` | serve an exploration on 127.0.0.1 until Ctrl+C (marked explorations only) | New since 1.0.0 |
+| `protoyard quick promote <slug\|dir> <slug>` | `--variant <id>`, `--no-install` | turn an exploration (or one variant) into a full prototype in prototypes/<slug> through `generate`; checks the result is the same app and records `promotedTo` in quick.json; never replaces an existing prototype; needs a workspace | New since 1.0.0 |
+| `protoyard quick iterate <slug\|dir>` | `--patch <file>`, `--allow-drop` | change an exploration with an RFC 6902 JSON Patch (`--patch -` reads stdin; 512 KB cap): validated before any write, written with temp files and renames, recorded in `history/NNNN.json`; the envelope's `world.preserved` says whether the data migration keeps every row (kept player worlds, `?keep=<name>`) | New since 1.0.0 |
+| `protoyard quick undo <slug\|dir>` | — | restore the blueprint from before the last `quick iterate`, byte for byte (refused when blueprint.json changed since) | New since 1.0.0 |
+| `protoyard quick list` | — | list the explorations in the quick zone (marked folders only; never the prototype registry), newest first, with variants, compare page and REVIEW.md | New since 1.0.0 |
+| `protoyard quick open <slug>` | `--port <port>`, `--strict-port` | find an exploration by slug, then serve it on 127.0.0.1 and open the browser (like `quick serve --open`) | New since 1.0.0 |
+| `protoyard quick index` | — | write `.protoyard/quick/index.html`: a static, escaped, script-free page linking every exploration, its variants, compare page and REVIEW.md | New since 1.0.0 |
+| `protoyard quick export <slug\|dir>` | `--single-file`, `--target <target>`, `--url <url>`, `--out <file>`, `--force` | export an exploration as one self-contained HTML file that opens from file:// (no server, no network, no service worker), or with `--target artifact` pack that file as a Claude artifact page plus its publish arguments (never publishes); `--target artifact --url <url>` records the returned URL in quick.json | New since 1.0.0 |
 | `protoyard blueprint` | — | work with data-only blueprints (see packages/blueprint) | Released (1.0.0) |
 | `protoyard blueprint validate <file>` | — | validate a blueprint JSON file (exit 4 with path-specific issues) | Released (1.0.0) |
 | `protoyard blueprint new <file>` | `--from-brief <file>`, `-i, --interactive`, `--archetype <id>`, `--name <name>`, `--force`, `--generate <slug>`, `--dry-run`, `--no-install` | write a validated blueprint from a product brief (offline, deterministic) and optionally generate it | Released (1.0.0) |
@@ -152,7 +151,7 @@ deploy.
 
 ## The quick and player surface
 
-**`protoyard quick` (new in PLAN_004)** makes a disposable, playable
+**`protoyard quick` (new since 1.0.0)** makes a disposable, playable
 exploration with no build and no install:
 
 ```bash

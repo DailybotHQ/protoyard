@@ -414,7 +414,7 @@ export async function checkPackage(
   };
   if (!manifest.publishConfig) {
     report.pending =
-      'no publishConfig yet: not packed (dist exports land in PLAN_004 Tasks 10, 11 and 18)';
+      'no publishConfig yet: not packed (add publishConfig to pack it)';
   } else {
     const destination = mkdtempSync(join(tmpdir(), 'protoyard-check-packages-'));
     try {
