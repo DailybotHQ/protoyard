@@ -1,0 +1,114 @@
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { CliError, type Envelope } from '../lib/output.ts';
+import { canonicalPath, isInside, resolveWorkspaceRoot } from '../lib/paths.ts';
+
+/** Maximum encoded MCP tool arguments accepted by the local adapter. */
+export const MCP_MAX_REQUEST_BYTES = 256 * 1024;
+/** Maximum time a tool may hold the MCP request open. */
+export const MCP_TOOL_TIMEOUT_MS = 30_000;
+/** Maximum encoded envelope returned to an MCP client. */
+export const MCP_MAX_OUTPUT_BYTES = 512 * 1024;
+
+const SHELL_METACHARACTERS = /[;&|$`<>()[\]{}!*?'"\\]/u;
+// biome-ignore lint/suspicious/noControlCharactersInRegex: this allow-list rejects control input.
+const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/u;
+const SENSITIVE_KEY = /(?:secret|token|password|api[-_]?key|authorization|credential)/iu;
+const REDACTED_VALUE = '[redacted]';
+
+export interface McpPathPolicy {
+  /** Canonical workspace root. */
+  workspaceRoot: string;
+  /** Additional, explicitly approved output roots (for example a plan scratch folder). */
+  approvedRoots?: readonly string[];
+}
+
+function unsafe(message: string): never {
+  throw new CliError('unsafe_path', message, {
+    hint: 'Use a path inside the current workspace or an approved plan output folder.',
+  });
+}
+
+/** Resolve a path without allowing traversal, shell syntax, or symlink escapes. */
+export function resolveMcpPath(input: string, policy: McpPathPolicy): string {
+  if (!input || CONTROL_CHARACTERS.test(input) || SHELL_METACHARACTERS.test(input))
+    unsafe('MCP paths cannot contain control characters or shell metacharacters.');
+
+  const workspaceRoot = canonicalPath(policy.workspaceRoot);
+  const lexical = resolve(workspaceRoot, input);
+  const lexicalRelative = relative(workspaceRoot, lexical);
+  if (!isAbsolute(input) && lexicalRelative.split(sep).includes('..'))
+    unsafe('MCP paths may not traverse a parent folder.');
+
+  const target = canonicalPath(lexical);
+  const approvedRoots = [workspaceRoot, ...(policy.approvedRoots ?? [])].map(canonicalPath);
+  if (!approvedRoots.some((root) => isInside(root, target)))
+    unsafe('MCP paths must remain inside the workspace or an approved plan output folder.');
+  return target;
+}
+
+/** Resolve the standard MCP roots for the current CLI workspace. */
+export function mcpPathPolicy(workspaceRoot?: string): McpPathPolicy {
+  const root = canonicalPath(workspaceRoot ?? resolveWorkspaceRoot());
+  return {
+    workspaceRoot: root,
+    approvedRoots: [join(root, 'tmp', 'plan004'), join(root, 'artifacts')],
+  };
+}
+
+/** Reject an oversized JSON value before it reaches a command or child process. */
+export function assertMcpRequestSize(value: unknown): void {
+  let bytes: number;
+  try {
+    bytes = Buffer.byteLength(JSON.stringify(value) ?? 'null', 'utf8');
+  } catch {
+    throw new CliError('validation', 'MCP request arguments must be JSON serializable.');
+  }
+  if (bytes > MCP_MAX_REQUEST_BYTES)
+    throw new CliError('validation', `MCP request exceeds ${MCP_MAX_REQUEST_BYTES} bytes.`);
+}
+
+/** Keep credentials and control characters out of the machine-facing envelope. */
+export function sanitizeMcpValue(value: unknown, key?: string): unknown {
+  if (key && SENSITIVE_KEY.test(key)) return REDACTED_VALUE;
+  if (typeof value === 'string') return value.replace(CONTROL_CHARACTERS, '');
+  if (Array.isArray(value)) return value.map((entry) => sanitizeMcpValue(entry));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([entryKey, entryValue]) => [
+        entryKey,
+        sanitizeMcpValue(entryValue, entryKey),
+      ])
+    );
+  }
+  return value;
+}
+
+export function sanitizeMcpEnvelope(envelope: Envelope): Envelope {
+  return sanitizeMcpValue(envelope) as Envelope;
+}
+
+/** Refuse an envelope which could exhaust the connected client's parser. */
+export function assertMcpOutputSize(value: unknown): void {
+  const bytes = Buffer.byteLength(JSON.stringify(value) ?? 'null', 'utf8');
+  if (bytes > MCP_MAX_OUTPUT_BYTES)
+    throw new CliError('failure', `MCP tool output exceeds ${MCP_MAX_OUTPUT_BYTES} bytes.`);
+}
+
+/** Bound an in-process CLI operation; the CLI itself still uses argv, never a shell. */
+export async function withMcpTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs = MCP_TOOL_TIMEOUT_MS
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new CliError('failure', `MCP tool timed out after ${timeoutMs} ms.`)),
+      timeoutMs
+    );
+  });
+  try {
+    return await Promise.race([operation, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
