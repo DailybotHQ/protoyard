@@ -61,8 +61,9 @@ and a script-free launcher. The default location is `.protoyard/quick/<slug>/`
 inside a workspace, or `./.protoyard/quick/<slug>/` when run outside one. The
 non-workspace location cannot be your home directory. The quick command itself
 does not build a prototype, but it needs a prebuilt, manifest-verified player
-app. The released CLI includes `@protoyard/player`; in this repository, if the
-player app is not built yet, run `pnpm --filter @protoyard/player build` once.
+app. The released CLI includes `@protoyard/player`; in this repository, `quick`
+builds the player once on first use when it is missing (or run
+`pnpm --filter @protoyard/player build` yourself).
 The app assets are `packages/player/dist/app/` and include
 `protoyard-player-assets.json`; `dist/embed/` is a separate embed client. The
 player runs simulated behavior in this browser; it does not connect to a

@@ -101,13 +101,12 @@ describe('the quick start on /features/', () => {
     expect(FEATURES_PAGE).toContain('pnpm protoyard quick serve gym --open');
   });
 
-  it('builds the prebuilt player first, because quick copies it from the repository build', () => {
-    const player = JSON.parse(
-      readFileSync(join(REPO, 'packages', 'player', 'package.json'), 'utf8')
-    ) as {
-      scripts: Record<string, string>;
-    };
-    expect(player.scripts.build).toBeTruthy();
-    expect(FEATURES_PAGE).toContain('pnpm --filter @protoyard/player build');
+  it('needs no separate player build, because quick builds the player on first use in the repository', () => {
+    const quickBuild = readFileSync(
+      join(REPO, 'packages', 'cli', 'src', 'lib', 'quick', 'player-build.ts'),
+      'utf8'
+    );
+    expect(quickBuild).toContain('ensurePlayerAssets');
+    expect(FEATURES_PAGE).not.toContain('pnpm --filter @protoyard/player build');
   });
 });
