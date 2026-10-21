@@ -57,6 +57,8 @@ jobs:
         run: pnpm typecheck
       - name: Unit tests
         run: pnpm test
+      - name: Skill frontmatter and CLI alignment
+        run: pnpm check:skill
       - name: Index manifests
         run: pnpm protoyard index
       - name: Doctor

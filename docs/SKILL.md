@@ -89,16 +89,36 @@ host against a temporary home under `/bin/bash`.
 
 ## Validate the distributable skill
 
-From the Protoyard repository, validate every skill frontmatter file before
-cutting or smoke-installing a release:
+From the Protoyard repository, check the skill before cutting or
+smoke-installing a release. CI runs the same command in the `check` job:
 
 ```bash
-pnpm tsx scripts/validate-skill-frontmatter.ts
+pnpm check:skill
 ```
 
-The validator enforces the namespaced skill names, quoted SemVer, canonical
-documentation URL, allowed tools, and OpenClaw metadata shape. It reports the
-file and field for every failure and exits nonzero when any file is invalid.
+It runs two checks and exits nonzero when either finds a problem:
+
+- **Frontmatter** (`scripts/validate-skill-frontmatter.ts`): the skill names,
+  quoted SemVer, canonical documentation URL, allowed tools and OpenClaw
+  metadata shape. The router is named `protoyard`, and each sub-skill is
+  `protoyard-<folder>` (`kits/SKILL.md` is `protoyard-kits`). Every failure
+  names the file and field.
+- **CLI alignment** (`scripts/check-skill-cli.ts`): the truth source is the
+  real command tree, the one `protoyard --help` prints, read from
+  `createProgram()`. Every `protoyard …` or `pnpm protoyard …` command in the
+  skill's Markdown must name a real command and only flags that command or
+  the global options accept. The check reads shell code blocks and inline
+  code that starts with the command, and never reads other tools
+  (`npx skills`, `pnpm --filter`, `git`). Sections whose heading says the
+  commands are planned or not implemented are skipped. The reference
+  (`references/cli.md`) is strict: one row per real command, each row lists
+  exactly that command's flags, and the global options table lists exactly
+  the program's options. A command still listed as planned fails once it
+  exists, so move it to "New in PLAN_004" when it lands. Every failure is
+  printed as `file:line: message`.
+
+The unit tests are `pnpm vitest run tests/scripts/validate-skill-frontmatter.test.ts`
+and `pnpm vitest run packages/cli/tests/check-skill-cli.test.ts`.
 
 ## Upgrade the skill
 

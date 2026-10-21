@@ -125,7 +125,11 @@ function issue(file: string, field: string, message: string): FrontmatterIssue {
   return { file, field, message };
 }
 
-function validateParsed(file: string, parsed: ParsedFrontmatter): FrontmatterIssue[] {
+function validateParsed(
+  file: string,
+  parsed: ParsedFrontmatter,
+  expectedName?: string
+): FrontmatterIssue[] {
   const values = parsed.values;
   const issues: FrontmatterIssue[] = [];
   const name = values.name;
@@ -134,6 +138,10 @@ function validateParsed(file: string, parsed: ParsedFrontmatter): FrontmatterIss
   } else if (!SKILL_NAME.test(name)) {
     issues.push(
       issue(file, 'name', `must be namespaced kebab-case beginning with protoyard (got '${name}')`)
+    );
+  } else if (expectedName !== undefined && name !== expectedName) {
+    issues.push(
+      issue(file, 'name', `must be '${expectedName}' to match its folder (got '${name}')`)
     );
   }
 
@@ -207,9 +215,22 @@ function validateParsed(file: string, parsed: ParsedFrontmatter): FrontmatterIss
   return issues;
 }
 
-export function validateSkillFile(path: string, displayPath = path): FrontmatterIssue[] {
+/**
+ * The name a SKILL.md must carry: `protoyard` for the router at the skill
+ * root, `protoyard-<folder>` for a sub-skill (`kits/SKILL.md` is `protoyard-kits`).
+ */
+export function expectedSkillName(skillsRoot: string, path: string): string {
+  const folder = relative(skillsRoot, dirname(path));
+  return folder === '' ? 'protoyard' : `protoyard-${folder.split(/[\\/]/).join('-')}`;
+}
+
+export function validateSkillFile(
+  path: string,
+  displayPath = path,
+  expectedName?: string
+): FrontmatterIssue[] {
   try {
-    return validateParsed(displayPath, parseFrontmatter(path));
+    return validateParsed(displayPath, parseFrontmatter(path), expectedName);
   } catch (error) {
     return [
       issue(displayPath, 'frontmatter', error instanceof Error ? error.message : String(error)),
@@ -237,7 +258,7 @@ export function validateSkillTree(
   if (!existsSync(skillsRoot))
     return [issue('skills/protoyard', 'tree', 'skill directory does not exist')];
   return findSkillFiles(skillsRoot).flatMap((path) =>
-    validateSkillFile(path, relative(root, path))
+    validateSkillFile(path, relative(root, path), expectedSkillName(skillsRoot, path))
   );
 }
 
@@ -252,7 +273,7 @@ export function main(): number {
   let count = 0;
   for (const path of files) {
     const displayPath = relative(root, path);
-    const issues = validateSkillFile(path, displayPath);
+    const issues = validateSkillFile(path, displayPath, expectedSkillName(skillsRoot, path));
     if (issues.length === 0) {
       console.log(`✓ ${displayPath}`);
       continue;
