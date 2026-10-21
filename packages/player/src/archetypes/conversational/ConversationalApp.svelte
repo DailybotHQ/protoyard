@@ -8,20 +8,24 @@ import { scriptedReply } from './reply.ts';
 
 let { blueprint }: { blueprint: Blueprint } = $props();
 const runtime = getRuntime();
-const services = createEntityServices(runtime, blueprint);
-const adapter = createConversationalAdapter(blueprint);
-const conversationService = services[adapter.conversationEntity];
-const messageService = services[adapter.messageEntity];
-const memberService = adapter.memberEntity ? services[adapter.memberEntity] : undefined;
+// Derived from the prop, so a different blueprint rebuilds the services and queries.
+const services = $derived(createEntityServices(runtime, blueprint));
+const adapter = $derived(createConversationalAdapter(blueprint));
+const conversationService = $derived(services[adapter.conversationEntity]);
+const messageService = $derived(services[adapter.messageEntity]);
+const memberService = $derived(adapter.memberEntity ? services[adapter.memberEntity] : undefined);
 
 const conversationRows = liveQuery(() => conversationService?.list() ?? Promise.resolve([]), {
   initial: [],
+  deps: () => [conversationService],
 });
 const messageRows = liveQuery(() => messageService?.list() ?? Promise.resolve([]), {
   initial: [],
+  deps: () => [messageService],
 });
 const memberRows = liveQuery(() => memberService?.list() ?? Promise.resolve([]), {
   initial: [],
+  deps: () => [memberService],
 });
 const conversations = $derived(adapter.conversations(conversationRows.current ?? []));
 let selectedId = $state('');

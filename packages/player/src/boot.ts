@@ -44,7 +44,12 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
     namespace: storage.namespace,
     slug: storage.namespace,
   });
-  const definition = withWorkerGeneration(blueprintDefinition, blueprint);
+  const generated = withWorkerGeneration(blueprintDefinition, blueprint);
+  // The SaaS kit adds its own stores, rows and capabilities (loaded only for that archetype).
+  const definition =
+    blueprint.archetype?.id === 'saas-onboarding'
+      ? (await import('./archetypes/business/saas.ts')).withSaasKit(generated, blueprint)
+      : generated;
   markActiveExploration(storage.namespace);
   try {
     await recordExploration(storage, options.indexFactory);
