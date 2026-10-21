@@ -99,6 +99,7 @@ deploy.
 | `protoyard quick list` | — | list the explorations in the quick zone (marked folders only; never the prototype registry), newest first, with variants, compare page and REVIEW.md | New in PLAN_004 |
 | `protoyard quick open <slug>` | `--port <port>`, `--strict-port` | find an exploration by slug, then serve it on 127.0.0.1 and open the browser (like `quick serve --open`) | New in PLAN_004 |
 | `protoyard quick index` | — | write `.protoyard/quick/index.html`: a static, escaped, script-free page linking every exploration, its variants, compare page and REVIEW.md | New in PLAN_004 |
+| `protoyard quick prune` | `--older-than <age>`, `--yes`, `--force` | list explorations not updated for `--older-than` (14d default; `36h`, `2w`), and remove them only with `--yes` typed on this command (CI=1 never removes); marked folders in the quick zone only, never a promoted exploration, and one with comments newer than its REVIEW.md only with `--force`; every check repeats right before each removal | New since 1.0.0 |
 | `protoyard quick export <slug\|dir>` | `--single-file`, `--target <target>`, `--url <url>`, `--out <file>`, `--force` | export an exploration as one self-contained HTML file that opens from file:// (no server, no network, no service worker), or with `--target artifact` pack that file as a Claude artifact page plus its publish arguments (never publishes); `--target artifact --url <url>` records the returned URL in quick.json | New in PLAN_004 |
 | `protoyard blueprint` | — | work with data-only blueprints (see packages/blueprint) | Released (1.0.0) |
 | `protoyard blueprint validate <file>` | — | validate a blueprint JSON file (exit 4 with path-specific issues) | Released (1.0.0) |
@@ -194,9 +195,8 @@ These are named in the current plan but **not implemented in this CLI**. Do
 not run or suggest them as working commands. Check `protoyard quick --help`
 or `protoyard --help` on the installed CLI first.
 
-| Planned command | Purpose |
-| --- | --- |
-| `protoyard quick prune [--older-than 14d] [--yes]` | Prune old explorations |
+No commands are planned right now: every command named in the plan is in the
+tables above.
 
 ## Where to read more
 
