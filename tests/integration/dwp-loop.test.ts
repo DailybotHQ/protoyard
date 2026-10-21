@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { blueprintIdentity } from '../../packages/blueprint/src/identity.ts';
 import { setQuickPlayerLocator } from '../../packages/cli/src/commands/quick/index.ts';
+import { launchChromium } from '../../packages/cli/src/lib/capture/index.ts';
 import { cli } from '../../packages/cli/tests/helpers.ts';
 import {
   createDwpLoopFixture,
@@ -163,4 +164,167 @@ describe('temporary DWP exploration loop', () => {
       restore();
     }
   }, 120_000);
+});
+
+/** The `protoyard quick …` line of the filled task, with its plan-relative paths made absolute. */
+function templateQuickArgs(fixture: DwpLoopFixture): string[] {
+  const task = readFileSync(join(fixture.planDir, 'exploration-task.md'), 'utf8');
+  const line = task.split('\n').find((text) => text.startsWith('protoyard quick --blueprint '));
+  if (!line) throw new Error('The filled task has no `protoyard quick` command.');
+  const words = line.trim().split(/\s+/).slice(2);
+  const args: string[] = [];
+  for (let i = 0; i < words.length; i += 1) {
+    const word = words[i] as string;
+    if (word === '--json') continue; // the runner asks for the envelope itself
+    args.push(word);
+    if (word === '--blueprint' || word === '--out') {
+      i += 1;
+      args.push(join(fixture.planDir, words[i] as string));
+    }
+  }
+  return args;
+}
+
+interface VariantsEnvelope {
+  ok: boolean;
+  command: string;
+  data: {
+    slug: string;
+    dir: string;
+    blueprintSha256: string;
+    layout: string;
+    variants: { id: string; label: string; blueprintSha256: string; open: string }[];
+    compare: string | null;
+    screenshots: {
+      files: { variant: string | null; path: string; width: number; height: number }[];
+      skipped: { reason: string; detail: string } | null;
+    };
+  };
+}
+
+describe('temporary DWP variants loop', () => {
+  it('runs the template’s quick command with three variants and records a screenshot pass or skip', async () => {
+    const before = hostSnapshot();
+    const fixture = await createDwpLoopFixture({ slug: 'dwp-variants', variantCount: 3 });
+    fixtures.push(fixture);
+    // A browser here captures the real player; without one the capture is skipped and recorded.
+    const probe = await launchChromium();
+    if (probe.ok) await probe.browser.close();
+    const restore = probe.ok ? () => {} : setQuickPlayerLocator(() => fixture.player);
+    try {
+      const args = templateQuickArgs(fixture);
+      expect(args).toEqual(
+        expect.arrayContaining(['--slug', 'dwp-variants', '--seed', '17', '--variants', '3'])
+      );
+      expect(args).toContain(fixture.explorationDir);
+      const run = (...extra: string[]) =>
+        cli(['--root', fixture.root, '--json', 'quick', ...args, '--allow-external-out', ...extra]);
+
+      const result = await run('--screenshot');
+      expect(result.code, result.stderr || result.stdout).toBe(0);
+      writeFileSync(join(fixture.evidenceDir, 'dwp-variants.envelope.json'), result.stdout);
+      const envelope = result.json<VariantsEnvelope>();
+      expect(envelope).toMatchObject({ ok: true, command: 'quick' });
+      const { data } = envelope;
+
+      // Three deterministic, distinct variants with their own launchers and a compare page.
+      expect(data.variants.map((variant) => variant.id)).toEqual(['v1', 'v2', 'v3']);
+      const hashes = [data.blueprintSha256, ...data.variants.map((v) => v.blueprintSha256)];
+      expect(new Set(hashes).size).toBe(4);
+      for (const variant of data.variants) {
+        expect(variant.label.length, variant.id).toBeGreaterThan(0);
+        expect(existsSync(join(fixture.root, variant.open)), variant.open).toBe(true);
+      }
+      expect(data.compare).not.toBeNull();
+      expect(existsSync(join(fixture.root, data.compare as string))).toBe(true);
+      expect(data.layout).toBe('standalone');
+
+      // Screenshots: a recorded pass (one desktop PNG per blueprint) or a recorded skip.
+      const record = JSON.parse(readFileSync(join(fixture.explorationDir, 'quick.json'), 'utf8'));
+      if (probe.ok) {
+        expect(data.screenshots.skipped).toBeNull();
+        expect(
+          data.screenshots.files.map((file) => [file.variant, file.width, file.height])
+        ).toEqual([
+          [null, 1280, 800],
+          ['v1', 1280, 800],
+          ['v2', 1280, 800],
+          ['v3', 1280, 800],
+        ]);
+        for (const file of data.screenshots.files) {
+          expect(existsSync(join(fixture.explorationDir, file.path)), file.path).toBe(true);
+        }
+        expect(record.screenshots.files).toHaveLength(4);
+      } else {
+        expect(['playwright-unavailable', 'browser-unavailable']).toContain(
+          data.screenshots.skipped?.reason
+        );
+        expect(record.screenshots.skipped.reason).toBe(data.screenshots.skipped?.reason);
+      }
+      writeFileSync(
+        fixture.browserEvidencePath,
+        `${JSON.stringify(
+          data.screenshots.skipped
+            ? {
+                kind: 'browser-evidence',
+                status: 'skipped',
+                reason: data.screenshots.skipped.reason,
+              }
+            : {
+                kind: 'browser-evidence',
+                status: 'captured',
+                files: data.screenshots.files.map((file) => file.path),
+              },
+          null,
+          2
+        )}\n`
+      );
+
+      // The same template command again (no capture) gives the same variants.
+      const rerunArgs = args.map((arg) =>
+        arg === fixture.explorationDir ? fixture.rerunDir : arg
+      );
+      const rerun = await cli([
+        '--root',
+        fixture.root,
+        '--json',
+        'quick',
+        ...rerunArgs,
+        '--allow-external-out',
+        '--slug',
+        'dwp-variants-rerun',
+      ]);
+      expect(rerun.code, rerun.stderr || rerun.stdout).toBe(0);
+      const again = rerun.json<VariantsEnvelope>().data;
+      expect(again.blueprintSha256).toBe(data.blueprintSha256);
+      expect(
+        again.variants.map(({ id, label, blueprintSha256 }) => ({ id, label, blueprintSha256 }))
+      ).toEqual(
+        data.variants.map(({ id, label, blueprintSha256 }) => ({ id, label, blueprintSha256 }))
+      );
+
+      // Decision-ready: every artifact sits under the plan's evidence folder.
+      writeDecision(fixture.decisionPath);
+      for (const path of [
+        join(fixture.explorationDir, 'quick.json'),
+        join(fixture.explorationDir, 'compare.html'),
+        ...['v1', 'v2', 'v3'].map((id) => join(fixture.explorationDir, id, 'blueprint.json')),
+        join(fixture.evidenceDir, 'dwp-variants.envelope.json'),
+        fixture.browserEvidencePath,
+        fixture.decisionPath,
+        fixture.rerunDir,
+      ]) {
+        expect(existsSync(path), path).toBe(true);
+        expect(under(fixture.evidenceDir, path), path).toBe(true);
+      }
+      expect(record.variants.map((variant: { id: string }) => variant.id)).toEqual([
+        'v1',
+        'v2',
+        'v3',
+      ]);
+      expect(hostSnapshot()).toBe(before);
+    } finally {
+      restore();
+    }
+  }, 240_000);
 });
