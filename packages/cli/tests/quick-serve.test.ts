@@ -1,7 +1,9 @@
 // @vitest-environment node
-import { mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
+import { blueprintIdentity, parseBlueprint } from '@protoyard/blueprint';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setQuickPlayerLocator } from '../src/commands/quick/index.ts';
 import {
@@ -136,6 +138,96 @@ describe('protoyard quick serve', () => {
       opened: false,
     });
     expect(opened).toEqual([]);
+  });
+
+  it('limits a shared server to its exploration and matching player, and persists same-origin review comments', async () => {
+    const { slug, dir } = await create('--slug', 'primary-board');
+    await create('--slug', 'second-board');
+    const server = await serve(slug);
+    const blueprint = parseBlueprint(
+      JSON.parse(readFileSync(join(ws.root, dir, 'blueprint.json'), 'utf8')) as unknown
+    );
+    const reviewSlug = (await blueprintIdentity(blueprint)).namespace;
+
+    expect((await server.fetchText('/')).status).toBe(404);
+    expect((await server.fetchText(`/${slug}`)).status).toBe(404);
+    expect((await server.fetchText('/second-board/quick.json')).status).toBe(404);
+    expect((await server.fetchText('/_player/2.0.0/index.html')).status).toBe(404);
+    expect((await server.fetchText(`/${slug}/quick.json`)).status).toBe(200);
+    const hostStatus = await new Promise<number>((resolve, reject) => {
+      const request = httpRequest(
+        `${server.base}/${slug}/`,
+        { headers: { host: 'attacker.example' } },
+        (response) => {
+          response.resume();
+          response.on('end', () => resolve(response.statusCode ?? 0));
+        }
+      );
+      request.on('error', reject);
+      request.end();
+    });
+    expect(hostStatus).toBe(421);
+
+    const input = {
+      formatVersion: 1,
+      id: 'comment-00001',
+      threadId: 'comment-00001',
+      slug: reviewSlug,
+      body: 'The total looks off on this card.',
+      author: { name: 'Riley Reviewer', clientId: 'client-reviewer-1' },
+      createdAt: '2026-10-19T10:00:00.000Z',
+      anchor: {
+        route: { pattern: '/deals/:id', path: '/deals/7' },
+        locators: [{ kind: 'py-anchor', value: 'deal-total' }],
+        fingerprint: '$12,000',
+        offset: { x: 0.5, y: 0.25 },
+      },
+      context: { scenario: 'busy-quarter', viewport: { width: 1280, height: 800 } },
+    };
+    const saved = await fetch(`${server.base}/api/comments/${reviewSlug}/comment-00001`, {
+      method: 'PUT',
+      headers: {
+        origin: server.base,
+        'content-type': 'application/json',
+        'x-review-client-id': 'client-reviewer-1',
+      },
+      body: JSON.stringify(input),
+    });
+    expect(saved.status).toBe(200);
+    expect((await saved.json()).comment).toMatchObject({ id: input.id, slug: reviewSlug });
+
+    expect((await server.fetchText(`/api/comments/${slug}`)).status).toBe(404);
+    const forbidden = await fetch(`${server.base}/api/comments/${reviewSlug}/comment-00002`, {
+      method: 'PUT',
+      headers: {
+        origin: 'http://attacker.example',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ ...input, id: 'comment-00002', threadId: 'comment-00002' }),
+    });
+    expect(forbidden.status).toBe(403);
+
+    const oversized = await fetch(`${server.base}/api/comments/${reviewSlug}/comment-00003`, {
+      method: 'PUT',
+      headers: {
+        origin: server.base,
+        'content-type': 'application/json',
+        'x-review-client-id': 'client-reviewer-1',
+      },
+      body: JSON.stringify({
+        ...input,
+        id: 'comment-00003',
+        threadId: 'comment-00003',
+        body: 'x'.repeat(17_000),
+      }),
+    });
+    expect(oversized.status).toBe(413);
+
+    const folder = join(ws.root, '.protoyard', 'quick', slug);
+    const persisted = JSON.parse(readFileSync(join(folder, 'review', 'comments.json'), 'utf8'));
+    expect(persisted.comments).toHaveLength(1);
+    expect(persisted.comments[0]).toMatchObject({ id: input.id, slug: reviewSlug });
+    expect((await server.finish()).code).toBe(0);
   });
 
   it('serves a standalone exploration from its own folder, by path, and opens the browser', async () => {

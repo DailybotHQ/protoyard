@@ -1,7 +1,11 @@
 import { spawn } from 'node:child_process';
 import { existsSync, lstatSync, statSync } from 'node:fs';
+import { lstat, readFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
+import { Readable } from 'node:stream';
+import { blueprintIdentity, parseBlueprint } from '@protoyard/blueprint';
 import { checkSlug } from '@protoyard/core';
+import { handleCommentsRequest } from '@protoyard/review/server';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { flag, opt } from '../../lib/command.ts';
 import { untilSignal } from '../../lib/network.ts';
@@ -9,6 +13,7 @@ import { CliError, mark } from '../../lib/output.ts';
 import { QUICK_MARKER } from '../../lib/output-guard.ts';
 import { canonicalPath, toPosixRelative } from '../../lib/paths.ts';
 import { parsePort } from '../../lib/ports.ts';
+import { createFileCommentsStore } from '../../lib/quick/comments-store.ts';
 import { readQuickRecord } from '../../lib/quick/model.ts';
 import { QUICK_PLAYER_DIR, quickPlayerDir, resolveQuickBase } from '../../lib/quick/paths.ts';
 import { type StaticServer, serveStatic } from '../../lib/static-server.ts';
@@ -38,6 +43,26 @@ export interface QuickServeTarget {
   path: string;
   layout: 'shared' | 'standalone';
   playerVersion: string;
+  /** Content-derived slugs used by review comments for this exploration and its variants. */
+  reviewSlugs: string[];
+}
+
+async function reviewSlugForBlueprint(path: string, expectedSha256: string): Promise<string> {
+  const info = await lstat(path).catch(() => undefined);
+  if (!info?.isFile() || info.isSymbolicLink() || info.size > 2 * 1024 * 1024) {
+    throw new CliError('unsafe_path', 'Refusing a missing, linked or oversized quick blueprint.');
+  }
+  let blueprint: ReturnType<typeof parseBlueprint>;
+  try {
+    blueprint = parseBlueprint(JSON.parse(await readFile(path, 'utf8')) as unknown);
+  } catch {
+    throw new CliError('validation', 'The quick blueprint is invalid; recreate the exploration.');
+  }
+  const identity = await blueprintIdentity(blueprint);
+  if (identity.sha256 !== expectedSha256) {
+    throw new CliError('validation', 'The quick blueprint changed after it was created.');
+  }
+  return identity.namespace;
 }
 
 /** Resolves `<dir|slug>` to a marked exploration and what to serve; throws a CliError. */
@@ -74,6 +99,14 @@ export async function resolveQuickServeTarget(input: {
     );
   }
   const record = await readQuickRecord(dir);
+  const reviewSlugs = [
+    await reviewSlugForBlueprint(join(dir, 'blueprint.json'), record.blueprintSha256),
+    ...(await Promise.all(
+      record.variants.map((variant) =>
+        reviewSlugForBlueprint(join(dir, variant.dir, 'blueprint.json'), variant.blueprintSha256)
+      )
+    )),
+  ];
   const version = record.player.version;
   if (record.player.standalone) {
     if (!existsSync(join(dir, 'player', 'index.html'))) {
@@ -92,6 +125,7 @@ export async function resolveQuickServeTarget(input: {
       path: '/',
       layout: 'standalone',
       playerVersion: version,
+      reviewSlugs,
     };
   }
   const zone = dirname(dir);
@@ -111,6 +145,7 @@ export async function resolveQuickServeTarget(input: {
     path: `/${encodeURIComponent(basename(dir))}/`,
     layout: 'shared',
     playerVersion: version,
+    reviewSlugs,
   };
 }
 
@@ -178,6 +213,8 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
     throw new CliError('usage', (error as Error).message);
   }
   let server: StaticServer;
+  let boundPort: number | undefined;
+  const commentsStore = createFileCommentsStore(target.dir, target.reviewSlugs);
   try {
     server = await serveStatic({
       dir: target.root,
@@ -187,7 +224,85 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
       strictPort: flag(options, 'strictPort'),
       // An exploration is a set of files, not a single-page app: unknown paths are 404s.
       spa: false,
+      allowHost: (host) => boundPort !== undefined && host === `127.0.0.1:${boundPort}`,
+      allowPathname: (pathname) => {
+        if (target.layout === 'standalone') return pathname.startsWith('/');
+        if (!pathname.startsWith('/')) return false;
+        const parts = pathname.slice(1).split('/');
+        if (parts.at(-1) === '') parts.pop();
+        if (parts.some((part) => part === '' || part === '.' || part === '..')) return false;
+        return (
+          pathname.startsWith(`/${target.slug}/`) ||
+          pathname.startsWith(`/${QUICK_PLAYER_DIR}/${target.playerVersion}/`)
+        );
+      },
+      route: (request, response) => {
+        let url: URL;
+        try {
+          url = new URL(request.url ?? '/', `http://${request.headers.host ?? '127.0.0.1'}`);
+        } catch {
+          return false;
+        }
+        if (!url.pathname.startsWith('/api/comments')) return false;
+        const parts = url.pathname.split('/').filter(Boolean);
+        let routeSlug = '';
+        try {
+          routeSlug = decodeURIComponent(parts[2] ?? '');
+        } catch {
+          routeSlug = '';
+        }
+        if (
+          parts[0] !== 'api' ||
+          parts[1] !== 'comments' ||
+          !target.reviewSlugs.includes(routeSlug)
+        ) {
+          response.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+          response.end(
+            JSON.stringify({
+              ok: false,
+              error: { code: 'not_found', message: 'Comments route not found.' },
+            })
+          );
+          return true;
+        }
+        void (async () => {
+          const requestHeaders = new Headers();
+          for (const [name, value] of Object.entries(request.headers)) {
+            if (value !== undefined)
+              requestHeaders.set(name, Array.isArray(value) ? value.join(', ') : value);
+          }
+          const method = request.method ?? 'GET';
+          const body = method === 'GET' || method === 'HEAD' ? undefined : Readable.toWeb(request);
+          const webRequest = new Request(url, {
+            method,
+            headers: requestHeaders,
+            ...(body ? { body, duplex: 'half' } : {}),
+          } as RequestInit);
+          const result = await handleCommentsRequest(webRequest, {}, commentsStore);
+          const headers: Record<string, string> = {};
+          result.headers.forEach((value, name) => {
+            headers[name] = value;
+          });
+          response.writeHead(result.status, headers);
+          response.end(Buffer.from(await result.arrayBuffer()));
+        })().catch(() => {
+          if (!response.headersSent) {
+            response.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+          }
+          response.end(
+            JSON.stringify({
+              ok: false,
+              error: {
+                code: 'internal_error',
+                message: 'Comments request could not be completed.',
+              },
+            })
+          );
+        });
+        return true;
+      },
     });
+    boundPort = server.port;
   } catch (error) {
     throw new CliError(
       'conflict',
