@@ -31,6 +31,16 @@ commands depend on the CLI release. See the [Protoyard documentation](https://pr
 for product guides and the release-specific skill instructions for trust,
 integrity, and upgrade details.
 
+## Explore a disposable idea
+
+For a quick local exploration from a brief or blueprint, use the
+[`protoyard-quick` sub-skill](../skills/protoyard/quick/SKILL.md). It checks
+`protoyard quick --help` first and distinguishes the current quick command from
+planned variants, screenshots, feedback, validation, pruning, and promotion
+features. Its [quick reference](../skills/protoyard/references/quick.md) lists
+the supported options and current promotion path. Quick output stays on disk;
+`quick.json` stores the original brief unless `--no-store-brief` is passed.
+
 ## Install with `setup.sh`
 
 The pack ships its own installer, `skills/protoyard/setup.sh`. It runs on Bash

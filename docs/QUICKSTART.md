@@ -215,6 +215,25 @@ echo "A salon that books appointments" \
   | pnpm protoyard blueprint new tmp/salon.json --from-brief - --generate salon-demo   # from a prose brief
 ```
 
+For an idea you want to try before creating a full project, make a disposable
+player exploration from a brief or a blueprint:
+
+```bash
+# In this repository, do this once if the prebuilt player app is missing.
+pnpm --filter @protoyard/player build
+pnpm protoyard quick "A booking app for a fictional climbing gym" --slug gym-bookings --seed 7
+python3 -m http.server 4174 --bind 127.0.0.1 --directory .protoyard/quick
+```
+
+Open `http://127.0.0.1:4174/gym-bookings/` while the local server is running.
+The command writes to `.protoyard/quick/<slug>/` without building a prototype;
+the player uses simulated data in the browser. `quick.json` stores the source
+brief by default, so use `--no-store-brief` if that copy is unnecessary and
+inspect the blueprint before sharing or hosting the folder. The server is
+bound to loopback only. See the [quick skill](../skills/protoyard/quick/SKILL.md)
+for supported options, planned workflow features, and the current path to
+promote an exploration.
+
 `helpdesk-demo` shows where a generated prototype can go: a blueprint-built
 CRUD core plus an owned SLA dashboard and ticket workspace
 ([GENERATOR.md](GENERATOR.md)). `harbor-dispatch-demo`, `cadence-studio-demo`
