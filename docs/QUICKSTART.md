@@ -221,11 +221,13 @@ player exploration from a brief or a blueprint:
 ```bash
 # In this repository, do this once if the prebuilt player app is missing.
 pnpm --filter @protoyard/player build
-pnpm protoyard quick "A booking app for a fictional climbing gym" --slug gym-bookings --seed 7
-python3 -m http.server 4174 --bind 127.0.0.1 --directory .protoyard/quick
+pnpm protoyard quick "A booking app for a fictional climbing gym" --slug gym-bookings --seed 7 --variants 3
+pnpm protoyard quick serve gym-bookings --open
 ```
 
-Open `http://127.0.0.1:4174/gym-bookings/` while the local server is running.
+`quick serve` opens the exploration over 127.0.0.1 until Ctrl+C; with
+`--variants 3` it also wrote `v1/`…`v3/` and a `compare.html` to view them side
+by side.
 The command writes to `.protoyard/quick/<slug>/` without building a prototype;
 the player uses simulated data in the browser. `quick.json` stores the source
 brief by default, so use `--no-store-brief` if that copy is unnecessary and

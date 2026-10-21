@@ -34,7 +34,7 @@ protoyard quick --help
 
 The current `quick` command supports one brief or one blueprint file and the
 options shown in [the quick reference](../references/quick.md). If a later
-release adds variants, screenshots, feedback, validation sessions, pruning or
+release adds screenshots, feedback, validation reports, pruning or
 promotion subcommands, use them only when that installed CLI's help lists them.
 Their planned forms are marked as planned in the reference; they are not
 available in every release.
@@ -72,19 +72,16 @@ still contain details derived from the brief.
 
 ## Open it locally
 
-Use the directory printed by the command. Browsers block player modules opened
-through `file://`, so serve the generated static files over loopback HTTP. For
-the default shared-player output, run this from the workspace root (or the
-folder where you ran Protoyard outside a workspace):
+Browsers block player modules opened through `file://`, so serve the
+exploration over loopback HTTP with the CLI:
 
 ```bash
-python3 -m http.server 4174 --bind 127.0.0.1 --directory .protoyard/quick
+protoyard quick serve <slug> --open
 ```
 
-Open `http://127.0.0.1:4174/<slug>/` and stop the server with Ctrl+C when you
-finish. For `--out`, use that self-contained output directory as the server's
-`--directory`. The server is local-only; do not bind it to a public or LAN
-interface to share a quick output.
+It serves only marked explorations, on 127.0.0.1, until you press Ctrl+C
+(`--port` and `--strict-port` choose the port). Do not expose it on a public or
+LAN interface to share a quick output.
 
 By default the player assets are shared by version under
 `.protoyard/quick/_player/<version>/`. `--standalone`, `--out`, or a blueprint
@@ -95,17 +92,19 @@ folder. The CLI consumes the player app from `@protoyard/player` at
 
 ## Compare and refine
 
-Today, create separate explorations with distinct slugs to compare separate
-blueprint drafts. The implemented CLI does not have a variants generator or a
-patch-and-reload command. Keep a known-good blueprint copy before changing it;
-create the next draft, then run `quick` again with a new slug. Reuse a marked
-exploration with `--force` only when replacing that exploration is intended.
+To compare directions, add `--variants <n>` (1 to 8). Quick writes `v1/`…`vN/`
+(each a different layout, theme, density or first entity, deterministic for the
+same blueprint and seed) and a `compare.html` that shows them side by side; open
+it through `protoyard quick serve`. To change the data model itself, keep a
+known-good blueprint copy, edit a new draft and run `quick` again with a new
+slug. Reuse a marked exploration with `--force` only when replacing it is
+intended.
 
-For now, capture observations and feedback in your review notes. Automated
-variant generation, screenshot capture, patch history, feedback export, and
-validation tasks and metrics are planned capabilities, not current quick
-commands. Check `protoyard quick --help` again before using any of their
-planned command forms.
+If the blueprint declares `validation.tasks`, the player shows a validation
+panel that times each task and lets you download the metrics. Screenshot
+capture, patch history, feedback export and a CLI validation report are planned
+capabilities, not current quick commands. Check `protoyard quick --help` again
+before using any of their planned command forms.
 
 ## Promote a useful result
 
