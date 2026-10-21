@@ -20,9 +20,23 @@
  * Every text file under integrations/ (docs, the descriptor, test fixtures)
  * must name no absolute local path (a home folder or a checkout location).
  *
+ * The integration surface is checked as a whole too:
+ * - the DWP addon packet has every file it ships, every JSON file under
+ *   integrations/ parses, and `addon.json` follows the vendored DWP
+ *   addon-descriptor v1 schema (closed keys, required keys, patterns, enums);
+ * - every relative link in the integration docs resolves;
+ * - the integration test files (interface, version, MCP, DWP and the
+ *   integration tests) are found by naming pattern, so a new one joins the
+ *   gate; with `--run-tests` they run in one Vitest run, and every file must
+ *   select at least one test and fail none.
+ *
+ *   pnpm exec tsx scripts/validate-integrations.ts [--run-tests]
+ *
  * Exits 1 with `file:line: message` for each issue.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -168,6 +182,202 @@ export function checkMcpDoc(
   return issues;
 }
 
+/** The files the DWP addon packet ships, relative to the repository. */
+export const ADDON_PACKET = 'integrations/deepworkplan/protoyard';
+export const ADDON_FILES = [
+  'addon.json',
+  'SPEC.md',
+  'SKILL.md',
+  'UPSTREAM.md',
+  'templates/EXPLORATION_TASK.md',
+  'templates/EXPLORATION_GATES.md',
+  'templates/SCREENSHOT_EVIDENCE.md',
+  'templates/DECISION_REPORT.md',
+] as const;
+/** The vendored DWP addon-descriptor schema `addon.json` must follow. */
+export const DESCRIPTOR_SCHEMA =
+  '.agents/skills/deepworkplan/spec/schema/addon-descriptor-v1.schema.json';
+
+interface SchemaNode {
+  const?: unknown;
+  pattern?: string;
+  required?: string[];
+  properties?: Record<string, SchemaNode>;
+  items?: { enum?: string[] };
+  enum?: string[];
+}
+
+/**
+ * A descriptor against the subset of JSON Schema the DWP descriptor uses:
+ * closed objects, required keys, `const`, string `pattern`s and enum items.
+ */
+export function checkDescriptor(
+  descriptor: unknown,
+  schema: SchemaNode,
+  file: string
+): IntegrationIssue[] {
+  const issues: IntegrationIssue[] = [];
+  const at = (message: string) => issues.push({ file, line: 1, message });
+  const visit = (value: unknown, node: SchemaNode, path: string) => {
+    if (node.const !== undefined && value !== node.const)
+      at(`${path} must be ${JSON.stringify(node.const)}`);
+    if (node.pattern !== undefined) {
+      if (typeof value !== 'string' || !new RegExp(node.pattern).test(value))
+        at(`${path} does not match ${node.pattern}`);
+    }
+    if (node.enum !== undefined && !node.enum.includes(value as string))
+      at(`${path} must be one of ${node.enum.join(', ')}`);
+    if (node.items?.enum !== undefined) {
+      if (!Array.isArray(value)) at(`${path} must be an array`);
+      else
+        for (const item of value)
+          if (!node.items.enum.includes(item))
+            at(`${path} has an unknown value ${JSON.stringify(item)}`);
+    }
+    if (node.properties !== undefined) {
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        at(`${path} must be an object`);
+        return;
+      }
+      const record = value as Record<string, unknown>;
+      for (const key of node.required ?? []) if (!(key in record)) at(`${path}.${key} is required`);
+      for (const [key, child] of Object.entries(record)) {
+        const childNode = node.properties[key];
+        if (!childNode) at(`${path}.${key} is not allowed (closed object)`);
+        else visit(child, childNode, `${path}.${key}`);
+      }
+    }
+  };
+  visit(descriptor, schema, 'addon.json');
+  return issues;
+}
+
+/** The packet's files, every JSON file under integrations/, and the descriptor. */
+export function checkArtifacts(root: string): IntegrationIssue[] {
+  const issues: IntegrationIssue[] = [];
+  for (const name of ADDON_FILES) {
+    const file = `${ADDON_PACKET}/${name}`;
+    const path = join(root, file);
+    if (!existsSync(path) || statSync(path).size === 0)
+      issues.push({ file, line: 1, message: 'missing or empty addon packet file' });
+  }
+  for (const path of walk(join(root, INTEGRATIONS_DIR), (name) => name.endsWith('.json'))) {
+    const file = relative(root, path);
+    try {
+      JSON.parse(readFileSync(path, 'utf8'));
+    } catch (error) {
+      issues.push({ file, line: 1, message: `not valid JSON (${(error as Error).message})` });
+    }
+  }
+  const descriptorPath = join(root, ADDON_PACKET, 'addon.json');
+  const schemaPath = join(root, DESCRIPTOR_SCHEMA);
+  if (existsSync(descriptorPath) && existsSync(schemaPath)) {
+    try {
+      issues.push(
+        ...checkDescriptor(
+          JSON.parse(readFileSync(descriptorPath, 'utf8')),
+          JSON.parse(readFileSync(schemaPath, 'utf8')) as SchemaNode,
+          `${ADDON_PACKET}/addon.json`
+        )
+      );
+    } catch {
+      // Unparseable JSON is already reported above.
+    }
+  } else if (!existsSync(schemaPath)) {
+    issues.push({
+      file: DESCRIPTOR_SCHEMA,
+      line: 1,
+      message: 'the vendored descriptor schema is missing',
+    });
+  }
+  return issues;
+}
+
+/** Relative Markdown links (`](path)`, `](path#anchor)`) that do not resolve. */
+export function checkLinks(root: string, file: string, markdown: string): IntegrationIssue[] {
+  const issues: IntegrationIssue[] = [];
+  markdown.split('\n').forEach((text, index) => {
+    for (const match of text.matchAll(/\]\(([^)#\s]+)(?:#[^)]*)?\)/g)) {
+      const target = match[1] as string;
+      if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue; // https:, mailto:
+      if (!existsSync(resolve(dirname(join(root, file)), target)))
+        issues.push({ file, line: index + 1, message: `broken link ${target}` });
+    }
+  });
+  return issues;
+}
+
+/** Test files that belong to the integration surface, found by naming pattern. */
+export const INTEGRATION_TEST_PATTERN =
+  /^(?:interface|version-interface|mcp|dwp|integration)[a-z-]*\.test\.ts$/;
+export function integrationTestFiles(root: string): string[] {
+  const cli = readdirSync(join(root, 'packages', 'cli', 'tests'))
+    .filter((name) => INTEGRATION_TEST_PATTERN.test(name))
+    .map((name) => `packages/cli/tests/${name}`);
+  const integration = existsSync(join(root, 'tests', 'integration'))
+    ? readdirSync(join(root, 'tests', 'integration'))
+        .filter((name) => name.endsWith('.test.ts'))
+        .map((name) => `tests/integration/${name}`)
+    : [];
+  return [...cli, ...integration].sort();
+}
+
+/** The parts of a Vitest JSON report this gate reads. */
+export interface VitestReport {
+  testResults?: { name: string; assertionResults?: { status: string }[] }[];
+}
+
+/**
+ * Every listed file must appear in the report, select at least one test that
+ * ran (passed), and fail none. An empty selection is a failure, not a pass.
+ */
+export function checkTestReport(
+  root: string,
+  files: readonly string[],
+  report: VitestReport
+): IntegrationIssue[] {
+  const issues: IntegrationIssue[] = [];
+  const byFile = new Map(
+    (report.testResults ?? []).map((result) => [relative(root, result.name), result])
+  );
+  for (const file of files) {
+    const result = byFile.get(file);
+    const statuses = result?.assertionResults?.map((assertion) => assertion.status) ?? [];
+    const passed = statuses.filter((status) => status === 'passed').length;
+    const failed = statuses.filter((status) => status === 'failed').length;
+    if (!result) issues.push({ file, line: 1, message: 'was not run (no tests selected)' });
+    else if (failed > 0) issues.push({ file, line: 1, message: `${failed} test(s) failed` });
+    else if (passed === 0)
+      issues.push({ file, line: 1, message: 'ran no passing test (empty selection)' });
+  }
+  return issues;
+}
+
+/** Runs the integration test files in one Vitest run and checks the report. */
+export function runIntegrationTests(root: string, files: readonly string[]): IntegrationIssue[] {
+  const dir = mkdtempSync(join(tmpdir(), 'protoyard-integration-report-'));
+  const output = join(dir, 'report.json');
+  try {
+    const run = spawnSync(
+      'pnpm',
+      ['exec', 'vitest', 'run', ...files, '--reporter=json', `--outputFile=${output}`],
+      { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, shell: false }
+    );
+    if (!existsSync(output)) {
+      return [
+        {
+          file: 'vitest',
+          line: 1,
+          message: `no report (exit ${run.status}): ${(run.stderr || run.stdout).slice(-400)}`,
+        },
+      ];
+    }
+    return checkTestReport(root, files, JSON.parse(readFileSync(output, 'utf8')) as VitestReport);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 /** Every check over a repository root. */
 export function validateIntegrations(
   root: string,
@@ -184,6 +394,10 @@ export function validateIntegrations(
     const file = relative(root, path);
     issues.push(...checkLocalPaths(readFileSync(path, 'utf8'), file));
   }
+  for (const file of integrationDocs(root)) {
+    issues.push(...checkLinks(root, file, readFileSync(join(root, file), 'utf8')));
+  }
+  issues.push(...checkArtifacts(root));
   return issues;
 }
 
@@ -193,13 +407,20 @@ async function main(): Promise<number> {
   const { MCP_TOOLS } = await import('../packages/cli/src/mcp/tools.ts');
   const tree = cliTree(createProgram({ setExitCode: () => {} }) as CommandLike);
   const issues = validateIntegrations(root, tree, MCP_TOOLS);
+  const tests = integrationTestFiles(root);
+  if (process.argv.includes('--run-tests')) issues.push(...runIntegrationTests(root, tests));
   for (const issue of issues) console.log(`${issue.file}:${issue.line}: ${issue.message}`);
   if (issues.length > 0) {
-    console.log(`FAIL: ${issues.length} integration recipe issue(s)`);
+    console.log(`FAIL: ${issues.length} integration issue(s)`);
     return 1;
   }
   console.log(
-    `OK: ${integrationDocs(root).length} integration docs match the CLI (${tree.paths.size} commands) and the MCP tools (${MCP_TOOLS.length})`
+    `OK: ${integrationDocs(root).length} integration docs match the CLI (${tree.paths.size} commands) and the MCP tools (${MCP_TOOLS.length}); addon packet and links verified`
+  );
+  console.log(
+    process.argv.includes('--run-tests')
+      ? `OK: ${tests.length} integration test files ran, each with passing tests and no failures`
+      : `${tests.length} integration test files in the surface (add --run-tests to run them)`
   );
   return 0;
 }
