@@ -40,7 +40,7 @@
     "hygiene": "bash scripts/check-public-hygiene.sh",
     "build:packages": "tsx scripts/build-packages.ts",
     "check:packages": "tsx scripts/check-packages.ts",
-    "verify:packages": "tsx scripts/verify-packages.ts",
+    "verify:packages": "pnpm build:packages && tsx scripts/verify-packages.ts",
     "changeset": "changeset",
     "version-packages": "tsx scripts/version-packages.ts",
     "check:skill": "tsx scripts/validate-skill-frontmatter.ts && tsx scripts/check-skill-cli.ts"
