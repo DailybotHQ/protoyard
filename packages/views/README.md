@@ -252,6 +252,17 @@ quote, for every selected line), `setHeading`, `insertCodeBlock`,
 `continueList` (Enter in a list), `triggerAt` (the `@`/`#` being typed,
 never inside an email or a word) and `applyCompletion`.
 
+`parseEditorDocument(markdown)` converts a bounded Markdown subset into a
+strict versioned document model. It supports paragraphs, headings, marks,
+safe links, explicit mentions (`@{id|label}`), lists, quotes and fenced code.
+`serializeEditorDocument(document)` validates the same schema and emits
+canonical Markdown. Link targets permit http, https, mailto and relative links;
+unsafe schemes are removed while their labels remain visible text. Raw HTML is
+plain text and is never interpreted. Documents are capped at 32,000 source
+characters, 256 blocks, 100 items per list and 12,000 characters per code
+block. The model has no UI or database dependency; persistence belongs to the
+consuming prototype's service.
+
 ## Scenario generators (`@protoyard/views/scenarios`)
 
 Deterministic rows for the views kit, in the kit's own shapes. Each generator
