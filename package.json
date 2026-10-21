@@ -44,7 +44,8 @@
     "changeset": "changeset",
     "version-packages": "tsx scripts/version-packages.ts",
     "check:skill": "tsx scripts/validate-skill-frontmatter.ts && tsx scripts/check-skill-cli.ts && tsx scripts/validate-skill-links.ts && bash scripts/verify-skill-integrity.sh",
-    "check:integrations": "tsx scripts/validate-integrations.ts"
+    "check:integrations": "tsx scripts/validate-integrations.ts",
+    "check:docs": "tsx scripts/check-public-docs.ts"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",

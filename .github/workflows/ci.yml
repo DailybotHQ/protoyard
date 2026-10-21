@@ -63,6 +63,8 @@ jobs:
         run: pnpm check:skill
       - name: Integration recipes match the CLI
         run: pnpm check:integrations
+      - name: Public guides and their links
+        run: pnpm check:docs
       - name: Index manifests
         run: pnpm protoyard index
       - name: Doctor
