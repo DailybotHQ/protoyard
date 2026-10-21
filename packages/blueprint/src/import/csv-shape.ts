@@ -61,7 +61,6 @@ const RESERVED_NAMES = new Set(['id', 'createdAt', 'updatedAt', 'deletedAt', 'de
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:?\d{2})$/;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_PATTERN = /^https?:\/\/[^\s]+$/i;
 const PHONE_PATTERN = /^\+?[0-9().\-\s]{7,}$/;
 const INTEGER_PATTERN = /^[+-]?\d+$/;
@@ -124,6 +123,27 @@ function validDate(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().startsWith(value);
 }
 
+/** Checks an email-shaped value in one pass; avoid backtracking on hostile cells. */
+function isEmailAddress(value: string): boolean {
+  if (value.length > 254) return false;
+  let at = -1;
+  let domainDot = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === undefined || /\s/u.test(character)) return false;
+    if (character === '@') {
+      if (at !== -1) return false;
+      at = index;
+      continue;
+    }
+    if (character === '.' && at !== -1) {
+      if (index === at + 1 || index === value.length - 1 || value[index - 1] === '.') return false;
+      domainDot = true;
+    }
+  }
+  return at > 0 && at < value.length - 1 && value[at - 1] !== '.' && domainDot;
+}
+
 function allMatch(values: readonly string[], pattern: RegExp, check?: (value: string) => boolean) {
   return (
     values.length > 0 && values.every((value) => pattern.test(value) && (check?.(value) ?? true))
@@ -146,7 +166,7 @@ function inferField(
     return 'text';
   }
 
-  if (headerMatches(header, /e ?mail|email address/) && allMatch(normalized, EMAIL_PATTERN)) {
+  if (headerMatches(header, /e ?mail|email address/) && normalized.every(isEmailAddress)) {
     return 'email';
   }
   if (headerMatches(header, /url|uri|website|link/) && allMatch(normalized, URL_PATTERN)) {

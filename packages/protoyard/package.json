@@ -26,6 +26,7 @@
     "protoyard": "./bin/protoyard.mjs"
   },
   "files": [
+    "LICENSE",
     "bin",
     "index.js",
     "index.d.ts",

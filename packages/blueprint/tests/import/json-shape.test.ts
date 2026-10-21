@@ -121,6 +121,14 @@ describe('JSON shape inference', () => {
     expect(JSON.stringify(result)).not.toContain('Sensitive child');
   });
 
+  it('does not choose a long-text field as the title', () => {
+    const result = inferJsonShape(JSON.stringify({ description: 'x'.repeat(600) }));
+    expect(result.entities[0]?.fields).toContainEqual(
+      expect.objectContaining({ name: 'description', kind: 'longText' })
+    );
+    expect(result.entities[0]?.titleField).toBe('name');
+  });
+
   it('is deterministic across object key insertion order and reports inconsistent samples', () => {
     const first = inferJsonShape(
       '[{"firstName":"Ada","status":"open","score":1},{"firstName":"Grace","score":"unknown","status":null}]'

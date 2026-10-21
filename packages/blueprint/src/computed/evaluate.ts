@@ -25,6 +25,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function finiteOrNull(value: number): number | null {
+  return Number.isFinite(value) ? value : null;
+}
+
 function evaluate(
   expression: ComputedExpression,
   context: ComputedEvaluationContext
@@ -50,7 +54,7 @@ function evaluate(
       hours: 3_600_000,
       days: 86_400_000,
     }[expression.unit];
-    return (end - start) / divisor;
+    return finiteOrNull((end - start) / divisor);
   }
   if (expression.op === 'aggregate') {
     const rows = relatedRows(ownValue(context.relations, expression.relation));
@@ -64,10 +68,9 @@ function evaluate(
       if (typeof first === 'string') {
         const dates = values.map(asMilliseconds);
         if (dates.every((date) => date !== null)) {
-          const target =
-            expression.aggregate === 'min'
-              ? Math.min(...(dates as number[]))
-              : Math.max(...(dates as number[]));
+          const target = (dates as number[]).reduce((best, date) =>
+            expression.aggregate === 'min' ? Math.min(best, date) : Math.max(best, date)
+          );
           return values.find((value) => asMilliseconds(value) === target) as string;
         }
       }
@@ -75,14 +78,16 @@ function evaluate(
         (value): value is number => typeof value === 'number' && Number.isFinite(value)
       );
       if (numbers.length !== values.length) return null;
-      return expression.aggregate === 'min' ? Math.min(...numbers) : Math.max(...numbers);
+      return numbers.reduce((best, number) =>
+        expression.aggregate === 'min' ? Math.min(best, number) : Math.max(best, number)
+      );
     }
     const numbers = values.filter(
       (value): value is number => typeof value === 'number' && Number.isFinite(value)
     );
     if (numbers.length !== values.length) return null;
     const sum = numbers.reduce((total, value) => total + value, 0);
-    return expression.aggregate === 'sum' ? sum : sum / numbers.length;
+    return expression.aggregate === 'sum' ? finiteOrNull(sum) : finiteOrNull(sum / numbers.length);
   }
 
   const left = evaluate(expression.left, context);

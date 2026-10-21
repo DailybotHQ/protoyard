@@ -142,6 +142,7 @@ export {
   BlueprintPatchError,
   type BlueprintPatchErrorCode,
   type BlueprintPatchResult,
+  JSON_PATCH_MAX_NODES,
   JSON_PATCH_MAX_OPS,
   JSON_POINTER_MAX_LENGTH,
   type JsonPatchOperation,

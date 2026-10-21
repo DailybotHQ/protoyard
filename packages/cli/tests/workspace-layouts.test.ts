@@ -38,13 +38,13 @@ describe('workspace layout detection', () => {
     expect(workspaceLayout(root)).toBe('consumer');
   });
 
-  it('keeps this repository a monorepo (its root package.json has no protoyard field)', () => {
+  it('keeps this repository a monorepo (its root package.json has no workspace marker)', () => {
     const repo = realpathSync(join(import.meta.dirname, '..', '..', '..'));
     expect(workspaceLayout(repo)).toBe('monorepo');
   });
 
   it('walks up from a package folder to a protoyard consumer root', () => {
-    const root = fixture({ name: 'example-consumer', protoyard: {} }, 'none');
+    const root = fixture({ name: 'example-consumer', protoyard: { workspace: 1 } }, 'none');
     const child = join(root, 'apps', 'demo');
     mkdirSync(child, { recursive: true });
     expect(workspaceLayout(root)).toBe('consumer');
@@ -62,6 +62,11 @@ describe('workspace layout detection', () => {
     expect(workspaceLayout(root)).toBe('consumer');
   });
 
+  it('walks from a package manifest to this repository workspace root', () => {
+    const repo = realpathSync(join(import.meta.dirname, '..', '..', '..'));
+    expect(resolveWorkspaceRoot({ cwd: join(repo, 'packages', 'cli') })).toBe(repo);
+  });
+
   it('does not treat an unmarked package as a workspace', () => {
     const root = fixture({ name: 'ordinary-package' }, 'none');
     expect(workspaceLayout(root)).toBeNull();
@@ -69,7 +74,7 @@ describe('workspace layout detection', () => {
   });
 
   it('doctor checks a consumer layout without requiring monorepo packages', async () => {
-    const root = fixture({ name: 'consumer', protoyard: {} }, 'none');
+    const root = fixture({ name: 'consumer', protoyard: { workspace: 1 } }, 'none');
     mkdirSync(join(root, 'node_modules'));
     const result = await cli(['--root', root, '--json', 'doctor', '--offline']);
     const checks = result.json<{

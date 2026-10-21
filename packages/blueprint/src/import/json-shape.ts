@@ -86,18 +86,10 @@ interface Limits {
 
 const RESERVED_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'deletedAt', 'deletedBy']);
 const BIDI_FORMATTING = /[\u202a-\u202e\u2066-\u2069]/u;
-const TITLE_KINDS = new Set<BlueprintField['kind']>([
-  'text',
-  'longText',
-  'integer',
-  'email',
-  'url',
-  'phone',
-]);
+const TITLE_KINDS = new Set<BlueprintField['kind']>(['text', 'integer', 'email', 'url', 'phone']);
 const SEARCHABLE_KINDS = new Set<BlueprintField['kind']>(['text', 'email', 'url', 'phone']);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:?\d{2})$/;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const URL_PATTERN = /^https?:\/\/[^\s]+$/i;
 
 type JsonRecord = Record<string, unknown>;
@@ -323,6 +315,27 @@ function isoDate(value: string): boolean {
   return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
 }
 
+/** Checks an email-shaped value in one pass; avoid backtracking on hostile cells. */
+function isEmailAddress(value: string): boolean {
+  if (value.length > 254) return false;
+  let at = -1;
+  let domainDot = false;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character === undefined || /\s/u.test(character)) return false;
+    if (character === '@') {
+      if (at !== -1) return false;
+      at = index;
+      continue;
+    }
+    if (character === '.' && at !== -1) {
+      if (index === at + 1 || index === value.length - 1 || value[index - 1] === '.') return false;
+      domainDot = true;
+    }
+  }
+  return at > 0 && at < value.length - 1 && value[at - 1] !== '.' && domainDot;
+}
+
 function stringKind(key: string, values: readonly string[]): FieldKind {
   if (values.length > 0 && values.every((value) => DATE_PATTERN.test(value) && isoDate(value))) {
     return 'date';
@@ -334,7 +347,7 @@ function stringKind(key: string, values: readonly string[]): FieldKind {
     return 'datetime';
   }
   const normalizedKey = key.toLowerCase();
-  if (normalizedKey.includes('email') && values.every((value) => EMAIL_PATTERN.test(value))) {
+  if (normalizedKey.includes('email') && values.every(isEmailAddress)) {
     return 'email';
   }
   if (

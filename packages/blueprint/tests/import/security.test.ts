@@ -100,4 +100,14 @@ describe('schema import security bounds', () => {
       expect((error as Error).message).not.toContain('x'.repeat(100));
     }
   });
+
+  it('checks hostile email-shaped cells in linear time', () => {
+    const crafted = `a@${'.'.repeat(16 * 1024 - 3)}@`;
+    const started = performance.now();
+    const csv = inferCsvEntity(`Email\n${crafted}`);
+    const json = inferJsonShape(JSON.stringify({ email: crafted }));
+    expect(performance.now() - started).toBeLessThan(250);
+    expect(csv.entity.fields[0]?.kind).toBe('text');
+    expect(json.entities[0]?.fields.find((field) => field.name === 'email')?.kind).toBe('longText');
+  });
 });
