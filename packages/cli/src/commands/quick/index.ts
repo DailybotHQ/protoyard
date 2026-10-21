@@ -14,7 +14,7 @@ import {
   VARIANT_MAX_COUNT,
   VARIANT_THEME_PRESETS,
 } from '@protoyard/blueprint';
-import { checkSlug, LAYOUT_IDS } from '@protoyard/core';
+import { checkSlug } from '@protoyard/core';
 import { THEME_LIBRARY_META } from '@protoyard/themes/library';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { flag, opt } from '../../lib/command.ts';
@@ -63,13 +63,16 @@ const SEED = /^\d{1,10}$/;
 const VARIANT_DIRS = Array.from({ length: VARIANT_MAX_COUNT }, (_, i) => `v${i + 1}`);
 
 /**
- * The catalogs variants choose from: every shared layout, and themes that are
- * either built-in presets or library ids (deriveVariants does not validate
- * library ids, so only catalog ids are passed).
+ * Variant themes come from built-in presets or catalog library ids. Layouts
+ * stay within the blueprint's declared app-model layout until blueprints can
+ * declare a broader supported set.
  */
-export function variantAxes() {
+export function variantAxes(blueprint: Blueprint) {
   return {
-    layouts: [...LAYOUT_IDS],
+    // Blueprint authoring has no supported-layout list yet. Keep generated
+    // variants on the app model's actual layout instead of choosing a catalog
+    // entry that the blueprint's screens may not support.
+    layouts: [blueprint.layout?.id ?? 'sidebar'],
     themes: [...VARIANT_THEME_PRESETS, ...THEME_LIBRARY_META.map((theme) => theme.id)],
   };
 }
@@ -343,7 +346,7 @@ export const quickCommand: Handler = async (
         count: variantCount,
         // The same blueprint and seed always give the same variants.
         seed: seed ?? '',
-        axes: variantAxes(),
+        axes: variantAxes(blueprint),
       });
     } catch (error) {
       if (!(error instanceof RangeError)) throw error;

@@ -7,7 +7,6 @@ import {
   parseBlueprint,
   VARIANT_THEME_PRESETS,
 } from '@protoyard/blueprint';
-import { LAYOUT_IDS } from '@protoyard/core';
 import { THEME_LIBRARY_META } from '@protoyard/themes/library';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -32,6 +31,7 @@ import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
 
 const BRIEF =
   'A fictional field service team schedules equipment inspections, assigns technicians and tracks each visit.';
+const ANALYTICS = join(import.meta.dirname, '../../../blueprints/quick/analytics.json');
 
 let ws: TempWorkspace;
 let restore: (() => void)[] = [];
@@ -89,9 +89,10 @@ describe('parseVariantCount', () => {
 });
 
 describe('variantAxes', () => {
-  it('offers every shared layout and only catalog theme ids', () => {
-    const axes = variantAxes();
-    expect(axes.layouts).toEqual([...LAYOUT_IDS]);
+  it('keeps variants on the blueprint app model layout and only catalog theme ids', () => {
+    const blueprint = parseBlueprint(JSON.parse(readFileSync(ANALYTICS, 'utf8')) as unknown);
+    const axes = variantAxes(blueprint);
+    expect(axes.layouts).toEqual([blueprint.layout?.id ?? 'sidebar']);
     const library = new Set(THEME_LIBRARY_META.map((theme) => theme.id));
     for (const theme of axes.themes) {
       expect(
@@ -130,6 +131,7 @@ describe('protoyard quick --variants', () => {
         base.entities.map((e) => e.name).sort()
       );
       const identity = await blueprintIdentity(blueprint);
+      expect(blueprint.layout?.id ?? 'sidebar').toBe(base.layout?.id ?? 'sidebar');
       expect(identity.sha256).toBe(variant.blueprintSha256);
       expect(record.variants[i]).toEqual({
         id: variant.id,
