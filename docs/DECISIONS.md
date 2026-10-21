@@ -708,9 +708,11 @@ ideas. DWP loads addons only from its own pack (`addons/<key>/` with an `addon.j
 **Decision.**
 - **Independence:** Protoyard never depends on DWP.
 - **The addon packet:** a Protoyard-side packet in `integrations/deepworkplan/protoyard/` holds
-  the addon: a descriptor valid against DWP's addon-descriptor schema (`detect: protoyard doctor
-  --json`, `interface_from: json:interface`), `SKILL.md`, `SPEC.md`, and exploration-task
-  templates with ready gates.
+  the addon: a descriptor valid against DWP's addon-descriptor schema (`detect: protoyard
+  --version --json`, `interface_from: json:interface`), `SKILL.md`, `SPEC.md`, and
+  exploration-task templates with ready gates. Detection uses `--version --json` because it exits
+  0 wherever the CLI is installed; `doctor --json` exits 1 on a failed check and 3 outside a
+  workspace (amended 2026-10-20, see `docs/INTERFACE.md`).
 - **Upstream:** it is contributed to deepworkplan-skill after a GO.
 - **How an exploration runs:** in a temporary directory, with only validated artifacts copied
   into the plan's `analysis_results/prototypes/`. A missing browser is a recorded
