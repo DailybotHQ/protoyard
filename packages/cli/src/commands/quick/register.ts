@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import type { Handler } from '../../lib/command.ts';
 import { quickExportCommand } from './export.ts';
 import { quickCommand } from './index.ts';
+import { quickPromoteCommand } from './promote.ts';
 import { quickServeCommand } from './serve.ts';
 
 type Def = (name: string, handler: Handler) => (...args: unknown[]) => Promise<void>;
@@ -46,5 +47,13 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--out <file>', 'write under artifacts/ or tmp/ instead of <exploration>/<slug>.html')
     .option('--force', 'replace an existing export')
     .action(def('quick export', quickExportCommand));
+  quick
+    .command('promote')
+    .description('turn an exploration into a full prototype in prototypes/<slug> (via generate)')
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .argument('<slug>', 'the new prototype slug (never an existing prototype)')
+    .option('--variant <id>', 'promote one of the exploration variants (v1..v8) instead')
+    .option('--no-install', 'skip pnpm install after generating')
+    .action(def('quick promote', quickPromoteCommand));
   return quick;
 }
