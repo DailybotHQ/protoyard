@@ -3,7 +3,7 @@
 The command map the Protoyard skill uses for examples and flag spelling. It
 was taken from the real command tree (`protoyard --help` and every
 `protoyard <command> --help`) of the Protoyard CLI 1.0.0 line on 2026-10-20
-(source revision `b4f45af`). It covers 45 commands and subcommands.
+(source revision `b4f45af`). It covers 46 commands and subcommands.
 
 **Verify before you act.** The CLI you have may be older or newer than this
 page. Before following an example, run:
@@ -48,8 +48,8 @@ With `--json`, every command prints exactly one envelope on stdout:
 `protoyard doctor --json` also carries the machine interface at the top
 level, beside `ok`, `command` and `data`, on every outcome (new in PLAN_004):
 `"interface": 1` and `"capabilities"`, the sorted ids this CLI implements
-(`blueprint-schema`, `generate`, `player`, `quick`; `import` and `mcp` are
-defined but not implemented yet). Tools detect Protoyard by reading
+(`blueprint-schema`, `generate`, `mcp`, `player`, `quick`; `import` is defined
+but not implemented yet). Tools detect Protoyard by reading
 `interface`.
 
 `protoyard --version` stays plain semver. `protoyard --version --json` (new in
@@ -79,6 +79,7 @@ deploy.
 | `protoyard affected` | `--since <ref>`, `--format <fmt>` | list prototype slugs affected by changes since a git ref (for selective CI builds) | Released (1.0.0) |
 | `protoyard gallery` | `-p, --port <port>`, `--control-port <port>`, `--allow-origin <origins>`, `--allow-create` | index, start the control server and run the gallery (what `pnpm dev` runs) | Released (1.0.0) |
 | `protoyard control-server` | `-p, --port <port>`, `--gallery-port <port>`, `--allow-origin <origins>`, `--allow-create` | only the local control API (127.0.0.1) the gallery uses to start dev servers | Released (1.0.0) |
+| `protoyard mcp` | — | serve the MCP JSON-RPC protocol over newline-delimited stdio | New in PLAN_004 |
 
 ### Create prototypes
 
@@ -190,7 +191,6 @@ or `protoyard --help` on the installed CLI first.
 | `protoyard quick iterate <dir> --patch <file\|-> [--allow-drop]` · `quick undo <dir>` | Patch an exploration and undo |
 | `protoyard quick shot <dir>` · `quick … --screenshot` | Screenshots when a browser is available |
 | `protoyard quick feedback <dir> [--import <file>]` · `quick report <dir> [--import <metrics.json>…]` | Review feedback and validation metrics |
-| `protoyard mcp` | An MCP server over the CLI's JSON envelopes |
 
 ## Where to read more
 
