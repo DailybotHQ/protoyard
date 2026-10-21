@@ -143,6 +143,15 @@ and Windows.
   variants side by side with labels, links and screenshots, only relative same-folder URLs, all
   text escaped, no script, and a Content-Security-Policy that allows only its own hashed style,
   same-origin images and same-origin frames.
+  The prebuilt player is copied, never built (`src/lib/quick/player-assets.ts`):
+  - **Where it comes from:** the CLI's own `@protoyard/player` dependency, then the workspace's
+    install, then this repository's `packages/player`.
+  - **How it is checked:** every file must match the `protoyard-player-assets.json` sha256
+    manifest the player ships in its app folder (`dist/app/`, or `dist/`). A changed, missing,
+    unlisted or linked file is refused.
+  - **Where it goes:** a verified copy is staged and renamed into `.protoyard/quick/_player/<version>/`
+    (shared) or `<exploration>/player/`. A verified copy that is already there is reused, and a
+    tampered copy is replaced from the verified source. No Vite and no install run.
 - **Never allowed:** the workspace or its parents, your home folder, `.git`, `node_modules`,
   `packages`, `apps`, `prototypes`, `templates`, `docs`, `scripts`, `tests`, `.github`,
   `.agents`, `.claude` or `.dwp`, nor a path that is itself a symlink.
