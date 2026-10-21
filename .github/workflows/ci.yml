@@ -61,6 +61,8 @@ jobs:
         run: pnpm test
       - name: Skill frontmatter and CLI alignment
         run: pnpm check:skill
+      - name: Integration recipes match the CLI
+        run: pnpm check:integrations
       - name: Index manifests
         run: pnpm protoyard index
       - name: Doctor
