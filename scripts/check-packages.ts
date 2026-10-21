@@ -413,8 +413,7 @@ export async function checkPackage(
     findings: manifestFindings(manifest, lockstepVersion),
   };
   if (!manifest.publishConfig) {
-    report.pending =
-      'no publishConfig yet: not packed (add publishConfig to pack it)';
+    report.pending = 'no publishConfig yet: not packed (add publishConfig to pack it)';
   } else {
     const destination = mkdtempSync(join(tmpdir(), 'protoyard-check-packages-'));
     try {
