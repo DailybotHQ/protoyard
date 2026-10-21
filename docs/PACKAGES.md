@@ -126,7 +126,7 @@ These examples describe the npm package interface after release. In this reposit
 | `create-protoyard` | Workspace scaffolder, invoked with `npm create protoyard` or `pnpm create protoyard` | `.` |
 | `@protoyard/player` | Prebuilt player app package; its npm API is only for embedding a framed player client | `./embed` |
 | `@protoyard/gallery` | Static gallery site package, not an app SDK | No module exports |
-| `@protoyard/templates` | Aggregate template package used by CLI scaffolding | `.`; npm publish configuration is still pending |
+| `@protoyard/templates` | Aggregate template package used by CLI scaffolding: every git-tracked file of each template | `.` |
 
 The public `/play/` site runs a blueprint without installing Protoyard into a host repository. The player accepts a blueprint at runtime and does not generate project source. To embed the hosted player in another page, use `connectPlayer` from `@protoyard/player/embed`; configure the exact player origin and allowed embedder origin as described in [PLAYER.md](PLAYER.md).
 
@@ -142,6 +142,26 @@ Workspace development stays source-first and does not require building packages.
 pnpm build:packages --filter engine
 pnpm build:packages --filter svelte
 ```
+
+`pnpm build:packages` also runs a package's `protoyard.build.postBuild` script after compiling it. The player uses it to build its prebuilt app into `dist/app/`.
+
+### Package checks
+
+`pnpm check:packages --require-all` packs every publishable package and checks the real tarball. It needs `pnpm build:packages` first. Every public package must pass; a package without `publishConfig` fails as `pending`.
+
+On top of publint, arethetypeswrong (`esm-only`) and the file and hygiene rules, it enforces:
+
+- `required-file`: every path in `protoyard.pack.required` is in the tarball. The player requires `dist/app/index.html`, its assets manifest and `dist/embed/index.js`.
+- `case-collision`: no two source files emit outputs that differ only by letter case. On macOS and Windows one would overwrite the other, at build time and on install.
+- `svelte-declaration`: no emitted `X.svelte.d.ts` imports a binding named `X`. That shadows the component's own declaration, so consumers would see a type instead of a component. Alias the import, or use another name for a recursive self-import.
+
+#### attw and Svelte components
+
+The report names one attw exception, `svelte-component-declaration`, and counts the problems it drops per package. It is the only exception:
+
+- **What it drops.** `svelte-package` emits `X.svelte.d.ts` beside each `X.svelte`. Bundler resolution, Vite and svelte-check read that file. TypeScript's `node16` mode looks only for `X.d.svelte.ts`, so attw reports an `InternalResolutionError` for every `./X.svelte` import in a declaration.
+- **When.** The exception drops that problem only under `node16`, and only when both the component and its `.svelte.d.ts` are in the tarball.
+- **What still fails.** A missing declaration still fails, because attw then also reports it under `bundler` and `node10`. Every other attw problem fails the check.
 
 Package publication checks inspect packed manifests and tarballs. The first npm release is still gated; read [PUBLISHING.md](PUBLISHING.md) and [DECISIONS.md](DECISIONS.md#adr-028--packages-publish-dist-through-publishconfig-the-repository-keeps-source-exports) for the current release contract and status.
 
