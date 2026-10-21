@@ -1,4 +1,4 @@
-import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { CliError, type Envelope } from '../lib/output.ts';
 import { canonicalPath, isInside, resolveWorkspaceRoot } from '../lib/paths.ts';
 
@@ -18,13 +18,13 @@ const REDACTED_VALUE = '[redacted]';
 export interface McpPathPolicy {
   /** Canonical workspace root. */
   workspaceRoot: string;
-  /** Additional, explicitly approved output roots (for example a plan scratch folder). */
+  /** Additional, explicitly approved output roots outside the workspace (none by default). */
   approvedRoots?: readonly string[];
 }
 
 function unsafe(message: string): never {
   throw new CliError('unsafe_path', message, {
-    hint: 'Use a path inside the current workspace or an approved plan output folder.',
+    hint: 'Use a path inside the current workspace.',
   });
 }
 
@@ -42,17 +42,14 @@ export function resolveMcpPath(input: string, policy: McpPathPolicy): string {
   const target = canonicalPath(lexical);
   const approvedRoots = [workspaceRoot, ...(policy.approvedRoots ?? [])].map(canonicalPath);
   if (!approvedRoots.some((root) => isInside(root, target)))
-    unsafe('MCP paths must remain inside the workspace or an approved plan output folder.');
+    unsafe('MCP paths must remain inside the workspace or an approved output root.');
   return target;
 }
 
 /** Resolve the standard MCP roots for the current CLI workspace. */
 export function mcpPathPolicy(workspaceRoot?: string): McpPathPolicy {
   const root = canonicalPath(workspaceRoot ?? resolveWorkspaceRoot());
-  return {
-    workspaceRoot: root,
-    approvedRoots: [join(root, 'tmp', 'plan004'), join(root, 'artifacts')],
-  };
+  return { workspaceRoot: root };
 }
 
 /** Reject an oversized JSON value before it reaches a command or child process. */

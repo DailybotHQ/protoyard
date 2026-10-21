@@ -54,8 +54,8 @@ so. It does not open a network listener or provide authentication.
 
 The adapter applies additional protocol fences before dispatch:
 
-- Path arguments must remain inside the current workspace or an explicitly
-  approved `tmp/plan004` or `artifacts` output folder. Parent traversal,
+- Path arguments must remain inside the current workspace (its `tmp/` and
+  `artifacts/` folders included). Parent traversal,
   symlink escapes, control characters and shell metacharacters are refused.
 - The accepted tool set is closed. MCP has no `exec`, shell, arbitrary child
   process, network, or environment-inspection operation. CLI arguments remain

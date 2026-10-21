@@ -23,17 +23,17 @@ describe('MCP trust boundary', () => {
   it('rejects traversal, shell syntax, and symlink escapes', () => {
     const root = mkdtempSync(join(tmpdir(), 'protoyard-mcp-'));
     const outside = mkdtempSync(join(tmpdir(), 'protoyard-outside-'));
-    mkdirSync(join(root, 'tmp', 'plan004'), { recursive: true });
+    mkdirSync(join(root, 'tmp', 'scratch'), { recursive: true });
     symlinkSync(outside, join(root, 'link'));
     const policy = { workspaceRoot: root };
 
     expect(() => resolveMcpPath('../outside', policy)).toThrow(/parent folder/);
-    expect(() => resolveMcpPath('tmp/plan004/preview;touch', policy)).toThrow(
+    expect(() => resolveMcpPath('tmp/scratch/preview;touch', policy)).toThrow(
       /shell metacharacters/
     );
     expect(() => resolveMcpPath('link/result.json', policy)).toThrow(/inside the workspace/);
-    expect(resolveMcpPath('tmp/plan004/preview', policy)).toBe(
-      join(canonicalPath(root), 'tmp', 'plan004', 'preview')
+    expect(resolveMcpPath('tmp/scratch/preview', policy)).toBe(
+      join(canonicalPath(root), 'tmp', 'scratch', 'preview')
     );
   });
 
