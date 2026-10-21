@@ -106,6 +106,35 @@ async function removeInheritedThumbnail(dir: string, thumbnail: string) {
   } catch {}
 }
 
+/** Removes monorepo-only test helpers and CSS source paths from consumer copies. */
+async function adaptConsumerTemplate(dir: string) {
+  const rootTsconfig = resolve(dir, '..', '..', 'tsconfig.base.json');
+  const tsconfigPath = join(dir, 'tsconfig.json');
+  if (existsSync(tsconfigPath) && !existsSync(rootTsconfig)) {
+    const config = JSON.parse(await readFile(tsconfigPath, 'utf8')) as Record<string, unknown>;
+    delete config.extends;
+    await writeFile(tsconfigPath, `${JSON.stringify(config, null, 2)}\n`);
+  }
+  const walk = async (current: string): Promise<void> => {
+    for (const entry of await readdir(current, { withFileTypes: true })) {
+      const path = join(current, entry.name);
+      if (entry.isDirectory()) await walk(path);
+      else if (entry.isFile() && /\.css$/.test(entry.name)) {
+        const css = await readFile(path, 'utf8');
+        const adapted = css.replace(
+          /^\s*@source\s+['"]\.\.\/\.\.\/\.\.\/packages\/[^;]+;\s*$/gm,
+          ''
+        );
+        if (adapted !== css) await writeFile(path, adapted);
+      } else if (entry.isFile() && /\.[cm]?tsx?$/.test(entry.name)) {
+        const source = await readFile(path, 'utf8');
+        if (source.includes('../../../tests/support/')) await rm(path);
+      }
+    }
+  };
+  await walk(dir);
+}
+
 /** Rewrites the copied template's identity files into a new prototype. */
 export async function personalize(dir: string, input: NewProjectInput) {
   const manifestPath = join(dir, MANIFEST_FILENAME);
@@ -174,6 +203,7 @@ export async function personalize(dir: string, input: NewProjectInput) {
     );
     if (retitled !== text) await writeFile(path, retitled);
   }
+  if (input.consumerPackageVersion) await adaptConsumerTemplate(dir);
 }
 
 /** Replaces pnpm workspace ranges in every dependency section with a published lockstep version. */
