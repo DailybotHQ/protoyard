@@ -21,7 +21,8 @@ const app = useBlueprintApp();
 type AnyComponent = Component<any>;
 
 async function load(
-  target: typeof route
+  target: typeof route,
+  current: RouteParams
 ): Promise<{ View: AnyComponent; props: Record<string, unknown> }> {
   const screen = app.blueprint.screens[target.screenIndex];
   if (screen?.type !== target.screenType) {
@@ -36,19 +37,23 @@ async function load(
     blueprint: app.blueprint,
     services: app.services,
     screen: screen as unknown as Record<string, unknown>,
-    params,
+    params: current,
     ...(library ? { library } : {}),
     ...(target.screenType === 'detail' && target.entity
-      ? { entityName: target.entity, recordId: params.id ?? '' }
+      ? { entityName: target.entity, recordId: current.id ?? '' }
       : {}),
   });
   return { View, props };
 }
 
 let attempt = $state(0);
+// The router keeps this component for every id of the route, and a derived
+// tracks only reads made before load()'s first await: depend on the params'
+// values here (not the object, which the router recreates on every render).
+const paramsKey = $derived(JSON.stringify(params));
 const loaded = $derived.by(() => {
   void attempt;
-  return load(route);
+  return load(route, JSON.parse(paramsKey) as RouteParams);
 });
 </script>
 

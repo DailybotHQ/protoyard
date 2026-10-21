@@ -1,9 +1,13 @@
 <script lang="ts">
-import { liveQuery } from '@protoyard/renderer-svelte';
+import { liveQuery, usePrincipal } from '@protoyard/renderer-svelte';
 import { Card } from '@protoyard/ui';
 import { useBlueprintApp } from './context.ts';
 
-const { services, blueprint } = useBlueprintApp();
+const { services, blueprint, runtime } = useBlueprintApp();
+// The counts depend on the active role (a role that cannot read shows —), and a
+// persona switch changes no data table, so the persona is a dependency.
+const principal = usePrincipal(runtime);
+const personaId = $derived(principal.current?.persona.id ?? '');
 
 /** Row count per entity; null when the active role cannot read it. */
 const counts = liveQuery(
@@ -19,7 +23,7 @@ const counts = liveQuery(
         ])
       )
     ) as Record<string, number | null>,
-  { initial: {} }
+  { initial: {}, deps: () => [personaId] }
 );
 </script>
 

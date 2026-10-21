@@ -24,9 +24,15 @@ export interface RunningPrototype {
 
 export interface StartEmbedOptions {
   window: Window;
-  /** Boots a validated blueprint (in the player: `bootPlayer`). */
-  boot(blueprint: Blueprint, type: PlayerRequestType): Promise<RunningPrototype>;
-  /** What is running now, if anything (the player's own source). */
+  /**
+   * Swaps the running prototype for a validated blueprint, when the caller
+   * owns what is running (the player's run.ts, which live reload also swaps):
+   * it tears down the current prototype itself, so the embed keeps no copy.
+   */
+  replace?(blueprint: Blueprint, type: PlayerRequestType): Promise<RunningPrototype>;
+  /** Without `replace`: boots a validated blueprint (in the player: `bootPlayer`). */
+  boot?(blueprint: Blueprint, type: PlayerRequestType): Promise<RunningPrototype>;
+  /** Without `replace`: what is running now, if anything, torn down before each boot. */
   current?: RunningPrototype | null;
 }
 
@@ -41,15 +47,18 @@ export function startEmbed(options: StartEmbedOptions): EmbedListener | null {
   if (!win.parent || win.parent === win) return null;
   const origins = embedderOrigins(win.location.search, win.location.origin);
   if (origins.length === 0) return null;
+  const { replace, boot } = options;
+  if (!replace && !boot) throw new Error('startEmbed needs replace() or boot().');
   let current = options.current ?? null;
   return createEmbedListener({
     window: win,
     parent: win.parent as unknown as EmbedParent,
     origins,
     async apply(blueprint, type) {
+      if (replace) return { namespace: (await replace(blueprint, type)).namespace };
       await current?.destroy();
       current = null;
-      current = await options.boot(blueprint, type);
+      current = await (boot as NonNullable<typeof boot>)(blueprint, type);
       return { namespace: current.namespace };
     },
   });

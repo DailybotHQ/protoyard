@@ -230,7 +230,10 @@ export interface StartLiveReloadOptions {
    * passed in so this lazy chunk does not split the sources module off the entry).
    */
   shareSessionKey: string;
-  /** Reports a change that could not be applied (the current world stays). */
+  /**
+   * Reports a change that could not be applied. The player (run.ts) has then
+   * shown its error screen; the world's data stays, and the next change applies.
+   */
   onError?: (error: unknown) => void;
 }
 

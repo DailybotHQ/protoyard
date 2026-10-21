@@ -9,6 +9,18 @@ export interface GenerateWorldWorker {
   terminate(): void;
 }
 
+/**
+ * A generation error the worker reported (`{ ok: false }`): the blueprint or
+ * scenario cannot be generated, so running it again on the main thread would
+ * only fail a second time while blocking the page.
+ */
+export class WorldGenerationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WorldGenerationError';
+  }
+}
+
 export interface WorkerGenerationOptions {
   /** Test seam; browsers use the module worker by default. */
   createWorker?: () => GenerateWorldWorker;
@@ -45,7 +57,7 @@ async function generateWithWorker(
     worker.onmessage = ({ data }) => {
       finish();
       if (data.ok) resolve(data.world);
-      else reject(new Error(data.message));
+      else reject(new WorldGenerationError(data.message));
     };
     worker.onerror = (event) => {
       event.preventDefault();
@@ -63,8 +75,12 @@ async function generateWithWorker(
 }
 
 /**
- * Generate from blueprint + scenario data. The main-thread fallback is a
- * lazy chunk, so the generator is absent from the player's initial graph.
+ * Generate from blueprint + scenario data. The main thread takes over only
+ * when the worker is unavailable: it cannot be created, or it fails to start
+ * or run (`onerror`). A generation error the worker reports is thrown as a
+ * {@link WorldGenerationError}, never generated a second time. The main-thread
+ * fallback is a lazy chunk, so the generator is absent from the player's
+ * initial graph.
  */
 export async function generatePlayerWorld(
   blueprint: Blueprint,
@@ -75,7 +91,8 @@ export async function generatePlayerWorld(
   try {
     const worker = (options.createWorker ?? createBrowserWorker)();
     return await generateWithWorker(worker, { blueprint, scenario });
-  } catch {
+  } catch (error) {
+    if (error instanceof WorldGenerationError) throw error;
     return generateOnMainThread(blueprint, scenario, fallbackContext);
   }
 }
