@@ -15,7 +15,8 @@
     "index.js",
     "index.d.ts",
     "templates",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "prepack": "node scripts/copy-templates.mjs",
@@ -24,5 +25,31 @@
   },
   "engines": {
     "node": ">=24.20.0"
-  }
+  },
+  "protoyard": {
+    "pack": {
+      "payload": [
+        "templates/"
+      ],
+      "types": false
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/templates"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "templates",
+    "prototypes"
+  ]
 }
