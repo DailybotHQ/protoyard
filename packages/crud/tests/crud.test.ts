@@ -1,4 +1,9 @@
-import { createEntityServices, deriveStores, parseBlueprint } from '@protoyard/blueprint';
+import {
+  createEntityServices,
+  derivePolicy,
+  deriveStores,
+  parseBlueprint,
+} from '@protoyard/blueprint';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -219,6 +224,48 @@ describe('EntityList', () => {
     expect(restore.disabled).toBe(true);
     release();
     await waitFor(async () => expect(await services.customer!.get(customer.id)).toBeTruthy());
+  });
+
+  it('re-reads the list after a persona switch, in both directions', async () => {
+    // A viewer that may read tickets but not customers.
+    const restricted = structuredClone(helpdeskBlueprint);
+    restricted.roles = restricted.roles.map((role) =>
+      role.name === 'viewer' ? { ...role, permissions: { ticket: ['read'] } } : role
+    );
+    harness.closeAll();
+    harness = createHarness({ ...createCrudDefinition(), policy: derivePolicy(restricted) });
+    const runtime = await harness.boot('owner');
+    const services = createEntityServices(runtime, restricted);
+    await services.customer!.create({ name: 'Acme Example' });
+    const ownerId = runtime.session.principal()!.persona.id;
+    const viewerId = runtime.members.list().find((m) => m.membership.role === 'viewer')!.persona.id;
+
+    // Mounted while the viewer cannot read customers: list() is refused.
+    await runtime.session.switchActor(viewerId);
+    render(CrudHarness, {
+      runtime,
+      blueprint: restricted,
+      services,
+      mode: 'list',
+      entityName: 'customer',
+    });
+    expect(await screen.findByText('You do not have access to this list.')).toBeTruthy();
+    // Let the refused query settle as the viewer before switching back.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // The owner sees the rows without a reload.
+    await runtime.session.switchActor(ownerId);
+    expect(await screen.findByText('Acme Example')).toBeTruthy();
+
+    await runtime.session.switchActor(viewerId);
+    await waitFor(() =>
+      expect(screen.getByText('You do not have access to this list.')).toBeTruthy()
+    );
+    expect(screen.queryByText('Acme Example')).toBeNull();
+
+    // Back to the owner: the rows come back without a reload.
+    await runtime.session.switchActor(ownerId);
+    expect(await screen.findByText('Acme Example')).toBeTruthy();
   });
 
   it('passes each row to :own delete checks and only deletes records owned by the agent', async () => {

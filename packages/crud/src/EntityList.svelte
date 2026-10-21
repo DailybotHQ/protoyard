@@ -10,7 +10,7 @@ import {
   primaryAvatarField,
 } from '@protoyard/blueprint';
 import type { Row } from '@protoyard/core';
-import { can, getRuntime, liveQuery, runService } from '@protoyard/renderer-svelte';
+import { can, getRuntime, liveQuery, runService, usePrincipal } from '@protoyard/renderer-svelte';
 import { AlertDialog, Button, DataTable, type DataTableSort, toast } from '@protoyard/ui';
 import {
   type EntityListDisplayNames,
@@ -92,12 +92,17 @@ let confirmOpen = $state(false);
 let pendingIds = $state<string[]>([]);
 let importInput = $state<HTMLInputElement | null>(null);
 
+// list() and trash() assert the persona's read capability, so a persona
+// switch must re-run the query (a refused read leaves no table to observe).
+const principal = usePrincipal(runtime);
+const personaId = $derived(principal.current?.persona.id ?? '');
+
 const rowsQuery = liveQuery(
   async (): Promise<Row[]> => {
     if (!service) return [];
     return view === 'trash' ? service.trash() : service.list();
   },
-  { initial: [], deps: () => [entityName, view, service] }
+  { initial: [], deps: () => [entityName, view, service, personaId] }
 );
 
 const rows = $derived(rowsQuery.current ?? []);
