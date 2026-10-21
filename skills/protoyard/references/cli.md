@@ -45,6 +45,13 @@ Every command accepts these:
 
 With `--json`, every command prints exactly one envelope on stdout:
 `{ "ok", "command", "data" }` on success or `{ "ok": false, "command", "error": { "code", "message", "hint" } }`.
+`protoyard doctor --json` also carries the machine interface at the top
+level, beside `ok`, `command` and `data`, on every outcome (new in PLAN_004):
+`"interface": 1` and `"capabilities"`, the sorted ids this CLI implements
+(`blueprint-schema`, `generate`, `player`, `quick`; `import` and `mcp` are
+defined but not implemented yet). Tools detect Protoyard by reading
+`interface`. See the [interface guide](https://protoyard.app/docs/interface/).
+
 Exit codes are `0` ok, `1` failure or conflict, `2` usage or unsafe path,
 `3` not found, `4` validation (invalid input, failed check or budget), and
 `5` provider.
@@ -61,7 +68,7 @@ deploy.
 
 | Command | Options | What it does | Status |
 | --- | --- | --- | --- |
-| `protoyard doctor` | `--offline` | check Node, pnpm, dependencies, layout, templates, git, Playwright and provider CLIs | Released (1.0.0) |
+| `protoyard doctor` | `--offline` | check Node, pnpm, dependencies, layout, templates, git, Playwright and provider CLIs. With `--json`, the envelope also has top-level `interface` and `capabilities` (new in PLAN_004) | Released; new output (`interface`, `capabilities`) |
 | `protoyard list` | `--kind <kind>`, `--tag <tag>`, `--category <category>`, `--platform <platform>`, `--search <text>`, `--sort <field>` | list prototypes and templates from the registry | Released (1.0.0) |
 | `protoyard index` | `--force` | scan protoyard.json manifests (no code runs) and write .protoyard/registry.json | Released (1.0.0) |
 | `protoyard affected` | `--since <ref>`, `--format <fmt>` | list prototype slugs affected by changes since a git ref (for selective CI builds) | Released (1.0.0) |
@@ -178,7 +185,6 @@ or `protoyard --help` on the installed CLI first.
 | `protoyard quick iterate <dir> --patch <file\|-> [--allow-drop]` · `quick undo <dir>` | Patch an exploration and undo |
 | `protoyard quick shot <dir>` · `quick … --screenshot` | Screenshots when a browser is available |
 | `protoyard quick feedback <dir> [--import <file>]` · `quick report <dir> [--import <metrics.json>…]` | Review feedback and validation metrics |
-| `protoyard doctor --json` with a versioned interface | Machine-readable capabilities for tools |
 | `protoyard mcp` | An MCP server over the CLI's JSON envelopes |
 
 ## Where to read more
