@@ -5,6 +5,7 @@ import { quickCommand } from './index.ts';
 import { quickIterateCommand, quickUndoCommand } from './iterate.ts';
 import { quickIndexCommand, quickListCommand, quickOpenCommand } from './list.ts';
 import { quickPromoteCommand } from './promote.ts';
+import { quickReportCommand } from './report.ts';
 import { quickServeCommand } from './serve.ts';
 
 type Def = (name: string, handler: Handler) => (...args: unknown[]) => Promise<void>;
@@ -82,6 +83,17 @@ export function registerQuick(program: Command, def: Def): Command {
     .description('restore the blueprint from before the last `quick iterate`, byte for byte')
     .argument('<target>', 'the exploration: its slug, or its folder')
     .action(def('quick undo', quickUndoCommand));
+  quick
+    .command('report')
+    .description(
+      'aggregate validation sessions per variant and task into report.json and REPORT.md'
+    )
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .option(
+      '--import <files...>',
+      'protoyard-validation-metrics files the player downloaded (kept in <exploration>/metrics/)'
+    )
+    .action(def('quick report', quickReportCommand));
   quick
     .command('list')
     .description('list the explorations in the quick zone (marked folders only), newest first')
