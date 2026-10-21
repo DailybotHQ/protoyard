@@ -1,5 +1,14 @@
 // @vitest-environment node
-import { existsSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { blueprintIdentity, decodeBlueprintShare, parseBlueprint } from '@protoyard/blueprint';
@@ -88,6 +97,32 @@ const run = (...args: string[]) => cli(['--root', ws.root, '--json', 'quick', ..
 const at = (path: string) => join(ws.root, path);
 
 describe('protoyard quick', () => {
+  it('creates an exploration under the current folder without a workspace', async () => {
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-quick-no-workspace-'));
+    const previous = process.cwd();
+    try {
+      process.chdir(outside);
+      const result = await cli([
+        '--json',
+        'quick',
+        '--blueprint',
+        ANALYTICS,
+        '--slug',
+        'outside-idea',
+      ]);
+      expect(result.code, result.stderr || result.stdout).toBe(0);
+      expect(result.json<{ data: { dir: string } }>().data.dir).toBe(
+        '.protoyard/quick/outside-idea'
+      );
+      expect(existsSync(join(outside, '.protoyard/quick/outside-idea/.protoyard-quick'))).toBe(
+        true
+      );
+    } finally {
+      process.chdir(previous);
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
   it('turns a brief into a ready exploration with a shared player and a share-link launcher', async () => {
     const result = await run(BRIEF);
     expect(result.code, result.stderr || result.stdout).toBe(0);

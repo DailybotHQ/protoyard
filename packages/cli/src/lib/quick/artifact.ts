@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -238,17 +239,20 @@ export async function writeQuickArtifact(
     });
   }
   const packDir = join(dir, QUICK_ARTIFACT_DIR);
-  const staging = `${packDir}.${process.pid}.tmp`;
-  await rm(staging, { recursive: true, force: true });
-  await mkdir(staging, { recursive: true });
-  await writeFile(join(staging, ARTIFACT_PAGE), pack.page, 'utf8');
-  await writeFile(
-    join(staging, ARTIFACT_MANIFEST),
-    `${JSON.stringify(pack.manifest, null, 2)}\n`,
-    'utf8'
-  );
-  await rm(packDir, { recursive: true, force: true });
-  await rename(staging, packDir);
+  const staging = `${packDir}.${randomUUID()}.tmp`;
+  await mkdir(staging);
+  try {
+    await writeFile(join(staging, ARTIFACT_PAGE), pack.page, { encoding: 'utf8', flag: 'wx' });
+    await writeFile(
+      join(staging, ARTIFACT_MANIFEST),
+      `${JSON.stringify(pack.manifest, null, 2)}\n`,
+      { encoding: 'utf8', flag: 'wx' }
+    );
+    await rm(packDir, { recursive: true, force: true });
+    await rename(staging, packDir);
+  } finally {
+    await rm(staging, { recursive: true, force: true }).catch(() => undefined);
+  }
   return { packDir };
 }
 

@@ -12,6 +12,7 @@ import {
   mergePlayerHeaders,
   parseShowcaseSite,
   publishShowcaseDirectory,
+  resolveShowcasePlayerDir,
   shareAvatars,
   showcaseAvatarBase,
   showcaseEntries,
@@ -27,6 +28,18 @@ import { createWorkspace } from './helpers.ts';
 const entry = (kind: RegistryEntry['kind'], slug: string) => ({ kind, slug }) as RegistryEntry;
 
 describe('showcase', () => {
+  it('resolves the player from a consumer workspace installation', () => {
+    const ws = createWorkspace();
+    try {
+      const player = join(ws.root, 'node_modules', '@protoyard', 'player');
+      mkdirSync(player, { recursive: true });
+      writeFileSync(join(player, 'package.json'), '{"name":"@protoyard/player"}\n');
+      expect(resolveShowcasePlayerDir(ws.root)).toBe(player);
+    } finally {
+      ws.cleanup();
+    }
+  });
+
   it('copies the built player and runtime assets under the static site', async () => {
     const player = mkdtempSync(join(tmpdir(), 'protoyard-player-dist-'));
     const site = mkdtempSync(join(tmpdir(), 'protoyard-showcase-player-'));

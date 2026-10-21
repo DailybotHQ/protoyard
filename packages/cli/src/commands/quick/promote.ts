@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, statSync } from 'node:fs';
-import { lstat, readFile, rm, writeFile } from 'node:fs/promises';
+import { lstat, readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import {
   type Blueprint,
@@ -13,6 +13,7 @@ import { opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { QUICK_MARKER } from '../../lib/output-guard.ts';
 import { canonicalPath, toPosixRelative, workspaceLayout } from '../../lib/paths.ts';
+import { writeQuickTemp } from '../../lib/quick/atomic-write.ts';
 import { readQuickRecord, touchQuickRecord, writeQuickRecord } from '../../lib/quick/model.ts';
 import { resolveQuickBase } from '../../lib/quick/paths.ts';
 import { assertSlug } from '../../lib/workspace.ts';
@@ -148,18 +149,19 @@ export const quickPromoteCommand: Handler = async (ctx, args, options): Promise<
   const fresh = parseBlueprint({ ...source.blueprint, history: [] });
   const freshSha256 = (await blueprintIdentity(fresh)).sha256;
   const freshPath =
-    source.blueprint.history.length > 0
-      ? join(dir, `.promote-${process.pid}.blueprint.json`)
-      : null;
+    source.blueprint.history.length > 0 ? join(dir, '.promote.blueprint.json') : null;
+  let generatedBlueprintPath: string | null = null;
   let generated: CommandResult;
   try {
-    if (freshPath) await writeFile(freshPath, `${JSON.stringify(fresh, null, 2)}\n`, 'utf8');
+    generatedBlueprintPath = freshPath
+      ? await writeQuickTemp(freshPath, `${JSON.stringify(fresh, null, 2)}\n`)
+      : null;
     generated = await generateCommand(ctx, [slug], {
-      blueprint: freshPath ?? blueprintPath,
+      blueprint: generatedBlueprintPath ?? blueprintPath,
       install: options.install,
     });
   } finally {
-    if (freshPath) await rm(freshPath, { force: true });
+    if (generatedBlueprintPath) await rm(generatedBlueprintPath, { force: true });
   }
   const data = (generated.data ?? {}) as Record<string, unknown>;
 

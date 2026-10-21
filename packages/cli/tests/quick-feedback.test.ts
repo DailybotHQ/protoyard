@@ -290,6 +290,46 @@ describe('protoyard quick feedback', () => {
     expect(json.files[1]).toMatchObject({ variant: null, earlier: 1 });
     expect(json.files[1].file.comments).toHaveLength(2);
   });
+
+  it('keeps the comments store readable when undo removes the namespace history entry', async () => {
+    await useFixturePlayer();
+    const { dir, base: before } = await explore();
+    const patch = join(ws.root, 'tmp', 'rename-for-undo.json');
+    mkdirSync(join(ws.root, 'tmp'), { recursive: true });
+    writeFileSync(patch, JSON.stringify([{ op: 'replace', path: '/name', value: 'After Undo' }]));
+    const iterated = await run('iterate', 'idea', '--patch', patch);
+    expect(iterated.code, iterated.stderr || iterated.stdout).toBe(0);
+    const after = (await blueprintIdentity(parseBlueprint(JSON.parse(read(dir, 'blueprint.json')))))
+      .namespace;
+    await createFileCommentsStore(join(ws.root, dir), [before, after]).put(comment(after));
+
+    const undone = await run('undo', 'idea');
+    expect(undone.code, undone.stderr || undone.stdout).toBe(0);
+    const reopened = createFileCommentsStore(join(ws.root, dir), [before]);
+    expect(await reopened.list(before)).toEqual([]);
+    await reopened.put(comment(before));
+    expect(await createFileCommentsStore(join(ws.root, dir), [before]).list(before)).toHaveLength(
+      1
+    );
+  });
+
+  it('rejects an import that would push the persistent store over 2,000 comments', async () => {
+    await useFixturePlayer();
+    const { dir, base } = await explore();
+    const many = Array.from({ length: 2_001 }, (_, index) =>
+      comment(base, {
+        id: `comment-${String(index + 1).padStart(5, '0')}`,
+        threadId: `comment-${String(index + 1).padStart(5, '0')}`,
+      })
+    );
+    const source = exportFile('too-many.json', base, many);
+    const result = await run('feedback', 'idea', '--import', source);
+    expect(result.code).toBe(4);
+    expect(result.json<{ error: { message: string } }>().error.message).toContain(
+      '2,000-comment limit'
+    );
+    expect(existsSync(join(ws.root, dir, 'review', 'comments.json'))).toBe(false);
+  });
 });
 
 describe('comments on a served exploration, in Chromium', async () => {

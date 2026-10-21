@@ -1,4 +1,4 @@
-import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, rm } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import {
@@ -21,6 +21,7 @@ import { flag, opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { QUICK_MARKER } from '../../lib/output-guard.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
+import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
 import { compareModelFromRecord, renderComparePage } from '../../lib/quick/compare-html.ts';
 import { createQuickRecord, parseQuickRecord, writeQuickRecord } from '../../lib/quick/model.ts';
 import { resolveQuickDir } from '../../lib/quick/paths.ts';
@@ -198,9 +199,7 @@ export function launcherHtml(name: string, href: string): string {
 }
 
 async function writeAtomic(path: string, text: string): Promise<void> {
-  const temp = `${path}.${process.pid}.tmp`;
-  await writeFile(temp, text, 'utf8');
-  await rename(temp, path);
+  await writeQuickAtomic(path, text);
 }
 
 const toUrlPath = (from: string, to: string) => relative(from, to).split(sep).join('/');

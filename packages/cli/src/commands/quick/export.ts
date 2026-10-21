@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { blueprintIdentity, loadUntrustedBlueprint } from '@protoyard/blueprint';
 import type { CommandResult, Handler } from '../../lib/command.ts';
@@ -13,6 +13,7 @@ import {
   recordQuickArtifactShare,
   writeQuickArtifact,
 } from '../../lib/quick/artifact.ts';
+import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
 import { quickPlayerDir } from '../../lib/quick/paths.ts';
 import {
   buildSingleFile,
@@ -215,9 +216,7 @@ export const quickExportCommand: Handler = async (ctx, args, options): Promise<C
     };
   }
   await mkdir(dirname(file), { recursive: true });
-  const temp = `${file}.${process.pid}.tmp`;
-  await writeFile(temp, built.html, 'utf8');
-  await rename(temp, file);
+  await writeQuickAtomic(file, built.html);
 
   const data: QuickExportResult = {
     slug: target.slug,

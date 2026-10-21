@@ -1,4 +1,4 @@
-import { lstat, readFile, rename, writeFile } from 'node:fs/promises';
+import { lstat, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import type { ReviewComment } from '@protoyard/core/review';
 import {
@@ -12,6 +12,7 @@ import type { CommandResult, Handler } from '../../lib/command.ts';
 import { opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
+import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
 import { createFileCommentsStore } from '../../lib/quick/comments-store.ts';
 import { historyEntryName } from '../../lib/quick/history.ts';
 import { readQuickRecord } from '../../lib/quick/model.ts';
@@ -70,12 +71,6 @@ async function readImport(file: string): Promise<unknown> {
   } catch {
     throw new CliError('validation', `${file} is not valid JSON.`);
   }
-}
-
-async function writeAtomic(path: string, text: string): Promise<void> {
-  const temp = `${path}.${process.pid}.tmp`;
-  await writeFile(temp, text, 'utf8');
-  await rename(temp, path);
 }
 
 /** One report for the exploration: a section per blueprint that has comments. */
@@ -162,6 +157,17 @@ export const quickFeedbackCommand: Handler = async (ctx, args, options): Promise
   try {
     store = createFileCommentsStore(dir, namespaces);
     if (imported) {
+      let additions = 0;
+      for (const comment of imported.comments) {
+        if (!(await store.get(comment.slug, comment.id))) additions += 1;
+      }
+      const total = await store.countAll();
+      if (total + additions > 2_000) {
+        throw new CliError(
+          'validation',
+          `Import would exceed the 2,000-comment limit (${total} stored, ${additions} new).`
+        );
+      }
       for (const comment of imported.comments) {
         const existing = await store.get(comment.slug, comment.id);
         if (!existing) {
@@ -192,11 +198,11 @@ export const quickFeedbackCommand: Handler = async (ctx, args, options): Promise
   }
   const markdownPath = join(dir, 'REVIEW.md');
   const jsonPath = join(dir, 'REVIEW.json');
-  await writeAtomic(
+  await writeQuickAtomic(
     markdownPath,
     renderFeedbackMarkdown({ name: base.blueprint.name, pulledAt, sections })
   );
-  await writeAtomic(
+  await writeQuickAtomic(
     jsonPath,
     `${JSON.stringify(
       {

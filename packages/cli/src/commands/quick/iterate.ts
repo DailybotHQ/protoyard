@@ -1,4 +1,4 @@
-import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import {
@@ -17,6 +17,7 @@ import type { CommandResult, Handler } from '../../lib/command.ts';
 import { flag, opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
+import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
 import { readQuickRecord, touchQuickRecord, writeQuickRecord } from '../../lib/quick/model.ts';
 import { quickPlayerDir } from '../../lib/quick/paths.ts';
 import { launcherHtml } from './index.ts';
@@ -123,12 +124,6 @@ async function readPatchText(source: string): Promise<string> {
   return readFile(path, 'utf8');
 }
 
-async function writeAtomic(path: string, text: string): Promise<void> {
-  const temp = `${path}.${process.pid}.tmp`;
-  await writeFile(temp, text, 'utf8');
-  await rename(temp, path);
-}
-
 const toUrlPath = (from: string, to: string) => relative(from, to).split(sep).join('/');
 
 /** The previous blueprint, without its own history (what a history entry stores). */
@@ -149,7 +144,7 @@ async function writeExploration(
   if (target.layout === 'standalone') {
     const playerDir = join(target.dir, 'player');
     href = `${toUrlPath(target.dir, join(playerDir, 'index.html'))}?${seedParam ? `${seedParam}&` : ''}src=./blueprint.json`;
-    await writeAtomic(join(playerDir, 'blueprint.json'), text);
+    await writeQuickAtomic(join(playerDir, 'blueprint.json'), text);
   } else {
     let share: string;
     try {
@@ -165,8 +160,8 @@ async function writeExploration(
   }
   // The blueprint lands last but one, the launcher last: a reader sees either
   // the old pair or the new blueprint with a launcher that soon follows.
-  await writeAtomic(join(target.dir, 'blueprint.json'), text);
-  await writeAtomic(join(target.dir, 'index.html'), launcherHtml(blueprint.name, href));
+  await writeQuickAtomic(join(target.dir, 'blueprint.json'), text);
+  await writeQuickAtomic(join(target.dir, 'index.html'), launcherHtml(blueprint.name, href));
 }
 
 async function historyEntries(dir: string): Promise<number[]> {
@@ -307,7 +302,7 @@ export const quickIterateCommand: Handler = async (ctx, args, options): Promise<
     // The history entry first: whatever happens next, undo can restore the old text.
     await mkdir(join(target.dir, QUICK_HISTORY_DIR), { recursive: true });
     entryFile = historyPath(target.dir, sequence);
-    await writeAtomic(entryFile, `${JSON.stringify(entry, null, 2)}\n`);
+    await writeQuickAtomic(entryFile, `${JSON.stringify(entry, null, 2)}\n`);
     await writeExploration(target, after, afterText, record.seed);
     await writeQuickRecord(target.dir, {
       ...touchQuickRecord(record),
