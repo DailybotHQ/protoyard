@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, statSync } from 'node:fs';
-import { lstat, readFile } from 'node:fs/promises';
+import { lstat, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import {
   type Blueprint,
@@ -143,10 +143,24 @@ export const quickPromoteCommand: Handler = async (ctx, args, options): Promise<
     });
   }
 
-  const generated = await generateCommand(ctx, [slug], {
-    blueprint: blueprintPath,
-    install: options.install,
-  });
+  // A new prototype starts at schema v1: the `history` that `quick iterate` keeps for
+  // kept player worlds stays with the exploration (generate refuses a new one with it).
+  const fresh = parseBlueprint({ ...source.blueprint, history: [] });
+  const freshSha256 = (await blueprintIdentity(fresh)).sha256;
+  const freshPath =
+    source.blueprint.history.length > 0
+      ? join(dir, `.promote-${process.pid}.blueprint.json`)
+      : null;
+  let generated: CommandResult;
+  try {
+    if (freshPath) await writeFile(freshPath, `${JSON.stringify(fresh, null, 2)}\n`, 'utf8');
+    generated = await generateCommand(ctx, [slug], {
+      blueprint: freshPath ?? blueprintPath,
+      install: options.install,
+    });
+  } finally {
+    if (freshPath) await rm(freshPath, { force: true });
+  }
   const data = (generated.data ?? {}) as Record<string, unknown>;
 
   // Validate what generate wrote: the folder contract, the generated files'
@@ -158,10 +172,9 @@ export const quickPromoteCommand: Handler = async (ctx, args, options): Promise<
     JSON.parse(await readFile(join(dest, 'blueprint.json'), 'utf8')) as unknown
   );
   const writtenSha256 = (await blueprintIdentity(written)).sha256;
-  const sameStorage =
-    JSON.stringify(storageOf(written)) === JSON.stringify(storageOf(source.blueprint));
+  const sameStorage = JSON.stringify(storageOf(written)) === JSON.stringify(storageOf(fresh));
   const parityDetails = [
-    ...(writtenSha256 === source.sha256 ? [] : ['blueprint.json differs from the exploration']),
+    ...(writtenSha256 === freshSha256 ? [] : ['blueprint.json differs from the exploration']),
     ...(sameStorage ? [] : ['database versions differ from the exploration']),
   ];
   const checks: Check[] = [
