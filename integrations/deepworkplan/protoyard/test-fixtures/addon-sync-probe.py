@@ -7,6 +7,8 @@ import stat
 import sys
 import tempfile
 
+# Never write __pycache__ into the vendored DWP pack the probe imports from.
+sys.dont_write_bytecode = True
 sys.path.insert(0, sys.argv[1])
 import addon_sync
 import config
