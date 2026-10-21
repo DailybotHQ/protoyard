@@ -130,6 +130,27 @@ manifest), and `PROTOYARD_REVIEW_ADAPTER=local|http|cloudflare|artifact` (with
 `PROTOYARD_REVIEW_ENDPOINT`) selects the backend for one build, validated like
 `build.review` ([REVIEW_COMMENTS.md](REVIEW_COMMENTS.md)).
 
+## Iterating on a prototype
+
+The usual loop for an existing generated prototype; the skill's
+[`iterate` sub-skill](../skills/protoyard/iterate/SKILL.md) explains each step
+for agents.
+
+```bash
+pnpm protoyard dev <slug>                                                   # run it while you work
+pnpm protoyard generate <slug> --blueprint prototypes/<slug>/blueprint.json --dry-run   # plan
+pnpm protoyard generate <slug> --blueprint prototypes/<slug>/blueprint.json             # regenerate
+pnpm protoyard spec <slug> --write
+pnpm vitest run prototypes/<slug>
+pnpm protoyard validate <slug> --build
+```
+
+Edit `blueprint.json`, never `src/generated/**`. Regeneration stops (exit 1)
+on a hand-edited generated file unless `--force`, and on a dropped table or
+field (exit 4) unless `--allow-drop`. A quick exploration changes through
+`pnpm protoyard quick iterate <slug> --patch <file|->` and
+`pnpm protoyard quick undo <slug>` instead.
+
 ## Where commands run
 
 Every command above runs locally on macOS, Linux and Windows. None needs
