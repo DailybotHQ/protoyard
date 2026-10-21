@@ -16,6 +16,7 @@ import { handleGenerateWorldRequest } from '../src/worker/generate-worker-runtim
 import {
   type GenerateWorldWorker,
   generatePlayerWorld,
+  WorldGenerationError,
   withWorkerGeneration,
 } from '../src/worker/generate-world.ts';
 import type { GenerateWorldReply, GenerateWorldRequest } from '../src/worker/protocol.ts';
@@ -105,6 +106,32 @@ describe('player worker generation', () => {
     });
 
     expect(JSON.stringify(fallback)).toBe(JSON.stringify(direct));
+  }, 30_000);
+
+  it('throws a generation error the worker reports, without generating again on the main thread', async () => {
+    const { blueprint } = catalogSamples()[0]!;
+    const scenario = scenariosFor(blueprint)[0]!;
+    let terminated = false;
+    const failingGeneration: GenerateWorldWorker = {
+      onmessage: null,
+      onerror: null,
+      postMessage() {
+        queueMicrotask(() =>
+          this.onmessage?.({
+            data: { ok: false, message: 'scenario cannot be generated' },
+          } as MessageEvent<GenerateWorldReply>)
+        );
+      },
+      terminate() {
+        terminated = true;
+      },
+    };
+    const outcome = generatePlayerWorld(blueprint, scenario, {
+      createWorker: () => failingGeneration,
+    });
+    await expect(outcome).rejects.toBeInstanceOf(WorldGenerationError);
+    await expect(outcome).rejects.toThrow('scenario cannot be generated');
+    expect(terminated).toBe(true);
   }, 30_000);
 
   it('gives the player definition a generateWorld that matches the generate path byte for byte', async () => {
