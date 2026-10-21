@@ -176,7 +176,19 @@ esac
 changes=$(diff -rq "$INSTALLED" "$CANDIDATE" 2>/dev/null | grep -v '\.DS_Store' || true)
 if [ -n "$changes" ]; then
   echo "  files that differ from the selected release (the current copy is kept as a backup):"
-  printf '%s\n' "$changes" | sed "s|$INSTALLED/||g; s|$CANDIDATE/||g; s/^/    /"
+  # Strip the two directory prefixes as literal strings (awk index(), not a
+  # sed pattern). The prefixes travel through the environment, because awk -v
+  # would expand backslash escapes; a path holding | or & prints correctly.
+  printf '%s\n' "$changes" | STRIP_A="$INSTALLED/" STRIP_B="$CANDIDATE/" awk '
+    function strip(line, prefix,    out, at) {
+      out = ""
+      while (prefix != "" && (at = index(line, prefix)) > 0) {
+        out = out substr(line, 1, at - 1)
+        line = substr(line, at + length(prefix))
+      }
+      return out line
+    }
+    { print "    " strip(strip($0, ENVIRON["STRIP_A"]), ENVIRON["STRIP_B"]) }'
 fi
 
 # 5. The exact replacement, run only with --yes.

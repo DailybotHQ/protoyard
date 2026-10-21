@@ -39,8 +39,8 @@ function temp(prefix: string): string {
 }
 
 /** A release checkout: skills/protoyard at `version`, with its own SHA256SUMS. */
-function checkout(version: string): string {
-  const root = temp(`protoyard-release-${version}-`);
+function checkout(version: string, prefix = `protoyard-release-${version}-`): string {
+  const root = temp(prefix);
   const pack = join(root, 'skills', 'protoyard');
   cpSync(join(REPO, 'skills', 'protoyard'), pack, { recursive: true });
   const router = join(pack, 'SKILL.md');
@@ -64,8 +64,8 @@ function checkout(version: string): string {
 }
 
 /** A home with the skill at `version` installed for Claude Code, plus host config to preserve. */
-function home(version: string): string {
-  const dir = temp('protoyard-upgrade-home-');
+function home(version: string, prefix = 'protoyard-upgrade-home-'): string {
+  const dir = temp(prefix);
   const release = checkout(version);
   const installed = spawnSync(
     BASH,
@@ -128,6 +128,23 @@ describe('scripts/upgrade-skill.sh', () => {
         expect(installedVersion(dir)).toBe('1.0.0');
         expect(backups(dir)).toEqual([]);
       }
+    },
+    SLOW
+  );
+
+  it(
+    'prints the changed files relative to each tree when paths hold sed metacharacters',
+    () => {
+      // A sed pattern built from these paths would break on | and &.
+      const dir = home('1.0.0', 'protoyard-upgrade-home-a|b&c-');
+      const release = checkout('1.1.0', 'protoyard-release-x|y&z-');
+      const result = upgrade(['--host', 'claude', '--home', dir, '--from', release]);
+      expect(result.code, result.err).toBe(0);
+      expect(result.out).toContain('    Files SKILL.md and SKILL.md differ');
+      const listed =
+        (result.out.split('files that differ')[1] ?? '').split('replacement command')[0] ?? '';
+      expect(listed).not.toContain(dir);
+      expect(listed).not.toContain(release);
     },
     SLOW
   );

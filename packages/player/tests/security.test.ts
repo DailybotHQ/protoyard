@@ -4,7 +4,7 @@
  *  1. the sources that turn untrusted blueprints into UI (player, crud,
  *     blueprint) never use {@html}, eval, new Function, HTML string sinks or a
  *     dynamic import of a computed specifier;
- *  2. the built index.html carries a strict CSP meta tag first in <head>, with
+ *  2. the built index.html opens <head> with the charset, then a strict CSP meta tag, with
  *     every inline script hashed and no unsafe-eval, and `_headers` repeats it
  *     with frame-ancestors;
  *  3. in Chromium, the built player opens a share link under that CSP with no
@@ -19,8 +19,9 @@ import { extname, join, normalize, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { encodeBlueprintShare, parseBlueprint } from '@protoyard/blueprint';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { allowedByRules, DEFAULT_ALLOWLIST, frameAncestorSources } from '../src/embed/origins.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
-import { inlineScripts, PLAYER_FRAME_ANCESTORS } from '../vite.config.ts';
+import { inlineScripts, insertCspMeta, PLAYER_FRAME_ANCESTORS } from '../vite.config.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const DIST = join(ROOT, 'packages/player/dist/app');
@@ -129,9 +130,33 @@ const metaCsp = () => {
 };
 
 describe('built player CSP', () => {
-  it('puts the CSP meta first in <head>, before any script', () => {
+  it('keeps <meta charset> in the first 1024 bytes and the CSP meta before every script', () => {
+    const bytes = Buffer.from(html, 'utf8');
+    const charset = bytes.indexOf('<meta charset=');
+    expect(charset).toBeGreaterThan(-1);
+    expect(bytes.indexOf('>', charset)).toBeLessThan(1024);
     const head = html.slice(html.indexOf('<head>') + '<head>'.length).trimStart();
-    expect(head.startsWith('<meta http-equiv="Content-Security-Policy"')).toBe(true);
+    expect(head).toMatch(
+      /^<meta charset="[^"]+" ?\/?>\s*<meta http-equiv="Content-Security-Policy"/
+    );
+    const csp = html.indexOf('<meta http-equiv="Content-Security-Policy"');
+    const firstScript = html.search(/<script[\s>]/i);
+    expect(firstScript).toBeGreaterThan(csp);
+  });
+
+  it('moves the charset first and the CSP meta right after it, before any script', () => {
+    const meta = '<meta http-equiv="Content-Security-Policy" content="x">';
+    expect(
+      insertCspMeta(
+        '<head>\n    <script>big()</script>\n    <meta charset="UTF-8" />\n    <title>t</title>',
+        meta
+      )
+    ).toBe(
+      `<head>\n    <meta charset="UTF-8" />\n    ${meta}\n    <script>big()</script>\n    <title>t</title>`
+    );
+    expect(insertCspMeta('<head lang="en"><script></script>', meta)).toBe(
+      `<head lang="en">\n    ${meta}<script></script>`
+    );
   });
 
   it('allows only same-origin scripts plus the hash of every inline script, never eval', () => {
@@ -159,6 +184,39 @@ describe('built player CSP', () => {
     expect(ancestors).toEqual(PLAYER_FRAME_ANCESTORS);
     expect(ancestors).not.toContain('*');
     expect(headers).toMatch(/X-Content-Type-Options: nosniff/);
+  });
+
+  it('lets exactly the embed allowlist frame the player', () => {
+    // protoyard.app, plus localhost and 127.0.0.1 on any port, on both sides.
+    expect(PLAYER_FRAME_ANCESTORS).toEqual([
+      "'self'",
+      'https://protoyard.app',
+      'http://localhost:*',
+      'https://localhost:*',
+      'http://127.0.0.1:*',
+      'https://127.0.0.1:*',
+    ]);
+    expect(PLAYER_FRAME_ANCESTORS.slice(1)).toEqual(frameAncestorSources(DEFAULT_ALLOWLIST));
+    // Every allowlisted origin is a frame ancestor, and nothing else is.
+    const framable = (origin: string) =>
+      PLAYER_FRAME_ANCESTORS.slice(1).some((source) =>
+        source.endsWith(':*')
+          ? `${new URL(origin).protocol}//${new URL(origin).hostname}:*` === source
+          : source === origin
+      );
+    for (const origin of [
+      'https://protoyard.app',
+      'http://localhost:5173',
+      'https://localhost:8443',
+      'http://127.0.0.1:4500',
+      'https://127.0.0.1:9000',
+      'http://protoyard.app',
+      'https://sub.protoyard.app',
+      'https://evil.example',
+      'http://0.0.0.0:5173',
+    ]) {
+      expect(framable(origin), origin).toBe(allowedByRules(origin, DEFAULT_ALLOWLIST));
+    }
   });
 });
 
