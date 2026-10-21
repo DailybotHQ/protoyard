@@ -977,12 +977,11 @@ Before the writes were sliced, the large `massive` generation held the main
 thread for 212–225 ms, 154 ms of it the cache's own `CompressionStream`. The 55 ms
 task that remains is the main thread receiving the worker's world.
 
-**Main-thread Faker.** Every generation still downloads and evaluates Faker
-twice: the runtime builds a `GenerateContext` (and loads its own Faker chunk,
-153 KB gzip) before it calls `definition.generate`, which then generates in the
-worker. No measured phase turned that into a long task, but it is wasted
-transfer and parse. Skipping the main-thread context needs a runtime API change
-(proposed in PLAN_004, T-player-world-cache).
+**Main-thread Faker.** These runs predate the runtime's `generateWorld` hook.
+Since then the player generates through `generateWorld`, so the runtime builds no
+`GenerateContext` and loads no Faker on the main thread at boot (see "Player
+worker generation" above). The SaaS onboarding archetype is the exception: its
+kit rows need a context, so it still loads Faker on the main thread.
 The player visual review is opt-in: `pnpm visual:sweep --only player` builds
 the player into `tmp/` and captures four screenshots from the quick assistant
 blueprint (desktop and phone, light and dark), with axe and layout-fit

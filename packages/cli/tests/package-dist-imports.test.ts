@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * The engine packages' dist builds (PLAN_004 Task 8) work in plain Node, the
+ * The engine packages' dist builds work in plain Node, the
  * way npm consumers get them: every exported subpath has JavaScript and a
  * declaration, no emitted import still names a `.ts` file, and every export
  * imports from a fresh node_modules that holds only the dist folders (no

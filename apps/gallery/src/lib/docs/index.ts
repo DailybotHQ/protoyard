@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const DOCS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../docs');
 /**
- * User-facing guides published at /docs/ (lead decision, PLAN_004). Guides that
+ * User-facing guides published at /docs/. Guides that
  * do not exist yet are skipped. Contributor and internal docs (ARCHITECTURE,
  * DECISIONS, STANDARDS, TESTING_GUIDE, DEVELOPMENT_COMMANDS, PERFORMANCE,
  * AI_AGENT_*, IMPLEMENTATION_PLAN, PRODUCT_SPEC) stay on GitHub only.

@@ -150,7 +150,7 @@ const REFERENCE = [
   '',
   '| Command | Options | What | Status |',
   '| --- | --- | --- | --- |',
-  '| `protoyard quick [brief]` | `--slug <slug>` | quick | New in PLAN_004 |',
+  '| `protoyard quick [brief]` | `--slug <slug>` | quick | New since 1.0.0 |',
   '| `protoyard quick serve <slug\\|dir>` | `-p, --port <port>`, `--open` | serve | New |',
   '| `protoyard new <slug>` | `-t, --template <name>` | new | Released |',
   '| `protoyard theme` | — | themes | Released |',
@@ -211,7 +211,7 @@ describe('checkReference', () => {
       'cli.md'
     );
     expect(issues.map((i) => i.message)).toEqual([
-      '`protoyard quick serve` exists now; move it from Planned to New in PLAN_004',
+      '`protoyard quick serve` exists now; move it from Planned to New since 1.0.0',
     ]);
   });
 });

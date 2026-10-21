@@ -1,5 +1,5 @@
 /**
- * Which pages may hand the player a blueprint (PLAN_004 decision on
+ * Which pages may hand the player a blueprint (the embedding decision on
  * `postMessage` origins): the player's own origin, plus origins named in
  * `?embedder=` that ALSO match the build-time allowlist. Matching is on the
  * exact serialized origin (`scheme://host[:port]`); `*`, `null`, paths,
