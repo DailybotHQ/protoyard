@@ -657,6 +657,12 @@ Run `generate` again on an existing generated slug, with the edited
 `--dry-run` plans a regeneration without writing. Renames are not supported:
 a renamed entity or field is a drop plus an add (it needs `--allow-drop`).
 
+For an agent, the whole change loop (which files are generated and which are
+owned, `dev`, edit → `--dry-run` → regenerate, handling conflicts and drops,
+`spec --write`, tests and `validate --build`, and `quick iterate` for an
+exploration) is the distributable skill's
+[`iterate` sub-skill](../skills/protoyard/iterate/SKILL.md).
+
 ## Validation and drift
 
 `pnpm protoyard validate <slug>` runs a **Blueprint** check on generated
