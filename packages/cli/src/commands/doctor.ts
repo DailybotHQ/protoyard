@@ -9,7 +9,7 @@ import { workspaceLayout } from '../lib/paths.ts';
 import { pnpmCommand } from '../lib/pnpm.ts';
 import { run, which } from '../lib/process.ts';
 import { loadRegistry } from '../lib/registry.ts';
-import { type CommandContext, readPackageJson } from '../lib/workspace.ts';
+import { type CommandContext, INTERFACE_MAJOR, readPackageJson } from '../lib/workspace.ts';
 import { createProvider } from '../publish/index.ts';
 
 type Status = 'pass' | 'fail' | 'warn' | 'skip';
@@ -286,7 +286,7 @@ async function providerChecks(ctx: CommandContext, offline: boolean): Promise<Do
  * relies on: this field, `capabilities`, the envelope shape and the
  * documented command contracts.
  */
-export const DOCTOR_INTERFACE = 1;
+export const DOCTOR_INTERFACE = INTERFACE_MAJOR;
 
 /** Every stable capability id the interface defines (docs/INTERFACE.md). */
 export const CAPABILITY_IDS = [
