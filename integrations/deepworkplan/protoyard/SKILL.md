@@ -121,6 +121,10 @@ install it or claim that detection succeeded.
 
 ## Step 2 — Reason about the exploration
 
+Use the reusable [exploration task template](templates/EXPLORATION_TASK.md)
+when authoring the task, and complete the [decision report template](templates/DECISION_REPORT.md)
+after collecting its local evidence.
+
 Fill this template from the actual plan and repository. These are decisions,
 not a copy-paste project scaffold:
 
