@@ -1,12 +1,14 @@
 {
   "name": "@protoyard/saas-ui",
   "version": "1.0.0",
-  "description": "Svelte 5 screens and route helpers for Protoyard simulated SaaS kits (auth, inbox, onboarding, workspaces). Simulation UX only — never security.",
+  "description": "Svelte 5 screens and route helpers for Protoyard simulated SaaS kits (auth, inbox, onboarding, workspaces). Simulation UX only \u2014 never security.",
   "license": "MIT",
   "type": "module",
   "sideEffects": [
     "**/*.css",
-    "**/*.svelte"
+    "**/*.svelte",
+    "dist/**/*.css",
+    "dist/**/*.svelte"
   ],
   "exports": {
     ".": {
@@ -33,10 +35,54 @@
   "peerDependencies": {
     "svelte": "^5.57.0"
   },
-  "svelte": "./src/index.ts",
   "protoyard": {
     "build": {
       "assets": []
     }
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./styles.css": {
+        "types": "./dist/styles.css.d.ts",
+        "svelte": "./dist/styles.css",
+        "default": "./dist/styles.css"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/saas-ui"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "saas",
+    "components"
+  ]
 }

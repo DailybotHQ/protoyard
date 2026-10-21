@@ -325,3 +325,7 @@ pnpm vitest run packages/crud/tests/map-screen.test.ts
 pnpm vitest run packages/crud/tests/board-screen.test.ts
 pnpm --filter @protoyard/crud typecheck
 ```
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

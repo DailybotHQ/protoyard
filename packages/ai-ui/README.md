@@ -83,3 +83,7 @@ const { AssistantWidget } = await import('@protoyard/ai-ui/widget');
 ```
 
 `AssistantWidget` hosts the same workspace callbacks inside **launcher → sidebar → fullscreen** chrome. The panel module loads on first open. Mode is stored per `prototypeId` in `localStorage` when the browser allows it. Escape collapses one level. No model or network call is introduced by the widget shell.
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

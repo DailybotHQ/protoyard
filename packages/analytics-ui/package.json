@@ -5,7 +5,8 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "dist/**/*.css"
   ],
   "exports": {
     ".": {
@@ -61,10 +62,84 @@
   "peerDependencies": {
     "svelte": "^5.57.0"
   },
-  "svelte": "./src/index.ts",
   "protoyard": {
     "build": {
       "assets": []
     }
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./date-range": {
+        "types": "./dist/date-range/index.d.ts",
+        "svelte": "./dist/date-range/index.js",
+        "default": "./dist/date-range/index.js"
+      },
+      "./filters": {
+        "types": "./dist/filters/index.d.ts",
+        "svelte": "./dist/filters/index.js",
+        "default": "./dist/filters/index.js"
+      },
+      "./cohort": {
+        "types": "./dist/cohort/index.d.ts",
+        "svelte": "./dist/cohort/index.js",
+        "default": "./dist/cohort/index.js"
+      },
+      "./funnel": {
+        "types": "./dist/funnel/index.d.ts",
+        "svelte": "./dist/funnel/index.js",
+        "default": "./dist/funnel/index.js"
+      },
+      "./grid": {
+        "types": "./dist/grid/index.d.ts",
+        "svelte": "./dist/grid/index.js",
+        "default": "./dist/grid/index.js"
+      },
+      "./drill": {
+        "types": "./dist/drill/index.d.ts",
+        "svelte": "./dist/drill/index.js",
+        "default": "./dist/drill/index.js"
+      },
+      "./styles.css": {
+        "types": "./dist/styles.css.d.ts",
+        "svelte": "./dist/styles.css",
+        "default": "./dist/styles.css"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/analytics-ui"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "analytics",
+    "dashboard"
+  ]
 }
