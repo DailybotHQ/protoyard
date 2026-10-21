@@ -1,7 +1,7 @@
 ---
 name: protoyard-install
 description: Install or verify the version-pinned Protoyard agent skill for a supported coding agent without conflating it with the Protoyard CLI.
-version: "1.1.0"
+version: "1.0.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
 metadata:

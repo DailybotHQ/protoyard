@@ -78,3 +78,16 @@ describe('release skill version stamping', () => {
     );
   });
 });
+
+describe('committed skill versions', () => {
+  it('match the lockstep package version between releases', () => {
+    const repo = join(import.meta.dirname, '../../..');
+    const { version } = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')) as {
+      version: string;
+    };
+    // Stamping to a new version happens only while preparing that release.
+    expect(
+      stampSkillVersions(version, { root: join(repo, 'skills', 'protoyard'), check: true }).errors
+    ).toEqual([]);
+  });
+});

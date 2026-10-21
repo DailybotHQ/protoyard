@@ -5,7 +5,7 @@
  *   pnpm exec tsx scripts/stamp-skill-version.ts 1.2.3 --check
  *   pnpm exec tsx scripts/stamp-skill-version.ts 1.2.3 --dry-run
  */
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { lstatSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -31,7 +31,10 @@ function skillFiles(root: string): string[] {
   const visit = (directory: string) => {
     for (const entry of readdirSync(directory).sort()) {
       const path = join(directory, entry);
-      if (statSync(path).isDirectory()) visit(path);
+      // lstat: a symlinked folder could loop or point outside the skill pack.
+      const stat = lstatSync(path);
+      if (stat.isSymbolicLink()) continue;
+      if (stat.isDirectory()) visit(path);
       else if (entry === 'SKILL.md') found.push(path);
     }
   };
