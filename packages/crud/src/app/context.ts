@@ -5,6 +5,14 @@ import { type Component, getContext, setContext } from 'svelte';
 
 const KEY = Symbol('protoyard-blueprint-app');
 
+/**
+ * A record's `/<plural>/:id` route (the entity page's edit form). The id is
+ * encoded: ids with `/`, `?` or `#` must not split the route.
+ */
+export function entityRecordRoute(plural: string, id: string): string {
+  return `/${plural}/${encodeURIComponent(id)}`;
+}
+
 /** Theme choices the settings screen offers beyond the prototype's own themes. */
 export type ThemeLibraryLoader = () => Promise<readonly { id: string; name: string }[]>;
 

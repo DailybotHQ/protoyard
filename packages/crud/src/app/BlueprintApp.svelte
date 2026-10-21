@@ -21,7 +21,12 @@ import { LayoutHost, navFromSidebar } from '@protoyard/ui';
 import { type Component, onDestroy, onMount, type Snippet } from 'svelte';
 import NotificationsBell from '../NotificationsBell.svelte';
 import AppSearch from './AppSearch.svelte';
-import { provideBlueprintApp, type RecordHref, type ThemeLibraryLoader } from './context.ts';
+import {
+  entityRecordRoute,
+  provideBlueprintApp,
+  type RecordHref,
+  type ThemeLibraryLoader,
+} from './context.ts';
 import { NAV_ICONS } from './icons.ts';
 import RouteView from './RouteView.svelte';
 
@@ -98,7 +103,7 @@ provideBlueprintApp({
     const custom = recordHref?.(entityName, id);
     if (custom) return custom;
     const entity = app.entities.find((candidate) => candidate.name === entityName);
-    return entity ? `/${entity.plural}/${encodeURIComponent(id)}` : '/';
+    return entity ? entityRecordRoute(entity.plural, id) : '/';
   },
   // svelte-ignore state_referenced_locally
   ...(themeLibrary ? { themeLibrary } : {}),
