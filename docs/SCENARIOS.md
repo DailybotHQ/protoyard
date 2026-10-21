@@ -292,7 +292,18 @@ When the versions match, the stored data, edits included, is kept as before.
   and a readable `reason`. `isStaleWorld(stored, current)` from
   `@protoyard/runtime` runs the same comparison.
 - A `?scenario=` link that differs from the rebuilt world is still offered
-  through `pendingLink()`, as before. No built-in UI shows `staleWorld()` yet.
+  through `pendingLink()`, as before.
+- The renderer shows a dismissible notice at the top of the page whenever
+  `staleWorld()` is not `null`, so a rebuilt world does not look like lost
+  edits. After a reseed it names the safety snapshot and offers **Restore
+  previous data**, which calls `runtime.snapshots.restore(snapshotId)`. When
+  DevTools is mounted, it also points at DevTools → Snaps (Ctrl or ⌘ + .).
+  In a sandbox it says no snapshot was saved, and when the data was kept it
+  asks you to reset the scenario. The notice is a lazy chunk (about 1.6 KB
+  gzip), loaded only when there is something to report; it added about
+  0.5 KB gzip to `crm-demo`'s initial JavaScript (175.20 → 175.71 KB). From
+  the console, `window.__protoyard.scenarios.staleWorld()` and
+  `window.__protoyard.snapshots.restore(id)` do the same.
 
 ## Integrity rules
 
