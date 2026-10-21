@@ -3,7 +3,8 @@
 The command map the Protoyard skill uses for examples and flag spelling. It
 was taken from the real command tree (`protoyard --help` and every
 `protoyard <command> --help`) of the Protoyard CLI 1.0.0 line on 2026-10-20
-(source revision `b4f45af`). It covers 45 commands and subcommands.
+(source revision `b4f45af`). It covers 46 commands and subcommands, and
+`pnpm check:skill` keeps every row and flag in step with the real CLI.
 
 **Verify before you act.** The CLI you have may be older or newer than this
 page. Before following an example, run:
