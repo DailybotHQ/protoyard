@@ -91,7 +91,7 @@ deploy.
 | `protoyard generate <slug>` | `-b, --blueprint <file>`, `-t, --template <name>`, `--name <name>`, `--description <text>`, `--dry-run`, `--force`, `--allow-drop`, `--no-install` | create prototypes/<slug> from a data-only blueprint, or regenerate it after the blueprint changes | Released (1.0.0) |
 | `protoyard quick [brief]` | `--blueprint <file>`, `--slug <slug>`, `--name <name>`, `--out <dir>`, `--allow-external-out`, `--seed <n>`, `--variants <n>`, `--standalone`, `--no-store-brief`, `--force` | a disposable, playable exploration from a brief or a blueprint, with no build | New in PLAN_004 |
 | `protoyard quick serve <slug\|dir>` | `--port <port>`, `--strict-port`, `--open` | serve an exploration on 127.0.0.1 until Ctrl+C (marked explorations only) | New in PLAN_004 |
-| `protoyard quick export <slug\|dir>` | `--single-file`, `--out <file>`, `--force` | export an exploration as one self-contained HTML file that opens from file:// (no server, no network, no service worker); `--single-file` is the only format so far | New in PLAN_004 |
+| `protoyard quick export <slug\|dir>` | `--single-file`, `--target <target>`, `--url <url>`, `--out <file>`, `--force` | export an exploration as one self-contained HTML file that opens from file:// (no server, no network, no service worker), or with `--target artifact` pack that file as a Claude artifact page plus its publish arguments (never publishes); `--target artifact --url <url>` records the returned URL in quick.json | New in PLAN_004 |
 | `protoyard blueprint` | — | work with data-only blueprints (see packages/blueprint) | Released (1.0.0) |
 | `protoyard blueprint validate <file>` | — | validate a blueprint JSON file (exit 4 with path-specific issues) | Released (1.0.0) |
 | `protoyard blueprint new <file>` | `--from-brief <file>`, `-i, --interactive`, `--archetype <id>`, `--name <name>`, `--force`, `--generate <slug>`, `--dry-run`, `--no-install` | write a validated blueprint from a product brief (offline, deterministic) and optionally generate it | Released (1.0.0) |
@@ -189,7 +189,6 @@ or `protoyard --help` on the installed CLI first.
 | Planned command | Purpose |
 | --- | --- |
 | `protoyard quick list [--json]` · `quick open <slug>` · `quick prune [--older-than 14d] [--yes]` | List, open and prune explorations |
-| Exporting an exploration as a Claude artifact (`--target artifact`; the single-file export is available) | Share an exploration as a Claude artifact |
 | `protoyard quick promote <dir> <slug> [--variant vN] [--no-install]` | Promote an exploration to a full prototype |
 | `protoyard quick iterate <dir> --patch <file\|-> [--allow-drop]` · `quick undo <dir>` | Patch an exploration and undo |
 | `protoyard quick shot <dir>` · `quick … --screenshot` | Screenshots when a browser is available |
