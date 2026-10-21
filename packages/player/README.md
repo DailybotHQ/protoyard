@@ -203,6 +203,19 @@ for such blueprints, so others download none of it (a 3.5 KB gzip lazy chunk).
 pnpm vitest run packages/player/tests/validation.test.ts
 ```
 
+## Review comments on a served exploration
+
+`protoyard quick serve` hosts a comments API on its own origin and adds
+`comments=1&review=http` to the launcher it serves. With `review=http` the
+player (`src/served-review.ts`) sets the blueprint's review build to the HTTP
+adapter with the fixed same-origin endpoint `/api/comments`, and the renderer's
+`?comments=1` path mounts the review UI lazily. The endpoint never comes from
+the URL. Without the parameter (file://, other hosts), review stays off.
+
+```bash
+pnpm vitest run packages/player/tests/served-review.test.ts
+```
+
 ## Security
 
 The built `index.html` starts with a strict Content-Security-Policy meta tag, and `dist/app/_headers`

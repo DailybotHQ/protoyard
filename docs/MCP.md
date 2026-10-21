@@ -1,74 +1,96 @@
-# Model Context Protocol
+# Model Context Protocol (MCP)
 
-Protoyard exposes a local MCP server through the CLI:
+Protoyard includes a local MCP server in the `protoyard` CLI. It lets an MCP-capable agent call a fixed set of Protoyard operations in the workspace where the server runs. It is a stdio process, not a hosted service: Protoyard does not expose a network endpoint, create an account, or depend on DeepWorkPlan (DWP).
 
-```bash
-pnpm protoyard mcp
+## Start the server
+
+Install the Protoyard CLI, open the workspace you want the agent to work in, then start:
+
+```sh
+protoyard mcp
 ```
 
-Configure an MCP client to start `protoyard mcp` as a child process and use
-stdio. Messages are newline-delimited JSON-RPC: protocol responses go to stdout,
-and diagnostics go to stderr. Closing stdin shuts down the server. MCP runs with
-the permissions and current working directory of the CLI process; it does not
-open a network listener.
+In a client configuration, register `protoyard` as a stdio server with command `protoyard` and argument `mcp`. Configure the client's working directory to the Protoyard workspace. The server resolves that workspace when it starts; relative file arguments resolve from it, and all file arguments must remain inside it. Keep the client configuration local to the machine and connect only to a server you intend to run.
 
-## Protocol versions
+For example, in an MCP host that uses an `mcpServers` map:
 
-The server supports both the stateless `2026-07-28` revision and the
-initialize-based `2025-11-25` revision. Modern clients send
-`io.modelcontextprotocol/protocolVersion` in each request's `_meta` and may use
-`server/discover` to read the supported versions and tool capability. Legacy
-clients send `initialize` with `protocolVersion: "2025-11-25"`, then
-`notifications/initialized` before listing or calling tools. Requests that ask
-for an unsupported version receive JSON-RPC error `-32022` with the supported
-versions and the requested version.
+```json
+{
+  "mcpServers": {
+    "protoyard": {
+      "command": "protoyard",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+The process reads one newline-delimited JSON-RPC message from stdin at a time and writes each protocol response as one JSON line to stdout. Diagnostics go to stderr. End stdin to stop the server. Stdout is reserved for protocol messages.
+
+## Protocol versions and handshake
+
+The primary protocol revision is **`2026-07-28`**. It is stateless: each request carries its protocol version in `params._meta["io.modelcontextprotocol/protocolVersion"]`. Send `server/discover` to discover the server and its tools capability, then use `tools/list`, `tools/call`, and `ping` as needed. Every request is self-contained; there is no initialize session to preserve.
+
+For clients that still use **`2025-11-25`**, the server supports the initialize handshake:
+
+1. Send `initialize` with `params.protocolVersion` set to `2025-11-25`, plus the client's `capabilities` and `clientInfo`.
+2. The server responds with the negotiated protocol version, its tool capability, and server information.
+3. Send the `notifications/initialized` notification, then call `tools/list`, `tools/call`, and `ping`.
+
+The server supports only those two revisions. A request that negotiates or names another revision receives a JSON-RPC protocol error (`-32022`) with the supported versions in `error.data.supported`. The legacy flow is retained for existing clients and can be removed after its deprecation window.
 
 ## Tools
 
-`tools/list` advertises strict JSON input schemas. Every `tools/call` validates
-its arguments and returns the CLI's structured envelope as JSON text content;
-failed operations set `isError: true` while the JSON-RPC transport succeeds.
+`tools/list` returns these seven tools. Their input objects are strict: unknown fields are rejected. String lengths and numeric ranges are checked before dispatch.
 
-| Tool | Input | CLI operation |
+| Tool | Arguments | Behavior |
 | --- | --- | --- |
-| `quick` | Exactly one of `brief` or `blueprint`; optional `slug`, `name`, `seed`, `variants`, `standalone` | `protoyard quick` |
-| `iterate` | `dir`, `patchFile`; optional `allowDrop` | `protoyard quick iterate` |
-| `validate_blueprint` | `file` | `protoyard blueprint validate` |
-| `blueprint_schema` | No fields | Published `@protoyard/blueprint/schema.json` |
-| `screenshot` | `dir` | `protoyard quick shot` |
-| `promote` | `dir`, `slug`; optional `variant`, `noInstall` | `protoyard quick promote` |
-| `doctor` | Optional `offline` (defaults to true) | `protoyard doctor` |
+| `quick` | Exactly one of `brief` (1–65,536 characters) or `blueprint` (workspace path, 1–2,048 characters); optional `slug` (1–80), `name` (1–120), `seed` (integer 0–4,294,967,295), `variants` (integer 1–8), `standalone` (boolean) | Create a disposable prototype from a brief or blueprint. |
+| `iterate` | Required `dir` and `patchFile` (workspace paths, 1–2,048 characters each); optional `allowDrop` (boolean) | Apply a validated patch to an existing quick exploration. |
+| `validate_blueprint` | Required `file` (workspace path, 1–2,048 characters) | Validate blueprint JSON without generating a prototype. |
+| `blueprint_schema` | No arguments | Return the published Protoyard blueprint JSON Schema. |
+| `screenshot` | Required `dir` (workspace path, 1–2,048 characters) | Capture screenshots for an existing quick exploration. |
+| `promote` | Required `dir` (workspace path, 1–2,048 characters) and `slug` (1–80); optional `variant` (`v1`–`v8`) and `noInstall` (boolean) | Promote a quick exploration to a full prototype. |
+| `doctor` | Optional `offline` (boolean) | Check the local CLI environment and machine interface. Offline checking is the default. |
 
-Calls run through the normal CLI command handlers so tool results match the
-CLI's JSON envelopes. A tool whose corresponding CLI subcommand is unavailable
-returns that command's ordinary structured CLI error; MCP does not emulate an
-operation that the CLI has not implemented.
+Tool calls use the same command implementations and defaults as the CLI. They do not provide an arbitrary shell or general command execution tool.
 
-## Trust boundary
+## Result envelopes and errors
 
-This is a local-code interface, not a sandbox. Only connect to a server you
-intend to run. MCP has the same local-code trust model as invoking the CLI:
-the server inherits the process user's permissions and can run the selected
-Protoyard operation, including prototype build code where that operation does
-so. It does not open a network listener or provide authentication.
+Each successful JSON-RPC `tools/call` result contains `content` with one text item. Its `text` is a JSON-serialized Protoyard CLI envelope, for example:
 
-The adapter applies additional protocol fences before dispatch:
+```json
+{"ok":true,"command":"blueprint_schema","data":{"$schema":"https://json-schema.org/draft/2020-12/schema"}}
+```
 
-- Path arguments must remain inside the current workspace (its `tmp/` and
-  `artifacts/` folders included). Parent traversal,
-  symlink escapes, control characters and shell metacharacters are refused.
-- The accepted tool set is closed. MCP has no `exec`, shell, arbitrary child
-  process, network, or environment-inspection operation. CLI arguments remain
-  an argv array and are never shell-interpolated.
-- Encoded tool arguments are capped at 256 KiB, returned envelopes at 512 KiB,
-  and each operation has a 30-second response deadline. Credential-shaped
-  fields in returned JSON are redacted.
+CLI and tool failures are returned in the same text envelope shape, with `ok: false` and an `error` containing `code` and `message` (and `hint` when available). The MCP tool result has `isError: true` for these failures. The JSON-RPC transport itself succeeds: clients should inspect both `isError` and the parsed Protoyard envelope rather than treating every tool failure as a transport failure.
 
-These limits reduce accidental exposure and resource exhaustion; they are not
-a security boundary against code that the local user deliberately chooses to
-run. Review the workspace and generated files before connecting an agent.
+Protocol errors are JSON-RPC errors instead of tool envelopes. Invalid JSON returns `-32700`; an invalid request returns `-32600`; malformed `tools/call` parameters return `-32602`; an unknown method returns `-32601`; and unsupported protocol versions return `-32022`. Tool names that are unknown, invalid tool arguments, unsafe paths, CLI validation failures, and operational errors are reported as `isError` tool results with Protoyard envelopes.
 
-The CLI's process-level integration test exercises both supported revisions
-through the real `protoyard mcp` child process. It verifies JSON-RPC framing,
-successful `quick` and `doctor` envelopes, validation errors, EOF shutdown, and
-that diagnostics never become stdout protocol frames.
+## Workspace and safety boundaries
+
+The MCP server runs as a local child process with the permissions of the user who started it. MCP is not a sandbox, authentication boundary, or remote execution service. Use it only with clients and workspaces you trust. Protoyard remains an independent CLI; DWP is one possible client and is not required.
+
+- Tools expose a fixed allow-list and validate each argument against a closed schema. There is no `exec` or arbitrary command tool.
+- Path arguments must resolve inside the current workspace. Parent traversal, shell metacharacters, control characters, and symlinks that escape the workspace are rejected. The server passes values to the CLI as argument data, never by interpolating a shell command.
+- Encoded tool arguments are limited to 256 KiB. A tool call is bounded to 30 seconds, and a returned CLI envelope is limited to 512 KiB.
+- Credential-shaped output fields are redacted, and control characters are removed from returned strings. Do not send credentials, real personal data, or other sensitive input to tools.
+- `quick`, `iterate`, and `promote` can write files in the workspace through their normal CLI behavior. Review the requested operation and generated files as you would when running those CLI commands yourself.
+
+The server does not fetch a remote service as part of the MCP transport. Individual CLI operations retain their documented behavior and workspace requirements. For the broader CLI trust model, see [the CLI guide](../packages/cli/README.md#trust-model); for machine-readable interface compatibility, see [the machine interface guide](INTERFACE.md).
+
+## Examples
+
+After connecting with the modern revision, list the tools:
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}}
+```
+
+Call `quick` with a bounded brief:
+
+```json
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"quick","arguments":{"brief":"A fictional field service team schedules equipment inspections and tracks visits.","seed":42,"variants":2},"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28"}}}
+```
+
+The server returns the command's JSON envelope in the tool result's text content. The CLI also remains usable directly without MCP; see the [CLI guide](../packages/cli/README.md).

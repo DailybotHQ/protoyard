@@ -118,7 +118,8 @@ describe('protoyard quick serve', () => {
     expect(launcher.status).toBe(200);
     expect(launcher.text).toContain('http-equiv="refresh"');
     const href = /url=([^"]+)"/.exec(launcher.text)?.[1] ?? '';
-    expect(href).toMatch(/^\.\.\/_player\/1\.0\.0\/index\.html#bp=1\./);
+    // Served launchers turn on review comments against this server's comments API.
+    expect(href).toMatch(/^\.\.\/_player\/1\.0\.0\/index\.html\?comments=1&amp;review=http#bp=1\./);
     // The relative link resolves on the same server.
     const player = await server.fetchText(`/${slug}/${href.split('#')[0]}`);
     expect(player.status).toBe(200);

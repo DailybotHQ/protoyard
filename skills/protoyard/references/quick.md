@@ -68,11 +68,12 @@ planned work, not commands to try on a release whose help does not list them.
 
 | Planned activity | Proposed form | Current status |
 | --- | --- | --- |
-| Capture a screenshot for each variant when Playwright is available | `protoyard quick --screenshot` | Not in current help; use an existing visual-review workflow if one meets the need. |
-| Apply a validated JSON Patch, keep history and live-reload | `protoyard quick iterate <dir> --patch <file|->` | Not in current help; preserve the source blueprint and rerun `quick` with a new slug after edits. |
-| Export local review comments | `protoyard quick feedback <dir>` | Not in current help; record feedback through an existing review workflow or local notes. |
-| Summarize validation sessions | `protoyard quick report <dir>` | Not in current help. Blueprint `validation.tasks` already run in the player's validation panel, which keeps attempts in the browser and downloads a metrics file; there is no CLI report yet. |
-| Browse, open or prune entries by age | `protoyard quick list`, `quick open`, `quick prune --older-than <days>` | Not in current help; do not invent subcommands. Deletion requires showing the exact path and user confirmation. |
+| Prune explorations by age | `protoyard quick prune --older-than <days>` | Not in current help; do not invent it. Deletion requires showing the exact path and user confirmation. |
+
+Screenshots (`quick shot`, `quick … --screenshot`), patches with undo
+(`quick iterate`, `quick undo`), review feedback (`quick feedback`), validation
+reports (`quick report`) and browsing (`quick list`, `quick open`,
+`quick index`) are commands now; see [cli.md](cli.md) for their flags.
 
 These proposals may change before release. The CLI's installed help is the
 source of truth.
