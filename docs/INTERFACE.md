@@ -1,0 +1,103 @@
+# Protoyard machine interface
+
+Tools that drive Protoyard, such as a DeepWorkPlan addon, an MCP client or a
+CI script, need one stable answer to two questions:
+
+- Is Protoyard installed?
+- Which contract does it speak?
+
+`protoyard doctor --json` answers both with two top-level fields.
+
+```bash
+protoyard doctor --json --offline
+```
+
+```json
+{
+  "ok": true,
+  "command": "doctor",
+  "data": { "ok": true, "checks": [ … ] },
+  "interface": 1,
+  "capabilities": ["blueprint-schema", "generate", "player", "quick"]
+}
+```
+
+## The fields
+
+| Field | Meaning |
+| --- | --- |
+| `interface` | The interface major, an integer. It is **1** today. |
+| `capabilities` | The sorted ids of what this CLI implements, from the table below. |
+
+**Placement.** Both fields sit at the top level of the envelope, beside `ok`,
+`command` and `data`. A detector that reads one top-level JSON field (for
+example DeepWorkPlan's `interface_from: "json:interface"`) needs nothing else.
+`data` keeps exactly its earlier shape (`ok` and `checks`).
+
+**Always present.** Both fields are added to every `doctor --json` envelope:
+- when every check passes (exit 0);
+- when a required check fails (`ok: false`, exit 1, with the checks in `data`);
+- when there is no Protoyard workspace (`ok: false`, `error.code: "not_found"`,
+  exit 3).
+
+**Static.** The values come from the CLI itself, never from the machine, the
+workspace or a check result, so every run of one CLI version answers the same.
+No other command adds them to its envelope.
+
+**Separate from the package version.** The interface major is versioned apart
+from the package version (`protoyard --version`). It changes only when a
+breaking change reaches what tools rely on: these two fields, the envelope
+shape (`ok`, `command`, `data`, `error`), exit codes and the documented command
+contracts. Additions, such as a new capability id or a new field, keep the
+major.
+
+## Capability ids
+
+These ids are stable: an id never changes meaning. A tool checks for the ids it
+needs and treats a missing id as "not available in this CLI".
+
+| Id | Means | In this CLI |
+| --- | --- | --- |
+| `quick` | `protoyard quick`: disposable explorations from a brief or blueprint, with no build | yes |
+| `player` | The prebuilt player that `quick` uses, matching the CLI version | yes |
+| `generate` | `protoyard generate` and `blueprint new --generate`: full prototypes from a blueprint | yes |
+| `blueprint-schema` | `protoyard blueprint validate` and the published blueprint JSON Schema (`@protoyard/blueprint/schema.json`) | yes |
+| `import` | Importing a data shape (CSV, JSON, a SQLite schema) into a blueprint from the CLI | not yet |
+| `mcp` | `protoyard mcp`, an MCP server over the CLI's JSON envelopes | not yet |
+
+A capability is listed only once its command or contract ships, and a test
+keeps the list honest (`packages/cli/tests/interface.test.ts`).
+
+## Detecting Protoyard
+
+**Inside a workspace**, read the field directly:
+
+```json
+{
+  "detect": {
+    "command": "protoyard doctor --json --offline",
+    "interface_from": "json:interface"
+  }
+}
+```
+
+**Two cautions for detectors:**
+- **A non-zero exit can still mean "installed".** `doctor` keeps its exit
+  codes: 1 when a required check fails, and 3 when it runs outside a Protoyard
+  workspace. A detector that treats only exit 0 as "present" reports an
+  installed CLI as absent in those cases, even though the envelope still
+  carries `interface`. Run the probe inside the workspace the tool works on.
+- **`--offline`** keeps `doctor` from contacting provider CLIs, so detection
+  never needs the network.
+
+A `--version` form that works anywhere is planned
+(`protoyard --version --json`, printing `{"version", "interface"}`). It is not
+available in this CLI yet.
+
+## See also
+
+- [Skill](SKILL.md) for agents that use these commands.
+- The doctor command source:
+  [`packages/cli/src/commands/doctor.ts`](../packages/cli/src/commands/doctor.ts).
+- The full interface stability policy is planned in its own guide section.
+  Until then, this page is the contract for interface 1.

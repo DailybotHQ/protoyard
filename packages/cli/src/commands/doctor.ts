@@ -280,7 +280,39 @@ async function providerChecks(ctx: CommandContext, offline: boolean): Promise<Do
   return out;
 }
 
-export const doctorCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
+/**
+ * The machine interface major (docs/INTERFACE.md). It is versioned apart from
+ * the package version and bumps only on a breaking change to the JSON a tool
+ * relies on: this field, `capabilities`, the envelope shape and the
+ * documented command contracts.
+ */
+export const DOCTOR_INTERFACE = 1;
+
+/** Every stable capability id the interface defines (docs/INTERFACE.md). */
+export const CAPABILITY_IDS = [
+  'blueprint-schema',
+  'generate',
+  'import',
+  'mcp',
+  'player',
+  'quick',
+] as const;
+export type CapabilityId = (typeof CAPABILITY_IDS)[number];
+
+/**
+ * What THIS CLI implements, sorted. Static: it never depends on the machine,
+ * the workspace or a check result, so a detector sees the same answer
+ * everywhere. An id is listed only when its command or contract ships:
+ * `import` (data-shape import) and `mcp` are defined but not implemented yet.
+ */
+export const CAPABILITIES: readonly CapabilityId[] = Object.freeze([
+  'blueprint-schema',
+  'generate',
+  'player',
+  'quick',
+]);
+
+const doctorHandler: Handler = async (ctx, _args, options): Promise<CommandResult> => {
   const layout = workspaceLayout(ctx.root) ?? 'monorepo';
   const rootPkg = readPackageJson(join(ctx.root, 'package.json')) as
     | ({ engines?: { node?: string }; packageManager?: string } & Record<string, unknown>)
@@ -357,3 +389,12 @@ export const doctorCommand: Handler = async (ctx, _args, options): Promise<Comma
     },
   };
 };
+
+/**
+ * `protoyard doctor`, whose `--json` envelope carries `interface` and
+ * `capabilities` at the top level (beside `ok`, `command`, `data`) on every
+ * outcome, so DWP's `json:interface` detection reads one field.
+ */
+export const doctorCommand: Handler = Object.assign(doctorHandler, {
+  envelope: Object.freeze({ interface: DOCTOR_INTERFACE, capabilities: CAPABILITIES }),
+});
