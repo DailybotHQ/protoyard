@@ -16,6 +16,7 @@ import {
 import { type CommandResult, flag, type Handler, opt } from '../lib/command.ts';
 import { CliError, mark } from '../lib/output.ts';
 import { canonicalPath, isInside } from '../lib/paths.ts';
+import { packageExportFile, protoyardPackageDir } from '../lib/workspace.ts';
 import { generateCommand } from './generate.ts';
 
 /**
@@ -192,10 +193,15 @@ async function askBrief(io: BriefIo): Promise<{ brief: string; name?: string }> 
   return name ? { brief, name } : { brief };
 }
 
-/** `$schema` relative to the output file, when the workspace ships the blueprint schema. */
+/**
+ * `$schema` relative to the output file, when the workspace has the blueprint
+ * schema: `@protoyard/blueprint/schema.json`, resolved from the output folder
+ * and the root (an installed package's dist copy, or this repository's file).
+ */
 function schemaRef(root: string, target: string): string | undefined {
-  const schema = join(root, 'packages', 'blueprint', 'schema', 'blueprint.schema.json');
-  if (!existsSync(schema)) return undefined;
+  const dir = protoyardPackageDir(root, 'blueprint', [dirname(target)]);
+  const schema = dir ? packageExportFile(dir, './schema.json') : null;
+  if (!schema) return undefined;
   const rel = relative(dirname(target), schema).split(sep).join('/');
   return rel.startsWith('.') ? rel : `./${rel}`;
 }

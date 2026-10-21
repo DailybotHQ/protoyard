@@ -256,9 +256,10 @@ export async function buildPrototype(
     files,
     generator: { name: '@protoyard/cli', version: CLI_VERSION },
     sdk: {
-      core: workspacePackageVersion(ctx.root, 'core'),
-      runtime: workspacePackageVersion(ctx.root, 'runtime'),
-      rendererSvelte: workspacePackageVersion(ctx.root, 'renderer-svelte'),
+      // Resolved from the prototype first: those are the versions its build used.
+      core: workspacePackageVersion(ctx.root, 'core', [dir]),
+      runtime: workspacePackageVersion(ctx.root, 'runtime', [dir]),
+      rendererSvelte: workspacePackageVersion(ctx.root, 'renderer-svelte', [dir]),
       vite: viteVersion,
     },
     node: process.versions.node,

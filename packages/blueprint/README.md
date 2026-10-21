@@ -197,7 +197,10 @@ shape and defaults, so existing blueprints and derived stores need no migration.
 
 `schema/blueprint.schema.json` (draft 2020-12) gives editors autocompletion: point a
 blueprint's `$schema` at it. It describes the shape only; the cross-reference checks above
-run in `parseBlueprint`. A test fails when the file is out of date. Regenerate it with:
+run in `parseBlueprint`. The package exports it as `@protoyard/blueprint/schema.json` (the
+packed package ships it as `dist/schema/blueprint.schema.json`). `protoyard blueprint new`
+finds it through that export, from this repository or an installed package, and writes a
+relative `$schema`. A test fails when the file is out of date. Regenerate it with:
 
 ```bash
 pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/schema.ts'; import { writeFileSync } from 'node:fs'; writeFileSync('packages/blueprint/schema/blueprint.schema.json', JSON.stringify(blueprintJsonSchema(), null, 2) + '\n');" && npx biome format --write packages/blueprint/schema

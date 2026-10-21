@@ -15,9 +15,9 @@
  * generatorVersion and the `src/routes.ts` table. The CLI parses and sorts
  * them (lib/inspect.ts).
  */
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire, register } from 'node:module';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { PrototypeDefinition, Scenario, WorldSeed } from '@protoyard/core';
 
@@ -38,36 +38,78 @@ async function importFile(path: string): Promise<Record<string, unknown>> {
   return (await import(pathToFileURL(path).href)) as Record<string, unknown>;
 }
 
-/** Prefers the prototype's resolved `@protoyard/scenarios`, else the workspace sources. */
-async function loadScenarioTools(dir: string, root: string): Promise<ScenarioTools> {
+function readManifest(path: string): { name?: unknown; exports?: Record<string, unknown> } | null {
   try {
-    const entry = createRequire(join(dir, 'package.json')).resolve('@protoyard/scenarios');
-    const mod = await importFile(entry);
-    if (
-      typeof mod.validateWorld === 'function' &&
-      typeof mod.createGenerateContext === 'function'
-    ) {
-      return {
-        resolveScenarios: mod.resolveScenarios as ScenarioTools['resolveScenarios'],
-        presets: (mod.PRESETS ?? {}) as Record<string, unknown>,
-        createGenerateContext: mod.createGenerateContext as ScenarioTools['createGenerateContext'],
-        validateWorld: mod.validateWorld as ScenarioTools['validateWorld'],
-        source: '@protoyard/scenarios',
-      };
-    }
+    return JSON.parse(readFileSync(path, 'utf8')) as {
+      name?: unknown;
+      exports?: Record<string, unknown>;
+    };
   } catch {
-    // fall through to the source files
+    return null;
   }
-  const src = join(root, 'packages', 'scenarios', 'src');
-  const [compose, presets, context, integrity] = await Promise.all(
-    ['compose.ts', 'presets.ts', 'context.ts', 'integrity.ts'].map((f) => importFile(join(src, f)))
-  );
+}
+
+/**
+ * Where `@protoyard/scenarios` lives for this prototype, without relying on
+ * `require` conditions (a packed package exports `import` only): the nearest
+ * `node_modules/@protoyard/scenarios` above the prototype or the root, else
+ * this repository's `packages/scenarios`. NODE_PATH is ignored on purpose. The
+ * same lookup as `findInstalledPackage` in lib/workspace.ts, kept local so the
+ * runner stays dependency-light.
+ */
+export function scenariosEntry(dir: string, root: string): string | null {
+  const name = '@protoyard/scenarios';
+  const candidates: string[] = [];
+  for (const base of [dir, root]) {
+    for (let at = resolve(base); ; at = dirname(at)) {
+      candidates.push(join(at, 'node_modules', '@protoyard', 'scenarios'));
+      if (dirname(at) === at) break;
+    }
+  }
+  candidates.push(join(root, 'packages', 'scenarios'));
+  for (const pkg of candidates) {
+    const manifest = readManifest(join(pkg, 'package.json'));
+    if (manifest?.name !== name) continue;
+    const target = manifest.exports?.['.'];
+    const file =
+      typeof target === 'string'
+        ? target
+        : target && typeof target === 'object'
+          ? ((target as Record<string, unknown>).default ??
+            (target as Record<string, unknown>).import)
+          : undefined;
+    if (typeof file === 'string' && file.startsWith('./') && existsSync(join(pkg, file))) {
+      return join(pkg, file);
+    }
+  }
+  return null;
+}
+
+/** The scenario SDK the prototype uses: its resolved `@protoyard/scenarios` entry. */
+async function loadScenarioTools(dir: string, root: string): Promise<ScenarioTools> {
+  let entry: string | null = null;
+  try {
+    entry = createRequire(join(dir, 'package.json')).resolve('@protoyard/scenarios');
+  } catch {
+    entry = scenariosEntry(dir, root);
+  }
+  if (!entry) {
+    throw new Error(
+      '@protoyard/scenarios is not installed for this prototype. Run `pnpm install` (or `npm install`) in the workspace root, then try again.'
+    );
+  }
+  const mod = await importFile(entry);
+  if (typeof mod.validateWorld !== 'function' || typeof mod.createGenerateContext !== 'function') {
+    throw new Error(
+      `${entry} is not a usable @protoyard/scenarios entry (no validateWorld/createGenerateContext).`
+    );
+  }
   return {
-    resolveScenarios: compose?.resolveScenarios as ScenarioTools['resolveScenarios'],
-    presets: (presets?.PRESETS ?? {}) as Record<string, unknown>,
-    createGenerateContext: context?.createGenerateContext as ScenarioTools['createGenerateContext'],
-    validateWorld: integrity?.validateWorld as ScenarioTools['validateWorld'],
-    source: 'packages/scenarios/src',
+    resolveScenarios: mod.resolveScenarios as ScenarioTools['resolveScenarios'],
+    presets: (mod.PRESETS ?? {}) as Record<string, unknown>,
+    createGenerateContext: mod.createGenerateContext as ScenarioTools['createGenerateContext'],
+    validateWorld: mod.validateWorld as ScenarioTools['validateWorld'],
+    source: '@protoyard/scenarios',
   };
 }
 
@@ -280,9 +322,12 @@ async function main() {
   process.stdout.write(`\n${RESULT_MARKER}${JSON.stringify(result)}\n`);
 }
 
-main().catch((error: unknown) => {
-  process.stdout.write(
-    `\n${RESULT_MARKER}${JSON.stringify({ fatal: (error as Error).message ?? String(error) })}\n`
-  );
-  process.exitCode = 1;
-});
+// Runs only as the child-process entry, so tests can import its helpers.
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((error: unknown) => {
+    process.stdout.write(
+      `\n${RESULT_MARKER}${JSON.stringify({ fatal: (error as Error).message ?? String(error) })}\n`
+    );
+    process.exitCode = 1;
+  });
+}
