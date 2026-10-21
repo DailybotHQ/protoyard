@@ -8,6 +8,51 @@ and publishing, installation, and upgrades. The sub-skills and their references
 ship with the pack so an agent can follow them without fetching instructions at
 runtime.
 
+The documentation site renders this guide at `/docs/skill/`; every skill file's
+`documentation_url` is the docs root, `https://protoyard.app/docs/`.
+
+## At a glance
+
+| Topic | Where |
+| --- | --- |
+| Supported hosts and their skill folders | [Supported hosts](#supported-hosts) |
+| Install a pinned release | [Install a tagged release](#install-a-tagged-release), [Install with `setup.sh`](#install-with-setupsh) |
+| What the skill may and may not do | [Trust and consent](#trust-and-consent), the pack's [`TRUST.md`](../skills/protoyard/TRUST.md) |
+| Check that files match a release | [Install with `setup.sh`](#install-with-setupsh) (`--verify`), [Release artifacts](#release-artifacts) |
+| Upgrade an installed skill | [Upgrade the skill](#upgrade-the-skill) |
+| What a release contains, and how to cut one | [Release artifacts](#release-artifacts) |
+| Repository checks for the skill | [Validate the distributable skill](#validate-the-distributable-skill), [Check skill-local links](#check-skill-local-links) |
+
+## Supported hosts
+
+`setup.sh --list-hosts` prints the same map, and the pack's
+[host installation reference](../skills/protoyard/references/hosts.md) is the
+canonical copy. The folder is where Protoyard copies the skill; whether a host
+discovers it there is the host's behavior, so check its own documentation.
+
+| Host | `setup.sh --host` | User-level skill folder |
+| --- | --- | --- |
+| Claude Code | `claude` | `~/.claude/skills/protoyard/` |
+| Cursor | `cursor` | `~/.cursor/skills/protoyard/` |
+| OpenAI Codex | `codex` | `~/.codex/skills/protoyard/` |
+| Gemini CLI | `gemini` | `~/.gemini/skills/protoyard/` |
+| GitHub Copilot | `copilot` | `~/.copilot/skills/protoyard/` |
+| OpenCode | `opencode` | `~/.config/opencode/skills/protoyard/` |
+| Windsurf | `windsurf` | `~/.codeium/windsurf/skills/protoyard/` |
+
+OpenClaw installs from its own registry (`openclaw skills install protoyard`)
+rather than a copied folder; confirm the registry release matches the tag you
+want.
+
+Every install route is pinned to a release tag; none follows `main`:
+
+| Route | Command | Notes |
+| --- | --- | --- |
+| Skills CLI | `npx skills add https://github.com/DailybotHQ/protoyard/tree/vX.Y.Z --skill protoyard` | Project scope by default; records the tag in `skills-lock.json` |
+| `setup.sh` from a tagged checkout | `skills/protoyard/setup.sh --host <host>` | Copies into the host folder; refuses to overwrite without `--replace` |
+| OpenClaw registry | `openclaw skills install protoyard` | Registry-based; check it matches the tag |
+| Manual copy | copy `skills/protoyard/` from a tagged checkout | Keep the whole folder together |
+
 ## Install a tagged release
 
 Install the `protoyard` skill from a versioned repository tree with the skills
@@ -91,11 +136,19 @@ which is how the tests avoid the real one. `--dry-run` prints the plan and
 writes nothing. Exit codes: 0 done, 1 failed, 2 usage, 3 refused.
 
 `setup.sh --verify` checks the pack without installing anything. It confirms
-the required files, then checks every file against the `SHA256SUMS` from the
-matching GitHub Release: the pack's own, or `--sums <file>`, for the pack or an
-installed copy given with `--dir <dir>`. A changed, missing or unlisted file
-fails, and unsafe paths in the sums file are refused. Without a `SHA256SUMS`,
-verification fails and says where to get one.
+the required files, then checks every file against a `SHA256SUMS`, for the
+pack or an installed copy given with `--dir <dir>`. The release's sums file is
+the root `SHA256SUMS` of the tagged checkout, outside `skills/protoyard/`, so
+pass it with `--sums` (without it, `--verify` looks for `SHA256SUMS` inside the
+skill folder, finds none in a release checkout, fails and says so):
+
+```bash
+protoyard/skills/protoyard/setup.sh --verify --sums protoyard/SHA256SUMS
+protoyard/skills/protoyard/setup.sh --verify --dir ~/.claude/skills/protoyard --sums protoyard/SHA256SUMS
+```
+
+A changed, missing or unlisted file fails, and unsafe paths in the sums file
+are refused.
 
 The installer never fetches anything, edits host configuration or installs the
 Protoyard CLI. Installing the skill is still a consent checkpoint
@@ -103,20 +156,37 @@ Protoyard CLI. Installing the skill is still a consent checkpoint
 tag first. `pnpm vitest run packages/cli/tests/skill-setup.test.ts` runs every
 host against a temporary home under `/bin/bash`.
 
-Release artifacts include a root-level `SHA256SUMS` for the files in
-`skills/protoyard/`. Regenerate it after the final skill edits, then verify the
-release checkout before tagging or distributing it:
+## Release artifacts
+
+A Protoyard release is a `vX.Y.Z` tag. What it provides for the skill today:
+
+| Artifact | Where | Use |
+| --- | --- | --- |
+| The skill pack | `skills/protoyard/` in the tagged tree (`…/tree/vX.Y.Z`) | What every install route copies |
+| `SHA256SUMS` | the root of the tagged tree | One sorted line per file of `skills/protoyard/`; verify a checkout or an installed copy with it |
+| Stamped versions | `version:` in every skill file's frontmatter | Equal to the tag; the release workflow refuses a tag whose skill versions differ |
+| npm packages | `@protoyard/*` on npm | The CLI and libraries, a separate install from the skill |
+| GitHub Release | the tag's release page | Release notes from `CHANGELOG.md` |
+
+The GitHub Release has no attached skill archive or separate checksum file
+today: install from the tagged tree, and verify with the `SHA256SUMS` in that
+same tree. The checksums show the files are the ones that tag lists; they are
+not a signature and make no publisher-identity claim.
+
+Cutting a release, the skill steps run before tagging, from the repository:
 
 ```bash
-scripts/generate-skill-checksums.sh
-scripts/verify-skill-integrity.sh
+pnpm exec tsx scripts/stamp-skill-version.ts 1.2.3        # every skill version = the release
+bash scripts/generate-skill-checksums.sh                  # root SHA256SUMS for skills/protoyard/
+pnpm check:skill                                          # frontmatter, CLI alignment, links, checksums
+bash scripts/verify-skill-integrity.sh                    # the same checksums, through setup.sh --verify
 ```
 
-The manifest lists sorted paths relative to the skill directory. The verifier
-rejects missing, changed, or unlisted files and supports `shasum` or
-`sha256sum`; it does not make a signing or publisher-identity claim. The root
-manifest can also verify an installed or staged copy with
-`scripts/verify-skill-integrity.sh --dir <skill-dir> --sums SHA256SUMS`.
+`scripts/verify-skill-integrity.sh --dir <skill-dir> --sums <file>` checks a
+staged or installed copy the same way. The manifest lists sorted paths
+relative to the skill directory, and both scripts accept `shasum` or
+`sha256sum`. Regenerate `SHA256SUMS` after any edit under `skills/protoyard/`
+and commit it with the change: `pnpm check:skill` fails while it is stale.
 
 ## Validate the distributable skill
 
@@ -127,7 +197,7 @@ smoke-installing a release. CI runs the same command in the `check` job:
 pnpm check:skill
 ```
 
-It runs two checks and exits nonzero when either finds a problem:
+It runs four checks in order and exits nonzero at the first that finds a problem:
 
 - **Frontmatter** (`scripts/validate-skill-frontmatter.ts`): the skill names,
   quoted SemVer, canonical documentation URL, allowed tools and OpenClaw
@@ -147,9 +217,18 @@ It runs two checks and exits nonzero when either finds a problem:
   the program's options. A command still listed as planned fails once it
   exists, so move it to the current-release table when it lands. Every failure is
   printed as `file:line: message`.
+- **Links** (`scripts/validate-skill-links.ts`): every relative Markdown link
+  in `skills/protoyard/` resolves and stays inside the skill directory (see
+  [Check skill-local links](#check-skill-local-links)).
+- **Checksums** (`scripts/verify-skill-integrity.sh`): the skill files match the
+  root `SHA256SUMS` exactly, so a stale manifest fails until
+  `bash scripts/generate-skill-checksums.sh` is rerun and committed.
 
-The unit tests are `pnpm vitest run tests/scripts/validate-skill-frontmatter.test.ts`
-and `pnpm vitest run packages/cli/tests/check-skill-cli.test.ts`.
+The unit tests are `pnpm vitest run tests/scripts/validate-skill-frontmatter.test.ts`,
+`pnpm vitest run packages/cli/tests/check-skill-cli.test.ts`,
+`pnpm vitest run tests/scripts/validate-skill-links.test.ts` and
+`pnpm vitest run tests/scripts/skill-docs.test.ts` (this guide's commands
+against the scripts and the CLI).
 
 Before creating a release tag, stamp every skill frontmatter version from the
 selected package release version, then verify the result:

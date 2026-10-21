@@ -26,6 +26,7 @@ These docs describe what works in this repository today. Start with the
 | [Specs](SPECS.md) | The per-prototype spec harness: files, generated regions, rebuild kit, rebuild as a real app. Every prototype ships `AGENTS.md` + `docs/` (SPEC, DATA_MODEL, FLOWS, SCREENS, PERMISSIONS), checked by `pnpm protoyard validate <slug> --strict-spec`. |
 | [Publishing](PUBLISHING.md) | Static builds, ZIP export, base paths, provider adapters, batch publish, review index, CI/CD templates, the showcase (gallery + every live demo as one site), sharing as a private Claude artifact (one prototype per artifact) |
 | [Review comments](REVIEW_COMMENTS.md) | Opt-in review comments, storage adapters (local, http/cloudflare, the Claude artifact adapter), who sees what, honest limits |
+| [Agent skill](SKILL.md) | The distributable `protoyard` agent skill (`SKILL.md` router and sub-skills): supported hosts, pinned installs, `setup.sh`, trust, `SHA256SUMS` integrity checks, upgrades and release artifacts |
 
 ## Understand it
 
