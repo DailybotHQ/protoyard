@@ -61,19 +61,16 @@ expose the local server publicly. Before hosting or sharing any output, inspect
 and the blueprint can carry details derived from it. These folders are local
 exploration artifacts, not access-controlled deployments.
 
-## Workflow ideas not yet implemented in the current CLI
-
-The following shapes are on the roadmap. They are documentation of
-planned work, not commands to try on a release whose help does not list them.
-
-| Planned activity | Proposed form | Current status |
-| --- | --- | --- |
-| Prune explorations by age | `protoyard quick prune --older-than <days>` | Not in current help; do not invent it. Deletion requires showing the exact path and user confirmation. |
+## Managing explorations
 
 Screenshots (`quick shot`, `quick … --screenshot`), patches with undo
 (`quick iterate`, `quick undo`), review feedback (`quick feedback`), validation
-reports (`quick report`) and browsing (`quick list`, `quick open`,
-`quick index`) are commands now; see [cli.md](cli.md) for their flags.
+reports (`quick report`), browsing (`quick list`, `quick open`, `quick index`)
+and cleanup (`quick prune`) are commands; see [cli.md](cli.md) for their flags.
+The CLI's installed help is the source of truth.
 
-These proposals may change before release. The CLI's installed help is the
-source of truth.
+`quick prune` only lists by default. Removing needs `--yes` typed on that
+command (CI=1 alone never removes anything): show the developer the list and
+the exact folders first, and ask before running it with `--yes`. It never
+removes a promoted exploration, and keeps one whose comments are newer than
+its REVIEW.md unless `--force`.
