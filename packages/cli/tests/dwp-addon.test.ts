@@ -31,7 +31,7 @@ const python = spawnSync('python3', ['--version'], { encoding: 'utf8' }).status 
 
 /** Runs a snippet against the vendored pack's shared/ modules. */
 function packPython(code: string, input = '') {
-  return spawnSync('python3', ['-I', '-c', code, join(PACK, 'shared')], {
+  return spawnSync('python3', ['-I', '-B', '-c', code, join(PACK, 'shared')], {
     encoding: 'utf8',
     input,
   });

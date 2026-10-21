@@ -4,7 +4,7 @@ Protoyard is a pnpm workspace of small packages. Install only the pieces an app 
 
 ## Release status and installation
 
-The package manifests and tarball tooling are being prepared for the first npm release. **Protoyard packages are not yet available from the public npm registry.** The release workflow currently creates GitHub Releases; npm publishing awaits the first release approval. The npm commands below are the supported consumer commands once that release is available; they do not install today's unpublished workspace packages.
+The package manifests and tarball tooling are being prepared for the first npm release. **Protoyard packages are not yet available from the public npm registry.** The release workflow has an npm job (Trusted Publishing with provenance; see [PUBLISHING](PUBLISHING.md#releasing-the-packages-to-npm)), but no release has been published to npm yet: the first live publish awaits the developer's approval. The npm commands below are the supported consumer commands once that release is available; they do not install today's unpublished workspace packages.
 
 For repository development, clone the source and install its workspace dependencies:
 

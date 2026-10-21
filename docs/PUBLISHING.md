@@ -916,6 +916,68 @@ $ pnpm protoyard affected --since HEAD~1 --format csv
 ai-chat-demo,crm-demo,mobile-banking-demo,nova-assistant-demo,support-widget-demo,ui-kit
 ```
 
+## Releasing the packages to npm
+
+This section covers the Protoyard packages themselves, not prototypes.
+`.github/workflows/release.yml` runs on a `v*` tag. All its actions are
+pinned by commit SHA.
+
+| Job | What it does | Permissions |
+| --- | --- | --- |
+| `gate` | Full repository gate (described below). | `contents: read` |
+| `npm` | Builds the packages, then packs every public package with `pnpm pack`. That covers `packages/*` and `apps/gallery`, the same set `check:packages` lints. It then runs `npm publish <tarball> --provenance --access public` for each tarball, in dependency order. | `contents: read`, `id-token: write`, environment `npm` |
+| `release` | Creates the GitHub Release from the CHANGELOG.md section, after `npm` succeeds. | `contents: write` |
+
+The `gate` job checks, in order:
+1. The tag matches the root `package.json` version and has a CHANGELOG.md
+   section.
+2. No changeset is pending, so the tag was cut after `pnpm version-packages`.
+3. Public hygiene passes.
+4. `pnpm version-packages --check` passes: every public package and the root
+   are on one lockstep version.
+5. `pnpm check` passes.
+6. `pnpm build:packages`, then `pnpm check:packages --require-all`, so every
+   package must be publish-ready.
+7. `pnpm verify:packages` installs the tarballs in a clean consumer.
+8. The gallery and every prototype build.
+
+Rules the `npm` job follows:
+
+- **No npm token.** The `npm` job authenticates with npm Trusted Publishing
+  (GitHub OIDC). No npm token secret exists anywhere in the workflow, and only
+  this job has `id-token: write`. It refuses to run on an npm older than
+  11.5.1, the first release with Trusted Publishing.
+- **Dist-tags.** A stable tag (`v1.2.0`) publishes under `latest`. A
+  prerelease tag (`v1.2.0-rc.1`) publishes under `next`, and its GitHub
+  Release is marked as a prerelease.
+- **Order and reruns.** `pnpm -r` packs one package at a time in topological
+  order, so a dependency is published before its dependents. Each version
+  already on the registry is skipped, so rerunning after a partial failure
+  publishes only what is missing.
+- **Consent checkpoint.** A live publish needs the developer. The developer
+  configures each package's trusted publisher on npmjs.com (this repository,
+  workflow `release.yml`, environment `npm`). The developer should add
+  required reviewers to the `npm` environment in the GitHub settings, so
+  every publish waits for an explicit approval. No agent configures these or
+  approves a run.
+
+Before tagging, run the same checks locally. Nothing here contacts a registry
+or needs a credential:
+
+```bash
+pnpm version-packages --check
+pnpm build:packages
+pnpm check:packages --require-all
+pnpm verify:packages
+pnpm -r --filter "./packages/**" --filter "./apps/gallery" publish --dry-run --no-git-checks
+```
+
+The dry run lists every tarball's files. The packages ship their built
+`dist/`. The bins, `@protoyard/templates`' template folders,
+`@protoyard/avatars`' images and the gallery's site source ship as declared
+data (ADR-028). No tests, fixtures or `.env` files ship, and
+`check:packages` enforces that.
+
 ## Deploying the gallery
 
 The gallery is a separate static site that lists prototypes from the

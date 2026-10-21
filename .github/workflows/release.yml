@@ -1,8 +1,15 @@
 name: release
 
-# On a version tag (v0.1.0, v1.2.3-rc.1…): run the full gate, check the tag
-# matches package.json and has a CHANGELOG.md section, then create a GitHub
-# Release with that section as notes. Nothing is published to npm.
+# On a version tag (v1.1.0, v1.2.3-rc.1…):
+# 1. gate: the full gate, the tag matches package.json and the lockstep
+#    version and has a CHANGELOG.md section, and the packages build, lint
+#    (every one publish-ready) and install from their tarballs.
+# 2. npm: packs every public package with pnpm and publishes each tarball with
+#    npm Trusted Publishing (OIDC, --provenance) in dependency order. There is
+#    no npm token secret. A prerelease tag publishes under the `next` dist-tag.
+#    The `npm` environment is the consent checkpoint: the developer configures
+#    the trusted publishers on npmjs.com and approves the first live publish.
+# 3. release: the GitHub Release, only after npm succeeded.
 
 on:
   push:
@@ -39,12 +46,28 @@ jobs:
             exit 1
           fi
           bash scripts/changelog-section.sh "$version" > /dev/null
+      - name: No pending changesets (the tag must come after version-packages)
+        run: |
+          pending=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | sort)
+          if [ -n "$pending" ]; then
+            echo "Unreleased changesets remain; run pnpm version-packages before tagging:" >&2
+            echo "$pending" >&2
+            exit 1
+          fi
       - name: Public-hygiene check
         run: bash scripts/check-public-hygiene.sh
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Every public package is on the lockstep version
+        run: pnpm version-packages --check
       - name: Lint, types, unit tests
         run: pnpm check
+      - name: Build the packages
+        run: pnpm build:packages
+      - name: Lint the packed packages (every one publish-ready)
+        run: pnpm check:packages --require-all
+      - name: Install the tarballs in a clean consumer
+        run: pnpm verify:packages
       - name: Build the gallery
         run: pnpm --filter @protoyard/gallery build
       - name: Build every prototype
@@ -52,9 +75,70 @@ jobs:
           pnpm protoyard index
           pnpm protoyard build --all
 
+  npm:
+    name: npm publish
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.20.0'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: npm supports Trusted Publishing (11.5.1 or later)
+        run: |
+          node -e '
+            const [a, b, c] = process.argv[1].split(".").map(Number);
+            if (a < 11 || (a === 11 && (b < 5 || (b === 5 && c < 1)))) {
+              console.error(`npm ${process.argv[1]} is too old for Trusted Publishing`);
+              process.exit(1);
+            }' "$(npm --version)"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build the packages
+        run: pnpm build:packages
+      - name: Pack every public package in dependency order
+        env:
+          TARBALLS: ${{ runner.temp }}/tarballs
+        run: |
+          set -euo pipefail
+          mkdir -p "$TARBALLS"
+          : > "$TARBALLS/order.tsv"
+          # pnpm -r runs in topological order, and one at a time keeps the list
+          # ordered. Each package packs into its own folder, because pack
+          # lifecycle scripts may print to stdout.
+          pnpm -r --filter "./packages/**" --filter "./apps/gallery" --workspace-concurrency=1 \
+            exec sh -c 'd=$(mktemp -d "$TARBALLS/pack.XXXXXX") && pnpm pack --pack-destination "$d" >&2 && set -- "$d"/*.tgz && test "$#" -eq 1 && test -f "$1" && printf "%s\t%s\n" "$(jq -r "[.name, .version] | @tsv" package.json)" "$1" >> "$TARBALLS/order.tsv"'
+          cat "$TARBALLS/order.tsv"
+      - name: Publish with provenance
+        env:
+          TAG: ${{ github.ref_name }}
+          TARBALLS: ${{ runner.temp }}/tarballs
+        run: |
+          set -euo pipefail
+          dist_tag=latest
+          case "$TAG" in *-*) dist_tag=next ;; esac
+          while IFS="$(printf '\t')" read -r name version tarball; do
+            # A rerun after a partial failure skips what is already published.
+            if npm view "$name@$version" version > /dev/null 2>&1; then
+              echo "skip $name@$version (already published)"
+              continue
+            fi
+            npm publish "$tarball" --provenance --access public --tag "$dist_tag"
+          done < "$TARBALLS/order.tsv"
+
   release:
     name: GitHub Release
-    needs: gate
+    needs: [gate, npm]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

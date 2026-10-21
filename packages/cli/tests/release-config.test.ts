@@ -230,3 +230,247 @@ describe('changesets version-packages', () => {
     expect(check.stderr).toContain('@protoyard/b@1.1.0');
   }, 60_000);
 });
+
+/**
+ * release.yml (ADR-028): on a `v*` tag the gate also builds, lints and
+ * consumer-installs the packages; the `npm` job alone gets `id-token: write`
+ * and publishes each pnpm-packed tarball with `npm publish --provenance` in
+ * dependency order, with no npm token; the GitHub Release waits for it. The
+ * workflow is read as text by job and step (no YAML dependency), and the
+ * publish and dist-tag shell is run for real against a recording fake npm.
+ */
+const WORKFLOW = readFileSync(join(REPO, '.github', 'workflows', 'release.yml'), 'utf8');
+
+/** The lines of one top-level job (`  <id>:` up to the next job). */
+function job(id: string): string {
+  const lines = WORKFLOW.split('\n');
+  const start = lines.indexOf(`  ${id}:`);
+  expect(start, `job ${id}`).toBeGreaterThan(-1);
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => /^ {2}[a-z][a-z0-9-]*:\s*$/.test(line) || /^\S/.test(line));
+  return [lines[start], ...(end === -1 ? rest : rest.slice(0, end))].join('\n');
+}
+
+/** Step names of a job, in order. */
+function stepNames(block: string): string[] {
+  return [...block.matchAll(/^ {6}- name: (.+)$/gm)].map((m) => (m[1] ?? '').trim());
+}
+
+/** The dedented `run: |` script of a named step. */
+function stepRun(block: string, name: string): string {
+  const lines = block.split('\n');
+  const start = lines.indexOf(`      - name: ${name}`);
+  expect(start, `step ${name}`).toBeGreaterThan(-1);
+  const body: string[] = [];
+  let inRun = false;
+  for (const line of lines.slice(start + 1)) {
+    if (/^ {6}- /.test(line)) break;
+    if (/^ {8}run: \|\s*$/.test(line)) {
+      inRun = true;
+      continue;
+    }
+    const single = /^ {8}run: (.+)$/.exec(line);
+    if (single) return single[1] ?? '';
+    if (inRun) {
+      if (line.trim() !== '' && !line.startsWith('          ')) break;
+      body.push(line.slice(10));
+    }
+  }
+  return body.join('\n');
+}
+
+describe('release workflow', () => {
+  const gate = job('gate');
+  const npmJob = job('npm');
+  const release = job('release');
+
+  it('grants id-token: write only to the npm job, behind the npm environment', () => {
+    expect(WORKFLOW.match(/id-token:/g)).toHaveLength(1);
+    expect(npmJob).toMatch(/^ {4}permissions:\n {6}contents: read\n {6}id-token: write$/m);
+    expect(npmJob).toMatch(/^ {4}environment: npm$/m);
+    // Workflow default stays read-only; the release job only writes contents.
+    expect(WORKFLOW).toMatch(/^permissions:\n {2}contents: read$/m);
+    expect(gate).not.toMatch(/permissions:/);
+    expect(release).toMatch(/^ {4}permissions:\n {6}contents: write$/m);
+  });
+
+  it('publishes each packed tarball with provenance and no npm token', () => {
+    const publish = stepRun(npmJob, 'Publish with provenance');
+    expect(publish).toContain(
+      'npm publish "$tarball" --provenance --access public --tag "$dist_tag"'
+    );
+    expect(WORKFLOW).not.toMatch(/secrets\./);
+    expect(WORKFLOW).not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN|_authToken/);
+    expect(npmJob).toContain("registry-url: 'https://registry.npmjs.org'");
+    expect(stepRun(npmJob, 'Pack every public package in dependency order')).toMatch(
+      /pnpm -r .*--workspace-concurrency=1[\s\S]*pnpm pack --pack-destination "\$d"/
+    );
+  });
+
+  it('pins every action to a full commit SHA with its version as a comment', () => {
+    const uses = [...WORKFLOW.matchAll(/uses: (\S+)(.*)$/gm)];
+    expect(uses.length).toBeGreaterThanOrEqual(5);
+    for (const [line, ref, comment] of uses) {
+      expect(ref, line).toMatch(/^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/);
+      expect(comment, line).toMatch(/^ # v\d+\.\d+\.\d+$/);
+    }
+  });
+
+  it('gates the tag on lockstep versions and builds, lints and installs the packages in order', () => {
+    const steps = stepNames(gate).map((name) => stepRun(gate, name));
+    const at = (command: string) => steps.findIndex((run) => run.trim() === command);
+    expect(at('pnpm version-packages --check')).toBeGreaterThan(-1);
+    const build = at('pnpm build:packages');
+    const check = at('pnpm check:packages --require-all');
+    const verify = at('pnpm verify:packages');
+    expect(build).toBeGreaterThan(at('pnpm check'));
+    expect(check).toBeGreaterThan(build);
+    expect(verify).toBeGreaterThan(check);
+    expect(npmJob).toMatch(/^ {4}needs: gate$/m);
+    expect(release).toMatch(/^ {4}needs: \[gate, npm\]$/m);
+  });
+
+  it('refuses a tag cut before version-packages consumed the changesets', () => {
+    const script = stepRun(
+      gate,
+      'No pending changesets (the tag must come after version-packages)'
+    );
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-release-changesets-')));
+    roots.push(root);
+    write(join(root, '.changeset', 'README.md'), '# Changesets\n');
+    write(join(root, '.changeset', 'config.json'), {});
+    const clean = spawnSync('bash', ['-c', script], { cwd: root, encoding: 'utf8' });
+    expect(clean.status, clean.stderr).toBe(0);
+    write(join(root, '.changeset', 'brave-fox.md'), '---\n"@protoyard/core": minor\n---\n');
+    const pending = spawnSync('bash', ['-c', script], { cwd: root, encoding: 'utf8' });
+    expect(pending.status).toBe(1);
+    expect(pending.stderr).toContain('brave-fox.md');
+  });
+
+  it('packs exactly the publishable set: every packages/* plus apps/gallery', () => {
+    const pack = stepRun(npmJob, 'Pack every public package in dependency order');
+    const filters = [...pack.matchAll(/--filter "([^"]+)"/g)].map((m) => m[1]);
+    expect(filters).toEqual(['./packages/**', './apps/gallery']);
+    for (const candidate of findCandidates(REPO)) {
+      const dir = candidate.dir.replace(REPO, '').replace(/\\/g, '/');
+      expect(dir, String(candidate.manifest.name)).toMatch(/^(packages\/[^/]+|apps\/gallery)$/);
+    }
+  });
+
+  it('runs the publish script in order, skips published versions, and uses next for prereleases', () => {
+    const script = stepRun(npmJob, 'Publish with provenance');
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-release-publish-')));
+    roots.push(root);
+    const bin = join(root, 'bin');
+    const log = join(root, 'npm.log');
+    // A fake npm: `view` succeeds only for the already-published core, `publish` records.
+    write(
+      join(bin, 'npm'),
+      `#!/bin/sh\nif [ "$1" = view ]; then [ "$2" = "@protoyard/core@1.2.0" ]; exit $?; fi\necho "$*" >> "${log}"\n`
+    );
+    spawnSync('chmod', ['+x', join(bin, 'npm')]);
+    write(
+      join(root, 'tarballs', 'order.tsv'),
+      [
+        '@protoyard/core\t1.2.0\t/t/protoyard-core-1.2.0.tgz',
+        '@protoyard/ui\t1.2.0\t/t/with space/protoyard-ui-1.2.0.tgz',
+        'protoyard\t1.2.0\t/t/protoyard-1.2.0.tgz',
+        '',
+      ].join('\n')
+    );
+    const runFor = (tag: string) => {
+      rmSync(log, { force: true });
+      const result = spawnSync('bash', ['-c', script], {
+        cwd: root,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          TAG: tag,
+          TARBALLS: join(root, 'tarballs'),
+        },
+      });
+      expect(result.status, result.stderr).toBe(0);
+      return { stdout: result.stdout, published: readFileSync(log, 'utf8').trim().split('\n') };
+    };
+
+    const stable = runFor('v1.2.0');
+    expect(stable.stdout).toContain('skip @protoyard/core@1.2.0 (already published)');
+    expect(stable.published).toEqual([
+      'publish /t/with space/protoyard-ui-1.2.0.tgz --provenance --access public --tag latest',
+      'publish /t/protoyard-1.2.0.tgz --provenance --access public --tag latest',
+    ]);
+    const next = runFor('v1.2.0-rc.1');
+    expect(next.published.every((line) => line.endsWith('--tag next'))).toBe(true);
+  });
+
+  it.skipIf(spawnSync('jq', ['--version']).status !== 0)(
+    'packs a fixture workspace in dependency order even when a prepack script prints',
+    () => {
+      const script = stepRun(npmJob, 'Pack every public package in dependency order');
+      const root = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-release-pack-')));
+      roots.push(root);
+      write(join(root, 'package.json'), { name: 'fixture', private: true, version: '1.0.0' });
+      write(join(root, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n  - apps/*\n');
+      // Named so that alphabetical order would be wrong: `a-ui` depends on `z-core`.
+      write(join(root, 'packages', 'a-ui', 'package.json'), {
+        name: '@fixture/a-ui',
+        version: '1.2.0',
+        files: ['index.js'],
+        dependencies: { '@fixture/z-core': 'workspace:*' },
+        scripts: { prepack: 'echo noisy prepack output' },
+      });
+      write(join(root, 'packages', 'a-ui', 'index.js'), 'export {};\n');
+      write(join(root, 'packages', 'z-core', 'package.json'), {
+        name: '@fixture/z-core',
+        version: '1.2.0',
+        files: ['index.js'],
+      });
+      write(join(root, 'packages', 'z-core', 'index.js'), 'export {};\n');
+      write(join(root, 'apps', 'gallery', 'package.json'), {
+        name: '@fixture/gallery',
+        version: '1.2.0',
+        files: ['index.js'],
+      });
+      write(join(root, 'apps', 'gallery', 'index.js'), 'export {};\n');
+      // pnpm pack resolves workspace: specifiers from the linked workspace.
+      const install = spawnSync('pnpm', ['install', '--offline'], { cwd: root, encoding: 'utf8' });
+      expect(install.status, install.stderr + install.stdout).toBe(0);
+      const tarballs = join(root, 'tarballs');
+      const result = spawnSync('bash', ['-c', script], {
+        cwd: root,
+        encoding: 'utf8',
+        env: { ...process.env, TARBALLS: tarballs },
+      });
+      expect(result.status, result.stderr).toBe(0);
+      const rows = readFileSync(join(tarballs, 'order.tsv'), 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => line.split('\t'));
+      const names = rows.map((r) => r[0]);
+      expect(names.indexOf('@fixture/z-core')).toBeLessThan(names.indexOf('@fixture/a-ui'));
+      expect([...names].sort()).toEqual(['@fixture/a-ui', '@fixture/gallery', '@fixture/z-core']);
+      for (const [, version, tarball] of rows) {
+        expect(version).toBe('1.2.0');
+        expect(tarball && existsSync(tarball), tarball).toBe(true);
+      }
+    },
+    120_000
+  );
+
+  it('refuses an npm too old for Trusted Publishing', () => {
+    const script = stepRun(npmJob, 'npm supports Trusted Publishing (11.5.1 or later)');
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-release-npm-')));
+    roots.push(root);
+    const check = (version: string) => {
+      write(join(root, 'bin', 'npm'), `#!/bin/sh\necho ${version}\n`);
+      spawnSync('chmod', ['+x', join(root, 'bin', 'npm')]);
+      return spawnSync('bash', ['-c', script], {
+        encoding: 'utf8',
+        env: { ...process.env, PATH: `${join(root, 'bin')}:${process.env.PATH}` },
+      }).status;
+    };
+    for (const ok of ['11.5.1', '11.6.0', '12.0.0']) expect(check(ok), ok).toBe(0);
+    for (const old of ['10.9.2', '11.5.0', '11.4.9']) expect(check(old), old).toBe(1);
+  });
+});
