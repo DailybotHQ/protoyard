@@ -25,7 +25,7 @@ validation guidance.
 | Product interface | `1` |
 | Registry key | `protoyard` (`addons.protoyard`) |
 | Vendored DWP target | `7.8.1` |
-| Upstream handoff concern | `/Users/xergioalex/projects/dailybot/open-source/deepworkplan-skill` reports `2.17.0` and does not yet carry the v7 descriptor surface |
+| Upstream handoff concern | the upstream `deepworkplan-skill` repository reports `2.17.0` and does not yet carry the v7 descriptor surface |
 
 The product tag is the first lockstep release that ships the machine
 interface used here. If the release tag changes before handoff, the
