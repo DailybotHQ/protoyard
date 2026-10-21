@@ -112,6 +112,40 @@ health checks, with two cautions:
 - **`--offline`** keeps `doctor` from contacting provider CLIs, so it never
   needs the network.
 
+## Reading a probe
+
+A tool reads the probe strictly and never assumes compatibility from a partial
+answer. Protoyard ships the reference reader as `readInterfaceProbe(stdout,
+{ interface?, capabilities? })` in
+[`packages/cli/src/commands/doctor.ts`](../packages/cli/src/commands/doctor.ts).
+
+It returns:
+- `compatible`, which is true only when there is no error;
+- `status`: `compatible`, `degraded` (compatible with warnings) or
+  `incompatible`;
+- the `interface` it read;
+- the known `capabilities`, `unknownCapabilities` and `missingCapabilities`;
+- the `issues`, each with a `code`, a `severity` and a `message`.
+
+| Probe output | Severity | Issue code |
+| --- | --- | --- |
+| Not one JSON object (empty, plain semver, truncated, an array, `null`) | error | `unreadable` |
+| No top-level `interface` (nested under `data` does not count) | error | `interface-missing` |
+| `interface` is not a positive integer (`"1"`, `1.5`, `0`, `null`…); nothing is coerced | error | `interface-malformed` |
+| `interface` is another major, older or newer | error | `interface-mismatch` |
+| `capabilities` is present but not an array | error | `capabilities-malformed` |
+| A required capability is not listed. `--version --json` lists none, so a capability requirement needs `doctor --json`. | error | `capability-missing` |
+| A required id is not a defined id: no probe can satisfy it | error | `capability-unknown` |
+| An unknown capability id is listed: it is ignored and never counts | warning | `capability-unknown` |
+| A capability entry is not a string: it is dropped | warning | `capabilities-malformed` |
+| A doctor envelope reports `ok: false`, for example a failed check (exit 1) or no workspace (exit 3): installed, but not healthy there | warning | `probe-not-ok` |
+
+Ids are compared exactly (`Quick` is not `quick`), and duplicates collapse.
+The reader does not change `doctor`'s exit codes: a failed required check
+still exits 1, and a run outside a workspace still exits 3.
+`packages/cli/tests/interface-compat.test.ts` covers every row against
+fixtures and the real `--version --json` and `doctor --json` output.
+
 ## See also
 
 - [Skill](SKILL.md) for agents that use these commands.
