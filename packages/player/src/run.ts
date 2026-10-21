@@ -88,7 +88,7 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
     current = await boot(blueprint, target, {
       ...(kept ? { namespace: kept.namespace } : {}),
       ...(kept?.generatorVersion !== undefined ? { generatorVersion: kept.generatorVersion } : {}),
-      review: { endpoint: info.comments },
+      review: true,
     });
     shown = {
       blueprint,

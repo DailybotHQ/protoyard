@@ -86,12 +86,13 @@ describe('MCP tool catalog and strict input contracts', () => {
     });
   });
 
-  it('returns real CLI envelopes for schema, validation and the pending-command path', async () => {
+  it('returns real CLI envelopes for schema, validation and a missing exploration', async () => {
     const schema = await callMcpTool('blueprint_schema', {});
     const validation = await callMcpTool('validate_blueprint', {
       file: 'blueprints/booking-scheduling.json',
     });
-    const pending = await callMcpTool('iterate', { dir: 'demo', patchFile: 'change.json' });
+    // `quick iterate` exists now: an unknown exploration is a structured not_found.
+    const missing = await callMcpTool('iterate', { dir: 'demo', patchFile: 'change.json' });
 
     expect(schema).toMatchObject({ ok: true, command: 'blueprint_schema' });
     expect((schema.data as { $schema: string }).$schema).toMatch(/^https:/);
@@ -100,6 +101,10 @@ describe('MCP tool catalog and strict input contracts', () => {
       command: 'blueprint validate',
       data: { valid: true },
     });
-    expect(pending).toMatchObject({ ok: false, command: 'quick', error: { code: 'usage' } });
+    expect(missing).toMatchObject({
+      ok: false,
+      command: 'quick iterate',
+      error: { code: 'not_found' },
+    });
   });
 });

@@ -114,7 +114,8 @@ describe('detectQuickServe', () => {
       await detectQuickServe({ hostname: 'protoyard.app', origin: 'https://protoyard.app' }, fetch)
     ).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
-    expect(await detectQuickServe(local, fetch)).toEqual(info);
+    // Only the event stream is read; the comments endpoint is fixed in the player.
+    expect(await detectQuickServe(local, fetch)).toEqual({ protocol: 1, events: info.events });
     expect(fetch).toHaveBeenCalledWith(
       'http://127.0.0.1:4180/__protoyard/serve.json',
       expect.objectContaining({ cache: 'no-store', credentials: 'omit' })
@@ -131,7 +132,6 @@ describe('detectQuickServe', () => {
     for (const bad of [
       { ...info, protocol: 2 },
       { ...info, events: 'https://elsewhere.example/events' },
-      { ...info, comments: '//elsewhere.example/api' },
       'not an object',
     ]) {
       expect(await detectQuickServe(local, reply(bad)), JSON.stringify(bad)).toBeNull();
@@ -202,7 +202,7 @@ describe('startLiveReload', () => {
       done = resolve;
     });
     const live = startLiveReload({
-      info: { protocol: 1, events: '/__protoyard/events', comments: '/api/comments' },
+      info: { protocol: 1, events: '/__protoyard/events' },
       origin: 'http://127.0.0.1:4180',
       current: () => shown,
       apply: async (change) => {
@@ -357,6 +357,25 @@ describe('re-deriving in place', () => {
     });
   });
 
+  it('never takes the review adapter or endpoint from the URL', async () => {
+    const target = document.body.appendChild(document.createElement('div'));
+    const indexedDB = new IDBFactory();
+    booted = await bootPlayer({
+      blueprint: base,
+      target,
+      search: '?comments=1&review=http&endpoint=https://elsewhere.example/api',
+      createRuntime: (definition, options) =>
+        createPrototypeRuntime(definition, {
+          ...options,
+          indexedDB,
+          IDBKeyRange,
+          sleep: async () => {},
+        }),
+    });
+    expect(booted.runtime!.manifest.build.review?.adapter).not.toBe('http');
+    expect(JSON.stringify(booted.runtime!.manifest)).not.toContain('elsewhere.example');
+  });
+
   it('mounts the review UI on the http adapter when quick serve hosts comments', async () => {
     const target = document.body.appendChild(document.createElement('div'));
     const indexedDB = new IDBFactory();
@@ -364,7 +383,7 @@ describe('re-deriving in place', () => {
       blueprint: base,
       target,
       search: '',
-      review: { endpoint: '/api/comments' },
+      review: true,
       createRuntime: (definition, options) =>
         createPrototypeRuntime(definition, {
           ...options,

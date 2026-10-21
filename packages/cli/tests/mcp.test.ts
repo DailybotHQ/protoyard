@@ -88,7 +88,10 @@ afterEach(() => {
 });
 
 describe('protoyard mcp real client exchange', () => {
-  it('preserves modern protocol frames, runs quick and doctor, rejects invalid input, and shuts down on EOF', async () => {
+  // A real child process runs quick and doctor: seconds alone, longer while the CLI suite runs.
+  it('preserves modern protocol frames, runs quick and doctor, rejects invalid input, and shuts down on EOF', {
+    timeout: 60_000,
+  }, async () => {
     const run = await runMcpProcess(
       [
         line(modernRequest(1, 'server/discover')),
@@ -132,7 +135,9 @@ describe('protoyard mcp real client exchange', () => {
     });
   });
 
-  it('negotiates the legacy revision through the real child process and keeps diagnostics off stdout', async () => {
+  it('negotiates the legacy revision through the real child process and keeps diagnostics off stdout', {
+    timeout: 60_000,
+  }, async () => {
     const run = await runMcpProcess(
       [
         line({

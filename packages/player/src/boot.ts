@@ -14,6 +14,13 @@ import { setPlayerBlueprint } from './player-blueprint.ts';
 import { markActiveExploration, recordExploration, resolvePlayerStorage } from './storage/index.ts';
 import { withWorkerGeneration } from './worker/generate-world.ts';
 
+/**
+ * The comments API `protoyard quick serve` hosts on its own origin
+ * (`/api/comments/<namespace>`). Fixed here, never taken from a URL or a
+ * response, so nothing can point the player's comments at another server.
+ */
+export const QUICK_REVIEW_ENDPOINT = '/api/comments';
+
 export interface BootPlayerOptions {
   blueprint: Blueprint;
   target: HTMLElement;
@@ -37,10 +44,10 @@ export interface BootPlayerOptions {
    */
   generatorVersion?: number;
   /**
-   * Review comments through a same-origin comments API (`quick serve`): mounts
-   * the review UI with the `http` adapter on this endpoint.
+   * Review comments through `quick serve`'s same-origin comments API: mounts
+   * the review UI with the `http` adapter on {@link QUICK_REVIEW_ENDPOINT}.
    */
-  review?: { endpoint: string };
+  review?: boolean;
 }
 
 /** `search` with `name=value` set (kept when already present). */
@@ -85,8 +92,9 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
     blueprintSha256: identity.sha256,
     cache: options.worldCache ?? createPlayerWorldCache(options.indexFactory),
   });
-  // Served by `quick serve`: comments go to its same-origin API (the renderer
-  // loads the review UI lazily when `comments=1` and DevTools are on).
+  // Served by `quick serve`: comments go to its same-origin API at a fixed path,
+  // never one from the URL (the renderer loads the review UI lazily when
+  // `comments=1` and DevTools are on).
   const pinned =
     options.generatorVersion !== undefined
       ? { ...cached, generatorVersion: options.generatorVersion }
@@ -98,7 +106,7 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
           ...pinned.manifest,
           build: {
             ...pinned.manifest.build,
-            review: { enabled: true, adapter: 'http' as const, endpoint: options.review.endpoint },
+            review: { enabled: true, adapter: 'http' as const, endpoint: QUICK_REVIEW_ENDPOINT },
           },
         },
       }

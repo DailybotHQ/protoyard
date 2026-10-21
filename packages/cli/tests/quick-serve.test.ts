@@ -118,6 +118,7 @@ describe('protoyard quick serve', () => {
     expect(launcher.status).toBe(200);
     expect(launcher.text).toContain('http-equiv="refresh"');
     const href = /url=([^"]+)"/.exec(launcher.text)?.[1] ?? '';
+    // Served as written on disk: the player finds the server through /__protoyard/serve.json.
     expect(href).toMatch(/^\.\.\/_player\/1\.0\.0\/index\.html#bp=1\./);
     // The relative link resolves on the same server.
     const player = await server.fetchText(`/${slug}/${href.split('#')[0]}`);

@@ -48,8 +48,6 @@ export interface QuickServeInfo {
   protocol: typeof QUICK_SERVE_PROTOCOL;
   /** Same-origin event stream path. */
   events: string;
-  /** Same-origin comments API base (`/api/comments`). */
-  comments: string;
 }
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -77,13 +75,12 @@ export async function detectQuickServe(
     if (
       info.protocol !== QUICK_SERVE_PROTOCOL ||
       typeof info.events !== 'string' ||
-      !/^\/__protoyard\/[a-z-]+$/.test(info.events) ||
-      typeof info.comments !== 'string' ||
-      !/^\/(?!\/)[A-Za-z0-9._~\-/]{1,120}$/.test(info.comments)
+      !/^\/__protoyard\/[a-z-]+$/.test(info.events)
     ) {
       return null;
     }
-    return { protocol: QUICK_SERVE_PROTOCOL, events: info.events, comments: info.comments };
+    // The comments endpoint is fixed in boot.ts, never taken from this answer.
+    return { protocol: QUICK_SERVE_PROTOCOL, events: info.events };
   } catch {
     return null;
   } finally {

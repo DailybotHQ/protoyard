@@ -82,7 +82,7 @@ const ScreenshotsSchema = z
     /** A recorded skip is not a failure (a missing browser is recorded, not failed). */
     skipped: z
       .object({
-        reason: z.enum(['playwright-unavailable', 'capture-failed']),
+        reason: z.enum(['playwright-unavailable', 'browser-unavailable', 'capture-failed']),
         at: Timestamp,
       })
       .strict()

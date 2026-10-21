@@ -210,9 +210,10 @@ On `127.0.0.1` only, `runPlayer` asks its own origin for `/__protoyard/serve.jso
 chunk) and turns on two things. Anywhere else, including the hosted player, it neither probes
 nor loads the module.
 
-- **Review comments:** `bootPlayer` gets `review: { endpoint: '/api/comments' }`. The
-  prototype's manifest then uses the `http` review adapter on that same-origin endpoint, and
-  `comments=1` mounts the lazy review UI. Comments land in the exploration's
+- **Review comments:** `bootPlayer` gets `review: true`. The prototype's manifest then uses
+  the `http` review adapter on the fixed same-origin endpoint `QUICK_REVIEW_ENDPOINT`
+  (`/api/comments`), never one from the URL or the server's answer. `comments=1` mounts the
+  lazy review UI. Comments land in the exploration's
   `review/comments.json` ([REVIEW_COMMENTS](../../docs/REVIEW_COMMENTS.md#quick-explorations)).
   `?devtools=0` hides the review UI with DevTools.
 - **Live reload:** it subscribes to the server-sent events on `/__protoyard/events`.

@@ -75,17 +75,16 @@ expose the local server publicly. Before hosting or sharing any output, inspect
 and the blueprint can carry details derived from it. These folders are local
 exploration artifacts, not access-controlled deployments.
 
-## Workflow ideas not yet implemented in the current CLI
+## Managing explorations
 
-The following shapes are on the roadmap. They are documentation of
-planned work, not commands to try on a release whose help does not list them.
+Screenshots (`quick shot`, `quick … --screenshot`), patches with undo
+(`quick iterate`, `quick undo`), review feedback (`quick feedback`), validation
+reports (`quick report`), browsing (`quick list`, `quick open`, `quick index`)
+and cleanup (`quick prune`) are commands; see [cli.md](cli.md) for their flags.
+The CLI's installed help is the source of truth.
 
-| Planned activity | Proposed form | Current status |
-| --- | --- | --- |
-| Capture a screenshot for each variant when Playwright is available | `protoyard quick --screenshot` | Not in current help; use an existing visual-review workflow if one meets the need. |
-| Export local review comments | `protoyard quick feedback <dir>` | Not in current help; record feedback through an existing review workflow or local notes. |
-| Summarize validation sessions | `protoyard quick report <dir>` | Not in current help. Blueprint `validation.tasks` already run in the player's validation panel, which keeps attempts in the browser and downloads a metrics file; there is no CLI report yet. |
-| Prune entries by age | `protoyard quick prune --older-than <days>` | Not in current help; do not invent subcommands. Deletion requires showing the exact path and user confirmation. |
-
-These proposals may change before release. The CLI's installed help is the
-source of truth.
+`quick prune` only lists by default. Removing needs `--yes` typed on that
+command (CI=1 alone never removes anything): show the developer the list and
+the exact folders first, and ask before running it with `--yes`. It never
+removes a promoted exploration, and keeps one whose comments are newer than
+its REVIEW.md unless `--force`.
