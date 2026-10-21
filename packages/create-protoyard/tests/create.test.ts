@@ -24,6 +24,7 @@ import {
   createWorkspace,
   detectPackageManager,
   isInside,
+  packageManagerPin,
   packageNameFor,
   parseArgs,
   STARTER_SLUG,
@@ -93,6 +94,17 @@ describe('helpers', () => {
     expect(detectPackageManager('npm/11.6.0 node/v24.20.0 darwin arm64')).toBe('npm');
     expect(detectPackageManager('pnpm/11.23.0 npm/? node/v24.20.0')).toBe('pnpm');
     expect(detectPackageManager('')).toBe('pnpm');
+  });
+
+  it('pins the exact package manager version that ran create, so Corepack keeps it', () => {
+    expect(packageManagerPin('pnpm', 'pnpm/11.23.0 npm/? node/v24.20.0 darwin arm64')).toBe(
+      'pnpm@11.23.0'
+    );
+    expect(packageManagerPin('npm', 'npm/11.6.2 node/v24.20.0 linux x64')).toBe('npm@11.6.2');
+    // No exact version, or another manager: no pin rather than a guess.
+    expect(packageManagerPin('pnpm', 'npm/11.6.2 node/v24.20.0')).toBeNull();
+    expect(packageManagerPin('pnpm', 'pnpm/11 node/v24')).toBeNull();
+    expect(packageManagerPin('pnpm', '')).toBeNull();
   });
 
   it('parses every flag and refuses unknown ones', () => {

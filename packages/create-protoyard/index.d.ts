@@ -55,6 +55,7 @@ export declare const STARTER_SLUG: string;
 export declare const DEFAULT_TEMPLATE: string;
 export declare function packageNameFor(folder: string): string | null;
 export declare function detectPackageManager(userAgent?: string): 'pnpm' | 'npm';
+export declare function packageManagerPin(pm: 'pnpm' | 'npm', userAgent?: string): string | null;
 export declare function isInside(parent: string, child: string): boolean;
 export declare function checkTarget(
   dir: string | undefined,
