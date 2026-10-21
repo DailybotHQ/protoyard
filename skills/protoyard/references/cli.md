@@ -50,7 +50,12 @@ level, beside `ok`, `command` and `data`, on every outcome (new in PLAN_004):
 `"interface": 1` and `"capabilities"`, the sorted ids this CLI implements
 (`blueprint-schema`, `generate`, `player`, `quick`; `import` and `mcp` are
 defined but not implemented yet). Tools detect Protoyard by reading
-`interface`. See the [interface guide](https://protoyard.app/docs/interface/).
+`interface`.
+
+`protoyard --version` stays plain semver. `protoyard --version --json` (new in
+PLAN_004) prints exactly `{"version":"<semver>","interface":1}` and exits 0
+anywhere, even outside a workspace, so it is the detection probe. See the
+[interface guide](https://protoyard.app/docs/interface/).
 
 Exit codes are `0` ok, `1` failure or conflict, `2` usage or unsafe path,
 `3` not found, `4` validation (invalid input, failed check or budget), and

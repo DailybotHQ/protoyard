@@ -107,6 +107,13 @@ export function readPackageJson(path: string): PackageJson | null {
   }
 }
 
+/**
+ * The machine interface major (docs/INTERFACE.md): versioned apart from the
+ * package version, it bumps only on a breaking change to what tools rely on.
+ * `doctor --json` and `--version --json` report it.
+ */
+export const INTERFACE_MAJOR = 1;
+
 /** The CLI's own version, read from its package.json (never hard-coded). */
 export const CLI_VERSION: string =
   readPackageJson(fileURLToPath(new URL('../../package.json', import.meta.url)))?.version ??

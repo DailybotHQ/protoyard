@@ -6,7 +6,27 @@ CI script, need one stable answer to two questions:
 - Is Protoyard installed?
 - Which contract does it speak?
 
-`protoyard doctor --json` answers both with two top-level fields.
+Two commands answer them:
+- `protoyard --version --json` works anywhere and needs no workspace.
+- `protoyard doctor --json` adds the capability list and the health checks.
+
+## `--version`
+
+```bash
+protoyard --version          # 1.0.0              (plain semver, unchanged)
+protoyard --version --json   # {"version":"1.0.0","interface":1}
+```
+
+- **Plain form:** `--version` (or `-v`) prints the package version alone, for
+  people and scripts.
+- **JSON form:** with `--json` it prints exactly one JSON object with two keys:
+  - `version`, read from the CLI's package.json;
+  - `interface`, the same major `doctor --json` reports.
+- **It always exits 0**, inside or outside a workspace, so it is the probe for
+  detection. Both flags must be global options, before any command word, in
+  any order (`protoyard --json -v` works too).
+
+## `doctor --json`
 
 ```bash
 protoyard doctor --json --offline
@@ -70,29 +90,27 @@ keeps the list honest (`packages/cli/tests/interface.test.ts`).
 
 ## Detecting Protoyard
 
-**Inside a workspace**, read the field directly:
+Use `--version --json`: it exits 0 wherever the CLI is installed and reads
+nothing else.
 
 ```json
 {
   "detect": {
-    "command": "protoyard doctor --json --offline",
+    "command": "protoyard --version --json",
     "interface_from": "json:interface"
   }
 }
 ```
 
-**Two cautions for detectors:**
+Use `doctor --json --offline` when a tool also needs the capabilities or the
+health checks, with two cautions:
 - **A non-zero exit can still mean "installed".** `doctor` keeps its exit
   codes: 1 when a required check fails, and 3 when it runs outside a Protoyard
   workspace. A detector that treats only exit 0 as "present" reports an
   installed CLI as absent in those cases, even though the envelope still
-  carries `interface`. Run the probe inside the workspace the tool works on.
-- **`--offline`** keeps `doctor` from contacting provider CLIs, so detection
-  never needs the network.
-
-A `--version` form that works anywhere is planned
-(`protoyard --version --json`, printing `{"version", "interface"}`). It is not
-available in this CLI yet.
+  carries `interface`. Run it inside the workspace the tool works on.
+- **`--offline`** keeps `doctor` from contacting provider CLIs, so it never
+  needs the network.
 
 ## See also
 
