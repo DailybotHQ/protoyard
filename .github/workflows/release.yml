@@ -64,6 +64,10 @@ jobs:
         run: |
           version=${TAG#v}
           pnpm exec tsx scripts/stamp-skill-version.ts "$version" --check
+      - name: Smoke-install the tagged skill release
+        env:
+          TAG: ${{ github.ref_name }}
+        run: bash scripts/smoke-install-skill.sh "$TAG"
       - name: Every public package is on the lockstep version
         run: pnpm version-packages --check
       - name: Lint, types, unit tests
@@ -162,5 +166,5 @@ jobs:
           bash scripts/changelog-section.sh "$version" > release-notes.md
           prerelease=""
           case "$version" in *-*) prerelease="--prerelease" ;; esac
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Protoyard $TAG" \
+          gh release create "$TAG" SHA256SUMS --repo "$GITHUB_REPOSITORY" --title "Protoyard $TAG" \
             --notes-file release-notes.md --verify-tag $prerelease
