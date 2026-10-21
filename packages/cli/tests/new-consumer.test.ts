@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { TEMPLATES_ROOT } from '@protoyard/templates';
 import { describe, expect, it } from 'vitest';
@@ -38,6 +38,13 @@ describe('protoyard new in consumer workspaces', () => {
       expect(protoyardDeps.length).toBeGreaterThan(0);
       expect(protoyardDeps.every(([, version]) => version === CLI_VERSION)).toBe(true);
       expect(JSON.stringify(pkg)).not.toContain('workspace:');
+      const tsconfig = JSON.parse(
+        readFileSync(join(ws.root, 'prototypes/consumer-app/tsconfig.json'), 'utf8')
+      ) as Record<string, unknown>;
+      expect(tsconfig.extends).toBeUndefined();
+      expect(existsSync(join(ws.root, 'prototypes/consumer-app/tests/avatars.test.ts'))).toBe(
+        false
+      );
     } finally {
       ws.cleanup();
     }

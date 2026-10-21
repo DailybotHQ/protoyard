@@ -38,6 +38,8 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Player sources, share links, embed, reload persistence and namespace isolation (desktop + Pixel 7) | `PROTOYARD_E2E_PLAYER=1 pnpm exec playwright test tests/e2e/player.spec.ts` | scoped |
 | One prototype end to end | `pnpm protoyard validate crm-demo --build` | scoped |
 | Bundle size budgets (after build) | `pnpm protoyard budget --all --skip-build` | full |
+| Package tarball consumer loop (pnpm) | `pnpm build:packages && pnpm verify:packages` | full |
+| Package tarball consumer loop (npm) | `pnpm build:packages && pnpm verify:packages --pm npm` | full |
 | Index scale budget (1,000 manifests) | `pnpm bench:index --runs 3 --check` | full |
 | Scenario generation budget | `pnpm protoyard scenario bench <slug> --check` | scoped |
 | Cold-start bench (report; optional `--check`) | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --runs 3` | scoped |
@@ -155,6 +157,7 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/<pkg>/src/**` | `packages/<pkg>/tests/*.test.ts` | unit / integration |
 | `packages/runtime/src/**` | `packages/runtime/tests/runtime.test.ts`, which uses the fixture `tests/fixtures/tasks-prototype.ts` | integration on fake IndexedDB |
 | `packages/cli/src/**` | `packages/cli/tests/*.test.ts` (temporary workspaces) | integration |
+| `scripts/verify-packages.ts` | `packages/cli/tests/verify-packages.test.ts` + `pnpm verify:packages` (pnpm and npm) | packed consumer integration |
 | `packages/cli/src/commands/publish.ts`, publish batch helpers | `publish.test.ts`, `publish-batch.test.ts` | integration; batch command row above |
 | `packages/cli/src/lib/publish-ledger.ts` | `publish-ledger.test.ts`; ledger consumers in `publish-batch.test.ts` and `review-index.test.ts` | ledger persistence and consumers |
 | `packages/cli/src/commands/review-index.ts` | `review-index.test.ts` + `tests/e2e/review-index.spec.ts` | CLI integration + opt-in browser E2E |
