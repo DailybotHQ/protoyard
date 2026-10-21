@@ -7,7 +7,16 @@
  * the same CLI loop a consumer would run.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +27,7 @@ export interface VerifyOptions {
   root?: string;
   pm?: PackageManager;
   keep?: boolean;
+  budgetParity?: boolean;
 }
 
 export interface VerifyResult {
@@ -27,6 +37,15 @@ export interface VerifyResult {
   consumer: string;
   packages: string[];
   steps: { name: string; ok: boolean; detail?: string }[];
+}
+
+export interface BudgetParityResult {
+  ok: boolean;
+  sourceInitialJsGzipKb: number;
+  distInitialJsGzipKb: number;
+  deltaKb: number;
+  maxDeltaKb: 2;
+  maxInitialJsGzipKb: 250;
 }
 
 interface PackageManifest {
@@ -66,6 +85,7 @@ export function packageDirectories(root: string): string[] {
 export function parseArgs(args: readonly string[]): VerifyOptions {
   let pm: PackageManager = 'pnpm';
   let keep = false;
+  let budgetParity = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--pm') {
@@ -78,11 +98,29 @@ export function parseArgs(args: readonly string[]): VerifyOptions {
       pm = value;
     } else if (arg === '--keep') {
       keep = true;
+    } else if (arg === '--budget-parity') {
+      budgetParity = true;
     } else {
       throw new Error(`Unknown option: ${arg ?? '(missing)'}`);
     }
   }
-  return { pm, keep };
+  return { pm, keep, budgetParity };
+}
+
+/** Compare a packed consumer build with the same template built from workspace source. */
+export function compareBudgetParity(
+  sourceInitialJsGzipKb: number,
+  distInitialJsGzipKb: number
+): BudgetParityResult {
+  const deltaKb = Math.abs(distInitialJsGzipKb - sourceInitialJsGzipKb);
+  return {
+    ok: deltaKb <= 2 && distInitialJsGzipKb <= 250,
+    sourceInitialJsGzipKb,
+    distInitialJsGzipKb,
+    deltaKb,
+    maxDeltaKb: 2,
+    maxInitialJsGzipKb: 250,
+  };
 }
 
 /** Child processes must not inherit pnpm's hoisted module lookup. */
@@ -281,6 +319,124 @@ async function runJsonCli(
   };
 }
 
+async function runSourceJsonCli(
+  root: string,
+  args: readonly string[],
+  name: string
+): Promise<{ step: { name: string; ok: boolean; detail?: string }; data?: unknown }> {
+  const result = await run(
+    process.execPath,
+    ['--import', 'tsx', join(root, 'packages', 'cli', 'src', 'bin.ts'), '--json', ...args],
+    root,
+    { timeoutMs: 900_000 }
+  );
+  type JsonEnvelope = { ok?: boolean; data?: unknown; error?: { message?: string } };
+  let envelope: JsonEnvelope | undefined;
+  try {
+    envelope = JSON.parse(result.stdout.trim()) as JsonEnvelope;
+  } catch {
+    // The detail below includes stderr but never dumps a full environment.
+  }
+  const ok = result.code === 0 && envelope?.ok === true;
+  const detail = envelope?.error?.message ?? (result.stderr.trim() || result.stdout.trim());
+  return {
+    step: { name, ok, ...(ok ? {} : { detail }) },
+    ...(envelope?.data === undefined ? {} : { data: envelope.data }),
+  };
+}
+
+function initialJsGzipKb(data: unknown): number | undefined {
+  if (typeof data !== 'object' || data === null || !('results' in data)) return undefined;
+  const results = (data as { results?: unknown }).results;
+  if (!Array.isArray(results)) return undefined;
+  const metrics = (results[0] as { metrics?: unknown } | undefined)?.metrics;
+  if (!Array.isArray(metrics)) return undefined;
+  const metric = metrics.find(
+    (item): item is { metric: string; value: number } =>
+      typeof item === 'object' &&
+      item !== null &&
+      'metric' in item &&
+      item.metric === 'initialJsGzip' &&
+      'value' in item &&
+      typeof item.value === 'number' &&
+      Number.isFinite(item.value)
+  );
+  return metric?.value;
+}
+
+async function verifyBudgetParity(
+  root: string,
+  cli: string,
+  consumer: string,
+  steps: VerifyResult['steps']
+): Promise<void> {
+  const distBudget = await runJsonCli(
+    cli,
+    ['budget', 'second-app', '--skip-build'],
+    consumer,
+    'scaffolded dist prototype budget'
+  );
+  const distValue = initialJsGzipKb(distBudget.data);
+  steps.push({
+    ...distBudget.step,
+    ok: distBudget.step.ok && distValue !== undefined,
+    ...(distValue === undefined
+      ? { detail: distBudget.step.detail ?? 'budget did not report initial JS gzip' }
+      : { detail: `initial JS gzip ${distValue.toFixed(2)} KB` }),
+  });
+  if (distValue === undefined) return;
+
+  const baselineSlug = `dist-parity-${randomUUID()}`;
+  const baselineDirectory = join(root, 'prototypes', baselineSlug);
+  const baselineArtifact = join(root, 'artifacts', baselineSlug);
+  if (existsSync(baselineDirectory) || existsSync(baselineArtifact))
+    throw new Error(`refusing to overwrite existing parity fixture ${baselineSlug}`);
+  let scaffolded = false;
+  try {
+    const scaffold = await runSourceJsonCli(
+      root,
+      ['new', baselineSlug, '--template', 'blank', '--no-install'],
+      'source template scaffold'
+    );
+    steps.push(scaffold.step);
+    scaffolded = scaffold.step.ok;
+    if (!scaffolded) return;
+
+    // Reuse the installed workspace links from the source blank template so
+    // the source comparison needs no install and never touches the lockfile.
+    symlinkSync(
+      join(root, 'templates', 'blank', 'node_modules'),
+      join(baselineDirectory, 'node_modules'),
+      'dir'
+    );
+
+    const sourceBudget = await runSourceJsonCli(
+      root,
+      ['budget', baselineSlug],
+      'source template budget'
+    );
+    const sourceValue = initialJsGzipKb(sourceBudget.data);
+    steps.push({
+      ...sourceBudget.step,
+      ok: sourceBudget.step.ok && sourceValue !== undefined,
+      ...(sourceValue === undefined
+        ? { detail: sourceBudget.step.detail ?? 'budget did not report initial JS gzip' }
+        : { detail: `initial JS gzip ${sourceValue.toFixed(2)} KB` }),
+    });
+    if (sourceValue === undefined) return;
+
+    const parity = compareBudgetParity(sourceValue, distValue);
+    steps.push({
+      name: 'dist/source initial JS budget parity',
+      ok: parity.ok,
+      detail: `source ${parity.sourceInitialJsGzipKb.toFixed(2)} KB; dist ${parity.distInitialJsGzipKb.toFixed(2)} KB; delta ${parity.deltaKb.toFixed(2)} KB (max ${parity.maxDeltaKb} KB); cap ${parity.maxInitialJsGzipKb} KB`,
+    });
+  } finally {
+    if (scaffolded) rmSync(baselineDirectory, { recursive: true, force: true });
+    rmSync(baselineArtifact, { recursive: true, force: true });
+  }
+}
+
 /** Runs a long-lived JSON command until its envelope is printed, then stops it. */
 async function runJsonEnvelope(
   cli: string,
@@ -469,6 +625,7 @@ export async function verifyPackages(options: VerifyOptions = {}): Promise<Verif
       steps.push(checked.step);
       if (!checked.step.ok) throw new Error(`${name} failed`);
     }
+    if (options.budgetParity) await verifyBudgetParity(root, cli, consumer, steps);
     steps.push(await checkGalleryEnvelope(cli, consumer));
     steps.push(
       await verifyGalleryBuild(
@@ -504,7 +661,10 @@ if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
   if (options) {
     verifyPackages(options)
       .then((result) => {
-        for (const step of result.steps) console.log(`${step.ok ? 'pass' : 'fail'} ${step.name}`);
+        for (const step of result.steps)
+          console.log(
+            `${step.ok ? 'pass' : 'fail'} ${step.name}${step.detail ? ` — ${step.detail}` : ''}`
+          );
         if (!result.ok) process.exitCode = 1;
       })
       .catch((error) => {
