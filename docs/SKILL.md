@@ -187,6 +187,27 @@ A failed upgrade is rolled back by reinstalling the previous tag the same way
 or restoring the manual backup. The flow never follows `main` or `latest` and
 never runs a downloaded shell script.
 
+For a copy installed with `setup.sh`, the release's
+[`scripts/upgrade-skill.sh`](../scripts/upgrade-skill.sh) runs the check and
+the replacement against a local checkout of the selected tag
+(`git clone --branch vX.Y.Z --depth 1 …`); it never fetches anything itself:
+
+```bash
+bash scripts/upgrade-skill.sh --host claude --from /tmp/protoyard-vX.Y.Z --tag vX.Y.Z         # report only
+bash scripts/upgrade-skill.sh --host claude --from /tmp/protoyard-vX.Y.Z --tag vX.Y.Z --yes   # after consent
+```
+
+Without `--yes` it reports the installed and selected versions, verifies the
+selected skill against its `SHA256SUMS`, lists installed files that differ,
+prints the exact `setup.sh --replace` command, and changes nothing. A
+checksum failure or a version that does not match `--tag` stops it (exit 1),
+and a downgrade is refused (exit 3) unless `--allow-downgrade`. Only `--yes`
+replaces, never `CI=1`. The replacement moves the old copy to
+`~/.protoyard/skill-backups/` and leaves host settings and other skills alone,
+then checks the installed version and checksums. The options are in the
+skill's [`references/upgrade.md`](../skills/protoyard/references/upgrade.md);
+the behavior is covered by `tests/scripts/upgrade-skill.test.ts`.
+
 ## Reusable kits
 
 The `kits` sub-skill (`skills/protoyard/kits/SKILL.md`) tells an agent to pick
