@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { lstatSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, relative, resolve, sep } from 'node:path';
 import { defineProtoyardConfig } from '@protoyard/renderer-svelte/vite';
 import type { Plugin } from 'vite';
 
@@ -17,7 +17,18 @@ import type { Plugin } from 'vite';
  * workers and frames limited to the same origin. A meta tag carries it at
  * the top of <head>, so it governs every script after it; `_headers` repeats
  * it as an HTTP header with `frame-ancestors`, which a meta tag cannot set.
+ *
+ * The app builds into `dist/app/` (never `dist/`): `pnpm build:packages`
+ * emits the embed client into `dist/embed/` and keeps `dist/app/`, and Vite
+ * only empties its own folder. After the build, `protoyard-player-assets.json`
+ * lists every file of the app with its size and sha256, the contract that
+ * `protoyard quick` verifies before it copies the player (ADR-031).
  */
+
+/** Where `vite build` writes the app, relative to this package. */
+export const PLAYER_APP_DIR = 'dist/app';
+/** Must match PLAYER_ASSETS_MANIFEST in packages/cli/src/lib/quick/player-assets.ts. */
+export const PLAYER_ASSETS_MANIFEST = 'protoyard-player-assets.json';
 
 /** Origins that may frame the player (embedding pages, ADR-030); never `*`. */
 export const PLAYER_FRAME_ANCESTORS = [
@@ -58,7 +69,7 @@ export function inlineScripts(html: string): string[] {
 const sha256 = (text: string) => createHash('sha256').update(text, 'utf8').digest('base64');
 
 function cspPlugin(): Plugin {
-  let outDir = 'dist';
+  let outDir = PLAYER_APP_DIR;
   let csp = '';
   return {
     name: 'protoyard-player-csp',
@@ -88,9 +99,85 @@ function cspPlugin(): Plugin {
   };
 }
 
+export interface PlayerAssetsManifest {
+  format: 'protoyard.player-assets';
+  version: 1;
+  player: string;
+  files: { path: string; size: number; sha256: string }[];
+}
+
+/**
+ * The asset manifest for a built app folder: every regular file except the
+ * manifest itself (including `_headers`, `sw.js` and `.vite/manifest.json`),
+ * as sorted POSIX paths. Links and special files are refused, as the CLI's
+ * `verifyPlayerAssets` would refuse them.
+ */
+export function playerAssetsManifest(appDir: string, player: string): PlayerAssetsManifest {
+  const paths: string[] = [];
+  const visit = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      const rel = relative(appDir, full).split(sep).join('/');
+      if (entry.isDirectory()) visit(full);
+      else if (entry.isFile()) paths.push(rel);
+      else throw new Error(`The player build has a link or special file: ${rel}`);
+    }
+  };
+  visit(appDir);
+  const files = paths
+    .filter((path) => path !== PLAYER_ASSETS_MANIFEST)
+    .sort()
+    .map((path) => {
+      const full = join(appDir, ...path.split('/'));
+      const data = readFileSync(full);
+      return {
+        path,
+        size: lstatSync(full).size,
+        sha256: createHash('sha256').update(data).digest('hex'),
+      };
+    });
+  if (!files.some((file) => file.path === 'index.html')) {
+    throw new Error('The built player has no index.html.');
+  }
+  return { format: 'protoyard.player-assets', version: 1, player, files };
+}
+
+/** Writes the asset manifest last, after `_headers` and the service worker. */
+function assetsManifestPlugin(): Plugin {
+  let outDir = PLAYER_APP_DIR;
+  return {
+    name: 'protoyard-player-assets-manifest',
+    apply: 'build',
+    enforce: 'post',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir);
+    },
+    closeBundle: {
+      order: 'post',
+      sequential: true,
+      handler() {
+        const { version } = JSON.parse(
+          readFileSync(join(import.meta.dirname, 'package.json'), 'utf8')
+        ) as { version: string };
+        const manifest = playerAssetsManifest(outDir, version);
+        writeFileSync(
+          join(outDir, PLAYER_ASSETS_MANIFEST),
+          `${JSON.stringify(manifest, null, 2)}\n`
+        );
+      },
+    },
+  };
+}
+
 export default defineProtoyardConfig({
   root: import.meta.dirname,
-  plugins: [cspPlugin()],
+  plugins: [cspPlugin(), assetsManifestPlugin()],
+  // PROTOYARD_OUT_DIR and `--outDir` still win (showcase, e2e, visual sweep).
+  build: {
+    outDir: process.env.PROTOYARD_OUT_DIR
+      ? undefined
+      : resolve(import.meta.dirname, PLAYER_APP_DIR),
+  },
   // The world-generation worker is a module worker. Building it as ES modules
   // lets it code-split and tree-shake like the app: its dynamic Faker import
   // keeps only `Faker`, `en` and `base` instead of every bundled locale.

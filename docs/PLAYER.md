@@ -88,6 +88,12 @@ runtime style attributes and elements Svelte and the theme engine create.
 Cloudflare Pages reads `_headers` only at the output root, so showcase builds
 merge the player rules there rather than relying on the nested player file.
 
+A local `pnpm --filter @protoyard/player build` writes the app to
+`packages/player/dist/app/`, next to the published embed client in
+`dist/embed/`. The folder holds `_headers` and `protoyard-player-assets.json`,
+the sha256 list of every other file that `protoyard quick` verifies before it
+copies the player.
+
 ## Where a blueprint comes from
 
 The player resolves its source in a fixed order: a `#bp=` share link, then

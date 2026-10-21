@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net';
 import { extname, join, normalize } from 'node:path';
 
 /**
- * Serves the built player (packages/player/dist) on 127.0.0.1 with the CSP
+ * Serves the built player (packages/player/dist/app) on 127.0.0.1 with the CSP
  * header from its `_headers`, plus extra same-origin files (blueprint
  * fixtures), on an OS-assigned port. Builds the player first when dist is
  * missing.
@@ -23,7 +23,7 @@ const MIME: Record<string, string> = {
 };
 
 export function ensurePlayerBuild(root: string): string {
-  const dist = join(root, 'packages/player/dist');
+  const dist = join(root, 'packages/player/dist/app');
   if (!existsSync(join(dist, 'index.html'))) {
     const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
       cwd: root,

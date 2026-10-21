@@ -275,29 +275,57 @@ describe('materializePlayer', () => {
   });
 });
 
-const realDist = join(REPO, 'packages', 'player', 'dist');
-const built = existsSync(join(realDist, 'index.html'));
+const realPlayer = join(REPO, 'packages', 'player');
+const realApp = join(realPlayer, 'dist', 'app');
+const built = existsSync(join(realApp, 'index.html'));
 
 describe.skipIf(!built)(
-  'the real player build (after pnpm --filter @protoyard/player build)',
+  'the real player build in packages/player/dist/app (after pnpm --filter @protoyard/player build)',
   () => {
-    it('manifests, verifies and materializes the real bundle', async () => {
-      // A copy: the test never writes into the repository's build.
-      const pkg = join(temp(), 'player');
-      const version = JSON.parse(
-        readFileSync(join(REPO, 'packages', 'player', 'package.json'), 'utf8')
-      ).version;
-      write(join(pkg, 'package.json'), { name: '@protoyard/player', version });
-      cpSync(realDist, join(pkg, 'dist', 'app'), {
-        recursive: true,
-        filter: (src) => !src.includes(`${join(realDist, '.vite')}`),
+    it('ships a manifest that locatePlayerAssets and verifyPlayerAssets accept as is', async () => {
+      const version = JSON.parse(readFileSync(join(realPlayer, 'package.json'), 'utf8')).version;
+      const assets = locatePlayerAssets({
+        workspaceRoot: null,
+        resolveInstalled: () => realPlayer,
       });
-      const manifest = await createPlayerAssetsManifest(join(pkg, 'dist', 'app'), version);
-      expect(manifest.files.length).toBeGreaterThan(50);
-      const assets = locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => pkg });
+      expect(assets.dir).toBe(realApp);
+      expect(assets.version).toBe(version);
+      expect(assets.manifest.player).toBe(version);
+      const paths = assets.manifest.files.map((file) => file.path);
+      expect(paths).toEqual([...paths].sort());
+      expect(paths).toEqual(expect.arrayContaining(['index.html', '_headers', 'sw.js']));
+      expect(paths).not.toContain(PLAYER_ASSETS_MANIFEST);
+      await verifyPlayerAssets(assets.dir, assets.manifest);
+
       const out = await materializePlayer(assets, { kind: 'shared', zone: join(temp(), 'zone') });
       expect(existsSync(join(out.dir, 'index.html'))).toBe(true);
-      expect(out.files).toBe(manifest.files.length);
+      expect(out.files).toBe(assets.manifest.files.length);
+    }, 120_000);
+
+    it('matches the manifest createPlayerAssetsManifest writes for the same files', async () => {
+      const copy = join(temp(), 'app');
+      cpSync(realApp, copy, { recursive: true });
+      const shipped = readPlayerAssetsManifest(realApp);
+      expect(await createPlayerAssetsManifest(copy, shipped.player)).toEqual(shipped);
+    }, 120_000);
+  }
+);
+
+const embedBuilt = existsSync(join(realPlayer, 'dist', 'embed', 'index.js'));
+
+describe.skipIf(!built || !embedBuilt)(
+  'the real player app and embed builds side by side (after build:packages and the player build, either order)',
+  () => {
+    it('leaves dist/embed and a verified dist/app next to each other', async () => {
+      expect(existsSync(join(realPlayer, 'dist', 'embed', 'index.d.ts'))).toBe(true);
+      // Nothing of the app leaks into dist/ itself, and nothing of the embed into the app.
+      expect(readdirSync(join(realPlayer, 'dist')).sort()).toEqual(['app', 'embed']);
+      const assets = locatePlayerAssets({
+        workspaceRoot: null,
+        resolveInstalled: () => realPlayer,
+      });
+      expect(assets.manifest.files.some((file) => file.path.startsWith('embed/'))).toBe(false);
+      await verifyPlayerAssets(assets.dir, assets.manifest);
     }, 120_000);
   }
 );

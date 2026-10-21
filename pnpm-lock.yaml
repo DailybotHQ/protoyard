@@ -241,6 +241,9 @@ importers:
       '@protoyard/offline':
         specifier: workspace:*
         version: link:../offline
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../player
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../renderer-svelte
