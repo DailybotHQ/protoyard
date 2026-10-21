@@ -99,6 +99,11 @@ when a build turns review comments on, and on `offline`, whose Vite plugin
 adds the service worker only to builds that ask for it. The CLI
 uses `blueprint`, `review`, `themes`, `offline` and `renderer-svelte`.
 
+This graph describes workspace dependencies. For public package names,
+supported install paths, export subpaths, and the current npm release status,
+see [PACKAGES.md](PACKAGES.md). Workspace development stays source-first;
+published engine and Svelte packages map their exports to built `dist/` files.
+
 ## The prototype contract
 
 ```text
