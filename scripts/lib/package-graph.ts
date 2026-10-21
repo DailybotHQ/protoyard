@@ -12,6 +12,8 @@ export interface WorkspacePackageJson {
       assets?: unknown;
       /** Optional build group name (`engine`), usable as a `--filter`. */
       group?: unknown;
+      /** Top-level `dist/` folders another build owns, kept when `dist/` is cleaned. */
+      keep?: unknown;
     };
   };
 }
@@ -22,6 +24,8 @@ export interface WorkspacePackage {
   manifest: WorkspacePackageJson;
   buildConfig: 'tsc' | 'svelte' | null;
   assets: string[];
+  /** `protoyard.build.keep`: `dist/<name>` folders the clean step leaves alone (the player app). */
+  keep: string[];
   /** `protoyard.build.group`, when the manifest names one. */
   group: string | null;
   dependencies: string[];
@@ -151,6 +155,22 @@ function buildConfig(
   return { config: null, assets };
 }
 
+const KEEP_NAME = /^[a-z0-9][a-z0-9._-]*$/;
+
+function keptDistFolders(name: string, manifest: WorkspacePackageJson): string[] {
+  const keep = manifest.protoyard?.build?.keep;
+  if (keep === undefined) return [];
+  if (
+    !Array.isArray(keep) ||
+    !keep.every((entry) => typeof entry === 'string' && KEEP_NAME.test(entry))
+  ) {
+    throw new PackageGraphError(
+      `protoyard.build.keep must list top-level dist folder names: ${name}`
+    );
+  }
+  return [...keep];
+}
+
 /** Read all package manifests declared by the workspace's package globs. */
 export function readPackageGraph(workspaceRoot: string): PackageGraph {
   const root = resolve(workspaceRoot);
@@ -171,6 +191,7 @@ export function readPackageGraph(workspaceRoot: string): PackageGraph {
       manifest,
       buildConfig: build.config,
       assets: build.assets,
+      keep: keptDistFolders(manifest.name, manifest),
       group:
         typeof manifest.protoyard?.build?.group === 'string'
           ? manifest.protoyard.build.group

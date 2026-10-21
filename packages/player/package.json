@@ -73,7 +73,10 @@
   "protoyard": {
     "build": {
       "group": "engine",
-      "assets": []
+      "assets": [],
+      "keep": [
+        "app"
+      ]
     }
   }
 }

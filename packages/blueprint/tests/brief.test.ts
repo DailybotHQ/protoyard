@@ -101,6 +101,19 @@ describe('blueprintFromBrief fixtures', () => {
 });
 
 describe('blueprintFromBrief behavior', () => {
+  it('renames a tracked noun whose list route is reserved (/members) instead of failing', () => {
+    const { blueprint } = blueprintFromBrief(
+      'A fictional climbing gym books classes, tracks members and their passes.'
+    );
+    const names = blueprint.entities.map((e) => e.name);
+    expect(names).toContain('member-profile');
+    expect(names).not.toContain('member');
+    const pass = blueprint.entities.find((e) => e.name === 'pass');
+    expect(pass?.fields.some((f) => f.name === 'memberProfile' && f.kind === 'relation')).toBe(
+      true
+    );
+  });
+
   it('explains the archetype, added entities and inferred fields', () => {
     const { rationale } = blueprintFromBrief(
       'A dog grooming salon that books appointments, tracks groomers and invoices with amount and due date.'

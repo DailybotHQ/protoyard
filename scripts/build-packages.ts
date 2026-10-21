@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -114,14 +114,30 @@ function copyAssets(pkg: WorkspacePackage): string[] {
   return copied;
 }
 
+/**
+ * Empties `dist/` before a build, except the folders the package keeps
+ * (`protoyard.build.keep`): the player's Vite app in `dist/app/` survives the
+ * embed client's tsc build, and Vite only ever empties that folder itself.
+ */
+function cleanDist(pkg: WorkspacePackage): void {
+  const dist = join(pkg.dir, 'dist');
+  if (pkg.keep.length === 0 || !existsSync(dist)) {
+    rmSync(dist, { recursive: true, force: true });
+  } else {
+    for (const entry of readdirSync(dist)) {
+      if (!pkg.keep.includes(entry)) rmSync(join(dist, entry), { recursive: true, force: true });
+    }
+  }
+  mkdirSync(dist, { recursive: true });
+}
+
 async function buildOne(
   pkg: WorkspacePackage,
   run: BuildCommandRunner
 ): Promise<BuiltPackageResult> {
   if (!pkg.buildConfig) throw new PackageGraphError(`Package is not opted in: ${pkg.name}`);
   const { args, strategy } = packageCommand(pkg);
-  rmSync(join(pkg.dir, 'dist'), { recursive: true, force: true });
-  mkdirSync(join(pkg.dir, 'dist'), { recursive: true });
+  cleanDist(pkg);
   const result = await run(process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm', args, pkg.dir);
   if (result.code !== 0) {
     return {

@@ -22,6 +22,7 @@
     "@protoyard/core": "workspace:*",
     "@protoyard/crud": "workspace:*",
     "@protoyard/offline": "workspace:*",
+    "@protoyard/player": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/review": "workspace:*",
     "@protoyard/templates": "workspace:*",

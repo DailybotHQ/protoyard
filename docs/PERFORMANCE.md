@@ -878,7 +878,7 @@ happens; the long-task table was not re-measured.)
 ## Player bundle budget (measured 2026-10-20)
 
 `packages/player/tests/budget.test.ts` reads the player's Vite manifest
-(`packages/player/dist/.vite/manifest.json`) with `classifyChunks`. It skips
+(`packages/player/dist/app/.vite/manifest.json`) with `classifyChunks`. It skips
 itself when the player is not built, so run it after
 `pnpm --filter @protoyard/player build`. One local build measured:
 

@@ -18,6 +18,7 @@ function createPackage(
     optedIn?: boolean;
     svelte?: boolean;
     group?: string;
+    keep?: unknown;
   } = {}
 ): string {
   const directory = join(root, 'packages', name.replace('@fixture/', ''));
@@ -33,6 +34,7 @@ function createPackage(
             build: {
               assets: ['src/theme.css'],
               ...(options.group ? { group: options.group } : {}),
+              ...(options.keep !== undefined ? { keep: options.keep } : {}),
             },
           },
         }),
@@ -98,6 +100,38 @@ describe('build-packages', () => {
     const second = await buildPackages({ root, runCommand: runner });
     expect(second.ok).toBe(true);
     expect(existsSync(join(root, 'packages/base/dist/stale-again.txt'))).toBe(false);
+  });
+
+  it('keeps the dist folders a package lists in protoyard.build.keep and cleans the rest', async () => {
+    const root = fixture();
+    const dir = createPackage(root, '@fixture/player', { keep: ['app'] });
+    mkdirSync(join(dir, 'dist', 'app'), { recursive: true });
+    writeFileSync(join(dir, 'dist', 'app', 'index.html'), '<!doctype html>\n');
+    mkdirSync(join(dir, 'dist', 'embed'), { recursive: true });
+    writeFileSync(join(dir, 'dist', 'embed', 'old.js'), 'export {};\n');
+    const runner: BuildCommandRunner = async (_command, _args, cwd) => {
+      mkdirSync(join(cwd, 'dist', 'embed'), { recursive: true });
+      writeFileSync(join(cwd, 'dist', 'embed', 'index.js'), 'export {};\n');
+      return { code: 0, stdout: '', stderr: '' };
+    };
+
+    const result = await buildPackages({ root, filters: ['@fixture/player'], runCommand: runner });
+
+    expect(result.ok).toBe(true);
+    expect(readFileSync(join(dir, 'dist', 'app', 'index.html'), 'utf8')).toContain('doctype');
+    expect(existsSync(join(dir, 'dist', 'embed', 'index.js'))).toBe(true);
+    expect(existsSync(join(dir, 'dist', 'embed', 'old.js'))).toBe(false);
+    expect(existsSync(join(dir, 'dist', 'stale.txt'))).toBe(false);
+  });
+
+  it('refuses a keep entry that is not a top-level dist folder name', async () => {
+    for (const keep of [['../src'], ['app/nested'], 'app', ['']]) {
+      const root = fixture();
+      createPackage(root, '@fixture/player', { keep });
+      await expect(
+        buildPackages({ root, runCommand: async () => ({ code: 0, stdout: '', stderr: '' }) })
+      ).rejects.toThrow(/protoyard\.build\.keep/);
+    }
   });
 
   it('filters a package while retaining its buildable workspace dependencies', async () => {
