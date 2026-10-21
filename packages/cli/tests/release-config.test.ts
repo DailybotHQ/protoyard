@@ -233,11 +233,14 @@ describe('changesets version-packages', () => {
 
 /**
  * release.yml (ADR-028): on a `v*` tag the gate also builds, lints and
- * consumer-installs the packages; the `npm` job alone gets `id-token: write`
- * and publishes each pnpm-packed tarball with `npm publish --provenance` in
- * dependency order, with no npm token; the GitHub Release waits for it. The
- * workflow is read as text by job and step (no YAML dependency), and the
- * publish and dist-tag shell is run for real against a recording fake npm.
+ * consumer-installs the packages, then packs them in dependency order,
+ * checksums the tarballs and uploads both as an artifact. The `npm` job alone
+ * gets `id-token: write`; it has no checkout, install or build, verifies the
+ * checksums and publishes each tarball with `npm publish --provenance` in
+ * order, with no npm token; the GitHub Release waits for it. The workflow is
+ * read as text by job and step (no YAML dependency), and the pack, checksum,
+ * verify, publish and dist-tag shell is run for real (with a recording fake
+ * npm for publishing).
  */
 const WORKFLOW = readFileSync(join(REPO, '.github', 'workflows', 'release.yml'), 'utf8');
 
@@ -302,7 +305,7 @@ describe('release workflow', () => {
     expect(WORKFLOW).not.toMatch(/secrets\./);
     expect(WORKFLOW).not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN|_authToken/);
     expect(npmJob).toContain("registry-url: 'https://registry.npmjs.org'");
-    expect(stepRun(npmJob, 'Pack every public package in dependency order')).toMatch(
+    expect(stepRun(gate, 'Pack every public package in dependency order')).toMatch(
       /pnpm -r .*--workspace-concurrency=1[\s\S]*pnpm pack --pack-destination "\$d"/
     );
   });
@@ -330,6 +333,48 @@ describe('release workflow', () => {
     expect(release).toMatch(/^ {4}needs: \[gate, npm\]$/m);
   });
 
+  it('runs no checkout, install, build or pack while the npm job holds the OIDC token', () => {
+    expect(npmJob).not.toMatch(/actions\/checkout@/);
+    expect(npmJob).not.toMatch(/\bpnpm\b|corepack|npm (?:install|ci|run|pack)\b|build:packages/);
+    const names = stepNames(npmJob);
+    const download = npmJob.indexOf('actions/download-artifact@');
+    const verify = npmJob.indexOf('      - name: Verify the tarball checksums');
+    const publish = npmJob.indexOf('      - name: Publish with provenance');
+    expect(download).toBeGreaterThan(
+      npmJob.indexOf('      - name: npm supports Trusted Publishing')
+    );
+    expect(verify).toBeGreaterThan(download);
+    expect(publish).toBeGreaterThan(verify);
+    expect(names.at(-1)).toBe('Publish with provenance');
+    // The gate packs after verify:packages, checksums, then uploads the same folder.
+    const pack = gate.indexOf('      - name: Pack every public package in dependency order');
+    const sums = gate.indexOf('      - name: Checksum the tarballs');
+    const upload = gate.indexOf('actions/upload-artifact@');
+    expect(pack).toBeGreaterThan(gate.indexOf('run: pnpm verify:packages'));
+    expect(sums).toBeGreaterThan(pack);
+    expect(upload).toBeGreaterThan(sums);
+    expect(gate).toMatch(/name: npm-tarballs\n {10}path: \$\{\{ runner\.temp \}\}\/tarballs/);
+    expect(npmJob).toMatch(/name: npm-tarballs\n {10}path: \$\{\{ runner\.temp \}\}\/tarballs/);
+  });
+
+  it('verifies SHA256SUMS before the smoke install and before the release attaches it', () => {
+    const VERIFY = 'bash scripts/verify-skill-integrity.sh';
+    const gateNames = stepNames(gate);
+    const gateRuns = gateNames.map((name) => stepRun(gate, name).trim());
+    const gateVerify = gateRuns.indexOf(VERIFY);
+    const smoke = gateRuns.findIndex((run) =>
+      run.startsWith('bash scripts/smoke-install-skill.sh')
+    );
+    expect(gateVerify).toBeGreaterThan(gateRuns.indexOf('pnpm install --frozen-lockfile'));
+    expect(smoke).toBeGreaterThan(gateVerify);
+
+    const releaseRuns = stepNames(release).map((name) => stepRun(release, name).trim());
+    const releaseVerify = releaseRuns.indexOf(VERIFY);
+    const attach = releaseRuns.findIndex((run) => /gh release create "\$TAG" SHA256SUMS/.test(run));
+    expect(releaseVerify).toBeGreaterThan(-1);
+    expect(attach).toBeGreaterThan(releaseVerify);
+  });
+
   it('refuses a tag cut before version-packages consumed the changesets', () => {
     const script = stepRun(
       gate,
@@ -348,7 +393,7 @@ describe('release workflow', () => {
   });
 
   it('packs exactly the publishable set: every packages/* plus apps/gallery', () => {
-    const pack = stepRun(npmJob, 'Pack every public package in dependency order');
+    const pack = stepRun(gate, 'Pack every public package in dependency order');
     const filters = [...pack.matchAll(/--filter "([^"]+)"/g)].map((m) => m[1]);
     expect(filters).toEqual(['./packages/**', './apps/gallery']);
     for (const candidate of findCandidates(REPO)) {
@@ -372,9 +417,9 @@ describe('release workflow', () => {
     write(
       join(root, 'tarballs', 'order.tsv'),
       [
-        '@protoyard/core\t1.2.0\t/t/protoyard-core-1.2.0.tgz',
-        '@protoyard/ui\t1.2.0\t/t/with space/protoyard-ui-1.2.0.tgz',
-        'protoyard\t1.2.0\t/t/protoyard-1.2.0.tgz',
+        '@protoyard/core\t1.2.0\tpack.a/protoyard-core-1.2.0.tgz',
+        '@protoyard/ui\t1.2.0\tpack b/protoyard-ui-1.2.0.tgz',
+        'protoyard\t1.2.0\tpack.c/protoyard-1.2.0.tgz',
         '',
       ].join('\n')
     );
@@ -397,8 +442,8 @@ describe('release workflow', () => {
     const stable = runFor('v1.2.0');
     expect(stable.stdout).toContain('skip @protoyard/core@1.2.0 (already published)');
     expect(stable.published).toEqual([
-      'publish /t/with space/protoyard-ui-1.2.0.tgz --provenance --access public --tag latest',
-      'publish /t/protoyard-1.2.0.tgz --provenance --access public --tag latest',
+      `publish ${root}/tarballs/pack b/protoyard-ui-1.2.0.tgz --provenance --access public --tag latest`,
+      `publish ${root}/tarballs/pack.c/protoyard-1.2.0.tgz --provenance --access public --tag latest`,
     ]);
     const next = runFor('v1.2.0-rc.1');
     expect(next.published.every((line) => line.endsWith('--tag next'))).toBe(true);
@@ -407,7 +452,7 @@ describe('release workflow', () => {
   it.skipIf(spawnSync('jq', ['--version']).status !== 0)(
     'packs a fixture workspace in dependency order even when a prepack script prints',
     () => {
-      const script = stepRun(npmJob, 'Pack every public package in dependency order');
+      const script = stepRun(gate, 'Pack every public package in dependency order');
       const root = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-release-pack-')));
       roots.push(root);
       write(join(root, 'package.json'), { name: 'fixture', private: true, version: '1.0.0' });
@@ -452,8 +497,40 @@ describe('release workflow', () => {
       expect([...names].sort()).toEqual(['@fixture/a-ui', '@fixture/gallery', '@fixture/z-core']);
       for (const [, version, tarball] of rows) {
         expect(version).toBe('1.2.0');
-        expect(tarball && existsSync(tarball), tarball).toBe(true);
+        // Relative to $TARBALLS, so the list survives the artifact move.
+        expect(tarball, tarball).toMatch(/^pack\.[^/]+\/[^/]+\.tgz$/);
+        expect(existsSync(join(tarballs, tarball ?? '')), tarball).toBe(true);
       }
+
+      // The gate's checksums, then the npm job's verification, on the real output.
+      const bash = (block: string, name: string) =>
+        spawnSync('bash', ['-c', stepRun(block, name)], {
+          cwd: root,
+          encoding: 'utf8',
+          env: { ...process.env, TARBALLS: tarballs },
+        });
+      const sums = bash(gate, 'Checksum the tarballs');
+      expect(sums.status, sums.stderr).toBe(0);
+      expect(readFileSync(join(tarballs, 'SHA256SUMS'), 'utf8').trim().split('\n')).toHaveLength(4);
+      const ok = bash(npmJob, 'Verify the tarball checksums');
+      expect(ok.status, ok.stderr).toBe(0);
+      expect(ok.stdout).toContain('Verified 3 tarballs.');
+
+      // A changed tarball fails before anything is published.
+      const first = join(tarballs, rows[0]?.[2] ?? '');
+      const original = readFileSync(first);
+      writeFileSync(first, Buffer.concat([original, Buffer.from('x')]));
+      expect(bash(npmJob, 'Verify the tarball checksums').status).not.toBe(0);
+      writeFileSync(first, original);
+      // So does an order entry that escapes the folder or is not checksummed.
+      const order = join(tarballs, 'order.tsv');
+      const listed = readFileSync(order, 'utf8');
+      for (const extra of ['@fixture/x\t1.2.0\t../x.tgz\n', '@fixture/y\t1.2.0\tpack.zz/y.tgz\n']) {
+        writeFileSync(order, listed + extra);
+        expect(bash(npmJob, 'Verify the tarball checksums').status, extra).not.toBe(0);
+      }
+      writeFileSync(order, listed);
+      expect(bash(npmJob, 'Verify the tarball checksums').status).toBe(0);
     },
     120_000
   );

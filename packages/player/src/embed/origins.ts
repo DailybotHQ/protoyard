@@ -16,6 +16,17 @@ export const DEFAULT_ALLOWLIST: readonly AllowRule[] = Object.freeze([
   { host: '127.0.0.1', schemes: ['http:', 'https:'] },
 ]);
 
+/**
+ * The CSP `frame-ancestors` sources for `rules`, so the pages allowed to
+ * frame the player are exactly the pages allowed to send it a blueprint
+ * (`vite.config.ts` builds PLAYER_FRAME_ANCESTORS from DEFAULT_ALLOWLIST).
+ */
+export function frameAncestorSources(rules: readonly AllowRule[]): string[] {
+  return rules.flatMap((rule) =>
+    'origin' in rule ? [rule.origin] : rule.schemes.map((scheme) => `${scheme}//${rule.host}:*`)
+  );
+}
+
 /** The canonical origin `value` names, or null when it is not exactly an origin. */
 export function exactOrigin(value: string): string | null {
   const text = value.trim();

@@ -49,6 +49,8 @@ describe('tagged skill release smoke script', () => {
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain('Smoke install passed: Protoyard skill 1.0.0');
     const args = readFileSync(root.callLog, 'utf8');
+    // The skills CLI is pinned to an exact npm version, never a floating tag.
+    expect(args).toMatch(/^--yes skills@\d+\.\d+\.\d+ add /);
     expect(args).toContain('https://github.com/DailybotHQ/protoyard/tree/v1.0.0');
     expect(args).toContain('--skill protoyard --global --agent codex --copy --yes');
   });

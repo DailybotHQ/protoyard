@@ -23,6 +23,10 @@ command -v npx >/dev/null 2>&1 || {
   exit 1
 }
 
+# The skills CLI is pinned to one exact npm version so a new upstream release
+# cannot change what the release gate runs. Bump it deliberately.
+SKILLS_CLI_VERSION=1.7.4
+
 VERSION=${TAG#v}
 SOURCE="https://github.com/DailybotHQ/protoyard/tree/$TAG"
 SMOKE_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/protoyard-skill-smoke.XXXXXX")
@@ -40,7 +44,7 @@ export CODEX_HOME="$SMOKE_HOME/.codex"
 export DISABLE_TELEMETRY=1
 
 echo "Smoke-installing Protoyard skill from $SOURCE"
-(cd "$SMOKE_ROOT" && npx --yes skills add "$SOURCE" --skill protoyard --global --agent codex --copy --yes)
+(cd "$SMOKE_ROOT" && npx --yes "skills@$SKILLS_CLI_VERSION" add "$SOURCE" --skill protoyard --global --agent codex --copy --yes)
 
 INSTALLED="$SMOKE_HOME/.agents/skills/protoyard"
 ROUTER="$INSTALLED/SKILL.md"

@@ -547,8 +547,9 @@ build step to development. (3) Emit per-file ESM with `tsc` and `svelte-package`
 exports at pack time through `publishConfig`.
 
 **Decision.**
-- **Build:** option 3. `tsc` emits ESM, `.d.ts` and source maps for the engine packages, with
-  `rewriteRelativeImportExtensions`. `svelte-package` ships the Svelte packages. Lazy subpaths
+- **Build:** option 3. `tsc` emits ESM and `.d.ts` for the engine packages, with
+  `rewriteRelativeImportExtensions`. It emits no source or declaration maps: the tarballs do
+  not ship `src/`, so maps would point at files that are not there. `svelte-package` ships the Svelte packages. Lazy subpaths
   stay separate entry points.
 - **Exports:** `publishConfig` replaces `exports`, `types` and `files` when packed, so the
   workspace keeps importing `src/`.

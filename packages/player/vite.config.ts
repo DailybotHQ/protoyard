@@ -3,6 +3,7 @@ import { lstatSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 import { defineProtoyardConfig } from '@protoyard/renderer-svelte/vite';
 import type { Plugin } from 'vite';
+import { DEFAULT_ALLOWLIST, frameAncestorSources } from './src/embed/origins.ts';
 
 /**
  * The player builds like a prototype (Tailwind, avatars, DevTools, base `./`,
@@ -15,7 +16,7 @@ import type { Plugin } from 'vite';
  * scripts only from the player's origin plus the sha256 of each inline
  * script (the no-flash appearance scripts), no `unsafe-eval`, and network,
  * workers and frames limited to the same origin. A meta tag carries it at
- * the top of <head>, so it governs every script after it; `_headers` repeats
+ * the top of <head>, right after <meta charset>, so it governs every script; `_headers` repeats
  * it as an HTTP header with `frame-ancestors`, which a meta tag cannot set.
  *
  * The app builds into `dist/app/` (never `dist/`): `pnpm build:packages`
@@ -30,13 +31,25 @@ export const PLAYER_APP_DIR = 'dist/app';
 /** Must match PLAYER_ASSETS_MANIFEST in packages/cli/src/lib/quick/player-assets.ts. */
 export const PLAYER_ASSETS_MANIFEST = 'protoyard-player-assets.json';
 
-/** Origins that may frame the player (embedding pages, ADR-030); never `*`. */
-export const PLAYER_FRAME_ANCESTORS = [
-  "'self'",
-  'https://protoyard.app',
-  'http://localhost:*',
-  'http://127.0.0.1:*',
-];
+/**
+ * Origins that may frame the player (embedding pages, ADR-030); never `*`.
+ * Built from the embed allowlist, so framing and `postMessage` agree.
+ */
+export const PLAYER_FRAME_ANCESTORS = ["'self'", ...frameAncestorSources(DEFAULT_ALLOWLIST)];
+
+/**
+ * Opens `<head>` with `<meta charset>` and then the CSP meta. Browsers look
+ * for the charset in the first 1024 bytes, and the no-flash scripts that
+ * other plugins prepend to `<head>` can be larger than that, so the charset
+ * tag moves up from wherever it was. The CSP then precedes every script.
+ */
+export function insertCspMeta(html: string, meta: string): string {
+  const charset = /[ \t]*<meta\s+charset\s*=\s*["']?[\w-]+["']?\s*\/?>[ \t]*\r?\n?/i;
+  const tag = charset.exec(html)?.[0].trim();
+  const rest = tag ? html.replace(charset, '') : html;
+  const lead = tag ? `${tag}\n    ${meta}` : meta;
+  return rest.replace(/<head(\s[^>]*)?>/i, (head) => `${head}\n    ${lead}`);
+}
 
 export function playerCsp(scriptHashes: readonly string[]): string {
   return [
@@ -83,7 +96,7 @@ function cspPlugin(): Plugin {
       handler(html) {
         csp = playerCsp(inlineScripts(html).map(sha256));
         const meta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`;
-        return html.replace(/<head(\s[^>]*)?>/i, (head) => `${head}\n    ${meta}`);
+        return insertCspMeta(html, meta);
       },
     },
     closeBundle() {

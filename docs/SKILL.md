@@ -168,8 +168,10 @@ A Protoyard release is a `vX.Y.Z` tag. What it provides for the skill today:
 | npm packages | `@protoyard/*` on npm, once published (nothing is published yet; see [PUBLISHING](PUBLISHING.md#releasing-the-packages-to-npm)) | The CLI and libraries, a separate install from the skill |
 | GitHub Release | the tag's release page | Release notes from `CHANGELOG.md` and the `SHA256SUMS` asset |
 
-The release workflow smoke-installs the skill from the tag, then attaches the
-root `SHA256SUMS` to the GitHub Release. There is no attached skill archive:
+The release workflow verifies the skill against the committed root
+`SHA256SUMS` (`scripts/verify-skill-integrity.sh`, so a stale file fails the
+release), smoke-installs the skill from the tag, verifies again in the release
+job, then attaches that `SHA256SUMS` to the GitHub Release. There is no attached skill archive:
 install from the tagged tree, and verify with `SHA256SUMS` from that tree or from
 the release. The checksums show the files are the ones that tag lists; they are
 not a signature and make no publisher-identity claim.
@@ -190,7 +192,8 @@ relative to the skill directory, and both scripts accept `shasum` or
 and commit it with the change: `pnpm check:skill` fails while it is stale.
 
 The tag release workflow smoke-installs the exact versioned GitHub tree with
-the skills CLI in a temporary home, then checks the router's stamped version
+the skills CLI, pinned to one exact npm version in
+`scripts/smoke-install-skill.sh`, in a temporary home, then checks the router's stamped version
 and the expected sub-skills. It does not publish the skill or alter a real
 agent home. The GitHub Release attaches the same `SHA256SUMS` file so an
 installed copy can be verified against the tagged tree.

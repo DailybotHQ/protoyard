@@ -1086,25 +1086,32 @@ pinned by commit SHA.
 
 | Job | What it does | Permissions |
 | --- | --- | --- |
-| `gate` | The full repository gate (listed below). | `contents: read` |
-| `npm` | Builds the packages and packs every public package with `pnpm pack`. Then it runs `npm publish <tarball> --provenance --access public` for each tarball, in dependency order. | `contents: read`, `id-token: write`, environment `npm` |
-| `release` | Creates the GitHub Release from the CHANGELOG.md section, after `npm` succeeds. | `contents: write` |
+| `gate` | The full repository gate (listed below), then packs every public package with `pnpm pack` in dependency order, writes the tarballs' `SHA256SUMS` and uploads both as the `npm-tarballs` artifact. | `contents: read` |
+| `npm` | Downloads `npm-tarballs`, verifies every tarball against its `SHA256SUMS`, then runs `npm publish <tarball> --provenance --access public` for each, in dependency order. It has no source checkout, no install and no build, so no package script runs while it holds the OIDC token. | `contents: read`, `id-token: write`, environment `npm` |
+| `release` | Verifies the skill against the committed `SHA256SUMS`, then creates the GitHub Release from the CHANGELOG.md section and attaches that file, after `npm` succeeds. | `contents: write` |
 
 The `gate` job checks, in order:
 
 1. The tag matches the root version and has a CHANGELOG.md section.
 2. No changeset is pending.
 3. Public hygiene passes.
-4. `pnpm version-packages --check`.
-5. `pnpm check`.
-6. `pnpm build:packages`, then `pnpm check:packages --require-all`.
-7. `pnpm verify:packages`.
-8. The gallery and every prototype build.
+4. The skill's stamped versions match the tag, the skill matches the
+   committed `SHA256SUMS` (`scripts/verify-skill-integrity.sh`), and the
+   tagged skill smoke-installs with a pinned skills CLI.
+5. `pnpm version-packages --check`.
+6. `pnpm check`.
+7. `pnpm build:packages`, then `pnpm check:packages --require-all`.
+8. `pnpm verify:packages`.
+9. The tarballs are packed, checksummed and uploaded for the `npm` job.
+10. The gallery and every prototype build.
 
 The `npm` job:
 
 - **npm version.** It refuses an npm older than 11.5.1, the first release with
   trusted publishing.
+- **Checksums.** It refuses to publish when a tarball does not match the
+  gate's `SHA256SUMS`, when the publish order names a file that is not
+  checksummed, or when a path leaves the artifact folder.
 - **Dist-tags.** A stable tag (`v1.2.0`) publishes under `latest`. A
   prerelease tag (`v1.2.0-rc.1`) publishes under `next`, and its GitHub
   Release is marked as a prerelease.
