@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Browser } from '@playwright/test';
+import { currentAbortSignal, throwIfAborted } from '../../lib/abort.ts';
 import {
   type CaptureUnavailable,
   type ChromiumLaunch,
@@ -9,6 +10,7 @@ import {
   screenshot,
   withReadyPage,
 } from '../../lib/capture/index.ts';
+
 import { sha256Text } from '../../lib/checksum.ts';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { flag } from '../../lib/command.ts';
@@ -138,14 +140,23 @@ export async function captureExploration(
     for (const page of pages) {
       const launcherUrl = new URL(`${target.path}${page.folder}`, origin);
       const href = await launcherTarget(join(target.dir, page.folder, 'index.html'));
-      const url = new URL(href, launcherUrl).toString();
+      const resolved = new URL(href, launcherUrl);
+      // The launcher is a file on disk: it may only point at this capture server.
+      if (resolved.origin !== origin) {
+        throw new Error(
+          `${page.folder || './'}index.html points outside the exploration (${resolved.origin}).`
+        );
+      }
+      const url = resolved.toString();
       for (const size of sizes) {
+        throwIfAborted('capturing a screenshot');
         const { width, height, mobile } = QUICK_SHOT_SIZES[size];
         const png = optimizePng(
           await withReadyPage(
             browser,
             url,
-            { viewport: { width, height }, colorScheme: 'light', mobile },
+            // Only the capture server: a launcher or player never reaches the network here.
+            { viewport: { width, height }, colorScheme: 'light', mobile, allowOrigin: origin },
             screenshot
           )
         );
@@ -166,6 +177,8 @@ export async function captureExploration(
       }
     }
   } catch (error) {
+    // A cancelled run records nothing more; any other failure is a recorded skip.
+    if (currentAbortSignal()?.aborted) throw error;
     const detail = (error instanceof Error ? error.message : String(error)).split('\n')[0] ?? '';
     return skip('capture-failed', detail.slice(0, 300));
   } finally {

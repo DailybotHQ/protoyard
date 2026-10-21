@@ -1,6 +1,8 @@
 // @vitest-environment node
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { Envelope } from '../src/lib/output.ts';
+import { canonicalPath, resolveWorkspaceRoot } from '../src/lib/paths.ts';
 import { callMcpTool, createMcpToolHandler, MCP_TOOLS } from '../src/mcp/tools.ts';
 
 function success(command: string, data: unknown): Envelope {
@@ -46,7 +48,11 @@ describe('MCP tool catalog and strict input contracts', () => {
 
   it('maps tool calls to the corresponding existing CLI command paths', async () => {
     const calls: string[][] = [];
+    const root = canonicalPath(resolveWorkspaceRoot());
+    // Path arguments reach the CLI as the canonical absolute path the policy checked.
+    const at = (path: string) => canonicalPath(join(root, path));
     const handler = createMcpToolHandler({
+      workspaceRoot: root,
       runCli: async (args) => {
         calls.push(args);
         return success(args[0] ?? 'unknown', { accepted: true });
@@ -58,18 +64,27 @@ describe('MCP tool catalog and strict input contracts', () => {
       {
         name: 'iterate',
         args: { dir: 'demo', patchFile: 'change.json', allowDrop: true },
-        cli: ['quick', 'iterate', 'demo', '--patch', 'change.json', '--allow-drop'],
+        cli: ['quick', 'iterate', '--patch', at('change.json'), '--allow-drop', '--', at('demo')],
       },
       {
         name: 'validate_blueprint',
         args: { file: 'idea.json' },
-        cli: ['blueprint', 'validate', 'idea.json'],
+        cli: ['blueprint', 'validate', '--', at('idea.json')],
       },
-      { name: 'screenshot', args: { dir: 'demo' }, cli: ['quick', 'shot', 'demo'] },
+      { name: 'screenshot', args: { dir: 'demo' }, cli: ['quick', 'shot', '--', at('demo')] },
       {
         name: 'promote',
         args: { dir: 'demo', slug: 'my-prototype', variant: 'v2', noInstall: true },
-        cli: ['quick', 'promote', 'demo', 'my-prototype', '--variant', 'v2', '--no-install'],
+        cli: [
+          'quick',
+          'promote',
+          '--variant',
+          'v2',
+          '--no-install',
+          '--',
+          at('demo'),
+          'my-prototype',
+        ],
       },
       { name: 'doctor', args: {}, cli: ['doctor', '--offline'] },
     ];

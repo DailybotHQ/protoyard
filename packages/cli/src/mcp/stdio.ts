@@ -1,7 +1,51 @@
-import { createInterface } from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 import { CliError, type Envelope, errorEnvelope } from '../lib/output.ts';
 import { CLI_VERSION } from '../lib/workspace.ts';
+import { MCP_MAX_LINE_BYTES } from './security.ts';
+
+/**
+ * Newline-delimited lines from a stream, never buffering more than
+ * `maxBytes` of one line: a longer line is dropped as it streams in and
+ * yields `null` once its newline arrives (or at the end). A trailing `\r` is
+ * removed, as readline's `crlfDelay` did.
+ */
+export async function* boundedLines(
+  input: AsyncIterable<Buffer | string>,
+  maxBytes: number
+): AsyncGenerator<string | null> {
+  let parts: Buffer[] = [];
+  let size = 0;
+  let dropping = false;
+  const finish = (): string | null => {
+    if (dropping) return null;
+    const text = Buffer.concat(parts).toString('utf8');
+    return text.endsWith('\r') ? text.slice(0, -1) : text;
+  };
+  for await (const chunk of input) {
+    const buffer = typeof chunk === 'string' ? Buffer.from(chunk, 'utf8') : chunk;
+    let start = 0;
+    while (start <= buffer.length) {
+      const newline = buffer.indexOf(10, start);
+      const end = newline === -1 ? buffer.length : newline;
+      if (!dropping) {
+        size += end - start;
+        if (size > maxBytes) {
+          dropping = true;
+          parts = [];
+        } else if (end > start) {
+          parts.push(buffer.subarray(start, end));
+        }
+      }
+      if (newline === -1) break;
+      yield finish();
+      parts = [];
+      size = 0;
+      dropping = false;
+      start = newline + 1;
+    }
+  }
+  if (dropping || size > 0) yield finish();
+}
 
 /** Primary stateless MCP revision. */
 export const MCP_PROTOCOL_VERSION = '2026-07-28';
@@ -177,10 +221,20 @@ export async function serveMcpStdio(options: McpStdioOptions = {}): Promise<void
   const input = options.input ?? process.stdin;
   const output = options.output ?? process.stdout;
   const diagnostics = options.diagnostics ?? process.stderr;
-  const lines = createInterface({ input, crlfDelay: Infinity });
   let legacyInitialized = false;
 
-  for await (const line of lines) {
+  for await (const line of boundedLines(
+    input as AsyncIterable<Buffer | string>,
+    MCP_MAX_LINE_BYTES
+  )) {
+    if (line === null) {
+      // Refused before it was buffered or parsed: its id is unknown.
+      diagnostics.write(`protoyard mcp: refused a request line over ${MCP_MAX_LINE_BYTES} bytes\n`);
+      output.write(
+        `${JSON.stringify(rpcError(null, -32600, `Invalid Request: a request line may not exceed ${MCP_MAX_LINE_BYTES} bytes`))}\n`
+      );
+      continue;
+    }
     let payload: unknown;
     try {
       payload = JSON.parse(line);

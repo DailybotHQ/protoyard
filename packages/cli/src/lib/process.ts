@@ -3,6 +3,7 @@ import { constants, existsSync, readFileSync } from 'node:fs';
 import { access } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { delimiter, dirname, join } from 'node:path';
+import { currentAbortSignal } from './abort.ts';
 
 /**
  * Child processes are always spawned with an argv array and `shell: false`:
@@ -17,6 +18,8 @@ export interface RunOptions {
   stdio?: 'pipe' | 'inherit';
   timeoutMs?: number;
   input?: string;
+  /** Kills the child when aborted; defaults to the ambient signal (lib/abort.ts). */
+  signal?: AbortSignal;
 }
 
 export interface RunResult {
@@ -26,6 +29,8 @@ export interface RunResult {
   /** True when the binary could not be started at all (ENOENT etc.). */
   spawnError?: string;
   timedOut?: boolean;
+  /** True when the run was cancelled: never started, or killed when the signal aborted. */
+  aborted?: boolean;
 }
 
 export function run(command: string, args: readonly string[], options: RunOptions = {}) {
@@ -33,6 +38,12 @@ export function run(command: string, args: readonly string[], options: RunOption
     let stdout = '';
     let stderr = '';
     let timedOut = false;
+    let aborted = false;
+    const signal = options.signal ?? currentAbortSignal();
+    if (signal?.aborted) {
+      resolvePromise({ code: 130, stdout, stderr, spawnError: 'aborted', aborted: true });
+      return;
+    }
     let child: ChildProcess;
     try {
       child = spawn(command, [...args], {
@@ -51,6 +62,11 @@ export function run(command: string, args: readonly string[], options: RunOption
           child.kill('SIGTERM');
         }, options.timeoutMs)
       : undefined;
+    const onAbort = () => {
+      aborted = true;
+      child.kill('SIGTERM');
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
     child.stdout?.on('data', (chunk: Buffer) => {
       stdout += chunk.toString();
     });
@@ -61,15 +77,18 @@ export function run(command: string, args: readonly string[], options: RunOption
     else child.stdin?.end();
     child.on('error', (error) => {
       if (timer) clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       resolvePromise({ code: 127, stdout, stderr, spawnError: error.message });
     });
-    child.on('close', (code, signal) => {
+    child.on('close', (code, exitSignal) => {
       if (timer) clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       resolvePromise({
-        code: code ?? (signal ? 128 : 1),
+        code: code ?? (exitSignal ? 128 : 1),
         stdout,
         stderr,
         ...(timedOut ? { timedOut } : {}),
+        ...(aborted ? { aborted } : {}),
       });
     });
   });
