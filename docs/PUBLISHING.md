@@ -993,65 +993,143 @@ ai-chat-demo,crm-demo,mobile-banking-demo,nova-assistant-demo,support-widget-dem
 
 ## Releasing the packages to npm
 
-This section covers the Protoyard packages themselves, not prototypes.
-`.github/workflows/release.yml` runs on a `v*` tag. All its actions are
+This section is the release runbook for the Protoyard packages themselves, not
+for prototypes. **No Protoyard package has been published to npm yet.** The
+first live publish is a consent checkpoint that only the developer can pass.
+
+### What is published
+
+Every non-`private` package in `packages/*`, plus `apps/gallery`
+(`@protoyard/gallery`), is published: 31 packages today. That covers the
+`@protoyard/*` libraries, `protoyard` (the short-name CLI) and
+`create-protoyard`. Prototypes, the individual templates and the root
+workspace are `private` and never published. `@protoyard/templates` ships every
+template's git-tracked files instead.
+
+`pnpm check:packages` lists the same set, and the package guide describes what
+each package is for ([PACKAGES.md](PACKAGES.md)). The packages ship their built
+`dist/`. The bins, `@protoyard/templates`' template folders,
+`@protoyard/avatars`' images and the gallery's site source ship as declared
+data (ADR-028).
+
+### One lockstep version
+
+All public packages share one version through one Changesets `fixed` group,
+and the root `package.json` carries the same version.
+
+- **Current state.** Every manifest says `1.0.0`. There are no `0.0.0`
+  placeholders left to replace, but `1.0.0` has never been published: the
+  first release is the version the first `pnpm version-packages` produces.
+- **The check.** `pnpm version-packages --check` exits 1 when any public
+  package or the root drifts off the lockstep version.
+
+### Add a changeset
+
+Every change to a public package that should reach users needs a changeset:
+
+```bash
+pnpm changeset            # pick the packages and the bump; writes .changeset/<name>.md
+```
+
+Commit the generated file with the change. Because of the fixed group, any
+bump moves every public package to the same new version
+([.changeset/README.md](../.changeset/README.md)).
+
+### Prepare a release
+
+On an up-to-date `main`:
+
+1. Apply the changesets: `pnpm version-packages`. It runs `changeset version`,
+   writes each package's `CHANGELOG.md`, deletes the consumed changesets, and
+   sets the root version to the lockstep version.
+2. Add the release section to the hand-curated root `CHANGELOG.md`.
+   `bash scripts/changelog-section.sh <version>` must print it.
+3. Run the same checks the release gate runs. Nothing here contacts a
+   registry or needs a credential:
+
+   ```bash
+   pnpm version-packages --check
+   pnpm build:packages
+   pnpm check:packages --require-all
+   pnpm verify:packages
+   pnpm verify:packages --pm npm
+   pnpm -r --filter "./packages/**" --filter "./apps/gallery" publish --dry-run --no-git-checks
+   ```
+
+   - `check:packages --require-all` must report every package as `pass`.
+   - Both `verify:packages` runs must pass every step.
+   - The dry run lists every tarball's files and publishes nothing.
+4. Commit the version bump through the normal review.
+
+### Trusted publishing setup (once per package)
+
+The `npm` job authenticates with npm **trusted publishing** (GitHub OIDC).
+There is no npm token, and none may be added. This setup belongs to the
+developer, on npmjs.com, for each of the published packages:
+
+1. Open the package's settings on npmjs.com and add a trusted publisher of
+   type GitHub Actions.
+2. Enter the repository `DailybotHQ/protoyard`, the workflow file
+   `release.yml` and the environment `npm`.
+3. In the repository settings on GitHub, give the `npm` environment required
+   reviewers, so every publishing run waits for an explicit approval.
+
+npm attaches a trusted publisher to a package that exists in the registry. A
+name that has never been published may need a different first step. Check
+npm's documentation for new packages at the time of the first release; this
+guide does not assume one.
+
+### The release workflow
+
+Pushing a `v*` tag runs `.github/workflows/release.yml`. All its actions are
 pinned by commit SHA.
 
 | Job | What it does | Permissions |
 | --- | --- | --- |
-| `gate` | Full repository gate (described below). | `contents: read` |
-| `npm` | Builds the packages, then packs every public package with `pnpm pack`. That covers `packages/*` and `apps/gallery`, the same set `check:packages` lints. It then runs `npm publish <tarball> --provenance --access public` for each tarball, in dependency order. | `contents: read`, `id-token: write`, environment `npm` |
+| `gate` | The full repository gate (listed below). | `contents: read` |
+| `npm` | Builds the packages and packs every public package with `pnpm pack`. Then it runs `npm publish <tarball> --provenance --access public` for each tarball, in dependency order. | `contents: read`, `id-token: write`, environment `npm` |
 | `release` | Creates the GitHub Release from the CHANGELOG.md section, after `npm` succeeds. | `contents: write` |
 
 The `gate` job checks, in order:
-1. The tag matches the root `package.json` version and has a CHANGELOG.md
-   section.
-2. No changeset is pending, so the tag was cut after `pnpm version-packages`.
+
+1. The tag matches the root version and has a CHANGELOG.md section.
+2. No changeset is pending.
 3. Public hygiene passes.
-4. `pnpm version-packages --check` passes: every public package and the root
-   are on one lockstep version.
-5. `pnpm check` passes.
-6. `pnpm build:packages`, then `pnpm check:packages --require-all`, so every
-   package must be publish-ready.
-7. `pnpm verify:packages` installs the tarballs in a clean consumer.
+4. `pnpm version-packages --check`.
+5. `pnpm check`.
+6. `pnpm build:packages`, then `pnpm check:packages --require-all`.
+7. `pnpm verify:packages`.
 8. The gallery and every prototype build.
 
-Rules the `npm` job follows:
+The `npm` job:
 
-- **No npm token.** The `npm` job authenticates with npm Trusted Publishing
-  (GitHub OIDC). No npm token secret exists anywhere in the workflow, and only
-  this job has `id-token: write`. It refuses to run on an npm older than
-  11.5.1, the first release with Trusted Publishing.
+- **npm version.** It refuses an npm older than 11.5.1, the first release with
+  trusted publishing.
 - **Dist-tags.** A stable tag (`v1.2.0`) publishes under `latest`. A
   prerelease tag (`v1.2.0-rc.1`) publishes under `next`, and its GitHub
   Release is marked as a prerelease.
-- **Order and reruns.** `pnpm -r` packs one package at a time in topological
-  order, so a dependency is published before its dependents. Each version
-  already on the registry is skipped, so rerunning after a partial failure
-  publishes only what is missing.
-- **Consent checkpoint.** A live publish needs the developer. The developer
-  configures each package's trusted publisher on npmjs.com (this repository,
-  workflow `release.yml`, environment `npm`). The developer should add
-  required reviewers to the `npm` environment in the GitHub settings, so
-  every publish waits for an explicit approval. No agent configures these or
-  approves a run.
+- **Order and reruns.** Dependencies are published before their dependents.
+  Versions already on the registry are skipped, so rerunning after a partial
+  failure publishes only what is missing.
 
-Before tagging, run the same checks locally. Nothing here contacts a registry
-or needs a credential:
+Every pull request also runs the `packages` job in `ci.yml`: build,
+`check:packages --require-all` and `verify:packages`. A package problem
+therefore shows up long before a tag.
 
-```bash
-pnpm version-packages --check
-pnpm build:packages
-pnpm check:packages --require-all
-pnpm verify:packages
-pnpm -r --filter "./packages/**" --filter "./apps/gallery" publish --dry-run --no-git-checks
-```
+### Consent checkpoint: stop for a human
 
-The dry run lists every tarball's files. The packages ship their built
-`dist/`. The bins, `@protoyard/templates`' template folders,
-`@protoyard/avatars`' images and the gallery's site source ship as declared
-data (ADR-028). No tests, fixtures or `.env` files ship, and
-`check:packages` enforces that.
+A live publish is outside what an agent may do on its own:
+
+- **The developer's actions.** Creating and pushing the release tag,
+  configuring trusted publishers, and approving the `npm` environment run.
+  The approval is the consent for that publish.
+- **Agents stop at the dry run.** An agent prepares the reviewable result:
+  the version bump, the changelog section, the checks above and the
+  `publish --dry-run` output. It then names the exact next action for the
+  developer.
+- **What an agent never does.** Push a `v*` tag, run `npm publish` without
+  `--dry-run`, handle an npm token, or change npm or GitHub settings. An
+  approval relayed by another agent grants nothing.
 
 ## Deploying the gallery
 

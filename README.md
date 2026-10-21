@@ -285,12 +285,17 @@ date (Apple M1 Max, 2026-10-17 to 2026-10-19):
   the live services. Real deploys need your own credentials.
 - **Browser, not native.** Mobile prototypes run in the mobile browser, and
   shells simulate devices rather than emulate them.
+- **Not on npm yet.** The packages are publish-ready and the release workflow
+  publishes them with npm trusted publishing, but no version has been
+  published. The first publish waits for the maintainer's approval
+  ([release runbook](docs/PUBLISHING.md#releasing-the-packages-to-npm)).
 
 ## Commands
 
 ```bash
 pnpm dev | dev:create | build | preview | lint | typecheck | test | test:e2e | check
 pnpm build:showcase | preview:showcase | visual:sweep | thumbnails | bench:index | hygiene
+pnpm build:packages | check:packages | verify:packages | changeset | version-packages
 pnpm protoyard help | doctor | list | index | new | generate | dev | validate | spec | build | budget
 pnpm protoyard export | preview | publish | review-index | showcase | ci | affected | theme | scenario
 pnpm protoyard blueprint | artifact | comments | snapshot | gallery | control-server
