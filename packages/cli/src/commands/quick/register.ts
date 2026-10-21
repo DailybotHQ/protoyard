@@ -1,12 +1,12 @@
 import type { Command } from 'commander';
 import type { Handler } from '../../lib/command.ts';
 import { quickExportCommand } from './export.ts';
-import { quickCommand } from './index.ts';
 import { quickIterateCommand, quickUndoCommand } from './iterate.ts';
 import { quickIndexCommand, quickListCommand, quickOpenCommand } from './list.ts';
 import { quickPromoteCommand } from './promote.ts';
 import { quickReportCommand } from './report.ts';
 import { quickServeCommand } from './serve.ts';
+import { quickShotCommand, quickWithScreenshotCommand } from './shot.ts';
 
 type Def = (name: string, handler: Handler) => (...args: unknown[]) => Promise<void>;
 
@@ -33,7 +33,9 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--standalone', 'copy the player into the folder instead of sharing it')
     .option('--no-store-brief', 'keep only the brief’s sha256 in quick.json, not its text')
     .option('--force', 'replace an existing exploration with the same slug')
-    .action(def('quick', quickCommand));
+    .option('--screenshot', 'also capture PNGs at 1280x800 (needs Playwright; skipped without it)')
+    .option('--phone', 'with --screenshot: also capture a 390x844 phone size')
+    .action(def('quick', quickWithScreenshotCommand));
   quick
     .command('serve')
     .description('serve an exploration on 127.0.0.1 until Ctrl+C (player needs http, not file://)')
@@ -42,6 +44,12 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--strict-port', 'fail instead of falling back when the port is busy')
     .option('--open', 'open the exploration in the default browser')
     .action(def('quick serve', quickServeCommand));
+  quick
+    .command('shot')
+    .description('capture a PNG of an exploration and each variant at 1280x800 (needs Playwright)')
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .option('--phone', 'also capture a 390x844 phone size')
+    .action(def('quick shot', quickShotCommand));
   quick
     .command('export')
     .description(

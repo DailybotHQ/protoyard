@@ -88,8 +88,9 @@ deploy.
 | --- | --- | --- | --- |
 | `protoyard new <slug>` | `-t, --template <name>`, `--from <slug>`, `--name <name>`, `--description <text>`, `--force`, `--no-install` | create prototypes/<slug> from a template or by remixing an existing prototype | Released (1.0.0) |
 | `protoyard generate <slug>` | `-b, --blueprint <file>`, `-t, --template <name>`, `--name <name>`, `--description <text>`, `--dry-run`, `--force`, `--allow-drop`, `--no-install` | create prototypes/<slug> from a data-only blueprint, or regenerate it after the blueprint changes | Released (1.0.0) |
-| `protoyard quick [brief]` | `--blueprint <file>`, `--slug <slug>`, `--name <name>`, `--out <dir>`, `--allow-external-out`, `--seed <n>`, `--variants <n>`, `--standalone`, `--no-store-brief`, `--force` | a disposable, playable exploration from a brief or a blueprint, with no build | New in PLAN_004 |
+| `protoyard quick [brief]` | `--blueprint <file>`, `--slug <slug>`, `--name <name>`, `--out <dir>`, `--allow-external-out`, `--seed <n>`, `--variants <n>`, `--standalone`, `--no-store-brief`, `--force`, `--screenshot`, `--phone` | a disposable, playable exploration from a brief or a blueprint, with no build | New in PLAN_004 |
 | `protoyard quick serve <slug\|dir>` | `--port <port>`, `--strict-port`, `--open` | serve an exploration on 127.0.0.1 until Ctrl+C (marked explorations only) | New in PLAN_004 |
+| `protoyard quick shot <slug\|dir>` | `--phone` | capture a PNG of the exploration and each variant at 1280x800 (plus 390x844 with `--phone`) after the ready mark, into `screenshots/`, recorded in quick.json; without Playwright or its Chromium it records a skip and exits 0 (`quick … --screenshot` does the same after creating) | New since 1.0.0 |
 | `protoyard quick promote <slug\|dir> <slug>` | `--variant <id>`, `--no-install` | turn an exploration (or one variant) into a full prototype in prototypes/<slug> through `generate`; checks the result is the same app and records `promotedTo` in quick.json; never replaces an existing prototype; needs a workspace | New in PLAN_004 |
 | `protoyard quick iterate <slug\|dir>` | `--patch <file>`, `--allow-drop` | change an exploration with an RFC 6902 JSON Patch (`--patch -` reads stdin; 512 KB cap): validated before any write, written with temp files and renames, recorded in `history/NNNN.json`; the envelope's `world.preserved` says whether the data migration keeps every row (kept player worlds, `?keep=<name>`) | New in PLAN_004 |
 | `protoyard quick undo <slug\|dir>` | — | restore the blueprint from before the last `quick iterate`, byte for byte (refused when blueprint.json changed since) | New in PLAN_004 |
@@ -195,7 +196,6 @@ or `protoyard --help` on the installed CLI first.
 | Planned command | Purpose |
 | --- | --- |
 | `protoyard quick prune [--older-than 14d] [--yes]` | Prune old explorations |
-| `protoyard quick shot <dir>` · `quick … --screenshot` | Screenshots when a browser is available |
 | `protoyard quick feedback <dir> [--import <file>]` | Review feedback as REVIEW.md |
 
 ## Where to read more
