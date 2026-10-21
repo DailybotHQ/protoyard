@@ -134,18 +134,17 @@ function commandFor(pm: PackageManager): string {
   return pm === 'pnpm' ? 'pnpm' : 'npm';
 }
 
-function installArgs(pm: PackageManager): string[] {
+/**
+ * npm installs with its default peer handling (npm 7+ installs peers), as a
+ * real consumer would. The one extra flag is `--ignore-scripts`: offline, the
+ * harness hands npm the third-party packages as `file:` folders from the pnpm
+ * store, and npm runs `prepare` for folder dependencies (it never does for a
+ * registry tarball), which needs each package's own build tools.
+ */
+export function installArgs(pm: PackageManager): string[] {
   return pm === 'pnpm'
     ? ['install', '--offline']
-    : [
-        'install',
-        '--offline',
-        '--no-audit',
-        '--no-fund',
-        '--legacy-peer-deps',
-        '--omit=peer',
-        '--ignore-scripts',
-      ];
+    : ['install', '--offline', '--no-audit', '--no-fund', '--ignore-scripts'];
 }
 
 function run(

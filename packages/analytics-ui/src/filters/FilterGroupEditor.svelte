@@ -1,7 +1,9 @@
 <script lang="ts">
 import { X } from '@lucide/svelte';
 import { type FilterCondition, type FilterGroup, OPERATOR_LABELS } from '@protoyard/analytics';
-import FilterGroupEditor from './FilterGroupEditor.svelte';
+// Self-import for nested groups, under another name: the emitted declaration
+// already declares `FilterGroupEditor`.
+import NestedGroupEditor from './FilterGroupEditor.svelte';
 import {
   adjustCondition,
   type FilterProperty,
@@ -76,7 +78,7 @@ const inputType = (p: FilterProperty | undefined) =>
 
   {#each group.conditions as condition, i (i)}
     {#if 'combinator' in condition}
-      <FilterGroupEditor
+      <NestedGroupEditor
         group={condition}
         {properties}
         {errors}

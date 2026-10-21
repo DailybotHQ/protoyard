@@ -1,10 +1,11 @@
 <script lang="ts">
 import { ErrorState, LoadingState } from '@protoyard/ui';
+// Aliased: the emitted Router.svelte.d.ts declares the component as `Router`.
+import type { Router as HashRouter } from './hash-router.svelte.ts';
 import NotFound from './NotFound.svelte';
-import type { Router } from './router.svelte.ts';
 
 /** Renders the component matching the current hash; extra props are forwarded. */
-let { router, ...rest }: { router: Router; [key: string]: unknown } = $props();
+let { router, ...rest }: { router: HashRouter; [key: string]: unknown } = $props();
 
 const match = $derived(router.current);
 

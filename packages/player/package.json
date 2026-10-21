@@ -76,6 +76,14 @@
       "assets": [],
       "keep": [
         "app"
+      ],
+      "postBuild": "build"
+    },
+    "pack": {
+      "required": [
+        "dist/app/index.html",
+        "dist/app/protoyard-player-assets.json",
+        "dist/embed/index.js"
       ]
     }
   }

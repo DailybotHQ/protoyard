@@ -2,9 +2,11 @@ name: ci
 
 # Every pull request and every push to main: public hygiene, lint, types,
 # unit tests, the gallery build, a scoped build + export of the reference
-# prototype, Playwright E2E (Chromium only) against real static builds, and
-# the performance budgets job (bundle + index + scenario generation gates;
-# cold-start reported only).
+# prototype, Playwright E2E (Chromium only) against real static builds, the
+# performance budgets job (bundle + index + scenario generation gates;
+# cold-start reported only), and the packages job (build, lint and install
+# the publishable packages from their tarballs; the npm consumer variant runs
+# on main only).
 
 on:
   push:
@@ -224,3 +226,109 @@ jobs:
             tmp/bench-cold-start-*.json
           if-no-files-found: warn
           retention-days: 14
+
+  # The publishable packages: build their dist, prove dist parity, lint the
+  # packed tarballs (every package publish-ready) and install them in a clean
+  # consumer. The pnpm store and the built dist are cached; dist is keyed on
+  # every build input, so a cache hit skips only an identical rebuild.
+  packages:
+    name: packages (build, lint, tarball install)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Cache the built packages
+        id: dist
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/*/dist
+          key: packages-dist-${{ runner.os }}-${{ hashFiles('packages/**', '!packages/*/dist/**', '!**/node_modules/**', 'templates/**', 'blueprints/**', 'scripts/build-packages.ts', 'scripts/lib/package-graph.ts', 'tsconfig.base.json', 'pnpm-lock.yaml') }}
+      - name: Build the packages
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: pnpm build:packages
+      - name: Dist parity and the prebuilt player (skipped without dist)
+        run: pnpm vitest run packages/cli/tests/package-dist-parity.test.ts packages/cli/tests/quick-player-assets.test.ts
+      - name: Lint the packed packages (every one publish-ready)
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/packages
+          pnpm --silent check:packages --require-all --json | tee artifacts/packages/check-packages.json
+      - name: Install the tarballs in a clean consumer (pnpm)
+        run: pnpm verify:packages
+      - name: Upload the package check report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-check-report
+          path: artifacts/packages/
+          if-no-files-found: warn
+          retention-days: 7
+
+  # The same tarball install with npm (default peer handling), on main only:
+  # it adds about two minutes and rarely differs from pnpm on a pull request.
+  packages-npm:
+    name: packages (npm consumer)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable pnpm (corepack, version from packageManager)
+        run: corepack enable
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache the pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-store-${{ runner.os }}-
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Cache the built packages
+        id: dist
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/*/dist
+          key: packages-dist-${{ runner.os }}-${{ hashFiles('packages/**', '!packages/*/dist/**', '!**/node_modules/**', 'templates/**', 'blueprints/**', 'scripts/build-packages.ts', 'scripts/lib/package-graph.ts', 'tsconfig.base.json', 'pnpm-lock.yaml') }}
+      - name: Build the packages
+        if: steps.dist.outputs.cache-hit != 'true'
+        run: pnpm build:packages
+      - name: Install the tarballs in a clean consumer (npm)
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/packages
+          pnpm verify:packages --pm npm 2>&1 | tee artifacts/packages/verify-npm.txt
+      - name: Upload the npm consumer report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-npm-report
+          path: artifacts/packages/
+          if-no-files-found: warn
+          retention-days: 7

@@ -242,8 +242,8 @@ describe('changesets version-packages', () => {
 const WORKFLOW = readFileSync(join(REPO, '.github', 'workflows', 'release.yml'), 'utf8');
 
 /** The lines of one top-level job (`  <id>:` up to the next job). */
-function job(id: string): string {
-  const lines = WORKFLOW.split('\n');
+function job(id: string, workflow = WORKFLOW): string {
+  const lines = workflow.split('\n');
   const start = lines.indexOf(`  ${id}:`);
   expect(start, `job ${id}`).toBeGreaterThan(-1);
   const rest = lines.slice(start + 1);
@@ -472,5 +472,94 @@ describe('release workflow', () => {
     };
     for (const ok of ['11.5.1', '11.6.0', '12.0.0']) expect(check(ok), ok).toBe(0);
     for (const old of ['10.9.2', '11.5.0', '11.4.9']) expect(check(old), old).toBe(1);
+  });
+});
+
+/**
+ * ci.yml's packages job: build, dist parity, check:packages --require-all and
+ * verify:packages on every pull request, with the pnpm store and dist cached
+ * and the check report uploaded on failure; the npm consumer only on main.
+ */
+describe('ci workflow packages job', () => {
+  const CI = readFileSync(join(REPO, '.github', 'workflows', 'ci.yml'), 'utf8');
+  const packages = job('packages', CI);
+  const npmVariant = job('packages-npm', CI);
+  const runs = (block: string) => stepNames(block).map((name) => stepRun(block, name).trim());
+
+  it('runs build:packages, dist parity, check:packages --require-all and verify:packages in order', () => {
+    const steps = runs(packages);
+    const at = (pattern: RegExp) => steps.findIndex((run) => pattern.test(run));
+    const install = at(/^pnpm install --frozen-lockfile$/);
+    const build = at(/^pnpm build:packages$/);
+    const parity = at(/^pnpm vitest run .*package-dist-parity\.test\.ts/);
+    const check = at(/pnpm --silent check:packages --require-all --json \| tee /);
+    const verify = at(/^pnpm verify:packages$/);
+    expect(install).toBeGreaterThan(-1);
+    expect(build).toBeGreaterThan(install);
+    expect(parity).toBeGreaterThan(build);
+    expect(check).toBeGreaterThan(parity);
+    expect(verify).toBeGreaterThan(check);
+    // pipefail keeps tee from hiding a failed check.
+    expect(steps[check]).toMatch(/^set -o pipefail/);
+  });
+
+  it('caches the pnpm store and the built dist, rebuilding only on a cache miss', () => {
+    for (const block of [packages, npmVariant]) {
+      expect(block).toMatch(
+        /key: pnpm-store-\$\{\{ runner\.os \}\}-\$\{\{ hashFiles\('pnpm-lock\.yaml'\) \}\}/
+      );
+      expect(block).toMatch(/^ {10}path: packages\/\*\/dist$/m);
+      expect(block).toMatch(
+        / {6}- name: Build the packages\n {8}if: steps\.dist\.outputs\.cache-hit != 'true'\n {8}run: pnpm build:packages/
+      );
+    }
+    const distKey = (block: string) => /key: (packages-dist-.+)$/m.exec(block)?.[1];
+    expect(distKey(packages)).toBeDefined();
+    expect(distKey(npmVariant)).toBe(distKey(packages));
+    // Every build input is in the key, and the outputs are not.
+    for (const input of [
+      "'packages/**'",
+      "'!packages/*/dist/**'",
+      "'!**/node_modules/**'",
+      "'templates/**'",
+      "'scripts/build-packages.ts'",
+      "'scripts/lib/package-graph.ts'",
+      "'tsconfig.base.json'",
+      "'pnpm-lock.yaml'",
+    ]) {
+      expect(distKey(packages), input).toContain(input);
+    }
+  });
+
+  it('uploads the check report when the job fails', () => {
+    const upload = packages.slice(
+      packages.indexOf('      - name: Upload the package check report')
+    );
+    expect(upload).toMatch(/if: failure\(\)/);
+    expect(upload).toMatch(/uses: actions\/upload-artifact@[0-9a-f]{40} # v\d+\.\d+\.\d+/);
+    expect(upload).toMatch(/path: artifacts\/packages\//);
+  });
+
+  it('runs the npm consumer on pushes to main only, after the pnpm job', () => {
+    expect(npmVariant).toMatch(
+      /^ {4}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'$/m
+    );
+    expect(npmVariant).toMatch(/^ {4}needs: packages$/m);
+    expect(runs(npmVariant).some((run) => /pnpm verify:packages --pm npm/.test(run))).toBe(true);
+    expect(packages).not.toMatch(/^ {4}if:/m);
+  });
+
+  it('keeps every action SHA-pinned, checkouts credential-free, and no write permission', () => {
+    const uses = [...CI.matchAll(/uses: (\S+)(.*)$/gm)];
+    expect(uses.length).toBeGreaterThan(10);
+    for (const [line, ref, comment] of uses) {
+      expect(ref, line).toMatch(/^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/);
+      expect(comment, line).toMatch(/^ # v\d+\.\d+\.\d+$/);
+    }
+    const checkouts = [...CI.matchAll(/uses: actions\/checkout@\S+.*\n {8}with:\n {10}(.+)/g)];
+    expect(checkouts.length).toBe([...CI.matchAll(/uses: actions\/checkout@/g)].length);
+    for (const [, option] of checkouts) expect(option).toBe('persist-credentials: false');
+    expect(CI).toMatch(/^permissions:\n {2}contents: read$/m);
+    expect(CI).not.toMatch(/: write$/m);
   });
 });
