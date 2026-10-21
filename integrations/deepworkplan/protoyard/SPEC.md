@@ -1,84 +1,252 @@
-# SPEC.md — Protoyard Addon (Normative)
+# SPEC.md — Protoyard DWP Addon (Normative)
 
 ## Abstract
 
-This is the normative specification of the DeepWorkPlan **protoyard addon**,
-an opt-in thin integrator of **Protoyard** (`DailybotHQ/protoyard`, MIT, its
-own release cycle). Plans use it to turn an idea into disposable, runnable
-prototype explorations (`protoyard quick`) and to validate them.
+This document defines the DeepWorkPlan **Protoyard addon**: an optional,
+thin integrator that lets a DWP plan use the Protoyard CLI to create,
+validate and review disposable browser prototypes. It does not turn
+Protoyard into a DWP runtime component and it does not make DWP part of a
+Protoyard installation.
 
-Protoyard is a separate product. This folder defines only the DWP-side
-contract: the descriptor, detection and the pin. It is a Protoyard-side packet
-until the upstream DeepWorkPlan pack accepts it. Nothing here modifies the
-vendored pack under `.agents/skills/deepworkplan/`.
+The addon is a Protoyard-side packet in
+`integrations/deepworkplan/protoyard/` until the upstream DeepWorkPlan
+project accepts a contribution. The descriptor is data; the skill owns the
+read-only detection, explicit offer, consent boundary, plan-facing flow and
+validation guidance.
 
-## Status of This Document
+## Status and pins
 
 | Field | Value |
-|-------|-------|
-| **Version** | 0.1.0 |
-| **Status** | Draft: the descriptor is in place. The offer, install and exploration flow are specified with the addon skill. |
-| **Product pin** | `DailybotHQ/protoyard` `v1.1.0`, interface `1` |
-| **Companions** | `addon.json`, [`docs/INTERFACE.md`](../../../docs/INTERFACE.md), `.agents/skills/deepworkplan/spec/ADDONS.md` §7, `.agents/skills/deepworkplan/spec/V7_ABILITIES.md` |
+| --- | --- |
+| Addon version | `1.0.0` |
+| Status | Protoyard-side draft, ready for upstream handoff |
+| Product | `DailybotHQ/protoyard` |
+| Product tag | `v1.1.0` |
+| Product interface | `1` |
+| Registry key | `protoyard` (`addons.protoyard`) |
+| Vendored DWP target | `7.8.1` |
+| Upstream handoff concern | `/Users/xergioalex/projects/dailybot/open-source/deepworkplan-skill` reports `2.17.0` and does not yet carry the v7 descriptor surface |
 
-## 1. Conventions
+The product tag is the first lockstep release that ships the machine
+interface used here. If the release tag changes before handoff, the
+descriptor's `product.tag` and this table MUST change together. The product
+interface major is independent of the npm/package version: additive fields
+stay within the same major; a breaking machine contract increments it.
 
-The RFC 2119 keywords apply: **MUST**, **MUST NOT**, **SHOULD** and **MAY**.
-**The CLI** is the `protoyard` command, and **the addon** is this folder.
+## 1. Conventions and scope
 
-## 2. The descriptor (`addon.json`)
+RFC 2119 keywords (**MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, **MAY**
+and **OPTIONAL**) are normative.
 
-`addon.json` is a closed object that validates against
-`addon-descriptor-v1.schema.json` and the pack's runtime check
-(`shared/config.py` `descriptor_errors`). Its `key` is `protoyard`, which
-equals this directory's name.
+The **product** is the Protoyard CLI and player. The **addon** is this DWP
+integration packet. The **plan** is the DWP plan using the addon. Protoyard
+commands remain local, offline-first and subject to the repository's normal
+trust boundary.
 
-| Field | Value | Why |
-| --- | --- | --- |
-| `product` | `DailybotHQ/protoyard`, `v1.1.0`, interface `1` | The pin is the first release tag that ships interface 1. `v1.0.0` predates the interface and has no `--version --json`. |
-| `detect.command` | `protoyard --version --json` | It is read-only, needs no workspace and no network, and exits 0 wherever the CLI is installed. |
-| `detect.interface_from` | `json:interface` | stdout is one JSON object, `{"version","interface"}`, with `interface` at the top level. |
-| `provides_abilities` | none | Protoyard contributes no host ability (no delegation, metering or routing). |
-| `requires_grants` | `gate_command_exec`, `fs_write_plan_scope` | Using the addon runs CLI commands as gates, and copies validated exploration artifacts into the plan's `analysis_results/`. |
-| `transport` | absent | The addon is not a delegation transport. |
+This addon provides:
 
-The descriptor **MUST NOT** claim an ability or grant beyond these. If a later
-release needs more, for example `network_access` for a publish step, that is
-a descriptor change with its own review.
+- a read-only compatibility probe;
+- an explicit onboarding offer and consent record;
+- a reasoning-shaped exploration flow around `protoyard quick`;
+- validation and evidence rules for plan-scoped prototype artifacts; and
+- a human-controlled boundary between disposable exploration and a real
+  source prototype.
 
-## 3. Detection
+It MUST NOT provide a DWP library import, a runtime service, a network
+backend, a delegation transport, or a new Protoyard dependency on DWP.
 
-Detection **MUST** be read-only. The pack runs
-`protoyard --version --json` without a shell, with no stdin, and within its
-timeout. It then reads the top-level `interface` integer.
+## 2. Addon contract
 
-- **Present:** exit 0, and `interface` equals `1`.
-- **Not installed:** the binary is missing.
-- **Not available:** a non-zero exit, unreadable output, or any other
-  interface value. Each gives one warning and is never an error. A detector
-  **MUST NOT** fall back to `protoyard doctor`'s exit code, which is 1 on a
-  failed required check and 3 outside a workspace.
-- **Capabilities:** a tool that needs specific capabilities (`quick`,
-  `player`…) reads them from `protoyard doctor --json --offline`, inside the
-  workspace it works on. It **MUST** read them strictly, as
-  [`docs/INTERFACE.md`](../../../docs/INTERFACE.md) ("Reading a probe")
-  defines.
+The packet follows the v7.8.1 thin-integrator shape:
 
-## 4. Versioning
+1. **Normative spec:** this file defines the contract and conformance.
+2. **Reasoning/onboarding hook:** `SKILL.md` offers the addon, records the
+   decision, and carries the parameterized exploration template. It reasons
+   about the target plan and workspace; it does not copy a fixed repository
+   layout.
+3. **Descriptor:** `addon.json` is the closed DWP descriptor and pins the
+   product/interface. It MUST remain data-only.
+4. **Validation:** §8 and the checklist in `SKILL.md` validate the descriptor,
+   probe, capabilities, exploration evidence and promotion boundary.
 
-The interface major is versioned apart from the CLI's package version. A new
-Protoyard release that keeps interface 1 needs only a new `product.tag`. A
-breaking interface change bumps the major. The addon then updates
-`product.interface` and its detection rule in the same change, and a CLI on
-the old major reads as "not available".
+The upstream pack may split the reasoning template into its conventional
+`templates/INTEGRATION.md` file when this packet is accepted. That migration
+MUST preserve the content and decisions in `SKILL.md`; it is an upstream
+handoff, not a reason to add a hidden dependency here.
 
-## 5. Verification
+## 3. Never required, opt-in and reconcile
 
-`pnpm vitest run packages/cli/tests/dwp-addon.test.ts` checks three things:
-- the descriptor validates against the vendored schema and the runtime check;
-- the key matches the directory;
-- the detect command run through the pack's own interface reader reports
-  interface 1 from the real CLI.
+- The addon is **opt-in** and **never required** for DWP conformance,
+  Protoyard use, or any Protoyard CLI command. A repository with no addon
+  registry entry remains fully conformant.
+- `onboard` Phase 7b MAY offer it when Protoyard is detected or the developer
+  asks for idea exploration. It MUST show what the addon adds and what it
+  writes before asking for acceptance. Trust mode MAY recommend it but MUST
+  NOT silently accept it.
+- `create`, `execute`, `resume`, `refine`, `status` and `verify` MUST NOT
+  require the addon. An execution without it runs the ordinary DWP flow.
+- Declining writes nothing and continues. An absent, incompatible or broken
+  CLI is a warning about the machine, not a plan failure.
+- Existing `.dwp/config.json`, plan state, quick output and repository files
+  MUST be reconciled, never clobbered. The addon may add its own registry key
+  and plan-scoped evidence only after consent and only within approved paths.
+- The addon MUST NOT install a package, alter a lockfile, edit Protoyard source,
+  or modify the vendored `.agents/skills/deepworkplan/` pack as part of
+  detection or offer.
 
-When the pinned tag exists in the repository, the test also checks that the
-tag ships the `--version --json` interface.
+## 4. Descriptor and product compatibility
+
+`addon.json` MUST remain a closed object valid against the vendored
+`addon-descriptor-v1` schema. Its current contract is:
+
+- `key` is `protoyard`, matching this directory and the registry key;
+- `product` pins `DailybotHQ/protoyard`, `v1.1.0`, interface `1`;
+- `detect.command` is exactly `protoyard --version --json`;
+- `detect.interface_from` is `json:interface`;
+- `provides_abilities` is empty because this addon is not a transport; and
+- `requires_grants` is limited to the grants needed by the plan's local gate
+  execution and plan-scope artifact writes.
+
+The addon MUST NOT claim `subagents`, `cancel_children`, `model_routing`,
+network access, telemetry or any other host ability. `protoyard mcp` is a
+Protoyard interface, not a DWP delegation transport.
+
+## 5. Read-only detection
+
+Detection MUST run without a shell, with no stdin, a bounded timeout and
+captured stdout/stderr, as the DWP resource detector does. It MUST NOT run
+`install`, `new`, `quick`, `build`, `publish`, or a network command.
+
+### 5.1 Compatibility probe
+
+The detector runs:
+
+```text
+protoyard --version --json
+```
+
+Compatibility is present only when the process exits `0`, stdout is one
+valid JSON object, and its top-level `interface` is integer `1`. The object
+also contains the package-derived `version`. Missing binaries, non-zero exit,
+malformed output, a missing field or another interface major are reported as
+one warning and **not available**. A detector MUST NOT infer compatibility
+from the human-readable plain `protoyard --version` output.
+
+Plain `--version` remains semver text for people and existing scripts;
+`--version --json` is the machine form. The CLI's package version may change
+without changing the interface major.
+
+### 5.2 Capability probe
+
+After compatibility is established, a plan working inside a workspace MAY
+run `protoyard doctor --json --offline` to inspect capabilities. The doctor
+envelope exposes `interface` and `capabilities` at the top level, beside its
+ordinary `ok`, `command` and `data` fields. Stable capability identifiers are:
+
+```text
+quick, player, generate, mcp, blueprint-schema, import
+```
+
+The addon MUST treat other capability strings as discovery metadata, not a
+compatibility promise. It MUST read the doctor `ok` and capability values
+strictly and preserve the existing checks in `data`.
+
+Doctor exit codes are not a detection protocol: exit `1` means a required
+check failed, and exit `3` means the process is outside a workspace. Therefore
+the addon MUST use `protoyard --version --json` for presence/interface
+detection, and MUST NOT treat either doctor exit code as “not installed”.
+
+## 6. Consent, registry and independence
+
+The offer MUST state that the addon is optional, names the pinned product and
+interface, explains that exploration evidence is written only to an approved
+plan scope, and says that promotion is a separate human decision.
+
+Only after explicit acceptance MAY the DWP side record:
+
+```text
+python3 <dwp>/shared/config.py enable protoyard --version v1.1.0 --repo <repo>
+```
+
+The registry writer MUST reconcile `.dwp/config.json`, preserve unrelated
+addon entries, and refuse an unparseable file. A decline MUST leave the file
+unchanged. Detection can be recorded as available/absent/incompatible, but
+availability is not acceptance.
+
+Protoyard itself MUST remain installable and runnable with no DWP files,
+environment variables, Python modules or registry. This packet MUST NOT be
+copied into Protoyard runtime bundles, player assets or published package
+dependencies. The DWP side invokes the public CLI as an external local
+process and treats its JSON envelope as untrusted input.
+
+## 7. Exploration and promotion boundary
+
+The preferred plan flow is:
+
+1. Create a temporary working directory under the plan-approved scratch
+   location; never use a home directory or an arbitrary output path.
+2. Run `protoyard quick` from a brief or a validated blueprint with a stable
+   slug and seed. Use `--variants N` only when comparison is part of the
+   question. The CLI writes the marker, blueprint, quick record, launcher and
+   optional variants; the player path is resolved by the CLI.
+3. Run the plan's validation predicates against the local artifact and, when
+   available, serve it on a private loopback port. Browser screenshots and
+   accessibility evidence are optional only when Playwright is unavailable;
+   the report MUST record the explicit skip reason `playwright-unavailable`.
+4. Copy only the validated, plan-approved evidence into
+   `analysis_results/prototypes/` (or the plan's declared equivalent). Keep
+   temporary work outside the plan scope and remove it after collection when
+   policy permits.
+5. Record observed behavior, decision, and follow-up separately. A quick
+   artifact is simulated local evidence, not production research.
+
+Promotion is an explicit boundary. The addon MUST NOT automatically turn a
+quick folder into a source prototype, modify `prototypes/`, rewrite package
+manifests, or commit generated code. A developer may separately choose the
+normal Protoyard `new`, blueprint `generate`, or hand-authored source flow;
+that promotion is reviewed and validated as product work, not treated as an
+addon side effect. Re-running an exploration MUST remain disposable and
+deterministic for the same brief/blueprint and seed.
+
+## 8. Validation contract
+
+An applied addon is conformant only when all applicable checks pass or have a
+recorded, non-blocking skip:
+
+1. `addon.json`, `SPEC.md` and `SKILL.md` exist; the descriptor validates
+   against the vendored schema and its key matches `protoyard`.
+2. `protoyard --version --json` is executed read-only and reports interface
+   `1`, or the result is recorded as absent/incompatible without blocking.
+3. `doctor --json --offline`, when run in a workspace, preserves its checks
+   and exposes the documented top-level interface/capability fields.
+4. The quick run uses a bounded brief/blueprint, confined output, a stable
+   seed, and a real JSON envelope; no shell interpolation or runtime network
+   access is introduced.
+5. The exploration's validation result, browser result or
+   `playwright-unavailable` skip, and decision are recorded under the plan's
+   approved analysis scope.
+6. No automatic promotion, source mutation, lockfile change or DWP runtime
+   dependency occurred.
+
+The packet MUST remain usable when Protoyard is absent, when its interface is
+unknown, when doctor reports failed checks, when a developer declines, or
+when a browser is unavailable. Those states are findings, not DWP
+conformance failures.
+
+## 9. Upstream handoff
+
+The checked-out open-source upstream repository currently reports DWP
+`2.17.0`, while this repository vendors and targets DWP `7.8.1`. It lacks the
+current descriptor surface used by `addon.json`, including top-level product
+interface detection and the addon sync/registry contract. Before proposing
+this packet upstream, the maintainer MUST either target an upstream release
+that contains the v7 descriptor contract or port the equivalent descriptor,
+consent and validation mechanism with an explicit upstream review. This
+packet MUST NOT claim that upstream `2.17.0` accepts it unchanged.
+
+## 10. Rollback
+
+Disabling the registry entry is sufficient to stop addon use. Removing the
+packet does not remove Protoyard, plan state or validated evidence. Product
+artifacts are rolled back through the ordinary Protoyard/project review flow;
+the addon never deletes them implicitly.
