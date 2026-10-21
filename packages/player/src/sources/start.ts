@@ -57,6 +57,13 @@ export interface StartedPlayer {
   state: () => PlayerState;
   /** Removes the hashchange listener and any screen this module mounted. */
   stop: () => Promise<void>;
+  /**
+   * Shows the error screen for a blueprint that failed to boot after start
+   * (a live-reload change), labelled like the source the page opened from.
+   */
+  showBootError: (error: unknown, label: string) => Promise<void>;
+  /** Removes the picker or error screen this module mounted (the listener stays). */
+  clearScreen: () => Promise<void>;
 }
 
 /** The boot module (renderer, runtime) as its own chunk, fetched while the source resolves. */
@@ -128,7 +135,9 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
     screen = mount(SourceError, { target, props: { source, label, issues, onPick: showPicker } });
   };
 
+  let lastSource: SourceKind = 'file';
   const run = async (blueprint: Blueprint, source: SourceKind, label: string) => {
+    lastSource = source;
     await clear();
     try {
       await boot(blueprint, target);
@@ -220,6 +229,13 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
     stop: async () => {
       events.removeEventListener('hashchange', onHashChange);
       await clear();
+    },
+    showBootError: async (error, label) => {
+      console.error('[protoyard player] could not start the blueprint', error);
+      await showError(lastSource, label, bootIssues(error));
+    },
+    clearScreen: async () => {
+      if (screen) await clear();
     },
   };
 }
