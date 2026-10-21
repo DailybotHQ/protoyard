@@ -41,9 +41,19 @@ export function registerQuick(program: Command, def: Def): Command {
     .action(def('quick serve', quickServeCommand));
   quick
     .command('export')
-    .description('export an exploration as one self-contained HTML file that opens from file://')
+    .description(
+      'export an exploration as one self-contained HTML file, or pack it as a Claude artifact page'
+    )
     .argument('<target>', 'the exploration: its slug, or its folder')
     .option('--single-file', 'inline the player and the blueprint into one HTML file')
+    .option(
+      '--target <target>',
+      'artifact: pack the single file as a Claude artifact page in <exploration>/artifact/ (never publishes)'
+    )
+    .option(
+      '--url <url>',
+      'with --target artifact: record the URL the Artifact tool returned in quick.json'
+    )
     .option('--out <file>', 'write under artifacts/ or tmp/ instead of <exploration>/<slug>.html')
     .option('--force', 'replace an existing export')
     .action(def('quick export', quickExportCommand));

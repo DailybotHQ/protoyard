@@ -249,6 +249,7 @@ that step, and only after the developer approves it.
 | `pnpm protoyard artifact list [--json]` | The latest recorded share per prototype |
 | `pnpm protoyard review-index --from-ledger` | The review page, with recorded shares labeled private |
 | `pnpm protoyard showcase --target artifact [--slugs a,b] [--no-templates]` | The gallery plus selected demos as one pack → `artifacts/showcase/artifact/` |
+| `pnpm protoyard quick export <slug> --target artifact [--url <url>]` | A quick exploration as one artifact page → `<exploration>/artifact/`, recorded in its `quick.json` ([below](#a-quick-exploration-as-an-artifact)) |
 
 ### Who sees what
 
@@ -484,6 +485,80 @@ To share many prototypes, share each one as its own artifact
 or host the full showcase on a static host (below). The skill takes a prototype slug, so a showcase pack
 has no skill path yet. An agent publishes it by following its manifest
 batches with the same read-every-file and approval steps.
+
+### A quick exploration as an artifact
+
+A quick exploration (not a registered prototype) packs as **one page**, the
+[single file](#one-file-from-a-quick-exploration) turned into Artifact page
+content (`packages/cli/src/lib/quick/artifact.ts`):
+
+```bash
+pnpm protoyard quick export my-idea --target artifact --json      # pack: page + publish arguments
+# … the developer approves; an agent publishes page.html with the Artifact tool …
+pnpm protoyard quick export my-idea --target artifact --url https://claude.ai/artifact/<id>
+```
+
+**What it writes** in `<exploration>/artifact/` (replaced on every pack):
+- `page.html`, body content: `<title>` first, the page contract's light and
+  dark color tokens, then the single file's head scripts and styles and its
+  body. The Artifact tool adds the document skeleton (doctype, charset,
+  viewport), so those wrappers and metas are dropped.
+- `artifact-manifest.json` (`protoyard.quick-artifact`, version 1): the
+  page's bytes and sha256, the blueprint hash, the player version, and the
+  publish arguments.
+
+**Publish arguments** in the envelope's `publish` (the `--json` output):
+- `file_path`, the absolute page path. There are no supporting `files`, since
+  the player is already inline.
+- `title`, the blueprint name cut to at most four words.
+- `icon`, from the blueprint category (`app` when there is none).
+- `description`, the blueprint description's first sentence, or a sentence
+  that labels the data simulated (at most 1,000 characters).
+
+**Checked before writing** (nothing is written when one fails, exit 4):
+- every `ARTIFACT_LIMITS` cap (one page, at most 16,000,000 bytes);
+- no network markup or network imports;
+- no service worker;
+- no U+FFFD. Inside script and style bodies it is escaped to the same
+  character, as the prototype pack does for JS and CSS; elsewhere it is
+  refused.
+
+**Recording, never publishing.** The CLI never publishes. Sharing is an
+outward-facing step that needs the developer's approval, then the Artifact
+tool. `--url` then records the returned URL in the exploration's own
+`quick.json` `shares`:
+- each share is `{ kind: "artifact", url, visibility: "private", variant: null,
+  sha256, at }`;
+- it is never written to the prototype share ledger, which is keyed by
+  registry slugs;
+- it refuses a URL that is not a claude.ai artifact link (exit 2), a missing
+  pack (exit 3), and a page or blueprint that no longer matches the pack
+  (exit 4).
+
+Like `artifact record`, the CLI checks the URL's shape but cannot prove the
+Artifact tool returned it.
+
+**Who sees what** is as [above](#who-sees-what): private by default, and each
+viewer's data stays in their own browser.
+
+**Measured on 2026-10-20** with the four `blueprints/quick/*.json` examples:
+- each page passes every rule, at 3,243,656–3,244,614 bytes, far under the
+  16,000,000-byte text-file cap;
+- the analytics page, wrapped in a minimal skeleton (doctype, charset,
+  viewport) and served over http, boots to `protoyard:ready` in headless
+  Chromium (`packages/cli/tests/quick-artifact.test.ts`).
+
+**Limits:**
+- **No CSP meta.** The single file's own CSP meta can't travel: a CSP meta
+  outside `<head>` is ignored, so the claude.ai viewer's own policy applies.
+- **Preload lookups to a reserved host.** Without that CSP, Vite's preload
+  helper requests `https://protoyard-single-file.invalid/…` names for
+  stylesheets that are already inlined. The host is reserved and never
+  resolves, so the requests fail harmlessly.
+- **Base exploration only.** The pack covers the base exploration, not a
+  variant (`variant: null`).
+- **Not verified on claude.ai.** Boot inside the claude.ai viewer has not been
+  checked; that needs a consented publish.
 
 ### Verified and not verified
 
