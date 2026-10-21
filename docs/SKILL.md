@@ -41,6 +41,22 @@ features. Its [quick reference](../skills/protoyard/references/quick.md) lists
 the supported options and current promotion path. Quick output stays on disk;
 `quick.json` stores the original brief unless `--no-store-brief` is passed.
 
+## Create a full prototype
+
+To turn a brief, a blueprint or a quick exploration into a full prototype
+under `prototypes/<slug>/`, use the
+[`protoyard-new` sub-skill](../skills/protoyard/new/SKILL.md). It covers:
+- the command sequences (`blueprint new`, `blueprint validate`, `generate`,
+  `quick promote` and `new --template`);
+- the template choice;
+- validation of the result (`spec --write`, the prototype's tests,
+  `validate --build`).
+
+Its [blueprint reference](../skills/protoyard/references/blueprints.md)
+summarizes the format, the brief archetypes, how an exploration and the
+prototype generated from it share one blueprint, and what regeneration may
+change.
+
 ## Install with `setup.sh`
 
 The pack ships its own installer, `skills/protoyard/setup.sh`. It runs on Bash

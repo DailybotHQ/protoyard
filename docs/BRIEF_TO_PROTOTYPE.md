@@ -9,6 +9,11 @@ against the actual product idea.
 Use the [`brief-to-prototype` skill](../.agents/skills/brief-to-prototype/SKILL.md)
 or invoke `/new-from-brief`. For the longer hands-on build after generation,
 continue with [`create-prototype`](../.agents/skills/create-prototype/SKILL.md).
+Outside this repository, the distributable skill's
+[`protoyard-new` flow](../skills/protoyard/new/SKILL.md) covers the same
+loop: brief, blueprint, generation (or `quick promote`) and validation. Its
+[blueprint reference](../skills/protoyard/references/blueprints.md) maps the
+format.
 
 ## The loop
 
