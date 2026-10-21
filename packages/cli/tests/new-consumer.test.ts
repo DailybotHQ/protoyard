@@ -13,7 +13,11 @@ describe('protoyard new in consumer workspaces', () => {
     const ws = createWorkspace();
     try {
       rmSync(join(ws.root, 'pnpm-workspace.yaml'));
-      ws.write('package.json', { name: 'consumer', private: true, protoyard: {} });
+      ws.write('package.json', {
+        name: 'consumer',
+        private: true,
+        protoyard: { workspace: 1 },
+      });
 
       expect(workspacePaths(ws.root).templates).toBe(TEMPLATES_ROOT);
       const run = await cli([
@@ -54,7 +58,11 @@ describe('protoyard new in consumer workspaces', () => {
     const ws = createWorkspace();
     try {
       rmSync(join(ws.root, 'pnpm-workspace.yaml'));
-      ws.write('package.json', { name: 'consumer', private: true, protoyard: {} });
+      ws.write('package.json', {
+        name: 'consumer',
+        private: true,
+        protoyard: { workspace: 1 },
+      });
       addPrototype(ws, 'starter');
       ws.write('prototypes/starter/package.json', {
         name: '@prototype/starter',

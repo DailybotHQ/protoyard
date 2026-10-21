@@ -34,7 +34,7 @@ function write(path: string, content: string | object) {
 
 /** A consumer workspace (no pnpm-workspace.yaml) with the gallery installed under node_modules. */
 function consumerWithGallery(options: { symlinked?: boolean } = {}) {
-  write('package.json', { name: 'my-prototypes', private: true, protoyard: {} });
+  write('package.json', { name: 'my-prototypes', private: true, protoyard: { workspace: 1 } });
   const real = options.symlinked
     ? '.pnpm/gallery/node_modules/@protoyard/gallery'
     : 'node_modules/@protoyard/gallery';
@@ -118,7 +118,7 @@ writeFileSync(process.env.FAKE_ASTRO_OUT, JSON.stringify({ cwd: process.cwd(), a
   });
 
   it('explains how to install the gallery when it is missing', () => {
-    write('package.json', { name: 'my-prototypes', private: true, protoyard: {} });
+    write('package.json', { name: 'my-prototypes', private: true, protoyard: { workspace: 1 } });
     let message = '';
     try {
       requireGalleryDir(root, { fromDirs: [root] });

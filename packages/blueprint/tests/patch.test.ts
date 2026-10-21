@@ -172,6 +172,17 @@ describe('RFC 6902 conformance', () => {
     }
   });
 
+  it('bounds cumulative nodes when copying the document repeatedly', () => {
+    const patch = Array.from({ length: 25 }, (_, index) => ({
+      op: 'copy' as const,
+      from: '',
+      path: `/copy${index}`,
+    }));
+    const error = patchError(() => applyJsonPatch({ value: { nested: [1, 2, 3] } }, patch));
+    expect(error.code).toBe('invalid-patch');
+    expect(error.message).toContain('node budget');
+  });
+
   it('refuses malformed patches and is atomic', () => {
     const document = { list: [1, 2, 3] };
     for (const patch of [

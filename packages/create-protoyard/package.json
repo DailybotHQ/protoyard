@@ -27,6 +27,7 @@
     "create-protoyard": "./bin/create-protoyard.mjs"
   },
   "files": [
+    "LICENSE",
     "bin",
     "files",
     "index.js",

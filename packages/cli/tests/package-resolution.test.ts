@@ -251,7 +251,7 @@ describe('scenariosEntry (inspect runner)', () => {
       join(root, 'packages', 'scenarios', 'src', 'index.ts')
     );
     const empty = temp('protoyard-resolve-empty-');
-    write(join(empty, 'package.json'), { name: 'empty', protoyard: {} });
+    write(join(empty, 'package.json'), { name: 'empty', protoyard: { workspace: 1 } });
     expect(scenariosEntry(empty, empty)).toBeNull();
   });
 

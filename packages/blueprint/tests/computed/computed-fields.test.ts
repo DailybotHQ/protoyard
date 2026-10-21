@@ -157,4 +157,26 @@ describe('computed fields', () => {
       )
     ).toEqual({ success: true, value: null });
   });
+
+  it('returns null for non-finite aggregates and reduces large collections safely', () => {
+    const relationRows = Array.from({ length: 150_000 }, (_, index) => ({ budget: index }));
+    for (const aggregate of ['min', 'max'] as const) {
+      expect(
+        evaluateComputedExpression(
+          { op: 'aggregate', relation: 'project', aggregate, field: 'budget' },
+          { ...context, row: {}, relations: { project: relationRows } }
+        )
+      ).toEqual({ success: true, value: aggregate === 'min' ? 0 : 149_999 });
+    }
+    expect(
+      evaluateComputedExpression(
+        { op: 'aggregate', relation: 'project', aggregate: 'sum', field: 'budget' },
+        {
+          ...context,
+          row: {},
+          relations: { project: [{ budget: Number.MAX_VALUE }, { budget: Number.MAX_VALUE }] },
+        }
+      )
+    ).toEqual({ success: true, value: null });
+  });
 });

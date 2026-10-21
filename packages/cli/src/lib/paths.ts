@@ -33,9 +33,15 @@ function readWorkspacePackage(root: string): WorkspacePackage | null {
   }
 }
 
+function hasProtoyardWorkspaceMarker(pkg: WorkspacePackage | null): boolean {
+  if (!pkg) return false;
+  if (typeof pkg.protoyard !== 'object' || pkg.protoyard === null || Array.isArray(pkg.protoyard))
+    return false;
+  return Object.hasOwn(pkg.protoyard, 'workspace');
+}
+
 function hasConsumerMarker(pkg: WorkspacePackage | null): boolean {
   if (!pkg) return false;
-  if (pkg.protoyard !== undefined) return true;
   if (Array.isArray(pkg.workspaces)) return pkg.workspaces.length > 0;
   if (!pkg.workspaces || typeof pkg.workspaces !== 'object') return false;
   const packages = (pkg.workspaces as { packages?: unknown }).packages;
@@ -45,10 +51,9 @@ function hasConsumerMarker(pkg: WorkspacePackage | null): boolean {
 /** Returns the supported workspace layout at an already-resolved root. */
 export function workspaceLayout(root: string): WorkspaceLayout | null {
   const pkg = readWorkspacePackage(root);
-  // An explicit `protoyard` field marks a consumer even next to
-  // pnpm-workspace.yaml: a pnpm consumer needs that file for its prototypes.
-  // This repository's root package.json has no such field.
-  if (pkg?.protoyard !== undefined) return 'consumer';
+  // Only the dedicated `protoyard.workspace` marker identifies a consumer.
+  // Package manifests also use the `protoyard` field for build metadata.
+  if (hasProtoyardWorkspaceMarker(pkg)) return 'consumer';
   if (existsSync(join(root, 'pnpm-workspace.yaml'))) return 'monorepo';
   return hasConsumerMarker(pkg) ? 'consumer' : null;
 }
@@ -72,7 +77,7 @@ export function workspacePaths(root: string): WorkspacePaths {
  * Resolves the workspace root. An explicit `--root`/`PROTOYARD_ROOT` is used
  * as-is (benchmarks and tests point it at temp dirs); otherwise we walk up from
  * the working directory to the folder holding `pnpm-workspace.yaml` or a
- * consumer package.json with a Protoyard/workspaces marker, so the CLI works
+ * consumer package.json with a Protoyard workspace/workspaces marker, so the CLI works
  * from inside a prototype folder too.
  */
 export function resolveWorkspaceRoot(options: { root?: string; cwd?: string } = {}): string {

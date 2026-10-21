@@ -18,6 +18,8 @@ import { type Blueprint, safeParseBlueprint } from './schema.ts';
  */
 
 export const JSON_PATCH_MAX_OPS = 1000;
+/** Maximum JSON nodes traversed while copying a document or patch value. */
+export const JSON_PATCH_MAX_NODES = 100_000;
 export const JSON_POINTER_MAX_LENGTH = 1024;
 /** Pointer tokens and value keys that could reach an object prototype. */
 const FORBIDDEN_KEYS: ReadonlySet<string> = new Set(['__proto__', 'constructor', 'prototype']);
@@ -65,6 +67,7 @@ export class BlueprintPatchError extends Error {
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Container = Json[] | { [key: string]: Json };
+type JsonBudget = { used: number };
 
 /** RFC 6901: `""` is the whole document; otherwise `/`-separated, `~1` → `/`, `~0` → `~`. */
 export function parseJsonPointer(pointer: string): string[] {
@@ -173,21 +176,25 @@ export function jsonEqual(a: unknown, b: unknown): boolean {
 }
 
 /** Deep-copies a JSON value, refusing non-JSON values and prototype-reaching keys. */
-function toJson(value: unknown, fail: (why: string) => never, depth = 0): Json {
+function toJson(value: unknown, fail: (why: string) => never, budget: JsonBudget, depth = 0): Json {
+  budget.used += 1;
+  if (budget.used > JSON_PATCH_MAX_NODES) {
+    fail(`the patch exceeds the ${JSON_PATCH_MAX_NODES.toLocaleString()}-node budget`);
+  }
   if (depth > 64) fail('the value is nested too deeply');
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return value;
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) fail('the value has a non-finite number');
     return value;
   }
-  if (Array.isArray(value)) return value.map((item) => toJson(item, fail, depth + 1));
+  if (Array.isArray(value)) return value.map((item) => toJson(item, fail, budget, depth + 1));
   if (typeof value === 'object') {
     const out: { [key: string]: Json } = {};
     for (const key of Object.keys(value)) {
       if (FORBIDDEN_KEYS.has(key)) fail(`the value has a "${key}" key`);
       const member = (value as Record<string, unknown>)[key];
       // Dropped like JSON.stringify does: parsed blueprints may carry undefined optionals.
-      if (member !== undefined) out[key] = toJson(member, fail, depth + 1);
+      if (member !== undefined) out[key] = toJson(member, fail, budget, depth + 1);
     }
     return out;
   }
@@ -211,9 +218,14 @@ export function applyJsonPatch(document: unknown, operations: unknown): unknown 
     );
   }
   const raw = Array.isArray(operations) ? operations : [];
-  let root = toJson(document, (why) => {
-    throw new BlueprintPatchError('invalid-patch', `The document is not JSON: ${why}.`);
-  });
+  const budget: JsonBudget = { used: 0 };
+  let root = toJson(
+    document,
+    (why) => {
+      throw new BlueprintPatchError('invalid-patch', `The document is not JSON: ${why}.`);
+    },
+    budget
+  );
 
   parsed.data.forEach((operation, index) => {
     const where = `operation ${index} (${operation.op} ${operation.path})`;
@@ -230,7 +242,11 @@ export function applyJsonPatch(document: unknown, operations: unknown): unknown 
     const value = (): Json => {
       if (!Object.hasOwn(raw[index] as object, 'value'))
         fail('it has no "value" member', 'invalid-patch');
-      return toJson((operation as { value: unknown }).value, (why) => fail(why, 'invalid-patch'));
+      return toJson(
+        (operation as { value: unknown }).value,
+        (why) => fail(why, 'invalid-patch'),
+        budget
+      );
     };
     const path = pointer(operation.path);
     switch (operation.op) {
@@ -260,7 +276,11 @@ export function applyJsonPatch(document: unknown, operations: unknown): unknown 
         break;
       }
       case 'copy': {
-        const copied = toJson(getAt(root, pointer(operation.from), fail), fail);
+        const copied = toJson(
+          getAt(root, pointer(operation.from), fail),
+          (why) => fail(why, 'invalid-patch'),
+          budget
+        );
         root = addAt(root, path, copied, fail);
         break;
       }
