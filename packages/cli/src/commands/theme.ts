@@ -6,12 +6,14 @@ import {
   contrastRatio,
   createThemeFromSeed,
   getLibraryThemeMeta,
+  importThemeTokens,
   listCollections,
   listThemeLibrary,
   loadLibraryTheme,
   searchThemeLibrary,
   TEXT_CONTRAST_PAIRS,
   THEME_COLLECTIONS,
+  ThemeTokenContrastError,
   UI_CONTRAST_PAIRS,
 } from '@protoyard/themes';
 import type { CommandResult, Handler } from '../lib/command.ts';
@@ -202,8 +204,57 @@ export const themeCreateCommand: Handler = async (ctx, args, options): Promise<C
 };
 
 export const themeImportCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
+  const tokenId = opt(options, 'name');
+  if (!args[1] && tokenId) {
+    const file = args[0];
+    if (!file) throw new CliError('usage', 'Missing <tokens.json>.');
+    let input: unknown;
+    try {
+      input = JSON.parse(readFileSync(resolve(ctx.root, file), 'utf8'));
+    } catch (error) {
+      throw new CliError(
+        'validation',
+        `Could not read design tokens: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+    try {
+      const { theme, contrast } = importThemeTokens(input, { id: tokenId });
+      return {
+        data: {
+          id: theme.id,
+          name: theme.name,
+          theme,
+          contrast,
+          css: exportTheme(theme, 'css'),
+          tailwind: exportTheme(theme, 'tailwind'),
+        },
+        render(out) {
+          out.always(`Imported ${theme.name} (${theme.id}) from design tokens.`);
+          for (const mode of ['light', 'dark'] as const) {
+            const report = contrast[mode];
+            out.always(
+              `${mode}: WCAG AA ${report.passed ? 'PASS' : 'FAIL'} (${report.passedCount}/${report.total} pairs)`
+            );
+          }
+          out.always('Theme JSON, CSS variables and Tailwind tokens are available with --json.');
+        },
+      };
+    } catch (error) {
+      if (error instanceof ThemeTokenContrastError) {
+        throw new CliError('validation', error.message, {
+          data: { failures: error.failures, contrast: error.contrast },
+        });
+      }
+      throw new CliError('validation', error instanceof Error ? error.message : String(error));
+    }
+  }
+  if (tokenId) {
+    throw new CliError('usage', 'Use --name only with `theme import <tokens.json> --name <id>`.');
+  }
+  if (!args[0] || !args[1]) {
+    throw new CliError('usage', 'Provide <slug> and <file>, or <tokens.json> with --name <id>.');
+  }
   const { entry, dir } = await resolveTarget(ctx, args[0], 'prototype');
-  if (!args[1]) throw new CliError('usage', 'Missing <file>.');
   const theme = readTheme(resolve(ctx.root, args[1]));
   return writeTheme(ctx.root, dir, entry.slug, theme, options);
 };

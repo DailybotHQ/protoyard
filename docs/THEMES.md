@@ -754,13 +754,24 @@ Every command also takes `--json`.
 | `theme list` | — | no |
 | `theme export [id]` | `--from <file>` (instead of an id), `--format css\|tailwind\|tokens` (default `css`) | no |
 | `theme create <slug>` | `--seed <hex>` with `--id <id>` (required), `--name`, `--secondary <hex>`; or `--from <file>`; `--force`, `--dry-run` | `prototypes/<slug>/src/theme.ts` |
+| `theme import <tokens.json> --name <id>` | imports flat or DTCG tokens and returns the theme, AA report, CSS variables and Tailwind tokens as JSON | no |
 | `theme import <slug> <file>` | `--force`, `--dry-run` | `prototypes/<slug>/src/theme.ts` |
 
-`create` and `import` validate the theme with `ThemeSchema` and the WCAG
-pairs in both modes before writing, refuse to overwrite an existing
-`src/theme.ts` without `--force`, and print the file instead of writing it
-with `--dry-run`. They write the file only; register the exported theme in
-`definePrototype({ themes })` yourself.
+`create` and the prototype form of `import` validate the theme with
+`ThemeSchema` and the WCAG pairs in both modes before writing, refuse to
+overwrite an existing `src/theme.ts` without `--force`, and print the file
+instead of writing it with `--dry-run`. They write the file only; register the
+exported theme in `definePrototype({ themes })` yourself.
+
+The token form accepts the W3C design-token structure emitted by `theme export
+--format tokens`, a flat object with `light` and `dark`, or a `protoyard` object
+containing those palettes. Flat `typography.ui` / `display` and `radii.md`
+tokens are also mapped to the theme's font and radius. It requires every
+Protoyard palette color in both modes and hex values for tokens used in contrast
+pairs, so AA can be measured. It returns the parsed theme and contrast report
+without writing files; `--json` also includes CSS custom properties and
+Tailwind `@theme` tokens. A failed AA pair exits with a validation error and
+lists each failing mode and token pair; adjust the source tokens and retry.
 
 **List** the six presets and the 64 library themes:
 

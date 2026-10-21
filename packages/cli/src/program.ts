@@ -462,9 +462,10 @@ export function createProgram(env: RunnerEnv): Command {
     .action(def('theme export', themeExportCommand));
   theme
     .command('import')
-    .description('write a validated JSON theme into a prototype')
-    .argument('<slug>', 'prototype slug')
-    .argument('<file>', 'path to a theme JSON file')
+    .description('import design tokens, or write a validated JSON theme into a prototype')
+    .argument('[slug-or-file]', 'prototype slug, or design token JSON file')
+    .argument('[file]', 'path to a Protoyard theme JSON file')
+    .option('--name <id>', 'theme id when importing design tokens')
     .option('--force', 'overwrite src/theme.ts')
     .option('--dry-run', 'show the generated file without writing')
     .action(def('theme import', themeImportCommand));
