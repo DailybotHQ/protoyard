@@ -99,106 +99,132 @@ const backups = (dir: string) =>
     ? readdirSync(join(dir, '.protoyard', 'skill-backups'))
     : [];
 
+// Each case installs and checksums real packs through several bash processes; under a
+// loaded machine that can take longer than Vitest's 5 s default.
+const SLOW = 60_000;
+
 describe('scripts/upgrade-skill.sh', () => {
-  it('previews installed versus selected and changes nothing without --yes (also under CI=1)', () => {
-    const dir = home('1.0.0');
-    const release = checkout('1.1.0');
-    for (const env of [{}, { CI: '1' }]) {
-      const result = upgrade(
-        ['--host', 'claude', '--home', dir, '--from', release, '--tag', 'v1.1.0'],
-        env
-      );
+  it(
+    'previews installed versus selected and changes nothing without --yes (also under CI=1)',
+    () => {
+      const dir = home('1.0.0');
+      const release = checkout('1.1.0');
+      for (const env of [{}, { CI: '1' }]) {
+        const result = upgrade(
+          ['--host', 'claude', '--home', dir, '--from', release, '--tag', 'v1.1.0'],
+          env
+        );
+        expect(result.code, result.err).toBe(0);
+        expect(result.out).toContain('installed version: 1.0.0');
+        expect(result.out).toContain('selected version:  1.1.0');
+        expect(result.out).toContain('release checksums: ok');
+        expect(result.out).toContain('change: upgrade 1.0.0 → 1.1.0');
+        // The exact replacement command, and the consent requirement.
+        expect(result.out).toContain(
+          `bash ${join(release, 'skills/protoyard/setup.sh')} --host claude --home ${dir} --replace`
+        );
+        expect(result.out).toMatch(/After the developer confirms this upgrade, rerun with --yes/);
+        expect(result.out).toContain('SKILL.md');
+        expect(installedVersion(dir)).toBe('1.0.0');
+        expect(backups(dir)).toEqual([]);
+      }
+    },
+    SLOW
+  );
+
+  it(
+    'replaces only the skill with --yes, keeps a backup and the host config, and verifies',
+    () => {
+      const dir = home('1.0.0');
+      const release = checkout('1.1.0');
+      const result = upgrade(['--host', 'claude', '--home', dir, '--from', release, '--yes']);
       expect(result.code, result.err).toBe(0);
-      expect(result.out).toContain('installed version: 1.0.0');
-      expect(result.out).toContain('selected version:  1.1.0');
-      expect(result.out).toContain('release checksums: ok');
-      expect(result.out).toContain('change: upgrade 1.0.0 → 1.1.0');
-      // The exact replacement command, and the consent requirement.
-      expect(result.out).toContain(
-        `bash ${join(release, 'skills/protoyard/setup.sh')} --host claude --home ${dir} --replace`
+      expect(result.out).toContain('Upgraded: the installed skill is now 1.1.0');
+      expect(installedVersion(dir)).toBe('1.1.0');
+      expect(backups(dir)).toHaveLength(1);
+      expect(readFileSync(join(dir, '.claude', 'settings.json'), 'utf8')).toBe(
+        '{"theme":"dark"}\n'
       );
-      expect(result.out).toMatch(/After the developer confirms this upgrade, rerun with --yes/);
-      expect(result.out).toContain('SKILL.md');
+      expect(existsSync(join(dir, '.claude', 'skills', 'other-skill', 'SKILL.md'))).toBe(true);
+      // Running it again: already current.
+      const again = upgrade(['--host', 'claude', '--home', dir, '--from', release, '--yes']);
+      expect(again.code).toBe(0);
+      expect(again.out).toContain('Already current');
+      expect(backups(dir)).toHaveLength(1);
+    },
+    SLOW
+  );
+
+  it(
+    'refuses a release that fails its checksums or is not the selected tag, even with --yes',
+    () => {
+      const dir = home('1.0.0');
+      const tampered = checkout('1.1.0');
+      writeFileSync(join(tampered, 'skills', 'protoyard', 'TRUST.md'), 'changed after release\n');
+      const bad = upgrade(['--host', 'claude', '--home', dir, '--from', tampered, '--yes']);
+      expect(bad.code).toBe(1);
+      expect(bad.err).toMatch(/changed: TRUST\.md/);
+      expect(bad.err).toMatch(/nothing was changed/);
+
+      const release = checkout('1.1.0');
+      const wrongTag = upgrade([
+        '--host',
+        'claude',
+        '--home',
+        dir,
+        '--from',
+        release,
+        '--tag',
+        'v1.2.0',
+        '--yes',
+      ]);
+      expect(wrongTag.code).toBe(1);
+      expect(wrongTag.err).toMatch(/holds version 1\.1\.0, not v1\.2\.0/);
       expect(installedVersion(dir)).toBe('1.0.0');
       expect(backups(dir)).toEqual([]);
-    }
-  });
+    },
+    SLOW
+  );
 
-  it('replaces only the skill with --yes, keeps a backup and the host config, and verifies', () => {
-    const dir = home('1.0.0');
-    const release = checkout('1.1.0');
-    const result = upgrade(['--host', 'claude', '--home', dir, '--from', release, '--yes']);
-    expect(result.code, result.err).toBe(0);
-    expect(result.out).toContain('Upgraded: the installed skill is now 1.1.0');
-    expect(installedVersion(dir)).toBe('1.1.0');
-    expect(backups(dir)).toHaveLength(1);
-    expect(readFileSync(join(dir, '.claude', 'settings.json'), 'utf8')).toBe('{"theme":"dark"}\n');
-    expect(existsSync(join(dir, '.claude', 'skills', 'other-skill', 'SKILL.md'))).toBe(true);
-    // Running it again: already current.
-    const again = upgrade(['--host', 'claude', '--home', dir, '--from', release, '--yes']);
-    expect(again.code).toBe(0);
-    expect(again.out).toContain('Already current');
-    expect(backups(dir)).toHaveLength(1);
-  });
+  it(
+    'refuses a downgrade unless allowed, and a home with nothing installed',
+    () => {
+      const dir = home('1.2.0');
+      const older = checkout('1.1.0');
+      const refused = upgrade(['--host', 'claude', '--home', dir, '--from', older, '--yes']);
+      expect(refused.code).toBe(3);
+      expect(refused.err).toMatch(/older than the installed 1\.2\.0/);
+      expect(installedVersion(dir)).toBe('1.2.0');
+      const allowed = upgrade([
+        '--host',
+        'claude',
+        '--home',
+        dir,
+        '--from',
+        older,
+        '--allow-downgrade',
+      ]);
+      expect(allowed.code).toBe(0);
+      expect(allowed.out).toContain('change: downgrade 1.2.0 → 1.1.0 (allowed)');
 
-  it('refuses a release that fails its checksums or is not the selected tag, even with --yes', () => {
-    const dir = home('1.0.0');
-    const tampered = checkout('1.1.0');
-    writeFileSync(join(tampered, 'skills', 'protoyard', 'TRUST.md'), 'changed after release\n');
-    const bad = upgrade(['--host', 'claude', '--home', dir, '--from', tampered, '--yes']);
-    expect(bad.code).toBe(1);
-    expect(bad.err).toMatch(/changed: TRUST\.md/);
-    expect(bad.err).toMatch(/nothing was changed/);
+      const empty = temp('protoyard-upgrade-empty-');
+      const none = upgrade(['--host', 'claude', '--home', empty, '--from', older]);
+      expect(none.code).toBe(3);
+      expect(none.err).toMatch(/no Protoyard skill is installed/);
+    },
+    SLOW
+  );
 
-    const release = checkout('1.1.0');
-    const wrongTag = upgrade([
-      '--host',
-      'claude',
-      '--home',
-      dir,
-      '--from',
-      release,
-      '--tag',
-      'v1.2.0',
-      '--yes',
-    ]);
-    expect(wrongTag.code).toBe(1);
-    expect(wrongTag.err).toMatch(/holds version 1\.1\.0, not v1\.2\.0/);
-    expect(installedVersion(dir)).toBe('1.0.0');
-    expect(backups(dir)).toEqual([]);
-  });
-
-  it('refuses a downgrade unless allowed, and a home with nothing installed', () => {
-    const dir = home('1.2.0');
-    const older = checkout('1.1.0');
-    const refused = upgrade(['--host', 'claude', '--home', dir, '--from', older, '--yes']);
-    expect(refused.code).toBe(3);
-    expect(refused.err).toMatch(/older than the installed 1\.2\.0/);
-    expect(installedVersion(dir)).toBe('1.2.0');
-    const allowed = upgrade([
-      '--host',
-      'claude',
-      '--home',
-      dir,
-      '--from',
-      older,
-      '--allow-downgrade',
-    ]);
-    expect(allowed.code).toBe(0);
-    expect(allowed.out).toContain('change: downgrade 1.2.0 → 1.1.0 (allowed)');
-
-    const empty = temp('protoyard-upgrade-empty-');
-    const none = upgrade(['--host', 'claude', '--home', empty, '--from', older]);
-    expect(none.code).toBe(3);
-    expect(none.err).toMatch(/no Protoyard skill is installed/);
-  });
-
-  it('reports usage errors with exit 2', () => {
-    const release = checkout('1.1.0');
-    expect(upgrade(['--from', release]).code).toBe(2);
-    expect(upgrade(['--host', 'claude']).code).toBe(2);
-    expect(upgrade(['--host', 'nowhere', '--from', release]).code).toBe(2);
-    expect(upgrade(['--host', 'claude', '--from', release, '--tag', 'latest']).code).toBe(2);
-    expect(upgrade(['--help']).out).toContain('--yes');
-  });
+  it(
+    'reports usage errors with exit 2',
+    () => {
+      const release = checkout('1.1.0');
+      expect(upgrade(['--from', release]).code).toBe(2);
+      expect(upgrade(['--host', 'claude']).code).toBe(2);
+      expect(upgrade(['--host', 'nowhere', '--from', release]).code).toBe(2);
+      expect(upgrade(['--host', 'claude', '--from', release, '--tag', 'latest']).code).toBe(2);
+      expect(upgrade(['--help']).out).toContain('--yes');
+    },
+    SLOW
+  );
 });
