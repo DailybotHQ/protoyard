@@ -5,6 +5,7 @@ import { quickFeedbackCommand } from './feedback.ts';
 import { quickIterateCommand, quickUndoCommand } from './iterate.ts';
 import { quickIndexCommand, quickListCommand, quickOpenCommand } from './list.ts';
 import { quickPromoteCommand } from './promote.ts';
+import { quickPruneCommand } from './prune.ts';
 import { quickReportCommand } from './report.ts';
 import { quickServeCommand } from './serve.ts';
 import { quickShotCommand, quickWithScreenshotCommand } from './shot.ts';
@@ -127,5 +128,14 @@ export function registerQuick(program: Command, def: Def): Command {
     .command('index')
     .description('write a static index.html in the quick zone linking every exploration')
     .action(def('quick index', quickIndexCommand));
+  quick
+    .command('prune')
+    .description(
+      'remove explorations not updated for a while (lists them unless --yes; never promoted ones)'
+    )
+    .option('--older-than <age>', 'age since the last update: 14d (default), 36h, 2w')
+    .option('--yes', 'remove them (CI=1 alone never removes anything)')
+    .option('--force', 'also remove explorations whose comments are newer than their REVIEW.md')
+    .action(def('quick prune', quickPruneCommand));
   return quick;
 }

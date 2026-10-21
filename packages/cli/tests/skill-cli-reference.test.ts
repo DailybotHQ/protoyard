@@ -67,18 +67,28 @@ describe('the skill CLI reference', () => {
   });
 
   it('lists as planned only commands that do not exist yet', () => {
+    // The loose parser really reads tables: it finds the quick commands in the command tables.
+    expect(documentedRowsLoose('## Commands').length).toBeGreaterThan(10);
     const planned = documentedRowsLoose('## Planned (not available)');
-    // The section shrinks as planned commands land; this only proves the parser found it.
-    expect(planned.length).toBeGreaterThan(0);
     for (const path of planned) expect(commands.has(path), path).toBe(false);
+    // Once every planned command has landed, the section must say so instead of going quiet.
+    if (planned.length === 0) {
+      expect(sectionBody('## Planned (not available)')).toMatch(/No commands are planned/);
+    }
   });
 });
 
+/** The text of a `## ` section, up to the next one; empty when the heading is missing. */
+function sectionBody(section: string): string {
+  const start = DOC.indexOf(section);
+  if (start === -1) return '';
+  const end = DOC.indexOf('\n## ', start + section.length);
+  return DOC.slice(start, end === -1 ? undefined : end);
+}
+
 /** Command paths named anywhere in a section's table (`protoyard quick serve`, `quick list`). */
 function documentedRowsLoose(section: string): string[] {
-  const start = DOC.indexOf(section);
-  const end = DOC.indexOf('\n## ', start + section.length);
-  const body = DOC.slice(start, end === -1 ? undefined : end);
+  const body = sectionBody(section);
   const paths = new Set<string>();
   for (const match of body.matchAll(/`(?:protoyard )?((?:quick|doctor|mcp)(?: [a-z]+)?)[ `]/g)) {
     const path = (match[1] ?? '').trim();
