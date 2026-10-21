@@ -203,17 +203,37 @@ for such blueprints, so others download none of it (a 3.5 KB gzip lazy chunk).
 pnpm vitest run packages/player/tests/validation.test.ts
 ```
 
-## Review comments on a served exploration
+## Served by `quick serve`: live reload and review comments
 
-`protoyard quick serve` hosts a comments API on its own origin and adds
-`comments=1&review=http` to the launcher it serves. With `review=http` the
-player (`src/served-review.ts`) sets the blueprint's review build to the HTTP
-adapter with the fixed same-origin endpoint `/api/comments`, and the renderer's
-`?comments=1` path mounts the review UI lazily. The endpoint never comes from
-the URL. Without the parameter (file://, other hosts), review stays off.
+On `127.0.0.1` only, `runPlayer` asks its own origin for `/__protoyard/serve.json`. When
+`protoyard quick serve` answers, the player loads `src/live-reload.ts` (a 1.5 KB gzip lazy
+chunk) and turns on two things. Anywhere else, including the hosted player, it neither probes
+nor loads the module.
+
+- **Review comments:** `bootPlayer` gets `review: true`. The prototype's manifest then uses
+  the `http` review adapter on the fixed same-origin endpoint `QUICK_REVIEW_ENDPOINT`
+  (`/api/comments`), never one from the URL or the server's answer. `comments=1` mounts the
+  lazy review UI. Comments land in the exploration's
+  `review/comments.json` ([REVIEW_COMMENTS](../../docs/REVIEW_COMMENTS.md#quick-explorations)).
+  `?devtools=0` hides the review UI with DevTools.
+- **Live reload:** it subscribes to the server-sent events on `/__protoyard/events`.
+  - **What an event carries:** identities and a same-origin path, never content. The player
+    reacts only when the event's `previous` hash is the blueprint it shows. It then fetches the
+    file, reads it as untrusted input (256 KB cap), and checks that its identity matches the
+    event.
+  - **Safe change, same world.** No dropped table or field, and database versions that extend
+    the old ones (as `quick iterate` records them in `history`). The player re-derives in
+    place in the same storage namespace, keeping the world's generator version, so the runtime
+    upgrades the database instead of rebuilding the world. Every row stays. New entities start
+    empty until you reset the scenario in DevTools.
+  - **Destructive change, fresh world.** A drop, or storage changed without its history. The
+    new blueprint boots in its own namespace with a fresh world.
+  - **Reloads.** The tab remembers (sessionStorage) which world a re-derived blueprint uses,
+    and updates its saved share link. A page reload then keeps the same world and shows the
+    new blueprint.
 
 ```bash
-pnpm vitest run packages/player/tests/served-review.test.ts
+pnpm vitest run packages/player/tests/live-reload.test.ts
 ```
 
 ## Security

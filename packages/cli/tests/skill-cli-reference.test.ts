@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Command } from 'commander';
@@ -98,3 +98,16 @@ function documentedRowsLoose(section: string): string[] {
   }
   return [...paths];
 }
+
+describe('the distributable skill pack', () => {
+  it('never mentions internal plan or task ids', () => {
+    const pack = fileURLToPath(new URL('../../../skills/protoyard/', import.meta.url));
+    const hits = (readdirSync(pack, { recursive: true }) as string[])
+      .filter((file) => file.endsWith('.md'))
+      .filter((file) =>
+        /\bPLAN_\d{3}\b|\bT-[a-z]+-[a-z-]+\b/.test(readFileSync(join(pack, file), 'utf8'))
+      );
+    // Users read this pack; status labels are "New since <version>", never a plan name.
+    expect(hits).toEqual([]);
+  });
+});

@@ -209,9 +209,19 @@ pnpm exec tsx tests/e2e/support/serve-comments.ts tmp/crm-review 4651
 ### Quick explorations
 
 `protoyard quick serve <slug>` enables the same comments API on the local
-server origin. Comments are validated by the review handler and saved beside
+server origin. The player finds it on its own: on `127.0.0.1` it asks the
+origin for `/__protoyard/serve.json`, and when `quick serve` answers it mounts
+the review UI with the `http` adapter on `/api/comments`, so comments work
+with no flag. Comments are validated by the review handler and saved beside
 the selected exploration at `review/comments.json`; they survive stopping and
-restarting the server. The server scopes static requests to that exploration
+restarting the server.
+
+- **After a change.** When the exploration's blueprint changes (`quick
+  iterate`), the server also accepts the new blueprint's namespace and the
+  namespaces in the exploration's iterate history. A world the player kept
+  across a change still posts under its first namespace.
+- **Tested.** `packages/cli/tests/quick-live-reload.test.ts` posts a comment
+  from the real player in Chromium and finds it in `review/comments.json`. The server scopes static requests to that exploration
 and its matching shared player version, and returns 404 for other explorations
 and player versions. It binds to `127.0.0.1`, accepts only its printed Host,
 and refuses cross-origin writes. Request size and write rate limits are the
@@ -223,12 +233,10 @@ exploration and its comments; browser same-origin rules still apply to page
 scripts. Comment names are self-declared. Do not serve an exploration
 containing information you would not share with local software.
 
-The launcher that `quick serve` hands out (the exploration's `index.html`, or
-a variant's) adds `comments=1&review=http` to its player link, so the player
-mounts the review UI lazily with the HTTP adapter against this server's
-`/api/comments`. The endpoint is fixed in the player and never read from the
-URL. The launcher file on disk is unchanged: the same exploration opened from
-`file://` or another host has no comments.
+The endpoint is fixed in the player (`QUICK_REVIEW_ENDPOINT`). It is never
+read from the URL or from the server's answer. The launcher on disk is
+unchanged, so the same exploration opened from `file://` or another host has
+no comments.
 
 Turn the comments into a report next to the blueprint:
 

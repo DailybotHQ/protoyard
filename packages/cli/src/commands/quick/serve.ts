@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, lstatSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, statSync } from 'node:fs';
 import { lstat, readFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
@@ -14,6 +14,13 @@ import { QUICK_MARKER } from '../../lib/output-guard.ts';
 import { canonicalPath, toPosixRelative } from '../../lib/paths.ts';
 import { parsePort } from '../../lib/ports.ts';
 import { createFileCommentsStore } from '../../lib/quick/comments-store.ts';
+import {
+  createQuickEventHub,
+  historyNamespaces,
+  QUICK_EVENTS_PATH,
+  type WatchedBlueprint,
+  watchBlueprints,
+} from '../../lib/quick/events.ts';
 import { readQuickRecord } from '../../lib/quick/model.ts';
 import { QUICK_PLAYER_DIR, quickPlayerDir, resolveQuickBase } from '../../lib/quick/paths.ts';
 import { type StaticServer, serveStatic } from '../../lib/static-server.ts';
@@ -28,6 +35,12 @@ import { type StaticServer, serveStatic } from '../../lib/static-server.ts';
  * A shared-player exploration links to `../_player/<version>/`, so the
  * server's root is the quick zone and the URL is `/<slug>/`; a standalone
  * exploration (its own `player/`) is served from its own folder at `/`.
+ * Only that exploration and its player are reachable: every other path in the
+ * zone (another exploration, another player version) is a 404.
+ *
+ * While it runs, it watches the exploration's blueprint files and tells open
+ * players about changes on `/__protoyard/events` (lib/quick/events.ts), and it
+ * hosts the exploration's review comments on `/api/comments/<namespace>`.
  */
 
 /** First port tried; like `preview`, a busy port falls back to the next free one. */
@@ -63,36 +76,6 @@ async function reviewSlugForBlueprint(path: string, expectedSha256: string): Pro
     throw new CliError('validation', 'The quick blueprint changed after it was created.');
   }
   return identity.namespace;
-}
-
-/**
- * The launcher (`index.html` of the exploration or a variant) a request asks
- * for, or null. Only these pages are rewritten by the server.
- */
-function launcherFile(target: QuickServeTarget, pathname: string): string | null {
-  if (!pathname.startsWith(target.path)) return null;
-  const rest = pathname.slice(target.path.length);
-  const match = /^(?:(v[1-8])\/)?(?:index\.html)?$/.exec(rest);
-  if (!match) return null;
-  const file = join(target.dir, match[1] ?? '', 'index.html');
-  return existsSync(file) && lstatSync(file).isFile() ? file : null;
-}
-
-/**
- * A launcher as `quick serve` hands it out: its player link gains
- * `comments=1&review=http`, so the player mounts review comments with the
- * HTTP adapter against this server's `/api/comments`. The file on disk is
- * unchanged, so the same launcher opened elsewhere has no comments.
- */
-export function servedLauncherHtml(html: string): string {
-  const match = /http-equiv="refresh" content="0; url=([^"]+)"/.exec(html);
-  const href = match?.[1];
-  if (!href) return html;
-  const hash = href.indexOf('#');
-  const path = hash < 0 ? href : href.slice(0, hash);
-  const fragment = hash < 0 ? '' : href.slice(hash);
-  const added = `${path}${path.includes('?') ? '&amp;' : '?'}comments=1&amp;review=http${fragment}`;
-  return html.split(href).join(added);
 }
 
 /** Resolves `<dir|slug>` to a marked exploration and what to serve; throws a CliError. */
@@ -228,6 +211,8 @@ export interface QuickServeResult {
   layout: 'shared' | 'standalone';
   playerVersion: string;
   opened: boolean;
+  /** The live-reload event stream (server-sent events), on the same origin. */
+  events: string;
 }
 
 export const quickServeCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
@@ -244,7 +229,29 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
   }
   let server: StaticServer;
   let boundPort: number | undefined;
-  const commentsStore = createFileCommentsStore(target.dir, target.reviewSlugs);
+  // Live: a changed blueprint (and every blueprint before a `quick iterate`)
+  // may still be the namespace a kept world writes its comments under.
+  const reviewSlugs = new Set([...target.reviewSlugs, ...(await historyNamespaces(target.dir))]);
+  const commentsStore = createFileCommentsStore(target.dir, reviewSlugs);
+  const record = await readQuickRecord(target.dir);
+  const watched: WatchedBlueprint[] = [
+    { id: 'base', file: join(target.dir, 'blueprint.json'), path: `${target.path}blueprint.json` },
+    ...record.variants.map((variant) => ({
+      id: variant.id,
+      file: join(target.dir, variant.dir, 'blueprint.json'),
+      path: `${target.path}${variant.dir}/blueprint.json`,
+    })),
+  ];
+  let hub: ReturnType<typeof createQuickEventHub> | undefined;
+  const watcher = await watchBlueprints({
+    files: watched,
+    onChange: (change) => {
+      reviewSlugs.add(change.namespace);
+      hub?.publish(change);
+    },
+  });
+  hub = createQuickEventHub({ current: () => watcher.current(), commentsPath: '/api/comments' });
+  const events = hub;
   try {
     server = await serveStatic({
       dir: target.root,
@@ -273,23 +280,7 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
         } catch {
           return false;
         }
-        const launcher = launcherFile(target, url.pathname);
-        if (launcher && (request.method === 'GET' || request.method === 'HEAD')) {
-          let html: string;
-          try {
-            html = servedLauncherHtml(readFileSync(launcher, 'utf8'));
-          } catch {
-            return false;
-          }
-          response.writeHead(200, {
-            'Content-Type': 'text/html; charset=utf-8',
-            'Cache-Control': 'no-store',
-            'X-Content-Type-Options': 'nosniff',
-            'Referrer-Policy': 'no-referrer',
-          });
-          response.end(request.method === 'HEAD' ? undefined : html);
-          return true;
-        }
+        if (events.route(request, response, url.pathname)) return true;
         if (!url.pathname.startsWith('/api/comments')) return false;
         const parts = url.pathname.split('/').filter(Boolean);
         let routeSlug = '';
@@ -298,11 +289,7 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
         } catch {
           routeSlug = '';
         }
-        if (
-          parts[0] !== 'api' ||
-          parts[1] !== 'comments' ||
-          !target.reviewSlugs.includes(routeSlug)
-        ) {
+        if (parts[0] !== 'api' || parts[1] !== 'comments' || !reviewSlugs.has(routeSlug)) {
           response.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
           response.end(
             JSON.stringify({
@@ -351,6 +338,8 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
     });
     boundPort = server.port;
   } catch (error) {
+    watcher.close();
+    events.close();
     throw new CliError(
       'conflict',
       `Could not serve on port ${requested}: ${(error as Error).message}`,
@@ -372,6 +361,7 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
     layout: target.layout,
     playerVersion: target.playerVersion,
     opened: open,
+    events: `http://127.0.0.1:${server.port}${QUICK_EVENTS_PATH}`,
   };
   return {
     data,
@@ -380,8 +370,16 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
       out.always(`${mark(c, 'pass')} Serving ${c.bold(target.slug)} on ${c.cyan(url)}`);
       if (server.port !== requested)
         out.info(c.dim(`  Port ${requested} was busy; using ${server.port}.`));
+      out.info(
+        c.dim('  Live reload: open players follow changes to its blueprint (quick iterate).')
+      );
       out.info(c.dim(`  Local only (127.0.0.1). Simulated data. Press Ctrl+C to stop.`));
     },
-    keepAlive: waitForStop(() => server.close()),
+    // Event streams stay open, so they end first or the server never closes.
+    keepAlive: waitForStop(async () => {
+      watcher.close();
+      events.close();
+      await server.close();
+    }),
   };
 };

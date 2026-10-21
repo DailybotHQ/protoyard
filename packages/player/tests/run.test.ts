@@ -9,7 +9,13 @@ import type { StartPlayerOptions } from '../src/sources/start.ts';
 const blueprint = parseBlueprint(demo);
 
 function booted(namespace: string): BootedPlayer {
-  return { namespace, runtime: null, error: null, destroy: vi.fn(async () => {}) };
+  return {
+    namespace,
+    generatorVersion: undefined,
+    runtime: null,
+    error: null,
+    destroy: vi.fn(async () => {}),
+  };
 }
 
 function setup(framed: boolean) {

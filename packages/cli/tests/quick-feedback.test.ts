@@ -5,11 +5,7 @@ import { blueprintIdentity, parseBlueprint } from '@protoyard/blueprint';
 import type { ReviewComment } from '@protoyard/core/review';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { setQuickPlayerLocator } from '../src/commands/quick/index.ts';
-import {
-  servedLauncherHtml,
-  setQuickServeOpener,
-  setQuickServeStop,
-} from '../src/commands/quick/serve.ts';
+import { setQuickServeOpener, setQuickServeStop } from '../src/commands/quick/serve.ts';
 import { launchChromium } from '../src/lib/capture/index.ts';
 import { findFreePort } from '../src/lib/ports.ts';
 import { createFileCommentsStore } from '../src/lib/quick/comments-store.ts';
@@ -105,20 +101,6 @@ function exportFile(name: string, slug: string, comments: unknown[], namespace =
 }
 
 const read = (dir: string, file: string) => readFileSync(join(ws.root, dir, file), 'utf8');
-
-describe('served launchers', () => {
-  it('add comments=1&review=http to the player link, before the fragment', () => {
-    const launcher = (href: string) =>
-      `<meta http-equiv="refresh" content="0; url=${href}">\n<a href="${href}">x</a>`;
-    expect(servedLauncherHtml(launcher('../_player/1.0.0/index.html#bp=1.abc'))).toBe(
-      launcher('../_player/1.0.0/index.html?comments=1&amp;review=http#bp=1.abc')
-    );
-    expect(servedLauncherHtml(launcher('player/index.html?seed=7&amp;src=./blueprint.json'))).toBe(
-      launcher('player/index.html?seed=7&amp;src=./blueprint.json&amp;comments=1&amp;review=http')
-    );
-    expect(servedLauncherHtml('<p>not a launcher</p>')).toBe('<p>not a launcher</p>');
-  });
-});
 
 describe('protoyard quick feedback', () => {
   it('writes REVIEW.md and REVIEW.json from the served comments, per variant', async () => {
