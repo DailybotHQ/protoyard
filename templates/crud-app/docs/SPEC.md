@@ -24,7 +24,7 @@ TODO: what this prototype deliberately does not do.
 | Scenario | Name | Group | Density | Seed | Generator knobs | Description |
 | --- | --- | --- | --- | --- | --- | --- |
 | `active` | Active | Roles | normal | 123002 | — | A normal density workspace for day-to-day demos. |
-| `empty` | Empty | General | empty | 123001 | — | Team only — no projects or tasks yet. |
+| `empty` | Empty | General | empty | 123001 | — | Team only — no records yet. |
 | `massive` | Massive | Roles | massive | 123004 | — | Dense seed for list virtualization and budget checks. |
 | `viewer` | Viewer | Roles | sparse | 123003 | — | Read-only stroll through seeded work. |
 <!-- /protoyard:generated:scenarios -->
