@@ -27,7 +27,7 @@ export interface DwpLoopFixture {
   cleanup(): void;
 }
 
-function fillExplorationTemplate(): string {
+function fillExplorationTemplate(slug: string, variantCount: number): string {
   const source = readFileSync(EXPLORATION_TEMPLATE, 'utf8');
   const startMarker = '<!-- exploration-template:start -->';
   const endMarker = '<!-- exploration-template:end -->';
@@ -42,15 +42,15 @@ function fillExplorationTemplate(): string {
     IDEA: 'A fictional product analytics workspace for a small team.',
     DECISION_QUESTION: 'Which shell makes the fictional event explorer easiest to scan?',
     INPUT: 'input/analytics.json',
-    SLUG,
+    SLUG: slug,
     SEED: '17',
-    VARIANT_COUNT: '2',
+    VARIANT_COUNT: String(variantCount),
     CRITERIA:
       '- The event explorer route is reachable.\n- The metrics route is reachable and records one local attempt.',
     SCRATCH_DIR: 'analysis_results/prototypes',
     PRIVATE_PORT: '4860',
-    EVIDENCE_DIR: `analysis_results/prototypes/${SLUG}`,
-    EVIDENCE: `- analysis_results/prototypes/${SLUG}/DECISION.md`,
+    EVIDENCE_DIR: `analysis_results/prototypes/${slug}`,
+    EVIDENCE: `- analysis_results/prototypes/${slug}/DECISION.md`,
     CHOSEN_VARIANT: 'v1',
     DECISION: 'iterate',
     FOLLOW_UP: 'Review the local evidence before any source-prototype work.',
@@ -83,13 +83,23 @@ async function fixturePlayer(root: string): Promise<PlayerAssets> {
   };
 }
 
+export interface DwpLoopFixtureOptions {
+  /** Exploration slug (default `dwp-loop-fixture`). */
+  slug?: string;
+  /** The template's variant count (default 2). */
+  variantCount?: number;
+}
+
 /** Creates a disposable workspace and plan whose generated evidence is plan-scoped. */
-export async function createDwpLoopFixture(): Promise<DwpLoopFixture> {
+export async function createDwpLoopFixture(
+  options: DwpLoopFixtureOptions = {}
+): Promise<DwpLoopFixture> {
+  const slug = options.slug ?? SLUG;
   const root = mkdtempSync(join(tmpdir(), 'protoyard-dwp-loop-'));
   const planDir = join(root, 'plan');
   const evidenceDir = join(planDir, 'analysis_results', 'prototypes');
-  const explorationDir = join(evidenceDir, SLUG);
-  const rerunDir = join(evidenceDir, `${SLUG}-rerun`);
+  const explorationDir = join(evidenceDir, slug);
+  const rerunDir = join(evidenceDir, `${slug}-rerun`);
   const inputDir = join(planDir, 'input');
   const blueprintPath = join(inputDir, 'analytics.json');
   const metricsPath = join(evidenceDir, 'validation-metrics.json');
@@ -106,7 +116,10 @@ export async function createDwpLoopFixture(): Promise<DwpLoopFixture> {
   mkdirSync(join(root, 'prototypes'), { recursive: true });
   mkdirSync(join(root, 'templates'), { recursive: true });
   cpSync(BLUEPRINT_SOURCE, blueprintPath);
-  writeFileSync(join(planDir, 'exploration-task.md'), fillExplorationTemplate());
+  writeFileSync(
+    join(planDir, 'exploration-task.md'),
+    fillExplorationTemplate(slug, options.variantCount ?? 2)
+  );
 
   return {
     root,

@@ -28,6 +28,23 @@ proves that:
   `playwright-unavailable`, not treated as a successful screenshot check; and
 - the repository source tree has the same Git status before and after the loop.
 
+A second run fills the template with three variants and runs the task's own
+`protoyard quick … --variants 3 --out analysis_results/prototypes/<slug>`
+line, with its plan-relative paths resolved, plus `--screenshot`. It checks:
+
+- the JSON envelope (`ok`, `command: "quick"`) and three distinct,
+  deterministic variants (`v1`–`v3`), each with a launcher, and the
+  `compare.html` page;
+- a rerun of the same command gives the same base hash and the same variant
+  ids, labels and hashes;
+- a recorded screenshot result. With Chromium available, the real player is
+  captured once per blueprint at 1280×800 and the PNGs are listed in
+  `quick.json`. Without it, the run still passes and `quick.json` records the
+  skip (`playwright-unavailable` or `browser-unavailable`); the browser
+  evidence file says which happened;
+- every artifact (envelope, exploration, rerun, browser evidence, decision)
+  stays under the plan's `analysis_results/prototypes/`.
+
 Run the fixture with:
 
 ```bash
