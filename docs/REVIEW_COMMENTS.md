@@ -209,9 +209,19 @@ pnpm exec tsx tests/e2e/support/serve-comments.ts tmp/crm-review 4651
 ### Quick explorations
 
 `protoyard quick serve <slug>` enables the same comments API on the local
-server origin. Comments are validated by the review handler and saved beside
+server origin. The player finds it on its own: on `127.0.0.1` it asks the
+origin for `/__protoyard/serve.json`, and when `quick serve` answers it mounts
+the review UI with the `http` adapter on `/api/comments`, so comments work
+with no flag. Comments are validated by the review handler and saved beside
 the selected exploration at `review/comments.json`; they survive stopping and
-restarting the server. The server scopes static requests to that exploration
+restarting the server.
+
+- **After a change.** When the exploration's blueprint changes (`quick
+  iterate`), the server also accepts the new blueprint's namespace and the
+  namespaces in the exploration's iterate history. A world the player kept
+  across a change still posts under its first namespace.
+- **Tested.** `packages/cli/tests/quick-live-reload.test.ts` posts a comment
+  from the real player in Chromium and finds it in `review/comments.json`. The server scopes static requests to that exploration
 and its matching shared player version, and returns 404 for other explorations
 and player versions. It binds to `127.0.0.1`, accepts only its printed Host,
 and refuses cross-origin writes. Request size and write rate limits are the

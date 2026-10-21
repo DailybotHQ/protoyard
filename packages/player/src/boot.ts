@@ -25,11 +25,37 @@ export interface BootPlayerOptions {
   indexFactory?: IDBFactory;
   /** Generated-world cache; defaults to the origin's IndexedDB cache (memory when blocked). */
   worldCache?: WorldCache;
+  /**
+   * Opens the blueprint in this storage namespace instead of its own (live
+   * reload re-derives a changed blueprint in the world it already has).
+   */
+  namespace?: string;
+  /**
+   * Keeps this prototype generator version (with `namespace`): the reopened
+   * world was built by it, so the runtime must not treat it as stale and
+   * rebuild it. Live reload only.
+   */
+  generatorVersion?: number;
+  /**
+   * Review comments through a same-origin comments API (`quick serve`): mounts
+   * the review UI with the `http` adapter on this endpoint.
+   */
+  review?: { endpoint: string };
+}
+
+/** `search` with `name=value` set (kept when already present). */
+function withParam(search: string, name: string, value: string): string {
+  const params = new URLSearchParams(search);
+  if (!params.has(name)) params.set(name, value);
+  const text = params.toString();
+  return text ? `?${text}` : '';
 }
 
 export interface BootedPlayer extends MountedPrototype {
   /** The content namespace this blueprint's IndexedDB data lives under (`bp-…`). */
   namespace: string;
+  /** The prototype generator version its world is (or was) built with. */
+  generatorVersion: number | undefined;
 }
 
 /**
@@ -42,7 +68,8 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
   const { blueprint, target } = options;
   const identity = await blueprintIdentity(blueprint);
   const search = options.search ?? location.search;
-  const storage = await resolvePlayerStorage(blueprint, identity, search);
+  const resolved = await resolvePlayerStorage(blueprint, identity, search);
+  const storage = options.namespace ? { ...resolved, namespace: options.namespace } : resolved;
   const { definition: blueprintDefinition, appModel } = definePrototypeFromBlueprint(blueprint, {
     namespace: storage.namespace,
     slug: storage.namespace,
@@ -54,10 +81,29 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
       ? (await import('./archetypes/business/saas.ts')).withSaasKit(generated, blueprint)
       : generated;
   // A cache hit reopens a scenario without regenerating; a miss generates in the worker.
-  const definition = withWorldCache(withKit, {
+  const cached = withWorldCache(withKit, {
     blueprintSha256: identity.sha256,
     cache: options.worldCache ?? createPlayerWorldCache(options.indexFactory),
   });
+  // Served by `quick serve`: comments go to its same-origin API (the renderer
+  // loads the review UI lazily when `comments=1` and DevTools are on).
+  const pinned =
+    options.generatorVersion !== undefined
+      ? { ...cached, generatorVersion: options.generatorVersion }
+      : cached;
+  const definition = options.review
+    ? {
+        ...pinned,
+        manifest: {
+          ...pinned.manifest,
+          build: {
+            ...pinned.manifest.build,
+            review: { enabled: true, adapter: 'http' as const, endpoint: options.review.endpoint },
+          },
+        },
+      }
+    : pinned;
+  const mountSearch = options.review ? withParam(search, 'comments', '1') : options.search;
   markActiveExploration(storage.namespace);
   try {
     await recordExploration(storage, options.indexFactory);
@@ -69,7 +115,7 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
     definition,
     App: PlayerApp,
     target,
-    ...(options.search !== undefined ? { search: options.search } : {}),
+    ...(mountSearch !== undefined ? { search: mountSearch } : {}),
     ...(options.createRuntime ? { createRuntime: options.createRuntime } : {}),
     // Honest labelling: every player prototype says its data is simulated.
     build: { namespace: storage.namespace, demoBadge: true },
@@ -88,5 +134,8 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
       await destroy();
     };
   }
-  return Object.assign(mounted, { namespace: storage.namespace });
+  return Object.assign(mounted, {
+    namespace: storage.namespace,
+    generatorVersion: definition.generatorVersion,
+  });
 }

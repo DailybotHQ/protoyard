@@ -10,12 +10,26 @@ the agent skill and CLI can be released at different times.
 ```text
 protoyard quick [options] [brief]
 protoyard quick serve <slug|dir> [--port <port>] [--strict-port] [--open]
+protoyard quick iterate <slug|dir> --patch <file|-> [--allow-drop]
+protoyard quick undo <slug|dir>
+protoyard quick list
+protoyard quick open <slug> [--port <port>] [--strict-port]
 ```
 
 `quick serve` serves a marked exploration on 127.0.0.1 until Ctrl+C (port 4180
 by default, falling back to the next free port unless `--strict-port`), and
 `--open` opens it in the browser. It refuses folders without the
-`.protoyard-quick` marker and a valid `quick.json`.
+`.protoyard-quick` marker and a valid `quick.json`, and serves only that
+exploration and its player.
+- **Live reload.** While it runs, an open player follows changes to the
+  blueprint. `quick iterate` applies a JSON Patch and keeps the history that
+  `quick undo` reverses.
+  - A safe change (nothing dropped) re-derives in place and keeps the rows.
+  - A destructive one (`--allow-drop`) opens a fresh world.
+- **Review comments.** The served player can post review comments, saved in
+  the exploration's `review/comments.json`.
+- **Find and open.** `quick list` lists the explorations, and `quick open`
+  finds one by slug and serves it with `--open`.
 
 Give exactly one brief (a positional string or `-` for stdin) or use
 `--blueprint <file>`. The current help lists:
@@ -69,10 +83,9 @@ planned work, not commands to try on a release whose help does not list them.
 | Planned activity | Proposed form | Current status |
 | --- | --- | --- |
 | Capture a screenshot for each variant when Playwright is available | `protoyard quick --screenshot` | Not in current help; use an existing visual-review workflow if one meets the need. |
-| Apply a validated JSON Patch, keep history and live-reload | `protoyard quick iterate <dir> --patch <file|->` | Not in current help; preserve the source blueprint and rerun `quick` with a new slug after edits. |
 | Export local review comments | `protoyard quick feedback <dir>` | Not in current help; record feedback through an existing review workflow or local notes. |
 | Summarize validation sessions | `protoyard quick report <dir>` | Not in current help. Blueprint `validation.tasks` already run in the player's validation panel, which keeps attempts in the browser and downloads a metrics file; there is no CLI report yet. |
-| Browse, open or prune entries by age | `protoyard quick list`, `quick open`, `quick prune --older-than <days>` | Not in current help; do not invent subcommands. Deletion requires showing the exact path and user confirmation. |
+| Prune entries by age | `protoyard quick prune --older-than <days>` | Not in current help; do not invent subcommands. Deletion requires showing the exact path and user confirmation. |
 
 These proposals may change before release. The CLI's installed help is the
 source of truth.

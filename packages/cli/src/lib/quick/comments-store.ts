@@ -67,11 +67,18 @@ function parseStore(value: unknown, allowedSlugs: ReadonlySet<string>): StoredCo
   return { format: STORE_FORMAT, formatVersion: STORE_VERSION, comments: checked };
 }
 
-/** File-backed review comments for one marked quick exploration. */
-export function createFileCommentsStore(dir: string, slugs: readonly string[]): CommentsStore {
+/**
+ * File-backed review comments for one marked quick exploration. Pass a `Set`
+ * to keep the allowlist live: `quick serve` adds a blueprint's namespace when
+ * the exploration changes while it runs.
+ */
+export function createFileCommentsStore(
+  dir: string,
+  slugs: readonly string[] | ReadonlySet<string>
+): CommentsStore {
   const reviewDir = join(dir, 'review');
   const file = join(reviewDir, 'comments.json');
-  const allowedSlugs = new Set(slugs);
+  const allowedSlugs: ReadonlySet<string> = slugs instanceof Set ? slugs : new Set(slugs);
   const comments = new Map<string, ReviewComment>();
   const commentKey = (slug: string, id: string) => `${slug}/${id}`;
   const limits = new Map<string, { start: number; count: number }>();
