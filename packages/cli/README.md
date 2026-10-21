@@ -140,6 +140,11 @@ and Windows.
   versioned `quick.json` (`protoyard.quick` v1: brief and blueprint sha256, player version,
   variants, screenshots, shares, promotion; `src/lib/quick/model.ts`). A newer format version is
   refused with an upgrade hint, and the brief text is omitted with `--no-store-brief`.
+  `--variants N` (1–8) also writes `v1/`…`vN/`, each with its own `blueprint.json` and launcher
+  on the one shared player. They are deterministic for a blueprint and `--seed` (from
+  `deriveVariants` over every shared layout and catalog theme), and each opens its own world,
+  because the player keys storage by blueprint hash. A replaced exploration drops earlier
+  variant folders.
   Explorations with variants get a static `compare.html` (`src/lib/quick/compare-html.ts`): the
   variants side by side with labels, links and screenshots, only relative same-folder URLs, all
   text escaped, no script, and a Content-Security-Policy that allows only its own hashed style,

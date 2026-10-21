@@ -20,6 +20,10 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--out <dir>', 'write somewhere other than .protoyard/quick/<slug>/ (self-contained)')
     .option('--allow-external-out', 'permit an --out outside the workspace (must be new or empty)')
     .option('--seed <n>', 'scenario seed the launcher opens the world with (whole number)')
+    .option(
+      '--variants <n>',
+      'also write N deterministic variants (1-8) in v1/..vN/, with compare.html'
+    )
     .option('--standalone', 'copy the player into the folder instead of sharing it')
     .option('--no-store-brief', 'keep only the brief’s sha256 in quick.json, not its text')
     .option('--force', 'replace an existing exploration with the same slug')
