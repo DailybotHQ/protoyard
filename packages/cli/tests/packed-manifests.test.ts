@@ -13,6 +13,7 @@ type ExportTarget = string | Record<string, string>;
 interface Manifest {
   name: string;
   version: string;
+  types?: string;
   exports?: Record<string, ExportTarget>;
   files?: string[];
   publishConfig?: {
