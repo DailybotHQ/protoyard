@@ -103,6 +103,21 @@ Protoyard CLI. Installing the skill is still a consent checkpoint
 tag first. `pnpm vitest run packages/cli/tests/skill-setup.test.ts` runs every
 host against a temporary home under `/bin/bash`.
 
+Release artifacts include a root-level `SHA256SUMS` for the files in
+`skills/protoyard/`. Regenerate it after the final skill edits, then verify the
+release checkout before tagging or distributing it:
+
+```bash
+scripts/generate-skill-checksums.sh
+scripts/verify-skill-integrity.sh
+```
+
+The manifest lists sorted paths relative to the skill directory. The verifier
+rejects missing, changed, or unlisted files and supports `shasum` or
+`sha256sum`; it does not make a signing or publisher-identity claim. The root
+manifest can also verify an installed or staged copy with
+`scripts/verify-skill-integrity.sh --dir <skill-dir> --sums SHA256SUMS`.
+
 ## Validate the distributable skill
 
 From the Protoyard repository, check the skill before cutting or
