@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import type { Handler } from '../../lib/command.ts';
 import { quickExportCommand } from './export.ts';
 import { quickCommand } from './index.ts';
+import { quickIterateCommand, quickUndoCommand } from './iterate.ts';
 import { quickIndexCommand, quickListCommand, quickOpenCommand } from './list.ts';
 import { quickPromoteCommand } from './promote.ts';
 import { quickServeCommand } from './serve.ts';
@@ -66,6 +67,21 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--variant <id>', 'promote one of the exploration variants (v1..v8) instead')
     .option('--no-install', 'skip pnpm install after generating')
     .action(def('quick promote', quickPromoteCommand));
+  quick
+    .command('iterate')
+    .description('change an exploration with an RFC 6902 JSON Patch, atomically, with undo history')
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .option('--patch <file>', 'the JSON Patch file, or - to read it from stdin (512 KB at most)')
+    .option(
+      '--allow-drop',
+      'accept a patch that drops entities or fields (the world loses that data)'
+    )
+    .action(def('quick iterate', quickIterateCommand));
+  quick
+    .command('undo')
+    .description('restore the blueprint from before the last `quick iterate`, byte for byte')
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .action(def('quick undo', quickUndoCommand));
   quick
     .command('list')
     .description('list the explorations in the quick zone (marked folders only), newest first')
