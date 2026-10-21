@@ -13,8 +13,10 @@ import { expectAccessible } from './support/a11y.ts';
  * - compare.html shows each variant ready in a distinct `bp-` namespace;
  * - a comment placed through the review UI lands in review/comments.json and,
  *   through `quick feedback`, in REVIEW.md;
- * - `quick iterate` live-reloads the open tab with its rows kept, and the
- *   validation task it adds can be completed there;
+ * - `quick iterate` live-reloads the open tab with its rows kept, the
+ *   validation task it adds can be completed there, and the metrics that tab
+ *   downloads (still under the pre-iterate namespace) import into
+ *   `quick report` as an earlier version of the base;
  * - a validation session on the iterated blueprint is reported by `quick report`;
  * - `quick shot` captures PNGs, or records why it skipped.
  *
@@ -303,7 +305,40 @@ test('quick iterate live-reloads the open tab with its rows kept, and its valida
 
   await route(page, '/', 'Overview');
   await completeTask(page);
+
+  // The live-reloaded tab keeps the pre-iterate world, so its metrics carry
+  // that namespace; quick report accepts them as an earlier version.
+  await importMetrics(page, panel, 'live');
+  const report = JSON.parse(readFileSync(join(folder, 'report.json'), 'utf8')) as {
+    groups: {
+      variant: string | null;
+      tasks: { id: string; earlier: { sequence: number } | null }[];
+    }[];
+  };
+  const base = report.groups.find((group) => group.variant === null);
+  expect(base?.tasks).toContainEqual(
+    expect.objectContaining({
+      id: 'open-patients',
+      earlier: expect.objectContaining({ sequence: 1 }),
+    })
+  );
+  expect(readFileSync(join(folder, 'REPORT.md'), 'utf8')).toContain(
+    '(earlier version: before change 1, `history/0001.json`)'
+  );
 });
+
+/** Downloads the panel's metrics and imports them with quick report (the run must succeed). */
+async function importMetrics(page: Page, panel: ReturnType<Page['getByTestId']>, label: string) {
+  const download = page.waitForEvent('download');
+  await panel.getByRole('button', { name: 'Download metrics' }).click();
+  const metrics = join(folder, '..', `${test.info().project.name}-${label}-metrics.json`);
+  await (await download).saveAs(metrics);
+  try {
+    cli(['quick', 'report', relative(root, folder), '--import', relative(root, metrics)]);
+  } finally {
+    rmSync(metrics, { force: true });
+  }
+}
 
 /** Starts the panel's task (open the patients list), completes it and returns the panel. */
 async function completeTask(page: Page) {
@@ -318,20 +353,17 @@ async function completeTask(page: Page) {
 test('a validation session on the iterated blueprint is reported by quick report', async ({
   page,
 }) => {
-  // A fresh tab opens the current blueprint's own world, which quick report knows.
+  // A fresh tab opens the current blueprint's own world: a current (not earlier) row.
   await openPlayer(page, '');
   const panel = await completeTask(page);
-  const download = page.waitForEvent('download');
-  await panel.getByRole('button', { name: 'Download metrics' }).click();
-  const metrics = join(folder, '..', `${test.info().project.name}-metrics.json`);
-  await (await download).saveAs(metrics);
-  try {
-    cli(['quick', 'report', relative(root, folder), '--import', relative(root, metrics)]);
-  } finally {
-    rmSync(metrics, { force: true });
-  }
-  const report = JSON.parse(readFileSync(join(folder, 'report.json'), 'utf8')) as unknown;
-  expect(JSON.stringify(report)).toContain('open-patients');
+  await importMetrics(page, panel, 'fresh');
+  const report = JSON.parse(readFileSync(join(folder, 'report.json'), 'utf8')) as {
+    groups: { variant: string | null; tasks: { id: string; earlier: unknown }[] }[];
+  };
+  const base = report.groups.find((group) => group.variant === null);
+  expect(base?.tasks).toContainEqual(
+    expect.objectContaining({ id: 'open-patients', earlier: null })
+  );
   expect(readFileSync(join(folder, 'REPORT.md'), 'utf8')).toContain('Open the list of patients.');
 });
 
