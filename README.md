@@ -17,7 +17,10 @@ in the browser, deterministic scenarios, personas and permissions, simulated
 time and network, themes, layouts and device shells, and one-command static
 export. There is no backend to run, deploy or secure.
 
-**[Try the live showcase at protoyard.app](https://protoyard.app)**: every prototype and template running in your browser.
+**[Try the live showcase at protoyard.app](https://protoyard.app)**: every prototype and template running in your browser,
+the [browser player](https://protoyard.app/play/) (open a blueprint with nothing to install),
+[everything Protoyard does](https://protoyard.app/features/) and the
+[searchable docs](https://protoyard.app/docs/).
 
 [Quickstart](docs/QUICKSTART.md) ·
 [Two levels](#two-levels-of-prototype) ·
@@ -52,6 +55,18 @@ You need Node.js 24.20 or newer and pnpm 11 (through Corepack).
 git clone https://github.com/DailybotHQ/protoyard
 cd protoyard
 corepack enable && pnpm install
+```
+
+Explore an idea in seconds, with no build (the first run builds the player once):
+
+```bash
+pnpm protoyard quick "A climbing gym books classes and tracks members" --slug gym --variants 3
+pnpm protoyard quick serve gym --open             # three playable variants side by side
+```
+
+Or open the gallery of full prototypes:
+
+```bash
 pnpm dev                                          # gallery + local control server → http://localhost:4321/
 ```
 
@@ -225,12 +240,18 @@ pnpm protoyard generate my-crm --blueprint blueprints/crm.json   # an app from a
 
 Protoyard was designed to be built by coding agents as much as by people.
 
+| Surface | What it gives an agent | Read |
+| --- | --- | --- |
+| **Protoyard agent skill** | A distributable skill pack (`skills/protoyard/`) whose router sends an agent through quick exploration, full prototypes, iteration, kits, review, export and publishing. Installs into Claude Code, Codex, Cursor and other hosts with `setup.sh`, pinned and checksum-verified. | [Skill](docs/SKILL.md) |
+| **MCP server** | `protoyard mcp` (`pnpm --silent protoyard mcp` in a clone): a local stdio MCP server over a fixed set of CLI operations, confined to one workspace. There is no hosted endpoint. | [MCP](docs/MCP.md) |
+| **DeepWorkPlan addon** | A packet that lets a Deep Work Plan turn an idea into explorations, compare them, record the decision with evidence and promote only the keeper. | [DWP](docs/DWP.md) |
+| **Machine interface** | Every command takes `--json` and prints one envelope with documented exit codes; `--version --json` and `doctor --json` expose a versioned capability contract. | [Interface](docs/INTERFACE.md) |
+
+Inside this repository:
+
 - **[AGENTS.md](AGENTS.md)** is the single entry point for Claude Code, Codex,
   Cursor, Gemini, Copilot and others (`CLAUDE.md` links to it). It holds the
   rules, the doc index and verified commands.
-- **A CLI made for scripts.** Every `protoyard` command takes `--json`, prints
-  one envelope and returns documented exit codes, and every decision has a
-  flag.
 - **Skills and agents** in `.agents/` (linked as `.claude/` and `.cursor/`):
   skills such as `create-prototype`, `brief-to-prototype`, `add-entity`,
   `add-scenario`, `add-dashboard`, `validate-and-export` and
@@ -286,11 +307,16 @@ lazy subpaths. Details:
 
 ### Measured, not estimated
 
-All from [docs/PERFORMANCE.md](docs/PERFORMANCE.md), with method, machine and
-date (Apple M1 Max, 2026-10-17 to 2026-10-19):
+All from [docs/PERFORMANCE.md](docs/PERFORMANCE.md) and
+[docs/QUICK.md](docs/QUICK.md#measured-numbers), with method, machine and
+date (one Apple M1 Max, often under load; numbers move with the machine):
 
 | What | Measured |
 | --- | --- |
+| Brief → playable exploration (`quick` CLI + player ready, no build) | 1,527 ms median |
+| Player initial JS | 178.8 KB gzip |
+| Player first visit from a share link (`crm` blueprint) | 190 ms to ready |
+| Built prototype, first screen in a fresh browser (`crm-demo`) | 115 ms median |
 | Cold metadata index of 1,000 manifests | 40.6 ms median |
 | Loading a 16,075-row `crm-demo` world in Chromium | 628 ms, 0 long tasks |
 | Data grid with 100,000 rows: first render | 94 ms median, at most 17 DOM rows, 0 dropped frames in a 5 s scroll |
@@ -327,8 +353,9 @@ date (Apple M1 Max, 2026-10-17 to 2026-10-19):
 ```bash
 pnpm dev | dev:create | build | preview | lint | typecheck | test | test:e2e | check
 pnpm build:showcase | preview:showcase | visual:sweep | thumbnails | bench:index | hygiene
-pnpm build:packages | check:packages | verify:packages | changeset | version-packages
-pnpm protoyard help | doctor | list | index | new | generate | dev | validate | spec | build | budget
+pnpm build:packages | check:packages | verify:packages | check:skill | check:docs | changeset | version-packages
+pnpm protoyard quick [serve | iterate | undo | feedback | report | shot | export | promote | list | open | index | prune]
+pnpm protoyard help | doctor | mcp | list | index | new | generate | dev | validate | spec | build | budget
 pnpm protoyard export | preview | publish | review-index | showcase | ci | affected | theme | scenario
 pnpm protoyard blueprint | artifact | comments | snapshot | gallery | control-server
 ```
@@ -345,7 +372,7 @@ reference is [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md).
 | [AI agent onboarding](docs/AI_AGENT_ONBOARDING.md) | [Generator](docs/GENERATOR.md) | [Specs](docs/SPECS.md) | [Decisions](docs/DECISIONS.md) |
 | [Development commands](docs/DEVELOPMENT_COMMANDS.md) | [Brief to prototype](docs/BRIEF_TO_PROTOTYPE.md) | [Performance](docs/PERFORMANCE.md) | [Security](docs/SECURITY.md) |
 | [Quick explorations](docs/QUICK.md) | [Themes](docs/THEMES.md) | [Packages](docs/PACKAGES.md) | [Standards](docs/STANDARDS.md) |
-| [Player](docs/PLAYER.md) | | | |
+| [Player](docs/PLAYER.md) | [Agent skill](docs/SKILL.md) · [MCP](docs/MCP.md) | [DWP addon](docs/DWP.md) | [Machine interface](docs/INTERFACE.md) |
 | | [Layouts](docs/LAYOUTS.md) · [Shells](docs/SHELLS.md) | | [Testing guide](docs/TESTING_GUIDE.md) |
 | | [Views](docs/VIEWS.md) · [Charts](docs/CHARTS.md) | | [AI agent collaboration](docs/AI_AGENT_COLLAB.md) |
 | | [Analytics](docs/ANALYTICS.md) · [Avatars](docs/AVATARS.md) | | [Implementation plan](docs/IMPLEMENTATION_PLAN.md) |
@@ -356,7 +383,7 @@ and prototype also has its own `README.md`.
 
 ## Quality
 
-- 4,400+ unit and integration tests (4,454 in 410 files at the last full run,
+- 5,500+ unit and integration tests (5,574 in 534 files at the last full run,
   recorded in [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)), most
   of them on the real runtime with an in-memory IndexedDB.
 - Playwright E2E with axe checks on real static builds, on desktop and a

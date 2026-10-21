@@ -10,6 +10,14 @@ Install the Protoyard CLI, open the workspace you want the agent to work in, the
 protoyard mcp
 ```
 
+From a clone of the Protoyard repository, before any npm release, run the same server through the workspace script:
+
+```sh
+pnpm --silent protoyard mcp
+```
+
+Register it with command `pnpm`, arguments `--silent`, `protoyard` and `mcp`, and the clone as the working directory.
+
 In a client configuration, register `protoyard` as a stdio server with command `protoyard` and argument `mcp`. Configure the client's working directory to the Protoyard workspace. The server resolves that workspace when it starts; relative file arguments resolve from it, and all file arguments must remain inside it. Keep the client configuration local to the machine and connect only to a server you intend to run.
 
 For example, in an MCP host that uses an `mcpServers` map:

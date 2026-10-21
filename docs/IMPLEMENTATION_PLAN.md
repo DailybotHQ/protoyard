@@ -259,6 +259,11 @@ The other cited tests (templates, wrapper, `create-protoyard`, consumer
 layouts, `verify-packages`) and the E2E specs passed in their lanes and were
 not rerun in that pass.
 
+The Final Review reran the whole suite on `dev` at `4067d26` on 2026-10-21:
+`pnpm check` (534 test files, 5,574 tests passed, 3 skipped), the default E2E
+with the showcase and player suites (201 passed), `budget --all` (15/15),
+`check:packages --require-all && verify:packages` (31/31) and `pnpm hygiene`.
+
 **npm packages.** See [PACKAGES.md](PACKAGES.md) and
 [PUBLISHING.md](PUBLISHING.md#releasing-the-packages-to-npm) (ADR-028).
 
