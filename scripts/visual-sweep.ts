@@ -59,6 +59,7 @@ import { THEME_LIBRARY_META } from '../packages/themes/src/library/registry.ts';
 import { THEME_COLLECTIONS } from '../packages/themes/src/library/types.ts';
 import { type StaticServer, serveDirectory } from './lib/static-server.ts';
 import {
+  axeRuleViolations,
   buildMatrix,
   type FitMetrics,
   fitFlags,
@@ -222,7 +223,9 @@ async function captureShot(
           () => document.querySelector<HTMLElement>('[data-py-theme]')?.dataset.pyTheme ?? null
         );
         const axe = args.axe
-          ? (await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations.length
+          ? axeRuleViolations(
+              (await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations
+            )
           : null;
         return { png, metrics, axe, appliedTheme };
       }
@@ -233,7 +236,8 @@ async function captureShot(
     return {
       ...shot,
       ok: true,
-      axeViolations: result.axe,
+      axeViolations: result.axe === null ? null : result.axe.length,
+      ...(result.axe === null ? {} : { axeRules: result.axe }),
       flags: [
         ...fitFlags(result.metrics),
         ...(shot.theme && result.appliedTheme !== shot.theme

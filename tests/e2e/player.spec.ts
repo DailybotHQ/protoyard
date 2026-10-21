@@ -67,12 +67,28 @@ test.describe('player sources, isolation and accessibility', () => {
     await expectAccessible(page, testInfo, { label: 'player-share-assistant' });
   });
 
+  test('keeps the assistant archetype accessible in dark mode', async ({ page }, testInfo) => {
+    // Regression: the conversational archetype had no surface, so dark-theme text sat on
+    // the browser's white canvas (axe color-contrast, found by the visual sweep).
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await openPlayer(page, `${PLAYER_URL}/?src=./blueprints/quick/assistant.json&mode=dark`);
+    await expect(page.locator('html')).toHaveAttribute('data-py-mode', 'dark');
+    const surface = page.getByTestId('player-conversational-surface');
+    await expect(surface).toBeVisible();
+    const background = await surface.evaluate((node) => getComputedStyle(node).backgroundColor);
+    expect(background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(background).not.toBe('rgb(255, 255, 255)');
+    await expectAccessible(page, testInfo, { label: 'player-assistant-dark' });
+  });
+
   test('loads team chat through the postMessage embedder and checks its real route', async ({
     page,
   }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    await page.goto(`${EMBEDDER_URL}/tests/e2e/fixtures/player-embedder.html`);
+    await page.goto(
+      `${EMBEDDER_URL}/tests/e2e/fixtures/player-embedder.html?player=${encodeURIComponent(PLAYER_URL)}`
+    );
     await expect(page.getByTestId('embedder-status')).toHaveAttribute('data-state', 'loaded', {
       timeout: 30_000,
     });

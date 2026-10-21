@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { changedPixels, decodePng, optimizePng } from '../../packages/cli/src/lib/capture/png.ts';
 import { THEME_COLLECTIONS, THEME_LIBRARY_META } from '../../packages/themes/src/library/index.ts';
 import {
+  axeRuleViolations,
   buildMatrix,
   densestScenario,
   type FitMetrics,
@@ -361,13 +362,31 @@ describe('png', () => {
   });
 });
 
+describe('axe rule details', () => {
+  it('keeps rule ids, impact and node targets (at most 10 per rule)', () => {
+    const nodes = Array.from({ length: 12 }, (_, i) => ({ target: [`.item-${i}`] }));
+    expect(
+      axeRuleViolations([
+        { id: 'color-contrast', impact: 'serious', nodes: [{ target: ['.uppercase'] }] },
+        { id: 'label', impact: null, nodes },
+        { id: 'frame-title', nodes: [{ target: ['#outer', '#inner'] }] },
+      ])
+    ).toEqual([
+      { id: 'color-contrast', impact: 'serious', targets: ['.uppercase'] },
+      { id: 'label', impact: null, targets: nodes.slice(0, 10).map((node) => node.target[0]) },
+      { id: 'frame-title', impact: null, targets: ['#outer #inner'] },
+    ]);
+  });
+});
+
 describe('contact sheet', () => {
   const [first, second] = buildMatrix([CRM], { shells: ['none'], themes: [] });
   const results: ShotResult[] = [
     {
       ...(first as ShotResult),
       ok: true,
-      axeViolations: 0,
+      axeViolations: 1,
+      axeRules: [{ id: 'color-contrast', impact: 'serious', targets: ['.uppercase <b>'] }],
       flags: [],
       bytes: 1000,
       ms: 900,
@@ -384,7 +403,7 @@ describe('contact sheet', () => {
   ];
 
   it('summarizes failures, problems and changes', () => {
-    expect(summarize(results)).toEqual({ shots: 2, failed: 1, flagged: 1, changed: 1 });
+    expect(summarize(results)).toEqual({ shots: 2, failed: 1, flagged: 2, changed: 1 });
   });
 
   it('renders a static page with lazy images, filters, badges and escaped text', () => {
@@ -396,13 +415,15 @@ describe('contact sheet', () => {
     });
     expect(html.startsWith('<!doctype html>')).toBe(true);
     expect(html).toContain(
-      '2 shots · 1 failed · 1 with problems · 1 changed vs tmp/visual-sweep-before'
+      '2 shots · 1 failed · 2 with problems · 1 changed vs tmp/visual-sweep-before'
     );
     expect(html).toContain('loading="lazy"');
     expect(html).toContain(`src="${first?.file}"`);
     expect(html).toContain('<select data-filter="shell">');
     expect(html).toContain('data-only="changed"');
-    expect(html).toContain('>axe 0<');
+    expect(html).toContain('>axe 1<');
+    // Rule ids are shown with their failing targets, escaped.
+    expect(html).toContain('title=".uppercase &lt;b&gt;">color-contrast<');
     expect(html).toContain('region-does-not-scroll');
     expect(html).toContain('data-py-ready=&quot;&lt;script&gt;&quot;');
     expect(html).not.toContain('<script>")');

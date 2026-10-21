@@ -238,10 +238,12 @@ export {
   MAX_SHARE_ENCODED_LENGTH,
   readBlueprintShareFragment,
   SHARE_FRAGMENT_PARAM,
+  SHARE_LINK_BROWSERS,
   SHARE_LINK_VERSION,
   type ShareDecodeResult,
   type ShareLinkIssue,
   ShareLinkTooLargeError,
+  supportsShareLinks,
 } from './share.ts';
 export {
   deriveIntegrity,
