@@ -39,6 +39,7 @@ import {
 import { serveStatic } from '../lib/static-server.ts';
 import { normalizeBase } from '../lib/vite.ts';
 import type { CommandContext } from '../lib/workspace.ts';
+import { protoyardPackageDir } from '../lib/workspace.ts';
 import { createProvider } from '../publish/index.ts';
 import type { PublishProvider } from '../publish/types.ts';
 import { commentsSetupLines } from './publish.ts';
@@ -379,8 +380,18 @@ function buildGallery(
 }
 
 /** Builds the standalone player into an isolated directory for the showcase. */
+export function resolveShowcasePlayerDir(root: string): string {
+  const playerDir = protoyardPackageDir(root, 'player');
+  if (!playerDir) {
+    throw new CliError('not_found', '@protoyard/player is not installed in this workspace.', {
+      hint: 'Install @protoyard/player in the workspace, then try again.',
+    });
+  }
+  return playerDir;
+}
+
 function buildPlayer(ctx: CommandContext, outDir: string, quiet: boolean) {
-  const playerDir = join(ctx.root, 'packages', 'player');
+  const playerDir = resolveShowcasePlayerDir(ctx.root);
   const vite = resolvePackageBin('vite', 'vite', [playerDir, ctx.root]);
   if (!vite)
     throw new CliError('not_found', 'Vite is not installed.', { hint: 'Run `pnpm install`.' });

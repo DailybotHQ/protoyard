@@ -1,6 +1,13 @@
 // @vitest-environment node
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -88,6 +95,36 @@ describe('the runner keeps the task inside the plan scope', () => {
       const input = args[args.indexOf('--blueprint') + 1] as string;
       expect(out).toBe(fixture.explorationDir);
       expect(input).toBe(fixture.blueprintPath);
+    });
+  });
+
+  it.each([
+    ['--out=outside', { SCRATCH_DIR: 'analysis_results/prototypes/idea --out=../../outside' }],
+    [
+      '--blueprint=outside',
+      { INPUT: 'analysis_results/prototypes/idea --blueprint=../../outside' },
+    ],
+    ['an unapproved option', { SCRATCH_DIR: 'analysis_results/prototypes/idea --force' }],
+  ])('refuses %s in the filled quick command', async (_label, values) => {
+    await onFixture(async (fixture) => {
+      expect(() => planQuickArgs(fixture)).toThrow(PlanScopeError);
+    }, values);
+  });
+
+  it.each([
+    ['--blueprint=', '--blueprint input/analytics.json', '--blueprint=input/analytics.json'],
+    [
+      '--out=',
+      `--out analysis_results/prototypes/dwp-loop-fixture`,
+      `--out=analysis_results/prototypes/dwp-loop-fixture`,
+    ],
+  ])('refuses the unsupported %s form', async (_label, oldText, newText) => {
+    await onFixture(async (fixture) => {
+      const path = join(fixture.planDir, 'exploration-task.md');
+      const task = readFileSync(path, 'utf8');
+      expect(task).toContain(oldText);
+      writeFileSync(path, task.replace(oldText, newText));
+      expect(() => planQuickArgs(fixture)).toThrow(PlanScopeError);
     });
   });
 

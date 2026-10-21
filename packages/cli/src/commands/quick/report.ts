@@ -1,10 +1,11 @@
-import { lstat, mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { z } from 'zod';
 import { sha256Text } from '../../lib/checksum.ts';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
+import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
 import { type EarlierBlueprint, historyEntryName } from '../../lib/quick/history.ts';
 import { readQuickRecord } from '../../lib/quick/model.ts';
 import { type ExplorationGroup, explorationNamespaces } from './namespaces.ts';
@@ -184,9 +185,7 @@ async function readCapped(path: string, label: string): Promise<string> {
 }
 
 async function writeAtomic(path: string, text: string): Promise<void> {
-  const temp = `${path}.${process.pid}.tmp`;
-  await writeFile(temp, text, 'utf8');
-  await rename(temp, path);
+  await writeQuickAtomic(path, text);
 }
 
 const normalized = (metrics: ValidationMetrics) => `${JSON.stringify(metrics, null, 2)}\n`;

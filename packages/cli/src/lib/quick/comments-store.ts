@@ -34,7 +34,7 @@ function summaryOf(comments: readonly ReviewComment[]): ReviewSummary {
   };
 }
 
-function parseStore(value: unknown, allowedSlugs: ReadonlySet<string>): StoredComments {
+function parseStore(value: unknown): StoredComments {
   if (
     typeof value !== 'object' ||
     value === null ||
@@ -54,11 +54,7 @@ function parseStore(value: unknown, allowedSlugs: ReadonlySet<string>): StoredCo
   const ids = new Set<string>();
   for (const value of comments) {
     const parsed = validateReviewComment(value);
-    if (
-      !parsed.success ||
-      !allowedSlugs.has(parsed.data.slug) ||
-      ids.has(`${parsed.data.slug}/${parsed.data.id}`)
-    ) {
+    if (!parsed.success || ids.has(`${parsed.data.slug}/${parsed.data.id}`)) {
       throw new Error('The quick review store contains an invalid comment.');
     }
     ids.add(`${parsed.data.slug}/${parsed.data.id}`);
@@ -75,7 +71,7 @@ function parseStore(value: unknown, allowedSlugs: ReadonlySet<string>): StoredCo
 export function createFileCommentsStore(
   dir: string,
   slugs: readonly string[] | ReadonlySet<string>
-): CommentsStore {
+): CommentsStore & { countAll(): Promise<number> } {
   const reviewDir = join(dir, 'review');
   const file = join(reviewDir, 'comments.json');
   const allowedSlugs: ReadonlySet<string> = slugs instanceof Set ? slugs : new Set(slugs);
@@ -97,10 +93,7 @@ export function createFileCommentsStore(
         if (!entry.isFile() || entry.isSymbolicLink() || entry.size > STORE_MAX_BYTES) {
           throw new Error('Refusing an unsafe or oversized quick review store.');
         }
-        const parsed = parseStore(
-          JSON.parse(await readFile(file, 'utf8')) as unknown,
-          allowedSlugs
-        );
+        const parsed = parseStore(JSON.parse(await readFile(file, 'utf8')) as unknown);
         for (const comment of parsed.comments) {
           comments.set(commentKey(comment.slug, comment.id), comment);
         }
@@ -168,6 +161,11 @@ export function createFileCommentsStore(
       await mutate(async () => {
         const key = commentKey(comment.slug, comment.id);
         const previous = comments.get(key);
+        if (!previous && comments.size >= STORE_MAX_COMMENTS) {
+          throw new Error(
+            `The quick review store cannot contain more than ${STORE_MAX_COMMENTS} comments.`
+          );
+        }
         comments.set(key, structuredClone(comment));
         try {
           await persist();
@@ -205,6 +203,10 @@ export function createFileCommentsStore(
       return allowedSlugs.has(requestedSlug)
         ? [...comments.values()].filter((comment) => comment.slug === requestedSlug).length
         : 0;
+    },
+    async countAll() {
+      await load();
+      return comments.size;
     },
     async consumeRateLimit(key, now, limit, windowMs) {
       const current = limits.get(key);

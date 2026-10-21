@@ -1,10 +1,11 @@
-import { lstat, readdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { lstat, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { checkSlug } from '@protoyard/core';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { QUICK_MARKER } from '../../lib/output-guard.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
+import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
 import { type QuickIndexEntry, renderQuickIndex } from '../../lib/quick/index-html.ts';
 import { readQuickRecord } from '../../lib/quick/model.ts';
 import { resolveQuickBase } from '../../lib/quick/paths.ts';
@@ -207,9 +208,7 @@ export const quickIndexCommand: Handler = async (ctx): Promise<CommandResult> =>
     throw new CliError('unsafe_path', `Refusing to replace ${scan.root}/index.html: not a file.`);
   }
   const html = renderQuickIndex(entries);
-  const temp = `${file}.${process.pid}.tmp`;
-  await writeFile(temp, html, 'utf8');
-  await rename(temp, file);
+  await writeQuickAtomic(file, html);
   const data = {
     file: `${scan.root}/index.html`,
     explorations: entries.length,

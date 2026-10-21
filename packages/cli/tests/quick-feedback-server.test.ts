@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdirSync, symlinkSync } from 'node:fs';
+import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ReviewComment } from '@protoyard/core/review';
 import { describe, expect, it } from 'vitest';
@@ -25,6 +25,31 @@ const comment = (slug: string): ReviewComment =>
   }) as ReviewComment;
 
 describe('quick serve file-backed review store', () => {
+  it('refuses a 2,001st write while leaving the 2,000-comment store readable', async () => {
+    const ws = createWorkspace();
+    try {
+      const dir = join(ws.root, '.protoyard', 'quick', 'board');
+      const review = join(dir, 'review');
+      mkdirSync(review, { recursive: true });
+      const comments = Array.from({ length: 2_000 }, (_, index) => ({
+        ...comment('board'),
+        id: `comment-${String(index + 1).padStart(5, '0')}`,
+        threadId: `comment-${String(index + 1).padStart(5, '0')}`,
+      }));
+      writeFileSync(
+        join(review, 'comments.json'),
+        `${JSON.stringify({ format: 'protoyard.quick-review', formatVersion: 1, comments })}\n`
+      );
+      const store = createFileCommentsStore(dir, ['board']);
+      await expect(
+        store.put({ ...comment('board'), id: 'comment-02001', threadId: 'comment-02001' })
+      ).rejects.toThrow('more than 2000 comments');
+      expect(await createFileCommentsStore(dir, ['board']).countAll()).toBe(2_000);
+    } finally {
+      ws.cleanup();
+    }
+  });
+
   it('persists validated comments and reloads them for the next server process', async () => {
     const ws = createWorkspace();
     try {

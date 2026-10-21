@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Browser } from '@playwright/test';
 import { currentAbortSignal, throwIfAborted } from '../../lib/abort.ts';
@@ -16,6 +16,7 @@ import type { CommandResult, Handler } from '../../lib/command.ts';
 import { flag } from '../../lib/command.ts';
 import { mark } from '../../lib/output.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
+import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
 import {
   type QuickScreenshot,
   readQuickRecord,
@@ -86,9 +87,7 @@ async function launcherTarget(launcher: string): Promise<string> {
 }
 
 async function writeAtomic(path: string, data: Buffer): Promise<void> {
-  const temp = `${path}.${process.pid}.tmp`;
-  await writeFile(temp, data);
-  await rename(temp, path);
+  await writeQuickAtomic(path, data);
 }
 
 /** Captures every launcher of a resolved exploration; never throws for a missing browser. */

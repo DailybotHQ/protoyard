@@ -84,7 +84,8 @@ export function createProgram(env: RunnerEnv): Command {
     })
     .addHelpText('after', EXAMPLES);
 
-  const def = (name: string, handler: Parameters<typeof action>[1]) => action(name, handler, env);
+  const def = (name: string, handler: Parameters<typeof action>[1], allowNoWorkspace = false) =>
+    action(name, handler, env, { allowNoWorkspace });
 
   program
     .command('doctor')

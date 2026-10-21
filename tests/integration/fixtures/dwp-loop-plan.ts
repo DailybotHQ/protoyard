@@ -240,13 +240,30 @@ export function resolvePlanScoped(
  */
 export function planQuickArgs(fixture: DwpLoopFixture): string[] {
   const task = readFileSync(join(fixture.planDir, 'exploration-task.md'), 'utf8');
-  const line = task.split('\n').find((text) => text.startsWith('protoyard quick --blueprint '));
+  const line = task.split('\n').find((text) => text.startsWith('protoyard quick '));
   if (!line) throw new Error('The filled task has no `protoyard quick` command.');
   const words = line.trim().split(/\s+/).slice(2);
+  const valueFlags = new Set(['--blueprint', '--slug', '--seed', '--variants', '--out']);
+  const booleanFlags = new Set(['--json']);
+  const seenFlags = new Set<string>();
   const args: string[] = [];
   for (let i = 0; i < words.length; i += 1) {
     const word = words[i] as string;
-    if (word === '--json') continue; // the runner asks for the envelope itself
+    if (booleanFlags.has(word)) continue; // the runner asks for the envelope itself
+    if (!valueFlags.has(word)) {
+      throw new PlanScopeError(
+        word,
+        'it is not an allowed quick option or uses an unsupported form.'
+      );
+    }
+    if (seenFlags.has(word)) {
+      throw new PlanScopeError(word, 'it is repeated.');
+    }
+    seenFlags.add(word);
+    const value = words[i + 1];
+    if (!value || value.startsWith('-')) {
+      throw new PlanScopeError(value ?? '', `it is missing the value for ${word}.`);
+    }
     args.push(word);
     if (word === '--blueprint') {
       i += 1;
@@ -254,6 +271,9 @@ export function planQuickArgs(fixture: DwpLoopFixture): string[] {
     } else if (word === '--out') {
       i += 1;
       args.push(resolvePlanScoped(fixture, words[i] ?? ''));
+    } else {
+      i += 1;
+      args.push(value);
     }
   }
   return args;

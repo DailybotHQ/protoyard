@@ -10,7 +10,11 @@ import { quickReportCommand } from './report.ts';
 import { quickServeCommand } from './serve.ts';
 import { quickShotCommand, quickWithScreenshotCommand } from './shot.ts';
 
-type Def = (name: string, handler: Handler) => (...args: unknown[]) => Promise<void>;
+type Def = (
+  name: string,
+  handler: Handler,
+  allowNoWorkspace?: boolean
+) => (...args: unknown[]) => Promise<void>;
 
 /**
  * Registers the `quick` command group (ADR-031). `protoyard quick "<brief>"`
@@ -18,6 +22,7 @@ type Def = (name: string, handler: Handler) => (...args: unknown[]) => Promise<v
  * register here too, so program.ts stays one call.
  */
 export function registerQuick(program: Command, def: Def): Command {
+  const quickDef: Def = (name, handler) => def(name, handler, true);
   const quick = program
     .command('quick')
     .description('a disposable, playable exploration from a brief or a blueprint, with no build')
@@ -37,7 +42,7 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--force', 'replace an existing exploration with the same slug')
     .option('--screenshot', 'also capture PNGs at 1280x800 (needs Playwright; skipped without it)')
     .option('--phone', 'with --screenshot: also capture a 390x844 phone size')
-    .action(def('quick', quickWithScreenshotCommand));
+    .action(quickDef('quick', quickWithScreenshotCommand));
   quick
     .command('serve')
     .description('serve an exploration on 127.0.0.1 until Ctrl+C (player needs http, not file://)')
@@ -45,13 +50,13 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--port <port>', 'first port to try (default 4180; a busy port falls back to the next)')
     .option('--strict-port', 'fail instead of falling back when the port is busy')
     .option('--open', 'open the exploration in the default browser')
-    .action(def('quick serve', quickServeCommand));
+    .action(quickDef('quick serve', quickServeCommand));
   quick
     .command('shot')
     .description('capture a PNG of an exploration and each variant at 1280x800 (needs Playwright)')
     .argument('<target>', 'the exploration: its slug, or its folder')
     .option('--phone', 'also capture a 390x844 phone size')
-    .action(def('quick shot', quickShotCommand));
+    .action(quickDef('quick shot', quickShotCommand));
   quick
     .command('export')
     .description(
@@ -69,7 +74,7 @@ export function registerQuick(program: Command, def: Def): Command {
     )
     .option('--out <file>', 'write under artifacts/ or tmp/ instead of <exploration>/<slug>.html')
     .option('--force', 'replace an existing export')
-    .action(def('quick export', quickExportCommand));
+    .action(quickDef('quick export', quickExportCommand));
   quick
     .command('promote')
     .description('turn an exploration into a full prototype in prototypes/<slug> (via generate)')
@@ -77,7 +82,7 @@ export function registerQuick(program: Command, def: Def): Command {
     .argument('<slug>', 'the new prototype slug (never an existing prototype)')
     .option('--variant <id>', 'promote one of the exploration variants (v1..v8) instead')
     .option('--no-install', 'skip pnpm install after generating')
-    .action(def('quick promote', quickPromoteCommand));
+    .action(quickDef('quick promote', quickPromoteCommand));
   quick
     .command('iterate')
     .description('change an exploration with an RFC 6902 JSON Patch, atomically, with undo history')
@@ -87,12 +92,12 @@ export function registerQuick(program: Command, def: Def): Command {
       '--allow-drop',
       'accept a patch that drops entities or fields (the world loses that data)'
     )
-    .action(def('quick iterate', quickIterateCommand));
+    .action(quickDef('quick iterate', quickIterateCommand));
   quick
     .command('undo')
     .description('restore the blueprint from before the last `quick iterate`, byte for byte')
     .argument('<target>', 'the exploration: its slug, or its folder')
-    .action(def('quick undo', quickUndoCommand));
+    .action(quickDef('quick undo', quickUndoCommand));
   quick
     .command('report')
     .description(
@@ -103,7 +108,7 @@ export function registerQuick(program: Command, def: Def): Command {
       '--import <files...>',
       'protoyard-validation-metrics files the player downloaded (kept in <exploration>/metrics/)'
     )
-    .action(def('quick report', quickReportCommand));
+    .action(quickDef('quick report', quickReportCommand));
   quick
     .command('feedback')
     .description('write REVIEW.md and REVIEW.json from the served comments and an exported file')
@@ -112,22 +117,22 @@ export function registerQuick(program: Command, def: Def): Command {
       '--import <file>',
       'a protoyard-review-comments v1 file a reviewer exported from the browser (merged by id)'
     )
-    .action(def('quick feedback', quickFeedbackCommand));
+    .action(quickDef('quick feedback', quickFeedbackCommand));
   quick
     .command('list')
     .description('list the explorations in the quick zone (marked folders only), newest first')
-    .action(def('quick list', quickListCommand));
+    .action(quickDef('quick list', quickListCommand));
   quick
     .command('open')
     .description('serve an exploration on 127.0.0.1 and open it in the browser, by slug')
     .argument('<slug>', 'the exploration slug (see `protoyard quick list`)')
     .option('--port <port>', 'first port to try (default 4180; a busy port falls back to the next)')
     .option('--strict-port', 'fail instead of falling back when the port is busy')
-    .action(def('quick open', quickOpenCommand));
+    .action(quickDef('quick open', quickOpenCommand));
   quick
     .command('index')
     .description('write a static index.html in the quick zone linking every exploration')
-    .action(def('quick index', quickIndexCommand));
+    .action(quickDef('quick index', quickIndexCommand));
   quick
     .command('prune')
     .description(
@@ -136,6 +141,6 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--older-than <age>', 'age since the last update: 14d (default), 36h, 2w')
     .option('--yes', 'remove them (CI=1 alone never removes anything)')
     .option('--force', 'also remove explorations whose comments are newer than their REVIEW.md')
-    .action(def('quick prune', quickPruneCommand));
+    .action(quickDef('quick prune', quickPruneCommand));
   return quick;
 }
