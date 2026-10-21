@@ -722,3 +722,223 @@ ideas. DWP loads addons only from its own pack (`addons/<key>/` with an `addon.j
 **Consequences.** DWP can validate ideas with level-1 prototypes and record the decision, while
 Protoyard ships on its own cadence.
 **Reverse:** remove the addon from DWP; Protoyard is unaffected.
+
+## ADR-036 — Blueprint kinds: app, deck, page and doc
+
+**Context.** "Protoyard creates anything" was true only for apps. Every blueprint requires
+`entities` and `roles`, and the player and `generate` render one app shape. Decks, landing pages
+and documents need the same JSON-in-minutes path. Existing identities must not change: share
+links, `bp-` namespaces and world caches all hash the parsed blueprint.
+
+**Decision.**
+- **The discriminator:** a top-level `kind`: `app`, `deck`, `page` or `doc`.
+  - A missing `kind` means `app`.
+  - The app schema accepts an optional `kind: "app"` with no default, and the parse step deletes
+    it, so every existing blueprint keeps its content identity.
+  - A golden identity file freezes this.
+- **Types:** `Blueprint` stays the app type, and `parseBlueprint` stays app-only, because about
+  two dozen consumers read `.entities`.
+  - `AnyBlueprint` and `parseAnyBlueprint` add the union.
+  - The type is `BlueprintKind`; the registry's `ProjectKind` is unrelated.
+- **Schema ownership:** each kind's body schema lives in its engine package, with no Svelte:
+  - `@protoyard/decks/schema`;
+  - `@protoyard/blocks`;
+  - `@protoyard/pages`.
+
+  `@protoyard/blueprint` owns the union.
+- **Format version:** `formatVersion` stays 1, following ADR-024's additive policy. An unknown
+  `kind` gets a friendly "needs a newer Protoyard" error.
+- **The untrusted loader:**
+  - It keeps stripping C0 and bidi controls.
+  - It preserves `\n` only in schema-declared content paths (markdown, notes, quotes) and `\t`
+    only in code, normalizing `\r\n`.
+  - It adds per-kind caps for slides, blocks, depth and embedded bytes.
+- **What the kind selects:** the renderer at both levels, plus the synthesizer, variants,
+  validation summary, doctor capability, MCP inputs and gallery shelf.
+
+**Consequences.** One format and one loader cover four kinds. Apps are untouched.
+**Reverse:** drop the non-app branches; app blueprints never carried `kind`.
+
+## ADR-037 — Blocks are the shared content primitive
+
+**Context.** Decks, pages and docs all need headings, rich text, charts, stats, media, code,
+diagrams and interactive pieces. Three separate renderers would drift, and untrusted content
+needs a single hardened surface.
+
+**Decision.**
+- **Packages:** `@protoyard/blocks` (engine: zod union, limits, untrusted guard, JSON Schema,
+  `BLOCK_CATALOG` with use-when metadata, text and outline helpers, a closed-AST formula engine, a
+  tiny code tokenizer, diagram layout math) and `@protoyard/blocks-ui` (one lazy subpath per
+  family behind a small dispatcher).
+- **Content:**
+  - Rich text is a markdown string (at most 4,000 characters) parsed by `@protoyard/ai/markdown`.
+  - Charts use `@protoyard/ai/chart` `ChartSpecSchema` on charts-ui.
+  - Both are imported, not moved.
+- **No styles in data:** colors are **tones** (neutral, accent, info, success, warning, danger)
+  mapped to theme tokens. Blocks never accept CSS, hex values or style strings.
+- **Media at level 1:** avatar ids and raster data URIs (png, jpeg, webp, gif; at most 192 KB
+  each and 512 KB per document). There is no SVG, no remote `https` and no iframe. Relative
+  assets are level 2 only.
+- **Interactive state:** pure reducers plus a `BlockStateHost` contract (`read`, `dispatch`) that
+  the kind runtime implements as a service (`environment.run` → `db.transaction`). blocks-ui
+  never imports the database.
+- **Formulas:** a closed AST evaluated by a pure interpreter. Never `eval` or `new Function`.
+- **embed-app:**
+  - an opaque, bounded app blueprint;
+  - mounted through a host-injected `mountEmbed`;
+  - app kind only, one level deep, in its own namespace.
+- **Unknown block types:** strict authoring rejects them, and the renderer shows a "needs a newer
+  Protoyard" note.
+
+**Consequences.** One safe vocabulary serves every content kind, and new kinds compose blocks
+instead of re-implementing them.
+**Reverse:** blocks is additive; removing it removes the content kinds.
+
+## ADR-038 — Decks: a native engine, one DeckApp for both levels
+
+**Context.** The developer's site renders decks with Reveal.js and Markdown parsed in the
+browser. That gives an empty first paint, a 303 KB highlight.js bundle, KaTeX from a CDN, and
+Tailwind conflicts that needed workarounds. Protoyard decks must also work offline as
+single-file artifacts and render identically at level 2.
+
+**Decision.**
+- **Packages:** `@protoyard/decks` (engine) and `@protoyard/decks-ui`, with no Reveal.js.
+- **Slides:** a slide is `{ layout: <catalog id>, props }` or `{ layout: "free", blocks }`.
+  - `@protoyard/decks` owns the layout catalog: the 19 layouts and 8 backgrounds ported from the
+    developer's site, plus `chart` and `free`.
+  - Each entry has a props schema, limits, use-when and don't-use-when text, and pacing types.
+  - Authoring tools consume the catalog; they do not copy it.
+- **Canvas:** a fixed virtual canvas (1280×720, 1024×768, 720×1280, 1080×1080) scaled by a
+  transform. Lint thresholds are in canvas pixels: 24 px body text, 18 px labels.
+- **Navigation:** a pure model; guarded click, keyboard and swipe; deep links
+  `#/<slide-id>/<step>`; an overview grid.
+- **Presenting:** a presenter view over `BroadcastChannel`, with an in-page fallback when the
+  popup is blocked (the artifact sandbox, for example); blackout, laser and fullscreen; print to
+  PDF with one slide per page.
+- **Motion:** steps and fragments, View Transitions with a CSS fallback, and reduced motion.
+- **Code:** highlighted by the blocks tokenizer. No KaTeX in v1.
+- **Customization:**
+  - A deck `style` block: theme or palette seed, fonts, aspect, transition, backgrounds, density,
+    radius, motion level, logo and footer, numbering, progress.
+  - Per-slide overrides.
+  - **Deck Studio**, a lazy DevTools tab that exports RFC 6902 patches. `mountPrototype` gains an
+    extra-tabs option, so DevTools stays deck-agnostic.
+- **One component:** `DeckApp` is the only deck component. The player's deck entry and generated
+  deck prototypes both mount it.
+
+**Consequences.** Decks are fast, offline-safe, themeable and identical at both levels.
+**Reverse:** a Reveal adapter could render the same deck JSON; the schema does not depend on the
+engine.
+
+## ADR-039 — Pages and docs
+
+**Context.** Landing pages, reports, one-pagers and data stories are common things to prototype.
+They need block flow, navigation, print and a form that persists.
+
+**Decision.**
+- **Packages:** `@protoyard/pages` (engine: page and doc documents, limits, a TOC builder from
+  heading and section ids, form-response schema, services) and `@protoyard/pages-ui` (`PageApp`,
+  `DocApp`, a form block, a responses panel with CSV export, print CSS).
+- **Pages:** a single scroll with anchor navigation in v1. Multi-route sites are level 2.
+- **Forms:** the form block schema lives in `@protoyard/blocks`, with a public-form field subset.
+  Responses persist in a `formResponses` feature table through services, so snapshots include
+  them.
+
+**Consequences.** Two more kinds with almost no new rendering code.
+**Reverse:** remove the packages and the union branches.
+
+## ADR-040 — Per-kind player entries, single-file pruning, kind templates and level parity
+
+**Context.** The player always loads the crud app shell (about 108 KB), Faker and the generation
+worker. Single-file exports inline every chunk (about 3.2 MB). Kit archetypes render only in the
+player, which splits level 1 from level 2.
+
+**Decision.**
+- **Routing:** the player routes by kind in `run.ts`, before the app boot chunk loads.
+- **Entries:** one Vite build with several HTML inputs. `index.html` stays universal, and
+  `deck.html`, `page.html` and `doc.html` are minimal entries.
+- **Single-file pruning:** exports embed only the chunks reachable from the chosen entry.
+- **Budgets:** the provisional limits are 150 KB initial JS gzip and 30 KB CSS for kind entries,
+  and 1.5 MiB for a deck single file. Measured numbers replace them in `protoyard.budgets.json`.
+- **Runtime:** non-app kinds mount a minimal runtime, `defineKindRuntime`: one database version
+  with interactive-state and form-response stores, a default scenario, and presenter and audience
+  personas. Themes, DevTools, snapshots and review keep working.
+- **Level 2:**
+  - `generate` picks `templates/deck`, `templates/page` or `templates/doc` by kind; an explicit
+    template must declare the same `blueprintKind`.
+  - Generated prototypes import the same `DeckApp`, `PageApp` and `DocApp`.
+  - A parity test proves both levels render the same thing.
+
+**Consequences.** Light artifacts, identical rendering at both levels, and no archetype-style
+split for kinds.
+**Reverse:** kind entries are additive; the universal entry still renders every kind.
+
+## ADR-041 — Promoting fork capabilities into generic core
+
+**Context.** Two product forks built capabilities upstream lacked: a command palette, a rich
+editor, workflows, adaptive phone/desktop presentation, OTP sign-in, gamification, design kits
+and more. They also worked around upstream bugs. The developer wants these as defaults, kept
+product-agnostic.
+
+**Decision.**
+- **Generic only:** capabilities are rewritten generically, never copied with names, copy,
+  tokens, assets or domain terms. A checkpoint scan refuses fork product names in upstream source.
+- **Where things land:**
+
+  | Capability | Package |
+  |---|---|
+  | command palette and hotkeys | `@protoyard/views/commands` (+ views-ui) |
+  | rich editor | `@protoyard/views/editor` (+ views-ui) |
+  | workflows | a new `@protoyard/flows` (+ flows-ui) |
+  | gamification | a new `@protoyard/gamification` (+ gamification-ui) |
+  | phone OTP and the account gate | saas and saas-ui |
+  | controls, notices, overlays and the carousel | ui |
+  | timeline registry, scripted counterparts and life-stage presets | scenarios |
+  | clock ticks and the scenario switcher | renderer-svelte |
+
+- **Safety:**
+  - Rule ASTs replace executable expressions.
+  - Autonomy levels and approvals are simulations; effects run only through service callbacks.
+  - The rich editor stores safe markdown, never HTML.
+- **Bug fixes:** the forks' upstream fixes land with regression tests, after reconciling against
+  current upstream.
+
+**Consequences.** Every new prototype starts with what two product teams had to build by hand.
+**Reverse:** each kit is a separate package or subpath; removing one affects only its users.
+
+## ADR-042 — Adaptive presentation and modal routes
+
+**Context.** A product prototype often needs one app with a phone and a desktop presentation.
+Overlays become a sheet on phones and a dialog on desktop, and some routes open as sheets over
+the previous screen.
+
+**Decision.**
+- **Adaptive presentation:** `renderer-svelte` owns an adaptive presentation store. The view is
+  resolved from `?view=`, then the phone frame, then a saved preference, then width, and
+  `runtime.overrides` `{shell, viewport}` keeps the frame and layout in agreement. `ui` adds a
+  thin toggle and a `ResponsiveOverlay` that switches on container width.
+- **Modal routes:** routes may declare `overlay: true` and a desktop layout hint. The router
+  draws them over the last full-screen route, and closing returns to it.
+- **Floating chrome** (the demo badge, DevTools launcher, review toolbar and toasts) stays inside
+  the visible viewport and above bottom navigation.
+
+**Consequences.** Adaptive products prototype naturally in device frames.
+**Reverse:** opt-in; apps that ignore it render as today.
+
+## ADR-043 — Design-system kits
+
+**Context.** Product teams start by turning a design system into a kit prototype. The Corag fork
+built foundations pages, a props table, review status, token conversion and a byte-copy sync,
+because export isolation forbids importing across prototypes.
+
+**Decision.**
+- **Token import:** `protoyard theme import <tokens.json>` produces a validated theme with a
+  contrast report, and the palette input type is exported so token-built palettes need no cast.
+- **Template:** `templates/design-kit` scaffolds foundations pages, a component catalog with a
+  generated props table, copy snippets, persisted review status and phone/desktop demos.
+- **Sharing:** `protoyard kit sync <kit> <prototype> [--check]` copies a kit into a
+  prototype-owned folder with recorded hashes and detects drift, so isolation holds.
+
+**Consequences.** "Turn our design system into a kit, then prototype with it" becomes a first-class
+loop.
+**Reverse:** the template and commands are additive.
