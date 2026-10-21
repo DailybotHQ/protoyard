@@ -225,7 +225,10 @@ export function renderMarkdown(source: string, sourceFilename: string, basePath 
         index += 1;
       }
       const language = fence[1] ? ` class="language-${escapeHtml(fence[1])}"` : '';
-      blocks.push(`<pre><code${language}>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
+      // Focusable: a long line scrolls the block sideways, and keyboard users must reach it.
+      blocks.push(
+        `<pre tabindex="0"><code${language}>${escapeHtml(codeLines.join('\n'))}</code></pre>`
+      );
       continue;
     }
 
@@ -288,7 +291,7 @@ export function renderMarkdown(source: string, sourceFilename: string, basePath 
         )
         .join('');
       blocks.push(
-        `<div class="docs-table-wrap"><table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`
+        `<div class="docs-table-wrap" tabindex="0" role="region" aria-label="Table, scrolls sideways"><table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`
       );
       continue;
     }
