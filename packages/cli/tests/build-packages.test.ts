@@ -19,6 +19,8 @@ function createPackage(
     svelte?: boolean;
     group?: string;
     keep?: unknown;
+    postBuild?: unknown;
+    scripts?: Record<string, string>;
   } = {}
 ): string {
   const directory = join(root, 'packages', name.replace('@fixture/', ''));
@@ -27,6 +29,7 @@ function createPackage(
     name,
     version: '0.0.0',
     ...(options.dependencies ? { dependencies: options.dependencies } : {}),
+    ...(options.scripts ? { scripts: options.scripts } : {}),
     ...(options.optedIn === false
       ? {}
       : {
@@ -35,6 +38,7 @@ function createPackage(
               assets: ['src/theme.css'],
               ...(options.group ? { group: options.group } : {}),
               ...(options.keep !== undefined ? { keep: options.keep } : {}),
+              ...(options.postBuild !== undefined ? { postBuild: options.postBuild } : {}),
             },
           },
         }),
@@ -122,6 +126,51 @@ describe('build-packages', () => {
     expect(existsSync(join(dir, 'dist', 'embed', 'index.js'))).toBe(true);
     expect(existsSync(join(dir, 'dist', 'embed', 'old.js'))).toBe(false);
     expect(existsSync(join(dir, 'dist', 'stale.txt'))).toBe(false);
+  });
+
+  it('runs the protoyard.build.postBuild script after the compile, and fails the package when it fails', async () => {
+    const root = fixture();
+    const dir = createPackage(root, '@fixture/player', {
+      keep: ['app'],
+      postBuild: 'build',
+      scripts: { build: 'vite build' },
+    });
+    const calls: string[] = [];
+    let appFails = false;
+    const runner: BuildCommandRunner = async (_command, args, cwd) => {
+      if (cwd !== dir) return { code: 0, stdout: '', stderr: '' };
+      calls.push(args.join(' '));
+      if (args[0] === 'run') {
+        if (appFails) return { code: 1, stdout: '', stderr: 'vite failed' };
+        mkdirSync(join(cwd, 'dist', 'app'), { recursive: true });
+        writeFileSync(join(cwd, 'dist', 'app', 'index.html'), '<!doctype html>\n');
+      }
+      return { code: 0, stdout: '', stderr: '' };
+    };
+
+    const result = await buildPackages({ root, filters: ['@fixture/player'], runCommand: runner });
+    expect(result.ok).toBe(true);
+    expect(calls.at(-1)).toBe('run build');
+    expect(calls.length).toBe(2);
+    expect(existsSync(join(dir, 'dist', 'app', 'index.html'))).toBe(true);
+
+    appFails = true;
+    const failed = await buildPackages({ root, filters: ['@fixture/player'], runCommand: runner });
+    expect(failed.ok).toBe(false);
+    expect(failed.packages.find((p) => p.name === '@fixture/player')).toMatchObject({
+      status: 'failed',
+      error: 'vite failed',
+    });
+  });
+
+  it('refuses a postBuild entry that is not one of the package scripts', async () => {
+    for (const postBuild of ['missing', 7]) {
+      const root = fixture();
+      createPackage(root, '@fixture/player', { postBuild, scripts: { build: 'vite build' } });
+      await expect(
+        buildPackages({ root, runCommand: async () => ({ code: 0, stdout: '', stderr: '' }) })
+      ).rejects.toThrow(/protoyard\.build\.postBuild/);
+    }
   });
 
   it('refuses a keep entry that is not a top-level dist folder name', async () => {

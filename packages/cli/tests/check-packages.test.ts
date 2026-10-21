@@ -19,6 +19,7 @@ import {
   parseArgs,
   payloadPrefixes,
   readTarball,
+  requiredFileFindings,
   SVELTE_COMPONENT_EXCEPTION,
   svelteDeclarationFindings,
 } from '../../../scripts/check-packages.ts';
@@ -280,6 +281,24 @@ describe('svelteDeclarationFindings', () => {
           "dist/router/Router.svelte.d.ts imports `Router`, which shadows the component's own declaration",
       },
     ]);
+  });
+});
+
+describe('requiredFileFindings', () => {
+  it('fails a tarball that lacks a protoyard.pack.required path (the player app)', () => {
+    const manifest = {
+      protoyard: { pack: { required: ['dist/app/index.html', 'dist/embed/index.js'] } },
+    };
+    const files = new Map([['dist/embed/index.js', new Uint8Array()]]);
+    expect(requiredFileFindings(manifest, files)).toEqual([
+      {
+        rule: 'required-file',
+        message: 'dist/app/index.html is required (protoyard.pack.required) but not in the tarball',
+      },
+    ]);
+    files.set('dist/app/index.html', new Uint8Array());
+    expect(requiredFileFindings(manifest, files)).toEqual([]);
+    expect(requiredFileFindings({}, files)).toEqual([]);
   });
 });
 

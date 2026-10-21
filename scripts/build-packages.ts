@@ -149,6 +149,25 @@ async function buildOne(
       error: result.stderr.trim() || `build exited with code ${result.code}`,
     };
   }
+  if (pkg.postBuild) {
+    const followUp = await run(
+      process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
+      ['run', pkg.postBuild],
+      pkg.dir
+    );
+    if (followUp.code !== 0) {
+      return {
+        name: pkg.name,
+        directory: pkg.dir,
+        strategy,
+        status: 'failed',
+        assets: [],
+        error:
+          followUp.stderr.trim() ||
+          `\`pnpm run ${pkg.postBuild}\` exited with code ${followUp.code}`,
+      };
+    }
+  }
   try {
     const assets = copyAssets(pkg);
     return { name: pkg.name, directory: pkg.dir, strategy, status: 'built', assets };

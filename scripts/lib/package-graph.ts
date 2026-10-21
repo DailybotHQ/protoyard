@@ -14,8 +14,11 @@ export interface WorkspacePackageJson {
       group?: unknown;
       /** Top-level `dist/` folders another build owns, kept when `dist/` is cleaned. */
       keep?: unknown;
+      /** A package script run after the compile step (the player's Vite app build). */
+      postBuild?: unknown;
     };
   };
+  scripts?: Record<string, unknown>;
 }
 
 export interface WorkspacePackage {
@@ -28,6 +31,8 @@ export interface WorkspacePackage {
   keep: string[];
   /** `protoyard.build.group`, when the manifest names one. */
   group: string | null;
+  /** `protoyard.build.postBuild`: a package script `build:packages` runs after the compile. */
+  postBuild: string | null;
   dependencies: string[];
 }
 
@@ -171,6 +176,17 @@ function keptDistFolders(name: string, manifest: WorkspacePackageJson): string[]
   return [...keep];
 }
 
+function followUpScript(name: string, manifest: WorkspacePackageJson): string | null {
+  const postBuild = manifest.protoyard?.build?.postBuild;
+  if (postBuild === undefined) return null;
+  if (typeof postBuild !== 'string' || typeof manifest.scripts?.[postBuild] !== 'string') {
+    throw new PackageGraphError(
+      `protoyard.build.postBuild must name a script in the package's scripts: ${name}`
+    );
+  }
+  return postBuild;
+}
+
 /** Read all package manifests declared by the workspace's package globs. */
 export function readPackageGraph(workspaceRoot: string): PackageGraph {
   const root = resolve(workspaceRoot);
@@ -192,6 +208,7 @@ export function readPackageGraph(workspaceRoot: string): PackageGraph {
       buildConfig: build.config,
       assets: build.assets,
       keep: keptDistFolders(manifest.name, manifest),
+      postBuild: followUpScript(manifest.name, manifest),
       group:
         typeof manifest.protoyard?.build?.group === 'string'
           ? manifest.protoyard.build.group

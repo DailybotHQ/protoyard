@@ -60,7 +60,8 @@ export type RuleId =
   | 'hygiene'
   | 'pack'
   | 'case-collision'
-  | 'svelte-declaration';
+  | 'svelte-declaration'
+  | 'required-file';
 
 export interface Finding {
   rule: RuleId;
@@ -111,11 +112,29 @@ interface Manifest {
  * templates aggregate) declares the folders it ships as payload. Payload files
  * skip only the test-path and TypeScript-source rules; env and key files,
  * hygiene, size and local-specifier rules still apply. `types: false` skips attw
- * for a package with no importable typed API.
+ * for a package with no importable typed API. `required` lists packed paths
+ * that must be in the tarball (the player's prebuilt app, which a separate
+ * build step produces).
  */
 export interface PackPolicy {
   payload?: string[];
   types?: boolean;
+  required?: string[];
+}
+
+/** Every `protoyard.pack.required` path is in the packed file set. */
+export function requiredFileFindings(
+  manifest: Manifest,
+  files: ReadonlyMap<string, Uint8Array>
+): Finding[] {
+  const required = manifest.protoyard?.pack?.required;
+  if (!Array.isArray(required)) return [];
+  return required
+    .filter((path) => typeof path === 'string' && !files.has(path))
+    .map((path) => ({
+      rule: 'required-file' as const,
+      message: `${path} is required (protoyard.pack.required) but not in the tarball`,
+    }));
 }
 
 /** The payload prefixes a manifest declares, normalized to end in `/`. */
@@ -590,6 +609,7 @@ export async function checkPackage(
       const fileLevel = fileFindings(files, payloadPrefixes(manifest));
       report.findings.push(...fileLevel);
       report.findings.push(...svelteDeclarationFindings(files));
+      report.findings.push(...requiredFileFindings(manifest, files));
       report.findings.push(...hygieneFindings(files, report.path, root, fileLevel));
       const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
       if (tarball.byteLength > maxBytes) {
