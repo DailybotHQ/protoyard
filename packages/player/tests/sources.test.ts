@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import demo from '../src/fixtures/demo.blueprint.json';
 import {
   bootIssues,
+  EMBEDDED_BLUEPRINT_ID,
   loadBlueprintFromFile,
+  readEmbeddedBlueprint,
   resolveSource,
   resolveSrcUrl,
   type StartedPlayer,
@@ -186,6 +188,49 @@ describe('resolveSource', () => {
           code
         ).toContain(code);
     }
+  });
+
+  it('opens a blueprint embedded by a single-file export, after #bp= and before ?src', async () => {
+    const fetch = vi.fn();
+    const embedded = JSON.stringify(blueprint);
+    const result = await resolveSource({
+      hash: '',
+      search: '?src=./blueprint.json',
+      href: HREF,
+      embedded,
+      fetch,
+    });
+    expect(result).toMatchObject({ kind: 'blueprint', source: 'embedded' });
+    if (result.kind === 'blueprint') expect(result.blueprint.name).toBe(blueprint.name);
+    expect(fetch).not.toHaveBeenCalled();
+    // An explicit share link still wins.
+    const shared = await resolveSource({
+      hash: await shareHash(),
+      search: '',
+      href: HREF,
+      embedded,
+    });
+    expect(shared).toMatchObject({ source: 'share' });
+    // Embedded text is untrusted like any source.
+    const bad = await resolveSource({
+      hash: '',
+      search: '',
+      href: HREF,
+      embedded: '{"__proto__":{}}',
+    });
+    expect(bad).toMatchObject({ kind: 'error', source: 'embedded' });
+  });
+
+  it('reads only an inert JSON script with the exact id', () => {
+    const doc = document.implementation.createHTMLDocument('x');
+    expect(readEmbeddedBlueprint(doc)).toBeNull();
+    doc.body.innerHTML = `<div id="${EMBEDDED_BLUEPRINT_ID}">{}</div>`;
+    expect(readEmbeddedBlueprint(doc)).toBeNull();
+    doc.body.innerHTML = `<script id="${EMBEDDED_BLUEPRINT_ID}" type="module">{}</script>`;
+    expect(readEmbeddedBlueprint(doc)).toBeNull();
+    doc.body.innerHTML = `<script id="${EMBEDDED_BLUEPRINT_ID}" type="application/json">{"a":1}</script>`;
+    expect(readEmbeddedBlueprint(doc)).toBe('{"a":1}');
+    expect(readEmbeddedBlueprint(undefined)).toBeNull();
   });
 
   it('falls back to the picker when there is no source', async () => {

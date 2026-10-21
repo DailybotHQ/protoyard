@@ -1,5 +1,6 @@
 import type { Command } from 'commander';
 import type { Handler } from '../../lib/command.ts';
+import { quickExportCommand } from './export.ts';
 import { quickCommand } from './index.ts';
 import { quickServeCommand } from './serve.ts';
 
@@ -37,5 +38,13 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--strict-port', 'fail instead of falling back when the port is busy')
     .option('--open', 'open the exploration in the default browser')
     .action(def('quick serve', quickServeCommand));
+  quick
+    .command('export')
+    .description('export an exploration as one self-contained HTML file that opens from file://')
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .option('--single-file', 'inline the player and the blueprint into one HTML file')
+    .option('--out <file>', 'write under artifacts/ or tmp/ instead of <exploration>/<slug>.html')
+    .option('--force', 'replace an existing export')
+    .action(def('quick export', quickExportCommand));
   return quick;
 }

@@ -2,6 +2,7 @@ import { type Blueprint, BrandThemeError, readBlueprintShareFragment } from '@pr
 import { mount, unmount } from 'svelte';
 import {
   type ResolvedSource,
+  readEmbeddedBlueprint,
   resolveSource,
   type SourceIssue,
   type SourceKind,
@@ -25,6 +26,8 @@ export interface StartPlayerOptions {
   events?: Pick<Window, 'addEventListener' | 'removeEventListener'>;
   fetch?: typeof fetch;
   supportsDeflateRaw?: () => boolean;
+  /** A blueprint embedded in the page (defaults to reading `#protoyard-blueprint`). */
+  embedded?: string | null;
   /** Boots a validated blueprint (defaults to `bootPlayer`). */
   boot?: (blueprint: Blueprint, target: HTMLElement) => Promise<unknown>;
   /** Called for a new `#bp=` link (defaults to `location.reload()`); app routes never reload. */
@@ -176,6 +179,10 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
     search: loc.search,
     href: loc.href,
     savedShare,
+    embedded:
+      options.embedded !== undefined
+        ? options.embedded
+        : readEmbeddedBlueprint(typeof document === 'undefined' ? undefined : document),
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(options.supportsDeflateRaw ? { supportsDeflateRaw: options.supportsDeflateRaw } : {}),
   });
