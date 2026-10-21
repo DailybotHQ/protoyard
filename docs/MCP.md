@@ -94,3 +94,15 @@ Call `quick` with a bounded brief:
 ```
 
 The server returns the command's JSON envelope in the tool result's text content. The CLI also remains usable directly without MCP; see the [CLI guide](../packages/cli/README.md).
+
+## Keeping this page true
+
+`pnpm exec tsx scripts/validate-integrations.ts` checks this page against the server's own tool registry
+(`MCP_TOOLS` in `packages/cli/src/mcp/tools.ts`):
+- the tool table lists exactly the registered tools, each with exactly its
+  argument names;
+- every `tools/call` example names a real tool with real arguments;
+- every `protoyard` command on the page exists in the CLI.
+
+`pnpm vitest run packages/cli/tests/integration-command-drift.test.ts` proves
+that removing a tool or an argument fails the check.

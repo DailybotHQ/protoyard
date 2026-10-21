@@ -162,6 +162,21 @@ It shows how the shells behave, not what real users would do, and it is not
 production research, a usability study or a deployment. Explorations run
 offline, contact no network service, and are never published by the addon.
 
+## Recipes stay runnable
+
+Every `protoyard` command and flag in this guide and in the addon packet
+(`SKILL.md`, `SPEC.md`, `UPSTREAM.md` and every template, the gates included)
+is checked against the real CLI. No file under `integrations/` may name an
+absolute local path.
+
+```bash
+pnpm exec tsx scripts/validate-integrations.ts
+pnpm vitest run packages/cli/tests/integration-command-drift.test.ts
+```
+
+When a CLI change removes a command or flag a recipe uses, the check fails
+with that recipe's file and line.
+
 ## Upstream contribution needs a GO
 
 The packet lives in this repository until the upstream

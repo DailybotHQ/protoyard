@@ -11,6 +11,7 @@ import { cli } from '../../packages/cli/tests/helpers.ts';
 import {
   createDwpLoopFixture,
   type DwpLoopFixture,
+  planQuickArgs,
   writeBrowserSkip,
   writeDecision,
 } from './fixtures/dwp-loop-plan.ts';
@@ -166,25 +167,6 @@ describe('temporary DWP exploration loop', () => {
   }, 120_000);
 });
 
-/** The `protoyard quick …` line of the filled task, with its plan-relative paths made absolute. */
-function templateQuickArgs(fixture: DwpLoopFixture): string[] {
-  const task = readFileSync(join(fixture.planDir, 'exploration-task.md'), 'utf8');
-  const line = task.split('\n').find((text) => text.startsWith('protoyard quick --blueprint '));
-  if (!line) throw new Error('The filled task has no `protoyard quick` command.');
-  const words = line.trim().split(/\s+/).slice(2);
-  const args: string[] = [];
-  for (let i = 0; i < words.length; i += 1) {
-    const word = words[i] as string;
-    if (word === '--json') continue; // the runner asks for the envelope itself
-    args.push(word);
-    if (word === '--blueprint' || word === '--out') {
-      i += 1;
-      args.push(join(fixture.planDir, words[i] as string));
-    }
-  }
-  return args;
-}
-
 interface VariantsEnvelope {
   ok: boolean;
   command: string;
@@ -212,7 +194,9 @@ describe('temporary DWP variants loop', () => {
     if (probe.ok) await probe.browser.close();
     const restore = probe.ok ? () => {} : setQuickPlayerLocator(() => fixture.player);
     try {
-      const args = templateQuickArgs(fixture);
+      // The task's own command, with its paths confined to the plan (input) and
+      // its evidence folder (output); an escaping path throws before anything runs.
+      const args = planQuickArgs(fixture);
       expect(args).toEqual(
         expect.arrayContaining(['--slug', 'dwp-variants', '--seed', '17', '--variants', '3'])
       );
