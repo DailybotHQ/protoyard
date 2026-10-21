@@ -2,6 +2,7 @@ import type { Command } from 'commander';
 import type { Handler } from '../../lib/command.ts';
 import { quickExportCommand } from './export.ts';
 import { quickCommand } from './index.ts';
+import { quickIndexCommand, quickListCommand, quickOpenCommand } from './list.ts';
 import { quickPromoteCommand } from './promote.ts';
 import { quickServeCommand } from './serve.ts';
 
@@ -65,5 +66,20 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--variant <id>', 'promote one of the exploration variants (v1..v8) instead')
     .option('--no-install', 'skip pnpm install after generating')
     .action(def('quick promote', quickPromoteCommand));
+  quick
+    .command('list')
+    .description('list the explorations in the quick zone (marked folders only), newest first')
+    .action(def('quick list', quickListCommand));
+  quick
+    .command('open')
+    .description('serve an exploration on 127.0.0.1 and open it in the browser, by slug')
+    .argument('<slug>', 'the exploration slug (see `protoyard quick list`)')
+    .option('--port <port>', 'first port to try (default 4180; a busy port falls back to the next)')
+    .option('--strict-port', 'fail instead of falling back when the port is busy')
+    .action(def('quick open', quickOpenCommand));
+  quick
+    .command('index')
+    .description('write a static index.html in the quick zone linking every exploration')
+    .action(def('quick index', quickIndexCommand));
   return quick;
 }
