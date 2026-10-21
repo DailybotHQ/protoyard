@@ -25,9 +25,11 @@ const MAX_SHOWN = 20;
 const what = $derived(
   source === 'share'
     ? 'This share link'
-    : source === 'src'
-      ? `The file ${label}`
-      : `The file ${label}`
+    : source === 'embedded'
+      ? 'The blueprint in this page'
+      : source === 'src'
+        ? `The file ${label}`
+        : `The file ${label}`
 );
 let heading = $state<HTMLHeadingElement | null>(null);
 onMount(() => heading?.focus());

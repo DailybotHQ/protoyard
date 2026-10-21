@@ -19,7 +19,24 @@ import {
  * always run, and failures come back as issues with a fix, never a throw.
  */
 
-export type SourceKind = 'share' | 'src' | 'file';
+export type SourceKind = 'share' | 'src' | 'file' | 'embedded';
+
+/** Id of the inert `<script type="application/json">` a single-file export embeds its blueprint in. */
+export const EMBEDDED_BLUEPRINT_ID = 'protoyard-blueprint';
+
+/**
+ * The blueprint JSON text a single-file export embedded in the page, or null.
+ * Only an element with the exact id and `type="application/json"` counts; its
+ * text is untrusted and goes through `loadUntrustedBlueprint` like any source.
+ */
+export function readEmbeddedBlueprint(
+  doc: Pick<Document, 'getElementById'> | undefined
+): string | null {
+  const element = doc?.getElementById(EMBEDDED_BLUEPRINT_ID);
+  if (element?.tagName !== 'SCRIPT') return null;
+  if (element.getAttribute('type') !== 'application/json') return null;
+  return element.textContent ?? '';
+}
 
 export interface SourceIssue {
   code:
@@ -53,6 +70,8 @@ export interface ResolveSourceInput {
   search: string;
   /** `location.href`, the base `?src` resolves against. */
   href: string;
+  /** A blueprint embedded in the page by a single-file export (`readEmbeddedBlueprint`). */
+  embedded?: string | null;
   /** Injected for tests; defaults to the global `fetch`. */
   fetch?: typeof fetch;
   /** Injected for tests; defaults to checking `DecompressionStream` support. */
@@ -228,6 +247,14 @@ export async function loadBlueprintFromFile(
 export async function resolveSource(input: ResolveSourceInput): Promise<ResolvedSource> {
   const fragment = readBlueprintShareFragment(input.hash);
   if (fragment !== null) return resolveShare(fragment, 'url', input);
+
+  if (input.embedded !== undefined && input.embedded !== null) {
+    const label = 'embedded blueprint';
+    const result = loadUntrustedBlueprint(input.embedded);
+    return result.success
+      ? { kind: 'blueprint', source: 'embedded', blueprint: result.blueprint, label }
+      : { kind: 'error', source: 'embedded', label, issues: result.issues };
+  }
 
   const src = new URLSearchParams(input.search).get('src');
   if (src !== null) return resolveSrc(src, input);

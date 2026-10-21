@@ -187,6 +187,53 @@ The ZIP contains the contents of `dist/` (no wrapping folder). To use it:
 - **Upload the contents, not the ZIP**, to the host.
 - A build with a custom `--base` must be served from that path.
 
+## One file from a quick exploration
+
+A quick exploration (level 1, [PLAYER](PLAYER.md)) can travel as **one HTML file**
+that opens by double-clicking, from `file://`, with no server, no install and no
+network:
+
+```bash
+pnpm protoyard quick serve my-idea                  # optional: try it over http first
+pnpm protoyard quick export my-idea --single-file   # → .protoyard/quick/my-idea/my-idea.html
+pnpm protoyard quick export my-idea --single-file --out tmp/share/my-idea.html --force
+```
+
+**What's in the file** (`packages/cli/src/lib/quick/single-file.ts`):
+- the exploration's own built player, its JavaScript and CSS;
+- the blueprint, as an inert `<script type="application/json"
+  id="protoyard-blueprint">` with `<` escaped, so it can never close the
+  element. The player reads it as an untrusted source, like a `#bp=` link.
+
+**How it loads without a server:** browsers don't load module chunks from
+`file://`, so each of the player's chunks is embedded as text. A small bootstrap
+turns them into `blob:` modules behind an import map, with every relative chunk
+import rewritten to a bare `py:assets/…` specifier. The stylesheets are inlined
+up front.
+
+**Policy:** the file carries its own Content-Security-Policy:
+- `connect-src 'none'`, so the page can't reach the network;
+- `script-src 'unsafe-inline' blob:`, because the import map and blob URLs are
+  created at runtime;
+- no service worker; the export refuses a page that would register one.
+
+**Measured on 2026-10-20** over the 40 catalog blueprints: 3,245,592–3,246,497
+bytes, about 1.05 MB gzip. The player dominates, and the blueprint adds a few KB.
+The export refuses files over `QUICK_SINGLE_FILE_BUDGET_BYTES` (4 MiB).
+`packages/cli/tests/quick-single-file.test.ts` checks every catalog blueprint
+against that budget. It also opens an export from `file://` in Chromium: the
+blueprint boots, a lazy screen renders, and a reload reuses the IndexedDB world.
+
+**Limits:**
+- **Generation thread:** worlds generate on the main thread. The generation
+  worker can't start from a `blob:` base, so the player falls back as it does
+  whenever Workers are unavailable.
+- **Avatars:** avatar images aren't embedded; people show initials.
+- **Storage:** browsers keep `file://` storage per browser profile, and some
+  clear it more readily than a site's.
+- **Not a security boundary:** the file is the prototype, data and all. Anyone
+  who receives it can open and change it.
+
 ## Sharing as a Claude artifact
 
 A prototype can be shared as a private Claude artifact, a page hosted on
