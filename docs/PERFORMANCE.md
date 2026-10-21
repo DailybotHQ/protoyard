@@ -145,6 +145,7 @@ loader uses the defaults below.
 | `indexColdMs` | 100 ms | Cold metadata-index target |
 | `ideaToRunningMs` | `null` | Brief synthesis through first paint with a seeded world; calibrate before gating |
 | `briefToBlueprintMs`, `blueprintValidationMs`, `prototypeGenerationMs`, `prototypeBuildMs`, `previewReadyMs` | `null` | Optional per-phase idea-to-running thresholds |
+| `quickReadyMs` | `null` | `protoyard quick` brief → ready folder → `protoyard:ready`, no build (see [Quick exploration](#quick-exploration-brief-to-ready-measured-2026-10-20)) |
 
 These budgets are **enforced**:
 
@@ -155,6 +156,7 @@ These budgets are **enforced**:
 | `generateMs` | `pnpm protoyard scenario bench <slug> --check [--ci-factor 3]` (CI multiplies the budget by 3 for slower runners) | exit 4 |
 | `coldStartMs` | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --check` | report only while `null` |
 | `ideaToRunningMs` and configured phase budgets | `pnpm exec tsx scripts/bench-idea.ts --runs 3 --check` | report only while `null`; exit 1 over a configured median budget |
+| `quickReadyMs` | `pnpm exec tsx scripts/bench-idea.ts --mode quick --runs 3 --check [--ci-factor 3]` | report only while `null`; exit 1 over the median budget |
 | Data grid (thresholds in the script) | `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check` | exit 1 locally; report only on CI until calibrated there |
 | Views kit chunks (`CEILINGS` in the test) | `pnpm vitest run packages/cli/tests/views-bundle.test.ts` | test failure (part of `pnpm test`) |
 
@@ -192,7 +194,8 @@ For one prototype, set only the values that differ:
     "blueprintValidationMs": null,
     "prototypeGenerationMs": null,
     "prototypeBuildMs": null,
-    "previewReadyMs": null
+    "previewReadyMs": null,
+    "quickReadyMs": null
   },
   "overrides": {
     "crm-demo": { "initialJsGzipKb": 280 }
@@ -999,6 +1002,62 @@ for switches.
 During a cache hit, the runtime's generate phase takes 2–5 ms (inflating and
 validating the stored world), compared with a full generation on a miss. The large
 fixture still fits a share link, well under the 16 KB cap.
+
+## Quick exploration: brief to ready (measured 2026-10-20)
+
+`pnpm exec tsx scripts/bench-idea.ts --mode quick --runs 3` measures
+`protoyard quick` with no build. It builds the player once if
+`packages/player/dist/app/` is missing (setup, not timed) and copies that
+prebuilt player into a disposable workspace under `tmp/`. Each run then:
+- **quickFolderReady:** runs `protoyard quick "<brief>" --slug quick-bench-<n>`
+  as a CLI process: brief synthesis, blueprint validation, the shared player
+  copy and the `.protoyard/quick/<slug>/` folder with its launcher.
+- **previewReady:** opens the launcher (`index.html`, which redirects to the
+  shared player with a `#bp=` link) in a fresh headless Chromium context
+  served over HTTP, until `html[data-protoyard-ready="1"]`. The bench checks
+  that the first world was seeded.
+- **warm folder:** a second `quick` into the same workspace, which must
+  reuse the shared player (`player.reused`), so it shows the cost without the
+  player copy.
+
+It also opens every `blueprints/quick/*.json` example (`quick --blueprint`)
+and records the JS each one downloaded before ready. Samples and machine
+details go to `tmp/bench-quick-<timestamp>.json` (format
+`protoyard.bench-quick`, version 1).
+
+One run, 3 isolated samples, on an Apple M1 Max (10 cores, 64 GB), macOS 27.0,
+Node 26.11.1 and Chromium 156, at a load average of about 25 to 35 (other
+agents were building):
+
+| Phase | Median |
+| --- | ---: |
+| quickFolderReady (CLI process, includes Node and tsx start) | 1,123 ms |
+| previewReady (launcher → `protoyard:ready`, fresh context) | 303 ms |
+| **Brief → ready** | **1,527 ms** (1,515–1,583 ms) |
+| Warm folder (shared player reused) | 987 ms |
+
+An earlier run on the same machine at a higher load measured 2,146 ms
+(1,749–4,291 ms) brief → ready, so the number moves with the load.
+
+The player's initial JS (entry plus modulepreloads from
+`dist/app/index.html`) is **178.8 KB gzip in 27 files**, the same for every
+blueprint. The JS each quick example downloaded before ready:
+
+| Example | JS before ready (gzip) | Files | Ready |
+| --- | ---: | ---: | ---: |
+| analytics | 588.2 KB | 116 | 304 ms |
+| assistant | 580.5 KB | 109 | 279 ms |
+| saas-onboarding | 726.6 KB | 112 | 301 ms |
+| team-chat | 580.5 KB | 109 | 280 ms |
+
+The largest file in every example is the same 149.6 KB chunk, Faker on the main
+thread (see [Player world cache](#player-world-cache-measured-2026-10-20)).
+saas-onboarding loads a second, separately bundled Faker chunk (149.5 KB) before
+ready, so it downloads Faker twice. The
+assistant and team-chat examples load the same set of files.
+
+`quickReadyMs` is `null` in the root budgets file, so `--check` only reports.
+A calibrated value is a separate change to the root `protoyard.budgets.json`.
 
 ## Large blueprint on the player path (measured 2026-10-20)
 
