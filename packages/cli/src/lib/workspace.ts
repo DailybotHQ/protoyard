@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkSlug } from '@protoyard/core';
 import type { FolderKind } from './discovery.ts';
@@ -112,7 +112,83 @@ export const CLI_VERSION: string =
   readPackageJson(fileURLToPath(new URL('../../package.json', import.meta.url)))?.version ??
   '0.0.0';
 
-/** Workspace package versions for build provenance (null when absent). */
-export function workspacePackageVersion(root: string, folder: string): string | null {
-  return readPackageJson(join(root, 'packages', folder, 'package.json'))?.version ?? null;
+/**
+ * Node's package lookup, without `exports`: the nearest
+ * `node_modules/<name>/package.json` at or above `from`. NODE_PATH and global
+ * folders are ignored on purpose, so a package counts only when this workspace
+ * installed it. Returns the package folder (symlinks kept as found).
+ */
+export function findInstalledPackage(name: string, from: string): string | null {
+  for (let dir = resolve(from); ; dir = dirname(dir)) {
+    const candidate = join(dir, 'node_modules', ...name.split('/'));
+    if (readPackageJson(join(candidate, 'package.json'))?.name === name) return candidate;
+    if (dirname(dir) === dir) return null;
+  }
+}
+
+/**
+ * The folder of `@protoyard/<folder>`: installed packages first, looked up from
+ * each of `from` and then the workspace root (a consumer workspace, or a
+ * prototype's own node_modules), then this repository's `packages/<folder>`.
+ */
+export function protoyardPackageDir(
+  root: string,
+  folder: string,
+  from: readonly string[] = []
+): string | null {
+  const name = `@protoyard/${folder}`;
+  for (const base of [...from, root]) {
+    const found = findInstalledPackage(name, base);
+    if (found) return found;
+  }
+  const local = join(root, 'packages', folder);
+  return readPackageJson(join(local, 'package.json'))?.name === name ? local : null;
+}
+
+/** Like `protoyardPackageDir`, but a missing package is a CliError that says how to fix it. */
+export function requireProtoyardPackage(
+  root: string,
+  folder: string,
+  from: readonly string[] = []
+): string {
+  const dir = protoyardPackageDir(root, folder, from);
+  if (dir) return dir;
+  throw new CliError('not_found', `@protoyard/${folder} is not installed in this workspace.`, {
+    hint: 'Run `pnpm install` (or `npm install`) in the workspace root, then try again.',
+  });
+}
+
+/**
+ * The file a package exports at `subpath` (its `default` or `import`
+ * condition), as an absolute path, or null when it is not exported or missing.
+ * Reads the installed manifest, so a packed package resolves to its dist file.
+ */
+export function packageExportFile(dir: string, subpath: string): string | null {
+  const manifest = readPackageJson(join(dir, 'package.json')) as
+    | (PackageJson & { exports?: Record<string, unknown> })
+    | null;
+  const target = manifest?.exports?.[subpath];
+  const file =
+    typeof target === 'string'
+      ? target
+      : target && typeof target === 'object'
+        ? ((target as Record<string, unknown>).default ??
+          (target as Record<string, unknown>).import)
+        : undefined;
+  if (typeof file !== 'string' || !file.startsWith('./')) return null;
+  const path = resolve(dir, file);
+  return path.startsWith(`${resolve(dir)}/`) && existsSync(path) ? path : null;
+}
+
+/**
+ * A Protoyard package version for build provenance, found like Node would from
+ * `from` (the prototype) and the root, or in this repository; null when absent.
+ */
+export function workspacePackageVersion(
+  root: string,
+  folder: string,
+  from: readonly string[] = []
+): string | null {
+  const dir = protoyardPackageDir(root, folder, from);
+  return dir ? (readPackageJson(join(dir, 'package.json'))?.version ?? null) : null;
 }

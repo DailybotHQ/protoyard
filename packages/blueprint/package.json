@@ -14,7 +14,8 @@
     "./import/sqlite-schema": "./src/import/sqlite-schema.ts",
     "./generator": "./src/generator.ts",
     "./search": "./src/search.ts",
-    "./workflows": "./src/workflows/index.ts"
+    "./workflows": "./src/workflows/index.ts",
+    "./schema.json": "./schema/blueprint.schema.json"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -89,7 +90,8 @@
         "types": "./dist/workflows/index.d.ts",
         "import": "./dist/workflows/index.js",
         "default": "./dist/workflows/index.js"
-      }
+      },
+      "./schema.json": "./dist/schema/blueprint.schema.json"
     },
     "types": "./dist/index.d.ts"
   },
