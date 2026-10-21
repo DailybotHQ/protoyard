@@ -6,6 +6,169 @@ default, uses the prebuilt player, and does not install dependencies or build
 the application. Treat the saved brief and blueprint as local data that may
 contain sensitive product ideas; review them before sharing the folder.
 
+Inside the Protoyard repository run every command as `pnpm protoyard …`.
+Check `protoyard quick --help` on an installed CLI first: the subcommands
+below are in this repository's CLI.
+
+## The loop
+
+An idea goes from a sentence to evidence in one folder, and only becomes a
+real prototype when someone decides it should:
+
+```bash
+protoyard quick "A climbing gym books classes and tracks members" --slug gym --variants 3   # brief → exploration + v1–v3
+protoyard quick shot gym --phone                       # PNGs of the base and each variant (needs Playwright)
+protoyard quick serve gym --open                       # play it at a local URL; reviewers can comment
+protoyard quick iterate gym --patch change.json        # change the blueprint with a JSON Patch
+protoyard quick undo gym                               # take the last change back
+protoyard quick feedback gym                           # served comments → REVIEW.md
+protoyard quick report gym --import metrics.json       # validation sessions → REPORT.md
+protoyard quick promote gym gym-desk                   # keep it: a full prototype in prototypes/gym-desk
+protoyard quick prune --older-than 14d                 # list old explorations (add --yes to remove)
+```
+
+Each step writes into `.protoyard/quick/<slug>/` and records what it did in
+that folder's `quick.json`. Every command takes `--json`.
+
+### 1. Brief or blueprint → exploration
+
+```bash
+protoyard quick "A climbing gym books classes and tracks members" --slug gym
+echo "A small clinic books patient appointments" | protoyard quick - --slug clinic
+protoyard quick --blueprint blueprints/quick/analytics.json --slug pulse --seed 7
+```
+
+The brief is turned into a blueprint offline (the same synthesizer as
+`blueprint new --from-brief`), validated, and written with a launcher
+(`index.html`) and `quick.json`. `--no-store-brief` keeps only the brief's
+sha256 in `quick.json`. `--standalone` copies the player into the folder
+instead of sharing it, and `--out <dir>` writes elsewhere (standalone);
+`--force` replaces an exploration with the same slug.
+
+### 2. Variants
+
+`--variants <n>` (1 to 8) writes `v1/`…`vN/` and `compare.html`. The same
+blueprint and seed always give the same variants. See
+[Variants and serving](#variants-and-serving).
+
+### 3. Screenshots
+
+```bash
+protoyard quick shot gym
+protoyard quick --blueprint blueprints/quick/analytics.json --slug pulse --screenshot --phone
+```
+
+One PNG per exploration and variant at 1280×800 (390×844 with `--phone`) in
+`screenshots/`, recorded in `quick.json`, after the player is ready. Playwright
+is optional: without it, or without its Chromium build, the run records why it
+skipped (`playwright-unavailable` or `browser-unavailable`) and exits 0.
+
+### 4. Play, share and browse
+
+```bash
+protoyard quick serve gym --open
+protoyard quick open gym
+protoyard quick list
+protoyard quick index
+protoyard quick export gym --single-file
+```
+
+- **Open it:** `protoyard quick serve <slug> --open` serves it on `127.0.0.1`
+  (port 4180, or the next free one) until Ctrl+C. `quick open <slug>` does the
+  same by slug. The player needs http; a launcher opened from `file://` does
+  not run it.
+- **Browse:** `quick list` lists the explorations, newest first; `quick index`
+  writes `.protoyard/quick/index.html` linking each one, its variants, its
+  compare page and its `REVIEW.md`.
+- **One file:** `quick export <slug> --single-file` writes one HTML file
+  (player and blueprint inlined) that opens from `file://` with no server, no
+  network and no service worker. `--target artifact` packs it as a Claude
+  artifact page and never publishes ([Publishing](PUBLISHING.md)).
+
+### 5. Iterate and undo
+
+```bash
+protoyard quick iterate gym --patch change.json
+cat change.json | protoyard quick iterate gym --patch -
+protoyard quick undo gym
+```
+
+An RFC 6902 JSON Patch (512 KB at most) is applied in memory and validated
+before anything is written; an invalid patch changes nothing. Each change is
+kept in `history/NNNN.json`, and `quick undo` restores the previous blueprint
+byte for byte. A patch that drops an entity or field needs `--allow-drop`. A
+tab open through `quick serve` reloads the new blueprint in place and keeps
+its world. Variants are not changed by an iterate.
+
+### 6. Feedback
+
+While the exploration is served, reviewers place comments in the player
+(the comment controls are in DevTools); they land in `review/comments.json`.
+`protoyard quick feedback gym` writes `REVIEW.md` and `REVIEW.json`;
+`--import <file>` merges a comments file a reviewer exported from the browser.
+See [Reports and review feedback](#reports-and-review-feedback) and
+[Review comments](REVIEW_COMMENTS.md).
+
+### 7. Validate
+
+A blueprint with `validation.tasks` shows a task panel in the player: the
+participant starts a task, works in the prototype, and succeeds, gives up or
+runs out of time. Attempts (outcome, time, steps; nothing typed) stay in the
+browser, and **Download metrics** saves a `protoyard-validation-metrics` file.
+Which task is current resets when the page reloads; recorded attempts persist.
+Add tasks to an exploration with `quick iterate` (a patch on `/validation`).
+
+### 8. Report
+
+```bash
+protoyard quick report gym --import gym-validation-metrics.json
+protoyard quick report gym
+```
+
+Per variant and task: attempts, success rate, median time and median steps
+of successful attempts, in `report.json` and `REPORT.md`. Imports are
+validated, kept in `metrics/` and counted once; the same inputs give the same
+bytes.
+
+### 9. Promote
+
+```bash
+protoyard quick promote gym gym-desk
+protoyard quick promote gym gym-desk --variant v2 --no-install
+```
+
+Runs `generate` on the exploration's (or one variant's) blueprint into
+`prototypes/<new-slug>`, checks it is the same app, and records `promotedTo`.
+It needs a workspace and never replaces a prototype. From there, follow
+[Generator](GENERATOR.md#promoting-a-quick-exploration) and
+[Brief to prototype](BRIEF_TO_PROTOTYPE.md).
+
+### 10. Prune
+
+```bash
+protoyard quick prune --older-than 14d
+protoyard quick prune --older-than 2w --yes
+```
+
+Lists explorations not updated for the given age; only `--yes` typed on the
+command removes them (`CI=1` alone never does). Promoted explorations are never
+removed; one whose comments are newer than its `REVIEW.md` only with `--force`.
+
+## Measured numbers
+
+From [Performance](PERFORMANCE.md#quick-exploration-brief-to-ready-measured-2026-10-20)
+and the commands' own measurements, on an Apple M1 Max under load from other
+builds (numbers move with the load):
+
+| What | Measured |
+| --- | ---: |
+| Brief → ready (`quick` CLI + player ready, no build) | 1,527 ms median (1,515–1,583 ms) |
+| Second exploration (shared player reused) | 987 ms |
+| Player initial JS | 178.8 KB gzip in 27 files |
+| `quick export --single-file` over the 40 catalog blueprints | 3.25 MB (about 1.05 MB gzip), refused over 4 MiB |
+| `quick shot` PNG, quick blueprints | 38–97 KB each (150 KB budget) |
+
+
 ## Variants and serving
 
 `--variants <n>` writes deterministic variants and a `compare.html` page.
@@ -51,6 +214,23 @@ entry, so after an undo the blueprint that change created no longer counts.
 The review-comment controls are in the player's DevTools. Passing
 `?devtools=0` hides DevTools and therefore hides those controls.
 
+## Honest limits
+
+- **Simulated, local data.** An exploration is a prototype on fictional data in
+  one browser. Roles, sign-in and permissions are simulations, never security.
+- **Storage follows the blueprint.** Each blueprint version gets its own
+  content-derived namespace, so a changed blueprint opened fresh starts a new
+  world; only a tab that live-reloaded keeps its world.
+- **The player needs http.** Launchers do not run from `file://`; use
+  `quick serve` or `quick export --single-file`.
+- **Comments need DevTools.** `?devtools=0` hides the comment controls.
+- **Screenshots need Playwright.** Without it they are skipped and recorded,
+  and two captures can differ by anti-aliasing at rounded corners.
+- **Iterate changes the base only.** Variants and `compare.html` keep the
+  blueprint they were derived from.
+- **`quick serve` is a local convenience.** It binds to `127.0.0.1` and is not
+  authentication; do not expose it.
+
 See [the CLI reference](../skills/protoyard/references/quick.md) for current
-commands and options, and [Security](SECURITY.md) for filesystem and browser
-trust boundaries.
+commands and options, [Security](SECURITY.md) for filesystem and browser
+trust boundaries, and [Player](PLAYER.md) for the player itself.
