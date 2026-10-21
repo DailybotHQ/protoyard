@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import {
   cpSync,
   existsSync,
@@ -112,6 +112,50 @@ export interface CliRun {
   json<T = Record<string, unknown>>(): T;
 }
 
+export interface McpProcessResult {
+  status: number | null;
+  signal: NodeJS.Signals | null;
+  stdout: string;
+  stderr: string;
+  timedOut: boolean;
+}
+
+/** Runs the actual CLI MCP entrypoint through a child-process stdio boundary. */
+export function runMcpProcess(
+  input: string,
+  options: { cwd?: string; timeoutMs?: number } = {}
+): Promise<McpProcessResult> {
+  const child = spawn(
+    process.execPath,
+    ['--import', TSX_ENTRY, join(REPO_ROOT, 'packages/cli/src/bin.ts'), 'mcp'],
+    {
+      cwd: options.cwd ?? REPO_ROOT,
+      env: { ...process.env, CI: '' },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }
+  );
+  let stdout = '';
+  let stderr = '';
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    child.kill('SIGTERM');
+  }, options.timeoutMs ?? 20_000);
+  child.stdout.on('data', (chunk: Buffer) => {
+    stdout += chunk.toString();
+  });
+  child.stderr.on('data', (chunk: Buffer) => {
+    stderr += chunk.toString();
+  });
+  child.stdin.end(input);
+  return new Promise((resolve) => {
+    child.on('close', (status, signal) => {
+      clearTimeout(timeout);
+      resolve({ status, signal, stdout, stderr, timedOut });
+    });
+  });
+}
+
 /**
  * Runs the CLI in-process. CI is pinned off (CI=1 implies --yes, which
  * changes behavior) so results never depend on where the tests run; pass
@@ -141,6 +185,7 @@ async function runInProcess(args: string[]): Promise<CliRun> {
 }
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+const TSX_ENTRY = fileURLToPath(import.meta.resolve('tsx'));
 const CRUD_TEMPLATE = join(REPO_ROOT, 'templates/crud-app');
 
 /** Copies the real crud-app template (no installs or build output) for `generate` tests. */
