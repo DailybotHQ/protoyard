@@ -16,6 +16,7 @@ import { exportCommand } from './commands/export.ts';
 import { generateCommand } from './commands/generate.ts';
 import { indexCommand } from './commands/index-cmd.ts';
 import { listCommand } from './commands/list.ts';
+import { mcpCommand } from './commands/mcp.ts';
 import { newCommand } from './commands/new.ts';
 import { previewCommand } from './commands/preview.ts';
 import { publishCommand } from './commands/publish.ts';
@@ -238,6 +239,11 @@ export function createProgram(env: RunnerEnv): Command {
     .option('-p, --port <port>', 'preferred port (the next free one is used if busy)', '5173')
     .option('--host', 'listen on the LAN and print a URL for phones')
     .action(def('dev', devCommand));
+
+  program
+    .command('mcp')
+    .description('serve the Model Context Protocol over newline-delimited stdio JSON-RPC')
+    .action(mcpCommand);
 
   program
     .command('validate')

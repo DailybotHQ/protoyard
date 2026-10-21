@@ -12,9 +12,15 @@ pnpm protoyard dev my-crm --host            # Vite for ONLY this prototype (+ LA
 pnpm protoyard validate my-crm --build      # contract, scenarios, schema version, types, build
 pnpm protoyard export my-crm                # artifacts/my-crm/my-crm.zip (+ sha256)
 pnpm protoyard publish my-crm --provider cloudflare --dry-run
+pnpm protoyard mcp                           # local MCP server over stdio
 ```
 
 ## Commands
+
+`protoyard mcp` runs a newline-delimited JSON-RPC server over stdin and stdout
+for MCP clients. The transport supports the initialize handshake and tool
+requests; see [the MCP guide](../../docs/MCP.md) for its protocol and trust
+model.
 
 Target commands (`dev`, `validate`, `build`, `export`, `preview`, `publish`, `scenario`,
 `snapshot`) accept prototypes **and templates**. A slug resolves in `prototypes/` first, then

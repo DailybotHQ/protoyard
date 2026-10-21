@@ -303,11 +303,12 @@ export type CapabilityId = (typeof CAPABILITY_IDS)[number];
  * What THIS CLI implements, sorted. Static: it never depends on the machine,
  * the workspace or a check result, so a detector sees the same answer
  * everywhere. An id is listed only when its command or contract ships:
- * `import` (data-shape import) and `mcp` are defined but not implemented yet.
+ * `import` (data-shape import) is defined but not implemented yet.
  */
 export const CAPABILITIES: readonly CapabilityId[] = Object.freeze([
   'blueprint-schema',
   'generate',
+  'mcp',
   'player',
   'quick',
 ]);

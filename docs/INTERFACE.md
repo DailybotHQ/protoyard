@@ -38,7 +38,7 @@ protoyard doctor --json --offline
   "command": "doctor",
   "data": { "ok": true, "checks": [ … ] },
   "interface": 1,
-  "capabilities": ["blueprint-schema", "generate", "player", "quick"]
+  "capabilities": ["blueprint-schema", "generate", "mcp", "player", "quick"]
 }
 ```
 
@@ -83,7 +83,7 @@ needs and treats a missing id as "not available in this CLI".
 | `generate` | `protoyard generate` and `blueprint new --generate`: full prototypes from a blueprint | yes |
 | `blueprint-schema` | `protoyard blueprint validate` and the published blueprint JSON Schema (`@protoyard/blueprint/schema.json`) | yes |
 | `import` | Importing a data shape (CSV, JSON, a SQLite schema) into a blueprint from the CLI | not yet |
-| `mcp` | `protoyard mcp`, an MCP server over the CLI's JSON envelopes | not yet |
+| `mcp` | `protoyard mcp`, the stdio MCP JSON-RPC transport | available |
 
 A capability is listed only once its command or contract ships, and a test
 keeps the list honest (`packages/cli/tests/interface.test.ts`).
