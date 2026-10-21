@@ -1,0 +1,10 @@
+---
+/** Plain text where `backticks` become inline code. Never HTML. */
+interface Props {
+  text: string;
+}
+const { text } = Astro.props;
+const parts = text.split('`');
+---
+
+{parts.map((part, i) => (i % 2 === 1 ? <code class="rounded bg-surface-2 px-1 py-0.5 font-mono text-[0.9em]">{part}</code> : part))}

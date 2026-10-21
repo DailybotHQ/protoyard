@@ -3,9 +3,10 @@ import { getPublicDocs } from '../lib/docs/index.ts';
 
 const escapeXml = (value: string) => value.replace(/[<>&'"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
-/** Site pages that always exist: home, marketplace, themes, the player landing page and the docs. */
+/** Site pages that always exist: home, features, marketplace, themes, the player landing page and the docs. */
 export const STATIC_PATHS: readonly string[] = [
   '/',
+  '/features/',
   '/marketplace/',
   '/themes/',
   '/play/',

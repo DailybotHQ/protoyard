@@ -1,0 +1,31 @@
+---
+import InlineText from '@/components/features/InlineText.astro';
+import { FEATURE_AREAS } from '@/lib/features';
+import { withBase } from '@/lib/format';
+
+/** The feature areas as cards, each linking the guide that documents it. Static: no JS. */
+---
+
+<ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  {
+    FEATURE_AREAS.map((area) => {
+      const guide = area.guides[0];
+      return (
+        <li class="flex flex-col rounded-xl border border-line bg-surface p-5">
+          <h3 class="text-base font-semibold tracking-tight">{area.title}</h3>
+          <p class="mt-2 flex-1 text-sm text-muted">
+            <InlineText text={area.summary} />
+          </p>
+          {guide && (
+            <a
+              href={withBase(`/docs/${guide.slug}/`)}
+              class="mt-4 text-sm font-medium text-accent-fg underline-offset-2 hover:underline"
+            >
+              {guide.label}
+            </a>
+          )}
+        </li>
+      );
+    })
+  }
+</ul>
