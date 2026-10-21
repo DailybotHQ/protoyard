@@ -12,8 +12,10 @@ import { quickPlayerDir } from './paths.ts';
 /**
  * The prebuilt `@protoyard/player` for `protoyard quick` (ADR-031): found in
  * the installed package or this workspace, checked file by file against the
- * sha256 manifest the player ships, and copied (never built: no Vite, no
- * install) into an exploration or a shared per-version folder.
+ * sha256 manifest the player ships, and copied (no Vite, no install) into an
+ * exploration or a shared per-version folder. This module never starts a
+ * process; the one build (a never-built packages/player in the monorepo)
+ * lives in `player-build.ts`.
  *
  * Contract with the player package: its built app folder holds `index.html`
  * and `protoyard-player-assets.json` (written by `createPlayerAssetsManifest`
@@ -23,7 +25,7 @@ import { quickPlayerDir } from './paths.ts';
 
 export const PLAYER_ASSETS_MANIFEST = 'protoyard-player-assets.json';
 export const PLAYER_ASSETS_FORMAT = 'protoyard.player-assets';
-const PLAYER_PACKAGE = '@protoyard/player';
+export const PLAYER_PACKAGE = '@protoyard/player';
 /** App folders inside the package, in preference order. */
 const APP_DIRS = ['dist/app', 'dist'];
 const MAX_FILES = 5_000;

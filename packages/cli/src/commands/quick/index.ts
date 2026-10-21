@@ -32,10 +32,12 @@ import {
   type PlayerAssets,
   stalePlayerBuildWarning,
 } from '../../lib/quick/player-assets.ts';
+import { ensurePlayerAssets } from '../../lib/quick/player-build.ts';
 
 /**
  * `protoyard quick "<brief>" | - | --blueprint <file>` (ADR-031): a disposable
- * exploration in seconds, with no build and no install. It synthesizes the
+ * exploration in seconds, with no build and no install (one exception: a
+ * fresh clone of the monorepo builds packages/player once). It synthesizes the
  * blueprint offline from a brief (or loads one as untrusted input), then
  * writes into a confined folder:
  *
@@ -327,7 +329,8 @@ export const quickCommand: Handler = async (
   }
 
   const identity = await blueprintIdentity(blueprint);
-  const assets = locatePlayer({ workspaceRoot: ctx.root });
+  // A fresh monorepo clone builds packages/player once; nothing else ever builds.
+  const assets = await ensurePlayerAssets({ workspaceRoot: ctx.root, locate: locatePlayer });
   // Monorepo only: a build older than packages/player sources still runs, with a warning.
   const staleWarning = stalePlayerBuildWarning(assets, ctx.root);
   let standaloneReason: QuickResult['standaloneReason'] = flag(options, 'standalone')
