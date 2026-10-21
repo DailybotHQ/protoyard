@@ -67,6 +67,25 @@ Templates that start in a shell: `chat-widget` (`widget-host`), `plugin-panel`
 (`side-panel`), `desktop-app` (`desktop-window`), and `crud-app`, `ai-assistant` and
 `team-chat` (`browser`). `mobile-app` prototypes get `phone` through `auto`.
 
+## Adaptive phone and desktop presentation
+
+An app that offers both a phone experience and a desktop experience can opt in to
+`createAdaptivePresentation` from `@protoyard/renderer-svelte`. It observes the app host
+width, which may be narrower than the browser because the app is inside a device frame or
+plugin panel. The resolved view follows this order: a valid `?view=phone|desktop` link
+override, an active phone frame, the visitor's saved choice, then the host width (desktop at
+1024 px or wider by default). The link value may also be on a hash route, such as
+`#/settings?view=phone`.
+
+The store is opt-in. Call `observe(hostElement)` once the app host exists, call
+`syncShell()` when the app should align its shell to the resolved view, and call `destroy()`
+when the host is removed. By default, phone maps to the `phone` shell and `iphone` viewport;
+desktop maps to the `none` shell and `desktop` viewport. Callers can configure the query key,
+preference storage key, breakpoint, and those mappings. Without a runtime, the store still
+resolves and remembers the view but does not change shell overrides. Browser storage failures
+leave the current page's choice active without persisting it. Choosing `auto` removes the
+saved choice and clears shell and viewport overrides.
+
 ## When the app goes full-bleed
 
 The renderer shows the bare app, with no frame, when:

@@ -1,3 +1,13 @@
+export {
+  type AdaptivePresentationOptions,
+  type AdaptivePresentationStore,
+  createAdaptivePresentation,
+  type PresentationPreference,
+  type PresentationView,
+  parsePresentationView,
+  presentationUrlWithoutOverride,
+  resolvePresentationView,
+} from './adaptive/presentation.svelte.ts';
 export { bindAppearance } from './appearance.ts';
 export {
   AVATAR_BASE,
