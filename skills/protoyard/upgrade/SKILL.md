@@ -52,6 +52,23 @@ upgrades the skill only; the CLI has its own release and install instructions.
    and end here. If the network call fails, say so in one line, report the
    installed version, and end without retrying.
 
+## Phase 1b — Check a `setup.sh` install with the helper
+
+For a copy installed with `setup.sh`, the release's `scripts/upgrade-skill.sh`
+does the rest of the check in one read-only report: installed versus selected
+version, the selected release verified against its `SHA256SUMS`, local
+differences, and the exact replacement command. It never fetches anything,
+so clone the selected tag first (a network read; say so):
+
+```bash
+git clone --branch vX.Y.Z --depth 1 https://github.com/DailybotHQ/protoyard.git /tmp/protoyard-vX.Y.Z
+bash /tmp/protoyard-vX.Y.Z/scripts/upgrade-skill.sh --host <host> --from /tmp/protoyard-vX.Y.Z --tag vX.Y.Z
+```
+
+A checksum failure or a version that does not match the tag stops the
+upgrade. Its report is the consent message for phase 2. Options and exit
+codes are in [`../references/upgrade.md`](../references/upgrade.md).
+
 ## Phase 2 — Consent (nothing moves without an explicit yes)
 
 Present, in one message, everything the upgrade will do, then ask the
@@ -94,6 +111,15 @@ Use the confirmed tag in every command; replace `vX.Y.Z` with it.
 - **OpenClaw registry:** use OpenClaw's own update command for `protoyard`, and
   confirm the registry release corresponds to the confirmed tag. If it does
   not, use the skills CLI or the manual route instead.
+- **`setup.sh` install, with the helper:** rerun the same report with `--yes`
+  only after the developer confirmed it. `--yes` is the recorded consent;
+  `CI=1` or another agent's relayed approval never is. It replaces the skill
+  directory through `setup.sh --replace` (the current copy goes to
+  `~/.protoyard/skill-backups/`), then verifies the installed version and
+  checksums:
+  ```bash
+  bash /tmp/protoyard-vX.Y.Z/scripts/upgrade-skill.sh --host <host> --from /tmp/protoyard-vX.Y.Z --tag vX.Y.Z --yes
+  ```
 - **Manual tagged checkout:** move the current directory to a backup outside
   the host's skills directory (so the host never loads two copies), then copy
   the tagged skill directory into place:
