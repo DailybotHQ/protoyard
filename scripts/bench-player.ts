@@ -2,7 +2,7 @@
  * Player benchmark (`pnpm exec tsx scripts/bench-player.ts`): how long a
  * blueprint takes to become a running prototype in the prebuilt player.
  *
- * It serves a copy of the built player (`packages/player/dist`) with the
+ * It serves a copy of the built player (`packages/player/dist/app`) with the
  * CLI's static server on an OS-assigned port, then for each blueprint and
  * --runs times opens a FRESH headless Chromium context and measures:
  *   1. first visit: the blueprint arrives as a `#bp=` share link (or, when it
@@ -36,7 +36,7 @@ import {
 import { serveStatic } from '../packages/cli/src/lib/static-server.ts';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const DIST = join(ROOT, 'packages/player/dist');
+const DIST = join(ROOT, 'packages/player/dist/app');
 const LARGE = join(ROOT, 'packages/blueprint/tests/fixtures/large.blueprint.json');
 const DEFAULT_BLUEPRINTS = ['crm', 'clinic', 'logistics', 'lms', 'project-management'];
 const READY_TIMEOUT_MS = 60_000;

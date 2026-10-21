@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const DIST = resolve(import.meta.dirname, '../dist');
+const DIST = resolve(import.meta.dirname, '../dist/app');
 
 function emittedFiles(dir: string, prefix = ''): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -47,10 +47,16 @@ describe('player offline build', () => {
 
   it('precaches every emitted player file except the generated worker', () => {
     const config = offlineConfig();
-    // `_headers` is host configuration (the CSP header), not a page resource.
+    // `_headers` is host configuration (the CSP header) and the assets manifest
+    // is `protoyard quick`'s checksum list, written after the worker; neither
+    // is a page resource.
     const files = emittedFiles(DIST).filter(
       (file) =>
-        file !== 'sw.js' && file !== '_headers' && !file.startsWith('.') && !file.includes('/.')
+        file !== 'sw.js' &&
+        file !== '_headers' &&
+        file !== 'protoyard-player-assets.json' &&
+        !file.startsWith('.') &&
+        !file.includes('/.')
     );
     const precache = new Set(config.precache.map((file) => file.replace(/^\.\//, '')));
 

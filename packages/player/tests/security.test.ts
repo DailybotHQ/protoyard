@@ -23,7 +23,7 @@ import demo from '../src/fixtures/demo.blueprint.json';
 import { inlineScripts, PLAYER_FRAME_ANCESTORS } from '../vite.config.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-const DIST = join(ROOT, 'packages/player/dist');
+const DIST = join(ROOT, 'packages/player/dist/app');
 const GUARDED = ['packages/player/src', 'packages/crud/src', 'packages/blueprint/src'];
 
 function sources(dir: string): string[] {

@@ -9,7 +9,7 @@ import { classifyChunks, type ViteManifest } from '../../cli/src/lib/bundle-anal
 
 /**
  * The player's bundle budget, from its real Vite build (`pnpm --filter
- * @protoyard/player build` first; without dist/ this suite is skipped and
+ * @protoyard/player build` first; without dist/app/ this suite is skipped and
  * says so). Initial JS and CSS stay inside protoyard.budgets.json, and the
  * heavy kits (Faker, DevTools, the theme library, crud screens and app,
  * charts, analytics and views kits, the world-generation worker) are proven
@@ -18,7 +18,7 @@ import { classifyChunks, type ViteManifest } from '../../cli/src/lib/bundle-anal
 
 const REPO = fileURLToPath(new URL('../../../', import.meta.url));
 // PLAYER_DIST points the checks at another build (e.g. a saved one, for comparisons).
-const DIST = process.env.PLAYER_DIST ?? join(REPO, 'packages', 'player', 'dist');
+const DIST = process.env.PLAYER_DIST ?? join(REPO, 'packages', 'player', 'dist', 'app');
 const MANIFEST = join(DIST, '.vite', 'manifest.json');
 const KB = 1024;
 

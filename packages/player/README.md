@@ -201,7 +201,7 @@ pnpm vitest run packages/player/tests/validation.test.ts
 
 ## Security
 
-The built `index.html` starts with a strict Content-Security-Policy meta tag, and `dist/_headers`
+The built `index.html` starts with a strict Content-Security-Policy meta tag, and `dist/app/_headers`
 repeats it as an HTTP header with `frame-ancestors` (a meta tag cannot set it). Hosts other than
 Cloudflare Pages or Netlify must send that header themselves; see
 [SECURITY](../../docs/SECURITY.md). Clearing an exploration (`clearExploration`) and the boot
@@ -226,7 +226,7 @@ Its `storage.namespace` (`player`) is never used for a blueprint's data.
 Tailwind, so every screen kind is styled.
 
 ```bash
-pnpm --filter @protoyard/player build     # → packages/player/dist (static, base ./)
+pnpm --filter @protoyard/player build     # → packages/player/dist/app (static, base ./)
 pnpm --filter @protoyard/player dev
 pnpm --filter @protoyard/player preview
 pnpm vitest run packages/player/tests/boot.test.ts
@@ -272,5 +272,15 @@ These budgets are enforced by a dedicated player budget gate, which is planned a
 
 `@protoyard/player` publishes the typed `@protoyard/player/embed` protocol
 client and server helpers from `dist/embed/`. The static player app is built
-separately with `pnpm --filter @protoyard/player build` for hosted deployments;
-that Vite output is not the package entry point.
+separately with `pnpm --filter @protoyard/player build` into `dist/app/`, for
+hosted deployments and for `protoyard quick`; that Vite output is not the
+package entry point. The two builds never delete each other's output:
+`pnpm build:packages` cleans `dist/` but keeps `dist/app/`
+(`protoyard.build.keep`), and Vite empties only `dist/app/`.
+
+After `vite build`, `dist/app/protoyard-player-assets.json` lists every other
+file of the app (`_headers`, `sw.js` and `.vite/manifest.json` included) as a
+sorted POSIX path with its size and sha256, plus the package version
+(`format: "protoyard.player-assets"`, `version: 1`). `protoyard quick` checks
+the folder against it file by file before copying the player, and refuses a
+player whose files do not match exactly.
