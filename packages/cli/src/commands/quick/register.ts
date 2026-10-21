@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import type { Handler } from '../../lib/command.ts';
 import { quickExportCommand } from './export.ts';
+import { quickFeedbackCommand } from './feedback.ts';
 import { quickIterateCommand, quickUndoCommand } from './iterate.ts';
 import { quickIndexCommand, quickListCommand, quickOpenCommand } from './list.ts';
 import { quickPromoteCommand } from './promote.ts';
@@ -102,6 +103,15 @@ export function registerQuick(program: Command, def: Def): Command {
       'protoyard-validation-metrics files the player downloaded (kept in <exploration>/metrics/)'
     )
     .action(def('quick report', quickReportCommand));
+  quick
+    .command('feedback')
+    .description('write REVIEW.md and REVIEW.json from the served comments and an exported file')
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .option(
+      '--import <file>',
+      'a protoyard-review-comments v1 file a reviewer exported from the browser (merged by id)'
+    )
+    .action(def('quick feedback', quickFeedbackCommand));
   quick
     .command('list')
     .description('list the explorations in the quick zone (marked folders only), newest first')

@@ -11,6 +11,7 @@ import {
 import { createPlayerWorldCache, type WorldCache, withWorldCache } from './cache/index.ts';
 import PlayerApp from './PlayerApp.svelte';
 import { setPlayerBlueprint } from './player-blueprint.ts';
+import { withServedReview } from './served-review.ts';
 import { markActiveExploration, recordExploration, resolvePlayerStorage } from './storage/index.ts';
 import { withWorkerGeneration } from './worker/generate-world.ts';
 
@@ -54,10 +55,12 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
       ? (await import('./archetypes/business/saas.ts')).withSaasKit(generated, blueprint)
       : generated;
   // A cache hit reopens a scenario without regenerating; a miss generates in the worker.
-  const definition = withWorldCache(withKit, {
+  const cached = withWorldCache(withKit, {
     blueprintSha256: identity.sha256,
     cache: options.worldCache ?? createPlayerWorldCache(options.indexFactory),
   });
+  // Served by `quick serve`: comments go to that server (same origin).
+  const definition = withServedReview(cached, search);
   markActiveExploration(storage.namespace);
   try {
     await recordExploration(storage, options.indexFactory);

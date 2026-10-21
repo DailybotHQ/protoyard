@@ -223,6 +223,30 @@ exploration and its comments; browser same-origin rules still apply to page
 scripts. Comment names are self-declared. Do not serve an exploration
 containing information you would not share with local software.
 
+The launcher that `quick serve` hands out (the exploration's `index.html`, or
+a variant's) adds `comments=1&review=http` to its player link, so the player
+mounts the review UI lazily with the HTTP adapter against this server's
+`/api/comments`. The endpoint is fixed in the player and never read from the
+URL. The launcher file on disk is unchanged: the same exploration opened from
+`file://` or another host has no comments.
+
+Turn the comments into a report next to the blueprint:
+
+```bash
+protoyard quick feedback <slug>                         # REVIEW.md + REVIEW.json from review/comments.json
+protoyard quick feedback <slug> --import <export.json>  # also merge a browser export (local adapter)
+```
+
+`REVIEW.md` has one section per blueprint with comments (the base exploration
+and each variant), rendered with the same injection-safe renderer as
+`comments pull`. `REVIEW.json` holds one `protoyard-review-comments` v1 file
+per blueprint. An imported file is untrusted: it must be a
+`protoyard-review-comments` v1 file (or a pulled copy) of at most 8 MB, for
+this exploration or one of its variants (the player's content namespace), or
+the command exits 4 before writing anything. Imported comments merge into
+`review/comments.json` by id, the newer edit winning, so the served UI shows
+them too.
+
 ## The artifact adapter
 
 Use it when the prototype is shared as a private Claude artifact

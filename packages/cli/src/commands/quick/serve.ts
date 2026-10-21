@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, lstatSync, statSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, statSync } from 'node:fs';
 import { lstat, readFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
@@ -63,6 +63,36 @@ async function reviewSlugForBlueprint(path: string, expectedSha256: string): Pro
     throw new CliError('validation', 'The quick blueprint changed after it was created.');
   }
   return identity.namespace;
+}
+
+/**
+ * The launcher (`index.html` of the exploration or a variant) a request asks
+ * for, or null. Only these pages are rewritten by the server.
+ */
+function launcherFile(target: QuickServeTarget, pathname: string): string | null {
+  if (!pathname.startsWith(target.path)) return null;
+  const rest = pathname.slice(target.path.length);
+  const match = /^(?:(v[1-8])\/)?(?:index\.html)?$/.exec(rest);
+  if (!match) return null;
+  const file = join(target.dir, match[1] ?? '', 'index.html');
+  return existsSync(file) && lstatSync(file).isFile() ? file : null;
+}
+
+/**
+ * A launcher as `quick serve` hands it out: its player link gains
+ * `comments=1&review=http`, so the player mounts review comments with the
+ * HTTP adapter against this server's `/api/comments`. The file on disk is
+ * unchanged, so the same launcher opened elsewhere has no comments.
+ */
+export function servedLauncherHtml(html: string): string {
+  const match = /http-equiv="refresh" content="0; url=([^"]+)"/.exec(html);
+  const href = match?.[1];
+  if (!href) return html;
+  const hash = href.indexOf('#');
+  const path = hash < 0 ? href : href.slice(0, hash);
+  const fragment = hash < 0 ? '' : href.slice(hash);
+  const added = `${path}${path.includes('?') ? '&amp;' : '?'}comments=1&amp;review=http${fragment}`;
+  return html.split(href).join(added);
 }
 
 /** Resolves `<dir|slug>` to a marked exploration and what to serve; throws a CliError. */
@@ -242,6 +272,23 @@ export const quickServeCommand: Handler = async (ctx, args, options): Promise<Co
           url = new URL(request.url ?? '/', `http://${request.headers.host ?? '127.0.0.1'}`);
         } catch {
           return false;
+        }
+        const launcher = launcherFile(target, url.pathname);
+        if (launcher && (request.method === 'GET' || request.method === 'HEAD')) {
+          let html: string;
+          try {
+            html = servedLauncherHtml(readFileSync(launcher, 'utf8'));
+          } catch {
+            return false;
+          }
+          response.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'no-store',
+            'X-Content-Type-Options': 'nosniff',
+            'Referrer-Policy': 'no-referrer',
+          });
+          response.end(request.method === 'HEAD' ? undefined : html);
+          return true;
         }
         if (!url.pathname.startsWith('/api/comments')) return false;
         const parts = url.pathname.split('/').filter(Boolean);
