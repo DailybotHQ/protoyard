@@ -108,6 +108,28 @@ describe('world cache', () => {
     expect(generate).toHaveBeenCalledTimes(2);
   });
 
+  it('also caches generateWorld, the path the runtime prefers when a definition has it', async () => {
+    const { sha256, definition, cache } = await setup();
+    const generate = vi.fn(definition.generate);
+    const generateWorld = vi.fn(async (s: Scenario) =>
+      definition.generate(createGenerateContext(s))
+    );
+    const wrapped = withWorldCache(
+      { ...definition, generate, generateWorld },
+      { blueprintSha256: sha256, cache }
+    );
+    expect(wrapped.generateWorld).toBeTypeOf('function');
+    const first = await wrapped.generateWorld?.(scenario());
+    await cache.idle();
+    const second = await wrapped.generateWorld?.(scenario());
+    expect(generateWorld).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(second)).toBe(JSON.stringify(first));
+    // A definition without the hook does not gain one.
+    expect(
+      withWorldCache(definition, { blueprintSha256: sha256, cache }).generateWorld
+    ).toBeUndefined();
+  });
+
   it('hands the world to the runtime without waiting for the cache write', async () => {
     const stalled: WorldCacheStore = {
       ...createMemoryWorldCacheStore(),

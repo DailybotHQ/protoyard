@@ -8,6 +8,7 @@ import { scriptedReply } from './reply.ts';
 
 let { blueprint }: { blueprint: Blueprint } = $props();
 const runtime = getRuntime();
+// Derived from the prop, so a different blueprint rebuilds the services and queries.
 const services = $derived(createEntityServices(runtime, blueprint));
 const adapter = $derived(createConversationalAdapter(blueprint));
 const conversationService = $derived(services[adapter.conversationEntity]);
@@ -16,12 +17,15 @@ const memberService = $derived(adapter.memberEntity ? services[adapter.memberEnt
 
 const conversationRows = liveQuery(() => conversationService?.list() ?? Promise.resolve([]), {
   initial: [],
+  deps: () => [conversationService],
 });
 const messageRows = liveQuery(() => messageService?.list() ?? Promise.resolve([]), {
   initial: [],
+  deps: () => [messageService],
 });
 const memberRows = liveQuery(() => memberService?.list() ?? Promise.resolve([]), {
   initial: [],
+  deps: () => [memberService],
 });
 const conversations = $derived(adapter.conversations(conversationRows.current ?? []));
 let selectedId = $state('');
@@ -54,7 +58,7 @@ async function rename(conversationId: string, title: string): Promise<void> {
   if (!clean) return;
   await conversationService.update(
     conversationId,
-    adapter.id === 'team-chat' ? { name: clean } : { title: clean }
+    blueprint.archetype?.id === 'team-chat' ? { name: clean } : { title: clean }
   );
 }
 
@@ -63,12 +67,7 @@ function selectConversation(id: string): void {
 }
 </script>
 
-<section
-  class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8"
-  data-testid="player-conversational-archetype"
-  data-archetype={adapter.id}
-  data-route={adapter.path}
->
+<section class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8" data-testid="player-conversational-archetype" data-archetype={adapter.id}>
   <div class="mb-4">
     <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{adapter.id === 'team-chat' ? 'Team chat' : 'Assistant workspace'} · Simulated</p>
     <h1 class="text-2xl font-semibold">{blueprint.name}</h1>

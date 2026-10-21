@@ -20,6 +20,14 @@ const conversational = $derived.by(() => {
     : null;
 });
 
+/** Business archetypes keep the CRUD app and add their kit routes (each kit its own chunk). */
+const business = $derived.by(() => {
+  const archetype = blueprint.archetype?.id;
+  if (archetype === 'saas-onboarding') return import('./archetypes/business/saas.ts');
+  if (archetype === 'analytics') return import('./archetypes/business/analytics.ts');
+  return null;
+});
+
 /** Theme library choices for the settings screen, loaded only when it opens. */
 async function themeLibrary() {
   const { THEME_LIBRARY_META } = await import('@protoyard/themes/library');
@@ -30,7 +38,24 @@ async function themeLibrary() {
 {#await shell}
   <LoadingState label="Loading the prototype" class="py-16" />
 {:then { BlueprintApp }}
-  {#if conversational === null}
+  {#if business !== null}
+    {#await business then kit}
+      {#if 'SaasApp' in kit}
+        <kit.SaasApp {blueprint} {model} {themeLibrary} {BlueprintApp} />
+      {:else}
+        <kit.AnalyticsApp {blueprint} {model} {themeLibrary} {BlueprintApp} />
+      {/if}
+    {:catch error}
+      <ErrorState
+        title="The archetype could not be loaded"
+        message={error instanceof Error ? error.message : String(error)}
+        onRetry={() => {
+          attempt += 1;
+        }}
+        retryLabel="Try again"
+      />
+    {/await}
+  {:else if conversational === null}
     <BlueprintApp {blueprint} {model} {themeLibrary} />
   {:else}
     {#await conversational then { ConversationalApp }}

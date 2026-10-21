@@ -341,17 +341,32 @@ export function withWorldCache(
   options: WithWorldCacheOptions
 ): PrototypeDefinition {
   const generatorVersion = definition.generatorVersion ?? 0;
+  const cached = async (scenario: Scenario, make: () => Promise<WorldSeed>): Promise<WorldSeed> => {
+    const key = await worldCacheKey(options.blueprintSha256, scenario, generatorVersion);
+    const hit = await options.cache.get(key);
+    if (hit) return hit;
+    const world = await make();
+    // Not awaited: the world loads now and is compressed and stored in the background.
+    void options.cache.put(key, world);
+    return world;
+  };
   return {
     ...definition,
     async generate(context: GenerateContext): Promise<WorldSeed> {
-      const key = await worldCacheKey(options.blueprintSha256, context.scenario, generatorVersion);
-      const cached = await options.cache.get(key);
-      if (cached) return cached;
-      const world = await definition.generate(context);
-      // Not awaited: the world loads now and is compressed and stored in the background.
-      void options.cache.put(key, world);
-      return world;
+      return cached(context.scenario, async () => definition.generate(context));
     },
+    // The runtime prefers generateWorld when a definition has one, so the cache must wrap it too.
+    ...(definition.generateWorld
+      ? {
+          async generateWorld(scenario: Scenario): Promise<WorldSeed> {
+            return cached(scenario, async () => {
+              const world = await definition.generateWorld?.(scenario);
+              if (!world) throw new Error('generateWorld returned no world');
+              return world;
+            });
+          },
+        }
+      : {}),
   };
 }
 

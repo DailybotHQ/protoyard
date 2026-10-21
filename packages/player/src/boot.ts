@@ -47,8 +47,14 @@ export async function bootPlayer(options: BootPlayerOptions): Promise<BootedPlay
     namespace: storage.namespace,
     slug: storage.namespace,
   });
+  const generated = withWorkerGeneration(blueprintDefinition, blueprint);
+  // The SaaS kit adds its own stores, rows and capabilities (loaded only for that archetype).
+  const withKit =
+    blueprint.archetype?.id === 'saas-onboarding'
+      ? (await import('./archetypes/business/saas.ts')).withSaasKit(generated, blueprint)
+      : generated;
   // A cache hit reopens a scenario without regenerating; a miss generates in the worker.
-  const definition = withWorldCache(withWorkerGeneration(blueprintDefinition, blueprint), {
+  const definition = withWorldCache(withKit, {
     blueprintSha256: identity.sha256,
     cache: options.worldCache ?? createPlayerWorldCache(options.indexFactory),
   });

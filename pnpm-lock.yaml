@@ -394,6 +394,9 @@ importers:
       '@protoyard/ai-ui':
         specifier: workspace:*
         version: link:../ai-ui
+      '@protoyard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
       '@protoyard/analytics-ui':
         specifier: workspace:*
         version: link:../analytics-ui
@@ -412,6 +415,12 @@ importers:
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../renderer-svelte
+      '@protoyard/saas':
+        specifier: workspace:*
+        version: link:../saas
+      '@protoyard/saas-ui':
+        specifier: workspace:*
+        version: link:../saas-ui
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../themes

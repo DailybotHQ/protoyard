@@ -46,6 +46,27 @@ services. Team chat uses the same safe, deterministic simulated assistant
 adapter because `@protoyard/ai-ui` has no dedicated team-chat screen. CRUD-only
 blueprints never load the AI kit entry.
 
+Blueprints with a `saas-onboarding` or `analytics` archetype keep the whole
+blueprint app and add the kit as extra routes, with a navigation item right
+after Home (`src/archetypes/business/`):
+- **`saas-onboarding`** (`Get started`): `bootPlayer` adds the SaaS kit to the
+  runtime definition. That means the `saas_*` stores in one more database
+  version, kit integrity, kit rows generated from the same team, and the kit's
+  self-service capabilities for every role, plus billing and member management
+  for roles that may update the workspace entity. The app gets `provideSaas`
+  with simulated billing plans (integer cents, no card, no charge) and the
+  kit's lazy sign-in, sign-up, onboarding wizard (at the archetype route),
+  invitation, inbox and billing routes. The blueprint's own settings and
+  members screens stay.
+- **`analytics`** (`Analytics`): a lazily loaded dashboard at the archetype
+  route. It has a date range with comparison, KPI tiles (events, the first
+  event types, the value field) and an editable grid with events by type and
+  the metrics list. **Record metric** saves through the metric entity's
+  service, so it persists like any record. Layout edits last for the session.
+
+Each kit is its own chunk, loaded only for its archetype; the dashboard and
+every SaaS screen load when their route opens.
+
 The page reaches `performance.mark('protoyard:ready')` and
 `<html data-protoyard-ready="1">` like any prototype.
 
@@ -224,21 +245,22 @@ which reject offline service workers.
 ## Size
 
 Measured with `pnpm --filter @protoyard/player build` (2026-10-20):
-- **Initial JavaScript:** 175.0 KB gzip, against the 250 KB budget (176.9 KB before
-  source resolution; the boot code moved to a prefetched chunk, and the picker is a
-  5.4 KB lazy chunk). The app shell, entity pages, data tables, forms, screen kits, Faker, DevTools and the theme library are all lazy chunks.
+- **Initial JavaScript:** 186.1 KB gzip (28 files), against the 250 KB budget.
+  The app shell, entity pages, data tables, forms, screen kits, Faker, DevTools,
+  the theme library and every archetype kit are lazy chunks.
+- **Archetype chunks (gzip, lazy):** SaaS entry 8.1 KB, then each kit screen on
+  its route (onboarding 5.8 KB, settings 7.9 KB, sign-in and auth screens
+  2–3 KB each); analytics entry 2.2 KB, and the dashboard 8.1 KB when
+  `/analytics` opens.
 - **Initial CSS:** 18.0 KB gzip, against the 30 KB budget.
 
 These budgets are enforced by a dedicated player budget gate, which is planned and not yet written.
 
 ## Honest limits
 
-- The no-flash appearance script is keyed by the build namespace (`player`),
-  not the blueprint's, so a saved dark mode can flash on first paint.
 - The player replays the most recently active blueprint's appearance cache
   before the runtime paints, keyed by its `bp-…` or `keep-…` namespace. A first
   visit without a cached appearance still follows the system color preference.
-- Only the bundled demo blueprint loads until the source resolution lands.
 - The embed protocol trusts the allowed origin, not the person behind it: any
   page on protoyard.app or on localhost can send blueprints to a player that
   names it in `?embedder=`. A blueprint is data and never runs code, but it
