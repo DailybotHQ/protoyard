@@ -5,6 +5,25 @@ prototype in the browser and uses IndexedDB for simulated data; it does not
 connect to a product backend. Generated prototypes remain the second level:
 they are ordinary Vite apps that can be edited, validated and exported.
 
+## What level 1 gives you
+
+A blueprint (`blueprint.json`) is data only. The player turns it into a running
+prototype with no build and no install:
+- The same app a generated prototype renders: `BlueprintApp` from
+  `@protoyard/crud/app`, with the blueprint's routes, navigation, layout and
+  every screen kind. Assistant and team-chat archetypes get the conversational
+  workspace.
+- A real runtime: IndexedDB data, personas and simulated roles, the blueprint's
+  scenarios (`empty`, `active`, `viewer`, `massive`), simulated time and
+  environment, themes (including a brand theme), layouts, device shells, and
+  DevTools (hide them with `?devtools=0`).
+- Entity services that validate every write
+  (`session.assert` → zod → `environment.run` → `db.transaction`).
+
+Everything is simulated, and every page shows the "Prototype · simulated data"
+badge. Promote an exploration to level 2 with `protoyard generate` (see
+[Validate and promote](#validate-and-promote)).
+
 ## Entry points
 
 - Run the workspace player with `pnpm --filter @protoyard/player dev`.
@@ -51,6 +70,12 @@ loading. Use the blueprint file when a link is too large. The encoded bytes
 may differ across browser engines, so never compare share URLs byte for byte;
 compare the decoded blueprint data.
 
+`decodeBlueprintShare` (`@protoyard/blueprint`) reports this case itself as an
+`unsupported-browser` issue naming those browsers, and `encodeBlueprintShare`
+throws an equally clear error. So the CLI, the site and the player all say the
+same thing instead of "invalid link". `supportsShareLinks()` checks support
+before trying.
+
 Share links contain the blueprint itself. The player refuses links longer
 than 16 KB and decoded input larger than 256 KB. Pasted text is capped at 256
 KB before JSON parsing. The `/play/` landing page is indexable, but a visit
@@ -62,6 +87,142 @@ meta policy cannot set it. Its `style-src` keeps `'unsafe-inline'` for the
 runtime style attributes and elements Svelte and the theme engine create.
 Cloudflare Pages reads `_headers` only at the output root, so showcase builds
 merge the player rules there rather than relying on the nested player file.
+
+## Where a blueprint comes from
+
+The player resolves its source in a fixed order: a `#bp=` share link, then
+`?src=./blueprint.json` (a same-origin relative path next to the player, at most
+256 KB, redirects refused), then a picker for a local file or the bundled
+fictional demo. A framed player also accepts blueprints from its embedding page
+over `protoyard-player/1`:
+- `load` and `replace` messages;
+- only from the player's own origin, or from an `?embedder=` origin that also
+  matches the build-time allowlist (`https://protoyard.app`, `localhost`,
+  `127.0.0.1`), never `*`;
+- every request answered exactly once, with `loaded` or typed issues.
+
+The message table, limits and the typed `connectPlayer` client are in
+[the player package README](../packages/player/README.md#embedding-protoyard-player1).
+
+Every source ends in the bounded loader (`loadUntrustedBlueprint`). A blueprint
+that cannot be opened shows an accessible error screen with every issue and its
+fix, never a blank page.
+
+## Storage: identity and keep mode
+
+Each blueprint runs in its own IndexedDB databases, named by its content:
+- **Content mode (default):** `blueprintIdentity` hashes the canonical JSON
+  (SHA-256) into a `bp-<26 base32>` namespace. Key order and formatting don't
+  matter, but any content edit opens a fresh world. Two blueprints on one origin
+  never share rows.
+- **Keep mode (`?keep=<name>`):** a stable `keep-…` namespace. Opening a newer
+  version of the blueprint migrates the stored world through the blueprint's
+  derived database versions instead of starting over. This is for iterating on
+  one idea.
+
+The player lists stored explorations (`protoyard.player.index`) and deletes one
+only with confirmation. Namespaces isolate data; they are not a security
+boundary.
+
+## Worlds: worker generation and cache
+
+The player generates worlds in a module Web Worker. The worker graph is 200 KB
+gzip, with Faker's English locale only, and
+`packages/player/tests/worker-bundle.test.ts` budgets it at 250 KB.
+
+Generated worlds are cached by content address in `protoyard.player.worlds`:
+- **Key:** blueprint SHA-256, scenario id, seed, scenario digest and generator
+  version.
+- **Format and eviction:** gzip, least recently used past 48 MB.
+- **Effect:** switching back to a scenario, resetting it, or opening a variant of
+  the same blueprint reloads the stored world without regenerating.
+- **Untrusted reads:** cache entries are read back as untrusted data (25 MB
+  inflated, 250,000 rows, shape and id checks); a bad entry is dropped and the
+  world regenerates.
+
+## Parity with generated prototypes
+
+Level 1 and level 2 are one app (ADR-029). For each of the 40 catalog
+blueprints, `packages/blueprint/tests/runtime-parity.test.ts` generates a real
+prototype with the CLI and compares it with the player's runtime definition:
+- database versions, policy, integrity and scenarios;
+- the generator version and the default and brand themes;
+- routes, navigation and layout (generated apps render the same `BlueprintApp`
+  from the same blueprint);
+- the seeded world, byte for byte, for a fixed seed.
+
+Three blueprints also boot both definitions on the real runtime and compare
+every table.
+
+The limits of that guarantee:
+- A generated prototype's owned files (`src/App.svelte`, extra screens, wrapped
+  generators such as the help desk's) can add behavior the player doesn't have.
+  `BlueprintApp`'s `home`, `extraRoutes`, `recordHref` and `actions` props are
+  where those additions plug in.
+- The player runs only what the blueprint declares; it has no hand-written
+  screens or custom generators.
+
+## Offline
+
+The built player is installable from a secure origin and works offline after one
+online visit:
+- the service worker precaches the shell, every lazy screen chunk and the bundled
+  assets;
+- `#bp=` links then open from the cache, and blueprint data stays in IndexedDB;
+- `?offline=0` unregisters the worker and clears only the player's offline cache.
+
+Claude artifact exports reject offline service workers.
+
+## Search engines
+
+`/play/` is the indexable landing page. The standalone player (`/player/`, and
+every `/player/#bp=` link) is an app, not a page: its `index.html` carries
+`<meta name="robots" content="noindex">`
+(`packages/player/tests/indexing.test.ts` checks the built HTML).
+`robots.txt` still allows crawling, so crawlers can read that tag. The sitemap
+lists `/play/` and the guides, never `/player/` or share instances. A full
+`pnpm build:showcase` on 2026-10-20 produced 192 sitemap entries, each mapped
+to a built page.
+
+## Measured size and speed
+
+All numbers come from real runs on 2026-10-20 (Apple M1 Max, macOS, Chromium 156,
+with other builds running). They are not calibrated budgets.
+
+| Measure | Value | Gate |
+| --- | --- | --- |
+| Initial JavaScript (gzip) | 178.1 KB | 250 KB (`packages/player/tests/budget.test.ts`) |
+| Initial CSS (gzip) | 18.1 KB | 30 KB (same test) |
+| World-generation worker graph (gzip) | 200.2 KB | 250 KB (`worker-bundle.test.ts`) |
+| First visit through `#bp=`, catalog blueprints (median) | 190–232 ms | report only |
+| Repeat visit (stored world) | 76–107 ms | report only |
+| Scenario switch that generates | 55–74 ms | report only |
+| Scenario switch served by the world cache | 7.9–9.8 ms | report only |
+| Large fixture (40 entities): first visit / cache hit | 368 ms / 66 ms | report only |
+
+Reproduce the timings with `pnpm exec tsx scripts/bench-player.ts --runs 3` after
+building the player. The method, every phase and the main-thread long-task
+trace are in [PERFORMANCE](PERFORMANCE.md#player-blueprint-to-ready-measured-2026-10-20).
+
+## Honest boundaries
+
+- **Simulated, not secure:** roles, sign-in and permissions are a UX
+  simulation, not security. Data is fictional and lives in this browser only.
+- **Shared origin:** isolation between blueprints is by IndexedDB namespace on
+  one origin. Any script on that origin can read every namespace.
+- **Embedding trust:** the embed protocol trusts the allowed origin, not the
+  person behind it. Any page on protoyard.app or localhost can send a blueprint
+  to a player that names it in `?embedder=`. A blueprint is data and never runs
+  code, but it replaces what the player shows.
+- **Share links:** they need a current browser (see above) and may encode to
+  different bytes in different engines.
+- **Main-thread work:** generation runs in a worker, but the runtime still
+  builds a main-thread generation context (and loads Faker there) before each
+  generation. On very large worlds the main thread spends about 55 ms receiving
+  the worker's result.
+- **First paint:** the no-flash appearance script replays the most recently
+  active blueprint's appearance; a first visit follows the system color
+  preference.
 
 ## Validate and promote
 

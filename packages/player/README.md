@@ -198,7 +198,13 @@ The player builds like a prototype with `defineProtoyardConfig`. Its own
 - base `./`, so the output is relocatable;
 - DevTools included, and shown unless `?devtools=0`;
 - the demo badge;
-- offline support, which emits a service worker and precaches the complete build.
+- offline support, which emits a service worker and precaches the complete build;
+- module workers (`worker: { format: 'es' }`), so the world-generation worker
+  tree-shakes Faker to English (`tests/worker-bundle.test.ts` budgets it at 250 KB
+  gzip);
+- `<meta name="robots" content="noindex">` in `index.html`: the standalone player
+  is an app, not a landing page (`/play/` is). `tests/indexing.test.ts` checks the
+  built HTML.
 
 Its `storage.namespace` (`player`) is never used for a blueprint's data.
 `src/app.css` registers the crud, views, charts and analytics sources with
@@ -224,12 +230,15 @@ which reject offline service workers.
 ## Size
 
 Measured with `pnpm --filter @protoyard/player build` (2026-10-20):
-- **Initial JavaScript:** 175.0 KB gzip, against the 250 KB budget (176.9 KB before
-  source resolution; the boot code moved to a prefetched chunk, and the picker is a
-  5.4 KB lazy chunk). The app shell, entity pages, data tables, forms, screen kits, Faker, DevTools and the theme library are all lazy chunks.
-- **Initial CSS:** 18.0 KB gzip, against the 30 KB budget.
+- **Initial JavaScript:** 178.1 KB gzip, against the 250 KB budget. The app shell,
+  entity pages, data tables, forms, screen kits, Faker, DevTools and the theme
+  library are all lazy chunks.
+- **Initial CSS:** 18.1 KB gzip, against the 30 KB budget.
+- **World-generation worker graph:** 200.2 KB gzip (Faker `en` 153 KB plus the
+  blueprint generator), against 250 KB.
 
-These budgets are enforced by a dedicated player budget gate, which is planned and not yet written.
+`tests/budget.test.ts` enforces the initial budgets and `tests/worker-bundle.test.ts`
+the worker's. Load timings are in [PLAYER](../../docs/PLAYER.md#measured-size-and-speed).
 
 ## Honest limits
 
@@ -238,7 +247,6 @@ These budgets are enforced by a dedicated player budget gate, which is planned a
 - The player replays the most recently active blueprint's appearance cache
   before the runtime paints, keyed by its `bp-…` or `keep-…` namespace. A first
   visit without a cached appearance still follows the system color preference.
-- Only the bundled demo blueprint loads until the source resolution lands.
 - The embed protocol trusts the allowed origin, not the person behind it: any
   page on protoyard.app or on localhost can send blueprints to a player that
   names it in `?embedder=`. A blueprint is data and never runs code, but it
