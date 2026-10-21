@@ -39,6 +39,12 @@ describe('blueprintScenarios', () => {
     expect(resolved.map(({ seed }) => seed)).toEqual([123_001, 123_002, 123_003, 123_004]);
   });
 
+  it('describes the empty scenario without naming any product domain', () => {
+    const empty = blueprintScenarios(blueprint).find(({ id }) => id === 'empty');
+    // Every blueprint gets this scenario, so the copy cannot assume projects or tasks.
+    expect(empty?.description).toBe('Team only — no records yet.');
+  });
+
   it('returns independent definitions for each call', () => {
     const first = blueprintScenarios(blueprint);
     first[0]!.organization!.size = 99;

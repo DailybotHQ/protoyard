@@ -30,6 +30,7 @@ import {
   stalePlayerBuildWarning,
   verifyPlayerAssets,
 } from '../src/lib/quick/player-assets.ts';
+import { ensurePlayerAssets } from '../src/lib/quick/player-build.ts';
 
 /**
  * The prebuilt player for `protoyard quick`: located (CLI dependency,
@@ -303,7 +304,7 @@ describe('materializePlayer', () => {
     );
   });
 
-  it('never builds or installs anything', () => {
+  it('locates and copies without starting a process', () => {
     const source = readFileSync(
       join(REPO, 'packages', 'cli', 'src', 'lib', 'quick', 'player-assets.ts'),
       'utf8'
@@ -311,6 +312,13 @@ describe('materializePlayer', () => {
     // No process is started: no child_process import, no spawn/exec call.
     expect(source).not.toMatch(/from 'node:child_process'|from 'child_process'/);
     expect(source).not.toMatch(/\b(?:spawn|spawnSync|exec|execSync|execFile|fork)\(/);
+    // The one build quick may start goes through runPnpm (argv array, no shell).
+    const build = readFileSync(
+      join(REPO, 'packages', 'cli', 'src', 'lib', 'quick', 'player-build.ts'),
+      'utf8'
+    );
+    expect(build).not.toMatch(/from 'node:child_process'|shell:/);
+    expect(build).toContain("runPnpm(['--filter', PLAYER_PACKAGE, 'build']");
   });
 });
 
@@ -421,5 +429,100 @@ describe('stalePlayerBuildWarning', () => {
     await playerPackage(installed);
     const release = locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => installed });
     expect(stalePlayerBuildWarning(release, dirname(dirname(dirname(installed))))).toBeNull();
+  });
+});
+
+describe('ensurePlayerAssets (first use in a fresh monorepo clone)', () => {
+  /** A monorepo whose packages/player has sources but was never built. */
+  function freshClone() {
+    const root = temp('protoyard-fresh-clone-');
+    write(join(root, 'pnpm-workspace.yaml'), "packages:\n  - 'packages/*'\n");
+    const pkg = join(root, 'packages', 'player');
+    write(join(pkg, 'package.json'), { name: '@protoyard/player', version: '1.0.0' });
+    write(join(pkg, 'src', 'main.ts'), 'export {};');
+    write(join(pkg, 'vite.config.ts'), 'export default {};');
+    return { root, pkg };
+  }
+
+  /** A fake `pnpm --filter @protoyard/player build`: records the call and copies a built app in. */
+  async function fakeBuild(pkg: string, ok = true) {
+    const built = await playerPackage(join(temp(), 'player'));
+    const calls: string[] = [];
+    return {
+      calls,
+      build: (root: string) => {
+        calls.push(root);
+        if (!ok) return { ok: false, detail: 'exit code 1' };
+        cpSync(built, join(pkg, 'dist', 'app'), { recursive: true });
+        return { ok: true };
+      },
+    };
+  }
+  const repositoryOnly = { resolveInstalled: () => null };
+
+  it('builds a missing dist/app exactly once, says so, then finds it', async () => {
+    const { root, pkg } = freshClone();
+    const { calls, build } = await fakeBuild(pkg);
+    const lines: string[] = [];
+    const run = async () =>
+      await ensurePlayerAssets({
+        workspaceRoot: root,
+        ...repositoryOnly,
+        build,
+        log: (line) => lines.push(line),
+      });
+    expect(await run()).toMatchObject({ source: 'repository', dir: join(pkg, 'dist', 'app') });
+    expect(calls).toEqual([root]);
+    expect(lines).toEqual([
+      `Building the player once for quick (about 10 s): ${PLAYER_BUILD_COMMAND}`,
+    ]);
+    // Built now: the next run finds it and builds nothing.
+    expect((await run()).dir).toBe(join(pkg, 'dist', 'app'));
+    expect(calls).toHaveLength(1);
+    expect(lines).toHaveLength(1);
+  });
+
+  it('never builds when dist/app exists, even when stale or unmanifested', async () => {
+    const { root, pkg } = freshClone();
+    await playerPackage(pkg, { manifest: false });
+    const { calls, build } = await fakeBuild(pkg);
+    await expect(
+      ensurePlayerAssets({ workspaceRoot: root, ...repositoryOnly, build, log: () => {} })
+    ).rejects.toThrow(/has no protoyard-player-assets\.json/);
+    expect(calls).toEqual([]);
+  });
+
+  it('never builds in a consumer workspace or outside one', async () => {
+    const consumer = temp();
+    write(join(consumer, 'package.json'), { name: 'acme', protoyard: { workspace: 1 } });
+    // Even with a player-shaped, unbuilt packages/player in it.
+    write(join(consumer, 'packages', 'player', 'package.json'), {
+      name: '@protoyard/player',
+      version: '1.0.0',
+    });
+    write(join(consumer, 'packages', 'player', 'src', 'main.ts'), 'export {};');
+    write(join(consumer, 'packages', 'player', 'vite.config.ts'), 'export default {};');
+    const { calls, build } = await fakeBuild(join(consumer, 'packages', 'player'));
+    for (const workspaceRoot of [consumer, null]) {
+      await expect(
+        ensurePlayerAssets({ workspaceRoot, ...repositoryOnly, build, log: () => {} })
+      ).rejects.toThrow(/No prebuilt @protoyard\/player/);
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it('turns a failed build into a CliError with the command to run', async () => {
+    const { root, pkg } = freshClone();
+    const { calls, build } = await fakeBuild(pkg, false);
+    try {
+      await ensurePlayerAssets({ workspaceRoot: root, ...repositoryOnly, build, log: () => {} });
+      throw new Error('expected a CliError');
+    } catch (error) {
+      expect(error).toBeInstanceOf(CliError);
+      expect((error as CliError).code).toBe('failure');
+      expect((error as CliError).message).toBe('Building the player failed (exit code 1).');
+      expect((error as CliError).hint).toContain(PLAYER_BUILD_COMMAND);
+    }
+    expect(calls).toEqual([root]);
   });
 });

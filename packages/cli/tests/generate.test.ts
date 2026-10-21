@@ -414,6 +414,41 @@ describe('protoyard generate', () => {
     expect(data.checks.find((c) => c.id === 'blueprint')?.status).toBe('pass');
   }, 120_000);
 
+  it('reports a format-2 snapshot as outdated with the regenerate hint; format 3 is fresh', async () => {
+    expect(
+      (await generate('help-desk', '--blueprint', writeBlueprint(), '--no-install')).code
+    ).toBe(0);
+    const snapshotPath = join(
+      ws.root,
+      'prototypes/help-desk/src/generated/blueprint.snapshot.json'
+    );
+    const fresh = readFileSync(snapshotPath, 'utf8');
+    expect(JSON.parse(fresh).codegenFormat).toBe(3);
+    const blueprintCheck = async () => {
+      const run = await cli([
+        '--root',
+        ws.root,
+        '--json',
+        'validate',
+        'help-desk',
+        '--skip-typecheck',
+      ]);
+      return run
+        .json<{ data: { checks: { id: string; status: string; details: string[] }[] } }>()
+        .data.checks.find((c) => c.id === 'blueprint');
+    };
+    expect((await blueprintCheck())?.status).toBe('pass');
+
+    // A prototype generated before routes, layout and screen wrappers left the emitted set.
+    writeFileSync(snapshotPath, fresh.replace('"codegenFormat": 3', '"codegenFormat": 2'));
+    const outdated = await blueprintCheck();
+    expect(outdated?.status).toBe('fail');
+    expect(outdated?.details.join('\n')).toContain(
+      'Generated code format 2 is outdated; run `pnpm protoyard generate help-desk --blueprint prototypes/help-desk/blueprint.json`'
+    );
+    writeFileSync(snapshotPath, fresh);
+  }, 120_000);
+
   it('regenerates after an added field: appends schema v2, keeps owned files and passes validate', async () => {
     expect(
       (await generate('help-desk', '--blueprint', writeBlueprint(), '--no-install')).code
@@ -450,7 +485,7 @@ describe('protoyard generate', () => {
     expect(JSON.parse(read('prototypes/help-desk/src/generated/blueprint.snapshot.json'))).toEqual({
       schemaVersion: 2,
       blueprint: next,
-      codegenFormat: 2,
+      codegenFormat: 3,
     });
 
     const validate = await cli([

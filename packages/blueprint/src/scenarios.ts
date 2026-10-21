@@ -12,7 +12,7 @@ export function blueprintScenarios(_blueprint: Blueprint): ScenarioDefinition[] 
     {
       id: 'empty',
       name: 'Empty',
-      description: 'Team only — no projects or tasks yet.',
+      description: 'Team only — no records yet.',
       seed: 123_001,
       referenceTime: '2026-06-01T09:00:00.000Z',
       density: 'empty',

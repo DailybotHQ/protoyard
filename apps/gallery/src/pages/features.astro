@@ -1,0 +1,173 @@
+---
+import InlineText from '@/components/features/InlineText.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { GITHUB_SOURCE } from '@/lib/docs';
+import { EXTRA_GUIDES, FEATURE_AREAS, MEASURED_NUMBERS, MEASURED_ON } from '@/lib/features';
+import { withBase } from '@/lib/format';
+
+/**
+ * Everything Protoyard does, in depth: a quick start that works from a clone
+ * today, every capability with its guides, numbers the guides publish (each
+ * linked to its source) and the honest boundaries. Static: no client islands.
+ */
+const PUBLIC_DOCS = new Set(['QUICK.md']);
+const sourceHref = (doc: string, anchor: string) =>
+  PUBLIC_DOCS.has(doc)
+    ? withBase(`/docs/${doc.replace(/\.md$/, '').toLowerCase()}/#${anchor}`)
+    : `${GITHUB_SOURCE}docs/${doc}#${anchor}`;
+const security = EXTRA_GUIDES.find((g) => g.slug === 'security');
+const QUICK_START = [
+  'git clone https://github.com/DailybotHQ/protoyard',
+  'cd protoyard',
+  'corepack enable && pnpm install',
+  'pnpm protoyard quick "A climbing gym books classes and tracks members" --slug gym --variants 3',
+  'pnpm protoyard quick serve gym --open',
+];
+---
+
+<BaseLayout
+  title="Everything Protoyard does"
+  description="Explore a product idea in seconds in the browser player, generate a full prototype when it works, and share it: quick explorations, the no-install player, the real-behavior engine, kits, agents and export."
+  canonicalPath={withBase('/features/')}
+  active="features"
+>
+  <article class="mx-auto max-w-5xl">
+    <header class="max-w-3xl">
+      <p class="text-sm font-medium text-accent-fg">Features</p>
+      <h1 class="mt-2 text-4xl font-semibold tracking-tight text-balance">Everything Protoyard does</h1>
+      <p class="mt-3 text-lg text-muted">
+        Protoyard turns a product idea into a prototype that behaves like the real thing: explore it in seconds
+        with no build, keep the one that works as a full app, and share it. Real behavior, fake infrastructure.
+      </p>
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <a
+          href={withBase('/play/')}
+          class="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+          >Try it in your browser</a
+        >
+        <a
+          href={withBase('/docs/')}
+          class="rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-surface-2"
+          >Read the docs</a
+        >
+      </div>
+    </header>
+
+    <section class="mt-12" aria-labelledby="start-title">
+      <h2 id="start-title" class="text-2xl font-semibold tracking-tight">Start from a clone</h2>
+      <p class="mt-2 max-w-3xl text-muted">
+        Protoyard runs from its repository today. You need Node.js 24.20 or newer and pnpm 11 (through Corepack).
+        These commands turn a sentence into three playable variants and open them in your browser; the first run builds the player once.
+      </p>
+      <pre
+        tabindex="0"
+        aria-label="Quick start commands"
+        class="mt-4 overflow-x-auto rounded-xl border border-line bg-surface p-4 text-sm focus-visible:outline-2 focus-visible:outline-accent"><code class="font-mono">{QUICK_START.join('\n')}</code></pre>
+      <p class="mt-3 text-sm text-muted">
+        The full walkthrough is in the <a class="font-medium text-accent-fg underline underline-offset-2" href={withBase('/docs/quickstart/')}>Quickstart</a>, and every quick subcommand in the
+        <a class="font-medium text-accent-fg underline underline-offset-2" href={withBase('/docs/quick/')}>Quick explorations guide</a>.
+      </p>
+    </section>
+
+    {
+      FEATURE_AREAS.map((area) => (
+        <section class="mt-12" aria-labelledby={`${area.id}-title`} id={area.id}>
+          <h2 id={`${area.id}-title`} class="text-2xl font-semibold tracking-tight">
+            {area.title}
+          </h2>
+          <p class="mt-2 max-w-3xl text-muted">
+            <InlineText text={area.summary} />
+          </p>
+          <ul class="mt-4 max-w-3xl list-disc space-y-2 pl-5">
+            {area.points.map((point) => (
+              <li>
+                <InlineText text={point} />
+              </li>
+            ))}
+          </ul>
+          <ul class="mt-4 flex flex-wrap gap-2" aria-label={`Guides for ${area.title}`}>
+            {area.guides.map((guide) => (
+              <li>
+                <a
+                  href={withBase(`/docs/${guide.slug}/`)}
+                  class="inline-block rounded-full border border-line bg-surface px-3 py-1 text-sm font-medium hover:bg-surface-2"
+                >
+                  {guide.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+
+    <section class="mt-14" aria-labelledby="numbers-title">
+      <h2 id="numbers-title" class="text-2xl font-semibold tracking-tight">Measured numbers</h2>
+      <p class="mt-2 max-w-3xl text-muted">{MEASURED_ON} Each row links the guide that publishes it.</p>
+      <div class="mt-4 overflow-x-auto rounded-xl border border-line" tabindex="0" role="region" aria-label="Measured numbers, scrolls sideways">
+        <table class="w-full min-w-[36rem] text-left text-sm">
+          <thead class="bg-surface-2">
+            <tr>
+              <th scope="col" class="px-4 py-2 font-semibold">What</th>
+              <th scope="col" class="px-4 py-2 font-semibold">Measured</th>
+              <th scope="col" class="px-4 py-2 font-semibold">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              MEASURED_NUMBERS.map((row) => (
+                <tr class="border-t border-line">
+                  <td class="px-4 py-2"><InlineText text={row.label} /></td>
+                  <td class="px-4 py-2 font-semibold tabular-nums">{row.value}</td>
+                  <td class="px-4 py-2">
+                    <a class="text-accent-fg underline underline-offset-2" href={sourceHref(row.doc, row.anchor)}>
+                      {row.doc.replace(/\.md$/, '')}
+                    </a>
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="mt-14" aria-labelledby="boundaries-title">
+      <h2 id="boundaries-title" class="text-2xl font-semibold tracking-tight">Honest boundaries</h2>
+      <ul class="mt-4 max-w-3xl list-disc space-y-2 pl-5">
+        <li>
+          <strong>Simulated data, no backend.</strong> Data lives in your browser, per origin. It does not sync between
+          devices, and the browser may clear it, so export snapshots of anything worth keeping.
+        </li>
+        <li>
+          <strong>No real auth.</strong> Personas, roles, sign-in, SSO and MFA simulate product behavior; they are not
+          security. Prototypes on one origin can read each other's storage.
+        </li>
+        <li>
+          <strong>No real services.</strong> Demo data is fictional, nothing connects to real payments or AI providers,
+          and the AI kits are scripted.
+        </li>
+        <li>
+          <strong>Not on npm yet.</strong> The packages are publish-ready, but no version has been published, so run
+          Protoyard from its repository today. <code class="rounded bg-surface-2 px-1 py-0.5 font-mono text-[0.9em]">npm create protoyard</code>
+          comes with the first release (<a class="font-medium text-accent-fg underline underline-offset-2" href={withBase('/docs/packages/')}>Packages guide</a>).
+        </li>
+        <li>
+          <strong>Browser, not native.</strong> Mobile prototypes run in the mobile browser, and shells simulate devices
+          rather than emulate them.
+        </li>
+      </ul>
+      {
+        security && (
+          <p class="mt-4 text-sm text-muted">
+            The threat model and trust boundaries are in the{' '}
+            <a class="font-medium text-accent-fg underline underline-offset-2" href={withBase(`/docs/${security.slug}/`)}>
+              {security.label}
+            </a>
+            .
+          </p>
+        )
+      }
+    </section>
+  </article>
+</BaseLayout>

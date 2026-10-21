@@ -193,6 +193,17 @@ temporary folder and a rename. In this repository, when a file under
 prints a warning (also in the JSON envelope's `data.warnings`) that names
 `pnpm --filter @protoyard/player build`. Installed releases are never checked.
 
+On a fresh clone of this repository, `packages/player/dist/app/` does not exist
+yet, so the first `quick` builds it once: it prints `Building the player once
+for quick (about 10 s): pnpm --filter @protoyard/player build`, runs that
+command from the repository root, and continues. The line and the build output
+go to stderr, so `quick --json` still prints one envelope on stdout. A failed
+build stops `quick` with an error that names the command to run. Running the
+build yourself first is optional. `quick` builds only in this layout: it never
+builds in a consumer workspace or an installed `@protoyard/player`, and it never
+rebuilds a stale build (that case keeps the warning above). The logic is in
+`packages/cli/src/lib/quick/player-build.ts`.
+
 ## Reports and review feedback
 
 `protoyard quick report <slug>` accepts validation metrics for the current

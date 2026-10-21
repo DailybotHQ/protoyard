@@ -24,6 +24,7 @@ import {
   createWorkspace,
   detectPackageManager,
   isInside,
+  packageManagerPin,
   packageNameFor,
   parseArgs,
   STARTER_SLUG,
@@ -93,6 +94,17 @@ describe('helpers', () => {
     expect(detectPackageManager('npm/11.6.0 node/v24.20.0 darwin arm64')).toBe('npm');
     expect(detectPackageManager('pnpm/11.23.0 npm/? node/v24.20.0')).toBe('pnpm');
     expect(detectPackageManager('')).toBe('pnpm');
+  });
+
+  it('pins the exact package manager version that ran create, so Corepack keeps it', () => {
+    expect(packageManagerPin('pnpm', 'pnpm/11.23.0 npm/? node/v24.20.0 darwin arm64')).toBe(
+      'pnpm@11.23.0'
+    );
+    expect(packageManagerPin('npm', 'npm/11.6.2 node/v24.20.0 linux x64')).toBe('npm@11.6.2');
+    // No exact version, or another manager: no pin rather than a guess.
+    expect(packageManagerPin('pnpm', 'npm/11.6.2 node/v24.20.0')).toBeNull();
+    expect(packageManagerPin('pnpm', 'pnpm/11 node/v24')).toBeNull();
+    expect(packageManagerPin('pnpm', '')).toBeNull();
   });
 
   it('parses every flag and refuses unknown ones', () => {
@@ -256,6 +268,25 @@ describe('createWorkspace with the real CLI (no install, no git)', () => {
       true
     );
     expect(leftovers(parent, ['empty'])).toEqual([]);
+  }, 180_000);
+
+  it('fills a folder that holds only .DS_Store (the ignorable file is removed first)', () => {
+    const parent = temp();
+    mkdirSync(join(parent, 'mac'));
+    writeFileSync(join(parent, 'mac', '.DS_Store'), 'finder metadata');
+    createWorkspace({
+      dir: 'mac',
+      cwd: parent,
+      pm: 'pnpm',
+      install: false,
+      git: false,
+      quiet: true,
+    });
+    expect(existsSync(join(parent, 'mac', 'prototypes', STARTER_SLUG, 'protoyard.json'))).toBe(
+      true
+    );
+    expect(existsSync(join(parent, 'mac', '.DS_Store'))).toBe(false);
+    expect(leftovers(parent, ['mac'])).toEqual([]);
   }, 180_000);
 
   it('is atomic: a failing `new` leaves no target and no staging folder', () => {

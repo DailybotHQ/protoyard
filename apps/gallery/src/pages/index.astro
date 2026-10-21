@@ -1,6 +1,7 @@
 ---
 import Browser from '@/components/Browser.svelte';
 import FirstRun from '@/components/FirstRun.astro';
+import FeatureCards from '@/components/features/FeatureCards.astro';
 import ProjectCard from '@/components/ProjectCard.svelte';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { withBase } from '@/lib/format';
@@ -41,6 +42,18 @@ const invalidCount = registry?.invalid.length ?? 0;
         Real behavior. Fake infrastructure. Every prototype is an independent app with its own persistent
         browser database, scenarios, personas and simulated time.
       </p>
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <a
+          href={withBase('/play/')}
+          class="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+          >Try it in your browser</a
+        >
+        <a
+          href={withBase('/docs/')}
+          class="rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-surface-2"
+          >Read the docs</a
+        >
+      </div>
     </div>
     {
       registry && all.length > 0 && (
@@ -54,6 +67,26 @@ const invalidCount = registry?.invalid.length ?? 0;
         </dl>
       )
     }
+  </section>
+
+  <section class="mb-14" aria-labelledby="what-title">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div class="max-w-3xl">
+        <h2 id="what-title" class="text-xl font-semibold tracking-tight">What you can do</h2>
+        <p class="mt-1 text-sm text-muted">
+          Explore an idea in seconds, keep the one that works, and share it. Everything runs in the browser with
+          simulated data.
+        </p>
+      </div>
+      <a
+        href={withBase('/features/')}
+        class="text-sm font-medium text-accent-fg underline-offset-2 hover:underline"
+        >Everything Protoyard does</a
+      >
+    </div>
+    <div class="mt-5">
+      <FeatureCards />
+    </div>
   </section>
 
   {

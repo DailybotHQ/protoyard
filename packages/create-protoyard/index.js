@@ -77,6 +77,22 @@ export function detectPackageManager(userAgent = process.env.npm_config_user_age
 }
 
 /**
+ * `pnpm@11.23.0` when the user agent names that package manager with an exact
+ * version (`pnpm/11.23.0 npm/? node/v24…`), else null. Pinning it in the new
+ * workspace's `packageManager` keeps Corepack on the same version that created
+ * it, instead of downloading whatever is newest (a different major can read a
+ * different store and cache layout).
+ *
+ * @param {'pnpm' | 'npm'} pm
+ * @param {string} [userAgent]
+ * @returns {string | null}
+ */
+export function packageManagerPin(pm, userAgent = process.env.npm_config_user_agent ?? '') {
+  const match = new RegExp(`(?:^|\\s)${pm}/(\\d+\\.\\d+\\.\\d+)(?:\\s|$)`).exec(userAgent);
+  return match ? `${pm}@${match[1]}` : null;
+}
+
+/**
  * True when `child` is `parent` or strictly inside it (canonical paths),
  * the same fence as packages/cli/src/lib/paths.ts `isInside`.
  *
@@ -139,7 +155,7 @@ export function checkTarget(dir, cwd) {
   if (!lstatSync(target).isDirectory()) {
     throw new CreateError('conflict', `${target} exists and is not a folder.`);
   }
-  const entries = readdirSync(target).filter((name) => name !== '.DS_Store');
+  const entries = readdirSync(target).filter((name) => !IGNORABLE_ENTRIES.includes(name));
   if (entries.length > 0) {
     throw new CreateError(
       'conflict',
@@ -148,6 +164,23 @@ export function checkTarget(dir, cwd) {
     );
   }
   return { target, exists: true };
+}
+
+/**
+ * Entries an "empty" target folder may still hold (Finder metadata). The
+ * check and the removal before the rename share this list, so a folder the
+ * check accepts is one `removeEmptyTarget` can always remove.
+ */
+const IGNORABLE_ENTRIES = ['.DS_Store'];
+
+/**
+ * Removes an existing target that holds only ignorable entries. `rmdirSync`
+ * still refuses if anything else appeared since `checkTarget` ran.
+ * @param {string} target
+ */
+function removeEmptyTarget(target) {
+  for (const name of IGNORABLE_ENTRIES) rmSync(join(target, name), { force: true });
+  rmdirSync(target);
 }
 
 /** @param {string} path */
@@ -176,6 +209,7 @@ function write(path, content) {
  */
 export function workspaceFiles({ name, pm, template }) {
   const run = pm === 'pnpm' ? 'pnpm protoyard' : 'npx protoyard';
+  const pin = packageManagerPin(pm);
   /** @type {Record<string, string | object>} */
   const files = {
     'package.json': {
@@ -187,6 +221,7 @@ export function workspaceFiles({ name, pm, template }) {
       scripts: { protoyard: 'protoyard' },
       devDependencies: { protoyard: VERSION },
       engines: { node: '>=24.20.0' },
+      ...(pin ? { packageManager: pin } : {}),
       // The marker the protoyard CLI looks for (a consumer workspace).
       protoyard: { workspace: 1 },
       ...(pm === 'npm' ? { workspaces: ['prototypes/*'] } : {}),
@@ -383,7 +418,7 @@ export function createWorkspace(options) {
     // The CLI's registry cache is rebuilt on demand; the new workspace starts clean.
     rmSync(join(stage, '.protoyard'), { recursive: true, force: true });
     written = listFiles(stage);
-    if (exists) rmdirSync(target);
+    if (exists) removeEmptyTarget(target);
     renameSync(stage, target);
   } catch (error) {
     rmSync(stage, { recursive: true, force: true });

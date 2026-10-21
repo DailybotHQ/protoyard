@@ -55,9 +55,16 @@ describe('isIndexablePath', () => {
 });
 
 describe('sitemapPaths', () => {
-  it('includes the static pages, /play/, /docs/ and every published guide', () => {
+  it('includes the static pages, /features/, /play/, /docs/ and every published guide', () => {
     const paths = sitemapPaths(sources());
-    expect(STATIC_PATHS).toEqual(['/', '/marketplace/', '/themes/', '/play/', '/docs/']);
+    expect(STATIC_PATHS).toEqual([
+      '/',
+      '/features/',
+      '/marketplace/',
+      '/themes/',
+      '/play/',
+      '/docs/',
+    ]);
     for (const path of [...STATIC_PATHS, '/docs/player/', '/docs/quickstart/']) {
       expect(paths, path).toContain(path);
     }
