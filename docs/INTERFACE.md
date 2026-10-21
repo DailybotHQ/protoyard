@@ -323,6 +323,20 @@ The interface is a compatibility contract, not a security mechanism:
   behavior inside prototypes are never security, whatever the interface
   reports.
 
+## Recipes stay runnable
+
+The commands in this guide, [MCP](MCP.md), [DWP](DWP.md) and the
+DeepWorkPlan addon packet are checked against the real CLI:
+
+```bash
+pnpm exec tsx scripts/validate-integrations.ts
+pnpm vitest run packages/cli/tests/integration-command-drift.test.ts
+```
+
+The check reads the command tree that `protoyard --help` prints. Every
+`protoyard …` command and flag in those files must exist. A removed command
+or flag fails with the file and line of each recipe that uses it.
+
 ## See also
 
 - [DEVELOPMENT_COMMANDS](DEVELOPMENT_COMMANDS.md): every command, its flags and

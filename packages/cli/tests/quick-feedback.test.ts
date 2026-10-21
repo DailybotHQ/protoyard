@@ -131,8 +131,8 @@ describe('protoyard quick feedback', () => {
     expect(data.report).toBe(`${dir}/REVIEW.md`);
     expect(data.imported).toBeNull();
     expect(data.groups).toEqual([
-      { variant: null, namespace: base, comments: 2, threads: 1 },
-      { variant: 'v1', namespace: v1, comments: 0, threads: 0 },
+      { variant: null, earlier: null, namespace: base, comments: 2, threads: 1 },
+      { variant: 'v1', earlier: null, namespace: v1, comments: 0, threads: 0 },
     ]);
     const markdown = read(dir, 'REVIEW.md');
     expect(markdown).toMatch(/^# Exploration feedback: /);
@@ -238,6 +238,57 @@ describe('protoyard quick feedback', () => {
     // With nothing to report the files still say so.
     expect((await run('feedback', 'idea')).code).toBe(0);
     expect(read(dir, 'REVIEW.md')).toContain('_No comments yet._');
+  });
+
+  it('keeps comments made before a quick iterate, marked as an earlier version', async () => {
+    await useFixturePlayer();
+    const { dir, base: before } = await explore();
+    // A tab opened before the iterate commented through quick serve under the old namespace.
+    await createFileCommentsStore(join(ws.root, dir), [before]).put(comment(before));
+    const patch = join(ws.root, 'tmp', 'rename.json');
+    mkdirSync(join(ws.root, 'tmp'), { recursive: true });
+    writeFileSync(patch, JSON.stringify([{ op: 'replace', path: '/name', value: 'Pulse Board' }]));
+    const iterated = await run('iterate', 'idea', '--patch', patch);
+    expect(iterated.code, iterated.stderr || iterated.stdout).toBe(0);
+    const after = (await blueprintIdentity(parseBlueprint(JSON.parse(read(dir, 'blueprint.json')))))
+      .namespace;
+    expect(after).not.toBe(before);
+
+    // A foreign file is still refused, and nothing is written.
+    const foreign = await run(
+      'feedback',
+      'idea',
+      '--import',
+      exportFile('other.json', 'bp-someoneelse', [comment('bp-someoneelse')])
+    );
+    expect(foreign.code).toBe(4);
+    expect(existsSync(join(ws.root, dir, 'REVIEW.md'))).toBe(false);
+
+    // The browser export from the live-reloaded tab carries the earlier namespace too.
+    const exported = exportFile('earlier.json', before, [
+      comment(before, { id: 'comment-00002', threadId: 'comment-00002', body: 'Second note.' }),
+    ]);
+    const result = await run('feedback', 'idea', '--import', exported);
+    expect(result.code, result.stderr || result.stdout).toBe(0);
+    const data = result.json<{
+      data: {
+        imported: { added: number };
+        groups: { variant: string | null; earlier: number | null; namespace: string }[];
+      };
+    }>().data;
+    expect(data.imported.added).toBe(1);
+    expect(data.groups).toEqual([
+      { variant: null, earlier: null, namespace: after, comments: 0, threads: 0 },
+      { variant: null, earlier: 1, namespace: before, comments: 2, threads: 2 },
+    ]);
+    const markdown = read(dir, 'REVIEW.md');
+    expect(markdown).toContain(
+      '## Base, earlier version (before change 1, history/0001.json): Quick Product Analytics'
+    );
+    expect(markdown).toContain('Second note');
+    const json = JSON.parse(read(dir, 'REVIEW.json'));
+    expect(json.files[1]).toMatchObject({ variant: null, earlier: 1 });
+    expect(json.files[1].file.comments).toHaveLength(2);
   });
 });
 

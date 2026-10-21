@@ -4,12 +4,22 @@ These docs describe what works in this repository today. Start with the
 [Quickstart](QUICKSTART.md) if you want to use Protoyard, or with
 [AGENTS.md](../AGENTS.md) if you are a coding agent.
 
+Every guide under Use it, the machine interface, MCP and DeepWorkPlan
+guides, and Security are also rendered as static pages with search under
+`/docs/` on the showcase site ([protoyard.app/docs](https://protoyard.app/docs/));
+the allowlist is `PUBLIC_GUIDES` in
+[`apps/gallery/src/lib/docs/index.ts`](../apps/gallery/src/lib/docs/index.ts).
+Contributor and internal docs stay in the repository only.
+
 ## Use it
 
 | Guide | For |
 | --- | --- |
 | [Quickstart](QUICKSTART.md) | Clone, open the gallery, create and export a prototype |
 | [Agent guide](AGENT_GUIDE.md) | The build loop and copy-paste prompts for coding agents |
+| [Quick explorations](QUICK.md) | `protoyard quick`: disposable local explorations on the prebuilt player, variants and `compare.html`, loopback serving, and the scope of `quick report` and `quick feedback` |
+| [Player](PLAYER.md) | The no-install blueprint player (level 1): entry points, share links, the hosted `/play/` page, storage identity, worker-generated and cached worlds, parity with generated prototypes, browser limits |
+| [Packages](PACKAGES.md) | The npm package families and their exports, release status (not on npm yet), versions and packed output |
 | [Database](DATABASE.md) | Schemas, migrations, services, reactive queries, storage caveats |
 | [Generator](GENERATOR.md) | Blueprints to prototypes: format, screens and layouts, `protoyard generate`, regeneration, migrations and drift checks |
 | [Brief to prototype](BRIEF_TO_PROTOTYPE.md) | Prose brief → offline blueprint → review → generate → validate → export |
@@ -37,6 +47,18 @@ These docs describe what works in this repository today. Start with the
 | [Decisions](DECISIONS.md) | ADRs and trade-offs |
 | [Security](SECURITY.md) | Threat model and trust boundaries |
 | [Performance](PERFORMANCE.md) | Measured numbers and budgets |
+
+## Integrate it
+
+| Guide | For |
+| --- | --- |
+| [Machine interface](INTERFACE.md) | `protoyard --version --json` and `doctor --json`: the interface major, capability ids, detecting Protoyard, the stability policy |
+| [MCP](MCP.md) | The local stdio MCP server (`protoyard mcp`): protocol revisions, tools, result envelopes, workspace scope and trust boundaries |
+| [DeepWorkPlan integration](DWP.md) | Protoyard as an optional validation step in a DeepWorkPlan plan: opt-in, exploration gates, screenshots, decisions, evidence confinement and the tested loop |
+| [DWP addon spec](../integrations/deepworkplan/protoyard/SPEC.md) | The normative addon contract: descriptor, read-only detection, consent, exploration and promotion boundary, validation, rollback |
+| [DWP addon upstream handoff](../integrations/deepworkplan/protoyard/UPSTREAM.md) | Compatibility with the upstream DeepWorkPlan project and the contribution packet, which needs the developer's GO |
+| [DWP exploration task](../integrations/deepworkplan/protoyard/templates/EXPLORATION_TASK.md) · [gates](../integrations/deepworkplan/protoyard/templates/EXPLORATION_GATES.md) | Templates for one plan task that compares `quick` variants, and its deterministic gates |
+| [DWP screenshot evidence](../integrations/deepworkplan/protoyard/templates/SCREENSHOT_EVIDENCE.md) · [decision report](../integrations/deepworkplan/protoyard/templates/DECISION_REPORT.md) | Optional Playwright capture records (a missing browser is an explicit skip) and the local evidence, decision and follow-up report |
 
 ## Contribute
 
@@ -66,8 +88,8 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [http](../packages/http/README.md) | Optional fetch-compatible mock HTTP layer (no service worker) |
 | [offline](../packages/offline/README.md) | Optional service worker for exported prototypes |
 | [cli](../packages/cli/README.md) | The `protoyard` command: every flag, exit codes, output folders, trust model |
-| [blueprint](../packages/blueprint/README.md) | Data-only `blueprint.json`: validation, derived stores, migrations, policy, entity services |
-| [crud](../packages/crud/README.md) | `EntityList`, `EntityDetail` and `EntityForm`, plus lazy dashboard, board, calendar, timeline, map, analytics and settings screens for blueprint-driven apps |
+| [blueprint](../packages/blueprint/README.md) | Data-only `blueprint.json`: validation, archetypes, app model, runtime definition, untrusted loading, share links, variants, JSON Patch, derived stores, migrations, policy, entity services; lazy CSV, JSON and SQLite shape import subpaths |
+| [crud](../packages/crud/README.md) | `EntityList`, `EntityDetail` and `EntityForm`, plus lazy dashboard, board, calendar, timeline, map, analytics and settings screens and the lazy `@protoyard/crud/app` blueprint app shell for blueprint-driven apps |
 | [saas](../packages/saas/README.md) | Simulated SaaS engine: tables, schemas, services and integrity (simulation, not security) |
 | [saas-ui](../packages/saas-ui/README.md) | SaaS kit screens and `saasRoutes` |
 | [ai](../packages/ai/README.md) | Deterministic simulated AI engine: conversations, agents and tools, voice |
@@ -81,6 +103,10 @@ Package and app references live next to the code: each `packages/*/README.md`,
 | [review](../packages/review/README.md) | Review comments engine: anchors, adapter contract, local, http and artifact adapters, server handler |
 | [review-ui](../packages/review-ui/README.md) | Lazy review overlay, pins, threads, panel and toolbar |
 | [avatars](../packages/avatars/README.md) | 175 fictional portraits as WebP with a verified manifest (data only) |
+| [player](../packages/player/README.md) | The prebuilt static app that runs any blueprint at runtime, with no build and no install |
+| [templates](../packages/templates/README.md) | `@protoyard/templates`: every starter template packed for npm, `listTemplates()` and `templateDir()` |
+| [protoyard](../packages/protoyard/README.md) | The unscoped `protoyard` package: a bin that runs `@protoyard/cli` at the same version |
+| [create-protoyard](../packages/create-protoyard/README.md) | The workspace scaffolder behind `npm create protoyard` (once published) |
 
 Product blueprints for `protoyard generate` live in
 [blueprints/](../blueprints/README.md): 40 catalog entries

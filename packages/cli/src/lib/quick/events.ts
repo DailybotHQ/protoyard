@@ -1,8 +1,9 @@
 import { type FSWatcher, watch } from 'node:fs';
-import { lstat, readdir, readFile } from 'node:fs/promises';
+import { lstat, readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import { blueprintIdentity, parseBlueprint } from '@protoyard/blueprint';
+import { historyBlueprints } from './history.ts';
 
 /**
  * Live reload for `protoyard quick serve`: the server watches an exploration's
@@ -74,26 +75,7 @@ export async function readBlueprintIdentity(
  * A player that kept its world across a change still writes comments there.
  */
 export async function historyNamespaces(dir: string, limit = 64): Promise<string[]> {
-  const names = (await readdir(join(dir, 'history')).catch(() => [] as string[]))
-    .filter((name) => /^\d{4}\.json$/.test(name))
-    .sort()
-    .reverse()
-    .slice(0, limit);
-  const namespaces: string[] = [];
-  for (const name of names) {
-    const path = join(dir, 'history', name);
-    const info = await lstat(path).catch(() => undefined);
-    if (!info?.isFile() || info.isSymbolicLink() || info.size > 4 * 1024 * 1024) continue;
-    try {
-      const entry = JSON.parse(await readFile(path, 'utf8')) as { before?: { text?: unknown } };
-      if (typeof entry.before?.text !== 'string') continue;
-      const blueprint = parseBlueprint(JSON.parse(entry.before.text) as unknown);
-      namespaces.push((await blueprintIdentity(blueprint)).namespace);
-    } catch {
-      // A damaged entry only loses its namespace; quick undo reports it.
-    }
-  }
-  return namespaces;
+  return (await historyBlueprints(dir, limit)).map((entry) => entry.namespace);
 }
 
 export interface BlueprintWatcher {

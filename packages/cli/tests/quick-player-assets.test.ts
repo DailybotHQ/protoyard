@@ -9,6 +9,7 @@ import {
   realpathSync,
   rmSync,
   symlinkSync,
+  utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -22,9 +23,11 @@ import {
   locatePlayerAssets,
   materializePlayer,
   PLAYER_ASSETS_MANIFEST,
+  PLAYER_BUILD_COMMAND,
   PlayerAssetsManifestSchema,
   playerTargetDir,
   readPlayerAssetsManifest,
+  stalePlayerBuildWarning,
   verifyPlayerAssets,
 } from '../src/lib/quick/player-assets.ts';
 
@@ -248,6 +251,42 @@ describe('materializePlayer', () => {
     expect(readdirSync(exploration)).toEqual(['player']);
   });
 
+  it('replaces a shared copy when the player is rebuilt under the same version', async () => {
+    const installed = join(temp(), 'node_modules', '@protoyard', 'player');
+    const app = await playerPackage(installed);
+    const locate = () =>
+      locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => installed });
+    const zone = join(temp(), '.protoyard', 'quick');
+    const first = await materializePlayer(locate(), { kind: 'shared', zone });
+
+    // A rebuild: same version, a changed chunk and a new manifest.
+    write(join(app, 'assets', 'index-abc.js'), 'console.log("player, rebuilt");');
+    await createPlayerAssetsManifest(app, '1.0.0');
+    const rebuilt = await materializePlayer(locate(), { kind: 'shared', zone });
+    expect(rebuilt).toMatchObject({ dir: first.dir, reused: false, repaired: true });
+    expect(readFileSync(join(first.dir, 'assets', 'index-abc.js'), 'utf8')).toContain('rebuilt');
+    expect(readFileSync(join(first.dir, PLAYER_ASSETS_MANIFEST), 'utf8')).toBe(
+      readFileSync(join(app, PLAYER_ASSETS_MANIFEST), 'utf8')
+    );
+    expect(readdirSync(join(zone, QUICK_PLAYER_DIR))).toEqual(['1.0.0']);
+
+    // Same files but a copy whose own manifest differs from the source's: replaced too.
+    const own = JSON.parse(readFileSync(join(first.dir, PLAYER_ASSETS_MANIFEST), 'utf8'));
+    own.files[0].sha256 = '0'.repeat(64);
+    write(join(first.dir, PLAYER_ASSETS_MANIFEST), own);
+    expect(await materializePlayer(locate(), { kind: 'shared', zone })).toMatchObject({
+      reused: false,
+      repaired: true,
+    });
+    expect(readFileSync(join(first.dir, PLAYER_ASSETS_MANIFEST), 'utf8')).toBe(
+      readFileSync(join(app, PLAYER_ASSETS_MANIFEST), 'utf8')
+    );
+    // And a current copy is reused.
+    expect(await materializePlayer(locate(), { kind: 'shared', zone })).toMatchObject({
+      reused: true,
+    });
+  });
+
   it('refuses a tampered source and writes nothing', async () => {
     const assets = await located();
     writeFileSync(join(assets.dir, 'sw.js'), 'self.addEventListener("fetch",()=>steal());');
@@ -329,3 +368,58 @@ describe.skipIf(!built || !embedBuilt)(
     }, 120_000);
   }
 );
+
+describe('stalePlayerBuildWarning', () => {
+  /** A fixture monorepo: packages/player with sources and a build, all at controlled mtimes. */
+  async function monorepo() {
+    const root = temp('protoyard-stale-player-');
+    write(join(root, 'pnpm-workspace.yaml'), "packages:\n  - 'packages/*'\n");
+    const pkg = join(root, 'packages', 'player');
+    const app = await playerPackage(pkg);
+    write(join(pkg, 'src', 'main.ts'), 'export {};');
+    write(join(pkg, 'src', 'deep', 'panel.svelte'), '<p>panel</p>');
+    write(join(pkg, 'index.html'), '<!doctype html>');
+    write(join(pkg, 'vite.config.ts'), 'export default {};');
+    const old = new Date('2026-10-01T00:00:00Z');
+    for (const file of ['src/main.ts', 'src/deep/panel.svelte', 'index.html', 'vite.config.ts'])
+      utimesSync(join(pkg, file), old, old);
+    const built = new Date('2026-10-02T00:00:00Z');
+    utimesSync(join(app, PLAYER_ASSETS_MANIFEST), built, built);
+    const assets = locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => pkg });
+    return { root, pkg, app, assets };
+  }
+
+  it('is silent for a fresh build and names the rebuild command when a source is newer', async () => {
+    const { root, pkg, assets } = await monorepo();
+    expect(stalePlayerBuildWarning(assets, root)).toBeNull();
+
+    const later = new Date('2026-10-03T00:00:00Z');
+    utimesSync(join(pkg, 'src', 'deep', 'panel.svelte'), later, later);
+    const warning = stalePlayerBuildWarning(assets, root);
+    expect(warning).toContain(PLAYER_BUILD_COMMAND);
+    expect(warning).toContain('packages/player/src/deep/panel.svelte');
+    expect(warning).toContain('packages/player/dist/app');
+
+    for (const file of ['index.html', 'vite.config.ts']) {
+      const fresh = await monorepo();
+      utimesSync(join(fresh.pkg, file), later, later);
+      expect(stalePlayerBuildWarning(fresh.assets, fresh.root), file).toContain(
+        PLAYER_BUILD_COMMAND
+      );
+    }
+  });
+
+  it('never checks outside the monorepo layout', async () => {
+    const { pkg, assets } = await monorepo();
+    const later = new Date('2026-10-03T00:00:00Z');
+    utimesSync(join(pkg, 'src', 'main.ts'), later, later);
+    // No workspace, or a workspace whose packages/player is not this player.
+    expect(stalePlayerBuildWarning(assets, null)).toBeNull();
+    expect(stalePlayerBuildWarning(assets, temp())).toBeNull();
+    // An installed release (no sources next to it) is never checked.
+    const installed = join(temp(), 'node_modules', '@protoyard', 'player');
+    await playerPackage(installed);
+    const release = locatePlayerAssets({ workspaceRoot: null, resolveInstalled: () => installed });
+    expect(stalePlayerBuildWarning(release, dirname(dirname(dirname(installed))))).toBeNull();
+  });
+});

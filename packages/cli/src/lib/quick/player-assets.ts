@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { copyFile, mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -291,11 +291,26 @@ export function playerTargetDir(target: PlayerTarget, version: string): string {
     : childPath(target.dir, 'player');
 }
 
+/** True when the copy's own manifest lists exactly the source manifest's files and digests. */
+function sameManifest(dir: string, source: PlayerAssetsManifest): boolean {
+  try {
+    const own = readPlayerAssetsManifest(dir);
+    return (
+      own.player === source.player && JSON.stringify(own.files) === JSON.stringify(source.files)
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Verifies the source, then copies exactly the manifest's files into the
  * target by staging next to it, verifying the copy, and renaming it into
- * place. A verified copy already there is reused; one that fails
- * verification is replaced. No build and no install run.
+ * place. A copy already there is reused only when it verifies against the
+ * CURRENT source manifest and carries that same manifest (same file list and
+ * sha256); otherwise it is replaced, so a player rebuilt under the same
+ * version never leaves the shared `_player/<version>/` behind. No build and
+ * no install run.
  */
 export async function materializePlayer(
   assets: PlayerAssets,
@@ -307,6 +322,7 @@ export async function materializePlayer(
   if (existsSync(destination)) {
     try {
       await verifyPlayerAssets(destination, assets.manifest);
+      if (!sameManifest(destination, assets.manifest)) throw new Error('stale manifest');
       return {
         dir: destination,
         version: assets.version,
@@ -341,4 +357,57 @@ export async function materializePlayer(
     repaired,
     files: assets.manifest.files.length,
   };
+}
+
+/** The command that rebuilds the player in this repository. */
+export const PLAYER_BUILD_COMMAND = 'pnpm --filter @protoyard/player build';
+/** Build inputs of the player app, relative to its package folder. */
+const PLAYER_SOURCE_INPUTS = ['src', 'index.html', 'vite.config.ts'];
+const MAX_SOURCE_ENTRIES = 20_000;
+
+/** The newest regular file under the inputs (symlinks skipped), or null. */
+function newestSource(packageDir: string): { path: string; mtimeMs: number } | null {
+  let newest: { path: string; mtimeMs: number } | null = null;
+  let seen = 0;
+  const consider = (full: string) => {
+    const info = lstatSync(full, { throwIfNoEntry: false });
+    if (!info || info.isSymbolicLink()) return;
+    if (info.isDirectory()) {
+      for (const entry of readdirSync(full)) {
+        if (++seen > MAX_SOURCE_ENTRIES) return;
+        consider(join(full, entry));
+      }
+    } else if (info.isFile() && (newest === null || info.mtimeMs > newest.mtimeMs)) {
+      newest = { path: full, mtimeMs: info.mtimeMs };
+    }
+  };
+  for (const input of PLAYER_SOURCE_INPUTS) consider(join(packageDir, input));
+  return newest;
+}
+
+/**
+ * In the Protoyard monorepo only (the player found is this workspace's own
+ * `packages/player`, with its sources), a warning when a source file is newer
+ * than the built app's manifest: `quick` would copy a player built before
+ * that change. Returns null when the build is fresh, when the player is an
+ * installed release, or outside a workspace. Never throws.
+ */
+export function stalePlayerBuildWarning(
+  assets: PlayerAssets,
+  workspaceRoot: string | null
+): string | null {
+  if (!workspaceRoot) return null;
+  try {
+    const local = join(workspaceRoot, 'packages', 'player');
+    if (!existsSync(join(local, 'src')) || !existsSync(join(local, 'package.json'))) return null;
+    if (realpathSync(assets.packageDir) !== realpathSync(local)) return null;
+    const manifest = join(assets.dir, PLAYER_ASSETS_MANIFEST);
+    const builtAt = statSync(manifest).mtimeMs;
+    const newest = newestSource(local);
+    if (!newest || newest.mtimeMs <= builtAt) return null;
+    const rel = (path: string) => relative(workspaceRoot, path).split(sep).join('/');
+    return `The prebuilt player in ${rel(assets.dir)} is older than its source (${rel(newest.path)} changed after the build), so this exploration runs the old player. Rebuild it with \`${PLAYER_BUILD_COMMAND}\`, then run quick again.`;
+  } catch {
+    return null;
+  }
 }

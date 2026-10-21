@@ -1,6 +1,5 @@
 import { lstat, readFile, rename, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { blueprintIdentity } from '@protoyard/blueprint';
 import type { ReviewComment } from '@protoyard/core/review';
 import {
   createReviewCommentsFile,
@@ -14,8 +13,10 @@ import { opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
 import { createFileCommentsStore } from '../../lib/quick/comments-store.ts';
+import { historyEntryName } from '../../lib/quick/history.ts';
 import { readQuickRecord } from '../../lib/quick/model.ts';
-import { readRecordedBlueprint, resolveExploration } from './promote.ts';
+import { explorationNamespaces } from './namespaces.ts';
+import { resolveExploration } from './promote.ts';
 import { markdownCell } from './report.ts';
 
 /**
@@ -27,9 +28,12 @@ import { markdownCell } from './report.ts';
  * written by `quick serve`'s comments API) and, with `--import`, from a
  * `protoyard-review-comments` v1 file a reviewer exported from the browser
  * (the local adapter), or a pulled copy of one. The file is untrusted: size-
- * capped, schema-checked, and it must belong to this exploration or one of
- * its variants (the player's content namespace), or it is refused before
- * anything is written. Imported comments merge into the store by id, the
+ * capped, schema-checked, and it must belong to this exploration, one of
+ * its variants, or an earlier base blueprint kept in its `quick iterate`
+ * history (the player's content namespace; a tab that live-reloaded after an
+ * iterate keeps commenting under the blueprint it first opened), or it is
+ * refused before anything is written. Comments on an earlier blueprint get
+ * their own section, marked as an earlier version. Imported comments merge into the store by id, the
  * newer edit winning, so later runs and the served UI keep them. Comment text
  * is rendered as untrusted data: one safe line at a time, Markdown escaped.
  */
@@ -41,6 +45,8 @@ interface Group {
   variant: string | null;
   label: string;
   namespace: string;
+  /** The history entry of an earlier base blueprint, or null. */
+  earlier: number | null;
 }
 
 const stamp = (comment: ReviewComment) => Date.parse(comment.updatedAt ?? comment.createdAt);
@@ -81,7 +87,7 @@ function renderFeedbackMarkdown(input: {
   const lines = [
     `# Exploration feedback: ${markdownCell(input.name)}`,
     '',
-    'Scope: this export covers the current blueprint and its recorded variants. Comments from earlier `quick iterate` history entries or `keep` namespaces are not included.',
+    'Scope: this export covers the current blueprint, its recorded variants, and the earlier base blueprints kept in its `quick iterate` history (a tab that live-reloaded after an iterate keeps commenting under the blueprint it first opened). Sections for an earlier blueprint are marked as an earlier version and name the history entry.',
     '',
     UNTRUSTED_NOTICE,
     '',
@@ -107,25 +113,25 @@ function renderFeedbackMarkdown(input: {
 export const quickFeedbackCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const dir = resolveExploration(ctx.root, args[0] ?? '');
   const record = await readQuickRecord(dir);
-  const base = await readRecordedBlueprint(join(dir, 'blueprint.json'), record.blueprintSha256);
-  const groups: Group[] = [
-    {
+  const resolved = await explorationNamespaces(dir, record);
+  const [base] = resolved.groups;
+  if (!base) throw new CliError('failure', 'The exploration has no base blueprint.');
+  const current: Group[] = resolved.groups.map((group) => ({
+    variant: group.variant,
+    label: group.label,
+    namespace: group.namespace,
+    earlier: null,
+  }));
+  // Earlier base blueprints, oldest change first, right after the base section.
+  const earlier: Group[] = [...resolved.earlier]
+    .sort((a, b) => a.sequence - b.sequence)
+    .map((entry) => ({
       variant: null,
-      label: `Base: ${base.blueprint.name}`,
-      namespace: (await blueprintIdentity(base.blueprint)).namespace,
-    },
-  ];
-  for (const variant of record.variants) {
-    const loaded = await readRecordedBlueprint(
-      join(dir, variant.dir, 'blueprint.json'),
-      variant.blueprintSha256
-    );
-    groups.push({
-      variant: variant.id,
-      label: `${variant.id}: ${variant.label}`,
-      namespace: (await blueprintIdentity(loaded.blueprint)).namespace,
-    });
-  }
+      label: `Base, earlier version (before change ${entry.sequence}, ${historyEntryName(entry.sequence)}): ${entry.blueprint.name}`,
+      namespace: entry.namespace,
+      earlier: entry.sequence,
+    }));
+  const groups: Group[] = [current[0] as Group, ...earlier, ...current.slice(1)];
   const namespaces = groups.map((group) => group.namespace);
 
   // Validate the import completely before touching the store.
@@ -145,10 +151,8 @@ export const quickFeedbackCommand: Handler = async (ctx, args, options): Promise
     if (!namespaces.includes(imported.slug) || imported.namespace !== imported.slug) {
       throw new CliError(
         'validation',
-        `${importArg} holds comments for "${imported.slug}", not this exploration or its variants.`,
-        {
-          hint: `This exploration's namespaces: ${groups.map((g) => `${g.variant ?? 'base'} ${g.namespace}`).join(', ')}.`,
-        }
+        `${importArg} holds comments for "${imported.slug}", not this exploration, its variants or its earlier versions.`,
+        { hint: `This exploration's namespaces: ${resolved.hint}.` }
       );
     }
   }
@@ -181,7 +185,10 @@ export const quickFeedbackCommand: Handler = async (ctx, args, options): Promise
   const pulledAt = new Date().toISOString();
   const sections: { group: Group; comments: ReviewComment[] }[] = [];
   for (const group of groups) {
-    sections.push({ group, comments: await store.list(group.namespace) });
+    const comments = await store.list(group.namespace);
+    // An earlier version without comments adds nothing to the export.
+    if (group.earlier !== null && comments.length === 0) continue;
+    sections.push({ group, comments });
   }
   const markdownPath = join(dir, 'REVIEW.md');
   const jsonPath = join(dir, 'REVIEW.json');
@@ -199,6 +206,7 @@ export const quickFeedbackCommand: Handler = async (ctx, args, options): Promise
         pulledAt,
         files: sections.map(({ group, comments }) => ({
           variant: group.variant,
+          earlier: group.earlier,
           file: createReviewCommentsFile({
             namespace: group.namespace,
             slug: group.namespace,
@@ -220,6 +228,7 @@ export const quickFeedbackCommand: Handler = async (ctx, args, options): Promise
     imported: imported ? { file: importArg, comments: imported.comments.length, ...merged } : null,
     groups: sections.map(({ group, comments }) => ({
       variant: group.variant,
+      earlier: group.earlier,
       namespace: group.namespace,
       comments: comments.length,
       threads: comments.filter((comment) => comment.id === comment.threadId).length,

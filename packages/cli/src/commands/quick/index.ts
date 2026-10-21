@@ -29,6 +29,7 @@ import {
   locatePlayerAssets,
   materializePlayer,
   type PlayerAssets,
+  stalePlayerBuildWarning,
 } from '../../lib/quick/player-assets.ts';
 
 /**
@@ -224,6 +225,11 @@ export interface QuickResult {
   variants: { id: string; label: string; dir: string; open: string; blueprintSha256: string }[];
   /** The side-by-side page, when there are variants. */
   compare: string | null;
+  /**
+   * Problems that did not stop the run: in the Protoyard monorepo, a player
+   * build older than its source. Empty when there are none.
+   */
+  warnings: string[];
 }
 
 export const quickCommand: Handler = async (
@@ -323,6 +329,8 @@ export const quickCommand: Handler = async (
 
   const identity = await blueprintIdentity(blueprint);
   const assets = locatePlayer({ workspaceRoot: ctx.root });
+  // Monorepo only: a build older than packages/player sources still runs, with a warning.
+  const staleWarning = stalePlayerBuildWarning(assets, ctx.root);
   let standaloneReason: QuickResult['standaloneReason'] = flag(options, 'standalone')
     ? 'flag'
     : quick.custom
@@ -469,6 +477,7 @@ export const quickCommand: Handler = async (
       open: rel(join(quick.dir, variant.open)),
     })),
     compare: variantEntries.length > 0 ? rel(join(quick.dir, 'compare.html')) : null,
+    warnings: staleWarning ? [staleWarning] : [],
   };
   return {
     data,
@@ -493,6 +502,7 @@ export const quickCommand: Handler = async (
         output.always(`  compare    ${data.compare} (serve it over http, like the launcher)`);
       if (data.rationale.length > 0)
         output.info(c.dim(`  ${data.rationale.slice(0, 3).join(' · ')}`));
+      for (const warning of data.warnings) output.always(`${mark(c, 'warn')} ${c.yellow(warning)}`);
     },
   };
 };

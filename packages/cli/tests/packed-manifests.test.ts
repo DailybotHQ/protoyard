@@ -1,13 +1,37 @@
 // @vitest-environment node
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { buildPackages } from '../../../scripts/build-packages.ts';
+import { readPackageGraph, selectPackageNames } from '../../../scripts/lib/package-graph.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+
+/**
+ * The packages a build group selects, read from the existing dist. This file
+ * never rebuilds: other suites read the same dist folders at the same time
+ * (dist parity, dist imports), so a rebuild here would race them. CI's packages
+ * job and the release gate run `pnpm build:packages` first.
+ */
+function builtGroup(group: string): {
+  ok: boolean;
+  packages: { directory: string; status: string }[];
+} {
+  const graph = readPackageGraph(ROOT);
+  const names = selectPackageNames(graph, [group]);
+  const packages = graph.packages
+    .filter((pkg) => names.has(pkg.name))
+    .map((pkg) => ({
+      directory: pkg.dir,
+      status: existsSync(join(pkg.dir, 'dist')) ? 'built' : 'missing dist',
+    }));
+  return { ok: packages.every((pkg) => pkg.status === 'built'), packages };
+}
+const HAS_DIST = ['core', 'ui', 'player'].every((name) =>
+  existsSync(join(ROOT, 'packages', name, 'dist'))
+);
 
 type ExportTarget = string | Record<string, string>;
 interface Manifest {
@@ -46,9 +70,9 @@ function targets(exportValue: ExportTarget): string[] {
   return typeof exportValue === 'string' ? [exportValue] : Object.values(exportValue);
 }
 
-describe('packed engine manifests', () => {
+describe.skipIf(!HAS_DIST)('packed engine manifests (after pnpm build:packages)', () => {
   it('uses dist exports after pnpm pack for every engine package', async () => {
-    const built = await buildPackages({ root: ROOT, filters: ['engine'] });
+    const built = builtGroup('engine');
     expect(built.ok, JSON.stringify(built.packages.filter((item) => item.status !== 'built'))).toBe(
       true
     );
@@ -104,9 +128,9 @@ describe('packed engine manifests', () => {
   }, 600_000);
 });
 
-describe('packed svelte manifests', () => {
+describe.skipIf(!HAS_DIST)('packed svelte manifests (after pnpm build:packages)', () => {
   it('uses typed dist exports after pnpm pack for every Svelte package', async () => {
-    const built = await buildPackages({ root: ROOT, filters: ['svelte'] });
+    const built = builtGroup('svelte');
     expect(built.ok, JSON.stringify(built.packages.filter((item) => item.status !== 'built'))).toBe(
       true
     );

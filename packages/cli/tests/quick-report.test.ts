@@ -114,7 +114,7 @@ function metricsFile(
 }
 
 interface Report {
-  sources: { file: string; variant: string | null; attempts: number }[];
+  sources: { file: string; variant: string | null; earlier: number | null; attempts: number }[];
   groups: {
     variant: string | null;
     attempts: number;
@@ -128,6 +128,7 @@ interface Report {
       successRate: number | null;
       medianDurationMs: number | null;
       medianSteps: number | null;
+      earlier: { sequence: number; namespace: string } | null;
     }[];
   }[];
 }
@@ -281,6 +282,62 @@ describe('protoyard quick report', () => {
     const [stored] = readdirSync(join(ws.root, dir, 'metrics'));
     writeFileSync(join(ws.root, dir, 'metrics', stored as string), '{"format":"x"}');
     expect((await run('report', 'idea')).code).toBe(4);
+  });
+
+  it('accepts metrics recorded before a quick iterate, labeled as an earlier version', async () => {
+    const { dir, base: before } = await explore();
+    // Stored before the iterate: still valid afterwards.
+    const first = attempt('find-signups', 'success', 30, 5);
+    const early = metricsFile('early.json', before, [first]);
+    expect((await run('report', 'idea', '--import', early)).code).toBe(0);
+
+    const patch = join(ws.root, 'tmp', 'rename.json');
+    writeFileSync(patch, JSON.stringify([{ op: 'replace', path: '/name', value: 'Pulse Board' }]));
+    const iterated = await run('iterate', 'idea', '--patch', patch);
+    expect(iterated.code, iterated.stderr || iterated.stdout).toBe(0);
+    const after = (
+      await blueprintIdentity(
+        parseBlueprint(JSON.parse(readFileSync(join(ws.root, dir, 'blueprint.json'), 'utf8')))
+      )
+    ).namespace;
+    expect(after).not.toBe(before);
+
+    // A foreign namespace is still refused, and nothing is written.
+    const stored = readdirSync(join(ws.root, dir, 'metrics'));
+    const reportBefore = readFileSync(join(ws.root, dir, 'report.json'), 'utf8');
+    const foreign = await run(
+      'report',
+      'idea',
+      '--import',
+      metricsFile('x.json', 'bp-someoneelse', [attempt('find-signups', 'success', 10, 1)])
+    );
+    expect(foreign.code).toBe(4);
+    expect(foreign.json<{ error: { message: string } }>().error.message).toContain(
+      'recorded for another blueprint'
+    );
+    expect(readdirSync(join(ws.root, dir, 'metrics'))).toEqual(stored);
+    expect(readFileSync(join(ws.root, dir, 'report.json'), 'utf8')).toBe(reportBefore);
+
+    // The live-reloaded tab keeps recording under the pre-iterate namespace;
+    // its download repeats the first attempt, which counts once.
+    const live = metricsFile('live.json', before, [
+      first,
+      attempt('find-signups', 'gave-up', 60, 9),
+    ]);
+    const current = metricsFile('current.json', after, [attempt('find-signups', 'success', 20, 2)]);
+    const result = await run('report', 'idea', '--import', live, current);
+    expect(result.code, result.stderr || result.stdout).toBe(0);
+    const report = readReport(dir);
+    const baseGroup = report.groups.find((group) => group.variant === null);
+    expect(baseGroup?.attempts).toBe(3);
+    expect(baseGroup?.tasks.filter((t) => t.id === 'find-signups')).toMatchObject([
+      { attempts: 1, successes: 1, earlier: null },
+      { attempts: 2, successes: 1, earlier: { sequence: 1, namespace: before } },
+    ]);
+    expect(report.sources.map((source) => source.earlier).sort()).toEqual([1, 1, null]);
+    const markdown = readFileSync(join(ws.root, dir, 'REPORT.md'), 'utf8');
+    expect(markdown).toContain('(earlier version: before change 1, `history/0001.json`)');
+    expect(markdown).not.toContain('are not included');
   });
 
   it('escapes untrusted task prompts in REPORT.md', async () => {
