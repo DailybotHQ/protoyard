@@ -1,9 +1,15 @@
 import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { runWithAbortSignal } from '../lib/abort.ts';
 import { CliError, type Envelope } from '../lib/output.ts';
 import { canonicalPath, isInside, resolveWorkspaceRoot } from '../lib/paths.ts';
 
 /** Maximum encoded MCP tool arguments accepted by the local adapter. */
 export const MCP_MAX_REQUEST_BYTES = 256 * 1024;
+/**
+ * Maximum raw stdio request line: the argument cap plus room for the JSON-RPC
+ * envelope. Longer lines are refused before they are buffered or parsed.
+ */
+export const MCP_MAX_LINE_BYTES = MCP_MAX_REQUEST_BYTES + 64 * 1024;
 /** Maximum time a tool may hold the MCP request open. */
 export const MCP_TOOL_TIMEOUT_MS = 30_000;
 /** Maximum encoded envelope returned to an MCP client. */
@@ -12,6 +18,15 @@ export const MCP_MAX_OUTPUT_BYTES = 512 * 1024;
 const SHELL_METACHARACTERS = /[;&|$`<>()[\]{}!*?'"\\]/u;
 // biome-ignore lint/suspicious/noControlCharactersInRegex: this allow-list rejects control input.
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/u;
+/**
+ * Control characters removed from envelope strings: every C0 control and DEL
+ * except tab and newline. Those two are kept on purpose: multi-line messages,
+ * hints and reports stay readable, and JSON encodes them as `\t` and `\n`, so
+ * they can never break the one-message-per-line stdio framing. (Global: every
+ * occurrence goes, not only the first.)
+ */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: this strips control characters from output.
+const STRIPPED_CONTROL_CHARACTERS = /[\u0000-\u0008\u000b-\u001f\u007f]/gu;
 const SENSITIVE_KEY = /(?:secret|token|password|api[-_]?key|authorization|credential)/iu;
 const REDACTED_VALUE = '[redacted]';
 
@@ -67,7 +82,7 @@ export function assertMcpRequestSize(value: unknown): void {
 /** Keep credentials and control characters out of the machine-facing envelope. */
 export function sanitizeMcpValue(value: unknown, key?: string): unknown {
   if (key && SENSITIVE_KEY.test(key)) return REDACTED_VALUE;
-  if (typeof value === 'string') return value.replace(CONTROL_CHARACTERS, '');
+  if (typeof value === 'string') return value.replace(STRIPPED_CONTROL_CHARACTERS, '');
   if (Array.isArray(value)) return value.map((entry) => sanitizeMcpValue(entry));
   if (value && typeof value === 'object') {
     return Object.fromEntries(
@@ -91,20 +106,34 @@ export function assertMcpOutputSize(value: unknown): void {
     throw new CliError('failure', `MCP tool output exceeds ${MCP_MAX_OUTPUT_BYTES} bytes.`);
 }
 
-/** Bound an in-process CLI operation; the CLI itself still uses argv, never a shell. */
+/**
+ * Bound an in-process CLI operation, and cancel it when the time is up: the
+ * operation runs inside an abort scope (lib/abort.ts), so the timeout kills
+ * its child processes (`pnpm install`, a browser) and stops it before any
+ * later long or irreversible step. The CLI itself still uses argv, never a
+ * shell.
+ */
 export async function withMcpTimeout<T>(
-  operation: Promise<T>,
+  operation: (signal: AbortSignal) => Promise<T>,
   timeoutMs = MCP_TOOL_TIMEOUT_MS
 ): Promise<T> {
+  const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new CliError('failure', `MCP tool timed out after ${timeoutMs} ms.`)),
-      timeoutMs
-    );
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(
+        new CliError('failure', `MCP tool timed out after ${timeoutMs} ms and was cancelled.`, {
+          hint: 'Child processes were stopped and no further step runs; check the target folder before retrying.',
+        })
+      );
+    }, timeoutMs);
   });
   try {
-    return await Promise.race([operation, timeout]);
+    return await Promise.race([
+      runWithAbortSignal(controller.signal, () => operation(controller.signal)),
+      timeout,
+    ]);
   } finally {
     if (timer) clearTimeout(timer);
   }

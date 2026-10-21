@@ -8,6 +8,7 @@ import {
   parseBlueprint,
 } from '@protoyard/blueprint';
 import { checkSlug, MANIFEST_FILENAME, type PrototypeManifest } from '@protoyard/core';
+import { throwIfAborted } from '../../lib/abort.ts';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
@@ -196,6 +197,7 @@ export const quickPromoteCommand: Handler = async (ctx, args, options): Promise<
 
   let promotedTo: QuickPromoteResult['promotedTo'] = null;
   if (failed.length === 0) {
+    throwIfAborted('recording the promotion');
     const next = touchQuickRecord(record);
     promotedTo = { slug, variant: variant?.id ?? null, at: next.updatedAt };
     await writeQuickRecord(dir, { ...next, promotedTo });

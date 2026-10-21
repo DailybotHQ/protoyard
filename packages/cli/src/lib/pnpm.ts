@@ -1,4 +1,5 @@
 import { basename } from 'node:path';
+import { throwIfAborted } from './abort.ts';
 import { type RunResult, run, which } from './process.ts';
 
 /**
@@ -32,8 +33,11 @@ export async function runPnpm(
  * workspace packages); otherwise we fall back to a normal install.
  */
 export async function installWorkspace(root: string, stdio: 'pipe' | 'inherit') {
+  throwIfAborted('installing dependencies');
   const offline = await runPnpm(['install', '--offline'], { cwd: root, stdio, timeoutMs: 300_000 });
   if (offline.code === 0) return { ok: true, mode: 'offline' as const, log: '' };
+  // A cancelled offline install never falls through to a network install.
+  throwIfAborted('installing dependencies online');
   const online = await runPnpm(['install'], { cwd: root, stdio, timeoutMs: 600_000 });
   return {
     ok: online.code === 0,

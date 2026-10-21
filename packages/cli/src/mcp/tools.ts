@@ -1,5 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { Readable } from 'node:stream';
+import { checkSlug } from '@protoyard/core';
 import { z } from 'zod';
 import { CliError, type Envelope, errorEnvelope } from '../lib/output.ts';
 import {
@@ -12,7 +14,7 @@ import {
 } from './security.ts';
 import type { McpTool } from './stdio.ts';
 
-type ToolName =
+export type ToolName =
   | 'quick'
   | 'iterate'
   | 'validate_blueprint'
@@ -21,11 +23,24 @@ type ToolName =
   | 'promote'
   | 'doctor';
 
+/** A prototype or exploration slug, checked like the CLI checks it (never an option-like `-…`). */
+const slugArg = z
+  .string()
+  .min(1)
+  .max(80)
+  .refine((value) => checkSlug(value).ok, 'Not a valid slug (lowercase kebab-case).');
+
 const quickArgs = z
   .object({
-    brief: z.string().min(1).max(65_536).optional(),
+    // `-` would make the CLI read stdin, which is the JSON-RPC channel here.
+    brief: z
+      .string()
+      .min(1)
+      .max(65_536)
+      .refine((value) => value.trim() !== '-', 'A brief of "-" (stdin) is not available over MCP.')
+      .optional(),
     blueprint: z.string().min(1).max(2048).optional(),
-    slug: z.string().min(1).max(80).optional(),
+    slug: slugArg.optional(),
     name: z.string().min(1).max(120).optional(),
     seed: z.number().int().min(0).max(4_294_967_295).optional(),
     variants: z.number().int().min(1).max(8).optional(),
@@ -38,7 +53,14 @@ const quickArgs = z
 const iterateArgs = z
   .object({
     dir: z.string().min(1).max(2048),
-    patchFile: z.string().min(1).max(2048),
+    patchFile: z
+      .string()
+      .min(1)
+      .max(2048)
+      .refine(
+        (value) => value.trim() !== '-',
+        'A patch file of "-" (stdin) is not available over MCP.'
+      ),
     allowDrop: z.boolean().optional(),
   })
   .strict();
@@ -48,7 +70,7 @@ const screenshotArgs = z.object({ dir: z.string().min(1).max(2048) }).strict();
 const promoteArgs = z
   .object({
     dir: z.string().min(1).max(2048),
-    slug: z.string().min(1).max(80),
+    slug: slugArg,
     variant: z
       .string()
       .regex(/^v[1-8]$/)
@@ -182,45 +204,70 @@ function validationEnvelope(
   );
 }
 
-function cliArgs(name: ToolName, value: Record<string, unknown>): string[] {
+/**
+ * The CLI argv for a tool: the command path, then every option, then a single
+ * `--`, then the positionals. After `--` the CLI reads every word as a
+ * positional, so a value that starts with `-` can never become an option, and
+ * no option may follow it.
+ */
+export function cliArgs(name: ToolName, value: Record<string, unknown>): string[] {
+  const command = (path: string[], options: string[], positionals: string[]) =>
+    positionals.length > 0 ? [...path, ...options, '--', ...positionals] : [...path, ...options];
   if (name === 'quick') {
-    const args = value.brief ? ['quick', '--', String(value.brief)] : ['quick'];
-    if (value.blueprint) args.push('--blueprint', String(value.blueprint));
-    if (value.slug) args.push('--slug', String(value.slug));
-    if (value.name) args.push('--name', String(value.name));
-    if (value.seed !== undefined) args.push('--seed', String(value.seed));
-    if (value.variants !== undefined) args.push('--variants', String(value.variants));
-    if (value.standalone) args.push('--standalone');
-    return args;
+    const options: string[] = [];
+    if (value.blueprint) options.push('--blueprint', String(value.blueprint));
+    if (value.slug) options.push('--slug', String(value.slug));
+    if (value.name) options.push('--name', String(value.name));
+    if (value.seed !== undefined) options.push('--seed', String(value.seed));
+    if (value.variants !== undefined) options.push('--variants', String(value.variants));
+    if (value.standalone) options.push('--standalone');
+    return command(['quick'], options, value.brief ? [String(value.brief)] : []);
   }
   if (name === 'iterate') {
-    return [
-      'quick',
-      'iterate',
-      String(value.dir),
-      '--patch',
-      String(value.patchFile),
-      ...(value.allowDrop ? ['--allow-drop'] : []),
-    ];
+    return command(
+      ['quick', 'iterate'],
+      ['--patch', String(value.patchFile), ...(value.allowDrop ? ['--allow-drop'] : [])],
+      [String(value.dir)]
+    );
   }
-  if (name === 'validate_blueprint') return ['blueprint', 'validate', String(value.file)];
-  if (name === 'screenshot') return ['quick', 'shot', String(value.dir)];
+  if (name === 'validate_blueprint')
+    return command(['blueprint', 'validate'], [], [String(value.file)]);
+  if (name === 'screenshot') return command(['quick', 'shot'], [], [String(value.dir)]);
   if (name === 'promote') {
-    return [
-      'quick',
-      'promote',
-      String(value.dir),
-      String(value.slug),
-      ...(value.variant ? ['--variant', String(value.variant)] : []),
-      ...(value.noInstall ? ['--no-install'] : []),
-    ];
+    return command(
+      ['quick', 'promote'],
+      [
+        ...(value.variant ? ['--variant', String(value.variant)] : []),
+        ...(value.noInstall ? ['--no-install'] : []),
+      ],
+      [String(value.dir), String(value.slug)]
+    );
   }
   return ['doctor', '--offline'];
 }
 
-async function runCliEnvelope(args: string[]): Promise<Envelope> {
+/**
+ * Under MCP, stdin is the JSON-RPC channel: no in-process command may read it.
+ * The `quick` brief and `quick iterate --patch -` readers get an empty stream
+ * instead, once, for the life of the server (the schemas also refuse `-`).
+ */
+let stdinIsolated = false;
+async function isolateStdin(): Promise<void> {
+  if (stdinIsolated) return;
+  const [{ setQuickStdin }, { setQuickIterateStdin }] = await Promise.all([
+    import('../commands/quick/index.ts'),
+    import('../commands/quick/iterate.ts'),
+  ]);
+  setQuickStdin(Readable.from([]));
+  setQuickIterateStdin(Readable.from([]));
+  stdinIsolated = true;
+}
+
+/** Runs the CLI in process with stdin isolated and returns its sanitized envelope. */
+export async function runCliEnvelope(args: string[]): Promise<Envelope> {
   let stdout = '';
   let exitCode = 0;
+  await isolateStdin();
   const { runCli } = await import('../program.ts');
   await runCli(['--json', ...args], {
     streams: {
@@ -279,10 +326,8 @@ export function createMcpToolHandler(options: McpToolHandlerOptions = {}) {
   const pathPolicy = mcpPathPolicy(options.workspaceRoot);
   const timeoutMs = options.timeoutMs;
 
-  const checkPath = (value: unknown): void => {
-    // Resolve for validation only; preserve the user's relative spelling in argv.
-    if (typeof value === 'string') resolveMcpPath(value, pathPolicy);
-  };
+  /** The canonical absolute path the CLI receives (never the caller's spelling). */
+  const canonical = (value: unknown): string => resolveMcpPath(String(value), pathPolicy);
 
   return async (name: string, args: Record<string, unknown>): Promise<Envelope> => {
     if (!Object.hasOwn(validators, name))
@@ -302,27 +347,30 @@ export function createMcpToolHandler(options: McpToolHandlerOptions = {}) {
           message: issue.message,
         }))
       );
-    const data = parsed.data as Record<string, unknown>;
+    const data = { ...(parsed.data as Record<string, unknown>) };
     try {
+      // Every path argument becomes the canonical absolute path checked here, so
+      // the CLI acts on exactly the file that passed the workspace policy.
       if (toolName === 'iterate' || toolName === 'screenshot' || toolName === 'promote') {
-        checkPath(data.dir);
+        data.dir = canonical(data.dir);
       }
-      if (toolName === 'iterate') checkPath(data.patchFile);
-      if (toolName === 'validate_blueprint') checkPath(data.file);
-      if (toolName === 'quick' && data.blueprint) checkPath(data.blueprint);
+      if (toolName === 'iterate') data.patchFile = canonical(data.patchFile);
+      if (toolName === 'validate_blueprint') data.file = canonical(data.file);
+      if (toolName === 'quick' && data.blueprint) data.blueprint = canonical(data.blueprint);
     } catch (error) {
       return errorEnvelope(commandForTool(name), error);
     }
     try {
       if (toolName === 'blueprint_schema') {
-        const schema = await withMcpTimeout(blueprintSchemaEnvelope(loadSchema), timeoutMs);
+        const schema = await withMcpTimeout(() => blueprintSchemaEnvelope(loadSchema), timeoutMs);
         assertMcpOutputSize(schema);
         return sanitizeMcpEnvelope(schema);
       }
       const result = await withMcpTimeout(
-        invokeCli(
-          toolName === 'doctor' && data.offline === false ? ['doctor'] : cliArgs(toolName, data)
-        ),
+        () =>
+          invokeCli(
+            toolName === 'doctor' && data.offline === false ? ['doctor'] : cliArgs(toolName, data)
+          ),
         timeoutMs
       );
       assertMcpOutputSize(result);
