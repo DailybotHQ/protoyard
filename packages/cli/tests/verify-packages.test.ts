@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   cleanChildEnvironment,
   compareBudgetParity,
+  harnessPackageManager,
   installArgs,
   packageDirectories,
   parseArgs,
@@ -13,6 +14,12 @@ import {
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 
 describe('verify:packages', () => {
+  it('pins the harness folders to the repository package manager', () => {
+    const pin = harnessPackageManager(ROOT, 'pnpm');
+    expect(pin).toMatch(/^pnpm@\d+\.\d+\.\d+$/);
+    expect(harnessPackageManager(ROOT, 'npm')).toBeUndefined();
+  });
+
   it('accepts pnpm by default and npm explicitly', () => {
     expect(parseArgs([])).toEqual({ pm: 'pnpm', keep: false, budgetParity: false });
     expect(parseArgs(['--pm', 'npm', '--keep', '--budget-parity'])).toEqual({
