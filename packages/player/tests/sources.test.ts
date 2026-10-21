@@ -191,7 +191,7 @@ describe('loadBlueprintFromFile', () => {
 describe('startPlayer', () => {
   const target = () => document.body.appendChild(document.createElement('div'));
 
-  it('boots a share link and reloads when the fragment changes', async () => {
+  it('boots a share link and reloads only for a different share link, never for app routes', async () => {
     const boot = vi.fn(async () => undefined);
     const reload = vi.fn();
     const events = fakeEvents();
@@ -203,7 +203,15 @@ describe('startPlayer', () => {
 
     events.fire();
     expect(reload).not.toHaveBeenCalled();
+    // In-app navigation changes the hash but keeps the blueprint.
+    location.hash = '#/workspaces';
+    events.fire();
+    location.hash = '#/workspaces/w-1';
+    events.fire();
+    expect(reload).not.toHaveBeenCalled();
     location.hash = '#bp=1.other';
+    events.fire();
+    expect(reload).toHaveBeenCalledTimes(1);
     events.fire();
     expect(reload).toHaveBeenCalledTimes(1);
   });

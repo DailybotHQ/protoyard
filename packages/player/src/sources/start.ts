@@ -1,4 +1,4 @@
-import { type Blueprint, BrandThemeError } from '@protoyard/blueprint';
+import { type Blueprint, BrandThemeError, readBlueprintShareFragment } from '@protoyard/blueprint';
 import { mount, unmount } from 'svelte';
 import {
   type ResolvedSource,
@@ -27,7 +27,7 @@ export interface StartPlayerOptions {
   supportsDeflateRaw?: () => boolean;
   /** Boots a validated blueprint (defaults to `bootPlayer`). */
   boot?: (blueprint: Blueprint, target: HTMLElement) => Promise<unknown>;
-  /** Defaults to `location.reload()`. */
+  /** Called for a new `#bp=` link (defaults to `location.reload()`); app routes never reload. */
   reload?: () => void;
   /** The bundled demo, loaded only when the picker asks for it. */
   loadDemo?: () => Promise<Blueprint>;
@@ -152,10 +152,12 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
   else await showPicker();
 
   // A new share link means a new blueprint: reload so it boots on a clean runtime.
-  let lastHash = loc.hash;
+  // App navigation (`#/deals`) also changes the hash and must never reload.
+  let lastShare = readBlueprintShareFragment(loc.hash);
   const onHashChange = () => {
-    if (loc.hash === lastHash) return;
-    lastHash = loc.hash;
+    const share = readBlueprintShareFragment(loc.hash);
+    if (share === null || share === lastShare) return;
+    lastShare = share;
     reload();
   };
   events.addEventListener('hashchange', onHashChange);
