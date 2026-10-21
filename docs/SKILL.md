@@ -114,11 +114,23 @@ It runs two checks and exits nonzero when either finds a problem:
   (`references/cli.md`) is strict: one row per real command, each row lists
   exactly that command's flags, and the global options table lists exactly
   the program's options. A command still listed as planned fails once it
-  exists, so move it to "New in PLAN_004" when it lands. Every failure is
+  exists, so move it to the current-release table when it lands. Every failure is
   printed as `file:line: message`.
 
 The unit tests are `pnpm vitest run tests/scripts/validate-skill-frontmatter.test.ts`
 and `pnpm vitest run packages/cli/tests/check-skill-cli.test.ts`.
+
+Before creating a release tag, stamp every skill frontmatter version from the
+selected package release version, then verify the result:
+
+```bash
+pnpm exec tsx scripts/stamp-skill-version.ts 1.2.3
+pnpm exec tsx scripts/stamp-skill-version.ts 1.2.3 --check
+```
+
+Use the package version, including its prerelease suffix when applicable
+(for example `1.2.3-rc.1`). The release workflow checks that every stamped
+version matches the pushed `v*` tag before building release artifacts.
 
 ## Upgrade the skill
 
