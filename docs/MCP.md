@@ -67,3 +67,8 @@ The adapter applies additional protocol fences before dispatch:
 These limits reduce accidental exposure and resource exhaustion; they are not
 a security boundary against code that the local user deliberately chooses to
 run. Review the workspace and generated files before connecting an agent.
+
+The CLI's process-level integration test exercises both supported revisions
+through the real `protoyard mcp` child process. It verifies JSON-RPC framing,
+successful `quick` and `doctor` envelopes, validation errors, EOF shutdown, and
+that diagnostics never become stdout protocol frames.
