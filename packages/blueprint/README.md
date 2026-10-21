@@ -36,6 +36,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | sqlite-schema | bounded SQLite `CREATE TABLE` DDL inference into reviewable entity drafts | `./import/sqlite-schema` (lazy authoring) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 | search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
+| identity | content sha256 and `bp-…` storage namespace (`blueprintIdentity`); every shipped blueprint's identity is frozen in `tests/fixtures/identity-golden.json` | `.` |
 
 ## The schema
 

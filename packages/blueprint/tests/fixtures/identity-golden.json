@@ -1,0 +1,206 @@
+{
+  "blueprints/agriculture-farm-ops.json": {
+    "sha256": "b17dbc2caf43cedaea37307b1c551005964ffb89ac62cd4635445c2a85b5356b",
+    "namespace": "bp-wf63ylfpiphnv2rxgb5ryviqaw"
+  },
+  "blueprints/analytics-workspace.json": {
+    "sha256": "100bd0799bde9dd9562e60206a7931a55c08ae9a1b76214500fd347c4d54ffbf",
+    "namespace": "bp-caf5a6m332o5svromaqgu6jruv"
+  },
+  "blueprints/ats-recruiting.json": {
+    "sha256": "70597e8a1045339f5f0456481a5df291cc25c3d78868e48aa6ec3ce6feb85fbf",
+    "namespace": "bp-obmx5cqqiuzz6xyekzebuxpssh"
+  },
+  "blueprints/booking-scheduling.json": {
+    "sha256": "5a7c7282d2e8177dbc33ce597a8fc10a567be80897d07e06680c381483971d85",
+    "namespace": "bp-lj6hfaws5alx3pbtzzmxvd6bbj"
+  },
+  "blueprints/car-rental.json": {
+    "sha256": "b01ff40fc758b5c877484a8f82b51b3c940ad85333ff21e55078d2a9d09873d6",
+    "namespace": "bp-wap7id6hlc24q52ijkhyfni3hs"
+  },
+  "blueprints/clinic.json": {
+    "sha256": "dfd29e9572c52543839ab92cc2e6d67cef499518bd325bc52fce5465febaf7b4",
+    "namespace": "bp-37jj5flsyusuha42xewmfzwwpt"
+  },
+  "blueprints/cms-blog.json": {
+    "sha256": "1fea519f57f88a48562c8aa874e8bd65654a488bacea87fb2506f3dbade05ed3",
+    "namespace": "bp-d7vfdh2x7cfeqvrmrkuhj2f5mv"
+  },
+  "blueprints/construction-projects.json": {
+    "sha256": "aa99a35535523bedc9944266a9ed8c3f7c763cddf7f8cefeef23403e24cff327",
+    "namespace": "bp-vkm2gvjvki563smuijtkt3mmh5"
+  },
+  "blueprints/coworking-spaces.json": {
+    "sha256": "6958a07d25ee8c78b68a5fd1e1715cd51734eb93ea5c2de3a11b80bbeb440ea3",
+    "namespace": "bp-nfmka7jf52ghrnukl7i6c4k42u"
+  },
+  "blueprints/crm.json": {
+    "sha256": "3a48c91c3cc1cca03dce94232a08ea88be55633075e795ddf3fd9d61db519534",
+    "namespace": "bp-hjemshb4yhgkapoosqrsuchkrc"
+  },
+  "blueprints/customer-success-health.json": {
+    "sha256": "212eb34d2bba85193769205ca1254a6e0bb48e7a240e0766dfe39d1e21e33ec3",
+    "namespace": "bp-eexlgtjlxkcrsn3jebokcjkkny"
+  },
+  "blueprints/events-ticketing.json": {
+    "sha256": "9b36e28ed301829be0d04004bc0632bc5b523d840c6fefe191fbca022d2e0f2a",
+    "namespace": "bp-tm3ofdwtagbjxygqiaclybrsxr"
+  },
+  "blueprints/field-service-dispatch.json": {
+    "sha256": "4b5551f736b67e66cd8dab2b13111a334eddfba3e32b120947b4b58758e6c643",
+    "namespace": "bp-jnkvd5zwwz7gntmnvmvrgei2gn"
+  },
+  "blueprints/fitness-mobile.json": {
+    "sha256": "3c95ebe5f73e6872d81442539340d34c1e99fad16aa65468de0c888307917e9a",
+    "namespace": "bp-hsk6xzpxhzuhfwauijjzgqgtjq"
+  },
+  "blueprints/fleet-maintenance.json": {
+    "sha256": "6962acd8d620a43388e0033879e2eb4e8c4a4576dc60ab755dd4f6b3b5bdca55",
+    "namespace": "bp-nfrkzwgwecsdhchaam4htyxlj2"
+  },
+  "blueprints/food-delivery.json": {
+    "sha256": "e4df4acbc0ca9d79f3f0cf7ba60210990b9eebab4bd496ebf622ff7f7814d223",
+    "namespace": "bp-4tpuvs6azkoxt47qz552maqqte"
+  },
+  "blueprints/grant-management.json": {
+    "sha256": "8ac0cfefbd69baffceb0d4b9e74cdebe569724554121b3ef84690ddc7fb56fea",
+    "namespace": "bp-rlam7355ng5p7tvq2s46otg6xz"
+  },
+  "blueprints/incident-management.json": {
+    "sha256": "2b06f92c4e9059aab7d768aff32a3d1dd4b975dd960227bc460d389124f02fdc",
+    "namespace": "bp-fmdpslcosbm2vn6xncx7gkr5dx"
+  },
+  "blueprints/insurance-claims.json": {
+    "sha256": "470ceac79b3dc097aa3599bb532edb56220e7ec1ebfb05b602d7dd96b384f99f",
+    "namespace": "bp-i4govr43hxajpkrvtg5vglw3ky"
+  },
+  "blueprints/inventory.json": {
+    "sha256": "b239836fbdf15fe0fa4f7a9a6083363733bb463a2fd3dca0a60511f54fc62d0d",
+    "namespace": "bp-wi4yg3556fp6b6sppkngbazwg4"
+  },
+  "blueprints/iot-fleet.json": {
+    "sha256": "6f3c715570083d09bb6cb1d10150b6cc28ef4b3dc692d4c97abbe27e5606e369",
+    "namespace": "bp-n46hcvlqba6qto3mwhiqcufwzq"
+  },
+  "blueprints/legal-matters.json": {
+    "sha256": "bba37e8728c3dc3525c4bc929c903bd34d04118de160e919a62603e837e1a584",
+    "namespace": "bp-xorx5bziypodkjoexsjjzeb32n"
+  },
+  "blueprints/lms.json": {
+    "sha256": "f975f1510407256d5aee682c7f02732f61bf357ce8af9d3518e3b9bbbd7e5b72",
+    "namespace": "bp-7f27cuiea4sw2wxonawh6attf5"
+  },
+  "blueprints/logistics.json": {
+    "sha256": "55ac412fad8a2442923301f729f0ef018bfc7125953097c88b1d81d25d7d8325",
+    "namespace": "bp-kwwecl5nrisefertah3st4hpag"
+  },
+  "blueprints/manufacturing-work-orders.json": {
+    "sha256": "a4c5c5defb9208d52baee5f8aa68e830e851f6b0c577df966103bd5bf61e4ddd",
+    "namespace": "bp-utc4lxx3sienkk5o4x4ku2higd"
+  },
+  "blueprints/marketing-campaigns.json": {
+    "sha256": "21ff36deeaa0bb185df2618cbf5b7f16d8f2645bcfc191e807e5df996018f0ea",
+    "namespace": "bp-eh7tnxxkuc5rqxpsmggl6w37c3"
+  },
+  "blueprints/museum-collections.json": {
+    "sha256": "d81c602f91f401c18a133a31f416dfc31ed557a0ae144f8a0aaf2b1f8f57fdf1",
+    "namespace": "bp-3aogal4r6qa4dcqthiy7ifw7ym"
+  },
+  "blueprints/nonprofit-donors.json": {
+    "sha256": "8a0ab9e2fcc5338effe686d8c4ff06999b157425c48a38637055b1a1ea6f562a",
+    "namespace": "bp-rifltyx4yuzy577gq3mmj7ygtg"
+  },
+  "blueprints/okr-goals.json": {
+    "sha256": "3e16d44d134aaecc4e73ca704c3488e24a6497cbca4304f291261c221f951e6c",
+    "namespace": "bp-hylnititjkxmytttzjyeynei4j"
+  },
+  "blueprints/personal-finance.json": {
+    "sha256": "0acd9b086d890c7a8bc82c9d235bd70a8c1207c210434b182a71d595638310b6",
+    "namespace": "bp-blgzwcdnreghvc6ifsosgw6xbk"
+  },
+  "blueprints/podcast-studio.json": {
+    "sha256": "d6e906c69f218fa1cf158b55f84bf6365f2fa72e6a6237aad9f643d97c0455d4",
+    "namespace": "bp-23uqnru7egh2dtyvrnk7qs7wgz"
+  },
+  "blueprints/project-management.json": {
+    "sha256": "ac9ba4e03146039aef9e9756ce9c3165967deeba7bcf9fb62961ebcbe6cdf76a",
+    "namespace": "bp-vsn2jybriybzv346s5lm5hbrmw"
+  },
+  "blueprints/quick/analytics.json": {
+    "sha256": "4ebc88b7cb2c6deafa2e71c8aa3ea5840fa6589382182e98ba81e0598dac6666",
+    "namespace": "bp-j26irn6lfrw6v6roohekupvfqq"
+  },
+  "blueprints/quick/assistant.json": {
+    "sha256": "5da6fff9a53b81de447a05ef3612c03415cd91de61d4127b0f5417054a6d61d9",
+    "namespace": "bp-lwtp76nfhoa54rd2axxtmewagq"
+  },
+  "blueprints/quick/saas-onboarding.json": {
+    "sha256": "a88c79f24267a1e03c3bf35f403807c5b442168bff125a3cfe047e6672f07717",
+    "namespace": "bp-vcght4scm6q6apb36npuaoahyw"
+  },
+  "blueprints/quick/team-chat.json": {
+    "sha256": "211948169a8944b11b3ded035aed242553babd59491d97c95c815b77142db73b",
+    "namespace": "bp-eemuqfu2rfclcgz55ubvv3jeev"
+  },
+  "blueprints/real-estate.json": {
+    "sha256": "1e15c13347c7aba5226d2e3b37786f5c1f51eb40a38be88d5bf01bbfef0c83b6",
+    "namespace": "bp-dyk4cm2hy6v2kitnfy5to6dplq"
+  },
+  "blueprints/restaurant-pos.json": {
+    "sha256": "0510d682fe6fcd0de609e5964cf82090fcf20cfc5ba0991f1068bea402436e4f",
+    "namespace": "bp-auinnax6n7gq3zqj4wlez6basd"
+  },
+  "blueprints/salon-booking.json": {
+    "sha256": "4fa3caecb4ed4d280d13ba15591777491166b59e93b9dd7cdf50de66ea35c989",
+    "namespace": "bp-j6r4v3fu5vgsqditxikvsf3xje"
+  },
+  "blueprints/social-feed.json": {
+    "sha256": "c982490045d489cd4b628352e092339bbde97937552326e6fb6fa80cfff108f1",
+    "namespace": "bp-zgbesacf2se42s3cqnjobertto"
+  },
+  "blueprints/travel-booking.json": {
+    "sha256": "97f5ffddfff6c131195f563f4137055e0711b1eb6cf1d00cb8e38ab2f23f4361",
+    "namespace": "bp-s7277xp763atcgk7ky7ucnyfly"
+  },
+  "blueprints/utility-outages.json": {
+    "sha256": "e52c36b9e3710ba6144a660481e0604fc4e59571611ce29920c88f3f66100e43",
+    "namespace": "bp-4uwdnopdoef2mfckmycidydaj7"
+  },
+  "blueprints/veterinary-clinic.json": {
+    "sha256": "6679a19ae06102417721f0fe76ad6897fb7d75c89f0ae39208e34d0f68b698cd",
+    "namespace": "bp-mz42dgxamebec5zb6d7hnllis7"
+  },
+  "blueprints/warehouse-wms.json": {
+    "sha256": "598b8551c2a825e8de0d3d4dc120a7f86c40bd174107a06fb910ae8797feae4e",
+    "namespace": "bp-lgfykuocvas6rxqnhvg4cifh7b"
+  },
+  "packages/blueprint/tests/fixtures/large.blueprint.json": {
+    "sha256": "27b2bf3a5cded3ac0fa9a84763b64c6220d78951e1f6c0a17994a4fca3c9bca4",
+    "namespace": "bp-e6zl6os433j2yd5jvbdwhnsmmi"
+  },
+  "packages/player/src/fixtures/demo.blueprint.json": {
+    "sha256": "4b5551f736b67e66cd8dab2b13111a334eddfba3e32b120947b4b58758e6c643",
+    "namespace": "bp-jnkvd5zwwz7gntmnvmvrgei2gn"
+  },
+  "prototypes/cadence-studio-demo/blueprint.json": {
+    "sha256": "0e03c1d1a943d85fe5a81bb9327bc4aad8ab05e9fed086c83fb17f048eea2910",
+    "namespace": "bp-byb4dunjipmf7znido4te66evl"
+  },
+  "prototypes/harbor-dispatch-demo/blueprint.json": {
+    "sha256": "694fa76cf916491a8c26aa4e47af833d67f139fd3b0be68379009975bf792770",
+    "namespace": "bp-nfh2o3hzczervdbgvjhepl4dhv"
+  },
+  "prototypes/helpdesk-demo/blueprint.json": {
+    "sha256": "130846c8ab2c78fa4ecfdb357a0960da06f448f3d0c07c731a87a4ac2f46b9b0",
+    "namespace": "bp-cmeensflfr4putwp3m2xucla3i"
+  },
+  "prototypes/pulse-revenue-demo/blueprint.json": {
+    "sha256": "dda99ae54be089a6dc2bacd7da157f9746074aff30c5046e3c39197bca30921f",
+    "namespace": "bp-3wuzvzkl4ce2nxblvtl5ufl7s5"
+  },
+  "templates/crud-app/blueprint.json": {
+    "sha256": "61c0445641abeda1f32d5a376f5d68505983a8c67c55d9d05c0d4d101ca5aff2",
+    "namespace": "bp-mhaeivsbvpw2d4znli3w6xlikb"
+  }
+}
