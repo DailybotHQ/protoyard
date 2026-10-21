@@ -6,7 +6,8 @@
     "cssGzipKb": 30,
     "coldStartMs": null,
     "generateMs": 50,
-    "indexColdMs": 100
+    "indexColdMs": 100,
+    "quickReadyMs": 5000
   },
   "overrides": {}
 }

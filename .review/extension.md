@@ -38,8 +38,12 @@ determinism, isolation and honesty.
   must leave current data untouched (`packages/runtime/src/snapshots.ts`).
   `new Function` is only acceptable in `packages/themes/tests/*`.
 - **Always `critical`:** a scenario load, reset or restore that touches
-  databases outside `protoyard.<namespace>.{data,control}`, or a migration
-  (`database.versions[].upgrade`) that deletes user rows without saying so.
+  databases outside `protoyard.<namespace>.{data,control,validation}`, or a
+  migration (`database.versions[].upgrade`) that deletes user rows without
+  saying so. `.validation` holds the validation-task metrics; a namespace
+  wipe (`packages/player/src/storage/index.ts`,
+  `packages/renderer-svelte/src/shell/BootError.svelte`) deletes it with the
+  other two, and that is in scope, not a finding.
 - **Always `critical`:** secrets, tokens or real personal or financial data in
   fixtures, generators, snapshots, build output or CLI logs. Provider tokens
   (`CLOUDFLARE_API_TOKEN`, …) must never be printed (`packages/cli/src/publish/*`).

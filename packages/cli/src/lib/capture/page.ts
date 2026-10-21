@@ -16,6 +16,21 @@ export interface CaptureOptions {
   colorScheme: 'light' | 'dark';
   /** Phone-like context: touch and the mobile viewport meta tag. */
   mobile?: boolean;
+  /**
+   * Only this origin may be fetched (plus `data:` and `blob:`); every other
+   * request is aborted. Unset, the page may fetch anything.
+   */
+  allowOrigin?: string;
+}
+
+/** Whether a capture context restricted to `origin` may fetch `url`. */
+export function captureMayFetch(url: string, origin: string): boolean {
+  if (/^(?:data|blob):/i.test(url)) return true;
+  try {
+    return new URL(url).origin === origin;
+  } catch {
+    return false;
+  }
 }
 
 // A string, because tsx rewrites named functions with a helper the page lacks.
@@ -44,6 +59,12 @@ export async function withReadyPage<T>(
     ...(options.mobile ? { isMobile: true, hasTouch: true } : {}),
   });
   try {
+    const allowOrigin = options.allowOrigin;
+    if (allowOrigin !== undefined) {
+      await context.route('**/*', (route) =>
+        captureMayFetch(route.request().url(), allowOrigin) ? route.continue() : route.abort()
+      );
+    }
     const page = await context.newPage();
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(String(error)));

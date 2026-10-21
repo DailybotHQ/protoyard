@@ -4,6 +4,7 @@ import {
   type BlueprintInput,
   type BlueprintScreenInput,
   parseBlueprint,
+  RESERVED_SCREEN_PATHS,
 } from '../schema.ts';
 import {
   ARCHETYPES,
@@ -13,7 +14,7 @@ import {
   GENERIC_ARCHETYPE,
 } from './archetypes.ts';
 import { avatarFieldFor, fieldFromPhrase, GLOBAL_CUES, PEOPLE_ENTITIES } from './fields.ts';
-import { hasPhrase, normalize, plural, singular, titleCase, words } from './text.ts';
+import { camel, hasPhrase, normalize, plural, singular, titleCase, words } from './text.ts';
 
 /**
  * Brief → blueprint, offline and deterministic: the same brief (and options)
@@ -387,6 +388,17 @@ function screensFor(entities: EntityInput[], focus: EntityInput): BlueprintScree
   return screens;
 }
 
+/**
+ * A noun whose list route is reserved by the generated app (`/members` is the
+ * built-in members screen) becomes `<noun>-profile`, so a brief that tracks
+ * "members" still yields a valid blueprint.
+ */
+function entityNoun(noun: string): string {
+  return (RESERVED_SCREEN_PATHS as readonly string[]).includes(`/${plural(noun)}`)
+    ? `${noun}-profile`
+    : noun;
+}
+
 /** A valid blueprint from a short product brief, plus the reasons for each choice. */
 export function blueprintFromBrief(brief: string, options: BriefOptions = {}): BriefResult {
   const source = brief.slice(0, MAX_BRIEF_LENGTH);
@@ -418,7 +430,8 @@ export function blueprintFromBrief(brief: string, options: BriefOptions = {}): B
   let added = 0;
   for (const clause of clauses(source)) {
     let target: EntityInput | undefined;
-    for (const noun of clause.nouns) {
+    for (const word of clause.nouns) {
+      const noun = entityNoun(word);
       let entity = byNoun(noun);
       if (!entity && archetype === GENERIC_ARCHETYPE && focus.name === 'item' && added === 0) {
         focus.name = noun;
@@ -426,7 +439,7 @@ export function blueprintFromBrief(brief: string, options: BriefOptions = {}): B
         entity = focus;
         rationale.push(`Main entity ${noun} from "${clause.nouns.join(', ')}".`);
         added++;
-      } else if (!entity && added < MAX_EXTRA_ENTITIES && /^[a-z]{3,30}$/.test(noun)) {
+      } else if (!entity && added < MAX_EXTRA_ENTITIES && /^[a-z]{3,30}$/.test(word)) {
         entity = {
           name: noun,
           plural: plural(noun),
@@ -438,7 +451,7 @@ export function blueprintFromBrief(brief: string, options: BriefOptions = {}): B
               fake: 'commerce.productName',
             } as FieldInput,
             {
-              name: focus.name,
+              name: camel(focus.name.split('-')),
               kind: 'relation',
               to: focus.name,
               onDelete: 'nullify',

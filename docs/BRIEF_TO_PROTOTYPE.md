@@ -9,6 +9,11 @@ against the actual product idea.
 Use the [`brief-to-prototype` skill](../.agents/skills/brief-to-prototype/SKILL.md)
 or invoke `/new-from-brief`. For the longer hands-on build after generation,
 continue with [`create-prototype`](../.agents/skills/create-prototype/SKILL.md).
+Outside this repository, the distributable skill's
+[`protoyard-new` flow](../skills/protoyard/new/SKILL.md) covers the same
+loop: brief, blueprint, generation (or `quick promote`) and validation. Its
+[blueprint reference](../skills/protoyard/references/blueprints.md) maps the
+format.
 
 ## The loop
 
@@ -49,6 +54,32 @@ correction, then validate it:
 pnpm protoyard blueprint validate tmp/acme-desk.blueprint.json
 ```
 
+The CLI reports validation paths and messages. An editor or agent that needs
+actionable repairs can call `validateBlueprintForAuthoring(input)` from
+`@protoyard/blueprint`; its complete schema and cross-reference checks return a
+`jsonPath`, `message` and `hint` for each diagnostic. Apply one targeted repair
+to the JSON, run validation again, and keep the corrected blueprint as the
+source of truth. JSON Schema completion alone cannot verify entity and route
+references.
+
+When the idea comes from existing structure, infer a draft instead of copying
+records: the lazy `@protoyard/blueprint/import/csv-shape`,
+`@protoyard/blueprint/import/json-shape` and
+`@protoyard/blueprint/import/sqlite-schema` modules inspect headers, object
+shapes or `CREATE TABLE` declarations. They return draft entities and review
+notes without sample values or database rows. JSON shape inference returns
+relation candidates; supported SQLite foreign keys become relations. Add the selected
+entities to a complete blueprint, supply its roles, screens and any archetype,
+then run the same validation command. The package guide has copyable API
+examples and the enforced parser bounds.
+
+For a small ready-made model, choose an example from the
+[quick blueprint catalog](../blueprints/quick/README.md). For a kit-specific
+first experience, choose `assistant`, `team-chat`, `saas-onboarding` or
+`analytics`; the portable `blueprint.archetype` block records entity slots,
+screens, scenario defaults and supported lazy kit entry points. Brief synthesis
+selects these from strong cues or accepts an explicit `--archetype <id>`.
+
 The JSON is the source of truth. Generated code is not an editing surface.
 
 ### 4. Generate
@@ -69,6 +100,11 @@ You can combine synthesis and generation with `blueprint new --generate
 <slug>`. Use that shortcut when the user wants a direct result; keep the
 separate review step for briefs whose inferred model or permissions need care.
 
+If you first tried the idea with `protoyard quick` and want to keep it,
+`pnpm protoyard quick promote <exploration> acme-desk` generates the prototype
+from the exploration's blueprint instead (add `--variant vN` for one of its
+variants). See [Promoting a quick exploration](GENERATOR.md#promoting-a-quick-exploration).
+
 ### 5. Add only product-specific screens
 
 Run the generated app and compare it with the brief. The generator already
@@ -79,6 +115,12 @@ generated screens when they fit. Add an owned Svelte screen under
 interaction that the generated screen cannot express. Wire it through the
 prototype's owned app code. Never edit `src/generated/**`; refine the blueprint
 and regenerate it, or add separate owned code.
+
+`screenDefaults` selects standard list, detail and form routes for each entity.
+The optional `@protoyard/blueprint/workflows` API validates explicit data-only
+state models, but those models are not yet part of blueprint formatVersion 1 or
+generated services. Custom workflow actions must remain in owned code and use
+the generated entity services' normal validation and permission path.
 
 ### 6. Validate and export
 

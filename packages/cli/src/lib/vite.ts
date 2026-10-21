@@ -40,6 +40,10 @@ export function resolveViteBin(prototypeDir: string, root: string): string {
  * registered: every TS module then loads the same way it does in tests.
  */
 export function nodeLoaderArgs(prototypeDir: string, root: string): string[] {
+  // Packed CLI dependencies are compiled to JavaScript, and Vite uses Node's
+  // built-in stripping for the user's erasable vite.config.ts. Keep tsx only
+  // for this source-mode monorepo CLI, whose workspace dependencies are TS.
+  if (import.meta.url.endsWith('.js')) return [];
   const cliPackageDir = fileURLToPath(new URL('../..', import.meta.url));
   for (const from of [prototypeDir, root, cliPackageDir]) {
     try {

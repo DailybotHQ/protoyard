@@ -79,10 +79,10 @@ const ScreenshotSchema = z
 const ScreenshotsSchema = z
   .object({
     files: z.array(ScreenshotSchema).max(64),
-    /** A recorded skip is not a failure (PLAN_004 analysis, INTEGRATIONS 7). */
+    /** A recorded skip is not a failure (a missing browser is recorded, not failed). */
     skipped: z
       .object({
-        reason: z.enum(['playwright-unavailable', 'capture-failed']),
+        reason: z.enum(['playwright-unavailable', 'browser-unavailable', 'capture-failed']),
         at: Timestamp,
       })
       .strict()

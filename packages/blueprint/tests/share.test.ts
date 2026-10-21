@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { deflateRawSync } from 'node:zlib';
 import { createRng } from '@protoyard/core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   type Blueprint,
   blueprintIdentity,
@@ -18,6 +18,7 @@ import {
   readBlueprintShareFragment,
   type ShareDecodeResult,
   ShareLinkTooLargeError,
+  supportsShareLinks,
 } from '../src/index.ts';
 
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
@@ -199,5 +200,40 @@ describe('blueprint share links', () => {
       if (result?.success) expect(() => parseBlueprint(result!.blueprint)).not.toThrow();
     }
     expect(outcomes.get('invalid-link') ?? 0).toBeGreaterThan(0);
+  });
+});
+
+describe('share links without deflate-raw streams', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('says which browsers support them instead of reporting a broken link', async () => {
+    const encoded = await encodeBlueprintShare(parseBlueprint(catalog[0]!.raw));
+    expect(supportsShareLinks()).toBe(true);
+    vi.stubGlobal('DecompressionStream', undefined);
+    vi.stubGlobal('CompressionStream', undefined);
+    expect(supportsShareLinks()).toBe(false);
+    const result = await decodeBlueprintShare(encoded);
+    expect(firstCode(result)).toBe('unsupported-browser');
+    expect(result.success ? '' : result.issues[0]!.message).toMatch(
+      /Chrome 103\+, Safari 16\.4\+, Firefox 113\+/
+    );
+    await expect(encodeBlueprintShare(parseBlueprint(catalog[0]!.raw))).rejects.toThrow(
+      /cannot create share links/
+    );
+    // Size and version checks still come first: they need no decompression.
+    expect(firstCode(await decodeBlueprintShare(`2.${encoded.slice(2)}`))).toBe(
+      'unsupported-version'
+    );
+  });
+
+  it('treats an engine that rejects the deflate-raw format as unsupported', () => {
+    class OldStream {
+      constructor(format: string) {
+        if (format !== 'gzip' && format !== 'deflate') throw new TypeError('Unsupported format');
+      }
+    }
+    vi.stubGlobal('DecompressionStream', OldStream);
+    vi.stubGlobal('CompressionStream', OldStream);
+    expect(supportsShareLinks()).toBe(false);
   });
 });

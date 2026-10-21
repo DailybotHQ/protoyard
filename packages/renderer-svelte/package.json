@@ -6,7 +6,9 @@
   "type": "module",
   "sideEffects": [
     "**/*.css",
-    "**/*.svelte"
+    "**/*.svelte",
+    "dist/**/*.css",
+    "dist/**/*.svelte"
   ],
   "exports": {
     ".": {
@@ -43,5 +45,69 @@
   "peerDependencies": {
     "svelte": "^5.57.0"
   },
-  "svelte": "./src/index.ts"
+  "protoyard": {
+    "build": {
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./vite": {
+        "types": "./dist/vite.d.ts",
+        "svelte": "./dist/vite.js",
+        "default": "./dist/vite.js"
+      },
+      "./avatars-plugin": {
+        "types": "./dist/avatars-plugin.d.ts",
+        "svelte": "./dist/avatars-plugin.js",
+        "default": "./dist/avatars-plugin.js"
+      },
+      "./app.css": {
+        "types": "./dist/app.css.d.ts",
+        "svelte": "./dist/app.css",
+        "default": "./dist/app.css"
+      },
+      "./env": {
+        "types": "./dist/env.d.ts",
+        "svelte": "./dist/env.d.ts",
+        "default": "./dist/env.d.ts"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/renderer-svelte"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "renderer",
+    "vite"
+  ]
 }

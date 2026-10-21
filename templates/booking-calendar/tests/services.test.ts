@@ -102,7 +102,7 @@ describe('booking services on the real runtime', () => {
     expect((await attempt(slot(18))).start).toMatch(/opening hours/); // Harbor closes at 18:00
     expect((await attempt({ start: at(14, 9), end: at(14, 10) })).start).toMatch(/future/);
     expect((await attempt({ start: at(15, 10, 10), end: at(15, 11) })).start).toMatch(/15-minute/);
-    expect((await attempt({ customerEmail: 'ada@real-company.com' })).customerEmail).toMatch(
+    expect((await attempt({ customerEmail: 'ada@company.example' })).customerEmail).toMatch(
       /example\.com/
     );
     expect((await attempt({ end: at(15, 9) })).end).toMatch(/after the start/);

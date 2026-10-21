@@ -206,6 +206,55 @@ PROTOYARD_REVIEW=1 PROTOYARD_REVIEW_ADAPTER=http PROTOYARD_REVIEW_ENDPOINT=/api/
 pnpm exec tsx tests/e2e/support/serve-comments.ts tmp/crm-review 4651
 ```
 
+### Quick explorations
+
+`protoyard quick serve <slug>` enables the same comments API on the local
+server origin. The player finds it on its own: on `127.0.0.1` it asks the
+origin for `/__protoyard/serve.json`, and when `quick serve` answers it mounts
+the review UI with the `http` adapter on `/api/comments`, so comments work
+with no flag. Comments are validated by the review handler and saved beside
+the selected exploration at `review/comments.json`; they survive stopping and
+restarting the server.
+
+- **After a change.** When the exploration's blueprint changes (`quick
+  iterate`), the server also accepts the new blueprint's namespace and the
+  namespaces in the exploration's iterate history. A world the player kept
+  across a change still posts under its first namespace.
+- **Tested.** `packages/cli/tests/quick-live-reload.test.ts` posts a comment
+  from the real player in Chromium and finds it in `review/comments.json`. The server scopes static requests to that exploration
+and its matching shared player version, and returns 404 for other explorations
+and player versions. It binds to `127.0.0.1`, accepts only its printed Host,
+and refuses cross-origin writes. Request size and write rate limits are the
+same as the shared review handler.
+
+This is a local collaboration convenience, not authentication. Any process or
+application running locally with access to loopback may read the selected
+exploration and its comments; browser same-origin rules still apply to page
+scripts. Comment names are self-declared. Do not serve an exploration
+containing information you would not share with local software.
+
+The endpoint is fixed in the player (`QUICK_REVIEW_ENDPOINT`). It is never
+read from the URL or from the server's answer. The launcher on disk is
+unchanged, so the same exploration opened from `file://` or another host has
+no comments.
+
+Turn the comments into a report next to the blueprint:
+
+```bash
+protoyard quick feedback <slug>                         # REVIEW.md + REVIEW.json from review/comments.json
+protoyard quick feedback <slug> --import <export.json>  # also merge a browser export (local adapter)
+```
+
+`REVIEW.md` has one section per blueprint with comments (the base exploration
+and each variant), rendered with the same injection-safe renderer as
+`comments pull`. `REVIEW.json` holds one `protoyard-review-comments` v1 file
+per blueprint. An imported file is untrusted: it must be a
+`protoyard-review-comments` v1 file (or a pulled copy) of at most 8 MB, for
+this exploration or one of its variants (the player's content namespace), or
+the command exits 4 before writing anything. Imported comments merge into
+`review/comments.json` by id, the newer edit winning, so the served UI shows
+them too.
+
 ## The artifact adapter
 
 Use it when the prototype is shared as a private Claude artifact

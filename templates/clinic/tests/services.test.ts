@@ -127,7 +127,7 @@ describe('clinic services on the real runtime', () => {
 
     const register = (input: Partial<typeof ada>) =>
       services.patients.create({ ...ada, ...input }).catch((e: unknown) => issues(e));
-    expect((await register({ email: 'ada@real-hospital.org' })).email).toMatch(/example\.com/);
+    expect((await register({ email: 'ada@hospital.example' })).email).toMatch(/example\.com/);
     expect((await register({ phone: '+1 212-555-7788' })).phone).toMatch(/555-01xx/);
     expect((await register({ insuranceId: 'BCBS-998877' })).insuranceId).toMatch(/SIM-/);
     expect((await register({ dateOfBirth: '2030-01-01' })).dateOfBirth).toMatch(/future/);

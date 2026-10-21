@@ -13,12 +13,19 @@ pnpm install
 pnpm dev                 # gallery at http://localhost:4321/
 ```
 
+The gallery also serves selected public guides under `/docs/`.
+
 In the gallery, open **Pipeline CRM** and press **Start Pipeline CRM**, then
 **Open**. Or skip the gallery and run one prototype directly:
 
 ```bash
 pnpm protoyard dev crm-demo
 ```
+
+Catalog blueprints and prototypes that include a `blueprint.json` also offer
+**Open in player** on their gallery detail pages. It opens the validated
+blueprint in the hosted browser player using a share link; entries without a
+blueprint source keep their existing preview and open actions.
 
 Then, in the running app:
 
@@ -158,6 +165,11 @@ What `new` does:
   `@prototype/<slug>`.
 - Runs `pnpm install` to link the new package (`--no-install` skips it; then
   run `pnpm install` yourself before `dev`).
+- In a consumer workspace, resolves starters from the installed
+  `@protoyard/templates` package and replaces every copied `workspace:`
+  dependency range with the CLI's exact package version. `--from <prototype>`
+  applies the same rewrite. Monorepo templates and their workspace ranges stay
+  unchanged.
 - Refuses to overwrite anything. Re-running the exact same command resumes
   safely.
 
@@ -191,6 +203,8 @@ Every template is a working app with scenarios, tests and a spec
 | `project-management`, `booking-calendar`, `logistics-map`, `clinic` | Planning and operations: sprints with a board and timeline, bookings over weekly availability, depots and routes with simulated ETAs, a clinic front desk (a simulation, no compliance claim) |
 | `docs-wiki`, `social-feed`, `course-lms` | Content and community: a wiki with versions and safe Markdown, a social feed with notifications, courses with quizzes and learner progress |
 
+For a compact blueprint starter, browse the [quick blueprint catalog](../blueprints/quick/README.md). It lists the archetype, lazy kits, generated route scope and a validation exercise for each example.
+
 Other ways to start:
 
 ```bash
@@ -200,6 +214,27 @@ pnpm protoyard generate my-crm --blueprint blueprints/crm.json  # an app from a 
 echo "A salon that books appointments" \
   | pnpm protoyard blueprint new tmp/salon.json --from-brief - --generate salon-demo   # from a prose brief
 ```
+
+For an idea you want to try before creating a full project, make a disposable
+player exploration from a brief or a blueprint:
+
+```bash
+# In this repository, do this once if the prebuilt player app is missing.
+pnpm --filter @protoyard/player build
+pnpm protoyard quick "A booking app for a fictional climbing gym" --slug gym-bookings --seed 7 --variants 3
+pnpm protoyard quick serve gym-bookings --open
+```
+
+`quick serve` opens the exploration over 127.0.0.1 until Ctrl+C; with
+`--variants 3` it also wrote `v1/`…`v3/` and a `compare.html` to view them side
+by side.
+The command writes to `.protoyard/quick/<slug>/` without building a prototype;
+the player uses simulated data in the browser. `quick.json` stores the source
+brief by default, so use `--no-store-brief` if that copy is unnecessary and
+inspect the blueprint before sharing or hosting the folder. The server is
+bound to loopback only. See the [quick skill](../skills/protoyard/quick/SKILL.md)
+for supported options, planned workflow features, and the current path to
+promote an exploration.
 
 `helpdesk-demo` shows where a generated prototype can go: a blueprint-built
 CRUD core plus an owned SLA dashboard and ticket workspace
@@ -211,6 +246,55 @@ workflow and its limits are in [BRIEF_TO_PROTOTYPE.md](BRIEF_TO_PROTOTYPE.md).
 New prototypes start with a spec. After you change the schema, policy,
 scenarios or routes, run `pnpm protoyard spec my-idea --write` to refresh
 its generated regions ([SPECS.md](SPECS.md)).
+
+### A workspace of your own: `create-protoyard`
+
+`create-protoyard` scaffolds a Protoyard workspace outside this repository.
+Nothing is published to npm yet, so `npm create protoyard` and
+`pnpm create protoyard` do not resolve today. Until the first release, run the
+scaffolder from this repository:
+
+```bash
+node packages/create-protoyard/bin/create-protoyard.mjs ../acme-lab --no-install --no-git
+```
+
+`--no-install` is needed for now, because the workspace pins
+`protoyard@<this version>`, which npm does not have yet. After the first
+release the same command becomes:
+
+```bash
+npm create protoyard acme-lab        # or: pnpm create protoyard acme-lab
+cd acme-lab && pnpm protoyard dev starter
+```
+
+It writes:
+- `package.json`, pinning `protoyard` to the scaffolder's own version (lockstep)
+  and carrying the workspace marker the CLI looks for (`"protoyard": { "workspace": 1 }`);
+- `pnpm-workspace.yaml` (pnpm) or `workspaces` (npm) for `prototypes/*`;
+- `tsconfig.base.json`, which template tsconfigs extend;
+- `AGENTS.md`, `README.md` and `.gitignore`;
+- a starter prototype in `prototypes/starter`, made by the CLI's own
+  `protoyard new` from `@protoyard/templates`, with exact package versions and
+  no `workspace:` ranges.
+
+How it behaves:
+- **Atomic:** everything is staged in a hidden folder next to the target and
+  renamed into place, so a failure leaves no target and no staging folder.
+- **Never overwrites:** the target must be new or empty. A folder with files, a
+  plain file, a symlink, the filesystem root or your home folder is refused.
+- **Install and git:** then `<pm> install` (network) and `git init` run in the
+  new folder. With `--no-install --no-git` no tool runs and nothing touches
+  the network.
+
+Flags:
+- `--template <name>` (default `blank`) and `--pm pnpm|npm`, defaulting to the
+  manager that ran `create`, else pnpm.
+- `--yes` skips the confirmation on a terminal, and `--json` prints one
+  envelope.
+- `--skill` only reports how to install the agent skill
+  ([SKILL](SKILL.md)); nothing is installed.
+- Exit codes: 0 created, 1 failed or not empty, 2 usage or unsafe path,
+  3 unknown template.
 
 ## Check, build, export, preview
 

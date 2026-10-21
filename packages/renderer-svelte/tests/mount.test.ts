@@ -271,6 +271,32 @@ describe('mountPrototype', () => {
     expect(screen.getByRole('button', { name: /Reset prototype data/ })).toBeTruthy();
     expect(root.dataset.pyReady).toBe('error');
   });
+
+  it("resets only this prototype's data, control and validation databases", async () => {
+    await boot({ fail: true });
+    const deleted: string[] = [];
+    vi.spyOn(indexedDB, 'deleteDatabase').mockImplementation((name: string) => {
+      deleted.push(name);
+      const request = {} as IDBOpenDBRequest;
+      queueMicrotask(() => request.onsuccess?.(new Event('success')));
+      return request;
+    });
+    const reload = vi.fn();
+    vi.spyOn(window, 'location', 'get').mockReturnValue({ ...window.location, reload } as Location);
+    await fireEvent.click(screen.getByRole('button', { name: /Reset prototype data/ }));
+    await fireEvent.click(screen.getByRole('button', { name: /delete this prototype/ }));
+    await vi.waitFor(() => expect(deleted).toHaveLength(3));
+    expect(
+      deleted.every((name) => name.startsWith('protoyard.') && name.split('.').length === 3)
+    ).toBe(true);
+    expect(deleted.map((name) => name.split('.').at(-1))).toEqual([
+      'data',
+      'control',
+      'validation',
+    ]);
+    expect(new Set(deleted.map((name) => name.split('.')[1])).size).toBe(1);
+    await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+  });
 });
 
 describe('liveQuery', () => {

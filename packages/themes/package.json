@@ -4,7 +4,10 @@
   "description": "Protoyard theme engine: token presets, light/dark/system resolution and scoped CSS variable application.",
   "license": "MIT",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/base.css",
+    "./src/fonts.css"
+  ],
   "exports": {
     ".": "./src/index.ts",
     "./presets": "./src/presets.ts",
@@ -18,5 +21,76 @@
   },
   "dependencies": {
     "@protoyard/core": "workspace:*"
-  }
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": [
+        "src/base.css",
+        "src/fonts.css"
+      ]
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./presets": {
+        "types": "./dist/presets.d.ts",
+        "import": "./dist/presets.js",
+        "default": "./dist/presets.js"
+      },
+      "./no-flash": {
+        "types": "./dist/no-flash.d.ts",
+        "import": "./dist/no-flash.js",
+        "default": "./dist/no-flash.js"
+      },
+      "./library": {
+        "types": "./dist/library/index.d.ts",
+        "import": "./dist/library/index.js",
+        "default": "./dist/library/index.js"
+      },
+      "./base.css": {
+        "types": "./dist/styles.d.ts",
+        "default": "./dist/base.css"
+      },
+      "./fonts.css": {
+        "types": "./dist/styles.d.ts",
+        "default": "./dist/fonts.css"
+      }
+    },
+    "types": "./dist/index.d.ts",
+    "sideEffects": [
+      "./dist/base.css",
+      "./dist/fonts.css"
+    ]
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/themes"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "themes",
+    "design-tokens",
+    "prototype"
+  ]
 }

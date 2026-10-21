@@ -16,9 +16,11 @@ import { exportCommand } from './commands/export.ts';
 import { generateCommand } from './commands/generate.ts';
 import { indexCommand } from './commands/index-cmd.ts';
 import { listCommand } from './commands/list.ts';
+import { mcpCommand } from './commands/mcp.ts';
 import { newCommand } from './commands/new.ts';
 import { previewCommand } from './commands/preview.ts';
 import { publishCommand } from './commands/publish.ts';
+import { registerQuick } from './commands/quick/register.ts';
 import { reviewIndexCommand } from './commands/review-index.ts';
 import {
   scenarioBenchCommand,
@@ -40,7 +42,7 @@ import {
 import { validateCommand } from './commands/validate.ts';
 import { action, type RunnerEnv } from './lib/command.ts';
 import { CliError, ExitCode, errorEnvelope, processStreams } from './lib/output.ts';
-import { CLI_VERSION } from './lib/workspace.ts';
+import { CLI_VERSION, INTERFACE_MAJOR } from './lib/workspace.ts';
 import { PROVIDER_IDS } from './publish/index.ts';
 
 const EXAMPLES = `
@@ -82,7 +84,8 @@ export function createProgram(env: RunnerEnv): Command {
     })
     .addHelpText('after', EXAMPLES);
 
-  const def = (name: string, handler: Parameters<typeof action>[1]) => action(name, handler, env);
+  const def = (name: string, handler: Parameters<typeof action>[1], allowNoWorkspace = false) =>
+    action(name, handler, env, { allowNoWorkspace });
 
   program
     .command('doctor')
@@ -168,6 +171,8 @@ export function createProgram(env: RunnerEnv): Command {
     .option('--no-install', 'skip `pnpm install` (link the package later)')
     .action(def('generate', generateCommand));
 
+  registerQuick(program, def);
+
   const blueprintCmd = program
     .command('blueprint')
     .description('work with data-only blueprints (see packages/blueprint)');
@@ -235,6 +240,11 @@ export function createProgram(env: RunnerEnv): Command {
     .option('-p, --port <port>', 'preferred port (the next free one is used if busy)', '5173')
     .option('--host', 'listen on the LAN and print a URL for phones')
     .action(def('dev', devCommand));
+
+  program
+    .command('mcp')
+    .description('serve the Model Context Protocol over newline-delimited stdio JSON-RPC')
+    .action(mcpCommand);
 
   program
     .command('validate')
@@ -584,14 +594,49 @@ export function createProgram(env: RunnerEnv): Command {
   return program;
 }
 
+/** What `protoyard --version --json` prints (docs/INTERFACE.md). */
+export function versionInfo(): { version: string; interface: number } {
+  return { version: CLI_VERSION, interface: INTERFACE_MAJOR };
+}
+
+/** Global options that take a value, so their value is not mistaken for a command. */
+const GLOBAL_VALUE_OPTIONS = new Set(['--cwd', '--root']);
+
+/**
+ * True when `--version`/`-v` and `--json` are both global options, i.e. they
+ * come before the first command word (`protoyard --json --version`, in any order).
+ */
+export function wantsJsonVersion(argv: readonly string[]): boolean {
+  let version = false;
+  let json = false;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i] ?? '';
+    if (arg === '--') break;
+    if (!arg.startsWith('-')) break; // the first command word ends the global options
+    if (arg === '--version' || arg === '-v') version = true;
+    else if (arg === '--json') json = true;
+    else if (GLOBAL_VALUE_OPTIONS.has(arg)) i += 1;
+  }
+  return version && json;
+}
+
 /**
  * Parses argv and runs. Commander's own usage errors (unknown option, missing
  * argument) become exit code 2 and, with --json, an error envelope.
+ *
+ * `--version` stays plain semver for people and scripts; `--version --json`
+ * prints `{"version","interface"}`, one JSON object a detector can read with
+ * `json:interface`, and exits 0 anywhere (no workspace is needed).
  */
 export async function runCli(argv: readonly string[], env: RunnerEnv): Promise<void> {
   const streams = env.streams ?? processStreams;
   const program = createProgram(env);
   const wantsJson = argv.includes('--json');
+  if (wantsJsonVersion(argv)) {
+    streams.stdout(`${JSON.stringify(versionInfo())}\n`);
+    env.setExitCode(ExitCode.Ok);
+    return;
+  }
   program.exitOverride();
   for (const cmd of allCommands(program)) cmd.exitOverride();
   if (wantsJson) {

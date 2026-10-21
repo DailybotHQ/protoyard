@@ -19,5 +19,71 @@
   "dependencies": {
     "@protoyard/core": "workspace:*",
     "zod": "^4.6.7"
-  }
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./markdown": {
+        "types": "./dist/markdown.d.ts",
+        "import": "./dist/markdown.js",
+        "default": "./dist/markdown.js"
+      },
+      "./packs": {
+        "types": "./dist/packs.d.ts",
+        "import": "./dist/packs.js",
+        "default": "./dist/packs.js"
+      },
+      "./scenarios": {
+        "types": "./dist/scenarios.d.ts",
+        "import": "./dist/scenarios.js",
+        "default": "./dist/scenarios.js"
+      },
+      "./voice": {
+        "types": "./dist/voice.d.ts",
+        "import": "./dist/voice.js",
+        "default": "./dist/voice.js"
+      },
+      "./chart": {
+        "types": "./dist/chart.d.ts",
+        "import": "./dist/chart.js",
+        "default": "./dist/chart.js"
+      }
+    },
+    "types": "./dist/index.d.ts"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/ai"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "ai",
+    "simulation",
+    "prototype"
+  ]
 }

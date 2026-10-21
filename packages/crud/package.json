@@ -6,7 +6,9 @@
   "type": "module",
   "sideEffects": [
     "**/*.css",
-    "**/*.svelte"
+    "**/*.svelte",
+    "dist/**/*.css",
+    "dist/**/*.svelte"
   ],
   "exports": {
     ".": {
@@ -15,6 +17,7 @@
       "default": "./src/index.ts"
     },
     "./registry-meta": "./src/registry-meta.ts",
+    "./styles.css": "./src/styles.css",
     "./app": {
       "types": "./src/app/index.ts",
       "svelte": "./src/app/index.ts",
@@ -88,5 +91,109 @@
   "peerDependencies": {
     "svelte": "^5.57.0"
   },
-  "svelte": "./src/index.ts"
+  "protoyard": {
+    "build": {
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./registry-meta": {
+        "types": "./dist/registry-meta.d.ts",
+        "svelte": "./dist/registry-meta.js",
+        "default": "./dist/registry-meta.js"
+      },
+      "./styles.css": {
+        "types": "./dist/styles.css.d.ts",
+        "svelte": "./dist/styles.css",
+        "default": "./dist/styles.css"
+      },
+      "./app": {
+        "types": "./dist/app/index.d.ts",
+        "svelte": "./dist/app/index.js",
+        "default": "./dist/app/index.js"
+      },
+      "./screens/list": {
+        "types": "./dist/EntityList.svelte.d.ts",
+        "svelte": "./dist/EntityList.svelte",
+        "default": "./dist/EntityList.svelte"
+      },
+      "./screens/form": {
+        "types": "./dist/EntityForm.svelte.d.ts",
+        "svelte": "./dist/EntityForm.svelte",
+        "default": "./dist/EntityForm.svelte"
+      },
+      "./screens/settings": {
+        "types": "./dist/screens/settings/index.d.ts",
+        "svelte": "./dist/screens/settings/index.js",
+        "default": "./dist/screens/settings/index.js"
+      },
+      "./screens/calendar": {
+        "types": "./dist/screens/calendar/index.d.ts",
+        "svelte": "./dist/screens/calendar/index.js",
+        "default": "./dist/screens/calendar/index.js"
+      },
+      "./screens/map": {
+        "types": "./dist/screens/map/index.d.ts",
+        "svelte": "./dist/screens/map/index.js",
+        "default": "./dist/screens/map/index.js"
+      },
+      "./screens/board": {
+        "types": "./dist/screens/board/index.d.ts",
+        "svelte": "./dist/screens/board/index.js",
+        "default": "./dist/screens/board/index.js"
+      },
+      "./screens/dashboard": {
+        "types": "./dist/screens/dashboard/index.d.ts",
+        "svelte": "./dist/screens/dashboard/index.js",
+        "default": "./dist/screens/dashboard/index.js"
+      },
+      "./screens/analytics": {
+        "types": "./dist/screens/analytics/index.d.ts",
+        "svelte": "./dist/screens/analytics/index.js",
+        "default": "./dist/screens/analytics/index.js"
+      },
+      "./screens/timeline": {
+        "types": "./dist/screens/timeline/index.d.ts",
+        "svelte": "./dist/screens/timeline/index.js",
+        "default": "./dist/screens/timeline/index.js"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/crud"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "crud",
+    "blueprint"
+  ]
 }

@@ -89,9 +89,15 @@ importers:
       '@lucide/svelte':
         specifier: ^1.59.0
         version: 1.59.0(svelte@5.57.2)
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../../packages/blueprint
       '@protoyard/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../../packages/player
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../../packages/themes
@@ -220,6 +226,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@playwright/test':
+        specifier: ^1.64.1
+        version: 1.64.1
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../blueprint
@@ -232,12 +241,18 @@ importers:
       '@protoyard/offline':
         specifier: workspace:*
         version: link:../offline
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../player
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../renderer-svelte
       '@protoyard/review':
         specifier: workspace:*
         version: link:../review
+      '@protoyard/templates':
+        specifier: workspace:*
+        version: link:../templates
       '@protoyard/themes':
         specifier: workspace:*
         version: link:../themes
@@ -271,6 +286,12 @@ importers:
       zod:
         specifier: ^4.6.7
         version: 4.6.7
+
+  packages/create-protoyard:
+    dependencies:
+      protoyard:
+        specifier: workspace:*
+        version: link:../protoyard
 
   packages/crud:
     dependencies:
@@ -364,6 +385,73 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/player:
+    dependencies:
+      '@lucide/svelte':
+        specifier: ^1.59.0
+        version: 1.59.0(svelte@5.57.2)
+      '@protoyard/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@protoyard/ai-ui':
+        specifier: workspace:*
+        version: link:../ai-ui
+      '@protoyard/analytics':
+        specifier: workspace:*
+        version: link:../analytics
+      '@protoyard/analytics-ui':
+        specifier: workspace:*
+        version: link:../analytics-ui
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../blueprint
+      '@protoyard/charts-ui':
+        specifier: workspace:*
+        version: link:../charts-ui
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
+      '@protoyard/crud':
+        specifier: workspace:*
+        version: link:../crud
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../renderer-svelte
+      '@protoyard/saas':
+        specifier: workspace:*
+        version: link:../saas
+      '@protoyard/saas-ui':
+        specifier: workspace:*
+        version: link:../saas-ui
+      '@protoyard/themes':
+        specifier: workspace:*
+        version: link:../themes
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@protoyard/views-ui':
+        specifier: workspace:*
+        version: link:../views-ui
+      dexie:
+        specifier: ^4.4.6
+        version: 4.4.6
+      svelte:
+        specifier: ^5.57.2
+        version: 5.57.2
+    devDependencies:
+      '@protoyard/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../scenarios
+
+  packages/protoyard:
+    dependencies:
+      '@protoyard/cli':
+        specifier: workspace:*
+        version: link:../cli
 
   packages/renderer-svelte:
     dependencies:

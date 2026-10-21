@@ -245,7 +245,17 @@ export function loadUntrustedBlueprint(
   input: unknown,
   limits: Partial<UntrustedBlueprintLimits> = {}
 ): UntrustedBlueprintResult {
-  const caps = { ...DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS, ...limits };
+  const caps = Object.fromEntries(
+    Object.entries(DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS).map(([key, defaultValue]) => {
+      const requested = limits[key as keyof UntrustedBlueprintLimits];
+      return [
+        key,
+        requested === undefined || !Number.isFinite(requested)
+          ? defaultValue
+          : Math.min(defaultValue, requested),
+      ];
+    })
+  ) as unknown as UntrustedBlueprintLimits;
   try {
     let parsed: unknown;
     if (typeof input === 'string') {

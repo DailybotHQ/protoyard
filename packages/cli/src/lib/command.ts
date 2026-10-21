@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import type { Command } from 'commander';
 import {
   CliError,
@@ -40,11 +41,34 @@ export interface CommandResult<T = unknown> {
   keepAlive?: Promise<void>;
 }
 
-export type Handler = (
+export type Handler = ((
   ctx: CommandContext,
   args: string[],
   options: Record<string, unknown>
-) => Promise<CommandResult>;
+) => Promise<CommandResult>) & {
+  /**
+   * Static top-level fields this command adds to EVERY `--json` envelope:
+   * success, failure, and errors thrown before or inside the handler (such as
+   * no workspace). `doctor` uses it for its machine `interface` and
+   * `capabilities`, which a detector reads as a top-level JSON field.
+   */
+  envelope?: Readonly<Record<string, unknown>>;
+};
+
+/** Envelope keys a handler's static fields can never replace. */
+const RESERVED_ENVELOPE_KEYS = new Set(['ok', 'command', 'data', 'error']);
+
+/** Adds a handler's static fields to an envelope without touching its own keys. */
+export function withEnvelopeFields<T extends Record<string, unknown>>(
+  envelope: T,
+  fields: Readonly<Record<string, unknown>> | undefined
+): T {
+  if (!fields) return envelope;
+  const extra = Object.fromEntries(
+    Object.entries(fields).filter(([key]) => !RESERVED_ENVELOPE_KEYS.has(key))
+  );
+  return { ...envelope, ...extra };
+}
 
 export interface RunnerEnv {
   streams?: Streams;
@@ -71,7 +95,12 @@ export function renderError(out: Output, error: CliError) {
 }
 
 /** Wraps a handler as a commander action with the shared envelope + exit codes. */
-export function action(name: string, handler: Handler, env: RunnerEnv) {
+export function action(
+  name: string,
+  handler: Handler,
+  env: RunnerEnv,
+  actionOptions: { allowNoWorkspace?: boolean } = {}
+) {
   return async (...raw: unknown[]) => {
     const command = raw[raw.length - 1] as Command;
     const options = command.optsWithGlobals() as Record<string, unknown> & GlobalOptions;
@@ -81,21 +110,38 @@ export function action(name: string, handler: Handler, env: RunnerEnv) {
     const out = makeOutput(options, env.streams);
     let result: CommandResult;
     try {
-      const root = resolveWorkspaceRoot({ root: options.root, cwd: options.cwd });
+      let root: string;
+      try {
+        root = resolveWorkspaceRoot({ root: options.root, cwd: options.cwd });
+      } catch (error) {
+        if (
+          !actionOptions.allowNoWorkspace ||
+          options.root !== undefined ||
+          process.env.PROTOYARD_ROOT !== undefined ||
+          !(error instanceof CliError && error.message.startsWith('No Protoyard workspace found'))
+        ) {
+          throw error;
+        }
+        root = resolve(options.cwd ?? process.cwd());
+      }
       const ctx = createContext(root, out, Boolean(options.yes));
       result = await handler(ctx, args, options);
     } catch (error) {
       const err = toCliError(error);
-      if (out.options.json) out.json(errorEnvelope(name, err));
+      if (out.options.json)
+        out.json(withEnvelopeFields({ ...errorEnvelope(name, err) }, handler.envelope));
       else renderError(out, err);
       env.setExitCode(err.exitCode);
       return;
     }
     if (out.options.json) {
       out.json(
-        result.failure
-          ? { ...errorEnvelope(name, result.failure), data: result.data }
-          : successEnvelope(name, result.data)
+        withEnvelopeFields(
+          result.failure
+            ? { ...errorEnvelope(name, result.failure), data: result.data }
+            : { ...successEnvelope(name, result.data) },
+          handler.envelope
+        )
       );
     } else {
       result.render?.(out);

@@ -35,6 +35,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import {
+  copyFileSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -58,10 +59,13 @@ import { THEME_LIBRARY_META } from '../packages/themes/src/library/registry.ts';
 import { THEME_COLLECTIONS } from '../packages/themes/src/library/types.ts';
 import { type StaticServer, serveDirectory } from './lib/static-server.ts';
 import {
+  axeRuleViolations,
   buildMatrix,
   type FitMetrics,
   fitFlags,
   MEASURE_FIT,
+  PLAYER_BLUEPRINT_SOURCE,
+  PLAYER_TARGET,
   parseSweepArgs,
   renderContactSheet,
   resolveThemes,
@@ -70,6 +74,7 @@ import {
   type SweepArgs,
   type SweepShell,
   type SweepTarget,
+  selectPlayerTarget,
   shotUrl,
   summarize,
   VIEWPORTS,
@@ -112,9 +117,12 @@ function discover(args: SweepArgs): SweepTarget[] {
       });
     }
   }
-  const missing = args.only.filter((slug) => !targets.some((target) => target.slug === slug));
+  const selectedTargets = selectPlayerTarget(targets, args.only.includes(PLAYER_TARGET.slug));
+  const missing = args.only.filter(
+    (slug) => !selectedTargets.some((target) => target.slug === slug)
+  );
   if (missing.length) throw new Error(`Unknown prototype(s) or template(s): ${missing.join(', ')}`);
-  return targets;
+  return selectedTargets;
 }
 
 /** True for any symlink, including a dangling one that existsSync reports as missing. */
@@ -160,9 +168,33 @@ function build(command: string[]): string | null {
 
 /** Where each target is served from: its own dist, or the showcase for template demos. */
 function appRoot(target: SweepTarget): { dir: string; path: string } {
-  return target.kind === 'template'
-    ? { dir: join(ROOT, 'artifacts', 'showcase'), path: `/t/${target.slug}/app/` }
-    : { dir: join(ROOT, 'artifacts', target.slug, 'dist'), path: '/' };
+  if (target.kind === 'template') {
+    return { dir: join(ROOT, 'artifacts', 'showcase'), path: `/t/${target.slug}/app/` };
+  }
+  if (target.kind === 'player')
+    return { dir: join(ROOT, 'tmp', 'visual-sweep-player-app'), path: '/' };
+  return { dir: join(ROOT, 'artifacts', target.slug, 'dist'), path: '/' };
+}
+
+function buildPlayer(): string | null {
+  const output = join(ROOT, 'tmp', 'visual-sweep-player-app');
+  const error = build([
+    '--filter',
+    '@protoyard/player',
+    'exec',
+    'vite',
+    'build',
+    '--outDir',
+    output,
+    '--emptyOutDir',
+  ]);
+  if (error) return error;
+  const blueprintPath = PLAYER_BLUEPRINT_SOURCE.replace(/^\.\//, '');
+  const source = join(ROOT, blueprintPath);
+  const destination = join(output, blueprintPath);
+  mkdirSync(dirname(destination), { recursive: true });
+  copyFileSync(source, destination);
+  return null;
 }
 
 async function captureShot(
@@ -191,7 +223,9 @@ async function captureShot(
           () => document.querySelector<HTMLElement>('[data-py-theme]')?.dataset.pyTheme ?? null
         );
         const axe = args.axe
-          ? (await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations.length
+          ? axeRuleViolations(
+              (await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()).violations
+            )
           : null;
         return { png, metrics, axe, appliedTheme };
       }
@@ -202,7 +236,8 @@ async function captureShot(
     return {
       ...shot,
       ok: true,
-      axeViolations: result.axe,
+      axeViolations: result.axe === null ? null : result.axe.length,
+      ...(result.axe === null ? {} : { axeRules: result.axe }),
       flags: [
         ...fitFlags(result.metrics),
         ...(shot.theme && result.appliedTheme !== shot.theme
@@ -290,6 +325,11 @@ async function main() {
         if (error) buildErrors.set(target.slug, error);
       }
       console.log(`${error ? '✗' : '✓'} built the showcase (template demos)`);
+    }
+    if (targets.some((target) => target.kind === 'player')) {
+      const error = buildPlayer();
+      if (error) buildErrors.set('player', error);
+      console.log(`${error ? '✗' : '✓'} built the player (assistant blueprint)`);
     }
   }
 

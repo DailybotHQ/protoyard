@@ -20,6 +20,23 @@ describe('workspace performance budgets', () => {
     expect(parseBudgetConfig(DEFAULT_BUDGET_CONFIG)).toEqual(DEFAULT_BUDGET_CONFIG);
   });
 
+  it('accepts a quickReadyMs budget, null until calibrated, and refuses nonsense', () => {
+    const base = { ...DEFAULT_BUDGET_CONFIG, defaults: { ...DEFAULT_BUDGET_CONFIG.defaults } };
+    expect(DEFAULT_PERFORMANCE_BUDGETS.quickReadyMs).toBeNull();
+    expect(
+      parseBudgetConfig({ ...base, defaults: { ...base.defaults, quickReadyMs: 12_000 } }).defaults
+        .quickReadyMs
+    ).toBe(12_000);
+    const { quickReadyMs: _omitted, ...withoutKey } = base.defaults;
+    expect(parseBudgetConfig({ ...base, defaults: withoutKey }).defaults.quickReadyMs).toBeNull();
+    for (const bad of [0, -1, Number.POSITIVE_INFINITY, '12000']) {
+      expect(
+        () => parseBudgetConfig({ ...base, defaults: { ...base.defaults, quickReadyMs: bad } }),
+        String(bad)
+      ).toThrow();
+    }
+  });
+
   it('uses built-in defaults when the workspace file is missing', async () => {
     ws = createWorkspace();
     const config = await loadBudgets(ws.root);

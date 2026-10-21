@@ -11,7 +11,7 @@ Nothing here imports Svelte, Dexie or Node APIs.
 | --- | --- |
 | `manifest.ts` | `PrototypeManifestSchema` for `protoyard.json` (id, slug, kind, platform, `preview` (viewport, `shell`, `device`, `orientation`, `chrome` with fictional-only origins, optional `layout`), storage namespace + schemaVersion, build flags, scenario ids), `ShellSchema`, `resolveShell` (`auto` → `phone` for mobile, else `none`), the optional marketplace `catalog` block (`CatalogSchema`, `CATALOG_CATEGORIES`), `parseManifest`, `MANIFEST_FILENAME` |
 | `slug.ts` | `checkSlug` / `isValidSlug` / `slugify`, reserved slugs. This is the path-safety gate for the CLI. |
-| `prototype.ts` | `definePrototype` and `PrototypeDefinition` (manifest, `DatabaseDefinition` versions/migrations, scenarios, `generate`, `generatorVersion`, `policy`, `integrity`, `themes`, `timeline`, `applyEvent`), `WorldSeed`, `GenerateContext`, `RESERVED_TABLES` |
+| `prototype.ts` | `definePrototype` and `PrototypeDefinition` (manifest, `DatabaseDefinition` versions/migrations, scenarios, `generate`, optional context-free `generateWorld(scenario)` used for scenario loads, `generatorVersion`, `policy`, `integrity`, `themes`, `timeline`, `applyEvent`), `WorldSeed`, `GenerateContext`, `RESERVED_TABLES` |
 | `scenario.ts` | `ScenarioSchema` and its independent axes (organization, actor, density, activity, environment, appearance, generator knobs), `defineScenario`, `parseScenarioLink` / `buildScenarioLink` for safe reproducible links (including `?shell=` and `?layout=`) |
 | `manifest.ts` | `PrototypeManifestSchema` for `protoyard.json` (id, slug, kind, platform, `preview` (viewport, `shell`, `device`, `orientation`, `chrome` with fictional-only origins), storage namespace + schemaVersion, build flags including the optional `build.review` (`ReviewBuildSchema`, `resolveReviewBuild`: adapter `local`/`cloudflare`/`http`/`artifact`, safe endpoint, Cloudflare store `kv`/`d1`; ADR-025), scenario ids), `ShellSchema`, `resolveShell` (`auto` → `phone` for mobile, else `none`), the optional marketplace `catalog` block (`CatalogSchema`, `CATALOG_CATEGORIES`), `parseManifest`, `MANIFEST_FILENAME` |
 | `scenario.ts` | `ScenarioSchema` and its independent axes (organization, actor, density, activity, environment, appearance, generator knobs), `defineScenario`, `parseScenarioLink` / `buildScenarioLink` for safe reproducible links (including `?shell=`, and `review` from `?comments=0/1` and `?review=<key>`, `REVIEW_KEY_PATTERN`) |
@@ -55,3 +55,7 @@ const policy = createPermissionPolicy({
 - Tests live in `tests/*.test.ts` (`core.test.ts`, `devices.test.ts`, `review.test.ts`, `session-auth.test.ts`, `theme.test.ts`, `validation.test.ts`). Run them with
   `pnpm vitest run packages/core` and type-check with
   `pnpm --filter @protoyard/core typecheck`.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

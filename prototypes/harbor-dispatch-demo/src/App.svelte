@@ -1,86 +1,37 @@
 <script lang="ts">
-import {
-  avatarImage,
-  createRouter,
-  Router,
-  useAppearance,
-  usePrincipal,
-} from '@protoyard/renderer-svelte';
-import { LayoutHost, navFromSidebar } from '@protoyard/ui';
-import { onDestroy, onMount } from 'svelte';
-import AppSearch from './components/AppSearch.svelte';
-import { layout, navGroups } from './generated/layout.ts';
-import { nav, routes } from './generated/routes.ts';
-import { provideCrudApp } from './lib/context.ts';
+import { ErrorState, LoadingState } from '@protoyard/ui';
+import { blueprint } from './generated/blueprint.ts';
 
-const { runtime } = provideCrudApp();
-const principal = usePrincipal();
-const appearance = useAppearance();
-let viewportWidth = $state(typeof window === 'undefined' ? 0 : window.innerWidth);
-
-onMount(() => {
-  const updateWidth = () => (viewportWidth = window.innerWidth);
-  window.addEventListener('resize', updateWidth);
-  return () => window.removeEventListener('resize', updateWidth);
+/**
+ * The shared blueprint app shell (@protoyard/crud/app), the same one the player
+ * runs. It loads as its own chunk, so the first download stays small. This file
+ * is yours: pass `home`, `extraRoutes`, `recordHref` or an `actions` snippet
+ * to BlueprintApp to customize the app.
+ */
+let attempt = $state(0);
+const shell = $derived.by(() => {
+  void attempt;
+  return import('@protoyard/crud/app');
 });
 
-const router = createRouter([...routes], { titleSuffix: runtime.manifest.name });
-onDestroy(() => router.destroy());
-
-const appearanceLayout = $derived(
-  appearance.current.layout.source === 'override' || appearance.current.layout.source === 'scenario'
-    ? appearance.current.layout.value
-    : layout.id
-);
-const activeLayout = $derived(
-  layout.mobile &&
-    viewportWidth > 0 &&
-    viewportWidth < 768 &&
-    appearance.current.layout.source !== 'override' &&
-    appearance.current.layout.source !== 'scenario'
-    ? layout.mobile
-    : appearanceLayout
-);
-const items = $derived(
-  nav.map((item) => ({
-    href: `#${item.path}`,
-    label: item.label,
-    icon: item.icon,
-    active: router.isActive(item.path, 'exact' in item && item.exact),
-  }))
-);
-const sections = $derived(
-  navGroups
-    .map((group) => ({
-      label: group.label,
-      items: group.paths.flatMap((path) => {
-        const item = items.find((candidate) => candidate.href === `#${path}`);
-        return item ? [item] : [];
-      }),
-    }))
-    .filter((group) => group.items.length > 0)
-);
-const layoutNav = $derived(
-  navFromSidebar(sections, {
-    brand: { label: runtime.manifest.name, icon: 'folder-kanban' },
-    ...(principal.current
-      ? {
-          user: {
-            image: avatarImage(principal.current.persona.avatar),
-            name: principal.current.persona.name,
-            detail: principal.current.persona.title ?? principal.current.role ?? '',
-          },
-        }
-      : {}),
-  })
-);
+/** Theme library choices for the settings screen, loaded only when it opens. */
+async function themeLibrary() {
+  const { THEME_LIBRARY_META } = await import('@protoyard/themes/library');
+  return THEME_LIBRARY_META.map(({ id, name }) => ({ id, name }));
+}
 </script>
 
-<LayoutHost layout={activeLayout} nav={layoutNav} storageKey={runtime.manifest.storage.namespace}>
-  <div class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8">
-    <div class="mb-4 flex justify-end gap-2">
-      <AppSearch />
-    </div>
-    <Router {router} />
-  </div>
-</LayoutHost>
+{#await shell}
+  <LoadingState label="Loading the prototype" class="py-16" />
+{:then { BlueprintApp }}
+  <BlueprintApp {blueprint} {themeLibrary} />
+{:catch error}
+  <ErrorState
+    title="The prototype could not be loaded"
+    message={error instanceof Error ? error.message : String(error)}
+    onRetry={() => {
+      attempt += 1;
+    }}
+    retryLabel="Try again"
+  />
+{/await}

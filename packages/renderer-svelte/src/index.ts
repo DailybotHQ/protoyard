@@ -31,23 +31,14 @@ export {
 export { getRuntime, provideRuntime, setMountedRuntime } from './context.ts';
 export { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED, REVIEW_ENABLED } from './flags.ts';
 export {
+  applyBuildOptions,
+  type MountBuildOptions,
   type MountedPrototype,
   type MountPrototypeOptions,
   mountPrototype,
   type RuntimeFactoryOptions,
 } from './mount.ts';
 export { describeLoadProgress } from './progress.ts';
-export { default as Link } from './router/Link.svelte';
-export {
-  compilePattern,
-  normalizePath,
-  type ParsedLocation,
-  parseHash,
-  type RouteParams,
-  toHref,
-} from './router/match.ts';
-export { default as NotFound } from './router/NotFound.svelte';
-export { default as Router } from './router/Router.svelte';
 export {
   back,
   createRouter,
@@ -64,7 +55,18 @@ export {
   type Router as HashRouter,
   type RouterOptions,
   redirectWithNext,
-} from './router/router.svelte.ts';
+} from './router/hash-router.svelte.ts';
+export { default as Link } from './router/Link.svelte';
+export {
+  compilePattern,
+  normalizePath,
+  type ParsedLocation,
+  parseHash,
+  type RouteParams,
+  toHref,
+} from './router/match.ts';
+export { default as NotFound } from './router/NotFound.svelte';
+export { default as Router } from './router/Router.svelte';
 export {
   isValidationError,
   type RunServiceOptions,

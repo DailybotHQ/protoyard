@@ -144,3 +144,7 @@ const reply = `Signups peaked on Wednesday.\n\n${chartBlock({
     series. Strings are bounded and unknown keys are rejected.
   - Every series needs one value per label. Donut, pie and funnel charts take
     one non-negative series.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

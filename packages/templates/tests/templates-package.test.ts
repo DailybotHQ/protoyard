@@ -103,7 +103,7 @@ describe('copyTemplates (prepack) and cleanTemplates (postpack)', () => {
     expect(result.files).toBe(expectedFiles);
   });
 
-  it('never follows symlinks, drops secrets and build output, and cleans up', () => {
+  it('copies only git-tracked files, never follows symlinks, drops secrets and build output, and cleans up', () => {
     const root = tempDir('protoyard-templates-fixture-');
     const source = join(root, 'src-templates');
     const outside = join(root, 'outside.txt');
@@ -118,6 +118,14 @@ describe('copyTemplates (prepack) and cleanTemplates (postpack)', () => {
     write(join(source, 'one', 'test-results', 'r.json'), '{}');
     symlinkSync(outside, join(source, 'one', 'link.txt'));
     write(join(source, 'not-a-template', 'README.md'), '#');
+    const git = (...args: string[]) => {
+      const run = spawnSync('git', ['-C', source, ...args], { encoding: 'utf8' });
+      expect(run.status, run.stderr).toBe(0);
+    };
+    git('init', '--quiet');
+    git('add', '--all', '--force');
+    // Untracked: a local file in a checkout never ships.
+    write(join(source, 'one', 'src', 'Local.svelte'), '<p>local</p>');
 
     const destination = join(root, 'packed');
     expect(copyTemplates(source, destination)).toEqual({ templates: 1, files: 4 });
@@ -128,8 +136,17 @@ describe('copyTemplates (prepack) and cleanTemplates (postpack)', () => {
       'src',
       'tests',
     ]);
+    expect(readdirSync(join(destination, 'one', 'src'))).toEqual(['App.svelte']);
     cleanTemplates(destination);
     expect(existsSync(destination)).toBe(false);
+  });
+
+  it('refuses a source outside any git checkout', () => {
+    const source = join(tempDir('protoyard-templates-nogit-'), 'templates');
+    write(join(source, 'one', 'protoyard.json'), '{}');
+    expect(() => copyTemplates(source, join(source, '..', 'packed'))).toThrow(
+      /git-tracked files only/
+    );
   });
 });
 

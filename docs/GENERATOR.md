@@ -17,9 +17,10 @@ The decision is recorded in [ADR-017](DECISIONS.md#adr-017--data-only-blueprints
 | --- | --- |
 | [`@protoyard/blueprint`](../packages/blueprint/README.md) | Framework-agnostic. The zod schema and JSON Schema, plus the derivations: stores and integrity, migrations, input validation, policy, generator and entity services (`session.assert` → zod → `environment.run` → `db.transaction`). |
 | [`@protoyard/crud`](../packages/crud/README.md) | Svelte CRUD kit: `EntityList`, `EntityForm`, `EntityDetail`, `RelationPicker`, `NotificationsBell`, `MembersScreen`. |
-| `templates/crud-app` | The base template `generate` copies: AppShell navigation, entity pages, search palette, members and notifications. |
+| `templates/crud-app` | The base template `generate` copies: an `App.svelte` that renders the shared `BlueprintApp` shell from `@protoyard/crud/app`, the scenarios, the stylesheet and the spec docs. |
 | `protoyard generate` / `protoyard blueprint validate` | CLI commands that validate, generate, regenerate and check drift. |
 | [`blueprints/`](../blueprints/README.md) | A catalog of branded example blueprints you can generate from. |
+| [`blueprints/quick/`](../blueprints/quick/README.md) | Compact archetype starters with kit, route, source-size and validation-exercise metadata. |
 
 ## The loop
 
@@ -74,6 +75,68 @@ authoring tools can call `validateBlueprintForAuthoring(input)` from
 hints. The result uses `BlueprintSchema`, so a shape-only JSON Schema pass is not reported as
 full blueprint validity. Existing `parseBlueprint` and `safeParseBlueprint` behavior is
 unchanged.
+
+## Agent authoring loop
+
+The distributable skill walks agents through this loop in its
+[`protoyard-new` flow](../skills/protoyard/new/SKILL.md), with a
+[blueprint reference](../skills/protoyard/references/blueprints.md) that maps
+this page.
+
+Keep the blueprint as the source of truth and make each generated result reviewable. Brief
+synthesis, validation and shape imports run locally. Pass `--no-install` to generation when the
+workspace dependencies are already linked and the loop must not invoke a package install:
+
+```bash
+# Let the local synthesizer draft a blueprint.
+printf '%s\n' 'A fictional team assistant that organizes conversations and messages.' \
+  | pnpm protoyard blueprint new tmp/my-assistant.blueprint.json --from-brief - --dry-run
+
+# After reviewing the rationale, write the synthesized draft and check it.
+printf '%s\n' 'A fictional team assistant that organizes conversations and messages.' \
+  | pnpm protoyard blueprint new tmp/my-assistant.blueprint.json --from-brief -
+pnpm protoyard blueprint validate tmp/my-assistant.blueprint.json
+
+# Review planned paths first, then generate when the draft is ready.
+pnpm protoyard generate my-assistant --blueprint tmp/my-assistant.blueprint.json --dry-run --no-install
+pnpm protoyard generate my-assistant --blueprint tmp/my-assistant.blueprint.json --no-install
+```
+
+When the idea started as a `protoyard quick` exploration, `pnpm protoyard quick promote
+<exploration> <slug>` runs the same generation from its blueprint and checks the result is the
+same app ([Promoting a quick exploration](#promoting-a-quick-exploration)).
+
+For hand-authored JSON, use the exported [JSON Schema](../packages/blueprint/schema/blueprint.schema.json)
+for editor completion, then run `blueprint validate`: the schema checks shape, while the package
+parser also checks entity, field, route and archetype references. For agent interfaces that need
+machine-readable repair steps, call `validateBlueprintForAuthoring(input)` and show each
+diagnostic's `jsonPath`, `message` and `hint`; apply a focused edit and validate again. The CLI
+reports issues but does not expose that helper's hint structure.
+
+When an idea starts from existing data or a database definition, the package's lazy authoring
+modules infer a value-free draft: `inferCsvEntity` from `@protoyard/blueprint/import/csv-shape`,
+`inferJsonShape` from `@protoyard/blueprint/import/json-shape`, or `importSqliteSchema` from
+`@protoyard/blueprint/import/sqlite-schema`. Review their notes and inferred relations; JSON shape
+inference also returns relation candidates, while SQLite imports map supported foreign keys. Add
+the draft entities to a complete blueprint with roles and screens, then validate it. Imports inspect
+shape only; they do not copy rows, SQL defaults or sample values. See the runnable interface
+examples and parser limits in the
+[blueprint package guide](../packages/blueprint/README.md).
+
+Choose `blueprint.archetype` when an assistant, team-chat, SaaS-onboarding or analytics kit adapter
+is part of the first experience. The portable block maps entity slots, screens, scenario defaults
+and allow-listed lazy kit entry points; it is metadata, never executable code. Start from the
+[quick catalog](../blueprints/quick/README.md) when one of its compact examples fits, or use
+`blueprint new --archetype <id>` to steer brief synthesis.
+
+Declare common list, detail, form and kit-backed views in the blueprint, including per-entity
+`screenDefaults`, so both the player and generated prototypes can render them from data. The
+optional `@protoyard/blueprint/workflows` module validates a data-only state model separately; it
+is not embedded in formatVersion 1 or wired into generated services. Product-specific transitions,
+multi-step interactions and screens therefore still belong in owned Svelte files and services.
+Never edit `src/generated/**`: refine the blueprint and regenerate, then add custom behavior in
+owned files that call the generated entity services. Use
+[From a brief to a prototype](BRIEF_TO_PROTOTYPE.md) for the full review, test and export path.
 
 ## The blueprint format
 
@@ -299,16 +362,15 @@ this is still a simulation, not security. The crud-app scenarios use the roles
   full option list and every cross-reference check are in the
   [`@protoyard/blueprint` README](../packages/blueprint/README.md). Each screen
   can set `path` (defaults such as `/<plural>/board` or `/dashboard`), `title`
-  and `nav`. Generation emits a typed lazy route wrapper for each declaration;
-  its screen config is read from `blueprint.screens` through `useCrudApp()`, so
-  generated files do not inline stale JSON literals. An entity without
+  and `nav`. The app shell routes each declaration to its screen at runtime and
+  reads its config from `blueprint.screens`, so nothing inlines stale JSON
+  literals. An entity without
   `screenDefaults` keeps its legacy list and detail routes. With defaults,
   only the listed CRUD views are synthesized as ordinary screens; a top-level
   screen of the same entity and type remains authoritative for route and options.
   Screen behavior comes from the typed `screenKinds` registry in
-  `@protoyard/crud`; codegen reads Svelte-free import metadata from
-  `@protoyard/crud/registry-meta`, while each view-kit component stays in its
-  matching lazy `@protoyard/crud/screens/*` entry. For styling, see the CSS
+  `@protoyard/crud`, and each view-kit component stays in its matching lazy
+  `@protoyard/crud/screens/*` entry. For styling, see the CSS
   setup below and the CRUD README.
 - `brand`: a `seed` color (`#rrggbb`) and/or a built-in `preset`, plus optional
   `secondary`, `styleProfile`, `font`, `radius` and `density`. `generate`
@@ -356,8 +418,10 @@ There is no expression language: the operator list is closed, values are
 literals, and nothing from the blueprint is evaluated as code. Parsing checks
 that task ids are unique, that entities and fields exist, and that value types
 fit the field. `evaluateValidationSuccess(success, { route, rows, baseline })`
-in `@protoyard/blueprint` is pure and deterministic. Today the library parses,
-checks and evaluates the block; no screen shows the tasks yet.
+in `@protoyard/blueprint` is pure and deterministic. The player shows them in a
+validation panel (lazy, loaded only when the blueprint has tasks): it times each
+task, keeps attempts in the browser and downloads a metrics file. There is no
+CLI report of those sessions yet.
 
 ### Variants
 
@@ -430,6 +494,35 @@ derivation, including `brandDefaultThemeId` for the default theme, so a
 blueprint behaves the same before and after `generate`. See the
 [package README](../packages/blueprint/README.md#runtime-definition).
 
+## Promoting a quick exploration
+
+An exploration made with `protoyard quick` already runs its blueprint in the
+player. When it should become a prototype you own and extend, promote it:
+
+```bash
+pnpm protoyard quick promote <exploration> my-idea              # its slug or its folder
+pnpm protoyard quick promote <exploration> my-idea --variant v2 # one of its --variants
+pnpm protoyard quick promote <exploration> my-idea --no-install
+```
+
+Promotion runs the `generate` pipeline in process with the exploration's
+`blueprint.json` (or the variant's), so `prototypes/my-idea` is an ordinary
+generated prototype. It needs a workspace (otherwise a `not_found` error with
+`data.reason: "no_workspace"`), and it never replaces anything: any existing
+`prototypes/<slug>` is a `conflict`, even one `generate` made. The blueprint is
+read as untrusted input and must still match the sha256 that `quick.json`
+recorded.
+
+After generating, it checks the folder contract, the blueprint drift check that
+`validate` runs, and parity with the exploration: the written `blueprint.json`
+has the same identity and derives the same database versions. Only when every
+check passes does it record `promotedTo` (`slug`, `variant`, `at`) in
+`quick.json`. A failing check exits 4 and leaves `quick.json` as it was. Since
+both paths build from the same blueprint, the generated prototype seeds the
+same world as the player for the same scenario; `packages/cli/tests/quick-promote.test.ts`
+proves it on a real promotion. Then continue with the usual loop:
+`pnpm vitest run prototypes/my-idea` and `pnpm protoyard validate my-idea --build`.
+
 ## What `generate` writes
 
 `generate` copies `templates/crud-app` into a hidden staging folder, writes the
@@ -446,27 +539,40 @@ slug, and re-indexes.
 | `src/generated/policy.ts` | generated | `derivePolicy(blueprint)`. |
 | `src/generated/services.ts` | generated | `createEntityServices(runtime, blueprint)`. |
 | `src/generated/scenarios.ts` | generated | The world generator, loaded lazily so Faker stays out of the initial chunk. |
-| `src/generated/routes.ts` | generated | Hash routes (`#/`, `#/<plural>`, `#/<plural>/:id`, `#/members`) and sidebar entries. Every screen is a lazy chunk. |
-| `src/generated/layout.ts` | generated | The selected `layout.id`, optional mobile layout, and grouped navigation derived from blueprint screens. |
-| `src/generated/screens/<Entity>Page.svelte` | generated | One lazy screen per entity. |
-| `src/generated/screens/<DeclaredScreen>.svelte` | generated | Typed lazy wrappers for declared board, calendar, map, analytics, dashboard, settings and detail-tab routes. Wrappers read their config from `blueprint.screens`. |
 | `src/generated/brand-theme.ts` | generated | Only with `brand`. |
 | `src/generated/blueprint.snapshot.json` | managed | The blueprint the generated code reflects, and its schema version. |
-| `src/App.svelte`, `src/screens/Home.svelte`, `README.md`, `tests/generators.test.ts`, `tests/services.test.ts` | owned | Written once, from the blueprint. |
-| everything else | owned | Copied from the template (entity page, search palette, members, scenarios, spec docs). |
+| `src/App.svelte` | owned | Lazily loads `BlueprintApp` from `@protoyard/crud/app` and renders it with the generated blueprint. |
+| `src/prototype.ts` | owned | Only with a built `brand`: registers the brand theme. It declares `generatorVersion: blueprintGeneratorVersion(blueprint)`, so a changed blueprint reseeds stored worlds. |
+| `README.md`, `tests/generators.test.ts`, `tests/services.test.ts` | owned | Written once, from the blueprint. |
+| everything else | owned | Copied from the template (scenarios, stylesheet, spec docs). |
 
-`routes.ts` and `layout.ts` print one data model, `deriveAppModel(blueprint)` from
-`@protoyard/blueprint` ([ADR-029](DECISIONS.md)). It holds the routes (what each
-one renders), the sidebar rows with icon ids, the navigation groups and the
-layout. The same model is meant for a renderer that runs a blueprint without
-generating code. The generator holds no navigation logic of its own:
-`routesModule` and `layoutModule` in `packages/cli/src/lib/codegen/emit.ts` only
-print the model, mapping icon ids to Lucide components and each route's `view`
-to its lazy import. `packages/blueprint/tests/app-model.test.ts` checks the model
-byte for byte against the emitted files for every catalog blueprint, and
-`packages/cli/tests/codegen-model.test.ts` checks that the printer reproduces the
-committed `routes.ts` and `layout.ts` of every generated prototype, so
-regenerating them produces no drift.
+The app has no generated routes, layout or screen files. `src/App.svelte` renders
+`BlueprintApp` from `@protoyard/crud/app`, which derives everything from
+`deriveAppModel(blueprint)` in `@protoyard/blueprint` ([ADR-029](DECISIONS.md)):
+- the routes, and what each one renders;
+- the sidebar rows, with icon ids;
+- the navigation groups and the layout.
+
+The player runs the same shell, so a blueprint is the same app at both levels.
+Customize a generated app in its owned `App.svelte` through `BlueprintApp`'s
+optional props:
+- `home`: a component that replaces the overview;
+- `extraRoutes`: hand-written routes matched first;
+- `recordHref`: where a record opens from its list row or search;
+- `actions`: a snippet that replaces the header's search and bell.
+
+The help desk below uses all four.
+
+Four tests pin this:
+- `packages/blueprint/tests/app-model.test.ts` pins the model of every catalog
+  blueprint (`__snapshots__/app-model.catalog.json`).
+- `packages/cli/tests/codegen-model.test.ts` checks that the generator emits no
+  route-shaped files and that every generated prototype matches what it emits.
+- `packages/blueprint/tests/runtime-parity.test.ts` proves a generated prototype
+  and the player agree on storage, policy, scenarios, generator version, routes,
+  navigation, layout and the seeded world.
+- `templates/crud-app/tests/app.test.ts` drives the template app in a browser
+  environment.
 
 The manifest gets id `local.<slug>`, namespace `<slug>`, `storage.schemaVersion: 1`,
 the template's scenarios (`empty`, `active`, `viewer`, `massive`) and the
@@ -476,21 +582,22 @@ rewrites them.
 
 Set the optional top-level `layout` to `{ "id": "top-nav", "mobile": "mobile-tabs" }`
 to choose a registered desktop layout and an optional narrow-screen layout.
-The default is `sidebar`. Regeneration updates `src/generated/layout.ts` and
-the generated `App.svelte` reads that module, builds grouped navigation from
-the blueprint screens and wraps the router in `LayoutHost`. Runtime layout
-overrides still take precedence; the generated mobile choice applies below
-768 px unless a scenario or explicit override selects another layout.
-Regeneration leaves an owned `src/App.svelte` untouched. For older generated
-apps that do not consume the module, `generate` warns that the selected
-layout is not applied. See [LAYOUTS.md](LAYOUTS.md) for the shared catalog and
+The default is `sidebar`. `BlueprintApp` reads the layout from the blueprint,
+builds grouped navigation from its screens and wraps the router in
+`LayoutHost`, so a layout change regenerates only `blueprint.json` and its
+snapshot. Runtime layout overrides still take precedence; the mobile choice
+applies below 768 px unless a scenario or explicit override selects another
+layout. Regeneration leaves an owned `src/App.svelte` untouched. When an owned
+app no longer renders `BlueprintApp`, `generate` warns that the selected layout
+is not applied. See [LAYOUTS.md](LAYOUTS.md) for the shared catalog and
 the manual adoption path.
 
-The `crud-app` template also imports the stylesheets for `views-ui`,
-`charts-ui` and `analytics-ui`, and registers each package source with Tailwind
-using `@source`. Keep these imports and sources when adding view-based screens
-to a hand-built consumer; otherwise their utility classes may be absent from
-the production CSS. See [`packages/crud/README.md`](../packages/crud/README.md).
+The `crud-app` template also imports the stylesheets for `@protoyard/crud`,
+`views-ui`, `charts-ui` and `analytics-ui`. Each kit stylesheet registers its
+own folder with Tailwind (`@source "./"`), so an app never points `@source` into
+another package (that path would point at nothing once installed from npm). Keep
+these imports in a hand-built consumer; otherwise the shell's and the kits'
+utility classes may be absent from the production CSS. See [`packages/crud/README.md`](../packages/crud/README.md).
 
 ## Ownership rules
 
@@ -509,7 +616,7 @@ the production CSS. See [`packages/crud/README.md`](../packages/crud/README.md).
   edited one.
 - **Owned files** are everything else: screens, components, scenarios, tests,
   `App.svelte`, `prototype.ts`. They are yours, and regeneration never touches
-  them. Add routes and screens there. To change seeded data beyond what the
+  them. Add routes and screens there (through `BlueprintApp`'s `extraRoutes`). To change seeded data beyond what the
   blueprint expresses, wrap the generator in `src/scenarios/generators.ts`,
   using only `ctx.rng`, `ctx.ids` and `ctx.time`.
 
@@ -525,7 +632,10 @@ Run `generate` again on an existing generated slug, with the edited
    are backfilled with their default in the browser's existing IndexedDB data,
    so nothing is reset. Changes that only touch labels or copy add no version.
 3. Classifies every generated file as `created`, `changed`, `unchanged`,
-   `conflicted` (hand-edited) or `removed` (a screen of a removed entity).
+   `conflicted` (hand-edited) or `removed`: a file under `src/generated/` the
+   generator no longer emits, with its header intact (the route, layout and
+   screen-wrapper files of prototypes generated before the shared shell). A file
+   there without a generated header is not the generator's and is left alone.
    Owned files are reported as `skipped`.
 4. Refuses the whole run if any generated file was edited by hand (exit 1, with
    the files listed in `data.files`). Nothing is written. `--force` overwrites
@@ -546,6 +656,12 @@ Run `generate` again on an existing generated slug, with the edited
 
 `--dry-run` plans a regeneration without writing. Renames are not supported:
 a renamed entity or field is a drop plus an add (it needs `--allow-drop`).
+
+For an agent, the whole change loop (which files are generated and which are
+owned, `dev`, edit → `--dry-run` → regenerate, handling conflicts and drops,
+`spec --write`, tests and `validate --build`, and `quick iterate` for an
+exploration) is the distributable skill's
+[`iterate` sub-skill](../skills/protoyard/iterate/SKILL.md).
 
 ## Validation and drift
 
@@ -582,6 +698,7 @@ The hand-written owned files add what makes it a real help desk:
 
 | Owned file | Adds |
 | --- | --- |
+| `src/App.svelte` | `BlueprintApp` with the SLA dashboard as `home`, the ticket workspace as an `extraRoutes` entry, tickets opening there from lists and search (`recordHref`), and the help desk search in `actions` |
 | `src/screens/Home.svelte`, `src/lib/metrics.ts` | SLA counters, a status board with move buttons, agent load |
 | `src/screens/TicketWorkspace.svelte` | Drag-and-drop attachments, replies and internal notes, Mark solved |
 | `src/scenarios/helpdesk.ts` | Realistic seeded tickets (support subjects, weighted statuses and priorities, SLA due by priority) |
@@ -601,8 +718,8 @@ Build a Protoyard prototype for <product> from a blueprint.
 2. Run `pnpm protoyard blueprint validate prototypes/<slug>/blueprint.json` until it passes.
 3. Run `pnpm protoyard generate <slug> --blueprint prototypes/<slug>/blueprint.json`.
 4. Never edit src/generated/**. Declare standard CRUD screens in blueprint.json; add
-   product-specific workflows and custom screens in owned files (src/screens,
-   src/App.svelte routes) and call the generated entity services.
+   product-specific workflows and custom screens in owned files (src/screens, passed to
+   BlueprintApp in src/App.svelte as home or extraRoutes) and call the generated entity services.
 5. Run `pnpm vitest run prototypes/<slug>` and `pnpm protoyard validate <slug> --build`.
 6. To change the data model, edit blueprint.json and run step 3 again. Report the
    schema version change.

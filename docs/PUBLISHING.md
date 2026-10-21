@@ -6,6 +6,17 @@ exporting, previewing and putting it on a host. Design decisions: ADR-009
 (hash routing) and ADR-014 (publishing adapters) in
 [DECISIONS.md](DECISIONS.md).
 
+## Agent-assisted ship flow
+
+The distributable [`protoyard-ship` skill](../skills/protoyard/ship/SKILL.md)
+wraps this CLI contract with a reviewable sequence: verify with
+`validate --build`, export or artifact-dry-run, then run
+`publish --provider <p> --dry-run`. The CLI itself does not prompt before a
+preview upload, so the skill requires the developer's explicit approval of
+the provider, project, target and exact command before it runs a live publish.
+Production still requires the CLI's `--yes` guard. npm publication is a
+separate consent checkpoint and is never run as part of prototype export.
+
 ## The commands
 
 | Command | Does | Contacts a provider |
@@ -176,6 +187,53 @@ The ZIP contains the contents of `dist/` (no wrapping folder). To use it:
 - **Upload the contents, not the ZIP**, to the host.
 - A build with a custom `--base` must be served from that path.
 
+## One file from a quick exploration
+
+A quick exploration (level 1, [PLAYER](PLAYER.md)) can travel as **one HTML file**
+that opens by double-clicking, from `file://`, with no server, no install and no
+network:
+
+```bash
+pnpm protoyard quick serve my-idea                  # optional: try it over http first
+pnpm protoyard quick export my-idea --single-file   # → .protoyard/quick/my-idea/my-idea.html
+pnpm protoyard quick export my-idea --single-file --out tmp/share/my-idea.html --force
+```
+
+**What's in the file** (`packages/cli/src/lib/quick/single-file.ts`):
+- the exploration's own built player, its JavaScript and CSS;
+- the blueprint, as an inert `<script type="application/json"
+  id="protoyard-blueprint">` with `<` escaped, so it can never close the
+  element. The player reads it as an untrusted source, like a `#bp=` link.
+
+**How it loads without a server:** browsers don't load module chunks from
+`file://`, so each of the player's chunks is embedded as text. A small bootstrap
+turns them into `blob:` modules behind an import map, with every relative chunk
+import rewritten to a bare `py:assets/…` specifier. The stylesheets are inlined
+up front.
+
+**Policy:** the file carries its own Content-Security-Policy:
+- `connect-src 'none'`, so the page can't reach the network;
+- `script-src 'unsafe-inline' blob:`, because the import map and blob URLs are
+  created at runtime;
+- no service worker; the export refuses a page that would register one.
+
+**Measured on 2026-10-20** over the 40 catalog blueprints: 3,245,592–3,246,497
+bytes, about 1.05 MB gzip. The player dominates, and the blueprint adds a few KB.
+The export refuses files over `QUICK_SINGLE_FILE_BUDGET_BYTES` (4 MiB).
+`packages/cli/tests/quick-single-file.test.ts` checks every catalog blueprint
+against that budget. It also opens an export from `file://` in Chromium: the
+blueprint boots, a lazy screen renders, and a reload reuses the IndexedDB world.
+
+**Limits:**
+- **Generation thread:** worlds generate on the main thread. The generation
+  worker can't start from a `blob:` base, so the player falls back as it does
+  whenever Workers are unavailable.
+- **Avatars:** avatar images aren't embedded; people show initials.
+- **Storage:** browsers keep `file://` storage per browser profile, and some
+  clear it more readily than a site's.
+- **Not a security boundary:** the file is the prototype, data and all. Anyone
+  who receives it can open and change it.
+
 ## Sharing as a Claude artifact
 
 A prototype can be shared as a private Claude artifact, a page hosted on
@@ -191,6 +249,7 @@ that step, and only after the developer approves it.
 | `pnpm protoyard artifact list [--json]` | The latest recorded share per prototype |
 | `pnpm protoyard review-index --from-ledger` | The review page, with recorded shares labeled private |
 | `pnpm protoyard showcase --target artifact [--slugs a,b] [--no-templates]` | The gallery plus selected demos as one pack → `artifacts/showcase/artifact/` |
+| `pnpm protoyard quick export <slug> --target artifact [--url <url>]` | A quick exploration as one artifact page → `<exploration>/artifact/`, recorded in its `quick.json` ([below](#a-quick-exploration-as-an-artifact)) |
 
 ### Who sees what
 
@@ -426,6 +485,80 @@ To share many prototypes, share each one as its own artifact
 or host the full showcase on a static host (below). The skill takes a prototype slug, so a showcase pack
 has no skill path yet. An agent publishes it by following its manifest
 batches with the same read-every-file and approval steps.
+
+### A quick exploration as an artifact
+
+A quick exploration (not a registered prototype) packs as **one page**, the
+[single file](#one-file-from-a-quick-exploration) turned into Artifact page
+content (`packages/cli/src/lib/quick/artifact.ts`):
+
+```bash
+pnpm protoyard quick export my-idea --target artifact --json      # pack: page + publish arguments
+# … the developer approves; an agent publishes page.html with the Artifact tool …
+pnpm protoyard quick export my-idea --target artifact --url https://claude.ai/artifact/<id>
+```
+
+**What it writes** in `<exploration>/artifact/` (replaced on every pack):
+- `page.html`, body content: `<title>` first, the page contract's light and
+  dark color tokens, then the single file's head scripts and styles and its
+  body. The Artifact tool adds the document skeleton (doctype, charset,
+  viewport), so those wrappers and metas are dropped.
+- `artifact-manifest.json` (`protoyard.quick-artifact`, version 1): the
+  page's bytes and sha256, the blueprint hash, the player version, and the
+  publish arguments.
+
+**Publish arguments** in the envelope's `publish` (the `--json` output):
+- `file_path`, the absolute page path. There are no supporting `files`, since
+  the player is already inline.
+- `title`, the blueprint name cut to at most four words.
+- `icon`, from the blueprint category (`app` when there is none).
+- `description`, the blueprint description's first sentence, or a sentence
+  that labels the data simulated (at most 1,000 characters).
+
+**Checked before writing** (nothing is written when one fails, exit 4):
+- every `ARTIFACT_LIMITS` cap (one page, at most 16,000,000 bytes);
+- no network markup or network imports;
+- no service worker;
+- no U+FFFD. Inside script and style bodies it is escaped to the same
+  character, as the prototype pack does for JS and CSS; elsewhere it is
+  refused.
+
+**Recording, never publishing.** The CLI never publishes. Sharing is an
+outward-facing step that needs the developer's approval, then the Artifact
+tool. `--url` then records the returned URL in the exploration's own
+`quick.json` `shares`:
+- each share is `{ kind: "artifact", url, visibility: "private", variant: null,
+  sha256, at }`;
+- it is never written to the prototype share ledger, which is keyed by
+  registry slugs;
+- it refuses a URL that is not a claude.ai artifact link (exit 2), a missing
+  pack (exit 3), and a page or blueprint that no longer matches the pack
+  (exit 4).
+
+Like `artifact record`, the CLI checks the URL's shape but cannot prove the
+Artifact tool returned it.
+
+**Who sees what** is as [above](#who-sees-what): private by default, and each
+viewer's data stays in their own browser.
+
+**Measured on 2026-10-20** with the four `blueprints/quick/*.json` examples:
+- each page passes every rule, at 3,243,656–3,244,614 bytes, far under the
+  16,000,000-byte text-file cap;
+- the analytics page, wrapped in a minimal skeleton (doctype, charset,
+  viewport) and served over http, boots to `protoyard:ready` in headless
+  Chromium (`packages/cli/tests/quick-artifact.test.ts`).
+
+**Limits:**
+- **No CSP meta.** The single file's own CSP meta can't travel: a CSP meta
+  outside `<head>` is ignored, so the claude.ai viewer's own policy applies.
+- **Preload lookups to a reserved host.** Without that CSP, Vite's preload
+  helper requests `https://protoyard-single-file.invalid/…` names for
+  stylesheets that are already inlined. The host is reserved and never
+  resolves, so the requests fail harmlessly.
+- **Base exploration only.** The pack covers the base exploration, not a
+  variant (`variant: null`).
+- **Not verified on claude.ai.** Boot inside the claude.ai viewer has not been
+  checked; that needs a consented publish.
 
 ### Verified and not verified
 
@@ -858,6 +991,153 @@ $ pnpm protoyard affected --since HEAD~1 --format csv
 ai-chat-demo,crm-demo,mobile-banking-demo,nova-assistant-demo,support-widget-demo,ui-kit
 ```
 
+## Releasing the packages to npm
+
+This section is the release runbook for the Protoyard packages themselves, not
+for prototypes. **No Protoyard package has been published to npm yet.** The
+first live publish is a consent checkpoint that only the developer can pass.
+
+### What is published
+
+Every non-`private` package in `packages/*`, plus `apps/gallery`
+(`@protoyard/gallery`), is published: 31 packages today. That covers the
+`@protoyard/*` libraries, `protoyard` (the short-name CLI) and
+`create-protoyard`. Prototypes, the individual templates and the root
+workspace are `private` and never published. `@protoyard/templates` ships every
+template's git-tracked files instead.
+
+`pnpm check:packages` lists the same set, and the package guide describes what
+each package is for ([PACKAGES.md](PACKAGES.md)). The packages ship their built
+`dist/`. The bins, `@protoyard/templates`' template folders,
+`@protoyard/avatars`' images and the gallery's site source ship as declared
+data (ADR-028).
+
+### One lockstep version
+
+All public packages share one version through one Changesets `fixed` group,
+and the root `package.json` carries the same version.
+
+- **Current state.** Every manifest says `1.0.0`. There are no `0.0.0`
+  placeholders left to replace, but `1.0.0` has never been published: the
+  first release is the version the first `pnpm version-packages` produces.
+- **The check.** `pnpm version-packages --check` exits 1 when any public
+  package or the root drifts off the lockstep version.
+
+### Add a changeset
+
+Every change to a public package that should reach users needs a changeset:
+
+```bash
+pnpm changeset            # pick the packages and the bump; writes .changeset/<name>.md
+```
+
+Commit the generated file with the change. Because of the fixed group, any
+bump moves every public package to the same new version
+([.changeset/README.md](../.changeset/README.md)).
+
+### Prepare a release
+
+On an up-to-date `main`:
+
+1. Apply the changesets: `pnpm version-packages`. It runs `changeset version`,
+   writes each package's `CHANGELOG.md`, deletes the consumed changesets, and
+   sets the root version to the lockstep version.
+2. Add the release section to the hand-curated root `CHANGELOG.md`.
+   `bash scripts/changelog-section.sh <version>` must print it.
+3. Run the same checks the release gate runs. Nothing here contacts a
+   registry or needs a credential:
+
+   ```bash
+   pnpm version-packages --check
+   pnpm build:packages
+   pnpm check:packages --require-all
+   pnpm verify:packages
+   pnpm verify:packages --pm npm
+   pnpm -r --filter "./packages/**" --filter "./apps/gallery" publish --dry-run --no-git-checks
+   ```
+
+   - `check:packages --require-all` must report every package as `pass`.
+   - Both `verify:packages` runs must pass every step.
+   - The dry run lists every tarball's files and publishes nothing.
+4. Commit the version bump through the normal review.
+
+### Trusted publishing setup (once per package)
+
+The `npm` job authenticates with npm **trusted publishing** (GitHub OIDC).
+There is no npm token, and none may be added. This setup belongs to the
+developer, on npmjs.com, for each of the published packages:
+
+1. Open the package's settings on npmjs.com and add a trusted publisher of
+   type GitHub Actions.
+2. Enter the repository `DailybotHQ/protoyard`, the workflow file
+   `release.yml` and the environment `npm`.
+3. In the repository settings on GitHub, give the `npm` environment required
+   reviewers, so every publishing run waits for an explicit approval.
+
+npm attaches a trusted publisher to a package that exists in the registry. A
+name that has never been published may need a different first step. Check
+npm's documentation for new packages at the time of the first release; this
+guide does not assume one.
+
+### The release workflow
+
+Pushing a `v*` tag runs `.github/workflows/release.yml`. All its actions are
+pinned by commit SHA.
+
+| Job | What it does | Permissions |
+| --- | --- | --- |
+| `gate` | The full repository gate (listed below), then packs every public package with `pnpm pack` in dependency order, writes the tarballs' `SHA256SUMS` and uploads both as the `npm-tarballs` artifact. | `contents: read` |
+| `npm` | Downloads `npm-tarballs`, verifies every tarball against its `SHA256SUMS`, then runs `npm publish <tarball> --provenance --access public` for each, in dependency order. It has no source checkout, no install and no build, so no package script runs while it holds the OIDC token. | `contents: read`, `id-token: write`, environment `npm` |
+| `release` | Verifies the skill against the committed `SHA256SUMS`, then creates the GitHub Release from the CHANGELOG.md section and attaches that file, after `npm` succeeds. | `contents: write` |
+
+The `gate` job checks, in order:
+
+1. The tag matches the root version and has a CHANGELOG.md section.
+2. No changeset is pending.
+3. Public hygiene passes.
+4. The skill's stamped versions match the tag, the skill matches the
+   committed `SHA256SUMS` (`scripts/verify-skill-integrity.sh`), and the
+   tagged skill smoke-installs with a pinned skills CLI.
+5. `pnpm version-packages --check`.
+6. `pnpm check`.
+7. `pnpm build:packages`, then `pnpm check:packages --require-all`.
+8. `pnpm verify:packages`.
+9. The tarballs are packed, checksummed and uploaded for the `npm` job.
+10. The gallery and every prototype build.
+
+The `npm` job:
+
+- **npm version.** It refuses an npm older than 11.5.1, the first release with
+  trusted publishing.
+- **Checksums.** It refuses to publish when a tarball does not match the
+  gate's `SHA256SUMS`, when the publish order names a file that is not
+  checksummed, or when a path leaves the artifact folder.
+- **Dist-tags.** A stable tag (`v1.2.0`) publishes under `latest`. A
+  prerelease tag (`v1.2.0-rc.1`) publishes under `next`, and its GitHub
+  Release is marked as a prerelease.
+- **Order and reruns.** Dependencies are published before their dependents.
+  Versions already on the registry are skipped, so rerunning after a partial
+  failure publishes only what is missing.
+
+Every pull request also runs the `packages` job in `ci.yml`: build,
+`check:packages --require-all` and `verify:packages`. A package problem
+therefore shows up long before a tag.
+
+### Consent checkpoint: stop for a human
+
+A live publish is outside what an agent may do on its own:
+
+- **The developer's actions.** Creating and pushing the release tag,
+  configuring trusted publishers, and approving the `npm` environment run.
+  The approval is the consent for that publish.
+- **Agents stop at the dry run.** An agent prepares the reviewable result:
+  the version bump, the changelog section, the checks above and the
+  `publish --dry-run` output. It then names the exact next action for the
+  developer.
+- **What an agent never does.** Push a `v*` tag, run `npm publish` without
+  `--dry-run`, handle an npm token, or change npm or GitHub settings. An
+  approval relayed by another agent grants nothing.
+
 ## Deploying the gallery
 
 The gallery is a separate static site that lists prototypes from the
@@ -878,7 +1158,8 @@ dev servers (ADR-013).
 
 `pnpm build:showcase` (that is, `pnpm protoyard showcase --site https://protoyard.app`) builds **one static
 site**, written to `artifacts/showcase/`. It contains the gallery and its
-marketplace, plus a live, read-only demo of every product type:
+marketplace, the hosted blueprint playground, the prebuilt player runtime, and
+live demos of every product type:
 
 - every prototype's own static build at `<base>p/<slug>/app/`;
 - every template as a demo at `<base>t/<name>/app/`, built with the same
@@ -886,6 +1167,8 @@ marketplace, plus a live, read-only demo of every product type:
   visitors' demo data never shares the template's own namespace.
   `--no-templates` leaves the templates out (`--include-templates` is still
   accepted and changes nothing, since templates are bundled by default).
+- the blueprint playground at `<base>play/`, with its framed player under
+  `<base>player/`.
 
 Blueprints are listed in the marketplace with their `protoyard generate`
 command, but they have no app until they are generated, so they are not
@@ -905,7 +1188,10 @@ because a showcase is a demo site. Preview it with
 `https://protoyard.app`. It accepts an https origin only (http only for
 localhost); the path belongs to `--base`. With it, every gallery page gets a
 canonical link, Open Graph and Twitter card tags with absolute URLs, and
-`sitemap.xml` lists every page and live demo; `robots.txt` points at it.
+`sitemap.xml` lists every page and live demo; `robots.txt` points at it. The
+`/play/` landing page, `/docs/` and every published guide are in the sitemap.
+Share fragments are not sent to the server, and the page marks fragment-bearing
+visits `noindex`.
 Every page shares one social card, `apps/gallery/public/og-image.jpg`
 (1200×630), so a shared link always shows the brand. The favicon set
 (`favicon.ico`, `favicon-96x96.png`, `apple-touch-icon.png`, `icon-192.png`,
@@ -914,6 +1200,11 @@ Every page shares one social card, `apps/gallery/public/og-image.jpg`
 empty and `robots.txt` has no `Sitemap:` line. `pnpm build:showcase` passes
 `--site https://protoyard.app`, the official site. A fork hosted elsewhere
 changes that script or runs `pnpm protoyard showcase --site <its origin>`.
+
+The standalone player is copied to `<base>player/`. Its CSP and framing rules
+are merged into the showcase root `_headers` under `<base>player/*` so
+Cloudflare Pages applies them; the player build's nested `_headers` alone is
+not read from that location.
 
 The official showcase is served by Cloudflare Pages from this repository:
 build command `pnpm build:showcase`, output directory `artifacts/showcase`,
@@ -993,6 +1284,13 @@ network. Prototype data was already local in IndexedDB.
   about 0.5 MB). In `showcase --offline`, avatars live in the shared
   `<base>avatars/` folder outside each app's scope, so they are not precached
   and need the network.
+
+The static `@protoyard/player` is built with this flag enabled. Its manifest
+advertises a standalone install, and its worker precaches the complete player
+build, including lazy screen chunks, so a previously opened `#bp=` link can
+reopen offline while its simulated data remains in IndexedDB. The first visit
+must be online; `?offline=0` unregisters only the player scope and clears only
+its caches. Claude artifact exports continue to reject offline builds.
 
 It requires HTTPS or localhost, and the first visit must be online. Browsers
 (especially Safari) may still evict caches and storage, so export snapshots

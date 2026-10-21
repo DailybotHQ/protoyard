@@ -9,7 +9,7 @@ import { workspaceLayout } from '../lib/paths.ts';
 import { pnpmCommand } from '../lib/pnpm.ts';
 import { run, which } from '../lib/process.ts';
 import { loadRegistry } from '../lib/registry.ts';
-import { type CommandContext, readPackageJson } from '../lib/workspace.ts';
+import { type CommandContext, INTERFACE_MAJOR, readPackageJson } from '../lib/workspace.ts';
 import { createProvider } from '../publish/index.ts';
 
 type Status = 'pass' | 'fail' | 'warn' | 'skip';
@@ -280,7 +280,200 @@ async function providerChecks(ctx: CommandContext, offline: boolean): Promise<Do
   return out;
 }
 
-export const doctorCommand: Handler = async (ctx, _args, options): Promise<CommandResult> => {
+/**
+ * The machine interface major (docs/INTERFACE.md). It is versioned apart from
+ * the package version and bumps only on a breaking change to the JSON a tool
+ * relies on: this field, `capabilities`, the envelope shape and the
+ * documented command contracts.
+ */
+export const DOCTOR_INTERFACE = INTERFACE_MAJOR;
+
+/** Every stable capability id the interface defines (docs/INTERFACE.md). */
+export const CAPABILITY_IDS = [
+  'blueprint-schema',
+  'generate',
+  'import',
+  'mcp',
+  'player',
+  'quick',
+] as const;
+export type CapabilityId = (typeof CAPABILITY_IDS)[number];
+
+/**
+ * What THIS CLI implements, sorted. Static: it never depends on the machine,
+ * the workspace or a check result, so a detector sees the same answer
+ * everywhere. An id is listed only when its command or contract ships:
+ * `import` (data-shape import) is defined but not implemented yet.
+ */
+export const CAPABILITIES: readonly CapabilityId[] = Object.freeze([
+  'blueprint-schema',
+  'generate',
+  'mcp',
+  'player',
+  'quick',
+]);
+
+/** One finding from {@link readInterfaceProbe}. Errors make the probe incompatible. */
+export interface InterfaceIssue {
+  code:
+    | 'unreadable'
+    | 'interface-missing'
+    | 'interface-malformed'
+    | 'interface-mismatch'
+    | 'capabilities-malformed'
+    | 'capability-unknown'
+    | 'capability-missing'
+    | 'probe-not-ok';
+  severity: 'error' | 'warning';
+  message: string;
+}
+
+export interface InterfaceProbe {
+  /** True only when there is no error: never assumed from a partial answer. */
+  compatible: boolean;
+  /** `degraded` is compatible with warnings (unknown ids, a failed doctor run). */
+  status: 'compatible' | 'degraded' | 'incompatible';
+  /** The interface major as read, or null when it is missing or malformed. */
+  interface: number | null;
+  /** The known capability ids the probe listed, sorted and deduplicated. */
+  capabilities: CapabilityId[];
+  /** Listed ids this reader does not define: discovery metadata, never a guarantee. */
+  unknownCapabilities: string[];
+  /** Required ids the probe did not list. */
+  missingCapabilities: string[];
+  issues: InterfaceIssue[];
+}
+
+export interface InterfaceRequirement {
+  /** The major a tool speaks; defaults to this CLI's. */
+  interface?: number;
+  /** Capability ids the tool needs; each must be a defined id. */
+  capabilities?: readonly string[];
+}
+
+const isCapabilityId = (id: string): id is CapabilityId =>
+  (CAPABILITY_IDS as readonly string[]).includes(id);
+
+/**
+ * Reads the stdout of `protoyard --version --json` or `protoyard doctor
+ * --json` the way docs/INTERFACE.md tells a tool to: strictly. Missing,
+ * malformed or mismatched `interface` data and missing required capabilities
+ * are errors (incompatible); unknown capability ids and a doctor run that
+ * reported `ok: false` are warnings (degraded). Nothing is coerced: `"1"`
+ * is not interface 1.
+ */
+export function readInterfaceProbe(
+  stdout: string,
+  requirement: InterfaceRequirement = {}
+): InterfaceProbe {
+  const issues: InterfaceIssue[] = [];
+  const error = (code: InterfaceIssue['code'], message: string) =>
+    issues.push({ code, severity: 'error', message });
+  const warning = (code: InterfaceIssue['code'], message: string) =>
+    issues.push({ code, severity: 'warning', message });
+  const wanted = requirement.interface ?? INTERFACE_MAJOR;
+  const required = [...new Set(requirement.capabilities ?? [])].sort();
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stdout);
+  } catch {
+    parsed = undefined;
+  }
+  let major: number | null = null;
+  const capabilities = new Set<CapabilityId>();
+  const unknown = new Set<string>();
+  let listed = false;
+
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    error('unreadable', 'The probe output is not one JSON object.');
+  } else {
+    const probe = parsed as Record<string, unknown>;
+    const value = probe.interface;
+    if (value === undefined) {
+      error('interface-missing', 'The probe output has no top-level `interface` field.');
+    } else if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+      error(
+        'interface-malformed',
+        `\`interface\` must be a positive integer, got ${JSON.stringify(value)}.`
+      );
+    } else {
+      major = value;
+      if (value !== wanted)
+        error(
+          'interface-mismatch',
+          `The probe speaks interface ${value}; this tool needs ${wanted}.`
+        );
+    }
+
+    const list = probe.capabilities;
+    if (list !== undefined) {
+      if (!Array.isArray(list)) {
+        error('capabilities-malformed', '`capabilities` must be an array of capability ids.');
+      } else {
+        listed = true;
+        const invalid = list.filter((id) => typeof id !== 'string');
+        if (invalid.length > 0)
+          warning(
+            'capabilities-malformed',
+            `Ignored ${invalid.length} capability entr${invalid.length === 1 ? 'y' : 'ies'} that ${invalid.length === 1 ? 'is' : 'are'} not a string.`
+          );
+        for (const id of list) {
+          if (typeof id !== 'string') continue;
+          if (isCapabilityId(id)) capabilities.add(id);
+          else unknown.add(id);
+        }
+        if (unknown.size > 0)
+          warning(
+            'capability-unknown',
+            `Unknown capability id(s) ignored: ${[...unknown].sort().join(', ')}.`
+          );
+      }
+    }
+
+    if (probe.ok === false) {
+      const code = (probe.error as { code?: unknown } | undefined)?.code;
+      warning(
+        'probe-not-ok',
+        `The probe command reported ok: false${typeof code === 'string' ? ` (${code})` : ''}; Protoyard is installed but not healthy here.`
+      );
+    }
+  }
+
+  const missing: string[] = [];
+  for (const id of required) {
+    if (!isCapabilityId(id)) {
+      error(
+        'capability-unknown',
+        `\`${id}\` is not a defined capability id, so no probe can satisfy it.`
+      );
+      missing.push(id);
+    } else if (!capabilities.has(id)) {
+      missing.push(id);
+    }
+  }
+  const unmet = missing.filter(isCapabilityId);
+  if (unmet.length > 0)
+    error(
+      'capability-missing',
+      listed
+        ? `Missing required capability id(s): ${unmet.join(', ')}.`
+        : `The probe lists no capabilities (use \`doctor --json\`); required: ${unmet.join(', ')}.`
+    );
+
+  const compatible = !issues.some((i) => i.severity === 'error');
+  return {
+    compatible,
+    status: !compatible ? 'incompatible' : issues.length > 0 ? 'degraded' : 'compatible',
+    interface: major,
+    capabilities: [...capabilities].sort(),
+    unknownCapabilities: [...unknown].sort(),
+    missingCapabilities: missing,
+    issues,
+  };
+}
+
+const doctorHandler: Handler = async (ctx, _args, options): Promise<CommandResult> => {
   const layout = workspaceLayout(ctx.root) ?? 'monorepo';
   const rootPkg = readPackageJson(join(ctx.root, 'package.json')) as
     | ({ engines?: { node?: string }; packageManager?: string } & Record<string, unknown>)
@@ -357,3 +550,12 @@ export const doctorCommand: Handler = async (ctx, _args, options): Promise<Comma
     },
   };
 };
+
+/**
+ * `protoyard doctor`, whose `--json` envelope carries `interface` and
+ * `capabilities` at the top level (beside `ok`, `command`, `data`) on every
+ * outcome, so DWP's `json:interface` detection reads one field.
+ */
+export const doctorCommand: Handler = Object.assign(doctorHandler, {
+  envelope: Object.freeze({ interface: DOCTOR_INTERFACE, capabilities: CAPABILITIES }),
+});

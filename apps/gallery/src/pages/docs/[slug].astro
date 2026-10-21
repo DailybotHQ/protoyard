@@ -1,0 +1,87 @@
+---
+import DocsSearch from '@/components/docs/DocsSearch.svelte';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getPublicDocs } from '@/lib/docs';
+import { withBase } from '@/lib/format';
+
+export function getStaticPaths() {
+  return getPublicDocs(withBase('')).map((doc) => ({ params: { slug: doc.slug }, props: { doc } }));
+}
+
+const { doc } = Astro.props;
+---
+
+<BaseLayout
+  title={doc.title}
+  description={doc.description}
+  canonicalPath={withBase(`/docs/${doc.slug}/`)}
+>
+  <article class="mx-auto max-w-4xl">
+    <nav aria-label="Breadcrumb" class="mb-6 text-sm text-muted">
+      <a class="underline-offset-2 hover:underline" href={withBase('/docs/')}>Documentation</a>
+      <span aria-hidden="true"> / </span>
+      <span aria-current="page">{doc.title}</span>
+    </nav>
+    <div class="mb-8 max-w-xl">
+      <DocsSearch client:idle indexUrl={withBase('/docs/search-index.json')} />
+    </div>
+    <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_14rem]">
+      <div class="min-w-0">
+        <div class="docs-content" set:html={doc.html} />
+      </div>
+      {doc.headings.filter((heading) => heading.depth > 1).length > 0 && (
+        <aside class="order-first rounded-lg border border-line bg-surface p-4 lg:order-none lg:sticky lg:top-20 lg:h-fit">
+          <h2 class="text-sm font-semibold">On this page</h2>
+          <nav aria-label="On this page">
+            <ul class="mt-3 space-y-2 text-sm text-muted">
+              {doc.headings.filter((heading) => heading.depth > 1).map((heading) => (
+                <li class:list={[heading.depth > 2 && 'pl-3']}><a class="underline-offset-2 hover:text-fg hover:underline" href={`#${heading.id}`}>{heading.text}</a></li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
+      )}
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .docs-content :global(h1),
+  .docs-content :global(h2),
+  .docs-content :global(h3),
+  .docs-content :global(h4),
+  .docs-content :global(h5),
+  .docs-content :global(h6) {
+    margin: 1.8em 0 0.55em;
+    font-weight: 650;
+    line-height: 1.25;
+    scroll-margin-top: 5rem;
+  }
+  .docs-content :global(h1) { margin-top: 0; font-size: 2rem; }
+  .docs-content :global(h2) { font-size: 1.5rem; }
+  .docs-content :global(h3) { font-size: 1.2rem; }
+  .docs-content :global(p),
+  .docs-content :global(ul),
+  .docs-content :global(ol),
+  .docs-content :global(blockquote),
+  .docs-content :global(pre) { margin: 1em 0; }
+  .docs-content :global(p),
+  .docs-content :global(li),
+  .docs-content :global(blockquote) { line-height: 1.75; }
+  .docs-content :global(ul),
+  .docs-content :global(ol) { padding-left: 1.5rem; }
+  .docs-content :global(ul) { list-style: disc; }
+  .docs-content :global(ol) { list-style: decimal; }
+  .docs-content :global(a) { color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; }
+  .docs-content :global(code) { border-radius: 0.25rem; background: var(--color-surface-2); padding: 0.1em 0.3em; font-size: 0.9em; }
+  .docs-content :global(pre) { overflow-x: auto; border: 1px solid var(--color-line); border-radius: 0.6rem; background: var(--color-surface); padding: 1rem; }
+  .docs-content :global(pre code) { background: transparent; padding: 0; }
+  .docs-content :global(blockquote) { border-left: 3px solid var(--color-accent); padding-left: 1rem; color: var(--color-muted); }
+  .docs-content :global(hr) { margin: 2rem 0; border-color: var(--color-line); }
+  .docs-content :global(.docs-table-wrap) { margin: 1.5rem 0; overflow-x: auto; }
+  .docs-content :global(pre:focus-visible), .docs-content :global(.docs-table-wrap:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .docs-content :global(table) { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .docs-content :global(th),
+  .docs-content :global(td) { border: 1px solid var(--color-line); padding: 0.55rem 0.75rem; text-align: left; vertical-align: top; }
+  .docs-content :global(th) { background: var(--color-surface); font-weight: 600; }
+</style>

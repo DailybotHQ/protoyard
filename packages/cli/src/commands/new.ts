@@ -16,12 +16,13 @@ import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { inspectSpec } from '../lib/inspect.ts';
 import { CliError, mark, toCliError } from '../lib/output.ts';
-import { childPath, isInside, toPosixRelative } from '../lib/paths.ts';
+import { childPath, isInside, toPosixRelative, workspaceLayout } from '../lib/paths.ts';
 import { installWorkspace, runPnpm } from '../lib/pnpm.ts';
 import { buildIndex } from '../lib/registry.ts';
 import { SPEC_FILES } from '../lib/spec-render.ts';
 import {
   assertSlug,
+  CLI_VERSION,
   type CommandContext,
   readPackageJson,
   resolveTarget,
@@ -91,6 +92,8 @@ export interface NewProjectInput {
   template: string | null;
   name: string;
   description?: string;
+  /** Set only for consumer workspaces, where workspace ranges must be published versions. */
+  consumerPackageVersion?: string;
   now: string;
 }
 
@@ -101,6 +104,35 @@ async function removeInheritedThumbnail(dir: string, thumbnail: string) {
   try {
     if ((await lstat(path)).isFile()) await rm(path);
   } catch {}
+}
+
+/** Removes monorepo-only test helpers and CSS source paths from consumer copies. */
+async function adaptConsumerTemplate(dir: string) {
+  const rootTsconfig = resolve(dir, '..', '..', 'tsconfig.base.json');
+  const tsconfigPath = join(dir, 'tsconfig.json');
+  if (existsSync(tsconfigPath) && !existsSync(rootTsconfig)) {
+    const config = JSON.parse(await readFile(tsconfigPath, 'utf8')) as Record<string, unknown>;
+    delete config.extends;
+    await writeFile(tsconfigPath, `${JSON.stringify(config, null, 2)}\n`);
+  }
+  const walk = async (current: string): Promise<void> => {
+    for (const entry of await readdir(current, { withFileTypes: true })) {
+      const path = join(current, entry.name);
+      if (entry.isDirectory()) await walk(path);
+      else if (entry.isFile() && /\.css$/.test(entry.name)) {
+        const css = await readFile(path, 'utf8');
+        const adapted = css.replace(
+          /^\s*@source\s+['"]\.\.\/\.\.\/\.\.\/packages\/[^;]+;\s*$/gm,
+          ''
+        );
+        if (adapted !== css) await writeFile(path, adapted);
+      } else if (entry.isFile() && /\.[cm]?tsx?$/.test(entry.name)) {
+        const source = await readFile(path, 'utf8');
+        if (source.includes('../../../tests/support/')) await rm(path);
+      }
+    }
+  };
+  await walk(dir);
 }
 
 /** Rewrites the copied template's identity files into a new prototype. */
@@ -142,6 +174,9 @@ export async function personalize(dir: string, input: NewProjectInput) {
   if (pkg) {
     pkg.name = `@prototype/${input.slug}`;
     pkg.private = true;
+    if (input.consumerPackageVersion) {
+      rewriteWorkspaceDependencies(pkg as Record<string, unknown>, input.consumerPackageVersion);
+    }
     await writeFile(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
   }
 
@@ -167,6 +202,25 @@ export async function personalize(dir: string, input: NewProjectInput) {
         : `# ${input.name}: ${line.includes(': ') ? line.slice(line.lastIndexOf(': ') + 2) : 'spec'}`
     );
     if (retitled !== text) await writeFile(path, retitled);
+  }
+  if (input.consumerPackageVersion) await adaptConsumerTemplate(dir);
+}
+
+/** Replaces pnpm workspace ranges in every dependency section with a published lockstep version. */
+export function rewriteWorkspaceDependencies(pkg: Record<string, unknown>, version: string): void {
+  for (const section of [
+    'dependencies',
+    'devDependencies',
+    'optionalDependencies',
+    'peerDependencies',
+  ]) {
+    const dependencies = pkg[section];
+    if (!dependencies || typeof dependencies !== 'object' || Array.isArray(dependencies)) continue;
+    for (const [name, specifier] of Object.entries(dependencies)) {
+      if (typeof specifier === 'string' && specifier.startsWith('workspace:')) {
+        (dependencies as Record<string, unknown>)[name] = version;
+      }
+    }
   }
 }
 
@@ -330,6 +384,9 @@ export async function createPrototypeFrom(
         slug,
         template: origin,
         name,
+        ...(workspaceLayout(ctx.root) === 'consumer'
+          ? { consumerPackageVersion: CLI_VERSION }
+          : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),
         now: new Date().toISOString(),
       });

@@ -139,7 +139,8 @@ describe('PNG helpers', () => {
 });
 
 const browserLaunch = await launchChromium();
-afterAll(() => (browserLaunch.ok ? browserLaunch.browser.close() : undefined));
+// Closing Chromium under heavy machine load can take longer than the 10 s hook default.
+afterAll(() => (browserLaunch.ok ? browserLaunch.browser.close() : undefined), 60_000);
 if (!browserLaunch.ok)
   console.warn(`capture.test: real-browser checks skipped (${browserLaunch.detail})`);
 

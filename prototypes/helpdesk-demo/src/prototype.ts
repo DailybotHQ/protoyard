@@ -1,4 +1,4 @@
-import { deriveIntegrity } from '@protoyard/blueprint';
+import { blueprintGeneratorVersion, deriveIntegrity } from '@protoyard/blueprint';
 import { definePrototype, parseManifest } from '@protoyard/core';
 import manifestJson from '../protoyard.json';
 import { database } from './database/schema.ts';
@@ -22,13 +22,16 @@ const integrity = {
   },
 };
 
+/** Bump when the enrichment in scenarios/helpdesk.ts can change the world. */
+const ENRICHMENT_VERSION = 2;
+
 export const definition = definePrototype({
   manifest: parseManifest(manifestJson),
   database,
   scenarios,
   policy,
   generate,
-  // Bump when the enrichment in scenarios/helpdesk.ts can change the world.
-  generatorVersion: 2,
+  // The blueprint generator's version plus the help desk enrichment's own.
+  generatorVersion: blueprintGeneratorVersion(blueprint) + ENRICHMENT_VERSION,
   integrity,
 });

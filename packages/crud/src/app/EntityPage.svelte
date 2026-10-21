@@ -5,7 +5,7 @@ import { Button } from '@protoyard/ui';
 import EntityForm from '../EntityForm.svelte';
 import EntityList from '../EntityList.svelte';
 import { formatEntityHeading } from '../format.ts';
-import { useBlueprintApp } from './context.ts';
+import { entityRecordRoute, useBlueprintApp } from './context.ts';
 
 /**
  * An entity's list, create and edit flow. Every write goes through the entity
@@ -19,7 +19,7 @@ let {
   entityName: string;
 } = $props();
 
-const { blueprint, services, runtime } = useBlueprintApp();
+const { blueprint, services, runtime, recordPath } = useBlueprintApp();
 const entity = $derived(blueprint.entities.find((e) => e.name === entityName));
 const listPath = $derived(entity ? `/${entity.plural}` : '/');
 
@@ -112,8 +112,9 @@ function backToList() {
       onEdit={(row) => {
         editing = row;
         mode = 'edit';
-        navigate(`${listPath}/${row.id}`);
+        if (entity) navigate(entityRecordRoute(entity.plural, String(row.id)));
       }}
+      onOpen={(row) => navigate(recordPath(entityName, String(row.id)))}
     />
   {:else if mode === 'create'}
     <EntityForm {entity} mode="create" {runtime} {blueprint} {services} onSubmit={submitCreate} />

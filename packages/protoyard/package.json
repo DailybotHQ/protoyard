@@ -1,0 +1,47 @@
+{
+  "name": "protoyard",
+  "version": "1.0.0",
+  "description": "The protoyard command line under its short name: `npx protoyard` runs @protoyard/cli at the same version.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "homepage": "https://protoyard.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DailybotHQ/protoyard.git",
+    "directory": "packages/protoyard"
+  },
+  "keywords": [
+    "protoyard",
+    "prototype",
+    "cli"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "bin": {
+    "protoyard": "./bin/protoyard.mjs"
+  },
+  "files": [
+    "LICENSE",
+    "bin",
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@protoyard/cli": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  }
+}

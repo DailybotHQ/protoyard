@@ -64,7 +64,10 @@ export function reviewSchemaFile(): string {
   return join(dirname(server), '..', '..', 'schema', 'd1.sql');
 }
 
-const ENTRY = fileURLToPath(new URL('./review-worker-entry.ts', import.meta.url));
+const entryFile = import.meta.url.endsWith('.ts')
+  ? './review-worker-entry.ts'
+  : './review-worker-entry.js';
+const ENTRY = fileURLToPath(new URL(entryFile, import.meta.url));
 
 const NODE_BUILTINS = new Set(
   builtinModules.flatMap((name) => [name, name.replace(/^node:/, '')]).filter(Boolean)

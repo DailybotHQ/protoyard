@@ -29,5 +29,116 @@
     "@protoyard/avatars": "workspace:*",
     "@protoyard/core": "workspace:*",
     "zod": "^4.6.7"
-  }
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./board": {
+        "types": "./dist/board/index.d.ts",
+        "import": "./dist/board/index.js",
+        "default": "./dist/board/index.js"
+      },
+      "./calendar": {
+        "types": "./dist/calendar/index.d.ts",
+        "import": "./dist/calendar/index.js",
+        "default": "./dist/calendar/index.js"
+      },
+      "./timeline": {
+        "types": "./dist/timeline/index.d.ts",
+        "import": "./dist/timeline/index.js",
+        "default": "./dist/timeline/index.js"
+      },
+      "./grid": {
+        "types": "./dist/grid/index.d.ts",
+        "import": "./dist/grid/index.js",
+        "default": "./dist/grid/index.js"
+      },
+      "./tree": {
+        "types": "./dist/tree/index.d.ts",
+        "import": "./dist/tree/index.js",
+        "default": "./dist/tree/index.js"
+      },
+      "./map": {
+        "types": "./dist/map/index.d.ts",
+        "import": "./dist/map/index.js",
+        "default": "./dist/map/index.js"
+      },
+      "./editor": {
+        "types": "./dist/editor/index.d.ts",
+        "import": "./dist/editor/index.js",
+        "default": "./dist/editor/index.js"
+      },
+      "./activity": {
+        "types": "./dist/activity/index.d.ts",
+        "import": "./dist/activity/index.js",
+        "default": "./dist/activity/index.js"
+      },
+      "./notifications": {
+        "types": "./dist/notifications/index.d.ts",
+        "import": "./dist/notifications/index.js",
+        "default": "./dist/notifications/index.js"
+      },
+      "./files": {
+        "types": "./dist/files/index.d.ts",
+        "import": "./dist/files/index.js",
+        "default": "./dist/files/index.js"
+      },
+      "./settings": {
+        "types": "./dist/settings/index.d.ts",
+        "import": "./dist/settings/index.js",
+        "default": "./dist/settings/index.js"
+      },
+      "./states": {
+        "types": "./dist/states/index.d.ts",
+        "import": "./dist/states/index.js",
+        "default": "./dist/states/index.js"
+      },
+      "./commands": {
+        "types": "./dist/commands/index.d.ts",
+        "import": "./dist/commands/index.js",
+        "default": "./dist/commands/index.js"
+      },
+      "./scenarios": {
+        "types": "./dist/scenarios/index.d.ts",
+        "import": "./dist/scenarios/index.js",
+        "default": "./dist/scenarios/index.js"
+      }
+    },
+    "types": "./dist/index.d.ts"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/views"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "views",
+    "board",
+    "calendar"
+  ]
 }

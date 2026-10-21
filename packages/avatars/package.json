@@ -11,9 +11,10 @@
     "./assets/*": "./assets/*"
   },
   "files": [
-    "src",
+    "dist",
     "assets",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -21,5 +22,45 @@
   "devDependencies": {
     "@protoyard/core": "workspace:*",
     "sharp": "^0.35.5"
-  }
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": [
+        "src/manifest.json"
+      ]
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./manifest.json": "./dist/manifest.json",
+      "./assets/*": "./assets/*"
+    },
+    "types": "./dist/index.d.ts"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/avatars"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "avatars",
+    "fictional",
+    "webp"
+  ]
 }

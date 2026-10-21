@@ -30,6 +30,8 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Scenarios | [SCENARIOS](docs/SCENARIOS.md) | Axes, presets, generators, personas/policy, time, environment, snapshots |
 | Generator | [GENERATOR](docs/GENERATOR.md) | Blueprints → prototypes: format, screens, layouts, generate/regenerate, ownership, migrations, drift |
 | Brief to prototype | [BRIEF_TO_PROTOTYPE](docs/BRIEF_TO_PROTOTYPE.md) | Prose brief → offline blueprint → review → generate → validate → export |
+| Quick CLI | [QUICK](docs/QUICK.md) | Disposable `protoyard quick` explorations, variants, loopback serving, report and feedback scope |
+| Player | [PLAYER](docs/PLAYER.md) | No-install blueprint player: entry points, hosted `/play/`, share links, storage, worlds, parity, browser limits |
 | Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 64-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
 | Layouts | [LAYOUTS](docs/LAYOUTS.md) | Shared layout catalog, manifest setup, responsive fallbacks, shell composition, authoring and tests |
 | Shells | [SHELLS](docs/SHELLS.md) | Device and host shells, manifest preview fields, `?shell=`, layout inside frames |
@@ -41,6 +43,11 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Avatars | [AVATARS](docs/AVATARS.md) | 175 fictional portraits: provenance and MIT license, never real people, seeded assignment, rendering and URL safety, measured sizes, re-import |
 | Publishing | [PUBLISHING](docs/PUBLISHING.md) | Build, export, preview, base paths, Cloudflare and other adapters, batch publish, review index, CI templates, the showcase site, sharing as a private Claude artifact (one prototype per artifact) |
 | Review comments | [REVIEW_COMMENTS](docs/REVIEW_COMMENTS.md) | Opt-in review comments, adapters (local, http/cloudflare, artifact), who sees what, honest limits |
+| Packages | [PACKAGES](docs/PACKAGES.md) | npm package families and exports, release status (not on npm yet), versions, packed output |
+| Skill | [SKILL](docs/SKILL.md) | Distributable `protoyard` agent skill: hosts, pinned installation, `setup.sh`, trust and consent, checksums, upgrades |
+| Interface | [INTERFACE](docs/INTERFACE.md) | `--version --json` and `doctor --json` machine interface: interface major, capability ids, detection, stability |
+| MCP | [MCP](docs/MCP.md) | Local stdio MCP server (`protoyard mcp`): protocol revisions, tools, envelopes, trust boundary |
+| DeepWorkPlan | [DWP](docs/DWP.md) | Optional DWP addon loop: exploration gates, evidence, decisions ([addon packet](integrations/deepworkplan/protoyard/SPEC.md)) |
 | Specs | [SPECS](docs/SPECS.md) | Per-prototype AGENTS.md + docs/ spec harness, generated regions, rebuild kit |
 | Standards | [STANDARDS](docs/STANDARDS.md) | TypeScript, Svelte 5, Biome, domain rules, naming, a11y |
 | Testing | [TESTING_GUIDE](docs/TESTING_GUIDE.md) | Full and scoped commands, source→test map, blind spots, posture |
@@ -68,8 +75,8 @@ protoyard/
 │   ├── renderer-svelte/   Vite config factory, mountPrototype, ShellHost, bindings, hash router    (README)
 │   ├── http/              optional mock HTTP layer (fetch-compatible, no service worker)           (README)
 │   ├── offline/           optional service worker for exported prototypes (opt-in)                (README)
-│   ├── blueprint/         data-only blueprints: schema, screens, aggregates, brief synthesizer, entity services (no Svelte) (README)
-│   ├── crud/              blueprint EntityList/Detail/Form + lazy dashboard, board, calendar, timeline, map, analytics, settings screens (README)
+│   ├── blueprint/         data-only blueprints: schema, archetypes, app model, screens, aggregates, default scenarios, brief synthesizer, share links, variants, patches, entity services (no Svelte) (README)
+│   ├── crud/              blueprint EntityList/Detail/Form + typed lazy screen registry, lazy @protoyard/crud/app shell, dashboard, board, calendar, timeline, map, analytics, settings screens (README)
 │   ├── saas/              simulated SaaS engine: auth, OAuth, MFA, inbox, onboarding, workspaces, billing (README)
 │   ├── saas-ui/           Svelte SaaS kit screens + saasRoutes/guards (simulation UX)              (README)
 │   ├── ai/                simulated AI engine: streaming, agents and tools, voice, safe markdown, chart answers (README)
@@ -83,7 +90,11 @@ protoyard/
 │   ├── review/            review comments engine: anchors, adapter contract, local/http/artifact adapters, server handler (no Svelte) (README)
 │   ├── review-ui/         Svelte review UI: comment mode and pins, threads, panel, toolbar, lazy mount (README)
 │   ├── avatars/           175 fictional portraits (WebP 64/128 px) + verified manifest, data only   (README)
-│   └── cli/               `protoyard` CLI: new/generate/blueprint/dev/validate/build/export/publish/artifact/comments/spec/ci… (README)
+│   ├── player/            prebuilt static app that runs any blueprint at runtime, no build or install (level 1) (README)
+│   ├── templates/         @protoyard/templates: packs templates/* for npm; listTemplates()/templateDir()  (README)
+│   ├── protoyard/         unscoped `protoyard` npm package: bin that runs @protoyard/cli in-process, same version (README)
+│   ├── create-protoyard/  `npm create protoyard` scaffolder for a consumer workspace (not on npm yet)   (README)
+│   └── cli/               `protoyard` CLI: new/generate/quick/blueprint/dev/validate/build/export/publish/artifact/comments/spec/ci/mcp… (README)
 ├── apps/gallery/          Astro static gallery + /marketplace/ (reads the registry only)           (README)
 ├── templates/<name>/      admin-console, agent-console, ai-assistant, analytics, b2b-saas, blank,
 │                          booking-calendar, chat, chat-widget, clinic, course-lms, crud-app,
@@ -96,9 +107,12 @@ protoyard/
 │                          pebblestat-analytics-demo, pulse-revenue-demo*, relay-chat-demo,
 │                          support-widget-demo, ui-kit, …yours   (* generated from a blueprint)
 ├── blueprints/            40 data-only product blueprints for `protoyard generate`                (README)
+├── integrations/deepworkplan/protoyard/  DWP addon packet: addon.json, SPEC.md, SKILL.md, UPSTREAM.md, templates/
+├── skills/protoyard/      the distributable agent skill: SKILL.md router, sub-skills, setup.sh   (docs/SKILL.md)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/
 ├── scripts/               bench-index.ts, bench-cold-start.ts, bench-charts.ts, bench-grid.ts, bench-idea.ts,
-│                          visual-sweep.ts (+ lib/), generate-thumbnails.ts, import-avatars.ts,
+│                          bench-player.ts, bench-integrations.ts, visual-sweep.ts (+ lib/), generate-thumbnails.ts,
+│                          import-avatars.ts, {build,check,verify,version}-packages.ts, skill and integration checks,
 │                          check-public-hygiene.sh, changelog-section.sh
 ├── docs/                  the guides above
 ├── .agents/               skills, agents, commands (.claude and .cursor symlink here)
@@ -121,6 +135,7 @@ protoyard/
 | Turn a brief into a blueprint | — | `echo "<brief>" \| pnpm protoyard blueprint new <file> --from-brief - [--generate <slug>] [--dry-run]` |
 | Generate from a blueprint | — | `pnpm protoyard blueprint validate <file>` · `pnpm protoyard generate <slug> --blueprint <file> [--dry-run]` |
 | Find or apply a theme | — | `pnpm protoyard theme list --search <query>` · `pnpm protoyard theme use <slug> <theme-id> --dry-run` |
+| Quick exploration (no build) | — | `pnpm protoyard quick "<brief>" [--variants <1-8>]` · `pnpm protoyard quick serve <slug> --open` |
 | Validate a prototype | — | `pnpm protoyard validate <slug> --build` |
 | Visual QA sweep | `pnpm visual:sweep` | `pnpm visual:sweep --only <slug> [--themes all]` |
 | Spec drift check | `pnpm protoyard spec --all --check` | `pnpm protoyard spec <slug> --check` |
@@ -131,6 +146,10 @@ protoyard/
 | Publish (needs authorization) | — | `pnpm protoyard publish <slug> --provider cloudflare --dry-run` |
 | Share as a Claude artifact (needs authorization) | — | `pnpm protoyard export <slug> --target artifact --dry-run` · `/share-artifact <slug>` |
 | Pull review comments | — | `pnpm protoyard comments pull <slug> --file <json> --format md` |
+| Build the player | — | `pnpm --filter @protoyard/player build` |
+| npm packages | `pnpm build:packages && pnpm check:packages --require-all` · `pnpm verify:packages` | `pnpm check:packages --filter <name>` |
+| Skill and integrations | `pnpm check:skill` · `pnpm check:integrations` | — |
+| Version a release | — | `pnpm changeset` · `pnpm version-packages [--check]` |
 | Everything before a PR | `pnpm check` | — |
 
 Scoped patterns are verified (selection counts in
@@ -145,7 +164,7 @@ Nothing requires Docker or CI-only tooling.
    `cli`, `gallery`, `http`, `offline`, `blueprint`, `crud`, `saas`,
    `saas-ui`, `ai`, `ai-ui`, `charts`, `charts-ui`, `analytics`,
    `analytics-ui`, `views`, `views-ui`, `review`, `review-ui`, `avatars`,
-   `templates`, `<prototype-slug>`,
+   `templates`, `player`, `<prototype-slug>`,
    `docs`, `ci`, `deps`, `dwp`. **Stage exact paths**, never `git add -A`.
 3. **Validation follows the touched surface.** Pick gates from the
    source→test map in [TESTING_GUIDE](docs/TESTING_GUIDE.md). Core or root

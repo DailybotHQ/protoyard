@@ -22,5 +22,80 @@
     "@protoyard/core": "workspace:*",
     "@protoyard/database": "workspace:*",
     "zod": "^4.6.7"
-  }
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      "./anchors": {
+        "types": "./dist/anchors/index.d.ts",
+        "import": "./dist/anchors/index.js",
+        "default": "./dist/anchors/index.js"
+      },
+      "./store": {
+        "types": "./dist/store/index.d.ts",
+        "import": "./dist/store/index.js",
+        "default": "./dist/store/index.js"
+      },
+      "./adapters/local": {
+        "types": "./dist/adapters/local/index.d.ts",
+        "import": "./dist/adapters/local/index.js",
+        "default": "./dist/adapters/local/index.js"
+      },
+      "./adapters/http": {
+        "types": "./dist/adapters/http/index.d.ts",
+        "import": "./dist/adapters/http/index.js",
+        "default": "./dist/adapters/http/index.js"
+      },
+      "./adapters/artifact": {
+        "types": "./dist/adapters/artifact.d.ts",
+        "import": "./dist/adapters/artifact.js",
+        "default": "./dist/adapters/artifact.js"
+      },
+      "./adapters/artifact-shell": {
+        "types": "./dist/adapters/artifact-shell.d.ts",
+        "import": "./dist/adapters/artifact-shell.js",
+        "default": "./dist/adapters/artifact-shell.js"
+      },
+      "./server": {
+        "types": "./dist/server/index.d.ts",
+        "import": "./dist/server/index.js",
+        "default": "./dist/server/index.js"
+      },
+      "./report": {
+        "types": "./dist/report/index.d.ts",
+        "import": "./dist/report/index.js",
+        "default": "./dist/report/index.js"
+      }
+    }
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/review"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "review",
+    "comments",
+    "prototype"
+  ]
 }

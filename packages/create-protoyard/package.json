@@ -1,0 +1,49 @@
+{
+  "name": "create-protoyard",
+  "version": "1.0.0",
+  "description": "Scaffold a Protoyard workspace with `npm create protoyard` or `pnpm create protoyard`: pinned protoyard, a workspace marker, AGENTS.md and a starter prototype.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "homepage": "https://protoyard.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DailybotHQ/protoyard.git",
+    "directory": "packages/create-protoyard"
+  },
+  "keywords": [
+    "protoyard",
+    "prototype",
+    "create",
+    "scaffold"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "bin": {
+    "create-protoyard": "./bin/create-protoyard.mjs"
+  },
+  "files": [
+    "LICENSE",
+    "bin",
+    "files",
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "protoyard": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  }
+}

@@ -20,6 +20,7 @@ export. There is no backend to run, deploy or secure.
 **[Try the live showcase at protoyard.app](https://protoyard.app)**: every prototype and template running in your browser.
 
 [Quickstart](docs/QUICKSTART.md) ·
+[Two levels](#two-levels-of-prototype) ·
 [What you can build](#what-you-can-build) ·
 [Showcase](#the-showcase) ·
 [Built for agents](#built-for-agents) ·
@@ -67,6 +68,37 @@ pnpm protoyard showcase --serve                   # every prototype and template
 ```
 
 The full walkthrough is in [docs/QUICKSTART.md](docs/QUICKSTART.md).
+
+## Two levels of prototype
+
+A product idea can live at two levels. Both render a blueprint
+(`blueprint.json`, data only) through the same app model, so moving from one
+to the other keeps the product's entities, screens and scenarios.
+
+| | Level 1: explore instantly | Level 2: a full prototype |
+| --- | --- | --- |
+| **What it is** | The prebuilt **player** runs a blueprint in the browser. There is no build, no install and no generated code. | A generated Vite + Svelte 5 app in `prototypes/<slug>/`, with its own code, tests and spec. |
+| **Start from** | A brief or a blueprint: `pnpm protoyard quick "<brief>" --variants 3` | A blueprint (`pnpm protoyard generate <slug> --blueprint <file>`) or a template (`pnpm protoyard new <slug> --template <name>`) |
+| **Good for** | Comparing variants side by side, a first click-through, review comments, validation tasks with time and steps recorded | Custom screens and logic, validation, export and publishing |
+| **Lives in** | A disposable folder in `.protoyard/quick/<slug>/`, served locally with `quick serve` | The repository, versioned like any other app |
+| **Guide** | [Quick explorations](docs/QUICK.md) · [Player](docs/PLAYER.md) | [Generator](docs/GENERATOR.md) · [Brief to prototype](docs/BRIEF_TO_PROTOTYPE.md) |
+
+Moving between the levels:
+
+```bash
+pnpm protoyard quick "A climbing gym books classes and tracks members" --slug gym --variants 3
+pnpm protoyard quick serve gym                   # play it locally; reviewers can leave comments
+pnpm protoyard quick iterate gym --patch change.json
+pnpm protoyard quick promote gym gym-desk        # level 2: a full prototype in prototypes/gym-desk
+```
+
+- **Up.** `quick promote` generates a full prototype from the exploration's
+  blueprint (`--variant v2` promotes a variant instead).
+- **Down.** A gallery entry with a blueprint has **Open in player**, which
+  opens it at level 1 from a share link.
+- **Outside this repository.** Using Protoyard from its npm packages is
+  described in [Packages](docs/PACKAGES.md). No version is on npm yet, so this
+  repository is the way to run it today.
 
 ## What you can build
 
@@ -285,12 +317,17 @@ date (Apple M1 Max, 2026-10-17 to 2026-10-19):
   the live services. Real deploys need your own credentials.
 - **Browser, not native.** Mobile prototypes run in the mobile browser, and
   shells simulate devices rather than emulate them.
+- **Not on npm yet.** The packages are publish-ready and the release workflow
+  publishes them with npm trusted publishing, but no version has been
+  published. The first publish waits for the maintainer's approval
+  ([release runbook](docs/PUBLISHING.md#releasing-the-packages-to-npm)).
 
 ## Commands
 
 ```bash
 pnpm dev | dev:create | build | preview | lint | typecheck | test | test:e2e | check
 pnpm build:showcase | preview:showcase | visual:sweep | thumbnails | bench:index | hygiene
+pnpm build:packages | check:packages | verify:packages | changeset | version-packages
 pnpm protoyard help | doctor | list | index | new | generate | dev | validate | spec | build | budget
 pnpm protoyard export | preview | publish | review-index | showcase | ci | affected | theme | scenario
 pnpm protoyard blueprint | artifact | comments | snapshot | gallery | control-server
@@ -307,7 +344,8 @@ reference is [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md).
 | [Agent guide](docs/AGENT_GUIDE.md) | [Scenarios](docs/SCENARIOS.md) | [Review comments](docs/REVIEW_COMMENTS.md) | [Architecture](docs/ARCHITECTURE.md) |
 | [AI agent onboarding](docs/AI_AGENT_ONBOARDING.md) | [Generator](docs/GENERATOR.md) | [Specs](docs/SPECS.md) | [Decisions](docs/DECISIONS.md) |
 | [Development commands](docs/DEVELOPMENT_COMMANDS.md) | [Brief to prototype](docs/BRIEF_TO_PROTOTYPE.md) | [Performance](docs/PERFORMANCE.md) | [Security](docs/SECURITY.md) |
-| | [Themes](docs/THEMES.md) | | [Standards](docs/STANDARDS.md) |
+| [Quick explorations](docs/QUICK.md) | [Themes](docs/THEMES.md) | [Packages](docs/PACKAGES.md) | [Standards](docs/STANDARDS.md) |
+| [Player](docs/PLAYER.md) | | | |
 | | [Layouts](docs/LAYOUTS.md) · [Shells](docs/SHELLS.md) | | [Testing guide](docs/TESTING_GUIDE.md) |
 | | [Views](docs/VIEWS.md) · [Charts](docs/CHARTS.md) | | [AI agent collaboration](docs/AI_AGENT_COLLAB.md) |
 | | [Analytics](docs/ANALYTICS.md) · [Avatars](docs/AVATARS.md) | | [Implementation plan](docs/IMPLEMENTATION_PLAN.md) |

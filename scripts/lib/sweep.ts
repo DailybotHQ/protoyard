@@ -189,7 +189,7 @@ export function resolveThemes(
 }
 
 export interface SweepTarget {
-  kind: 'prototype' | 'template';
+  kind: 'prototype' | 'template' | 'player';
   slug: string;
   platform: Platform;
   defaultScenario?: string;
@@ -198,6 +198,24 @@ export interface SweepTarget {
   previewShell?: SweepShell;
   /** `preview.layout` from the manifest. */
   layout?: { id?: string; supported?: readonly string[] };
+}
+
+/** The bounded, deterministic player sample used by the opt-in visual target. */
+export const PLAYER_TARGET: SweepTarget = {
+  kind: 'player',
+  slug: 'player',
+  platform: 'responsive',
+  scenarios: [],
+  previewShell: 'none',
+};
+export const PLAYER_BLUEPRINT_SOURCE = './blueprints/quick/assistant.json';
+
+/** Keep player screenshots opt-in so the existing default sweep stays unchanged. */
+export function selectPlayerTarget(
+  targets: readonly SweepTarget[],
+  selected: boolean
+): SweepTarget[] {
+  return selected ? [...targets, PLAYER_TARGET] : [...targets];
 }
 
 /**
@@ -337,10 +355,16 @@ export function buildMatrix(
       }
       continue;
     }
-    const viewports: [ViewportName, SweepShell[]][] = [
-      ['desktop', shellsFor(target, args.shells)],
-      ['phone', [target.previewShell ?? 'auto']],
-    ];
+    const viewports: [ViewportName, SweepShell[]][] =
+      target.kind === 'player'
+        ? [
+            ['desktop', [target.previewShell ?? 'none']],
+            ['phone', [target.previewShell ?? 'none']],
+          ]
+        : [
+            ['desktop', shellsFor(target, args.shells)],
+            ['phone', [target.previewShell ?? 'auto']],
+          ];
     for (const [viewport, shells] of viewports) {
       for (const shell of shells) {
         for (const layout of layouts) {
@@ -371,6 +395,7 @@ export function buildMatrix(
 /** The link that opens a shot: DevTools off, its scenario, shell, layout, mode and theme. */
 export function shotQuery(shot: Shot): URLSearchParams {
   const query = new URLSearchParams({ devtools: '0' });
+  if (shot.kind === 'player') query.set('src', PLAYER_BLUEPRINT_SOURCE);
   if (shot.scenario) query.set('scenario', shot.scenario);
   query.set('shell', shot.shell);
   if (shot.layout !== 'custom') query.set('layout', shot.layout);
@@ -460,11 +485,37 @@ export const MEASURE_FIT = `(() => {
   return { docOverflow, documentScrolls, innerWidth: window.innerWidth, innerHeight: window.innerHeight, inputs, region };
 })()`;
 
+/** One violated axe rule: enough to find and fix it without rerunning the sweep. */
+export interface AxeRuleViolation {
+  /** axe rule id, for example `color-contrast`. */
+  id: string;
+  impact: string | null;
+  /** CSS selectors of the failing nodes (axe `target`), at most 10 per rule. */
+  targets: string[];
+}
+
+/** Rule ids, impact and node targets from axe `violations`, capped for the report. */
+export function axeRuleViolations(
+  violations: readonly {
+    id: string;
+    impact?: string | null;
+    nodes: readonly { target: readonly unknown[] }[];
+  }[]
+): AxeRuleViolation[] {
+  return violations.map((violation) => ({
+    id: violation.id,
+    impact: violation.impact ?? null,
+    targets: violation.nodes.slice(0, 10).map((node) => node.target.map(String).join(' ')),
+  }));
+}
+
 export interface ShotResult extends Shot {
   ok: boolean;
   error?: string;
   /** Number of axe rules violated (WCAG 2.1 A/AA); `null` when axe was skipped. */
   axeViolations: number | null;
+  /** The violated rules with their failing node targets; absent when axe was skipped. */
+  axeRules?: AxeRuleViolation[];
   flags: string[];
   bytes?: number;
   ms?: number;
@@ -511,6 +562,11 @@ function card(result: ShotResult): string {
   if (result.axeViolations !== null) {
     badges.push(
       `<span class="badge ${result.axeViolations ? 'bad' : 'good'}">axe ${result.axeViolations}</span>`
+    );
+  }
+  for (const rule of result.axeRules ?? []) {
+    badges.push(
+      `<span class="badge bad" title="${escapeHtml(rule.targets.join(', '))}">${escapeHtml(rule.id)}</span>`
     );
   }
   for (const flag of result.flags)

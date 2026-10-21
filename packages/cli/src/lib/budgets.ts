@@ -23,6 +23,8 @@ export const PerformanceBudgetSchema = z
     prototypeGenerationMs: PositiveBudgetSchema.nullable().default(null),
     prototypeBuildMs: PositiveBudgetSchema.nullable().default(null),
     previewReadyMs: PositiveBudgetSchema.nullable().default(null),
+    /** `protoyard quick` brief → ready folder → `protoyard:ready` (bench-idea --mode quick); null until calibrated. */
+    quickReadyMs: PositiveBudgetSchema.nullable().default(null),
   })
   .strict();
 
@@ -53,6 +55,7 @@ export const DEFAULT_PERFORMANCE_BUDGETS: PerformanceBudget = {
   prototypeGenerationMs: null,
   prototypeBuildMs: null,
   previewReadyMs: null,
+  quickReadyMs: null,
 };
 
 export const DEFAULT_BUDGET_CONFIG: BudgetConfig = {

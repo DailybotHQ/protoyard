@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRouter, navigate } from '../src/router/router.svelte.ts';
+import { createRouter, navigate } from '../src/router/hash-router.svelte.ts';
 import LazyScreen from './fixtures/LazyScreen.svelte';
 import RouterHarness from './fixtures/RouterHarness.svelte';
 

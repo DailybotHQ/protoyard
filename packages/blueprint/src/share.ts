@@ -29,8 +29,29 @@ const PREFIX = `${SHARE_LINK_VERSION}.`;
 const BASE64URL = /^[A-Za-z0-9_-]*$/;
 
 export type ShareLinkIssue = Omit<UntrustedBlueprintIssue, 'code'> & {
-  code: UntrustedBlueprintIssue['code'] | 'invalid-link' | 'unsupported-version';
+  code:
+    | UntrustedBlueprintIssue['code']
+    | 'invalid-link'
+    | 'unsupported-version'
+    | 'unsupported-browser';
 };
+
+/** The browsers whose `CompressionStream` / `DecompressionStream` handle `deflate-raw`. */
+export const SHARE_LINK_BROWSERS = 'Chrome 103+, Safari 16.4+, Firefox 113+';
+
+/** Whether this environment can encode and decode share links. */
+export function supportsShareLinks(): boolean {
+  if (typeof CompressionStream === 'undefined' || typeof DecompressionStream === 'undefined') {
+    return false;
+  }
+  try {
+    new DecompressionStream('deflate-raw');
+    new CompressionStream('deflate-raw');
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export type ShareDecodeResult =
   | { success: true; blueprint: Blueprint; issues: [] }
@@ -117,6 +138,11 @@ function fromBase64Url(text: string): Uint8Array<ArrayBuffer> | null {
  * `ShareLinkTooLargeError` past `MAX_SHARE_ENCODED_LENGTH`.
  */
 export async function encodeBlueprintShare(blueprint: Blueprint): Promise<string> {
+  if (!supportsShareLinks()) {
+    throw new Error(
+      `This environment cannot create share links: it lacks CompressionStream("deflate-raw") (${SHARE_LINK_BROWSERS}). Share the blueprint.json file instead.`
+    );
+  }
   const { $schema: _schema, ...content } = blueprint;
   const json = new TextEncoder().encode(canonicalJson(content));
   const compressed = await collect(
@@ -175,6 +201,13 @@ export async function decodeBlueprintShare(input: string): Promise<ShareDecodeRe
         'unsupported-version',
         `The link uses share format "${version.slice(0, 8)}"; this player reads format ${SHARE_LINK_VERSION}.`,
         'Open the link in a newer player, or share the blueprint.json file.'
+      );
+    }
+    if (!supportsShareLinks()) {
+      return fail(
+        'unsupported-browser',
+        `This browser cannot open share links: it lacks DecompressionStream("deflate-raw") (${SHARE_LINK_BROWSERS}).`,
+        'Open the link in a current browser, or ask for the blueprint.json file and open it.'
       );
     }
     const data = encoded.slice(dot + 1);

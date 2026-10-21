@@ -16,7 +16,12 @@ const route = $derived(app.routeFor(app.router.current.route?.path));
 {#if !route}
   <p class="text-sm text-muted-foreground">This screen is not part of the blueprint.</p>
 {:else if route.view === 'home'}
-  <HomeScreen />
+  {#if app.home}
+    {@const Home = app.home}
+    <Home {params} />
+  {:else}
+    <HomeScreen />
+  {/if}
 {:else if route.view === 'members'}
   <div class="space-y-4">
     <div>

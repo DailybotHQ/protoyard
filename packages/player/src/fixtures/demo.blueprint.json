@@ -1,0 +1,285 @@
+{
+  "$schema": "../packages/blueprint/schema/blueprint.schema.json",
+  "formatVersion": 1,
+  "name": "Waymark Field Service",
+  "description": "Dispatch, site visits and technician routes for a fictional field-service team.",
+  "icon": "🧰",
+  "category": "operations",
+  "tags": ["field-service", "dispatch", "technicians"],
+  "catalog": {
+    "category": "operations",
+    "productType": "Field Service",
+    "platforms": ["web"],
+    "features": ["dispatch", "work-orders"],
+    "highlights": ["Live dispatch board", "Service locations", "Technician schedules"],
+    "difficulty": "intermediate"
+  },
+  "brand": {
+    "id": "field-service-dispatch-brand",
+    "name": "Waymark Field Service",
+    "seed": "#176b87",
+    "styleProfile": "crisp",
+    "font": "grotesk"
+  },
+  "entities": [
+    {
+      "name": "work-order",
+      "plural": "work-orders",
+      "titleField": "reference",
+      "fields": [
+        {
+          "name": "reference",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "customer",
+          "kind": "relation",
+          "to": "customer",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "technician",
+          "kind": "relation",
+          "to": "technician",
+          "required": true,
+          "onDelete": "cascade"
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["queued", "dispatched", "in-progress", "complete"],
+          "default": "queued",
+          "required": true,
+          "weights": [4, 3, 2, 1]
+        },
+        {
+          "name": "scheduledAt",
+          "kind": "datetime",
+          "window": "around"
+        },
+        {
+          "name": "site",
+          "kind": "geo",
+          "region": "harbor-bay"
+        },
+        {
+          "name": "laborHours",
+          "kind": "number",
+          "min": 0,
+          "trend": "seasonal"
+        }
+      ],
+      "searchable": ["reference"]
+    },
+    {
+      "name": "customer",
+      "plural": "customers",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "phone",
+          "kind": "text"
+        },
+        {
+          "name": "serviceAddress",
+          "kind": "text"
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "technician",
+      "plural": "technicians",
+      "titleField": "name",
+      "fields": [
+        {
+          "name": "name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "skill",
+          "kind": "enum",
+          "values": ["electrical", "plumbing", "hvac"],
+          "default": "electrical",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "availability",
+          "kind": "enum",
+          "values": ["available", "assigned", "off-duty"],
+          "default": "available",
+          "required": true,
+          "weights": [3, 2, 1]
+        }
+      ],
+      "searchable": ["name"]
+    },
+    {
+      "name": "vehicle",
+      "plural": "vehicles",
+      "titleField": "unit",
+      "fields": [
+        {
+          "name": "unit",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "status",
+          "kind": "enum",
+          "values": ["ready", "in-service", "maintenance"],
+          "default": "ready",
+          "required": true,
+          "weights": [3, 2, 1]
+        },
+        {
+          "name": "odometer",
+          "kind": "integer",
+          "min": 0,
+          "trend": "seasonal"
+        }
+      ],
+      "searchable": ["unit"]
+    }
+  ],
+  "roles": [
+    {
+      "name": "owner",
+      "permissions": {
+        "*": ["*"]
+      }
+    },
+    {
+      "name": "manager",
+      "permissions": {
+        "*": ["read", "create", "update", "delete", "import", "export"]
+      }
+    },
+    {
+      "name": "member",
+      "permissions": {
+        "*": ["read", "create", "update"]
+      }
+    },
+    {
+      "name": "viewer",
+      "permissions": {
+        "*": ["read"]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "type": "dashboard",
+      "path": "/dashboard",
+      "title": "Waymark Field Service overview",
+      "nav": {
+        "label": "Overview",
+        "icon": "layout-dashboard",
+        "order": 0
+      },
+      "widgets": [
+        {
+          "kind": "kpi",
+          "label": "Total work-orders",
+          "entity": "work-order",
+          "aggregate": "count",
+          "span": 1
+        },
+        {
+          "kind": "chart",
+          "label": "work-orders over time",
+          "entity": "work-order",
+          "aggregate": "count",
+          "chart": "line",
+          "bucket": {
+            "field": "createdAt",
+            "unit": "month"
+          },
+          "span": 3
+        }
+      ]
+    },
+    {
+      "type": "list",
+      "entity": "work-order",
+      "columns": ["reference", "customer", "status"]
+    },
+    {
+      "type": "form",
+      "entity": "work-order"
+    },
+    {
+      "type": "list",
+      "entity": "customer",
+      "columns": ["name", "phone"]
+    },
+    {
+      "type": "form",
+      "entity": "customer"
+    },
+    {
+      "type": "list",
+      "entity": "technician",
+      "columns": ["name", "skill"]
+    },
+    {
+      "type": "form",
+      "entity": "technician"
+    },
+    {
+      "type": "list",
+      "entity": "vehicle",
+      "columns": ["unit", "status", "odometer"]
+    },
+    {
+      "type": "form",
+      "entity": "vehicle"
+    },
+    {
+      "type": "map",
+      "entity": "work-order",
+      "geoField": "site",
+      "path": "/work-orders/map",
+      "title": "Dispatch map",
+      "nav": {
+        "label": "Map",
+        "icon": "map",
+        "order": 20
+      }
+    },
+    {
+      "type": "calendar",
+      "entity": "work-order",
+      "dateField": "scheduledAt",
+      "view": "week",
+      "path": "/work-orders/calendar",
+      "title": "Dispatch calendar",
+      "nav": {
+        "label": "Schedule",
+        "icon": "calendar-days",
+        "order": 21
+      }
+    },
+    {
+      "type": "settings",
+      "sections": ["profile", "appearance"],
+      "path": "/settings",
+      "title": "Settings",
+      "nav": {
+        "label": "Settings",
+        "icon": "settings",
+        "order": 999
+      }
+    }
+  ]
+}

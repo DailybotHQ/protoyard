@@ -1,79 +1,37 @@
 <script lang="ts">
-import { CheckSquare, FolderKanban, LayoutDashboard, Users } from '@lucide/svelte';
-import {
-  avatarImage,
-  createRouter,
-  Router,
-  useAppearance,
-  usePrincipal,
-} from '@protoyard/renderer-svelte';
-import { LayoutHost, navFromSidebar } from '@protoyard/ui';
-import { onDestroy } from 'svelte';
-import AppSearch from './components/AppSearch.svelte';
-import NotificationsBell from './components/NotificationsBell.svelte';
-import { provideCrudApp } from './lib/context.ts';
-import Home from './screens/Home.svelte';
-import Members from './screens/Members.svelte';
-import ProjectsPage from './screens/ProjectsPage.svelte';
-import TasksPage from './screens/TasksPage.svelte';
+import { ErrorState, LoadingState } from '@protoyard/ui';
+import { blueprint } from './generated/blueprint.ts';
 
-const { runtime } = provideCrudApp();
-const principal = usePrincipal();
-const appearance = useAppearance();
+/**
+ * The shared blueprint app shell (@protoyard/crud/app), the same one the player
+ * runs. It loads as its own chunk, so the first download stays small. This file
+ * is yours: pass `home`, `extraRoutes`, `recordHref` or an `actions` snippet
+ * to BlueprintApp to customize the app.
+ */
+let attempt = $state(0);
+const shell = $derived.by(() => {
+  void attempt;
+  return import('@protoyard/crud/app');
+});
 
-const router = createRouter(
-  [
-    { path: '/', component: Home, title: 'Home' },
-    { path: '/projects', component: ProjectsPage, title: 'Projects' },
-    { path: '/projects/:id', component: ProjectsPage, title: 'Project' },
-    { path: '/tasks', component: TasksPage, title: 'Tasks' },
-    { path: '/tasks/:id', component: TasksPage, title: 'Task' },
-    { path: '/members', component: Members, title: 'Members' },
-  ],
-  { titleSuffix: runtime.manifest.name }
-);
-onDestroy(() => router.destroy());
-
-const nav = $derived([
-  { href: '#/', label: 'Home', icon: LayoutDashboard, active: router.isActive('/', true) },
-  {
-    href: '#/projects',
-    label: 'Projects',
-    icon: FolderKanban,
-    active: router.isActive('/projects'),
-  },
-  { href: '#/tasks', label: 'Tasks', icon: CheckSquare, active: router.isActive('/tasks') },
-  { href: '#/members', label: 'Members', icon: Users, active: router.isActive('/members') },
-]);
-const navSections = $derived(
-  [
-    { label: 'Overview', items: nav.filter((item) => item.href === '#/') },
-    {
-      label: 'Work',
-      items: nav.filter((item) => item.href !== '#/' && item.href !== '#/members'),
-    },
-    { label: 'Workspace', items: nav.filter((item) => item.href === '#/members') },
-  ].filter((section) => section.items.length > 0)
-);
-const layoutNav = $derived(
-  navFromSidebar(navSections, {
-    brand: { label: runtime.manifest.name, icon: 'folder-kanban' },
-    ...(principal.current
-      ? {
-          user: {
-            image: avatarImage(principal.current.persona.avatar),
-            name: principal.current.persona.name,
-            detail: principal.current.persona.title ?? principal.current.role ?? '',
-          },
-        }
-      : {}),
-  })
-);
+/** Theme library choices for the settings screen, loaded only when it opens. */
+async function themeLibrary() {
+  const { THEME_LIBRARY_META } = await import('@protoyard/themes/library');
+  return THEME_LIBRARY_META.map(({ id, name }) => ({ id, name }));
+}
 </script>
 
-<LayoutHost layout={appearance.current.layout.value} nav={layoutNav} storageKey={runtime.manifest.storage.namespace}>
-  <div class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8">
-    <div class="mb-4 flex justify-end gap-2"><AppSearch /><NotificationsBell /></div>
-    <Router {router} />
-  </div>
-</LayoutHost>
+{#await shell}
+  <LoadingState label="Loading the prototype" class="py-16" />
+{:then { BlueprintApp }}
+  <BlueprintApp {blueprint} {themeLibrary} />
+{:catch error}
+  <ErrorState
+    title="The prototype could not be loaded"
+    message={error instanceof Error ? error.message : String(error)}
+    onRetry={() => {
+      attempt += 1;
+    }}
+    retryLabel="Try again"
+  />
+{/await}

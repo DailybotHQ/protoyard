@@ -1,18 +1,23 @@
 import {
   createEntityServices,
   deriveAppModel,
+  derivePolicy,
   deriveStores,
   parseBlueprint,
 } from '@protoyard/blueprint';
 import type { PrototypeRuntime, Row } from '@protoyard/core';
 import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import type { ComponentProps } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createBlueprintDefinition,
   helpdeskBlueprint,
 } from '../../../tests/fixtures/blueprint-prototype.ts';
 import { createHarness } from '../../../tests/support/runtime.ts';
+import { entityRecordRoute } from '../src/app/context.ts';
 import BlueprintAppHarness from './fixtures/BlueprintAppHarness.svelte';
+import CustomHome from './fixtures/CustomHome.svelte';
+import CustomScreen from './fixtures/CustomScreen.svelte';
 
 /** The help desk fixture plus one screen of each shell-relevant kind. */
 const blueprint = parseBlueprint({
@@ -65,12 +70,12 @@ async function go(path: string) {
   window.dispatchEvent(new HashChangeEvent('hashchange'));
 }
 
-async function boot() {
+async function boot(extra: Partial<ComponentProps<typeof BlueprintAppHarness>> = {}) {
   const runtime = await harness.boot('owner');
   const themeLibrary = vi.fn(async () => [
     { id: 'fixture-library-theme', name: 'Fixture library theme' },
   ]);
-  const view = render(BlueprintAppHarness, { runtime, blueprint, themeLibrary });
+  const view = render(BlueprintAppHarness, { runtime, blueprint, themeLibrary, ...extra });
   return { runtime, view, themeLibrary };
 }
 
@@ -204,10 +209,145 @@ describe('BlueprintApp', () => {
     expect((await services.customer!.list()).length).toBe(before);
   }, 60_000);
 
+  it('follows navigation from one record to another on a screen route (detail with tabs)', async () => {
+    const { runtime } = await boot();
+    await screen.findByRole('heading', { name: blueprint.name });
+    const [first, second] = (await table(runtime, 'tickets').toArray()).map((row) =>
+      String(row.id)
+    );
+    expect(first && second).toBeTruthy();
+    const shown = () =>
+      document.querySelector('[data-entity-detail="ticket"]')?.getAttribute('data-record-id');
+    await go(`/tickets/${encodeURIComponent(first!)}`);
+    await waitFor(() => expect(shown()).toBe(first));
+    // Same route pattern, another id: the screen must show the new record.
+    await go(`/tickets/${encodeURIComponent(second!)}`);
+    await waitFor(() => expect(shown()).toBe(second));
+    await go(`/tickets/${encodeURIComponent(first!)}`);
+    await waitFor(() => expect(shown()).toBe(first));
+  }, 60_000);
+
+  it('encodes record ids in routes, so an id with / ? # opens and saves its record', async () => {
+    expect(entityRecordRoute('customers', 'acme/west?x#1')).toBe('/customers/acme%2Fwest%3Fx%231');
+    const { runtime } = await boot();
+    const services = createEntityServices(runtime, blueprint);
+    const [row] = await services.customer!.list();
+    const id = 'acme/west?x#1';
+    // An imported or hand-made id: the services keep ids as given.
+    await (
+      runtime.db as unknown as {
+        table(name: string): { put(row: Row): Promise<unknown> };
+      }
+    )
+      .table('customers')
+      .put({ ...row!, id, name: 'Example Slash Harbor' } as Row);
+    await go(entityRecordRoute('customers', id));
+    const name = (await screen.findByLabelText(/^Name/)) as HTMLInputElement;
+    await waitFor(() => expect(name.value).toBe('Example Slash Harbor'));
+    await fireEvent.input(name, { target: { value: 'Example Slash Group' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(async () =>
+      expect((await services.customer!.get(id))?.name).toBe('Example Slash Group')
+    );
+  }, 60_000);
+
   it('shows a clear message for a record that does not exist', async () => {
     await boot();
     await go('/customers/does-not-exist');
     expect(await screen.findByText(/no longer exists or your role cannot see it/)).toBeTruthy();
     expect(await screen.findByRole('button', { name: /New/ })).toBeTruthy();
   });
+});
+
+describe('BlueprintApp home counts', () => {
+  it('recounts after a persona switch, showing — for an entity the new role cannot read', async () => {
+    // A viewer that cannot read invoices: the counts depend on the active role.
+    const restricted = parseBlueprint({
+      ...blueprint,
+      roles: blueprint.roles.map((role) =>
+        role.name === 'viewer'
+          ? {
+              name: 'viewer',
+              permissions: { customer: ['read'], ticket: ['read'], note: ['read'] },
+            }
+          : role
+      ),
+    });
+    harness = createHarness({
+      ...createDefinition(`crud-app-counts-${Math.random().toString(36).slice(2, 8)}`),
+      policy: derivePolicy(restricted),
+    });
+    const runtime = await harness.boot('owner');
+    render(BlueprintAppHarness, { runtime, blueprint: restricted });
+    const invoices = await table(runtime, 'invoices').toArray();
+    expect(invoices.length).toBeGreaterThan(0);
+    const invoiceCount = () => screen.getByTestId('home-count-invoice').textContent ?? '';
+    await waitFor(() => expect(invoiceCount()).toContain(String(invoices.length)));
+
+    const memberships = (await table(runtime, 'py_memberships').toArray()) as unknown as {
+      personaId: string;
+      role: string;
+    }[];
+    const viewer = memberships.find((m) => m.role === 'viewer');
+    expect(viewer, 'the owner scenario has a viewer').toBeTruthy();
+    await runtime.session.switchActor(viewer!.personaId);
+    await waitFor(() => expect(invoiceCount()).toContain('—'));
+  }, 60_000);
+});
+
+describe('BlueprintApp extension points', () => {
+  it('opens a search result on its record route by default', async () => {
+    const { runtime } = await boot();
+    const services = createEntityServices(runtime, blueprint);
+    const row = await services.customer!.create({ name: 'Example Searchable Harbor' });
+    await screen.findByRole('heading', { name: blueprint.name });
+    await fireEvent.click(screen.getByRole('button', { name: /^Search/ }));
+    const input = await screen.findByRole('combobox', { name: 'Search commands' });
+    await fireEvent.input(input, { target: { value: 'Searchable Harbor' } });
+    await fireEvent.click(await screen.findByRole('option', { name: /Example Searchable Harbor/ }));
+    await waitFor(() =>
+      expect(location.hash).toBe(`#/customers/${encodeURIComponent(String(row.id))}`)
+    );
+    // The record's edit form opens there.
+    expect(await screen.findByRole('button', { name: 'Save' })).toBeTruthy();
+  }, 60_000);
+
+  it('renders a custom home, extra routes and custom header actions', async () => {
+    const { runtime } = await boot({
+      home: CustomHome,
+      extraRoutes: [
+        { path: '/tickets/:id/workspace', title: 'Workspace', component: CustomScreen },
+      ],
+      customActions: true,
+    });
+    expect(await screen.findByRole('heading', { name: 'Custom home' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Custom action' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Search/ })).toBeNull();
+    await go('/tickets/t-1/workspace');
+    expect(await screen.findByRole('heading', { name: 'Custom screen' })).toBeTruthy();
+    expect(screen.getByTestId('custom-params').textContent).toContain('"id":"t-1"');
+    // Blueprint routes still work next to the extra ones.
+    const [ticket] = await table(runtime, 'tickets').toArray();
+    await go(`/tickets/${encodeURIComponent(String(ticket?.id))}`);
+    expect(await screen.findByRole('tab', { name: /Overview/i })).toBeTruthy();
+  }, 60_000);
+
+  it('sends list rows and search results to recordHref when it returns a path', async () => {
+    const recordHref = vi.fn((entityName: string, id: string) =>
+      entityName === 'customer' ? `/customers/${encodeURIComponent(id)}/workspace` : undefined
+    );
+    const { runtime } = await boot({
+      recordHref,
+      extraRoutes: [{ path: '/customers/:id/workspace', component: CustomScreen }],
+    });
+    const services = createEntityServices(runtime, blueprint);
+    const row = await services.customer!.create({ name: 'Example Row Opener' });
+    await go('/customers');
+    await fireEvent.click(await screen.findByRole('row', { name: /Example Row Opener/ }));
+    await waitFor(() =>
+      expect(location.hash).toBe(`#/customers/${encodeURIComponent(String(row.id))}/workspace`)
+    );
+    expect(await screen.findByRole('heading', { name: 'Custom screen' })).toBeTruthy();
+    expect(recordHref).toHaveBeenCalledWith('customer', String(row.id));
+  }, 60_000);
 });

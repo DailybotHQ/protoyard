@@ -72,6 +72,32 @@ and is tree-shakeable for consumers that do not import it.
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 
+## Agent authoring sequence
+
+For an offline end-to-end path, start from a [quick blueprint](../../blueprints/quick/README.md)
+or synthesize one with `pnpm protoyard blueprint new <file> --from-brief <brief-file>` (use `-`
+for stdin). Read the rationale, edit the JSON, and run `pnpm protoyard blueprint validate <file>`.
+For machine-actionable repairs, pass the parsed input to `validateBlueprintForAuthoring`; each
+diagnostic provides `jsonPath`, `message` and a suggested `hint`. Revalidate after every repair.
+The JSON Schema is useful for editor completion, but only the package parser checks
+cross-references such as relation targets, screen fields and archetype entity slots.
+
+If data shape is the starting point, use the lazy import modules documented below to infer entities
+from CSV headers and samples, JSON objects, or SQLite `CREATE TABLE` statements. These are schema
+imports: drafts and notes do not retain sample values or database rows. Review ambiguous kinds and
+relation candidates, combine the entities with roles, scenario defaults, routes and any selected
+`archetype`, then validate the assembled blueprint. CSV, JSON and SQLite imports currently expose
+package APIs rather than a `protoyard` CLI import command.
+
+Select `assistant`, `team-chat`, `saas-onboarding` or `analytics` in the optional portable
+`archetype` block when a matching kit adapter should be available at runtime. The player and
+generator consume this data and load declared kit entry points lazily. Standard entity
+`screenDefaults` and top-level screens cover common routes; specialized workflows still need
+owned Svelte screens and services. The separate `./workflows` module validates state-machine data,
+but formatVersion 1 and generated services do not yet persist or execute those workflows. See
+[the generator guide](../../docs/GENERATOR.md) for the complete author review, generation and
+regeneration loop.
+
 - **Brand (optional):** `seed` (`#rrggbb`) and/or built-in `preset` (`violet`, `ocean`, …),
   optional `secondary`, `styleProfile` (`soft` | `crisp` | `flat` | `rounded` | `editorial` |
   `mono`), `font` (catalog id), `radius`, `density`, `id` and `name`.
@@ -171,7 +197,10 @@ shape and defaults, so existing blueprints and derived stores need no migration.
 
 `schema/blueprint.schema.json` (draft 2020-12) gives editors autocompletion: point a
 blueprint's `$schema` at it. It describes the shape only; the cross-reference checks above
-run in `parseBlueprint`. A test fails when the file is out of date. Regenerate it with:
+run in `parseBlueprint`. The package exports it as `@protoyard/blueprint/schema.json` (the
+packed package ships it as `dist/schema/blueprint.schema.json`). `protoyard blueprint new`
+finds it through that export, from this repository or an installed package, and writes a
+relative `$schema`. A test fails when the file is out of date. Regenerate it with:
 
 ```bash
 pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/schema.ts'; import { writeFileSync } from 'node:fs'; writeFileSync('packages/blueprint/schema/blueprint.schema.json', JSON.stringify(blueprintJsonSchema(), null, 2) + '\n');" && npx biome format --write packages/blueprint/schema
@@ -331,7 +360,8 @@ It normalizes headers into deterministic field names, infers conservative kinds 
 at most 100 non-empty rows, and returns a validated entity draft with review notes.
 The result never includes imported cell values, enum values, sample-derived limits or
 row data. The existing 2 MiB / 10,000-row CSV limits still apply; shape inference also
-caps the header at 100 columns and each inspected cell at 16 KiB. Ambiguous columns
+caps the header at 100 columns, header and sampled cells at 16 KiB each, and sample
+inspection at 100 non-empty rows. Caller limits can lower these caps only. Ambiguous columns
 remain `text` and are called out in `notes` for author review. Formula-like sample
 cells are unguarded only while classifying them and are never returned.
 
@@ -359,8 +389,10 @@ one-to-many fields, which should be reviewed before generation. Arrays of
 strings can become `tags`; enum values and sample limits are never copied.
 
 Input is capped at 2 MiB, 100 sampled objects per entity, 8 levels of nesting,
-2,000 object/array nodes, 100 fields per entity and 16 KiB per string value.
-Higher caller limits are clamped to these hard caps. Output entity and field
+2,000 object/array nodes, 20,000 total value nodes, 100 fields per object and
+16 KiB per string value or key. Prototype-related keys and keys with control or
+bidirectional formatting characters are rejected. Higher caller limits are
+clamped to these hard caps. Output entity and field
 ordering is stable regardless of JSON key insertion order, and notes/errors do
 not echo source values.
 
@@ -399,8 +431,9 @@ and absent types use conservative reviewable representations. Defaults, checks,
 unique constraints and collations do not become behavior; default literals are
 discarded. Composite foreign keys, unsupported types and non-CREATE statements
 are rejected with a path-aware `SqliteSchemaError`. Input is limited to 256 KiB,
-50 tables, 100 columns per table and 40,000 tokens. SQL literal values and
-database rows never appear in the output.
+50 tables, 100 columns per table, 40,000 tokens and 8 levels of parenthesis
+nesting. Caller limits can lower these caps only. SQL literal values and
+database rows never appear in the output or parser diagnostics.
 
 ## World generator
 
@@ -708,9 +741,17 @@ machine was under heavy load (`pnpm vitest run packages/blueprint/tests/aggregat
 
 A later route on the same path replaces an earlier one in place, so a screen can
 claim an entity's default list or detail route. `screenNavIcon`, `screenHasOwnView`
-and `entityLabel` expose the per-screen rules. The model matches what
-`protoyard generate` writes to `src/generated/routes.ts` and `layout.ts` for every
-catalog blueprint; `tests/app-model.test.ts` checks this byte for byte.
+and `entityLabel` expose the per-screen rules. Generated prototypes and the player
+both render this model through `BlueprintApp` (`@protoyard/crud/app`), so the
+generator emits no route or layout files. `tests/app-model.test.ts` pins the model of
+every catalog blueprint in `tests/__snapshots__/app-model.catalog.json`. The snapshot
+was taken when the model was proven byte-identical to the generator's former
+`routes.ts` and `layout.ts`, so a change is always a reviewed diff.
+
+`blueprintGeneratorVersion(blueprint)` (synchronous, no Faker) is the world
+generator's version. Generated prototypes declare it as `generatorVersion`, and so
+does the runtime definition, so a stored world reseeds when the blueprint's
+generative surface or the generator SDK changes.
 
 ## Runtime definition
 
@@ -748,3 +789,7 @@ all derived from its blueprint.
 pnpm vitest run packages/blueprint
 pnpm --filter @protoyard/blueprint typecheck
 ```
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

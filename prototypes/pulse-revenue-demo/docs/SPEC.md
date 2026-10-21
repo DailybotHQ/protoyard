@@ -56,7 +56,7 @@ For a production application, replace the local transaction schema and generated
 | default theme | `pulse-revenue` |
 | storage namespace | `pulse-revenue-demo` |
 | schema version | 1 |
-| generator version | 1 |
+| generator version | 49867619 |
 | timeline | no |
 | themes | Pulse Revenue (`pulse-revenue`) |
 <!-- /protoyard:generated:manifest -->

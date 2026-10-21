@@ -1,9 +1,10 @@
 import { spawn } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   PackageGraphError,
+  packageCycles,
   packageLevels,
   readPackageGraph,
   selectPackageNames,
@@ -41,6 +42,8 @@ export interface BuildPackagesResult {
   ok: boolean;
   root: string;
   levels: string[][];
+  /** Dependency cycles built together in one level (reported, not fatal). */
+  cycles: string[][];
   packages: BuiltPackageResult[];
 }
 
@@ -66,9 +69,14 @@ function commandRunner(
 
 function packageCommand(pkg: WorkspacePackage): { args: string[]; strategy: 'tsc' | 'svelte' } {
   if (pkg.buildConfig === 'svelte') {
+    // tsconfig.build.json carries rewriteRelativeImportExtensions, so `.ts`
+    // imports in .ts and .svelte files point at the emitted `.js`.
+    const tsconfig = existsSync(join(pkg.dir, 'tsconfig.build.json'))
+      ? ['--tsconfig', 'tsconfig.build.json']
+      : [];
     return {
       strategy: 'svelte',
-      args: ['exec', 'svelte-package', '--input', 'src', '--output', 'dist'],
+      args: ['exec', 'svelte-package', '--input', 'src', '--output', 'dist', ...tsconfig],
     };
   }
   return { strategy: 'tsc', args: ['exec', 'tsc', '-p', 'tsconfig.build.json'] };
@@ -106,14 +114,30 @@ function copyAssets(pkg: WorkspacePackage): string[] {
   return copied;
 }
 
+/**
+ * Empties `dist/` before a build, except the folders the package keeps
+ * (`protoyard.build.keep`): the player's Vite app in `dist/app/` survives the
+ * embed client's tsc build, and Vite only ever empties that folder itself.
+ */
+function cleanDist(pkg: WorkspacePackage): void {
+  const dist = join(pkg.dir, 'dist');
+  if (pkg.keep.length === 0 || !existsSync(dist)) {
+    rmSync(dist, { recursive: true, force: true });
+  } else {
+    for (const entry of readdirSync(dist)) {
+      if (!pkg.keep.includes(entry)) rmSync(join(dist, entry), { recursive: true, force: true });
+    }
+  }
+  mkdirSync(dist, { recursive: true });
+}
+
 async function buildOne(
   pkg: WorkspacePackage,
   run: BuildCommandRunner
 ): Promise<BuiltPackageResult> {
   if (!pkg.buildConfig) throw new PackageGraphError(`Package is not opted in: ${pkg.name}`);
   const { args, strategy } = packageCommand(pkg);
-  rmSync(join(pkg.dir, 'dist'), { recursive: true, force: true });
-  mkdirSync(join(pkg.dir, 'dist'), { recursive: true });
+  cleanDist(pkg);
   const result = await run(process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm', args, pkg.dir);
   if (result.code !== 0) {
     return {
@@ -124,6 +148,25 @@ async function buildOne(
       assets: [],
       error: result.stderr.trim() || `build exited with code ${result.code}`,
     };
+  }
+  if (pkg.postBuild) {
+    const followUp = await run(
+      process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
+      ['run', pkg.postBuild],
+      pkg.dir
+    );
+    if (followUp.code !== 0) {
+      return {
+        name: pkg.name,
+        directory: pkg.dir,
+        strategy,
+        status: 'failed',
+        assets: [],
+        error:
+          followUp.stderr.trim() ||
+          `\`pnpm run ${pkg.postBuild}\` exited with code ${followUp.code}`,
+      };
+    }
   }
   try {
     const assets = copyAssets(pkg);
@@ -147,6 +190,7 @@ export async function buildPackages(
   const graph = readPackageGraph(options.root ?? process.cwd());
   const selected = selectPackageNames(graph, options.filters ?? []);
   const levels = packageLevels(graph, selected);
+  const cycles = packageCycles(graph, selected);
   const run = options.runCommand ?? commandRunner;
   const results: BuiltPackageResult[] = [];
   for (const level of levels) {
@@ -158,6 +202,7 @@ export async function buildPackages(
     ok: results.every((result) => result.status === 'built'),
     root: graph.root,
     levels: levels.map((level) => level.map((pkg) => pkg.name)),
+    cycles,
     packages: results,
   };
 }
@@ -210,8 +255,15 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     const result = await buildPackages(parsed);
     if (json) console.log(JSON.stringify(result));
     else if (result.packages.length === 0) console.log('build-packages: no opted-in packages');
-    else
-      for (const pkg of result.packages) console.log(`${pkg.status} ${pkg.name} (${pkg.strategy})`);
+    else {
+      for (const cycle of result.cycles) {
+        console.log(`note: dependency cycle built as one level: ${cycle.join(' <-> ')}`);
+      }
+      for (const pkg of result.packages) {
+        console.log(`${pkg.status} ${pkg.name} (${pkg.strategy})`);
+        if (pkg.error) console.log(`  ${pkg.error.split('\n').slice(0, 20).join('\n  ')}`);
+      }
+    }
     return result.ok ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

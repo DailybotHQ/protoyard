@@ -1,6 +1,7 @@
 @import "@protoyard/renderer-svelte/app.css";
+@import "@protoyard/crud/styles.css";
 
-/* Let Tailwind see this prototype's own markup. */
+/* Let Tailwind see this prototype's own markup; the CRUD kit stylesheet above registers its own. */
 @source "./";
 
 html,

@@ -108,6 +108,7 @@ export {
   FileUploadError,
   type FileUploadProgress,
 } from './files.ts';
+export { BLUEPRINT_GENERATOR_SDK, blueprintGeneratorVersion } from './generator-version.ts';
 export {
   BLUEPRINT_NAMESPACE_PREFIX,
   type BlueprintIdentity,
@@ -141,6 +142,7 @@ export {
   BlueprintPatchError,
   type BlueprintPatchErrorCode,
   type BlueprintPatchResult,
+  JSON_PATCH_MAX_NODES,
   JSON_PATCH_MAX_OPS,
   JSON_POINTER_MAX_LENGTH,
   type JsonPatchOperation,
@@ -237,10 +239,12 @@ export {
   MAX_SHARE_ENCODED_LENGTH,
   readBlueprintShareFragment,
   SHARE_FRAGMENT_PARAM,
+  SHARE_LINK_BROWSERS,
   SHARE_LINK_VERSION,
   type ShareDecodeResult,
   type ShareLinkIssue,
   ShareLinkTooLargeError,
+  supportsShareLinks,
 } from './share.ts';
 export {
   deriveIntegrity,

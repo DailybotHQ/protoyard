@@ -57,7 +57,12 @@ side on one origin, for example two iframes with `?sandbox=a&scenario=X` and
 
 ## Large worlds and progress
 
-Loads run in phases: **generate → validate → write → done**. The runtime yields to the event
+Loads run in phases: **generate → validate → write → done**. The generate phase calls
+`definition.generateWorld(effectiveScenario)` when the definition provides it (the player
+generates in a Web Worker this way, so no `GenerateContext` or Faker is built on the main
+thread), and otherwise `definition.generate(await createGenerateContextAsync(scenario))`.
+Loads, resets and stale-world reseeds all take this path; `advance()` timelines always
+build a context. The runtime yields to the event
 loop between phases, then writes the whole world in **one transaction** with chunked
 `bulkAdd` calls (`DEFAULT_WRITE_CHUNK = 1000`, overridable via `RuntimeOptions.writeChunkSize`
 or per load). Atomicity is kept: if any chunk fails, the previous world is untouched. Chunk
@@ -154,3 +159,7 @@ transactions: await only the provided context or Dexie calls there, never `fetch
 and covers determinism, integrity across all presets, permissions, non-destructive
 overrides, snapshot round-trips and rejections, v1→v2 migration, appearance isolation,
 shell precedence/persistence, idempotent advance (7×1 == 1×7), cross-prototype isolation and reopen safety.
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

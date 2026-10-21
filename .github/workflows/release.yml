@@ -1,8 +1,19 @@
 name: release
 
-# On a version tag (v0.1.0, v1.2.3-rc.1…): run the full gate, check the tag
-# matches package.json and has a CHANGELOG.md section, then create a GitHub
-# Release with that section as notes. Nothing is published to npm.
+# On a version tag (v1.1.0, v1.2.3-rc.1…):
+# 1. gate: the full gate, the tag matches package.json and the lockstep
+#    version and has a CHANGELOG.md section, and the packages build, lint
+#    (every one publish-ready) and install from their tarballs.
+#    The gate then packs every public package with pnpm in dependency order,
+#    writes the tarballs' SHA256SUMS and uploads both as one artifact.
+# 2. npm: downloads that artifact, verifies the checksums and publishes each
+#    tarball with npm Trusted Publishing (OIDC, --provenance) in order. It has
+#    no source checkout, no install and no build, so no package script runs
+#    while it holds the OIDC token. There is no npm token secret. A
+#    prerelease tag publishes under the `next` dist-tag.
+#    The `npm` environment is the consent checkpoint: the developer configures
+#    the trusted publishers on npmjs.com and approves the first live publish.
+# 3. release: the GitHub Release, only after npm succeeded.
 
 on:
   push:
@@ -39,12 +50,73 @@ jobs:
             exit 1
           fi
           bash scripts/changelog-section.sh "$version" > /dev/null
+      - name: No pending changesets (the tag must come after version-packages)
+        run: |
+          pending=$(find .changeset -maxdepth 1 -name '*.md' ! -name 'README.md' | sort)
+          if [ -n "$pending" ]; then
+            echo "Unreleased changesets remain; run pnpm version-packages before tagging:" >&2
+            echo "$pending" >&2
+            exit 1
+          fi
       - name: Public-hygiene check
         run: bash scripts/check-public-hygiene.sh
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Skill versions match the release tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=${TAG#v}
+          pnpm exec tsx scripts/stamp-skill-version.ts "$version" --check
+      - name: The skill matches the committed SHA256SUMS
+        run: bash scripts/verify-skill-integrity.sh
+      - name: Smoke-install the tagged skill release
+        env:
+          TAG: ${{ github.ref_name }}
+        run: bash scripts/smoke-install-skill.sh "$TAG"
+      - name: Every public package is on the lockstep version
+        run: pnpm version-packages --check
       - name: Lint, types, unit tests
         run: pnpm check
+      - name: Build the packages
+        run: pnpm build:packages
+      - name: Lint the packed packages (every one publish-ready)
+        run: pnpm check:packages --require-all
+      - name: Install the tarballs in a clean consumer
+        run: pnpm verify:packages
+      - name: Pack every public package in dependency order
+        env:
+          TARBALLS: ${{ runner.temp }}/tarballs
+        run: |
+          set -euo pipefail
+          mkdir -p "$TARBALLS"
+          : > "$TARBALLS/order.tsv"
+          # pnpm -r runs in topological order, and one at a time keeps the list
+          # ordered. Each package packs into its own folder, because pack
+          # lifecycle scripts may print to stdout. Paths are relative to
+          # $TARBALLS, so the list still holds after the artifact moves.
+          pnpm -r --filter "./packages/**" --filter "./apps/gallery" --workspace-concurrency=1 \
+            exec sh -c 'd=$(mktemp -d "$TARBALLS/pack.XXXXXX") && pnpm pack --pack-destination "$d" >&2 && set -- "$d"/*.tgz && test "$#" -eq 1 && test -f "$1" && printf "%s\t%s\n" "$(jq -r "[.name, .version] | @tsv" package.json)" "${1#"$TARBALLS"/}" >> "$TARBALLS/order.tsv"'
+          cat "$TARBALLS/order.tsv"
+      - name: Checksum the tarballs
+        env:
+          TARBALLS: ${{ runner.temp }}/tarballs
+        run: |
+          set -euo pipefail
+          cd "$TARBALLS"
+          : > SHA256SUMS
+          while IFS="$(printf '\t')" read -r name version file; do
+            shasum -a 256 -- "$file" >> SHA256SUMS
+          done < order.tsv
+          shasum -a 256 -- order.tsv >> SHA256SUMS
+          cat SHA256SUMS
+      - name: Upload the tarballs for the npm job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-tarballs
+          path: ${{ runner.temp }}/tarballs
+          if-no-files-found: error
+          retention-days: 7
       - name: Build the gallery
         run: pnpm --filter @protoyard/gallery build
       - name: Build every prototype
@@ -52,9 +124,79 @@ jobs:
           pnpm protoyard index
           pnpm protoyard build --all
 
+  npm:
+    name: npm publish
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    # No checkout, install, build or pack here: this job only publishes the
+    # tarballs the gate packed and checksummed, so no package script runs
+    # while it holds the OIDC token.
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.20.0'
+          registry-url: 'https://registry.npmjs.org'
+      - name: npm supports Trusted Publishing (11.5.1 or later)
+        run: |
+          node -e '
+            const [a, b, c] = process.argv[1].split(".").map(Number);
+            if (a < 11 || (a === 11 && (b < 5 || (b === 5 && c < 1)))) {
+              console.error(`npm ${process.argv[1]} is too old for Trusted Publishing`);
+              process.exit(1);
+            }' "$(npm --version)"
+      - name: Download the gate's tarballs
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npm-tarballs
+          path: ${{ runner.temp }}/tarballs
+      - name: Verify the tarball checksums
+        env:
+          TARBALLS: ${{ runner.temp }}/tarballs
+        run: |
+          set -euo pipefail
+          cd "$TARBALLS"
+          # Every file the list names must be listed in SHA256SUMS, stay
+          # inside this folder, and match its checksum.
+          listed() { F="$1" awk 'substr($0, 67) == ENVIRON["F"] { found = 1 } END { exit !found }' SHA256SUMS; }
+          listed order.tsv || { echo "order.tsv is not in SHA256SUMS" >&2; exit 1; }
+          shasum -a 256 -c SHA256SUMS
+          count=0
+          while IFS="$(printf '\t')" read -r name version file; do
+            case "$file" in
+              '' | /* | *..*) echo "Unsafe tarball path for $name: $file" >&2; exit 1 ;;
+            esac
+            listed "$file" || { echo "$file is not in SHA256SUMS" >&2; exit 1; }
+            count=$((count + 1))
+          done < order.tsv
+          [ "$count" -gt 0 ] || { echo "No tarballs to publish" >&2; exit 1; }
+          [ "$(wc -l < SHA256SUMS)" -eq "$((count + 1))" ] || { echo "SHA256SUMS lists files the order does not" >&2; exit 1; }
+          echo "Verified $count tarballs."
+      - name: Publish with provenance
+        env:
+          TAG: ${{ github.ref_name }}
+          TARBALLS: ${{ runner.temp }}/tarballs
+        run: |
+          set -euo pipefail
+          dist_tag=latest
+          case "$TAG" in *-*) dist_tag=next ;; esac
+          while IFS="$(printf '\t')" read -r name version file; do
+            # A rerun after a partial failure skips what is already published.
+            if npm view "$name@$version" version > /dev/null 2>&1; then
+              echo "skip $name@$version (already published)"
+              continue
+            fi
+            tarball="$TARBALLS/$file"
+            npm publish "$tarball" --provenance --access public --tag "$dist_tag"
+          done < "$TARBALLS/order.tsv"
+
   release:
     name: GitHub Release
-    needs: gate
+    needs: [gate, npm]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -63,6 +205,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: The attached SHA256SUMS matches the skill
+        run: bash scripts/verify-skill-integrity.sh
       - name: Create the release from the changelog section
         env:
           GH_TOKEN: ${{ github.token }}
@@ -72,5 +216,5 @@ jobs:
           bash scripts/changelog-section.sh "$version" > release-notes.md
           prerelease=""
           case "$version" in *-*) prerelease="--prerelease" ;; esac
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Protoyard $TAG" \
+          gh release create "$TAG" SHA256SUMS --repo "$GITHUB_REPOSITORY" --title "Protoyard $TAG" \
             --notes-file release-notes.md --verify-tag $prerelease

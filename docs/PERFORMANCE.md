@@ -145,6 +145,7 @@ loader uses the defaults below.
 | `indexColdMs` | 100 ms | Cold metadata-index target |
 | `ideaToRunningMs` | `null` | Brief synthesis through first paint with a seeded world; calibrate before gating |
 | `briefToBlueprintMs`, `blueprintValidationMs`, `prototypeGenerationMs`, `prototypeBuildMs`, `previewReadyMs` | `null` | Optional per-phase idea-to-running thresholds |
+| `quickReadyMs` | `null` | `protoyard quick` brief → ready folder → `protoyard:ready`, no build (see [Quick exploration](#quick-exploration-brief-to-ready-measured-2026-10-20)) |
 
 These budgets are **enforced**:
 
@@ -155,6 +156,8 @@ These budgets are **enforced**:
 | `generateMs` | `pnpm protoyard scenario bench <slug> --check [--ci-factor 3]` (CI multiplies the budget by 3 for slower runners) | exit 4 |
 | `coldStartMs` | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --check` | report only while `null` |
 | `ideaToRunningMs` and configured phase budgets | `pnpm exec tsx scripts/bench-idea.ts --runs 3 --check` | report only while `null`; exit 1 over a configured median budget |
+| `quickReadyMs` | `pnpm exec tsx scripts/bench-idea.ts --mode quick --runs 3 --check [--ci-factor 3]` | report only while `null`; exit 1 over the median budget |
+| Packed package parity | `pnpm verify:packages --budget-parity` | exit 1 when the packed consumer's initial JS gzip is more than 2 KB from the same blank-template source build, or above 250 KB |
 | Data grid (thresholds in the script) | `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check` | exit 1 locally; report only on CI until calibrated there |
 | Views kit chunks (`CEILINGS` in the test) | `pnpm vitest run packages/cli/tests/views-bundle.test.ts` | test failure (part of `pnpm test`) |
 
@@ -162,6 +165,30 @@ The `perf` job in [.github/workflows/ci.yml](../.github/workflows/ci.yml)
 runs the first three on every pull request and push to `main`, and reports
 cold start without gating it (see
 [TESTING_GUIDE](TESTING_GUIDE.md#ci-performance-job-githubworkflowsciyml--perf)).
+
+### Published package build parity
+
+`pnpm verify:packages --budget-parity` extends the tarball consumer check. It
+uses the packed CLI and packages to scaffold `second-app` from the published
+blank template, then runs `protoyard budget second-app --skip-build` against
+the production build already made by `validate --build`. It separately
+scaffolds the same blank template from workspace source and runs
+`protoyard budget` there, which builds and measures that source version.
+The gate prints both initial-JS gzip values and their delta. It fails when the
+absolute difference is over 2 KB or when the packed consumer exceeds the
+250 KB initial-JS cap. Temporary source prototypes and build artifacts are
+removed after measurement.
+
+This parity check covers the blank starter only; it does not claim every
+template has identical packed and source builds. The ordinary budget command
+continues to enforce CSS for both builds as well.
+
+Measured 2026-10-20 with `pnpm verify:packages --budget-parity`: the source
+blank starter was **169.30 KB** initial JS gzip and the packed consumer's
+starter was **169.20 KB**, a **0.10 KB** difference. Both passed the 250 KB
+cap. The command also passed the tarball install, consumer scaffold/build,
+gallery command and gallery build steps.
+
 The bundle gate on this repository (2026-10-18, abridged to two of the eight
 prototypes):
 
@@ -192,7 +219,8 @@ For one prototype, set only the values that differ:
     "blueprintValidationMs": null,
     "prototypeGenerationMs": null,
     "prototypeBuildMs": null,
-    "previewReadyMs": null
+    "previewReadyMs": null,
+    "quickReadyMs": null
   },
   "overrides": {
     "crm-demo": { "initialJsGzipKb": 280 }
@@ -799,6 +827,284 @@ Reproduce:
 PROTOYARD_BENCH=1 PROTOYARD_BENCH_RUNS=3 pnpm vitest run prototypes/crm-demo/tests/enterprise-scale.test.ts --silent=false
 ```
 
+## Player worker generation
+
+The player sends the validated blueprint and resolved scenario data to a module
+worker for world generation. The worker creates its own `GenerateContext` and
+returns the serializable `WorldSeed`; if workers are unavailable or fail, the
+same generation helper runs from a lazy main-thread chunk. The worker/fallback
+parity test compares five catalog blueprints across all four default scenarios.
+
+**No Faker on the main thread.** A definition may provide
+`generateWorld(scenario)` next to `generate(ctx)`. The runtime then calls it for
+every scenario load, reset and stale-world reseed, with the effective scenario
+(seed, preset and knobs applied), and never builds a `GenerateContext` for
+them. The player's `withWorkerGeneration` supplies `generateWorld`, which
+only posts the blueprint and scenario to the worker. `generate` stays as the
+fallback and for `advance()` timelines; blueprint definitions declare no
+timeline. Measured 2026-10-20 with the built player in headless Chromium
+(`?src=./blueprints/quick/analytics.json`, until `data-protoyard-ready`),
+comparing a build without the hook to the build with it:
+
+| Build | Main-thread Faker chunk fetched | JS fetched by boot (page + worker), gzip |
+| --- | --- | --- |
+| before (`generate` only) | yes, 149.5 KB gzip | 752.7 KB (118 requests) |
+| after (`generateWorld`) | **no** | **603.2 KB** (117 requests) |
+
+Initial JS is unchanged: **177.9 KB** gzip in 25 chunks in both builds,
+because Faker was never in the static graph, only dynamically imported at boot.
+The main-thread Faker chunk still ships in `dist/`. It loads only if the worker
+fails and the lazy main-thread fallback runs.
+
+**Worker size.** The first build of the worker (Vite's default worker format)
+inlined its dynamic imports. That kept the whole `@faker-js/faker` namespace,
+every locale included: one `generate.worker` file of **2,555,194 B raw /
+942,931 B gzip** (gzip level 9). The player now builds workers as ES modules
+(`worker: { format: 'es' }` in `packages/player/vite.config.ts`). The worker then
+code-splits and tree-shakes like the app, keeping only `Faker`, `en` and `base`.
+
+Its whole import graph, measured 2026-10-20 (Vite 8.3.4, gzip level 9):
+
+| Chunk | Raw | Gzip |
+| --- | --- | --- |
+| `generate.worker` entry | 496 B | 308 B |
+| blueprint generator | 156,202 B | 45,407 B |
+| scenarios context | 2,396 B | 1,288 B |
+| Faker, English only | 416,073 B | 153,201 B |
+| **Total** | **575,167 B** | **200,204 B (195.5 KB)** |
+
+That is **79% less** than before, and no other locale's data ships (German and
+Japanese markers are absent). The worker is a separate Rollup build, so its
+Faker chunk is a second copy of the app's. A normal boot downloads only the
+worker's copy; the app's copy is fetched only by the main-thread fallback.
+
+**Main-thread long tasks during boot.** Measured with the built player in
+headless Chromium, fresh context, `?src=` blueprint, 2026-10-20, with machine
+load average about 40:
+
+| CPU | Blueprint | Ready | Long tasks before ready |
+| --- | --- | --- | --- |
+| unthrottled | demo, quick/assistant, quick/team-chat (3 runs each) | 170 to 260 ms | none |
+| 4× throttled | demo (2 runs) | 524 to 572 ms | 3, total 227 to 242 ms |
+| 4× throttled | quick/assistant, quick/team-chat (2 runs each) | 469 to 487 ms | 2, total 172 to 182 ms |
+
+Long-animation-frame attribution (4× throttled, quick/assistant):
+- **About 100 to 130 ms evaluating the initial entry script.** This is not
+  generation.
+- **About 75 to 85 ms in Dexie** inside `IDBTransaction.oncomplete`, while the
+  seeded world is written.
+- **Neither is Faker:** its main-thread import never appears as a long-frame
+  script.
+
+So generation itself stays off the main thread. But "the main thread stays free
+of long tasks" holds only on a fast CPU. On a 4× slower CPU, boot still has 2 to
+3 long tasks from entry evaluation and the IndexedDB write. (These runs predate
+`generateWorld`: each one also downloaded and evaluated Faker on the main
+thread, only to build a context that the worker path ignored. That no longer
+happens; the long-task table was not re-measured.)
+
+## Player bundle budget (measured 2026-10-20)
+
+`packages/player/tests/budget.test.ts` reads the player's Vite manifest
+(`packages/player/dist/app/.vite/manifest.json`) with `classifyChunks`. It skips
+itself when the player is not built, so run it after
+`pnpm --filter @protoyard/player build`. One local build measured:
+
+| Graph | Gzip | Budget |
+| --- | --- | --- |
+| Initial JS (24 chunks) | **177.7 KB** | 250 KB |
+| Initial CSS | **18.1 KB** | 30 KB |
+| All CSS | 24.6 KB | 30 KB |
+| Lazy JS (162 chunks) | 591.0 KB | — |
+| Worker import graph | **195.5 KB** | 220 KB (in the test) |
+
+The test proves, by manifest key, that none of these are in the initial graph:
+Faker, DevTools, the theme library, the crud screen kits, the crud app shell
+(`@protoyard/crud/app`), charts, the analytics and views kits, the blueprint
+generator, and the main-thread generation fallback. It also checks the content:
+no Faker data and no worker reference appear in initial JS.
+
+**`@protoyard/crud/app`.** The player loads the crud app shell lazily, but
+always, right after boot. Its own chunk is 21.9 KB gzip. Its static graph adds
+**107.7 KB gzip across 53 chunks** beyond initial JS, so it is on the path to
+`protoyard:ready` for every blueprint.
+- **Icons:** `src/app/icons.ts` imports 40 Lucide icons statically. Their icon
+  data is about 11 KB raw in that graph, a small part of it.
+- **Theme library:** it is injected into `BlueprintApp` by the player (crud has
+  no themes dependency) and stays lazy (a 0.3 KB loader chunk; the data loads
+  on demand).
+
+**JS loaded before ready.** On the main thread, the page fetched 450 to 474 KB
+gzip of JS before `protoyard:ready` (unthrottled runs above). That is the
+initial graph, the crud app shell, Faker (153 KB, avoidable) and smaller lazy
+chunks, and it is the same for the demo, quick/assistant and quick/team-chat.
+The two quick examples need no extra JS before ready.
+
+`packages/player/tests/worker-bundle.test.ts` builds the player and enforces a
+250 KB gzip budget on the whole worker graph, plus the absence of other Faker
+locales. It fails when the worker format reverts.
+
+## Player world cache (measured 2026-10-20)
+
+The player keeps generated worlds in `protoyard.player.worlds` (IndexedDB),
+keyed by the blueprint's SHA-256, the scenario id, seed and digest, and the
+generator version (`packages/player/src/cache/`):
+- **Format:** gzip of the world JSON.
+- **Read limits:** read back with the snapshot import limits (25 MB inflated,
+  250,000 rows).
+- **Eviction:** least recently used past 48 MB of compressed data.
+- **Writes:** compressed in 64 KB slices that yield between tasks. The runtime
+  gets the world first and never waits for the write.
+
+The table below comes from a headless Chromium (Playwright) Chrome trace of the
+built player, with main-thread `RunTask` slices over 50 ms counted as long tasks.
+The trace was checked with a 120 ms busy loop, which shows as one 120 ms long
+task. Two runs at load average about 40, same results:
+
+| Blueprint | Phase | Time | Long tasks (longest) |
+| --- | --- | --- | --- |
+| Demo (4 entities) | First visit, seeds `active` | 221–238 ms | 0 |
+| Demo | Reload (stored world, no generation) | 92–105 ms | 0 |
+| Demo | Switch to `empty` (generate) | 54–55 ms | 0 |
+| Demo | Back to `active` (cache hit) | 10–12 ms | 0 |
+| Demo | Switch to `massive` (generate) / cache hit | 60–61 ms / 28–29 ms | 0 / 0 |
+| Large fixture (40 entities, 997 fields) | First visit | 364–408 ms | 0 |
+| Large fixture | Back to `active` (cache hit) | 59–64 ms | 0 |
+| Large fixture | Switch to `massive` (generate) | 1,368–1,429 ms | 1 (55–56 ms) |
+| Large fixture | `massive` again (cache hit) | 901–915 ms | 0 |
+
+Before the writes were sliced, the large `massive` generation held the main
+thread for 212–225 ms, 154 ms of it the cache's own `CompressionStream`. The 55 ms
+task that remains is the main thread receiving the worker's world.
+
+**Main-thread Faker.** These runs predate the runtime's `generateWorld` hook.
+Since then the player generates through `generateWorld`, so the runtime builds no
+`GenerateContext` and loads no Faker on the main thread at boot (see "Player
+worker generation" above). The SaaS onboarding archetype is the exception: its
+kit rows need a context, so it still loads Faker on the main thread.
+The player visual review is opt-in: `pnpm visual:sweep --only player` builds
+the player into `tmp/` and captures four screenshots from the quick assistant
+blueprint (desktop and phone, light and dark), with axe and layout-fit
+findings. The player does not add shots to the normal prototype sweep, and
+these screenshots are review artifacts rather than a performance budget.
+
+## Player: blueprint to ready (measured 2026-10-20)
+
+`scripts/bench-player.ts` serves a copy of the built player on an OS-assigned port. It
+measures every blueprint in fresh headless Chromium contexts (empty IndexedDB, world
+cache and HTTP cache):
+- **First visit:** the blueprint arrives as a `#bp=` link, or `?src=` when it is too
+  large. The player decodes it, generates `active` in its worker and seeds.
+- **Repeat:** a reload, which reuses the stored world.
+- **Switch, miss:** `scenarios.load('empty')` generates a world.
+- **Switch, cache hit:** back to `active`, served from the world cache.
+
+The bench checks that every first visit seeded, every repeat visit reused the world,
+every miss started one generation worker and every hit started none. It writes samples
+and machine details to `tmp/bench-player-<timestamp>.json`. It is report-only: no player
+budget is set yet.
+
+```bash
+pnpm --filter @protoyard/player build
+pnpm exec tsx scripts/bench-player.ts --runs 3   # [--blueprints crm,clinic] [--no-large]
+```
+
+The run below is the median of 3 contexts on an Apple M1 Max (10 cores, 64 GB), macOS
+27.0, Node 26.11.1 and Chromium 156, at a load average of about 50 (other agents were
+building). Times are from navigation start to `protoyard:ready`, or the `load()` call
+for switches.
+
+| Blueprint | Link | First visit (world) | Repeat | Switch, miss | Switch, cache hit |
+| --- | --- | --- | --- | --- | --- |
+| crm | `#bp=` 1,902 chars | 190 ms (175 ms) | 99 ms | 58 ms | 9.2 ms |
+| clinic | `#bp=` 1,726 chars | 232 ms (218 ms) | 107 ms | 74 ms | 9.8 ms |
+| logistics | `#bp=` 1,789 chars | 211 ms (196 ms) | 79 ms | 58 ms | 8.0 ms |
+| lms | `#bp=` 1,757 chars | 215 ms (200 ms) | 76 ms | 55 ms | 8.4 ms |
+| project-management | `#bp=` 1,672 chars | 218 ms (204 ms) | 107 ms | 62 ms | 7.9 ms |
+| large fixture (40 entities) | `#bp=` 4,746 chars | 368 ms (355 ms) | 140 ms | 93 ms | 66 ms |
+
+During a cache hit, the runtime's generate phase takes 2–5 ms (inflating and
+validating the stored world), compared with a full generation on a miss. The large
+fixture still fits a share link, well under the 16 KB cap.
+
+## Quick exploration: brief to ready (measured 2026-10-20)
+
+`pnpm exec tsx scripts/bench-idea.ts --mode quick --runs 3` measures
+`protoyard quick` with no build. It builds the player once if
+`packages/player/dist/app/` is missing (setup, not timed) and copies that
+prebuilt player into a disposable workspace under `tmp/`. Each run then:
+- **quickFolderReady:** runs `protoyard quick "<brief>" --slug quick-bench-<n>`
+  as a CLI process: brief synthesis, blueprint validation, the shared player
+  copy and the `.protoyard/quick/<slug>/` folder with its launcher.
+- **previewReady:** opens the launcher (`index.html`, which redirects to the
+  shared player with a `#bp=` link) in a fresh headless Chromium context
+  served over HTTP, until `html[data-protoyard-ready="1"]`. The bench checks
+  that the first world was seeded.
+- **warm folder:** a second `quick` into the same workspace, which must
+  reuse the shared player (`player.reused`), so it shows the cost without the
+  player copy.
+
+It also opens every `blueprints/quick/*.json` example (`quick --blueprint`)
+and records the JS each one downloaded before ready. Samples and machine
+details go to `tmp/bench-quick-<timestamp>.json` (format
+`protoyard.bench-quick`, version 1).
+
+One run, 3 isolated samples, on an Apple M1 Max (10 cores, 64 GB), macOS 27.0,
+Node 26.11.1 and Chromium 156, at a load average of about 25 to 35 (other
+agents were building):
+
+| Phase | Median |
+| --- | ---: |
+| quickFolderReady (CLI process, includes Node and tsx start) | 1,123 ms |
+| previewReady (launcher → `protoyard:ready`, fresh context) | 303 ms |
+| **Brief → ready** | **1,527 ms** (1,515–1,583 ms) |
+| Warm folder (shared player reused) | 987 ms |
+
+An earlier run on the same machine at a higher load measured 2,146 ms
+(1,749–4,291 ms) brief → ready, so the number moves with the load.
+
+The player's initial JS (entry plus modulepreloads from
+`dist/app/index.html`) is **178.8 KB gzip in 27 files**, the same for every
+blueprint. The JS each quick example downloaded before ready:
+
+| Example | JS before ready (gzip) | Files | Ready |
+| --- | ---: | ---: | ---: |
+| analytics | 588.2 KB | 116 | 304 ms |
+| assistant | 580.5 KB | 109 | 279 ms |
+| saas-onboarding | 726.6 KB | 112 | 301 ms |
+| team-chat | 580.5 KB | 109 | 280 ms |
+
+The largest file in every example is the same 149.6 KB chunk, Faker on the main
+thread (see [Player world cache](#player-world-cache-measured-2026-10-20)).
+saas-onboarding loads a second, separately bundled Faker chunk (149.5 KB) before
+ready, so it downloads Faker twice. The
+assistant and team-chat examples load the same set of files.
+
+`quickReadyMs` is `null` in the root budgets file, so `--check` only reports.
+A calibrated value is a separate change to the root `protoyard.budgets.json`.
+
+## Large blueprint on the player path (measured 2026-10-20)
+
+`packages/blueprint/tests/fixtures/large.blueprint.json` is a fictional
+40-entity blueprint: about 25 fields per entity (every field kind, plus
+relations), 60 screens (40 lists, 2 dashboards, 4 boards, 4 calendars,
+3 timelines, 3 maps, 3 analytics, settings), every entity feature on, and 16
+notification rules. It is 118 KB pretty-printed, inside the untrusted loader's
+256 KB cap. `pnpm vitest run packages/blueprint/tests/large-blueprint.test.ts`
+measures each step of the player path on it:
+
+| Step | Warm median | Cold first run | Ceiling |
+| --- | ---: | ---: | ---: |
+| `loadUntrustedBlueprint` (size, depth and row-estimate checks, then parse) | 15.7 ms | 160 ms | 2,000 ms |
+| `definePrototypeFromBlueprint` (definition + app model, 101 routes) | 4.1 ms | 25 ms | 1,000 ms |
+| Massive-density world (17,850 rows in 43 tables, deterministic) | 828 ms | 2.2 s | 25,000 ms |
+| `validateWorld` with the derived integrity rules (0 issues) | 34 ms | 176 ms | 5,000 ms |
+
+Apple Silicon laptop, Node 24, under heavy parallel load from other test runs.
+The ceilings catch order-of-magnitude regressions; the medians are what to
+compare against. Booting that world into IndexedDB is not part of this
+measurement (see [Large worlds](#large-worlds-scenario-loads)).
+
 ## AI kits
 
 Method and machine: Apple M1 Max (arm64, 64 GB, macOS 27.0), Node 26.11.1,
@@ -1098,3 +1404,36 @@ are in [Views kit](#views-kit).
   when the browser exposes them.
 - **The dev server is per prototype.** `protoyard dev <slug>` starts Vite for
   one app only, so HMR cost doesn't grow with the number of prototypes.
+
+## CLI integration startup and protocol budgets
+
+`pnpm exec tsx scripts/bench-integrations.ts --runs 3` measures three local
+process boundaries without building a prototype or starting a network server:
+
+- **Doctor startup:** a fresh Node + tsx process runs `doctor --json --offline`
+  through exit, and the benchmark verifies the successful machine-readable
+  envelope.
+- **MCP startup:** a fresh `protoyard mcp` process starts and answers the
+  stateless `server/discover` request over stdio.
+- **MCP round trip:** the same process answers a `tools/call` for offline
+  `doctor`; the benchmark checks the JSON text envelope and then closes stdin.
+
+The report records each sample, the median, machine details, and the pass/fail
+result in `tmp/bench-integrations-<timestamp>.json`. It exits nonzero when a
+median exceeds these local ceilings:
+
+| Measure | Median budget | Three-run baseline |
+| --- | ---: | ---: |
+| Doctor startup and check | 10,000 ms | 3,642.1 ms |
+| MCP startup to `server/discover` | 4,000 ms | 2,189.6 ms |
+| MCP `doctor` tool round trip | 5,000 ms | 1,459.4 ms |
+
+Baseline measured 2026-10-20 on Apple M1 Max, 10 cores, Node 26.11.1. The
+ceilings are rounded above the observed samples (maximums: 3,675.2 ms,
+2,291.2 ms, and 1,767.2 ms respectively) to leave headroom for local variance.
+They are local development thresholds, not a claim about other machines; run
+the same benchmark on a CI runner before tightening or treating them as CI
+service-level guarantees. Keep the MCP transport lazy: `commands/mcp.ts`
+imports the stdio server and tool registry only when `protoyard mcp` runs.
+`packages/cli/tests/integration-performance.test.ts` guards the median budget
+calculation and that lazy import boundary.

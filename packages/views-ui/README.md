@@ -813,3 +813,7 @@ rows.
   ui, renderer, lucide, Bits UI and zod external; 2026-10-19):
   - The subpath is 16.6 KB, including the TreeView it shares (8.0 KB alone).
   - That leaves about 8.6 KB for the files chunk itself.
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

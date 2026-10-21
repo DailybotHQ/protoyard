@@ -230,3 +230,413 @@ describe('changesets version-packages', () => {
     expect(check.stderr).toContain('@protoyard/b@1.1.0');
   }, 60_000);
 });
+
+/**
+ * release.yml (ADR-028): on a `v*` tag the gate also builds, lints and
+ * consumer-installs the packages, then packs them in dependency order,
+ * checksums the tarballs and uploads both as an artifact. The `npm` job alone
+ * gets `id-token: write`; it has no checkout, install or build, verifies the
+ * checksums and publishes each tarball with `npm publish --provenance` in
+ * order, with no npm token; the GitHub Release waits for it. The workflow is
+ * read as text by job and step (no YAML dependency), and the pack, checksum,
+ * verify, publish and dist-tag shell is run for real (with a recording fake
+ * npm for publishing).
+ */
+const WORKFLOW = readFileSync(join(REPO, '.github', 'workflows', 'release.yml'), 'utf8');
+
+/** The lines of one top-level job (`  <id>:` up to the next job). */
+function job(id: string, workflow = WORKFLOW): string {
+  const lines = workflow.split('\n');
+  const start = lines.indexOf(`  ${id}:`);
+  expect(start, `job ${id}`).toBeGreaterThan(-1);
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => /^ {2}[a-z][a-z0-9-]*:\s*$/.test(line) || /^\S/.test(line));
+  return [lines[start], ...(end === -1 ? rest : rest.slice(0, end))].join('\n');
+}
+
+/** Step names of a job, in order. */
+function stepNames(block: string): string[] {
+  return [...block.matchAll(/^ {6}- name: (.+)$/gm)].map((m) => (m[1] ?? '').trim());
+}
+
+/** The dedented `run: |` script of a named step. */
+function stepRun(block: string, name: string): string {
+  const lines = block.split('\n');
+  const start = lines.indexOf(`      - name: ${name}`);
+  expect(start, `step ${name}`).toBeGreaterThan(-1);
+  const body: string[] = [];
+  let inRun = false;
+  for (const line of lines.slice(start + 1)) {
+    if (/^ {6}- /.test(line)) break;
+    if (/^ {8}run: \|\s*$/.test(line)) {
+      inRun = true;
+      continue;
+    }
+    const single = /^ {8}run: (.+)$/.exec(line);
+    if (single) return single[1] ?? '';
+    if (inRun) {
+      if (line.trim() !== '' && !line.startsWith('          ')) break;
+      body.push(line.slice(10));
+    }
+  }
+  return body.join('\n');
+}
+
+describe('release workflow', () => {
+  const gate = job('gate');
+  const npmJob = job('npm');
+  const release = job('release');
+
+  it('grants id-token: write only to the npm job, behind the npm environment', () => {
+    expect(WORKFLOW.match(/id-token:/g)).toHaveLength(1);
+    expect(npmJob).toMatch(/^ {4}permissions:\n {6}contents: read\n {6}id-token: write$/m);
+    expect(npmJob).toMatch(/^ {4}environment: npm$/m);
+    // Workflow default stays read-only; the release job only writes contents.
+    expect(WORKFLOW).toMatch(/^permissions:\n {2}contents: read$/m);
+    expect(gate).not.toMatch(/permissions:/);
+    expect(release).toMatch(/^ {4}permissions:\n {6}contents: write$/m);
+  });
+
+  it('publishes each packed tarball with provenance and no npm token', () => {
+    const publish = stepRun(npmJob, 'Publish with provenance');
+    expect(publish).toContain(
+      'npm publish "$tarball" --provenance --access public --tag "$dist_tag"'
+    );
+    expect(WORKFLOW).not.toMatch(/secrets\./);
+    expect(WORKFLOW).not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN|_authToken/);
+    expect(npmJob).toContain("registry-url: 'https://registry.npmjs.org'");
+    expect(stepRun(gate, 'Pack every public package in dependency order')).toMatch(
+      /pnpm -r .*--workspace-concurrency=1[\s\S]*pnpm pack --pack-destination "\$d"/
+    );
+  });
+
+  it('pins every action to a full commit SHA with its version as a comment', () => {
+    const uses = [...WORKFLOW.matchAll(/uses: (\S+)(.*)$/gm)];
+    expect(uses.length).toBeGreaterThanOrEqual(5);
+    for (const [line, ref, comment] of uses) {
+      expect(ref, line).toMatch(/^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/);
+      expect(comment, line).toMatch(/^ # v\d+\.\d+\.\d+$/);
+    }
+  });
+
+  it('gates the tag on lockstep versions and builds, lints and installs the packages in order', () => {
+    const steps = stepNames(gate).map((name) => stepRun(gate, name));
+    const at = (command: string) => steps.findIndex((run) => run.trim() === command);
+    expect(at('pnpm version-packages --check')).toBeGreaterThan(-1);
+    const build = at('pnpm build:packages');
+    const check = at('pnpm check:packages --require-all');
+    const verify = at('pnpm verify:packages');
+    expect(build).toBeGreaterThan(at('pnpm check'));
+    expect(check).toBeGreaterThan(build);
+    expect(verify).toBeGreaterThan(check);
+    expect(npmJob).toMatch(/^ {4}needs: gate$/m);
+    expect(release).toMatch(/^ {4}needs: \[gate, npm\]$/m);
+  });
+
+  it('runs no checkout, install, build or pack while the npm job holds the OIDC token', () => {
+    expect(npmJob).not.toMatch(/actions\/checkout@/);
+    expect(npmJob).not.toMatch(/\bpnpm\b|corepack|npm (?:install|ci|run|pack)\b|build:packages/);
+    const names = stepNames(npmJob);
+    const download = npmJob.indexOf('actions/download-artifact@');
+    const verify = npmJob.indexOf('      - name: Verify the tarball checksums');
+    const publish = npmJob.indexOf('      - name: Publish with provenance');
+    expect(download).toBeGreaterThan(
+      npmJob.indexOf('      - name: npm supports Trusted Publishing')
+    );
+    expect(verify).toBeGreaterThan(download);
+    expect(publish).toBeGreaterThan(verify);
+    expect(names.at(-1)).toBe('Publish with provenance');
+    // The gate packs after verify:packages, checksums, then uploads the same folder.
+    const pack = gate.indexOf('      - name: Pack every public package in dependency order');
+    const sums = gate.indexOf('      - name: Checksum the tarballs');
+    const upload = gate.indexOf('actions/upload-artifact@');
+    expect(pack).toBeGreaterThan(gate.indexOf('run: pnpm verify:packages'));
+    expect(sums).toBeGreaterThan(pack);
+    expect(upload).toBeGreaterThan(sums);
+    expect(gate).toMatch(/name: npm-tarballs\n {10}path: \$\{\{ runner\.temp \}\}\/tarballs/);
+    expect(npmJob).toMatch(/name: npm-tarballs\n {10}path: \$\{\{ runner\.temp \}\}\/tarballs/);
+  });
+
+  it('verifies SHA256SUMS before the smoke install and before the release attaches it', () => {
+    const VERIFY = 'bash scripts/verify-skill-integrity.sh';
+    const gateNames = stepNames(gate);
+    const gateRuns = gateNames.map((name) => stepRun(gate, name).trim());
+    const gateVerify = gateRuns.indexOf(VERIFY);
+    const smoke = gateRuns.findIndex((run) =>
+      run.startsWith('bash scripts/smoke-install-skill.sh')
+    );
+    expect(gateVerify).toBeGreaterThan(gateRuns.indexOf('pnpm install --frozen-lockfile'));
+    expect(smoke).toBeGreaterThan(gateVerify);
+
+    const releaseRuns = stepNames(release).map((name) => stepRun(release, name).trim());
+    const releaseVerify = releaseRuns.indexOf(VERIFY);
+    const attach = releaseRuns.findIndex((run) => /gh release create "\$TAG" SHA256SUMS/.test(run));
+    expect(releaseVerify).toBeGreaterThan(-1);
+    expect(attach).toBeGreaterThan(releaseVerify);
+  });
+
+  it('refuses a tag cut before version-packages consumed the changesets', () => {
+    const script = stepRun(
+      gate,
+      'No pending changesets (the tag must come after version-packages)'
+    );
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-release-changesets-')));
+    roots.push(root);
+    write(join(root, '.changeset', 'README.md'), '# Changesets\n');
+    write(join(root, '.changeset', 'config.json'), {});
+    const clean = spawnSync('bash', ['-c', script], { cwd: root, encoding: 'utf8' });
+    expect(clean.status, clean.stderr).toBe(0);
+    write(join(root, '.changeset', 'brave-fox.md'), '---\n"@protoyard/core": minor\n---\n');
+    const pending = spawnSync('bash', ['-c', script], { cwd: root, encoding: 'utf8' });
+    expect(pending.status).toBe(1);
+    expect(pending.stderr).toContain('brave-fox.md');
+  });
+
+  it('packs exactly the publishable set: every packages/* plus apps/gallery', () => {
+    const pack = stepRun(gate, 'Pack every public package in dependency order');
+    const filters = [...pack.matchAll(/--filter "([^"]+)"/g)].map((m) => m[1]);
+    expect(filters).toEqual(['./packages/**', './apps/gallery']);
+    for (const candidate of findCandidates(REPO)) {
+      const dir = candidate.dir.replace(REPO, '').replace(/\\/g, '/');
+      expect(dir, String(candidate.manifest.name)).toMatch(/^(packages\/[^/]+|apps\/gallery)$/);
+    }
+  });
+
+  it('runs the publish script in order, skips published versions, and uses next for prereleases', () => {
+    const script = stepRun(npmJob, 'Publish with provenance');
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-release-publish-')));
+    roots.push(root);
+    const bin = join(root, 'bin');
+    const log = join(root, 'npm.log');
+    // A fake npm: `view` succeeds only for the already-published core, `publish` records.
+    write(
+      join(bin, 'npm'),
+      `#!/bin/sh\nif [ "$1" = view ]; then [ "$2" = "@protoyard/core@1.2.0" ]; exit $?; fi\necho "$*" >> "${log}"\n`
+    );
+    spawnSync('chmod', ['+x', join(bin, 'npm')]);
+    write(
+      join(root, 'tarballs', 'order.tsv'),
+      [
+        '@protoyard/core\t1.2.0\tpack.a/protoyard-core-1.2.0.tgz',
+        '@protoyard/ui\t1.2.0\tpack b/protoyard-ui-1.2.0.tgz',
+        'protoyard\t1.2.0\tpack.c/protoyard-1.2.0.tgz',
+        '',
+      ].join('\n')
+    );
+    const runFor = (tag: string) => {
+      rmSync(log, { force: true });
+      const result = spawnSync('bash', ['-c', script], {
+        cwd: root,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          TAG: tag,
+          TARBALLS: join(root, 'tarballs'),
+        },
+      });
+      expect(result.status, result.stderr).toBe(0);
+      return { stdout: result.stdout, published: readFileSync(log, 'utf8').trim().split('\n') };
+    };
+
+    const stable = runFor('v1.2.0');
+    expect(stable.stdout).toContain('skip @protoyard/core@1.2.0 (already published)');
+    expect(stable.published).toEqual([
+      `publish ${root}/tarballs/pack b/protoyard-ui-1.2.0.tgz --provenance --access public --tag latest`,
+      `publish ${root}/tarballs/pack.c/protoyard-1.2.0.tgz --provenance --access public --tag latest`,
+    ]);
+    const next = runFor('v1.2.0-rc.1');
+    expect(next.published.every((line) => line.endsWith('--tag next'))).toBe(true);
+  });
+
+  it.skipIf(spawnSync('jq', ['--version']).status !== 0)(
+    'packs a fixture workspace in dependency order even when a prepack script prints',
+    () => {
+      const script = stepRun(gate, 'Pack every public package in dependency order');
+      const root = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-release-pack-')));
+      roots.push(root);
+      write(join(root, 'package.json'), { name: 'fixture', private: true, version: '1.0.0' });
+      write(join(root, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n  - apps/*\n');
+      // Named so that alphabetical order would be wrong: `a-ui` depends on `z-core`.
+      write(join(root, 'packages', 'a-ui', 'package.json'), {
+        name: '@fixture/a-ui',
+        version: '1.2.0',
+        files: ['index.js'],
+        dependencies: { '@fixture/z-core': 'workspace:*' },
+        scripts: { prepack: 'echo noisy prepack output' },
+      });
+      write(join(root, 'packages', 'a-ui', 'index.js'), 'export {};\n');
+      write(join(root, 'packages', 'z-core', 'package.json'), {
+        name: '@fixture/z-core',
+        version: '1.2.0',
+        files: ['index.js'],
+      });
+      write(join(root, 'packages', 'z-core', 'index.js'), 'export {};\n');
+      write(join(root, 'apps', 'gallery', 'package.json'), {
+        name: '@fixture/gallery',
+        version: '1.2.0',
+        files: ['index.js'],
+      });
+      write(join(root, 'apps', 'gallery', 'index.js'), 'export {};\n');
+      // pnpm pack resolves workspace: specifiers from the linked workspace.
+      const install = spawnSync('pnpm', ['install', '--offline'], { cwd: root, encoding: 'utf8' });
+      expect(install.status, install.stderr + install.stdout).toBe(0);
+      const tarballs = join(root, 'tarballs');
+      const result = spawnSync('bash', ['-c', script], {
+        cwd: root,
+        encoding: 'utf8',
+        env: { ...process.env, TARBALLS: tarballs },
+      });
+      expect(result.status, result.stderr).toBe(0);
+      const rows = readFileSync(join(tarballs, 'order.tsv'), 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => line.split('\t'));
+      const names = rows.map((r) => r[0]);
+      expect(names.indexOf('@fixture/z-core')).toBeLessThan(names.indexOf('@fixture/a-ui'));
+      expect([...names].sort()).toEqual(['@fixture/a-ui', '@fixture/gallery', '@fixture/z-core']);
+      for (const [, version, tarball] of rows) {
+        expect(version).toBe('1.2.0');
+        // Relative to $TARBALLS, so the list survives the artifact move.
+        expect(tarball, tarball).toMatch(/^pack\.[^/]+\/[^/]+\.tgz$/);
+        expect(existsSync(join(tarballs, tarball ?? '')), tarball).toBe(true);
+      }
+
+      // The gate's checksums, then the npm job's verification, on the real output.
+      const bash = (block: string, name: string) =>
+        spawnSync('bash', ['-c', stepRun(block, name)], {
+          cwd: root,
+          encoding: 'utf8',
+          env: { ...process.env, TARBALLS: tarballs },
+        });
+      const sums = bash(gate, 'Checksum the tarballs');
+      expect(sums.status, sums.stderr).toBe(0);
+      expect(readFileSync(join(tarballs, 'SHA256SUMS'), 'utf8').trim().split('\n')).toHaveLength(4);
+      const ok = bash(npmJob, 'Verify the tarball checksums');
+      expect(ok.status, ok.stderr).toBe(0);
+      expect(ok.stdout).toContain('Verified 3 tarballs.');
+
+      // A changed tarball fails before anything is published.
+      const first = join(tarballs, rows[0]?.[2] ?? '');
+      const original = readFileSync(first);
+      writeFileSync(first, Buffer.concat([original, Buffer.from('x')]));
+      expect(bash(npmJob, 'Verify the tarball checksums').status).not.toBe(0);
+      writeFileSync(first, original);
+      // So does an order entry that escapes the folder or is not checksummed.
+      const order = join(tarballs, 'order.tsv');
+      const listed = readFileSync(order, 'utf8');
+      for (const extra of ['@fixture/x\t1.2.0\t../x.tgz\n', '@fixture/y\t1.2.0\tpack.zz/y.tgz\n']) {
+        writeFileSync(order, listed + extra);
+        expect(bash(npmJob, 'Verify the tarball checksums').status, extra).not.toBe(0);
+      }
+      writeFileSync(order, listed);
+      expect(bash(npmJob, 'Verify the tarball checksums').status).toBe(0);
+    },
+    120_000
+  );
+
+  it('refuses an npm too old for Trusted Publishing', () => {
+    const script = stepRun(npmJob, 'npm supports Trusted Publishing (11.5.1 or later)');
+    const root = realpathSync(mkdtempSync(join(tmpdir(), 'protoyard-release-npm-')));
+    roots.push(root);
+    const check = (version: string) => {
+      write(join(root, 'bin', 'npm'), `#!/bin/sh\necho ${version}\n`);
+      spawnSync('chmod', ['+x', join(root, 'bin', 'npm')]);
+      return spawnSync('bash', ['-c', script], {
+        encoding: 'utf8',
+        env: { ...process.env, PATH: `${join(root, 'bin')}:${process.env.PATH}` },
+      }).status;
+    };
+    for (const ok of ['11.5.1', '11.6.0', '12.0.0']) expect(check(ok), ok).toBe(0);
+    for (const old of ['10.9.2', '11.5.0', '11.4.9']) expect(check(old), old).toBe(1);
+  });
+});
+
+/**
+ * ci.yml's packages job: build, dist parity, check:packages --require-all and
+ * verify:packages on every pull request, with the pnpm store and dist cached
+ * and the check report uploaded on failure; the npm consumer only on main.
+ */
+describe('ci workflow packages job', () => {
+  const CI = readFileSync(join(REPO, '.github', 'workflows', 'ci.yml'), 'utf8');
+  const packages = job('packages', CI);
+  const npmVariant = job('packages-npm', CI);
+  const runs = (block: string) => stepNames(block).map((name) => stepRun(block, name).trim());
+
+  it('runs build:packages, dist parity, check:packages --require-all and verify:packages in order', () => {
+    const steps = runs(packages);
+    const at = (pattern: RegExp) => steps.findIndex((run) => pattern.test(run));
+    const install = at(/^pnpm install --frozen-lockfile$/);
+    const build = at(/^pnpm build:packages$/);
+    const parity = at(/^pnpm vitest run .*package-dist-parity\.test\.ts/);
+    const check = at(/pnpm --silent check:packages --require-all --json \| tee /);
+    const verify = at(/^pnpm verify:packages$/);
+    expect(install).toBeGreaterThan(-1);
+    expect(build).toBeGreaterThan(install);
+    expect(parity).toBeGreaterThan(build);
+    expect(check).toBeGreaterThan(parity);
+    expect(verify).toBeGreaterThan(check);
+    // pipefail keeps tee from hiding a failed check.
+    expect(steps[check]).toMatch(/^set -o pipefail/);
+  });
+
+  it('caches the pnpm store and the built dist, rebuilding only on a cache miss', () => {
+    for (const block of [packages, npmVariant]) {
+      expect(block).toMatch(
+        /key: pnpm-store-\$\{\{ runner\.os \}\}-\$\{\{ hashFiles\('pnpm-lock\.yaml'\) \}\}/
+      );
+      expect(block).toMatch(/^ {10}path: packages\/\*\/dist$/m);
+      expect(block).toMatch(
+        / {6}- name: Build the packages\n {8}if: steps\.dist\.outputs\.cache-hit != 'true'\n {8}run: pnpm build:packages/
+      );
+    }
+    const distKey = (block: string) => /key: (packages-dist-.+)$/m.exec(block)?.[1];
+    expect(distKey(packages)).toBeDefined();
+    expect(distKey(npmVariant)).toBe(distKey(packages));
+    // Every build input is in the key, and the outputs are not.
+    for (const input of [
+      "'packages/**'",
+      "'!packages/*/dist/**'",
+      "'!**/node_modules/**'",
+      "'templates/**'",
+      "'scripts/build-packages.ts'",
+      "'scripts/lib/package-graph.ts'",
+      "'tsconfig.base.json'",
+      "'pnpm-lock.yaml'",
+    ]) {
+      expect(distKey(packages), input).toContain(input);
+    }
+  });
+
+  it('uploads the check report when the job fails', () => {
+    const upload = packages.slice(
+      packages.indexOf('      - name: Upload the package check report')
+    );
+    expect(upload).toMatch(/if: failure\(\)/);
+    expect(upload).toMatch(/uses: actions\/upload-artifact@[0-9a-f]{40} # v\d+\.\d+\.\d+/);
+    expect(upload).toMatch(/path: artifacts\/packages\//);
+  });
+
+  it('runs the npm consumer on pushes to main only, after the pnpm job', () => {
+    expect(npmVariant).toMatch(
+      /^ {4}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'$/m
+    );
+    expect(npmVariant).toMatch(/^ {4}needs: packages$/m);
+    expect(runs(npmVariant).some((run) => /pnpm verify:packages --pm npm/.test(run))).toBe(true);
+    expect(packages).not.toMatch(/^ {4}if:/m);
+  });
+
+  it('keeps every action SHA-pinned, checkouts credential-free, and no write permission', () => {
+    const uses = [...CI.matchAll(/uses: (\S+)(.*)$/gm)];
+    expect(uses.length).toBeGreaterThan(10);
+    for (const [line, ref, comment] of uses) {
+      expect(ref, line).toMatch(/^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/);
+      expect(comment, line).toMatch(/^ # v\d+\.\d+\.\d+$/);
+    }
+    const checkouts = [...CI.matchAll(/uses: actions\/checkout@\S+.*\n {8}with:\n {10}(.+)/g)];
+    expect(checkouts.length).toBe([...CI.matchAll(/uses: actions\/checkout@/g)].length);
+    for (const [, option] of checkouts) expect(option).toBe('persist-credentials: false');
+    expect(CI).toMatch(/^permissions:\n {2}contents: read$/m);
+    expect(CI).not.toMatch(/: write$/m);
+  });
+});

@@ -7,7 +7,7 @@ import {
   nextPath,
   type RouteDefinition,
   redirectWithNext,
-} from '../src/router/router.svelte.ts';
+} from '../src/router/hash-router.svelte.ts';
 import LazyScreen from './fixtures/LazyScreen.svelte';
 import RouterHarness from './fixtures/RouterHarness.svelte';
 

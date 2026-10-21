@@ -192,7 +192,7 @@ describe('protoyard blueprint new', () => {
       expect.arrayContaining([
         'blueprint.json',
         'src/generated/schema.ts',
-        'src/generated/routes.ts',
+        'src/generated/services.ts',
       ])
     );
     expect(existsSync(path('prototypes/salon-desk'))).toBe(false);

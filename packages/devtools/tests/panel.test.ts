@@ -100,6 +100,19 @@ describe('DevTools panel', () => {
     }
   });
 
+  it('keeps the visible override count inside the launcher name (label-content-name-mismatch)', async () => {
+    const runtime = createFakeRuntime();
+    await runtime.scenarios.ensureSeeded();
+    await runtime.overrides.set({ mode: 'dark' });
+    handle = mountDevtools({ runtime, themes: BUILTIN_THEMES });
+    flushSync();
+    await settle();
+    const launcher = screen.getByRole('button', { name: /^Open Protoyard DevTools/ });
+    const visible = launcher.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    expect(visible).toBe('DevTools 1');
+    expect(launcher.getAttribute('aria-label')).toContain(visible);
+  });
+
   it('opens and closes when the pointer lands on a button icon, not the button box', async () => {
     // Real clicks on an icon-only button target the inner <svg>/<path>. The host's
     // app-layer isolation must not stop Svelte's delegated handler from seeing them.

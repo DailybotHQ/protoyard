@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { listAvatarFiles } from '@protoyard/renderer-svelte/avatars-plugin';
@@ -7,9 +7,12 @@ import { describe, expect, it } from 'vitest';
 import {
   appPathFor,
   assertShowcasePublishable,
+  copyPlayerAssets,
   marketplacePathFor,
+  mergePlayerHeaders,
   parseShowcaseSite,
   publishShowcaseDirectory,
+  resolveShowcasePlayerDir,
   shareAvatars,
   showcaseAvatarBase,
   showcaseEntries,
@@ -25,6 +28,81 @@ import { createWorkspace } from './helpers.ts';
 const entry = (kind: RegistryEntry['kind'], slug: string) => ({ kind, slug }) as RegistryEntry;
 
 describe('showcase', () => {
+  it('resolves the player from a consumer workspace installation', () => {
+    const ws = createWorkspace();
+    try {
+      const player = join(ws.root, 'node_modules', '@protoyard', 'player');
+      mkdirSync(player, { recursive: true });
+      writeFileSync(join(player, 'package.json'), '{"name":"@protoyard/player"}\n');
+      expect(resolveShowcasePlayerDir(ws.root)).toBe(player);
+    } finally {
+      ws.cleanup();
+    }
+  });
+
+  it('copies the built player and runtime assets under the static site', async () => {
+    const player = mkdtempSync(join(tmpdir(), 'protoyard-player-dist-'));
+    const site = mkdtempSync(join(tmpdir(), 'protoyard-showcase-player-'));
+    try {
+      writeFileSync(join(player, 'index.html'), '<script src="./assets/player.js"></script>');
+      writeFileSync(
+        join(player, '_headers'),
+        "/*\n  Content-Security-Policy: default-src 'self'\n  X-Content-Type-Options: nosniff\n"
+      );
+      mkdirSync(join(player, 'assets'));
+      writeFileSync(join(player, 'assets/player.js'), 'void 0;');
+      await copyPlayerAssets(player, site);
+      expect(readFileSync(join(site, 'player/index.html'), 'utf8')).toContain('./assets/player.js');
+      expect(readFileSync(join(site, 'player/assets/player.js'), 'utf8')).toBe('void 0;');
+      const siteHeaders = readFileSync(join(site, '_headers'), 'utf8');
+      expect(siteHeaders).toContain("/player/*\n  Content-Security-Policy: default-src 'self'");
+      expect(siteHeaders).toContain('X-Content-Type-Options: nosniff');
+    } finally {
+      rmSync(player, { recursive: true, force: true });
+      rmSync(site, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a player build without its entry page', async () => {
+    const player = mkdtempSync(join(tmpdir(), 'protoyard-empty-player-'));
+    const site = mkdtempSync(join(tmpdir(), 'protoyard-empty-site-'));
+    try {
+      await expect(copyPlayerAssets(player, site)).rejects.toThrow('did not emit index.html');
+    } finally {
+      rmSync(player, { recursive: true, force: true });
+      rmSync(site, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a player build without host security headers', async () => {
+    const player = mkdtempSync(join(tmpdir(), 'protoyard-player-without-headers-'));
+    const site = mkdtempSync(join(tmpdir(), 'protoyard-site-without-headers-'));
+    try {
+      writeFileSync(join(player, 'index.html'), '<main>player</main>');
+      await expect(copyPlayerAssets(player, site)).rejects.toThrow('did not emit _headers');
+    } finally {
+      rmSync(player, { recursive: true, force: true });
+      rmSync(site, { recursive: true, force: true });
+    }
+  });
+
+  it('merges the player CSP into root Pages headers without replacing gallery rules', () => {
+    expect(
+      mergePlayerHeaders(
+        '/*\n  X-Frame-Options: SAMEORIGIN\n',
+        "/*\n  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'\n  Referrer-Policy: no-referrer\n"
+      )
+    ).toBe(
+      "/*\n  X-Frame-Options: SAMEORIGIN\n\n/player/*\n  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'\n  Referrer-Policy: no-referrer\n"
+    );
+  });
+
+  it('prefixes the player header path when the showcase uses a base path', () => {
+    expect(mergePlayerHeaders('', '/*\n  Referrer-Policy: no-referrer\n', '/protoyard/')).toBe(
+      '/protoyard/player/*\n  Referrer-Policy: no-referrer\n'
+    );
+  });
+
   it('places apps under their gallery detail pages', () => {
     expect(appPathFor(entry('prototype', 'crm-demo'))).toBe('p/crm-demo/app/');
     expect(appPathFor(entry('template', 'blank'))).toBe('t/blank/app/');

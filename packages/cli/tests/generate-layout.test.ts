@@ -1,9 +1,9 @@
 // @vitest-environment node
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseBlueprint } from '@protoyard/blueprint';
+import { deriveAppModel, parseBlueprint } from '@protoyard/blueprint';
 import { LAYOUT_IDS } from '@protoyard/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { emitPrototype } from '../src/lib/codegen/emit.ts';
 import {
   addCrudTemplate,
@@ -12,6 +12,10 @@ import {
   linkInstalled,
   type TempWorkspace,
 } from './helpers.ts';
+
+// Each test runs a real generate (file writes, codegen, sometimes a build). That
+// takes 1.5 to 3 s alone and much longer while the whole CLI suite runs in parallel.
+vi.setConfig({ testTimeout: 30_000 });
 
 let workspace: TempWorkspace;
 beforeEach(() => {
@@ -48,20 +52,24 @@ const blueprintInput = (layout?: { id: string; mobile?: string }) => ({
 });
 
 describe('generated layouts', () => {
-  it('validates each catalog layout id and emits the selected id plus grouped navigation', () => {
+  it('validates each catalog layout id and the generated app applies it with grouped navigation', () => {
     for (const id of LAYOUT_IDS) {
       const input = blueprintInput({ id });
       const blueprint = parseBlueprint(input);
       const files = emitPrototype(blueprint, 'layout-example', JSON.stringify(input));
-      const generatedLayout = files.find((file) => file.path === 'src/generated/layout.ts');
       const app = files.find((file) => file.path === 'src/App.svelte');
 
-      expect(generatedLayout?.generated, id).toBe(true);
-      expect(generatedLayout?.content, id).toContain(`id: '${id}'`);
-      expect(generatedLayout?.content, id).toContain("label: 'Records'");
-      expect(generatedLayout?.content, id).toContain("paths: ['/projects']");
-      expect(app?.content, id).toContain("from './generated/layout.ts'");
-      expect(app?.content, id).toContain('<LayoutHost layout={activeLayout}');
+      // The layout is no longer emitted: BlueprintApp reads it from the blueprint's app model.
+      expect(
+        files.some((file) => file.path === 'src/generated/layout.ts'),
+        id
+      ).toBe(false);
+      expect(app?.content, id).toContain('<BlueprintApp {blueprint} {themeLibrary} />');
+      const model = deriveAppModel(blueprint);
+      expect(model.layout, id).toEqual({ id });
+      expect(model.navGroups.find((group) => group.label === 'Records')?.paths, id).toEqual([
+        '/projects',
+      ]);
     }
   });
 
@@ -76,19 +84,16 @@ describe('generated layouts', () => {
     expect(() => parseBlueprint(blueprintInput({ id: 'sidebar', mobile: 'phone-tabs' }))).toThrow();
   });
 
-  it('warns when a layout is added to a legacy prototype whose owned app ignores it', async () => {
+  it('warns when a layout is added to a prototype whose owned app ignores it', async () => {
     const initial = writeBlueprint(blueprintInput(undefined), 'initial.json');
     expect(
       (await run('generate', 'layout-example', '--blueprint', initial, '--no-install')).code
     ).toBe(0);
     linkInstalled(workspace, 'layout-example');
 
+    // A hand-written app that neither renders BlueprintApp nor reads a generated layout.
     const appPath = path('prototypes/layout-example/src/App.svelte');
-    const legacyApp = readFileSync(appPath, 'utf8').replace(
-      "import { layout, navGroups } from './generated/layout.ts';\n",
-      ''
-    );
-    writeFileSync(appPath, legacyApp);
+    writeFileSync(appPath, '<main>Hand-written app</main>\n');
     const changed = writeBlueprint(blueprintInput({ id: 'top-nav' }), 'changed.json');
     const regenerated = await run(
       'generate',
@@ -98,16 +103,16 @@ describe('generated layouts', () => {
       '--no-install'
     );
 
+    const warning =
+      'layout set; owned App.svelte does not render BlueprintApp (@protoyard/crud/app) — see GENERATOR.md';
     expect(regenerated.code, regenerated.stderr || regenerated.stdout).toBe(0);
     expect(regenerated.json<{ data: { layoutWarning: string } }>().data.layoutWarning).toBe(
-      'layout set; owned App.svelte does not read src/generated/layout.ts — see GENERATOR.md'
+      warning
     );
-    expect(regenerated.stdout).toContain(
-      'layout set; owned App.svelte does not read src/generated/layout.ts — see GENERATOR.md'
-    );
+    expect(regenerated.stdout).toContain(warning);
   });
 
-  it('regenerates only the layout module for a layout change and validates the real app build', async () => {
+  it('regenerates only the blueprint for a layout change and validates the real app build', async () => {
     const initial = writeBlueprint(
       blueprintInput({ id: 'sidebar', mobile: 'mobile-tabs' }),
       'initial.json'
@@ -129,23 +134,22 @@ describe('generated layouts', () => {
       '--no-install'
     );
     expect(regenerated.code, regenerated.stderr || regenerated.stdout).toBe(0);
-    const files = regenerated.json<{ data: { files: { path: string; status: string }[] } }>().data
-      .files;
-    expect(files).toContainEqual({ path: 'src/generated/layout.ts', status: 'changed' });
-    expect(files).toContainEqual({ path: 'src/App.svelte', status: 'skipped' });
+    const data = regenerated.json<{
+      data: { files: { path: string; status: string }[]; layoutWarning?: string };
+    }>().data;
+    expect(data.layoutWarning).toBeUndefined();
+    expect(data.files).toContainEqual({ path: 'src/App.svelte', status: 'skipped' });
     expect(
-      files
+      data.files
         .filter((file) => file.status === 'changed')
         .map((file) => file.path)
         .sort()
-    ).toEqual([
-      'blueprint.json',
-      'src/generated/blueprint.snapshot.json',
-      'src/generated/layout.ts',
-    ]);
-    expect(
-      readFileSync(path('prototypes/layout-example/src/generated/layout.ts'), 'utf8')
-    ).toContain("id: 'top-nav'");
+    ).toEqual(['blueprint.json', 'src/generated/blueprint.snapshot.json']);
+    // The app reads the new layout from the regenerated blueprint.
+    const saved = parseBlueprint(
+      JSON.parse(readFileSync(path('prototypes/layout-example/blueprint.json'), 'utf8'))
+    );
+    expect(deriveAppModel(saved).layout).toEqual({ id: 'top-nav', mobile: 'mobile-tabs' });
 
     const validation = await run('validate', 'layout-example', '--strict-spec', '--build');
     expect(validation.code, validation.stderr || validation.stdout).toBe(0);

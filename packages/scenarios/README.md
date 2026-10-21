@@ -156,3 +156,6 @@ geoPoints({ ctx, region: 'metro-grid', count: 200, key: 'stores' });
 
 Full reference: [docs/SCENARIOS.md](../../docs/SCENARIOS.md#series-schedules-events-and-geo).
 
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

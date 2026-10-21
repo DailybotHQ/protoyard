@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 
 const REPO = fileURLToPath(new URL('../../../', import.meta.url));
 const PACKAGES = join(REPO, 'packages');
+const TEMPLATES = join(REPO, 'templates');
 /** Folders of a package that ship to consumers. */
 const PUBLISHED_DIRS = ['src', 'bin'];
 const SOURCE_FILE = /\.(?:[cm]?[jt]s|svelte|css)$/;
@@ -189,6 +190,27 @@ describe('package boundaries', () => {
       }
     }
     expect(scanned).toBeGreaterThan(100);
+    expect(violations).toEqual([]);
+  });
+
+  it('no template stylesheet reaches a package folder by relative path', () => {
+    // Templates ship from npm (@protoyard/templates), where `../../../packages/x/src`
+    // points at nothing; kit stylesheets register their own folder instead.
+    const templates = readdirSync(TEMPLATES)
+      .map((name) => join(TEMPLATES, name))
+      .filter((dir) => existsSync(join(dir, 'package.json')));
+    expect(templates.length).toBeGreaterThan(20);
+    let scanned = 0;
+    const violations: BoundaryViolation[] = [];
+    for (const dir of templates) {
+      for (const file of walk(join(dir, 'src')).filter((f) => f.endsWith('.css'))) {
+        scanned += 1;
+        for (const v of crossPackageCssReferences(readFileSync(file, 'utf8'), file, dir)) {
+          violations.push({ ...v, file: relative(REPO, v.file) });
+        }
+      }
+    }
+    expect(scanned).toBeGreaterThan(20);
     expect(violations).toEqual([]);
   });
 

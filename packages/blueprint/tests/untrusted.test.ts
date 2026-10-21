@@ -87,6 +87,20 @@ describe('loadUntrustedBlueprint', () => {
     ]);
   });
 
+  it('never lets caller limits exceed the secure defaults', () => {
+    const manyEntities = blueprint();
+    manyEntities.entities.push(
+      ...Array.from({ length: 64 }, (_, index) => ({
+        ...manyEntities.entities[0]!,
+        name: `project-${index + 2}`,
+        plural: `projects-${index + 2}`,
+      }))
+    );
+    for (const maxEntities of [Number.MAX_SAFE_INTEGER, Number.POSITIVE_INFINITY, undefined]) {
+      expect(failed(manyEntities, { maxEntities }).code).toBe('too-many');
+    }
+  });
+
   it('rejects prototype-related keys and strips control and bidi characters', () => {
     const pollution = '{"__proto__":{"polluted":true}}';
     expect(failed(pollution).code).toBe('unsafe-key');

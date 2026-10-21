@@ -4,6 +4,13 @@ description: Choose Protoyard's reusable kits (layouts, shells, views, charts, a
 version: "1.0.0"
 documentation_url: https://protoyard.app/docs/
 user-invocable: true
+metadata:
+  openclaw:
+    emoji: "🧰"
+    homepage: https://protoyard.app/docs/
+    requires:
+      anyBins:
+        - git
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

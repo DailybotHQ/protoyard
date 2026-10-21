@@ -24,8 +24,9 @@ all have built-in loaders.
 
 `BlueprintApp` renders a whole app from a parsed blueprint, with no generated code
 ([ADR-029](../../docs/DECISIONS.md)). It reads `deriveAppModel(blueprint)` from
-`@protoyard/blueprint` (the same routes, navigation groups and layout that
-`protoyard generate` prints), so the player and a generated prototype show the same app.
+`@protoyard/blueprint` (routes, navigation groups and layout). Generated prototypes
+render it from their `src/App.svelte` and the player renders it too, so both levels
+show the same app.
 
 ```svelte
 <script lang="ts">
@@ -63,8 +64,25 @@ Props:
 - `themeLibrary`, an optional loader for extra settings theme choices. This package doesn't
   depend on `@protoyard/themes`, so the host passes it.
 
+Optional extension points let an owned app customize the shell without forking it. Omitted,
+each keeps the default:
+- `home`: a component that replaces the overview on the home route (it gets the route props);
+- `extraRoutes`: hand-written `RouteDefinition`s matched before the blueprint's, for example
+  a record workspace;
+- `recordHref(entityName, id)`: where a record opens from its list row and from search.
+  Return `undefined` for the default, the record's `/<plural>/:id` route (its edit form, or a
+  tabbed detail screen);
+- `actions`: a snippet that replaces the header's search and notifications bell.
+
+`prototypes/helpdesk-demo/src/App.svelte` uses all four for its SLA dashboard, ticket
+workspace and ⌘K search.
+
 A missing record shows a message instead of a blank form. A screen that fails to load
 shows a retry.
+
+Import `@protoyard/crud/styles.css` in the app stylesheet. It registers this package's
+markup (the shell, lists, forms and screens) with Tailwind through `@source "./"`, as the
+other kit stylesheets do.
 
 `@protoyard/crud/app` is its own subpath and is never re-exported from the `@protoyard/crud`
 barrel, so prototypes that don't use it pay nothing. `tests/blueprint-app.test.ts` mounts
@@ -307,3 +325,7 @@ pnpm vitest run packages/crud/tests/map-screen.test.ts
 pnpm vitest run packages/crud/tests/board-screen.test.ts
 pnpm --filter @protoyard/crud typecheck
 ```
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

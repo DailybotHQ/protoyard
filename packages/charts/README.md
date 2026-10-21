@@ -96,3 +96,7 @@ const yLabels = y.ticks(5).map((v) => formatCents(Math.round(v), 'USD', { compac
 pnpm vitest run packages/charts
 pnpm --filter @protoyard/charts typecheck
 ```
+
+## Package output
+
+The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

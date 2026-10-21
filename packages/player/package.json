@@ -1,0 +1,90 @@
+{
+  "name": "@protoyard/player",
+  "version": "1.0.0",
+  "description": "A prebuilt, static Protoyard app that runs any blueprint at runtime: IndexedDB, personas, scenarios, simulated time, DevTools, themes, layouts and shells, with no build.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./embed": "./src/embed/index.ts"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.59.0",
+    "@protoyard/ai": "workspace:*",
+    "@protoyard/ai-ui": "workspace:*",
+    "@protoyard/analytics": "workspace:*",
+    "@protoyard/analytics-ui": "workspace:*",
+    "@protoyard/blueprint": "workspace:*",
+    "@protoyard/charts-ui": "workspace:*",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/crud": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/saas": "workspace:*",
+    "@protoyard/saas-ui": "workspace:*",
+    "@protoyard/themes": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "@protoyard/views-ui": "workspace:*",
+    "dexie": "^4.4.6",
+    "svelte": "^5.57.2"
+  },
+  "devDependencies": {
+    "@protoyard/runtime": "workspace:*",
+    "@protoyard/scenarios": "workspace:*"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      "./embed": {
+        "types": "./dist/embed/index.d.ts",
+        "import": "./dist/embed/index.js",
+        "default": "./dist/embed/index.js"
+      }
+    }
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/player"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "player",
+    "blueprint",
+    "embed"
+  ],
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": [],
+      "keep": [
+        "app"
+      ],
+      "postBuild": "build"
+    },
+    "pack": {
+      "required": [
+        "dist/app/index.html",
+        "dist/app/protoyard-player-assets.json",
+        "dist/embed/index.js"
+      ]
+    }
+  }
+}

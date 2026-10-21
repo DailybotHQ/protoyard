@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addCrudTemplate,
   cli,
@@ -9,6 +9,10 @@ import {
   helpdeskBlueprint,
   type TempWorkspace,
 } from './helpers.ts';
+
+// Each test runs a real generate (file writes, codegen, sometimes a build). That
+// takes 1.5 to 3 s alone and much longer while the whole CLI suite runs in parallel.
+vi.setConfig({ testTimeout: 30_000 });
 
 let ws: TempWorkspace;
 beforeEach(() => {
@@ -167,14 +171,14 @@ describe('protoyard validate — blueprint drift check', () => {
     await generated();
     const policy = path('prototypes/help-desk/src/generated/policy.ts');
     writeFileSync(policy, `${read('prototypes/help-desk/src/generated/policy.ts')}// edited\n`);
-    rmSync(path('prototypes/help-desk/src/generated/screens/CustomerPage.svelte'));
+    rmSync(path('prototypes/help-desk/src/generated/services.ts'));
     ws.write('prototypes/help-desk/src/generated/screens/GhostPage.svelte', '<p>ghost</p>\n');
     const check = await blueprintCheck();
     expect(check?.status).toBe('fail');
     expect(check?.details).toEqual(
       expect.arrayContaining([
         'src/generated/policy.ts was edited by hand (hash mismatch)',
-        'missing src/generated/screens/CustomerPage.svelte',
+        'missing src/generated/services.ts',
         'src/generated/screens/GhostPage.svelte was edited by hand (hash mismatch)',
       ])
     );

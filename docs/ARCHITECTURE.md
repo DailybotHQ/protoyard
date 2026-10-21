@@ -99,6 +99,11 @@ when a build turns review comments on, and on `offline`, whose Vite plugin
 adds the service worker only to builds that ask for it. The CLI
 uses `blueprint`, `review`, `themes`, `offline` and `renderer-svelte`.
 
+This graph describes workspace dependencies. For public package names,
+supported install paths, export subpaths, and the current npm release status,
+see [PACKAGES.md](PACKAGES.md). Workspace development stays source-first;
+published engine and Svelte packages map their exports to built `dist/` files.
+
 ## The prototype contract
 
 ```text
@@ -139,7 +144,9 @@ mountPrototype()
 A scenario load does four things:
 
 1. Optionally saves a safety snapshot.
-2. Runs `generate(ctx)` with a seeded `GenerateContext`.
+2. Runs `generate(ctx)` with a seeded `GenerateContext`, or, when the
+   definition provides it, `generateWorld(scenario)` with no context built
+   (the player uses it to generate in a Web Worker).
 3. Validates the declared integrity rules.
 4. Clears and rewrites the data DB in a single transaction, then resets the
    clock, overrides and actor.
