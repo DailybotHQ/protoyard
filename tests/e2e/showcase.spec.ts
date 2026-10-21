@@ -1,4 +1,6 @@
-import { expect, type FrameLocator, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { expect, type Frame, type FrameLocator, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 
 /**
@@ -9,13 +11,140 @@ import { expectAccessible } from './support/a11y.ts';
  * PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/ runs the same checks under a
  * GitHub Pages-style sub-path.
  */
-const ORIGIN = 'http://127.0.0.1:4501';
+const SHOWCASE_PORT = Number(process.env.PROTOYARD_E2E_SHOWCASE_PORT ?? 4501);
+const ORIGIN = `http://127.0.0.1:${SHOWCASE_PORT}`;
 const BASE = process.env.PROTOYARD_E2E_SHOWCASE_BASE ?? '/';
 const SITE = `${ORIGIN}${BASE}`;
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const ANALYTICS_BLUEPRINT = readFileSync(
+  resolve(process.cwd(), 'blueprints/quick/analytics.json'),
+  'utf8'
+);
+
+function playerFrame(page: Page): Frame {
+  const frame = page.frames().find((candidate) => candidate.url().includes('/player/'));
+  if (!frame) throw new Error(`The hosted player frame was not found on ${page.url()}`);
+  return frame;
+}
+
+async function openPlay(page: Page): Promise<FrameLocator> {
+  await page.goto(`${SITE}play/`);
+  await expect(page.getByRole('heading', { name: 'Play a blueprint' })).toBeVisible();
+  return page.frameLocator('iframe[title="Running Protoyard prototype"]');
+}
+
+function browserFailures(page: Page): string[] {
+  const failures: string[] = [];
+  page.on('pageerror', (error) => failures.push(`pageerror: ${error.message}`));
+  page.on('requestfailed', (request) => {
+    const errorText = request.failure()?.errorText ?? 'unknown';
+    if (errorText === 'net::ERR_ABORTED') return;
+    failures.push(`requestfailed: ${request.url()} (${errorText})`);
+  });
+  return failures;
+}
+
+async function loadPastedAnalytics(page: Page, app: FrameLocator): Promise<void> {
+  await page.getByLabel('Blueprint JSON').fill(ANALYTICS_BLUEPRINT);
+  await page.getByRole('button', { name: 'Load blueprint' }).click();
+  await expect(page.getByRole('status')).toContainText('Quick Product Analytics is running');
+  await expect(app.locator('html')).toHaveAttribute('data-py-ready', 'true', { timeout: 20_000 });
+  await expect(app.locator('main').getByRole('heading').first()).toBeVisible();
+  const hideTask = app.getByRole('button', { name: 'Hide', exact: true });
+  if (await hideTask.count())
+    await hideTask.evaluate((element) => (element as HTMLButtonElement).click());
+}
 
 test.describe('showcase site', () => {
   test.skip(process.env.PROTOYARD_E2E_SHOWCASE !== '1', 'set PROTOYARD_E2E_SHOWCASE=1');
+
+  test('runs a pasted blueprint through a mutation and persona/scenario switch', async ({
+    page,
+  }, testInfo) => {
+    const failures = browserFailures(page);
+    const app = await openPlay(page);
+    await loadPastedAnalytics(page, app);
+
+    const frame = playerFrame(page);
+    const switched = await frame.evaluate(async () => {
+      const runtime = window.__protoyard;
+      if (!runtime) throw new Error('Hosted player runtime is unavailable.');
+      const before = runtime.session.principal()?.persona.id;
+      await runtime.scenarios.load('active');
+      const candidate = runtime.session.personas().find((persona) => persona.id !== before);
+      if (candidate) await runtime.session.switchActor(candidate.id);
+      return {
+        scenario: runtime.scenarios.active()?.scenario.id,
+        before,
+        after: runtime.session.principal()?.persona.id,
+      };
+    });
+    expect(switched.scenario).toBe('active');
+    expect(switched.after).toBeTruthy();
+    expect(switched.after).not.toBe(switched.before);
+
+    const ownerId = await frame.evaluate(() => {
+      const runtime = window.__protoyard;
+      return runtime?.session.memberships().find((membership) => membership.role === 'owner')
+        ?.personaId;
+    });
+    if (!ownerId) throw new Error('The hosted analytics blueprint has no owner persona.');
+    await frame.evaluate(async (personaId: string) => {
+      await window.__protoyard?.session.switchActor(personaId);
+    }, ownerId);
+
+    const openNavigation = app.getByRole('button', { name: 'Open navigation' });
+    if (await openNavigation.count()) await openNavigation.click();
+    await app
+      .getByRole('link', { name: 'Metrics' })
+      .evaluate((element) => (element as HTMLAnchorElement).click());
+    await expect(app.getByRole('heading', { name: 'Metric' })).toBeVisible();
+    await expect.poll(() => frame.url()).toContain('#/metrics');
+    await app.getByRole('button', { name: 'New', exact: true }).click();
+    const metricName = `Hosted Play Metric ${testInfo.project.name}`;
+    await app.getByLabel('Name').fill(metricName);
+    await app.getByLabel('Value').fill('42');
+    await app.getByRole('button', { name: 'Create Metric' }).click({ force: true });
+    await expect(app.getByText(metricName, { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Copy share link' }).click();
+    await expect(page.getByRole('status')).toContainText(/Share link/);
+    const shareUrl = page.url();
+    expect(shareUrl).toContain('#bp=1.');
+    await expectAccessible(page, testInfo, { include: 'main', label: 'hosted-player-paste' });
+    expect(failures).toEqual([]);
+  });
+
+  test('opens a share-link blueprint in the hosted player route with axe coverage', async ({
+    page,
+  }, testInfo) => {
+    const failures = browserFailures(page);
+    await openPlay(page);
+    await page.getByLabel('Blueprint JSON').fill(ANALYTICS_BLUEPRINT);
+    await page.getByRole('button', { name: 'Copy share link' }).click();
+    await expect(page.getByRole('status')).toContainText(/Share link/);
+    const shareUrl = page.url();
+    expect(shareUrl).toContain('#bp=1.');
+
+    const sharedPage = await page.context().newPage();
+    const sharedFailures = browserFailures(sharedPage);
+    await sharedPage.goto(shareUrl);
+    let sharedApp = sharedPage.frameLocator('iframe[title="Running Protoyard prototype"]');
+    await expect(sharedApp.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+      timeout: 20_000,
+    });
+    await expect(sharedApp.locator('main').getByRole('heading').first()).toBeVisible();
+    await sharedPage.reload();
+    sharedApp = sharedPage.frameLocator('iframe[title="Running Protoyard prototype"]');
+    await expect(sharedApp.locator('html')).toHaveAttribute('data-py-ready', 'true', {
+      timeout: 20_000,
+    });
+    expect(playerFrame(sharedPage).url()).toContain('/player/');
+    await expectAccessible(sharedPage, testInfo, { include: 'main', label: 'hosted-player-share' });
+    expect(failures).toEqual([]);
+    expect(sharedFailures).toEqual([]);
+    await sharedPage.close();
+  });
 
   test('opens a card, previews the bundled CRM and keeps data after reload', async ({ page }) => {
     await page.goto(SITE);
