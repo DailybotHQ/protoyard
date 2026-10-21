@@ -157,6 +157,7 @@ These budgets are **enforced**:
 | `coldStartMs` | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --check` | report only while `null` |
 | `ideaToRunningMs` and configured phase budgets | `pnpm exec tsx scripts/bench-idea.ts --runs 3 --check` | report only while `null`; exit 1 over a configured median budget |
 | `quickReadyMs` | `pnpm exec tsx scripts/bench-idea.ts --mode quick --runs 3 --check [--ci-factor 3]` | report only while `null`; exit 1 over the median budget |
+| Packed package parity | `pnpm verify:packages --budget-parity` | exit 1 when the packed consumer's initial JS gzip is more than 2 KB from the same blank-template source build, or above 250 KB |
 | Data grid (thresholds in the script) | `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check` | exit 1 locally; report only on CI until calibrated there |
 | Views kit chunks (`CEILINGS` in the test) | `pnpm vitest run packages/cli/tests/views-bundle.test.ts` | test failure (part of `pnpm test`) |
 
@@ -164,6 +165,30 @@ The `perf` job in [.github/workflows/ci.yml](../.github/workflows/ci.yml)
 runs the first three on every pull request and push to `main`, and reports
 cold start without gating it (see
 [TESTING_GUIDE](TESTING_GUIDE.md#ci-performance-job-githubworkflowsciyml--perf)).
+
+### Published package build parity
+
+`pnpm verify:packages --budget-parity` extends the tarball consumer check. It
+uses the packed CLI and packages to scaffold `second-app` from the published
+blank template, then runs `protoyard budget second-app --skip-build` against
+the production build already made by `validate --build`. It separately
+scaffolds the same blank template from workspace source and runs
+`protoyard budget` there, which builds and measures that source version.
+The gate prints both initial-JS gzip values and their delta. It fails when the
+absolute difference is over 2 KB or when the packed consumer exceeds the
+250 KB initial-JS cap. Temporary source prototypes and build artifacts are
+removed after measurement.
+
+This parity check covers the blank starter only; it does not claim every
+template has identical packed and source builds. The ordinary budget command
+continues to enforce CSS for both builds as well.
+
+Measured 2026-10-20 with `pnpm verify:packages --budget-parity`: the source
+blank starter was **169.30 KB** initial JS gzip and the packed consumer's
+starter was **169.20 KB**, a **0.10 KB** difference. Both passed the 250 KB
+cap. The command also passed the tarball install, consumer scaffold/build,
+gallery command and gallery build steps.
+
 The bundle gate on this repository (2026-10-18, abridged to two of the eight
 prototypes):
 
@@ -952,12 +977,11 @@ Before the writes were sliced, the large `massive` generation held the main
 thread for 212–225 ms, 154 ms of it the cache's own `CompressionStream`. The 55 ms
 task that remains is the main thread receiving the worker's world.
 
-**Main-thread Faker.** Every generation still downloads and evaluates Faker
-twice: the runtime builds a `GenerateContext` (and loads its own Faker chunk,
-153 KB gzip) before it calls `definition.generate`, which then generates in the
-worker. No measured phase turned that into a long task, but it is wasted
-transfer and parse. Skipping the main-thread context needs a runtime API change
-(proposed in PLAN_004, T-player-world-cache).
+**Main-thread Faker.** These runs predate the runtime's `generateWorld` hook.
+Since then the player generates through `generateWorld`, so the runtime builds no
+`GenerateContext` and loads no Faker on the main thread at boot (see "Player
+worker generation" above). The SaaS onboarding archetype is the exception: its
+kit rows need a context, so it still loads Faker on the main thread.
 The player visual review is opt-in: `pnpm visual:sweep --only player` builds
 the player into `tmp/` and captures four screenshots from the quick assistant
 blueprint (desktop and phone, light and dark), with axe and layout-fit

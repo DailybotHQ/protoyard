@@ -78,6 +78,11 @@ unchanged.
 
 ## Agent authoring loop
 
+The distributable skill walks agents through this loop in its
+[`protoyard-new` flow](../skills/protoyard/new/SKILL.md), with a
+[blueprint reference](../skills/protoyard/references/blueprints.md) that maps
+this page.
+
 Keep the blueprint as the source of truth and make each generated result reviewable. Brief
 synthesis, validation and shape imports run locally. Pass `--no-install` to generation when the
 workspace dependencies are already linked and the loop must not invoke a package install:
@@ -96,6 +101,10 @@ pnpm protoyard blueprint validate tmp/my-assistant.blueprint.json
 pnpm protoyard generate my-assistant --blueprint tmp/my-assistant.blueprint.json --dry-run --no-install
 pnpm protoyard generate my-assistant --blueprint tmp/my-assistant.blueprint.json --no-install
 ```
+
+When the idea started as a `protoyard quick` exploration, `pnpm protoyard quick promote
+<exploration> <slug>` runs the same generation from its blueprint and checks the result is the
+same app ([Promoting a quick exploration](#promoting-a-quick-exploration)).
 
 For hand-authored JSON, use the exported [JSON Schema](../packages/blueprint/schema/blueprint.schema.json)
 for editor completion, then run `blueprint validate`: the schema checks shape, while the package
@@ -409,8 +418,10 @@ There is no expression language: the operator list is closed, values are
 literals, and nothing from the blueprint is evaluated as code. Parsing checks
 that task ids are unique, that entities and fields exist, and that value types
 fit the field. `evaluateValidationSuccess(success, { route, rows, baseline })`
-in `@protoyard/blueprint` is pure and deterministic. Today the library parses,
-checks and evaluates the block; no screen shows the tasks yet.
+in `@protoyard/blueprint` is pure and deterministic. The player shows them in a
+validation panel (lazy, loaded only when the blueprint has tasks): it times each
+task, keeps attempts in the browser and downloads a metrics file. There is no
+CLI report of those sessions yet.
 
 ### Variants
 
@@ -482,6 +493,35 @@ player uses it to open a blueprint with no build. Both paths share every
 derivation, including `brandDefaultThemeId` for the default theme, so a
 blueprint behaves the same before and after `generate`. See the
 [package README](../packages/blueprint/README.md#runtime-definition).
+
+## Promoting a quick exploration
+
+An exploration made with `protoyard quick` already runs its blueprint in the
+player. When it should become a prototype you own and extend, promote it:
+
+```bash
+pnpm protoyard quick promote <exploration> my-idea              # its slug or its folder
+pnpm protoyard quick promote <exploration> my-idea --variant v2 # one of its --variants
+pnpm protoyard quick promote <exploration> my-idea --no-install
+```
+
+Promotion runs the `generate` pipeline in process with the exploration's
+`blueprint.json` (or the variant's), so `prototypes/my-idea` is an ordinary
+generated prototype. It needs a workspace (otherwise a `not_found` error with
+`data.reason: "no_workspace"`), and it never replaces anything: any existing
+`prototypes/<slug>` is a `conflict`, even one `generate` made. The blueprint is
+read as untrusted input and must still match the sha256 that `quick.json`
+recorded.
+
+After generating, it checks the folder contract, the blueprint drift check that
+`validate` runs, and parity with the exploration: the written `blueprint.json`
+has the same identity and derives the same database versions. Only when every
+check passes does it record `promotedTo` (`slug`, `variant`, `at`) in
+`quick.json`. A failing check exits 4 and leaves `quick.json` as it was. Since
+both paths build from the same blueprint, the generated prototype seeds the
+same world as the player for the same scenario; `packages/cli/tests/quick-promote.test.ts`
+proves it on a real promotion. Then continue with the usual loop:
+`pnpm vitest run prototypes/my-idea` and `pnpm protoyard validate my-idea --build`.
 
 ## What `generate` writes
 

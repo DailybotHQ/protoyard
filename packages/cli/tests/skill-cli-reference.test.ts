@@ -68,7 +68,8 @@ describe('the skill CLI reference', () => {
 
   it('lists as planned only commands that do not exist yet', () => {
     const planned = documentedRowsLoose('## Planned (not available)');
-    expect(planned.length).toBeGreaterThan(5);
+    // The section shrinks as planned commands land; this only proves the parser found it.
+    expect(planned.length).toBeGreaterThan(0);
     for (const path of planned) expect(commands.has(path), path).toBe(false);
   });
 });

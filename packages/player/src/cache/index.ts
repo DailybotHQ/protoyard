@@ -3,7 +3,7 @@ import type { GenerateContext, PrototypeDefinition, Scenario, WorldSeed } from '
 import { Dexie, type Table } from 'dexie';
 
 /**
- * A content-addressed cache of generated worlds (ADR-030, PLAN_004). A world
+ * A content-addressed cache of generated worlds (ADR-030). A world
  * is a pure function of the blueprint, the scenario and the generator version,
  * so the player keeps compressed copies and reopens a scenario switch, a reset
  * or a variant of the same blueprint without regenerating. Everything read

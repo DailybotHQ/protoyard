@@ -30,11 +30,20 @@ const schema = JSON.parse(
 const python = spawnSync('python3', ['--version'], { encoding: 'utf8' }).status === 0;
 
 /** Runs a snippet against the vendored pack's shared/ modules. */
-function packPython(code: string, input = '') {
-  return spawnSync('python3', ['-I', '-B', '-c', code, join(PACK, 'shared')], {
-    encoding: 'utf8',
-    input,
-  });
+function packPython(
+  code: string,
+  input = '',
+  options: { args?: string[]; env?: NodeJS.ProcessEnv } = {}
+) {
+  return spawnSync(
+    'python3',
+    ['-I', '-B', '-c', code, join(PACK, 'shared'), ...(options.args ?? [])],
+    {
+      encoding: 'utf8',
+      input,
+      ...(options.env ? { env: { ...process.env, ...options.env } } : {}),
+    }
+  );
 }
 
 describe('the protoyard addon descriptor', () => {
@@ -123,6 +132,42 @@ describe('the protoyard addon descriptor', () => {
       expect(read.status, read.stderr).toBe(0);
       expect(read.stdout.trim()).toBe(String(descriptor.product.interface));
       expect(readInterfaceProbe(run.stdout).compatible).toBe(true);
+    }
+  );
+
+  it.skipIf(!python)(
+    'plans compatible, absent, malformed and mismatched Protoyard states without writes',
+    () => {
+      const fixtureDir = join(DIR, 'test-fixtures');
+      const run = packPython(
+        [
+          'import sys',
+          'probe = sys.argv[2]',
+          'exec(compile(open(probe, encoding="utf-8").read(), probe, "exec"))',
+        ].join('\n'),
+        JSON.stringify(descriptor),
+        { args: [join(fixtureDir, 'addon-sync-probe.py'), fixtureDir] }
+      );
+      expect(run.status, run.stderr).toBe(0);
+      expect(JSON.parse(run.stdout)).toEqual([
+        { case: 'compatible', action: 'current', reason: null },
+        { case: 'missing', action: 'install', reason: 'protoyard not installed' },
+        {
+          case: 'missing-interface',
+          action: 'verify',
+          reason: 'interface unreadable; treated as not available',
+        },
+        {
+          case: 'malformed',
+          action: 'verify',
+          reason: 'interface unreadable; treated as not available',
+        },
+        {
+          case: 'mismatched',
+          action: 'verify',
+          reason: 'unknown interface major 9 (pinned 1); treated as not available',
+        },
+      ]);
     }
   );
 

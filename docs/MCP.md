@@ -47,6 +47,28 @@ operation that the CLI has not implemented.
 ## Trust boundary
 
 This is a local-code interface, not a sandbox. Only connect to a server you
-intend to run. Treat workspace paths and generated files with the same care as
-when invoking the CLI directly. The MCP server accepts only the listed tools;
-it does not expose arbitrary command execution.
+intend to run. MCP has the same local-code trust model as invoking the CLI:
+the server inherits the process user's permissions and can run the selected
+Protoyard operation, including prototype build code where that operation does
+so. It does not open a network listener or provide authentication.
+
+The adapter applies additional protocol fences before dispatch:
+
+- Path arguments must remain inside the current workspace (its `tmp/` and
+  `artifacts/` folders included). Parent traversal,
+  symlink escapes, control characters and shell metacharacters are refused.
+- The accepted tool set is closed. MCP has no `exec`, shell, arbitrary child
+  process, network, or environment-inspection operation. CLI arguments remain
+  an argv array and are never shell-interpolated.
+- Encoded tool arguments are capped at 256 KiB, returned envelopes at 512 KiB,
+  and each operation has a 30-second response deadline. Credential-shaped
+  fields in returned JSON are redacted.
+
+These limits reduce accidental exposure and resource exhaustion; they are not
+a security boundary against code that the local user deliberately chooses to
+run. Review the workspace and generated files before connecting an agent.
+
+The CLI's process-level integration test exercises both supported revisions
+through the real `protoyard mcp` child process. It verifies JSON-RPC framing,
+successful `quick` and `doctor` envelopes, validation errors, EOF shutdown, and
+that diagnostics never become stdout protocol frames.

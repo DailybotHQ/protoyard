@@ -9,6 +9,11 @@ against the actual product idea.
 Use the [`brief-to-prototype` skill](../.agents/skills/brief-to-prototype/SKILL.md)
 or invoke `/new-from-brief`. For the longer hands-on build after generation,
 continue with [`create-prototype`](../.agents/skills/create-prototype/SKILL.md).
+Outside this repository, the distributable skill's
+[`protoyard-new` flow](../skills/protoyard/new/SKILL.md) covers the same
+loop: brief, blueprint, generation (or `quick promote`) and validation. Its
+[blueprint reference](../skills/protoyard/references/blueprints.md) maps the
+format.
 
 ## The loop
 
@@ -94,6 +99,11 @@ lockfile owner link the generated app before validation.
 You can combine synthesis and generation with `blueprint new --generate
 <slug>`. Use that shortcut when the user wants a direct result; keep the
 separate review step for briefs whose inferred model or permissions need care.
+
+If you first tried the idea with `protoyard quick` and want to keep it,
+`pnpm protoyard quick promote <exploration> acme-desk` generates the prototype
+from the exploration's blueprint instead (add `--variant vN` for one of its
+variants). See [Promoting a quick exploration](GENERATOR.md#promoting-a-quick-exploration).
 
 ### 5. Add only product-specific screens
 

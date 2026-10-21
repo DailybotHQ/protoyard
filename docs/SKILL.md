@@ -41,6 +41,22 @@ features. Its [quick reference](../skills/protoyard/references/quick.md) lists
 the supported options and current promotion path. Quick output stays on disk;
 `quick.json` stores the original brief unless `--no-store-brief` is passed.
 
+## Create a full prototype
+
+To turn a brief, a blueprint or a quick exploration into a full prototype
+under `prototypes/<slug>/`, use the
+[`protoyard-new` sub-skill](../skills/protoyard/new/SKILL.md). It covers:
+- the command sequences (`blueprint new`, `blueprint validate`, `generate`,
+  `quick promote` and `new --template`);
+- the template choice;
+- validation of the result (`spec --write`, the prototype's tests,
+  `validate --build`).
+
+Its [blueprint reference](../skills/protoyard/references/blueprints.md)
+summarizes the format, the brief archetypes, how an exploration and the
+prototype generated from it share one blueprint, and what regeneration may
+change.
+
 ## Install with `setup.sh`
 
 The pack ships its own installer, `skills/protoyard/setup.sh`. It runs on Bash
@@ -114,11 +130,23 @@ It runs two checks and exits nonzero when either finds a problem:
   (`references/cli.md`) is strict: one row per real command, each row lists
   exactly that command's flags, and the global options table lists exactly
   the program's options. A command still listed as planned fails once it
-  exists, so move it to "New in PLAN_004" when it lands. Every failure is
+  exists, so move it to the current-release table when it lands. Every failure is
   printed as `file:line: message`.
 
 The unit tests are `pnpm vitest run tests/scripts/validate-skill-frontmatter.test.ts`
 and `pnpm vitest run packages/cli/tests/check-skill-cli.test.ts`.
+
+Before creating a release tag, stamp every skill frontmatter version from the
+selected package release version, then verify the result:
+
+```bash
+pnpm exec tsx scripts/stamp-skill-version.ts 1.2.3
+pnpm exec tsx scripts/stamp-skill-version.ts 1.2.3 --check
+```
+
+Use the package version, including its prerelease suffix when applicable
+(for example `1.2.3-rc.1`). The release workflow checks that every stamped
+version matches the pushed `v*` tag before building release artifacts.
 
 ## Upgrade the skill
 

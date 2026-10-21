@@ -564,7 +564,7 @@ export async function checkPackage(
     ],
   };
   if (!manifest.publishConfig) {
-    report.pending = 'no publishConfig yet: not packed';
+    report.pending = 'no publishConfig yet: not packed (add publishConfig to pack it)';
   } else {
     const destination = mkdtempSync(join(tmpdir(), 'protoyard-check-packages-'));
     try {

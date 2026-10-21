@@ -2,6 +2,10 @@ import type { Command } from 'commander';
 import type { Handler } from '../../lib/command.ts';
 import { quickExportCommand } from './export.ts';
 import { quickCommand } from './index.ts';
+import { quickIterateCommand, quickUndoCommand } from './iterate.ts';
+import { quickIndexCommand, quickListCommand, quickOpenCommand } from './list.ts';
+import { quickPromoteCommand } from './promote.ts';
+import { quickReportCommand } from './report.ts';
 import { quickServeCommand } from './serve.ts';
 
 type Def = (name: string, handler: Handler) => (...args: unknown[]) => Promise<void>;
@@ -40,11 +44,70 @@ export function registerQuick(program: Command, def: Def): Command {
     .action(def('quick serve', quickServeCommand));
   quick
     .command('export')
-    .description('export an exploration as one self-contained HTML file that opens from file://')
+    .description(
+      'export an exploration as one self-contained HTML file, or pack it as a Claude artifact page'
+    )
     .argument('<target>', 'the exploration: its slug, or its folder')
     .option('--single-file', 'inline the player and the blueprint into one HTML file')
+    .option(
+      '--target <target>',
+      'artifact: pack the single file as a Claude artifact page in <exploration>/artifact/ (never publishes)'
+    )
+    .option(
+      '--url <url>',
+      'with --target artifact: record the URL the Artifact tool returned in quick.json'
+    )
     .option('--out <file>', 'write under artifacts/ or tmp/ instead of <exploration>/<slug>.html')
     .option('--force', 'replace an existing export')
     .action(def('quick export', quickExportCommand));
+  quick
+    .command('promote')
+    .description('turn an exploration into a full prototype in prototypes/<slug> (via generate)')
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .argument('<slug>', 'the new prototype slug (never an existing prototype)')
+    .option('--variant <id>', 'promote one of the exploration variants (v1..v8) instead')
+    .option('--no-install', 'skip pnpm install after generating')
+    .action(def('quick promote', quickPromoteCommand));
+  quick
+    .command('iterate')
+    .description('change an exploration with an RFC 6902 JSON Patch, atomically, with undo history')
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .option('--patch <file>', 'the JSON Patch file, or - to read it from stdin (512 KB at most)')
+    .option(
+      '--allow-drop',
+      'accept a patch that drops entities or fields (the world loses that data)'
+    )
+    .action(def('quick iterate', quickIterateCommand));
+  quick
+    .command('undo')
+    .description('restore the blueprint from before the last `quick iterate`, byte for byte')
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .action(def('quick undo', quickUndoCommand));
+  quick
+    .command('report')
+    .description(
+      'aggregate validation sessions per variant and task into report.json and REPORT.md'
+    )
+    .argument('<target>', 'the exploration: its slug, or its folder')
+    .option(
+      '--import <files...>',
+      'protoyard-validation-metrics files the player downloaded (kept in <exploration>/metrics/)'
+    )
+    .action(def('quick report', quickReportCommand));
+  quick
+    .command('list')
+    .description('list the explorations in the quick zone (marked folders only), newest first')
+    .action(def('quick list', quickListCommand));
+  quick
+    .command('open')
+    .description('serve an exploration on 127.0.0.1 and open it in the browser, by slug')
+    .argument('<slug>', 'the exploration slug (see `protoyard quick list`)')
+    .option('--port <port>', 'first port to try (default 4180; a busy port falls back to the next)')
+    .option('--strict-port', 'fail instead of falling back when the port is busy')
+    .action(def('quick open', quickOpenCommand));
+  quick
+    .command('index')
+    .description('write a static index.html in the quick zone linking every exploration')
+    .action(def('quick index', quickIndexCommand));
   return quick;
 }

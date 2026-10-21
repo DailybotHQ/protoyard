@@ -52,6 +52,9 @@ mkdir -p <host-skills-directory>
 cp -R /tmp/protoyard-vX.Y.Z/skills/protoyard <host-skills-directory>/protoyard
 ```
 
+Or run `skills/protoyard/setup.sh --host <host>` from the checkout (see
+`--help`) to install through the supported host map.
+
 For a repeatable manual update, remove or replace the old `protoyard`
 directory only after the new checkout has been inspected. The manual route
 does not create a `skills-lock.json` entry; record the selected tag in the

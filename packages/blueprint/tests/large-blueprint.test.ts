@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * The player path at scale (PLAN_004 Task 49): a fictional 40-entity
+ * The player path at scale: a fictional 40-entity
  * blueprint with about 25 fields per entity, 60 screens and every feature on
  * loads through the untrusted loader, derives a runtime definition and an app
  * model, and generates a massive-density world, each within a ceiling.
