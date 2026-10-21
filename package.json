@@ -43,7 +43,7 @@
     "verify:packages": "pnpm build:packages && tsx scripts/verify-packages.ts",
     "changeset": "changeset",
     "version-packages": "tsx scripts/version-packages.ts",
-    "check:skill": "tsx scripts/validate-skill-frontmatter.ts && tsx scripts/check-skill-cli.ts"
+    "check:skill": "tsx scripts/validate-skill-frontmatter.ts && tsx scripts/check-skill-cli.ts && tsx scripts/validate-skill-links.ts && bash scripts/verify-skill-integrity.sh"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
