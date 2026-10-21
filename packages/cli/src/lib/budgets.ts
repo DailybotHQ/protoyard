@@ -30,12 +30,48 @@ export const PerformanceBudgetSchema = z
 
 export const PerformanceBudgetOverrideSchema = PerformanceBudgetSchema.partial();
 
+/** Blueprint content kinds that ship their own minimal player entry (ADR-040). */
+export const KIND_BUDGET_KINDS = ['deck', 'page', 'doc'] as const;
+export type BudgetKind = (typeof KIND_BUDGET_KINDS)[number];
+
+/** Budget for one per-kind player entry and its single-file export. */
+export const KindBudgetSchema = z
+  .object({
+    initialJsGzipKb: PositiveBudgetSchema,
+    cssGzipKb: PositiveBudgetSchema,
+    /** Raw size of the single-file export for this kind; null until calibrated. */
+    singleFileKb: PositiveBudgetSchema.nullable().default(null),
+  })
+  .strict();
+
+export type KindBudget = z.infer<typeof KindBudgetSchema>;
+
+/**
+ * Provisional per-kind budgets (PLAN_005, ADR-040). Measured numbers replace them in
+ * protoyard.budgets.json once the kind entries exist.
+ */
+export const DEFAULT_KIND_BUDGETS: Record<BudgetKind, KindBudget> = {
+  deck: { initialJsGzipKb: 150, cssGzipKb: 30, singleFileKb: 1536 },
+  page: { initialJsGzipKb: 150, cssGzipKb: 30, singleFileKb: null },
+  doc: { initialJsGzipKb: 150, cssGzipKb: 30, singleFileKb: null },
+};
+
+const KindBudgetsSchema = z
+  .object({
+    deck: KindBudgetSchema.optional(),
+    page: KindBudgetSchema.optional(),
+    doc: KindBudgetSchema.optional(),
+  })
+  .strict();
+
 export const BudgetConfigSchema = z
   .object({
     format: z.literal('protoyard.budgets'),
     version: z.literal(1),
     defaults: PerformanceBudgetSchema,
     overrides: z.record(SlugSchema, PerformanceBudgetOverrideSchema),
+    /** Optional per-kind player entry budgets; missing kinds use DEFAULT_KIND_BUDGETS. */
+    kinds: KindBudgetsSchema.optional(),
   })
   .strict();
 
@@ -106,6 +142,11 @@ export async function loadBudgets(workspaceRoot: string): Promise<BudgetConfig> 
 /** Applies the selected prototype override to the workspace defaults. */
 export function resolveBudget(config: BudgetConfig, slug: string): PerformanceBudget {
   return { ...config.defaults, ...config.overrides[slug] };
+}
+
+/** Resolves the budget of one per-kind player entry, falling back to the provisional defaults. */
+export function resolveKindBudget(config: BudgetConfig, kind: BudgetKind): KindBudget {
+  return { ...DEFAULT_KIND_BUDGETS[kind], ...config.kinds?.[kind] };
 }
 
 function isMissingFile(error: unknown): boolean {

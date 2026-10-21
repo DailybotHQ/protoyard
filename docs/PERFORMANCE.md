@@ -147,6 +147,16 @@ loader uses the defaults below.
 | `briefToBlueprintMs`, `blueprintValidationMs`, `prototypeGenerationMs`, `prototypeBuildMs`, `previewReadyMs` | `null` | Optional per-phase idea-to-running thresholds |
 | `quickReadyMs` | `null` | `protoyard quick` brief → ready folder → `protoyard:ready`, no build (see [Quick exploration](#quick-exploration-brief-to-ready-measured-2026-10-20)) |
 
+An optional `kinds` key holds the per-kind player entry budgets (ADR-040). When a
+kind is missing, the loader uses the provisional defaults below; measured numbers
+replace them once the deck, page and doc entries exist.
+
+| `kinds.<deck\|page\|doc>` field | Provisional default | Meaning |
+| --- | ---: | --- |
+| `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
+| `cssGzipKb` | 30 KB | CSS of the kind's player entry, gzip |
+| `singleFileKb` | 1,536 KB (deck), `null` (page, doc) | Raw size of the kind's single-file export; `null` until calibrated |
+
 These budgets are **enforced**:
 
 | Budget | Gate | Fails with |
