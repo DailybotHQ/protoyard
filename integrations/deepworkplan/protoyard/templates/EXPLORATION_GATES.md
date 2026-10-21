@@ -216,6 +216,82 @@ Both comparisons must exit `0`. A newly changed or untracked source path fails
 the gate; only then may the task copy its allow-listed evidence files into
 `{{EVIDENCE_DIR}}`.
 
+## Gate 7 — Capture optional screenshot evidence
+
+Functional gates 1–6 are required. This browser gate is optional: it adds
+visual evidence when Playwright and its Chromium browser are available, but it
+never converts a missing browser into a pass. Run it after Gate 6 so the
+screenshots remain in the disposable quick folder until all required gates
+have passed.
+
+If Gate 3 did not include `--screenshot`, capture the already-created
+exploration with:
+
+```bash
+protoyard --json quick shot "{{SCRATCH_DIR}}/{{SLUG}}" \
+  > "{{SCRATCH_DIR}}/{{SLUG}}.screenshot-envelope.json"
+```
+
+The command captures one desktop image for the base page and every generated
+variant. The fixed desktop viewport is 1280×800; `--phone` may be added when
+the decision needs a 390×844 image as well. The command serves the exploration
+on loopback and opens each launcher in a fresh browser context. It records
+each image's relative path, variant, width, height, byte count and SHA-256 in
+`quick.json`, and the JSON envelope records the same `files` list.
+
+Check the result before copying anything into plan evidence:
+
+```bash
+node -e '
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const [dirArg, countArg, envelopeArg] = process.argv.slice(1);
+  const dir = path.resolve(dirArg);
+  const envelope = JSON.parse(fs.readFileSync(envelopeArg, "utf8"));
+  const data = envelope.data?.screenshots ?? envelope.data;
+  const skipped = data?.skipped;
+  if (skipped) {
+    if (!["playwright-unavailable", "browser-unavailable"].includes(skipped.reason))
+      throw new Error(`browser capture failed: ${skipped.reason}`);
+    if ((data.files ?? []).length !== 0) throw new Error("a skipped capture has files");
+    process.exit(0);
+  }
+  const files = data?.files;
+  const expected = Number(countArg) + 1;
+  if (!Array.isArray(files) || files.length !== expected)
+    throw new Error(`expected ${expected} desktop images, found ${files?.length ?? 0}`);
+  const variants = new Set([null, ...Array.from({ length: Number(countArg) }, (_, i) => `v${i + 1}`)]);
+  for (const file of files) {
+    if (!variants.delete(file.variant) || file.width !== 1280 || file.height !== 800 ||
+        !/^screenshots\/(base|v[1-8])-desktop\.png$/.test(file.path) ||
+        !/^[0-9a-f]{64}$/.test(file.sha256) || !Number.isInteger(file.bytes))
+      throw new Error(`invalid screenshot metadata for ${file.path ?? "unknown"}`);
+    const resolved = path.resolve(dir, file.path);
+    const relative = path.relative(dir, resolved);
+    if (relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative) ||
+        !fs.statSync(resolved).isFile())
+      throw new Error(`screenshot escapes the quick folder: ${file.path}`);
+  }
+  if (variants.size !== 0) throw new Error("a variant has no screenshot");
+' "{{SCRATCH_DIR}}/{{SLUG}}" "{{VARIANT_COUNT}}" \
+  "{{SCRATCH_DIR}}/{{SLUG}}.screenshot-envelope.json"
+```
+
+The two allowed unavailable-browser reasons are `playwright-unavailable` and
+`browser-unavailable`. Copy a `playwright-unavailable` record into the plan
+evidence and record the browser gate as `skip`; it is not a successful visual
+check and the decision must rely on the functional gates. A `capture-failed`
+result means that a browser was available but the page did not boot, so record
+the browser gate as `fail` and use `iterate` or `discard` as appropriate.
+`quick shot` can retain earlier captures in `quick.json`; copy only the files
+from this run that the evidence record cites.
+
+Use [SCREENSHOT_EVIDENCE.md](SCREENSHOT_EVIDENCE.md) to record the result.
+The fixed viewport and fresh-context contract make the capture deterministic
+by variant and route; browser rendering is not promised to be byte-identical
+across machines, so the recorded SHA-256 identifies the captured file rather
+than proving production behavior.
+
 ## Record the gate result
 
 For every gate, record its exact filled command, exit code, stdout/stderr or
