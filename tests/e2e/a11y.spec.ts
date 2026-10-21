@@ -30,6 +30,14 @@ for (const mode of ['light', 'dark'] as const) {
       await expectAccessible(page, testInfo, { label: `gallery-home-${mode}` });
     });
 
+    test('features page', async ({ page }, testInfo) => {
+      await page.goto('/features/');
+      await expect(page.locator('html')).toHaveAttribute('data-theme', mode);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText('Everything Protoyard does');
+      await settle(page);
+      await expectAccessible(page, testInfo, { label: `features-${mode}` });
+    });
+
     test('gallery detail page', async ({ page }, testInfo) => {
       test.skip(!firstPrototype, 'no prototypes indexed');
       await page.goto(`/p/${firstPrototype?.slug}/`);

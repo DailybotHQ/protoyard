@@ -10,7 +10,7 @@ interface Props {
   description?: string;
   /** Base-relative path to use for canonical and social metadata. */
   canonicalPath?: string;
-  active?: 'home' | 'templates' | 'marketplace' | 'themes' | 'new';
+  active?: 'home' | 'templates' | 'marketplace' | 'themes' | 'new' | 'features' | 'play' | 'docs';
   /** Keep the page out of search results (404, compare, create flow). */
   noindex?: boolean;
 }
@@ -42,6 +42,9 @@ const socialImageAlt =
   'Protoyard: build prototypes that feel real. Browser-first prototyping with mock data, scenarios, themes and publishable apps.';
 const nav = [
   { href: withBase('/'), label: 'Prototypes', id: 'home' },
+  { href: withBase('/features/'), label: 'Features', id: 'features' },
+  { href: withBase('/play/'), label: 'Play', id: 'play' },
+  { href: withBase('/docs/'), label: 'Docs', id: 'docs' },
   { href: withBase('/#templates'), label: 'Templates', id: 'templates' },
   { href: withBase('/marketplace/'), label: 'Marketplace', id: 'marketplace' },
   { href: withBase('/themes/'), label: 'Themes', id: 'themes' },
