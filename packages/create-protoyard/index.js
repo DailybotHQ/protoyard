@@ -155,7 +155,7 @@ export function checkTarget(dir, cwd) {
   if (!lstatSync(target).isDirectory()) {
     throw new CreateError('conflict', `${target} exists and is not a folder.`);
   }
-  const entries = readdirSync(target).filter((name) => name !== '.DS_Store');
+  const entries = readdirSync(target).filter((name) => !IGNORABLE_ENTRIES.includes(name));
   if (entries.length > 0) {
     throw new CreateError(
       'conflict',
@@ -164,6 +164,23 @@ export function checkTarget(dir, cwd) {
     );
   }
   return { target, exists: true };
+}
+
+/**
+ * Entries an "empty" target folder may still hold (Finder metadata). The
+ * check and the removal before the rename share this list, so a folder the
+ * check accepts is one `removeEmptyTarget` can always remove.
+ */
+const IGNORABLE_ENTRIES = ['.DS_Store'];
+
+/**
+ * Removes an existing target that holds only ignorable entries. `rmdirSync`
+ * still refuses if anything else appeared since `checkTarget` ran.
+ * @param {string} target
+ */
+function removeEmptyTarget(target) {
+  for (const name of IGNORABLE_ENTRIES) rmSync(join(target, name), { force: true });
+  rmdirSync(target);
 }
 
 /** @param {string} path */
@@ -401,7 +418,7 @@ export function createWorkspace(options) {
     // The CLI's registry cache is rebuilt on demand; the new workspace starts clean.
     rmSync(join(stage, '.protoyard'), { recursive: true, force: true });
     written = listFiles(stage);
-    if (exists) rmdirSync(target);
+    if (exists) removeEmptyTarget(target);
     renameSync(stage, target);
   } catch (error) {
     rmSync(stage, { recursive: true, force: true });

@@ -127,7 +127,7 @@ describe('generated screen routes', () => {
       JSON.parse(
         readFileSync(path('prototypes/harbor-desk/src/generated/blueprint.snapshot.json'), 'utf8')
       )
-    ).toMatchObject({ codegenFormat: 2, schemaVersion: 1 });
+    ).toMatchObject({ codegenFormat: 3, schemaVersion: 1 });
     expect(readFileSync(path('prototypes/harbor-desk/README.md'), 'utf8')).toContain(
       'owns the home route'
     );

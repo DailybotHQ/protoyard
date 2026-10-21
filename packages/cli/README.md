@@ -168,7 +168,10 @@ and Windows.
   variants side by side with labels, links and screenshots, only relative same-folder URLs, all
   text escaped, no script, and a Content-Security-Policy that allows only its own hashed style,
   same-origin images and same-origin frames.
-  The prebuilt player is copied, never built (`src/lib/quick/player-assets.ts`):
+  The prebuilt player is copied, never built (`src/lib/quick/player-assets.ts`), with one
+  exception: in the Protoyard monorepo, a missing `packages/player/dist/app/` is built once
+  with `pnpm --filter @protoyard/player build` (`src/lib/quick/player-build.ts`, output on
+  stderr). Consumer workspaces and installed players are never built:
   - **Where it comes from:** the CLI's own `@protoyard/player` dependency, then the workspace's
     install, then this repository's `packages/player`.
   - **How it is checked:** every file must match the `protoyard-player-assets.json` sha256

@@ -199,6 +199,16 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   window.__protoyard = rt;
   cleanups.push(bindAppearance(rt, themes, root));
 
+  // The define is read inline (not via flags.ts) so the minifier can fold it
+  // and drop the DevTools chunk entirely from builds without DevTools.
+  // Undeclared (tests, foreign bundlers) means "allowed when asked".
+  const devtoolsBuilt =
+    typeof __PROTOYARD_DEVTOOLS__ !== 'undefined' ? __PROTOYARD_DEVTOOLS__ : true;
+  // Presentation mode (`?devtools=0`) hides the panel even in dev.
+  const devtoolsAvailable =
+    devtoolsBuilt &&
+    (build?.devtools ?? options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
+
   target.replaceChildren();
   let app: ReturnType<typeof mount>;
   try {
@@ -210,6 +220,7 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
         runtime: rt,
         App,
         demoBadge: build?.demoBadge ?? options.demoBadge ?? DEMO_BADGE_ENABLED,
+        devtools: devtoolsAvailable,
       },
     });
   } catch (error) {
@@ -224,16 +235,6 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   await tick();
   root.dataset.protoyardReady = '1';
   performance.mark('protoyard:ready');
-
-  // The define is read inline (not via flags.ts) so the minifier can fold it
-  // and drop the DevTools chunk entirely from builds without DevTools.
-  // Undeclared (tests, foreign bundlers) means "allowed when asked".
-  const devtoolsBuilt =
-    typeof __PROTOYARD_DEVTOOLS__ !== 'undefined' ? __PROTOYARD_DEVTOOLS__ : true;
-  // Presentation mode (`?devtools=0`) hides the panel even in dev.
-  const devtoolsAvailable =
-    devtoolsBuilt &&
-    (build?.devtools ?? options.devtools ?? (DEVTOOLS_ENABLED && link.devtools !== false));
 
   // Keep this define inline so a review-disabled production build folds away
   // the branch and has no review UI, adapter, or schema in its initial graph.

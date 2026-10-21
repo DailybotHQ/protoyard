@@ -219,7 +219,7 @@ For an idea you want to try before creating a full project, make a disposable
 player exploration from a brief or a blueprint:
 
 ```bash
-# In this repository, do this once if the prebuilt player app is missing.
+# Optional in this repository: quick builds the player on first use (about 10 s).
 pnpm --filter @protoyard/player build
 pnpm protoyard quick "A booking app for a fictional climbing gym" --slug gym-bookings --seed 7 --variants 3
 pnpm protoyard quick serve gym-bookings --open

@@ -540,7 +540,7 @@ slug, and re-indexes.
 | `src/generated/services.ts` | generated | `createEntityServices(runtime, blueprint)`. |
 | `src/generated/scenarios.ts` | generated | The world generator, loaded lazily so Faker stays out of the initial chunk. |
 | `src/generated/brand-theme.ts` | generated | Only with `brand`. |
-| `src/generated/blueprint.snapshot.json` | managed | The blueprint the generated code reflects, and its schema version. |
+| `src/generated/blueprint.snapshot.json` | managed | The blueprint the generated code reflects, its schema version and its `codegenFormat` (currently 3). `validate` reports an older format as outdated and prints the `generate` command that brings it current. |
 | `src/App.svelte` | owned | Lazily loads `BlueprintApp` from `@protoyard/crud/app` and renders it with the generated blueprint. |
 | `src/prototype.ts` | owned | Only with a built `brand`: registers the brand theme. It declares `generatorVersion: blueprintGeneratorVersion(blueprint)`, so a changed blueprint reseeds stored worlds. |
 | `README.md`, `tests/generators.test.ts`, `tests/services.test.ts` | owned | Written once, from the blueprint. |
