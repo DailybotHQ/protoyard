@@ -2,6 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { z } from 'zod';
 import { CliError, type Envelope, errorEnvelope } from '../lib/output.ts';
+import {
+  assertMcpOutputSize,
+  assertMcpRequestSize,
+  mcpPathPolicy,
+  resolveMcpPath,
+  sanitizeMcpEnvelope,
+  withMcpTimeout,
+} from './security.ts';
 import type { McpTool } from './stdio.ts';
 
 type ToolName =
@@ -228,8 +236,11 @@ async function runCliEnvelope(args: string[]): Promise<Envelope> {
 
   try {
     const parsed: unknown = JSON.parse(stdout);
-    if (typeof parsed === 'object' && parsed !== null && 'ok' in parsed && 'command' in parsed)
-      return parsed as Envelope;
+    if (typeof parsed === 'object' && parsed !== null && 'ok' in parsed && 'command' in parsed) {
+      const envelope = parsed as Envelope;
+      assertMcpOutputSize(envelope);
+      return sanitizeMcpEnvelope(envelope);
+    }
   } catch {
     // A CLI that emitted no envelope is converted to a structured MCP failure below.
   }
@@ -258,16 +269,30 @@ async function blueprintSchemaEnvelope(loadSchema: () => Promise<unknown>): Prom
 export interface McpToolHandlerOptions {
   runCli?: (args: string[]) => Promise<Envelope>;
   loadSchema?: () => Promise<unknown>;
+  workspaceRoot?: string;
+  timeoutMs?: number;
 }
 
 export function createMcpToolHandler(options: McpToolHandlerOptions = {}) {
   const invokeCli = options.runCli ?? runCliEnvelope;
   const loadSchema = options.loadSchema ?? loadBlueprintSchema;
+  const pathPolicy = mcpPathPolicy(options.workspaceRoot);
+  const timeoutMs = options.timeoutMs;
+
+  const checkPath = (value: unknown): void => {
+    // Resolve for validation only; preserve the user's relative spelling in argv.
+    if (typeof value === 'string') resolveMcpPath(value, pathPolicy);
+  };
 
   return async (name: string, args: Record<string, unknown>): Promise<Envelope> => {
     if (!Object.hasOwn(validators, name))
       return errorEnvelope('mcp', new CliError('not_found', `Unknown MCP tool: ${name}`));
     const toolName = name as ToolName;
+    try {
+      assertMcpRequestSize(args);
+    } catch (error) {
+      return errorEnvelope(commandForTool(name), error);
+    }
     const parsed = validators[toolName].safeParse(args);
     if (!parsed.success)
       return validationEnvelope(
@@ -277,10 +302,34 @@ export function createMcpToolHandler(options: McpToolHandlerOptions = {}) {
           message: issue.message,
         }))
       );
-    if (toolName === 'blueprint_schema') return blueprintSchemaEnvelope(loadSchema);
     const data = parsed.data as Record<string, unknown>;
-    if (toolName === 'doctor' && data.offline === false) return invokeCli(['doctor']);
-    return invokeCli(cliArgs(toolName, data));
+    try {
+      if (toolName === 'iterate' || toolName === 'screenshot' || toolName === 'promote') {
+        checkPath(data.dir);
+      }
+      if (toolName === 'iterate') checkPath(data.patchFile);
+      if (toolName === 'validate_blueprint') checkPath(data.file);
+      if (toolName === 'quick' && data.blueprint) checkPath(data.blueprint);
+    } catch (error) {
+      return errorEnvelope(commandForTool(name), error);
+    }
+    try {
+      if (toolName === 'blueprint_schema') {
+        const schema = await withMcpTimeout(blueprintSchemaEnvelope(loadSchema), timeoutMs);
+        assertMcpOutputSize(schema);
+        return sanitizeMcpEnvelope(schema);
+      }
+      const result = await withMcpTimeout(
+        invokeCli(
+          toolName === 'doctor' && data.offline === false ? ['doctor'] : cliArgs(toolName, data)
+        ),
+        timeoutMs
+      );
+      assertMcpOutputSize(result);
+      return sanitizeMcpEnvelope(result);
+    } catch (error) {
+      return errorEnvelope(commandForTool(name), error);
+    }
   };
 }
 
