@@ -163,14 +163,15 @@ A Protoyard release is a `vX.Y.Z` tag. What it provides for the skill today:
 | Artifact | Where | Use |
 | --- | --- | --- |
 | The skill pack | `skills/protoyard/` in the tagged tree (`…/tree/vX.Y.Z`) | What every install route copies |
-| `SHA256SUMS` | the root of the tagged tree | One sorted line per file of `skills/protoyard/`; verify a checkout or an installed copy with it |
+| `SHA256SUMS` | the root of the tagged tree, and attached to the GitHub Release | One sorted line per file of `skills/protoyard/`; verify a checkout or an installed copy with it |
 | Stamped versions | `version:` in every skill file's frontmatter | Equal to the tag; the release workflow refuses a tag whose skill versions differ |
-| npm packages | `@protoyard/*` on npm | The CLI and libraries, a separate install from the skill |
-| GitHub Release | the tag's release page | Release notes from `CHANGELOG.md` |
+| npm packages | `@protoyard/*` on npm, once published (nothing is published yet; see [PUBLISHING](PUBLISHING.md#releasing-the-packages-to-npm)) | The CLI and libraries, a separate install from the skill |
+| GitHub Release | the tag's release page | Release notes from `CHANGELOG.md` and the `SHA256SUMS` asset |
 
-The GitHub Release has no attached skill archive or separate checksum file
-today: install from the tagged tree, and verify with the `SHA256SUMS` in that
-same tree. The checksums show the files are the ones that tag lists; they are
+The release workflow smoke-installs the skill from the tag, then attaches the
+root `SHA256SUMS` to the GitHub Release. There is no attached skill archive:
+install from the tagged tree, and verify with `SHA256SUMS` from that tree or from
+the release. The checksums show the files are the ones that tag lists; they are
 not a signature and make no publisher-identity claim.
 
 Cutting a release, the skill steps run before tagging, from the repository:
