@@ -1,13 +1,14 @@
 import { lstat, mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { type Blueprint, blueprintIdentity } from '@protoyard/blueprint';
 import { z } from 'zod';
 import { sha256Text } from '../../lib/checksum.ts';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
+import { type EarlierBlueprint, historyEntryName } from '../../lib/quick/history.ts';
 import { readQuickRecord } from '../../lib/quick/model.ts';
-import { readRecordedBlueprint, resolveExploration } from './promote.ts';
+import { type ExplorationGroup, explorationNamespaces } from './namespaces.ts';
+import { resolveExploration } from './promote.ts';
 
 /**
  * `protoyard quick report <slug|dir> [--import <metrics.json>…]`: aggregates
@@ -19,7 +20,10 @@ import { readRecordedBlueprint, resolveExploration } from './promote.ts';
  *   parsed with a strict schema, and every string that reaches the Markdown
  *   is reduced to one safe line and escaped. A malformed file, or one from a
  *   blueprint that is not this exploration or one of its variants, fails the
- *   whole run before anything is written.
+ *   whole run before anything is written. Metrics recorded under an earlier
+ *   base blueprint (a `history/NNNN.json` entry: a tab that live-reloaded
+ *   after `quick iterate` keeps its world there) count for the base, in rows
+ *   marked as an earlier version.
  * - Imported files are kept, normalized, in `metrics/<sha256>.json`, so
  *   importing the same download twice adds nothing and later runs (with no
  *   `--import`) rebuild the same report. Each download holds every attempt
@@ -88,6 +92,11 @@ export interface TaskSummary {
   /** Medians over successful attempts only; null without one. */
   medianDurationMs: number | null;
   medianSteps: number | null;
+  /**
+   * Set on base rows recorded under an earlier blueprint: the history entry
+   * whose previous blueprint owns that namespace. null for current rows.
+   */
+  earlier: { sequence: number; namespace: string } | null;
 }
 
 export interface GroupSummary {
@@ -215,6 +224,7 @@ export function summarizeGroup(
         mine.length === 0 ? null : Math.round((successes.length / mine.length) * 1000) / 1000,
       medianDurationMs: median(successes.map((attempt) => attempt.durationMs)),
       medianSteps: median(successes.map((attempt) => attempt.steps)),
+      earlier: null,
     };
   });
 }
@@ -230,7 +240,7 @@ export function renderReportMarkdown(input: {
     '',
     `Exploration \`${input.slug}\`. ${input.sources} metrics file${input.sources === 1 ? '' : 's'}, ${input.groups.reduce((n, g) => n + g.attempts, 0)} attempts after removing repeats. Success rate counts every attempt; median time and steps count successful attempts only. Simulated data only.`,
     '',
-    'Scope: this report covers the current blueprint and the variants recorded in this exploration. Metrics from earlier `quick iterate` history entries and `keep` namespaces are not included.',
+    'Scope: this report covers the current blueprint, the variants recorded in this exploration, and the earlier base blueprints kept in its `quick iterate` history (a tab that live-reloaded after an iterate keeps recording under the blueprint it first opened). Rows from an earlier blueprint are marked as an earlier version and name the history entry. Metrics from any other blueprint are refused.',
     '',
     'In the player, task progress (which task is current) resets when the page reloads; recorded attempts persist in the browser until the exploration is cleared, and every download includes all of them.',
   ];
@@ -245,7 +255,10 @@ export function renderReportMarkdown(input: {
       '| --- | ---: | ---: | ---: | ---: | ---: | ---: |'
     );
     for (const task of group.tasks) {
-      const name = `${markdownCell(task.prompt || task.id)} (\`${task.id}\`)${task.defined ? '' : ' (not in the blueprint)'}`;
+      const earlier = task.earlier
+        ? ` (earlier version: before change ${task.earlier.sequence}, \`${historyEntryName(task.earlier.sequence)}\`)`
+        : '';
+      const name = `${markdownCell(task.prompt || task.id)} (\`${task.id}\`)${task.defined ? '' : ' (not in the blueprint)'}${earlier}`;
       lines.push(
         `| ${name} | ${task.attempts} | ${formatRate(task.successRate)} | ${formatSeconds(task.medianDurationMs)} | ${task.medianSteps ?? '—'} | ${task.gaveUp} | ${task.timedOut} |`
       );
@@ -257,42 +270,18 @@ export function renderReportMarkdown(input: {
 export const quickReportCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
   const dir = resolveExploration(ctx.root, args[0] ?? '');
   const record = await readQuickRecord(dir);
-  const base = await readRecordedBlueprint(join(dir, 'blueprint.json'), record.blueprintSha256);
-
-  // Every blueprint this exploration runs, by the storage namespace the player uses.
-  const groups: {
-    variant: string | null;
-    label: string;
-    blueprint: Blueprint;
-    namespace: string;
-  }[] = [
-    {
-      variant: null,
-      label: `Base: ${base.blueprint.name}`,
-      blueprint: base.blueprint,
-      namespace: (await blueprintIdentity(base.blueprint)).namespace,
-    },
-  ];
-  for (const variant of record.variants) {
-    const loaded = await readRecordedBlueprint(
-      join(dir, variant.dir, 'blueprint.json'),
-      variant.blueprintSha256
-    );
-    groups.push({
-      variant: variant.id,
-      label: `${variant.id}: ${variant.label}`,
-      blueprint: loaded.blueprint,
-      namespace: (await blueprintIdentity(loaded.blueprint)).namespace,
-    });
-  }
-  const known = new Map(groups.map((group) => [group.namespace, group]));
+  const { groups, earlier, hint } = await explorationNamespaces(dir, record);
+  const base = groups[0] as ExplorationGroup;
+  // Every namespace this exploration owns: its group, and the history entry for an earlier base.
+  const known = new Map<string, { group: ExplorationGroup; earlier: EarlierBlueprint | null }>([
+    ...groups.map((group) => [group.namespace, { group, earlier: null }] as const),
+    ...earlier.map((entry) => [entry.namespace, { group: base, earlier: entry }] as const),
+  ]);
   const unknownNamespace = (namespace: string, label: string) =>
     new CliError(
       'validation',
-      `${label} was recorded for another blueprint (${namespace}), not this exploration or its variants.`,
-      {
-        hint: `This exploration's namespaces: ${groups.map((g) => `${g.variant ?? 'base'} ${g.namespace}`).join(', ')}.`,
-      }
+      `${label} was recorded for another blueprint (${namespace}), not this exploration, its variants or its earlier versions.`,
+      { hint: `This exploration's namespaces: ${hint}.` }
     );
 
   // Validate every import before anything is written.
@@ -346,48 +335,84 @@ export const quickReportCommand: Handler = async (ctx, args, options): Promise<C
       `More than ${QUICK_METRICS_MAX_FILES} metrics files are stored.`
     );
   }
-  const byGroup = new Map<string, Attempt[]>(groups.map((group) => [group.namespace, []]));
+  const byNamespace = new Map<string, Attempt[]>([...known.keys()].map((ns) => [ns, []]));
   const prompts = new Map<string, Map<string, string>>();
   const seen = new Set<string>();
-  const sources: { file: string; namespace: string; variant: string | null; attempts: number }[] =
-    [];
+  const sources: {
+    file: string;
+    namespace: string;
+    variant: string | null;
+    /** The history entry of an earlier base blueprint, or null. */
+    earlier: number | null;
+    attempts: number;
+  }[] = [];
   for (const name of names) {
     const label = `${QUICK_METRICS_DIR}/${name}`;
     const metrics = parseValidationMetrics(await readCapped(join(metricsDir, name), label), label);
-    const group = known.get(metrics.blueprint.namespace);
-    if (!group) throw unknownNamespace(metrics.blueprint.namespace, label);
-    const groupPrompts = prompts.get(group.namespace) ?? new Map<string, string>();
+    const namespace = metrics.blueprint.namespace;
+    const owner = known.get(namespace);
+    if (!owner) throw unknownNamespace(namespace, label);
+    const nsPrompts = prompts.get(namespace) ?? new Map<string, string>();
     for (const task of metrics.tasks)
-      if (!groupPrompts.has(task.id)) groupPrompts.set(task.id, task.prompt);
-    prompts.set(group.namespace, groupPrompts);
+      if (!nsPrompts.has(task.id)) nsPrompts.set(task.id, task.prompt);
+    prompts.set(namespace, nsPrompts);
     for (const attempt of metrics.attempts) {
-      const key = attemptKey(group.namespace, attempt);
+      const key = attemptKey(namespace, attempt);
       if (seen.has(key)) continue;
       seen.add(key);
-      byGroup.get(group.namespace)?.push(attempt);
+      byNamespace.get(namespace)?.push(attempt);
     }
     sources.push({
       file: label,
-      namespace: group.namespace,
-      variant: group.variant,
+      namespace,
+      variant: owner.group.variant,
+      earlier: owner.earlier?.sequence ?? null,
       attempts: metrics.attempts.length,
     });
   }
 
-  const summaries: GroupSummary[] = groups.map((group) => {
-    const attempts = (byGroup.get(group.namespace) ?? []).sort(
+  const sortAttempts = (attempts: Attempt[]) =>
+    attempts.sort(
       (a, b) => a.startedAt.localeCompare(b.startedAt) || a.taskId.localeCompare(b.taskId)
     );
+  const summaries: GroupSummary[] = groups.map((group) => {
+    const attempts = sortAttempts(byNamespace.get(group.namespace) ?? []);
+    const tasks = summarizeGroup(
+      group.blueprint.validation?.tasks ?? [],
+      attempts,
+      prompts.get(group.namespace) ?? new Map()
+    );
+    let total = attempts.length;
+    if (group.variant === null) {
+      // Earlier base blueprints, oldest change first: only tasks with attempts.
+      for (const entry of [...earlier].sort((a, b) => a.sequence - b.sequence)) {
+        const older = sortAttempts(byNamespace.get(entry.namespace) ?? []);
+        if (older.length === 0) continue;
+        total += older.length;
+        // A live-reloaded tab shows the newer blueprint's tasks, so both versions define tasks.
+        const defined = [
+          ...(entry.blueprint.validation?.tasks ?? []),
+          ...(group.blueprint.validation?.tasks ?? []),
+        ].filter((task, index, all) => all.findIndex((t) => t.id === task.id) === index);
+        for (const row of summarizeGroup(
+          defined,
+          older,
+          prompts.get(entry.namespace) ?? new Map()
+        )) {
+          if (row.attempts === 0) continue;
+          tasks.push({
+            ...row,
+            earlier: { sequence: entry.sequence, namespace: entry.namespace },
+          });
+        }
+      }
+    }
     return {
       variant: group.variant,
       label: safeLine(group.label),
       namespace: group.namespace,
-      attempts: attempts.length,
-      tasks: summarizeGroup(
-        group.blueprint.validation?.tasks ?? [],
-        attempts,
-        prompts.get(group.namespace) ?? new Map()
-      ),
+      attempts: total,
+      tasks,
     };
   });
   const report = {
@@ -437,7 +462,7 @@ export const quickReportCommand: Handler = async (ctx, args, options): Promise<C
         for (const task of group.tasks) {
           out.info(
             c.dim(
-              `  ${(group.variant ?? 'base').padEnd(4)} ${task.id.padEnd(24)} ${task.attempts} attempts, ${formatRate(task.successRate)} success, median ${formatSeconds(task.medianDurationMs)}`
+              `  ${(group.variant ?? 'base').padEnd(4)} ${task.id.padEnd(24)} ${task.attempts} attempts, ${formatRate(task.successRate)} success, median ${formatSeconds(task.medianDurationMs)}${task.earlier ? ` (earlier version, before change ${task.earlier.sequence})` : ''}`
             )
           );
         }

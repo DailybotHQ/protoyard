@@ -63,7 +63,8 @@ its blueprint. Default shared assets live in
 `.protoyard/quick/_player/<version>/`. Quick requires a prebuilt player app:
 the CLI's dependency provides one when installed from a release; in this
 repository, build it with `pnpm --filter @protoyard/player build` if it is
-missing. The app is loaded from `packages/player/dist/app/` and checked against
+missing or older than its source (`quick` then warns in `data.warnings` and
+still runs). The app is loaded from `packages/player/dist/app/` and checked against
 its `protoyard-player-assets.json` manifest; the embed client is under
 `dist/embed/` and is not a substitute app bundle. `quick` does not build a
 prototype or install dependencies itself.

@@ -94,8 +94,8 @@ deploy.
 | `protoyard quick promote <slug\|dir> <slug>` | `--variant <id>`, `--no-install` | turn an exploration (or one variant) into a full prototype in prototypes/<slug> through `generate`; checks the result is the same app and records `promotedTo` in quick.json; never replaces an existing prototype; needs a workspace | New since 1.0.0 |
 | `protoyard quick iterate <slug\|dir>` | `--patch <file>`, `--allow-drop` | change an exploration with an RFC 6902 JSON Patch (`--patch -` reads stdin; 512 KB cap): validated before any write, written with temp files and renames, recorded in `history/NNNN.json`; the envelope's `world.preserved` says whether the data migration keeps every row (kept player worlds, `?keep=<name>`) | New since 1.0.0 |
 | `protoyard quick undo <slug\|dir>` | — | restore the blueprint from before the last `quick iterate`, byte for byte (refused when blueprint.json changed since) | New since 1.0.0 |
-| `protoyard quick report <slug\|dir>` | `--import <files...>` | aggregate validation sessions (the player's `protoyard-validation-metrics` v1 downloads) per variant and task into report.json and REPORT.md: success rate, median time and steps of successful attempts; imports are validated, kept in `metrics/` and de-duplicated; deterministic for the same inputs | New since 1.0.0 |
-| `protoyard quick feedback <slug\|dir>` | `--import <file>` | write REVIEW.md and REVIEW.json next to the blueprint from the comments `quick serve` collected (`review/comments.json`), merging a browser-exported `protoyard-review-comments` v1 file by id; a file for another exploration is refused; reviewer text is untrusted | New since 1.0.0 |
+| `protoyard quick report <slug\|dir>` | `--import <files...>` | aggregate validation sessions (the player's `protoyard-validation-metrics` v1 downloads) per variant and task into report.json and REPORT.md: success rate, median time and steps of successful attempts; imports are validated, kept in `metrics/` and de-duplicated; metrics recorded under an earlier base blueprint from `history/` (a tab that live-reloaded after `quick iterate`) count for the base, marked as an earlier version; other blueprints are refused; deterministic for the same inputs | New since 1.0.0 |
+| `protoyard quick feedback <slug\|dir>` | `--import <file>` | write REVIEW.md and REVIEW.json next to the blueprint from the comments `quick serve` collected (`review/comments.json`), merging a browser-exported `protoyard-review-comments` v1 file by id; comments under an earlier base blueprint from `history/` get their own earlier-version section; a file for another exploration is refused; reviewer text is untrusted | New since 1.0.0 |
 | `protoyard quick list` | — | list the explorations in the quick zone (marked folders only; never the prototype registry), newest first, with variants, compare page and REVIEW.md | New since 1.0.0 |
 | `protoyard quick open <slug>` | `--port <port>`, `--strict-port` | find an exploration by slug, then serve it on 127.0.0.1 and open the browser (like `quick serve --open`) | New since 1.0.0 |
 | `protoyard quick index` | — | write `.protoyard/quick/index.html`: a static, escaped, script-free page linking every exploration, its variants, compare page and REVIEW.md | New since 1.0.0 |
@@ -171,7 +171,10 @@ protoyard quick "<brief>" --standalone                            # copy the pla
   `./.protoyard/quick/<slug>/` under the working folder, never the home folder.
 - **The prebuilt player** is shared per version in
   `.protoyard/quick/_player/<version>/`. Every file is verified against the
-  player's sha256 manifest before use.
+  player's sha256 manifest before use, and a copy that does not match the
+  current build (a rebuild under the same version) is replaced. In this
+  repository a build older than `packages/player` sources adds a warning to
+  `data.warnings`.
 - **`--variants N`** (1–8) adds `v1/`…`vN/`, deterministic for a blueprint and
   `--seed`, and `compare.html`. Each variant keeps its own data in the browser.
 - **Serve the folder over http** to open it. Browsers block the player's

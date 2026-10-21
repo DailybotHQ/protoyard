@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { blueprintIdentity, decodeBlueprintShare, parseBlueprint } from '@protoyard/blueprint';
@@ -13,6 +13,7 @@ import {
 import { readQuickRecord } from '../src/lib/quick/model.ts';
 import {
   createPlayerAssetsManifest,
+  PLAYER_BUILD_COMMAND,
   readPlayerAssetsManifest,
 } from '../src/lib/quick/player-assets.ts';
 import { cli, createWorkspace, type TempWorkspace } from './helpers.ts';
@@ -128,6 +129,57 @@ describe('protoyard quick', () => {
 
     const second = await run(BRIEF, '--slug', 'second-idea');
     expect(second.json<{ data: { player: { reused: boolean } } }>().data.player.reused).toBe(true);
+  });
+
+  it('warns, without failing, when the monorepo player build is older than its source', async () => {
+    // This workspace's own packages/player, built, with sources next to it.
+    const pkg = join(ws.root, 'packages', 'player');
+    const app = join(pkg, 'dist', 'app');
+    mkdirSync(join(pkg, 'src'), { recursive: true });
+    mkdirSync(app, { recursive: true });
+    writeFileSync(
+      join(pkg, 'package.json'),
+      JSON.stringify({ name: '@protoyard/player', version: '1.0.0' })
+    );
+    writeFileSync(join(pkg, 'src', 'main.ts'), 'export {};\n');
+    writeFileSync(join(app, 'index.html'), '<!doctype html><title>player</title>\n');
+    await createPlayerAssetsManifest(app, '1.0.0');
+    const locate = () => ({
+      dir: app,
+      packageDir: pkg,
+      version: '1.0.0',
+      manifest: readPlayerAssetsManifest(app),
+      source: 'repository' as const,
+    });
+    restore.push(setQuickPlayerLocator(locate));
+    const setTime = (file: string, iso: string) => utimesSync(file, new Date(iso), new Date(iso));
+    setTime(join(pkg, 'src', 'main.ts'), '2026-10-01T00:00:00Z');
+    setTime(join(app, 'protoyard-player-assets.json'), '2026-10-02T00:00:00Z');
+
+    const fresh = await run('--blueprint', ANALYTICS, '--slug', 'fresh-build');
+    expect(fresh.code, fresh.stderr || fresh.stdout).toBe(0);
+    expect(fresh.json<{ data: { warnings: string[] } }>().data.warnings).toEqual([]);
+
+    setTime(join(pkg, 'src', 'main.ts'), '2026-10-03T00:00:00Z');
+    const stale = await run('--blueprint', ANALYTICS, '--slug', 'stale-build');
+    expect(stale.code, stale.stderr || stale.stdout).toBe(0);
+    const [warning, ...rest] = stale.json<{ data: { warnings: string[] } }>().data.warnings;
+    expect(rest).toEqual([]);
+    expect(warning).toContain(PLAYER_BUILD_COMMAND);
+    expect(warning).toContain('packages/player/src/main.ts');
+
+    // The human output says it too.
+    const human = await cli([
+      '--root',
+      ws.root,
+      'quick',
+      '--blueprint',
+      ANALYTICS,
+      '--slug',
+      'human',
+    ]);
+    expect(human.code, human.stderr || human.stdout).toBe(0);
+    expect(`${human.stdout}${human.stderr}`).toContain(PLAYER_BUILD_COMMAND);
   });
 
   it('reads a brief from stdin, passes the seed, and can keep only the brief hash', async () => {
