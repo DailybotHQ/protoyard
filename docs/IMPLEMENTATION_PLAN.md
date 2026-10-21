@@ -59,7 +59,7 @@ subagents for templates, demo UIs, docs and the agent kit. See
 - [x] Optional mock network: `@protoyard/http` (fetch-compatible, routed through the environment simulator; MSW layering documented) [14 tests]
 - [x] Optional offline (PWA) builds: `@protoyard/offline` + `--offline` / `build.offline` [13 tests + a Chromium check: offline reload kept data]
 - [x] Sandboxed worlds (`?sandbox=`) for isolated side-by-side scenarios [runtime tests]
-- [ ] Publishing `@protoyard/*` packages to npm (needs a build step; ADR-004)
+- [ ] Publishing `@protoyard/*` packages to npm: the build step, tarball checks and release workflow now exist (see PLAN_004 below), but no package has been published
 
 ## PLAN_002: app simulator, next level
 
@@ -242,6 +242,69 @@ and is not recorded here yet.
 - The comments handler does not check authorship: anyone with the link and key can edit or delete any comment. `ReviewThread` (popover and bottom sheet) is not wired into the mounted session; reviewers see the inline thread section. `comments pull` writes the tracked `prototypes/<slug>/docs/REVIEW.md`.
 - `bench-idea` and `bench-cold-start` budgets are not calibrated (report-only); the grid bench gates locally and reports only on CI.
 - The views `notifications`, `settings`, `states` and `commands` engine subpaths reserve names but have no runtime exports.
+
+## PLAN_004: Protoyard anywhere, instant prototypes
+
+The execution record is the Deep Work Plan
+`PLAN_004_protoyard_anywhere_instant_prototypes` (git-ignored `.dwp/plans/`),
+built by a lead and seven lanes in git worktrees and integrated on the `dev`
+branch. Decisions are ADR-028 to ADR-035 in [DECISIONS.md](DECISIONS.md).
+Evidence below is the test or command that proves each item. On 2026-10-20,
+on `dev`, the index pass reran `pnpm build:packages && pnpm check:packages
+--require-all` (31 pass), one Vitest selection over the blueprint, player,
+quick, MCP, interface, DWP, integration, skill, codegen, capture, package and
+release tests (123 files, 1,272 tests passed, none skipped with `dist/`
+built), the gallery docs tests, `pnpm check:skill` and `pnpm check:integrations`.
+The other cited tests (templates, wrapper, `create-protoyard`, consumer
+layouts, `verify-packages`) and the E2E specs passed in their lanes and were
+not rerun in that pass.
+
+**npm packages.** See [PACKAGES.md](PACKAGES.md) and
+[PUBLISHING.md](PUBLISHING.md#releasing-the-packages-to-npm) (ADR-028).
+
+- [x] Every engine and Svelte package builds to `dist/` in dependency order (`pnpm build:packages`, groups `engine` and `svelte`), and every export imports in plain Node from `dist/` only [`build-packages.test.ts`, `package-dist-imports.test.ts`, `package-dist-parity.test.ts`]
+- [x] Tarball lint: publint, attw, packed-file hygiene, the lockstep version; `pnpm build:packages && pnpm check:packages --require-all` passes for all 31 publishable packages [`check-packages.test.ts`, `tarball-hygiene.test.ts`; the command itself]
+- [x] No package imports a sibling's `src/` or reaches another package by a relative CSS path [`package-boundaries.test.ts`]
+- [x] The CLI finds Protoyard packages by Node resolution and works in a consumer workspace; `@protoyard/templates`, the unscoped `protoyard` wrapper and `create-protoyard` [`package-resolution.test.ts`, `workspace-layouts.test.ts`, `new-consumer.test.ts`, `packages/templates`, `packages/protoyard`, `packages/create-protoyard` tests]
+- [x] A fresh consumer works from the packed tarballs with no registry (`pnpm verify:packages`, pnpm and npm) [`verify-packages.test.ts`]; CI's `packages` job builds, checks and verifies on every pull request [`release-config.test.ts -t "ci workflow"`]
+- [x] Lockstep versioning with Changesets (`pnpm changeset`, `pnpm version-packages [--check]`) and a `release.yml` that gates, publishes with npm Trusted Publishing and provenance, then creates the GitHub Release [`release-config.test.ts`]
+
+**Player (level 1).** See [PLAYER.md](PLAYER.md) (ADR-029, ADR-030).
+
+- [x] One app model for codegen and the player, and a runtime prototype definition from a blueprint [`app-model.test.ts`, `codegen-model.test.ts`, `runtime-definition.test.ts`]; runtime and codegen agree on all 40 catalog blueprints, including byte-identical worlds [`runtime-parity.test.ts`]
+- [x] Untrusted blueprint loading with deterministic fuzzing, content identity and per-blueprint storage, compact share links [`untrusted.test.ts`, `untrusted-fuzz.test.ts`, `identity.test.ts`, `share.test.ts`, `packages/player/tests/storage-isolation.test.ts`]
+- [x] `@protoyard/player`: sources (`#bp=` share link, `?src=`, a local file, the bundled demo, `protoyard-player/1` messages from an embedding page), worker world generation with a content-addressed cache and stale-world refresh, offline, strict CSP and `_headers`, the lazy `@protoyard/crud/app` shell and the assistant, team-chat, SaaS onboarding and analytics archetypes [`pnpm vitest run packages/player`, `blueprint-app.test.ts`, `mount-build-options.test.ts`]
+- [x] Player initial JS and CSS budget on the built app [`pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/budget.test.ts`]; browser checks in `tests/e2e/player.spec.ts` (`PROTOYARD_E2E_PLAYER=1`); blueprint-to-ready is measured by `scripts/bench-player.ts`, report-only ([PERFORMANCE.md](PERFORMANCE.md))
+- [x] protoyard.app `/play/` (paste and share), Open in player actions, `/docs/` guide pages with search, sitemap and robots [`apps/gallery/tests/docs-pages.test.ts`, `docs-search.test.ts`, `sitemap.test.ts`; `PROTOYARD_E2E_SHOWCASE=1 pnpm test:e2e tests/e2e/showcase.spec.ts`]
+
+**Quick explorations.** See [QUICK.md](QUICK.md) (ADR-031).
+
+- [x] `protoyard quick` from a brief or a blueprint in a marked `.protoyard/quick/` zone on the shared, sha256-verified prebuilt player; `--variants` with `compare.html`; `serve`, `open`, `shot`, `export` (single file, artifact page), `iterate` and `undo` (RFC 6902), `report`, `feedback`, `promote`, `list`, `index`, `prune` [`pnpm vitest run packages/cli/tests/quick` (every `quick*.test.ts`), `variants.test.ts`, `patch.test.ts`, `validation-tasks.test.ts`; `tests/e2e/quick.spec.ts`]
+- [x] Capture helpers moved into `packages/cli/src/lib/capture/`, shared by `quick shot`, the thumbnails and the visual sweep [`capture.test.ts`, `tests/scripts/visual-sweep.test.ts`]
+
+**Richer format.** See [GENERATOR.md](GENERATOR.md) (ADR-032).
+
+- [x] Kit archetypes, workflow states and transitions, safe computed fields, richer relations, per-entity screens, authoring hints; CSV, JSON and SQLite shape import as lazy subpaths; quick-ready example blueprints in `blueprints/quick/` [`packages/blueprint/tests/archetypes`, `workflows`, `computed`, `import`, `quick-examples`, `authoring-validation.test.ts`]
+
+**Skill, machine interface, MCP and DWP.** See [SKILL.md](SKILL.md),
+[INTERFACE.md](INTERFACE.md), [MCP.md](MCP.md) and [DWP.md](DWP.md)
+(ADR-033 to ADR-035).
+
+- [x] The distributable skill in `skills/protoyard/` (router, sub-skills, `setup.sh`, trust contract, `SHA256SUMS`, consent-gated upgrades, release stamping); `pnpm check:skill` passes [`pnpm vitest run packages/cli/tests/skill packages/cli/tests/check-skill-cli tests/scripts/skill tests/scripts/upgrade-skill tests/scripts/validate-skill`]
+- [x] `--version --json` and `doctor --json` report interface `1` and the capability ids [`interface.test.ts`, `interface-compat.test.ts`, `version-interface.test.ts`, `envelope.test.ts`]
+- [x] `protoyard mcp`, a local stdio MCP server with a fixed tool set inside the workspace, exercised as a real process with a JSON-RPC exchange [`pnpm vitest run packages/cli/tests/mcp`]
+- [x] The DWP addon packet in `integrations/deepworkplan/protoyard/` (descriptor, normative spec, skill, templates, upstream handoff) and a disposable exploration loop with isolation and cleanup [`dwp-addon.test.ts`, `dwp-docs.test.ts`, `dwp-exploration-template.test.ts`, `tests/integration/`]
+- [x] One gate for the integration surface: `pnpm check:integrations` checks the docs against the CLI and the MCP tools, the addon packet and links; `-- --run-tests` runs every integration test file and fails on an empty selection [`integration-surface.test.ts`, `integration-command-drift.test.ts`]
+
+**Not verified or deferred in PLAN_004:**
+
+- **No npm package has been published.** The release workflow is tested, but the first live publish waits for the developer's npm trusted-publisher setup and explicit GO.
+- **The `v1.1.0` tag does not exist.** The packages are still at the lockstep version `1.0.0`; `UPSTREAM.md` names `v1.1.0` as the future product tag.
+- **The upstream DeepWorkPlan pull request** has not been opened. [UPSTREAM.md](../integrations/deepworkplan/protoyard/UPSTREAM.md) is a handoff packet and needs the developer's GO.
+- **No MCP SDK client round trip** was run. The MCP tests drive the real server process with JSON-RPC written by the test helper.
+- **Real-device performance** of the player and quick explorations was not measured; the numbers in [PERFORMANCE.md](PERFORMANCE.md) come from headless desktop Chromium.
+- **`quick report` and `quick feedback`** cover only the current blueprint and the recorded variants. Metrics and comments from earlier `quick iterate` history entries or `keep` namespaces are not included ([QUICK.md](QUICK.md#reports-and-review-feedback)).
+- The plan's Final Review, its stage checkpoints and a few documentation and E2E tasks were still open when this section was written.
 
 ## Deferred and known gaps
 

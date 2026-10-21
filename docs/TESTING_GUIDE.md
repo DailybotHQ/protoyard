@@ -36,10 +36,16 @@ All commands run from the repository root. Labels: **full** runs everything;
 | E2E (gallery) | `pnpm test:e2e` | full |
 | E2E incl. prototypes | `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e` | full |
 | Player sources, share links, embed, reload persistence and namespace isolation (desktop + Pixel 7) | `PROTOYARD_E2E_PLAYER=1 pnpm exec playwright test tests/e2e/player.spec.ts` | scoped |
+| Hosted player: paste and share, scenario and persona switch, a mutation, share-route reload, axe | `PROTOYARD_E2E_SHOWCASE=1 pnpm test:e2e tests/e2e/showcase.spec.ts` | scoped |
+| Quick compare page: two served variant frames boot in separate blueprint namespaces | `pnpm test:e2e tests/e2e/quick.spec.ts --project=chromium` (`PROTOYARD_E2E_QUICK_PORT` overrides port 4878) | scoped |
 | One prototype end to end | `pnpm protoyard validate crm-demo --build` | scoped |
 | Bundle size budgets (after build) | `pnpm protoyard budget --all --skip-build` | full |
 | Package tarball consumer loop (pnpm) | `pnpm build:packages && pnpm verify:packages` | full |
 | Package tarball consumer loop (npm) | `pnpm build:packages && pnpm verify:packages --pm npm` | full |
+| Package tarball lint (every publishable package must pass) | `pnpm build:packages && pnpm check:packages --require-all` | full |
+| Distributable skill (frontmatter, commands against the CLI, links, checksums) | `pnpm check:skill` | full |
+| Integration surface, static (see below) | `pnpm check:integrations` | full |
+| Integration surface with its test files | `pnpm check:integrations -- --run-tests` | full |
 | Index scale budget (1,000 manifests) | `pnpm bench:index --runs 3 --check` | full |
 | Scenario generation budget | `pnpm protoyard scenario bench <slug> --check` | scoped |
 | Cold-start bench (report; optional `--check`) | `pnpm exec tsx scripts/bench-cold-start.ts <slug…> --runs 3` | scoped |
@@ -86,6 +92,17 @@ scrolls `overflow: hidden` ancestors for you. `tests/e2e/devtools-panel.spec.ts`
 (with `PROTOYARD_E2E_SHOWCASE=1`, whose builds ship DevTools) opens and closes
 the DevTools panel by its X, Escape and the Ctrl/⌘ + . shortcut, then reloads
 and expects the launcher, at 2000×1030, 1440×900 and 390×844.
+
+### Integration surface
+
+```bash
+pnpm check:integrations                  # static: commands and flags in INTERFACE, MCP, DWP and integrations/**; MCP tools; addon packet files and JSON; descriptor against the vendored DWP schema; links; no absolute local paths
+pnpm check:integrations -- --run-tests   # plus every integration test file (interface*, version-interface*, mcp*, dwp*, integration*, tests/integration/*) in one Vitest run; each must select and pass at least one test
+```
+
+Test files join the `--run-tests` selection by name prefix, so an
+integration test with another prefix is not picked up. These files also run
+in `pnpm test`.
 
 ### CI performance job (`.github/workflows/ci.yml` → `perf`)
 
@@ -197,6 +214,39 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/blueprint/src/csv-guard.ts`, `csv.ts` | `pnpm vitest run packages/blueprint/tests/csv.test.ts packages/crud` | formula guard round trip, crud analytics export |
 | `packages/review/src/report/**`, `safe-text.ts` | `pnpm vitest run packages/review/tests/report.test.ts packages/review/tests/server-validate.test.ts` | untrusted-text report and schema parity |
 | `packages/avatars/**`, `scripts/import-avatars.ts` | `pnpm vitest run packages/avatars`; `--check` needs `--src` or `PROTOYARD_AVATARS_SRC` (owner only) | manifest and deterministic picks |
+| `packages/blueprint/src/app-model.ts`, `packages/cli/src/lib/codegen/emit.ts` (routes, layout) | `pnpm vitest run packages/blueprint/tests/app-model.test.ts packages/cli/tests/codegen-model.test.ts` | app model and the codegen that renders it |
+| `packages/blueprint/src/runtime-definition.ts` | `pnpm vitest run packages/blueprint/tests/runtime-definition.test.ts` | runtime prototype definition from a blueprint |
+| `runtime-definition.ts`, `app-model.ts`, codegen `emit.ts`, `templates/crud-app/src/**` | `pnpm vitest run packages/blueprint/tests/runtime-parity.test.ts`: the 40 catalog blueprints generated with the CLI and compared with `definePrototypeFromBlueprint`, including byte-identical worlds (about 1-3 s per blueprint) | level 1 / level 2 parity |
+| `packages/blueprint/src/identity.ts`, `share.ts` | `pnpm vitest run packages/blueprint/tests/identity.test.ts packages/blueprint/tests/share.test.ts` | content hash, storage identity, share-link codec |
+| `packages/blueprint/src/untrusted.ts` | `pnpm vitest run packages/blueprint/tests/untrusted.test.ts packages/blueprint/tests/untrusted-fuzz.test.ts` | untrusted loader and deterministic fuzzing |
+| `packages/blueprint/src/variants.ts`, `patch.ts` | `pnpm vitest run packages/blueprint/tests/variants.test.ts packages/blueprint/tests/patch.test.ts` | deterministic variants, RFC 6902 patches |
+| `packages/blueprint/src/import/**` (CSV, JSON and SQLite shape import) | `pnpm vitest run packages/blueprint/tests/import` | authoring parsers, hostile input |
+| `packages/crud/src/app/**` | `pnpm vitest run packages/crud/tests/blueprint-app.test.ts` | lazy `@protoyard/crud/app` blueprint app shell |
+| `packages/renderer-svelte/src/mount.ts` (build options) | `pnpm vitest run packages/renderer-svelte/tests/mount-build-options.test.ts` | runtime build options |
+| `packages/renderer-svelte/src/avatars-plugin.ts` | `pnpm vitest run packages/renderer-svelte/tests/avatars-resolution.test.ts packages/renderer-svelte/tests/avatars-build.test.ts` | avatar assets through package resolution |
+| `packages/player/src/**` | `pnpm vitest run packages/player` (`boot.test.ts` first), plus `pnpm --filter @protoyard/player build` | player unit and integration |
+| `packages/player/**`, `packages/player/vite.config.ts` (size) | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/budget.test.ts` (the dist suite is skipped without a build) | initial JS and CSS budget on the built player |
+| `packages/cli/src/commands/quick/**`, `packages/cli/src/lib/quick/**` | `pnpm vitest run packages/cli/tests/quick` (every `quick*.test.ts`); focused: `quick-serve.test.ts`, `quick-variants.test.ts` + `quick.test.ts`, `quick-player-assets.test.ts` (its real-build case needs `pnpm --filter @protoyard/player build`) | CLI integration (temporary workspaces) |
+| `packages/cli/src/lib/capture/**` (shared with `scripts/visual-sweep.ts` and the thumbnails) | `pnpm vitest run packages/cli/tests/capture.test.ts tests/scripts/visual-sweep.test.ts` | readiness wait, PNG decode |
+| `packages/cli/src/lib/workspace.ts` (package lookup), `packages/cli/src/runners/inspect-prototype.ts`, `packages/cli/src/commands/blueprint.ts` (`$schema`) | `pnpm vitest run packages/cli/tests/package-resolution.test.ts` | packages found by Node resolution |
+| `packages/create-protoyard/**`, `packages/cli/src/lib/paths.ts` (layout) | `pnpm vitest run packages/create-protoyard packages/cli/tests/workspace-layouts.test.ts` (1-3 min) | scaffolder and consumer workspaces |
+| `packages/templates/**`, `templates/*` (packability) | `pnpm vitest run packages/templates` (real `pnpm pack`, about 15-30 s) | packed templates |
+| `packages/protoyard/**` | `pnpm vitest run packages/protoyard/tests/wrapper.test.ts` (about 30-90 s) | unscoped wrapper bin |
+| `packages/*/src`, `packages/*/bin` (cross-package imports), `packages/*/src/**/*.css` (`@source`, `@import`) | `pnpm vitest run packages/cli/tests/package-boundaries.test.ts` | no sibling `src/` imports |
+| `scripts/build-packages.ts`, `scripts/lib/package-graph.ts`, `packages/*/tsconfig.build.json`, `protoyard.build` | `pnpm vitest run packages/cli/tests/build-packages.test.ts packages/cli/tests/package-dist-imports.test.ts`; Svelte packages: `pnpm build:packages --filter svelte && pnpm vitest run packages/cli/tests/package-dist-parity.test.ts` (minutes) | dist build, plain-Node imports from `dist/`, dist parity |
+| `scripts/check-packages.ts` | `pnpm vitest run packages/cli/tests/check-packages.test.ts` (real `pnpm pack`, publint and attw, about 10-20 s), then `pnpm build:packages && pnpm check:packages --require-all` | tarball lint |
+| `scripts/lib/tarball-hygiene.ts`, `packages/cli/src/lib/hygiene.ts` | `pnpm vitest run packages/cli/tests/tarball-hygiene.test.ts` | secrets, key files, home paths and real emails in packed files |
+| `.changeset/config.json`, `scripts/version-packages.ts` | `pnpm vitest run packages/cli/tests/release-config.test.ts -t changesets` | lockstep versioning |
+| `.github/workflows/release.yml`; `.github/workflows/ci.yml` (packages job) | `pnpm vitest run packages/cli/tests/release-config.test.ts -t "release workflow"` (its pack test needs `jq`); `-t "ci workflow"` | workflow structure |
+| `packages/cli/src/commands/doctor.ts`, `packages/cli/src/lib/command.ts` (envelope), `packages/cli/src/program.ts` (`--version`), `packages/cli/src/lib/workspace.ts` (`INTERFACE_MAJOR`) | `pnpm vitest run packages/cli/tests/interface.test.ts packages/cli/tests/interface-compat.test.ts packages/cli/tests/version-interface.test.ts packages/cli/tests/envelope.test.ts` | machine interface |
+| `packages/cli/src/commands/mcp.ts` | `pnpm vitest run packages/cli/tests/mcp` (transport, tools, security, a process-level exchange) | MCP server |
+| `integrations/deepworkplan/protoyard/**`, `tests/integration/**` | `pnpm vitest run packages/cli/tests/dwp tests/integration/` (`python3` for the vendored-runtime checks in `dwp-addon.test.ts`) | addon packet and the disposable exploration loop |
+| `scripts/validate-integrations.ts` | `pnpm vitest run packages/cli/tests/integration-surface.test.ts packages/cli/tests/integration-command-drift.test.ts` | integration surface gate |
+| `packages/cli/src/program.ts`, `packages/cli/src/commands/**`, `skills/protoyard/references/cli.md` | `pnpm vitest run packages/cli/tests/skill-cli-reference.test.ts packages/cli/tests/check-skill-cli.test.ts` | skill command reference against the CLI |
+| `skills/protoyard/setup.sh`, `skills/protoyard/references/hosts.md` | `pnpm vitest run packages/cli/tests/skill-setup.test.ts` | host installation |
+| `skills/protoyard/**` | `pnpm check:skill` + `pnpm vitest run packages/cli/tests/skill packages/cli/tests/check-skill-cli tests/scripts/skill tests/scripts/upgrade-skill tests/scripts/validate-skill` | frontmatter, links, checksums, flows |
+| `apps/gallery/src/lib/docs/**`, `apps/gallery/src/components/docs/**`, `apps/gallery/src/pages/docs/**`, `docs/*.md` (public guide links) | `pnpm vitest run apps/gallery/tests/docs-search.test.ts apps/gallery/tests/docs-pages.test.ts` | static guide pages and search |
+| `apps/gallery/src/pages/sitemap.xml.ts`, `robots.txt.ts` | `pnpm vitest run apps/gallery/tests/sitemap.test.ts` | sitemap and indexing |
 | `templates/crud-app/src/app.css` view-based CRUD consumers | `pnpm protoyard validate <slug> --strict-spec --build` on a generated prototype that declares those screens | build verifies Tailwind styles and generated routes |
 
 **Rule of thumb:** a change in `X/src/...` runs `pnpm vitest run X`.
@@ -235,6 +285,12 @@ A command that exits 0 after selecting nothing is not evidence. Check the
   `REVIEW_KEY` secrets are not exercised. Only dry runs, the bundled worker in
   Node and the handler with an in-memory store are tested. KV's eventual
   consistency cannot be reproduced locally.
+- The dist-parity and prebuilt-player suites (`package-dist-parity.test.ts`,
+  `packages/player/tests/budget.test.ts`) are skipped when `dist/` is missing,
+  so a local `pnpm test` without a package build does not run them. The CI
+  `packages` job builds first, so they always run there.
+- The MCP tests drive the real `protoyard mcp` process with JSON-RPC written
+  by the test helper. No round trip with an MCP SDK client has been run.
 - GitHub-hosted runner timing varies. Cold-start numbers are uploaded as
   reports, not a CI threshold, until a calibration run establishes a stable
   baseline.
@@ -259,6 +315,16 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 - **What every prototype must test:** generator determinism and integrity for
   every scenario; services for persistence across reload, permission denial,
   and offline failures that write nothing.
+
+- **Level 1 / level 2 parity.** A change to codegen, the crud-app template's
+  prototype or scenarios, or the runtime definition keeps
+  `runtime-parity.test.ts` green.
+
+Agents using the distributable skill follow
+[`skills/protoyard/review/SKILL.md`](../skills/protoyard/review/SKILL.md):
+`validate --build`, the scoped suites from this guide, `spec --check`,
+`scenario validate`, `budget`, then `preview` and variant checks. A run that
+selects zero tests is reported as a failure, not a pass.
 
 No coverage quotas or test-count targets. A behavior change comes with a test
 that would have failed before it.
@@ -294,7 +360,7 @@ open tmp/visual-sweep/index.html
 | Scenario | the densest by name (`massive`, `scale`, `long-`, `multi-`, `power`, `busy`, `mature`, in that order), else the manifest default: the scenarios `layout-fit.spec.ts` uses |
 
 Every shot opens `?devtools=0&scenario=…&shell=…&mode=…` in a fresh browser
-context with the thumbnails' readiness wait (`scripts/lib/capture.ts`:
+context with the thumbnails' readiness wait (`packages/cli/src/lib/capture/page.ts`:
 `data-py-ready`, fonts, network idle, a quiet DOM, reduced motion, UTC,
 `en-US`). It then records:
 
@@ -303,7 +369,7 @@ context with the thumbnails' readiness wait (`scripts/lib/capture.ts`:
   `input-off-screen` (a primary input outside the viewport that the page
   cannot scroll to), `region-does-not-scroll`, `page-overflow-stuck`;
 - with `--compare <earlier sweep>`, the changed pixels per shot (both PNGs
-  are decoded by `scripts/lib/png.ts`, no image dependency), `new` or
+  are decoded by `packages/cli/src/lib/capture/png.ts`, no image dependency), `new` or
   `resized`.
 
 **Theme review.** `--themes all` (every library theme) or a collection
@@ -322,6 +388,10 @@ theme filter narrows the review.
 pnpm visual:sweep --only ui-kit --themes all --shells none              # 2 × 64 shots
 pnpm visual:sweep --only crm-demo --themes high-contrast --route /settings --no-axe
 ```
+
+**Player.** `--only player` (opt-in, never part of the default sweep) builds
+the player and opens it with `blueprints/quick/assistant.json`, capturing
+desktop and phone in light and dark: 4 shots.
 
 The output goes to `tmp/visual-sweep/` (`--out` must be inside `tmp/`):
 `index.html` (static, no external assets, light and dark, filters for every
