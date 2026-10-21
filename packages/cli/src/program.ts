@@ -19,6 +19,7 @@ import { listCommand } from './commands/list.ts';
 import { newCommand } from './commands/new.ts';
 import { previewCommand } from './commands/preview.ts';
 import { publishCommand } from './commands/publish.ts';
+import { registerQuick } from './commands/quick/register.ts';
 import { reviewIndexCommand } from './commands/review-index.ts';
 import {
   scenarioBenchCommand,
@@ -167,6 +168,8 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .option('--no-install', 'skip `pnpm install` (link the package later)')
     .action(def('generate', generateCommand));
+
+  registerQuick(program, def);
 
   const blueprintCmd = program
     .command('blueprint')

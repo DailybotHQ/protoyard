@@ -10,6 +10,7 @@ import {
   type StartedPlayer,
   startPlayer,
 } from '../src/sources/index.ts';
+import { PLAYER_SHARE_SESSION_KEY } from '../src/sources/start.ts';
 
 configure({ asyncUtilTimeout: 10_000 });
 
@@ -24,7 +25,28 @@ afterEach(async () => {
   document.body.replaceChildren();
   delete document.documentElement.dataset.pyReady;
   delete document.documentElement.dataset.playerState;
+  sessionStorage.clear();
 });
+
+/** A sessionStorage stand-in plus a history stub that records URL replacements. */
+function tabState(initial: Record<string, string> = {}) {
+  const values = new Map(Object.entries(initial));
+  const replaced: string[] = [];
+  return {
+    values,
+    replaced,
+    session: {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => void values.set(key, value),
+      removeItem: (key: string) => void values.delete(key),
+    },
+    history: {
+      state: null,
+      replaceState: (_state: unknown, _title: string, url?: string | URL | null) =>
+        void replaced.push(String(url)),
+    },
+  };
+}
 
 function jsonResponse(body: string, init: ResponseInit = {}) {
   return new Response(body, {
@@ -185,6 +207,70 @@ describe('loadBlueprintFromFile', () => {
     expect(await loadBlueprintFromFile(new File(['[1, 2'], 'bad.json'))).toMatchObject({
       issues: [{ code: 'invalid-json' }],
     });
+  });
+});
+
+describe('share links and app routes', () => {
+  const target = () => document.body.appendChild(document.createElement('div'));
+
+  it('remembers a #bp= link for this tab and opens the app at its home route', async () => {
+    const tab = tabState();
+    const hash = await shareHash();
+    started = await startPlayer({
+      target: target(),
+      location: { hash, search: '?devtools=0', href: `${HREF}?devtools=0${hash}` },
+      events: fakeEvents(),
+      boot: vi.fn(async () => undefined),
+      session: tab.session,
+      history: tab.history,
+    });
+    expect(started.state()).toBe('booted');
+    expect(tab.values.get(PLAYER_SHARE_SESSION_KEY)).toBe(hash.slice('#bp='.length));
+    expect(tab.replaced).toEqual(['/play/index.html?devtools=0#/']);
+  });
+
+  it('reopens the remembered blueprint on a reload at an app route, without touching the route', async () => {
+    const payload = (await shareHash()).slice('#bp='.length);
+    const tab = tabState({ [PLAYER_SHARE_SESSION_KEY]: payload });
+    const boot = vi.fn(async () => undefined);
+    started = await startPlayer({
+      target: target(),
+      location: { hash: '#/workspaces', search: '', href: `${HREF}#/workspaces` },
+      events: fakeEvents(),
+      boot,
+      session: tab.session,
+      history: tab.history,
+    });
+    expect(started.state()).toBe('booted');
+    expect((boot.mock.calls[0] as unknown[])[0]).toMatchObject({ name: blueprint.name });
+    expect(tab.replaced).toEqual([]);
+  });
+
+  it('lets ?src win and forget the link, and falls back to the picker for a stale saved link', async () => {
+    const payload = (await shareHash()).slice('#bp='.length);
+    const tab = tabState({ [PLAYER_SHARE_SESSION_KEY]: payload });
+    started = await startPlayer({
+      target: target(),
+      location: { hash: '', search: '?src=./blueprint.json', href: `${HREF}?src=./blueprint.json` },
+      events: fakeEvents(),
+      fetch: async () => jsonResponse(demoJson),
+      boot: vi.fn(async () => undefined),
+      session: tab.session,
+      history: tab.history,
+    });
+    expect(tab.values.has(PLAYER_SHARE_SESSION_KEY)).toBe(false);
+    await started.stop();
+
+    const stale = tabState({ [PLAYER_SHARE_SESSION_KEY]: '1.%%%broken' });
+    started = await startPlayer({
+      target: target(),
+      location: { hash: '', search: '', href: HREF },
+      events: fakeEvents(),
+      boot: vi.fn(),
+      session: stale.session,
+      history: stale.history,
+    });
+    expect(started.state()).toBe('picker');
   });
 });
 

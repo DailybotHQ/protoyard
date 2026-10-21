@@ -35,7 +35,14 @@ export interface SourceIssue {
 }
 
 export type ResolvedSource =
-  | { kind: 'blueprint'; source: SourceKind; blueprint: Blueprint; label: string }
+  | {
+      kind: 'blueprint';
+      source: SourceKind;
+      blueprint: Blueprint;
+      label: string;
+      /** For share links: the payload, and whether it came from the URL or this tab's storage. */
+      share?: { payload: string; from: 'url' | 'tab' };
+    }
   | { kind: 'error'; source: SourceKind; label: string; issues: SourceIssue[] }
   | { kind: 'picker' };
 
@@ -50,6 +57,12 @@ export interface ResolveSourceInput {
   fetch?: typeof fetch;
   /** Injected for tests; defaults to checking `DecompressionStream` support. */
   supportsDeflateRaw?: () => boolean;
+  /**
+   * The share payload this tab opened last (kept in sessionStorage once the
+   * fragment is moved out of the way of app routes). Used after `#bp=` and
+   * `?src`, so a reload on `#/deals` reopens the same blueprint.
+   */
+  savedShare?: string | null;
 }
 
 const MAX_BYTES = DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS.maxBytes;
@@ -214,7 +227,25 @@ export async function loadBlueprintFromFile(
 /** Resolves the player's source in the fixed order; never throws. */
 export async function resolveSource(input: ResolveSourceInput): Promise<ResolvedSource> {
   const fragment = readBlueprintShareFragment(input.hash);
-  if (fragment !== null) {
+  if (fragment !== null) return resolveShare(fragment, 'url', input);
+
+  const src = new URLSearchParams(input.search).get('src');
+  if (src !== null) return resolveSrc(src, input);
+
+  if (input.savedShare) {
+    const saved = await resolveShare(input.savedShare, 'tab', input);
+    // A stale or unreadable saved link falls back to the picker instead of an error.
+    if (saved.kind === 'blueprint') return saved;
+  }
+  return { kind: 'picker' };
+}
+
+async function resolveShare(
+  fragment: string,
+  from: 'url' | 'tab',
+  input: ResolveSourceInput
+): Promise<ResolvedSource> {
+  {
     const label = 'share link';
     if (!(input.supportsDeflateRaw ?? supportsDeflateRaw)()) {
       return {
@@ -232,12 +263,19 @@ export async function resolveSource(input: ResolveSourceInput): Promise<Resolved
     }
     const decoded = await decodeBlueprintShare(fragment);
     return decoded.success
-      ? { kind: 'blueprint', source: 'share', blueprint: decoded.blueprint, label }
+      ? {
+          kind: 'blueprint',
+          source: 'share',
+          blueprint: decoded.blueprint,
+          label,
+          share: { payload: fragment, from },
+        }
       : { kind: 'error', source: 'share', label, issues: decoded.issues };
   }
+}
 
-  const src = new URLSearchParams(input.search).get('src');
-  if (src !== null) {
+async function resolveSrc(src: string, input: ResolveSourceInput): Promise<ResolvedSource> {
+  {
     const resolved = resolveSrcUrl(src, input.href);
     if ('issue' in resolved) {
       return { kind: 'error', source: 'src', label: src.slice(0, 120), issues: [resolved.issue] };
@@ -248,6 +286,4 @@ export async function resolveSource(input: ResolveSourceInput): Promise<Resolved
       ? { kind: 'blueprint', source: 'src', blueprint: loaded.blueprint, label }
       : { kind: 'error', source: 'src', label, issues: loaded.issues };
   }
-
-  return { kind: 'picker' };
 }

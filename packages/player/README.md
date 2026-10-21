@@ -97,8 +97,12 @@ schema checks always run. When a blueprint cannot be opened, the player shows
 an accessible error screen instead of a blank page: a focused heading, every
 issue with its location and fix (as text, never HTML), and buttons to open
 another file or reload. A brand theme that fails at definition time
-(`BrandThemeError`) lands on the same screen. Changing the `#bp=` fragment
-reloads the page, so the new blueprint boots on a clean runtime. Only when the
+(`BrandThemeError`) lands on the same screen. A `#bp=` link is kept in this
+tab's `sessionStorage` (never sent anywhere) and the URL moves to `#/`, because
+the app's hash router would read the link as a route; a reload on any app route
+(`#/visits`) then reopens the same blueprint. `?src=` and a picked file replace
+the remembered link. Opening a *different* `#bp=` link reloads the page, so the
+new blueprint boots on a clean runtime; app navigation never reloads. Only when the
 player is framed, `runPlayer` also loads the embed chunk and starts
 `protoyard-player/1`, so the embedding page can load or replace the blueprint
 (see below).

@@ -31,6 +31,21 @@ export interface StartPlayerOptions {
   reload?: () => void;
   /** The bundled demo, loaded only when the picker asks for it. */
   loadDemo?: () => Promise<Blueprint>;
+  /** This tab's storage for the last share link (defaults to `sessionStorage`; null disables it). */
+  session?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null;
+  /** Defaults to `window.history` (moves a `#bp=` link out of the way of app routes). */
+  history?: Pick<History, 'replaceState' | 'state'>;
+}
+
+/** sessionStorage key of the share link this tab opened (tab-scoped; never sent anywhere). */
+export const PLAYER_SHARE_SESSION_KEY = 'protoyard.player.share';
+
+function defaultSession(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null {
+  try {
+    return globalThis.sessionStorage ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export type PlayerState = 'booted' | 'error' | 'picker';
@@ -133,21 +148,52 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
         loadDemo,
         onBlueprint: async (blueprint: Blueprint, label: string) => {
           delete root.dataset.playerState;
+          // A picked file replaces the tab's last share link on reload.
+          remember(null);
           await run(blueprint, 'file', label);
         },
       },
     });
   }
 
+  const session = options.session === undefined ? defaultSession() : options.session;
+  const remember = (payload: string | null) => {
+    try {
+      if (payload === null) session?.removeItem(PLAYER_SHARE_SESSION_KEY);
+      else session?.setItem(PLAYER_SHARE_SESSION_KEY, payload);
+    } catch {
+      // Storage can be full or blocked; the link in the URL still works.
+    }
+  };
+  let savedShare: string | null = null;
+  try {
+    savedShare = session?.getItem(PLAYER_SHARE_SESSION_KEY) ?? null;
+  } catch {
+    savedShare = null;
+  }
   const resolved: ResolvedSource = await resolveSource({
     hash: loc.hash,
     search: loc.search,
     href: loc.href,
+    savedShare,
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(options.supportsDeflateRaw ? { supportsDeflateRaw: options.supportsDeflateRaw } : {}),
   });
-  if (resolved.kind === 'blueprint') await run(resolved.blueprint, resolved.source, resolved.label);
-  else if (resolved.kind === 'error')
+  if (resolved.kind === 'blueprint') {
+    if (resolved.share) {
+      remember(resolved.share.payload);
+      // The app's hash router would read `#bp=…` as a route ("Page not found"):
+      // keep the link in this tab's storage and open the app at its home route.
+      if (resolved.share.from === 'url') {
+        const url = new URL(loc.href);
+        const history = options.history ?? window.history;
+        history.replaceState(history.state, '', `${url.pathname}${url.search}#/`);
+      }
+    } else if (resolved.source === 'src') {
+      remember(null);
+    }
+    await run(resolved.blueprint, resolved.source, resolved.label);
+  } else if (resolved.kind === 'error')
     await showError(resolved.source, resolved.label, resolved.issues);
   else await showPicker();
 
