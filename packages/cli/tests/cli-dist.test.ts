@@ -25,7 +25,11 @@ describe('CLI JavaScript distribution', () => {
     });
 
     expect(result.status, result.stderr).toBe(0);
-    expect(result.stdout.trim()).toBe('1.0.0');
+    // `--version --json` is the machine interface probe (docs/INTERFACE.md).
+    const version = JSON.parse(
+      readFileSync(join(ROOT, 'packages/cli/package.json'), 'utf8')
+    ).version;
+    expect(JSON.parse(result.stdout)).toEqual({ version, interface: 1 });
     expect(readFileSync(entry, 'utf8')).not.toContain('tsx/');
     expect(existsSync(join(DIST, 'runners/inspect-prototype.js'))).toBe(true);
     expect(existsSync(join(DIST, 'lib/review-worker-entry.js'))).toBe(true);
