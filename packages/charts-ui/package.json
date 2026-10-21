@@ -5,7 +5,8 @@
   "license": "MIT",
   "type": "module",
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "dist/**/*.css"
   ],
   "exports": {
     ".": {
@@ -57,10 +58,84 @@
   "peerDependencies": {
     "svelte": "^5.57.0"
   },
-  "svelte": "./src/index.ts",
   "protoyard": {
     "build": {
       "assets": []
     }
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./cartesian": {
+        "types": "./dist/cartesian/index.d.ts",
+        "svelte": "./dist/cartesian/index.js",
+        "default": "./dist/cartesian/index.js"
+      },
+      "./part-whole": {
+        "types": "./dist/part-whole/index.d.ts",
+        "svelte": "./dist/part-whole/index.js",
+        "default": "./dist/part-whole/index.js"
+      },
+      "./matrix": {
+        "types": "./dist/matrix/index.d.ts",
+        "svelte": "./dist/matrix/index.js",
+        "default": "./dist/matrix/index.js"
+      },
+      "./compact": {
+        "types": "./dist/compact/index.d.ts",
+        "svelte": "./dist/compact/index.js",
+        "default": "./dist/compact/index.js"
+      },
+      "./canvas": {
+        "types": "./dist/canvas/index.d.ts",
+        "svelte": "./dist/canvas/index.js",
+        "default": "./dist/canvas/index.js"
+      },
+      "./geo": {
+        "types": "./dist/geo/index.d.ts",
+        "svelte": "./dist/geo/index.js",
+        "default": "./dist/geo/index.js"
+      },
+      "./styles.css": {
+        "types": "./dist/styles.css.d.ts",
+        "svelte": "./dist/styles.css",
+        "default": "./dist/styles.css"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/charts-ui"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "charts",
+    "visualization"
+  ]
 }

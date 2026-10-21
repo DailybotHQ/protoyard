@@ -6,7 +6,9 @@
   "type": "module",
   "sideEffects": [
     "**/*.css",
-    "**/*.svelte"
+    "**/*.svelte",
+    "dist/**/*.css",
+    "dist/**/*.svelte"
   ],
   "exports": {
     ".": {
@@ -32,10 +34,54 @@
   "peerDependencies": {
     "svelte": "^5.57.0"
   },
-  "svelte": "./src/index.ts",
   "protoyard": {
     "build": {
       "assets": []
     }
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./styles.css": {
+        "types": "./dist/styles.css.d.ts",
+        "svelte": "./dist/styles.css",
+        "default": "./dist/styles.css"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/ui"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "ui",
+    "components"
+  ]
 }

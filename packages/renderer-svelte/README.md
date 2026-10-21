@@ -371,3 +371,7 @@ an `issues` object are returned for inline display. The call counts as pending
 (global bar), and a `Button` whose `onclick` returns it shows `loading`
 ([Pending feedback](#pending-feedback)). Services throw them with
 `parseInput(schema, input)` / `ValidationError` from `@protoyard/core`.
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

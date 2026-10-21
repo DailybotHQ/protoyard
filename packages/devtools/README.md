@@ -83,3 +83,7 @@ lifts above a fixed `BottomNav` (`data-py-bottom-nav`) or by
 Caveat: focus traps from libraries that listen on `window` in the capture
 phase (not Bits UI) would still win; Tab from the app dialog does not cycle
 into the panel by design — use the shortcut.
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

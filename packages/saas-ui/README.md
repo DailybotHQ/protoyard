@@ -226,3 +226,7 @@ pnpm vitest run packages/saas-ui
 pnpm --filter @protoyard/saas-ui typecheck
 pnpm exec biome check packages/saas-ui
 ```
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

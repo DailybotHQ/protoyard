@@ -115,3 +115,7 @@ Measured on 2026-10-19 (gzip, `crm-demo` with `PROTOYARD_REVIEW=1`):
 pnpm --filter @protoyard/review-ui typecheck
 pnpm vitest run packages/review-ui/tests/bundle-hygiene.test.ts
 ```
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

@@ -260,3 +260,7 @@ beyond the charts they use.
 pnpm vitest run packages/analytics-ui
 pnpm --filter @protoyard/analytics-ui typecheck
 ```
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

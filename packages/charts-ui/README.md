@@ -285,3 +285,7 @@ pnpm --filter @protoyard/charts-ui typecheck
 pnpm vitest run packages/cli/tests/charts-bundle.test.ts      # real Vite build, size ceilings
 pnpm protoyard build ui-kit && pnpm exec tsx scripts/bench-charts.ts --runs 3 --check
 ```
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.

@@ -301,3 +301,7 @@ prototype's own reduced-motion toggle.
 pnpm --filter @protoyard/ui typecheck
 pnpm vitest run packages/ui        # root config inlines bits-ui, @lucide/svelte, svelte-toolbelt, runed
 ```
+
+## Package output
+
+The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.
