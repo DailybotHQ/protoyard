@@ -51,6 +51,38 @@ Run the fixture with:
 pnpm vitest run tests/integration/dwp-loop.test.ts
 ```
 
+## Isolation
+
+The loop may write only the temporary plan's evidence. A third suite,
+[`tests/integration/dwp-loop-isolation.test.ts`](../tests/integration/dwp-loop-isolation.test.ts),
+checks each boundary directly instead of relying on convention:
+
+- **The runner keeps the task in scope.** `planQuickArgs` reads the filled
+  task's `protoyard quick` line, and `resolvePlanScoped` resolves its paths:
+  the output strictly inside `analysis_results/prototypes/`, the input inside
+  the plan. Before anything runs, it refuses a `..` traversal, an absolute
+  path, the plan root, and a link inside the evidence folder whose real path
+  leaves it. A refused task writes nothing.
+- **The CLI refuses out-of-scope output on its own.** Even with
+  `--allow-external-out`, `quick --out` refuses `prototypes/`, `templates/`,
+  the workspace root, a traversal into them, a folder it did not create, and
+  a link, with `unsafe_path` (exit 2). An invalid input fails with
+  `validation`. In every case the fixture workspace is byte-for-byte unchanged.
+- **A successful run writes only evidence.** Every file it creates is under
+  `analysis_results/prototypes/<slug>/`. No shared `.protoyard/quick/` zone
+  is created (an `--out` exploration is self-contained), `prototypes/` and
+  `templates/` stay empty, and no temp or staging files are left.
+- **Cleanup on success and failure.** `withDwpLoopFixture` removes the
+  temporary workspace after the loop succeeds, after a later step throws, and
+  after the task is refused. No fixture folder is left in the OS temp
+  directory.
+- **The host is unchanged.** The repository's Git status is the same before
+  and after the suite.
+
+```bash
+pnpm vitest run tests/integration/dwp-loop-isolation.test.ts
+```
+
 This is simulated local evidence. It does not measure production behavior,
 contact a network service, or promote an exploration into `prototypes/`.
 Promotion requires a separate, human-approved Protoyard task.
