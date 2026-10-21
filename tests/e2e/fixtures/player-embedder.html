@@ -10,7 +10,11 @@
     <p id="status" data-testid="embedder-status" data-state="waiting">Waiting for player</p>
     <iframe id="player" title="Embedded Protoyard player"></iframe>
     <script>
-      const playerOrigin = 'http://127.0.0.1:4861';
+      // ?player=http://127.0.0.1:<port> lets private E2E runs use their own player port.
+      const requested = new URLSearchParams(location.search).get('player');
+      const playerOrigin = /^http:\/\/127\.0\.0\.1:\d{2,5}$/.test(requested ?? '')
+        ? requested
+        : 'http://127.0.0.1:4861';
       const frame = document.getElementById('player');
       const status = document.getElementById('status');
       frame.src = `${playerOrigin}/?embedder=${encodeURIComponent(location.origin)}`;

@@ -485,11 +485,37 @@ export const MEASURE_FIT = `(() => {
   return { docOverflow, documentScrolls, innerWidth: window.innerWidth, innerHeight: window.innerHeight, inputs, region };
 })()`;
 
+/** One violated axe rule: enough to find and fix it without rerunning the sweep. */
+export interface AxeRuleViolation {
+  /** axe rule id, for example `color-contrast`. */
+  id: string;
+  impact: string | null;
+  /** CSS selectors of the failing nodes (axe `target`), at most 10 per rule. */
+  targets: string[];
+}
+
+/** Rule ids, impact and node targets from axe `violations`, capped for the report. */
+export function axeRuleViolations(
+  violations: readonly {
+    id: string;
+    impact?: string | null;
+    nodes: readonly { target: readonly unknown[] }[];
+  }[]
+): AxeRuleViolation[] {
+  return violations.map((violation) => ({
+    id: violation.id,
+    impact: violation.impact ?? null,
+    targets: violation.nodes.slice(0, 10).map((node) => node.target.map(String).join(' ')),
+  }));
+}
+
 export interface ShotResult extends Shot {
   ok: boolean;
   error?: string;
   /** Number of axe rules violated (WCAG 2.1 A/AA); `null` when axe was skipped. */
   axeViolations: number | null;
+  /** The violated rules with their failing node targets; absent when axe was skipped. */
+  axeRules?: AxeRuleViolation[];
   flags: string[];
   bytes?: number;
   ms?: number;
@@ -536,6 +562,11 @@ function card(result: ShotResult): string {
   if (result.axeViolations !== null) {
     badges.push(
       `<span class="badge ${result.axeViolations ? 'bad' : 'good'}">axe ${result.axeViolations}</span>`
+    );
+  }
+  for (const rule of result.axeRules ?? []) {
+    badges.push(
+      `<span class="badge bad" title="${escapeHtml(rule.targets.join(', '))}">${escapeHtml(rule.id)}</span>`
     );
   }
   for (const flag of result.flags)

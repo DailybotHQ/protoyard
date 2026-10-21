@@ -219,7 +219,13 @@ The player builds like a prototype with `defineProtoyardConfig`. Its own
 - base `./`, so the output is relocatable;
 - DevTools included, and shown unless `?devtools=0`;
 - the demo badge;
-- offline support, which emits a service worker and precaches the complete build.
+- offline support, which emits a service worker and precaches the complete build;
+- module workers (`worker: { format: 'es' }`), so the world-generation worker
+  tree-shakes Faker to English (`tests/worker-bundle.test.ts` budgets it at 250 KB
+  gzip);
+- `<meta name="robots" content="noindex">` in `index.html`: the standalone player
+  is an app, not a landing page (`/play/` is). `tests/indexing.test.ts` checks the
+  built HTML.
 
 Its `storage.namespace` (`player`) is never used for a blueprint's data.
 `src/app.css` registers the crud, views, charts and analytics sources with
@@ -253,8 +259,11 @@ Measured with `pnpm --filter @protoyard/player build` (2026-10-20):
   2–3 KB each); analytics entry 2.2 KB, and the dashboard 8.1 KB when
   `/analytics` opens.
 - **Initial CSS:** 18.0 KB gzip, against the 30 KB budget.
+- **World-generation worker graph:** 200.2 KB gzip (Faker `en` 153 KB plus the
+  blueprint generator), against 250 KB.
 
-These budgets are enforced by a dedicated player budget gate, which is planned and not yet written.
+`tests/budget.test.ts` enforces the initial budgets and `tests/worker-bundle.test.ts`
+the worker's. Load timings are in [PLAYER](../../docs/PLAYER.md#measured-size-and-speed).
 
 ## Honest limits
 

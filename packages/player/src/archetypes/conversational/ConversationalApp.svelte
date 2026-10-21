@@ -67,30 +67,42 @@ function selectConversation(id: string): void {
 }
 </script>
 
-<section class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8" data-testid="player-conversational-archetype" data-archetype={adapter.id}>
-  <div class="mb-4">
-    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{adapter.id === 'team-chat' ? 'Team chat' : 'Assistant workspace'} · Simulated</p>
-    <h1 class="text-2xl font-semibold">{blueprint.name}</h1>
-  </div>
-  {#if conversationRows.error || messageRows.error}
-    <ErrorState title="The conversation could not be loaded" message="The simulated conversation data is unavailable." />
-  {:else if conversationRows.loading || messageRows.loading}
-    <LoadingState label="Loading conversations" class="py-16" />
-  {:else}
-    {#await kit then { AssistantWorkspace }}
-      <AssistantWorkspace
-        {conversations}
-        {messages}
-        selectedConversationId={selectedId}
-        onSend={send}
-        onSelectConversation={selectConversation}
-        onRenameConversation={rename}
-      />
-    {:catch error}
-      <ErrorState
-        title="The conversational kit could not be loaded"
-        message={error instanceof Error ? error.message : String(error)}
-      />
-    {/await}
-  {/if}
-</section>
+<!--
+  The CRUD app paints its surface through LayoutHost; this archetype has no layout,
+  so it paints the theme background itself (otherwise dark mode shows the browser's
+  white canvas behind dark-theme text).
+-->
+<div class="min-h-full bg-background text-foreground" data-testid="player-conversational-surface">
+  <section
+    class="mx-auto w-full max-w-7xl px-4 py-6 pb-safe sm:px-6 lg:px-8"
+    data-testid="player-conversational-archetype"
+    data-archetype={adapter.id}
+    data-route={adapter.path}
+  >
+    <div class="mb-4">
+      <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">{adapter.id === 'team-chat' ? 'Team chat' : 'Assistant workspace'} · Simulated</p>
+      <h1 class="text-2xl font-semibold">{blueprint.name}</h1>
+    </div>
+    {#if conversationRows.error || messageRows.error}
+      <ErrorState title="The conversation could not be loaded" message="The simulated conversation data is unavailable." />
+    {:else if conversationRows.loading || messageRows.loading}
+      <LoadingState label="Loading conversations" class="py-16" />
+    {:else}
+      {#await kit then { AssistantWorkspace }}
+        <AssistantWorkspace
+          {conversations}
+          {messages}
+          selectedConversationId={selectedId}
+          onSend={send}
+          onSelectConversation={selectConversation}
+          onRenameConversation={rename}
+        />
+      {:catch error}
+        <ErrorState
+          title="The conversational kit could not be loaded"
+          message={error instanceof Error ? error.message : String(error)}
+        />
+      {/await}
+    {/if}
+  </section>
+</div>
