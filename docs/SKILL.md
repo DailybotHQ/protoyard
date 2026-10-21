@@ -118,6 +118,12 @@ rejects missing, changed, or unlisted files and supports `shasum` or
 manifest can also verify an installed or staged copy with
 `scripts/verify-skill-integrity.sh --dir <skill-dir> --sums SHA256SUMS`.
 
+The tag release workflow smoke-installs the exact versioned GitHub tree with
+the skills CLI in a temporary home, then checks the router's stamped version
+and the expected sub-skills. It does not publish the skill or alter a real
+agent home. The GitHub Release attaches the same `SHA256SUMS` file so an
+installed copy can be verified against the tagged tree.
+
 ## Validate the distributable skill
 
 From the Protoyard repository, check the skill before cutting or
