@@ -258,6 +258,25 @@ describe('createWorkspace with the real CLI (no install, no git)', () => {
     expect(leftovers(parent, ['empty'])).toEqual([]);
   }, 180_000);
 
+  it('fills a folder that holds only .DS_Store (the ignorable file is removed first)', () => {
+    const parent = temp();
+    mkdirSync(join(parent, 'mac'));
+    writeFileSync(join(parent, 'mac', '.DS_Store'), 'finder metadata');
+    createWorkspace({
+      dir: 'mac',
+      cwd: parent,
+      pm: 'pnpm',
+      install: false,
+      git: false,
+      quiet: true,
+    });
+    expect(existsSync(join(parent, 'mac', 'prototypes', STARTER_SLUG, 'protoyard.json'))).toBe(
+      true
+    );
+    expect(existsSync(join(parent, 'mac', '.DS_Store'))).toBe(false);
+    expect(leftovers(parent, ['mac'])).toEqual([]);
+  }, 180_000);
+
   it('is atomic: a failing `new` leaves no target and no staging folder', () => {
     const parent = temp();
     expect(() =>
