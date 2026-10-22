@@ -11,6 +11,9 @@ resolution and quality rules. It has no Svelte and does not use Reveal.js.
 > **Status:** the bounded deck schema, the virtual canvas, and steps and motion
 > are implemented. The layout catalog, navigation model, input guard, style
 > resolver, backgrounds and quality rules land in later PLAN_005 tasks. This
+> **Status:** the bounded deck schema, virtual canvas and style resolver are
+> implemented. The layout catalog, navigation model, input guard, steps and
+> motion, backgrounds and quality rules land in later PLAN_005 tasks. This
 > README lists only what exists.
 > **Status:** the bounded deck schema, virtual canvas and layout catalog are
 > implemented. Navigation, input guard, steps and motion, style resolver,
@@ -25,6 +28,7 @@ resolution and quality rules. It has no Svelte and does not use Reveal.js.
 | `@protoyard/decks` | Canvas helpers plus `DECK_LAYOUTS`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts` |
 | `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, slide and outline schemas, `DeckJsonSchema`, `safeParseDeck`, and the bounded deck types. `@protoyard/blueprint`'s `kind: "deck"` branch imports the schema from here. |
 | `@protoyard/decks/layouts` | Full layout catalog: 19 content layouts + `chart` + `free`, prop schemas, samples, pacing and use-when metadata |
+| `@protoyard/decks/style` | `resolveDeckStyle`, which resolves a built-in or library theme, numeric palette seed, font pairing and presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, combined CSS variables, the effective style and fallback warnings. |
 
 `DeckSchema` accepts catalog slides (`layout` plus bounded JSON `props`) and
 free slides (`layout: "free"` plus validated `@protoyard/blocks` content).
@@ -65,6 +69,33 @@ lint. No brand hex values and no site-specific class names.
 | `comparison-table` | 2–4 columns × 3–5 rows |
 | `chart` | ChartSpec caps |
 | `free` | 1–48 blocks |
+### Style resolution
+
+Resolve a deck's style before mounting the deck UI. The optional slide override
+shallowly replaces only the supplied deck style fields. Unknown theme and font
+ids fall back to the standard theme/font and are returned as warnings. Numeric
+palette seeds are converted deterministically to a six-digit color seed. The
+host can select light or dark mode and pass its reduced-motion preference; a
+deck's `motion: "none"` also disables theme motion.
+
+```ts
+import { applyAppearance } from '@protoyard/themes';
+import { resolveDeckStyle } from '@protoyard/decks/style';
+
+const slideOverride = { background: 'gradient', transition: 'slide' };
+const resolved = await resolveDeckStyle(deck.style, slideOverride, {
+  mode: 'light',
+  reducedMotion: false,
+});
+applyAppearance(root, resolved.appearance);
+for (const [name, value] of Object.entries(resolved.variables)) {
+  root.style.setProperty(name, value);
+}
+```
+
+`resolved.style` retains non-CSS presentation metadata such as logo and footer
+text. Deck CSS variables include the aspect ratio, density, radius, motion,
+transition, background preset, progress location and slide-number flag.
 
 ## The virtual canvas
 
