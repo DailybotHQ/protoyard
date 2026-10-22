@@ -509,7 +509,7 @@ this change.
 | `DataGrid` (`/grid`) | 58.8 KB | **18.7 KB** (over target) | 23,400 B (was 20,500; see [Grid toolkit](#grid-toolkit-2026-10-21)) |
 | `SimulatedMap` (`/map`) | 11.3 KB | 11.3 KB | 12,400 B |
 | `MarkdownEditor` (`/editor`) | 6.3 KB | 6.9 KB (7,090 B with slash commands and the safe link menu, re-measured 2026-10-21) | 7,600 B (was 6,900) |
-| `TimelineView` (`/timeline`) | 8.3 KB | 8.3 KB | 9,100 B |
+| `TimelineView` (`/timeline`) | 8.3 KB | 8.3 KB (9,100 B with grouped lanes, re-measured 2026-10-22) | 9,750 B (was 9,100) |
 
 What changed:
 

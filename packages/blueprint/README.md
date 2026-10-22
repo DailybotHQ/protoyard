@@ -938,15 +938,15 @@ selection, authoring validation and the deck layout catalog (`deckLayouts`, `get
 and fetch authoring only when the author opens it. The functions are the same ones the root
 exports. Server tools (CLI, MCP) can simply import the named exports.
 
-Measured with a real Vite build of the linked package (minified, gzip level 9; asserted in
+Measured on 2026-10-22 with a real Vite build of the linked package (minified, gzip level 9; asserted in
 `tests/authoring-exports.test.ts`):
 
 | Entry imports | Initial JS |
 | --- | --- |
 | `parseBlueprint` only (a generated app) | 39.3 KB |
 | `parseAnyBlueprint` (the kind union, as the player uses it) | 41.6 KB |
-| The kind union plus `loadAuthoringApis` | 42.1 KB (+0.5 KB); authoring loads lazily |
-| Static authoring imports (`blueprintFromBrief`, `detectBriefKind`, `lintDeckStructure`, `selectDeckLayouts`, `validateBlueprintForAuthoring`) | 80.2 KB (+38.6 KB) |
+| The kind union plus `loadAuthoringApis` | 42.3 KB (+0.6 KB); authoring loads lazily |
+| Static authoring imports (`blueprintFromBrief`, `detectBriefKind`, `lintDeckStructure`, `selectDeckLayouts`, `validateBlueprintForAuthoring`) | 83.0 KB (+41.3 KB) |
 
 The test also checks that the app-only and kind-union bundles contain no authoring module and
 no deck layout catalog.

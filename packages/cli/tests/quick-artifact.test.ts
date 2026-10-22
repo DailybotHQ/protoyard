@@ -1,11 +1,11 @@
 // @vitest-environment node
-import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { ensurePlayerBuild } from '../../player/tests/support/serve-dist.ts';
 import { setQuickPlayerLocator } from '../src/commands/quick/index.ts';
 import { ARTIFACT_LIMITS } from '../src/lib/artifact-pack.ts';
 import { sha256Text } from '../src/lib/checksum.ts';
@@ -352,14 +352,8 @@ describe('protoyard quick export --target artifact', () => {
 
 describe('artifact page from the real player build', () => {
   const playerDir = join(REPO, 'packages/player/dist/app');
-  const ensureBuild = () => {
-    if (existsSync(join(playerDir, 'index.html'))) return;
-    const built = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
-      cwd: REPO,
-      encoding: 'utf8',
-    });
-    if (built.status !== 0) throw new Error(`player build failed:\n${built.stderr}${built.stdout}`);
-  };
+  // The player's shared helper: one locked production build across test files.
+  const ensureBuild = () => ensurePlayerBuild(REPO);
 
   it('fits every Artifact limit with no issues for every quick example', async () => {
     ensureBuild();

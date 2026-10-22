@@ -8,6 +8,7 @@ import { blueprintIdentity } from '../../packages/blueprint/src/identity.ts';
 import { setQuickPlayerLocator } from '../../packages/cli/src/commands/quick/index.ts';
 import { launchChromium } from '../../packages/cli/src/lib/capture/index.ts';
 import { cli } from '../../packages/cli/tests/helpers.ts';
+import { ensurePlayerBuild } from '../../packages/player/tests/support/serve-dist.ts';
 import {
   createDwpLoopFixture,
   type DwpLoopFixture,
@@ -192,6 +193,8 @@ describe('temporary DWP variants loop', () => {
     // A browser here captures the real player; without one the capture is skipped and recorded.
     const probe = await launchChromium();
     if (probe.ok) await probe.browser.close();
+    // The real player is the repository's build; on a clean checkout build it once (shared, locked).
+    if (probe.ok) ensurePlayerBuild(REPO_ROOT);
     const restore = probe.ok ? () => {} : setQuickPlayerLocator(() => fixture.player);
     try {
       // The task's own command, with its paths confined to the plan (input) and

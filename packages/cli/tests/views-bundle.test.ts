@@ -34,7 +34,10 @@ type View = (typeof VIEWS)[number];
  * filter chips, saved-view changes and row selection joined it (19,300 before;
  * the optional parts load lazily), so its ceiling is 21,859 + 7 %. The editor
  * was re-measured on 2026-10-21 at 7,090 after slash commands and the safe link
- * menu joined it (6,452 before), so its ceiling is 7,090 + 7 %.
+ * menu joined it (6,452 before), so its ceiling is 7,090 + 7 %. The timeline
+ * was re-measured on 2026-10-22 at 9,100 after grouped lanes and their extras
+ * joined it (8,458 before; Linux gzip measures about 1 % more), so its ceiling
+ * is 9,100 + 7 %.
  */
 export const CEILINGS: Record<View, number> = {
   board: 12_800,
@@ -42,7 +45,7 @@ export const CEILINGS: Record<View, number> = {
   grid: 23_400,
   map: 12_400,
   editor: 7_600,
-  timeline: 9_100,
+  timeline: 9_750,
 };
 
 let dir = '';
