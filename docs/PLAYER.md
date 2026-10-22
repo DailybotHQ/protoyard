@@ -168,6 +168,48 @@ The limits of that guarantee:
 - The player runs only what the blueprint declares; it has no hand-written
   screens or custom generators.
 
+## Guided tours (simulated time)
+
+The player and DevTools share a reusable guided-tour model from
+`@protoyard/devtools` (`packages/devtools/src/tours`). A tour is a data-only
+definition: ordered steps with a title, body, optional CSS `target`, and an
+optional absolute story `day`. The controller advances step by step, is
+dismissible, and never mutates the simulation clock itself.
+
+When a step declares a higher `day` than the previous beat, the controller
+emits a `ClockAdvanceRequest`. The host fulfills it through the public
+scenario API:
+
+```ts
+import {
+  createScenarioClockHandler,
+  createTourController,
+  TourPlayer,
+} from '@protoyard/devtools';
+import { mount } from 'svelte';
+
+const controller = createTourController(myTour, {
+  onClockAdvance: createScenarioClockHandler((duration) =>
+    runtime.scenarios.advance(duration)
+  ),
+});
+mount(TourPlayer, { target: document.body, props: { controller } });
+```
+
+Rules that keep tours safe and deterministic:
+- Step order and day offsets come only from the definition (no `Math.random`
+  or wall clock).
+- Moving **back** never reverses time; story day stays at the highest day
+  reached so a later forward step only requests the remaining delta.
+- A missing or invalid `target` selector returns `null`; the card still
+  renders and Next / Dismiss keep working (no throw, no blank screen).
+- `Dismiss` ends the session; call `reset()` before starting again.
+- Clock failures (for example no active scenario) reject the step change and
+  leave the previous state in place.
+
+Unit coverage lives in `packages/devtools/tests/tours.test.ts` (step
+progression, clock requests, missing targets, dismiss).
+
 ## Offline
 
 The built player is installable from a secure origin and works offline after one
