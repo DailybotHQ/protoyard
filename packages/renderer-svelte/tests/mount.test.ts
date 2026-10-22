@@ -74,6 +74,28 @@ describe('mountPrototype', () => {
     expect(scrollRoot?.parentElement?.contains(toaster)).toBe(true);
   });
 
+  it('consumes a validated artifact hash before creating the runtime', async () => {
+    history.replaceState(null, '', '/?devtools=0#busy--user_0001');
+    const runtime = createFakeRuntime();
+    const target = document.body.appendChild(document.createElement('div'));
+    let runtimeLink: { scenario?: string; actor?: string; devtools?: boolean } | undefined;
+    const mounted = await mountPrototype({
+      definition: runtime.definition,
+      App: ProbeApp,
+      target,
+      devtools: false,
+      createRuntime: (_definition, options) => {
+        runtimeLink = options.link;
+        return runtime;
+      },
+    });
+    destroy = mounted.destroy;
+
+    expect(runtimeLink).toMatchObject({ scenario: 'busy', actor: 'user_0001', devtools: false });
+    expect(location.hash).toBe('#/');
+    expect(location.search).toBe('?devtools=0');
+  });
+
   it("renders the app directly with shell 'none': no frame, no shell styles", async () => {
     const { runtime, target } = await boot();
     expect(runtime.theme.appearance().shell.value).toBe('none');
