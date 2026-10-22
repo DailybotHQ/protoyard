@@ -8,10 +8,24 @@ import { ARTIFACT_PACK_TARGET } from '../targets.ts';
 
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = resolve(dirname(new URL(import.meta.url).pathname), '../../..');
-const PACK_DIR = resolve(REPO_ROOT, 'artifacts', ARTIFACT_PACK_TARGET, 'artifact');
+const packDir = (target: string) => resolve(REPO_ROOT, 'artifacts', target, 'artifact');
+
+/** The deck the deck artifact spec packs: a committed deck prototype generated from a blueprint. */
+export const DECK_ARTIFACT_TARGET = 'create-anything-deck';
+
+export interface ArtifactHarnessOptions {
+  /** The prototype to pack with `export --target artifact` (default: relay-chat-demo). */
+  target?: string;
+  /** `?scenario=` for the packed page (default: busy-day for relay-chat-demo, none otherwise). */
+  scenario?: string | null;
+  /** The iframe's accessible name. */
+  frameTitle?: string;
+}
 
 export interface ArtifactHarnessServer {
   url: string;
+  /** The packed page's published files, as listed by `artifact-manifest.json`. */
+  packFiles(): Promise<string[]>;
   close(): Promise<void>;
 }
 
@@ -31,13 +45,13 @@ const exists = (path: string) =>
   );
 
 /**
- * Packs the target once even when several workers start at the same time:
+ * Packs a target once even when several workers start at the same time:
  * the first takes an atomic mkdir lock and exports; the others wait for it.
  * Two concurrent exports would delete each other's artifact-dist mid-copy.
  */
-async function ensurePack(): Promise<void> {
-  const page = resolve(PACK_DIR, 'page.html');
-  const lock = resolve(REPO_ROOT, 'artifacts', `${ARTIFACT_PACK_TARGET}.e2e-pack.lock`);
+async function ensurePack(target: string): Promise<void> {
+  const page = resolve(packDir(target), 'page.html');
+  const lock = resolve(REPO_ROOT, 'artifacts', `${target}.e2e-pack.lock`);
   const deadline = Date.now() + 5 * 60_000;
   await mkdir(dirname(lock), { recursive: true });
   while (!(await exists(page))) {
@@ -50,11 +64,10 @@ async function ensurePack(): Promise<void> {
     }
     try {
       if (!(await exists(page))) {
-        await execFileAsync(
-          'pnpm',
-          ['protoyard', 'export', ARTIFACT_PACK_TARGET, '--target', 'artifact'],
-          { cwd: REPO_ROOT, maxBuffer: 8 * 1024 * 1024 }
-        );
+        await execFileAsync('pnpm', ['protoyard', 'export', target, '--target', 'artifact'], {
+          cwd: REPO_ROOT,
+          maxBuffer: 8 * 1024 * 1024,
+        });
       }
     } finally {
       await rm(lock, { recursive: true, force: true });
@@ -62,17 +75,18 @@ async function ensurePack(): Promise<void> {
   }
 }
 
-function harnessHtml(): string {
+function harnessHtml(scenario: string | null, frameTitle: string): string {
   return `<!doctype html>
 <html lang="en">
   <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Artifact pack harness</title></head>
   <body style="margin:0;font-family:system-ui,sans-serif">
-    <main><h1>Artifact pack preview</h1><iframe id="artifact-frame" title="Packed Relay Chat prototype"></iframe></main>
+    <main><h1>Artifact pack preview</h1><iframe id="artifact-frame" title="${frameTitle.replace(/[<>&"]/g, '')}"></iframe></main>
     <style>html,body,main{width:100%;min-height:100%;margin:0}main{padding:12px;box-sizing:border-box}h1{font-size:1rem;margin:0 0 8px}iframe{display:block;width:100%;height:80vh;border:1px solid #777;background:#fff}</style>
     <script>
       const outer = new URL(location.href);
       const packed = new URL('/__packed__/page.html', location.href);
-      packed.searchParams.set('scenario', 'busy-day');
+      const scenario = ${JSON.stringify(scenario)};
+      if (scenario) packed.searchParams.set('scenario', scenario);
       if (outer.searchParams.has('noClaude')) packed.searchParams.set('noClaude', '1');
       if (outer.searchParams.has('blockStorage')) packed.searchParams.set('blockStorage', '1');
       packed.hash = outer.hash || '#/';
@@ -98,10 +112,14 @@ function mimeType(path: string): string {
   return types[extname(path)] ?? 'application/octet-stream';
 }
 
-async function servePack(pathname: string, response: import('node:http').ServerResponse) {
+async function servePack(
+  root: string,
+  pathname: string,
+  response: import('node:http').ServerResponse
+) {
   const requested = decodeURIComponent(pathname.slice('/__packed__/'.length));
-  const file = resolve(PACK_DIR, requested || 'page.html');
-  const pathFromPack = relative(PACK_DIR, file);
+  const file = resolve(root, requested || 'page.html');
+  const pathFromPack = relative(root, file);
   if (pathFromPack.startsWith(`..${sep}`) || pathFromPack === '..') {
     response.writeHead(403).end('Forbidden');
     return;
@@ -109,7 +127,7 @@ async function servePack(pathname: string, response: import('node:http').ServerR
   try {
     const body = await readFile(file);
     const content =
-      file === resolve(PACK_DIR, 'page.html')
+      file === resolve(root, 'page.html')
         ? Buffer.from(
             `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>*,*::before,*::after{box-sizing:border-box}html,body{width:100%;min-height:100%;margin:0}body{min-height:100dvh}</style></head><body>${body.toString('utf8')}</body></html>`
           )
@@ -173,8 +191,21 @@ function handleClaudeRequest(
 }
 
 /** Starts an artifact-like host with a packed iframe and a server-shared fake Claude database. */
-export async function startArtifactHarnessServer(): Promise<ArtifactHarnessServer> {
-  await ensurePack();
+export async function startArtifactHarnessServer(
+  options: ArtifactHarnessOptions = {}
+): Promise<ArtifactHarnessServer> {
+  const target = options.target ?? ARTIFACT_PACK_TARGET;
+  const scenario =
+    options.scenario !== undefined
+      ? options.scenario
+      : target === ARTIFACT_PACK_TARGET
+        ? 'busy-day'
+        : null;
+  const frameTitle =
+    options.frameTitle ??
+    (target === ARTIFACT_PACK_TARGET ? 'Packed Relay Chat prototype' : `Packed ${target}`);
+  const root = packDir(target);
+  await ensurePack(target);
   const store: SharedCommentStore = { values: new Map() };
   const vite: ViteDevServer = await createViteServer({
     configFile: false,
@@ -187,11 +218,11 @@ export async function startArtifactHarnessServer(): Promise<ArtifactHarnessServe
     const url = new URL(request.url ?? '/', 'http://127.0.0.1');
     if (url.pathname === '/__artifact-harness') {
       response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      response.end(harnessHtml());
+      response.end(harnessHtml(scenario, frameTitle));
       return;
     }
     if (url.pathname.startsWith('/__packed__/')) {
-      void servePack(url.pathname, response);
+      void servePack(root, url.pathname, response);
       return;
     }
     if (url.pathname.startsWith('/__claude/')) {
@@ -213,6 +244,12 @@ export async function startArtifactHarnessServer(): Promise<ArtifactHarnessServe
 
   return {
     url: `http://127.0.0.1:${address.port}/__artifact-harness`,
+    async packFiles() {
+      const manifest = JSON.parse(
+        await readFile(resolve(root, 'artifact-manifest.json'), 'utf8')
+      ) as { files?: { path: string }[] };
+      return (manifest.files ?? []).map((file) => file.path);
+    },
     async close() {
       await new Promise<void>((resolveClose, reject) => {
         server.close((error) => (error ? reject(error) : resolveClose()));

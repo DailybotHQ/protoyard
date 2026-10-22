@@ -340,6 +340,13 @@ plain build in `dist/` is untouched:
   - **Your own config:** a `vite.config.ts` that is not built on
     `defineProtoyardConfig` can read `process.env.PROTOYARD_TARGET` itself.
     The single chunk group needs the page's single HTML entry.
+  - **No top-level await on a lazy import:** inside one chunk, a dynamic
+    import resolves back into the chunk that is still evaluating. A module
+    that awaits one at its top level never finishes, and the page stays blank
+    with nothing in the console. Generated decks, pages and docs therefore
+    parse their blueprint synchronously
+    (`@protoyard/blueprint/kinds/parse`), not with
+    `await parseAnyBlueprint(…)`.
 - It always uses the relative base `./`. `--base` with another path,
   `--offline` and `"build": { "offline": true }` are refused (exit 2 and 4).
 - Avatar images ship at 128 px only (175 files, 356,386 B), and 64 px
@@ -626,10 +633,34 @@ Verified once, on 2026-10-19:
 - An ArtifactData list of `review/relay-chat-demo/threads` returned an empty
   list as the owner and at `view` level.
 
+Verified locally in the artifact viewer harness (no upload):
+[`tests/e2e/artifact-pack.spec.ts`](../tests/e2e/artifact-pack.spec.ts)
+packs relay-chat-demo, and
+[`tests/e2e/deck-artifact.spec.ts`](../tests/e2e/deck-artifact.spec.ts) packs
+the `create-anything-deck` deck. The harness
+([`tests/e2e/support/artifact-harness.ts`](../tests/e2e/support/artifact-harness.ts))
+wraps `page.html` in a document skeleton inside an iframe, as the viewer does.
+For the deck, the spec checks the following, on desktop and phone viewports:
+
+- the first slide renders;
+- arrow keys and `#/<slide>/<step>` links navigate, including opening
+  straight on a deep link;
+- the only script fetched is the entry that `page.html` loads. Any other
+  script must be a re-export facade of it, and a split chunk with code of its
+  own fails the test;
+- without `window.claude`, the clipboard or IndexedDB, the deck still runs,
+  copying a slide reference says it failed, and there is no review UI;
+- no console errors and no failed requests.
+
+Measured 2026-10-22: the deck pack is 177 files plus the page, 2,193,470 B,
+with one script (1,705,116 B raw, 548,131 B gzip) and one stylesheet
+(129,948 B raw, 21,004 B gzip).
+
 Not verified yet:
 
 - boot, routing, query parameters (`?scenario=`, `?actor=`) and DevTools
-  inside the claude.ai viewer
+  inside the real claude.ai viewer (the harness is same-origin and
+  unsandboxed)
 - writing a real comment
 - other viewers, and Commenter-level behavior
 - a showcase pack published as an artifact.
