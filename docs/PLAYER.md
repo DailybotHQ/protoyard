@@ -1,9 +1,10 @@
 # Protoyard Player
 
-The player is the no-install way to explore a blueprint. It derives a working
-prototype in the browser and uses IndexedDB for simulated data; it does not
-connect to a product backend. Generated prototypes remain the second level:
-they are ordinary Vite apps that can be edited, validated and exported.
+The player is the no-install way to run an app, deck, page, or document
+blueprint. It renders the blueprint in the browser and stores simulated data in
+browser-local IndexedDB; it does not connect to a product backend. Generated
+app, deck, page, and doc prototypes remain the second level: they are ordinary
+Vite projects that can be edited, validated and exported.
 
 ## What level 1 gives you
 
@@ -34,10 +35,11 @@ badge. Promote an exploration to level 2 with `protoyard generate` (see
   **Open in player**. The gallery builds a `/play/#bp=…` link from validated
   blueprint data; entries without a blueprint file or links over the share
   limit do not show the action. The configured site base is preserved.
-- `/play/` accepts a pasted blueprint JSON document up to 256 KB and opens
-  share links. Its frame uses the player's exact-origin `protoyard-player/1`
-  bridge. Share fragments stay in the browser URL and are not sent to the
-  server.
+- `/play/` runs app, deck, page, and doc blueprints. It accepts pasted JSON up
+  to 256 KB, local JSON files in the player, and share links. Its frame uses
+  the player's exact-origin `protoyard-player/1` bridge. Share fragments stay
+  in the browser URL and are not sent to the server; simulated data stays in
+  IndexedDB on this browser's origin.
 - The hosted gallery publishes this guide and the other user-facing guides at
   `/docs/`; contributor and internal guides are not included. A search box on
   the docs pages finds sections by guide title, heading and text, and opens
@@ -207,6 +209,14 @@ prototype with the CLI and compares it with the player's runtime definition:
 
 Three blueprints also boot both definitions on the real runtime and compare
 every table.
+
+Decks, pages and docs have the same guarantee.
+`packages/player/tests/kinds-parity.test.ts` renders one fixture of each kind
+through the player's `bootKind` and through a prototype built the way
+`generate` builds it. Both must show the same slides or sections in the same
+order (a deck is walked slide by slide), with the same runtime definition
+(stores, scenarios, policy, generator version and theme), the same persisted
+tables, the same active theme and the same principal persona.
 
 The limits of that guarantee:
 - A generated prototype's owned files (`src/App.svelte`, extra screens, wrapped

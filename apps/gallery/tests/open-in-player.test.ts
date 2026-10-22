@@ -2,7 +2,11 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { decodeBlueprintShare, readBlueprintShareFragment } from '@protoyard/blueprint';
+import {
+  decodeBlueprintShare,
+  decodeDocumentShare,
+  readBlueprintShareFragment,
+} from '@protoyard/blueprint';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { openInPlayerUrl, openInPlayerUrlForEntry } from '../src/lib/open-in-player.ts';
 
@@ -12,6 +16,21 @@ const fixture = JSON.parse(
 
 describe('open in player URLs', () => {
   afterEach(() => vi.unstubAllEnvs());
+
+  it.each([
+    ['deck', 'packages/blueprint/tests/fixtures/kinds/minimal.deck.json'],
+    ['page', 'packages/blueprint/tests/fixtures/kinds/landing.page.json'],
+    ['doc', 'packages/blueprint/tests/fixtures/kinds/quarterly-report.doc.json'],
+  ] as const)('creates a validated player share link for a %s blueprint', async (kind, path) => {
+    const input = JSON.parse(readFileSync(join(process.cwd(), path), 'utf8')) as unknown;
+    const url = await openInPlayerUrl(input);
+    expect(url).toMatch(/^\/play\/#bp=1\./);
+
+    const fragment = readBlueprintShareFragment(url?.slice('/play/'.length) ?? '');
+    const decoded = await decodeDocumentShare(fragment ?? '');
+    expect(decoded.success).toBe(true);
+    if (decoded.success) expect(decoded.blueprint).toMatchObject({ kind });
+  });
 
   it('uses the configured base path and an encoded blueprint share fragment', async () => {
     vi.stubEnv('BASE_URL', '/protoyard/');
@@ -94,5 +113,8 @@ describe('open in player URLs', () => {
     }
     expect(prototypePage).toContain('<LivePreview');
     expect(marketplacePage).toContain('<LivePreview');
+    expect(marketplacePage).toContain('entry.contentKind');
+    expect(marketplacePage).toContain("entry.contentKind !== 'app'");
+    expect(marketplacePage).toContain('Try this {contentKind}');
   });
 });

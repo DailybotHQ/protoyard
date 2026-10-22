@@ -283,7 +283,11 @@ function validateRegistryEntry(workspaceRoot, raw) {
     return { entry: { ...entry, blueprintKind: result.kind }, error: null };
   }
 
-  if (entry.blueprintKind !== undefined && !isBlueprintKind(entry.blueprintKind)) {
+  if (
+    entry.blueprintKind !== undefined &&
+    entry.blueprintKind !== null &&
+    !isBlueprintKind(entry.blueprintKind)
+  ) {
     return { entry: null, error: 'Registry entry has an unsupported blueprintKind.' };
   }
   return { entry, error: null };
