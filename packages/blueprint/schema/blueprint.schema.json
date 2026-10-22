@@ -836,6 +836,21 @@
                 }
               }
             },
+            "interactive": {
+              "type": "object",
+              "properties": {
+                "sort": {
+                  "type": "boolean"
+                },
+                "filter": {
+                  "type": "boolean"
+                },
+                "rowHighlight": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
             "highlightRow": {
               "type": "integer",
               "minimum": 0,
@@ -7186,8 +7201,152 @@
                         "maxLength": 160
                       },
                       "background": {
-                        "type": "string",
-                        "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "solid-color",
+                              "solid-surface",
+                              "solid-primary",
+                              "solid-accent",
+                              "solid-muted",
+                              "solid-inverse",
+                              "gradient-brand",
+                              "gradient-dusk",
+                              "gradient-dawn",
+                              "gradient-forest",
+                              "gradient-mist",
+                              "pattern-dots",
+                              "pattern-grid"
+                            ]
+                          },
+                          {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "solid"
+                                  },
+                                  "token": {
+                                    "type": "string",
+                                    "enum": [
+                                      "background",
+                                      "surface",
+                                      "primary",
+                                      "accent",
+                                      "muted",
+                                      "inverse"
+                                    ]
+                                  }
+                                },
+                                "required": ["kind"],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "gradient"
+                                  },
+                                  "gradient": {
+                                    "type": "string",
+                                    "enum": ["brand", "dusk", "dawn", "forest", "mist"]
+                                  },
+                                  "angle": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 359
+                                  }
+                                },
+                                "required": ["kind", "gradient"],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "pattern"
+                                  },
+                                  "pattern": {
+                                    "type": "string",
+                                    "enum": ["dots", "grid"]
+                                  }
+                                },
+                                "required": ["kind", "pattern"],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["image", "image-full"]
+                                  },
+                                  "src": {
+                                    "type": "string"
+                                  },
+                                  "alt": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "fit": {
+                                    "type": "string",
+                                    "enum": ["cover", "contain"]
+                                  },
+                                  "tone": {
+                                    "type": "string",
+                                    "enum": ["dark", "light"]
+                                  },
+                                  "overlay": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 0.9
+                                  },
+                                  "position": {
+                                    "type": "string",
+                                    "enum": ["center", "top", "bottom", "left", "right"]
+                                  }
+                                },
+                                "required": ["kind", "src"],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["video", "video-full"]
+                                  },
+                                  "src": {
+                                    "type": "string"
+                                  },
+                                  "poster": {
+                                    "type": "string"
+                                  },
+                                  "tone": {
+                                    "type": "string",
+                                    "enum": ["dark", "light"]
+                                  },
+                                  "overlay": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 0.9
+                                  },
+                                  "position": {
+                                    "type": "string",
+                                    "enum": ["center", "top", "bottom", "left", "right"]
+                                  }
+                                },
+                                "required": ["kind", "src"],
+                                "additionalProperties": false
+                              }
+                            ]
+                          }
+                        ]
                       },
                       "transition": {
                         "type": "string",
@@ -8003,8 +8162,152 @@
                         "maxLength": 160
                       },
                       "background": {
-                        "type": "string",
-                        "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "solid-color",
+                              "solid-surface",
+                              "solid-primary",
+                              "solid-accent",
+                              "solid-muted",
+                              "solid-inverse",
+                              "gradient-brand",
+                              "gradient-dusk",
+                              "gradient-dawn",
+                              "gradient-forest",
+                              "gradient-mist",
+                              "pattern-dots",
+                              "pattern-grid"
+                            ]
+                          },
+                          {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "solid"
+                                  },
+                                  "token": {
+                                    "type": "string",
+                                    "enum": [
+                                      "background",
+                                      "surface",
+                                      "primary",
+                                      "accent",
+                                      "muted",
+                                      "inverse"
+                                    ]
+                                  }
+                                },
+                                "required": ["kind"],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "gradient"
+                                  },
+                                  "gradient": {
+                                    "type": "string",
+                                    "enum": ["brand", "dusk", "dawn", "forest", "mist"]
+                                  },
+                                  "angle": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 359
+                                  }
+                                },
+                                "required": ["kind", "gradient"],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "pattern"
+                                  },
+                                  "pattern": {
+                                    "type": "string",
+                                    "enum": ["dots", "grid"]
+                                  }
+                                },
+                                "required": ["kind", "pattern"],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["image", "image-full"]
+                                  },
+                                  "src": {
+                                    "type": "string"
+                                  },
+                                  "alt": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "fit": {
+                                    "type": "string",
+                                    "enum": ["cover", "contain"]
+                                  },
+                                  "tone": {
+                                    "type": "string",
+                                    "enum": ["dark", "light"]
+                                  },
+                                  "overlay": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 0.9
+                                  },
+                                  "position": {
+                                    "type": "string",
+                                    "enum": ["center", "top", "bottom", "left", "right"]
+                                  }
+                                },
+                                "required": ["kind", "src"],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": ["video", "video-full"]
+                                  },
+                                  "src": {
+                                    "type": "string"
+                                  },
+                                  "poster": {
+                                    "type": "string"
+                                  },
+                                  "tone": {
+                                    "type": "string",
+                                    "enum": ["dark", "light"]
+                                  },
+                                  "overlay": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 0.9
+                                  },
+                                  "position": {
+                                    "type": "string",
+                                    "enum": ["center", "top", "bottom", "left", "right"]
+                                  }
+                                },
+                                "required": ["kind", "src"],
+                                "additionalProperties": false
+                              }
+                            ]
+                          }
+                        ]
                       },
                       "transition": {
                         "type": "string",
