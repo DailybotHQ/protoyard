@@ -107,6 +107,8 @@ export type {
   FilterValues,
   RelationFilterField,
 } from './components/filter-bar/types.ts';
+// Scheduling inputs: timezone, weekdays, time, date and date range
+export * from './components/form/scheduling/index.ts';
 export { default as FormField } from './components/form-field/FormField.svelte';
 export type { FormFieldControl } from './components/form-field/form-field.ts';
 export { default as Header } from './components/header/Header.svelte';
