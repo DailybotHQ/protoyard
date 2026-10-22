@@ -8,6 +8,17 @@
  */
 
 export {
+  FORM_RESPONSE_LIMITS,
+  FORM_RESPONSES_STORE_STRING,
+  FORM_RESPONSES_TABLE,
+  type FormResponse,
+  FormResponseSchema,
+  type FormResponseValue,
+  FormResponseValueSchema,
+  PAGE_FEATURE_STORE_STRINGS,
+  PAGE_FEATURE_TABLES,
+} from './form-response.ts';
+export {
   checkDocDocumentLimits,
   checkFormResponseLimits,
   checkPageDocumentLimits,
