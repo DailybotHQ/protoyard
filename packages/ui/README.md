@@ -51,6 +51,10 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Disclosure | `Tabs`, `Accordion`, `Carousel` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `ActorRow`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
+| Overlays | `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip`, `overlayStack` / `useOverlayLayer` |
+| Disclosure | `Tabs`, `Accordion` |
+| Feedback | `Toaster` + `toast`, `UndoToaster` + `undoToast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
+| Display | `Badge` (+ `badgeVariants`), `Avatar`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
 | Data | `DataTable`, `FilterBar` (+ `applyFilters`), `Pagination`, `Kanban` |
 | Layout | `LayoutHost`, `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid` |
 | Shells | `WindowChrome` |
@@ -286,6 +290,68 @@ Toasts auto-dismiss (4–8 s depending on kind, configurable with `duration`). T
 while the stack is hovered or focused. Messages are announced politely, and errors assertively.
 Render one `<Toaster />` near the app root. It sits bottom-right, or bottom-center above the safe
 area on phones.
+
+## Drawers and the overlay stack
+
+```svelte
+<script lang="ts">
+  import { Button, Drawer } from '@protoyard/ui';
+  let open = $state(false);
+</script>
+
+<Button onclick={() => (open = true)}>Filters</Button>
+<Drawer bind:open title="Filters" placement="right" size="22rem">
+  …
+  {#snippet footer()}<Button onclick={() => (open = false)}>Apply</Button>{/snippet}
+</Drawer>
+```
+
+`Drawer` slides in from `right` (default), `left`, `top` or `bottom`. `size` is the width for a
+side drawer and the height for a top or bottom one. It accepts a plain CSS length (`22rem`, `40%`,
+`320px`, `auto`) or a number of pixels. Anything else falls back to the default (`24rem` for side
+drawers, `auto` up to 85% for top and bottom ones), so a size can never inject other styles. It
+is **non-modal by default**: the page behind stays usable, outside clicks do not close it, and it
+only owns Escape. With `modal`, it dims the page, traps focus and locks scroll, and outside clicks
+close it (`closeOnOutsideClick` overrides either default). Like `Dialog`, it portals into the device
+screen when a shell frames the prototype.
+
+Every `Drawer` registers with the shared `overlayStack`:
+
+- Nested drawers paint in open order, each above the one before (z-index from 51 upward).
+- Escape closes only the top drawer.
+- On close, focus returns to the element that opened the drawer. Focus only moves when it was lost
+  with the drawer or was still inside it, so it never steals focus from the page behind a non-modal
+  drawer.
+- A menu or picker inside an overlay can call `overlayStack.registerDismissibleLayer(el, close)`.
+  Escape then closes that layer first, never the drawer and its draft.
+
+A custom overlay joins the same stack with `useOverlayLayer(() => open, { modal: () => modal })`.
+It gets its `zIndex` and `restoreFocus(container)`. `Dialog`, `AlertDialog` and `BottomSheet` do
+not register yet: they use a fixed `z-50`, so a `Dialog` opened from inside a drawer paints below
+it. For a dialog over a drawer, use another `Drawer` (or `modal` drawer) for now.
+
+## Undo toasts
+
+```ts
+import { undoToast } from '@protoyard/ui';
+
+await services.tasks.archive(ids); // the action happens first
+undoToast.show({
+  message: `Archived ${ids.length} tasks`,
+  onUndo: () => services.tasks.restore(ids), // the explicit undo; may return a promise
+  onSettle: (reason) => {}, // optional: closed without an undo (expired, dismissed, replaced, evicted)
+});
+```
+
+Render one `<UndoToaster />` near the app root, next to `<Toaster />`. It sits bottom-left
+(bottom-center on phones), above every open drawer, and inside the device frame when a shell sets
+one. The undo window is 10 s by default (`duration`, clamped to 1–60 s), shown by a countdown bar
+that is hidden when motion is reduced. Hovering or focusing the stack pauses it. While a returned
+promise is pending, the Undo button shows the `Button` loading state and the countdown is frozen.
+If the undo rejects, the toast stays open with the error text and offers **Retry undo**. Escape
+or the close control dismisses a toast. At most three are pending at a time, and the oldest settles
+as `evicted`. `onSettle` runs exactly once, and only when the toast closes without a successful
+undo. A failed undo can be retried, so `onUndo` must be safe to call again.
 
 ## Tokens and accessibility
 
