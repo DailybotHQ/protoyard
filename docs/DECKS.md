@@ -239,12 +239,23 @@ adds three explicit navigation labels to one fixture slide so the test can
 verify stable step links and step-before-slide keyboard behavior, and speaker
 notes to two slides for the presenter checks.
 
+## Stage and chrome
+
+The slide stage is scaled to fit and centered in the space the chrome leaves,
+at every aspect (16:9, 4:3, 9:16, 1:1) and on desktop, tablet and phones in
+both orientations. The letterbox uses the theme's muted color. Progress, the
+slide counter and the presenting tools sit in their own row below the stage,
+so they never cover a slide; on phones the row wraps. Full screen hides the
+row, and resizing or rotating refits the stage. A deck takes the app height
+by default; embed it with `fit="container"` to fill a sized parent instead.
+
 ## Presenting and printing
 
 - Press **S** or **P** to open the presenter view. It opens in a popup window
   that follows the deck over `BroadcastChannel`, and either side can move the
   other. The popup shows only the current slide id and step today; the full
-  panel below is the in-page view. Messages are validated; anything malformed
+  panel below is the in-page view, where the Next panel shows a live, scaled
+  preview of the next slide (the same renderer as the stage). Messages are validated; anything malformed
   is ignored. Press **S** again to close it.
 - When the popup is blocked (by the browser or a sandbox such as an artifact
   frame) or the browser has no `BroadcastChannel`, the presenter opens in the
@@ -359,6 +370,11 @@ outline, slide-link and chart-description checks. The asset lint walks every
 image and video source, poster and embedded-app value. Each diagnostic has a
 `code`, a `severity` and a JSON path. There is no CLI command for them yet:
 call them from code, a test or an agent tool.
+
+Catalog layout props may contain `{ step, fragment }` or `{ step, reveal }`
+markers. The schema validates those markers, then lint and static quality
+checks strip them before checking the layout's strict content props; the
+markers remain in the parsed deck for step navigation and reveal behavior.
 
 - **Errors** fail the deck: duplicate or missing slide ids, unknown layouts,
   props that break a layout's schema, images in props without alt text or a
@@ -477,10 +493,6 @@ Every deck string renders as text, never as HTML; see
 - **The last authored step is not reachable by navigation.** A slide whose
   fragments define steps 1 to N offers positions 0 to N − 1, so its last step
   is skipped. Slides that only use `steps` labels are not affected.
-- **Lint flags step markers in catalog props.** `DeckSchema` accepts
-  `{ step, fragment | reveal }` on catalog props, but `checkDeckStatic` (and
-  so `lintDeckStructure`) reports them as `layout-props` errors. Free-slide
-  block steps lint cleanly.
 - **No custom slide components.** A generated deck's `src/custom-slides.ts`
   is a typed registry for later. `DeckApp` renders only the catalog layouts
   and free blocks.

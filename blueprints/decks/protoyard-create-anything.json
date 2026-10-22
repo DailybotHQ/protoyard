@@ -296,7 +296,7 @@
           },
           {
             "type": "cards",
-            "columns": 4,
+            "columns": 2,
             "items": [
               {
                 "icon": "layout-dashboard",

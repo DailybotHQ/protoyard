@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { checkDeckMediaSrc } from '../backgrounds/media.ts';
 import { DECK_ASPECTS } from '../canvas.ts';
 import { parseLayoutProps } from '../layouts/catalog.ts';
+import { stripStepMarkers } from '../layouts/props.ts';
 import { FRAGMENT_EFFECTS } from '../motion/effects.ts';
 
 /** Deck documents are intentionally capped before they reach a renderer. */
@@ -138,18 +139,19 @@ export const DeckOutlineSchema = z.strictObject({
 });
 export type DeckOutline = z.infer<typeof DeckOutlineSchema>;
 
-const STEP_MARKER_KEYS = new Set(['step', 'fragment', 'reveal']);
-
-/** Remove animation metadata before checking a catalog's strict content props. */
-function stripStepMarkers(
+/** Validate step metadata before removing it from catalog content props. */
+function validateStepMarkers(
   value: unknown,
   path: (string | number)[],
   ctx: z.RefinementCtx
-): unknown {
+): void {
   if (Array.isArray(value)) {
-    return value.map((item, index) => stripStepMarkers(item, [...path, index], ctx));
+    for (const [index, item] of value.entries()) {
+      validateStepMarkers(item, [...path, index], ctx);
+    }
+    return;
   }
-  if (value === null || typeof value !== 'object') return value;
+  if (value === null || typeof value !== 'object') return;
 
   const record = value as Record<string, unknown>;
   if (Object.hasOwn(record, 'step')) {
@@ -170,12 +172,9 @@ function stripStepMarkers(
     }
   }
 
-  const cleaned: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(record)) {
-    if (Object.hasOwn(record, 'step') && STEP_MARKER_KEYS.has(key)) continue;
-    cleaned[key] = stripStepMarkers(item, [...path, key], ctx);
+    validateStepMarkers(item, [...path, key], ctx);
   }
-  return cleaned;
 }
 
 /**
@@ -226,7 +225,8 @@ export const DeckSchema = z
     const slidePaths = new Map<string, number>();
     deck.slides.forEach((slide, index) => {
       if ('props' in slide) {
-        const props = stripStepMarkers(slide.props, ['slides', index, 'props'], ctx);
+        validateStepMarkers(slide.props, ['slides', index, 'props'], ctx);
+        const props = stripStepMarkers(slide.props);
         checkPropUrls(props, ['slides', index, 'props'], ctx);
         const parsedProps = parseLayoutProps(slide.layout, props);
         if (!parsedProps.success) {

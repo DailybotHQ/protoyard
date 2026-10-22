@@ -10,5 +10,5 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/embed/**/*.ts"]
+  "include": ["src/embed/**/*.ts", "src/boot.ts"]
 }

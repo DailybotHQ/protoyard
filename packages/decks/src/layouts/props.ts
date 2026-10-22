@@ -5,6 +5,23 @@
 import { BlockListSchema, ChartSpecSchema } from '@protoyard/blocks';
 import { z } from 'zod';
 
+const STEP_MARKER_KEYS = new Set(['step', 'fragment', 'reveal']);
+
+/** Remove animation metadata before validating a catalog layout's strict props. */
+export function stripStepMarkers(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripStepMarkers);
+  if (value === null || typeof value !== 'object') return value;
+
+  const record = value as Record<string, unknown>;
+  const hasStep = Object.hasOwn(record, 'step');
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(record)) {
+    if (hasStep && STEP_MARKER_KEYS.has(key)) continue;
+    cleaned[key] = stripStepMarkers(item);
+  }
+  return cleaned;
+}
+
 const short = (max: number) => z.string().trim().min(1).max(max);
 const optionalShort = (max: number) => z.string().trim().min(1).max(max).optional();
 

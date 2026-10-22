@@ -49,6 +49,7 @@ let {
   autofocus = true,
   namespace = 'deck',
   mode = 'light',
+  fit = 'viewport',
 }: {
   /** Validated deck document. */
   deck: Deck;
@@ -61,6 +62,12 @@ let {
   namespace?: string;
   /** Appearance mode for the deck's theme. Decks default to light for stable exports. */
   mode?: 'light' | 'dark';
+  /**
+   * `viewport` (default): the deck takes the app height (`h-app`: the window,
+   * or the device screen inside a shell frame). `container`: it fills a parent
+   * the host has already sized.
+   */
+  fit?: 'viewport' | 'container';
 } = $props();
 
 const deckStyle = new DeckStyleState();
@@ -75,6 +82,7 @@ $effect(() => {
 });
 
 let rootEl = $state<HTMLDivElement | undefined>();
+let chromeEl = $state<HTMLDivElement | undefined>();
 let location = $state<DeckLocation | null>(null);
 let announce = $state('');
 let inputState = $state<DeckInputState>({
@@ -390,6 +398,24 @@ function onPresenterNavigate(action: 'next' | 'prev' | 'first' | 'last'): void {
   runAction(action);
 }
 
+// While the deck owns the viewport, lift the DevTools launcher above the
+// chrome row (DevTools reads `--py-devtools-offset` from :root) so it never
+// covers the deck's own tools. Removed when the chrome goes away.
+$effect(() => {
+  const chrome = chromeEl;
+  if (fit !== 'viewport' || !chrome || typeof ResizeObserver === 'undefined') return;
+  const root = document.documentElement;
+  const apply = () =>
+    root.style.setProperty('--py-devtools-offset', `${Math.ceil(chrome.offsetHeight)}px`);
+  apply();
+  const observer = new ResizeObserver(apply);
+  observer.observe(chrome);
+  return () => {
+    observer.disconnect();
+    root.style.removeProperty('--py-devtools-offset');
+  };
+});
+
 onMount(() => {
   if (autofocus && !showPrint) rootEl?.focus({ preventScroll: true });
   if (typeof window === 'undefined') return undefined;
@@ -435,7 +461,8 @@ onMount(() => {
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   bind:this={rootEl}
-  class={`deck-app relative flex size-full min-h-0 flex-col bg-background text-foreground outline-none ${className}`}
+  class={`deck-app relative flex w-full min-h-0 flex-col overflow-hidden bg-background text-foreground outline-none ${fit === 'container' ? 'h-full' : 'h-app'} ${className}`}
+  data-py-deck-fit={fit}
   data-py-deck-app
   data-slide-id={location?.slideId ?? ''}
   data-slide-step={activeStep}
@@ -459,7 +486,9 @@ onMount(() => {
   }}
 >
   {#snippet deckSurface()}
-    <div class="min-h-0 flex-1">
+    <!-- A column: the stage takes the space the chrome row leaves, so the chrome never covers a slide. -->
+    <div class="relative flex min-h-0 flex-1 flex-col" data-py-deck-surface>
+    <div class="relative min-h-0 flex-1" data-py-deck-stage-area>
       <DeckCanvas
         slides={deck.slides}
         activeIndex={activeIndex}
@@ -485,15 +514,26 @@ onMount(() => {
       </DeckCanvas>
     </div>
 
-    <!-- Chrome: progress, slide number and presenting tools (guarded from advancing the deck). Hidden in full screen. -->
+    {#if !fullscreen && deckStyle.warnings.length > 0}
+      <p
+        class="shrink-0 border-t border-border bg-background px-3 py-1.5 text-xs text-muted-foreground"
+        role="status"
+        data-py-deck-style-warning
+      >
+        {deckStyle.warnings.join(' ')}
+      </p>
+    {/if}
+
+    <!-- Chrome: its own row below the stage (progress, slide number, presenting tools), guarded from advancing the deck. Hidden in full screen, where the stage takes the whole screen. -->
     {#if !fullscreen}
       <div
-        class="deck-app__chrome pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3"
+        bind:this={chromeEl}
+        class="deck-app__chrome flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-border bg-background px-3 py-2"
         data-py-deck-chrome
         data-py-deck-chrome-root
       >
         <div
-          class="pointer-events-auto h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-muted"
+          class="pointer-events-auto order-first h-1.5 min-w-0 basis-full overflow-hidden rounded-full bg-muted sm:order-none sm:basis-auto sm:flex-1"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -512,7 +552,7 @@ onMount(() => {
         >
           {slideLabel}
         </p>
-        <div class="pointer-events-auto flex shrink-0 items-center gap-1" data-py-deck-chrome>
+        <div class="pointer-events-auto ml-auto flex min-w-0 items-center gap-1 overflow-x-auto" data-py-deck-chrome>
           <DeckToolbar
             blackout={inputState.blackout === true}
             laser={inputState.laser === true}
@@ -526,16 +566,6 @@ onMount(() => {
           <PrintButton />
         </div>
       </div>
-    {/if}
-
-    {#if !fullscreen && deckStyle.warnings.length > 0}
-      <p
-        class="pointer-events-none absolute top-3 left-3 max-w-md rounded-md border border-border bg-background/90 px-2 py-1 text-xs text-muted-foreground backdrop-blur"
-        role="status"
-        data-py-deck-style-warning
-      >
-        {deckStyle.warnings.join(' ')}
-      </p>
     {/if}
 
     {#if inputState.laser}
@@ -588,6 +618,7 @@ onMount(() => {
 
     <div class="sr-only" aria-live="polite" aria-atomic="true" data-py-deck-live>
       {announce}
+    </div>
     </div>
   {/snippet}
 

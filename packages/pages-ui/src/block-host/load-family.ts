@@ -35,7 +35,8 @@ export type BlockHostResolution =
 
 /**
  * Resolve a typed or untrusted block to a family renderer. Never throws for
- * unknown shapes — returns a safe placeholder kind instead.
+ * unknown shapes — returns a safe placeholder kind instead. Rejects only when
+ * the family chunk cannot be downloaded, even after one retry.
  */
 export async function resolvePageBlock(
   input: unknown,
@@ -64,27 +65,31 @@ export async function resolvePageBlock(
       message: `No renderer family is registered for "${block.type}".`,
     };
   }
-  try {
-    const module = await load();
-    if (typeof module.BlockFamilyRenderer !== 'function') {
-      return {
-        kind: 'unavailable',
-        family,
-        message: 'This block renderer is not available yet.',
-      };
-    }
-    return {
-      kind: 'render',
-      block,
-      family,
-      component: module.BlockFamilyRenderer,
-    };
-  } catch {
+  // A failed import is a download problem (offline, a reset connection, a
+  // redeploy), not an unsupported block: retry once, then throw so BlockHost
+  // shows its retryable "Block failed to load" state.
+  const module = await loadWithRetry(load);
+  if (typeof module.BlockFamilyRenderer !== 'function') {
     return {
       kind: 'unavailable',
       family,
-      message: 'This block could not be loaded.',
+      message: 'This block renderer is not available yet.',
     };
+  }
+  return {
+    kind: 'render',
+    block,
+    family,
+    component: module.BlockFamilyRenderer,
+  };
+}
+
+/** Runs a family import, and once more after a failure. The second error propagates. */
+export async function loadWithRetry<T>(load: () => Promise<T>): Promise<T> {
+  try {
+    return await load();
+  } catch {
+    return load();
   }
 }
 
