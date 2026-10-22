@@ -389,3 +389,46 @@ store and capabilities as the kind services layer.
 or app down exactly once. A change between two content kinds keeps the world
 (they share one store layout). A change to or from an app starts a fresh one.
 
+### Per-kind pages: deck.html, page.html and doc.html
+
+The player build writes three more pages next to `index.html`:
+`deck.html`, `page.html` and `doc.html`
+([`src/entries/`](../packages/player/src/entries/)). Each page runs one kind:
+
+- It takes the same sources as `index.html` (`#bp=`, `?src=`, the picker, an
+  embedding page over `protoyard-player/1`) and the same live reload under
+  `quick serve`.
+- Every blueprint boots through `boot-kind.ts` only. The kind boot chunk is
+  fetched while the source resolves. The app boot is never loaded.
+- The stylesheet holds the shared chrome, `@protoyard/blocks-ui/styles.css`
+  and the kind's renderer styles: decks-ui for a deck, pages-ui for a page or
+  doc. It never holds the crud, views, charts or analytics styles.
+  Embedded apps open `index.html` in a frame, which has them.
+- The pages share chunks and the one asset manifest
+  (`protoyard-player-assets.json`) with `index.html`.
+- Each page gets the same CSP meta as `index.html`, with the hashes of its
+  own inline scripts. `_headers` allows the inline scripts of all four pages.
+
+A page handed a blueprint of another kind does not run it. It shows
+**This blueprint is an app, not a deck** (or the matching kinds) and a link
+to the page that runs it (`index.html` for an app), keeping the same query
+and hash. In the same tab, a `?src=` file and the share link this tab opened
+carry over. Measured sizes are in
+[PERFORMANCE](PERFORMANCE.md#player-bundle-budget-measured-2026-10-20).
+
+**Limits.**
+- The picker's bundled demo is an app, so on a kind page it leads to that
+  link.
+- Nothing links to the kind pages yet: the gallery, `/play/` and share links
+  still open `index.html`, which runs every kind.
+
+### Deck Studio in the player
+
+A deck with DevTools on (the default; `?devtools=0` turns it off) gets the
+**Deck** DevTools tab (`@protoyard/decks-ui/studio`, ADR-038). The deck on
+screen is the Studio's live preview. The exported RFC 6902 patch is rooted at
+`/deck`, so it applies to the blueprint file (`{ "kind": "deck", "deck": … }`)
+rather than to the bare deck document. Edits stay in memory. Without DevTools,
+and for pages and docs, the Studio module and its state are never loaded or
+created.
+

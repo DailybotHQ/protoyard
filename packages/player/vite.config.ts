@@ -28,6 +28,13 @@ import { DEFAULT_ALLOWLIST, frameAncestorSources } from './src/embed/origins.ts'
 
 /** Where `vite build` writes the app, relative to this package. */
 export const PLAYER_APP_DIR = 'dist/app';
+/**
+ * The player's HTML pages: `index.html` runs any blueprint; `deck.html`,
+ * `page.html` and `doc.html` run one content kind each (src/entries/), with
+ * only that kind's boot and styles, sharing chunks and the one asset manifest.
+ */
+export const PLAYER_HTML_ENTRIES = ['index', 'deck', 'page', 'doc'] as const;
+
 /** Must match PLAYER_ASSETS_MANIFEST in packages/cli/src/lib/quick/player-assets.ts. */
 export const PLAYER_ASSETS_MANIFEST = 'protoyard-player-assets.json';
 
@@ -83,7 +90,6 @@ const sha256 = (text: string) => createHash('sha256').update(text, 'utf8').diges
 
 function cspPlugin(): Plugin {
   let outDir = PLAYER_APP_DIR;
-  let csp = '';
   return {
     name: 'protoyard-player-csp',
     apply: 'build',
@@ -94,16 +100,29 @@ function cspPlugin(): Plugin {
     transformIndexHtml: {
       order: 'post',
       handler(html) {
-        csp = playerCsp(inlineScripts(html).map(sha256));
-        const meta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`;
+        // Each page gets the hashes of its own inline scripts.
+        const own = inlineScripts(html).map(sha256);
+        const meta = `<meta http-equiv="Content-Security-Policy" content="${playerCsp(own)}">`;
         return insertCspMeta(html, meta);
       },
     },
     closeBundle() {
+      // One header serves every page, so it allows the inline scripts of all of
+      // them: index.html's in document order, then any other page's.
+      const hashes: string[] = [];
+      for (const name of PLAYER_HTML_ENTRIES) {
+        const html = readFileSync(join(outDir, `${name}.html`), 'utf8');
+        const own = inlineScripts(html).map(sha256);
+        if (!html.includes(playerCsp(own))) {
+          throw new Error(
+            `The built player page ${name}.html has no CSP meta tag for its scripts.`
+          );
+        }
+        for (const hash of own) if (!hashes.includes(hash)) hashes.push(hash);
+      }
       // Cloudflare Pages and Netlify read `_headers`; other hosts: see docs/SECURITY.md.
+      const csp = playerCsp(hashes);
       const header = `${csp}; frame-ancestors ${PLAYER_FRAME_ANCESTORS.join(' ')}`;
-      const html = readFileSync(join(outDir, 'index.html'), 'utf8');
-      if (!html.includes(csp)) throw new Error('The built player has no CSP meta tag.');
       writeFileSync(
         join(outDir, '_headers'),
         `/*\n  Content-Security-Policy: ${header}\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n`
@@ -191,6 +210,9 @@ export default defineProtoyardConfig({
       ? undefined
       : resolve(import.meta.dirname, PLAYER_APP_DIR),
     rolldownOptions: {
+      input: Object.fromEntries(
+        PLAYER_HTML_ENTRIES.map((name) => [name, resolve(import.meta.dirname, `${name}.html`)])
+      ),
       output: {
         codeSplitting: {
           // Rolldown places its tiny module runtime in the first chunk that needs

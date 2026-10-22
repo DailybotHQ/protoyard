@@ -170,3 +170,23 @@ describe('Deck Studio panel', () => {
     expect(listeners.size).toBe(0);
   });
 });
+
+describe('Deck Studio for a blueprint file', () => {
+  it('roots the patch at /deck, and it applies to the blueprint and gives the preview', () => {
+    const studio = createDeckStudio(SOURCE, { pointer: '/deck' });
+    studio.setStyle('theme', 'emerald');
+    studio.setSlide('transition', 'fade');
+    flushSync();
+    expect(studio.patch.length).toBeGreaterThan(0);
+    for (const op of studio.patch) expect(op.path.startsWith('/deck/')).toBe(true);
+    expect(JSON.parse(studio.patchJson)).toEqual(studio.patch);
+    const file = { kind: 'deck', name: 'Fictional deck', deck: structuredClone(SOURCE) };
+    const patched = applyDeckPatch(file, studio.patch) as typeof file;
+    expect(DeckSchema.parse(patched.deck)).toEqual(studio.preview);
+    // Without a pointer the same edits target the deck document itself.
+    const plain = createDeckStudio(SOURCE);
+    plain.setStyle('theme', 'emerald');
+    flushSync();
+    expect(plain.patch.every((op) => !op.path.startsWith('/deck'))).toBe(true);
+  });
+});

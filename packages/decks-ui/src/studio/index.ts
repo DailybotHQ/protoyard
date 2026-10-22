@@ -11,7 +11,12 @@ import type { DeckStudio } from './studio.svelte.ts';
  *   // render <DeckApp deck={studio.preview} />, and in mountPrototype:
  *   devtoolsTabs: [deckStudioTab(studio)]
  */
-export { createDeckStudio, type DeckStudio } from './studio.svelte.ts';
+export {
+  createDeckStudio,
+  type DeckStudio,
+  type DeckStudioOptions,
+  prefixDeckPatch,
+} from './studio.svelte.ts';
 
 /** A DevTools tab entry (structurally `DevtoolsTab` from @protoyard/devtools). */
 export interface DeckStudioTab {
