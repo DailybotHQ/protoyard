@@ -50,7 +50,7 @@ and from the general prototype matrix (`pnpm visual:sweep`).
 
 ```bash
 # Unit tests (no browser)
-pnpm vitest run tests/scripts/deck-sweep.test.ts
+pnpm vitest run scripts/tests/deck-sweep.test.ts
 
 # Browser sweep — private loopback port (ephemeral unless --port)
 pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json
