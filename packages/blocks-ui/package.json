@@ -154,7 +154,8 @@
       "dist",
       "README.md",
       "LICENSE"
-    ]
+    ],
+    "types": "./dist/index.d.ts"
   },
   "repository": {
     "type": "git",

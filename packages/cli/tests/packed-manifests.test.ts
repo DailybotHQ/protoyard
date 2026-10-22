@@ -80,7 +80,8 @@ describe.skipIf(!HAS_DIST)('packed engine manifests (after pnpm build:packages)'
     const engineFolders = built.packages
       .filter((item) => readPackage(item.directory).protoyard?.build?.group === 'engine')
       .map((item) => item.directory);
-    expect(engineFolders.length).toBe(16);
+    // A floor, not an exact count: new engine packages (blocks, decks, pages, flows…) join the group.
+    expect(engineFolders.length).toBeGreaterThanOrEqual(16);
     const destination = mkdtempSync(join(tmpdir(), 'protoyard-engine-packs-'));
     try {
       for (const folder of engineFolders) {
@@ -138,7 +139,8 @@ describe.skipIf(!HAS_DIST)('packed svelte manifests (after pnpm build:packages)'
     const svelteFolders = built.packages
       .filter((item) => readPackage(item.directory).peerDependencies?.svelte)
       .map((item) => item.directory);
-    expect(svelteFolders.length).toBe(10);
+    // A floor, not an exact count: new Svelte packages (blocks-ui, decks-ui, pages-ui…) join the group.
+    expect(svelteFolders.length).toBeGreaterThanOrEqual(10);
     const destination = mkdtempSync(join(tmpdir(), 'protoyard-svelte-packs-'));
     try {
       for (const folder of svelteFolders) {
