@@ -18,6 +18,7 @@ import {
 import { type ContentBriefResult, synthesizeContentFromBrief } from './content-synthesize.ts';
 import { avatarFieldFor, fieldFromPhrase, GLOBAL_CUES, PEOPLE_ENTITIES } from './fields.ts';
 import { type BriefKindDetection, detectBriefKind } from './kind-detection.ts';
+import { MAX_BRIEF_LENGTH as BRIEF_CAP, boundBriefInput } from './limits.ts';
 import { camel, hasPhrase, normalize, plural, singular, titleCase, words } from './text.ts';
 
 /**
@@ -70,7 +71,7 @@ export function isContentBriefResult(result: BriefResult): result is ContentBrie
 }
 
 /** Longer briefs are cut here; the synthesizer reads keywords, not essays. */
-export const MAX_BRIEF_LENGTH = 5_000;
+export const MAX_BRIEF_LENGTH = BRIEF_CAP;
 const MAX_EXTRA_ENTITIES = 4;
 const MAX_CLAUSE_FIELDS = 8;
 
@@ -432,9 +433,10 @@ export function synthesizeAppFromBrief(
   options: BriefOptions = {},
   kindDetection?: BriefKindDetection
 ): AppBriefResult {
-  const source = brief.slice(0, MAX_BRIEF_LENGTH);
+  const bound = boundBriefInput(brief, { maxLength: MAX_BRIEF_LENGTH });
+  const source = bound.brief;
   const normalized = normalize(source);
-  const rationale: string[] = [];
+  const rationale: string[] = [...bound.notices];
   const detection =
     kindDetection ?? detectBriefKind(source, options.kind !== undefined ? { kind: 'app' } : {});
 
@@ -610,12 +612,12 @@ export function synthesizeAppFromBrief(
  * 3. App → existing archetype / entity / screen path (byte-compatible JSON).
  */
 export function blueprintFromBrief(brief: string, options: BriefOptions = {}): BriefResult {
-  const source = brief.slice(0, MAX_BRIEF_LENGTH);
-
   if (options.kind !== undefined && !isBlueprintKind(options.kind)) {
     throw new RangeError(unknownKindMessage(String(options.kind)));
   }
 
+  // Bound once for kind detection; synthesizers bound again and record notices.
+  const source = boundBriefInput(brief, { maxLength: MAX_BRIEF_LENGTH }).brief;
   const explicitKind = options.kind !== undefined ? (options.kind as BlueprintKind) : undefined;
   const detection = detectBriefKind(
     source,
@@ -624,10 +626,11 @@ export function blueprintFromBrief(brief: string, options: BriefOptions = {}): B
 
   if (detection.kind !== 'app') {
     // Never score app archetypes for content kinds (even if `archetype` was passed).
-    return synthesizeContentFromBrief(detection.kind as ContentKind, source, detection, {
+    // Pass the original brief so content synthesizers can attach truncation notices.
+    return synthesizeContentFromBrief(detection.kind as ContentKind, brief, detection, {
       name: options.name,
     });
   }
 
-  return synthesizeAppFromBrief(source, options, detection);
+  return synthesizeAppFromBrief(brief, options, detection);
 }

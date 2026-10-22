@@ -583,6 +583,20 @@ network or model). Kind dispatch runs first (ADR-036):
    scoring (generic title/agenda/close or section scaffolding — richer outlines land later).
 3. App briefs keep the historical result fields and byte-compatible JSON.
 
+### Brief and outline bounds (`src/brief/limits.ts`)
+
+| Cap | Value | Notes |
+| --- | --- | --- |
+| `MAX_BRIEF_LENGTH` / `MAX_CONTENT_BRIEF_LENGTH` | 5,000 characters | Longer briefs are truncated; synthesizers record a stable notice in `rationale`. |
+| `OUTLINE_LIMITS.maxSlides` | 64 | Deck outlines only. |
+| `OUTLINE_LIMITS.maxSections` | 64 | Page and doc outlines. |
+| `OUTLINE_LIMITS.maxBlocksPerUnit` | 12 | Per slide/section (matches block column capacity). |
+| `OUTLINE_LIMITS.maxTitleLength` | 80 | Envelope and unit titles. |
+| `OUTLINE_LIMITS.maxBodyLength` | 600 | Short body copy (block shortMarkdown). |
+| `OUTLINE_LIMITS.maxTextLength` | 4,000 | Long text (block markdown). |
+
+Use `boundBriefInput` / `prepareBriefForSynthesis` before custom synthesis, `checkOutlineBounds` for hard failures, and `applyOutlineBounds` to clip deterministically with notices. Text ceilings agree with `@protoyard/blocks` content limits so drafts stay within untrusted validators.
+
 ```ts
 import { blueprintFromBrief, isAppBriefResult } from '@protoyard/blueprint';
 

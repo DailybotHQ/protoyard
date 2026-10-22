@@ -20,6 +20,20 @@ export {
   type KindCue,
 } from './kind-detection.ts';
 export {
+  type ApplyOutlineBoundsResult,
+  applyOutlineBounds,
+  type BoundBriefInput,
+  type BriefLimitCode,
+  type BriefLimitIssue,
+  boundBriefInput,
+  checkOutlineBounds,
+  OUTLINE_LIMITS,
+  type OutlineBoundsInput,
+  type OutlineLimits,
+  type OutlineUnitInput,
+  prepareBriefForSynthesis,
+} from './limits.ts';
+export {
   type AppBriefResult,
   type BriefOptions,
   type BriefResult,

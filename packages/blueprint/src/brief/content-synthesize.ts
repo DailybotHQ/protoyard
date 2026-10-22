@@ -7,10 +7,11 @@
 import { hashString } from '@protoyard/core';
 import type { ContentKind } from '../kinds/kind.ts';
 import type { BriefKindDetection } from './kind-detection.ts';
+import { boundBriefInput, MAX_CONTENT_BRIEF_LENGTH as CONTENT_CAP } from './limits.ts';
 import { normalize, titleCase } from './text.ts';
 
 /** Longer briefs are cut here (same cap as app synthesis). */
-export const MAX_CONTENT_BRIEF_LENGTH = 5_000;
+export const MAX_CONTENT_BRIEF_LENGTH = CONTENT_CAP;
 
 const NAME_WORDS = [
   'Harbor',
@@ -102,10 +103,12 @@ export function synthesizeDeckFromBrief(
   detection: BriefKindDetection,
   options: ContentBriefOptions = {}
 ): ContentBriefResult {
-  const source = brief.slice(0, MAX_CONTENT_BRIEF_LENGTH);
+  const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
+  const source = bound.brief;
   const name = pickName(source, 'deck', options.name);
   const title = firstSentence(source) || name;
   const rationale = [
+    ...bound.notices,
     detection.reason,
     'Deck outline: generic (title, agenda, close). Richer pitch/QBR/lesson templates land in deck-outlines.',
     'Slide bodies are placeholders — no fabricated facts.',
@@ -151,10 +154,12 @@ export function synthesizePageFromBrief(
   detection: BriefKindDetection,
   options: ContentBriefOptions = {}
 ): ContentBriefResult {
-  const source = brief.slice(0, MAX_CONTENT_BRIEF_LENGTH);
+  const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
+  const source = bound.brief;
   const name = pickName(source, 'page', options.name);
   const title = firstSentence(source) || name;
   const rationale = [
+    ...bound.notices,
     detection.reason,
     'Page outline: generic (hero, sections, footer). Richer landing templates land in page-doc-outlines.',
     'Interactive forms and persistence are omitted here (PAGES lane owns them).',
@@ -199,10 +204,12 @@ export function synthesizeDocFromBrief(
   detection: BriefKindDetection,
   options: ContentBriefOptions = {}
 ): ContentBriefResult {
-  const source = brief.slice(0, MAX_CONTENT_BRIEF_LENGTH);
+  const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
+  const source = bound.brief;
   const name = pickName(source, 'doc', options.name);
   const title = firstSentence(source) || name;
   const rationale = [
+    ...bound.notices,
     detection.reason,
     'Doc outline: generic (title, summary, body). Richer report/handbook templates land in page-doc-outlines.',
     'Section bodies are placeholders — no fabricated facts.',

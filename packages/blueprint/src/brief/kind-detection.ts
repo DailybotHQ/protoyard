@@ -26,6 +26,7 @@ import {
   isBlueprintKind,
   unknownKindMessage,
 } from '../kinds/kind.ts';
+import { MAX_BRIEF_LENGTH } from './limits.ts';
 import { normalize } from './text.ts';
 
 export type CueStrength = 'strong' | 'weak';
@@ -67,7 +68,7 @@ export interface DetectKindOptions {
 }
 
 /** Briefs longer than this are read up to the limit (matches `MAX_BRIEF_LENGTH`). */
-const MAX_DETECTION_LENGTH = 5_000;
+const MAX_DETECTION_LENGTH = MAX_BRIEF_LENGTH;
 
 interface CueList {
   strong: readonly string[];
