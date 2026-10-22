@@ -1,14 +1,18 @@
+import type { PrototypeDefinition } from '@protoyard/core';
+import type { DocDocument, PageDocument } from '@protoyard/pages';
 import {
   type AnyContentBlueprint,
   defineKindRuntime,
   KIND_DEFAULT_SCENARIO,
   KIND_GENERATOR_VERSION,
   type KindRuntimeOptions,
-} from '@protoyard/blueprint/kinds';
-import type { PrototypeDefinition } from '@protoyard/core';
-import type { DocDocument, PageDocument } from './schema.ts';
+} from './runtime.ts';
 
-export interface RuntimeDefinitionOptions {
+/**
+ * Options for building a page/doc runtime from a document body alone
+ * (when the caller does not already have a full content blueprint).
+ */
+export interface PageDocRuntimeOptions {
   /** Storage namespace (IndexedDB name), usually the blueprint content namespace. */
   namespace: string;
   /** Manifest slug; defaults to the namespace. */
@@ -23,34 +27,35 @@ export interface RuntimeDefinitionOptions {
   icon?: string;
 }
 
-/** Alias of the kind default scenario id (shared content-kind runtime). */
+/** Kind default scenario id (shared content-kind runtime). */
 export const PAGES_DEFAULT_SCENARIO = KIND_DEFAULT_SCENARIO;
-/** Alias of the kind generator version (shared content-kind runtime). */
+/** Kind generator version (shared content-kind runtime). */
 export const PAGES_GENERATOR_VERSION = KIND_GENERATOR_VERSION;
 
 /**
- * Builds the shared content-kind runtime for a page document by delegating to
- * `defineKindRuntime` (lead decision: one runtime with personas and policy).
+ * Builds the shared content-kind runtime for a page document body by wrapping
+ * it as a `kind: "page"` blueprint and calling {@link defineKindRuntime}.
+ * Lives in `@protoyard/blueprint/kinds` so `@protoyard/pages` stays free of a
+ * blueprint dependency (no package cycle).
  */
 export function definePrototypeFromPage(
   page: PageDocument,
-  options: RuntimeDefinitionOptions
+  options: PageDocRuntimeOptions
 ): PrototypeDefinition {
   return defineKindRuntime(pageBlueprint(page, options), toKindOptions(options));
 }
 
 /**
- * Builds the shared content-kind runtime for a doc document by delegating to
- * `defineKindRuntime`.
+ * Builds the shared content-kind runtime for a doc document body.
  */
 export function definePrototypeFromDoc(
   doc: DocDocument,
-  options: RuntimeDefinitionOptions
+  options: PageDocRuntimeOptions
 ): PrototypeDefinition {
   return defineKindRuntime(docBlueprint(doc, options), toKindOptions(options));
 }
 
-function toKindOptions(options: RuntimeDefinitionOptions): KindRuntimeOptions {
+function toKindOptions(options: PageDocRuntimeOptions): KindRuntimeOptions {
   return {
     namespace: options.namespace,
     slug: options.slug,
@@ -58,7 +63,7 @@ function toKindOptions(options: RuntimeDefinitionOptions): KindRuntimeOptions {
   };
 }
 
-function pageBlueprint(page: PageDocument, options: RuntimeDefinitionOptions): AnyContentBlueprint {
+function pageBlueprint(page: PageDocument, options: PageDocRuntimeOptions): AnyContentBlueprint {
   return {
     formatVersion: 1,
     name: options.name ?? page.title,
@@ -71,7 +76,7 @@ function pageBlueprint(page: PageDocument, options: RuntimeDefinitionOptions): A
   } as AnyContentBlueprint;
 }
 
-function docBlueprint(doc: DocDocument, options: RuntimeDefinitionOptions): AnyContentBlueprint {
+function docBlueprint(doc: DocDocument, options: PageDocRuntimeOptions): AnyContentBlueprint {
   return {
     formatVersion: 1,
     name: options.name ?? doc.title,

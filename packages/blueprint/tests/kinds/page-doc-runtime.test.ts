@@ -1,14 +1,14 @@
 // @vitest-environment node
 
 import { definePrototype } from '@protoyard/core';
+import type { DocDocument, PageDocument } from '@protoyard/pages';
+import { FORM_RESPONSES_STORE_STRING } from '@protoyard/pages';
 import { describe, expect, it } from 'vitest';
-import { FORM_RESPONSES_STORE_STRING } from '../src/form-response.ts';
 import {
   definePrototypeFromDoc,
   definePrototypeFromPage,
   PAGES_DEFAULT_SCENARIO,
-} from '../src/runtime-definition.ts';
-import type { DocDocument, PageDocument } from '../src/schema.ts';
+} from '../../src/kinds/page-doc-runtime.ts';
 
 const options = {
   namespace: 'example-content',
@@ -43,7 +43,7 @@ const doc: DocDocument = {
   ],
 };
 
-describe('page and doc runtime definitions (delegate to kind runtime)', () => {
+describe('definePrototypeFromPage/Doc (blueprint/kinds)', () => {
   it('builds a page runtime with kind personas, policy and shared stores', () => {
     const definition = definePrototypeFromPage(page, options);
     expect(definePrototype(definition)).toBe(definition);

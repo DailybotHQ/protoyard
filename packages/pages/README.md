@@ -30,7 +30,6 @@ validates the **payload bodies** after that parse.
 | `createFormServices` / `FORM_CAPABILITIES` | Capability-checked submit, list, guarded CSV export and clear operations |
 | `PAGE_DOCUMENT_LIMITS` | Document caps (sections ≤ 32, blocks/section ≤ 24, doc blocks ≤ 200, …) |
 | `safeParsePageDocument` / `safeParseDocDocument` | Never-throw helpers |
-| `definePrototypeFromPage` / `definePrototypeFromDoc` | Minimal, Faker-free runtime definitions with an empty default world |
 
 ```ts
 import { PageDocumentSchema, DocDocumentSchema } from '@protoyard/pages';
@@ -149,35 +148,6 @@ const toc = buildDocToc(doc);
 // [{ id: 'getting-started', label: 'Getting Started', level: 2 }, …]
 expect(headingId('  Café  Overview! ')).toBe('cafe-overview');
 ```
-## Minimal runtimes
-
-The page/doc runtime entry points can use the same helpers to create
-definitions without the app blueprint generator or Faker:
-
-```ts
-import { definePrototypeFromPage } from '@protoyard/pages';
-
-const definition = definePrototypeFromPage(pageDocument, {
-  namespace: 'bp-example',
-  slug: 'example-page',
-  name: 'Example page',
-  brandThemeId: 'violet',
-});
-```
-
-The player and generated-prototype wiring is owned by the KINDS tasks. The
-document title and description seed the manifest unless root blueprint
-metadata overrides them. Pass a resolved `brandTheme` when the blueprint brand
-defines a local theme, or `brandThemeId` for a library theme. Each helper
-declares one `default` scenario with an empty world, no domain roles and no
-generator module. A `formResponses` store is declared only when the document
-contains a form block, including one nested inside columns, tabs or reveal.
-These are local prototype simulations; a form does not provide real
-authentication or data protection.
-
-## Remaining integration
-
-- `PageApp` / `DocApp` in `@protoyard/pages-ui`
 
 
 ## Fixtures
@@ -210,12 +180,23 @@ pnpm --filter @protoyard/pages typecheck
 pnpm vitest run packages/pages
 ```
 
-## Runtime
+## Runtime and forms
 
-`definePrototypeFromPage` / `definePrototypeFromDoc` **delegate** to
-`defineKindRuntime` from `@protoyard/blueprint/kinds` (shared personas, policy
-and Dexie stores). Prefer calling `defineKindRuntime` with a full content
-blueprint when you already have one.
+This package is a **pure engine**: schemas, limits, TOC, `FormResponseSchema`,
+and `createFormServices`. It does **not** depend on `@protoyard/blueprint`.
 
-Form responses: `createFormServices` + `FormResponseSchema` (`personaId`
-optional) are the canonical contract; kind services delegate to them.
+Build a page/doc prototype runtime from
+`@protoyard/blueprint/kinds`:
+
+```ts
+import {
+  defineKindRuntime,
+  definePrototypeFromPage,
+  definePrototypeFromDoc,
+} from '@protoyard/blueprint/kinds';
+```
+
+`definePrototypeFromPage` / `definePrototypeFromDoc` wrap a document body as a
+content blueprint and call `defineKindRuntime` (shared personas, policy, stores).
+Kind services (`createKindServices`) delegate form submit/list to
+`createFormServices` here.

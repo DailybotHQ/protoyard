@@ -48,7 +48,8 @@
     "@protoyard/pages": "workspace:*",
     "@protoyard/blocks": "workspace:*",
     "@protoyard/blocks-ui": "workspace:*",
-    "@protoyard/ui": "workspace:*"
+    "@protoyard/ui": "workspace:*",
+    "@protoyard/blueprint": "workspace:*"
   },
   "devDependencies": {
     "svelte": "^5.57.2"
