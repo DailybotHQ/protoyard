@@ -26,8 +26,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "fixtures"
+    "LICENSE"
   ],
   "publishConfig": {
     "access": "public",
@@ -37,11 +36,6 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js",
         "default": "./dist/index.js"
-      },
-      "./fixtures": {
-        "types": "./dist/fixtures/index.d.ts",
-        "import": "./dist/fixtures/index.js",
-        "default": "./dist/fixtures/index.js"
       }
     },
     "types": "./dist/index.d.ts"
