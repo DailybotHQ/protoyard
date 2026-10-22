@@ -121,7 +121,7 @@ resolve them later.
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 
-## Deck structural lint
+## Deck lint
 
 `lintDeckStructure(input)` checks an untrusted **deck body** (the object under
 `blueprint.deck`, or a bare deck document) without rendering it or mutating the
@@ -143,17 +143,25 @@ Deep links of the form `#/slide-id` or `#/slide-id/step` must resolve to a
 **visible** (non-hidden) slide. Visual and content quality (notes length,
 layout repetition, WCAG) live in `@protoyard/decks` quality rules, not here.
 
-```ts
-import { lintDeckStructure } from '@protoyard/blueprint';
+`lintDeckContent(deck)` adds image alt requirements, chart descriptions, CTA
+labels, word density and speaker-note guidance. Missing accessible content is
+an error; short chart descriptions, dense copy and missing or brief optional
+presenter notes are warnings. Density is an estimate: rendered text must still
+meet the 24 px body and 18 px label minimums on the 1280×720 canvas. Final
+contrast, text size and fit need rendered visual QA.
 
-const result = lintDeckStructure(deckJson);
-for (const issue of result.diagnostics) {
+```ts
+import { lintDeckContent, lintDeckStructure } from '@protoyard/blueprint';
+
+const structure = lintDeckStructure(deckJson);
+const content = lintDeckContent(deckJson);
+for (const issue of [...structure.diagnostics, ...content.diagnostics]) {
   console.log(issue.code, issue.jsonPath, issue.message);
 }
 ```
 
 CLI packaging of `deck lint` is owned by the CLI / KINDS lane; agents can call
-`lintDeckStructure` in-process today.
+`lintDeckStructure` and `lintDeckContent` in-process today.
 
 ## Agent authoring sequence
 
@@ -894,6 +902,40 @@ if (!blocks.success) {
   const lifted = diagnosticsFromBlockIssues(blocks.issues, ['deck', 'slides', 0, 'blocks']);
 }
 ```
+
+## Authoring exports
+
+Authoring APIs ship from the package root (`@protoyard/blueprint`); there is no separate
+subpath. They are plain named exports of a `sideEffects: false` package, so a prototype that
+only parses or generates never bundles them:
+
+| Need | Exports |
+| --- | --- |
+| Brief to blueprint, by kind | `blueprintFromBrief`, `synthesizeAppFromBrief`, `synthesizeContentFromBrief`, `synthesizeDeckFromBrief`, `synthesizePageFromBrief`, `synthesizeDocFromBrief`, `isAppBriefResult`, `isContentBriefResult` |
+| Kind detection | `detectBriefKind`, `KIND_CUES`, `APP_CUES`; blueprint kinds: `detectBlueprintKind`, `BLUEPRINT_KINDS`, `CONTENT_KINDS` |
+| Outlines and bounds | `synthesizeDeckOutline`, `chooseDeckOutline`, `DECK_OUTLINES`, `buildPageOutline`, `buildDocOutline`, `selectPageOutline`, `selectDocOutline`, `boundBriefInput`, `prepareBriefForSynthesis`, `checkOutlineBounds`, `applyOutlineBounds`, `OUTLINE_LIMITS` |
+| Deck layouts and lint | `selectDeckLayouts`, `propsForSelectedLayout`, `lintDeckStructure`, `lintDeckContent`; catalog types `DeckLayoutEntry`, `DeckLayoutId`, `LayoutPacing` (type-only) |
+| Validation | `validateBlueprintForAuthoring`, `parseAnyBlueprint`, `safeParseAnyBlueprint` |
+| Lazy, for browsers | `loadAuthoringApis()` |
+
+`loadAuthoringApis()` resolves to brief synthesis, kind detection, outlines, deck lint, layout
+selection, authoring validation and the deck layout catalog (`deckLayouts`, `getDeckLayout`,
+`describeDeckLayouts`). It loads them as one chunk, so a browser tool can parse blueprints first
+and fetch authoring only when the author opens it. The functions are the same ones the root
+exports. Server tools (CLI, MCP) can simply import the named exports.
+
+Measured with a real Vite build of the linked package (minified, gzip level 9; asserted in
+`tests/authoring-exports.test.ts`):
+
+| Entry imports | Initial JS |
+| --- | --- |
+| `parseBlueprint` only (a generated app) | 39.3 KB |
+| `parseAnyBlueprint` (the kind union, as the player uses it) | 41.6 KB |
+| The kind union plus `loadAuthoringApis` | 42.1 KB (+0.5 KB); authoring loads lazily |
+| Static authoring imports (`blueprintFromBrief`, `detectBriefKind`, `lintDeckStructure`, `selectDeckLayouts`, `validateBlueprintForAuthoring`) | 80.2 KB (+38.6 KB) |
+
+The test also checks that the app-only and kind-union bundles contain no authoring module and
+no deck layout catalog.
 
 ## Workflow state models
 

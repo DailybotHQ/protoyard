@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import type { BlueprintKind } from '@protoyard/blueprint';
 import { CliError } from './output.ts';
 import { resolvePackageBin, run } from './process.ts';
 
@@ -70,7 +71,7 @@ export interface SpecVersion {
 
 /** What the runner's `spec` mode prints, before parsing and sorting. */
 export interface RawSpec {
-  manifest: SpecFacts['manifest'];
+  manifest: Omit<SpecFacts['manifest'], 'blueprintKind'> & { blueprintKind?: BlueprintKind };
   generatorVersion: number | null;
   versions: { version: number; stores: Record<string, string | null> }[];
   policy: { roles: Record<string, string[]>; rules: string[] } | null;
@@ -126,6 +127,8 @@ export interface SpecFacts {
     category: string;
     defaultTheme: string;
     namespace: string;
+    /** Kind generated from a data-only blueprint; ordinary prototypes are apps. */
+    blueprintKind?: BlueprintKind;
   };
   generatorVersion: number | null;
   schemaVersion: number;
@@ -289,7 +292,7 @@ export function toSpecFacts(raw: RawSpec, schemaVersion: number): SpecFacts {
     ...(raw.routesError ? [`routes: ${raw.routesError}`] : []),
   ];
   return {
-    manifest: raw.manifest,
+    manifest: { ...raw.manifest, blueprintKind: raw.manifest.blueprintKind ?? 'app' },
     generatorVersion: raw.generatorVersion,
     schemaVersion,
     versions,

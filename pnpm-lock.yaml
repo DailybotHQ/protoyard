@@ -539,6 +539,9 @@ importers:
       '@protoyard/pages':
         specifier: workspace:*
         version: link:../pages
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../renderer-svelte
       '@protoyard/ui':
         specifier: workspace:*
         version: link:../ui
