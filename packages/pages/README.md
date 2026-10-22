@@ -4,6 +4,8 @@ Framework-agnostic **page** and **doc** engine for Protoyard blueprints
 (`kind: "page"` and `kind: "doc"`, [ADR-036](../../docs/DECISIONS.md) and
 [ADR-039](../../docs/DECISIONS.md)). No Svelte. Svelte hosts live in
 [`@protoyard/pages-ui`](../pages-ui/README.md).
+For the authoring guide and current Player/generator limits, see
+[`docs/PAGES.md`](../../docs/PAGES.md).
 
 KINDS owns the blueprint `kind` discriminator and envelope. This package
 validates the **payload bodies** after that parse.
@@ -46,12 +48,14 @@ Section `blocks` and doc `blocks` use `@protoyard/blocks` `BlockSchema`. Form
 *block* schema stays in blocks; `page.forms` only lists form block ids for the
 responses UI.
 
-`FormResponseSchema` stores a row `{ id, formId, createdAt, values }` where
-`createdAt` is an ISO datetime and `values` contains only bounded strings,
-finite numbers, booleans or bounded string arrays. Unsafe keys and unknown row
-fields are rejected. The values object is capped at 8 KiB and 32 entries.
-Responses use the non-reserved `formResponses` table with indexes
-`id, formId, createdAt, [formId+createdAt]` so snapshots include them.
+`FormResponseSchema` stores a row `{ id, formId, createdAt, values }` with
+optional `personaId` and `documentId`. `createdAt` is an ISO datetime and
+`values` contains only bounded strings, finite numbers, booleans or bounded
+string arrays. Unsafe keys and unknown row fields are rejected. The values
+object is capped at 8 KiB and 32 entries. The Dexie indexes also include
+`personaId`, `documentId` and `[formId+createdAt]`.
+Responses use the non-reserved `formResponses` feature table. The kind runtime
+includes it in its database and snapshot data.
 
 ## Form response services
 
@@ -200,3 +204,7 @@ import {
 content blueprint and call `defineKindRuntime` (shared personas, policy, stores).
 Kind services (`createKindServices`) delegate form submit/list to
 `createFormServices` here.
+
+These runtime helpers do not mean that level-1 Player page/doc entries or
+level-2 `protoyard generate` templates are wired yet; see the current status in
+[`docs/PAGES.md`](../../docs/PAGES.md#current-support).
