@@ -22,6 +22,10 @@ const ANALYTICS_BLUEPRINT = readFileSync(
   resolve(process.cwd(), 'blueprints/quick/analytics.json'),
   'utf8'
 );
+const CREATE_ANYTHING_DECK = readFileSync(
+  resolve(process.cwd(), 'blueprints/decks/protoyard-create-anything.json'),
+  'utf8'
+);
 
 function playerFrame(page: Page): Frame {
   const frame = page.frames().find((candidate) => candidate.url().includes('/player/'));
@@ -161,6 +165,31 @@ test.describe('showcase site', () => {
     expect(shareUrl).toContain('#bp=1.');
     await expectAccessible(page, testInfo, { include: 'main', label: 'hosted-player-paste' });
     expect(failures).toEqual([]);
+  });
+
+  test('loads and shares the flagship deck pasted into the hosted player', async ({ page }) => {
+    await openPlay(page);
+    await page
+      .getByLabel('Blueprint JSON (app, deck, page, or document)')
+      .fill(CREATE_ANYTHING_DECK);
+    await page.getByRole('button', { name: 'Load blueprint' }).click();
+    await expect(page.getByRole('status')).toContainText('Protoyard: create anything is running');
+
+    const deckFrame = page.frameLocator('iframe[title="Running Protoyard blueprint"]');
+    await expect(deckFrame.locator('[data-py-deck-app]')).toBeVisible();
+    expect(playerFrame(page).url()).toContain('/player/deck.html?embedder=');
+
+    await page.getByRole('button', { name: 'Copy share link' }).click();
+    await expect(page.getByRole('status')).toContainText(/Share link/);
+    const shareUrl = page.url();
+    expect(shareUrl).toContain('#bp=1.');
+
+    const sharedPage = await page.context().newPage();
+    await sharedPage.goto(shareUrl);
+    const sharedDeck = sharedPage.frameLocator('iframe[title="Running Protoyard blueprint"]');
+    await expect(sharedDeck.locator('[data-py-deck-app]')).toBeVisible({ timeout: 20_000 });
+    expect(playerFrame(sharedPage).url()).toContain('/player/deck.html?embedder=');
+    await sharedPage.close();
   });
 
   test('opens a share-link blueprint in the hosted player route with axe coverage', async ({
