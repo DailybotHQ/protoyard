@@ -217,6 +217,8 @@ export interface QuickResult {
   layout: 'shared' | 'standalone';
   /** Why the folder is standalone (`flag`, `out`, `too-large-for-link`), or null. */
   standaloneReason: 'flag' | 'out' | 'too-large-for-link' | null;
+  /** Actionable alternative surfaced to CLI and MCP callers for an oversized share link. */
+  shareFallback: string | null;
   player: { version: string; dir: string; reused: boolean };
   /** The launcher page, relative to the workspace. */
   open: string;
@@ -479,6 +481,10 @@ export const quickCommand: Handler = async (
     name: blueprint.name,
     layout: standalone ? 'standalone' : 'shared',
     standaloneReason,
+    shareFallback:
+      standaloneReason === 'too-large-for-link'
+        ? `This blueprint exceeds the 16 KB share-link limit. Use ${rel(join(quick.dir, 'blueprint.json'))} or run protoyard quick export ${slug} --single-file.`
+        : null,
     player: { version: player.version, dir: rel(player.dir), reused: player.reused },
     open: rel(join(quick.dir, 'index.html')),
     replaced: quick.state === 'marked',
@@ -500,10 +506,9 @@ export const quickCommand: Handler = async (
         `  blueprint  ${data.dir}/blueprint.json (${data.source === 'brief' ? 'from the brief' : 'validated'})`
       );
       output.info(
-        `  player     ${data.player.dir} (${data.player.version}, ${data.layout}${
-          data.standaloneReason === 'too-large-for-link' ? ': too large for a share link' : ''
-        }${data.player.reused ? ', reused' : ''})`
+        `  player     ${data.player.dir} (${data.player.version}, ${data.layout}${data.player.reused ? ', reused' : ''})`
       );
+      if (data.shareFallback) output.info(`  share      ${data.shareFallback}`);
       output.always(
         `  open       ${data.open} (serve the workspace over http; browsers block modules from file://)`
       );
