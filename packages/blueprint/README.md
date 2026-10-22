@@ -695,6 +695,13 @@ maximum-length input, content-only requests). The historical app set in
 `tests/fixtures/briefs/briefs.json` stays the regression baseline
 (`pnpm vitest run packages/blueprint/tests/brief-kinds.test.ts packages/blueprint/tests/brief.test.ts`).
 
+Generated kind JSON Schema (from the live Zod unions via `z.toJSONSchema`) is checked against
+catalog fixtures in `tests/kind-json-schema.test.ts`. That suite also locks synthesizer drafts:
+every bench brief (`scripts/bench-brief-kinds.ts`) must detect the expected kind and pass
+`safeParseAnyBlueprint` (page/doc bodies include `id` + `title`; deck body is `style` + `slides`
+only). Cross-reference and lint rules still require the package validator — JSON Schema alone is
+not enough.
+
 `blueprintFromBrief(brief, { archetype?, name?, kind? })` turns a short product brief into a
 valid blueprint (or content draft), offline and deterministically (same brief, same JSON; no
 network or model). Kind dispatch runs first (ADR-036):

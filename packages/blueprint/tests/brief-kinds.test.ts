@@ -55,12 +55,14 @@ function deckSlides(result: ContentBriefResult): { id: string }[] {
   return deck?.slides ?? [];
 }
 
-function pageOrDocSections(result: ContentBriefResult): { id: string }[] {
-  const body =
-    result.kind === 'page'
-      ? (result.json.page as { sections?: { id: string }[] } | undefined)
-      : (result.json.doc as { sections?: { id: string }[] } | undefined);
+function pageSections(result: ContentBriefResult): { id: string }[] {
+  const body = result.json.page as { sections?: { id: string }[] } | undefined;
   return body?.sections ?? [];
+}
+
+function docBlocks(result: ContentBriefResult): { type?: string; id?: string }[] {
+  const body = result.json.doc as { blocks?: { type?: string; id?: string }[] } | undefined;
+  return body?.blocks ?? [];
 }
 
 function assertContentBounds(result: ContentBriefResult) {
@@ -68,18 +70,31 @@ function assertContentBounds(result: ContentBriefResult) {
     const slides = deckSlides(result);
     const check = checkOutlineBounds({
       kind: 'deck',
-      title: String((result.json.deck as { title?: string })?.title ?? ''),
+      title: String(result.json.name ?? ''),
       slides,
     });
     expect(check.ok, JSON.stringify(check)).toBe(true);
     return;
   }
-  const sections = pageOrDocSections(result);
-  const title =
-    result.kind === 'page'
-      ? String((result.json.page as { title?: string })?.title ?? '')
-      : String((result.json.doc as { title?: string })?.title ?? '');
-  const check = checkOutlineBounds({ kind: result.kind, title, sections });
+  if (result.kind === 'page') {
+    const sections = pageSections(result);
+    const title = String((result.json.page as { title?: string })?.title ?? '');
+    const check = checkOutlineBounds({ kind: 'page', title, sections });
+    expect(check.ok, JSON.stringify(check)).toBe(true);
+    return;
+  }
+  // Doc is a continuous block flow; bounds check uses synthetic sections from headings.
+  const blocks = docBlocks(result);
+  const title = String((result.json.doc as { title?: string })?.title ?? '');
+  const sections = blocks
+    .filter((block) => block.type === 'heading')
+    .map((block, index) => ({
+      id: block.id ?? `h-${index}`,
+      title: block.id ?? `Heading ${index}`,
+      body: '',
+      blocks: [],
+    }));
+  const check = checkOutlineBounds({ kind: 'doc', title, sections });
   expect(check.ok, JSON.stringify(check)).toBe(true);
 }
 
@@ -133,10 +148,18 @@ function assertFixture(fixture: KindFixture, result: BriefResult) {
     const slides = deckSlides(content);
     expect(slides.length).toBeGreaterThanOrEqual(expected.minSlides ?? 3);
     expect(new Set(slides.map((s) => s.id)).size).toBe(slides.length);
-  } else {
-    const sections = pageOrDocSections(content);
+  } else if (expected.kind === 'page') {
+    const page = content.json.page as { id?: string; title?: string; sections?: { id: string }[] };
+    expect(page.id).toMatch(/^[a-z][a-z0-9-]*$/);
+    expect(page.title?.length).toBeGreaterThan(0);
+    const sections = pageSections(content);
     expect(sections.length).toBeGreaterThanOrEqual(expected.minSections ?? 3);
     expect(new Set(sections.map((s) => s.id)).size).toBe(sections.length);
+  } else {
+    const doc = content.json.doc as { id?: string; title?: string; blocks?: unknown[] };
+    expect(doc.id).toMatch(/^[a-z][a-z0-9-]*$/);
+    expect(doc.title?.length).toBeGreaterThan(0);
+    expect((doc.blocks ?? []).length).toBeGreaterThanOrEqual(expected.minSections ?? 3);
   }
   assertContentBounds(content);
   if (expected.truncated) {
