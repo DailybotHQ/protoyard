@@ -15,8 +15,15 @@ const v = (name: string) => ({ op: 'var' as const, name });
 const APP = {
   formatVersion: 1,
   name: 'Mini tracker',
-  entities: [{ name: 'task', fields: [{ name: 'title', kind: 'text', required: true }] }],
-  roles: [{ id: 'member', label: 'Member' }],
+  entities: [
+    {
+      name: 'task',
+      plural: 'tasks',
+      titleField: 'title',
+      fields: [{ name: 'title', kind: 'text', required: true }],
+    },
+  ],
+  roles: [{ name: 'member', permissions: { '*': ['*'] } }],
 };
 
 export const MINIMAL_EXAMPLES: Record<BlockType, Block> = {

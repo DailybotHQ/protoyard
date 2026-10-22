@@ -5,7 +5,8 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    "./embed": "./src/embed/index.ts"
+    "./embed": "./src/embed/index.ts",
+    "./boot": "./src/boot.ts"
   },
   "scripts": {
     "dev": "vite",
