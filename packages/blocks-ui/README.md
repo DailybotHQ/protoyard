@@ -166,10 +166,13 @@ setBlockHost({
 | `counter` | Increment / decrement / reset |
 | `tabs` / `reveal` | Dispatch select/toggle; nested blocks via the family dispatcher |
 | `chart-controls` | Kind switch, series toggle, label range; charts-ui lazy |
-| `form` | Honest placeholder — responses belong to the pages form runtime |
+| `form` | Honest placeholder until the pages kit's FormBlock replaces it through the host; responses belong to the pages form runtime |
 
 Map blocks load `@protoyard/views-ui/map` only from `./map` (not from the
-interactive chunk) and also set `data-py-deck-interactive`.
+interactive chunk) and also set `data-py-deck-interactive`, as does the
+`embed-app` frame. `tests/deck-interactive.test.ts` checks the root of all ten
+interactive types (poll, quiz, calculator, counter, tabs, reveal,
+chart-controls, form, map, embed-app).
 
 ## Embed-app (`./embed`)
 
@@ -313,6 +316,23 @@ responses through the host.
 ```bash
 pnpm vitest run packages/blocks-ui/tests/a11y-themes.test.ts
 ```
+
+## Security
+
+`tests/security-fuzz.test.ts` renders 2,000 seeded hostile documents (the
+generator is shared with `@protoyard/blocks`' `tests/security.test.ts`).
+Accepted documents render their sanitized blocks; rejected ones render their
+raw input. The rendered DOM must have:
+
+- no script-capable element (`script`, `iframe`, `object`, `embed`, `base`,
+  `meta`, `link`, `foreignObject`…);
+- no `on*` or `srcdoc` attribute, and no `url()` or `expression()` in a style;
+- no dangerous scheme in any URL attribute;
+- no remote media;
+- no `fetch`, XHR or beacon request.
+
+The source has no `{@html}`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`,
+`document.write`, `eval` or `new Function`.
 
 ## Icons
 
