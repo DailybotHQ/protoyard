@@ -148,6 +148,7 @@ export {
   NOTICE_TONES,
   type NoticeTone,
 } from './components/notice/tones.ts';
+export { default as OtpInput } from './components/otp-input/OtpInput.svelte';
 export { default as Drawer } from './components/overlay/Drawer.svelte';
 export {
   DEFAULT_DRAWER_SIZE,

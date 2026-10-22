@@ -321,7 +321,10 @@ The interface is a compatibility contract, not a security mechanism:
   was installed.
 - **Simulated features stay simulated.** Roles, sign-in and other simulated
   behavior inside prototypes are never security, whatever the interface
-  reports.
+  reports. UI helpers such as `@protoyard/ui` `OtpInput` are presentation
+  only: they collect a fixed-length code string and fire a completion
+  callback. They are not a capability id, do not send SMS, and do not
+  authenticate anyone.
 
 ## Recipes stay runnable
 
