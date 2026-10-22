@@ -11,4 +11,8 @@ export {
   type DeckNavigator,
   type DeckNavigatorOptions,
 } from './navigator.ts';
-export { defaultSlideStepCount, type SlideStepCountResolver } from './steps.ts';
+export {
+  defaultSlideStepCount,
+  type SlideStepCountResolver,
+  slidePositionCount,
+} from './steps.ts';

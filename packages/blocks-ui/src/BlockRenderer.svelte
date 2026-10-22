@@ -1,4 +1,5 @@
 <script lang="ts">
+import { fragmentAttributes, getBlockHost } from './host.ts';
 import { resolveBlockRenderer } from './registry.ts';
 
 interface Props {
@@ -7,6 +8,9 @@ interface Props {
 }
 
 let { blocks }: Props = $props();
+
+// Decks give stepped blocks a wrapper that hides them until their step.
+const host = getBlockHost();
 </script>
 
 <div class="grid gap-4" data-py-block-renderer>
@@ -24,7 +28,12 @@ let { blocks }: Props = $props();
         </p>
       {:else}
         {@const Renderer = result.component}
-        <Renderer block={result.block} />
+        {@const fragment = fragmentAttributes(host, result.block)}
+        {#if fragment}
+          <div {...fragment}><Renderer block={result.block} /></div>
+        {:else}
+          <Renderer block={result.block} />
+        {/if}
       {/if}
     {:catch}
       <p class="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground" role="note">

@@ -5,9 +5,11 @@ export {
   type BlockCanvasMode,
   type BlockCtaAction,
   type BlockDensity,
+  type BlockFragmentPhase,
   type BlockHost,
   type BlockHostOptions,
   getBlockHost,
   type MountEmbed,
+  type SteppedBlock,
   setBlockHost,
 } from './host.ts';

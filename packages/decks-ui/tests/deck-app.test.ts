@@ -117,12 +117,15 @@ describe('DeckApp', () => {
     const app = view.container.querySelector('[data-py-deck-app]') as HTMLElement;
     app.focus();
 
-    // intro has 2 steps → first next stays on intro step 1
+    // intro has 2 labelled steps → positions 0, 1, 2; the first two nexts stay on intro
     await fireEvent.keyDown(app, { key: 'ArrowRight' });
     await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('intro'));
     expect(app.getAttribute('data-slide-step')).toBe('1');
+    await fireEvent.keyDown(app, { key: 'ArrowRight' });
+    await waitFor(() => expect(app.getAttribute('data-slide-step')).toBe('2'));
+    expect(app.getAttribute('data-slide-id')).toBe('intro');
 
-    // second next moves to body
+    // the third next moves to body
     await fireEvent.keyDown(app, { key: 'ArrowRight' });
     await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('body'));
     expect(app.getAttribute('data-slide-step')).toBe('0');
@@ -152,12 +155,14 @@ describe('DeckApp', () => {
 
     await fireEvent.keyDown(app, { key: 'ArrowRight' });
     await fireEvent.keyDown(app, { key: 'ArrowRight' });
+    await fireEvent.keyDown(app, { key: 'ArrowRight' });
     await waitFor(() => expect(app.getAttribute('data-slide-id')).toBe('body'));
 
+    // Back lands on intro's last step (its second label).
     await fireEvent.keyDown(app, { key: 'ArrowLeft' });
     await waitFor(() => {
       expect(app.getAttribute('data-slide-id')).toBe('intro');
-      expect(app.getAttribute('data-slide-step')).toBe('1');
+      expect(app.getAttribute('data-slide-step')).toBe('2');
     });
   });
 

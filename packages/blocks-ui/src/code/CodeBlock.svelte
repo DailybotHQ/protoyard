@@ -43,7 +43,13 @@ const tokens = $derived.by((): CodeToken[] => {
 const lines = $derived(splitTokenLines(tokens));
 const tokenized = $derived(grammar !== null && grammar.lang === block.lang);
 const steps = $derived(resolveHighlightSteps(block.highlights ?? [], lines.length));
-const active = $derived(activeHighlightIndex(steps.length, host.step, block.step ?? 0));
+// A deck host maps its dense step numbering to this block's highlights;
+// without one, the host's raw step (or the first highlight) is used.
+const active = $derived(
+  host.codeHighlight
+    ? Math.min(steps.length - 1, host.codeHighlight(block))
+    : activeHighlightIndex(steps.length, host.step, block.step ?? 0)
+);
 const highlighted = $derived(new Set(active >= 0 ? steps[active] : []));
 const label = $derived(block.filename ?? block.lang.toUpperCase());
 

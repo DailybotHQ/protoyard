@@ -5,8 +5,10 @@ import Markdown from '../design/Markdown.svelte';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../step-context.ts';
 
 let { props: p }: { props: PropsOf<typeof TwoColumnSplitPropsSchema> } = $props();
+const steps = getPropSteps();
 const sides = $derived([
   { slot: 'left', ...p.left, accent: false },
   { slot: 'right', ...p.right, accent: true },
@@ -20,6 +22,7 @@ const sides = $derived([
   <div class="relative grid min-h-0 flex-1 grid-cols-2 content-center items-stretch gap-[3cqw] @max-[48rem]:grid-cols-1" data-slot="columns" {@attach fitContent()}>
     {#each sides as side (side.slot)}
       <article
+        {...steps([side.slot])}
         class={`flex min-w-0 flex-col gap-[1.4cqw] rounded-[2cqw] border p-[3cqw] ${side.accent ? 'border-primary/40 bg-primary/10' : 'border-border bg-card text-card-foreground'}`}
         data-slot={side.slot}
       >

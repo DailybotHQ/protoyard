@@ -4,9 +4,11 @@ import { fitContent, fitText } from '../design/fit.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../step-context.ts';
 
 /** Numbered steps on one line, joined by a connector (stacked on portrait stages). */
 let { props: p }: { props: PropsOf<typeof ProcessStepsPropsSchema> } = $props();
+const steps = getPropSteps();
 </script>
 
 <SlideFrame layout="process-steps" class="gap-[4cqw] px-[6cqw] py-[6cqw]">
@@ -20,7 +22,7 @@ let { props: p }: { props: PropsOf<typeof ProcessStepsPropsSchema> } = $props();
     {@attach fitContent()}
   >
     {#each p.steps as step, index (index)}
-      <li class="relative flex min-w-0 flex-col gap-[1.4cqw] @max-[48rem]:flex-row @max-[48rem]:items-start" data-slot="step">
+      <li {...steps(['steps', index])} class="relative flex min-w-0 flex-col gap-[1.4cqw] @max-[48rem]:flex-row @max-[48rem]:items-start" data-slot="step">
         {#if index < p.steps.length - 1}
           <span aria-hidden="true" class="absolute top-[3cqw] left-[6cqw] h-[0.35cqw] w-[calc(100%-3.6cqw)] rounded-full bg-primary/35 @max-[48rem]:hidden" data-slot="connector"></span>
         {/if}

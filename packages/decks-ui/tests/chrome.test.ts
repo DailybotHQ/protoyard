@@ -368,6 +368,7 @@ describe('the tools inside DeckApp', () => {
     expect(app.dataset.slideStep).toBe('1');
 
     await fireEvent.keyDown(app, { key: 'ArrowRight' });
+    await fireEvent.keyDown(app, { key: 'ArrowRight' });
     await waitFor(() => expect(app.dataset.slideId).toBe('body'));
     await fireEvent.click(screen.getByRole('button', { name: 'Copy slide reference' }));
     // An untitled slide falls back to the deck title.

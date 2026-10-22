@@ -26,6 +26,52 @@ let {
 </div>
 
 <style>
+  /*
+   * Stepped catalog items (cards, process steps, events, rows, split sides):
+   * hidden ones keep their space, then fade (or fade up) in; active effects
+   * show on their step. Reduced motion and a deck's `motion: none` drop the
+   * motion. Block fragments use utility classes from blocks-ui instead.
+   */
+  .deck-slide :global([data-py-fragment-kind='prop']) {
+    transition:
+      opacity 500ms ease-out,
+      translate 500ms ease-out,
+      scale 500ms ease-out,
+      background-color 500ms ease-out;
+  }
+  .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment='hidden']) {
+    visibility: hidden;
+    opacity: 0;
+  }
+  .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment='hidden'][data-py-fragment-reveal='fade-up']) {
+    translate: 0 0.6em;
+  }
+  .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='grow']) {
+    scale: 1.04;
+  }
+  .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='shrink']) {
+    scale: 0.94;
+  }
+  .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='highlight']) {
+    outline: 0.3cqw solid color-mix(in oklab, var(--color-primary) 60%, transparent);
+    outline-offset: 0.4cqw;
+  }
+  .deck-slide :global([data-py-fragment-kind='prop'][data-py-fragment-active='true'][data-py-fragment-reveal='strike']) {
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .deck-slide :global([data-py-fragment-kind='prop']) {
+      transition: none;
+      translate: none;
+      scale: none;
+    }
+  }
+  :global([data-py-deck-motion='none']) .deck-slide :global([data-py-fragment-kind='prop']) {
+    transition: none;
+    translate: none;
+    scale: none;
+  }
   /* Shared block content keeps the deck text minimums (24 px body, 18 px labels). */
   .deck-slide :global([data-slot='blocks'] p),
   .deck-slide :global([data-slot='blocks'] li),

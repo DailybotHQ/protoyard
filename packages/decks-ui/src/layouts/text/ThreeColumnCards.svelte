@@ -7,8 +7,10 @@ import Markdown from '../design/Markdown.svelte';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../step-context.ts';
 
 let { props: p }: { props: PropsOf<typeof ThreeColumnCardsPropsSchema> } = $props();
+const steps = getPropSteps();
 </script>
 
 <SlideFrame layout="three-column-cards" class="gap-[3cqw] px-[7cqw] py-[6cqw]">
@@ -17,7 +19,7 @@ let { props: p }: { props: PropsOf<typeof ThreeColumnCardsPropsSchema> } = $prop
   {/if}
   <ul class="grid min-h-0 flex-1 grid-cols-3 content-center gap-[2.4cqw] @max-[48rem]:grid-cols-1" data-slot="cards" {@attach fitContent()}>
     {#each p.cards as card, index (index)}
-      <li class="flex min-w-0 flex-col gap-[1.4cqw] rounded-[2cqw] border border-border bg-card p-[2.6cqw] text-card-foreground shadow-soft" data-slot="card">
+      <li {...steps(['cards', index])} class="flex min-w-0 flex-col gap-[1.4cqw] rounded-[2cqw] border border-border bg-card p-[2.6cqw] text-card-foreground shadow-soft" data-slot="card">
         <div class="deck-card-icon" data-slot="icon">
           {#if card.icon && isBlockIcon(card.icon)}
             <Blocks blocks={[{ type: 'icon', icon: card.icon, decorative: true, size: 'xl', tone: 'accent' }]} />
