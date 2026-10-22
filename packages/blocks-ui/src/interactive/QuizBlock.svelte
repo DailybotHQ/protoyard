@@ -2,6 +2,7 @@
 import type { QuizBlock as QuizBlockType } from '@protoyard/blocks';
 import { quizChoiceOrder, quizScore } from '@protoyard/blocks/interactive';
 import { Button } from '@protoyard/ui';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
 
 let { block }: { block: QuizBlockType } = $props();
@@ -53,6 +54,7 @@ function isCorrect(questionId: string): boolean | null {
 <section
   class="grid gap-4 rounded-lg border border-border bg-card p-4"
   data-py-block="quiz"
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
   aria-labelledby="quiz-title-{block.id}"
 >

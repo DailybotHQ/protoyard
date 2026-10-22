@@ -84,6 +84,37 @@ to apps get a hint naming the keys that kind accepts. Problems with `kind` itsel
 `$["kind"]`: `invalid-kind` (not a string) and `unknown-kind` (needs a newer Protoyard) return
 `kind: null`, and `kind-unavailable` names a known kind whose engine this build does not ship yet.
 
+### Page and doc bodies
+
+This build ships the `page` and `doc` bodies. The deck body is not wired yet.
+
+**`kind: "page"` is a single-scroll page.** It is `{ kind: "page", page: { id, title, sections, nav?, forms? } }`.
+The body is `@protoyard/pages`' `PageDocumentSchema` plus `kinds/page.ts`, which checks:
+
+- section ids and anchors are unique, and nav links and `forms[].formId` resolve (from the pages schema);
+- block ids, headings included, are unique across **all** sections, because one page is one DOM and
+  one form-response store;
+- a block id is never also a section id or anchor;
+- `forms[].sectionId`, when set, is the section that holds that form, containers included;
+- every `#fragment` link in a block (`cta` actions, `cards` items) points at a section anchor or a
+  block id on the page.
+
+**`kind: "doc"` is a continuous block flow.** It is `{ kind: "doc", doc: { id, title, blocks, toc?, print? } }`.
+The body is `DocDocumentSchema` (block ids, and so heading ids, are unique) plus `kinds/doc.ts`, which
+checks:
+
+- a `toc` lists at least one heading from level 2 to `toc.depth` (3 by default). A heading without
+  `level` counts as level 2.
+- every `#fragment` link points at a block id in the doc.
+
+Fixtures: `tests/fixtures/kinds/landing.page.json` and `tests/fixtures/kinds/quarterly-report.doc.json`
+(`pnpm vitest run packages/blueprint/tests/kinds/page-doc.test.ts`).
+
+**Bundle cost.** The package entry now imports `@protoyard/pages` and `@protoyard/blocks` statically.
+Measured on 2026-10-22, the player's initial JS goes from 188,442 B to 202,253 B gzip (+13.8 KB),
+inside its 250 KB budget. A generated app prototype is unchanged: cadence-studio-demo measured
+169,383 B before and 169,387 B after.
+
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 
@@ -579,6 +610,12 @@ const committed = await services.ticket.importCsv(text, {
 
 ## Brief to blueprint
 
+Kind synthesis fixtures live in `tests/fixtures/briefs/kinds.json` and are exercised by
+`tests/brief-kinds.test.ts` (all four kinds, cue conflicts, explicit overrides, empty and
+maximum-length input, content-only requests). The historical app set in
+`tests/fixtures/briefs/briefs.json` stays the regression baseline
+(`pnpm vitest run packages/blueprint/tests/brief-kinds.test.ts packages/blueprint/tests/brief.test.ts`).
+
 `blueprintFromBrief(brief, { archetype?, name?, kind? })` turns a short product brief into a
 valid blueprint (or content draft), offline and deterministically (same brief, same JSON; no
 network or model). Kind dispatch runs first (ADR-036):
@@ -590,6 +627,20 @@ network or model). Kind dispatch runs first (ADR-036):
    section outlines; docs use report/handbook/one-pager/proposal/generic outlines (bounded
    block vocabulary, stable section ids, explicit interactive omissions).
 3. App briefs keep the historical result fields and byte-compatible JSON.
+
+### Brief and outline bounds (`src/brief/limits.ts`)
+
+| Cap | Value | Notes |
+| --- | --- | --- |
+| `MAX_BRIEF_LENGTH` / `MAX_CONTENT_BRIEF_LENGTH` | 5,000 characters | Longer briefs are truncated; synthesizers record a stable notice in `rationale`. |
+| `OUTLINE_LIMITS.maxSlides` | 64 | Deck outlines only. |
+| `OUTLINE_LIMITS.maxSections` | 64 | Page and doc outlines. |
+| `OUTLINE_LIMITS.maxBlocksPerUnit` | 12 | Per slide/section (matches block column capacity). |
+| `OUTLINE_LIMITS.maxTitleLength` | 80 | Envelope and unit titles. |
+| `OUTLINE_LIMITS.maxBodyLength` | 600 | Short body copy (block shortMarkdown). |
+| `OUTLINE_LIMITS.maxTextLength` | 4,000 | Long text (block markdown). |
+
+Use `boundBriefInput` / `prepareBriefForSynthesis` before custom synthesis, `checkOutlineBounds` for hard failures, and `applyOutlineBounds` to clip deterministically with notices. Text ceilings agree with `@protoyard/blocks` content limits so drafts stay within untrusted validators.
 
 ```ts
 import { blueprintFromBrief, isAppBriefResult } from '@protoyard/blueprint';

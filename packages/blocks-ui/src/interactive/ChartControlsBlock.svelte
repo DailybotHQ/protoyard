@@ -2,6 +2,7 @@
 import type { ChartControlsBlock as ChartControlsBlockType } from '@protoyard/blocks';
 import { chartControlsSpec } from '@protoyard/blocks/interactive';
 import { Button } from '@protoyard/ui';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
 
 let { block }: { block: ChartControlsBlockType } = $props();
@@ -44,6 +45,7 @@ function setSeriesVisible(index: number, checked: boolean) {
 <section
   class="grid gap-3 rounded-lg border border-border bg-card p-4"
   data-py-block="chart-controls"
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
 >
   <div class="flex flex-wrap items-center gap-2">

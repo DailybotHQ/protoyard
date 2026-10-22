@@ -1,3 +1,4 @@
+import type { DocDocument, PageDocument } from '@protoyard/pages';
 import { z } from 'zod';
 import { BLUEPRINT_BASE_SHAPE, type Blueprint, BlueprintSchema } from '../schema.ts';
 import { kindBodySchema } from './bodies.ts';
@@ -19,14 +20,14 @@ const BlueprintBaseSchema = z.strictObject(BLUEPRINT_BASE_SHAPE);
 export type BlueprintBase = z.output<typeof BlueprintBaseSchema>;
 
 /**
- * The parsed body of each content kind. `unknown` until the engine schemas
- * are wired in (`@protoyard/decks/schema`, `@protoyard/pages`); each wiring
- * task narrows its entry.
+ * The parsed body of each content kind. The deck stays `unknown` until
+ * `@protoyard/decks/schema` is wired in; page and doc come from
+ * `@protoyard/pages` (`kinds/page.ts`, `kinds/doc.ts`).
  */
 export interface KindBodies {
   deck: unknown;
-  page: unknown;
-  doc: unknown;
+  page: PageDocument;
+  doc: DocDocument;
 }
 
 export type ContentBlueprint<K extends ContentKind> = BlueprintBase & { kind: K } & {

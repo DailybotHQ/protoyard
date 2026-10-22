@@ -7,11 +7,16 @@
 import { hashString } from '@protoyard/core';
 import type { ContentKind } from '../kinds/kind.ts';
 import type { BriefKindDetection } from './kind-detection.ts';
+import {
+  applyOutlineBounds,
+  boundBriefInput,
+  MAX_CONTENT_BRIEF_LENGTH as CONTENT_CAP,
+} from './limits.ts';
 import { buildDocOutline, buildPageOutline } from './page-doc-outlines.ts';
 import { normalize, titleCase } from './text.ts';
 
 /** Longer briefs are cut here (same cap as app synthesis). */
-export const MAX_CONTENT_BRIEF_LENGTH = 5_000;
+export const MAX_CONTENT_BRIEF_LENGTH = CONTENT_CAP;
 
 const NAME_WORDS = [
   'Harbor',
@@ -103,11 +108,35 @@ export function synthesizeDeckFromBrief(
   detection: BriefKindDetection,
   options: ContentBriefOptions = {}
 ): ContentBriefResult {
-  const source = brief.slice(0, MAX_CONTENT_BRIEF_LENGTH);
+  const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
+  const source = bound.brief;
   const name = pickName(source, 'deck', options.name);
-  const title = firstSentence(source) || name;
+  const title = (firstSentence(source) || name).slice(0, 80);
+  const slides = [
+    {
+      id: 'slide-title',
+      role: 'title',
+      title,
+      body: 'Add the opening claim here.',
+    },
+    {
+      id: 'slide-agenda',
+      role: 'agenda',
+      title: 'Agenda',
+      body: 'List the sections you will cover.',
+    },
+    {
+      id: 'slide-close',
+      role: 'close',
+      title: 'Next steps',
+      body: 'Close with a clear ask or summary.',
+    },
+  ];
+  const clipped = applyOutlineBounds({ kind: 'deck', title, slides });
   const rationale = [
     detection.reason,
+    ...bound.notices,
+    ...clipped.notices,
     'Deck outline: generic (title, agenda, close). Richer pitch/QBR/lesson templates land in deck-outlines.',
     'Slide bodies are placeholders — no fabricated facts.',
   ];
@@ -117,30 +146,11 @@ export function synthesizeDeckFromBrief(
     outline: 'generic',
     rationale,
     json: {
-      ...base('deck', name, title.slice(0, 280)),
+      ...base('deck', name, (clipped.outline.title ?? title).slice(0, 280)),
       deck: {
-        title: title.slice(0, 80),
+        title: (clipped.outline.title ?? title).slice(0, 80),
         aspect: '16:9',
-        slides: [
-          {
-            id: 'slide-title',
-            role: 'title',
-            title: title.slice(0, 80),
-            body: 'Add the opening claim here.',
-          },
-          {
-            id: 'slide-agenda',
-            role: 'agenda',
-            title: 'Agenda',
-            body: 'List the sections you will cover.',
-          },
-          {
-            id: 'slide-close',
-            role: 'close',
-            title: 'Next steps',
-            body: 'Close with a clear ask or summary.',
-          },
-        ],
+        slides: clipped.outline.slides ?? slides,
       },
     },
   };
@@ -152,23 +162,29 @@ export function synthesizePageFromBrief(
   detection: BriefKindDetection,
   options: ContentBriefOptions = {}
 ): ContentBriefResult {
-  const source = brief.slice(0, MAX_CONTENT_BRIEF_LENGTH);
+  const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
+  const source = bound.brief;
   const built = buildPageOutline(source, { title: options.name });
+  const clipped = applyOutlineBounds({
+    kind: 'page',
+    title: built.title,
+    sections: built.sections,
+  });
   const name = options.name?.trim()
     ? options.name.trim().slice(0, 80)
-    : pickName(source, 'page', built.title);
-  const rationale = [detection.reason, ...built.rationale];
+    : pickName(source, 'page', clipped.outline.title ?? built.title);
+  const rationale = [detection.reason, ...bound.notices, ...clipped.notices, ...built.rationale];
   return {
     kind: 'page',
     kindDetection: detection,
     outline: built.outline,
     rationale,
     json: {
-      ...base('page', name, built.title.slice(0, 280)),
+      ...base('page', name, (clipped.outline.title ?? built.title).slice(0, 280)),
       page: {
-        title: built.title.slice(0, 80),
+        title: (clipped.outline.title ?? built.title).slice(0, 80),
         outline: built.outline,
-        sections: built.sections,
+        sections: clipped.outline.sections ?? built.sections,
       },
     },
   };
@@ -180,23 +196,29 @@ export function synthesizeDocFromBrief(
   detection: BriefKindDetection,
   options: ContentBriefOptions = {}
 ): ContentBriefResult {
-  const source = brief.slice(0, MAX_CONTENT_BRIEF_LENGTH);
+  const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
+  const source = bound.brief;
   const built = buildDocOutline(source, { title: options.name });
+  const clipped = applyOutlineBounds({
+    kind: 'doc',
+    title: built.title,
+    sections: built.sections,
+  });
   const name = options.name?.trim()
     ? options.name.trim().slice(0, 80)
-    : pickName(source, 'doc', built.title);
-  const rationale = [detection.reason, ...built.rationale];
+    : pickName(source, 'doc', clipped.outline.title ?? built.title);
+  const rationale = [detection.reason, ...bound.notices, ...clipped.notices, ...built.rationale];
   return {
     kind: 'doc',
     kindDetection: detection,
     outline: built.outline,
     rationale,
     json: {
-      ...base('doc', name, built.title.slice(0, 280)),
+      ...base('doc', name, (clipped.outline.title ?? built.title).slice(0, 280)),
       doc: {
-        title: built.title.slice(0, 80),
+        title: (clipped.outline.title ?? built.title).slice(0, 80),
         outline: built.outline,
-        sections: built.sections,
+        sections: clipped.outline.sections ?? built.sections,
       },
     },
   };

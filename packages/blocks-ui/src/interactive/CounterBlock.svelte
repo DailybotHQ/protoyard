@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { CounterBlock as CounterBlockType } from '@protoyard/blocks';
 import { Button } from '@protoyard/ui';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
 
 let { block }: { block: CounterBlockType } = $props();
@@ -11,6 +12,7 @@ const unit = $derived(block.unit ? ` ${block.unit}` : '');
 <section
   class="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-4"
   data-py-block="counter"
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
   aria-labelledby="counter-label-{block.id}"
 >

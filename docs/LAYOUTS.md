@@ -7,6 +7,25 @@ Layouts render navigation from data, so the same route set can work in several
 page structures. The implementation is in `@protoyard/ui`; the contract and
 width fallbacks are data in `@protoyard/core`.
 
+
+### Page kind host (`@protoyard/pages-ui`)
+
+`PageHost` composes the shared **marketing** layout chrome for `kind: "page"`
+documents: brand, hash navigation, hero section, sequential body sections and
+footer. Section elements expose `id` (from `section.anchor` or `section.id`),
+`data-py-page-section`, and `scroll-mt-20` so in-page `#` links scroll into view.
+The root node is `data-py-page-host` for tests and visual sweep.
+
+```svelte
+<script lang="ts">
+  import { PageHost } from '@protoyard/pages-ui/page';
+  import type { PageDocument } from '@protoyard/pages';
+  let { page }: { page: PageDocument } = $props();
+</script>
+
+<PageHost {page} />
+```
+
 ## Catalog
 
 The shared layouts are selected from `preview.layout`, DevTools, or a

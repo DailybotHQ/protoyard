@@ -7,6 +7,8 @@
   "icon": "☕",
   "category": "marketing",
   "page": {
+    "id": "tidewater-roasters-landing",
+    "title": "Tidewater Roasters landing page",
     "sections": [
       {
         "id": "hero",
@@ -24,8 +26,14 @@
           {
             "type": "cta",
             "actions": [
-              { "label": "Join the waitlist", "href": "#waitlist" },
-              { "label": "See the plans", "href": "#plans" }
+              {
+                "label": "Join the waitlist",
+                "href": "#waitlist"
+              },
+              {
+                "label": "See the plans",
+                "href": "#plans"
+              }
             ]
           }
         ]
@@ -37,9 +45,18 @@
           {
             "type": "stat",
             "items": [
-              { "value": "48 h", "label": "From roast to shipping" },
-              { "value": "12", "label": "Single origins this season" },
-              { "value": "4.8/5", "label": "Example taster rating" }
+              {
+                "value": "48 h",
+                "label": "From roast to shipping"
+              },
+              {
+                "value": "12",
+                "label": "Single origins this season"
+              },
+              {
+                "value": "4.8/5",
+                "label": "Example taster rating"
+              }
             ]
           }
         ]
@@ -48,16 +65,27 @@
         "id": "plans",
         "anchor": "plans",
         "blocks": [
-          { "type": "heading", "id": "plans-title", "level": 2, "text": "Pick a plan" },
+          {
+            "type": "heading",
+            "id": "plans-title",
+            "level": 2,
+            "text": "Pick a plan"
+          },
           {
             "type": "cards",
             "items": [
-              { "title": "Starter", "body": "One 250 g bag every two weeks." },
+              {
+                "title": "Starter",
+                "body": "One 250 g bag every two weeks."
+              },
               {
                 "title": "Household",
                 "body": "Two bags every two weeks, one of them decaf on request."
               },
-              { "title": "Office", "body": "A 1 kg bag every week for a small team." }
+              {
+                "title": "Office",
+                "body": "A 1 kg bag every week for a small team."
+              }
             ]
           }
         ]
@@ -66,13 +94,27 @@
         "id": "how-it-works",
         "anchor": "how-it-works",
         "blocks": [
-          { "type": "heading", "id": "how-title", "level": 2, "text": "How it works" },
+          {
+            "type": "heading",
+            "id": "how-title",
+            "level": 2,
+            "text": "How it works"
+          },
           {
             "type": "steps",
             "items": [
-              { "title": "Choose", "body": "Pick a plan and a roast level." },
-              { "title": "Roast", "body": "We roast your beans the Monday before shipping." },
-              { "title": "Enjoy", "body": "Pause, skip or change plans at any time." }
+              {
+                "title": "Choose",
+                "body": "Pick a plan and a roast level."
+              },
+              {
+                "title": "Roast",
+                "body": "We roast your beans the Monday before shipping."
+              },
+              {
+                "title": "Enjoy",
+                "body": "Pause, skip or change plans at any time."
+              }
             ]
           }
         ]
@@ -89,10 +131,23 @@
           },
           {
             "type": "comparison",
-            "columns": [{ "label": "Tidewater" }, { "label": "Supermarket bag" }],
+            "columns": [
+              {
+                "label": "Tidewater"
+              },
+              {
+                "label": "Supermarket bag"
+              }
+            ],
             "rows": [
-              { "label": "Roast date on the bag", "values": ["Yes", "Rarely"] },
-              { "label": "Days since roasting", "values": ["2 to 5", "30 or more"] }
+              {
+                "label": "Roast date on the bag",
+                "values": ["Yes", "Rarely"]
+              },
+              {
+                "label": "Days since roasting",
+                "values": ["2 to 5", "30 or more"]
+              }
             ]
           },
           {
@@ -107,7 +162,12 @@
         "id": "waitlist",
         "anchor": "waitlist",
         "blocks": [
-          { "type": "heading", "id": "waitlist-title", "level": 2, "text": "Join the waitlist" },
+          {
+            "type": "heading",
+            "id": "waitlist-title",
+            "level": 2,
+            "text": "Join the waitlist"
+          },
           {
             "type": "form",
             "id": "waitlist-form",
@@ -126,9 +186,18 @@
                 "label": "Plan",
                 "type": "enum",
                 "options": [
-                  { "value": "starter", "label": "Starter" },
-                  { "value": "household", "label": "Household" },
-                  { "value": "office", "label": "Office" }
+                  {
+                    "value": "starter",
+                    "label": "Starter"
+                  },
+                  {
+                    "value": "household",
+                    "label": "Household"
+                  },
+                  {
+                    "value": "office",
+                    "label": "Office"
+                  }
                 ]
               }
             ],
@@ -147,7 +216,12 @@
           },
           {
             "type": "cta",
-            "actions": [{ "label": "Back to top", "href": "#top" }]
+            "actions": [
+              {
+                "label": "Back to top",
+                "href": "#top"
+              }
+            ]
           }
         ]
       }

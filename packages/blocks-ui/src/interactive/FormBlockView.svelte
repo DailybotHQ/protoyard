@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { FormBlock as FormBlockType } from '@protoyard/blocks';
 import { Button } from '@protoyard/ui';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 
 /**
  * Form blocks store responses through the pages form-response runtime, not
@@ -13,6 +14,7 @@ let { block }: { block: FormBlockType } = $props();
 <section
   class="grid gap-3 rounded-lg border border-border bg-card p-4"
   data-py-block="form"
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
   aria-labelledby="form-title-{block.id}"
 >

@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { MapBlock as MapBlockType } from '@protoyard/blocks';
 import type { Component } from 'svelte';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 
 let { block }: { block: MapBlockType } = $props();
 
@@ -34,6 +35,7 @@ const routes = $derived(
 <section
   class="grid gap-2 rounded-lg border border-border bg-card p-3"
   data-py-block="map"
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
 >
   {#if block.title}

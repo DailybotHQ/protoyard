@@ -6,6 +6,7 @@ import {
   calculatorValues,
 } from '@protoyard/blocks/interactive';
 import { Button } from '@protoyard/ui';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { formatUnitValue } from './format.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
 
@@ -26,6 +27,7 @@ function setInput(name: string, raw: string | number) {
 <section
   class="grid gap-4 rounded-lg border border-border bg-card p-4"
   data-py-block="calculator"
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
   aria-labelledby="calc-title-{block.id}"
 >

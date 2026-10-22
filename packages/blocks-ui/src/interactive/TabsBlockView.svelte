@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { TabsBlock as TabsBlockType } from '@protoyard/blocks';
 import { Tabs } from '@protoyard/ui';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import NestedBlocks from './NestedBlocks.svelte';
 import { useBlockState } from './use-block-state.svelte.ts';
 
@@ -30,6 +31,7 @@ $effect(() => {
 <section
   class="grid gap-2 rounded-lg border border-border bg-card p-3"
   data-py-block="tabs"
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
 >
   <Tabs bind:value={tab} {items} label={block.label} variant="underline">

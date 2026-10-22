@@ -12,8 +12,8 @@ resolve before the hosts land.
 
 | Import | Contents today |
 | --- | --- |
-| `@protoyard/pages-ui` | `PAGE_UI_FAMILIES`, package version, re-export of `@protoyard/pages` identity |
-| `@protoyard/pages-ui/page` | `PAGE_UI_SUBPATH` placeholder (PageApp later) |
+| `@protoyard/pages-ui` | `PAGE_UI_FAMILIES`, package version, `BlockHost`, re-export of `@protoyard/pages` identity |
+| `@protoyard/pages-ui/page` | `PageHost` marketing landing renderer |
 | `@protoyard/pages-ui/doc` | `DOC_UI_SUBPATH` placeholder (DocApp later) |
 | `@protoyard/pages-ui/form` | `FORM_UI_SUBPATH` placeholder (form block host + responses panel later) |
 | `@protoyard/pages-ui/print` | `PRINT_UI_SUBPATH` placeholder (print CSS + button later) |
@@ -41,6 +41,35 @@ Import a family from a lazy route so page/doc UI stays out of the initial chunk:
 ```ts
 const page = () => import('@protoyard/pages-ui/page');
 ```
+
+
+
+## PageHost
+
+Marketing landing renderer for a `PageDocument`:
+
+```ts
+import { PageHost } from '@protoyard/pages-ui/page';
+```
+
+Composes `@protoyard/ui` **MarketingLayout** chrome (brand, hash nav, hero,
+sections, footer). Each section id is the deep-link target (`anchor` or `id`).
+Root attribute: `data-py-page-host`. Blocks render through `BlockHost`.
+
+## BlockHost
+
+Lazy single-block host used by page and doc surfaces:
+
+```ts
+import { BlockHost } from '@protoyard/pages-ui/block-host';
+// or from '@protoyard/pages-ui'
+```
+
+`BlockHost` validates the block, dynamically imports
+`@protoyard/blocks-ui/<family>` (text, media, data, …), shows
+`LoadingState` / `ErrorState` from `@protoyard/ui`, and renders a safe
+placeholder for unknown types. It never uses raw HTML injection. Family
+chunks stay out of the page entry graph.
 
 ## Coming next (PLAN_005)
 

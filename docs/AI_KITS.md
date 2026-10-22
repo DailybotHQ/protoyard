@@ -54,9 +54,9 @@ work through the prototype’s services.
 | Package | Role | Entry |
 | --- | --- | --- |
 | `@protoyard/ai` | Engine: conversations, packs, agents, tools, suggestion/approval loop, safe markdown, scenario fixtures, voice session | `.` · `./approvals` · `./packs` · `./scenarios` · `./voice` · `./chart` · `./markdown` · `./messages` |
-| `@protoyard/ai-ui` | Svelte 5 UI: workspace, composer, virtualized list, rich answers, canvas, voice panel, widget, suggestion approvals | `.` · `./approvals` · `./voice` · `./widget` · `./styles.css` |
+| `@protoyard/ai-ui` | Svelte 5 UI: workspace, composer, virtualized list, rich answers, canvas, voice panel, widget, suggestion approvals, chat message blocks | `.` · `./approvals` · `./messages` · `./voice` · `./widget` · `./styles.css` |
 
-Lazy subpaths (`ai/scenarios`, `ai/voice`, `ai-ui/voice`, `ai-ui/widget`) keep
+Lazy subpaths (`ai/scenarios`, `ai/voice`, `ai-ui/messages`, `ai-ui/voice`, `ai-ui/widget`) keep
 optional features out of the initial JS budget. Import styles after Tailwind
 and the theme/UI sheets:
 
@@ -270,6 +270,48 @@ parent owns streaming state and must route mutations through services.
   picker, files, slash commands, @mentions.
 - `RichAnswer` renders the markdown AST; `CanvasPanel` shows code or editable
   document text.
+
+### Chat message blocks (lazy `@protoyard/ai-ui/messages`)
+
+`ChatMessageBlocks` renders a `protoyard.message@1` message.
+
+```svelte
+<ChatMessageBlocks {message} onAction={(event) => runService(event)} />
+```
+
+- **Validation first.** `message` (an object or JSON text) always goes through
+  `parseChatMessage`. An invalid message shows "This message could not be shown
+  (N problems)" and none of its content. An unknown block shows the plain
+  notice the parser put in its place.
+- **Blocks:**
+  - **Text** renders as text, keeping line breaks. `format: "markdown"` goes
+    through `RichAnswer`, never `{@html}`.
+  - **Buttons:** action buttons report `{ kind: "button", action, value }`. A
+    `confirm` opens an inline confirmation (`role="alertdialog"`, Cancel
+    focused, Escape cancels, focus returns to the button). Link buttons open
+    in a new tab with `noopener noreferrer`.
+  - **Selects:** a single select reports `{ kind: "select", values }` on change
+    and restores the previous choice if the host rejects. A multiple select is
+    a checkbox group with a Send button.
+  - **Forms:** required fields are checked first (`aria-invalid`, focus moves
+    to the first problem). A submission reports
+    `{ kind: "form", values }` with typed values (strings, numbers, booleans,
+    string lists or null). It keeps the input and shows the host's error on
+    failure, and locks as "Submitted." on success.
+  - **Tables** have a caption, column headers, alignment, Yes/No for booleans
+    and "—" for empty cells, and a keyboard-scrollable region.
+  - **Link previews** are cards that never fetch the page. Images come from
+    the message and must be local or inline.
+  - **Attachments:** inline images (local or `data:`), other files by name and
+    size, opened through `onOpenAttachment`.
+- **Feedback.** Every action awaits the promise `onAction` returns: the
+  control is busy (`aria-busy`, spinner, disabled) until it settles, and a
+  rejection's message appears as an alert. Without `onAction`, actions are
+  disabled with a note, so a read-only view has no dead controls.
+- **Size.** Measured in a Vite library build (minified, gzip, zod external),
+  the subpath adds about 13.6 KB to the entry over `RichAnswer` alone. That
+  covers the components plus the message parser and schema. Chart chunks stay
+  lazy.
 
 ### Widget modes (lazy `@protoyard/ai-ui/widget`)
 

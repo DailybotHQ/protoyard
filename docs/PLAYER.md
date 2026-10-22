@@ -114,6 +114,20 @@ Every source ends in the bounded loader (`loadUntrustedBlueprint`). A blueprint
 that cannot be opened shows an accessible error screen with every issue and its
 fix, never a blank page.
 
+### Embedded apps in decks and pages
+
+A content document may include an `embed-app` block (opaque app JSON, bounded
+by the blocks untrusted limits). The blocks-ui embed family shows a framed
+preview and a **Start the app** button. Only after that click does the host
+call `mountEmbed(target, app)`. KINDS is expected to provide that callback:
+validate with `loadUntrustedBlueprint`, then mount a **level-1** app runtime
+into `target` (never a nested deck). Until the click, no app code is
+downloaded with the deck or page. A missing host shows an accessible note;
+unmount runs the disposer returned by `mountEmbed`. Slide keyboard navigation
+must not leak into the running frame — the embed family traps Tab inside the
+frame while the app is open. Full mount wiring lives with the player / KINDS
+runtime, not inside `@protoyard/blocks`.
+
 ## Storage: identity and keep mode
 
 Each blueprint runs in its own IndexedDB databases, named by its content:

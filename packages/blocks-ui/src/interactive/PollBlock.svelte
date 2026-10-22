@@ -2,6 +2,7 @@
 import type { PollBlock as PollBlockType } from '@protoyard/blocks';
 import { pollResults } from '@protoyard/blocks/interactive';
 import { Button, Progress } from '@protoyard/ui';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import { useBlockState } from './use-block-state.svelte.ts';
 
 let { block }: { block: PollBlockType } = $props();
@@ -47,6 +48,7 @@ function clearVote() {
 <section
   class="grid gap-3 rounded-lg border border-border bg-card p-4"
   data-py-block="poll"
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
   aria-labelledby="poll-q-{block.id}"
 >

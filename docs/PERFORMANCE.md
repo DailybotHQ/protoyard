@@ -1404,6 +1404,18 @@ which keeps side-effectful re-exports. charts-ui and analytics-ui list only CSS,
 which is correct for components without module-level side effects, but it is
 not needed for Vite.
 
+## Content block renderer chunks
+
+`@protoyard/blocks-ui` exposes a small dispatcher and one lazy subpath per
+content family. The dispatcher loads a family's chunk only when a block of
+that family is rendered. `packages/blocks-ui/tests/bundle-hygiene.test.ts`
+guards that family modules do not import sibling families, dynamically import
+the `@protoyard/ui` barrel, or pull in the app, player, Faker or database
+packages. `lib/` and the text renderer are the declared shared areas.
+
+Per-family gzip measurements are pending `BLOCKS-bench`; this section will be
+updated with its real Vite build results rather than estimates.
+
 ## Generated CRUD screens
 
 Blueprint-declared screen routes are lazy chunks, and the template imports the shared view,

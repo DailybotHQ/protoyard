@@ -6,9 +6,9 @@ Svelte 5 renderers for Protoyard's shared content blocks
 levels (the player and generated prototypes), render blocks with these same
 components.
 
-> **Status:** the root dispatcher, host context, and the **interactive** +
-> **map** family subpaths are implemented. Other family subpaths are filled by
-> the PLAN_005 tasks named in the table.
+> **Status:** the root dispatcher, host context, **structure**, **data**,
+> **text/media**, **interactive** and **map** family subpaths are implemented.
+> Other family subpaths are filled by the PLAN_005 tasks named in the table.
 
 ## Shape
 
@@ -34,9 +34,16 @@ import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
 setBlockHost({
   stateHost: createMemoryBlockStateHost(),
   documentId: 'quarterly-review',
+  viewerId: 'persona-ada',
   density: 'comfortable',
   canvasMode: 'slide',
   step: 0,
+  onCtaAction: async ({ href }) => {
+    /* structure CTAs */
+  },
+  mountEmbed: (target, app) => {
+    /* embed-app after Start the app */
+  },
 });
 </script>
 
@@ -46,31 +53,73 @@ setBlockHost({
 Call `setBlockHost` from the host component during initialization. Family
 renderers call `getBlockHost()` to read the nearest context. `density` accepts
 `compact`, `comfortable` or `spacious`; `canvasMode` is `flow` or `slide`.
-`stateHost` and `mountEmbed` are optional host capabilities. The dispatcher
-validates each input at render time, shows a skeleton while its family chunk
-loads, and renders a bounded note for malformed or unsupported blocks. It
-does not display invalid block content. Diagram models have their own schema
-and are rendered through `@protoyard/blocks-ui/diagram`; they are not a
-`Block` discriminator in this version.
+`stateHost`, `viewerId`, `onCtaAction` and `mountEmbed` are optional host
+capabilities. The dispatcher validates each input at render time, shows a
+skeleton while its family chunk loads, and renders a bounded note for
+malformed or unsupported blocks. It does not display invalid block content.
+Diagram models have their own schema and are rendered through
+`@protoyard/blocks-ui/diagram`; they are not a `Block` discriminator in this
+version.
 
 | Subpath | Blocks | Filled by |
 | --- | --- | --- |
 | `.` | `BlockRenderer` dispatcher and host context | T-blocks-ui-renderer-core |
-| `./text` | Heading, rich text, list, quote, callout, divider | T-blocks-ui-text-media |
-| `./media` | Image, video, people (avatars) | T-blocks-ui-text-media |
-| `./data` | Stat/KPI row, table, chart (charts-ui) | T-blocks-ui-data |
-| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | T-blocks-ui-structure |
+| `./text` | Heading, rich text, list, quote, callout, divider | T-blocks-ui-text-media (done) |
+| `./media` | Image, video, people (avatars) | T-blocks-ui-text-media (done) |
+| `./data` | Stat/KPI row, table, chart (charts-ui) | T-blocks-ui-data (done) |
+| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | T-blocks-ui-structure (done) |
 | `./code` | Code with stepped highlights | T-blocks-ui-code-diagram |
 | `./diagram` | Flow, tree, board, terminal | T-blocks-ui-code-diagram |
 | `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart-controls, form | **done** (T-blocks-ui-interactive) |
 | `./map` | Map on the offline simulated map (views-ui/map, lazy) | **done** (T-blocks-ui-interactive) |
-| `./embed` | embed-app, mounted through the host's `mountEmbed` | T-blocks-ui-embed-app |
+| `./embed` | embed-app framed preview; `mountEmbed` only after **Start the app** | T-blocks-ui-embed-app |
 | `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | this scaffold |
+
+## Text and media renderers
+
+`@protoyard/blocks-ui/text` renders headings, safe Markdown text, lists,
+quotes, callouts and dividers. Markdown uses the bounded AST from
+`@protoyard/ai/markdown`; raw HTML remains text and unsafe link or image URLs
+are omitted. `@protoyard/blocks-ui/media` renders images, video and people.
+Image and video sources are checked again by the renderer, so unsupported
+remote sources do not become browser requests. Images include their declared
+dimensions and accessible alt text (or an empty alt for decorative images).
+Video is muted, inline and controlled; autoplay is disabled when the user
+prefers reduced motion. Loaded media bubbles a `blocks:media-ready` event for
+hosts that need to recalculate layout. People and `avatar:` media use the
+renderer avatar URL helper.
+
+## Structure family (`./structure`)
+
+Lazy chunk for timeline, steps, comparison, cards, icon, CTA and columns:
+
+- **Flow vs slide:** below 640 px in `canvasMode: 'flow'`, multi-column layouts
+  collapse to one column; `slide` keeps a fixed grid for the deck canvas.
+- **CTA:** every action has a schema-validated `href` run through `safeHref`.
+  Set `onCtaAction` on the host to handle clicks; return a promise so
+  `@protoyard/ui` `Button` shows pending feedback until it settles. Without a
+  host handler, external/mailto links navigate and hash/path links use `href`.
+- **Comparison** uses a real `<table>` with column and row headers.
+- **Columns** resolve nested blocks through the same dispatcher (lazy).
+- **Icons** come from `BLOCK_ICON_COMPONENTS` (static Lucide map).
+
+```ts
+setBlockHost({
+  canvasMode: 'flow',
+  onCtaAction: async ({ href }) => {
+    await router.navigate(href);
+  },
+});
+```
+
+Covered by `packages/blocks-ui/tests/structure.test.ts`.
 
 ## Interactive family (`./interactive`)
 
 Every change goes through `stateHost.dispatch` (a promise so `Button` can show
-pending). blocks-ui never imports `@protoyard/database` or Dexie.
+pending). blocks-ui never imports `@protoyard/database` or Dexie. Roots carry
+`data-py-deck-interactive` (`DECK_INTERACTIVE_ATTRIBUTE` from `@protoyard/decks`)
+so a click or swipe inside never advances a deck.
 
 ```svelte
 <script lang="ts">
@@ -98,7 +147,82 @@ setBlockHost({
 | `form` | Honest placeholder — responses belong to the pages form runtime |
 
 Map blocks load `@protoyard/views-ui/map` only from `./map` (not from the
-interactive chunk).
+interactive chunk) and also set `data-py-deck-interactive`.
+
+## Embed-app (`./embed`)
+
+An `embed-app` block is a framed level-1 app preview. The family chunk is small
+and does **not** load the app stack:
+
+```svelte
+<script lang="ts">
+import { BlockRenderer, setBlockHost } from '@protoyard/blocks-ui';
+import type { MountEmbed } from '@protoyard/blocks-ui';
+
+const mountEmbed: MountEmbed = (target, app) => {
+  // KINDS / player: validate with loadUntrustedBlueprint, then mount a level-1
+  // runtime into `target`. Return a disposer.
+  const stop = startLevel1(target, app);
+  return () => stop();
+};
+
+setBlockHost({ canvasMode: 'slide', mountEmbed });
+</script>
+
+<BlockRenderer blocks={[{ type: 'embed-app', id: 'try', title: 'Try it', app: blueprint }]} />
+```
+
+- **Lazy start.** Until the user clicks **Start the app** (or `startLabel`),
+  `mountEmbed` is never called and no app code is downloaded with the deck.
+- **Missing host.** Without `mountEmbed`, an accessible `role="note"` explains
+  that this host cannot start embedded apps.
+- **Errors.** A thrown mount is shown as `role="alert"`; the frame stays idle.
+- **Unmount.** Closing the app or destroying the block runs the disposer
+  returned by `mountEmbed` and clears the mount node.
+- **Keyboard.** While the app is running, Tab cycles inside the frame so deck
+  navigation keys are not stolen mid-input. The player / KINDS still own
+  arrow-key slide handling outside the frame.
+- **Budget.** The embed family chunk targets ≤ 2 KB gzip; the app loads only
+  on click (crud shell is a separate download).
+
+Coordinate `MountEmbed` with KINDS (`loadUntrustedBlueprint` + level-1 mount).
+See [PLAYER.md](../../docs/PLAYER.md#embedded-apps-in-decks-and-pages).
+
+## Data family (`./data`)
+
+`BlockFamilyRenderer` routes `stat`, `table` and `chart` blocks. `StatBlock`,
+`TableBlock` and `ChartBlock` are also exported, with the pure helpers
+(`formatCents`, `formatTableCell`, `columnAlign`, `chartValueFormatter`,
+`chartSeries`, `chartItems`, `isCartesianChart`).
+
+- **Stat row:** a region named by the title (or "Key figures") holding a
+  description list. Each figure is a term (label) with its value, delta,
+  context and an optional sparkline. The delta's tone shows as a theme-colored
+  dot, and screen readers hear it in words ("+12% (Positive)"), so color is
+  never the only signal. The text stays in the foreground color for contrast.
+  The `Sparkline` loads from `@protoyard/charts-ui/compact` only when a figure
+  has a `trend`.
+- **Table:** the caption is the accessible name. Headers are scoped `col`, a
+  leading text column becomes the row headers, and numeric columns align to
+  the end with tabular figures. Cells format by column: `number`, `percent`
+  and `cents` (integer minor units in the table's three-letter currency:
+  `123450` with `EUR` is `€1,234.50`). Empty cells show `—`, and
+  `highlightRow` is emphasized. The table scrolls inside a focusable region
+  named after it. Formatting uses `en-US`, never the system locale.
+- **Chart:** the AI chart spec (`ChartSpecSchema` from `@protoyard/ai/chart`)
+  is checked again at render time, and an invalid spec shows a note with the
+  reason instead of a chart.
+  - A valid chart shows its data table at once, then the chart when
+    `@protoyard/charts-ui/cartesian` (line, area, bar) or `/part-whole`
+    (donut, pie, funnel) arrives.
+  - Every charts-ui chart has its own "View as table" toggle, so the block
+    adds none. `showTable: true` keeps the table under the chart.
+  - If the chart chunk fails, the table stays, with a note.
+  - Charts draw with `--py-chart1..8`, so they follow every theme.
+- **Size** (real Vite build, gzip -9, over a shell that already ships zod and
+  the ui class helper, as every prototype does; 2026-10-21): the data chunk is
+  4,253 B, including the chart spec schema. The charts-ui families stay
+  separate lazy chunks: cartesian 11.1 KB, part-whole 9.5 KB, compact 3.4 KB.
 
 ## Icons
 

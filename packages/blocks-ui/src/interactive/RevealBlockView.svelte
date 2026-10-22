@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { RevealBlock as RevealBlockType } from '@protoyard/blocks';
 import { Button } from '@protoyard/ui';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import NestedBlocks from './NestedBlocks.svelte';
 import { useBlockState } from './use-block-state.svelte.ts';
 
@@ -12,6 +13,7 @@ const openLabel = $derived(block.openLabel ?? block.label);
 <section
   class="grid gap-2 rounded-lg border border-border bg-card p-3"
   data-py-block="reveal"
+  {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   data-block-id={block.id}
 >
   <Button

@@ -1,3 +1,4 @@
+<!-- BEGIN GENERATED BLOCK CATALOG: keep this region in sync with renderBlockCatalogMarkdown(). -->
 <!-- Generated from @protoyard/blocks/catalog. Do not edit by hand. -->
 
 # Blocks reference
@@ -643,4 +644,142 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - kinds: prompt, output, comment
 
 **Accessibility:** Rendered as preformatted text in a focusable, labelled region; prompts are marked in text.
+
+<!-- END GENERATED BLOCK CATALOG -->
+
+# Authoring and rendering blocks
+
+Protoyard decks, pages and documents share the same JSON block vocabulary. A
+block is content data: it is validated against the closed schemas and is never
+executed as code or rendered as HTML. Blueprint files, shared blueprint data,
+and restored snapshots are untrusted input even when they came from a known
+author. Keep validation at the boundary where data enters the app.
+
+## Choose a block family
+
+Most blocks display authored content: text (`heading`, `text`, `list`, `quote`,
+`callout`, `divider`), media (`image`, `video`, `people`), data (`stat`,
+`table`, `chart`), structure (`timeline`, `steps`, `comparison`, `cards`,
+`icon`, `cta`), code, and static diagrams (`flow`, `tree`, `board`,
+`terminal`). `columns` arranges child blocks. These blocks do not create
+viewer-editable application state.
+
+Interactive controls are `tabs`, `reveal`, `poll`, `quiz`, `calculator`,
+`counter`, `chart-controls`, and `form`. The form block collects simulated
+values; `@protoyard/pages` owns response records. `map` is a simulated map view,
+and `embed-app` mounts a bounded app blueprint supplied by its host. They are
+hosted content, not arbitrary embedded HTML. Every stateful or hosted block
+requires a stable `id`; the closed list is exported as `STATEFUL_BLOCK_TYPES`,
+with the remaining types in `STATIC_BLOCK_TYPES`.
+
+Use the generated catalog above for each type's `useWhen`, `dontUseWhen`,
+limits and accessibility guidance. It is rendered from `BLOCK_CATALOG`; do not
+edit its contents by hand. The family and type lists are exported from
+`@protoyard/blocks` (`BLOCK_TYPES` and `BLOCK_TYPE_FAMILY`).
+
+## Validate before rendering
+
+Use the schema parser for plain block data. It rejects unknown fields, invalid
+types and duplicate ids and returns structured paths for errors:
+
+```ts
+import { safeParseBlocks } from '@protoyard/blocks';
+
+const blocks: unknown = [
+  { type: 'heading', text: 'Launch plan', level: 1 },
+  { type: 'text', markdown: 'A **bounded** outline with useful detail.' },
+  { type: 'cta', actions: [{ label: 'Read the details', href: '#details' }] },
+];
+const result = safeParseBlocks(blocks);
+if (!result.success) {
+  for (const issue of result.issues) {
+    console.error(issue.jsonPath, issue.message);
+  }
+}
+```
+
+For an external JSON string or object, use `parseUntrustedBlocks` instead. It
+applies the document limits before parsing: 1 MiB of JSON, depth 12, up to
+2,000 blocks, and the media caps in `BLOCK_LIMITS`. It normalizes CRLF,
+removes unsafe control and bidirectional characters, rejects prototype-related
+keys, and reports path-addressed issues with fix hints. Caller-provided limits
+can be lowered but not raised. Schema validation does not make external data
+trusted; keep it inert after parsing too.
+
+## Text, links and media safety
+
+Rich text is bounded Markdown, not HTML. The `text.markdown`, `callout.body`,
+and related Markdown fields are parsed at render time by the safe parser from
+`@protoyard/ai/markdown`; raw HTML is not part of the format. Do not pass block
+fields to `{@html}`, `innerHTML`, an evaluator, or a code execution API.
+Code blocks display text through the small tokenizer in `@protoyard/blocks/code`;
+highlighted tokens remain text.
+
+Links in CTAs and cards use the exported `LinkHrefSchema`: supported values are
+HTTP(S), `mailto:`, `#anchor`, and safe relative paths. Script, data, file,
+protocol-relative, and other unsupported schemes are rejected rather than
+rewritten.
+
+Image and video sources use the media schemas. Level 1 permits fictional
+avatar ids and bounded raster data URIs; it does not load remote media. Relative
+asset paths are for level 2 and still pass the host's asset checks. SVG, remote
+URLs, root-absolute paths, backslashes and parent-directory segments are
+rejected. Images require alternative text unless marked decorative, and video
+requires a label; autoplay must be muted. Keep captions and labels visible so
+meaning is not carried only by an image, icon, or color.
+
+## Lazy rendering boundary
+
+`@protoyard/blocks-ui` exposes a small root dispatcher and separate family
+subpaths. `BlockRenderer` checks data again at the rendering boundary, loads
+the family renderer asynchronously, shows a loading state, and uses a bounded
+note for invalid or unsupported blocks. Import only the family a custom host
+needs; do not pull family renderers into `@protoyard/ui`'s shared barrel.
+
+| Subpath | Family |
+| --- | --- |
+| `@protoyard/blocks-ui/text` | Headings, rich text, lists, quotes, callouts and dividers |
+| `@protoyard/blocks-ui/media` | Images, video and fictional people/avatars |
+| `@protoyard/blocks-ui/data` | Stats, tables and charts |
+| `@protoyard/blocks-ui/structure` | Timelines, steps, comparison, cards, icons, CTAs and columns |
+| `@protoyard/blocks-ui/code` | Code with stepped highlighting |
+| `@protoyard/blocks-ui/diagram` | Flow, tree, board and terminal |
+| `@protoyard/blocks-ui/interactive` | Poll, quiz, calculator, tabs/reveal, counter and chart controls |
+| `@protoyard/blocks-ui/map` | Offline simulated map |
+| `@protoyard/blocks-ui/embed` | Host-mounted app blueprint |
+
+The root entry does not statically import family renderers, and none of these
+families belong in the `@protoyard/ui` barrel. This keeps a host's reachable
+graph limited to the families it renders.
+
+## Interactive state and accessibility
+
+Renderers do not write database rows. Stateful controls read and dispatch
+through the `BlockStateHost` contract from `@protoyard/blocks/interactive`,
+keyed by `<documentId>/<blockId>`. The kind runtime supplies a service-backed
+host that validates actions and persists them; `createMemoryBlockStateHost()`
+is for previews and tests. State and restored snapshots remain untrusted and
+are validated against the current block definition.
+
+The catalog's `a11y` entry documents each block's expectations. Preserve
+semantic headings, lists, captions and labels; provide image alternatives;
+make controls operable by keyboard; and never use color as the only signal.
+Interactive actions should expose their state and result in text, and host
+buttons should provide pending feedback while an asynchronous dispatch is in
+flight. Check both color themes and reduced-motion preferences in the host.
+
+## Contract checks
+
+Run the package tests and documentation link check after changing authoring
+content or renderer behavior:
+
+```sh
+pnpm vitest run packages/blocks
+pnpm vitest run packages/blocks-ui
+pnpm check:docs
+```
+
+`packages/blocks/tests/catalog.test.ts` checks catalog completeness and
+examples. `packages/blocks/tests/catalog-docs.test.ts` checks that the marked
+reference remains byte-for-byte equal to `renderBlockCatalogMarkdown()`.
 

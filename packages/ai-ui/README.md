@@ -117,3 +117,33 @@ import {
 
 Bundle note: the approvals subpath is optional; assistant workspace entry graphs
 do not import it until a screen does.
+
+## Chat message blocks (lazy)
+
+Import `ChatMessageBlocks` from `@protoyard/ai-ui/messages` to render
+`protoyard.message@1` messages from `@protoyard/ai/messages`. It renders text
+(plain or safe markdown), buttons with inline confirmations, selects, forms,
+tables, link previews, attachments and the fallback for unknown blocks.
+
+```svelte
+<script lang="ts">
+import { ChatMessageBlocks, type MessageActionEvent } from '@protoyard/ai-ui/messages';
+
+let { message, services } = $props();
+const onAction = (event: MessageActionEvent) => services.chat.respond(event);
+</script>
+
+<ChatMessageBlocks {message} {onAction} onOpenAttachment={(file) => services.files.open(file.id)} />
+```
+
+- **Validation:** input is always validated with `parseChatMessage`. An invalid
+  message shows a short note and none of its content.
+- **Actions:** buttons, selects and forms report one typed `MessageActionEvent`
+  (`kind: "button" | "select" | "form"`) through `onAction`. The returned
+  promise drives pending, error and done feedback. Without `onAction` the
+  controls are disabled with a note.
+- **No data writes:** the component never writes data. Route every action
+  through a service (`session.assert` → zod → `environment.run`).
+- **Size:** about 13.6 KB gzip over `RichAnswer` (zod external), and only for
+  screens that import the subpath.
+
