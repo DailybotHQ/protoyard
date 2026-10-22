@@ -39,8 +39,9 @@ function handleFocusOut(event: FocusEvent): void {
 <section
   aria-label={label}
   class={cn(
-    'pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]',
-    'sm:inset-x-auto sm:right-0 sm:justify-end sm:p-6',
+    // `--py-fixed-right-edge` (set by the renderer) keeps toasts inside a narrower visual viewport.
+    'pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center pl-4 pr-[calc(1rem+var(--py-fixed-right-edge,0px))] pb-[max(1rem,env(safe-area-inset-bottom))]',
+    'sm:inset-x-auto sm:right-0 sm:justify-end sm:p-6 sm:pr-[calc(1.5rem+var(--py-fixed-right-edge,0px))]',
     className
   )}
 >

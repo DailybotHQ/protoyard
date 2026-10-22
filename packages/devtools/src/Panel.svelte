@@ -237,7 +237,7 @@ function presentationMode() {
       <button
         bind:this={launcher}
         type="button"
-        class="fixed top-1/2 right-0 z-[2147483000] inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-l-xl border border-r-0 border-border bg-elevated text-primary shadow-float focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        class="fixed top-1/2 right-[var(--py-fixed-right-edge,0px)] z-[2147483000] inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-l-xl border border-r-0 border-border bg-elevated text-primary shadow-float focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         aria-label="Open Protoyard DevTools (Ctrl or Command + period)"
         aria-expanded="false"
         onclick={() => setOpen(true)}
@@ -248,7 +248,7 @@ function presentationMode() {
       <button
         bind:this={launcher}
         type="button"
-        class="fixed right-4 z-[2147483000] inline-flex h-11 items-center gap-2 rounded-full border border-border bg-elevated pr-4 pl-3 text-xs font-semibold text-foreground shadow-float transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+        class="fixed right-[calc(1rem+var(--py-fixed-right-edge,0px))] z-[2147483000] inline-flex h-11 items-center gap-2 rounded-full border border-border bg-elevated pr-4 pl-3 text-xs font-semibold text-foreground shadow-float transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
         style:bottom={navOffset > 0
           ? `calc(${navOffset + 12}px + var(--py-devtools-offset, 0px))`
           : 'calc(1rem + env(safe-area-inset-bottom, 0px) + var(--py-devtools-offset, 0px))'}
@@ -269,7 +269,7 @@ function presentationMode() {
   {:else}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -- Escape-to-close is delegated from the whole dock. -->
     <aside
-      class="fixed inset-x-0 bottom-0 z-[2147483000] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-background shadow-float sm:inset-x-auto sm:right-4 sm:bottom-4 sm:h-[min(680px,calc(100dvh-2rem))] sm:max-h-none sm:w-[400px] sm:rounded-xl"
+      class="fixed inset-x-0 bottom-0 z-[2147483000] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-background shadow-float sm:inset-x-auto sm:right-[calc(1rem+var(--py-fixed-right-edge,0px))] sm:bottom-4 sm:h-[min(680px,calc(100dvh-2rem))] sm:max-h-none sm:w-[400px] sm:rounded-xl"
       aria-label="Protoyard DevTools"
       onkeydown={onPanelKeydown}
     >

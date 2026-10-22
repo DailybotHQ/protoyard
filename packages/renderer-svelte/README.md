@@ -46,6 +46,11 @@ When DevTools is present, review mounts first, and DevTools shows its
 `placeFloating` (`src/shell/floating.ts`), which uses the demo badge's rules:
 no app control, never on the badge. The badge re-places itself on
 `protoyard:floating`.
+`mountPrototype` also keeps `--py-fixed-right-edge` on `<html>` current
+(`trackFixedRightEdge`). It is the number of layout-viewport pixels hidden past
+the visible right edge, which is `0px` unless phone emulation or pinch zoom makes
+the visual viewport narrower. Fixed chrome adds it to its `right` offset: the
+unplaced review toolbar, the DevTools launcher and the `Toaster` do.
 
 `mountPrototype` also accepts `devtoolsTabs?: readonly DevtoolsTab[]` for
 prototype-owned panels such as Deck Studio. These lazy tabs are combined with

@@ -1,12 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CONTROL_COST, type Rect } from '../src/shell/badge-placement.ts';
 import {
+  FIXED_RIGHT_EDGE_VAR,
   FLOATING_EVENT,
   FLOATING_INSET,
   floatingSpots,
   pickFloatingSpot,
   placeFloating,
+  trackFixedRightEdge,
   visiblePlacementContainer,
+  visibleRightEdge,
 } from '../src/shell/floating.ts';
 
 const VIEW: Rect = { left: 0, top: 0, width: 400, height: 800 };
@@ -426,5 +429,49 @@ describe('floating chrome placement', () => {
     expect(placeReads.mock.calls.length).toBeGreaterThan(readsAfterMount);
 
     placement.destroy();
+  });
+});
+
+describe('the visible right edge for fixed chrome', () => {
+  const viewport = (values: { width: number; offsetLeft: number }) =>
+    Object.assign(new EventTarget(), { height: 700, offsetTop: 0, ...values });
+
+  it('is the layout width hidden to the right of the visual viewport, never negative', () => {
+    const vv = (width: number, offsetLeft: number) =>
+      ({ width, offsetLeft }) as unknown as VisualViewport;
+    expect(visibleRightEdge({ innerWidth: 980, visualViewport: vv(390, 0) })).toBe(590);
+    expect(visibleRightEdge({ innerWidth: 980, visualViewport: vv(390, 100) })).toBe(490);
+    expect(visibleRightEdge({ innerWidth: 390, visualViewport: vv(390, 0) })).toBe(0);
+    expect(visibleRightEdge({ innerWidth: 390, visualViewport: vv(390.4, 0.3) })).toBe(0);
+    expect(visibleRightEdge({ innerWidth: 800, visualViewport: null })).toBe(0);
+  });
+
+  it('keeps --py-fixed-right-edge current on visual viewport changes and removes it on stop', () => {
+    const vv = viewport({ width: 390, offsetLeft: 0 });
+    const win = Object.assign(new EventTarget(), {
+      innerWidth: 980,
+      visualViewport: vv,
+    }) as unknown as Window;
+    const root = document.createElement('html');
+    const stop = trackFixedRightEdge(root, win);
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('590px');
+
+    Object.assign(vv, { offsetLeft: 200 });
+    vv.dispatchEvent(new Event('scroll'));
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('390px');
+
+    Object.assign(vv, { width: 780 });
+    vv.dispatchEvent(new Event('resize'));
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('0px');
+
+    Object.assign(win, { innerWidth: 1000 });
+    win.dispatchEvent(new Event('resize'));
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('20px');
+
+    stop();
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('');
+    Object.assign(vv, { offsetLeft: 0, width: 100 });
+    vv.dispatchEvent(new Event('resize'));
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('');
   });
 });
