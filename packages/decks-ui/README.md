@@ -18,11 +18,9 @@ lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 | --- | --- | --- |
 | `@protoyard/decks-ui` | `fitDeckCanvas(container, canvas)` → `{ scale, offsetX, offsetY }`: letterboxed scale-to-fit, and scale 0 until the container has a size | available |
 | `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer` and `loadLayoutRenderer(layoutId)`: validated catalog rendering through lazy text, media, data and diagram families | available |
-| `@protoyard/decks-ui/app` | `DeckApp` — canvas, layouts, hash navigation, guarded input, step chrome, aria-live, lazy overview (O) | available |
+| `@protoyard/decks-ui/app` | `DeckApp` — canvas, layouts, hash navigation, guarded input, step chrome, presenting tools (blackout, full screen, laser, copy reference, keyboard help), print, aria-live, lazy overview (O) | available |
 | `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page fallback | reserved (T-decks-presenter) |
 | `@protoyard/decks-ui/print` | Print and PDF, one slide per page (`DeckPrint`, `PrintButton`, `print.css`) | **available** (T-decks-print) |
-| `@protoyard/decks-ui/studio` | Deck Studio, a lazy DevTools tab that exports RFC 6902 patches | reserved (T-decks-studio) |
-| `@protoyard/decks-ui/print` | Print and PDF, one slide per page | reserved (T-decks-print) |
 | `@protoyard/decks-ui/studio` | Deck Studio: `createDeckStudio`, `deckStudioTab`, a lazy DevTools tab that edits the deck live and exports RFC 6902 patches | available |
 | `@protoyard/decks-ui/styles.css` | Tailwind `@source` for the package | available |
 
@@ -69,10 +67,13 @@ import type { Deck } from '@protoyard/decks';
 - guarded keyboard, click and swipe via `decideDeckInput` / `inputPathFrom`
 - progress bar and slide-number chrome (`data-py-deck-chrome`)
 - `aria-live` announcements (`Slide n of N`) and `aria-roledescription="slide"`
-- blackout, overview and help overlays
+- presenting tools: blackout, full screen, laser, copy slide reference and keyboard help (see below)
+- lazy overview grid (see below)
 - print: `?print=1` (optional `&notes=1`), chrome **Print** button, Ctrl/Cmd+P
   / `beforeprint` swap to `DeckPrint` (one page per non-hidden slide, all steps
   revealed, `@page` size = virtual canvas, `print-color-adjust: exact`)
+
+Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
 
 ### Overview grid (O)
 
@@ -83,7 +84,26 @@ keys move the selection, **Enter** / click opens that slide **once**, **Esc**
 closes without changing the slide. The input guard already ignores click-to-advance
 while the overview is open or closing, so a thumbnail never double-advances.
 
-Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
+### Presenting tools
+
+Each tool is a key and a real, named button in the chrome toolbar (`src/chrome/`). Toggles
+report `aria-pressed`, and the help button reports `aria-expanded`:
+
+| Key | Button | What it does |
+| --- | --- | --- |
+| `B` or `.` | Black out the screen | A black screen over everything. The screen itself is a button: a click, `B` or `Esc` brings the slide back, and never advances the deck. |
+| `F` | Full screen | Puts the deck root in browser full screen with every piece of chrome hidden (progress, slide number, toolbar). `F` or `Esc` leaves. The button is not rendered where the browser has no Fullscreen API. |
+| `L` | Laser pointer | A red dot that follows the pointer (and replaces the cursor) until `L` or `Esc`. While it is on, clicks do not advance. |
+| — | Copy slide reference | Copies `<title> · <slide-id> · #/<id>/<step>`: the slide title (else the deck title) and the deep link to the exact step. Uses the Clipboard API with an `execCommand` fallback, and announces "Slide reference copied" or "Could not copy the slide reference". |
+| `?` | Keyboard shortcuts | A dialog generated from `DECK_KEY_BINDINGS` (the input guard's own table), so it can never drift from the keys. It focuses Close, and `Esc` or `?` closes it. |
+
+The level-1 entry calls the Fullscreen API directly. A level-2 prototype that also wants the
+renderer's frame handling can call `enterFullScreen` / `exitFullScreen` from the renderer. The
+helpers (`slideReference`, `copyText`, `toggleFullscreen`, `fullscreenAvailable`,
+`onFullscreenChange`) and the components live in `src/chrome/index.ts`. They add about 2.4 KB
+gzip to the DeckApp entry. With print and the lazy overview also merged, the entry measured
+78,501 B gzip on 2026-10-22: a Vite build of `@protoyard/decks-ui/app`, excluding CSS and
+themes. Overview, studio and presenter code is not in that first chunk.
 
 ## Print (`./print`)
 
@@ -97,6 +117,7 @@ stylesheet declares `@page { size: var(--py-deck-print-width) var(--py-deck-prin
 and `break-after: page`. Speaker notes render under each page when `notes` is
 true. Visual PDF QA belongs to SITE_QA; this package proves DOM and CSS structure
 (`pnpm vitest run packages/decks-ui/tests/print.test.ts`).
+
 ## Untrusted content
 
 Deck strings (titles, props, notes) render as text. decks-ui has no `{@html}`, `innerHTML`,

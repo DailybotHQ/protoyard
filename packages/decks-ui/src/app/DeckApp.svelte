@@ -11,6 +11,18 @@ import {
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import { onMount } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
+import {
+  BlackoutScreen,
+  type DeckToolAction,
+  DeckToolbar,
+  fullscreenAvailable,
+  isFullscreen,
+  KeyboardHelp,
+  LaserPointer,
+  onFullscreenChange,
+  slideReference,
+  toggleFullscreen,
+} from '../chrome/index.ts';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
 import { DeckPrint, PrintButton, parseDeckPrintFlags } from '../print/index.ts';
 
@@ -45,6 +57,11 @@ let inputState = $state<DeckInputState>({
   laser: false,
   help: false,
 });
+/** True while the deck root is the browser's full screen element (all chrome hidden). */
+let fullscreen = $state(false);
+let canFullscreen = $state(false);
+const uid = $props.id();
+const helpId = `deck-help-${uid}`;
 /** Stable navigator for the current deck; rebuilt only when the deck changes. */
 let nav = $state.raw<DeckNavigator | null>(null);
 
@@ -150,11 +167,9 @@ function runAction(action: string): void {
       break;
     case 'fullscreen':
       if (typeof document === 'undefined') break;
-      if (!document.fullscreenElement) {
-        void rootEl?.requestFullscreen?.();
-      } else {
-        void document.exitFullscreen?.();
-      }
+      void toggleFullscreen(rootEl).then((on) => {
+        fullscreen = on;
+      });
       break;
     case 'presenter':
       // Presenter window is a dedicated surface (T-decks-presenter).
@@ -269,6 +284,21 @@ function layoutPropsFor(slide: DeckSlide): { layout: string; props: unknown } {
   };
 }
 
+/** `<title> · <slide-id> · #/<id>/<step>` for the current slide and step. */
+function currentReference(): string {
+  const id = location?.slideId ?? deck.slides[0]?.id ?? '';
+  const slide = deck.slides.find((candidate) => candidate.id === id);
+  return slideReference({
+    title: slide?.title ?? deck.outline?.title ?? null,
+    slideId: id,
+    step: location?.step ?? 0,
+  });
+}
+
+function onTool(action: DeckToolAction): void {
+  runAction(action);
+}
+
 function goOverview(slideId: string): void {
   if (!nav) return;
   // Close first so a bubbling click cannot double-advance while open/closing.
@@ -283,6 +313,10 @@ function closeOverview(): void {
 onMount(() => {
   if (autofocus && !showPrint) rootEl?.focus({ preventScroll: true });
   if (typeof window === 'undefined') return undefined;
+  canFullscreen = fullscreenAvailable();
+  const stopFullscreen = onFullscreenChange(() => {
+    fullscreen = isFullscreen(rootEl);
+  });
   const onBeforePrint = () => {
     printing = true;
   };
@@ -298,6 +332,7 @@ onMount(() => {
   window.addEventListener('popstate', onPopState);
   if (syncHash) window.addEventListener('hashchange', onHashChange);
   return () => {
+    stopFullscreen();
     window.removeEventListener('beforeprint', onBeforePrint);
     window.removeEventListener('afterprint', onAfterPrint);
     window.removeEventListener('popstate', onPopState);
@@ -318,6 +353,8 @@ onMount(() => {
   data-slide-id={location?.slideId ?? ''}
   data-slide-step={activeStep}
   data-blackout={inputState.blackout ? 'true' : undefined}
+  data-laser={inputState.laser ? 'true' : undefined}
+  data-fullscreen={fullscreen ? 'true' : undefined}
   role="application"
   aria-label={deck.outline?.title ?? 'Presentation'}
   tabindex="0"
@@ -353,7 +390,8 @@ onMount(() => {
     </DeckCanvas>
   </div>
 
-  <!-- Chrome: progress + slide number (guarded from advancing the deck). -->
+  <!-- Chrome: progress, slide number and presenting tools (guarded from advancing the deck). Hidden in full screen. -->
+  {#if !fullscreen}
   <div
     class="deck-app__chrome pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-3"
     data-py-deck-chrome
@@ -379,17 +417,28 @@ onMount(() => {
     >
       {slideLabel}
     </p>
-    <div class="pointer-events-auto shrink-0" data-py-deck-chrome>
+    <div class="pointer-events-auto flex shrink-0 items-center gap-1" data-py-deck-chrome>
+      <DeckToolbar
+        blackout={inputState.blackout === true}
+        laser={inputState.laser === true}
+        help={inputState.help === true}
+        {fullscreen}
+        fullscreenAvailable={canFullscreen}
+        {helpId}
+        reference={currentReference}
+        onaction={onTool}
+      />
       <PrintButton />
     </div>
   </div>
+  {/if}
+
+  {#if inputState.laser}
+    <LaserPointer container={rootEl} />
+  {/if}
 
   {#if inputState.blackout}
-    <div
-      class="absolute inset-0 z-20 bg-black"
-      data-py-deck-blackout
-      aria-hidden="true"
-    ></div>
+    <BlackoutScreen onclose={() => runAction('blackout')} />
   {/if}
 
   {#if inputState.overview === 'open'}
@@ -424,23 +473,7 @@ onMount(() => {
   {/if}
 
   {#if inputState.help}
-    <div
-      class="absolute inset-0 z-30 grid place-items-center bg-background/90 p-6 backdrop-blur"
-      data-py-deck-help
-      role="dialog"
-      aria-label="Keyboard shortcuts"
-    >
-      <div class="max-w-md rounded-xl border border-border bg-card p-6 shadow-lg">
-        <h2 class="mb-3 text-lg font-semibold">Keyboard shortcuts</h2>
-        <ul class="space-y-1 text-sm text-muted-foreground">
-          <li><kbd>→</kbd> / <kbd>Space</kbd> — next step or slide</li>
-          <li><kbd>←</kbd> — previous step or slide</li>
-          <li><kbd>Home</kbd> / <kbd>End</kbd> — first / last slide</li>
-          <li><kbd>O</kbd> — overview · <kbd>B</kbd> — blackout · <kbd>?</kbd> — help</li>
-          <li><kbd>Esc</kbd> — close overlay</li>
-        </ul>
-      </div>
-    </div>
+    <KeyboardHelp id={helpId} onclose={() => runAction('help')} />
   {/if}
 
   <div class="sr-only" aria-live="polite" aria-atomic="true" data-py-deck-live>
@@ -452,6 +485,11 @@ onMount(() => {
 <style>
   .deck-app :global([data-py-deck-slide]) {
     view-transition-name: deck-slide;
+  }
+
+  /* The laser dot replaces the cursor while it is on. */
+  .deck-app[data-laser='true'] {
+    cursor: none;
   }
 
   @supports not (view-transition-name: none) {
