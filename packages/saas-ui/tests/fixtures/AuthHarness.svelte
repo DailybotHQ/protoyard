@@ -13,11 +13,15 @@ import SignUp from '../../src/screens/auth/SignUp.svelte';
 import VerifyEmail from '../../src/screens/auth/VerifyEmail.svelte';
 import OAuthConsent from '../../src/screens/oauth/Consent.svelte';
 import OAuthLink from '../../src/screens/oauth/Link.svelte';
+import PhoneCode from '../../src/screens/PhoneCode.svelte';
+import PhoneSignIn from '../../src/screens/PhoneSignIn.svelte';
 import Settings from '../../src/screens/settings/Settings.svelte';
 
 type AuthScreen =
   | 'magic'
   | 'mfa'
+  | 'phone-code'
+  | 'phone-sign-in'
   | 'reset'
   | 'sign-in'
   | 'sign-up'
@@ -55,6 +59,10 @@ provideSaas(
   <MagicLink />
 {:else if screen === 'mfa'}
   <Mfa />
+{:else if screen === 'phone-sign-in'}
+  <PhoneSignIn />
+{:else if screen === 'phone-code'}
+  <PhoneCode />
 {:else if screen === 'reset'}
   <ResetPassword />
 {:else if screen === 'sso'}

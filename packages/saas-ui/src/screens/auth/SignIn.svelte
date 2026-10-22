@@ -83,6 +83,7 @@ async function submit() {
     <CardFooter class="flex flex-wrap justify-between gap-2">
       <Button href={routeHref(config.signUpPath)} variant="ghost">Create account</Button>
       <Button href="#/auth/magic" variant="outline">Use a magic link</Button>
+      <Button href="#/auth/phone" variant="outline">Continue with a phone number</Button>
     </CardFooter>
     <CardFooter>
       <Button href="#/auth/reset" variant="link">Forgot password?</Button>
