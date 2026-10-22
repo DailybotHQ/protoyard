@@ -664,6 +664,46 @@ payments, auth). No app entities or roles.
 `isAppBriefResult` / `isContentBriefResult`. Content drafts carry `kind`, `outline`, `json` and
 `rationale` (no app `entities` / `roles`); engine body schemas validate them once wired.
 
+### Deck outline templates
+
+`src/brief/deck-outlines.ts` has eight deterministic deck outlines: pitch, QBR, launch, status,
+training, lesson, report and talk (`DECK_OUTLINE_IDS`).
+
+`synthesizeDeckOutline(brief, { outline?, slides?, title? })` returns:
+
+- `deck`: a deck body (`{ title, aspect, slides }`) of free slides
+  (`{ id, title, layout: "free", blocks, notes }`) built from `@protoyard/blocks` blocks;
+- `plan`: one `{ id, role, pacing, purpose, core }` per slide, read by layout selection;
+- `rationale`: why this outline and size were chosen.
+
+- **Choosing a template.** `chooseDeckOutline` matches whole-word cues, and multi-word cues
+  count more ("status update" beats "update", "pitch deck" beats "deck"). With no cue it uses
+  the general talk outline and says so. An explicit `outline` wins.
+- **Size.** `requestedSlideCount` reads "12 slides", "a ten-slide pitch" or "a 15-minute talk"
+  (one slide a minute); `slides` overrides it.
+  - Each template has core slides, which are always present, and optional slides, which fill
+    a larger count in template order (`deckOutlineRange`). Templates range from 6 to 12
+    slides (pitch 7–12, QBR 7–11, launch 6–9, status 6–8, training 8–11, lesson 6–9, report
+    6–10, talk 6–11), under a cap of 16.
+  - A count outside the range is clamped, and the rationale says so.
+  - Slide ids (`slide-<key>`) are stable at every size.
+- **Pacing.** Every slide is tagged punch (one line, about 8 s), idea (one concept, about 25 s),
+  diagram (a structure to walk through) or story (a sequence). Speaker notes repeat the purpose
+  and the pacing guidance.
+- **Honest scaffolding.** Every slide body is a placeholder marked "Draft:" that says what to
+  write. Metrics show "—", charts are a note asking for real data, people are "Person 1…", and
+  nothing links anywhere. No facts, numbers, quotes or names are invented.
+  - Lessons and training always get a placeholder quiz. A warm-up poll (lessons) or an
+    audience poll (talks) is optional and appears when the slide count leaves room.
+  - The deck title is the brief's topic (after about/on/for), with control and bidi
+    characters stripped, at most 80 characters.
+- **Deterministic.** The same brief and options always give the same slide ids, order, blocks
+  and rationale. The module never reads the clock or a random source.
+
+The module is not yet exported from the package entry, and `synthesizeDeckFromBrief` still
+returns the three-slide generic outline. Wiring them together is a one-line switch once the deck
+body schema ships.
+
 ## Workflow state models
 
 `@protoyard/blueprint/workflows` validates a workflow separately from the formatVersion 1
