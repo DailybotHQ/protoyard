@@ -75,7 +75,7 @@ deploy.
 | Command | Options | What it does | Status |
 | --- | --- | --- | --- |
 | `protoyard doctor` | `--offline` | check Node, pnpm, dependencies, layout, templates, git, Playwright and provider CLIs. With `--json`, the envelope also has top-level `interface` and `capabilities` (new since 1.0.0) | Released; new output (`interface`, `capabilities`) |
-| `protoyard list` | `--kind <kind>`, `--tag <tag>`, `--category <category>`, `--platform <platform>`, `--search <text>`, `--sort <field>` | list prototypes and templates from the registry | Released (1.0.0) |
+| `protoyard list` | `--kind <kind>`, `--tag <tag>`, `--category <category>`, `--platform <platform>`, `--search <text>`, `--sort <field>`, `--all` (new) | list prototypes and templates from the registry. An optional `protoyard.workspace.json` `listing.include.category` limits the default listing; `--all` (or `PROTOYARD_LISTING=all`) shows every entry | Released; new options marked |
 | `protoyard index` | `--force` | scan protoyard.json manifests (no code runs) and write .protoyard/registry.json | Released (1.0.0) |
 | `protoyard affected` | `--since <ref>`, `--format <fmt>` | list prototype slugs affected by changes since a git ref (for selective CI builds) | Released (1.0.0) |
 | `protoyard gallery` | `-p, --port <port>`, `--control-port <port>`, `--allow-origin <origins>`, `--allow-create` | index, start the control server and run the gallery (what `pnpm dev` runs) | Released (1.0.0) |

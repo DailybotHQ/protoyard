@@ -143,6 +143,31 @@ It needs a workspace and never replaces a prototype. From there, follow
 [Generator](GENERATOR.md#promoting-a-quick-exploration) and
 [Brief to prototype](BRIEF_TO_PROTOTYPE.md).
 
+**Workspace listing.** A workspace can limit its default listings to some
+catalog categories with an optional `protoyard.workspace.json` at the root:
+
+```json
+{ "listing": { "include": { "category": ["sales"] }, "appliesTo": ["prototype"] } }
+```
+
+- **What it filters:** `protoyard list`, the gallery and marketplace, the
+  showcase and the review index show only entries whose `protoyard.json`
+  `category` is listed. With `appliesTo`, only the named kinds (`prototype`,
+  `template`, `blueprint`) are filtered and the others are all shown.
+- **What it leaves alone:** the registry file keeps every entry, and commands
+  that name a slug (`dev`, `build`, `export`, `validate`, `showcase --slugs`)
+  are never filtered.
+- **A promoted exploration** is filtered like any prototype, by the
+  `category` in its `protoyard.json`. If that category is not included, the
+  new prototype exists and builds, but the listings above do not show it.
+- **Seeing everything:** `protoyard list --all`, or `PROTOYARD_LISTING=all`
+  for any command and for the gallery build. `list` reports how many entries
+  were hidden.
+- **No file:** with no file, or no `listing.include.category`, everything is
+  listed. An invalid file is reported and lists everything.
+- **Quick explorations are not filtered:** they are not registry entries, so
+  `quick list` and `quick index` always show them all.
+
 ### 10. Prune
 
 ```bash

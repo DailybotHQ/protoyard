@@ -12,6 +12,7 @@ import { buildPrototype, scanForForeignCode } from '../lib/build.ts';
 import { digestDirectory } from '../lib/checksum.ts';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
+import { applyListing, readListingConfig } from '../lib/listing.ts';
 import { lanAddresses, untilSignal } from '../lib/network.ts';
 import { CliError, formatBytes, mark, toCliError } from '../lib/output.ts';
 import { BUILD_MARKER, guardOutputDir, SHOWCASE_MARKER } from '../lib/output-guard.ts';
@@ -536,7 +537,12 @@ export const showcaseCommand: Handler = async (ctx, _args, options): Promise<Com
     };
   }
 
-  const { registry } = await buildIndex(ctx.paths);
+  const indexed = await buildIndex(ctx.paths);
+  // The site lists what the gallery lists (protoyard.workspace.json), so no
+  // hidden demo is built and published unlinked; named slugs are explicit.
+  const listing = slugs ? null : readListingConfig(ctx.root);
+  if (listing?.problem) ctx.out.warn(listing.problem);
+  const registry = applyListing(indexed.registry, listing?.rule ?? null).registry;
   // Templates are bundled by default (the marketplace tries every product type);
   // `--no-templates` leaves them out. `--include-templates` is still accepted.
   const entries = selectShowcaseEntries(registry.entries, {

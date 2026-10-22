@@ -110,6 +110,7 @@ export function createProgram(env: RunnerEnv): Command {
     .addOption(
       new Option('--sort <field>', 'name or modified').choices(['name', 'modified']).default('name')
     )
+    .option('--all', 'ignore the protoyard.workspace.json listing filter')
     .action(def('list', listCommand));
 
   program

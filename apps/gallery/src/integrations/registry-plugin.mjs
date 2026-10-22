@@ -39,8 +39,105 @@ const IMAGE_TYPES = {
  * @typedef {{ source: string; file: string; url: string }} Thumbnail
  */
 
-/** @param {string} registryPath */
-export function readRegistry(registryPath) {
+const LISTING_CONFIG_FILE = 'protoyard.workspace.json';
+const LISTING_KINDS = ['prototype', 'template', 'blueprint'];
+
+/**
+ * The workspace listing rule, the same as `readListingConfig` in
+ * packages/cli/src/lib/listing.ts (kept here so the gallery build does not
+ * depend on the CLI; both are tested on the same cases). An optional
+ * `protoyard.workspace.json` with `listing.include.category` limits the
+ * gallery and marketplace to those manifest categories, optionally only for
+ * the kinds in `listing.appliesTo`. No file or no categories lists everything;
+ * an invalid file is reported and lists everything; `PROTOYARD_LISTING=all`
+ * ignores the file. The registry file itself is never changed.
+ * @param {string} workspaceRoot
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {{ rule: { categories: string[]; kinds: string[] | null } | null; source: 'none' | 'file' | 'all'; problem?: string }}
+ */
+export function listingRule(workspaceRoot, env = process.env) {
+  if (env.PROTOYARD_LISTING?.trim() === 'all') return { rule: null, source: 'all' };
+  const path = join(workspaceRoot, LISTING_CONFIG_FILE);
+  if (!existsSync(path)) return { rule: null, source: 'none' };
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync(path, 'utf8'));
+  } catch (error) {
+    return {
+      rule: null,
+      source: 'none',
+      problem: `${LISTING_CONFIG_FILE} is not valid JSON (${/** @type {Error} */ (error).message}); listing everything.`,
+    };
+  }
+  const invalid = (/** @type {string} */ where) => ({
+    rule: null,
+    source: /** @type {const} */ ('none'),
+    problem: `${LISTING_CONFIG_FILE} has an invalid listing at ${where}; listing everything.`,
+  });
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return invalid('the root');
+  const listing = raw.listing;
+  if (listing === undefined) return { rule: null, source: 'none' };
+  if (!listing || typeof listing !== 'object' || Array.isArray(listing)) return invalid('listing');
+  if (Object.keys(listing).some((key) => key !== 'include' && key !== 'appliesTo')) {
+    return invalid('listing');
+  }
+  const include = listing.include;
+  if (include !== undefined) {
+    if (!include || typeof include !== 'object' || Array.isArray(include)) {
+      return invalid('listing.include');
+    }
+    if (Object.keys(include).some((key) => key !== 'category')) return invalid('listing.include');
+  }
+  const category = include?.category;
+  if (
+    category !== undefined &&
+    (!Array.isArray(category) ||
+      category.length > 50 ||
+      category.some(
+        (value) => typeof value !== 'string' || value.trim() === '' || value.trim().length > 40
+      ))
+  ) {
+    return invalid('listing.include.category');
+  }
+  const appliesTo = listing.appliesTo;
+  if (
+    appliesTo !== undefined &&
+    (!Array.isArray(appliesTo) ||
+      appliesTo.length === 0 ||
+      appliesTo.length > LISTING_KINDS.length ||
+      appliesTo.some((kind) => !LISTING_KINDS.includes(kind)))
+  ) {
+    return invalid('listing.appliesTo');
+  }
+  const categories = [
+    ...new Set((category ?? []).map((/** @type {string} */ value) => value.trim())),
+  ];
+  if (categories.length === 0) return { rule: null, source: 'none' };
+  return {
+    rule: {
+      categories,
+      kinds: appliesTo ? LISTING_KINDS.filter((kind) => appliesTo.includes(kind)) : null,
+    },
+    source: 'file',
+  };
+}
+
+/**
+ * True when a listing with this rule shows the entry.
+ * @param {Record<string, unknown>} entry
+ * @param {{ categories: string[]; kinds: string[] | null } | null} rule
+ */
+export function matchesListing(entry, rule) {
+  if (!rule) return true;
+  if (rule.kinds && !rule.kinds.includes(/** @type {string} */ (entry.kind))) return true;
+  return rule.categories.includes(/** @type {string} */ (entry.category));
+}
+
+/**
+ * @param {string} registryPath
+ * @param {Record<string, string | undefined>} [env]
+ */
+export function readRegistry(registryPath, env = process.env) {
   if (!existsSync(registryPath)) return { registry: null, error: null };
   try {
     const parsed = JSON.parse(readFileSync(registryPath, 'utf8'));
@@ -57,17 +154,25 @@ export function readRegistry(registryPath) {
       }
       const invalid = [...(Array.isArray(parsed.invalid) ? parsed.invalid : []), ...issues];
       const stats = parsed.stats && typeof parsed.stats === 'object' ? parsed.stats : {};
+      // The workspace listing hides entries from every page; the file keeps them.
+      const listing = listingRule(workspaceRoot, env);
+      const listed = entries.filter((entry) => matchesListing(entry, listing.rule));
       return {
+        listing: {
+          source: listing.source,
+          hidden: entries.length - listed.length,
+          ...(listing.problem ? { problem: listing.problem } : {}),
+        },
         registry: {
           ...parsed,
-          entries: attachReviewCounts(workspaceRoot, entries),
+          entries: attachReviewCounts(workspaceRoot, listed),
           invalid,
           stats: {
             ...stats,
-            total: entries.length,
-            prototypes: entries.filter((entry) => entry.kind === 'prototype').length,
-            templates: entries.filter((entry) => entry.kind === 'template').length,
-            blueprints: entries.filter((entry) => entry.kind === 'blueprint').length,
+            total: listed.length,
+            prototypes: listed.filter((entry) => entry.kind === 'prototype').length,
+            templates: listed.filter((entry) => entry.kind === 'template').length,
+            blueprints: listed.filter((entry) => entry.kind === 'blueprint').length,
             invalid: invalid.length,
           },
         },
@@ -429,7 +534,13 @@ export function protoyardRegistry(options) {
         updateConfig({ vite: { plugins: [vitePlugin] } });
       },
       'astro:build:done': async ({ dir, logger }) => {
-        const { registry } = readRegistry(registryPath);
+        const { registry, listing } = readRegistry(registryPath);
+        if (listing?.problem) logger.warn(listing.problem);
+        if (listing?.hidden) {
+          logger.info(
+            `${listing.hidden} registry entr${listing.hidden === 1 ? 'y' : 'ies'} hidden by ${LISTING_CONFIG_FILE} (PROTOYARD_LISTING=all lists every entry)`
+          );
+        }
         for (const issue of registry?.invalid ?? []) {
           logger.warn(`Omitted registry record ${issue.path}: ${issue.errors.join(' ')}`);
         }
