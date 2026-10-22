@@ -237,6 +237,9 @@ importers:
 
   packages/blueprint:
     dependencies:
+      '@protoyard/blocks':
+        specifier: workspace:*
+        version: link:../blocks
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
