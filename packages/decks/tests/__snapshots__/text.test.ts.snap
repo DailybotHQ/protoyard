@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`deckToMarkdown > matches the fixture snapshot (titles, sections, props, chart table, notes) 1`] = `
+"# Northwind launch review
+
+## Why now
+
+### 1. Northwind launch review
+
+Fictional data, Q3 2026
+
+*Product team*
+
+#### Notes
+
+Open with the one-line summary.
+
+Keep it under a minute.
+
+### 2. The problem
+
+#### Today
+
+Support answers in 4 hours.
+
+#### Goal
+
+Answer in under 2 hours.
+
+## Numbers
+
+### 3. Tickets per month
+
+*Chart (bar): Tickets per month*
+
+|   | Opened | Closed |
+| --- | --- | --- |
+| July | 1080 | 1050 |
+| August | 1150 | 1130.5 |
+| September | 1240 |   |
+
+#### Notes
+
+September closed count is still being reconciled.
+
+### 4. Plans compared
+
+|   | Starter | Team |
+| --- | --- | --- |
+| Seats | 1 | 10 |
+| SSO | No | Yes |
+| Support | Email |   |
+
+### 5. How it works
+
+Three steps, **no setup**:
+
+1. Import
+2. Review
+3. Ship
+
+\`\`\`ts
+const answer = 42;
+\`\`\`
+
+> **Note**
+>
+> Everything here is *simulated*.
+
+## Other slides
+
+### 6. Thanks
+
+Questions welcome.
+
+[Read the report](https://example.com/report)
+"
+`;
