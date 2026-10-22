@@ -20,6 +20,9 @@ import {
 
 let harness: ArtifactHarnessServer;
 
+/** A Vite-emitted Web Worker bundle (`new Worker(new URL(…))`), not a code-split chunk. */
+const WORKER_SCRIPT = /\.worker-[\w-]+\.js$/;
+
 test.beforeAll(async () => {
   harness = await startArtifactHarnessServer({
     target: DECK_ARTIFACT_TARGET,
@@ -156,8 +159,16 @@ test.describe('deck exported as a Claude artifact', () => {
       (path) => path.endsWith('.js') && entry !== new URL(path, frame.url()).pathname
     );
     for (const path of packedScripts) {
-      // Every other script in the pack is a facade too, fetched or not.
       const body = await frame.evaluate(async (url) => (await fetch(url)).text(), path);
+      if (WORKER_SCRIPT.test(path)) {
+        // The embedded player's world worker (the player falls back to the
+        // main thread without it) is a separate, self-contained script: it
+        // never imports a sibling chunk, so it cannot reintroduce the split.
+        expect(body, path).not.toMatch(/\bfrom\s*["']\.\.?\//);
+        expect(body, path).not.toMatch(/\bimport\s*\(\s*["']\.\.?\//);
+        continue;
+      }
+      // Every other script in the pack is a facade too, fetched or not.
       expect(body.trim(), path).toMatch(facadeOf(entry));
     }
 
