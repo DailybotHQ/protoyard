@@ -77,6 +77,7 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Visual sweep logic (matrix, flags, PNG decode, contact sheet) | `pnpm vitest run tests/scripts/visual-sweep.test.ts` | scoped |
 | Deck visual QA sweep (unit) | `pnpm vitest run scripts/tests/deck-sweep.test.ts` | scoped |
 | Deck visual QA sweep (browser fixture) | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` | scoped |
+| Interaction / dead-control sweep | `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/interaction-sweep.spec.ts` | scoped |
 | Thumbnails stay deterministic | `pnpm exec tsx scripts/generate-thumbnails.ts crm-demo --check` | scoped |
 
 `protoyard spec <slug> --check` (or `spec --all --check`) is the drift check
