@@ -14,6 +14,7 @@ export const PUBLIC_GUIDES: readonly string[] = [
   'AGENT_GUIDE',
   'QUICK',
   'PLAYER',
+  'DECKS',
   'GENERATOR',
   'BRIEF_TO_PROTOTYPE',
   'DATABASE',
