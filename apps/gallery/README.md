@@ -48,6 +48,10 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 | `/themes/` | The theme browser: built-in and library themes with live swatches, opening any prototype in a chosen theme |
 | `/marketplace/`, `/marketplace/<kind>/<slug>/` | The marketplace shelf and one page per prototype, template or blueprint ([below](#marketplace)) |
 
+The sitemap indexes each marketplace entry at its canonical source-kind URL. A blueprint's content
+kind (App, Deck, Page or Document) is metadata on that page; it does not create alternate URL
+aliases. Share fragments and query-based player states are excluded from the sitemap.
+
 ## Registry contract
 
 The gallery consumes `protoyard.registry` v1 (`format`, `version`, `generatedAt`, `entries[]`,

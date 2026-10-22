@@ -2,6 +2,9 @@ import type { APIRoute } from 'astro';
 import { getPublicDocs } from '../lib/docs/index.ts';
 
 const escapeXml = (value: string) => value.replace(/[<>&'"]/g, (c) => `&#${c.charCodeAt(0)};`);
+const SOURCE_KINDS = new Set(['prototype', 'template', 'blueprint']);
+const SLUG_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const DOC_SLUG_PATTERN = /^[a-z][a-z0-9]*(?:[_-][a-z0-9]+)*$/;
 
 /** Site pages that always exist: home, features, marketplace, themes, the player landing page and the docs. */
 export const STATIC_PATHS: readonly string[] = [
@@ -17,7 +20,7 @@ export interface SitemapSources {
   prototypes: readonly { slug: string; embedded?: { url: string } | null }[];
   templates: readonly { slug: string; embedded?: { url: string } | null }[];
   /** Marketplace detail pages (`/marketplace/<kind>/<slug>/`). */
-  shelf: readonly { k: string; s: string }[];
+  shelf: readonly { k: string; s: string; contentKind?: string }[];
   /** Published guides (`getPublicDocs()`), each at `/docs/<slug>/`. */
   docs: readonly { slug: string }[];
 }
@@ -40,16 +43,25 @@ export function isIndexablePath(path: string): boolean {
 /** Every indexable page path, before the base path, in a stable order. */
 export function sitemapPaths(sources: SitemapSources): string[] {
   const paths = new Set<string>(STATIC_PATHS);
-  for (const doc of sources.docs) paths.add(`/docs/${doc.slug}/`);
+  for (const doc of sources.docs) {
+    if (DOC_SLUG_PATTERN.test(doc.slug)) paths.add(`/docs/${doc.slug}/`);
+  }
   for (const entry of sources.prototypes) {
+    if (!SLUG_PATTERN.test(entry.slug)) continue;
     paths.add(`/p/${entry.slug}/`);
     if (entry.embedded) paths.add(`/${entry.embedded.url.replace(/^\//, '')}`);
   }
   for (const entry of sources.templates) {
+    if (!SLUG_PATTERN.test(entry.slug)) continue;
     paths.add(`/t/${entry.slug}/`);
     if (entry.embedded) paths.add(`/${entry.embedded.url.replace(/^\//, '')}`);
   }
-  for (const entry of sources.shelf) paths.add(`/marketplace/${entry.k}/${entry.s}/`);
+  for (const entry of sources.shelf) {
+    if (!SOURCE_KINDS.has(entry.k) || !SLUG_PATTERN.test(entry.s)) continue;
+    // Content kind is metadata. The canonical detail URL uses the registry
+    // source kind, so a blueprint gets one URL regardless of app/deck/page/doc.
+    paths.add(`/marketplace/${entry.k}/${entry.s}/`);
+  }
   return [...paths].filter(isIndexablePath);
 }
 

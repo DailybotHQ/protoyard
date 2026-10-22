@@ -87,6 +87,42 @@ describe('sitemapPaths', () => {
     expect(paths.some((p) => p.includes('#') || p.includes('?'))).toBe(false);
     expect(paths).toContain('/play/');
   });
+
+  it('indexes one canonical source-kind detail URL for every blueprint content kind', () => {
+    const kinds = [
+      { k: 'blueprint', s: 'sales-app', contentKind: 'app' },
+      { k: 'blueprint', s: 'quarterly-deck', contentKind: 'deck' },
+      { k: 'blueprint', s: 'product-page', contentKind: 'page' },
+      { k: 'blueprint', s: 'team-handbook', contentKind: 'doc' },
+    ];
+    const paths = sitemapPaths(sources({ shelf: kinds }));
+
+    for (const { s } of kinds) {
+      expect(paths.filter((path) => path === `/marketplace/blueprint/${s}/`)).toHaveLength(1);
+    }
+    expect(paths).not.toContain('/marketplace/deck/quarterly-deck/');
+    expect(paths).not.toContain('/marketplace/page/product-page/');
+    expect(paths).not.toContain('/marketplace/doc/team-handbook/');
+    expect(paths.some((path) => path.includes('#') || path.includes('?'))).toBe(false);
+  });
+
+  it('omits unsafe slugs and unsupported marketplace source kinds', () => {
+    const paths = sitemapPaths(
+      sources({
+        prototypes: [{ slug: '../escape' }, { slug: 'valid-app' }],
+        templates: [{ slug: 'has space' }],
+        shelf: [
+          { k: 'blueprint', s: 'valid-deck', contentKind: 'deck' },
+          { k: 'deck', s: 'alias-deck', contentKind: 'deck' },
+          { k: 'blueprint', s: '../outside', contentKind: 'page' },
+        ],
+      })
+    );
+    expect(paths).toContain('/p/valid-app/');
+    expect(paths).toContain('/marketplace/blueprint/valid-deck/');
+    expect(paths.some((path) => path.includes('escape') || path.includes('space'))).toBe(false);
+    expect(paths).not.toContain('/marketplace/deck/alias-deck/');
+  });
 });
 
 describe('sitemapXml', () => {
