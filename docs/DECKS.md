@@ -29,7 +29,50 @@ pnpm exec playwright test tests/e2e/deck-navigation.spec.ts
 
 The E2E fixture mounts the real DeckApp with the Lumen Launch catalog deck. It
 adds three explicit navigation labels to one fixture slide so the test can
-verify stable step links and step-before-slide keyboard behavior.
+verify stable step links and step-before-slide keyboard behavior, and speaker
+notes to two slides for the presenter checks.
+
+## Presenting and printing
+
+- Press **S** or **P** to open the presenter view. It opens in a popup window
+  that follows the deck over `BroadcastChannel`, and either side can move the
+  other. The popup shows only the current slide id and step today; the full
+  panel below is the in-page view. Messages are validated; anything malformed
+  is ignored. Press **S** again to close it.
+- When the popup is blocked (by the browser or a sandbox such as an artifact
+  frame) or the browser has no `BroadcastChannel`, the presenter opens in the
+  page instead, as a split view: the deck beside a panel with the position,
+  the current and next slide with their speaker notes, Previous and Next
+  buttons, an elapsed timer and a per-slide timer. The panel does not say
+  which of the two caused the fallback.
+- The timers only count up; there are no pause or reset controls. The
+  per-slide timer restarts on every slide change.
+- **B** or **.** blacks out the screen (a click, B or Escape brings the slide
+  back; arrows do nothing meanwhile). **L** turns the mouse pointer into a
+  laser dot, and clicks stop advancing while it is on. On touch screens the
+  dot only shows under a finger.
+- `?print=1` (add `&notes=1` for speaker notes) or the browser's print command
+  lays out every visible slide on its own page at the canvas size, with all
+  steps shown and no deck chrome. A printed PDF has one page per slide, sized
+  to the deck aspect (1280 x 720 CSS px for 16:9).
+
+The keys only reach the deck while it has focus. After a click on the
+blackout screen or a tap with the laser on, select the deck again before using
+the keyboard.
+
+The browser checks run on the same built fixture, on the desktop and mobile
+projects, with the timers on Playwright's controlled clock:
+
+```sh
+pnpm exec playwright test tests/e2e/deck-presenter.spec.ts
+```
+
+They cover the popup in both sync directions, malformed messages, the in-page
+fallback for a blocked popup and for a missing `BroadcastChannel`, notes,
+timers, blackout, the laser pointer, `?print=1` with and without notes, the
+`beforeprint` and `afterprint` swap, and the page count and size of a
+Chromium PDF. Each failure names what broke, for example
+"pressing S should open the presenter popup (was it blocked?)".
 
 ## Authoring
 
