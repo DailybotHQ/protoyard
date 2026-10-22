@@ -125,6 +125,8 @@ function renderScenarios(facts: SpecFacts): string {
 }
 
 function renderTables(facts: SpecFacts): string {
+  if (facts.manifest.blueprintKind && facts.manifest.blueprintKind !== 'app')
+    return `_Entity tables do not apply to ${facts.manifest.blueprintKind} blueprints._`;
   const domain = facts.tables.filter((t) => !PLATFORM_TABLE.test(t.table));
   const platform = facts.tables.filter((t) => PLATFORM_TABLE.test(t.table));
   const out = [
@@ -151,6 +153,8 @@ function storeSignature(t: SpecTable): string {
 }
 
 function renderVersions(facts: SpecFacts): string {
+  if (facts.manifest.blueprintKind && facts.manifest.blueprintKind !== 'app')
+    return `_Entity schema versions do not apply to ${facts.manifest.blueprintKind} blueprints._`;
   const rows: unknown[][] = [];
   let previous = new Map<string, string>();
   for (const version of facts.versions) {
@@ -190,6 +194,8 @@ function referencedTable(field: string, tables: ReadonlySet<string>): string | n
 }
 
 function renderErDiagram(facts: SpecFacts): string {
+  if (facts.manifest.blueprintKind && facts.manifest.blueprintKind !== 'app')
+    return `_Entity diagrams do not apply to ${facts.manifest.blueprintKind} blueprints._`;
   const domain = facts.tables.filter((t) => !PLATFORM_TABLE.test(t.table));
   if (domain.length === 0) return '_No domain tables._';
   const names = new Set(domain.map((t) => t.table));
