@@ -6,8 +6,9 @@ player's deck entry and generated deck prototypes both mount it, so a deck
 renders the same at both levels. The presenting surfaces each have their own
 lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 
-> **Status:** the virtual canvas, catalog layout renderer and `DeckApp` are
-> available. Presenter, print and studio surfaces remain later PLAN_005 tasks.
+> **Status:** the virtual canvas, catalog layout renderer, `DeckApp` and
+> **print** surface are available. Presenter and studio remain later PLAN_005
+> tasks.
 
 ## Subpaths
 
@@ -17,7 +18,7 @@ lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 | `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer` and `loadLayoutRenderer(layoutId)`: validated catalog rendering through lazy text, media, data and diagram families | available |
 | `@protoyard/decks-ui/app` | `DeckApp` — canvas, layouts, hash navigation, guarded input, step chrome, aria-live | available |
 | `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page fallback | reserved (T-decks-presenter) |
-| `@protoyard/decks-ui/print` | Print and PDF, one slide per page | reserved (T-decks-print) |
+| `@protoyard/decks-ui/print` | Print and PDF, one slide per page (`DeckPrint`, `PrintButton`, `print.css`) | **available** (T-decks-print) |
 | `@protoyard/decks-ui/studio` | Deck Studio, a lazy DevTools tab that exports RFC 6902 patches | reserved (T-decks-studio) |
 | `@protoyard/decks-ui/styles.css` | Tailwind `@source` for the package | available |
 
@@ -64,9 +65,25 @@ import type { Deck } from '@protoyard/decks';
 - guarded keyboard, click and swipe via `decideDeckInput` / `inputPathFrom`
 - progress bar and slide-number chrome (`data-py-deck-chrome`)
 - `aria-live` announcements (`Slide n of N`) and `aria-roledescription="slide"`
-- blackout, overview and help overlays (presenter/print stay later surfaces)
+- blackout, overview and help overlays
+- print: `?print=1` (optional `&notes=1`), chrome **Print** button, Ctrl/Cmd+P
+  / `beforeprint` swap to `DeckPrint` (one page per non-hidden slide, all steps
+  revealed, `@page` size = virtual canvas, `print-color-adjust: exact`)
 
 Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
+
+## Print (`./print`)
+
+```ts
+import { DeckPrint, PrintButton, parseDeckPrintFlags } from '@protoyard/decks-ui/print';
+```
+
+`DeckPrint` renders every non-hidden slide at `deckCanvasSize(aspect)` with
+`--py-deck-step` set to the final step so fragments are all visible. The
+stylesheet declares `@page { size: var(--py-deck-print-width) var(--py-deck-print-height) }`
+and `break-after: page`. Speaker notes render under each page when `notes` is
+true. Visual PDF QA belongs to SITE_QA; this package proves DOM and CSS structure
+(`pnpm vitest run packages/decks-ui/tests/print.test.ts`).
 ## Untrusted content
 
 Deck strings (titles, props, notes) render as text. decks-ui has no `{@html}`, `innerHTML`,

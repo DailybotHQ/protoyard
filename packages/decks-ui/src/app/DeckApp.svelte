@@ -12,12 +12,14 @@ import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import { onMount } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
+import { DeckPrint, PrintButton, parseDeckPrintFlags } from '../print/index.ts';
 
 /**
  * The one deck component both the player deck entry and generated deck
  * prototypes mount (ADR-038). Composes canvas, layout renderers, navigation
  * (with `#/<id>/<step>` hash), guarded input, step progress chrome and
- * aria-live announcements.
+ * aria-live announcements. Print mode (`?print=1`, print button, Ctrl/Cmd+P)
+ * swaps in the one-slide-per-page layout from `@protoyard/decks-ui/print`.
  */
 let {
   deck,
@@ -45,6 +47,11 @@ let inputState = $state<DeckInputState>({
 });
 /** Stable navigator for the current deck; rebuilt only when the deck changes. */
 let nav = $state.raw<DeckNavigator | null>(null);
+
+/** URL print mode (`?print=1`) or temporary layout while the browser prints. */
+let printFlags = $state(parseDeckPrintFlags());
+let printing = $state(false);
+const showPrint = $derived(printFlags.print || printing);
 
 // Pointer tracking for swipe decisions.
 let pointerDown: { x: number; y: number; t: number; id: number } | null = null;
@@ -150,8 +157,14 @@ function runAction(action: string): void {
       }
       break;
     case 'presenter':
+      // Presenter window is a dedicated surface (T-decks-presenter).
+      break;
     case 'print':
-      // Handled by dedicated surfaces in later tasks; ignore here.
+      // Enter print layout then open the browser dialog (also Ctrl/Cmd+P).
+      printing = true;
+      if (typeof window !== 'undefined' && typeof window.print === 'function') {
+        queueMicrotask(() => window.print());
+      }
       break;
     default:
       break;
@@ -263,15 +276,34 @@ function goOverview(slideId: string): void {
 }
 
 onMount(() => {
-  if (autofocus) rootEl?.focus({ preventScroll: true });
-  if (syncHash && typeof window !== 'undefined') {
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }
-  return undefined;
+  if (autofocus && !showPrint) rootEl?.focus({ preventScroll: true });
+  if (typeof window === 'undefined') return undefined;
+  const onBeforePrint = () => {
+    printing = true;
+  };
+  const onAfterPrint = () => {
+    // Stay in print layout when the URL asked for it.
+    if (!parseDeckPrintFlags().print) printing = false;
+  };
+  const onPopState = () => {
+    printFlags = parseDeckPrintFlags();
+  };
+  window.addEventListener('beforeprint', onBeforePrint);
+  window.addEventListener('afterprint', onAfterPrint);
+  window.addEventListener('popstate', onPopState);
+  if (syncHash) window.addEventListener('hashchange', onHashChange);
+  return () => {
+    window.removeEventListener('beforeprint', onBeforePrint);
+    window.removeEventListener('afterprint', onAfterPrint);
+    window.removeEventListener('popstate', onPopState);
+    if (syncHash) window.removeEventListener('hashchange', onHashChange);
+  };
 });
 </script>
 
+{#if showPrint}
+  <DeckPrint deck={deck} notes={printFlags.notes} />
+{:else}
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
@@ -342,6 +374,9 @@ onMount(() => {
     >
       {slideLabel}
     </p>
+    <div class="pointer-events-auto shrink-0" data-py-deck-chrome>
+      <PrintButton />
+    </div>
   </div>
 
   {#if inputState.blackout}
@@ -404,6 +439,7 @@ onMount(() => {
     {announce}
   </div>
 </div>
+{/if}
 
 <style>
   .deck-app :global([data-py-deck-slide]) {
