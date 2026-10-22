@@ -19,8 +19,8 @@
       {
         "type": "cta",
         "actions": [
-          { "label": "Jump to results", "href": "#results" },
-          { "label": "Next steps", "href": "#next-steps" }
+          { "label": "Jump to results", "href": "https://example.com/results" },
+          { "label": "Next steps", "href": "https://example.com/next-steps" }
         ]
       },
       { "type": "heading", "id": "results", "level": 2, "text": "Results" },

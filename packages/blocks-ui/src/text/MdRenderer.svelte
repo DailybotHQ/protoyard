@@ -24,7 +24,7 @@ const external = (href: string) => /^https?:/i.test(href);
       {:else}{@render inline(node.children)}{/if}
     {:else if node.type === 'image'}
       {@const src = node.src ? safeImageSrc(node.src) : null}
-      {#if src}<img {src} alt={node.alt} loading="lazy" decoding="async" class="my-2 max-w-full rounded-md border border-border" />
+      {#if src}<img {src} alt={node.alt} loading="lazy" decoding="async" referrerpolicy="no-referrer" class="my-2 max-w-full rounded-md border border-border" />
       {:else}<span class="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">Image: {node.alt}</span>{/if}
     {:else if node.type === 'attachment'}<span class="rounded border border-border bg-muted px-1.5 py-0.5 text-xs">{node.label}</span>
     {:else if node.type === 'citation'}<sup>[{node.index}]</sup>

@@ -123,7 +123,7 @@ Lazy chunk for timeline, steps, comparison, cards, icon, CTA and columns:
 - **CTA:** every action has a schema-validated `href` run through `safeHref`.
   Set `onCtaAction` on the host to handle clicks; return a promise so
   `@protoyard/ui` `Button` shows pending feedback until it settles. Without a
-  host handler, external/mailto links navigate and hash/path links use `href`.
+  host handler, HTTPS and mailto links navigate.
 - **Comparison** uses a real `<table>` with column and row headers.
 - **Columns** resolve nested blocks through the same dispatcher (lazy).
 - **Icons** come from `BLOCK_ICON_COMPONENTS` (static Lucide map).

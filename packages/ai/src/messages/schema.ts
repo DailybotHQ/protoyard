@@ -66,7 +66,7 @@ const actionId = () =>
 const linkUrl = z
   .string()
   .max(L.maxUrlLength)
-  .refine(isSafeLinkUrl, 'Links must be absolute http(s) or mailto: URLs without credentials.');
+  .refine(isSafeLinkUrl, 'Links must be absolute https: or mailto: URLs without credentials.');
 
 const localImageUrl = z.string().superRefine((value, ctx) => {
   const issue = attachmentUrlIssue(value);
@@ -347,7 +347,7 @@ export const LinkPreviewBlockSchema = z.strictObject({
     .max(L.maxUrlLength)
     .refine(
       isSafePreviewUrl,
-      'A link preview points at an absolute http(s) URL without credentials.'
+      'A link preview points at an absolute https: URL without credentials.'
     ),
   title: label().optional(),
   description: description().optional(),

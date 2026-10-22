@@ -1,6 +1,7 @@
 import { BLOCK_LIMITS, type BlockLimits } from './limits.ts';
 import { type Block, type BlockParseResult, safeParseBlocks, toJsonPath } from './schema/index.ts';
 import { base64DecodedBytes } from './schema/media.ts';
+import { isUnsafeTextCharacter } from './schema/primitives.ts';
 
 export type UntrustedBlockIssue = {
   code:
@@ -26,19 +27,7 @@ type CloneResult = { ok: true; value: unknown } | { ok: false; issue: UntrustedB
 function stripUnsafe(value: string, allowNewlines: boolean, allowTabs: boolean): string {
   return [...value.replace(/\r\n/g, '\n')]
     .filter((character) => {
-      const code = character.codePointAt(0) ?? 0;
-      if (code === 0x0a && allowNewlines) return true;
-      if (code === 0x09 && allowTabs) return true;
-      return !(
-        code <= 0x1f ||
-        (code >= 0x7f && code <= 0x9f) ||
-        code === 0x061c ||
-        code === 0x200e ||
-        code === 0x200f ||
-        (code >= 0x202a && code <= 0x202e) ||
-        (code >= 0x2066 && code <= 0x2069) ||
-        code === 0xfeff
-      );
+      return !isUnsafeTextCharacter(character, allowNewlines, allowTabs);
     })
     .join('');
 }

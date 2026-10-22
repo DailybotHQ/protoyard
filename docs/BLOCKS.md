@@ -27,7 +27,7 @@ Every block may also carry `id`, `step`, `reveal`, `tone` (optional; interactive
 | `comparison` | structure | Comparison | Side-by-side plan or feature matrices | 2–4 columns; ≤ 8 rows |
 | `cards` | structure | Cards | Feature grids with title, body, icon or image | 1–12 cards; 2–4 columns |
 | `icon` | structure | Icon | A single allow-listed icon with a label or decorative mark | allow-listed icon names; label or decorative: true |
-| `cta` | structure | Call to action | One to three safe links as primary actions | 1–3 actions; http(s), mailto, # or relative href only |
+| `cta` | structure | Call to action | One to three safe links as primary actions | 1–3 actions; https or mailto href only |
 | `columns` | structure | Columns | Side-by-side block groups on wide layouts | 2–4 columns; ≤ 12 blocks each; nest ≤ 3 deep |
 | `tabs` | interactive | Tabs | 2–6 alternative panels the viewer can switch | id required; 2–6 panels; ≤ 12 blocks each |
 | `reveal` | interactive | Reveal | Answers or details behind a button | id required; ≤ 12 nested blocks |
@@ -726,7 +726,7 @@ Every block may also carry `id`, `step`, `reveal`, `tone` (optional; interactive
 
 **Limits**
 - 1–3 actions
-- http(s), mailto, # or relative href only
+- https or mailto href only
 
 **Accessibility:** Buttons/links use visible labels; variants are not the only cue.
 
@@ -1488,7 +1488,7 @@ import { safeParseBlocks } from '@protoyard/blocks';
 const blocks: unknown = [
   { type: 'heading', text: 'Launch plan', level: 1 },
   { type: 'text', markdown: 'A **bounded** outline with useful detail.' },
-  { type: 'cta', actions: [{ label: 'Read the details', href: '#details' }] },
+  { type: 'cta', actions: [{ label: 'Read the details', href: 'https://example.com/details' }] },
 ];
 const result = safeParseBlocks(blocks);
 if (!result.success) {
@@ -1516,9 +1516,9 @@ Code blocks display text through the small tokenizer in `@protoyard/blocks/code`
 highlighted tokens remain text.
 
 Links in CTAs and cards use the exported `LinkHrefSchema`: supported values are
-HTTP(S), `mailto:`, `#anchor`, and safe relative paths. Script, data, file,
+HTTPS and `mailto:` only. HTTP, relative paths, fragments, script/data/file,
 protocol-relative, and other unsupported schemes are rejected rather than
-rewritten.
+rewritten. See [SECURITY](SECURITY.md#kinds-hostile-decks-pages-and-docs).
 
 Image and video sources use the media schemas. Level 1 permits fictional
 avatar ids and bounded raster data URIs; it does not load remote media. Relative

@@ -2360,7 +2360,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 2048,
-                "description": "Safe navigation target: http(s), mailto, an anchor or a relative path."
+                "description": "Safe navigation target: https or mailto only."
               },
               "tone": {
                 "type": "string",
@@ -2589,7 +2589,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 2048,
-                "description": "Safe navigation target: http(s), mailto, an anchor or a relative path."
+                "description": "Safe navigation target: https or mailto only."
               },
               "variant": {
                 "type": "string",
@@ -2714,7 +2714,7 @@
       "required": ["type", "actions"],
       "additionalProperties": false,
       "title": "Call to action",
-      "description": "One to three safe links as primary actions. 1–3 actions; http(s), mailto, # or relative href only."
+      "description": "One to three safe links as primary actions. 1–3 actions; https or mailto href only."
     },
     "columns": {
       "type": "object",

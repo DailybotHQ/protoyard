@@ -369,7 +369,7 @@ export const RICH_EXAMPLES: Record<BlockType, Block> = {
         image: 'avatar:av-020',
         imageAlt: 'A face',
       },
-      { title: 'Local', href: '#local', tone: 'success' },
+      { title: 'Local', href: 'https://example.com/local', tone: 'success' },
     ],
   },
   icon: { type: 'icon', icon: 'rocket', label: 'Launch', size: 'xl' },
