@@ -139,6 +139,15 @@ Every capability below runs in the browser, with fictional data.
 | **Snapshots** | Save the exact world after your edits, restore it, export it to a file and import it with validation. | [Scenarios](docs/SCENARIOS.md#snapshots) |
 | **DevTools** | A floating control center for scenario, personas, time, data, environment, appearance, snapshots and share links. Left out of public builds by default. | [devtools](packages/devtools/README.md) |
 
+### Slide decks, landing pages and documents
+
+| Capability | What you get | Read |
+| --- | --- | --- |
+| **Slide decks** | `quick "<topic>" --kind deck` writes a deck from a sentence. 21 designed layouts, per-deck themes, fonts and gradients, step-by-step reveals, a presenter view, an overview, print to PDF and Deck Studio. | [Decks](docs/DECKS.md) |
+| **Interactive blocks** | Polls, quizzes, a what-if calculator, explorable charts with a data table and a working app embedded in a slide, shared by decks, pages and documents. | [Blocks](docs/BLOCKS.md) |
+| **Landing pages and documents** | A hero, pricing, steps and forms that store responses; documents with a reading layout and one table of contents. | [Pages](docs/PAGES.md) |
+| **Both levels** | Every kind opens instantly in the player from a share link, or generates a full prototype; links, single-file exports and private Claude artifacts work for all of them. | [Kinds](docs/KINDS.md) |
+
 ### Look and feel
 
 | Capability | What you get | Read |
@@ -193,7 +202,7 @@ own README, `AGENTS.md` and `docs/` spec.
 | <img src="prototypes/harbor-dispatch-demo/public/thumbnail.png" alt="Harborlight Dispatch" width="240"> | **Harborlight Dispatch** · `harbor-dispatch-demo` | Generated from a blueprint: logistics board, map, timeline, calendar and dashboard |
 | <img src="prototypes/cadence-studio-demo/public/thumbnail.png" alt="Cadence Studio" width="240"> | **Cadence Studio** · `cadence-studio-demo` | Generated from a blueprint: studio bookings on a weekly calendar |
 | <img src="prototypes/pulse-revenue-demo/public/thumbnail.png" alt="Pulse Revenue" width="240"> | **Pulse Revenue** · `pulse-revenue-demo` | Generated from a blueprint: revenue dashboard, explorer and lifecycle board |
-| (slide deck) | **Protoyard: create anything** · `create-anything-deck` | Generated from a deck blueprint: every layout family, live charts, interactive blocks and an embedded app |
+| <img src="prototypes/create-anything-deck/public/thumbnail.png" alt="Protoyard: create anything" width="240"> | **Protoyard: create anything** · `create-anything-deck` | Generated from a deck blueprint: every layout family, live charts, interactive blocks and an embedded app |
 
 All of them run live at **[protoyard.app](https://protoyard.app)**.
 `pnpm build:showcase` builds that site: the gallery, the marketplace and a
@@ -233,7 +242,7 @@ roles, scenarios, tests and a spec, and runs as a live demo with
 <tr><td align="center"><img src="templates/onboarding/public/thumbnail.png" alt="onboarding template" width="260"><br><code>onboarding</code></td><td align="center"><img src="templates/plugin-panel/public/thumbnail.png" alt="plugin-panel template" width="260"><br><code>plugin-panel</code></td><td align="center"><img src="templates/project-management/public/thumbnail.png" alt="project-management template" width="260"><br><code>project-management</code></td></tr>
 <tr><td align="center"><img src="templates/social-feed/public/thumbnail.png" alt="social-feed template" width="260"><br><code>social-feed</code></td><td align="center"><img src="templates/task-manager/public/thumbnail.png" alt="task-manager template" width="260"><br><code>task-manager</code></td><td align="center"><img src="templates/team-chat/public/thumbnail.png" alt="team-chat template" width="260"><br><code>team-chat</code></td></tr>
 <tr><td align="center"><img src="templates/page/public/thumbnail.png" alt="page template" width="260"><br><code>page</code></td><td align="center"><img src="templates/doc/public/thumbnail.png" alt="doc template" width="260"><br><code>doc</code></td><td align="center"><img src="templates/design-kit/public/thumbnail.png" alt="design-kit template" width="260"><br><code>design-kit</code></td></tr>
-<tr><td align="center"><code>deck</code> (no thumbnail yet)</td><td></td><td></td></tr>
+<tr><td align="center"><img src="templates/deck/public/thumbnail.png" alt="deck template" width="260"><br><code>deck</code></td><td></td><td></td></tr>
 </table>
 </details>
 

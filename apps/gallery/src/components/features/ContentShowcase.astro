@@ -1,0 +1,163 @@
+---
+import { CONTENT_KIND_LABELS, FLAGSHIP_SLIDES, flagshipSlideCover } from '@/lib/content-examples';
+import { contentShowcaseCards } from '@/lib/content-showcase';
+import { withBase } from '@/lib/format';
+import { prototypes } from '@/lib/registry';
+
+/**
+ * The deck, page and document examples: a cover from the real player, what
+ * each one shows, and a share link that opens it in the hosted player. The
+ * full variant (/features/) adds stills of the flagship deck's capabilities
+ * and, in a showcase build, the generated flagship prototype running live.
+ * Static: no client islands.
+ */
+interface Props {
+  variant?: 'home' | 'full';
+}
+
+const { variant = 'full' } = Astro.props;
+const cards = await contentShowcaseCards();
+const flagship = cards.find((card) => card.example.prototype);
+const others = cards.filter((card) => card !== flagship);
+const flagshipEntry = flagship?.example.prototype
+  ? prototypes().find((entry) => entry.slug === flagship.example.prototype)
+  : undefined;
+const flagshipPage = flagshipEntry ? withBase(`/p/${flagshipEntry.slug}/`) : null;
+const flagshipLive =
+  variant === 'full' && flagshipEntry?.embedded ? withBase(`/${flagshipEntry.embedded.url}`) : null;
+const unit = (kind: string, n: number) =>
+  `${n} ${kind === 'deck' ? 'slide' : 'section'}${n === 1 ? '' : 's'}`;
+const shown = variant === 'home' ? others.slice(0, 3) : others;
+---
+
+<div data-testid="content-showcase">
+  {
+    flagship && (
+      <article class="grid gap-6 rounded-2xl border border-line bg-surface p-4 sm:p-6 lg:grid-cols-[3fr_2fr] lg:items-center">
+        <img
+          src={withBase(flagship.cover)}
+          alt={`The first slide of “${flagship.title}”`}
+          width="1024"
+          height="576"
+          loading="lazy"
+          decoding="async"
+          class="aspect-video w-full rounded-xl border border-line object-cover"
+        />
+        <div>
+          <p class="text-xs font-semibold tracking-wide text-accent-fg uppercase">
+            {CONTENT_KIND_LABELS[flagship.example.kind]} · {unit(flagship.example.kind, flagship.parts)}
+          </p>
+          <h3 class="mt-1 text-2xl font-semibold tracking-tight">{flagship.title}</h3>
+          <p class="mt-2 text-muted">{flagship.example.highlights}</p>
+          <div class="mt-5 flex flex-wrap gap-3">
+            {flagship.playerHref && (
+              <a
+                href={flagship.playerHref}
+                class="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent hover:bg-accent-hover"
+              >
+                Present it in your browser
+              </a>
+            )}
+            {flagshipPage && (
+              <a
+                href={flagshipPage}
+                class="rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold hover:bg-surface-2"
+              >
+                The generated prototype
+              </a>
+            )}
+          </div>
+          <p class="mt-3 text-xs text-muted">
+            Arrow keys move between slides, <kbd class="font-mono">S</kbd> opens the presenter view and
+            <kbd class="font-mono">O</kbd> the overview.
+          </p>
+        </div>
+      </article>
+    )
+  }
+
+  {
+    variant === 'full' && (
+      <section class="mt-8" aria-labelledby="flagship-stills-title">
+        <h3 id="flagship-stills-title" class="text-lg font-semibold tracking-tight">
+          Inside the flagship deck
+        </h3>
+        <p class="mt-1 max-w-3xl text-sm text-muted">
+          Each slide below is a block in the deck’s JSON, and each one works in the presentation itself.
+        </p>
+        <ul class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FLAGSHIP_SLIDES.map((slide) => (
+            <li>
+              <figure class="overflow-hidden rounded-xl border border-line bg-surface">
+                <img
+                  src={withBase(flagshipSlideCover(slide))}
+                  alt=""
+                  width="1024"
+                  height="576"
+                  loading="lazy"
+                  decoding="async"
+                  class="aspect-video w-full object-cover"
+                />
+                <figcaption class="border-t border-line px-3 py-2 text-sm">{slide.caption}</figcaption>
+              </figure>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    flagshipLive && (
+      <section class="mt-8" aria-labelledby="flagship-live-title">
+        <h3 id="flagship-live-title" class="text-lg font-semibold tracking-tight">
+          Running live
+        </h3>
+        <p class="mt-1 max-w-3xl text-sm text-muted">
+          The generated <code class="font-mono">create-anything-deck</code> prototype, built from the same JSON.
+          Click it, then use the arrow keys.
+        </p>
+        <iframe
+          src={flagshipLive}
+          title={`${flagship?.title ?? 'Flagship deck'}, running live`}
+          loading="lazy"
+          class="mt-4 aspect-video w-full rounded-xl border border-line bg-surface"
+        />
+      </section>
+    )
+  }
+
+  <ul class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {
+      shown.map((card) => (
+        <li class="flex flex-col overflow-hidden rounded-xl border border-line bg-surface">
+          <img
+            src={withBase(card.cover)}
+            alt={`The opening of “${card.title}”`}
+            width="1024"
+            height={card.example.kind === 'deck' ? 576 : 640}
+            loading="lazy"
+            decoding="async"
+            class="aspect-video w-full border-b border-line object-cover object-top"
+          />
+          <div class="flex flex-1 flex-col p-4">
+            <p class="text-xs font-semibold tracking-wide text-accent-fg uppercase">
+              {CONTENT_KIND_LABELS[card.example.kind]} · {card.example.useCase}
+              {card.parts > 0 && <> · {unit(card.example.kind, card.parts)}</>}
+            </p>
+            <h3 class="mt-1 text-base font-semibold tracking-tight">{card.title}</h3>
+            <p class="mt-1 flex-1 text-sm text-muted">{card.example.highlights}</p>
+            {card.playerHref && (
+              <a
+                href={card.playerHref}
+                class="mt-4 text-sm font-medium text-accent-fg underline-offset-2 hover:underline"
+              >
+                {card.example.kind === 'deck' ? 'Present it' : 'Open it'} in the player
+              </a>
+            )}
+          </div>
+        </li>
+      ))
+    }
+  </ul>
+</div>

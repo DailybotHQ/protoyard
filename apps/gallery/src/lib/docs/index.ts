@@ -16,6 +16,7 @@ export const PUBLIC_GUIDES: readonly string[] = [
   'PLAYER',
   'DECKS',
   'PAGES',
+  'BLOCKS',
   'KINDS',
   'ACCESSIBILITY',
   'GENERATOR',

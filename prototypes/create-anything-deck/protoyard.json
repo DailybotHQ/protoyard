@@ -43,5 +43,6 @@
   "scenarios": ["default"],
   "template": "deck",
   "createdAt": "2026-10-22T04:53:20.311Z",
-  "updatedAt": "2026-10-22T04:53:20.311Z"
+  "updatedAt": "2026-10-22T04:53:20.311Z",
+  "thumbnail": "public/thumbnail.png"
 }
