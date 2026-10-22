@@ -107,7 +107,7 @@ personas/organizations, nobody joining before their organization existed, and no
 dated after the reference time. The runtime runs this on every load using
 `definition.integrity` and throws `WorldIntegrityError` on violations.
 
-## Timeline: `dailyEvents(ctx, { perDay, make, hours? })`
+## Timeline: `dailyEvents`, named sources and local zones
 
 ```ts
 timeline: (ctx) =>
@@ -122,6 +122,60 @@ the count, the instants (inside `hours`, default 8–18 UTC) and the per-slot rn
 days at once or 1 day seven times yields the same events with the same
 `evt:<scenario>:<YYYY-MM-DD>:<n>` ids. Window bounds are `(from, to]`. Return `null` from
 `make` to leave a slot empty.
+
+### Named sources
+
+Kits register collectors under a stable id so several packages can feed
+`scenarios.advance()` without one shared timeline function:
+
+```ts
+import {
+  localTimeToUtc,
+  registerTimelineSource,
+  timelineFromSources,
+} from '@protoyard/scenarios';
+
+registerTimelineSource({
+  id: 'billing',
+  collect: async (ctx) => {
+    const at = localTimeToUtc('2026-10-14', '09:00', 'America/New_York');
+    if (at <= ctx.from || at > ctx.to) return [];
+    return [
+      {
+        id: 'evt:invoice-due:2026-10-14',
+        type: 'billing.invoice.due',
+        at: at.toISOString(),
+        payload: { invoiceId: 'inv_1' },
+        source: 'timeline',
+      },
+    ];
+  },
+  apply: {
+    'billing.invoice.due': async (event, ctx) => {
+      /* idempotent puts */
+      void event;
+      void ctx;
+    },
+  },
+});
+
+const { timeline, applyEvent } = timelineFromSources();
+```
+
+`collectTimelineEvents` merges every source, sorts by `at` then `id`, rejects
+duplicate ids, and caps output (10,000 events per source and 50,000 total by
+default). Event types in `apply` are exclusive across sources.
+`clearTimelineSources()` is for tests.
+
+### Local time zones
+
+Always pass an explicit IANA zone (`UTC`, `Europe/Madrid`, …). Helpers never
+read the host zone. `localTimeToUtc(day, hhmm, timeZone)` maps a civil day and
+wall time to a UTC `Date` (DST gaps move forward; folds take the earlier
+instant). `localDayOf(at, timeZone)` returns the civil `YYYY-MM-DD`.
+`localDayBounds(day, timeZone)` yields a 23-, 24- or 25-hour day on DST edges.
+
+Full reference: [docs/SCENARIOS.md](../../docs/SCENARIOS.md#named-timeline-sources).
 
 ## Series, schedules, events and geo
 

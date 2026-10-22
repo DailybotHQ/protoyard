@@ -512,6 +512,80 @@ Other rules:
   implements the window-independent pattern for you (count, instants and a
   per-slot rng derived from seed + day).
 
+### Named timeline sources
+
+Several kits can contribute events without one shared monolith. Register each
+source once at module load with a **stable id**, an optional map of event-type
+appliers, and an optional per-source cap (default 10,000 events):
+
+```ts
+import {
+  collectTimelineEvents,
+  localTimeToUtc,
+  registerTimelineSource,
+  timelineFromSources,
+} from '@protoyard/scenarios';
+
+registerTimelineSource({
+  id: 'billing',
+  collect: async (ctx) => {
+    const due = localTimeToUtc('2026-10-14', '09:00', 'America/New_York');
+    if (due.getTime() <= ctx.from.getTime() || due.getTime() > ctx.to.getTime()) return [];
+    return [
+      {
+        id: `evt:invoice-due:2026-10-14`,
+        type: 'billing.invoice.due',
+        at: due.toISOString(),
+        payload: { invoiceId: 'inv_1' },
+        source: 'timeline',
+      },
+    ];
+  },
+  apply: {
+    'billing.invoice.due': async (event, ctx) => {
+      /* put rows from event.payload; stay idempotent */
+      void event;
+      void ctx;
+    },
+  },
+});
+
+// Option A — wire the registry into the prototype definition:
+const { timeline, applyEvent } = timelineFromSources();
+// definePrototype({ timeline, applyEvent, … })
+
+// Option B — merge with hand-written events:
+timeline: async (ctx) => [
+  ...dailyEvents(ctx, { /* … */ }),
+  ...(await collectTimelineEvents(ctx)).events,
+],
+```
+
+`collectTimelineEvents(ctx)` runs every registered source, bounds each source,
+merges, sorts by `at` then `id`, rejects duplicate ids, and applies a total
+cap (default 50,000). The result is deterministic for the same registrations
+and window. `applyTimelineEvent(event, ctx)` dispatches by `event.type` and
+returns whether a handler ran. `clearTimelineSources()` is for tests only.
+
+Event types are exclusive: two sources may not register the same `apply` key.
+Source ids must start with a letter and use only letters, digits, `.`, `_` or
+`-`.
+
+### Local time zones (explicit IANA)
+
+Zone helpers never read the host time zone. Pass an IANA id on every call
+(`UTC`, `America/New_York`, …):
+
+| Helper | Returns | Notes |
+| --- | --- | --- |
+| `localTimeToUtc(day, hhmm, timeZone)` | `Date` | Civil `YYYY-MM-DD` + `HH:mm` or `HH:mm:ss` → UTC instant. Spring-forward gaps move forward by the jump; fall-back folds take the earlier occurrence (RFC 5545). |
+| `localDayOf(at, timeZone)` | `YYYY-MM-DD` | Civil day of an instant in the zone (the shared day key for due events and reports). |
+| `localDayBounds(day, timeZone)` | `{ start, end, durationMs }` | `[start, end)` of a civil day; 23 or 25 hours on DST edges. |
+| `zonedInstantMs(wall, timeZone)` | epoch ms | Low-level wall → instant with the same gap/fold rules. |
+
+Unknown zone ids and empty strings throw. Tests cover US and EU DST edges
+(`pnpm vitest run packages/scenarios/tests/timeline.test.ts`).
+
 ### Series, schedules, events and geo
 
 Data helpers for charts, calendars, activity feeds and maps. Each value is
