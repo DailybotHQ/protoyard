@@ -4,7 +4,7 @@ import type { Block, BlockType } from '@protoyard/blocks';
 import { BLOCK_CATALOG, RICH_EXAMPLES } from '@protoyard/blocks/catalog';
 import type { ThemePalette } from '@protoyard/core';
 import { DECK_INTERACTIVE_ATTRIBUTE } from '@protoyard/decks';
-import { cleanup, render, waitFor } from '@testing-library/svelte';
+import { cleanup, configure, render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import { contrastRatio } from '../../themes/src/contrast.ts';
 import { BUILTIN_THEMES } from '../../themes/src/presets.ts';
@@ -17,6 +17,10 @@ import {
   TONE_LABELS,
 } from '../src/lib/tones.ts';
 import A11yHarness from './fixtures/A11yHarness.svelte';
+
+// Block families load lazily; under the full parallel suite the first import of a
+// family can take longer than testing-library's 1 s default.
+configure({ asyncUtilTimeout: 15_000 });
 
 const MODES = ['light', 'dark'] as const;
 const SRC = join(import.meta.dirname, '..', 'src');
