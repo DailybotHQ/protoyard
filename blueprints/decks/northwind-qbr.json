@@ -48,6 +48,7 @@
           "spec": {
             "kind": "funnel",
             "title": "Deal stages",
+            "description": "Sample data: 40 deals qualify, 28 get a proposal, 16 reach negotiation and 9 are won, about one in four.",
             "unit": "number",
             "labels": ["Qualify", "Propose", "Negotiate", "Won"],
             "series": [
