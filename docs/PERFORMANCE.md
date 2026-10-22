@@ -155,7 +155,7 @@ replace them once the deck, page and doc entries exist.
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
 | `cssGzipKb` | 30 KB | CSS of the kind's player entry, gzip |
-| `singleFileKb` | 1,536 KB (deck), `null` (page, doc) | Raw size of the kind's single-file export; `null` until calibrated |
+| `singleFileKb` | 2,048 KB (deck, page, doc) | Raw size of the kind's single-file export. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc). The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
