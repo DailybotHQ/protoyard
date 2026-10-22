@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { type Blueprint, blueprintIdentity } from '@protoyard/blueprint';
+import { type AnyBlueprint, blueprintIdentity } from '@protoyard/blueprint';
 import { type EarlierBlueprint, historyBlueprints } from '../../lib/quick/history.ts';
 import type { QuickRecord } from '../../lib/quick/model.ts';
 import { readRecordedBlueprint } from './promote.ts';
@@ -20,7 +20,7 @@ export interface ExplorationGroup {
   /** null for the base exploration. */
   variant: string | null;
   label: string;
-  blueprint: Blueprint;
+  blueprint: AnyBlueprint;
   namespace: string;
 }
 

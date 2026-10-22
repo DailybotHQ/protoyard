@@ -30,6 +30,7 @@ export function registerQuick(program: Command, def: Def): Command {
     .option('--blueprint <file>', 'start from a blueprint JSON file instead of a brief')
     .option('--slug <slug>', 'folder name (default: from the blueprint name)')
     .option('--name <name>', 'product name for a brief (default: a fictional name)')
+    .option('--kind <kind>', 'what a brief makes: app, deck, page or doc (default: detected)')
     .option('--out <dir>', 'write somewhere other than .protoyard/quick/<slug>/ (self-contained)')
     .option('--allow-external-out', 'permit an --out outside the workspace (must be new or empty)')
     .option('--seed <n>', 'scenario seed the launcher opens the world with (whole number)')

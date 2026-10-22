@@ -2,7 +2,8 @@ import { type FSWatcher, watch } from 'node:fs';
 import { lstat, readFile } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
-import { blueprintIdentity, parseBlueprint } from '@protoyard/blueprint';
+import { blueprintIdentity } from '@protoyard/blueprint';
+import { parseQuickBlueprint } from './blueprint-kind.ts';
 import { historyBlueprints } from './history.ts';
 
 /**
@@ -61,7 +62,9 @@ export async function readBlueprintIdentity(
   const info = await lstat(file).catch(() => undefined);
   if (!info?.isFile() || info.isSymbolicLink() || info.size > MAX_BLUEPRINT_BYTES) return null;
   try {
-    const blueprint = parseBlueprint(JSON.parse(await readFile(file, 'utf8')) as unknown);
+    const blueprint = await parseQuickBlueprint(
+      JSON.parse(await readFile(file, 'utf8')) as unknown
+    );
     return await blueprintIdentity(blueprint);
   } catch {
     // Mid-write or invalid: no event. The next settled write is read again.

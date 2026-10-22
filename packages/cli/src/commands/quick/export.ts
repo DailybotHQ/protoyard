@@ -1,7 +1,12 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { blueprintIdentity, loadUntrustedDocument } from '@protoyard/blueprint';
+import {
+  type BlueprintKind,
+  blueprintIdentity,
+  blueprintKind,
+  loadUntrustedDocument,
+} from '@protoyard/blueprint';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { flag, opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
@@ -38,6 +43,10 @@ import { resolveQuickServeTarget } from './serve.ts';
 
 export interface QuickExportResult {
   slug: string;
+  /** The blueprint kind (`app`, `deck`, `page`, `doc`); a content kind starts from its own page. */
+  kind: BlueprintKind;
+  /** The player page the file was built from (`index`, `deck`, `page`, `doc`). */
+  entry: string;
   dir: string;
   /** The written file, relative to the workspace. */
   file: string;
@@ -50,6 +59,7 @@ export interface QuickExportResult {
 
 export interface QuickArtifactExportResult {
   slug: string;
+  kind: BlueprintKind;
   dir: string;
   target: 'artifact';
   /** The pack folder, relative to the workspace. */
@@ -191,6 +201,7 @@ export const quickExportCommand: Handler = async (ctx, args, options): Promise<C
     const { packDir } = await writeQuickArtifact(target.dir, pack);
     const data: QuickArtifactExportResult = {
       slug: target.slug,
+      kind: blueprintKind(loaded.blueprint),
       dir: toPosixRelative(ctx.root, target.dir),
       target: 'artifact',
       pack: toPosixRelative(ctx.root, packDir),
@@ -225,6 +236,8 @@ export const quickExportCommand: Handler = async (ctx, args, options): Promise<C
 
   const data: QuickExportResult = {
     slug: target.slug,
+    kind: blueprintKind(loaded.blueprint),
+    entry: built.entry,
     dir: toPosixRelative(ctx.root, target.dir),
     file: toPosixRelative(ctx.root, file),
     bytes: built.bytes,
