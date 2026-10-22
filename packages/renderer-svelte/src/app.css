@@ -35,6 +35,15 @@
 }
 
 /*
+ * Layout-viewport px hidden past the visible right edge (phone emulation, pinch
+ * zoom). mountPrototype keeps it current inline (trackFixedRightEdge); fixed
+ * chrome adds it to its `right` offset so it stays clickable.
+ */
+:root {
+  --py-fixed-right-edge: 0px;
+}
+
+/*
  * The app's scroll root and the ShellHost wrappers. Without a viewport preset or a
  * shell frame they are `display: contents`, so the document scrolls exactly as before.
  */

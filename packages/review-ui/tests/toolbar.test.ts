@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -64,6 +66,131 @@ describe('the floating review toolbar never covers the app by default', () => {
     expect(options.handle()?.getAttribute('aria-label')).toBe('Review: 2 comment threads');
     unmount();
     expect(destroy).toHaveBeenCalled();
+  });
+});
+
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+
+function fixedNav(rect: { top: number; height: number }, position = 'fixed'): HTMLElement {
+  const nav = document.body.appendChild(document.createElement('nav'));
+  nav.setAttribute('data-py-bottom-nav', '');
+  nav.style.position = position;
+  nav.getBoundingClientRect = () =>
+    ({
+      ...rect,
+      bottom: rect.top + rect.height,
+      left: 0,
+      right: 390,
+      width: 390,
+      x: 0,
+      y: rect.top,
+    }) as DOMRect;
+  return nav;
+}
+
+describe('the review toolbar on phones', () => {
+  it('sits above a fixed bottom nav when no host placer runs', async () => {
+    fixedNav({ top: window.innerHeight - 64, height: 64 });
+    render(ReviewToolbar, { adapter, count: 1 });
+    const bar = screen.getByRole('navigation', { name: 'Prototype review toolbar' });
+    await waitFor(() => expect(bar.style.bottom).toBe('76px'));
+  });
+
+  it('measures the nav against the visible bottom of a smaller visual viewport', async () => {
+    const original = Object.getOwnPropertyDescriptor(window, 'visualViewport');
+    const viewport = Object.assign(new EventTarget(), {
+      offsetLeft: 0,
+      offsetTop: 0,
+      width: 390,
+      height: 600,
+    });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+    try {
+      // A tab bar pinned to the visual bottom (600), not the layout bottom.
+      fixedNav({ top: 540, height: 60 });
+      render(ReviewToolbar, { adapter, count: 1 });
+      const bar = screen.getByRole('navigation', { name: 'Prototype review toolbar' });
+      await waitFor(() => expect(bar.style.bottom).toBe('72px'));
+    } finally {
+      if (original) Object.defineProperty(window, 'visualViewport', original);
+      else delete (window as { visualViewport?: unknown }).visualViewport;
+    }
+  });
+
+  it('ignores a nav that is not fixed to the bottom, and leaves offsets to a host placer', async () => {
+    fixedNav({ top: window.innerHeight - 64, height: 64 }, 'static');
+    render(ReviewToolbar, { adapter, count: 1 });
+    await nextFrame();
+    await nextFrame();
+    expect(screen.getByRole('navigation', { name: 'Prototype review toolbar' }).style.bottom).toBe(
+      ''
+    );
+    cleanup();
+
+    fixedNav({ top: window.innerHeight - 64, height: 64 });
+    const place = vi.fn(() => ({ update: vi.fn(), destroy: vi.fn() }));
+    render(ReviewToolbar, { adapter, count: 1, place });
+    await nextFrame();
+    await nextFrame();
+    expect(screen.getByRole('navigation', { name: 'Prototype review toolbar' }).style.bottom).toBe(
+      ''
+    );
+  });
+
+  it('follows the visible right edge in CSS (--py-fixed-right-edge) and stays inside it', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, '../src/toolbar/ReviewToolbar.svelte'),
+      'utf8'
+    );
+    const rule = /\.review-toolbar\{([^}]*)\}/.exec(source)?.[1] ?? '';
+    expect(rule).toContain('right:calc(.75rem + var(--py-fixed-right-edge,0px))');
+    expect(rule).toContain('max-width:calc(100vw - 1.5rem - var(--py-fixed-right-edge,0px))');
+  });
+
+  it('keeps the action row in the DOM but hidden until opened, so aria-controls resolves', async () => {
+    render(ReviewToolbar, { adapter, count: 1, onCommentModeChange: vi.fn() });
+    const launcher = screen.getByRole('button', { name: 'Review: 1 comment thread' });
+    const row = document.getElementById(launcher.getAttribute('aria-controls') ?? '');
+    expect(row?.hidden).toBe(true);
+    await fireEvent.click(launcher);
+    expect(row?.hidden).toBe(false);
+  });
+
+  it('re-places the bar after the action row opens', async () => {
+    const update = vi.fn();
+    const place = vi.fn(() => ({ update, destroy: vi.fn() }));
+    render(ReviewToolbar, { adapter, count: 1, place });
+    await nextFrame();
+    expect(update).not.toHaveBeenCalled();
+    await fireEvent.click(screen.getByRole('button', { name: 'Review: 1 comment thread' }));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+  });
+
+  it('turns comment mode off from the launcher while pins are being placed', async () => {
+    const onCommentModeChange = vi.fn();
+    render(ReviewToolbar, { adapter, count: 2, commentMode: true, onCommentModeChange });
+    const launcher = screen.getByRole('button', { name: 'Review: 2 comment threads' });
+    expect(launcher.getAttribute('aria-expanded')).toBe('true');
+    await fireEvent.click(launcher);
+    expect(onCommentModeChange).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it('opens the import picker with showPicker, falling back to a click', async () => {
+    render(ReviewToolbar, { adapter, count: 0, expanded: true, onImport: vi.fn() });
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) throw new Error('missing file input');
+    const click = vi.spyOn(input, 'click').mockImplementation(() => {});
+    const showPicker = vi.fn();
+    Object.defineProperty(input, 'showPicker', { configurable: true, value: showPicker });
+    await fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(click).not.toHaveBeenCalled();
+
+    showPicker.mockImplementation(() => {
+      throw new DOMException('Not allowed', 'NotAllowedError');
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Import' }));
+    expect(click).toHaveBeenCalledTimes(1);
   });
 });
 
