@@ -241,7 +241,7 @@ bytes, about 1.05 MB gzip. The player dominates, and the blueprint adds a few KB
 The export refuses files over `QUICK_SINGLE_FILE_BUDGET_BYTES` (4 MiB).
 
 **Content kinds (measured 2026-10-22).** The catalog deck (Lumen launch), page
-and doc export at 1,607,518–1,608,287 bytes, against 3,050,811 bytes for the
+and doc export at 1,606,788–1,607,557 bytes, against 3,051,751 bytes for the
 CRM app from the same player build.
 - **Budget:** a kind file is refused over 2 MiB
   (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES`).

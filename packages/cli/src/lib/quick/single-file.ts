@@ -46,7 +46,7 @@ export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
 
 /**
  * Cap per entry. A deck, page or doc exported from its own page embeds only
- * that page's graph: measured 2026-10-22 at 1,607,518–1,608,287 bytes (the
+ * that page's graph: measured 2026-10-22 at 1,606,788–1,607,557 bytes (the
  * catalog deck, page and doc). 2 MiB leaves ~23% headroom, like the app cap.
  * The proposed 1.5 MiB deck budget (ADR-040, `kinds.deck.singleFileKb`) is
  * not met: DevTools (Deck Studio, themes), review comments, device shells and
