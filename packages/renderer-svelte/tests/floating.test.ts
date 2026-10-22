@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CONTROL_COST, type Rect } from '../src/shell/badge-placement.ts';
 import {
+  FIXED_RIGHT_EDGE_VAR,
   FLOATING_EVENT,
   FLOATING_INSET,
+  fixedRightEdge,
   floatingSpots,
   pickFloatingSpot,
   placeFloating,
+  trackFixedRightEdge,
   visiblePlacementContainer,
 } from '../src/shell/floating.ts';
 
@@ -425,6 +428,93 @@ describe('floating chrome placement', () => {
     vi.advanceTimersByTime(200);
     expect(placeReads.mock.calls.length).toBeGreaterThan(readsAfterMount);
 
+    placement.destroy();
+  });
+});
+
+describe('visible right edge for fixed chrome', () => {
+  const layoutWidth = window.innerWidth;
+  const fakeWindow = (
+    innerWidth: number,
+    visualViewport: { width: number; height: number; offsetLeft: number; offsetTop: number } | null
+  ) => ({ innerWidth, innerHeight: 800, visualViewport }) as unknown as Window;
+
+  it('is 0 when the whole layout width is visible or there is no visual viewport', () => {
+    expect(fixedRightEdge(fakeWindow(400, null))).toBe(0);
+    expect(
+      fixedRightEdge(fakeWindow(400, { width: 400, height: 800, offsetLeft: 0, offsetTop: 0 }))
+    ).toBe(0);
+  });
+
+  it('measures the layout width hidden past the visible right edge, panned or zoomed', () => {
+    // Mobile emulation: a 980px layout viewport behind a 390px visual one.
+    expect(
+      fixedRightEdge(fakeWindow(980, { width: 390, height: 800, offsetLeft: 0, offsetTop: 0 }))
+    ).toBe(590);
+    // Panned right by 100px: less is hidden on the right.
+    expect(
+      fixedRightEdge(fakeWindow(980, { width: 390, height: 800, offsetLeft: 100, offsetTop: 0 }))
+    ).toBe(490);
+    // Fractional zoom rounds to whole px and never goes negative.
+    expect(
+      fixedRightEdge(fakeWindow(400, { width: 333.4, height: 800, offsetLeft: 0, offsetTop: 0 }))
+    ).toBe(67);
+    expect(
+      fixedRightEdge(fakeWindow(400, { width: 390, height: 800, offsetLeft: 20, offsetTop: 0 }))
+    ).toBe(0);
+  });
+
+  it('publishes --py-fixed-right-edge on <html>, follows the visual viewport and cleans up', () => {
+    const listeners = new Map<string, EventListener>();
+    stubVisualViewport({
+      width: 390,
+      height: 800,
+      addEventListener: (type: string, fn: EventListener) => listeners.set(type, fn),
+      removeEventListener: (type: string) => listeners.delete(type),
+    });
+    // The stub copies its argument: change the installed object.
+    const viewport = window.visualViewport as unknown as { width: number; offsetLeft: number };
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 980 });
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((fn) => {
+      fn(0);
+      return 1;
+    });
+    const root = document.documentElement;
+    try {
+      const stop = trackFixedRightEdge(root, window);
+      expect(FIXED_RIGHT_EDGE_VAR).toBe('--py-fixed-right-edge');
+      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('590px');
+      expect([...listeners.keys()].sort()).toEqual(['resize', 'scroll']);
+
+      viewport.offsetLeft = 590;
+      listeners.get('scroll')?.(new Event('scroll'));
+      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('0px');
+
+      viewport.offsetLeft = 0;
+      viewport.width = 980;
+      window.dispatchEvent(new Event('resize'));
+      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('0px');
+
+      viewport.width = 500;
+      listeners.get('resize')?.(new Event('resize'));
+      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('480px');
+
+      stop();
+      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('');
+      expect(listeners.size).toBe(0);
+    } finally {
+      raf.mockRestore();
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: layoutWidth });
+      root.style.removeProperty('--py-fixed-right-edge');
+    }
+  });
+
+  it('starts floating chrome inside the visible right edge before it is placed', () => {
+    const element = document.createElement('div');
+    document.body.append(element);
+    const placement = placeFloating(element);
+    // happy-dom has no layout, so placement keeps the safe fallback.
+    expect(element.style.right).toBe(`calc(${FLOATING_INSET}px + var(--py-fixed-right-edge, 0px))`);
     placement.destroy();
   });
 });

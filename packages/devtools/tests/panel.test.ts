@@ -92,7 +92,8 @@ describe('DevTools panel', () => {
       await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
       await settle();
       const launcher = screen.getByRole('button', { name: /Open Protoyard DevTools/ });
-      expect(launcher.className).toContain('right-0');
+      // Docked to the visible right edge, not the layout viewport's.
+      expect(launcher.className).toContain('right-[var(--py-fixed-right-edge,0px)]');
       expect(launcher.className).toContain('top-1/2');
       expect(launcher.textContent?.trim()).toBe('');
     } finally {

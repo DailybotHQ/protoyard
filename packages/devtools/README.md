@@ -81,7 +81,9 @@ pointer/focus events are stopped from bubbling out of the host. So
 into it, and clicking it doesn't dismiss the dialog. While a modal is open the
 launcher docks to the right edge so it never covers dialog actions; it also
 lifts above a fixed `BottomNav` (`data-py-bottom-nav`) or by
-`--py-devtools-offset` on `:root`.
+`--py-devtools-offset` on `:root`. The launcher and the panel keep inside the
+visible right edge (`--py-fixed-right-edge`, set by the renderer), so they stay
+clickable under mobile emulation or a zoomed phone.
 
 Caveat: focus traps from libraries that listen on `window` in the capture
 phase (not Bits UI) would still win; Tab from the app dialog does not cycle

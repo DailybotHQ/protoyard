@@ -16,7 +16,7 @@ import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
 import { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
 import BootError from './shell/BootError.svelte';
-import { placeFloating } from './shell/floating.ts';
+import { placeFloating, trackFixedRightEdge } from './shell/floating.ts';
 import Root from './shell/Root.svelte';
 
 export interface RuntimeFactoryOptions {
@@ -200,6 +200,8 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   setMountedRuntime(rt);
   window.__protoyard = rt;
   cleanups.push(bindAppearance(rt, themes, root));
+  // Fixed chrome (toasts, DevTools, review) reads this to stay on the visible width.
+  cleanups.push(trackFixedRightEdge(root));
 
   // The define is read inline (not via flags.ts) so the minifier can fold it
   // and drop the DevTools chunk entirely from builds without DevTools.

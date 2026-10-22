@@ -106,6 +106,54 @@ export function visiblePlacementContainer(
   };
 }
 
+/** CSS variable on `<html>`: px of the layout viewport hidden past the visible right edge. */
+export const FIXED_RIGHT_EDGE_VAR = '--py-fixed-right-edge';
+
+/**
+ * How far the visible right edge sits inside the layout viewport's right edge,
+ * in whole CSS px (0 when the whole width is visible). Fixed chrome adds it to
+ * its `right` offset so it stays on the clickable part of a phone frame or a
+ * mobile-emulated window.
+ */
+export function fixedRightEdge(
+  win: Pick<Window, 'innerWidth' | 'innerHeight' | 'visualViewport'> = window
+): number {
+  const visible = visiblePlacementContainer(win);
+  return Math.max(0, Math.round(win.innerWidth - (visible.left + visible.width)));
+}
+
+/**
+ * Keeps `--py-fixed-right-edge` on `root` (default `<html>`) in step with the
+ * visual viewport: set now, then after resizes, visual-viewport resizes and
+ * pans. Returns the cleanup, which removes the variable again.
+ */
+export function trackFixedRightEdge(
+  root: HTMLElement = document.documentElement,
+  win: Window = window
+): () => void {
+  let frame = 0;
+  const apply = () => {
+    root.style.setProperty(FIXED_RIGHT_EDGE_VAR, `${fixedRightEdge(win)}px`);
+  };
+  const schedule = () => {
+    if (typeof win.requestAnimationFrame !== 'function') return apply();
+    win.cancelAnimationFrame(frame);
+    frame = win.requestAnimationFrame(apply);
+  };
+  apply();
+  const vv = win.visualViewport;
+  win.addEventListener('resize', schedule);
+  vv?.addEventListener('resize', schedule);
+  vv?.addEventListener('scroll', schedule);
+  return () => {
+    if (typeof win.cancelAnimationFrame === 'function') win.cancelAnimationFrame(frame);
+    win.removeEventListener('resize', schedule);
+    vv?.removeEventListener('resize', schedule);
+    vv?.removeEventListener('scroll', schedule);
+    root.style.removeProperty(FIXED_RIGHT_EDGE_VAR);
+  };
+}
+
 export interface FloatingPlacement {
   /** Re-checks the spot now (after the element changed size, for example). */
   update(): void;
@@ -283,7 +331,7 @@ export function placeFloating(
   // Start with a safe fallback, then place synchronously so a fast click cannot
   // hit the launcher while it still overlaps a fixed app control.
   element.style.position = 'fixed';
-  element.style.right = `${FLOATING_INSET}px`;
+  element.style.right = `calc(${FLOATING_INSET}px + var(${FIXED_RIGHT_EDGE_VAR}, 0px))`;
   element.style.bottom = `${FLOATING_INSET}px`;
   place();
   schedule();

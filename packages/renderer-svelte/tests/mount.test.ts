@@ -234,6 +234,34 @@ describe('mountPrototype', () => {
     remove.mockRestore();
   });
 
+  it('publishes the visible right edge for fixed chrome while mounted', async () => {
+    const width = window.innerWidth;
+    const viewport = Object.getOwnPropertyDescriptor(window, 'visualViewport');
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      value: {
+        width: 390,
+        height: 800,
+        offsetLeft: 0,
+        offsetTop: 0,
+        addEventListener() {},
+        removeEventListener() {},
+      },
+    });
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 980 });
+    try {
+      const { mounted } = await boot();
+      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('590px');
+      await mounted.destroy();
+      destroy = undefined;
+      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+      if (viewport) Object.defineProperty(window, 'visualViewport', viewport);
+      else delete (window as { visualViewport?: unknown }).visualViewport;
+    }
+  });
+
   it('shows a storage warning banner when persistence is degraded', async () => {
     await boot({ persistent: false });
     expect(screen.getByRole('status').textContent).toContain("Changes won't be saved.");

@@ -366,7 +366,11 @@ toast.dismiss(id); // or toast.dismiss() for all
 Toasts auto-dismiss (4–8 s depending on kind, configurable with `duration`). The countdown pauses
 while the stack is hovered or focused. Messages are announced politely, and errors assertively.
 Render one `<Toaster />` near the app root. It sits bottom-right, or bottom-center above the safe
-area on phones.
+area on phones. Only the toasts take pointer events: taps around them and in the gaps between them
+reach the page. To keep toasts above a bottom nav or a sticky composer, pass `offset` (px or any CSS
+length, `<Toaster offset={64} />`) or set `--py-toast-offset` on the page. Inside a prototype, the
+toasts also stay inside the visible right edge (`--py-fixed-right-edge`, kept current by the
+renderer).
 
 ## Drawers and the overlay stack
 

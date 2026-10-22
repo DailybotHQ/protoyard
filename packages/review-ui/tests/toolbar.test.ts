@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -114,5 +116,19 @@ describe('mountReview with DevTools', () => {
     expect(screen.getByRole('button', { name: 'Comment' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Comments' })).toBeNull();
     await review.destroy();
+  });
+});
+
+describe('ReviewToolbar fallback position', () => {
+  // Unit tests load no component CSS, so the rule is checked at its source.
+  const css = readFileSync(
+    join(import.meta.dirname, '../src/toolbar/ReviewToolbar.svelte'),
+    'utf8'
+  );
+  const rule = css.match(/\.review-toolbar\{[^}]*\}/)?.[0] ?? '';
+
+  it('stays inside the visible right edge until placeFloating positions it', () => {
+    expect(rule).toContain('right:calc(.75rem + var(--py-fixed-right-edge,0px))');
+    expect(rule).toContain('max-width:calc(100vw - 1.5rem - var(--py-fixed-right-edge,0px))');
   });
 });

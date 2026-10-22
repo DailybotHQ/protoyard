@@ -130,7 +130,7 @@ const adapterLabel = $derived.by(() => {
 </nav>
 
 <style>
-  .review-toolbar{position:fixed;z-index:2147482998;right:.75rem;bottom:calc(.75rem + env(safe-area-inset-bottom,0px));display:flex;max-width:calc(100vw - 1.5rem);align-items:center;gap:.35rem;color:var(--py-foreground,#18181b);font:inherit}
+  .review-toolbar{position:fixed;z-index:2147482998;right:calc(.75rem + var(--py-fixed-right-edge,0px));bottom:calc(.75rem + env(safe-area-inset-bottom,0px));display:flex;max-width:calc(100vw - 1.5rem - var(--py-fixed-right-edge,0px));align-items:center;gap:.35rem;color:var(--py-foreground,#18181b);font:inherit}
   .review-toolbar--placed{right:auto;bottom:auto}
   .review-toolbar:global([data-py-float-x="right"]),.review-toolbar:not(.review-toolbar--placed){flex-direction:row-reverse}
   .review-toolbar button{flex:none;border:1px solid var(--py-border,#d4d4d8);border-radius:.45rem;background:var(--py-surface,#fff);padding:.4rem .55rem;color:inherit;font:inherit;font-size:.8rem;white-space:nowrap;cursor:pointer}

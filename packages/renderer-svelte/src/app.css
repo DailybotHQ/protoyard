@@ -35,6 +35,16 @@
 }
 
 /*
+ * Px of the layout viewport hidden past the visible right edge (mobile
+ * emulation, a zoomed phone). mountPrototype keeps it current; fixed chrome
+ * (toasts, the DevTools launcher, the review toolbar) adds it to its `right`
+ * so it stays clickable.
+ */
+:root {
+  --py-fixed-right-edge: 0px;
+}
+
+/*
  * The app's scroll root and the ShellHost wrappers. Without a viewport preset or a
  * shell frame they are `display: contents`, so the document scrolls exactly as before.
  */
