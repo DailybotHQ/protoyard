@@ -1,0 +1,35 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.design-kit",
+  "slug": "design-kit",
+  "kind": "template",
+  "name": "Design Kit",
+  "description": "A searchable design system catalog with foundations, responsive demos and persisted review notes.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "design-system",
+  "tags": ["design-system", "components", "foundations", "review"],
+  "catalog": {
+    "category": "design",
+    "productType": "Design system",
+    "platforms": ["web"],
+    "features": ["component-catalog", "design-foundations", "review-notes"],
+    "highlights": [
+      "Searchable component and pattern catalog",
+      "Color, type, shape, motion and icon foundations",
+      "Phone and desktop demos with persisted review notes"
+    ],
+    "difficulty": "beginner"
+  },
+  "status": "ready",
+  "icon": "✳️",
+  "defaultScenario": "default",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-design-kit", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["default", "reviewer"],
+  "thumbnail": "public/thumbnail.png"
+}
