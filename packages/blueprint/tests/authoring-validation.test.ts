@@ -31,18 +31,18 @@ function validBlueprint() {
 }
 
 describe('validateBlueprintForAuthoring', () => {
-  it('returns no diagnostics for a fully valid blueprint', () => {
-    expect(validateBlueprintForAuthoring(validBlueprint())).toEqual({
+  it('returns no diagnostics for a fully valid blueprint', async () => {
+    expect(await validateBlueprintForAuthoring(validBlueprint())).toEqual({
       valid: true,
       kind: 'app',
       diagnostics: [],
     });
   });
 
-  it('returns deterministic JSON paths and an actionable hint for structural errors', () => {
+  it('returns deterministic JSON paths and an actionable hint for structural errors', async () => {
     const invalid = { ...validBlueprint(), unexpected: true };
-    const first = validateBlueprintForAuthoring(invalid);
-    const second = validateBlueprintForAuthoring(invalid);
+    const first = await validateBlueprintForAuthoring(invalid);
+    const second = await validateBlueprintForAuthoring(invalid);
 
     expect(first).toEqual(second);
     expect(first.valid).toBe(false);
@@ -55,10 +55,10 @@ describe('validateBlueprintForAuthoring', () => {
     });
   });
 
-  it('checks cross references and does not mistake JSON shape validity for blueprint validity', () => {
+  it('checks cross references and does not mistake JSON shape validity for blueprint validity', async () => {
     const invalid = validBlueprint();
     invalid.entities[0]!.titleField = 'headline';
-    const result = validateBlueprintForAuthoring(invalid);
+    const result = await validateBlueprintForAuthoring(invalid);
 
     expect(result.valid).toBe(false);
     expect(result.diagnostics).toContainEqual({
@@ -86,7 +86,7 @@ describe('validateBlueprintForAuthoring', () => {
 });
 
 describe('validateBlueprintForAuthoring across kinds', () => {
-  // Stand-in body schemas until the deck and page engines wire theirs (bodies.ts).
+  // A strict stand-in keeps these tests focused on union diagnostics, not engine body contracts.
   const body = z.strictObject({
     title: z.string().min(1),
     sections: z.array(z.strictObject({ heading: z.string().min(1) })).min(1),
@@ -112,31 +112,31 @@ describe('validateBlueprintForAuthoring across kinds', () => {
     };
   }
 
-  it('accepts a legacy app without kind and an explicit app kind', () => {
-    expect(validateBlueprintForAuthoring(validBlueprint())).toEqual({
+  it('accepts a legacy app without kind and an explicit app kind', async () => {
+    expect(await validateBlueprintForAuthoring(validBlueprint())).toEqual({
       valid: true,
       kind: 'app',
       diagnostics: [],
     });
-    expect(validateBlueprintForAuthoring({ ...validBlueprint(), kind: 'app' })).toEqual({
+    expect(await validateBlueprintForAuthoring({ ...validBlueprint(), kind: 'app' })).toEqual({
       valid: true,
       kind: 'app',
       diagnostics: [],
     });
   });
 
-  it.each(CONTENT_KINDS)('accepts a valid %s', (kind) => {
-    expect(validateBlueprintForAuthoring(content(kind))).toEqual({
+  it.each(CONTENT_KINDS)('accepts a valid %s', async (kind) => {
+    expect(await validateBlueprintForAuthoring(content(kind))).toEqual({
       valid: true,
       kind,
       diagnostics: [],
     });
   });
 
-  it.each(CONTENT_KINDS)('returns deterministic body paths for an invalid %s', (kind) => {
+  it.each(CONTENT_KINDS)('returns deterministic body paths for an invalid %s', async (kind) => {
     const invalid = content(kind, { title: '', sections: [{ heading: 'One' }, { heading: 7 }] });
-    const first = validateBlueprintForAuthoring(invalid);
-    expect(first).toEqual(validateBlueprintForAuthoring(structuredClone(invalid)));
+    const first = await validateBlueprintForAuthoring(invalid);
+    expect(first).toEqual(await validateBlueprintForAuthoring(structuredClone(invalid)));
     expect(first.valid).toBe(false);
     expect(first.kind).toBe(kind);
     expect(first.diagnostics.map((d) => [d.code, d.jsonPath])).toEqual([
@@ -149,9 +149,9 @@ describe('validateBlueprintForAuthoring across kinds', () => {
     });
   });
 
-  it('asks for the body when a content kind has none', () => {
+  it('asks for the body when a content kind has none', async () => {
     const { deck: _deck, ...missing } = content('deck');
-    const result = validateBlueprintForAuthoring(missing);
+    const result = await validateBlueprintForAuthoring(missing);
     expect(result.valid).toBe(false);
     expect(result.diagnostics).toContainEqual({
       code: 'invalid-type',
@@ -162,8 +162,12 @@ describe('validateBlueprintForAuthoring across kinds', () => {
     });
   });
 
-  it('rejects app keys on a content kind with a kind-specific hint', () => {
-    const result = validateBlueprintForAuthoring({ ...content('page'), entities: [], roles: [] });
+  it('rejects app keys on a content kind with a kind-specific hint', async () => {
+    const result = await validateBlueprintForAuthoring({
+      ...content('page'),
+      entities: [],
+      roles: [],
+    });
     expect(result.valid).toBe(false);
     expect(result.diagnostics).toHaveLength(1);
     const [diagnostic] = result.diagnostics;
@@ -174,8 +178,8 @@ describe('validateBlueprintForAuthoring across kinds', () => {
     );
   });
 
-  it('points at a second body that belongs to another kind', () => {
-    const result = validateBlueprintForAuthoring({ ...content('doc'), deck: { title: 'x' } });
+  it('points at a second body that belongs to another kind', async () => {
+    const result = await validateBlueprintForAuthoring({ ...content('doc'), deck: { title: 'x' } });
     expect(result.diagnostics).toEqual([
       expect.objectContaining({
         code: 'unknown-key',
@@ -185,8 +189,8 @@ describe('validateBlueprintForAuthoring across kinds', () => {
     ]);
   });
 
-  it('reports an unknown or malformed kind on $.kind without parsing the rest', () => {
-    expect(validateBlueprintForAuthoring({ kind: 'spreadsheet', name: 'X' })).toEqual({
+  it('reports an unknown or malformed kind on $.kind without parsing the rest', async () => {
+    expect(await validateBlueprintForAuthoring({ kind: 'spreadsheet', name: 'X' })).toEqual({
       valid: false,
       kind: null,
       diagnostics: [
@@ -200,7 +204,7 @@ describe('validateBlueprintForAuthoring across kinds', () => {
         },
       ],
     });
-    expect(validateBlueprintForAuthoring({ ...validBlueprint(), kind: 3 })).toEqual({
+    expect(await validateBlueprintForAuthoring({ ...validBlueprint(), kind: 3 })).toEqual({
       valid: false,
       kind: null,
       diagnostics: [
@@ -215,10 +219,10 @@ describe('validateBlueprintForAuthoring across kinds', () => {
     });
   });
 
-  it('keeps app errors unchanged when kind is app', () => {
+  it('keeps app errors unchanged when kind is app', async () => {
     const invalid = { ...validBlueprint(), kind: 'app' };
     invalid.entities[0]!.titleField = 'headline';
-    expect(validateBlueprintForAuthoring(invalid).diagnostics).toEqual([
+    expect((await validateBlueprintForAuthoring(invalid)).diagnostics).toEqual([
       {
         code: 'unknown-field',
         path: ['entities', 0, 'titleField'],
@@ -230,29 +234,10 @@ describe('validateBlueprintForAuthoring across kinds', () => {
   });
 });
 
-// Kinds whose engine schema is not wired into this build yet (page and doc are).
-const UNSHIPPED = CONTENT_KINDS.filter((kind) => !kindBodySchema(kind));
-
-describe('validateBlueprintForAuthoring for kinds this build does not ship', () => {
-  it.skipIf(UNSHIPPED.length === 0).each(UNSHIPPED)(
-    'reports %s as unavailable on $.kind',
-    (kind) => {
-      const result = validateBlueprintForAuthoring({ kind, name: 'Later', [kind]: {} });
-      expect(result).toEqual({
-        valid: false,
-        kind,
-        diagnostics: [
-          {
-            code: 'kind-unavailable',
-            path: ['kind'],
-            jsonPath: '$["kind"]',
-            message: `Blueprint kind "${kind}" is not available in this build of Protoyard yet.`,
-            hint: `Update Protoyard to a build that ships the ${kind} engine, or author an app blueprint instead.`,
-          },
-        ],
-      });
-    }
-  );
+describe('content kind schema loading', () => {
+  it('has a body schema for each shipped content kind', async () => {
+    for (const kind of CONTENT_KINDS) expect(await kindBodySchema(kind)).toBeDefined();
+  });
 });
 
 describe('block and asset authoring hints', () => {
@@ -387,7 +372,7 @@ describe('block and asset authoring hints', () => {
     }
   });
 
-  it('keeps path prefixes when mapping a list of block issues into a deck body', () => {
+  it('keeps path prefixes when mapping a list of block issues into a deck body', async () => {
     const restore = withKindBodySchemaForTesting(
       'deck',
       z.strictObject({
@@ -397,7 +382,7 @@ describe('block and asset authoring hints', () => {
     );
     try {
       // Body shape is valid; block mapping is separate and path-prefixed for authors.
-      const envelope = validateBlueprintForAuthoring({
+      const envelope = await validateBlueprintForAuthoring({
         formatVersion: 1,
         kind: 'deck',
         name: 'Pitch',

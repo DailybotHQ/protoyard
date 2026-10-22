@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
 // The blueprint does not depend on blocks yet; the test reads the real block schema from source.
 import { BlockListSchema } from '../../blocks/src/index.ts';
 import {
@@ -14,50 +13,14 @@ import {
   synthesizeDeckOutline,
 } from '../src/brief/deck-outlines.ts';
 import { safeParseAnyBlueprint } from '../src/kinds/envelope.ts';
-import { withKindBodySchemaForTesting } from '../src/kinds/testing.ts';
-
-/**
- * A provisional deck body: the shape T-decks-schema defines (slides of
- * `{ id, title, layout: "free", blocks, notes }`) with the real block schema.
- * Replace with `@protoyard/decks/schema` once the deck body is wired.
- */
-const ProvisionalDeckBody = z.strictObject({
-  title: z.string().min(1).max(80),
-  aspect: z.enum(['16:9', '4:3', '9:16', '1:1']),
-  slides: z
-    .array(
-      z.strictObject({
-        id: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/),
-        title: z.string().min(1).max(120),
-        layout: z.literal('free'),
-        blocks: BlockListSchema,
-        notes: z.string().max(2_000),
-      })
-    )
-    .min(1)
-    .max(200)
-    .superRefine((slides, ctx) => {
-      const ids = new Set<string>();
-      slides.forEach((slide, i) => {
-        if (ids.has(slide.id))
-          ctx.addIssue({ code: 'custom', path: [i, 'id'], message: 'duplicate slide id' });
-        ids.add(slide.id);
-      });
-    }),
-});
 
 function parseAsDeck(result: DeckOutlineResult) {
-  const restore = withKindBodySchemaForTesting('deck', ProvisionalDeckBody);
-  try {
-    return safeParseAnyBlueprint({
-      formatVersion: 1,
-      name: 'Outline test',
-      kind: 'deck',
-      deck: result.deck,
-    });
-  } finally {
-    restore();
-  }
+  return safeParseAnyBlueprint({
+    formatVersion: 1,
+    name: result.deck.title,
+    kind: 'deck',
+    deck: { style: { aspect: result.deck.aspect }, slides: result.deck.slides },
+  });
 }
 
 const allBlocks = (result: DeckOutlineResult) =>
@@ -73,7 +36,7 @@ describe('deck outlines: every template parses as a deck', () => {
     expect(DECK_OUTLINES.map((t) => t.id)).toEqual([...DECK_OUTLINE_IDS]);
   });
 
-  it.each(DECK_OUTLINE_IDS)('%s parses as a deck at its minimum and maximum size', (id) => {
+  it.each(DECK_OUTLINE_IDS)('%s parses as a deck at its minimum and maximum size', async (id) => {
     const { min, max } = deckOutlineRange(id);
     expect(min).toBeGreaterThanOrEqual(5);
     expect(max).toBeLessThanOrEqual(DECK_OUTLINE_LIMITS.maxSlides);
@@ -82,7 +45,7 @@ describe('deck outlines: every template parses as a deck', () => {
         outline: id,
         slides,
       });
-      const parsed = parseAsDeck(result);
+      const parsed = await parseAsDeck(result);
       expect(parsed.success, JSON.stringify(parsed.error?.issues.slice(0, 3))).toBe(true);
       expect(result.deck.slides).toHaveLength(slides);
       // Block ids stay unique across the whole deck, not only per slide.
@@ -297,7 +260,7 @@ describe('deck outlines: titles from the brief', () => {
     expect(synthesizeDeckOutline('x', { title: 'Given title' }).deck.title).toBe('Given title');
   });
 
-  it('bounds titles and strips control and bidi characters', () => {
+  it('bounds titles and strips control and bidi characters', async () => {
     const long = deckTitleFromBrief(`A talk about ${'very '.repeat(40)}long topics.`);
     expect(long.length).toBeLessThanOrEqual(DECK_OUTLINE_LIMITS.titleLength);
     expect(long.endsWith('…')).toBe(true);
@@ -306,6 +269,6 @@ describe('deck outlines: titles from the brief', () => {
     expect(spoofed).not.toMatch(/[\u0000-\u001f\u202a-\u202e]/);
     const result = synthesizeDeckOutline(`A talk about ${'x'.repeat(10_000)}`);
     expect(result.deck.title.length).toBeLessThanOrEqual(80);
-    expect(parseAsDeck(result).success).toBe(true);
+    expect((await parseAsDeck(result)).success).toBe(true);
   });
 });

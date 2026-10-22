@@ -76,6 +76,9 @@ const LAZY_MODULES: [string, RegExp][] = [
   ['analytics kit', /\/analytics-ui\/src\//],
   ['views kit', /\/views-ui\/src\//],
   ['blueprint world generator', /\/blueprint\/src\/generator/],
+  ['deck body schema', /\/blueprint\/src\/kinds\/deck\.ts$/],
+  ['page body schema', /\/blueprint\/src\/kinds\/page\.ts$/],
+  ['doc body schema', /\/blueprint\/src\/kinds\/doc\.ts$/],
   ['main-thread generation fallback', /\/worker\/generate-world-core/],
 ];
 
@@ -118,6 +121,11 @@ describe.skipIf(!built)(
       expect(classes.initialJs.length).toBeGreaterThan(0);
       const kb = sum(classes.initialJs) / KB;
       expect(kb, `initial JS ${kb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(budget.initialJsGzipKb);
+    });
+
+    it('keeps app initial JS near the pre-kinds baseline after lazy body loading', () => {
+      const bytes = sum(classes.initialJs);
+      expect(bytes, `initial JS ${bytes.toLocaleString()} B gzip`).toBeLessThanOrEqual(196_000);
     });
 
     it('keeps initial CSS inside the CSS budget (and reports all CSS)', () => {
