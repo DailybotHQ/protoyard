@@ -251,6 +251,50 @@ const open = runWatchers(world, now, existingItems, {
   behind an explicit service callback in the prototype. Label the queue as
   simulated in the UI.
 
+## Chat message blocks (`@protoyard/ai/messages`)
+
+A bounded, versioned message AST for chat UIs, separate from rich answers:
+
+```ts
+import { messagePlainText, parseChatMessage } from '@protoyard/ai/messages';
+
+const result = parseChatMessage({
+  format: 'protoyard.message@1',
+  blocks: [
+    { type: 'text', text: 'Approve the **Q3 budget**?', format: 'markdown' },
+    {
+      type: 'buttons',
+      buttons: [
+        { label: 'Approve', action: 'budget.approve', style: 'primary' },
+        { label: 'Open sheet', url: 'https://sheets.example.com/q3' },
+      ],
+    },
+  ],
+  attachments: [{ id: 'q3', name: 'q3.csv', mime: 'text/csv', size: 2048, url: 'files/q3.csv' }],
+});
+if (result.success) console.log(messagePlainText(result.message));
+else for (const issue of result.issues) console.log(issue.jsonPath, issue.message);
+```
+
+| Block | Fields (caps in `MESSAGE_LIMITS`) |
+| --- | --- |
+| `text` | `text` (4,000 chars, newlines allowed), `format` `plain` · `markdown` |
+| `buttons` | 1–5 `{ label, action \| url, value?, style?, confirm? }`; a link button has no value or confirmation |
+| `select` | `action`, `placeholder`, `label?`, 1–100 unique `options`, `multiple?`, `initial?` (must be options; one when single) |
+| `form` | `action`, `title`, 1–20 fields with unique `key` and `kind` text · textarea · number · date · checkbox · select · multiselect; `initial` must fit the kind |
+| `table` | `title?`, 1–12 columns with unique `key`, ≤100 rows of string · number · boolean · null cells (500 chars) keyed by declared columns |
+| `link_preview` | http(s) `url` (never fetched), `title?`, `description?`, `siteName?`, `image?` (local only) |
+
+Every block may carry a plain-text `fallback`. An unknown block `type` turns
+into a `text` block (`replaces` names the original type when it is safe text)
+and is reported in `degraded`. The parser checks, in order: JSON text, the byte
+budget, plain-JSON structure (depth, `__proto__`/`constructor`/`prototype`
+keys, cycles, non-finite numbers), the format version, the block budget, then
+the schemas. `isSafeLinkUrl`, `isSafePreviewUrl`, `attachmentUrlIssue` and
+`textIssue` are exported for renderers that want the same rules. Rendering stays
+the UI's job: show strings as text and markdown through `parseMarkdown`, never
+with `{@html}`.
+
 ## Package output
 
 The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.
