@@ -18,7 +18,7 @@ layout table, the limits table, and the decks-ui keyboard table.
 | --- | --- |
 | `@protoyard/decks` | **Canvas:** `DECK_ASPECTS`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DECK_TEXT_MINIMUMS`. **Catalog:** `DECK_LAYOUTS`, `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts`. **Navigation:** `createDeckNavigator`, `parseDeckHash`, `formatDeckHash`, `defaultSlideStepCount`, `DECK_HASH_ID_MAX`, `DECK_HASH_STEP_MAX`. **Input:** `decideDeckInput`, `inputPathFrom`, `DECK_INPUT_ACTIONS`, `DECK_KEY_BINDINGS`, `DECK_INTERACTIVE_ATTRIBUTE`, `DECK_CHROME_ATTRIBUTE`, `DECK_SWIPE_MIN_DISTANCE`, `DECK_SWIPE_AXIS_RATIO`, `DECK_SWIPE_MAX_DURATION_MS`. **Steps and motion:** `slideSteps`, `slideStepCount`, `slideFragments`, `fragmentPhase`, `activeCodeHighlight`, `FRAGMENT_EFFECTS`, `isFragmentEffect`, `DECK_TRANSITIONS`, `DEFAULT_TRANSITION`, `DEFAULT_MOTION`, `MAX_MOTION_MS`, `REDUCED_FADE_MS`, `resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`, `effectiveMotion`, `prefersReducedMotion`. **Backgrounds:** `resolveDeckBackground`, `DeckBackgroundSchema`, `DeckBackgroundSpecSchema`, `DECK_BACKGROUND_PRESETS`, `DECK_BACKGROUND_PRESET_IDS`, `DECK_GRADIENT_IDS`, `DEFAULT_DECK_BACKGROUND`, `checkDeckMediaSrc`, `DECK_TEXT_CONTRAST_MIN`. **Untrusted input:** `loadUntrustedDeck`, `DEFAULT_UNTRUSTED_DECK_LIMITS`, `stripHiddenCharacters`. **Presenter protocol:** `PRESENTER_MESSAGE_TYPES`, `PresenterMessageSchema`, `presenterMessage`, `sanitizeNamespace`. Plus the matching types. |
 | `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, `DeckSlideSchema`, `CatalogSlideSchema`, `FreeSlideSchema`, `DeckOutlineSchema`, `DeckSectionSchema`, `DeckAspectSchema`, `DeckDensitySchema`, `DeckRadiusSchema`, `DeckMotionSchema`, `DeckJsonSchema` (Draft 2020-12), `safeParseDeck`, `DECK_LIMITS`, and the deck types. `@protoyard/blueprint`'s `kind: "deck"` branch validates its body with this schema. |
-| `@protoyard/decks/layouts` | The catalog (`DECK_LAYOUTS`, `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts`). The entries one by one: `titleHero`, `sectionDivider`, `twoColumnSplit`, `threeColumnCards`, `imageLeft`, `imageRight`, `imageCentered`, `imageFullBleed`, `quote`, `codeWithCallout`, `bigStat`, `comparisonTable`, `processSteps`, `timeline`, `teamAvatars`, `closingCta`, `videoCentered`, `videoLeft`, `videoRight`, `chart`, `free`. Their props schemas: `TitleHeroPropsSchema`, `SectionDividerPropsSchema`, `TwoColumnSplitPropsSchema`, `ThreeColumnCardsPropsSchema`, `ImageSidePropsSchema`, `ImageCenteredPropsSchema`, `ImageFullBleedPropsSchema`, `QuotePropsSchema`, `CodeWithCalloutPropsSchema`, `BigStatPropsSchema`, `ComparisonTablePropsSchema`, `ProcessStepsPropsSchema`, `TimelinePropsSchema`, `TeamAvatarsPropsSchema`, `ClosingCtaPropsSchema`, `VideoCenteredPropsSchema`, `VideoSidePropsSchema`, `ChartLayoutPropsSchema`, `FreeLayoutPropsSchema`, `LayoutImageSchema`, `LayoutVideoSchema`. |
+| `@protoyard/decks/layouts` | The catalog (`DECK_LAYOUTS`, `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps`, `stripStepMarkers`, `describeLayouts`). `stripStepMarkers` removes reveal metadata before strict catalog props validation; DeckSchema validates markers before stripping them. The entries one by one: `titleHero`, `sectionDivider`, `twoColumnSplit`, `threeColumnCards`, `imageLeft`, `imageRight`, `imageCentered`, `imageFullBleed`, `quote`, `codeWithCallout`, `bigStat`, `comparisonTable`, `processSteps`, `timeline`, `teamAvatars`, `closingCta`, `videoCentered`, `videoLeft`, `videoRight`, `chart`, `free`. Their props schemas: `TitleHeroPropsSchema`, `SectionDividerPropsSchema`, `TwoColumnSplitPropsSchema`, `ThreeColumnCardsPropsSchema`, `ImageSidePropsSchema`, `ImageCenteredPropsSchema`, `ImageFullBleedPropsSchema`, `QuotePropsSchema`, `CodeWithCalloutPropsSchema`, `BigStatPropsSchema`, `ComparisonTablePropsSchema`, `ProcessStepsPropsSchema`, `TimelinePropsSchema`, `TeamAvatarsPropsSchema`, `ClosingCtaPropsSchema`, `VideoCenteredPropsSchema`, `VideoSidePropsSchema`, `ChartLayoutPropsSchema`, `FreeLayoutPropsSchema`, `LayoutImageSchema`, `LayoutVideoSchema`. |
 | `@protoyard/decks/style` | `resolveDeckStyle`: a built-in or library theme or a numeric palette seed, a font pairing and the presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, CSS variables, the effective style and fallback warnings. |
 | `@protoyard/decks/quality` | `DECK_QUALITY` thresholds, `DECK_QUALITY_RULES`, `DECK_QUALITY_RULE_BY_ID`, `checkDeckStatic`, `deckJsonPath`. Renderers never import it. |
 | `@protoyard/decks/text` | `deckToMarkdown`, `deckOutline`, `formatDeckOutline`, `slideTitle`, `blocksMarkdown`, `chartTable`, `richText`, `mdDocumentToMarkdown`, `escapeText`, `escapeInline`, `stripInvisible`. It is a subpath so the Markdown parser never enters a deck entry. |
@@ -184,6 +184,26 @@ import { deckCanvasSize } from '@protoyard/decks';
 
 deckCanvasSize('4:3'); // { width: 1024, height: 768 }
 ```
+
+## Presentation surfaces (`@protoyard/decks-ui`)
+
+The engine's presentation features are rendered by the separate Svelte package
+[`@protoyard/decks-ui`](../decks-ui/README.md):
+
+- **Overview:** `O` opens a lazy, windowed slide grid. Thumbnails show the final
+  step; selecting one slide changes position once.
+- **Presenter:** `S` or `P` opens a popup synced over `BroadcastChannel`. When
+  popups are blocked or that API is unavailable, an in-page split view shows
+  the current and next slides, speaker notes and timers.
+- **Print:** `?print=1`, the Print button or Ctrl/Cmd+P prints each visible
+  slide on its own aspect-sized page, with every step revealed. Add
+  `&notes=1` to include speaker notes.
+- **Deck Studio:** the lazy DevTools tab edits deck style and the current slide
+  in memory, then exports an RFC 6902 patch for the source deck. It does not
+  write files or database rows.
+
+These surfaces stay outside the first `DeckApp` chunk except for its small
+entry wiring; the overview and presenter open only when requested.
 
 ## Navigation (pure)
 

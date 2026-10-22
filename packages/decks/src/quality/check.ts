@@ -1,5 +1,6 @@
 import { type Block, blockText, countWords, forEachBlock } from '@protoyard/blocks';
 import { getDeckLayout, parseLayoutProps } from '../layouts/catalog.ts';
+import { stripStepMarkers } from '../layouts/props.ts';
 import { LAYOUT_PACING, type LayoutPacing } from '../layouts/types.ts';
 import { slideSteps } from '../motion/steps.ts';
 import type { Deck, DeckSlide } from '../schema/index.ts';
@@ -207,7 +208,7 @@ export function checkDeckStatic(deck: Deck): DeckQualityReport {
       if (!getDeckLayout(slide.layout)) {
         add('unknown-layout', id, [...base, 'layout'], `Unknown layout "${slide.layout}".`);
       } else if ('props' in slide) {
-        const parsed = parseLayoutProps(slide.layout, slide.props);
+        const parsed = parseLayoutProps(slide.layout, stripStepMarkers(slide.props));
         if (!parsed.success) {
           for (const problem of parsed.issues) {
             add('layout-props', id, [...base, 'props', ...problem.path], problem.message);
