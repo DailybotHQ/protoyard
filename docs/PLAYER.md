@@ -210,6 +210,14 @@ prototype with the CLI and compares it with the player's runtime definition:
 Three blueprints also boot both definitions on the real runtime and compare
 every table.
 
+Decks, pages and docs have the same guarantee.
+`packages/player/tests/kinds-parity.test.ts` renders one fixture of each kind
+through the player's `bootKind` and through a prototype built the way
+`generate` builds it. Both must show the same slides or sections in the same
+order (a deck is walked slide by slide), with the same runtime definition
+(stores, scenarios, policy, generator version and theme), the same persisted
+tables, the same active theme and the same principal persona.
+
 The limits of that guarantee:
 - A generated prototype's owned files (`src/App.svelte`, extra screens, wrapped
   generators such as the help desk's) can add behavior the player doesn't have.

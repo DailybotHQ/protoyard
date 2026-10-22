@@ -70,6 +70,23 @@ every SaaS screen load when their route opens.
 The page reaches `performance.mark('protoyard:ready')` and
 `<html data-protoyard-ready="1">` like any prototype.
 
+### Decks, pages and docs
+
+`src/sources/boot-any.ts` picks the boot path by blueprint kind (ADR-036): apps
+go to `boot.ts`, while decks, pages and docs go to `src/boot-kind.ts`. That
+path builds the same `defineKindRuntime` definition a generated kind prototype
+exports from its `src/prototype.ts`, and mounts `DeckApp`, `PageApp` or `DocApp`
+through `src/kinds/KindApp.svelte`. Each path is its own lazy chunk.
+`tests/kinds-parity.test.ts` renders one deck, page and doc both ways (the
+player's `bootKind`, and the kind template with the real
+`emitContentKindPrototype` files on top). It fails if the two differ in slide
+or section order, stores, scenarios, policy, generator version, active theme
+or principal persona:
+
+```sh
+pnpm vitest run packages/player/tests/kinds-parity.test.ts
+```
+
 ## Where the blueprint comes from
 
 `src/main.ts` calls `runPlayer` (`src/run.ts`), which starts `startPlayer`

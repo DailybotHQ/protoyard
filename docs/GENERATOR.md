@@ -798,7 +798,9 @@ pnpm protoyard generate rehearsal --blueprint blueprints/decks/example.json --dr
 Content kinds use the shared runtime and renderer from their templates. Their
 generated modules are `src/generated/blueprint.ts` and `src/prototype.ts`; the
 blueprint module validates the full kind document, and the runtime module calls
-`defineKindRuntime`. They do not emit app entity schema, policy, services,
+`defineKindRuntime`. A deck also gets a generated `src/deck-blueprint.ts`, which
+points the template's App at the generated blueprint, and it does not copy the
+template's sample `src/blueprint.json`. They do not emit app entity schema, policy, services,
 world-generator modules or entity tests. The template's owned `App.svelte`
 continues to render the shared `DeckApp`, `PageApp` or `DocApp`; deck-owned
 `src/custom-slides.ts` also stays in place.

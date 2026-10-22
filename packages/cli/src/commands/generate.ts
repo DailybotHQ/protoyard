@@ -14,6 +14,7 @@ import {
   brandDefaultThemeId,
   type EmittedFile,
   emitContentKindPrototype,
+  kindTemplateFilesRemoved,
   personalizeHtml,
   TEMPLATE_FILES_REMOVED,
 } from '../lib/codegen/emit.ts';
@@ -233,7 +234,10 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     });
   }
   const rel = toPosixRelative(ctx.root, dest);
-  const removed = new Set<string>(TEMPLATE_FILES_REMOVED);
+  const removed = new Set<string>([
+    ...TEMPLATE_FILES_REMOVED,
+    ...(isAppBlueprint(blueprint) ? [] : kindTemplateFilesRemoved(blueprint.kind)),
+  ]);
   const emitted = new Set(files.map((f) => f.path));
   // The template's own tests exercise its own entities; generated prototypes get
   // blueprint-driven tests from the emitter instead.
