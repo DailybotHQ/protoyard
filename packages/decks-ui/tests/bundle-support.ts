@@ -56,7 +56,21 @@ export async function buildDeckEntry(
           outDir: join(dir, 'dist'),
           emptyOutDir: true,
           manifest: true,
-          rollupOptions: { input: { app: join(dir, 'index.html') } },
+          rollupOptions: {
+            input: { app: join(dir, 'index.html') },
+            // As the player's production build (packages/player/vite.config.ts): Rolldown's
+            // module runtime and Dexie get their own chunks. Without the group, Rolldown puts
+            // the runtime in the first chunk that needs it (the embed path's Dexie chunk), and
+            // every lazy chunk that imports a blocks namespace drags Dexie onto the first screen.
+            output: {
+              codeSplitting: {
+                groups: [
+                  { name: 'rolldown-runtime', test: /rolldown[\\/]runtime/ },
+                  { name: 'dexie', test: /[\\/]dexie[\\/]/ },
+                ],
+              },
+            },
+          },
         },
       });
       const results = (Array.isArray(result) ? result : [result]) as Rollup.RollupOutput[];

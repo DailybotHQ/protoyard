@@ -7,10 +7,12 @@ import {
   type DeckLocation,
   type DeckNavigator,
   decideDeckInput,
+  formatDeckHash,
   inputPathFrom,
   slidePositionCount,
   slideStepCount,
 } from '@protoyard/decks';
+import type { AgentReferenceSource } from '@protoyard/decks/agent';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import type { Component } from 'svelte';
 import { onMount, tick } from 'svelte';
@@ -27,8 +29,8 @@ import {
   FullscreenOverlay,
   KeyboardHelp,
   LaserPointer,
-  slideReference,
 } from '../chrome/index.ts';
+import { type DeckDebugSetting, deckDebugAvailable, isDevBuild } from '../debug/availability.ts';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
 import SlideStepHost from '../layouts/SlideStepHost.svelte';
 import { DeckPrint, parseDeckPrintFlags } from '../print/index.ts';
@@ -55,6 +57,8 @@ let {
   namespace = 'deck',
   mode = 'light',
   fit = 'viewport',
+  debug = 'auto',
+  debugSource = null,
 }: {
   /** Validated deck document. */
   deck: Deck;
@@ -73,7 +77,24 @@ let {
    * the host has already sized.
    */
   fit?: 'viewport' | 'container';
+  /**
+   * The "Debug for agents" panel: `auto` (default) in dev builds or with
+   * `?debug=1`; `on` always; `off` never. Exports, artifacts and the hosted
+   * player are production builds, so it is off there unless asked for.
+   */
+  debug?: DeckDebugSetting;
+  /** Where the deck came from, for the agent reference (a blueprint path, a prototype slug). */
+  debugSource?: AgentReferenceSource | null;
 } = $props();
+
+const debugAvailable = $derived(
+  deckDebugAvailable(debug, {
+    dev: isDevBuild(),
+    search: typeof window === 'undefined' ? '' : window.location.search,
+  })
+);
+/** The debug panel is open (its chunk loads on first open). */
+let debugOpen = $state(false);
 
 const deckStyle = new DeckStyleState();
 setDeckStyleContext({
@@ -112,8 +133,7 @@ const controlEnvironment = $derived<DeckControlEnvironment>({
   popup: typeof window !== 'undefined' && typeof window.open === 'function',
   clipboard: true,
   print: typeof window !== 'undefined' && typeof window.print === 'function',
-  // The agent debug panel is mounted by the opt-in debug integration task.
-  debug: false,
+  debug: debugAvailable,
 });
 const uid = $props.id();
 const helpId = `deck-help-${uid}`;
@@ -263,6 +283,10 @@ function runAction(action: string): void {
       presenterOpen = !presenterOpen;
       if (presenterOpen) void ensurePresenterHost();
       break;
+    case 'debug':
+      if (debugAvailable) debugOpen = !debugOpen;
+      if (!debugOpen) queueMicrotask(() => focusDeckRoot());
+      break;
     case 'print':
       // Enter print layout then open the browser dialog (also Ctrl/Cmd+P).
       // The print layout is in the DOM before the dialog captures the page.
@@ -288,7 +312,7 @@ function eventPath(event: Event): ReturnType<typeof inputPathFrom> {
 
 /** The guard's view of the deck: overlays plus whether it is full screen. */
 function guardState(): DeckInputState {
-  return { ...inputState, fullscreen };
+  return { ...inputState, fullscreen, debugAvailable, debug: debugOpen };
 }
 
 function onKeyDown(event: KeyboardEvent): void {
@@ -400,28 +424,17 @@ function layoutPropsFor(slide: DeckSlide): { layout: string; props: unknown } {
   };
 }
 
-/** A slide's visible name: its title, else its layout's `title` prop. */
-function slideTitle(slide: DeckSlide | undefined): string | null {
-  if (!slide) return null;
-  if (slide.title) return slide.title;
-  const props = 'props' in slide ? (slide.props as Record<string, unknown>) : null;
-  return typeof props?.title === 'string' && props.title.trim() !== '' ? props.title : null;
-}
-
-/** `<title> · <slide-id> · #/<id>/<step>` for the current slide and step. */
-function currentReference(): string {
+/** A plain link to the current slide and step: this page's URL with its `#/<id>/<step>` hash. */
+function currentLink(): string {
   const id = location?.slideId ?? deck.slides[0]?.id ?? '';
-  const slide = deck.slides.find((candidate) => candidate.id === id);
-  return slideReference({
-    title: slideTitle(slide) ?? deck.outline?.title ?? null,
-    slideId: id,
-    step: location?.step ?? 0,
-  });
+  const hash = formatDeckHash(id, location?.step ?? 0);
+  if (typeof window === 'undefined') return hash;
+  return `${window.location.href.split('#')[0]}${hash}`;
 }
 
 function onCopied(ok: boolean): void {
-  if (ok) toast?.show(`Reference to slide ${visibleOrdinal + 1} copied`);
-  else toast?.show('Could not copy the slide reference', 'error');
+  if (ok) toast?.show(`Link to slide ${visibleOrdinal + 1} copied`);
+  else toast?.show('Could not copy the link', 'error');
 }
 
 function onTool(action: DeckToolAction): void {
@@ -651,9 +664,10 @@ onMount(() => {
             overview={inputState.overview === 'open'}
             presenter={presenterOpen}
             {fullscreen}
+            debug={debugOpen}
             {fullscreenPreferred}
             {helpId}
-            reference={currentReference}
+            reference={currentLink}
             slides={visible}
             currentOrdinal={visibleOrdinal + 1}
             environment={controlEnvironment}
@@ -721,6 +735,29 @@ onMount(() => {
 
     {#if inputState.help}
       <KeyboardHelp id={helpId} environment={controlEnvironment} onclose={() => runAction('help')} />
+    {/if}
+
+    {#if debugOpen && debugAvailable && !presenterOpen}
+      {#await import('../debug/DeckDebugPanel.svelte')}
+        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background print:hidden" role="status" data-py-deck-debug-loading data-py-deck-chrome>
+          <span class="text-sm text-muted-foreground">Loading the debug panel…</span>
+        </div>
+      {:then mod}
+        <mod.default
+          {deck}
+          slideId={location?.slideId ?? deck.slides[0]?.id ?? ''}
+          step={activeStep}
+          root={rootEl}
+          source={debugSource}
+          onjump={jumpToSlide}
+          onclose={() => runAction('debug')}
+          onnotify={(message, tone) => toast?.show(message, tone)}
+        />
+      {:catch}
+        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background p-6 print:hidden" role="alert" data-py-deck-chrome>
+          <p class="text-sm text-destructive">The debug panel could not be loaded.</p>
+        </div>
+      {/await}
     {/if}
 
     <ChromeToast bind:this={toast} />

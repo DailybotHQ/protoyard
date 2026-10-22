@@ -226,9 +226,9 @@ describe('DeckToolbar', () => {
       'Presenter view',
       'Black out the screen',
       'Laser pointer',
-      'Copy slide reference',
+      'Copy link to this slide',
       'Print, one slide per page',
-      'Keyboard shortcuts',
+      'Controls and shortcuts',
     ]);
     for (const button of within(bar).getAllByRole('button')) {
       expect(button.getAttribute('type')).toBe('button');
@@ -242,7 +242,7 @@ describe('DeckToolbar', () => {
     expect(screen.getByRole('button', { name: 'Full screen' }).getAttribute('aria-pressed')).toBe(
       'true'
     );
-    const help = screen.getByRole('button', { name: 'Keyboard shortcuts' });
+    const help = screen.getByRole('button', { name: 'Controls and shortcuts' });
     expect(help.getAttribute('aria-expanded')).toBe('true');
     expect(help.getAttribute('aria-controls')).toBe('help-x');
   });
@@ -254,7 +254,7 @@ describe('DeckToolbar', () => {
       ['Black out the screen', 'blackout'],
       ['Full screen', 'fullscreen'],
       ['Laser pointer', 'laser'],
-      ['Keyboard shortcuts', 'help'],
+      ['Controls and shortcuts', 'help'],
     ] as const) {
       await fireEvent.click(screen.getByRole('button', { name }));
       expect(onaction).toHaveBeenLastCalledWith(action);
@@ -277,20 +277,18 @@ describe('DeckToolbar', () => {
     expect(screen.queryByRole('button', { name: 'Full screen' })).toBeNull();
   });
 
-  it('copies the reference and announces success or failure', async () => {
+  it('copies the link and announces success or failure', async () => {
     const writeText = stubClipboard(async () => {});
     render(DeckToolbar, { props: props() });
-    await fireEvent.click(screen.getByRole('button', { name: 'Copy slide reference' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Copy link to this slide' }));
     expect(writeText).toHaveBeenCalledWith('Intro · intro · #/intro/0');
     const status = screen.getByRole('status');
-    await waitFor(() => expect(status.textContent?.trim()).toBe('Slide reference copied'));
+    await waitFor(() => expect(status.textContent?.trim()).toBe('Link copied'));
 
     writeText.mockRejectedValueOnce(new Error('denied'));
     Object.defineProperty(document, 'execCommand', { configurable: true, value: () => false });
-    await fireEvent.click(screen.getByRole('button', { name: 'Copy slide reference' }));
-    await waitFor(() =>
-      expect(status.textContent?.trim()).toBe('Could not copy the slide reference')
-    );
+    await fireEvent.click(screen.getByRole('button', { name: 'Copy link to this slide' }));
+    await waitFor(() => expect(status.textContent?.trim()).toBe('Could not copy the link'));
     delete (document as unknown as Record<string, unknown>).execCommand;
   });
 });
@@ -353,7 +351,7 @@ describe('the tools inside DeckApp', () => {
       expect(screen.queryByRole('dialog', { name: 'Controls and shortcuts' })).toBeNull()
     );
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Keyboard shortcuts' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Controls and shortcuts' }));
     expect(await screen.findByRole('dialog', { name: 'Controls and shortcuts' })).toBeTruthy();
     await fireEvent.keyDown(app, { key: 'Escape' });
     await waitFor(() =>
@@ -380,22 +378,22 @@ describe('the tools inside DeckApp', () => {
     }
   });
 
-  it('copies the reference to the current slide and step', async () => {
+  it('copies a plain link to the current slide and step', async () => {
     const writeText = stubClipboard(async () => {});
     const { app } = mount();
+    const page = window.location.href.split('#')[0];
     await fireEvent.keyDown(app, { key: 'ArrowRight' });
     await waitFor(() => expect(app.dataset.slideStep).toBe('1'));
-    await fireEvent.click(screen.getByRole('button', { name: 'Copy slide reference' }));
-    expect(writeText).toHaveBeenCalledWith('Intro · intro · #/intro/1');
+    await fireEvent.click(screen.getByRole('button', { name: 'Copy link to this slide' }));
+    expect(writeText).toHaveBeenCalledWith(`${page}#/intro/1`);
     // A toolbar click never advances the deck.
     expect(app.dataset.slideStep).toBe('1');
 
     await fireEvent.keyDown(app, { key: 'ArrowRight' });
     await fireEvent.keyDown(app, { key: 'ArrowRight' });
     await waitFor(() => expect(app.dataset.slideId).toBe('body'));
-    await fireEvent.click(screen.getByRole('button', { name: 'Copy slide reference' }));
-    // An untitled slide falls back to the deck title.
-    expect(writeText).toHaveBeenLastCalledWith('Demo deck · body · #/body/0');
+    await fireEvent.click(screen.getByRole('button', { name: 'Copy link to this slide' }));
+    expect(writeText).toHaveBeenLastCalledWith(`${page}#/body/0`);
   });
 
   it('toolbar buttons toggle the same state as the keys', async () => {

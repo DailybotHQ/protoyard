@@ -22,6 +22,7 @@ let {
   overview = false,
   presenter = false,
   fullscreen = false,
+  debug = false,
   fullscreenPreferred = 'native',
   helpId,
   reference,
@@ -38,6 +39,8 @@ let {
   overview?: boolean;
   presenter?: boolean;
   fullscreen?: boolean;
+  /** True while the debug panel is open. */
+  debug?: boolean;
   /** `window` when full screen will fill the window instead (the tooltip says so). */
   fullscreenPreferred?: DeckFullscreenMode;
   helpId?: string;
@@ -89,6 +92,8 @@ function pressed(action: DeckInputAction): boolean {
     case 'fullscreen':
     case 'fullscreen-exit':
       return fullscreen;
+    case 'debug':
+      return debug;
     default:
       return false;
   }
@@ -257,7 +262,7 @@ $effect(() => () => {
   <ChromeTooltip {tooltip} />
   {#if !oncopied}
     <span class="sr-only" role="status" aria-live="polite" data-py-deck-copy-status>
-      {copyStatus === 'copied' ? 'Slide reference copied' : copyStatus === 'failed' ? 'Could not copy the slide reference' : ''}
+      {copyStatus === 'copied' ? 'Link copied' : copyStatus === 'failed' ? 'Could not copy the link' : ''}
     </span>
   {/if}
 </div>

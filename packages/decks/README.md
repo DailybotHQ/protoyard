@@ -396,10 +396,10 @@ opens debug).
 | `presenter` | present | Presenter view | `S`, `P` | always | Shows your notes, the next slide and timers, in a second window or beside the deck. |
 | `blackout` | present | Black out the screen | `B`, `.`, `Esc` | always | Turns the screen black to pause the room; press B again or click to come back. |
 | `laser` | present | Laser pointer | `L`, `Esc` | always | Turns the mouse pointer into a bright dot for pointing at the slide. |
-| `copy-link` | share | Copy slide reference | — | clipboard | Copies this slide's title, id and #/slide/step address, to paste into notes or a chat. |
+| `copy-link` | share | Copy link to this slide | — | clipboard | Copies a link that opens the deck at this slide and step. |
 | `print` | share | Print, one slide per page | `Ctrl + P`, `⌘ + P` | print | Prints the deck with one slide per page, or saves it as a PDF. |
-| `help` | help | Keyboard shortcuts | `?`, `Esc` | always | Lists every keyboard shortcut for this deck. |
-| `debug` | debug | Debug for agents | `D` | debug | Shows this slide's source, its checks and a reference to paste into an AI agent. |
+| `help` | help | Controls and shortcuts | `?`, `Esc` | always | Lists every control in this deck, with its keys. |
+| `debug` | debug | Debug for agents | `D`, `Esc` | debug | Shows this slide's source, its checks and a reference to paste into an AI agent. |
 <!-- controls:end -->
 
 ## Steps and motion

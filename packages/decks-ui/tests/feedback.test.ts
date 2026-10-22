@@ -90,22 +90,22 @@ describe('print', () => {
 });
 
 describe('copy feedback', () => {
-  it('names the slide by its layout title and confirms visibly', async () => {
+  it('copies a plain link to the slide and confirms visibly', async () => {
     const writeText = stubClipboard(async () => {});
     const { view } = mount();
-    await fireEvent.click(await screen.findByRole('button', { name: 'Copy slide reference' }));
-    expect(writeText).toHaveBeenCalledWith('Welcome · cover · #/cover/0');
+    await fireEvent.click(await screen.findByRole('button', { name: 'Copy link to this slide' }));
+    expect(writeText).toHaveBeenCalledWith(`${window.location.href.split('#')[0]}#/cover/0`);
     const toast = await waitFor(() => {
       const node = view.container.querySelector('[data-py-deck-toast]');
       expect(node).not.toBeNull();
       return node as HTMLElement;
     });
-    expect(toast.textContent?.trim()).toBe('Reference to slide 1 copied');
+    expect(toast.textContent?.trim()).toBe('Link to slide 1 copied');
     expect(toast.dataset.tone).toBe('info');
     // One polite region announces it; the visible twin is hidden from assistive tech.
     const live = view.container.querySelectorAll('[data-py-deck-copy-status]');
     expect(live).toHaveLength(1);
-    expect(live[0]?.textContent).toBe('Reference to slide 1 copied');
+    expect(live[0]?.textContent).toBe('Link to slide 1 copied');
     expect(toast.getAttribute('aria-hidden')).toBe('true');
   });
 
@@ -115,10 +115,10 @@ describe('copy feedback', () => {
     });
     Object.defineProperty(document, 'execCommand', { configurable: true, value: () => false });
     const { view } = mount();
-    await fireEvent.click(await screen.findByRole('button', { name: 'Copy slide reference' }));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Copy link to this slide' }));
     await waitFor(() =>
       expect(view.container.querySelector('[data-py-deck-toast]')?.textContent?.trim()).toBe(
-        'Could not copy the slide reference'
+        'Could not copy the link'
       )
     );
     expect((view.container.querySelector('[data-py-deck-toast]') as HTMLElement).dataset.tone).toBe(

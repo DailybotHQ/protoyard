@@ -212,9 +212,7 @@ test.describe('deck exported as a Claude artifact', () => {
     await expectSlide(frame, 'promise');
 
     await frame.locator('[data-py-deck-tool="copy-reference"]').click();
-    await expect(frame.locator('[data-py-deck-copy-status]')).toHaveText(
-      'Could not copy the slide reference'
-    );
+    await expect(frame.locator('[data-py-deck-copy-status]')).toHaveText('Could not copy the link');
     // Clicking a tool never advances the deck.
     await expectSlide(frame, 'promise');
 

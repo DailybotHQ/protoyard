@@ -17,6 +17,7 @@ lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 | `@protoyard/decks-ui` | `fitDeckCanvas(container, canvas)` returns `{ scale, offsetX, offsetY }`: a letterboxed scale-to-fit, with scale 0 until the container has a size. Also the `DeckCanvasFit` type. | available |
 | `@protoyard/decks-ui/app` | `DeckApp`: canvas, layouts, hash navigation, guarded input, registry-driven toolbar, slide jump list, print, aria-live, lazy overview (`O`), lazy presenter (`S`/`P`) | available |
 | `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer` and `loadLayoutRenderer(layoutId)`: validated catalog rendering through lazy text, media, data and diagram families | available |
+| `@protoyard/decks-ui/debug` | "Debug for agents": `DeckDebugPanel`, `BlockOutline`, `deckDebugAvailable`, `inertJson`, `deckFileName`, `downloadText`. DeckApp loads the panel on its own chunk only when it opens. | available |
 | `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page split fallback (notes, timers, next slide). Loaded only when opened. | available |
 | `@protoyard/decks-ui/print` | Print and PDF, one slide per page (`DeckPrint`, `PrintButton`, `print.css`) | available |
 | `@protoyard/decks-ui/studio` | Deck Studio: `createDeckStudio`, `deckStudioTab`, a lazy DevTools tab that edits the deck live and exports RFC 6902 patches | available |
@@ -172,7 +173,7 @@ reads:
 | `B`, `.`, `Esc` | `blackout` | Black out the screen |
 | `L`, `Esc` | `laser` | Laser pointer |
 | `Ctrl + P`, `⌘ + P` | `print` | Print, one slide per page |
-| `?`, `Esc` | `help` | Keyboard shortcuts |
+| `?`, `Esc` | `help` | Controls and shortcuts |
 <!-- key-bindings:end -->
 
 Clicking slide content advances. A touch or pen swipe left or right moves next or previous: at least
@@ -207,7 +208,8 @@ Each control is a real named button. Toggles report `aria-pressed`, and the help
 | `B` or `.` | Black out the screen | A black screen over everything. The screen itself is a button: a click, `B` or `Esc` brings the slide back, and never advances the deck. For `BLACKOUT_HINT_MS` (2 s) it shows "Screen blacked out — press B or click to return". |
 | `F` | Full screen | Puts the deck root in browser full screen, with the chrome row replaced by a fading overlay (leave, previous, counter, next) that shows on pointer move or touch. Where the Fullscreen API is missing or refused, it fills the window with CSS instead (`data-fullscreen-mode="window"`) and the tooltip says so. `F` or `Esc` (after any open overlay) leaves, and focus returns to the deck. |
 | `L` | Laser pointer | A red dot that follows the pointer (and replaces the cursor) until `L` or `Esc`. It appears at once at the last pointer position (else the stage center), with a "Laser on" chip; a touch tap moves it and it stays when the finger lifts. While it is on, clicks do not advance. |
-| — | Copy slide reference | Copies `<title> · <slide-id> · #/<id>/<step>`: the slide title (else its layout's `title` prop, else the deck title) and the deep link to the exact step. Uses the Clipboard API with an `execCommand` fallback. Inside DeckApp the result shows in `ChromeToast` ("Reference to slide 3 copied" or "Could not copy the slide reference"; one polite region plus a visible twin, 2.5 s, paused under the pointer, never stacked) via the toolbar's `oncopied`; a standalone toolbar announces "Slide reference copied" in its own live region. |
+| — | Copy link to this slide | Copies a plain link: the page URL with `#/<id>/<step>`. Uses the Clipboard API with an `execCommand` fallback. Inside DeckApp the result shows in `ChromeToast` ("Link to slide 3 copied" or "Could not copy the link"; one polite region plus a visible twin, 2.5 s, paused under the pointer, never stacked) via the toolbar's `oncopied`; a standalone toolbar announces "Link copied" in its own live region. The automation hook stays `data-py-deck-tool="copy-reference"`. For an agent, use the debug panel's references (below). |
+| `D` (where available) | Debug for agents | Opens the "Debug for agents" side sheet (see below). `Esc` closes it before anything else. |
 | `?` | Keyboard shortcuts | Opens "Controls and shortcuts" (`KeyboardHelp`): every control available in the host's `DeckControlEnvironment`, grouped like the toolbar, with the registry's icon, label, description and keys, so it can never drift from the buttons or keys. It focuses Close and returns focus to the opener; `Esc` or `?` closes it. A first-visit `FirstRunHint` (once per namespace in `localStorage`, 6 s or first input, off with `?hint=0` and under automation) points at it. |
 | — | Previous / next | Move one step or slide, matching the arrow and page keys. |
 | — | Choose a slide | Opens the numbered slide list; selecting a title jumps to it and returns focus to the counter. |
@@ -222,6 +224,34 @@ also wants the renderer’s frame handling can call `enterFullScreen` / `exitFul
 renderer. The
 helpers and toolbar components live in `src/chrome/index.ts`; the current initial bundle size is
 recorded below. Overview, studio and presenter code is not in that first chunk.
+
+### Debug for agents (`D`)
+
+A side sheet for pointing a coding agent at the exact slide on screen. It
+shows the record from `describeSlideForAgent` (`@protoyard/decks/agent`):
+slide id, position, step, layout, JSON pointer and props pointer, deck id,
+speaker-notes size, blocks with their pointers and the slide's visible text.
+Below it are the slide's findings from `checkDeckStatic`, and buttons that
+jump to the other slides with findings.
+
+| Action | What it copies or saves |
+| --- | --- |
+| Copy agent reference | The one-line `[slide-ref] deck=… id=… position=… step=… layout=… pointer=… text="…"` that `protoyard deck inspect --ref` resolves |
+| Copy as agent prompt | The Markdown prompt from `formatAgentReference(record, 'markdown')`, with the pointer, findings and how to change the slide |
+| Copy slide JSON | The slide's JSON, invisible and bidirectional characters escaped as `\uXXXX` |
+| Download deck JSON | The deck as `<deck-id>.deck.json`, through a local object URL (no network) |
+| Outline blocks | Draws each top-level block's box and JSON pointer on the stage (or the slide's props pointer for a catalog layout); `pointer-events: none`, `aria-hidden` |
+
+**When it is available.** DeckApp's `debug` prop: `auto` (default) turns it on
+in a Vite dev build or with `?debug=1` on the page URL; `on` always; `off`
+never. Exports, artifacts and the hosted player are production builds, so it
+is off there unless the page asks for it. `debugSource` passes where the deck
+came from (`{ kind: 'blueprint' | 'prototype' | 'share', value }`) into the
+reference. The panel never fetches anything, is hidden in print and while the
+presenter is open, and renders every deck string as text.
+
+**Cost.** The panel and the agent engine load on their own chunk only when the
+panel opens (9,486 B gzip, budget 12 KB; `tests/debug-panel.test.ts`).
 
 ### Tooltips
 
@@ -310,10 +340,11 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 
 | What | Measured | Gate | Where |
 | --- | --- | --- | --- |
-| `@protoyard/decks-ui/app` initial JS | 88,426 B (2026-10-22, with registry toolbar) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
+| `@protoyard/decks-ui/app` initial JS | 94,724 B (2026-10-22, with the debug panel's lazy import; the probe build groups Rolldown's runtime and Dexie into their own chunks, as the player does) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
 | Deck style kit (lazy chunk: style resolution, library catalog, palette engine, backgrounds) | about 20 KB (2026-10-22) | not in the initial graph | `tests/budget.test.ts` |
 | All CSS emitted with it | 3,315 B (2026-10-22, with registry toolbar) | ≤ 20 KB | `tests/bundle-size.test.ts` |
 | Deck Studio panel (lazy chunk) | 3,141 B (2026-10-22) | — | measured with a Vite probe build |
+| Debug for agents panel (lazy chunk) | 9,486 B (2026-10-22) | ≤ 12 KB, not in the initial graph | `tests/debug-panel.test.ts` |
 | Chrome tooltip on the deck entry (`ChromeTooltip` + `tooltip.ts`) | +1,510 B (2026-10-22; `@protoyard/ui` Tooltip measured +36,552 B) | ≤ 1,536 B | `tests/tooltip-budget.test.ts` |
 | 200-slide deck: parse + first render (happy-dom) | 50–142 ms over six runs | < 1 s | `tests/large-deck.perf.test.ts` |
 | 200-slide deck: one next or previous step, median | 0.27–0.39 ms over six runs | < 16 ms (median and p95) | `tests/large-deck.perf.test.ts` |
