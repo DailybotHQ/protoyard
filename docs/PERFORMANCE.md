@@ -1052,7 +1052,7 @@ entry of the Vite manifest:
 
 | Page | Initial JS (gzip -9) | Initial CSS | All CSS it can load |
 | --- | ---: | ---: | ---: |
-| `index.html` (any blueprint) | 120.5 KB (123,350 B) | 20.1 KB | 28.5 KB |
+| `index.html` (any blueprint) | 120.5 KB (123,349 B) | 20.1 KB | 28.5 KB |
 | `deck.html` | 121.7 KB | 18.1 KB | 26.4 KB |
 | `page.html` | 121.7 KB | 18.3 KB | 26.6 KB |
 | `doc.html` | 121.7 KB | 18.3 KB | 26.6 KB |
@@ -1065,9 +1065,24 @@ entry of the Vite manifest:
   is 2 KB smaller.
 - The kind boot and its renderer load after the source resolves, as from
   `index.html`.
-- The test proves that the app boot, the CRUD shell, Faker, the world worker
-  and the app kits are absent from every kind page's initial graph, and caps
-  each page at 125 KB of initial JS and the 30 KB CSS budget.
+`packages/player/tests/kind-budget.test.ts` independently walks the built
+manifest with each HTML page treated as its only entry. It enforces the
+configured 250 KB JS / 30 KB CSS limits for `index.html` and the per-kind
+150 KB JS / 30 KB CSS limits for deck, page and doc. Its failure messages
+include raw gzip bytes and the configured cap. It also checks each content
+kind's static graph for Faker, world-generation workers, CRUD screens/app and
+DevTools; those can remain in dynamic chunks and load only on demand. The
+older `budget.test.ts` keeps its tighter 125 KB regression cap for the three
+content-kind entries.
+
+Latest measured initial gzip bytes (2026-10-22):
+
+| Entry | Initial JS | Initial CSS | Configured JS / CSS cap |
+| --- | ---: | ---: | ---: |
+| `index.html` (app) | 123,349 B | 20,627 B | 250 KB / 30 KB |
+| `deck.html` | 124,643 B | 18,516 B | 150 KB / 30 KB |
+| `page.html` | 124,644 B | 18,688 B | 150 KB / 30 KB |
+| `doc.html` | 124,642 B | 18,688 B | 150 KB / 30 KB |
 
 **Deck UI entry (measured 2026-10-21).**
 `packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
