@@ -8,6 +8,22 @@ export {
   synthesizeDocFromBrief,
   synthesizePageFromBrief,
 } from './content-synthesize.ts';
+export {
+  chooseDeckOutline,
+  DECK_OUTLINE_IDS,
+  DECK_OUTLINE_LIMITS,
+  DECK_OUTLINES,
+  type DeckOutlineId,
+  type DeckOutlineOptions,
+  type DeckOutlineResult,
+  type DeckOutlineSlide,
+  type DeckPacing,
+  type DeckSlidePlan,
+  deckOutlineRange,
+  deckTitleFromBrief,
+  requestedSlideCount,
+  synthesizeDeckOutline,
+} from './deck-outlines.ts';
 export { fieldFromPhrase, PEOPLE_ENTITIES } from './fields.ts';
 export {
   APP_CUES,

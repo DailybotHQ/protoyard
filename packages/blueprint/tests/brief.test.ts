@@ -289,10 +289,14 @@ describe('blueprintFromBrief kind dispatch', () => {
     expect(result.kind).toBe('deck');
     expect(result.kindDetection.confidence).toMatch(/high|medium/);
     expect(result.json.kind).toBe('deck');
-    expect(result.outline).toBe('generic');
-    const deck = result.json.deck as { slides: { id: string }[] };
-    expect(deck.slides.map((s) => s.id)).toEqual(['slide-title', 'slide-agenda', 'slide-close']);
+    expect(result.outline).toBe('pitch');
+    const deck = result.json.deck as { slides: { id: string; layout: string }[] };
+    expect(deck.slides.length).toBeGreaterThanOrEqual(7);
+    expect(deck.slides[0]?.id).toBe('slide-title');
+    expect(deck.slides[0]?.layout).toBe('title-hero');
+    expect(deck.slides.map((s) => s.id).at(-1)).toMatch(/^slide-/);
     expect(result.rationale[0]).toBe(result.kindDetection.reason);
+    expect(result.rationale.some((line) => /Outline: Pitch/i.test(line))).toBe(true);
     // No app entities / roles on a content draft.
     expect(result.json).not.toHaveProperty('entities');
     expect(result.json).not.toHaveProperty('roles');
