@@ -147,11 +147,12 @@ outline references, fragment ordering and `#/slide-id[/step]` links without
 rendering or changing it. `lintDeckContent(deck)` adds image alt requirements,
 chart descriptions, CTA labels, word density and speaker-note guidance. Both
 return `{ valid, diagnostics }` with stable codes, severity, path segments and
-JSONPath. Missing accessible content is an error; short chart descriptions,
-dense copy and missing or brief optional presenter notes are warnings. Density
-is an estimate: rendered text must still meet the 24 px body and 18 px label
-minimums on the 1280×720 canvas. Final contrast, text size and fit need rendered
-visual QA.
+JSONPath. Layout capacity violations are errors. Three repeated visible layouts
+in a row produce a warning when the catalog offers alternatives. Missing
+accessible content is an error; short chart descriptions, dense copy and
+missing or brief optional presenter notes are warnings. Density is an estimate:
+rendered text must still meet the 24 px body and 18 px label minimums on the
+1280×720 canvas. Final contrast, text size and fit need rendered visual QA.
 
 ```ts
 import { lintDeckContent } from '@protoyard/blueprint';

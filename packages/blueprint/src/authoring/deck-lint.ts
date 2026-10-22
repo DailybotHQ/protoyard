@@ -99,6 +99,13 @@ function schemaDiagnostics(
     if (contentCode === 'cta-label') {
       return diagnostic(contentCode, path, 'Every call to action needs a visible label.');
     }
+    if (issue.message.startsWith('Too big:')) {
+      return diagnostic(
+        'layout-capacity',
+        path,
+        'This slide exceeds a hard capacity declared by its layout catalog entry.'
+      );
+    }
     if (invalidStep) {
       return diagnostic(
         'invalid-fragment-order',
@@ -329,14 +336,23 @@ export function lintDeckStructure(input: unknown): DeckLintResult {
           `Unknown layout "${slide.layout}". Choose a layout from the deck catalog.`
         )
       );
-    } else if (!('blocks' in slide)) {
-      const propsResult = parseLayoutProps(slide.layout, slide.props);
+    } else {
+      const propsResult = parseLayoutProps(
+        slide.layout,
+        'blocks' in slide ? { blocks: slide.blocks } : slide.props
+      );
       if (!propsResult.success) {
         for (const issue of propsResult.issues) {
           const issuePath =
             issue.path[0] === 'layout' ? layoutPath : ['slides', index, 'props', ...issue.path];
           diagnostics.push(
-            diagnostic('invalid-layout-props', issuePath, 'Slide props do not match this layout.')
+            diagnostic(
+              issue.message.startsWith('Too big:') ? 'layout-capacity' : 'invalid-layout-props',
+              issuePath,
+              issue.message.startsWith('Too big:')
+                ? 'This slide exceeds a hard capacity declared by its layout catalog entry.'
+                : 'Slide props do not match this layout.'
+            )
           );
         }
       }
