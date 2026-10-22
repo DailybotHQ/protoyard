@@ -1,6 +1,1 @@
-/* The player only renders these chart families through Analytics UI and block charts. */
-@source "../../charts-ui/src/cartesian";
-@source "../../charts-ui/src/compact/Sparkline.svelte";
-@source "../../charts-ui/src/frame";
-@source "../../charts-ui/src/interaction";
-@source "../../charts-ui/src/part-whole";
+@import "@protoyard/charts-ui/player.css";

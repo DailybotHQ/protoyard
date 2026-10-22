@@ -1,6 +1,1 @@
-/* Only view families imported by the player's CRUD screens and block map. */
-@source "../../views-ui/src/board";
-@source "../../views-ui/src/calendar";
-@source "../../views-ui/src/map";
-@source "../../views-ui/src/states";
-@source "../../views-ui/src/timeline";
+@import "@protoyard/views-ui/player.css";
