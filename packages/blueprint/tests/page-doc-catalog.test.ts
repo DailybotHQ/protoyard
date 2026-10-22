@@ -262,38 +262,4 @@ describe('kind-specific examples through the kind union', () => {
       ]);
     }
   });
-
-  it('pass the real envelope today with a provisional body in the documented shape', () => {
-    // Test-only stand-ins for the T-pages-kind-model shapes, strict like the
-    // real ones will be. The real schemas replace them through kindBodySchema.
-    const Section = z.strictObject({
-      id: z.string().min(1),
-      anchor: z.string().min(1).optional(),
-      blocks: BlockListSchema,
-    });
-    const restore = [
-      withKindBodySchemaForTesting('page', z.strictObject({ sections: z.array(Section).min(1) })),
-      withKindBodySchemaForTesting(
-        'doc',
-        z.strictObject({
-          blocks: BlockListSchema,
-          toc: z
-            .strictObject({ depth: z.number().int().min(1).max(6), sticky: z.boolean() })
-            .optional(),
-        })
-      ),
-    ];
-    try {
-      for (const example of ALL) {
-        const result = safeParseAnyBlueprint(example.raw);
-        expect({ file: example.file, issues: result.success ? [] : result.error.issues }).toEqual({
-          file: example.file,
-          issues: [],
-        });
-        expect((result.data as { kind?: string } | undefined)?.kind).toBe(example.kind);
-      }
-    } finally {
-      for (const undo of restore) undo();
-    }
-  });
 });

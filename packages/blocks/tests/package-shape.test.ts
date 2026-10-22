@@ -52,8 +52,9 @@ export function frameworkImports(text: string): string[] {
 
 describe('@protoyard/blocks package shape', () => {
   it('exposes the root plus one subpath per engine, and every target exists', () => {
+    // `./schema` serves the generated JSON Schema module (T-blocks-json-schema) for agents and editors.
     expect(Object.keys(pkg.exports).sort()).toEqual(
-      ['.', ...SUBPATHS.map((name) => `./${name}`)].sort()
+      ['.', './schema', ...SUBPATHS.map((name) => `./${name}`)].sort()
     );
     for (const [key, target] of Object.entries(pkg.exports)) {
       expect(existsSync(join(PKG, target)), key).toBe(true);
@@ -86,7 +87,8 @@ describe('@protoyard/blocks package shape', () => {
   });
 
   it('packs dist, README and LICENSE from its own directory', () => {
-    expect(pkg.files).toEqual(['dist', 'README.md', 'LICENSE']);
+    // `schema/` ships the committed blocks.schema.json next to dist.
+    expect(pkg.files).toEqual(['dist', 'README.md', 'LICENSE', 'schema']);
     expect(existsSync(join(PKG, 'README.md'))).toBe(true);
     expect(existsSync(join(PKG, 'LICENSE'))).toBe(true);
     expect(pkg.repository.directory).toBe('packages/blocks');
