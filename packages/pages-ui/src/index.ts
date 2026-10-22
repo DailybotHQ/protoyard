@@ -15,4 +15,5 @@ export {
   UnknownBlock,
 } from './block-host/index.ts';
 export { PAGE_UI_FAMILIES, type PageUiFamily } from './families.ts';
+export { PAGE_UI_SUBPATH, PageHost } from './page/index.ts';
 export { PAGES_UI_PACKAGE_NAME, PAGES_UI_PACKAGE_VERSION } from './version.ts';
