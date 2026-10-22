@@ -112,6 +112,8 @@ const DECK_SERVER_SPECS = [
   'deck-presenter',
   'deck-design',
   'deck-fragments',
+  'deck-controls',
+  'deck-everything',
   'interaction-sweep',
 ];
 // Opt-in: the built catalog deck for tests/e2e/deck-navigation.spec.ts.
@@ -123,7 +125,12 @@ const deckE2e =
 if (deckE2e) process.env.PROTOYARD_E2E_DECK = '1';
 const DECK_PORT = Number(process.env.PROTOYARD_E2E_DECK_PORT ?? 4891);
 // The deck design gate also opens the generated flagship prototype (level 2).
-const deckDesignE2e = process.argv.some((arg) => arg.includes('deck-design'));
+// The design gate also runs in a combined deck run that asks for the flagship prototype
+// (the Final Review's PROTOYARD_E2E_DECK=1 PROTOYARD_E2E_PROTOTYPES=create-anything-deck).
+const deckDesignE2e =
+  process.argv.some((arg) => arg.includes('deck-design')) ||
+  (process.env.PROTOYARD_E2E_DECK === '1' &&
+    (process.env.PROTOYARD_E2E_PROTOTYPES ?? '').split(',').includes('create-anything-deck'));
 const DECK_PROTOTYPE_PORT = Number(process.env.PROTOYARD_E2E_DECK_PROTOTYPE_PORT ?? 4892);
 if (!Number.isInteger(DECK_PORT) || DECK_PORT < 1024 || DECK_PORT > 65535) {
   throw new Error('PROTOYARD_E2E_DECK_PORT must be a port number');
