@@ -1,6 +1,30 @@
 /**
- * `@protoyard/blocks/diagram` — data models and layout math for diagram atoms (flow, tree, board, terminal).
- * Reserved by T-blocks-scaffold-packages; filled by T-blocks-diagram-models of
- * PLAN_005_create_anything_decks_and_kits. No runtime exports yet.
+ * `@protoyard/blocks/diagram` — bounded, data-only diagram models and layout
+ * math. Renderers turn these positions and edges into accessible HTML or SVG;
+ * labels remain text and are never baked into images.
  */
-export {};
+
+export {
+  type DiagramEdge,
+  type DiagramLayout,
+  type DiagramPosition,
+  layoutBoard,
+  layoutFlow,
+  layoutTerminal,
+  layoutTree,
+} from './layout.ts';
+export {
+  type BoardDiagram,
+  BoardDiagramSchema,
+  type Diagram,
+  type DiagramParseResult,
+  DiagramSchema,
+  diagramJsonPath,
+  type FlowDiagram,
+  FlowDiagramSchema,
+  parseDiagram,
+  type TerminalDiagram,
+  TerminalDiagramSchema,
+  type TreeDiagram,
+  TreeDiagramSchema,
+} from './schema.ts';

@@ -121,6 +121,32 @@ fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
 | `./diagram` | Flow, tree, board and terminal layout math | T-blocks-diagram-models |
 | `./catalog` | `BLOCK_CATALOG` authoring metadata (use-when, limits, examples) | T-blocks-catalog |
 
+### Diagram models (`@protoyard/blocks/diagram`)
+
+The diagram subpath validates four strict data models and computes deterministic
+positions and edges. Renderers draw these records as HTML or SVG and keep labels
+as text; the engine never creates images or markup.
+
+```ts
+import { layoutFlow, parseDiagram } from '@protoyard/blocks/diagram';
+
+const parsed = parseDiagram({
+  type: 'flow',
+  nodes: [{ id: 'brief', label: 'Write a brief' }, { id: 'build', label: 'Build' }],
+});
+if (parsed.success) layoutFlow(parsed.data);
+```
+
+`DiagramSchema` is the discriminated union, with individual
+`FlowDiagramSchema`, `TreeDiagramSchema`, `BoardDiagramSchema` and
+`TerminalDiagramSchema` exports. `parseDiagram` never throws and reports
+`jsonPath` diagnostics. Layouts are computed by `layoutFlow`, `layoutTree`,
+`layoutBoard` and `layoutTerminal`; each returns canvas dimensions, node or line
+positions, and edges. Limits are 12 flow nodes, 64 tree nodes at depth 6, 6
+board columns with 8 cards each, and 40 terminal lines. Tree ids and parents
+must form an acyclic forest; board and flow ids are unique. Status colors use
+the shared tone allow-list, never CSS values.
+
 The untrusted-input guard, the JSON Schema and the text helpers will also be
 exported from the root entry.
 
