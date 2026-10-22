@@ -53,6 +53,11 @@
         "types": "./dist/embed/index.d.ts",
         "import": "./dist/embed/index.js",
         "default": "./dist/embed/index.js"
+      },
+      "./boot": {
+        "types": "./dist/boot.d.ts",
+        "import": "./dist/boot.js",
+        "default": "./dist/boot.js"
       }
     }
   },
@@ -87,7 +92,8 @@
       "required": [
         "dist/app/index.html",
         "dist/app/protoyard-player-assets.json",
-        "dist/embed/index.js"
+        "dist/embed/index.js",
+        "dist/boot.js"
       ]
     }
   }
