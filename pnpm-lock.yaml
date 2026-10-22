@@ -976,6 +976,27 @@ importers:
         specifier: workspace:*
         version: link:../../packages/scenarios
 
+  prototypes/create-anything-deck:
+    dependencies:
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../../packages/blueprint
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/decks':
+        specifier: workspace:*
+        version: link:../../packages/decks
+      '@protoyard/decks-ui':
+        specifier: workspace:*
+        version: link:../../packages/decks-ui
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      svelte:
+        specifier: ^5.57.2
+        version: 5.57.2
+
   prototypes/crm-demo:
     dependencies:
       '@lucide/svelte':
