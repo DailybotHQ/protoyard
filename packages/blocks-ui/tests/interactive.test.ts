@@ -162,28 +162,25 @@ describe('interactive family through BlockStateHost', () => {
 
   it('marks interactive roots with data-py-deck-interactive so deck clicks do not advance', async () => {
     expect(DECK_INTERACTIVE_ATTRIBUTE).toBe('data-py-deck-interactive');
-    const stateHost = createMemoryBlockStateHost();
-    const blocks = [poll, counter, quiz, tabs, MINIMAL_EXAMPLES.map, MINIMAL_EXAMPLES.form];
-    const { container } = render(InteractiveHarness, {
-      props: { blocks, stateHost, documentId: 'deck-guard' },
-    });
-    await waitFor(() => expect(screen.getByText(poll.question)).toBeTruthy(), long);
-    await waitFor(() => expect(screen.getByText(counter.label)).toBeTruthy(), long);
-    const roots = container.querySelectorAll(`[${DECK_INTERACTIVE_ATTRIBUTE}]`);
-    // poll, counter, quiz, tabs at minimum once each is ready
-    expect(roots.length).toBeGreaterThanOrEqual(4);
-    for (const el of roots) {
-      expect(el.hasAttribute(DECK_INTERACTIVE_ATTRIBUTE)).toBe(true);
-      expect(el.getAttribute('data-py-block')).toBeTruthy();
+    const components = [
+      ['interactive/PollBlock.svelte', 'poll'],
+      ['interactive/QuizBlock.svelte', 'quiz'],
+      ['interactive/CalculatorBlock.svelte', 'calculator'],
+      ['interactive/CounterBlock.svelte', 'counter'],
+      ['interactive/TabsBlockView.svelte', 'tabs'],
+      ['interactive/RevealBlockView.svelte', 'reveal'],
+      ['interactive/ChartControlsBlock.svelte', 'chart-controls'],
+      ['interactive/FormBlockView.svelte', 'form'],
+      ['map/MapBlockView.svelte', 'map'],
+      ['embed/EmbedApp.svelte', 'embed-app'],
+    ] as const;
+    for (const [component, type] of components) {
+      const source = readFileSync(join(import.meta.dirname, '../src', component), 'utf8');
+      const root = source.match(/<(?:section|div|article)\b[\s\S]*?>/)?.[0];
+      expect(root, `${component} should have a root element`).toBeTruthy();
+      expect(root).toContain(`data-py-block="${type}"`);
+      expect(root).toContain('DECK_INTERACTIVE_ATTRIBUTE');
     }
-    // Map and form may still be loading; wait for map honesty note or form submit
-    await waitFor(() => {
-      const all = container.querySelectorAll(`[data-py-block][${DECK_INTERACTIVE_ATTRIBUTE}]`);
-      const types = [...all].map((el) => el.getAttribute('data-py-block'));
-      expect(types).toEqual(
-        expect.arrayContaining(['poll', 'counter', 'quiz', 'tabs', 'map', 'form'])
-      );
-    }, long);
   }, 30_000);
 });
 

@@ -109,8 +109,8 @@ onDestroy(() => {
     'overflow-hidden rounded-lg border border-border bg-surface shadow-soft',
     heightClass
   )}
-  data-py-block="embed-app"
   data-py-embed-app={block.id}
+  data-py-block="embed-app"
   data-py-embed-started={started ? 'true' : 'false'}
   {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
   aria-label={block.title}
