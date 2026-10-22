@@ -45,8 +45,8 @@ generate a content-kind prototype from its blueprint (see
   limit do not show the action. The configured site base is preserved.
 - `/play/` runs app, deck, page, and doc blueprints from local JSON files in
   the player and from share links. Pasted JSON (up to 256 KB) and the
-  playground's **Copy share link** accept app blueprints only today: they
-  validate with the app-only `loadUntrustedBlueprint`. Its frame uses
+  playground's **Copy share link** accept every kind: they validate with
+  `loadUntrustedDocument` and open the matching player entry. Its frame uses
   the player's exact-origin `protoyard-player/1` bridge. Share fragments stay
   in the browser URL and are not sent to the server; simulated data stays in
   IndexedDB on this browser's origin.
