@@ -19,14 +19,12 @@ Svelte hosts, form UI and print stylesheet are implemented in
 blueprint bodies. The shared `PageApp` and `DocApp` are designed to be mounted
 by both the player and generated prototypes.
 
-In this repository revision, dedicated page/doc player HTML entries and the
-`templates/page` and `templates/doc` generation templates are not wired yet.
-`protoyard generate` accepts app blueprints only. Therefore level-1 playback
-and level-2 generated page/doc parity are not available yet; the common hosts
-and `definePrototypeFromPage` / `definePrototypeFromDoc` runtime helpers are
-building blocks for that integration, not evidence that those flows are done.
-The examples under `blueprints/pages/` and `blueprints/docs/` show the current
-data shape. They are not app blueprints and cannot yet be generated.
+Both levels are wired:
+
+- **Level 1.** The player opens page and doc blueprints through its kind boot. It also has dedicated `page.html` and `doc.html` entries.
+- **Level 2.** `protoyard generate <slug> --blueprint <file>` picks the `templates/page` or `templates/doc` template from the blueprint's kind.
+
+`packages/player/tests/kinds-parity.test.ts` checks that both levels render the same content. The examples under `blueprints/pages/` and `blueprints/docs/` are the reference data, and each one generates into a prototype.
 
 ## Page or doc?
 

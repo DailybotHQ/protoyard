@@ -1,11 +1,20 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { type Blueprint, safeParseBlueprint, screenPath } from '@protoyard/blueprint';
+import {
+  type AnyBlueprint,
+  type BlueprintKind,
+  blueprintKind,
+  isAppBlueprint,
+  safeParseAnyBlueprint,
+  screenPath,
+} from '@protoyard/blueprint';
 import { MANIFEST_FILENAME } from '@protoyard/core';
 import {
   brandDefaultThemeId,
   type EmittedFile,
+  emitContentKindPrototype,
+  kindTemplateFilesRemoved,
   personalizeHtml,
   TEMPLATE_FILES_REMOVED,
 } from '../lib/codegen/emit.ts';
@@ -16,6 +25,7 @@ import {
   CODEGEN_FORMAT_VERSION,
   emitOrThrow,
   type FilePlan,
+  planContentKindRegeneration,
   planRegeneration,
   SNAPSHOT_PATH,
   snapshotText,
@@ -33,19 +43,23 @@ import { copyTemplate, listTemplateFiles, personalize, writeNewSpec } from './ne
 
 /**
  * `protoyard generate <slug> --blueprint <file>`: validates a data-only
- * blueprint (ADR-017), then creates prototypes/<slug> from the crud-app
- * template with blueprint.json, hash-headed src/generated/** modules, lazily
- * routed CRUD screens and tests. Same safety as `new`: slug and path checks,
+ * blueprint (ADR-017), then creates prototypes/<slug> from its kind template
+ * with blueprint.json and hash-headed generated modules. Same safety as `new`: slug and path checks,
  * a hidden staging folder renamed into place, and an identical re-run is a
  * no-op.
  */
 
-const DEFAULT_TEMPLATE = 'crud-app';
+const DEFAULT_TEMPLATE: Record<BlueprintKind, string> = {
+  app: 'crud-app',
+  deck: 'deck',
+  page: 'page',
+  doc: 'doc',
+};
 const MAX_BLUEPRINT_BYTES = 1024 * 1024;
 
 async function readBlueprint(
   file: string
-): Promise<{ blueprint: Blueprint; raw: Record<string, unknown>; text: string }> {
+): Promise<{ blueprint: AnyBlueprint; raw: Record<string, unknown>; text: string }> {
   const path = resolve(process.cwd(), file);
   const info = await stat(path).catch(() => null);
   if (!info?.isFile()) {
@@ -62,7 +76,7 @@ async function readBlueprint(
   } catch (error) {
     throw new CliError('validation', `Blueprint is not valid JSON: ${(error as Error).message}`);
   }
-  const parsed = safeParseBlueprint(raw);
+  const parsed = await safeParseAnyBlueprint(raw);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((issue) => ({
       path: issue.path.map(String).join('.') || '(root)',
@@ -138,12 +152,27 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     });
   }
   const { blueprint, raw, text } = await readBlueprint(file);
-  const templateName = opt(options, 'template') ?? DEFAULT_TEMPLATE;
+  const kind = blueprintKind(blueprint);
+  const templateName = opt(options, 'template') ?? DEFAULT_TEMPLATE[kind];
   const {
     entry: template,
     dir: templateDir,
     registry,
   } = await resolveTarget(ctx, templateName, 'template');
+  const templateManifest = JSON.parse(
+    await readFile(join(templateDir, MANIFEST_FILENAME), 'utf8')
+  ) as { blueprintKind?: BlueprintKind };
+  const templateKind = templateManifest.blueprintKind ?? 'app';
+  if (templateKind !== kind) {
+    throw new CliError(
+      'validation',
+      `Template "${template.slug}" is for ${templateKind} blueprints, but this blueprint is ${kind}.`,
+      {
+        hint: `Choose the ${DEFAULT_TEMPLATE[kind]} template or another template whose protoyard.json declares blueprintKind: "${kind}".`,
+        data: { kind, template: template.slug, templateKind },
+      }
+    );
+  }
   const allowDrop = flag(options, 'allowDrop');
   const dryRun = flag(options, 'dryRun');
 
@@ -170,6 +199,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     return regenerate(ctx, {
       dest,
       slug,
+      blueprint,
       raw,
       dryRun,
       allowDrop,
@@ -185,7 +215,9 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
 
   // A first generation starts the history: the snapshot records what the code reflects.
   const files = [
-    ...emitOrThrow(blueprint, slug, text),
+    ...(isAppBlueprint(blueprint)
+      ? emitOrThrow(blueprint, slug, text)
+      : emitContentKindPrototype(blueprint, text)),
     {
       path: SNAPSHOT_PATH,
       content: snapshotText({
@@ -196,13 +228,16 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       generated: false,
     },
   ];
-  if (blueprint.history.length > 0) {
+  if (isAppBlueprint(blueprint) && blueprint.history.length > 0) {
     throw new CliError('validation', 'A new prototype starts without "history".', {
       hint: 'Remove "history" from the blueprint; generate records it on later regenerations.',
     });
   }
   const rel = toPosixRelative(ctx.root, dest);
-  const removed = new Set<string>(TEMPLATE_FILES_REMOVED);
+  const removed = new Set<string>([
+    ...TEMPLATE_FILES_REMOVED,
+    ...(isAppBlueprint(blueprint) ? [] : kindTemplateFilesRemoved(blueprint.kind)),
+  ]);
   const emitted = new Set(files.map((f) => f.path));
   // The template's own tests exercise its own entities; generated prototypes get
   // blueprint-driven tests from the emitter instead.
@@ -216,10 +251,12 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       source: f.generated ? ('generated' as const) : ('emitted' as const),
     })),
   ].sort((a, b) => a.path.localeCompare(b.path));
-  const entities = blueprint.entities.map((e) => e.name);
-  const rootDashboard = blueprint.screens.find(
-    (screen) => screen.type === 'dashboard' && screenPath(screen, blueprint.entities) === '/'
-  );
+  const entities = isAppBlueprint(blueprint) ? blueprint.entities.map((e) => e.name) : [];
+  const rootDashboard = isAppBlueprint(blueprint)
+    ? blueprint.screens.find(
+        (screen) => screen.type === 'dashboard' && screenPath(screen, blueprint.entities) === '/'
+      )
+    : undefined;
 
   if (dryRun) {
     return {
@@ -228,10 +265,15 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
         path: rel,
         dryRun: true,
         template: template.slug,
-        entities,
-        homeRoute: rootDashboard
-          ? { screen: 'dashboard', title: rootDashboard.title ?? 'Dashboard' }
-          : { screen: 'home', title: 'Home' },
+        kind,
+        ...(isAppBlueprint(blueprint)
+          ? {
+              entities,
+              homeRoute: rootDashboard
+                ? { screen: 'dashboard', title: rootDashboard.title ?? 'Dashboard' }
+                : { screen: 'home', title: 'Home' },
+            }
+          : {}),
         files: fileList,
         existing,
       },
@@ -271,7 +313,7 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       const preview = { ...((manifest.preview as Record<string, unknown> | undefined) ?? {}) };
       delete preview.shell;
       manifest.preview = preview;
-      const brandTheme = brandDefaultThemeId(blueprint);
+      const brandTheme = isAppBlueprint(blueprint) ? brandDefaultThemeId(blueprint) : null;
       if (brandTheme) manifest.defaultTheme = brandTheme;
       await writeFile(manifestPath, formatJson(manifest));
       const htmlPath = join(staging, 'index.html');
@@ -327,14 +369,19 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
       id: `local.${slug}`,
       path: rel,
       template: template.slug,
+      kind,
       created: true,
       unchanged: false,
-      entities,
+      ...(isAppBlueprint(blueprint) ? { entities } : {}),
       files: fileList,
       generated: generatedFiles.map((f) => f.path),
-      homeRoute: rootDashboard
-        ? { screen: 'dashboard', title: rootDashboard.title ?? 'Dashboard' }
-        : { screen: 'home', title: 'Home' },
+      ...(isAppBlueprint(blueprint)
+        ? {
+            homeRoute: rootDashboard
+              ? { screen: 'dashboard', title: rootDashboard.title ?? 'Dashboard' }
+              : { screen: 'home', title: 'Home' },
+          }
+        : {}),
       hashesIntact: intact.every(Boolean),
       install,
       spec,
@@ -344,8 +391,11 @@ export const generateCommand: Handler = async (ctx, args, options): Promise<Comm
     },
     render(out) {
       const { c } = out;
+      const summary = isAppBlueprint(blueprint)
+        ? `${entities.length} entities`
+        : `${kind} blueprint`;
       out.always(
-        `${mark(c, 'pass')} Generated ${c.bold(rel)} from ${c.cyan(template.slug)}: ${entities.length} entities, ${generatedFiles.length} generated files`
+        `${mark(c, 'pass')} Generated ${c.bold(rel)} from ${c.cyan(template.slug)}: ${summary}, ${generatedFiles.length} generated files`
       );
       if (rootDashboard)
         out.info(
@@ -378,6 +428,7 @@ async function regenerate(
   input: {
     dest: string;
     slug: string;
+    blueprint: AnyBlueprint;
     raw: Record<string, unknown>;
     dryRun: boolean;
     allowDrop: boolean;
@@ -390,17 +441,25 @@ async function regenerate(
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as Record<string, unknown> & {
     storage: { schemaVersion: number };
   };
-  const plan = await planRegeneration({
-    dest,
-    slug,
-    inputRaw: input.raw,
-    manifestSchemaVersion: manifest.storage.schemaVersion,
-    allowDrop: input.allowDrop,
-  });
+  const plan = isAppBlueprint(input.blueprint)
+    ? await planRegeneration({
+        dest,
+        slug,
+        inputRaw: input.raw,
+        manifestSchemaVersion: manifest.storage.schemaVersion,
+        allowDrop: input.allowDrop,
+      })
+    : await planContentKindRegeneration({
+        dest,
+        slug,
+        inputRaw: input.raw,
+        manifestSchemaVersion: manifest.storage.schemaVersion,
+      });
   const ownedApp = await readFile(join(dest, 'src/App.svelte'), 'utf8').catch(() => '');
   // The shared shell (BlueprintApp) applies the blueprint layout itself; an older owned app
   // applied it only by importing the retired src/generated/layout.ts.
   const layoutWarning =
+    isAppBlueprint(plan.blueprint) &&
     plan.blueprint.layout &&
     !ownedApp.includes('<BlueprintApp') &&
     !ownedApp.includes("from './generated/layout.ts'")
@@ -411,7 +470,10 @@ async function regenerate(
     plan.files.filter((f) => f.status === status).length;
   const conflicted = plan.files.filter((f) => f.status === 'conflicted').map((f) => f.path);
   const rel = toPosixRelative(ctx.root, dest);
-  const schema = { from: plan.fromVersion, to: plan.toVersion, ops: plan.ops.length };
+  const kind = blueprintKind(plan.blueprint);
+  const schema = isAppBlueprint(plan.blueprint)
+    ? { from: plan.fromVersion, to: plan.toVersion, ops: plan.ops.length }
+    : { from: plan.fromVersion, to: plan.toVersion, ops: 0 };
   if (conflicted.length > 0 && !force) {
     throw new CliError(
       'conflict',
@@ -456,13 +518,16 @@ async function regenerate(
   return {
     data: {
       slug,
+      kind,
       path: rel,
       regenerated: !dryRun && !unchanged,
       dryRun,
       created: false,
       unchanged,
       schemaVersion: schema,
-      entities: plan.blueprint.entities.map((e) => e.name),
+      ...(isAppBlueprint(plan.blueprint)
+        ? { entities: plan.blueprint.entities.map((e) => e.name) }
+        : {}),
       ...(layoutWarning ? { layoutWarning } : {}),
       files: report,
       counts: {

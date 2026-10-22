@@ -73,6 +73,11 @@
         "types": "./dist/patch/index.d.ts",
         "import": "./dist/patch/index.js",
         "default": "./dist/patch/index.js"
+      },
+      "./presenter": {
+        "types": "./dist/presenter/index.d.ts",
+        "import": "./dist/presenter/index.js",
+        "default": "./dist/presenter/index.js"
       }
     },
     "types": "./dist/index.d.ts"

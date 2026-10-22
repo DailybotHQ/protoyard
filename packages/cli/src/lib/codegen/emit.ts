@@ -1,4 +1,5 @@
 import {
+  type AnyBlueprint,
   type Blueprint,
   type BlueprintEntity,
   brandLibraryThemeId,
@@ -149,6 +150,88 @@ async function themeLibrary() {
   />
 {/await}
 `;
+}
+
+const CONTENT_BLUEPRINT_TYPES = {
+  deck: 'DeckBlueprint',
+  page: 'PageBlueprint',
+  doc: 'DocBlueprint',
+} as const;
+
+/** Validated kind blueprint module. parseAnyBlueprint loads only its body schema. */
+function contentBlueprintModule(kind: keyof typeof CONTENT_BLUEPRINT_TYPES): string {
+  const typeName = CONTENT_BLUEPRINT_TYPES[kind];
+  return `import { type ${typeName}, parseAnyBlueprint } from '@protoyard/blueprint';
+import blueprintJson from '../../blueprint.json';
+
+const parsed = await parseAnyBlueprint(blueprintJson);
+if (!('kind' in parsed) || parsed.kind !== '${kind}') {
+  throw new Error('Generated blueprint kind does not match ${kind}.');
+}
+
+/** The validated ${kind} blueprint (blueprint.json is the single source of truth). */
+export const blueprint: ${typeName} = parsed;
+`;
+}
+
+/** Shared runtime module for a generated deck, page or doc prototype. */
+function contentRuntimeModule(kind: keyof typeof CONTENT_BLUEPRINT_TYPES): string {
+  const typeName = CONTENT_BLUEPRINT_TYPES[kind];
+  const bodyExport = kind === 'page' ? 'pageDocument' : kind === 'doc' ? 'docDocument' : null;
+  return `import type { ${typeName} } from '@protoyard/blueprint';
+import { type AnyContentBlueprint, defineKindRuntime } from '@protoyard/blueprint/kinds';
+import { parseManifest } from '@protoyard/core';
+import manifestJson from '../protoyard.json';
+import { blueprint } from './generated/blueprint.ts';
+
+const manifest = parseManifest(manifestJson);
+const contentBlueprint = blueprint as ${typeName};
+
+${bodyExport ? `export const ${bodyExport} = contentBlueprint.${kind};\n` : ''}export const definition = defineKindRuntime(contentBlueprint as AnyContentBlueprint, {
+  namespace: manifest.storage.namespace,
+  slug: manifest.slug,
+  version: manifest.version,
+});
+definition.manifest.blueprintKind = '${kind}';
+if (manifest.template) definition.manifest.template = manifest.template;
+if (manifest.catalog) definition.manifest.catalog = manifest.catalog;
+definition.manifest.build = manifest.build;
+definition.manifest.thumbnail = manifest.thumbnail;
+definition.manifest.status = manifest.status;
+`;
+}
+
+/**
+ * The deck template's App, main and prototype read `./deck-blueprint.ts`; a
+ * generated deck points it at the generated blueprint, so the prototype shows
+ * the user's deck rather than the template's sample (kinds parity test).
+ */
+function deckBlueprintModule(): string {
+  return `import type { DeckBlueprint } from '@protoyard/blueprint';
+import { blueprint } from './generated/blueprint.ts';
+
+/** The generated deck (blueprint.json is the single source of truth). */
+export const deckBlueprint: DeckBlueprint = blueprint;
+`;
+}
+
+/** Template files a generated prototype of this kind leaves out (the template's own sample data). */
+export function kindTemplateFilesRemoved(kind: Exclude<AnyBlueprint, Blueprint>['kind']): string[] {
+  return kind === 'deck' ? ['src/blueprint.json'] : [];
+}
+
+/** Kind emission stays small and has no entity schema, services or tests. */
+export function emitContentKindPrototype(
+  blueprint: Exclude<AnyBlueprint, Blueprint>,
+  blueprintText: string
+): EmittedFile[] {
+  const kind = blueprint.kind;
+  return [
+    owned('blueprint.json', blueprintText),
+    generated('src/generated/blueprint.ts', contentBlueprintModule(kind)),
+    generated('src/prototype.ts', contentRuntimeModule(kind)),
+    ...(kind === 'deck' ? [generated('src/deck-blueprint.ts', deckBlueprintModule())] : []),
+  ];
 }
 
 /** Prototype definition that registers the blueprint brand theme as default. */

@@ -18,6 +18,17 @@ current Player/generator integration status, see
 | `@protoyard/pages-ui/form` | `FormBlock`, `ResponsesPanel`, and form service context |
 | `@protoyard/pages-ui/print` | `PrintButton` and print stylesheet |
 | `@protoyard/pages-ui/styles.css` | Page/doc print rules, all inside `@media print` |
+The page and doc hosts, shared block host, public form and responses panel, and
+print entry are implemented. `PageApp` and `DocApp` are the same kind-level
+hosts used by the player and generated prototypes.
+
+| `@protoyard/pages-ui` | Package metadata, `BlockHost`, `PageHost`, `DocHost`, `PageApp`, `DocApp` and form context helpers |
+| `@protoyard/pages-ui/block-host` | Lazy `BlockHost` and block-family resolver |
+| `@protoyard/pages-ui/page` | `PageApp` and `PageHost` marketing landing renderer |
+| `@protoyard/pages-ui/doc` | `DocApp` and `DocHost` continuous document flow with TOC |
+| `@protoyard/pages-ui/form` | `FormBlock` and `ResponsesPanel` |
+| `@protoyard/pages-ui/print` | `PrintButton`, `PRINT_ROOT_CLASS` and print stylesheet |
+| `@protoyard/pages-ui/styles.css` | Kit stylesheet hook, including print-only rules |
 
 The package root is convenient for shared imports. Use the explicit family
 subpaths from lazy routes when you want to keep page, doc, form or print code
@@ -115,6 +126,56 @@ and `definePrototypeFromPage` / `definePrototypeFromDoc` runtime helpers are
 available for those integrations, but do not provide Player or generation
 parity by themselves. See [`docs/PAGES.md`](../../docs/PAGES.md#current-support)
 for the full scope and limits.
+<ResponsesPanel {form} {services} can={(capability) => runtime.session.can(capability)} />
+```
+
+- **Live list.** It uses `liveQuery` from `@protoyard/renderer-svelte` over
+  `services.list(form.id)`, so a submission from the form on the same page, a
+  scenario load or a snapshot restore updates it without a refresh. It shows
+  a loading state, an empty state ("No responses yet") and the service's
+  error. The table has one column per form field, oldest first; lists are
+  joined, booleans are Yes/No, and empty values are "—".
+- **Download CSV** calls `services.exportCsv(form.id)` (RFC 4180, with
+  formula-like cells guarded) and saves `<form-id>-responses.csv` as a
+  `text/csv` blob. The button shows pending feedback, and a failure appears
+  as an alert. Pass `save` to deliver the blob another way.
+- **Clear…** opens the shared `AlertDialog` (Cancel focused). Confirming calls
+  `services.clear(form.id)` with a spinner. The list empties live, and a
+  failure keeps the dialog open with the error.
+- **Simulated roles.** Without `form:read` the panel shows a note and no data.
+  Without `form:admin` there is no clear action, only a note. The services
+  assert the same capabilities, so the panel never offers a button that would
+  fail. These roles are a prototype simulation, not security.
+
+The panel adds about 37 KB gzip to the form subpath when measured on its own
+(svelte and zod external). In a page entry, the ui kit, `renderer-svelte` and
+Dexie are already loaded by the host. Import it only on the screen that shows
+responses.
+
+## Bundle budgets
+
+`PageApp` and `DocApp` are measured independently with real production Vite
+fixtures. Each entry stays under 120 KB gzip JavaScript and its package-owned
+CSS stays under 20 KB gzip. Shared Tailwind, theme and UI stylesheets belong to
+the consuming app and are excluded. The static graph excludes the CRUD app,
+Faker and the player worker. Current measurements and the exact gate are in
+[`docs/PERFORMANCE.md`](../../docs/PERFORMANCE.md#page-and-doc-host-budgets).
+
+## Security
+
+Page and doc hosts never inject raw HTML. Rich text goes through the same
+safe markdown path as the rest of Protoyard (`safeHref` / `safeImageSrc`);
+`javascript:` and `data:` links are dropped; form field names
+`__proto__`, `constructor` and `prototype` are ignored on submit. The suite
+[`tests/security.test.ts`](./tests/security.test.ts) scans `src/` for
+`{@html}`, `eval`, `innerHTML` assignment and related patterns, and proves
+the rendering rules above.
+
+```bash
+pnpm vitest run packages/pages-ui/tests/security.test.ts
+# companion gate: no raw HTML directive in source
+rg -n '\{@html\}' packages/pages-ui/src && exit 1 || true
+```
 
 ## Development
 

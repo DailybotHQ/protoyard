@@ -570,6 +570,9 @@ importers:
       '@protoyard/analytics-ui':
         specifier: workspace:*
         version: link:../analytics-ui
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../blocks-ui
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../blueprint
@@ -582,6 +585,12 @@ importers:
       '@protoyard/crud':
         specifier: workspace:*
         version: link:../crud
+      '@protoyard/decks-ui':
+        specifier: workspace:*
+        version: link:../decks-ui
+      '@protoyard/pages-ui':
+        specifier: workspace:*
+        version: link:../pages-ui
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../renderer-svelte
@@ -966,6 +975,27 @@ importers:
       '@protoyard/scenarios':
         specifier: workspace:*
         version: link:../../packages/scenarios
+
+  prototypes/create-anything-deck:
+    dependencies:
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../../packages/blueprint
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/decks':
+        specifier: workspace:*
+        version: link:../../packages/decks
+      '@protoyard/decks-ui':
+        specifier: workspace:*
+        version: link:../../packages/decks-ui
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      svelte:
+        specifier: ^5.57.2
+        version: 5.57.2
 
   prototypes/crm-demo:
     dependencies:
@@ -1916,6 +1946,33 @@ importers:
         specifier: workspace:*
         version: link:../../packages/runtime
 
+  templates/deck:
+    dependencies:
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../../packages/blocks-ui
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../../packages/blueprint
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/decks':
+        specifier: workspace:*
+        version: link:../../packages/decks
+      '@protoyard/decks-ui':
+        specifier: workspace:*
+        version: link:../../packages/decks-ui
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../../packages/player
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      svelte:
+        specifier: ^5.57.2
+        version: 5.57.2
+
   templates/design-kit:
     dependencies:
       '@lucide/svelte':
@@ -1977,6 +2034,46 @@ importers:
       '@protoyard/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
+
+  templates/doc:
+    dependencies:
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../../packages/blocks-ui
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../../packages/blueprint
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/pages':
+        specifier: workspace:*
+        version: link:../../packages/pages
+      '@protoyard/pages-ui':
+        specifier: workspace:*
+        version: link:../../packages/pages-ui
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../../packages/player
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      dexie:
+        specifier: ^4.4.6
+        version: 4.4.6
+      svelte:
+        specifier: ^5.57.2
+        version: 5.57.2
+    devDependencies:
+      '@protoyard/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../../packages/scenarios
 
   templates/docs-wiki:
     dependencies:
@@ -2282,6 +2379,46 @@ importers:
       '@protoyard/runtime':
         specifier: workspace:*
         version: link:../../packages/runtime
+
+  templates/page:
+    dependencies:
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../../packages/blocks-ui
+      '@protoyard/blueprint':
+        specifier: workspace:*
+        version: link:../../packages/blueprint
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@protoyard/pages':
+        specifier: workspace:*
+        version: link:../../packages/pages
+      '@protoyard/pages-ui':
+        specifier: workspace:*
+        version: link:../../packages/pages-ui
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../../packages/player
+      '@protoyard/renderer-svelte':
+        specifier: workspace:*
+        version: link:../../packages/renderer-svelte
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      dexie:
+        specifier: ^4.4.6
+        version: 4.4.6
+      svelte:
+        specifier: ^5.57.2
+        version: 5.57.2
+    devDependencies:
+      '@protoyard/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../../packages/scenarios
 
   templates/plugin-panel:
     dependencies:

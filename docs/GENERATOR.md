@@ -776,9 +776,39 @@ Build a Protoyard prototype for <product> from a blueprint.
   does not rewire `src/prototype.ts` or `defaultTheme` (they are set on the
   first generation only).
 
-## Generated page and doc apps
+## Generated decks, pages and docs
 
-Level-2 `generate` for `kind: "page"` / `kind: "doc"` should import the same
-`PageApp` / `DocApp` entry components the player uses (`@protoyard/pages-ui/page`
-and `…/doc`), with `defineKindRuntime` so behaviour matches level 1.
+`generate` chooses a template from the validated blueprint kind:
+
+| Blueprint kind | Default template |
+| --- | --- |
+| `app` or no `kind` | `crud-app` |
+| `deck` | `deck` |
+| `page` | `page` |
+| `doc` | `doc` |
+
+Pass `--template` to choose another template only when its `protoyard.json`
+declares the same `blueprintKind`. A mismatch fails before the prototype folder
+is written. JSON dry runs include the resolved `kind` and template:
+
+```sh
+pnpm protoyard generate rehearsal --blueprint blueprints/decks/example.json --dry-run --json
+```
+
+Content kinds use the shared runtime and renderer from their templates. Their
+generated modules are `src/generated/blueprint.ts` and `src/prototype.ts`; the
+blueprint module validates the full kind document, and the runtime module calls
+`defineKindRuntime`. A deck also gets a generated `src/deck-blueprint.ts`, which
+points the template's App at the generated blueprint, and it does not copy the
+template's sample `src/blueprint.json`. They do not emit app entity schema, policy, services,
+world-generator modules or entity tests. The template's owned `App.svelte`
+continues to render the shared `DeckApp`, `PageApp` or `DocApp`; deck-owned
+`src/custom-slides.ts` also stays in place.
+
+Regeneration rewrites only generated kind modules and the managed blueprint
+snapshot. It does not derive database migrations or create `history`, because
+content kinds have no entity schema. It leaves the owned app and custom slide
+files untouched. App blueprints keep the existing `crud-app` code generation
+and entity migration behavior. The app emitter's generated files remain
+unchanged by kind support.
 

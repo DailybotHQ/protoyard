@@ -8,7 +8,9 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
   loadUntrustedBlueprint,
+  loadUntrustedDocument,
   parseBlueprint,
+  safeParseAnyBlueprint,
   type UntrustedBlueprintIssue,
   type UntrustedBlueprintResult,
 } from '../src/index.ts';
@@ -43,9 +45,22 @@ const ISSUE_CODES: readonly UntrustedBlueprintIssue['code'][] = [
 ];
 /** The loader's catch-all message: seeing it means an internal error was swallowed. */
 const CATCH_ALL = 'Blueprint could not be safely loaded.';
-// biome-ignore lint/suspicious/noControlCharactersInRegex: the point is to detect them.
-const CONTROL_OR_BIDI = /[\u0000-\u001f\u007f-\u009f؜‎‏‪-‮⁦-⁩﻿]/;
-const NASTY_CHARS = ['\u0000', '\u0007', '\u001b', '\u007f', '\u0085', '‮', '⁦', '‏', '﻿', '\n', '\t'];
+const CONTROL_OR_BIDI =
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: the point is to detect them.
+  /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/;
+const NASTY_CHARS = [
+  '\u0000',
+  '\u0007',
+  '\u001b',
+  '\u007f',
+  '\u0085',
+  '\u202e',
+  '\u2066',
+  '\u200f',
+  '\ufeff',
+  '\n',
+  '\t',
+];
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Container = Json[] | { [key: string]: Json };
@@ -183,13 +198,13 @@ function mutateText(text: string, rng: Rng): { kind: string; input: string } {
       return { kind: 'truncate', input: text.slice(0, rng.int(0, text.length - 1)) };
     case 1: {
       // An own `__proto__` or `constructor` key, as a crafted link would carry.
-      const key = rng.pick(['__proto__', 'constructor', '__pro‎to__']);
+      const key = rng.pick(['__proto__', 'constructor', '__pro\u200eto__']);
       return { kind: 'unsafe-key', input: text.replace(/^\{/, `{"${key}":{"polluted":true},`) };
     }
     case 2:
       return { kind: 'deep-text', input: `${'['.repeat(rng.pick([33, 5_000]))}${']'.repeat(10)}` };
     case 3:
-      return { kind: 'bom-and-padding', input: `﻿  ${text}\n\n` };
+      return { kind: 'bom-and-padding', input: `\ufeff  ${text}\n\n` };
     case 4: {
       const at = rng.int(0, text.length);
       return {
@@ -331,8 +346,8 @@ describe('untrusted loader fuzzing', () => {
     const raw = JSON.parse(CATALOG[0]!) as { name: string; description?: string };
     const result = loadUntrustedBlueprint({
       ...raw,
-      name: `Ac‮me\u0000 ${raw.name}`,
-      description: 'Line⁦ one',
+      name: `Ac\u202eme\u0000 ${raw.name}`,
+      description: 'Line\u2066 one',
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -340,4 +355,85 @@ describe('untrusted loader fuzzing', () => {
       expect(result.blueprint.description).toBe('Line one');
     }
   });
+});
+
+/**
+ * The same mutators over the content-kind fixtures (deck, page, doc) plus a
+ * few catalog apps, through `loadUntrustedDocument`. Accepted documents must
+ * parse again, and keep no control or bidi character except a newline or tab
+ * in a multiline field.
+ */
+const KIND_FIXTURES = ['intro.deck.json', 'landing.page.json', 'quarterly-report.doc.json'].map(
+  (name) => readFileSync(join(ROOT, 'packages/blueprint/tests/fixtures/kinds', name), 'utf8')
+);
+const KIND_ITERATIONS = 600;
+const CONTROL_OR_BIDI_EXCEPT_NL_TAB =
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: the point is to detect them.
+  /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/;
+
+function kindCorpus(seed: string, iterations: number): FuzzInput[] {
+  const rng = createRng(seed);
+  const sources = [...KIND_FIXTURES, ...CATALOG.slice(0, 3)];
+  const inputs: FuzzInput[] = [];
+  for (let i = 0; i < iterations; i += 1) {
+    const caseRng = rng.fork(`kind-case-${i}`);
+    const text = caseRng.pick(sources);
+    if (caseRng.chance(0.2)) {
+      inputs.push(mutateText(text, caseRng));
+      continue;
+    }
+    const tree = JSON.parse(text) as Json;
+    const labels: string[] = [];
+    for (let m = 0; m < caseRng.int(1, 3); m += 1) labels.push(mutateTree(tree, caseRng));
+    inputs.push({
+      kind: labels.join('+'),
+      input: caseRng.chance(0.5) ? JSON.stringify(tree) : tree,
+    });
+  }
+  return inputs;
+}
+
+describe('untrusted document loader fuzzing (all kinds)', () => {
+  it(`returns a valid document or typed issues for ${KIND_ITERATIONS} mutated deck, page, doc and app inputs`, async () => {
+    const outcomes = new Map<string, number>();
+    const kinds = new Set<string>();
+    for (const [index, { kind, input }] of kindCorpus(`${SEED}-kinds`, KIND_ITERATIONS).entries()) {
+      const label = `kind case ${index} (${kind})`;
+      const started = performance.now();
+      const result = await loadUntrustedDocument(input);
+      const elapsed = performance.now() - started;
+      expect(elapsed, `${label} took ${elapsed.toFixed(1)} ms`).toBeLessThan(PER_INPUT_MS);
+      if (result.success) {
+        expect(result.issues, label).toEqual([]);
+        const again = await safeParseAnyBlueprint(JSON.parse(JSON.stringify(result.blueprint)));
+        expect(again.success, label).toBe(true);
+        for (const text of strings(result.blueprint)) {
+          expect(CONTROL_OR_BIDI_EXCEPT_NL_TAB.test(text), label).toBe(false);
+        }
+        kinds.add('kind' in result.blueprint ? result.blueprint.kind : 'app');
+        outcomes.set('ok', (outcomes.get('ok') ?? 0) + 1);
+        continue;
+      }
+      expect(result.blueprint, label).toBeNull();
+      expect(result.issues.length, label).toBeGreaterThan(0);
+      for (const issue of result.issues) {
+        expect(ISSUE_CODES, label).toContain(issue.code);
+        for (const part of issue.path) expect(['string', 'number'], label).toContain(typeof part);
+        expect(issue.message, `${label}: swallowed internal error`).not.toMatch(
+          /could not be safely loaded/
+        );
+      }
+      const code = result.issues[0]?.code ?? 'none';
+      outcomes.set(code, (outcomes.get(code) ?? 0) + 1);
+    }
+    // Every kind survives some mutations, and the defenses are all reached.
+    for (const kind of ['app', 'deck', 'page', 'doc'])
+      expect(kinds, `accepted ${kind}`).toContain(kind);
+    for (const expected of ['ok', 'invalid-blueprint', 'invalid-json', 'too-deep', 'unsafe-key']) {
+      expect(
+        outcomes.get(expected) ?? 0,
+        `outcome ${expected} in ${JSON.stringify([...outcomes])}`
+      ).toBeGreaterThan(0);
+    }
+  }, 180_000);
 });

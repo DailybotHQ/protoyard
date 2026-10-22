@@ -1,8 +1,8 @@
 import {
-  type Blueprint,
-  DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
-  decodeBlueprintShare,
-  loadUntrustedBlueprint,
+  type AnyBlueprint,
+  DEFAULT_UNTRUSTED_DOCUMENT_LIMITS,
+  decodeDocumentShare,
+  loadUntrustedDocument,
   readBlueprintShareFragment,
   type ShareLinkIssue,
 } from '@protoyard/blueprint';
@@ -14,9 +14,11 @@ import {
  *   2. `?src=./blueprint.json`, a same-origin relative path next to the player;
  *   3. otherwise, a picker (drag and drop or a file input).
  *
- * Every path ends in `loadUntrustedBlueprint` (share links through
- * `decodeBlueprintShare`), so size, depth, row-estimate and schema checks
- * always run, and failures come back as issues with a fix, never a throw.
+ * Every path ends in `loadUntrustedDocument` (share links through
+ * `decodeDocumentShare`): a blueprint of any kind (app, deck, page, doc;
+ * ADR-036). Apps keep the app loader's limits; content kinds get theirs.
+ * Size, depth, count and schema checks always run, and failures come back
+ * as issues with a fix, never a throw.
  */
 
 export type SourceKind = 'share' | 'src' | 'file' | 'embedded';
@@ -27,7 +29,7 @@ export const EMBEDDED_BLUEPRINT_ID = 'protoyard-blueprint';
 /**
  * The blueprint JSON text a single-file export embedded in the page, or null.
  * Only an element with the exact id and `type="application/json"` counts; its
- * text is untrusted and goes through `loadUntrustedBlueprint` like any source.
+ * text is untrusted and goes through `loadUntrustedDocument` like any source.
  */
 export function readEmbeddedBlueprint(
   doc: Pick<Document, 'getElementById'> | undefined
@@ -55,7 +57,7 @@ export type ResolvedSource =
   | {
       kind: 'blueprint';
       source: SourceKind;
-      blueprint: Blueprint;
+      blueprint: AnyBlueprint;
       label: string;
       /** For share links: the payload, and whether it came from the URL or this tab's storage. */
       share?: { payload: string; from: 'url' | 'tab' };
@@ -84,7 +86,8 @@ export interface ResolveSourceInput {
   savedShare?: string | null;
 }
 
-const MAX_BYTES = DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS.maxBytes;
+/** The document loader's cap (content kinds); apps are held to their smaller cap by the loader. */
+const MAX_BYTES = DEFAULT_UNTRUSTED_DOCUMENT_LIMITS.maxBytes;
 
 function issue(code: SourceIssue['code'], message: string, fix: string): SourceIssue {
   return { code, path: [], message, fix };
@@ -190,7 +193,7 @@ const tooLarge = () =>
 export async function loadBlueprintFromSrc(
   url: URL,
   fetchImpl: typeof fetch = fetch
-): Promise<{ blueprint: Blueprint } | { issues: SourceIssue[] }> {
+): Promise<{ blueprint: AnyBlueprint } | { issues: SourceIssue[] }> {
   let response: Response;
   try {
     response = await fetchImpl(url.href, {
@@ -222,14 +225,14 @@ export async function loadBlueprintFromSrc(
   }
   const text = await readCapped(response);
   if (text === null) return { issues: [tooLarge()] };
-  const result = loadUntrustedBlueprint(text);
+  const result = await loadUntrustedDocument(text);
   return result.success ? { blueprint: result.blueprint } : { issues: result.issues };
 }
 
 /** Reads a picked or dropped file and loads it as untrusted input. */
 export async function loadBlueprintFromFile(
   file: Blob & { name?: string }
-): Promise<{ blueprint: Blueprint } | { issues: SourceIssue[] }> {
+): Promise<{ blueprint: AnyBlueprint } | { issues: SourceIssue[] }> {
   if (file.size > MAX_BYTES) return { issues: [tooLarge()] };
   let text: string;
   try {
@@ -239,7 +242,7 @@ export async function loadBlueprintFromFile(
       issues: [issue('invalid-input', 'The file could not be read.', 'Pick the file again.')],
     };
   }
-  const result = loadUntrustedBlueprint(text);
+  const result = await loadUntrustedDocument(text);
   return result.success ? { blueprint: result.blueprint } : { issues: result.issues };
 }
 
@@ -250,7 +253,7 @@ export async function resolveSource(input: ResolveSourceInput): Promise<Resolved
 
   if (input.embedded !== undefined && input.embedded !== null) {
     const label = 'embedded blueprint';
-    const result = loadUntrustedBlueprint(input.embedded);
+    const result = await loadUntrustedDocument(input.embedded);
     return result.success
       ? { kind: 'blueprint', source: 'embedded', blueprint: result.blueprint, label }
       : { kind: 'error', source: 'embedded', label, issues: result.issues };
@@ -288,7 +291,7 @@ async function resolveShare(
         ],
       };
     }
-    const decoded = await decodeBlueprintShare(fragment);
+    const decoded = await decodeDocumentShare(fragment);
     return decoded.success
       ? {
           kind: 'blueprint',

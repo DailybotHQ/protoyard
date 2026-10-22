@@ -75,7 +75,7 @@ All commands run from the repository root. Labels: **full** runs everything;
 | CI performance job (local mirror) | `pnpm protoyard build --all && pnpm protoyard budget --all --skip-build && pnpm bench:index --runs 3 --check` | full |
 | Visual QA sweep (contact sheet, see below) | `pnpm visual:sweep --only crm-demo,mobile-banking-demo` | scoped |
 | Visual sweep logic (matrix, flags, PNG decode, contact sheet) | `pnpm vitest run tests/scripts/visual-sweep.test.ts` | scoped |
-| Deck visual QA sweep (unit) | `pnpm vitest run tests/scripts/deck-sweep.test.ts` | scoped |
+| Deck visual QA sweep (unit) | `pnpm vitest run scripts/tests/deck-sweep.test.ts` | scoped |
 | Deck visual QA sweep (browser fixture) | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` | scoped |
 | Thumbnails stay deterministic | `pnpm exec tsx scripts/generate-thumbnails.ts crm-demo --check` | scoped |
 
@@ -362,7 +362,7 @@ fragment order, navigation and browser noise, then writes `tmp/deck-sweep/`
 font/contrast heuristics are warnings until calibrated. See [DECKS.md](DECKS.md).
 
 ```bash
-pnpm vitest run tests/scripts/deck-sweep.test.ts
+pnpm vitest run scripts/tests/deck-sweep.test.ts
 pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json
 open tmp/deck-sweep/index.html
 ```

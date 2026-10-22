@@ -13,7 +13,10 @@ data" badge.
 
 ## How it boots
 
-`src/boot.ts` exports `bootPlayer({ blueprint, target })`:
+`src/boot.ts` provides the internal workspace boot path
+`bootPlayer({ blueprint, target })` used by the player app and generated
+level-two templates. It is not a packed package subpath because its Svelte app
+dependencies are shipped together in the prebuilt player assets:
 
 1. `blueprintIdentity(blueprint)` gives the content namespace `bp-<26 base32>`.
    Each blueprint stores its data in its own IndexedDB databases
@@ -35,6 +38,9 @@ data" badge.
    blueprint, scenario and generator version reloads the stored world instead of
    regenerating. Cache entries are read back as untrusted data (snapshot size and
    row limits, shape checks), and a corrupt entry is dropped and regenerated.
+   Hosts that need separate storage may pass `namespace`; generated level-two
+   embed hosts use a stable namespace derived from their own namespace and the
+   embed block id.
 4. The app (`src/PlayerApp.svelte`) lazily loads `BlueprintApp` from
    `@protoyard/crud/app`, the same routes, navigation and screens a generated
    prototype has. The settings screen gets the theme library on demand.
@@ -69,6 +75,23 @@ every SaaS screen load when their route opens.
 
 The page reaches `performance.mark('protoyard:ready')` and
 `<html data-protoyard-ready="1">` like any prototype.
+
+### Decks, pages and docs
+
+`src/sources/boot-any.ts` picks the boot path by blueprint kind (ADR-036): apps
+go to `boot.ts`, while decks, pages and docs go to `src/boot-kind.ts`. That
+path builds the same `defineKindRuntime` definition a generated kind prototype
+exports from its `src/prototype.ts`, and mounts `DeckApp`, `PageApp` or `DocApp`
+through `src/kinds/KindApp.svelte`. Each path is its own lazy chunk.
+`tests/kinds-parity.test.ts` renders one deck, page and doc both ways (the
+player's `bootKind`, and the kind template with the real
+`emitContentKindPrototype` files on top). It fails if the two differ in slide
+or section order, stores, scenarios, policy, generator version, active theme
+or principal persona:
+
+```sh
+pnpm vitest run packages/player/tests/kinds-parity.test.ts
+```
 
 ## Where the blueprint comes from
 

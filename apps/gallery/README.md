@@ -51,6 +51,10 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 The sitemap indexes each marketplace entry at its canonical source-kind URL. A blueprint's content
 kind (App, Deck, Page or Document) is metadata on that page; it does not create alternate URL
 aliases. Share fragments and query-based player states are excluded from the sitemap.
+Blueprint detail pages name their content kind. Deck, page and document blueprints open in the hosted
+player through a validated share link; when a blueprint is too large for a link, the page offers the
+generate and dev commands. App blueprints keep their generation instructions, and prototype and
+template live previews keep their existing behavior.
 
 ## Registry contract
 

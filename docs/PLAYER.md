@@ -1,9 +1,10 @@
 # Protoyard Player
 
-The player is the no-install way to explore a blueprint. It derives a working
-prototype in the browser and uses IndexedDB for simulated data; it does not
-connect to a product backend. Generated prototypes remain the second level:
-they are ordinary Vite apps that can be edited, validated and exported.
+The player is the no-install way to run an app, deck, page, or document
+blueprint. It renders the blueprint in the browser and stores simulated data in
+browser-local IndexedDB; it does not connect to a product backend. Generated
+app, deck, page, and doc prototypes remain the second level: they are ordinary
+Vite projects that can be edited, validated and exported.
 
 ## What level 1 gives you
 
@@ -34,10 +35,11 @@ badge. Promote an exploration to level 2 with `protoyard generate` (see
   **Open in player**. The gallery builds a `/play/#bp=…` link from validated
   blueprint data; entries without a blueprint file or links over the share
   limit do not show the action. The configured site base is preserved.
-- `/play/` accepts a pasted blueprint JSON document up to 256 KB and opens
-  share links. Its frame uses the player's exact-origin `protoyard-player/1`
-  bridge. Share fragments stay in the browser URL and are not sent to the
-  server.
+- `/play/` runs app, deck, page, and doc blueprints. It accepts pasted JSON up
+  to 256 KB, local JSON files in the player, and share links. Its frame uses
+  the player's exact-origin `protoyard-player/1` bridge. Share fragments stay
+  in the browser URL and are not sent to the server; simulated data stays in
+  IndexedDB on this browser's origin.
 - The hosted gallery publishes this guide and the other user-facing guides at
   `/docs/`; contributor and internal guides are not included. A search box on
   the docs pages finds sections by guide title, heading and text, and opens
@@ -81,6 +83,26 @@ than 16 KB and decoded input larger than 256 KB. Pasted text is capped at 256
 KB before JSON parsing. The `/play/` landing page is indexable, but a visit
 with a share fragment is marked `noindex`.
 
+The example kind blueprints fit comfortably in the current link cap. The
+following encoded payload lengths were measured by
+`packages/blueprint/tests/kinds/share-kinds.test.ts` with Node 26.11.1; browser
+compression engines may produce different lengths.
+
+| Example | Encoded payload characters |
+| --- | ---: |
+| `decks/cedar-training.json` | 1,666 |
+| `decks/example.json` | 844 |
+| `decks/harbor-ops-pitch.json` | 1,782 |
+| `decks/lumen-launch.json` | 1,512 |
+| `decks/northwind-qbr.json` | 1,500 |
+| `pages/tidewater-roasters-landing.json` | 1,638 |
+| `docs/northwind-quarterly-report.json` | 1,368 |
+
+When a blueprint exceeds the link cap, `protoyard quick` opens its local
+`blueprint.json` file and prints that path plus a
+`protoyard quick export <slug> --single-file` alternative. The player explains
+that an oversized share link should be opened from a blueprint file.
+
 The hosted player sends a Content Security Policy from the showcase root
 `_headers` file under `/player/*`; this includes `frame-ancestors` because a
 meta policy cannot set it. Its `style-src` keeps `'unsafe-inline'` for the
@@ -98,7 +120,7 @@ copies the player.
 
 The player resolves its source in a fixed order: a `#bp=` share link, then
 `?src=./blueprint.json` (a same-origin relative path next to the player, at most
-256 KB, redirects refused), then a picker for a local file or the bundled
+1 MiB for a deck, page or doc and 256 KB for an app, redirects refused), then a picker for a local file or the bundled
 fictional demo. A framed player also accepts blueprints from its embedding page
 over `protoyard-player/1`:
 - `load` and `replace` messages;
@@ -110,23 +132,39 @@ over `protoyard-player/1`:
 The message table, limits and the typed `connectPlayer` client are in
 [the player package README](../packages/player/README.md#embedding-protoyard-player1).
 
-Every source ends in the bounded loader (`loadUntrustedBlueprint`). A blueprint
-that cannot be opened shows an accessible error screen with every issue and its
-fix, never a blank page.
+Every source ends in the bounded, kind-aware loader (`loadUntrustedDocument`;
+share links through `decodeDocumentShare`). Apps keep the exact
+`loadUntrustedBlueprint` limits, and decks, pages and docs get their own (see
+[SECURITY](SECURITY.md)). A blueprint that cannot be opened shows an
+accessible error screen with every issue and its fix, never a blank page.
 
 ### Embedded apps in decks and pages
 
-A content document may include an `embed-app` block (opaque app JSON, bounded
+A deck, page, or doc may include an `embed-app` block (opaque app JSON, bounded
 by the blocks untrusted limits). The blocks-ui embed family shows a framed
 preview and a **Start the app** button. Only after that click does the host
-call `mountEmbed(target, app)`. KINDS is expected to provide that callback:
-validate with `loadUntrustedBlueprint`, then mount a **level-1** app runtime
-into `target` (never a nested deck). Until the click, no app code is
-downloaded with the deck or page. A missing host shows an accessible note;
-unmount runs the disposer returned by `mountEmbed`. Slide keyboard navigation
-must not leak into the running frame — the embed family traps Tab inside the
-frame while the app is open. Full mount wiring lives with the player / KINDS
-runtime, not inside `@protoyard/blocks`.
+call `mountEmbed(target, app)`. The player and generated deck, page, and doc
+templates provide that callback
+([`kinds/mount-embed.ts`](../packages/player/src/kinds/mount-embed.ts)):
+
+1. It checks the app with `loadUntrustedBlueprint`. Only an app is accepted,
+   never a deck, page or doc, so embedding is one level deep.
+2. It opens the player or generated prototype in a same-origin frame over
+   http(s). The generated template starts its dedicated app entry only in this
+   frame, after the button click.
+3. The player uses `protoyard-player/1`; generated templates use the strict
+   `protoyard-embedded-app/1` parent/frame handshake. Both validate the app
+   before booting it.
+
+The frame gives the embedded app its own runtime, its own storage namespace
+and its own URL hash, so it never fights the host for navigation or storage.
+The player derives `bp-…` from app identity; generated templates derive a
+stable `embed-…` namespace from the host namespace and block id. Until the
+click, no app runtime is loaded. A missing host shows an accessible note, and
+unmount destroys the runtime and removes the frame. Slide keyboard navigation
+must not leak into the running frame: the embed family traps Tab inside it
+while the app is open. **Not supported:** single-file exports, Claude
+artifacts, and `file://` pages, which cannot frame a same-origin app runtime.
 
 ## Storage: identity and keep mode
 
@@ -175,6 +213,14 @@ prototype with the CLI and compares it with the player's runtime definition:
 
 Three blueprints also boot both definitions on the real runtime and compare
 every table.
+
+Decks, pages and docs have the same guarantee.
+`packages/player/tests/kinds-parity.test.ts` renders one fixture of each kind
+through the player's `bootKind` and through a prototype built the way
+`generate` builds it. Both must show the same slides or sections in the same
+order (a deck is walked slide by slide), with the same runtime definition
+(stores, scenarios, policy, generator version and theme), the same persisted
+tables, the same active theme and the same principal persona.
 
 The limits of that guarantee:
 - A generated prototype's owned files (`src/App.svelte`, extra screens, wrapped
@@ -266,7 +312,7 @@ with other builds running). They are not calibrated budgets.
 
 Reproduce the timings with `pnpm exec tsx scripts/bench-player.ts --runs 3` after
 building the player. The method, every phase and the main-thread long-task
-trace are in [PERFORMANCE](PERFORMANCE.md#player-blueprint-to-ready-measured-2026-10-20).
+trace are in [PERFORMANCE](PERFORMANCE.md#player-blueprint-to-ready-app-baseline-measured-2026-10-20).
 
 ## Honest boundaries
 
@@ -304,11 +350,89 @@ pnpm protoyard generate my-prototype --blueprint path/to/blueprint.json
 pnpm protoyard validate my-prototype --build
 ```
 
-## Content kinds (page and doc)
+## Content kinds (deck, page and doc)
 
-When the blueprint `kind` is `page` or `doc`, the player mounts
-`@protoyard/pages-ui` `PageApp` / `DocApp` with the runtime from
-`defineKindRuntime` (`@protoyard/blueprint/kinds`). Form responses use
-`createFormServices` from `@protoyard/pages` (same store and capabilities as
-the kind services layer).
+The player routes by blueprint `kind` (ADR-036) before any boot code loads
+([`sources/boot-any.ts`](../packages/player/src/sources/boot-any.ts)):
+
+- An app (no `kind`, or `"app"`) boots through `boot.ts`: the CRUD shell, the
+  world worker and Faker, unchanged.
+- A deck, page or doc boots through
+  [`boot-kind.ts`](../packages/player/src/boot-kind.ts), which never imports
+  `boot.ts`, so the CRUD shell, Faker and the worker never download for a
+  kind.
+- The boot chunk is prefetched only once the source has resolved, for that
+  kind alone.
+
+A kind boots like an app around the edges: a content-identity namespace
+(`bp-…`, or `?keep=`), the exploration index, the demo badge, themes, shells,
+DevTools (`?devtools=0` hides them) and review comments under `quick serve`.
+Inside, it runs `defineKindRuntime` (`@protoyard/blueprint/kinds`): one Dexie
+version for block state and form responses, the `default` scenario, the
+presenter, audience and viewer personas, and no world generator.
+[`KindApp`](../packages/player/src/kinds/KindApp.svelte) renders the shared
+renderer, the same component a generated kind prototype mounts:
+
+- decks: `DeckApp` (`@protoyard/decks-ui/app`);
+- pages: `PageApp` (`@protoyard/pages-ui/page`);
+- docs: `DocApp` (`@protoyard/pages-ui/doc`).
+
+Each renderer is its own chunk. KindApp provides the blocks-ui host:
+
+- **Block state:** interactive blocks persist through `createKindServices`
+  (resolve the block from the document → `session.assert` → reducer, with the
+  active persona as the viewer → `environment.run` → `db.transaction`). The
+  host answers at once and attaches to IndexedDB when it is ready.
+- **Embedded apps:** `mountEmbed`, as described above.
+
+Form responses use `createFormServices` from `@protoyard/pages`, the same
+store and capabilities as the kind services layer.
+
+**Swaps:** live reload (`quick serve`) and `protoyard-player/1` `load` and
+`replace` messages accept any kind, and each swap tears the running document
+or app down exactly once. A change between two content kinds keeps the world
+(they share one store layout). A change to or from an app starts a fresh one.
+
+### Per-kind pages: deck.html, page.html and doc.html
+
+The player build writes three more pages next to `index.html`:
+`deck.html`, `page.html` and `doc.html`
+([`src/entries/`](../packages/player/src/entries/)). Each page runs one kind:
+
+- It takes the same sources as `index.html` (`#bp=`, `?src=`, the picker, an
+  embedding page over `protoyard-player/1`) and the same live reload under
+  `quick serve`.
+- Every blueprint boots through `boot-kind.ts` only. The kind boot chunk is
+  fetched while the source resolves. The app boot is never loaded.
+- The stylesheet holds the shared chrome, `@protoyard/blocks-ui/styles.css`
+  and the kind's renderer styles: decks-ui for a deck, pages-ui for a page or
+  doc. It never holds the crud, views, charts or analytics styles.
+  Embedded apps open `index.html` in a frame, which has them.
+- The pages share chunks and the one asset manifest
+  (`protoyard-player-assets.json`) with `index.html`.
+- Each page gets the same CSP meta as `index.html`, with the hashes of its
+  own inline scripts. `_headers` allows the inline scripts of all four pages.
+
+A page handed a blueprint of another kind does not run it. It shows
+**This blueprint is an app, not a deck** (or the matching kinds) and a link
+to the page that runs it (`index.html` for an app), keeping the same query
+and hash. In the same tab, a `?src=` file and the share link this tab opened
+carry over. Measured sizes are in
+[PERFORMANCE](PERFORMANCE.md#player-bundle-budget-measured-2026-10-20).
+
+**Limits.**
+- The picker's bundled demo is an app, so on a kind page it leads to that
+  link.
+- Nothing links to the kind pages yet: the gallery, `/play/` and share links
+  still open `index.html`, which runs every kind.
+
+### Deck Studio in the player
+
+A deck with DevTools on (the default; `?devtools=0` turns it off) gets the
+**Deck** DevTools tab (`@protoyard/decks-ui/studio`, ADR-038). The deck on
+screen is the Studio's live preview. The exported RFC 6902 patch is rooted at
+`/deck`, so it applies to the blueprint file (`{ "kind": "deck", "deck": … }`)
+rather than to the bare deck document. Edits stay in memory. Without DevTools,
+and for pages and docs, the Studio module and its state are never loaded or
+created.
 

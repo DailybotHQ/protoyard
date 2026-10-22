@@ -1,0 +1,36 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.doc",
+  "slug": "doc",
+  "kind": "template",
+  "blueprintKind": "doc",
+  "name": "Doc",
+  "description": "A report kind template: shared DocApp from blueprint.json with TOC and print, on the defineKindRuntime content-kind stack.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["doc", "report", "toc", "print", "kind"],
+  "catalog": {
+    "category": "starter",
+    "productType": "Report",
+    "platforms": ["web"],
+    "features": ["doc", "toc", "print", "kind-runtime"],
+    "highlights": [
+      "DocApp from @protoyard/pages-ui",
+      "Sticky TOC and print stylesheet",
+      "defineKindRuntime personas and policy"
+    ],
+    "difficulty": "beginner"
+  },
+  "status": "ready",
+  "icon": "📑",
+  "defaultScenario": "default",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-doc", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["default"],
+  "thumbnail": "public/thumbnail.png"
+}

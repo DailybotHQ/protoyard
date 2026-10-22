@@ -1,10 +1,12 @@
 import {
-  type Blueprint,
+  type AnyBlueprint,
   blueprintIdentity,
+  DEFAULT_UNTRUSTED_DOCUMENT_LIMITS,
   deriveDatabaseVersions,
   diffBlueprints,
   encodeBlueprintShare,
-  loadUntrustedBlueprint,
+  isAppBlueprint,
+  loadUntrustedDocument,
   MigrationError,
 } from '@protoyard/blueprint';
 
@@ -39,7 +41,8 @@ export const QUICK_SERVE_PROTOCOL = 1;
 /** sessionStorage: blueprint identity → the world it was re-derived into. */
 export const LIVE_NAMESPACES_KEY = 'protoyard.player.live-namespaces';
 const LIVE_NAMESPACES_MAX = 32;
-const MAX_BLUEPRINT_BYTES = 256 * 1024;
+/** The document loader's cap: content kinds may be larger than apps (the loader holds apps to theirs). */
+const MAX_BLUEPRINT_BYTES = DEFAULT_UNTRUSTED_DOCUMENT_LIMITS.maxBytes;
 const SAME_ORIGIN_JSON = /^\/(?!\/)[A-Za-z0-9._~\-/%]{1,240}\.json$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const NAMESPACE = /^(?:bp|keep)-[a-z0-9-]+$/;
@@ -95,7 +98,15 @@ export type BlueprintChangeKind = 'safe' | 'destructive';
  * and `next`'s database versions start with every version of `previous` (so
  * Dexie upgrades the stored data instead of failing to open it).
  */
-export function classifyBlueprintChange(previous: Blueprint, next: Blueprint): BlueprintChangeKind {
+export function classifyBlueprintChange(
+  previous: AnyBlueprint,
+  next: AnyBlueprint
+): BlueprintChangeKind {
+  // Decks, pages and docs share one fixed store layout (defineKindRuntime): a
+  // change between them keeps the world; a change to or from an app does not.
+  const appBefore = isAppBlueprint(previous);
+  const appAfter = isAppBlueprint(next);
+  if (!appBefore || !appAfter) return appBefore === appAfter ? 'safe' : 'destructive';
   let migration: ReturnType<typeof diffBlueprints>;
   try {
     migration = diffBlueprints(previous, next);
@@ -193,7 +204,7 @@ export function rememberLiveWorld(
 }
 
 export interface LiveBlueprint {
-  blueprint: Blueprint;
+  blueprint: AnyBlueprint;
   /** Identity sha256 of `blueprint`. */
   sha256: string;
   /** The storage namespace its world lives in. */
@@ -204,7 +215,7 @@ export interface LiveBlueprint {
 
 export interface LiveChange {
   kind: BlueprintChangeKind;
-  blueprint: Blueprint;
+  blueprint: AnyBlueprint;
   sha256: string;
   /** For a safe change, the world to re-derive into (the current one); null starts fresh. */
   world: LiveWorld | null;
@@ -266,7 +277,7 @@ export function startLiveReload(options: StartLiveReloadOptions): LiveReload {
       throw new Error(`The changed blueprint could not be read (${response.status}).`);
     const text = await response.text();
     if (text.length > MAX_BLUEPRINT_BYTES) throw new Error('The changed blueprint is too large.');
-    const loaded = loadUntrustedBlueprint(text);
+    const loaded = await loadUntrustedDocument(text);
     if (!loaded.success) throw new Error('The changed blueprint is not valid; keeping this one.');
     const identity = await blueprintIdentity(loaded.blueprint);
     // A newer write already replaced it: its own event follows.

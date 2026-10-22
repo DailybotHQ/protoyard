@@ -25,7 +25,7 @@ catalog, so an agent can pick a starting point without mixing apps and content.
 | Kind | Catalog | Examples | Start from it when |
 | --- | --- | --- | --- |
 | `app` | [Marketplace catalog](#catalog) (`blueprints/*.json`) and [quick examples](./quick/README.md) (`blueprints/quick/`) | 40 + 4 | The idea is a product with data: entities, roles, screens and scenarios |
-| `deck` | [Deck examples](./decks/README.md) (`blueprints/decks/`) | 4 | The idea is a presentation: a pitch, review, launch or training |
+| `deck` | [Deck examples](./decks/README.md) (`blueprints/decks/`) | 6 | The idea is a presentation: a pitch, review, launch or training (plus the flagship deck and a minimal visual-QA deck) |
 | `page` | [Page examples](./pages/README.md) (`blueprints/pages/`) | 1 | The idea is a single scrolling marketing or waitlist page |
 | `doc` | [Doc examples](./docs/README.md) (`blueprints/docs/`) | 1 | The idea is a report, one-pager or data story to read and print |
 
@@ -64,9 +64,9 @@ layouts from `@protoyard/decks/layouts`.
 | | `app` | `deck`, `page`, `doc` |
 | --- | --- | --- |
 | `protoyard blueprint validate` | Yes | Yes |
-| `protoyard generate --blueprint` | Yes | Not yet: it accepts app blueprints only |
+| `protoyard generate --blueprint` | Yes | Yes: the deck, page or doc template is picked from the blueprint's kind |
 | `protoyard blueprint new --from-brief` | Yes | Not yet: use `blueprintFromBrief(brief, { kind })` |
-| `protoyard index` and `protoyard list` | Yes (every flat `blueprints/*.json` file) | The kind folders are scanned, but an entry is listed only with a `catalog` block. The current examples have none, so `protoyard index` reports them as invalid and they are not listed in the registry or the gallery. |
+| `protoyard index` and `protoyard list` | Yes (every flat `blueprints/*.json` file) | The kind folders are scanned, but an entry is listed only with a `catalog` block. Only the flagship deck has one today; the other examples are reported as invalid by `protoyard index` and are not listed in the registry or the gallery. |
 
 ```bash
 pnpm protoyard blueprint validate blueprints/decks/northwind-qbr.json

@@ -3,7 +3,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import {
   blueprintShareFragment,
   encodeBlueprintShare,
-  loadUntrustedBlueprint,
+  loadUntrustedDocument,
   MAX_SHARE_DECODED_BYTES,
   ShareLinkTooLargeError,
 } from '@protoyard/blueprint';
@@ -19,7 +19,7 @@ export async function openInPlayerUrl(
   input: unknown,
   playerPath = withBase('/play/')
 ): Promise<string | null> {
-  const loaded = loadUntrustedBlueprint(input);
+  const loaded = await loadUntrustedDocument(input);
   if (!loaded.success) return null;
   try {
     const encoded = await encodeBlueprintShare(loaded.blueprint);

@@ -279,3 +279,14 @@ export function biomeFormatCheck(ws: TempWorkspace, paths: string[]) {
   );
   return { code: result.status ?? 1, output: `${result.stdout}\n${result.stderr}` };
 }
+
+/** `biome check` (format, lint and import order) on paths in a temp workspace. */
+export function biomeCheck(ws: TempWorkspace, paths: string[]) {
+  cpSync(join(REPO_ROOT, 'biome.json'), join(ws.root, 'biome.json'));
+  const result = spawnSync(
+    join(REPO_ROOT, 'node_modules/.bin/biome'),
+    ['check', '--vcs-enabled=false', ...paths],
+    { cwd: ws.root, encoding: 'utf8' }
+  );
+  return { code: result.status ?? 1, output: `${result.stdout}\n${result.stderr}` };
+}

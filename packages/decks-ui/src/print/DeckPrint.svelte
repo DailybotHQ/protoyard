@@ -2,6 +2,12 @@
 import { type DeckAspect, deckCanvasSize, slideStepCount } from '@protoyard/decks';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
+import DeckSlideFrame from '../style/DeckSlideFrame.svelte';
+import {
+  DeckStyleState,
+  getDeckStyleContext,
+  setDeckStyleContext,
+} from '../style/deck-style.svelte.ts';
 import './print.css';
 
 /**
@@ -20,9 +26,35 @@ let {
   class?: string;
 } = $props();
 
+// Inside DeckApp the deck's style is already resolved; printed on its own,
+// resolve it here so pages show the same theme and backgrounds.
+const inherited = getDeckStyleContext();
+const ownStyle = inherited ? null : new DeckStyleState();
+if (ownStyle) {
+  setDeckStyleContext({
+    state: ownStyle,
+    get deckBackground() {
+      return deck.style?.background;
+    },
+  });
+}
+$effect(() => {
+  if (ownStyle) void ownStyle.resolve(deck.style, 'light');
+});
+
 const aspect = $derived((deck.style?.aspect ?? '16:9') as DeckAspect);
 const canvas = $derived(deckCanvasSize(aspect));
 const pages = $derived(deck.slides.filter((slide) => !slide.hidden));
+
+// One printed page per slide at the canvas size. @page cannot read the custom
+// properties set on the print root, so the size is written as numbers here.
+$effect(() => {
+  const style = document.createElement('style');
+  style.setAttribute('data-py-deck-print-page-size', '');
+  style.textContent = `@media print { @page { size: ${canvas.width}px ${canvas.height}px; margin: 0; } }`;
+  document.head.append(style);
+  return () => style.remove();
+});
 
 function layoutPropsFor(slide: DeckSlide): {
   layout: string;
@@ -52,7 +84,8 @@ function finalStep(slide: DeckSlide): number {
   data-py-deck-print
   data-py-deck-print-notes={notes ? 'true' : 'false'}
   data-aspect={aspect}
-  style={`--py-deck-print-width:${canvas.width}px;--py-deck-print-height:${canvas.height}px;`}
+  style={`--py-deck-print-width:${canvas.width}px;--py-deck-print-height:${canvas.height}px;${ownStyle?.rootStyle ?? ''}`}
+  data-py-deck-theme={ownStyle?.resolution?.themeId}
   role="document"
   aria-label={`${deck.outline?.title ?? 'Presentation'} (print)`}
 >
@@ -82,7 +115,9 @@ function finalStep(slide: DeckSlide): number {
             class="deck-print__slide size-full"
             data-py-deck-slide-inner={slide.id}
           >
-            <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+            <DeckSlideFrame background={slide.background} number={index + 1}>
+              <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+            </DeckSlideFrame>
           </div>
         </div>
       </section>

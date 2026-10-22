@@ -155,7 +155,7 @@ replace them once the deck, page and doc entries exist.
 | --- | ---: | --- |
 | `initialJsGzipKb` | 150 KB | Initial JavaScript of the kind's minimal player entry, gzip |
 | `cssGzipKb` | 30 KB | CSS of the kind's player entry, gzip |
-| `singleFileKb` | 1,536 KB (deck), `null` (page, doc) | Raw size of the kind's single-file export; `null` until calibrated |
+| `singleFileKb` | 2,048 KB (deck, page, doc) | Raw size of the kind's single-file export. Calibrated on 2026-10-22 from measured files of 1,606,842 B (deck), 1,607,557 B (page) and 1,606,788 B (doc). The provisional 1,536 KB deck value was not met: the file deliberately keeps DevTools, Deck Studio and theme tools so a shared deck stays customizable |
 
 These budgets are **enforced**:
 
@@ -1004,6 +1004,129 @@ Faker, DevTools, the theme library, the crud screen kits, the crud app shell
 generator, and the main-thread generation fallback. It also checks the content:
 no Faker data and no worker reference appear in initial JS.
 
+**App path after the kinds work (measured 2026-10-22).** PLAN_005 regressed the
+universal player's initial JS. Wiring the page and doc bodies statically
+added 13.8 KB. Later the brief synthesizer, the deck schema and layout
+catalog, and deck lint all entered the initial graph through the
+`@protoyard/blueprint` barrel, because
+[`sources/start.ts`](../packages/player/src/sources/start.ts) loaded the demo
+blueprint with `Promise.all([import('@protoyard/blueprint'), …])`. That form
+keeps the whole barrel. Destructuring `parseBlueprint` at the import lets the
+bundler keep only what is used. The content-kind body schemas load through
+`kindBodySchema(kind)` only for decks, pages and docs.
+
+| Build | Initial JS (gzip -9) |
+| --- | ---: |
+| Before PLAN_005 | 188,442 B |
+| Page and doc bodies wired statically | 202,253 B |
+| `dev` before this fix (synthesizer 30.5 KB, decks schema 7.4 KB, barrel 25.2 KB) | 228,317 B |
+| After this fix | 116.2 KB |
+| Routing by kind (T-kinds-player-routing), before the chunk-group fix | 150.0 KB |
+| Routing by kind, with the `dexie` and `rolldown-runtime` chunk groups | **120.0 KB** |
+
+**Routing by kind and chunk placement.** With routing, two lazy boots (apps and
+kinds) share the runtime and Dexie. Rolldown placed its tiny module runtime
+(`\0rolldown/runtime.js`) in the first chunk that needed it, which was the
+Dexie chunk. Every other chunk then imported that chunk for the runtime
+helpers, first-screen chunks included, and 132 KB of Dexie (rendered size)
+moved onto the first screen. [`packages/player/vite.config.ts`](../packages/player/vite.config.ts)
+now gives both their own chunks (`output.codeSplitting.groups`), and Dexie
+loads with the boots again. The remaining +3.8 KB over 116.2 KB is the
+kind-aware loader (`loadUntrustedDocument` and the kind limits) and the
+router. Initial CSS is 20.1 KB (budget 30 KB), up from 18.1 KB, because the
+player's stylesheet now registers the blocks-ui, decks-ui and pages-ui
+Tailwind sources. A kind's boot chunk and its static imports add 108.7 KB
+gzip beyond the first screen (runtime, Dexie, renderer, kind runtime), with
+no CRUD shell, Faker, world worker or app generator in that graph. Each
+renderer (`DeckApp`, `PageApp`, `DocApp`) loads on demand after that.
+
+`budget.test.ts` now proves the content-kind body schemas, deck layout catalog
+and deck schema are absent from the initial graph, by module and by literal
+messages unique to each. It also caps the app path's initial JS at 125 KB, the
+measurement plus about 7 %.
+
+**Per-kind player pages (measured 2026-10-22).** The player build adds
+`deck.html`, `page.html` and `doc.html` beside `index.html`
+(T-kinds-player-entries). `budget.test.ts` measures each page as the only
+entry of the Vite manifest:
+
+| Page | Initial JS (gzip -9) | Initial CSS | All CSS it can load |
+| --- | ---: | ---: | ---: |
+| `index.html` (any blueprint) | 120.5 KB (123,349 B) | 20.1 KB | 28.5 KB |
+| `deck.html` | 121.7 KB | 18.1 KB | 26.4 KB |
+| `page.html` | 121.7 KB | 18.3 KB | 26.6 KB |
+| `doc.html` | 121.7 KB | 18.3 KB | 26.6 KB |
+
+- `index.html` grew 425 B, from 122,925 B on `dev`. The player loop
+  (`run`, `start`, `resolve`) is now three chunks shared by the four pages,
+  and the gain is chunk overhead.
+- A kind page adds 1.2 KB of entry glue: the kind check and the mismatch
+  screen. It drops the crud, views, charts and analytics styles, so its CSS
+  is 2 KB smaller.
+- The kind boot and its renderer load after the source resolves, as from
+  `index.html`.
+`packages/player/tests/kind-budget.test.ts` independently walks the built
+manifest with each HTML page treated as its only entry. It enforces the
+configured 250 KB JS / 30 KB CSS limits for `index.html` and the per-kind
+150 KB JS / 30 KB CSS limits for deck, page and doc. Its failure messages
+include raw gzip bytes and the configured cap. It also checks each content
+kind's static graph for Faker, world-generation workers, CRUD screens/app and
+DevTools; those can remain in dynamic chunks and load only on demand. The
+older `budget.test.ts` keeps its tighter 125 KB regression cap for the three
+content-kind entries.
+
+Latest measured initial gzip bytes (2026-10-22):
+
+| Entry | Initial JS | Initial CSS | Configured JS / CSS cap |
+| --- | ---: | ---: | ---: |
+| `index.html` (app) | 123,349 B | 20,627 B | 250 KB / 30 KB |
+| `deck.html` | 124,643 B | 18,516 B | 150 KB / 30 KB |
+| `page.html` | 124,644 B | 18,688 B | 150 KB / 30 KB |
+| `doc.html` | 124,642 B | 18,688 B | 150 KB / 30 KB |
+
+**Kind pages: reachable graph and kind budgets (T-kinds-player-budget, measured
+2026-10-22).** Each kind page's initial graph was clean, but its *reachable*
+graph (static plus dynamic imports) was not. The shared player loop
+(`run.ts`, `sources/start.ts`) defaulted its boot to `bootByKind`, so
+`deck.html`, `page.html` and `doc.html` could still lazily reach the app boot,
+`@protoyard/crud/app` and the crud screens, the world worker, the blueprint
+generator, the main-thread generation fallback, and the analytics, SaaS and AI
+kits. The loop now takes `boot` (and an optional `prefetchBoot`) from its
+entry. `main.ts` passes `bootByKind` from `sources/boot-any.ts`. The kind pages
+pass the kind boot from `sources/kind-boot.ts`, which names only
+`boot-kind.ts`.
+
+| Page | Initial JS before | Initial JS after | Initial CSS | Kind budget (`protoyard.budgets.json`) |
+| --- | ---: | ---: | ---: | --- |
+| `index.html` | 123,348 B (120.5 KB) | 124,327 B (121.4 KB) | 20.1 KB | universal cap 125 KB, guard 196,000 B |
+| `deck.html` | 124,647 B (121.7 KB) | 124,468 B (121.6 KB) | 18.1 KB | 150 KB JS, 30 KB CSS |
+| `page.html` | 124,647 B (121.7 KB) | 124,468 B (121.6 KB) | 18.3 KB | 150 KB JS, 30 KB CSS |
+| `doc.html` | 124,645 B (121.7 KB) | 124,466 B (121.5 KB) | 18.3 KB | 150 KB JS, 30 KB CSS |
+
+- `index.html` grew 979 B because the boot router (`boot-any.ts`) now sits in
+  its own entry chunk instead of the shared loop. It stays under the 125 KB cap
+  and far below the 228,317 B regression measured on an older `dev`, which was
+  fixed earlier by narrow imports in `sources/start.ts`.
+- `budget.test.ts` now reads the kind budgets with `resolveKindBudget` from
+  `protoyard.budgets.json`. For every kind page it proves that these are absent
+  from both the initial and the reachable graph: the app boot, the crud app and
+  screens, the main-thread generation fallback, the blueprint generator, the
+  analytics-ui, SaaS and AI kits, and the player archetype kits. It proves the
+  worker's absence by content: no reachable chunk names a
+  `generate.worker-*.js` file. A non-vacuity check shows that each pattern
+  matches something reachable from `index.html`.
+- Faker is still reachable, but only behind one lazy edge. That edge is
+  `loadFaker`'s dynamic import in `@protoyard/scenarios`. It is never initial,
+  it has no static importer, and its only dynamic importer is that loader. A
+  kind runtime (`defineKindRuntime`) supplies `generateWorld` and no
+  timeline, so the runtime never calls that loader. The test checks this
+  against a deck, a page and a doc fixture. Removing the edge would mean
+  changing `@protoyard/scenarios` or `@protoyard/runtime`.
+- **Worker budget: one source of truth.** `worker-bundle.test.ts` (250 KB) and
+  `budget.test.ts` (220 KB) disagreed. Both now import
+  `WORKER_GRAPH_GZIP_KB = 220` from `packages/player/tests/player-budgets.ts`.
+  The measured worker graph is 200,371 B (195.7 KB, 4 files).
+
 **Deck UI entry (measured 2026-10-21).**
 `packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
 minimal Svelte host that imports `@protoyard/decks-ui/app` and its stylesheet,
@@ -1028,6 +1151,27 @@ after; the current pre-change tree includes additional merged work, so the two
 measurements are not directly comparable. The budget test now caps initial JS
 at 196,000 B gzip and asserts each content-kind schema is a dynamic entry.
 
+## Page and doc host budgets (measured 2026-10-21)
+
+`packages/pages-ui/tests/budget.test.ts` builds each kind host separately with
+Vite in production mode. The fixture imports the page or doc subpath and the
+pages-ui stylesheet hook; the measured JavaScript is the entry chunk and its
+static-import closure, gzip level 9. The CSS number is the gzip size of all
+emitted CSS assets from the pages-ui stylesheet hook and its Svelte components;
+the consuming app’s shared Tailwind, theme and UI stylesheets are not charged
+to either host. Dynamic chart and form chunks do not count toward the initial
+host graph. The same test checks emitted module ids to keep
+`@protoyard/crud/app` and screens, Faker and the player worker out.
+
+| Entry | Initial JS gzip | Budget | CSS gzip | Budget | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `PageApp` | **91,588 B** | 122,880 B | **1,164 B** | 20,480 B | Pass |
+| `DocApp` | **92,553 B** | 122,880 B | **1,690 B** | 20,480 B | Pass |
+
+These are host-only package measurements, not the complete player entry. The
+player's separate per-kind budget remains 150 KB initial JS and 30 KB CSS.
+Run the scoped gate with `pnpm vitest run packages/pages-ui/tests/budget.test.ts`.
+
 **`@protoyard/crud/app`.** The player loads the crud app shell lazily, but
 always, right after boot. Its own chunk is 21.9 KB gzip. Its static graph adds
 **107.7 KB gzip across 53 chunks** beyond initial JS, so it is on the path to
@@ -1044,8 +1188,8 @@ initial graph, the crud app shell, Faker (153 KB, avoidable) and smaller lazy
 chunks, and it is the same for the demo, quick/assistant and quick/team-chat.
 The two quick examples need no extra JS before ready.
 
-`packages/player/tests/worker-bundle.test.ts` builds the player and enforces a
-250 KB gzip budget on the whole worker graph, plus the absence of other Faker
+`packages/player/tests/worker-bundle.test.ts` builds the player and enforces the
+220 KB gzip budget shared with `budget.test.ts` (`packages/player/tests/player-budgets.ts`) on the whole worker graph, plus the absence of other Faker
 locales. It fails when the worker format reverts.
 
 ## Player world cache (measured 2026-10-20)
@@ -1092,11 +1236,11 @@ blueprint (desktop and phone, light and dark), with axe and layout-fit
 findings. The player does not add shots to the normal prototype sweep, and
 these screenshots are review artifacts rather than a performance budget.
 
-## Player: blueprint to ready (measured 2026-10-20)
+## Player: blueprint to ready (app baseline measured 2026-10-20)
 
-`scripts/bench-player.ts` serves a copy of the built player on an OS-assigned port. It
-measures every blueprint in fresh headless Chromium contexts (empty IndexedDB, world
-cache and HTTP cache):
+`scripts/bench-player.ts` serves a copy of the already-built player on an OS-assigned
+port. The app-only measurements below are the 2026-10-20 baseline, in fresh headless
+Chromium contexts (empty IndexedDB, world cache and HTTP cache):
 - **First visit:** the blueprint arrives as a `#bp=` link, or `?src=` when it is too
   large. The player decodes it, generates `active` in its worker and seeds.
 - **Repeat:** a reload, which reuses the stored world.
@@ -1110,7 +1254,7 @@ budget is set yet.
 
 ```bash
 pnpm --filter @protoyard/player build
-pnpm exec tsx scripts/bench-player.ts --runs 3   # [--blueprints crm,clinic] [--no-large]
+pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app
 ```
 
 The run below is the median of 3 contexts on an Apple M1 Max (10 cores, 64 GB), macOS
@@ -1126,6 +1270,47 @@ for switches.
 | lms | `#bp=` 1,757 chars | 215 ms (200 ms) | 76 ms | 55 ms | 8.4 ms |
 | project-management | `#bp=` 1,672 chars | 218 ms (204 ms) | 107 ms | 62 ms | 7.9 ms |
 | large fixture (40 entities) | `#bp=` 4,746 chars | 368 ms (355 ms) | 140 ms | 93 ms | 66 ms |
+
+### App, deck, page and doc kind runs
+
+The benchmark also covers one catalog example for each content kind. The player build
+must finish before measurement; build time is excluded. Each run uses a fresh Chromium
+context, opens the catalog example as a share link, then reloads it in that same context
+to record cold and repeat ready times. Both are timed from navigation start to the
+`protoyard:ready` mark. Each kind also records the runtime's `world-ready` mark. Deck,
+page and doc runs record the first rendered slide, page section or document block as
+`firstContentMs`; app runs leave that field `null`. Only apps have scenario-switch
+measurements. The report records Chromium, Node, OS and machine details, and remains
+report-only with no adopted threshold.
+
+```bash
+pnpm --filter @protoyard/player build
+pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc
+ls tmp/bench-player-*.json
+```
+
+Choose a subset with `--kinds app,deck,page,doc`. The app set uses the familiar catalog
+blueprints; deck, page and doc each use their dedicated catalog example. `--blueprints`
+still selects app examples, and `--no-large` omits the app stress fixture. Generated JSON
+under `tmp/` contains per-example samples, medians, and nullable fields when a measurement
+does not apply. One three-run sample on 2026-10-22 (Apple M1 Max, 10 cores, 64 GB, macOS
+27.0, Node 26.11.1, Chromium 156.0.8078.4) produced these medians:
+
+| Kind / example | Cold ready | World ready | First content | Repeat ready |
+| --- | ---: | ---: | ---: | ---: |
+| App / crm | 211.8 ms | 196.4 ms | — | 86.0 ms |
+| App / clinic | 210.5 ms | 195.9 ms | — | 86.5 ms |
+| App / logistics | 184.2 ms | 169.2 ms | — | 74.9 ms |
+| App / lms | 214.4 ms | 199.6 ms | — | 86.6 ms |
+| App / project-management | 298.8 ms | 283.4 ms | — | 143.0 ms |
+| Deck / harbor-ops-pitch | 288.4 ms | 276.7 ms | 318.6 ms | 216.2 ms |
+| Page / tidewater-roasters-landing | 169.6 ms | 157.2 ms | 187.2 ms | 147.3 ms |
+| Doc / northwind-quarterly-report | 165.3 ms | 153.0 ms | 184.0 ms | 129.6 ms |
+
+The content mark can follow `protoyard:ready` while a kind's lazy renderer paints its first
+content. Treat these measurements as a machine-specific observation, not a budget; do not
+compare them with the 2026-10-20 app baseline without accounting for load and browser
+versions.
 
 During a cache hit, the runtime's generate phase takes 2–5 ms (inflating and
 validating the stored world), compared with a full generation on a miss. The large

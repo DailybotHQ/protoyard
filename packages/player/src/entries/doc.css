@@ -1,0 +1,23 @@
+/*
+ * Docs player page (doc.html): the shared chrome, the blocks every kind
+ * renders, and this kind's renderer. No crud, views, charts or analytics
+ * styles: a doc never mounts those kits (embedded apps run in index.html).
+ */
+@import "@protoyard/renderer-svelte/app.css";
+@import "@protoyard/blocks-ui/styles.css";
+@import "@protoyard/pages-ui/styles.css";
+
+/* The player's own markup (source picker, error and mismatch screens, kind app). */
+@source "../";
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+}

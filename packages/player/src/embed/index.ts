@@ -1,4 +1,4 @@
-import type { Blueprint } from '@protoyard/blueprint';
+import type { AnyBlueprint } from '@protoyard/blueprint';
 import { createEmbedListener, type EmbedListener, type EmbedParent } from './listener.ts';
 import { embedderOrigins } from './origins.ts';
 import type { PlayerRequestType } from './protocol.ts';
@@ -29,9 +29,9 @@ export interface StartEmbedOptions {
    * owns what is running (the player's run.ts, which live reload also swaps):
    * it tears down the current prototype itself, so the embed keeps no copy.
    */
-  replace?(blueprint: Blueprint, type: PlayerRequestType): Promise<RunningPrototype>;
+  replace?(blueprint: AnyBlueprint, type: PlayerRequestType): Promise<RunningPrototype>;
   /** Without `replace`: boots a validated blueprint (in the player: `bootPlayer`). */
-  boot?(blueprint: Blueprint, type: PlayerRequestType): Promise<RunningPrototype>;
+  boot?(blueprint: AnyBlueprint, type: PlayerRequestType): Promise<RunningPrototype>;
   /** Without `replace`: what is running now, if anything, torn down before each boot. */
   current?: RunningPrototype | null;
 }

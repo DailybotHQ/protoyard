@@ -1,7 +1,12 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { blueprintIdentity, loadUntrustedBlueprint } from '@protoyard/blueprint';
+import {
+  type BlueprintKind,
+  blueprintIdentity,
+  blueprintKind,
+  loadUntrustedDocument,
+} from '@protoyard/blueprint';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { flag, opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
@@ -17,8 +22,9 @@ import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
 import { quickPlayerDir } from '../../lib/quick/paths.ts';
 import {
   buildSingleFile,
-  QUICK_SINGLE_FILE_BUDGET_BYTES,
+  QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES,
   SingleFileError,
+  singleFileEntryFor,
 } from '../../lib/quick/single-file.ts';
 import { resolveQuickServeTarget } from './serve.ts';
 
@@ -37,6 +43,10 @@ import { resolveQuickServeTarget } from './serve.ts';
 
 export interface QuickExportResult {
   slug: string;
+  /** The blueprint kind (`app`, `deck`, `page`, `doc`); a content kind starts from its own page. */
+  kind: BlueprintKind;
+  /** The player page the file was built from (`index`, `deck`, `page`, `doc`). */
+  entry: string;
   dir: string;
   /** The written file, relative to the workspace. */
   file: string;
@@ -49,6 +59,7 @@ export interface QuickExportResult {
 
 export interface QuickArtifactExportResult {
   slug: string;
+  kind: BlueprintKind;
   dir: string;
   target: 'artifact';
   /** The pack folder, relative to the workspace. */
@@ -131,7 +142,8 @@ export const quickExportCommand: Handler = async (ctx, args, options): Promise<C
   const blueprintText = await readFile(join(target.dir, 'blueprint.json'), 'utf8').catch(() => {
     throw new CliError('not_found', `The exploration has no blueprint.json (${target.dir}).`);
   });
-  const loaded = loadUntrustedBlueprint(blueprintText);
+  // Any kind: apps keep the app loader's contract; decks, pages and docs their own.
+  const loaded = await loadUntrustedDocument(blueprintText);
   if (!loaded.success) {
     throw new CliError('validation', 'The exploration’s blueprint.json is not a valid blueprint.', {
       hint: loaded.issues
@@ -159,6 +171,8 @@ export const quickExportCommand: Handler = async (ctx, args, options): Promise<C
       playerDir,
       blueprintJson: JSON.stringify(loaded.blueprint),
       title: loaded.blueprint.name,
+      // A deck, page or doc starts from its own player page: only that kind's chunks.
+      entry: singleFileEntryFor(loaded.blueprint),
     });
   } catch (error) {
     if (error instanceof SingleFileError) {
@@ -168,10 +182,11 @@ export const quickExportCommand: Handler = async (ctx, args, options): Promise<C
     }
     throw error;
   }
-  if (built.bytes > QUICK_SINGLE_FILE_BUDGET_BYTES) {
+  const budgetBytes = QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES[built.entry];
+  if (built.bytes > budgetBytes) {
     throw new CliError(
       'validation',
-      `The single file is ${built.bytes} bytes, over the ${QUICK_SINGLE_FILE_BUDGET_BYTES}-byte budget.`,
+      `The single file is ${built.bytes} bytes, over the ${budgetBytes}-byte budget.`,
       { hint: 'Share the exploration folder or a #bp= link instead.' }
     );
   }
@@ -186,6 +201,7 @@ export const quickExportCommand: Handler = async (ctx, args, options): Promise<C
     const { packDir } = await writeQuickArtifact(target.dir, pack);
     const data: QuickArtifactExportResult = {
       slug: target.slug,
+      kind: blueprintKind(loaded.blueprint),
       dir: toPosixRelative(ctx.root, target.dir),
       target: 'artifact',
       pack: toPosixRelative(ctx.root, packDir),
@@ -220,10 +236,12 @@ export const quickExportCommand: Handler = async (ctx, args, options): Promise<C
 
   const data: QuickExportResult = {
     slug: target.slug,
+    kind: blueprintKind(loaded.blueprint),
+    entry: built.entry,
     dir: toPosixRelative(ctx.root, target.dir),
     file: toPosixRelative(ctx.root, file),
     bytes: built.bytes,
-    budgetBytes: QUICK_SINGLE_FILE_BUDGET_BYTES,
+    budgetBytes,
     chunks: built.chunks,
     stylesheets: built.stylesheets,
     playerVersion: target.playerVersion,

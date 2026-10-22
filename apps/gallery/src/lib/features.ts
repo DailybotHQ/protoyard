@@ -198,7 +198,7 @@ export const MEASURED_NUMBERS: readonly MeasuredNumber[] = [
     label: 'Player, first visit from a share link (crm blueprint)',
     value: '190 ms to ready',
     doc: 'PERFORMANCE.md',
-    anchor: 'player-blueprint-to-ready-measured-2026-10-20',
+    anchor: 'player-blueprint-to-ready-app-baseline-measured-2026-10-20',
     quote: '| crm | `#bp=` 1,902 chars | 190 ms (175 ms) | 99 ms | 58 ms | 9.2 ms |',
   },
   {

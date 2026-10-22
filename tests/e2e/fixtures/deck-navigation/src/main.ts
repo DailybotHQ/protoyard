@@ -8,21 +8,28 @@ const catalogDeck = DeckSchema.parse(blueprint.deck);
 const deck = DeckSchema.parse({
   ...catalogDeck,
   slides: catalogDeck.slides.map((slide) =>
-    slide.id === 'path'
-      ? { ...slide, steps: ['Freeze scope', 'Seed the world', 'Walkthrough'] }
-      : slide.id === 'quiz' && slide.layout === 'free'
-        ? {
-            ...slide,
-            blocks: slide.blocks.map((block) =>
-              block.type === 'text'
-                ? {
-                    ...block,
-                    markdown: `${block.markdown}\n\n[Deck guide](https://example.com/deck-guide)`,
-                  }
-                : block
-            ),
-          }
-        : slide
+    slide.id === 'cover'
+      ? {
+          ...slide,
+          notes: 'Welcome everyone. Lumen is a fictional product used for this demo deck.',
+        }
+      : slide.id === 'divider'
+        ? { ...slide, notes: 'Pause here and ask who has shipped a launch before.' }
+        : slide.id === 'path'
+          ? { ...slide, steps: ['Freeze scope', 'Seed the world', 'Walkthrough'] }
+          : slide.id === 'quiz' && slide.layout === 'free'
+            ? {
+                ...slide,
+                blocks: slide.blocks.map((block) =>
+                  block.type === 'text'
+                    ? {
+                        ...block,
+                        markdown: `${block.markdown}\n\n[Deck guide](https://example.com/deck-guide)`,
+                      }
+                    : block
+                ),
+              }
+            : slide
   ),
 });
 

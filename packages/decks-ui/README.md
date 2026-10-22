@@ -73,6 +73,27 @@ import type { Deck } from '@protoyard/decks';
 
 Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
 
+### Deck style
+
+`deck.style` is applied by `DeckStyleState` (`./style`), which DeckApp creates.
+It loads the **style kit** lazily (`style/kit.ts`, which holds the theme
+resolution, the palette engine, the library-theme catalog and the background
+resolver). The resolved theme variables go on the DeckApp root
+(`data-py-deck-theme`, `data-py-deck-mode`, `data-py-deck-style="pending|ready|error"`),
+never on `<html>`.
+
+- **Slide frames.** `DeckSlideFrame` paints each slide in the canvas, overview
+  and print views with `slide.background ?? style.background`, the text tokens
+  that keep it at AA, and the footer (slide number, logo, footer text).
+- **Base aliases.** `--font-heading`, `--color-border` and the other base-layer
+  aliases are re-declared on the deck root and on each frame, so headings,
+  body text and default borders follow the deck's theme.
+- **Standalone print.** `DeckPrint` resolves the style itself when it is used
+  without DeckApp.
+- **Mode.** `mode` is `light` by default, or `dark`.
+- **Warnings.** Unknown themes and font pairings fall back with a status note
+  (`data-py-deck-style-warning`).
+
 ### Keyboard shortcuts
 
 Generated from `DECK_KEY_BINDINGS`, the input guard's own table, which the in-app help dialog also
@@ -190,7 +211,8 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 
 | What | Measured | Gate | Where |
 | --- | --- | --- | --- |
-| `@protoyard/decks-ui/app` initial JS | 78,818 B (2026-10-22) | ≤ 120 KB | `tests/bundle-size.test.ts` |
+| `@protoyard/decks-ui/app` initial JS | 80,367 B (2026-10-22, with deck style applied; 79,262 B before) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
+| Deck style kit (lazy chunk: style resolution, library catalog, palette engine, backgrounds) | about 20 KB (2026-10-22) | not in the initial graph | `tests/budget.test.ts` |
 | All CSS emitted with it | 1,681 B (2026-10-22) | ≤ 20 KB | `tests/bundle-size.test.ts` |
 | Deck Studio panel (lazy chunk) | 3,141 B (2026-10-22) | — | measured with a Vite probe build |
 | 200-slide deck: parse + first render (happy-dom) | 50–142 ms over six runs | < 1 s | `tests/large-deck.perf.test.ts` |

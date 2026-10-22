@@ -264,7 +264,8 @@ describe('createEmbedListener', () => {
     win.deliver({ source: parent, origin: SITE, data: request('load', 'r1') });
     win.deliver({ source: parent, origin: SITE, data: request('replace', 'r2') });
     win.deliver({ source: parent, origin: SITE, data: request('replace', 'r3') });
-    expect(apply).toHaveBeenCalledTimes(1);
+    // Validation is async (any kind); still exactly one request runs at a time.
+    await vi.waitFor(() => expect(apply).toHaveBeenCalledTimes(1));
     expect(parent.sent.map((s) => [s.message.type, 'id' in s.message ? s.message.id : ''])).toEqual(
       [['error', 'r2']]
     );
