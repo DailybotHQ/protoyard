@@ -8,18 +8,17 @@ export {
   isDeckAspect,
 } from './canvas.ts';
 export {
-  createDeckNavigator,
-  DECK_HASH_ID_MAX,
-  DECK_HASH_STEP_MAX,
-  type DeckHashLocation,
-  type DeckLocation,
-  type DeckNavigator,
-  type DeckNavigatorOptions,
-  defaultSlideStepCount,
-  formatDeckHash,
-  parseDeckHash,
-  type SlideStepCountResolver,
-} from './navigation/index.ts';
+  DECK_LAYOUT_BY_ID,
+  DECK_LAYOUT_IDS,
+  DECK_LAYOUTS,
+  type DeckLayoutEntry,
+  type DeckLayoutId,
+  describeLayouts,
+  getDeckLayout,
+  LAYOUT_PACING,
+  type LayoutPacing,
+  parseLayoutProps,
+} from './layouts/index.ts';
 export {
   activeCodeHighlight,
   DECK_TRANSITIONS,
@@ -52,14 +51,15 @@ export {
   type TransitionReason,
 } from './motion/index.ts';
 export {
-  DECK_LAYOUT_BY_ID,
-  DECK_LAYOUT_IDS,
-  DECK_LAYOUTS,
-  type DeckLayoutEntry,
-  type DeckLayoutId,
-  describeLayouts,
-  getDeckLayout,
-  LAYOUT_PACING,
-  type LayoutPacing,
-  parseLayoutProps,
-} from './layouts/index.ts';
+  createDeckNavigator,
+  DECK_HASH_ID_MAX,
+  DECK_HASH_STEP_MAX,
+  type DeckHashLocation,
+  type DeckLocation,
+  type DeckNavigator,
+  type DeckNavigatorOptions,
+  defaultSlideStepCount,
+  formatDeckHash,
+  parseDeckHash,
+  type SlideStepCountResolver,
+} from './navigation/index.ts';
