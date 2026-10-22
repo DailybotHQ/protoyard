@@ -57,7 +57,7 @@ describe('checkFixtureHygiene', () => {
     expect(result.details.some((d) => d.includes('gmail.com'))).toBe(true);
     expect(result.details.some((d) => /Slack token/i.test(d))).toBe(true);
     // Never echo the credential material itself.
-    expect(result.details.join('\n')).not.toMatch(/xoxb-1234567890/);
+    expect(result.details.join('\n')).not.toMatch(/xoxb-1234567890/); // fake planted token
     expect(result.details.join('\n')).toMatch(/file:src\/scenarios\/seed\.ts:\d+/);
   });
 
