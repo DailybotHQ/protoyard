@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, resolve } from 'node:path';
 import { productionBuildEnv } from './build-env.ts';
 
 /**
@@ -41,13 +41,14 @@ function sleepSync(ms: number): void {
  * for production. Vitest sets NODE_ENV=test, which would bundle Svelte's dev
  * runtime and leave a larger dist behind for the budget suites. Test files run
  * in parallel processes, so one lock per checkout serializes the build: the
- * others wait for it and reuse its dist instead of reading a half-written one.
+ * others wait for it and reuse its dist instead of reading a half-written one
+ * (the lock is keyed by the resolved root, so `repo` and `repo/` share it).
  */
 export function ensurePlayerBuild(root: string): string {
   const dist = join(root, 'packages/player/dist/app');
   const lock = join(
     tmpdir(),
-    `protoyard-player-build-${createHash('sha256').update(root).digest('hex').slice(0, 12)}.lock`
+    `protoyard-player-build-${createHash('sha256').update(resolve(root)).digest('hex').slice(0, 12)}.lock`
   );
   const complete = () =>
     PLAYER_PAGES.every((name) => existsSync(join(dist, `${name}.html`))) &&
