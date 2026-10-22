@@ -102,6 +102,22 @@ summarizes the format, the brief archetypes, how an exploration and the
 prototype generated from it share one blueprint, and what regeneration may
 change.
 
+## Make a slide deck
+
+Deck requests (a deck, slides, a presentation, a pitch or a keynote) route to
+the skill's [deck reference](../skills/protoyard/references/decks.md). It tells
+an agent to:
+- write a `kind: "deck"` JSON blueprint, never Reveal.js Markdown or HTML;
+- pick each slide's layout from the catalog by its use-when metadata;
+- validate with `blueprint validate`, look at every slide, and in a checkout
+  run the deck lint and the browser sweep;
+- start with `quick --kind deck`, and generate a full prototype only when the
+  deck needs custom Svelte behavior (`blueprint new` and `quick promote` refuse
+  decks);
+- say what decks do not support yet.
+
+The product guide is [DECKS](DECKS.md).
+
 ## Install with `setup.sh`
 
 The pack ships its own installer, `skills/protoyard/setup.sh`. It runs on Bash
