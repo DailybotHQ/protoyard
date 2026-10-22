@@ -7,6 +7,8 @@
   "icon": "📄",
   "category": "reports",
   "doc": {
+    "id": "northwind-quarterly-report",
+    "title": "Northwind Quarterly Report",
     "toc": { "depth": 2, "sticky": true },
     "blocks": [
       {

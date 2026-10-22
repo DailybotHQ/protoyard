@@ -1,6 +1,8 @@
-import { type Block, BlockListSchema } from '@protoyard/blocks';
+import { BLOCK_REVEALS, type Block, BlockListSchema } from '@protoyard/blocks';
 import { z } from 'zod';
 import { DECK_ASPECTS } from '../canvas.ts';
+import { parseLayoutProps } from '../layouts/catalog.ts';
+import { FRAGMENT_EFFECTS } from '../motion/effects.ts';
 
 /** Deck documents are intentionally capped before they reach a renderer. */
 export const DECK_LIMITS = Object.freeze({
@@ -27,6 +29,15 @@ const LayoutPropKeySchema = z
   .regex(/^(?!__proto__$|constructor$|prototype$)[\s\S]*$/);
 const TransitionSchema = z.enum(['none', 'fade', 'slide', 'zoom', 'morph']);
 const ProgressSchema = z.enum(['none', 'top', 'bottom']);
+const StepMarkerSchema = z
+  .strictObject({
+    step: z.number().int().min(0).max(1_000),
+    fragment: z.enum(FRAGMENT_EFFECTS).optional(),
+    reveal: z.enum(BLOCK_REVEALS).optional(),
+  })
+  .refine((marker) => !(marker.fragment !== undefined && marker.reveal !== undefined), {
+    message: 'A step marker may set fragment or reveal, not both.',
+  });
 
 export const DeckAspectSchema = z.enum(DECK_ASPECTS);
 export const DeckDensitySchema = z.enum(['compact', 'comfortable', 'spacious']);
@@ -126,6 +137,46 @@ export const DeckOutlineSchema = z.strictObject({
 });
 export type DeckOutline = z.infer<typeof DeckOutlineSchema>;
 
+const STEP_MARKER_KEYS = new Set(['step', 'fragment', 'reveal']);
+
+/** Remove animation metadata before checking a catalog's strict content props. */
+function stripStepMarkers(
+  value: unknown,
+  path: (string | number)[],
+  ctx: z.RefinementCtx
+): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item, index) => stripStepMarkers(item, [...path, index], ctx));
+  }
+  if (value === null || typeof value !== 'object') return value;
+
+  const record = value as Record<string, unknown>;
+  if (Object.hasOwn(record, 'step')) {
+    const marker = Object.fromEntries(
+      ['step', 'fragment', 'reveal']
+        .filter((key) => Object.hasOwn(record, key))
+        .map((key) => [key, record[key]])
+    );
+    const parsedMarker = StepMarkerSchema.safeParse(marker);
+    if (!parsedMarker.success) {
+      for (const issue of parsedMarker.error.issues) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [...path, ...issue.path],
+          message: issue.message,
+        });
+      }
+    }
+  }
+
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(record)) {
+    if (Object.hasOwn(record, 'step') && STEP_MARKER_KEYS.has(key)) continue;
+    cleaned[key] = stripStepMarkers(item, [...path, key], ctx);
+  }
+  return cleaned;
+}
+
 export const DeckSchema = z
   .strictObject({
     style: DeckStyleSchema,
@@ -135,6 +186,23 @@ export const DeckSchema = z
   .superRefine((deck, ctx) => {
     const slidePaths = new Map<string, number>();
     deck.slides.forEach((slide, index) => {
+      if ('props' in slide) {
+        const props = stripStepMarkers(slide.props, ['slides', index, 'props'], ctx);
+        const parsedProps = parseLayoutProps(slide.layout, props);
+        if (!parsedProps.success) {
+          for (const issue of parsedProps.issues) {
+            ctx.addIssue({
+              code: 'custom',
+              path:
+                issue.path[0] === 'layout'
+                  ? ['slides', index, 'layout']
+                  : ['slides', index, 'props', ...issue.path],
+              message: issue.message,
+            });
+          }
+        }
+      }
+
       const first = slidePaths.get(slide.id);
       if (first !== undefined) {
         ctx.addIssue({

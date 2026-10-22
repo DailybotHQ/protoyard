@@ -1,11 +1,13 @@
 export {
-  activeCodeHighlight,
   FRAGMENT_EFFECTS,
   type FragmentEffect,
+  isFragmentEffect,
+} from './effects.ts';
+export {
+  activeCodeHighlight,
   type FragmentPhase,
   type FragmentSource,
   fragmentPhase,
-  isFragmentEffect,
   type SlideFragment,
   type SlideStep,
   type SlideSteps,

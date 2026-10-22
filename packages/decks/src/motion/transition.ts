@@ -1,5 +1,5 @@
 import type { DeckSlide, DeckStyle } from '../schema/index.ts';
-import type { FragmentEffect } from './steps.ts';
+import type { FragmentEffect } from './effects.ts';
 
 /**
  * Slide transitions and fragment motion under a motion level.

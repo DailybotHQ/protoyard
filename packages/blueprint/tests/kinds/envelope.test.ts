@@ -76,16 +76,16 @@ describe('detectBlueprintKind', () => {
 });
 
 describe('apps through the union', () => {
-  it('parses every catalog blueprint exactly as parseBlueprint does', () => {
+  it('parses every catalog blueprint exactly as parseBlueprint does', async () => {
     expect(catalog.length).toBeGreaterThanOrEqual(40);
     for (const [name, raw] of catalog) {
-      expect(parseAnyBlueprint(raw), name).toEqual(parseBlueprint(raw));
+      expect(await parseAnyBlueprint(raw), name).toEqual(parseBlueprint(raw));
     }
   });
 
   it('gives a missing kind and kind "app" one output and one identity', async () => {
-    const missing = parseAnyBlueprint(minimalApp);
-    const explicit = parseAnyBlueprint({ ...minimalApp, kind: 'app' });
+    const missing = await parseAnyBlueprint(minimalApp);
+    const explicit = await parseAnyBlueprint({ ...minimalApp, kind: 'app' });
     expect(explicit).toEqual(missing);
     expect('kind' in explicit).toBe(false);
     expect(await blueprintIdentity(parseBlueprint({ ...minimalApp, kind: 'app' }))).toEqual(
@@ -98,15 +98,15 @@ describe('apps through the union', () => {
     }
   });
 
-  it('keeps app validation: entities and roles stay required', () => {
+  it('keeps app validation: entities and roles stay required', async () => {
     const { entities: _entities, ...noEntities } = minimalApp;
-    const result = safeParseAnyBlueprint({ ...noEntities, kind: 'app' });
+    const result = await safeParseAnyBlueprint({ ...noEntities, kind: 'app' });
     expect(result.success).toBe(false);
     expect(result.error?.issues.some((issue) => issue.path[0] === 'entities')).toBe(true);
   });
 
-  it('classifies a parsed app', () => {
-    const app: AnyBlueprint = parseAnyBlueprint(minimalApp);
+  it('classifies a parsed app', async () => {
+    const app: AnyBlueprint = await parseAnyBlueprint(minimalApp);
     expect(blueprintKind(app)).toBe('app');
     expect(isAppBlueprint(app)).toBe(true);
     expect(isContentBlueprint(app)).toBe(false);
@@ -114,28 +114,10 @@ describe('apps through the union', () => {
   });
 });
 
-// Kinds whose engine schema is not wired into this build yet (page and doc are).
-const UNSHIPPED = CONTENT_KINDS.filter((kind) => !kindBodySchema(kind));
-
-describe('content kinds without a shipped body schema', () => {
-  it('ships page and doc bodies', () => {
-    expect(kindBodySchema('page')).toBeDefined();
-    expect(kindBodySchema('doc')).toBeDefined();
+describe('content kind body loading', () => {
+  it('loads deck, page and doc schemas only when requested', async () => {
+    for (const kind of CONTENT_KINDS) expect(await kindBodySchema(kind)).toBeDefined();
   });
-
-  it.skipIf(UNSHIPPED.length === 0).each(UNSHIPPED)(
-    'refuses %s with a clear issue instead of a loose fallback',
-    (kind) => {
-      const result = safeParseAnyBlueprint(content(kind));
-      expect(result.success).toBe(false);
-      expect(result.error?.issues).toEqual([
-        expect.objectContaining({
-          path: ['kind'],
-          message: `Blueprint kind "${kind}" is not available in this build of Protoyard yet.`,
-        }),
-      ]);
-    }
-  );
 
   it('refuses to install a test body outside Vitest', () => {
     const saved = process.env.VITEST;
@@ -157,18 +139,18 @@ describe('content kinds with a body schema', () => {
     for (const undo of restore) undo();
   });
 
-  it.each(CONTENT_KINDS)('parses a %s and keeps its kind', (kind) => {
-    const parsed = parseAnyBlueprint(content(kind));
+  it.each(CONTENT_KINDS)('parses a %s and keeps its kind', async (kind) => {
+    const parsed = await parseAnyBlueprint(content(kind));
     expect(parsed).toMatchObject({ kind, name: `A ${kind}`, [kind]: { title: 'Hello' } });
     expect(blueprintKind(parsed)).toBe(kind);
     expect(isAppBlueprint(parsed)).toBe(false);
     expect(isContentBlueprint(parsed)).toBe(true);
   });
 
-  it('narrows with the per-kind guards', () => {
-    const deck = parseAnyBlueprint(content('deck'));
-    const page = parseAnyBlueprint(content('page'));
-    const doc = parseAnyBlueprint(content('doc'));
+  it('narrows with the per-kind guards', async () => {
+    const deck = await parseAnyBlueprint(content('deck'));
+    const page = await parseAnyBlueprint(content('page'));
+    const doc = await parseAnyBlueprint(content('doc'));
     expect([isDeckBlueprint(deck), isPageBlueprint(deck), isDocBlueprint(deck)]).toEqual([
       true,
       false,
@@ -179,11 +161,13 @@ describe('content kinds with a body schema', () => {
     if (isDeckBlueprint(deck)) expect(deck.deck).toEqual({ title: 'Hello' });
   });
 
-  it('applies the shared root rules (name, tags, brand) to content kinds', () => {
-    expect(safeParseAnyBlueprint(content('deck', { name: '' })).success).toBe(false);
-    expect(safeParseAnyBlueprint(content('deck', { formatVersion: 2 })).success).toBe(false);
-    expect(safeParseAnyBlueprint(content('deck', { brand: {} })).success).toBe(false);
-    const branded = parseAnyBlueprint(content('deck', { brand: { preset: 'ocean' } }));
+  it('applies the shared root rules (name, tags, brand) to content kinds', async () => {
+    expect((await safeParseAnyBlueprint(content('deck', { name: '' }))).success).toBe(false);
+    expect((await safeParseAnyBlueprint(content('deck', { formatVersion: 2 }))).success).toBe(
+      false
+    );
+    expect((await safeParseAnyBlueprint(content('deck', { brand: {} }))).success).toBe(false);
+    const branded = await parseAnyBlueprint(content('deck', { brand: { preset: 'ocean' } }));
     expect(branded).toMatchObject({ brand: { preset: 'ocean' } });
   });
 
@@ -196,18 +180,20 @@ describe('content kinds with a body schema', () => {
     'notifications',
     'history',
     'validation',
-  ])('rejects the app-only key %s on a deck', (key) => {
-    const result = safeParseAnyBlueprint(content('deck', { [key]: [] }));
+  ])('rejects the app-only key %s on a deck', async (key) => {
+    const result = await safeParseAnyBlueprint(content('deck', { [key]: [] }));
     expect(result.success).toBe(false);
   });
 
-  it('rejects another kind body, a missing body and an invalid body', () => {
-    expect(safeParseAnyBlueprint(content('deck', { page: { title: 'x' } })).success).toBe(false);
+  it('rejects another kind body, a missing body and an invalid body', async () => {
+    expect((await safeParseAnyBlueprint(content('deck', { page: { title: 'x' } }))).success).toBe(
+      false
+    );
     const { deck: _deck, ...bodiless } = content('deck');
-    const missing = safeParseAnyBlueprint(bodiless);
+    const missing = await safeParseAnyBlueprint(bodiless);
     expect(missing.success).toBe(false);
     expect(missing.error?.issues.some((issue) => issue.path[0] === 'deck')).toBe(true);
-    const invalid = safeParseAnyBlueprint({ ...content('deck'), deck: { title: '' } });
+    const invalid = await safeParseAnyBlueprint({ ...content('deck'), deck: { title: '' } });
     expect(invalid.error?.issues[0]?.path).toEqual(['deck', 'title']);
   });
 
@@ -218,8 +204,8 @@ describe('content kinds with a body schema', () => {
 });
 
 describe('unknown kinds', () => {
-  it('fail on kind with a "needs a newer Protoyard" issue', () => {
-    const result = safeParseAnyBlueprint({ ...minimalApp, kind: 'quiz' });
+  it('fail on kind with a "needs a newer Protoyard" issue', async () => {
+    const result = await safeParseAnyBlueprint({ ...minimalApp, kind: 'quiz' });
     expect(result.success).toBe(false);
     expect(result.error?.issues).toEqual([
       expect.objectContaining({
@@ -230,17 +216,19 @@ describe('unknown kinds', () => {
         ),
       }),
     ]);
-    expect(() => parseAnyBlueprint({ ...minimalApp, kind: 'quiz' })).toThrow(/newer Protoyard/);
+    await expect(parseAnyBlueprint({ ...minimalApp, kind: 'quiz' })).rejects.toThrow(
+      /newer Protoyard/
+    );
   });
 
-  it('truncate a very long kind in the message', () => {
-    const result = safeParseAnyBlueprint({ kind: 'x'.repeat(500) });
+  it('truncate a very long kind in the message', async () => {
+    const result = await safeParseAnyBlueprint({ kind: 'x'.repeat(500) });
     expect(result.error?.issues[0]?.message.length).toBeLessThan(160);
   });
 
-  it('reject non-object input through the app schema', () => {
+  it('reject non-object input through the app schema', async () => {
     for (const input of [null, 'deck', 42, []]) {
-      expect(safeParseAnyBlueprint(input).success, String(input)).toBe(false);
+      expect((await safeParseAnyBlueprint(input)).success, String(input)).toBe(false);
     }
   });
 });

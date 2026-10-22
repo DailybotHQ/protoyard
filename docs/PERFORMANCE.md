@@ -961,6 +961,16 @@ Faker, DevTools, the theme library, the crud screen kits, the crud app shell
 generator, and the main-thread generation fallback. It also checks the content:
 no Faker data and no worker reference appear in initial JS.
 
+**Blueprint content-kind schemas.** Page, document and deck body schemas load
+through dynamic imports keyed by blueprint kind. An app blueprint therefore
+does not include their validation code in its initial graph. On this lane's
+same-tree player build, initial JS measured **207,046 B gzip before** and
+**193,649 B gzip after** the lazy loading change (a reduction of 13,397 B).
+The earlier page/doc integration recorded 188,442 B before and 202,253 B
+after; the current pre-change tree includes additional merged work, so the two
+measurements are not directly comparable. The budget test now caps initial JS
+at 196,000 B gzip and asserts each content-kind schema is a dynamic entry.
+
 **`@protoyard/crud/app`.** The player loads the crud app shell lazily, but
 always, right after boot. Its own chunk is 21.9 KB gzip. Its static graph adds
 **107.7 KB gzip across 53 chunks** beyond initial JS, so it is on the path to

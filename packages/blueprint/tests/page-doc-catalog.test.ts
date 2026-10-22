@@ -4,15 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 // @protoyard/blocks is not a dependency of @protoyard/blueprint; the examples
 // are checked against the real block contract by path, as other packages' tests do.
-import {
-  BLOCK_TYPES,
-  BlockListSchema,
-  forEachBlock,
-  safeParseBlocks,
-} from '../../blocks/src/index.ts';
+import { BLOCK_TYPES, forEachBlock, safeParseBlocks } from '../../blocks/src/index.ts';
 import { detectBlueprintKind, safeParseAnyBlueprint } from '../src/index.ts';
-import { kindBodySchema } from '../src/kinds/bodies.ts';
-import { withKindBodySchemaForTesting } from '../src/kinds/testing.ts';
 import { BLUEPRINT_BASE_SHAPE } from '../src/schema.ts';
 
 /**
@@ -233,67 +226,32 @@ describe('kind-specific example catalog', () => {
 });
 
 describe('kind-specific examples through the kind union', () => {
-  // Turns on by itself when T-pages-wire ships the page and doc body schemas.
-  it.skipIf(!kindBodySchema('page')).each(PAGES.map((e) => [e.file, e] as const))(
+  it.each(PAGES.map((e) => [e.file, e] as const))(
     'page %s parses as kind page',
-    (_, example) => {
-      const result = safeParseAnyBlueprint(example.raw);
+    async (_, example) => {
+      const result = await safeParseAnyBlueprint(example.raw);
       expect(result.success ? [] : result.error.issues).toEqual([]);
       expect((result.data as { kind?: string } | undefined)?.kind).toBe('page');
     }
   );
 
-  it.skipIf(!kindBodySchema('doc')).each(DOCS.map((e) => [e.file, e] as const))(
+  it.each(DOCS.map((e) => [e.file, e] as const))(
     'doc %s parses as kind doc',
-    (_, example) => {
-      const result = safeParseAnyBlueprint(example.raw);
+    async (_, example) => {
+      const result = await safeParseAnyBlueprint(example.raw);
       expect(result.success ? [] : result.error.issues).toEqual([]);
       expect((result.data as { kind?: string } | undefined)?.kind).toBe('doc');
     }
   );
 
-  it('until then, the union rejects them only because the body schema is not shipped', () => {
+  it('parses every page and doc example with its shipped engine schema', async () => {
     for (const example of ALL) {
-      if (kindBodySchema(example.kind)) continue;
-      const result = safeParseAnyBlueprint(example.raw);
-      expect(result.success).toBe(false);
-      expect(result.error?.issues.map((issue) => issue.message)).toEqual([
-        `Blueprint kind "${example.kind}" is not available in this build of Protoyard yet.`,
-      ]);
-    }
-  });
-
-  it('pass the real envelope today with a provisional body in the documented shape', () => {
-    // Test-only stand-ins for the T-pages-kind-model shapes, strict like the
-    // real ones will be. The real schemas replace them through kindBodySchema.
-    const Section = z.strictObject({
-      id: z.string().min(1),
-      anchor: z.string().min(1).optional(),
-      blocks: BlockListSchema,
-    });
-    const restore = [
-      withKindBodySchemaForTesting('page', z.strictObject({ sections: z.array(Section).min(1) })),
-      withKindBodySchemaForTesting(
-        'doc',
-        z.strictObject({
-          blocks: BlockListSchema,
-          toc: z
-            .strictObject({ depth: z.number().int().min(1).max(6), sticky: z.boolean() })
-            .optional(),
-        })
-      ),
-    ];
-    try {
-      for (const example of ALL) {
-        const result = safeParseAnyBlueprint(example.raw);
-        expect({ file: example.file, issues: result.success ? [] : result.error.issues }).toEqual({
-          file: example.file,
-          issues: [],
-        });
-        expect((result.data as { kind?: string } | undefined)?.kind).toBe(example.kind);
-      }
-    } finally {
-      for (const undo of restore) undo();
+      const result = await safeParseAnyBlueprint(example.raw);
+      expect({ file: example.file, issues: result.success ? [] : result.error.issues }).toEqual({
+        file: example.file,
+        issues: [],
+      });
+      expect((result.data as { kind?: string } | undefined)?.kind).toBe(example.kind);
     }
   });
 });
