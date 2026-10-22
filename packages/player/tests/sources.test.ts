@@ -166,7 +166,10 @@ describe('resolveSource', () => {
     const cases: [Response | Error, string][] = [
       [new Response('missing', { status: 404 }), 'fetch-failed'],
       [new Error('offline'), 'fetch-failed'],
-      [jsonResponse('{}', { headers: { 'content-length': String(300 * 1024) } }), 'too-large'],
+      // The transport cap is the document loader's (1 MiB, any kind)…
+      [jsonResponse('{}', { headers: { 'content-length': String(1024 * 1024 + 1) } }), 'too-large'],
+      [jsonResponse('x'.repeat(1024 * 1024 + 1)), 'too-large'],
+      // …and the app loader still refuses an app over its own 256 KB.
       [jsonResponse('x'.repeat(300 * 1024)), 'too-large'],
       [jsonResponse('{not json'), 'invalid-json'],
       [jsonResponse(JSON.stringify({ ...demo, entities: [] })), 'invalid-blueprint'],
@@ -245,7 +248,8 @@ describe('loadBlueprintFromFile', () => {
   it('loads a valid file, and refuses oversized or invalid ones before running anything', async () => {
     const valid = await loadBlueprintFromFile(new File([demoJson], 'blueprint.json'));
     expect('blueprint' in valid).toBe(true);
-    const big = new File(['x'.repeat(300 * 1024)], 'big.json');
+    // Over the 1 MiB document cap: refused before the file is read.
+    const big = new File(['x'.repeat(1024 * 1024 + 1)], 'big.json');
     const text = vi.spyOn(big, 'text');
     expect(await loadBlueprintFromFile(big)).toMatchObject({ issues: [{ code: 'too-large' }] });
     expect(text).not.toHaveBeenCalled();

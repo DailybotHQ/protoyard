@@ -1,5 +1,11 @@
-import { type Blueprint, BrandThemeError, readBlueprintShareFragment } from '@protoyard/blueprint';
+import {
+  type AnyBlueprint,
+  type Blueprint,
+  BrandThemeError,
+  readBlueprintShareFragment,
+} from '@protoyard/blueprint';
 import { mount, unmount } from 'svelte';
+import { bootByKind, prefetchBoot } from './boot-any.ts';
 import {
   type ResolvedSource,
   readEmbeddedBlueprint,
@@ -28,8 +34,10 @@ export interface StartPlayerOptions {
   supportsDeflateRaw?: () => boolean;
   /** A blueprint embedded in the page (defaults to reading `#protoyard-blueprint`). */
   embedded?: string | null;
-  /** Boots a validated blueprint (defaults to `bootPlayer`). */
-  boot?: (blueprint: Blueprint, target: HTMLElement) => Promise<unknown>;
+  /** Boots a validated blueprint of any kind (defaults to `bootByKind`). */
+  boot?: (blueprint: AnyBlueprint, target: HTMLElement) => Promise<unknown>;
+  /** Prefetch the resolved blueprint's boot chunk (default: only without a custom `boot`). */
+  prefetch?: boolean;
   /** Called for a new `#bp=` link (defaults to `location.reload()`); app routes never reload. */
   reload?: () => void;
   /** The bundled demo, loaded only when the picker asks for it. */
@@ -66,16 +74,8 @@ export interface StartedPlayer {
   clearScreen: () => Promise<void>;
 }
 
-/** The boot module (renderer, runtime) as its own chunk, fetched while the source resolves. */
-let bootModule: Promise<typeof import('../boot.ts')> | null = null;
-const loadBootModule = () => {
-  bootModule ??= import('../boot.ts');
-  return bootModule;
-};
-
-async function defaultBoot(blueprint: Blueprint, target: HTMLElement) {
-  const { bootPlayer } = await loadBootModule();
-  return bootPlayer({ blueprint, target });
+async function defaultBoot(blueprint: AnyBlueprint, target: HTMLElement) {
+  return bootByKind(blueprint, target);
 }
 
 async function defaultDemo(): Promise<Blueprint> {
@@ -114,8 +114,6 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
   const loc = options.location ?? window.location;
   const events = options.events ?? window;
   const boot = options.boot ?? defaultBoot;
-  // Start downloading the boot chunk now, in parallel with source resolution.
-  if (!options.boot) void loadBootModule().catch(() => undefined);
   const reload = options.reload ?? (() => window.location.reload());
   const loadDemo = options.loadDemo ?? defaultDemo;
   let state: PlayerState = 'picker';
@@ -136,7 +134,7 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
   };
 
   let lastSource: SourceKind = 'file';
-  const run = async (blueprint: Blueprint, source: SourceKind, label: string) => {
+  const run = async (blueprint: AnyBlueprint, source: SourceKind, label: string) => {
     lastSource = source;
     await clear();
     try {
@@ -158,7 +156,7 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
       target,
       props: {
         loadDemo,
-        onBlueprint: async (blueprint: Blueprint, label: string) => {
+        onBlueprint: async (blueprint: AnyBlueprint, label: string) => {
           delete root.dataset.playerState;
           // A picked file replaces the tab's last share link on reload.
           remember(null);
@@ -196,10 +194,12 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
     ...(options.supportsDeflateRaw ? { supportsDeflateRaw: options.supportsDeflateRaw } : {}),
   });
   if (resolved.kind === 'blueprint') {
+    // Fetch the boot chunk for this kind only (a deck never loads the app boot).
+    if (options.prefetch ?? !options.boot) prefetchBoot(resolved.blueprint);
     if (resolved.share) {
       remember(resolved.share.payload);
-      // The app's hash router would read `#bp=…` as a route ("Page not found"):
-      // keep the link in this tab's storage and open the app at its home route.
+      // The app's hash router (and a deck's slide links) would read `#bp=…` as a
+      // route: keep the link in this tab's storage and open at the home route.
       if (resolved.share.from === 'url') {
         const url = new URL(loc.href);
         const history = options.history ?? window.history;

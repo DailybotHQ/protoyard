@@ -1,7 +1,8 @@
 <script lang="ts">
-import { setBlockHost } from '@protoyard/blocks-ui';
+import { getBlockHost, setBlockHost } from '@protoyard/blocks-ui';
 import type { PageDocument, PageSection } from '@protoyard/pages';
 import MarketingLayout from '@protoyard/ui/layouts/marketing';
+import { untrack } from 'svelte';
 import { BlockHost } from '../block-host/index.ts';
 
 /**
@@ -19,12 +20,15 @@ let {
   class?: string;
 } = $props();
 
-$effect(() => {
-  setBlockHost({
-    canvasMode: 'flow',
-    density: 'comfortable',
-    documentId: page.id,
-  });
+// Set during init (context cannot change later), merged over the parent host so
+// a kind runtime's persistent block state and mountEmbed reach the blocks.
+const parentHost = getBlockHost();
+setBlockHost({
+  ...parentHost,
+  canvasMode: 'flow',
+  density: 'comfortable',
+  // Read once on purpose: the host context is fixed for this component's life.
+  documentId: parentHost.documentId ?? untrack(() => page.id),
 });
 
 const brandLabel = $derived(brandName?.trim() || page.title);

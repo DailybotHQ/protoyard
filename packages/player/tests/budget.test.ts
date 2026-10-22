@@ -168,11 +168,12 @@ describe.skipIf(!built)(
 
     it('keeps the app path initial JS at its measured size (regression cap)', () => {
       // Measured 2026-10-22 (gzip -9, static closure of index.html): 188,442 B
-      // before PLAN_005; 202,253 B, then 228,317 B on dev once content-kind
-      // schemas, the brief synthesizer and deck lint rode in through the
-      // blueprint barrel; 116.2 KB after sources/start.ts imported only
-      // `parseBlueprint` (docs/PERFORMANCE.md). The cap is that measurement
-      // plus about 7 %: anything that grows the app path must say why here.
+      // before PLAN_005; 228,317 B on dev once content-kind schemas, the brief
+      // synthesizer and deck lint rode in through the blueprint barrel; 116.2 KB
+      // after sources/start.ts imported only `parseBlueprint`; 120.0 KB with
+      // routing by kind (the kind-aware loader and the router) once Dexie and
+      // Rolldown's runtime got their own chunks (vite.config.ts). See
+      // docs/PERFORMANCE.md. The cap leaves about 4 %: growth must say why here.
       expect(sum(classes.initialJs) / KB).toBeLessThanOrEqual(125);
     });
 

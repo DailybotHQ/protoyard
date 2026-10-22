@@ -1020,7 +1020,25 @@ bundler keep only what is used. The content-kind body schemas load through
 | Before PLAN_005 | 188,442 B |
 | Page and doc bodies wired statically | 202,253 B |
 | `dev` before this fix (synthesizer 30.5 KB, decks schema 7.4 KB, barrel 25.2 KB) | 228,317 B |
-| After this fix | **116.2 KB** |
+| After this fix | 116.2 KB |
+| Routing by kind (T-kinds-player-routing), before the chunk-group fix | 150.0 KB |
+| Routing by kind, with the `dexie` and `rolldown-runtime` chunk groups | **120.0 KB** |
+
+**Routing by kind and chunk placement.** With routing, two lazy boots (apps and
+kinds) share the runtime and Dexie. Rolldown placed its tiny module runtime
+(`\0rolldown/runtime.js`) in the first chunk that needed it, which was the
+Dexie chunk. Every other chunk then imported that chunk for the runtime
+helpers, first-screen chunks included, and 132 KB of Dexie (rendered size)
+moved onto the first screen. [`packages/player/vite.config.ts`](../packages/player/vite.config.ts)
+now gives both their own chunks (`output.codeSplitting.groups`), and Dexie
+loads with the boots again. The remaining +3.8 KB over 116.2 KB is the
+kind-aware loader (`loadUntrustedDocument` and the kind limits) and the
+router. Initial CSS is 20.1 KB (budget 30 KB), up from 18.1 KB, because the
+player's stylesheet now registers the blocks-ui, decks-ui and pages-ui
+Tailwind sources. A kind's boot chunk and its static imports add 108.7 KB
+gzip beyond the first screen (runtime, Dexie, renderer, kind runtime), with
+no CRUD shell, Faker, world worker or app generator in that graph. Each
+renderer (`DeckApp`, `PageApp`, `DocApp`) loads on demand after that.
 
 `budget.test.ts` now proves the content-kind body schemas, deck layout catalog
 and deck schema are absent from the initial graph, by module and by literal

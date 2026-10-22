@@ -12,7 +12,7 @@ import { DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS } from '@protoyard/blueprint';
  *
  * Every message carries `protocol: 'protoyard-player/1'`. Messages from any
  * other window or origin, or that are not this protocol, are ignored without
- * a reply. A blueprint is data: it goes through `loadUntrustedBlueprint`
+ * a reply. A blueprint is data: it goes through `loadUntrustedDocument`
  * before anything derives or renders it, and nothing in a message executes.
  */
 export const PLAYER_PROTOCOL = 'protoyard-player/1';

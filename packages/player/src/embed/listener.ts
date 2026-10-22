@@ -1,4 +1,4 @@
-import { type Blueprint, loadUntrustedBlueprint } from '@protoyard/blueprint';
+import { type AnyBlueprint, loadUntrustedDocument } from '@protoyard/blueprint';
 import {
   checkRequest,
   MAX_MESSAGE_BLUEPRINT_BYTES,
@@ -30,7 +30,7 @@ export interface EmbedListenerOptions {
    * Runs a validated blueprint. Resolves with what the parent is told; a
    * throw is reported as `boot-failed`, never as success.
    */
-  apply(blueprint: Blueprint, type: PlayerRequestType): Promise<{ namespace: string }>;
+  apply(blueprint: AnyBlueprint, type: PlayerRequestType): Promise<{ namespace: string }>;
   maxBytes?: number;
 }
 
@@ -65,7 +65,8 @@ export function createEmbedListener(options: EmbedListenerOptions): EmbedListene
     reply({ protocol: PLAYER_PROTOCOL, type: 'error', id, issues }, origin);
 
   async function run({ request, origin }: Pending): Promise<void> {
-    const loaded = loadUntrustedBlueprint(request.blueprint, { maxBytes });
+    // Any kind (ADR-036): apps keep the app loader; decks, pages and docs their own caps.
+    const loaded = await loadUntrustedDocument(request.blueprint, { maxBytes });
     if (!loaded.success) {
       fail(request.id, loaded.issues, origin);
       return;

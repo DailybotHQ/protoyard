@@ -98,7 +98,7 @@ copies the player.
 
 The player resolves its source in a fixed order: a `#bp=` share link, then
 `?src=./blueprint.json` (a same-origin relative path next to the player, at most
-256 KB, redirects refused), then a picker for a local file or the bundled
+1 MiB for a deck, page or doc and 256 KB for an app, redirects refused), then a picker for a local file or the bundled
 fictional demo. A framed player also accepts blueprints from its embedding page
 over `protoyard-player/1`:
 - `load` and `replace` messages;
@@ -110,23 +110,35 @@ over `protoyard-player/1`:
 The message table, limits and the typed `connectPlayer` client are in
 [the player package README](../packages/player/README.md#embedding-protoyard-player1).
 
-Every source ends in the bounded loader (`loadUntrustedBlueprint`). A blueprint
-that cannot be opened shows an accessible error screen with every issue and its
-fix, never a blank page.
+Every source ends in the bounded, kind-aware loader (`loadUntrustedDocument`;
+share links through `decodeDocumentShare`). Apps keep the exact
+`loadUntrustedBlueprint` limits, and decks, pages and docs get their own (see
+[SECURITY](SECURITY.md)). A blueprint that cannot be opened shows an
+accessible error screen with every issue and its fix, never a blank page.
 
 ### Embedded apps in decks and pages
 
 A content document may include an `embed-app` block (opaque app JSON, bounded
 by the blocks untrusted limits). The blocks-ui embed family shows a framed
 preview and a **Start the app** button. Only after that click does the host
-call `mountEmbed(target, app)`. KINDS is expected to provide that callback:
-validate with `loadUntrustedBlueprint`, then mount a **level-1** app runtime
-into `target` (never a nested deck). Until the click, no app code is
-downloaded with the deck or page. A missing host shows an accessible note;
-unmount runs the disposer returned by `mountEmbed`. Slide keyboard navigation
-must not leak into the running frame — the embed family traps Tab inside the
-frame while the app is open. Full mount wiring lives with the player / KINDS
-runtime, not inside `@protoyard/blocks`.
+call `mountEmbed(target, app)`. The player provides that callback
+([`kinds/mount-embed.ts`](../packages/player/src/kinds/mount-embed.ts)):
+
+1. It checks the app with `loadUntrustedBlueprint`. Only an app is accepted,
+   never a deck, page or doc, so embedding is one level deep.
+2. It opens this same player in a frame (`./index.html?devtools=0`, same
+   origin, http(s) only).
+3. It sends the app over `protoyard-player/1` with the `connectPlayer` client.
+
+The frame gives the embedded app its own runtime, its own content namespace
+(`bp-…` from its identity) and its own URL hash, so it never fights the deck
+for slide links or storage. Until the click, no app code is downloaded with
+the deck or page. A missing host shows an accessible note, and unmount runs the
+disposer, which closes the connection and removes the frame. Slide keyboard
+navigation must not leak into the running frame: the embed family traps Tab
+inside it while the app is open. **Not supported:** the single-file export and
+the Claude artifact, which have no `index.html` to frame (the block shows the
+error), and `file://` pages.
 
 ## Storage: identity and keep mode
 
@@ -304,11 +316,46 @@ pnpm protoyard generate my-prototype --blueprint path/to/blueprint.json
 pnpm protoyard validate my-prototype --build
 ```
 
-## Content kinds (page and doc)
+## Content kinds (deck, page and doc)
 
-When the blueprint `kind` is `page` or `doc`, the player mounts
-`@protoyard/pages-ui` `PageApp` / `DocApp` with the runtime from
-`defineKindRuntime` (`@protoyard/blueprint/kinds`). Form responses use
-`createFormServices` from `@protoyard/pages` (same store and capabilities as
-the kind services layer).
+The player routes by blueprint `kind` (ADR-036) before any boot code loads
+([`sources/boot-any.ts`](../packages/player/src/sources/boot-any.ts)):
+
+- An app (no `kind`, or `"app"`) boots through `boot.ts`: the CRUD shell, the
+  world worker and Faker, unchanged.
+- A deck, page or doc boots through
+  [`boot-kind.ts`](../packages/player/src/boot-kind.ts), which never imports
+  `boot.ts`, so the CRUD shell, Faker and the worker never download for a
+  kind.
+- The boot chunk is prefetched only once the source has resolved, for that
+  kind alone.
+
+A kind boots like an app around the edges: a content-identity namespace
+(`bp-…`, or `?keep=`), the exploration index, the demo badge, themes, shells,
+DevTools (`?devtools=0` hides them) and review comments under `quick serve`.
+Inside, it runs `defineKindRuntime` (`@protoyard/blueprint/kinds`): one Dexie
+version for block state and form responses, the `default` scenario, the
+presenter, audience and viewer personas, and no world generator.
+[`KindApp`](../packages/player/src/kinds/KindApp.svelte) renders the shared
+renderer, the same component a generated kind prototype mounts:
+
+- decks: `DeckApp` (`@protoyard/decks-ui/app`);
+- pages: `PageApp` (`@protoyard/pages-ui/page`);
+- docs: `DocApp` (`@protoyard/pages-ui/doc`).
+
+Each renderer is its own chunk. KindApp provides the blocks-ui host:
+
+- **Block state:** interactive blocks persist through `createKindServices`
+  (resolve the block from the document → `session.assert` → reducer, with the
+  active persona as the viewer → `environment.run` → `db.transaction`). The
+  host answers at once and attaches to IndexedDB when it is ready.
+- **Embedded apps:** `mountEmbed`, as described above.
+
+Form responses use `createFormServices` from `@protoyard/pages`, the same
+store and capabilities as the kind services layer.
+
+**Swaps:** live reload (`quick serve`) and `protoyard-player/1` `load` and
+`replace` messages accept any kind, and each swap tears the running document
+or app down exactly once. A change between two content kinds keeps the world
+(they share one store layout). A change to or from an app starts a fresh one.
 
