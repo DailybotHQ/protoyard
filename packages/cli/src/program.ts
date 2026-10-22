@@ -158,7 +158,7 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .argument('<slug>', 'lowercase kebab-case folder name')
     .requiredOption('-b, --blueprint <file>', 'blueprint JSON file (see packages/blueprint)')
-    .option('-t, --template <name>', 'base template', 'crud-app')
+    .option('-t, --template <name>', 'base template (defaults from blueprint kind)')
     .option('--name <name>', 'display name (default: the blueprint name)')
     .option('--description <text>', 'one-line description (default: the blueprint description)')
     .option('--dry-run', 'validate and list (or plan) the files without writing anything')
