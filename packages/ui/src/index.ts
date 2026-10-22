@@ -208,7 +208,7 @@ export type {
 export { default as WindowChrome } from './components/window-chrome/WindowChrome.svelte';
 export { default as Wizard } from './components/wizard/Wizard.svelte';
 export { default as LayoutHost } from './layouts/LayoutHost.svelte';
-// Navigation as data for every layout; NavIcon and the layouts stay lazy (never in this barrel).
+// Navigation is data; navigation layout modules stay lazy. Content primitives are separate exports.
 export {
   isNavPathActive,
   type NavAction,
@@ -226,6 +226,8 @@ export {
   type ResolvedNavSection,
   resolveNav,
 } from './layouts/nav-model.ts';
+export { default as PageGrid } from './layouts/PageGrid.svelte';
+export { default as SplitView } from './layouts/SplitView.svelte';
 export { cn } from './lib/cn.ts';
 export { type DateInput, formatDay, formatTime } from './lib/date.ts';
 export { hashString, initials } from './lib/hash.ts';
