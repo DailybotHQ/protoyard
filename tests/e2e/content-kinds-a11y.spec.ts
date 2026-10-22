@@ -148,7 +148,20 @@ async function checkPage(page: Page, testInfo: TestInfo, label: string, kind: Ki
   // A document has one top-level heading and named landmarks to move between.
   await expect(root.getByRole('heading', { level: 1 })).toHaveCount(1);
   const navigation = page.getByRole('navigation');
-  if (kind === 'doc') await expect(navigation.first(), `${label}: table of contents`).toBeVisible();
+  if (kind === 'doc') {
+    // On narrow screens the table of contents folds into a disclosure: its
+    // summary is reachable, and opening it shows the named navigation.
+    const shown = await expect(navigation.first())
+      .toBeVisible({ timeout: 2_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!shown) {
+      const summary = page.locator(`${ROOT.doc} details:has(nav) > summary`).first();
+      await expect(summary, `${label}: table of contents disclosure`).toBeVisible();
+      await summary.click();
+    }
+    await expect(navigation.first(), `${label}: table of contents`).toBeVisible();
+  }
   for (let i = 0; i < (await navigation.count()); i++) {
     if (!(await navigation.nth(i).isVisible())) continue;
     await expect(navigation.nth(i), `${label}: navigation ${i} needs a name`).toHaveAccessibleName(
