@@ -10,6 +10,7 @@ import {
 import { Command, Dialog as DialogPrimitive } from 'bits-ui';
 import { shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import type { CommandEntry, CommandRegistry } from './registry.ts';
+import { COMMAND_QUERY_MAX_LENGTH, rankCommands } from './registry.ts';
 
 interface Props {
   registry: CommandRegistry;
@@ -28,6 +29,10 @@ let {
 let query = $state('');
 let version = $state(0);
 let running = $state<string | null>(null);
+let searchState = $state<'idle' | 'loading' | 'ready' | 'error'>('idle');
+let asyncEntries = $state<CommandEntry[]>([]);
+let stepStack = $state<Array<{ entry: CommandEntry; entries: CommandEntry[] }>>([]);
+let stepEntries = $state<CommandEntry[] | null>(null);
 let portal = $state(getOverlayPortalTarget());
 
 $effect(() => registry.subscribe(() => version++));
@@ -36,7 +41,12 @@ $effect(() => subscribeOverlayPortalTarget(() => (portal = getOverlayPortalTarge
 const groups = $derived.by(() => {
   void version;
   const byGroup = new Map<string, CommandEntry[]>();
-  for (const entry of registry.search(query)) {
+  const entries = stepEntries
+    ? rankCommands(registry.filter(stepEntries), query)
+    : query.trim()
+      ? asyncEntries
+      : registry.search('');
+  for (const entry of entries) {
     const list = byGroup.get(entry.group) ?? [];
     list.push(entry);
     byGroup.set(entry.group, list);
@@ -44,8 +54,56 @@ const groups = $derived.by(() => {
   return [...byGroup.entries()];
 });
 
+$effect(() => {
+  void version;
+  const currentQuery = query.trim();
+  if (!currentQuery || stepEntries) {
+    asyncEntries = [];
+    searchState = 'idle';
+    return;
+  }
+  const controller = new AbortController();
+  asyncEntries = [];
+  searchState = 'loading';
+  registry
+    .searchAsync(currentQuery, controller.signal)
+    .then((entries) => {
+      if (controller.signal.aborted) return;
+      asyncEntries = entries;
+      searchState = 'ready';
+    })
+    .catch((error: unknown) => {
+      if (
+        controller.signal.aborted ||
+        (error instanceof DOMException && error.name === 'AbortError')
+      ) {
+        return;
+      }
+      asyncEntries = registry.search(currentQuery);
+      searchState = 'error';
+    });
+  return () => controller.abort();
+});
+
 async function select(entry: CommandEntry) {
   if (running) return;
+  if (entry.children) {
+    running = entry.id;
+    try {
+      const children = await registry.children(entry);
+      if (children.length > 0) {
+        stepStack = [...stepStack, { entry, entries: children }];
+        stepEntries = children;
+        query = '';
+      } else if (entry.run) {
+        const result = await runService(() => registry.run(entry));
+        if (result.ok) open = false;
+      }
+    } finally {
+      running = null;
+    }
+    return;
+  }
   if (entry.path) {
     open = false;
     navigate(entry.path);
@@ -60,12 +118,22 @@ async function select(entry: CommandEntry) {
     running = null;
   }
 }
+
+function goBack() {
+  stepStack = stepStack.slice(0, -1);
+  stepEntries = stepStack.at(-1)?.entries ?? null;
+  query = '';
+}
 </script>
 
 <DialogPrimitive.Root
   bind:open
   onOpenChange={(next) => {
-    if (!next) query = '';
+    if (!next) {
+      query = '';
+      stepStack = [];
+      stepEntries = null;
+    }
   }}
 >
   <DialogPrimitive.Portal to={portal ?? undefined}>
@@ -77,16 +145,35 @@ async function select(entry: CommandEntry) {
       <DialogPrimitive.Description class="sr-only">
         Search pages and actions. Use the arrow keys to move and Enter to run.
       </DialogPrimitive.Description>
+      {#if stepStack.length}
+        <div class="flex items-center gap-2 border-b border-border px-3 py-2">
+          <button type="button" class="rounded px-2 py-1 text-sm hover:bg-muted" onclick={goBack}>
+            Back
+          </button>
+          <span class="truncate text-sm text-muted-foreground" aria-live="polite">
+            {stepStack.map(({ entry }) => entry.label).join(' › ')}
+          </span>
+        </div>
+      {/if}
       <Command.Root label="Commands" shouldFilter={false} loop>
         <Command.Input
           bind:value={query}
+          maxlength={COMMAND_QUERY_MAX_LENGTH}
           {placeholder}
           class="h-14 border-b border-border bg-transparent px-4 text-base outline-none placeholder:text-muted-foreground"
         />
         <Command.List class="max-h-[min(60vh,28rem)] overflow-y-auto p-2" aria-busy={running !== null || undefined}>
           {#if groups.length === 0}
             <Command.Empty class="px-3 py-6 text-center text-sm text-muted-foreground">
-              {query.trim() ? 'No matching pages or actions.' : 'Nothing to show for this persona.'}
+              {#if searchState === 'loading'}
+                <span class="inline-flex items-center gap-2"><Spinner class="size-4" />Searching…</span>
+              {:else if searchState === 'error'}
+                Search failed.
+              {:else if query.trim()}
+                No matching pages or actions.
+              {:else}
+                Nothing to show for this persona.
+              {/if}
             </Command.Empty>
           {/if}
           {#each groups as [group, entries] (group)}
@@ -98,6 +185,7 @@ async function select(entry: CommandEntry) {
                     value={entry.id}
                     onSelect={() => select(entry)}
                     aria-busy={running === entry.id || undefined}
+                    aria-haspopup={entry.children ? 'listbox' : undefined}
                     aria-keyshortcuts={entry.shortcut ? shortcutLabel(entry.shortcut, isMac).replace(/ /g, '+') : undefined}
                     class={cn(
                       'flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none data-[selected]:bg-muted',

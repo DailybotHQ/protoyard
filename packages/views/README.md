@@ -8,9 +8,9 @@ package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
 > **Status:** board, calendar, timeline, grid, tree, map, editor, activity,
-> files and scenarios have engine helpers. `notifications`, `settings`,
-> `states` and `commands` reserve subpath names but currently have no runtime
-> exports; their UI components are documented in the [views kit guide](../../docs/VIEWS.md).
+> files, commands and scenarios have engine helpers. `notifications`, `settings`
+> and `states` reserve subpath names; their UI components are documented in the
+> [views kit guide](../../docs/VIEWS.md).
 
 ## Subpaths
 
@@ -34,10 +34,25 @@ import { rankBetween } from '@protoyard/views/board'; // once the board engine l
 | `./files` | File and folder helpers, deterministic thumbnails |
 | `./settings` | Reserved subpath; settings patterns live in views-ui |
 | `./states` | Reserved subpath; query state classification lives in views-ui |
-| `./commands` | Reserved subpath; command registry lives in views-ui |
+| `./commands` | Command registry, deterministic ranking, async search, scopes and nested command steps |
 | `./scenarios` | Deterministic generators and scenario fragments |
 
 The root entry (`@protoyard/views`) exports types only (`ViewName`).
+
+## Commands (`@protoyard/views/commands`)
+
+The command engine builds a compatible registry from named routes, registered
+actions and recent records. It filters entries against the current simulated
+capabilities and active scopes; the host still owns navigation and action
+execution. Query ranking is deterministic, uses stable tie-breaking, and is
+bounded to 256 query characters and 100 results. Async search providers receive
+an `AbortSignal`; starting a newer search cancels the previous one.
+
+Actions can expose static or lazy `children` for hierarchical selection. A host
+may also supply `createFallback(query)` to offer a create-from-typed-text action.
+The registry keeps the flat `list`, `search`, `register`, `addRecent` and
+`matchShortcut` APIs for existing consumers. It re-checks capabilities when an
+action runs; capability filtering is simulated UX, not security.
 
 ## Board (`@protoyard/views/board`)
 

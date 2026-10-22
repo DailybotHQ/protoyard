@@ -315,7 +315,8 @@ data-less states.
 
 An app command palette on ⌘K (Mac) / Ctrl+K (elsewhere). DevTools keep
 Ctrl/⌘ + `.`, keys typed inside the DevTools panel are ignored, and `mod+k`
-and `mod+.` cannot be registered as action shortcuts.
+and `mod+.` cannot be registered as action shortcuts. The pure registry and
+contracts are also available from `@protoyard/views/commands`.
 
 ```svelte
 <script lang="ts">
@@ -358,11 +359,20 @@ and `mod+.` cannot be registered as action shortcuts.
 - **Hints:** shortcuts show as `Kbd` keys, `⌘ ⇧ N` on Mac and
   `Ctrl Shift N` elsewhere (platform read from `navigator` in UI code only),
   with `aria-keyshortcuts` on the item.
-- **Size** (Svelte 5 client output, esbuild minified with code splitting,
-  gzip -9; svelte, core, ui, renderer, lucide and Bits UI external;
-  2026-10-19): the static listener component is 0.8 KB plus a 0.3 KB shared
-  platform helper; `createCommands` is 1.2 KB; the dialog is a separate
-  2.4 KB chunk fetched on the first open.
+- **Async search:** register an abortable source with
+  `commands.registerSearchSource((query, signal) => search(query, signal))`.
+  The palette displays pending and failure feedback and ignores stale results.
+- **Nested steps:** an action may expose static or lazy `children`; selecting it
+  opens those results in the same dialog with a Back control.
+- **Create fallback:** pass `createFallback(query)` to `createCommands` to offer
+  a create action for typed text when ordinary search has no match. Selection
+  still runs through `runService` and displays pending feedback.
+- **Scopes:** actions may list `scopes`. They appear only when one matches the
+  registry's active scopes, updated through `commands.setScopes(...)`.
+- **Size** (last measured 2026-10-19, before async search and nested steps):
+  the static listener component was 0.8 KB plus a 0.3 KB shared platform
+  helper; `createCommands` was 1.2 KB; the dialog was a separate 2.4 KB chunk
+  fetched on first open. The extended command engine has not been remeasured.
 
 ## Editor (`@protoyard/views-ui/editor`)
 
