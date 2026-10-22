@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { CounterBlock, PollBlock, QuizBlock, TabsBlock } from '@protoyard/blocks';
-import { MINIMAL_EXAMPLES } from '@protoyard/blocks/catalog';
+import { MINIMAL_EXAMPLES, RICH_EXAMPLES } from '@protoyard/blocks/catalog';
 import {
   type BlockStateHost,
   createMemoryBlockStateHost,
@@ -145,6 +145,25 @@ describe('interactive family through BlockStateHost', () => {
     await fireEvent.click(screen.getByRole('button', { name: /^A$/i }));
     await waitFor(() => expect(screen.getByText(/Correct/i)).toBeTruthy(), long);
     expect(screen.getByText(/Correct/i).getAttribute('data-correct')).toBe('true');
+  }, 20_000);
+
+  it('formats the Markdown of a quiz prompt instead of showing its markers', async () => {
+    // The catalog's own rich quiz asks "What does a **tone** replace?".
+    render(InteractiveHarness, {
+      props: {
+        blocks: [RICH_EXAMPLES.quiz],
+        stateHost: createMemoryBlockStateHost(),
+        documentId: 'quiz-rich',
+        viewerId: 'ana',
+      },
+    });
+    const legend = await screen.findByText(
+      (_, element) => element?.tagName === 'LEGEND' && /tone/.test(element.textContent ?? ''),
+      {},
+      long
+    );
+    expect(legend.textContent).toBe('What does a tone replace?');
+    expect(legend.querySelector('strong')?.textContent).toBe('tone');
   }, 20_000);
 
   it('calculator slider exposes aria-valuetext with formatted units', async () => {

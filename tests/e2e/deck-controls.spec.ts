@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
+import { expectAccessible } from './support/a11y.ts';
 
 /*
  * Deck chrome controls (PLAN_006 T-audit-controls). One reproduction per defect
@@ -419,6 +420,243 @@ test.describe('deck chrome controls', () => {
       await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toHaveCount(0);
+    });
+  });
+
+  test.describe('accessible chrome on desktop and phone (T-a11y-mobile)', () => {
+    /** Waits for every running CSS transition (fades) to finish, so axe sees the final colors. */
+    /**
+     * Lets the chrome's 200 ms fades finish, so axe sees the final colors. Capped:
+     * a transition on a control inside the closed More menu never finishes.
+     */
+    const settle = (page: Page) =>
+      page.evaluate(async () => {
+        const finished = Promise.allSettled(
+          document.getAnimations().map((animation) => animation.finished)
+        );
+        await Promise.race([finished, new Promise((done) => setTimeout(done, 1_000))]);
+        await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+      });
+
+    const openMore = async (page: Page) => {
+      const more = page.locator('[data-py-deck-more]');
+      if ((await more.count()) === 0) return false;
+      if (!(await more.evaluate((element) => element.hasAttribute('open')))) {
+        await more.locator('summary').click();
+      }
+      return true;
+    };
+
+    for (const mode of ['light', 'dark'] as const) {
+      test(`every chrome surface passes axe in ${mode}`, async ({ page }, testInfo) => {
+        await page.goto(`${deckUrl}?debug=1&mode=${mode}#/cover/0`);
+        await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
+        await settle(page);
+        await expectAccessible(page, testInfo, { label: `${mode}-toolbar` });
+
+        await root(page).focus();
+        await page.keyboard.press('Tab');
+        await expect(page.getByRole('tooltip')).toBeVisible({ timeout: 2_000 });
+        await settle(page);
+        await expectAccessible(page, testInfo, { label: `${mode}-tooltip` });
+
+        if (await openMore(page)) {
+          await expect(page.locator('[data-py-deck-more-menu]')).toBeVisible();
+          await settle(page);
+          await expectAccessible(page, testInfo, { label: `${mode}-more-menu` });
+          await page.locator('[data-py-deck-more] summary').click();
+        }
+
+        await clickTool(page, 'jump');
+        await expect(page.getByRole('listbox', { name: 'Choose a slide' })).toBeVisible();
+        await settle(page);
+        await expectAccessible(page, testInfo, { label: `${mode}-slide-list` });
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('listbox', { name: 'Choose a slide' })).toHaveCount(0);
+
+        await clickTool(page, 'help');
+        await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeVisible();
+        await settle(page);
+        await expectAccessible(page, testInfo, { label: `${mode}-help` });
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toHaveCount(0);
+
+        await root(page).focus();
+        await page.keyboard.press('d');
+        await expect(page.locator('[data-py-deck-debug]')).toBeVisible();
+        await settle(page);
+        await expectAccessible(page, testInfo, { label: `${mode}-debug` });
+        await page.keyboard.press('Escape');
+        await expect(page.locator('[data-py-deck-debug]')).toHaveCount(0);
+
+        await enterFullscreenWithKey(page);
+        await expect(page.locator('[data-py-deck-fullscreen-overlay]')).toHaveAttribute(
+          'data-visible',
+          'true'
+        );
+        await settle(page);
+        await expectAccessible(page, testInfo, { label: `${mode}-fullscreen` });
+      });
+    }
+
+    test('the chrome works keyboard-only, with a visible focus ring on every stop', async ({
+      page,
+    }) => {
+      await page.goto(`${deckUrl}?debug=1#/cover/0`);
+      await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
+      const chrome = page.locator('[data-py-deck-chrome-root]');
+      const visibleButtons = await chrome
+        .locator('button:visible, summary:visible')
+        .evaluateAll((nodes) => nodes.length);
+
+      // Tab from the deck through the whole chrome: every stop shows a focus ring.
+      await root(page).focus();
+      const reached: string[] = [];
+      for (let index = 0; index < 40; index += 1) {
+        await page.keyboard.press('Tab');
+        const stop = await page.evaluate(() => {
+          const element = document.activeElement as HTMLElement | null;
+          if (!element?.closest('[data-py-deck-chrome-root]')) return null;
+          const style = getComputedStyle(element);
+          const ring =
+            (style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) >= 2) ||
+            style.boxShadow !== 'none';
+          const name =
+            element.getAttribute('aria-label') ?? element.textContent?.trim() ?? element.tagName;
+          return { name, ring };
+        });
+        if (!stop) {
+          if (reached.length > 0) break;
+          continue;
+        }
+        expect(stop.ring, `${stop.name} shows no visible focus ring`).toBe(true);
+        if (reached.includes(stop.name)) break;
+        reached.push(stop.name);
+      }
+      expect(reached.length).toBe(visibleButtons);
+
+      // The slide list: Enter opens it on the current slide, arrows move, Enter picks.
+      await tool(page, 'jump').focus();
+      await page.keyboard.press('Enter');
+      const list = page.getByRole('listbox', { name: 'Choose a slide' });
+      await expect(list).toBeVisible();
+      await expect(list.getByRole('option', { selected: true })).toBeFocused();
+      await page.keyboard.press('ArrowDown');
+      await page.keyboard.press('Enter');
+      await expect(list).toHaveCount(0);
+      await expect(root(page)).not.toHaveAttribute('data-slide-id', 'cover');
+      await expect(tool(page, 'jump')).toBeFocused();
+
+      // Escape closes the list and gives focus back without moving the deck.
+      const current = await root(page).getAttribute('data-slide-id');
+      await page.keyboard.press('Enter');
+      await expect(list).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(list).toHaveCount(0);
+      await expect(tool(page, 'jump')).toBeFocused();
+      await expect(root(page)).toHaveAttribute('data-slide-id', current ?? '');
+
+      // The More menu (phones): Enter opens it, Escape closes it and returns focus.
+      const summary = page.locator('[data-py-deck-more] summary');
+      if (await summary.isVisible()) {
+        await summary.focus();
+        await page.keyboard.press('Enter');
+        await expect(page.locator('[data-py-deck-more-menu]')).toBeVisible();
+        await page.keyboard.press('Tab');
+        await expect(page.locator('[data-py-deck-more-menu] button').first()).toBeFocused();
+        // The first Escape closes only the focus tooltip (WCAG 1.4.13), the second the menu.
+        await expect(page.getByRole('tooltip')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('tooltip')).toBeHidden();
+        await expect(page.locator('[data-py-deck-more-menu]')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(page.locator('[data-py-deck-more-menu]')).toBeHidden();
+        await expect(summary).toBeFocused();
+      }
+
+      // Help: Enter opens it, focus moves in, Escape closes it and returns focus.
+      await (await visibleControl(page, tool(page, 'help'))).focus();
+      await page.keyboard.press('Enter');
+      const help = page.getByRole('dialog', { name: 'Controls and shortcuts' });
+      await expect(help).toBeVisible();
+      await expect
+        .poll(() => help.evaluate((dialog) => dialog.contains(document.activeElement)))
+        .toBe(true);
+      await page.keyboard.press('Escape');
+      await expect(help).toHaveCount(0);
+      // Back to the opener: Help itself, or "More" on a phone (Help sits in the closed menu).
+      await expect((await summary.isVisible()) ? summary : tool(page, 'help')).toBeFocused();
+    });
+
+    test('every chrome target is at least 44 px on a phone, menus included', async ({
+      page,
+    }, testInfo) => {
+      test.skip(
+        testInfo.project.name !== 'mobile',
+        'Coarse-pointer sizing is checked on the phone.'
+      );
+      await page.goto(`${deckUrl}?debug=1#/cover/0`);
+      await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
+      const smallest = (selector: string) =>
+        page.locator(selector).evaluateAll(
+          (nodes) =>
+            nodes
+              .filter((node) => node.getClientRects().length > 0)
+              .map((node) => {
+                const box = node.getBoundingClientRect();
+                return { size: Math.min(box.width, box.height), name: node.textContent?.trim() };
+              })
+              .sort((a, b) => a.size - b.size)[0]
+        );
+      const expectTargets = async (selector: string) => {
+        const target = await smallest(selector);
+        expect(target, `no visible ${selector}`).toBeTruthy();
+        expect(target?.size, `${target?.name} is under 44 px`).toBeGreaterThanOrEqual(44);
+      };
+      expect(await openMore(page)).toBe(true);
+      await expect(page.locator('[data-py-deck-more-menu]')).toBeVisible();
+      await expectTargets('[data-py-deck-chrome-root] button, [data-py-deck-more] summary');
+      await page.locator('[data-py-deck-more] summary').click();
+      await clickTool(page, 'jump');
+      await expect(page.getByRole('listbox', { name: 'Choose a slide' })).toBeVisible();
+      await expectTargets('[data-py-deck-slide-list] [role="option"]');
+      await page.keyboard.press('Escape');
+      await clickTool(page, 'help');
+      await expect(page.getByRole('dialog', { name: 'Controls and shortcuts' })).toBeVisible();
+      await expectTargets('[role="dialog"] button');
+      await page.keyboard.press('Escape');
+      await root(page).focus();
+      await page.keyboard.press('d');
+      await expect(page.locator('[data-py-deck-debug]')).toBeVisible();
+      await expectTargets('[data-py-deck-debug] button');
+    });
+
+    test('reduced motion removes the chrome fades', async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await openDeck(page);
+      await root(page).focus();
+      await page.keyboard.press('Tab');
+      await expect(page.getByRole('tooltip')).toBeVisible({ timeout: 2_000 });
+      // themes/base.css turns every transition into 0.01 ms: instant.
+      const durations = await page.locator('[data-py-deck-app] *').evaluateAll((nodes) =>
+        nodes
+          .map((node) => getComputedStyle(node))
+          .filter(
+            (style) => style.transitionProperty !== 'none' && style.transitionProperty !== 'all'
+          )
+          .flatMap((style) =>
+            style.transitionDuration.split(',').map((value) => Number.parseFloat(value))
+          )
+          .filter((seconds) => seconds > 0.001)
+      );
+      expect(durations).toEqual([]);
+      const animated = await page.evaluate(() =>
+        document
+          .getAnimations()
+          .map((animation) => Number(animation.effect?.getComputedTiming().duration ?? 0))
+          .filter((ms) => ms > 1)
+      );
+      expect(animated).toEqual([]);
     });
   });
 });

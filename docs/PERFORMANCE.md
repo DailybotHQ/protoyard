@@ -1758,14 +1758,14 @@ Measured 2026-10-22 (Node 26.11.1, Vite 8.3.4):
 
 | Import | Gzip beyond entry | Ceiling | Result |
 | --- | ---: | ---: | --- |
-| Root dispatcher | 2.10 KB | 3 KB | Pass |
+| Root dispatcher | 2.82 KB (2,891 B, 2026-10-22) | 3 KB | Pass |
 | Text | 11.98 KB | 12.8 KB (estimate was 6 KB) | Pass |
 | Media | 2.93 KB | 4 KB | Pass |
 | Data | 4.64 KB (4,751 B; 4,999 B before the sort and filter controls moved to their own chunk) | 5 KB | Pass |
-| Structure | 12.55 KB | 13.5 KB (estimate was 8 KB) | Pass |
+| Structure | 13.12 KB (13,431 B, 2026-10-22; the card image is its own chunk) | 13.5 KB (estimate was 8 KB) | Pass |
 | Code | 3.94 KB | 6 KB | Pass |
 | Diagram | 4.81 KB | 6 KB | Pass |
-| Interactive | 19.06 KB | 20.4 KB (estimate was 10 KB) | Pass |
+| Interactive | 19.47 KB (19,933 B, 2026-10-22, with the quiz's inline formatter) | 20.4 KB (estimate was 10 KB) | Pass |
 | Map | 1.02 KB | 4 KB | Pass |
 | Embed | 2.17 KB | 2.4 KB (estimate was 2 KB) | Pass |
 

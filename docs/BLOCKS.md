@@ -1473,6 +1473,12 @@ hosted content, not arbitrary embedded HTML. Every stateful or hosted block
 requires a stable `id`; the closed list is exported as `STATEFUL_BLOCK_TYPES`,
 with the remaining types in `STATIC_BLOCK_TYPES`.
 
+A quiz prompt or explanation is short Markdown: bold, italic and inline code
+keep their emphasis and a link shows its text (the interactive family uses a
+small inline formatter rather than the full renderer). A card `image` follows
+the block media policy (a library avatar, a bounded `data:` image or a relative
+path) and loads on its own chunk, only for cards that have one.
+
 Use the generated catalog above for each type's `useWhen`, `dontUseWhen`,
 limits and accessibility guidance. It is rendered from `BLOCK_CATALOG`; do not
 edit its contents by hand. The family and type lists are exported from

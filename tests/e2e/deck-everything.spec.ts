@@ -90,4 +90,14 @@ test.describe('the everything deck', () => {
       }
     });
   }
+
+  // The catalog quiz showed `**tone**` literally before T-a11y-mobile. (The card
+  // image fix needs a build that ships avatars: content-kinds-a11y.spec.ts.)
+  test('the quiz formats its Markdown prompt', async ({ page }) => {
+    await page.goto(`${deckUrl}?deck=everything#/poll-quiz/0`);
+    await settled(page, 'poll-quiz');
+    const legend = page.locator('[data-py-deck-slide="poll-quiz"] legend', { hasText: 'tone' });
+    await expect(legend).toHaveText('What does a tone replace?');
+    await expect(legend.locator('strong')).toHaveText('tone');
+  });
 });
