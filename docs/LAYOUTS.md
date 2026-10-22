@@ -116,9 +116,12 @@ Desktop layouts use container queries. Below their catalog width they fall
 back to mobile tabs, mobile drawer, or—in the dual-sidebar chain—the sidebar
 before its own mobile fallback. Mobile tabs show up to five destinations and
 put the remainder in a **More** sheet. Mobile drawer keeps the complete model
-in a side drawer. The tabs and mobile header stay in normal flow around one
-scrollable content area; test that the active shell does not cover primary
-inputs.
+in a side drawer. The first `nav.actions` entry, when present, is rendered as
+the mobile tab bar's primary action; later actions remain in the header. The
+tab bar stays in normal flow, includes horizontal and bottom safe-area padding,
+and exposes badge values as part of each destination's accessible name. The
+mobile header and tabs stay around one scrollable content area; test that the
+active shell does not cover primary inputs.
 
 A layout inside a phone, tablet, browser, desktop window or panel should size
 to the app container, not the browser viewport. Prefer container queries to
