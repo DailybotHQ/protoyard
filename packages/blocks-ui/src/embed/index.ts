@@ -1,6 +1,7 @@
 /**
- * `@protoyard/blocks-ui/embed` — embed-app: a level-1 app mounted through the host's mountEmbed.
- * Reserved by T-blocks-scaffold-packages; filled by T-blocks-ui-embed-app of
- * PLAN_005_create_anything_decks_and_kits. No runtime exports yet.
+ * `@protoyard/blocks-ui/embed` — embed-app: framed preview with a start button.
+ * `host.mountEmbed(target, app)` runs only after the click (KINDS supplies the
+ * host and validates with loadUntrustedBlueprint). No app code loads before then.
  */
-export {};
+export { default as BlockFamilyRenderer } from './BlockFamilyRenderer.svelte';
+export { default as EmbedApp } from './EmbedApp.svelte';
