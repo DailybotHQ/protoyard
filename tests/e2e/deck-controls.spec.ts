@@ -191,7 +191,6 @@ test.describe('deck chrome controls', () => {
 
   test.describe('visible feedback (T-print-and-feedback)', () => {
     test('copying the slide reference is confirmed visibly', async ({ page }) => {
-      test.fail(true, 'The result goes only to an sr-only live region (DeckToolbar.svelte:108).');
       await openDeck(page);
       await page.evaluate(() => {
         Object.defineProperty(navigator, 'clipboard', {
@@ -205,10 +204,6 @@ test.describe('deck chrome controls', () => {
     });
 
     test('the copied reference names the slide, not its id twice', async ({ page }) => {
-      test.fail(
-        true,
-        'currentReference reads only the top-level slide.title (DeckApp.svelte:377); layout titles in props are ignored, so the label falls back to the id (reference.ts:41).'
-      );
       await openDeck(page);
       await page.evaluate(() => {
         const w = window as typeof window & { __copied?: string };
@@ -231,10 +226,6 @@ test.describe('deck chrome controls', () => {
     });
 
     test('the laser shows where it is as soon as it is turned on', async ({ page }) => {
-      test.fail(
-        true,
-        'The dot renders only after a pointermove over the stage (LaserPointer.svelte:21).'
-      );
       await openDeck(page);
       await root(page).focus();
       await page.keyboard.press('l');
@@ -244,10 +235,6 @@ test.describe('deck chrome controls', () => {
 
     test('the laser works with touch', async ({ page }, testInfo) => {
       test.skip(testInfo.project.name !== 'mobile', 'Touch is exercised in the mobile project.');
-      test.fail(
-        true,
-        'A tap shows no dot (pointerleave follows at once) and clicks are ignored while the laser is on (decide.ts:262).'
-      );
       await openDeck(page);
       await (await visibleControl(page, tool(page, 'laser'))).tap();
       const stage = await page.locator('[data-py-deck-stage-area]').boundingBox();
@@ -257,10 +244,6 @@ test.describe('deck chrome controls', () => {
     });
 
     test('blackout says how to come back', async ({ page }) => {
-      test.fail(
-        true,
-        'The blackout is a bare black button; its hint is only an aria-label (BlackoutScreen.svelte:20).'
-      );
       await openDeck(page);
       await clickTool(page, 'blackout');
       await expect(page.locator('[data-py-deck-blackout]')).toBeVisible();

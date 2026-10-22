@@ -3,17 +3,26 @@ import './print.css';
 
 /**
  * Opens the browser print dialog. Marked `data-py-print-button` so the print
- * stylesheet hides the control on paper.
+ * stylesheet hides the control on paper. A host with its own print layout
+ * (DeckApp's one slide per page) passes `onprint` to switch to it first; other
+ * hosts keep the default, which calls `window.print()`.
  */
 let {
   label = 'Print',
   class: className = '',
+  onprint,
 }: {
   label?: string;
   class?: string;
+  /** Replaces the default `window.print()`. */
+  onprint?: () => void;
 } = $props();
 
 function print(): void {
+  if (onprint) {
+    onprint();
+    return;
+  }
   if (typeof window !== 'undefined' && typeof window.print === 'function') {
     window.print();
   }

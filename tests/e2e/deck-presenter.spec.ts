@@ -139,7 +139,7 @@ test.describe('presenter view', () => {
     await expect(view.locator('[data-py-presenter-next-notes]')).toContainText('Pause here');
 
     // The presenter's own controls drive the deck, and the view follows.
-    await split(page).getByRole('button', { name: 'Next' }).click();
+    await split(page).getByRole('button', { name: 'Next', exact: true }).click();
     await expectSlide(page, 'divider');
     await expect(view.locator('[data-py-presenter-position]')).toHaveText(
       `2 / ${SLIDE_ORDER.length}`
@@ -148,11 +148,11 @@ test.describe('presenter view', () => {
     await expect(view.locator('[data-py-presenter-next-title]')).toContainText('path');
     await expect(view.locator('[data-py-presenter-next-notes]')).toHaveText('No notes.');
 
-    await split(page).getByRole('button', { name: 'Next' }).click();
+    await split(page).getByRole('button', { name: 'Next', exact: true }).click();
     await expect(view.locator('[data-py-presenter-notes]')).toHaveText(
       'No speaker notes for this slide.'
     );
-    await split(page).getByRole('button', { name: 'Previous' }).click();
+    await split(page).getByRole('button', { name: 'Previous', exact: true }).click();
     await expectSlide(page, 'divider');
 
     await split(page).getByRole('button', { name: 'Close presenter' }).click();
@@ -175,7 +175,7 @@ test.describe('presenter view', () => {
     await expect(
       split(page).locator('[data-py-presenter-fallback-reason][data-reason="no-broadcast"]')
     ).toContainText('BroadcastChannel is unavailable');
-    await split(page).getByRole('button', { name: 'Next' }).click();
+    await split(page).getByRole('button', { name: 'Next', exact: true }).click();
     await expectSlide(page, 'divider');
   });
 
@@ -192,7 +192,7 @@ test.describe('presenter view', () => {
     await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('01:05');
 
     // A new slide restarts the slide timer; the elapsed timer keeps running.
-    await split(page).getByRole('button', { name: 'Next' }).click();
+    await split(page).getByRole('button', { name: 'Next', exact: true }).click();
     await page.clock.runFor(10_000);
     await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('00:10');
     await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:15');

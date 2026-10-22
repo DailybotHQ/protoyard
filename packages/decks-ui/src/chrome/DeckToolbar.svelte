@@ -30,6 +30,7 @@ let {
   environment = DEFAULT_DECK_CONTROL_ENVIRONMENT,
   onaction,
   onjump = () => {},
+  oncopied,
 }: {
   blackout?: boolean;
   laser?: boolean;
@@ -46,6 +47,11 @@ let {
   environment?: DeckControlEnvironment;
   onaction: (action: DeckInputAction) => void;
   onjump?: (slideId: string) => void;
+  /**
+   * The copy result, for a host that shows it (DeckApp's toast). Without it
+   * the toolbar announces the result in its own live region.
+   */
+  oncopied?: (ok: boolean) => void;
 } = $props();
 
 let compact = $state(false);
@@ -112,8 +118,13 @@ function keysFor(control: DeckControl): string | undefined {
 async function activate(control: DeckControl): Promise<void> {
   const action = actionFor(control);
   if (action === 'copy-link') {
+    const ok = await copyText(reference());
+    if (oncopied) {
+      oncopied(ok);
+      return;
+    }
     clearTimeout(copyTimer);
-    copyStatus = (await copyText(reference())) ? 'copied' : 'failed';
+    copyStatus = ok ? 'copied' : 'failed';
     copyTimer = setTimeout(() => (copyStatus = 'idle'), 2_500);
     return;
   }
@@ -244,7 +255,9 @@ $effect(() => () => {
   {/if}
 
   <ChromeTooltip {tooltip} />
-  <span class="sr-only" role="status" aria-live="polite" data-py-deck-copy-status>
-    {copyStatus === 'copied' ? 'Slide reference copied' : copyStatus === 'failed' ? 'Could not copy the slide reference' : ''}
-  </span>
+  {#if !oncopied}
+    <span class="sr-only" role="status" aria-live="polite" data-py-deck-copy-status>
+      {copyStatus === 'copied' ? 'Slide reference copied' : copyStatus === 'failed' ? 'Could not copy the slide reference' : ''}
+    </span>
+  {/if}
 </div>
