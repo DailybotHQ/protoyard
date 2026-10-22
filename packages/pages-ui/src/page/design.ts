@@ -113,15 +113,15 @@ export function pageNavItems(page: Pick<PageDocument, 'sections' | 'nav'>): Page
   }));
 }
 
-// Paths never start with `//` or `/\` and never hold a backslash: browsers read
-// `\` as `/` in http(s) URLs, so `/\evil.example` would be protocol-relative.
-const SAFE_HREF = /^(#[A-Za-z0-9_-]*|\/(?![/\\])[^\s\\]*|https?:\/\/[^\s\\]+|mailto:[^\s]+)$/i;
+// The same policy as the block schema's LinkHrefSchema: in-page fragments,
+// https and mailto. No backslash anywhere (browsers read `\` as `/`).
+const SAFE_HREF = /^(#[A-Za-z0-9_\-/]*|https:\/\/[^\s\\]+|mailto:[^\s\\]+)$/i;
 
 /**
- * A link target the page may use: in-page hashes, same-site paths, http(s)
- * and mailto. Anything else (`javascript:`, `data:`, protocol-relative,
- * backslash tricks) is
- * null. The block schema already rejects these; this is the second fence.
+ * A link target the page may use: in-page fragments, https and mailto, as the
+ * block schema allows. Anything else (`http:`, paths, `javascript:`, `data:`,
+ * protocol-relative and backslash tricks) is null. The block schema already
+ * rejects these; this is the second fence and must never be looser.
  */
 export function safePageHref(href: string): string | null {
   const value = href.trim();
