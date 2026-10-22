@@ -78,6 +78,33 @@ and `list` read data-only files without running code (ADR-003). Review
 prototypes, templates and blueprints from untrusted sources before running
 any of these, exactly as you would any repository.
 
+## Fixture hygiene (generated worlds and scenario sources)
+
+Generated scenario data and the source files under `src/scenarios`,
+`src/database`, `src/domain` and `fixtures/` must stay fictional
+(AGENTS.md rule 7). `@protoyard/scenarios` exposes a read-only scanner:
+
+| API | Role |
+| --- | --- |
+| `scanFixtureText` / `scanFixtureWorld` / `scanFixtureValue` | Flag real-looking email domains and common secret/token shapes |
+| `scanFixtureFiles` | Same rules with `file:path:line` locations for sources |
+| `formatFixtureFinding` | Actionable diagnostic lines (domain or pattern name only — never the matched secret) |
+
+Allowed email domains match the public-hygiene rules: `example.com` /
+`example.net` / `example.org`, plus `*.example`, `*.test`, `*.invalid` and
+`*.localhost`. Extra exact domains can be passed as `allowEmailDomains`.
+A structured fixture object may set `$fixtureAllow: true` to skip that
+subtree only (no whole-world bypass).
+
+`protoyard validate` runs the same rules as the **fixtures** check on those
+source roots. The check is read-only: it never rewrites fixture files. A
+failing check prints paths and fix hints; clean fictional addresses pass.
+
+```bash
+pnpm vitest run packages/scenarios/tests/fixture-guard.test.ts
+pnpm vitest run packages/cli/tests/commands/validate.test.ts
+```
+
 ## Rules for contributors and agents
 
 - Never commit secrets, tokens, `.env` files, real personal data, real

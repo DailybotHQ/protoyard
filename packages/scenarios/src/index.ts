@@ -31,6 +31,21 @@ export {
 } from './context.ts';
 export { createGenerateContext, createSeededFaker } from './context-sync.ts';
 export {
+  ALLOWED_FIXTURE_EMAIL_DOMAINS,
+  FIXTURE_ALLOW_KEY,
+  type FixtureFinding,
+  type FixtureFindingKind,
+  formatFixtureFinding,
+  isAllowedFixtureEmailDomain,
+  type ScanFixtureFileInput,
+  type ScanFixtureOptions,
+  SECRET_PATTERNS,
+  scanFixtureFiles,
+  scanFixtureText,
+  scanFixtureValue,
+  scanFixtureWorld,
+} from './fixture-guard.ts';
+export {
   GEO_REGION_IDS,
   GEO_REGIONS,
   type GeoAnchor,

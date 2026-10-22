@@ -107,6 +107,21 @@ personas/organizations, nobody joining before their organization existed, and no
 dated after the reference time. The runtime runs this on every load using
 `definition.integrity` and throws `WorldIntegrityError` on violations.
 
+## Fixture hygiene: `scanFixtureWorld` / `scanFixtureText`
+
+```ts
+import { scanFixtureWorld } from '@protoyard/scenarios';
+
+const findings = scanFixtureWorld(world);
+// findings: { kind, path, rule, message, detail }[] — never echoes secret text
+```
+
+Flags real-looking email domains (outside `example.com` / `*.example` / …) and
+common secret shapes. Read-only; optional `$fixtureAllow: true` on a structured
+subtree. `protoyard validate` runs the same scan on scenario sources.
+Full reference: [docs/SCENARIOS.md](../../docs/SCENARIOS.md#fixture-hygiene-emails-and-secrets)
+and [docs/SECURITY.md](../../docs/SECURITY.md#fixture-hygiene-generated-worlds-and-scenario-sources).
+
 ## Timeline: `dailyEvents`, named sources and local zones
 
 ```ts

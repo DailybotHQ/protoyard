@@ -1,8 +1,13 @@
-import { existsSync } from 'node:fs';
+import { type Dirent, existsSync, readdirSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { closestIds } from '@protoyard/blueprint';
 import { MANIFEST_FILENAME, type PrototypeManifest } from '@protoyard/core';
+import {
+  formatFixtureFinding,
+  type ScanFixtureFileInput,
+  scanFixtureFiles,
+} from '@protoyard/scenarios';
 import { BUILTIN_THEMES, THEME_LIBRARY_META } from '@protoyard/themes';
 import { buildPrototype } from '../lib/build.ts';
 import { checkBlueprintDrift, SNAPSHOT_PATH } from '../lib/codegen/regenerate.ts';
@@ -102,6 +107,100 @@ export function checkPackage(dir: string, slug: string, kind: 'prototype' | 'tem
   if (problems.length > 0)
     return check('package', 'package.json', 'fail', [...problems, ...warnings]);
   return check('package', 'package.json', warnings.length > 0 ? 'warn' : 'pass', warnings);
+}
+
+/** Source roots scanned for real-looking emails and secret shapes (read-only). */
+export const FIXTURE_SCAN_ROOTS = [
+  'src/scenarios',
+  'src/database',
+  'src/domain',
+  'src/fixtures',
+  'fixtures',
+] as const;
+
+const FIXTURE_SCAN_EXTENSIONS = new Set([
+  '.ts',
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.json',
+  '.md',
+  '.txt',
+  '.csv',
+]);
+
+const FIXTURE_SCAN_SKIP_DIRS = new Set(['node_modules', 'dist', '.git', 'coverage', '.protoyard']);
+
+/**
+ * Lists text files under the fixture scan roots. Pure discovery; never writes.
+ * Exported for unit tests.
+ */
+export function listFixtureScanFiles(dir: string): string[] {
+  const out: string[] = [];
+  const walk = (abs: string) => {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(abs, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith('.') && entry.name !== '.env.example') continue;
+      const child = join(abs, entry.name);
+      if (entry.isDirectory()) {
+        if (FIXTURE_SCAN_SKIP_DIRS.has(entry.name)) continue;
+        if (isSymlink(child)) continue;
+        walk(child);
+        continue;
+      }
+      if (!entry.isFile() || isSymlink(child)) continue;
+      const lower = entry.name.toLowerCase();
+      const dot = lower.lastIndexOf('.');
+      const ext = dot >= 0 ? lower.slice(dot) : '';
+      if (!FIXTURE_SCAN_EXTENSIONS.has(ext)) continue;
+      try {
+        if (statSync(child).size > 1_000_000) continue;
+      } catch {
+        continue;
+      }
+      out.push(child);
+    }
+  };
+  for (const root of FIXTURE_SCAN_ROOTS) {
+    const abs = join(dir, root);
+    if (!existsSync(abs) || isSymlink(abs)) continue;
+    walk(abs);
+  }
+  // Prefer a stable order for diagnostics and snapshots.
+  return out.sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Scans prototype fixture sources for real-looking emails and secret shapes.
+ * Read-only: never rewrites files. Findings never include matched secret text.
+ */
+export async function checkFixtureHygiene(dir: string): Promise<Check> {
+  const label = 'Fixture hygiene (emails and secrets)';
+  const files = listFixtureScanFiles(dir);
+  if (files.length === 0) {
+    return check('fixtures', label, 'skip', [
+      'no src/scenarios, src/database, src/domain or fixtures sources to scan',
+    ]);
+  }
+  const inputs: ScanFixtureFileInput[] = [];
+  for (const abs of files) {
+    try {
+      const text = await readFile(abs, 'utf8');
+      inputs.push({ path: toPosixRelative(dir, abs) || relative(dir, abs), text });
+    } catch {
+      // Unreadable files are skipped; validate still reports other checks.
+    }
+  }
+  const findings = scanFixtureFiles(inputs, { maxFindings: 50 });
+  if (findings.length === 0) {
+    return check('fixtures', label, 'pass', [`scanned ${inputs.length} file(s)`]);
+  }
+  return check('fixtures', label, 'fail', findings.map(formatFixtureFinding));
 }
 
 /**
@@ -371,6 +470,8 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
       : check('symlinks', 'No symlinks leaving the folder', 'pass')
   );
   checks.push(checkPackage(dir, slug, kind));
+  // Read-only scan of scenario/database sources; never mutates fixture files.
+  checks.push(await checkFixtureHygiene(dir));
 
   let inspection: Inspection | null = null;
   if (parsed.manifest) {
