@@ -3,9 +3,22 @@
  * (ADR-036, ADR-039). Svelte hosts live in `@protoyard/pages-ui`.
  *
  * Document schemas validate the payload bodies after KINDS parses the kind
- * union. Limits, TOC builders and form-response services arrive in later tasks.
+ * union. Limits are published for the untrusted loader (KINDS wires them).
  */
 
+export {
+  checkDocDocumentLimits,
+  checkFormResponseLimits,
+  checkPageDocumentLimits,
+  DOC_LIMITS,
+  type DocLimits,
+  type DocumentLimitIssue,
+  type DocumentLimitResult,
+  jsonDepth,
+  PAGE_LIMITS,
+  type PageLimits,
+  UNTRUSTED_PAGE_DOC_HINT,
+} from './limits.ts';
 export {
   type DocDocument,
   DocDocumentSchema,

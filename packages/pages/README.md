@@ -45,9 +45,44 @@ responses UI.
 Unknown keys fail. Over-limit arrays fail. Section ids, anchors, nav fragments
 and form refs are cross-checked.
 
+
+## Limits (untrusted and authoring)
+
+| Export | Role |
+| --- | --- |
+| `PAGE_LIMITS` | Page caps: sections, blocks/section, form fields/options, response bytes/count, JSON bytes/depth |
+| `DOC_LIMITS` | Doc caps: max blocks, toc depth, shared form-response ceilings |
+| `checkPageDocumentLimits` / `checkDocDocumentLimits` | Never-throw size and count guards on raw JSON |
+| `checkFormResponseLimits` | Guard one response `values` blob and list length |
+| `UNTRUSTED_PAGE_DOC_HINT` | Snapshot for KINDS to wire into `blueprint` untrusted loader |
+
+Default numbers (also enforced structurally by the document schemas where noted):
+
+| Cap | Page | Doc |
+| --- | --- | --- |
+| JSON bytes | 512 KiB | 512 KiB |
+| JSON depth | 24 | 24 |
+| Sections | 32 | — |
+| Blocks / section | 24 | — |
+| Doc body blocks | — | 200 |
+| Form fields (untrusted ceiling) | 32 | 32 |
+| Field options | 32 | 32 |
+| Response values bytes | 8 KiB | 8 KiB |
+| Responses per form | 500 | 500 |
+
+```ts
+import { PAGE_LIMITS, checkPageDocumentLimits } from '@protoyard/pages';
+
+const gate = checkPageDocumentLimits(rawJson);
+if (!gate.ok) console.error(gate.issues);
+```
+
+**KINDS note:** copy `UNTRUSTED_PAGE_DOC_HINT` into `packages/blueprint/src/untrusted.ts`
+(or a content-kind branch) so paste/link loads refuse oversized page/doc bodies
+before full schema parse. This package does not patch the blueprint loader.
+
 ## Coming next
 
-- `PAGE_LIMITS` / `DOC_LIMITS` for the untrusted loader
 - Pure TOC builder
 - `formResponses` services and minimal runtimes
 - `PageApp` / `DocApp` in `@protoyard/pages-ui`
