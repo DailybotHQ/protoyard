@@ -214,7 +214,10 @@ async function main() {
         let violations: ReturnType<ScenarioTools['validateWorld']>;
         try {
           violations = tools.validateWorld(world, { referenceTime: scenario.referenceTime });
-          const actorExists = world.personas.some((p) => p.id === scenario.actor.id);
+          // A world with no personas at all is a signed-out start (the runtime
+          // accepts it; registration creates the first person), not a missing actor.
+          const actorExists =
+            world.personas.length === 0 || world.personas.some((p) => p.id === scenario.actor.id);
           if (!actorExists) {
             violations.unshift({
               table: 'py_personas',
