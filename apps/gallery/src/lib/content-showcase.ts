@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import {
   CONTENT_EXAMPLES,
@@ -12,6 +12,8 @@ import { openInPlayerUrlForEntry } from './open-in-player.ts';
  * The content examples resolved at static-build time: title and description
  * from each blueprint, its slide or section count, and a hosted-player share
  * link. Build-time only (reads the repository), like `openInPlayerUrlForEntry`.
+ * A workspace without the repository's examples (the gallery installed as a
+ * package in a consumer project) gets only the ones it has, often none.
  */
 
 export interface ContentShowcaseCard {
@@ -43,8 +45,11 @@ function countParts(blueprint: Record<string, unknown>, kind: ContentExample['ki
 }
 
 export async function contentShowcaseCards(root = workspaceRoot()): Promise<ContentShowcaseCard[]> {
+  const present = CONTENT_EXAMPLES.filter((example) =>
+    existsSync(join(root, contentExamplePath(example)))
+  );
   return Promise.all(
-    CONTENT_EXAMPLES.map(async (example) => {
+    present.map(async (example) => {
       const path = contentExamplePath(example);
       const blueprint = JSON.parse(readFileSync(join(root, path), 'utf8')) as Record<
         string,

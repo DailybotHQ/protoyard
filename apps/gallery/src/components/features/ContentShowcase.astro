@@ -1,6 +1,6 @@
 ---
 import { CONTENT_KIND_LABELS, FLAGSHIP_SLIDES, flagshipSlideCover } from '@/lib/content-examples';
-import { contentShowcaseCards } from '@/lib/content-showcase';
+import type { ContentShowcaseCard } from '@/lib/content-showcase';
 import { withBase } from '@/lib/format';
 import { prototypes } from '@/lib/registry';
 
@@ -12,11 +12,12 @@ import { prototypes } from '@/lib/registry';
  * Static: no client islands.
  */
 interface Props {
+  /** From contentShowcaseCards(); the page renders this only when there is one. */
+  cards: ContentShowcaseCard[];
   variant?: 'home' | 'full';
 }
 
-const { variant = 'full' } = Astro.props;
-const cards = await contentShowcaseCards();
+const { cards, variant = 'full' } = Astro.props;
 const flagship = cards.find((card) => card.example.prototype);
 const others = cards.filter((card) => card !== flagship);
 const flagshipEntry = flagship?.example.prototype

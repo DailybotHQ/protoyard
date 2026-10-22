@@ -5,6 +5,7 @@ import ContentShowcase from '@/components/features/ContentShowcase.astro';
 import FeatureCards from '@/components/features/FeatureCards.astro';
 import ProjectCard from '@/components/ProjectCard.svelte';
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { contentShowcaseCards } from '@/lib/content-showcase';
 import { withBase } from '@/lib/format';
 import {
   compact,
@@ -32,6 +33,7 @@ const firstRun = registryError
       ? 'empty'
       : null;
 const invalidCount = registry?.invalid.length ?? 0;
+const contentCards = await contentShowcaseCards();
 ---
 
 <BaseLayout active="home">
@@ -90,26 +92,30 @@ const invalidCount = registry?.invalid.length ?? 0;
     </div>
   </section>
 
-  <section class="mb-14" aria-labelledby="content-title">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div class="max-w-3xl">
-        <p class="text-sm font-medium text-accent-fg">New</p>
-        <h2 id="content-title" class="mt-1 text-xl font-semibold tracking-tight">Slide decks, landing pages and documents</h2>
-        <p class="mt-1 text-sm text-muted">
-          Ask for a deck on any topic and present it in the browser: designed layouts, live charts, polls, quizzes and
-          even a working app inside a slide, all from one JSON file.
-        </p>
+  {
+    contentCards.length > 0 && (
+    <section class="mb-14" aria-labelledby="content-title">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div class="max-w-3xl">
+          <p class="text-sm font-medium text-accent-fg">New</p>
+          <h2 id="content-title" class="mt-1 text-xl font-semibold tracking-tight">Slide decks, landing pages and documents</h2>
+          <p class="mt-1 text-sm text-muted">
+            Ask for a deck on any topic and present it in the browser: designed layouts, live charts, polls, quizzes and
+            even a working app inside a slide, all from one JSON file.
+          </p>
+        </div>
+        <a
+          href={withBase('/features/#content')}
+          class="text-sm font-medium text-accent-fg underline-offset-2 hover:underline"
+          >Every example</a
+        >
       </div>
-      <a
-        href={withBase('/features/#content')}
-        class="text-sm font-medium text-accent-fg underline-offset-2 hover:underline"
-        >Every example</a
-      >
-    </div>
-    <div class="mt-5">
-      <ContentShowcase variant="home" />
-    </div>
-  </section>
+      <div class="mt-5">
+        <ContentShowcase cards={contentCards} variant="home" />
+      </div>
+    </section>
+    )
+  }
 
   {
     firstRun ? (
