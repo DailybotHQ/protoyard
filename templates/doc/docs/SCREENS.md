@@ -1,3 +1,4 @@
 # Screens
 
-Single scroll doc surface (PageApp / DocApp). No entity list routes.
+Single continuous **document** surface (`DocApp` / `DocHost`). No entity list
+or multi-route app shell. TOC and optional feedback form live in the same scroll.

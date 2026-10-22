@@ -4,7 +4,7 @@
   "name": "Northwind support quarterly report",
   "description": "A fictional one-page quarterly report for a support team: summary, headline numbers, a ticket chart, a channel table, milestones and next steps.",
   "tags": ["report", "one-pager", "support"],
-  "icon": "📄",
+  "icon": "\ud83d\udcc4",
   "category": "reports",
   "doc": {
     "id": "northwind-quarterly-report",
@@ -18,7 +18,7 @@
         "type": "heading",
         "id": "title",
         "level": 1,
-        "eyebrow": "Q3 2026 · Fictional data",
+        "eyebrow": "Q3 2026 \u00b7 Fictional data",
         "text": "Northwind support quarterly report",
         "subtitle": "Northwind Labs is a fictional company; every number below is example data."
       },
@@ -151,6 +151,35 @@
       {
         "type": "text",
         "markdown": "Prepared by the fictional support operations team. Contact: support-ops@northwind.example."
+      },
+      {
+        "type": "heading",
+        "id": "feedback",
+        "level": 2,
+        "text": "Feedback"
+      },
+      {
+        "type": "form",
+        "id": "reader-feedback",
+        "title": "Reader feedback",
+        "description": "This form is **simulated**. Responses stay in this browser.",
+        "fields": [
+          {
+            "name": "email",
+            "label": "Email",
+            "type": "email",
+            "required": true,
+            "placeholder": "you@example.com"
+          },
+          {
+            "name": "notes",
+            "label": "What stood out?",
+            "type": "longText",
+            "maxLength": 400
+          }
+        ],
+        "submitLabel": "Send feedback",
+        "successMessage": "Thanks \u2014 this was a simulated submit."
       }
     ]
   }
