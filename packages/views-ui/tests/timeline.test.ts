@@ -83,6 +83,36 @@ describe('TimelineView', () => {
     expect(document.querySelectorAll('.task-bar.critical')).toHaveLength(3);
   });
 
+  it('shows undated work in a keyboard-operable tray and focuses milestones', async () => {
+    const onOpen = vi.fn();
+    const current = [...TASKS, { id: 'backlog', title: 'Backlog item', progress: 0 }];
+    setup({ query: query(current as Task[]), onOpen });
+    const trayItem = screen.getByRole('button', { name: 'Backlog item' });
+    expect(trayItem.closest('[aria-label="Unscheduled tasks"]')).toBeTruthy();
+    await fireEvent.click(trayItem);
+    expect(onOpen).toHaveBeenCalledWith(current[3]);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Milestones only' }));
+    expect(
+      screen.getByRole('button', { name: /Launch, October 26, 2026.*milestone/ })
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Design, October 19/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Show all tasks' })).toBeTruthy();
+  });
+
+  it('orders rows by stable groups and announces row truncation', () => {
+    setup({
+      getGroup: (task: Task) => ({
+        id: task.id === 'launch' ? 'milestones' : 'work',
+        label: task.id === 'launch' ? 'Milestones' : 'Work',
+      }),
+      maxRows: 2,
+    });
+    expect(screen.getByRole('status').textContent).toContain('Showing 2 of 3 scheduled tasks');
+    expect(screen.getAllByText('Work')).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: /Launch, October 26/ })).toBeNull();
+  });
+
   it('previews a dependency cascade and commits it from the keyboard', async () => {
     const onReschedule = vi.fn(async (_changes: readonly TaskChange[]) => {});
     setup({ onReschedule });

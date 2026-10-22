@@ -110,6 +110,11 @@ accepts navigation and content snippets and builds a table of contents from
 visible h2 and h3 headings. All three can also host the routed outlet through
 `LayoutHost`.
 
+Rich views remain screen content inside these page structures. For example,
+`TimelineView` keeps its grouped schedule, milestone focus, unscheduled tray
+and truncation notice inside the active route; the shared layout owns page
+navigation and responsive chrome, while the timeline owns its task controls.
+
 ## Responsive rules and shells
 
 Desktop layouts use container queries. Below their catalog width they fall

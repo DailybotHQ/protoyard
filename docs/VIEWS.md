@@ -15,7 +15,7 @@ in [`@protoyard/views-ui`](../packages/views-ui/README.md) and
 | --- | --- | --- |
 | Move work across columns, optionally split by swimlane | `BoardView` from `board` | ranks, WIP limits, validated moves, keyboard drag state |
 | Browse dated events or bookings | `CalendarView` from `calendar` | calendar math, recurrence expansion and series splitting |
-| Plan task durations, links and critical path | `TimelineView` from `timeline` | working-day schedule, dependency validation, cascade and critical path |
+| Plan task durations, links and critical path | `TimelineView` from `timeline` | working-day schedule, dependency validation, cascade and critical path; stable grouping, milestone focus, an unscheduled tray and explicit row truncation |
 | Explore and edit many records | `DataGrid`, `FilterBuilder`, `SavedViews` from `grid` | virtualization, sorting, grouping, filters and saved view state |
 | Browse a hierarchy or edit an outline | `TreeView`, `OutlineEditor` from `tree` | tree indexing, cycle-safe moves, ranks and outline operations |
 | Show locations in a fictional offline city | `SimulatedMap` from `map` | projection, markers, clustering, routes and geofences |
@@ -78,7 +78,7 @@ its integrity checks.
 | --- | --- | --- |
 | Board | Space picks up and drops; arrows move; Shift + Up/Down changes lane; Escape cancels; Enter opens | One column per screen with snap scrolling; touch drag starts at the grip |
 | Calendar | Arrows move focus; Enter opens or creates; Space grabs; arrows reschedule; Enter saves; Escape cancels | Agenda is the default below `sm` |
-| Timeline | Tab reaches task bars; Space picks up or Shift+Space resizes the end; ←/→ adjusts dates; Enter saves; Escape cancels | Date canvas is hidden; rows show compact schedule bars and dates |
+| Timeline | Tab reaches task bars, milestone focus, unscheduled items and group controls; Space picks up or Shift+Space resizes the end; ←/→ adjusts dates; Enter saves; Escape cancels | Date canvas is hidden; rows show compact schedule bars and dates |
 | Grid | Roving ARIA grid; arrows, Home/End, Ctrl+Home/End, PageUp/Down; header controls sort, pin, resize and reorder | Rows become cards; saved views, filters and density stay in the toolbar |
 | Tree / outline | Tree arrows, Home/End, typeahead; Enter/Space select; outline Enter creates, Tab indents, Shift+Tab outdents | Tree scrolls within its view; touch row moves start at the grip |
 | Map | Arrow keys pan; + / − zoom; 0 fits all; Escape clears selection; marker list has roving focus | Map controls and the synchronized marker list remain available |
@@ -91,6 +91,15 @@ its integrity checks.
 
 The component reference has each view's full shortcut list and callback
 behavior. These views respect reduced-motion preferences where they animate.
+
+`TimelineView` accepts `getGroup(task)` to provide a stable group id and label;
+group order follows the first task in each group and task order within each
+group is preserved. Items without both dates stay visible in the unscheduled
+tray and open through `onOpen`. The Milestones only control filters scheduled
+rows while retaining the tray. `maxRows` defaults to 500; when more rows are
+available the view announces the visible and total counts and can call
+the user to narrow the window. Undated items never enter dependency calculation
+or rescheduling until the owning service supplies dates.
 
 ## Bundle measurements
 

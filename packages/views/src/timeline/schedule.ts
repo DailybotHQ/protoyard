@@ -18,6 +18,60 @@ export interface ScheduleTask {
   milestone?: boolean;
 }
 
+/** A timeline row may be awaiting dates; only dated rows participate in scheduling. */
+export interface TimelineItem {
+  id: string;
+  start?: IsoDate;
+  end?: IsoDate;
+  milestone?: boolean;
+}
+
+export interface TimelineModel<T extends TimelineItem> {
+  unscheduled: T[];
+  visible: T[];
+  truncatedCount: number;
+  totalScheduled: number;
+}
+
+/**
+ * Stable display model for grouped Gantt rows. Group order follows first
+ * appearance, task order within groups follows input order, and undated rows
+ * are kept in a separate tray rather than being assigned invented dates.
+ */
+export function timelineModel<T extends TimelineItem>(
+  items: readonly T[],
+  options: {
+    getGroup?: (item: T) => { id: string; label: string } | undefined;
+    maxRows?: number;
+    milestonesOnly?: boolean;
+  } = {}
+): TimelineModel<T> {
+  const maxRows = options.maxRows ?? 500;
+  if (!Number.isInteger(maxRows) || maxRows < 1)
+    throw new RangeError('maxRows must be a positive integer');
+  const unscheduled: T[] = [];
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    if (!item.start || !item.end) {
+      unscheduled.push(item);
+      continue;
+    }
+    if (options.milestonesOnly && !item.milestone) continue;
+    const id = options.getGroup?.(item)?.id ?? 'all';
+    const group = groups.get(id) ?? [];
+    if (!groups.has(id)) groups.set(id, group);
+    group.push(item);
+  }
+  const ordered = [...groups.values()].flat();
+  const visible = ordered.slice(0, maxRows);
+  return {
+    unscheduled,
+    visible,
+    truncatedCount: ordered.length - visible.length,
+    totalScheduled: ordered.length,
+  };
+}
+
 export const DEPENDENCY_TYPES = ['FS', 'SS', 'FF', 'SF'] as const;
 export type DependencyType = (typeof DEPENDENCY_TYPES)[number];
 
