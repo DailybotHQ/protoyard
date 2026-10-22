@@ -1,0 +1,47 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "local.create-anything-deck",
+  "slug": "create-anything-deck",
+  "kind": "prototype",
+  "blueprintKind": "deck",
+  "name": "Protoyard: create anything",
+  "description": "The flagship deck: what Protoyard builds from a single JSON file, shown with every layout family, live charts, interactive blocks and an app embedded in a slide.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "presentation",
+  "tags": ["deck", "presentation", "slides"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Presentation deck",
+    "platforms": ["web"],
+    "features": ["slide-deck", "deck-studio", "interactive-blocks"],
+    "highlights": [
+      "Shared DeckApp renderer with keyboard navigation",
+      "A data-only blueprint that can be edited safely",
+      "Optional Deck Studio in DevTools"
+    ],
+    "difficulty": "beginner"
+  },
+  "status": "ready",
+  "icon": "🎞️",
+  "defaultScenario": "default",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": {
+    "viewport": "desktop"
+  },
+  "storage": {
+    "namespace": "create-anything-deck",
+    "schemaVersion": 1
+  },
+  "build": {
+    "includeDevtools": true,
+    "demoBadge": true,
+    "base": "./"
+  },
+  "scenarios": ["default"],
+  "template": "deck",
+  "createdAt": "2026-10-22T04:53:20.311Z",
+  "updatedAt": "2026-10-22T04:53:20.311Z"
+}

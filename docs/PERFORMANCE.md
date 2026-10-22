@@ -1052,7 +1052,7 @@ entry of the Vite manifest:
 
 | Page | Initial JS (gzip -9) | Initial CSS | All CSS it can load |
 | --- | ---: | ---: | ---: |
-| `index.html` (any blueprint) | 120.5 KB (123,350 B) | 20.1 KB | 28.5 KB |
+| `index.html` (any blueprint) | 120.5 KB (123,349 B) | 20.1 KB | 28.5 KB |
 | `deck.html` | 121.7 KB | 18.1 KB | 26.4 KB |
 | `page.html` | 121.7 KB | 18.3 KB | 26.6 KB |
 | `doc.html` | 121.7 KB | 18.3 KB | 26.6 KB |
@@ -1065,9 +1065,24 @@ entry of the Vite manifest:
   is 2 KB smaller.
 - The kind boot and its renderer load after the source resolves, as from
   `index.html`.
-- The test proves that the app boot, the CRUD shell, Faker, the world worker
-  and the app kits are absent from every kind page's initial graph, and caps
-  each page at 125 KB of initial JS and the 30 KB CSS budget.
+`packages/player/tests/kind-budget.test.ts` independently walks the built
+manifest with each HTML page treated as its only entry. It enforces the
+configured 250 KB JS / 30 KB CSS limits for `index.html` and the per-kind
+150 KB JS / 30 KB CSS limits for deck, page and doc. Its failure messages
+include raw gzip bytes and the configured cap. It also checks each content
+kind's static graph for Faker, world-generation workers, CRUD screens/app and
+DevTools; those can remain in dynamic chunks and load only on demand. The
+older `budget.test.ts` keeps its tighter 125 KB regression cap for the three
+content-kind entries.
+
+Latest measured initial gzip bytes (2026-10-22):
+
+| Entry | Initial JS | Initial CSS | Configured JS / CSS cap |
+| --- | ---: | ---: | ---: |
+| `index.html` (app) | 123,349 B | 20,627 B | 250 KB / 30 KB |
+| `deck.html` | 124,643 B | 18,516 B | 150 KB / 30 KB |
+| `page.html` | 124,644 B | 18,688 B | 150 KB / 30 KB |
+| `doc.html` | 124,642 B | 18,688 B | 150 KB / 30 KB |
 
 **Deck UI entry (measured 2026-10-21).**
 `packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
@@ -1178,11 +1193,11 @@ blueprint (desktop and phone, light and dark), with axe and layout-fit
 findings. The player does not add shots to the normal prototype sweep, and
 these screenshots are review artifacts rather than a performance budget.
 
-## Player: blueprint to ready (measured 2026-10-20)
+## Player: blueprint to ready (app baseline measured 2026-10-20)
 
-`scripts/bench-player.ts` serves a copy of the built player on an OS-assigned port. It
-measures every blueprint in fresh headless Chromium contexts (empty IndexedDB, world
-cache and HTTP cache):
+`scripts/bench-player.ts` serves a copy of the already-built player on an OS-assigned
+port. The app-only measurements below are the 2026-10-20 baseline, in fresh headless
+Chromium contexts (empty IndexedDB, world cache and HTTP cache):
 - **First visit:** the blueprint arrives as a `#bp=` link, or `?src=` when it is too
   large. The player decodes it, generates `active` in its worker and seeds.
 - **Repeat:** a reload, which reuses the stored world.
@@ -1196,7 +1211,7 @@ budget is set yet.
 
 ```bash
 pnpm --filter @protoyard/player build
-pnpm exec tsx scripts/bench-player.ts --runs 3   # [--blueprints crm,clinic] [--no-large]
+pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app
 ```
 
 The run below is the median of 3 contexts on an Apple M1 Max (10 cores, 64 GB), macOS
@@ -1212,6 +1227,47 @@ for switches.
 | lms | `#bp=` 1,757 chars | 215 ms (200 ms) | 76 ms | 55 ms | 8.4 ms |
 | project-management | `#bp=` 1,672 chars | 218 ms (204 ms) | 107 ms | 62 ms | 7.9 ms |
 | large fixture (40 entities) | `#bp=` 4,746 chars | 368 ms (355 ms) | 140 ms | 93 ms | 66 ms |
+
+### App, deck, page and doc kind runs
+
+The benchmark also covers one catalog example for each content kind. The player build
+must finish before measurement; build time is excluded. Each run uses a fresh Chromium
+context, opens the catalog example as a share link, then reloads it in that same context
+to record cold and repeat ready times. Both are timed from navigation start to the
+`protoyard:ready` mark. Each kind also records the runtime's `world-ready` mark. Deck,
+page and doc runs record the first rendered slide, page section or document block as
+`firstContentMs`; app runs leave that field `null`. Only apps have scenario-switch
+measurements. The report records Chromium, Node, OS and machine details, and remains
+report-only with no adopted threshold.
+
+```bash
+pnpm --filter @protoyard/player build
+pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc
+ls tmp/bench-player-*.json
+```
+
+Choose a subset with `--kinds app,deck,page,doc`. The app set uses the familiar catalog
+blueprints; deck, page and doc each use their dedicated catalog example. `--blueprints`
+still selects app examples, and `--no-large` omits the app stress fixture. Generated JSON
+under `tmp/` contains per-example samples, medians, and nullable fields when a measurement
+does not apply. One three-run sample on 2026-10-22 (Apple M1 Max, 10 cores, 64 GB, macOS
+27.0, Node 26.11.1, Chromium 156.0.8078.4) produced these medians:
+
+| Kind / example | Cold ready | World ready | First content | Repeat ready |
+| --- | ---: | ---: | ---: | ---: |
+| App / crm | 211.8 ms | 196.4 ms | — | 86.0 ms |
+| App / clinic | 210.5 ms | 195.9 ms | — | 86.5 ms |
+| App / logistics | 184.2 ms | 169.2 ms | — | 74.9 ms |
+| App / lms | 214.4 ms | 199.6 ms | — | 86.6 ms |
+| App / project-management | 298.8 ms | 283.4 ms | — | 143.0 ms |
+| Deck / harbor-ops-pitch | 288.4 ms | 276.7 ms | 318.6 ms | 216.2 ms |
+| Page / tidewater-roasters-landing | 169.6 ms | 157.2 ms | 187.2 ms | 147.3 ms |
+| Doc / northwind-quarterly-report | 165.3 ms | 153.0 ms | 184.0 ms | 129.6 ms |
+
+The content mark can follow `protoyard:ready` while a kind's lazy renderer paints its first
+content. Treat these measurements as a machine-specific observation, not a budget; do not
+compare them with the 2026-10-20 app baseline without accounting for load and browser
+versions.
 
 During a cache hit, the runtime's generate phase takes 2–5 ms (inflating and
 validating the stored world), compared with a full generation on a miss. The large
