@@ -182,7 +182,7 @@ function contentRuntimeModule(kind: keyof typeof CONTENT_BLUEPRINT_TYPES): strin
 import { defineKindRuntime, type AnyContentBlueprint } from '@protoyard/blueprint/kinds';
 import { parseManifest } from '@protoyard/core';
 import { blueprint } from './generated/blueprint.ts';
-import manifestJson from './protoyard.json';
+import manifestJson from '../protoyard.json';
 
 const manifest = parseManifest(manifestJson);
 const contentBlueprint = blueprint as ${typeName};
@@ -201,6 +201,25 @@ definition.manifest.status = manifest.status;
 `;
 }
 
+/**
+ * The deck template's App, main and prototype read `./deck-blueprint.ts`; a
+ * generated deck points it at the generated blueprint, so the prototype shows
+ * the user's deck rather than the template's sample (kinds parity test).
+ */
+function deckBlueprintModule(): string {
+  return `import type { DeckBlueprint } from '@protoyard/blueprint';
+import { blueprint } from './generated/blueprint.ts';
+
+/** The generated deck (blueprint.json is the single source of truth). */
+export const deckBlueprint: DeckBlueprint = blueprint;
+`;
+}
+
+/** Template files a generated prototype of this kind leaves out (the template's own sample data). */
+export function kindTemplateFilesRemoved(kind: Exclude<AnyBlueprint, Blueprint>['kind']): string[] {
+  return kind === 'deck' ? ['src/blueprint.json'] : [];
+}
+
 /** Kind emission stays small and has no entity schema, services or tests. */
 export function emitContentKindPrototype(
   blueprint: Exclude<AnyBlueprint, Blueprint>,
@@ -211,6 +230,7 @@ export function emitContentKindPrototype(
     owned('blueprint.json', blueprintText),
     generated('src/generated/blueprint.ts', contentBlueprintModule(kind)),
     generated('src/prototype.ts', contentRuntimeModule(kind)),
+    ...(kind === 'deck' ? [generated('src/deck-blueprint.ts', deckBlueprintModule())] : []),
   ];
 }
 

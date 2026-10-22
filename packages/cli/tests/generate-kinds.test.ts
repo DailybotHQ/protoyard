@@ -96,9 +96,17 @@ describe('protoyard generate content kinds', () => {
       }>();
       expect(first.data).toMatchObject({ kind, template: kind });
       expect(first.data.generated.sort()).toEqual([
+        ...(kind === 'deck' ? ['src/deck-blueprint.ts'] : []),
         'src/generated/blueprint.ts',
         'src/prototype.ts',
       ]);
+      if (kind === 'deck') {
+        // The deck template's App reads deck-blueprint.ts: it must show this deck, not the sample.
+        const deckModule = read(`prototypes/${slug}/src/deck-blueprint.ts`);
+        expect(deckModule).toContain("from './generated/blueprint.ts'");
+        expect(checkHeader(deckModule)).toEqual({ generated: true, intact: true });
+        expect(existsSync(join(ws.root, 'prototypes', slug, 'src/blueprint.json'))).toBe(false);
+      }
 
       const generatedBlueprint = read(`prototypes/${slug}/src/generated/blueprint.ts`);
       expect(generatedBlueprint).toContain('parseAnyBlueprint');
@@ -110,6 +118,7 @@ describe('protoyard generate content kinds', () => {
       const formatted = biomeFormatCheck(ws, [
         `prototypes/${slug}/src/generated/blueprint.ts`,
         `prototypes/${slug}/src/prototype.ts`,
+        ...(kind === 'deck' ? [`prototypes/${slug}/src/deck-blueprint.ts`] : []),
       ]);
       expect(formatted.code, formatted.output).toBe(0);
       for (const path of [
