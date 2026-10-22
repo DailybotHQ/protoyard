@@ -42,6 +42,7 @@ export {
   type ButtonVariant,
   buttonVariants,
 } from './components/button/button-variants.ts';
+export { default as ChipGroup } from './components/ChipGroup.svelte';
 export { default as Card } from './components/card/Card.svelte';
 export { default as CardContent } from './components/card/CardContent.svelte';
 export { default as CardDescription } from './components/card/CardDescription.svelte';
@@ -61,6 +62,7 @@ export type {
   ChatMessageStatus,
 } from './components/chat/types.ts';
 export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
+export type { ChipOption } from './components/chip-group-types.ts';
 export { default as Combobox } from './components/combobox/Combobox.svelte';
 export { default as CommandPalette } from './components/command-palette/CommandPalette.svelte';
 export type {
@@ -141,6 +143,7 @@ export { default as Label } from './components/label/Label.svelte';
 export { default as LoadingState } from './components/loading-state/LoadingState.svelte';
 export { default as MobileAppShell } from './components/mobile-app-shell/MobileAppShell.svelte';
 export { default as MobileHeader } from './components/mobile-header/MobileHeader.svelte';
+export { default as NumberStepper } from './components/NumberStepper.svelte';
 export { default as Notice } from './components/notice/Notice.svelte';
 export {
   NOTICE_DEFAULT_ICONS,
@@ -183,6 +186,7 @@ export { default as RadioGroup } from './components/radio-group/RadioGroup.svelt
 export { default as RadioGroupItem } from './components/radio-group/RadioGroupItem.svelte';
 export type { RadioOption } from './components/radio-group/types.ts';
 export { default as ScenarioSwitcher } from './components/ScenarioSwitcher.svelte';
+export { default as StarRating } from './components/StarRating.svelte';
 export { default as SafeArea } from './components/safe-area/SafeArea.svelte';
 export { default as Select } from './components/select/Select.svelte';
 export type { SelectOption } from './components/select/types.ts';

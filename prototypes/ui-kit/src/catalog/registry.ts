@@ -134,10 +134,54 @@ export const DEMOS: Record<string, CatalogDemo> = {
     { value: 'starter', label: 'Starter', description: 'Up to 3 projects' },
     { value: 'team', label: 'Team' },
   ]}
-/>`,
+/>
+<RadioGroup variant="card" bind:value={plan} items={[…]} />`,
     a11y: [
       'role="radiogroup" with roving focus: Tab enters the group, arrow keys move and select.',
       'Give the group a name with aria-labelledby (or aria-label); item labels use <label for>.',
+      'variant="card" wraps each option in a full-width selectable card; the radio stays the focus target.',
+    ],
+  },
+  'star-rating': {
+    load: demo('StarRatingDemo'),
+    snippet: `<script lang="ts">
+  import { StarRating } from '@protoyard/ui';
+  let score = $state(0);
+</script>
+
+<StarRating label="Experience" bind:value={score} />`,
+    a11y: [
+      'role="radiogroup" of star radios; arrow keys, Home and End move with wrap (roving tabindex).',
+      'Live region announces "N of 5" (or "Not rated"); each star has an accessible name.',
+    ],
+  },
+  'number-stepper': {
+    load: demo('NumberStepperDemo'),
+    snippet: `<script lang="ts">
+  import { NumberStepper } from '@protoyard/ui';
+  let guests = $state(2);
+</script>
+
+<NumberStepper label="Guests" bind:value={guests} min={1} max={12} />`,
+    a11y: [
+      'role="spinbutton" with aria-valuenow/min/max; Arrow keys, Home and End adjust the value.',
+      'Decrease/Increase buttons have explicit aria-labels; the label is required.',
+    ],
+  },
+  'chip-group': {
+    load: demo('ChipGroupDemo'),
+    snippet: `<script lang="ts">
+  import { ChipGroup } from '@protoyard/ui';
+  let tags = $state<string[]>(['design']);
+</script>
+
+<ChipGroup label="Topics" mode="multi" bind:value={tags} items={[
+  { value: 'design', label: 'Design' },
+  { value: 'eng', label: 'Engineering' },
+]} />`,
+    a11y: [
+      'Single mode is a radiogroup with roving arrows; multi mode uses aria-pressed toggles (Space/Enter).',
+      'Disabled options stay out of the tab order and are skipped by arrows.',
     ],
   },
   switch: {
