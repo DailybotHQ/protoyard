@@ -67,6 +67,27 @@ Templates that start in a shell: `chat-widget` (`widget-host`), `plugin-panel`
 (`side-panel`), `desktop-app` (`desktop-window`), and `crud-app`, `ai-assistant` and
 `team-chat` (`browser`). `mobile-app` prototypes get `phone` through `auto`.
 
+## Adaptive overlay (sheet / dialog / side panel)
+
+`AdaptiveOverlay` from `@protoyard/ui` renders one content snippet as a bottom
+sheet on a narrow host and as a centered dialog or side panel on a wider host.
+It composes the shared `BottomSheet`, `Dialog` and `DetailPanel` primitives so
+focus trap, Escape, titles and close controls stay identical to opening those
+components directly.
+
+- **Host width by default:** measures the nearest `[data-py-app-host]`, `#app` or
+  `document.documentElement` (or an explicit `host` element) with a
+  `ResizeObserver`. The breakpoint is 768 CSS px (`ADAPTIVE_OVERLAY_BREAKPOINT`).
+- **Wide kind:** `kind="dialog"` (default) or `kind="side-panel"`.
+- **Force:** `force="sheet" | "dialog" | "side-panel"` skips measurement (useful
+  with an in-app phone/desktop toggle). `force="auto"` is the default.
+- **Stacking:** `Dialog`, `AlertDialog`, `BottomSheet`, `DetailPanel` and `Drawer`
+  register with `overlayStack`, so a dialog opened inside a drawer paints above
+  it and Escape closes only the top layer. `UndoToaster` stays above the stack
+  and remains keyboard-reachable outside a modal drawer's focus trap.
+
+Unit coverage: `packages/ui/tests/adaptive-overlay.test.ts`.
+
 ## Adaptive phone and desktop presentation
 
 An app that offers both a phone experience and a desktop experience can opt in to

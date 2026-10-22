@@ -6,6 +6,10 @@ import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
+import { isUndoToasterTarget } from '../overlay/focus-exempt.ts';
+import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
+import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
+import { undoToast } from '../toast/undo.svelte.ts';
 
 type Props = Omit<DialogPrimitive.ContentProps, 'children' | 'child' | 'title'> & {
   open?: boolean;
@@ -19,6 +23,8 @@ type Props = Omit<DialogPrimitive.ContentProps, 'children' | 'child' | 'title'> 
   children?: Snippet;
   closeLabel?: string;
   onOpenChange?: (open: boolean) => void;
+  /** Defaults to the shared stack; pass one to isolate a subtree (tests). Read once at mount. */
+  stack?: OverlayStack;
 };
 
 let {
@@ -32,34 +38,67 @@ let {
   children,
   closeLabel = 'Close panel',
   onOpenChange,
+  stack = overlayStack,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
+// svelte-ignore state_referenced_locally
+const layer = useOverlayLayer(() => open, { modal: () => true, stack });
+const trapFocus = $derived(undoToast.items.length === 0);
 
 const widths = { sm: 'sm:max-w-sm', md: 'sm:max-w-md', lg: 'sm:max-w-xl', xl: 'sm:max-w-3xl' };
+
+function setOpen(next: boolean): void {
+  if (open === next) return;
+  open = next;
+  onOpenChange?.(next);
+}
+
+function handleEscape(event: KeyboardEvent): void {
+  event.preventDefault();
+  if (!layer.stack.isTop(layer.entry)) return;
+  if (layer.stack.dismissLayerFor(event, ref)) return;
+  setOpen(false);
+}
+
+function handleInteractOutside(event: PointerEvent): void {
+  if (isUndoToasterTarget(event.target) || !layer.stack.isTop(layer.entry)) {
+    event.preventDefault();
+  }
+}
+
+function handleCloseAutoFocus(event: Event): void {
+  event.preventDefault();
+  layer.restoreFocus(ref);
+}
 </script>
 
-<DialogPrimitive.Root bind:open {onOpenChange}>
+<DialogPrimitive.Root open={open} onOpenChange={setOpen}>
   {#if trigger}
     <DialogPrimitive.Trigger>
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
     </DialogPrimitive.Trigger>
   {/if}
   <DialogPrimitive.Portal to={portal.current}>
-    <DialogPrimitive.Overlay class={overlayBackdrop} />
+    <DialogPrimitive.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
     <DialogPrimitive.Content
       bind:ref
+      trapFocus={trapFocus}
+      onEscapeKeydown={handleEscape}
+      onInteractOutside={handleInteractOutside}
+      onCloseAutoFocus={handleCloseAutoFocus}
       class={cn(
         // Phone: near full-screen bottom sheet. Larger screens: right-hand side panel.
-        'fixed inset-x-0 bottom-0 z-50 flex h-[calc(var(--py-app-height)-1.5rem)] flex-col rounded-t-2xl border border-border bg-elevated text-foreground shadow-float outline-none ui-anim-panel',
+        'fixed inset-x-0 bottom-0 flex h-[calc(var(--py-app-height)-1.5rem)] flex-col rounded-t-2xl border border-border bg-elevated text-foreground shadow-float outline-none ui-anim-panel',
         'sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:w-full sm:rounded-none sm:rounded-l-2xl sm:border-y-0 sm:border-r-0',
         widths[size],
         className
       )}
       {...rest}
+      style={`z-index:${layer.zIndex}`}
     >
       <div class="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30 sm:hidden" aria-hidden="true"></div>
       <div class="flex items-start gap-3 border-b border-border px-5 pt-4 pb-4 sm:pt-5">

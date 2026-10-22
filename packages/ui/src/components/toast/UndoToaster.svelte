@@ -1,9 +1,11 @@
 <script lang="ts">
 import { Undo2, X } from '@lucide/svelte';
 import { Portal } from 'bits-ui';
+import { onMount } from 'svelte';
 import { cn } from '../../lib/cn.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import Button from '../button/Button.svelte';
+import { installUndoToasterFocusExemption, UNDO_TOASTER_ATTR } from '../overlay/focus-exempt.ts';
 import { useOverlayTopZIndex } from '../overlay/use-overlay-layer.svelte.ts';
 import { undoToast } from './undo.svelte.ts';
 
@@ -19,6 +21,9 @@ const portal = useOverlayPortalTarget();
 // Above every open drawer, so an undo offered from inside one stays visible.
 const topZ = useOverlayTopZIndex();
 const zIndex = $derived(Math.max(60, topZ.current));
+
+// Install before any modal opens when possible (app-root toaster mounts first).
+onMount(() => installUndoToasterFocusExemption());
 
 const politeText = $derived(
   undoToast.announcement && !undoToast.announcement.assertive ? undoToast.announcement.text : ''
@@ -51,6 +56,7 @@ function handleKeydown(event: KeyboardEvent): void {
 
   <section
     aria-label={label}
+    {...{ [UNDO_TOASTER_ATTR]: '' }}
     style={`z-index:${zIndex}`}
     class={cn(
       'pointer-events-none fixed inset-x-0 bottom-0 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]',

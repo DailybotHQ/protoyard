@@ -5,6 +5,10 @@ import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
+import { isUndoToasterTarget } from '../overlay/focus-exempt.ts';
+import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
+import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
+import { undoToast } from '../toast/undo.svelte.ts';
 import { prefersReducedMotion, shouldDismissSwipe } from './swipe.ts';
 
 type Props = Omit<DialogPrimitive.ContentProps, 'children' | 'child' | 'title'> & {
@@ -19,6 +23,8 @@ type Props = Omit<DialogPrimitive.ContentProps, 'children' | 'child' | 'title'> 
   onOpenChange?: (open: boolean) => void;
   /** Drag the handle/header down to close (Esc and the backdrop always work). */
   swipeToDismiss?: boolean;
+  /** Defaults to the shared stack; pass one to isolate a subtree (tests). Read once at mount. */
+  stack?: OverlayStack;
 };
 
 let {
@@ -31,12 +37,40 @@ let {
   children,
   onOpenChange,
   swipeToDismiss = true,
+  stack = overlayStack,
   class: className,
   ref = $bindable(null),
   ...rest
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
+// svelte-ignore state_referenced_locally
+const layer = useOverlayLayer(() => open, { modal: () => true, stack });
+const trapFocus = $derived(undoToast.items.length === 0);
+
+function setOpen(next: boolean): void {
+  if (open === next) return;
+  open = next;
+  onOpenChange?.(next);
+}
+
+function handleEscape(event: KeyboardEvent): void {
+  event.preventDefault();
+  if (!layer.stack.isTop(layer.entry)) return;
+  if (layer.stack.dismissLayerFor(event, ref)) return;
+  setOpen(false);
+}
+
+function handleInteractOutside(event: PointerEvent): void {
+  if (isUndoToasterTarget(event.target) || !layer.stack.isTop(layer.entry)) {
+    event.preventDefault();
+  }
+}
+
+function handleCloseAutoFocus(event: Event): void {
+  event.preventDefault();
+  layer.restoreFocus(ref);
+}
 
 let drag = $state<{ id: number; startY: number; startAt: number; dy: number } | null>(null);
 let settling = $state(false);
@@ -66,10 +100,7 @@ function onpointerup(event: PointerEvent) {
   // Snap back smoothly unless the user asked for reduced motion.
   settling = !prefersReducedMotion(ref);
   if (settling) setTimeout(() => (settling = false), 220);
-  if (dismiss) {
-    open = false;
-    onOpenChange?.(false);
-  }
+  if (dismiss) setOpen(false);
 }
 
 const dragStyle = $derived(
@@ -77,23 +108,27 @@ const dragStyle = $derived(
 );
 </script>
 
-<DialogPrimitive.Root bind:open {onOpenChange}>
+<DialogPrimitive.Root open={open} onOpenChange={setOpen}>
   {#if trigger}
     <DialogPrimitive.Trigger>
       {#snippet child({ props })}{@render trigger({ props })}{/snippet}
     </DialogPrimitive.Trigger>
   {/if}
   <DialogPrimitive.Portal to={portal.current}>
-    <DialogPrimitive.Overlay class={overlayBackdrop} />
+    <DialogPrimitive.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
     <DialogPrimitive.Content
       bind:ref
+      trapFocus={trapFocus}
+      onEscapeKeydown={handleEscape}
+      onInteractOutside={handleInteractOutside}
+      onCloseAutoFocus={handleCloseAutoFocus}
       class={cn(
-        'fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[calc(var(--py-app-height)*0.9)] w-full max-w-lg flex-col rounded-t-2xl border border-b-0 border-border bg-elevated text-foreground shadow-float outline-none ui-anim-sheet',
+        'fixed inset-x-0 bottom-0 mx-auto flex max-h-[calc(var(--py-app-height)*0.9)] w-full max-w-lg flex-col rounded-t-2xl border border-b-0 border-border bg-elevated text-foreground shadow-float outline-none ui-anim-sheet',
         settling && 'transition-transform duration-200 ease-out',
         className
       )}
       {...rest}
-      style={dragStyle}
+      style={[dragStyle, `z-index:${layer.zIndex}`].filter(Boolean).join(';')}
     >
       <!-- Drag zone: the handle and header. Pointer-only by design; keyboard users close with Esc. -->
       <div
