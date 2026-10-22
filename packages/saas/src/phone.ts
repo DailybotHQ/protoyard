@@ -12,7 +12,7 @@ export const PHONE_CODE_TOAST_ID = 'saas-phone-otp-code';
 
 const PHONE_TOKEN_KIND = 'phone-otp';
 // SaasToken retains its email field for compatibility with the shared token table.
-const PHONE_TOKEN_EMAIL = 'phone-otp@example.com';
+const PHONE_CHALLENGE_EMAIL = 'phone-otp@example.com';
 const TOKENS = 'saas_tokens';
 const LOG = 'saas_sessions_log';
 const PHONE_RE = /^\+[1-9]\d{6,14}$/;
@@ -160,7 +160,7 @@ export function createPhoneServices(
         const token: SaasToken = {
           id: createRuntimeId('phoneotp'),
           kind: PHONE_TOKEN_KIND,
-          email: PHONE_TOKEN_EMAIL,
+          email: PHONE_CHALLENGE_EMAIL,
           accountId: null,
           payload: {
             phone: data.phone,
