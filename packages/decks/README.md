@@ -6,18 +6,27 @@ not rendering: the deck schema, the layout catalog, navigation, steps, style
 resolution and quality rules. It has no Svelte and does not use Reveal.js.
 [`@protoyard/decks-ui`](../decks-ui/README.md) renders it.
 
-> **Status:** scaffolding. Today the package exports the virtual canvas sizes,
-> the canvas text minimums and the aspect schema. The deck schema, layout
-> catalog, navigation model, input guard, steps and motion, style resolver,
-> backgrounds and quality rules land in later PLAN_005 tasks. This README
-> lists only what exists.
+> **Status:** the bounded deck schema and virtual canvas are implemented.
+> The layout catalog, navigation model, input guard, steps and motion, style
+> resolver, backgrounds and quality rules land in later PLAN_005 tasks. This
+> README lists only what exists.
 
 ## Exports
 
 | Subpath | Exports |
 | --- | --- |
 | `@protoyard/decks` | `DECK_ASPECTS`, `DeckAspect`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DeckCanvasSize`, `DECK_TEXT_MINIMUMS` |
-| `@protoyard/decks/schema` | `DeckAspectSchema` (zod). This is where `@protoyard/blueprint`'s `kind: "deck"` branch imports the deck schema from. |
+| `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, slide and outline schemas, `DeckJsonSchema`, `safeParseDeck`, and the bounded deck types. `@protoyard/blueprint`'s `kind: "deck"` branch imports the schema from here. |
+
+`DeckSchema` accepts catalog slides (`layout` plus bounded JSON `props`) and
+free slides (`layout: "free"` plus validated `@protoyard/blocks` content).
+Decks are limited to 200 slides; slide ids are unique lowercase slugs; notes
+are capped at 2,000 characters. Optional outlines group existing slide ids
+into named sections. Strict objects reject unknown fields. `DeckJsonSchema` is
+the Draft 2020-12 JSON Schema derived from the same Zod schema.
+
+`safeParseDeck(value)` returns either the typed deck or issues with a stable
+`jsonPath` for authoring feedback.
 
 ## The virtual canvas
 

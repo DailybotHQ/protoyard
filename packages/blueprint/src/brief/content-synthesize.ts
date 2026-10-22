@@ -2,12 +2,17 @@
  * Kind-specific brief synthesizers for deck, page and doc (ADR-036).
  * Called by `blueprintFromBrief` after kind detection, before any app
  * archetype scoring. Output is honest draft scaffolding: stable ids, no
- * fabricated facts. Richer outline templates land in later authoring tasks.
+ * fabricated facts. Page and doc section outlines live in `page-doc-outlines.ts`.
  */
 import { hashString } from '@protoyard/core';
 import type { ContentKind } from '../kinds/kind.ts';
 import type { BriefKindDetection } from './kind-detection.ts';
-import { boundBriefInput, MAX_CONTENT_BRIEF_LENGTH as CONTENT_CAP } from './limits.ts';
+import {
+  applyOutlineBounds,
+  boundBriefInput,
+  MAX_CONTENT_BRIEF_LENGTH as CONTENT_CAP,
+} from './limits.ts';
+import { buildDocOutline, buildPageOutline } from './page-doc-outlines.ts';
 import { normalize, titleCase } from './text.ts';
 
 /** Longer briefs are cut here (same cap as app synthesis). */
@@ -106,10 +111,32 @@ export function synthesizeDeckFromBrief(
   const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
   const source = bound.brief;
   const name = pickName(source, 'deck', options.name);
-  const title = firstSentence(source) || name;
+  const title = (firstSentence(source) || name).slice(0, 80);
+  const slides = [
+    {
+      id: 'slide-title',
+      role: 'title',
+      title,
+      body: 'Add the opening claim here.',
+    },
+    {
+      id: 'slide-agenda',
+      role: 'agenda',
+      title: 'Agenda',
+      body: 'List the sections you will cover.',
+    },
+    {
+      id: 'slide-close',
+      role: 'close',
+      title: 'Next steps',
+      body: 'Close with a clear ask or summary.',
+    },
+  ];
+  const clipped = applyOutlineBounds({ kind: 'deck', title, slides });
   const rationale = [
-    ...bound.notices,
     detection.reason,
+    ...bound.notices,
+    ...clipped.notices,
     'Deck outline: generic (title, agenda, close). Richer pitch/QBR/lesson templates land in deck-outlines.',
     'Slide bodies are placeholders — no fabricated facts.',
   ];
@@ -119,36 +146,17 @@ export function synthesizeDeckFromBrief(
     outline: 'generic',
     rationale,
     json: {
-      ...base('deck', name, title.slice(0, 280)),
+      ...base('deck', name, (clipped.outline.title ?? title).slice(0, 280)),
       deck: {
-        title: title.slice(0, 80),
+        title: (clipped.outline.title ?? title).slice(0, 80),
         aspect: '16:9',
-        slides: [
-          {
-            id: 'slide-title',
-            role: 'title',
-            title: title.slice(0, 80),
-            body: 'Add the opening claim here.',
-          },
-          {
-            id: 'slide-agenda',
-            role: 'agenda',
-            title: 'Agenda',
-            body: 'List the sections you will cover.',
-          },
-          {
-            id: 'slide-close',
-            role: 'close',
-            title: 'Next steps',
-            body: 'Close with a clear ask or summary.',
-          },
-        ],
+        slides: clipped.outline.slides ?? slides,
       },
     },
   };
 }
 
-/** Minimal page: hero, sections, footer. */
+/** Page outlines (landing, pricing, waitlist, generic) with bounded blocks. */
 export function synthesizePageFromBrief(
   brief: string,
   detection: BriefKindDetection,
@@ -156,49 +164,33 @@ export function synthesizePageFromBrief(
 ): ContentBriefResult {
   const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
   const source = bound.brief;
-  const name = pickName(source, 'page', options.name);
-  const title = firstSentence(source) || name;
-  const rationale = [
-    ...bound.notices,
-    detection.reason,
-    'Page outline: generic (hero, sections, footer). Richer landing templates land in page-doc-outlines.',
-    'Interactive forms and persistence are omitted here (PAGES lane owns them).',
-  ];
+  const built = buildPageOutline(source, { title: options.name });
+  const clipped = applyOutlineBounds({
+    kind: 'page',
+    title: built.title,
+    sections: built.sections,
+  });
+  const name = options.name?.trim()
+    ? options.name.trim().slice(0, 80)
+    : pickName(source, 'page', clipped.outline.title ?? built.title);
+  const rationale = [detection.reason, ...bound.notices, ...clipped.notices, ...built.rationale];
   return {
     kind: 'page',
     kindDetection: detection,
-    outline: 'generic',
+    outline: built.outline,
     rationale,
     json: {
-      ...base('page', name, title.slice(0, 280)),
+      ...base('page', name, (clipped.outline.title ?? built.title).slice(0, 280)),
       page: {
-        title: title.slice(0, 80),
-        sections: [
-          {
-            id: 'section-hero',
-            role: 'hero',
-            title: title.slice(0, 80),
-            body: 'Hero placeholder.',
-          },
-          {
-            id: 'section-body',
-            role: 'body',
-            title: 'Details',
-            body: 'Add the main page sections here.',
-          },
-          {
-            id: 'section-footer',
-            role: 'footer',
-            title: 'Footer',
-            body: 'Contact or links placeholder.',
-          },
-        ],
+        title: (clipped.outline.title ?? built.title).slice(0, 80),
+        outline: built.outline,
+        sections: clipped.outline.sections ?? built.sections,
       },
     },
   };
 }
 
-/** Minimal doc: title, summary, body sections. */
+/** Doc outlines (report, handbook, one-pager, proposal, generic) with bounded blocks. */
 export function synthesizeDocFromBrief(
   brief: string,
   detection: BriefKindDetection,
@@ -206,43 +198,27 @@ export function synthesizeDocFromBrief(
 ): ContentBriefResult {
   const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
   const source = bound.brief;
-  const name = pickName(source, 'doc', options.name);
-  const title = firstSentence(source) || name;
-  const rationale = [
-    ...bound.notices,
-    detection.reason,
-    'Doc outline: generic (title, summary, body). Richer report/handbook templates land in page-doc-outlines.',
-    'Section bodies are placeholders — no fabricated facts.',
-  ];
+  const built = buildDocOutline(source, { title: options.name });
+  const clipped = applyOutlineBounds({
+    kind: 'doc',
+    title: built.title,
+    sections: built.sections,
+  });
+  const name = options.name?.trim()
+    ? options.name.trim().slice(0, 80)
+    : pickName(source, 'doc', clipped.outline.title ?? built.title);
+  const rationale = [detection.reason, ...bound.notices, ...clipped.notices, ...built.rationale];
   return {
     kind: 'doc',
     kindDetection: detection,
-    outline: 'generic',
+    outline: built.outline,
     rationale,
     json: {
-      ...base('doc', name, title.slice(0, 280)),
+      ...base('doc', name, (clipped.outline.title ?? built.title).slice(0, 280)),
       doc: {
-        title: title.slice(0, 80),
-        sections: [
-          {
-            id: 'section-title',
-            role: 'title',
-            title: title.slice(0, 80),
-            body: 'Document title block.',
-          },
-          {
-            id: 'section-summary',
-            role: 'summary',
-            title: 'Summary',
-            body: 'One-paragraph summary placeholder.',
-          },
-          {
-            id: 'section-body',
-            role: 'body',
-            title: 'Body',
-            body: 'Add the main document sections here.',
-          },
-        ],
+        title: (clipped.outline.title ?? built.title).slice(0, 80),
+        outline: built.outline,
+        sections: clipped.outline.sections ?? built.sections,
       },
     },
   };

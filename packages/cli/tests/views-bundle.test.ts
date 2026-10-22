@@ -32,14 +32,16 @@ type View = (typeof VIEWS)[number];
  * timeline 8,458); see docs/PERFORMANCE.md → Views kit. Lower them when the
  * kit shrinks. The grid was re-measured on 2026-10-21 at 21,859 after facets,
  * filter chips, saved-view changes and row selection joined it (19,300 before;
- * the optional parts load lazily), so its ceiling is 21,859 + 7 %.
+ * the optional parts load lazily), so its ceiling is 21,859 + 7 %. The editor
+ * was re-measured on 2026-10-21 at 7,090 after slash commands and the safe link
+ * menu joined it (6,452 before), so its ceiling is 7,090 + 7 %.
  */
 export const CEILINGS: Record<View, number> = {
   board: 12_800,
   calendar: 17_200,
   grid: 23_400,
   map: 12_400,
-  editor: 6_900,
+  editor: 7_600,
   timeline: 9_100,
 };
 

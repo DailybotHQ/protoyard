@@ -66,7 +66,12 @@ if (!result.valid) {
 ```
 
 Each diagnostic includes a machine-readable `code`, path segments in `path`, an unambiguous
-`jsonPath`, the original validation `message` and a concise next step in `hint`. `parseBlueprint`
+`jsonPath`, the original validation `message` and a concise next step in `hint`. Block and asset
+failures map to stable codes such as `unknown-block-type`, `invalid-chart-spec`,
+`missing-alt-text`, `unsupported-url-scheme`, `invalid-step-or-fragment-target` and
+`duplicate-block-id`. Use `diagnosticsFromBlockIssues(issues, pathPrefix)` to lift
+`@protoyard/blocks` parse issues into the same shape under a deck/page/doc path. Validation never
+fetches remote assets and never renders untrusted markdown as HTML. `parseBlueprint`
 and `safeParseBlueprint` keep their existing behavior. The helper is in the package entry module
 and is tree-shakeable for consumers that do not import it.
 
@@ -580,7 +585,9 @@ network or model). Kind dispatch runs first (ADR-036):
 1. An explicit `kind` (`app` | `deck` | `page` | `doc`) overrides every cue; unknown kinds throw a
    stable `RangeError`.
 2. Strong deck / page / doc cues route to kind-specific synthesizers **before** app archetype
-   scoring (generic title/agenda/close or section scaffolding — richer outlines land later).
+   scoring. Decks use title/agenda/close scaffolding; pages use landing/pricing/waitlist/generic
+   section outlines; docs use report/handbook/one-pager/proposal/generic outlines (bounded
+   block vocabulary, stable section ids, explicit interactive omissions).
 3. App briefs keep the historical result fields and byte-compatible JSON.
 
 ### Brief and outline bounds (`src/brief/limits.ts`)
@@ -663,6 +670,10 @@ can show as is.
 
 `detectBriefKind` and the content synthesizers (`synthesizeDeckFromBrief`,
 `synthesizePageFromBrief`, `synthesizeDocFromBrief`) are exported from `@protoyard/blueprint`.
+Page/doc section templates live in `buildPageOutline` / `buildDocOutline`
+(`packages/blueprint/src/brief/page-doc-outlines.ts`): ordered sections with draft blocks
+(heading, text, list, cta, …) and rationale lines for omitted interactive features (forms,
+payments, auth). No app entities or roles.
 `blueprintFromBrief` returns `AppBriefResult | ContentBriefResult`; narrow with
 `isAppBriefResult` / `isContentBriefResult`. Content drafts carry `kind`, `outline`, `json` and
 `rationale` (no app `entities` / `roles`); engine body schemas validate them once wired.

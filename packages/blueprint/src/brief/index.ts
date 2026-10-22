@@ -34,6 +34,23 @@ export {
   prepareBriefForSynthesis,
 } from './limits.ts';
 export {
+  buildDocOutline,
+  buildPageOutline,
+  DOC_OUTLINE_IDS,
+  type DocOutlineId,
+  type DocOutlineResult,
+  detectPageDocOmissions,
+  type OutlineBlock,
+  type OutlineBuildOptions,
+  type OutlineSection,
+  PAGE_OUTLINE_IDS,
+  type PageOutlineId,
+  type PageOutlineResult,
+  sectionIds,
+  selectDocOutline,
+  selectPageOutline,
+} from './page-doc-outlines.ts';
+export {
   type AppBriefResult,
   type BriefOptions,
   type BriefResult,

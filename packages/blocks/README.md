@@ -12,9 +12,9 @@ other way round). The Svelte half is
 > **Status:** all 34 block types are defined: static content, containers
 > (`columns`, `tabs`, `reveal`) and interactive blocks (poll, quiz,
 > calculator, counter, chart controls, map, embed-app, form). Authoring
-> metadata ships as `@protoyard/blocks/catalog`. Heavier engines
-> (`./formula`, `./code`, `./diagram`, `./interactive`) and the untrusted
-> guard land in related PLAN_005 tasks.
+> metadata ships as `@protoyard/blocks/catalog`. The framework-free engines
+> (`./formula`, `./code`, `./diagram`, `./interactive`) and untrusted guard
+> are available from their package subpaths.
 
 ## Authoring catalog (`@protoyard/blocks/catalog`)
 
@@ -39,9 +39,6 @@ const check = validateBlocksForAuthoring(input);
 | `MINIMAL_EXAMPLES` / `RICH_EXAMPLES` | The same examples keyed by type |
 
 Runtime renderers must **not** import this subpath (budget: catalog stays out of player bundles). Agents, MCP and deck lint read the catalog instead of free-form prose.
-> calculator, counter, chart controls, map, embed-app, form). The untrusted
-> guard and limits are available; the JSON Schema file and remaining subpath
-> engines land in later PLAN_005 tasks.
 
 ## Rules every block follows
 
@@ -192,6 +189,20 @@ block list, including inside containers.
 | `./code` | Tiny code tokenizer with stepped line highlights; see [Code](#code-protoyardblockscode) | done |
 | `./diagram` | Flow, tree, board and terminal layout math | T-blocks-diagram-models |
 | `./catalog` | `BLOCK_CATALOG` authoring metadata (use-when, limits, examples) | T-blocks-catalog |
+| `./schema` | `blocksJsonSchema()` and the committed draft 2020-12 schema | done |
+
+The schema has one `$defs` entry per block type, references recursive
+containers with `$ref`, and gives every property an authoring description.
+The generated file is `schema/blocks.schema.json` and can be refreshed with:
+
+```bash
+pnpm exec tsx -e 'import { writeFileSync } from "node:fs"; import { blocksJsonSchema } from "./packages/blocks/src/json-schema.ts"; writeFileSync("packages/blocks/schema/blocks.schema.json", `${JSON.stringify(blocksJsonSchema(), null, 2)}\n`);'
+npx biome format --write packages/blocks/schema/blocks.schema.json
+```
+
+`pnpm vitest run packages/blocks/tests/json-schema.test.ts` verifies the
+committed file stays in sync and every catalog example matches the generated
+schema's structural constraints.
 
 ### Diagram models (`@protoyard/blocks/diagram`)
 
@@ -219,8 +230,8 @@ board columns with 8 cards each, and 40 terminal lines. Tree ids and parents
 must form an acyclic forest; board and flow ids are unique. Status colors use
 the shared tone allow-list, never CSS values.
 
-The JSON Schema and the text helpers will also be exported from the root
-entry.
+The JSON Schema is available from `@protoyard/blocks/schema` so users of the
+block runtime do not need to load authoring tooling.
 
 ### Untrusted block documents
 
