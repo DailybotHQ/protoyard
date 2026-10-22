@@ -110,6 +110,30 @@ accepts navigation and content snippets and builds a table of contents from
 visible h2 and h3 headings. All three can also host the routed outlet through
 `LayoutHost`.
 
+For composition inside a screen, `PageGrid` fits cards to a minimum preferred
+item width and caps the number of columns, while `SplitView` provides labeled
+list and detail regions. The grid and panes use `min-width: 0` so wide child
+content can shrink within narrow containers. `SplitView` shows the list or the
+selected detail on narrow hosts via `detailActive`, and both panes at the
+existing 56rem desktop breakpoint. The caller owns route selection and back
+navigation; these primitives add no navigation catalog entries.
+
+```svelte
+<script lang="ts">
+  import { PageGrid, SplitView } from '@protoyard/ui';
+  let detailActive = $state(false);
+</script>
+
+<PageGrid label="Projects" columns={3} minItem={280}>
+  <ProjectCards />
+</PageGrid>
+
+<SplitView bind:detailActive listLabel="Projects" detailLabel="Project details">
+  {#snippet list()}<ProjectList />{/snippet}
+  {#snippet detail()}<ProjectDetails />{/snippet}
+</SplitView>
+```
+
 ## Responsive rules and shells
 
 Desktop layouts use container queries. Below their catalog width they fall

@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import DashboardGridLayout from '../src/layouts/DashboardGridLayout.svelte';
 import DocsLayout from '../src/layouts/DocsLayout.svelte';
 import MasterDetailLayout from '../src/layouts/MasterDetailLayout.svelte';
+import PageGrid from '../src/layouts/PageGrid.svelte';
+import SplitView from '../src/layouts/SplitView.svelte';
 
 afterEach(() => {
   cleanup();
@@ -78,6 +80,68 @@ describe('DashboardGridLayout', () => {
       expect(view.container.querySelector('.dashboard-grid')).toBeTruthy();
       view.unmount();
     }
+  });
+});
+
+describe('PageGrid', () => {
+  it('caps responsive columns, exposes an optional named region and prevents narrow child overflow', () => {
+    render(PageGrid, {
+      columns: 3,
+      minItem: 280,
+      gap: '1rem',
+      label: 'Project cards',
+      children: rawSnippet('<article data-testid="wide-card">Wide content</article>'),
+    });
+    const grid = screen.getByRole('region', { name: 'Project cards' });
+    const items = grid.querySelector('.page-grid__items');
+    expect(grid.getAttribute('data-columns')).toBe('3');
+    expect(grid.className).toContain('min-w-0');
+    expect(items?.className).toContain('min-w-0');
+    expect(grid.style.getPropertyValue('--py-page-grid-min')).toBe('280px');
+    const wideCard = grid.querySelector('[data-testid="wide-card"]');
+    expect(wideCard).toBeTruthy();
+  });
+});
+
+describe('SplitView', () => {
+  it('names both panes and shows the caller-selected detail on narrow containers', async () => {
+    const view = render(SplitView, {
+      list: rawSnippet('<ul><li>Projects</li></ul>'),
+      detail: rawSnippet('<article>Project details</article>'),
+      listLabel: 'Projects',
+      detailLabel: 'Selected project',
+      detailActive: true,
+    });
+    expect(screen.getByRole('region', { name: 'Projects' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Selected project' })).toBeTruthy();
+    expect(view.container.querySelector('[data-detail-active="true"]')).toBeTruthy();
+    const panes = view.container.querySelector('.split-view__panes');
+    expect(panes?.className).toContain('min-w-0');
+    expect(screen.getByRole('region', { name: 'Projects' }).className).toContain('min-w-0');
+    expect(screen.getByRole('region', { name: 'Selected project' }).className).toContain('min-w-0');
+
+    await view.rerender({
+      list: rawSnippet('<ul><li>Projects</li></ul>'),
+      detail: rawSnippet('<article>Project details</article>'),
+      listLabel: 'Projects',
+      detailLabel: 'Selected project',
+      detailActive: false,
+    });
+    expect(view.container.querySelector('[data-detail-active="false"]')).toBeTruthy();
+  });
+
+  it('renders the empty detail state without hiding the list', () => {
+    const view = render(SplitView, {
+      list: rawSnippet('<ul><li>Projects</li></ul>'),
+      empty: rawSnippet('<p>Choose a project</p>'),
+      listLabel: 'Projects',
+      detailLabel: 'Project details',
+    });
+    expect(screen.getByRole('region', { name: 'Projects' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Project details' }).textContent).toContain(
+      'Choose a project'
+    );
+    expect(view.container.querySelector('[data-has-detail="false"]')).toBeTruthy();
   });
 });
 
