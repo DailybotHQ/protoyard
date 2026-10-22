@@ -1,6 +1,7 @@
 import { createVoiceSession, type VoiceSession } from '@protoyard/ai/voice';
 import {
   createRuntimeId,
+  nextMonotonicIso,
   type PrototypeRuntime,
   parseInput,
   ValidationError,
@@ -71,12 +72,31 @@ export interface ReactionSummary {
 export function createTeamChatServices(runtime: PrototypeRuntime<TeamChatDatabase>) {
   const { db, session, environment, clock } = runtime;
   const now = () => clock.now().toISOString();
+  /**
+   * Last message `at` issued per channel in this page. While the simulated
+   * clock is paused, `clock.now()` alone would stamp every write the same
+   * instant and `sortBy('at')` would shuffle random runtime ids.
+   */
+  const lastMessageAtByChannel = new Map<string, string>();
   const actorId = () => {
     const principal = session.principal();
     if (!principal) throw new Error('No active persona. Load a scenario first.');
     return principal.persona.id;
   };
   const seed = () => runtime.scenarios.active()?.scenario.seed ?? 1;
+
+  async function nextMessageAt(channelId: string): Promise<string> {
+    const channel = await db.channels.get(channelId);
+    const remembered = lastMessageAtByChannel.get(channelId);
+    const stored = channel?.lastMessageAt;
+    let last = remembered ?? stored ?? null;
+    if (remembered && stored) {
+      last = Date.parse(remembered) >= Date.parse(stored) ? remembered : stored;
+    }
+    const at = nextMonotonicIso(last, clock.nowMs());
+    lastMessageAtByChannel.set(channelId, at);
+    return at;
+  }
 
   async function getMembership(channelId: string, personaId: string) {
     return db.channelMembers.get(memberId(channelId, personaId));
@@ -137,7 +157,7 @@ export function createTeamChatServices(runtime: PrototypeRuntime<TeamChatDatabas
       fileId?: string | null;
     }
   ): Promise<Message> {
-    const at = now();
+    const at = await nextMessageAt(channelId);
     const message: Message = {
       id: createRuntimeId('msg'),
       channelId,

@@ -1,4 +1,9 @@
-import { createRuntimeId, type PrototypeRuntime, SimulatedServiceError } from '@protoyard/core';
+import {
+  createRuntimeId,
+  nextMonotonicIso,
+  type PrototypeRuntime,
+  SimulatedServiceError,
+} from '@protoyard/core';
 import {
   type ChatDatabase,
   type Conversation,
@@ -60,14 +65,18 @@ export function createChatServices(
   /**
    * A message time that always sorts after the conversation's latest message.
    * The simulated clock is frozen unless running, so `clock.now()` alone
-   * would give a prompt and its reply the same instant.
+   * would give a prompt and its reply the same instant. Uses
+   * {@link nextMonotonicIso} so paused-clock bursts keep insertion order.
    */
   async function nextAt(conversationId: string): Promise<string> {
     const conversation = await db.conversations.get(conversationId);
-    const last = conversation ? Date.parse(conversation.lastMessageAt) : 0;
-    const at = Math.max(clock.nowMs(), last + 1, (issued.get(conversationId) ?? 0) + 1);
-    issued.set(conversationId, at);
-    return new Date(at).toISOString();
+    const remembered = issued.get(conversationId);
+    const storedMs = conversation ? Date.parse(conversation.lastMessageAt) : Number.NaN;
+    const lastMs = Math.max(remembered ?? 0, Number.isNaN(storedMs) ? 0 : storedMs);
+    const lastIso = lastMs > 0 ? new Date(lastMs).toISOString() : null;
+    const at = nextMonotonicIso(lastIso, clock.nowMs());
+    issued.set(conversationId, Date.parse(at));
+    return at;
   }
 
   async function reply(prompt: Message): Promise<Message> {

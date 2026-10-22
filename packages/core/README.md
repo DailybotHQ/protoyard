@@ -17,6 +17,7 @@ Nothing here imports Svelte, Dexie or Node APIs.
 | `scenario.ts` | `ScenarioSchema` and its independent axes (organization, actor, density, activity, environment, appearance, generator knobs), `defineScenario`, `parseScenarioLink` / `buildScenarioLink` for safe reproducible links (including `?shell=`, and `review` from `?comments=0/1` and `?review=<key>`, `REVIEW_KEY_PATTERN`) |
 | `session.ts` | `Organization`, `Persona` (optional `avatar`: an `av-NNN` library id, an `https://` URL or a root-relative path, checked by `isPersonaAvatar` / `PersonaAvatarSchema`), `Membership`, capability-based `createPermissionPolicy` (wildcards, `-denials`, record rules), `PermissionDeniedError`, `resolvePrincipal` |
 | `clock.ts` | `createSimulationClock` (preview vs committed time), `createTimeHelpers`, `Duration` |
+| `time.ts` | `nextMonotonicIso(lastIso, now)` — ISO timestamps that advance by at least 1 ms so rows sorted by `at` keep insertion order while the simulated clock is paused |
 | `environment.ts` | `createSimulationEnvironment` (network, latency, reproducible failure modes with optional `failureScope`, subscription, flags), `EnvironmentPatchSchema` (partial **without** defaults), `SimulatedServiceError` |
 | `random.ts` | Seeded `createRng` (mulberry32) with `fork`, deterministic `createIdFactory`, `createRuntimeId` for user-created rows |
 | `events.ts` | `DomainEvent` envelope and deterministic `eventId()` |
@@ -52,7 +53,7 @@ const policy = createPermissionPolicy({
   Contracts are shared by all packages and prototypes.
 - Erasable TypeScript only (`erasableSyntaxOnly`): no parameter properties,
   enums or namespaces. Vite loads configs through Node's type stripping.
-- Tests live in `tests/*.test.ts` (`core.test.ts`, `devices.test.ts`, `review.test.ts`, `session-auth.test.ts`, `theme.test.ts`, `validation.test.ts`). Run them with
+- Tests live in `tests/*.test.ts` (`core.test.ts`, `devices.test.ts`, `monotonic-time.test.ts`, `review.test.ts`, `session-auth.test.ts`, `theme.test.ts`, `validation.test.ts`). Run them with
   `pnpm vitest run packages/core` and type-check with
   `pnpm --filter @protoyard/core typecheck`.
 
