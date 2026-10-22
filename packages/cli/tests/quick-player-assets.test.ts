@@ -366,7 +366,12 @@ describe.skipIf(!built || !embedBuilt)(
     it('leaves dist/embed and a verified dist/app next to each other', async () => {
       expect(existsSync(join(realPlayer, 'dist', 'embed', 'index.d.ts'))).toBe(true);
       // Nothing of the app leaks into dist/ itself, and nothing of the embed into the app.
-      expect(readdirSync(join(realPlayer, 'dist')).sort()).toEqual(['app', 'embed']);
+      // The package build ships only its published entries, each in its own folder:
+      // ./embed in dist/embed/ and ./boot (with exactly what it imports) in dist/boot/
+      // (packages/player/scripts/package-dist.ts). No other source is published.
+      expect(readdirSync(join(realPlayer, 'dist')).sort()).toEqual(['app', 'boot', 'embed']);
+      expect(existsSync(join(realPlayer, 'dist', 'boot', 'boot.d.ts'))).toBe(true);
+      expect(existsSync(join(realPlayer, 'dist', 'boot', 'main.js'))).toBe(false);
       const assets = locatePlayerAssets({
         workspaceRoot: null,
         resolveInstalled: () => realPlayer,
