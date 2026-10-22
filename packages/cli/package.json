@@ -18,9 +18,11 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@protoyard/blocks": "workspace:*",
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/crud": "workspace:*",
+    "@protoyard/decks": "workspace:*",
     "@protoyard/offline": "workspace:*",
     "@protoyard/player": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
