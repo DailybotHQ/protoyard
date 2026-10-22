@@ -72,6 +72,7 @@ cn('shadow-soft', 'shadow-none'); // → "shadow-none"
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
 | Disclosure | `Tabs`, `Accordion`, `Carousel` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
+| Demo | `ScenarioSwitcher` (in-app scenario load + view-as persona; labelled Simulated) |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `ActorRow`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
 | Overlays | `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip`, `overlayStack` / `useOverlayLayer` |
 | Disclosure | `Tabs`, `Accordion` |
@@ -98,6 +99,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Label` | `for` |
 | `FileDropzone` | `accept`, `maxSize`, `maxFiles`, `multiple`, `bind:files` (`DropzoneFile[]` with real `File`s), `bind:rejects`, drag-and-drop + keyboard file input, image previews via `URL.createObjectURL` (revoked on remove/destroy), per-file `Progress`, inline limit errors. Never reads file contents as HTML. |
 | `ImageInput` | Labeled local image picker (`label`, `hint`, `accept`, `multiple`, `required`, `onFilesSelected`). Raster previews only via object URLs (`image/jpeg|png|gif|webp|avif`); SVG/HTML never become markup. Every object URL is revoked on replace, clear and unmount. Persistence and upload stay in the caller service. |
+| `ScenarioSwitcher` | In-app demo control: scenarios grouped by `group`, Load with pending feedback, View as… persona chips on the active world. Always labelled **Simulated**. Props: `scenarios`/`groups`, `activeScenarioId`, `personas`, `activePersonaId`, `onLoadScenario`, `onViewAs`, optional loading ids. Wire via `@protoyard/renderer-svelte` `scenarioSwitcherProps` / `createScenarioSwitcherActions`. |
 | `FormField` | `label`, `description`, `error`, `required`, `hideLabel`, `id`; `children({ id, describedBy, invalid, required, props })` |
 | `TagEmailInput` | `bind:value` (`string[]`), Enter/Space/comma/semicolon commit, paste split, Backspace removes last; format-only email check (`ignoreValidation` for free tags) |
 | `EmojiPicker` | `bind:value` (one emoji), searchable grouped grid, arrow keys + Home/End, Enter picks, Escape closes |

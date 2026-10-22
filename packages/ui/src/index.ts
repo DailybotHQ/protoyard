@@ -159,6 +159,7 @@ export { default as Progress } from './components/progress/Progress.svelte';
 export { default as RadioGroup } from './components/radio-group/RadioGroup.svelte';
 export { default as RadioGroupItem } from './components/radio-group/RadioGroupItem.svelte';
 export type { RadioOption } from './components/radio-group/types.ts';
+export { default as ScenarioSwitcher } from './components/ScenarioSwitcher.svelte';
 export { default as SafeArea } from './components/safe-area/SafeArea.svelte';
 export { default as Select } from './components/select/Select.svelte';
 export type { SelectOption } from './components/select/types.ts';

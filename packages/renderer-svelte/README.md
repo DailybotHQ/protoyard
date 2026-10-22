@@ -55,6 +55,35 @@ function runs only after the visitor selects it, keeping optional UI out of
 the initial app bundle.
 Globals are typed in `@protoyard/renderer-svelte/env`.
 
+## In-app scenario switcher
+
+For demos that should change world or persona without opening DevTools, use
+`ScenarioSwitcher` from `@protoyard/ui` with the glue in this package:
+
+```svelte
+<script lang="ts">
+  import { scenarioSwitcherProps, usePrincipal, useScenario } from '@protoyard/renderer-svelte';
+  import { ScenarioSwitcher } from '@protoyard/ui';
+  import { getRuntime } from '@protoyard/renderer-svelte';
+
+  const runtime = getRuntime();
+  // Re-read when scenario or principal changes:
+  const scenario = useScenario(runtime);
+  const principal = usePrincipal(runtime);
+  const props = $derived.by(() => {
+    void scenario.active;
+    void principal.current;
+    return scenarioSwitcherProps(runtime);
+  });
+</script>
+
+<ScenarioSwitcher {...props} />
+```
+
+`createScenarioSwitcherActions(runtime)` exposes `loadScenario` and `viewAs`
+(`session.switchActor`). Loads default to a safety snapshot first. The control
+is always labelled **Simulated** — not multiplayer or authentication.
+
 ## Avatars
 
 Every build ships the `@protoyard/avatars` library (175 fictional people,

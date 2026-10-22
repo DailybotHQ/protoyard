@@ -78,6 +78,21 @@ export {
 export { default as NotFound } from './router/NotFound.svelte';
 export { default as Router } from './router/Router.svelte';
 export {
+  activePersonaId,
+  activeScenarioId,
+  createScenarioSwitcherActions,
+  groupScenarios,
+  listScenarioSwitcherItems,
+  listScenarioSwitcherPersonas,
+  type ScenarioSwitcherGroup,
+  type ScenarioSwitcherLoadOptions,
+  type ScenarioSwitcherPersona,
+  type ScenarioSwitcherScenario,
+  scenarioSwitcherProps,
+  toScenarioSwitcherItem,
+  toScenarioSwitcherPersona,
+} from './scenario-switcher.ts';
+export {
   isValidationError,
   type RunServiceOptions,
   reportServiceError,
