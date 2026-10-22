@@ -1,9 +1,9 @@
 <script lang="ts">
-import type { IconBlock } from '@protoyard/blocks';
+import type { IconBlock as IconBlockData } from '@protoyard/blocks';
 import BlockIcon from './BlockIcon.svelte';
 import { toneIcon } from './tones.ts';
 
-let { block }: { block: IconBlock } = $props();
+let { block }: { block: IconBlockData } = $props();
 
 const sizeClass = $derived(
   block.size === 'sm'

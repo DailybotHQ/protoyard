@@ -1,9 +1,9 @@
 <script lang="ts">
 import { Check, X } from '@lucide/svelte';
-import type { ComparisonBlock } from '@protoyard/blocks';
+import type { ComparisonBlock as ComparisonBlockData } from '@protoyard/blocks';
 import { getBlockHost } from '../host.ts';
 
-let { block }: { block: ComparisonBlock } = $props();
+let { block }: { block: ComparisonBlockData } = $props();
 const host = getBlockHost();
 const slide = $derived(host.canvasMode === 'slide');
 </script>

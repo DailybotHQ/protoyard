@@ -1,5 +1,5 @@
 <script lang="ts">
-import { type ChartBlock, ChartSpecSchema } from '@protoyard/blocks';
+import { type ChartBlock as ChartBlockData, ChartSpecSchema } from '@protoyard/blocks';
 import {
   chartItems,
   chartSeries,
@@ -17,7 +17,7 @@ import {
  * data table under the chart. Charts draw with the theme's `--py-chart1..8`
  * palette, so they follow every theme.
  */
-let { block }: { block: ChartBlock } = $props();
+let { block }: { block: ChartBlockData } = $props();
 
 const HEIGHTS = { sm: 160, md: 220, lg: 300 } as const;
 const parsed = $derived(ChartSpecSchema.safeParse(block.spec));

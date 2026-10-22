@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { StatBlock } from '@protoyard/blocks';
+import type { StatBlock as StatBlockData } from '@protoyard/blocks';
 import { cn } from '@protoyard/ui';
 import { TONE_INDICATOR, TONE_LABELS } from './format.ts';
 
@@ -9,7 +9,7 @@ import { TONE_INDICATOR, TONE_LABELS } from './format.ts';
  * never the only signal), context and a sparkline. The sparkline loads from
  * `@protoyard/charts-ui/compact` only when a figure has a trend.
  */
-let { block }: { block: StatBlock } = $props();
+let { block }: { block: StatBlockData } = $props();
 
 const hasTrend = $derived(block.items.some((item) => item.trend !== undefined));
 const name = $derived(block.title ?? 'Key figures');
