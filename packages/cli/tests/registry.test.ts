@@ -1,11 +1,26 @@
 // @vitest-environment node
-import { cpSync, readFileSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  symlinkSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { workspacePaths } from '../src/lib/paths.ts';
 import { resolvePackageBin, run, stripAnsi } from '../src/lib/process.ts';
-import { buildIndex, filterEntries, findEntry, readRegistry } from '../src/lib/registry.ts';
+import {
+  buildIndex,
+  filterEntries,
+  findEntry,
+  readRegistry,
+  sameRegistryContent,
+  writeJsonIfChanged,
+} from '../src/lib/registry.ts';
 import {
   addPrototype,
   addTemplate,
@@ -117,6 +132,79 @@ describe('discovery and registry', () => {
 
     const forced = await buildIndex(paths, { useCache: false });
     expect(forced.parsed).toBe(4);
+  });
+
+  it('keeps a byte-identical registry file untouched on a repeated index', async () => {
+    seed();
+    const paths = workspacePaths(ws.root);
+    const first = await buildIndex(paths, { now: () => new Date('2026-01-01T00:00:00Z') });
+    expect(first.registryWritten).toBe(true);
+    const bytes = readFileSync(paths.registry);
+    const cacheBytes = readFileSync(paths.indexCache);
+    // Backdate both files so any rewrite would show up as a new mtime.
+    const past = new Date('2025-06-01T00:00:00Z');
+    utimesSync(paths.registry, past, past);
+    utimesSync(paths.indexCache, past, past);
+
+    const again = await buildIndex(paths, { now: () => new Date('2026-02-02T00:00:00Z') });
+    expect(again.registryWritten).toBe(false);
+    expect(readFileSync(paths.registry).equals(bytes)).toBe(true);
+    expect(readFileSync(paths.indexCache).equals(cacheBytes)).toBe(true);
+    expect(statSync(paths.registry).mtimeMs).toBe(past.getTime());
+    expect(statSync(paths.indexCache).mtimeMs).toBe(past.getTime());
+    // The returned registry matches what is on disk, including the kept timestamp.
+    expect(again.registry.generatedAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(await readRegistry(paths)).toEqual(again.registry);
+  });
+
+  it('rewrites the registry atomically, with a fresh timestamp, when content changes', async () => {
+    seed();
+    const paths = workspacePaths(ws.root);
+    await buildIndex(paths, { now: () => new Date('2026-01-01T00:00:00Z') });
+    addPrototype(ws, 'new-idea', { name: 'New Idea' });
+
+    const changed = await buildIndex(paths, { now: () => new Date('2026-02-02T00:00:00Z') });
+    expect(changed.registryWritten).toBe(true);
+    const onDisk = await readRegistry(paths);
+    expect(onDisk?.generatedAt).toBe('2026-02-02T00:00:00.000Z');
+    expect(findEntry(onDisk as NonNullable<typeof onDisk>, 'new-idea')?.name).toBe('New Idea');
+    expect(onDisk).toEqual(changed.registry);
+    // No temp file is left next to the registry after the rename.
+    expect(readdirSync(join(ws.root, '.protoyard')).filter((f) => f.endsWith('.tmp'))).toEqual([]);
+  });
+
+  it('repairs a registry whose bytes differ even when its content matches', async () => {
+    seed();
+    const paths = workspacePaths(ws.root);
+    const first = await buildIndex(paths);
+    // Same data, different formatting (for example a hand edit): rewritten canonically.
+    writeFileSync(paths.registry, JSON.stringify(first.registry));
+    const again = await buildIndex(paths);
+    expect(again.registryWritten).toBe(true);
+    expect(readFileSync(paths.registry, 'utf8')).toBe(
+      `${JSON.stringify(first.registry, null, 2)}\n`
+    );
+  });
+
+  it('writeJsonIfChanged skips identical bytes and writes missing or different files', async () => {
+    const path = join(ws.root, 'nested/dir/value.json');
+    expect(await writeJsonIfChanged(path, { a: 1 })).toBe(true);
+    expect(readFileSync(path, 'utf8')).toBe('{\n  "a": 1\n}\n');
+    expect(await writeJsonIfChanged(path, { a: 1 })).toBe(false);
+    expect(await writeJsonIfChanged(path, { a: 2 })).toBe(true);
+    expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({ a: 2 });
+    expect(readdirSync(join(ws.root, 'nested/dir'))).toEqual(['value.json']);
+  });
+
+  it('sameRegistryContent ignores generatedAt only', async () => {
+    seed();
+    const { registry } = await buildIndex(workspacePaths(ws.root), { write: false });
+    const later = { ...registry, generatedAt: '2030-01-01T00:00:00.000Z' };
+    expect(sameRegistryContent(registry, later)).toBe(true);
+    const fewer = { ...registry, entries: registry.entries.slice(1) };
+    expect(sameRegistryContent(registry, fewer)).toBe(false);
+    const stats = { ...registry, stats: { ...registry.stats, invalid: 9 } };
+    expect(sameRegistryContent(registry, stats)).toBe(false);
   });
 
   it('filters by kind, tag, platform and accent-insensitive multi-term search', async () => {
