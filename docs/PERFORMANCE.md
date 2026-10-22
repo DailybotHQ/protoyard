@@ -170,6 +170,17 @@ These budgets are **enforced**:
 | Packed package parity | `pnpm verify:packages --budget-parity` | exit 1 when the packed consumer's initial JS gzip is more than 2 KB from the same blank-template source build, or above 250 KB |
 | Data grid (thresholds in the script) | `pnpm exec tsx scripts/bench-grid.ts --rows 100000 --runs 3 --check` | exit 1 locally; report only on CI until calibrated there |
 | Views kit chunks (`CEILINGS` in the test) | `pnpm vitest run packages/cli/tests/views-bundle.test.ts` | test failure (part of `pnpm test`) |
+| Player app + per-kind entry graphs | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/budget.test.ts packages/player/tests/kind-budget.test.ts` | test failure; skipped when `dist/` is missing (CI packages job builds first) |
+| PageApp / DocApp host graphs | `pnpm vitest run packages/pages-ui/tests/budget.test.ts` | test failure (host-only Vite builds inside the test) |
+| DeckApp entry graph | `pnpm vitest run packages/decks-ui/tests/bundle-size.test.ts` | test failure (host-only Vite build inside the test) |
+
+**Report-only (no threshold until calibrated):** player ready time by kind
+(`scripts/bench-player.ts --kinds app,deck,page,doc`), brief synthesis by kind
+(`scripts/bench-brief-kinds.ts`), cold start, idea-to-running and quick ready
+while their budget fields stay `null`. Commands and measured samples are in the
+sections below and the kind checklist in
+[TESTING_GUIDE](TESTING_GUIDE.md#blueprint-kinds-deck-page-doc-default-suite-vs-opt-in).
+Never turn a single uncalibrated sample into a CI gate.
 
 The `perf` job in [.github/workflows/ci.yml](../.github/workflows/ci.yml)
 runs the first three on every pull request and push to `main`, and reports
@@ -1235,6 +1246,28 @@ the player into `tmp/` and captures four screenshots from the quick assistant
 blueprint (desktop and phone, light and dark), with axe and layout-fit
 findings. The player does not add shots to the normal prototype sweep, and
 these screenshots are review artifacts rather than a performance budget.
+
+## Kind performance checklist (setup)
+
+Use this when a change touches player kind entries, DeckApp / PageApp / DocApp,
+kind budgets or ready-time behavior. Full methodology and measured tables are
+in the sections that follow.
+
+| Tier | What | Exact setup | Command |
+| --- | --- | --- | --- |
+| Enforced | App + kind entry JS/CSS gzip and content-kind graph exclusions | Production player build required; suites skip without `packages/player/dist/app` | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/budget.test.ts packages/player/tests/kind-budget.test.ts` |
+| Enforced | PageApp / DocApp host-only graphs | Vite production build inside the test | `pnpm vitest run packages/pages-ui/tests/budget.test.ts` |
+| Enforced | DeckApp entry graph | Vite production build inside the test | `pnpm vitest run packages/decks-ui/tests/bundle-size.test.ts` |
+| Report-only | Cold and repeat `protoyard:ready` (and first slide/section/block) per kind | Build the player first; build time is excluded; fresh Chromium context per visit; OS-assigned port | `pnpm --filter @protoyard/player build && pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc` → `tmp/bench-player-*.json` |
+| Report-only | Brief synthesis by kind | No player build; Node only | `pnpm exec tsx scripts/bench-brief-kinds.ts --runs 3` → `tmp/bench-brief-kinds-*.json` |
+
+Caps today: universal / app entry **250 KB** initial JS gzip (regression cap
+**125 KB** in `budget.test.ts`), content-kind entries **150 KB** JS / **30 KB**
+CSS via `kinds.*` in `protoyard.budgets.json` and `kind-budget.test.ts`. Ready-time
+and synthesis benches stay report-only; do not invent thresholds from one machine
+sample. Browser E2E for kinds (showcase, deck navigation, presenter, artifact
+harness, deck sweep) is documented in
+[TESTING_GUIDE](TESTING_GUIDE.md#blueprint-kinds-deck-page-doc-default-suite-vs-opt-in).
 
 ## Player: blueprint to ready (app baseline measured 2026-10-20)
 
