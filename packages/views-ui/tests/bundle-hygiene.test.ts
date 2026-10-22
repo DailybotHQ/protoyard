@@ -104,8 +104,9 @@ describe('views-ui bundle hygiene', () => {
   };
 
   it('exposes exactly one subpath per view plus styles.css, and no root barrel', () => {
+    // ./player.css: the narrow stylesheet the prebuilt player imports (package-owned scan).
     expect(Object.keys(pkg.exports).sort()).toEqual(
-      [...VIEWS.map((view) => `./${view}`), './styles.css'].sort()
+      [...VIEWS.map((view) => `./${view}`), './styles.css', './player.css'].sort()
     );
     expect(pkg.exports['.']).toBeUndefined();
   });
