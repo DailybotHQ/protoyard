@@ -7,13 +7,15 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./style": "./src/style/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@protoyard/blocks": "workspace:*",
+    "@protoyard/themes": "workspace:*",
     "zod": "^4.6.7"
   },
   "protoyard": {
@@ -40,6 +42,11 @@
         "types": "./dist/schema/index.d.ts",
         "import": "./dist/schema/index.js",
         "default": "./dist/schema/index.js"
+      },
+      "./style": {
+        "types": "./dist/style/index.d.ts",
+        "import": "./dist/style/index.js",
+        "default": "./dist/style/index.js"
       }
     },
     "types": "./dist/index.d.ts"
