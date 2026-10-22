@@ -120,7 +120,10 @@ describe('page design decisions (design.ts)', () => {
     expect(safePageHref('//evil.example')).toBeNull();
     expect(safePageHref('/ok\\..\\x')).toBeNull();
     expect(safePageHref('https://example.com\\@evil.example')).toBeNull();
-    expect(safePageHref('/pricing')).toBe('/pricing');
+    // The second fence matches the schema policy: no paths and no http.
+    expect(safePageHref('/pricing')).toBeNull();
+    expect(safePageHref('http://example.com/a')).toBeNull();
+    expect(safePageHref('#/tasks/42')).toBe('#/tasks/42');
     expect(safePageHref('//evil.example')).toBeNull();
     expect(safePageHref('data:text/html,x')).toBeNull();
     expect(plainParagraphs('**Bold** and [a link](https://example.com)\n\n- item')).toEqual([
