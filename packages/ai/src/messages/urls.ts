@@ -11,7 +11,7 @@ import { MESSAGE_LIMITS } from './limits.ts';
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
-const BIDI = /[؜‎‏‪-‮⁦-⁩﻿]/;
+const BIDI = /[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/;
 
 function clean(url: string): boolean {
   return (
