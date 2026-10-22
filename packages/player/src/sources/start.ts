@@ -5,7 +5,6 @@ import {
   readBlueprintShareFragment,
 } from '@protoyard/blueprint';
 import { mount, unmount } from 'svelte';
-import { bootByKind, prefetchBoot } from './boot-any.ts';
 import {
   type ResolvedSource,
   readEmbeddedBlueprint,
@@ -34,9 +33,15 @@ export interface StartPlayerOptions {
   supportsDeflateRaw?: () => boolean;
   /** A blueprint embedded in the page (defaults to reading `#protoyard-blueprint`). */
   embedded?: string | null;
-  /** Boots a validated blueprint of any kind (defaults to `bootByKind`). */
-  boot?: (blueprint: AnyBlueprint, target: HTMLElement) => Promise<unknown>;
-  /** Prefetch the resolved blueprint's boot chunk (default: only without a custom `boot`). */
+  /**
+   * Boots a validated blueprint. The page entry decides what it can boot:
+   * `index.html` passes `bootByKind` (apps and content kinds), a kind page its
+   * kind boot, so this shared module never references the app boot itself.
+   */
+  boot: (blueprint: AnyBlueprint, target: HTMLElement) => Promise<unknown>;
+  /** Starts fetching the boot chunk for a resolved blueprint (the entry's choice). */
+  prefetchBoot?: (blueprint: AnyBlueprint) => void;
+  /** Set false to skip `prefetchBoot` (tests that observe a single dynamic import). */
   prefetch?: boolean;
   /** Called for a new `#bp=` link (defaults to `location.reload()`); app routes never reload. */
   reload?: () => void;
@@ -74,10 +79,6 @@ export interface StartedPlayer {
   clearScreen: () => Promise<void>;
 }
 
-async function defaultBoot(blueprint: AnyBlueprint, target: HTMLElement) {
-  return bootByKind(blueprint, target);
-}
-
 async function defaultDemo(): Promise<Blueprint> {
   const demo = import('../fixtures/demo.blueprint.json');
   // Destructured at the import so the bundler keeps only `parseBlueprint`, not
@@ -113,7 +114,7 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
   const { target } = options;
   const loc = options.location ?? window.location;
   const events = options.events ?? window;
-  const boot = options.boot ?? defaultBoot;
+  const boot = options.boot;
   const reload = options.reload ?? (() => window.location.reload());
   const loadDemo = options.loadDemo ?? defaultDemo;
   let state: PlayerState = 'picker';
@@ -195,7 +196,7 @@ export async function startPlayer(options: StartPlayerOptions): Promise<StartedP
   });
   if (resolved.kind === 'blueprint') {
     // Fetch the boot chunk for this kind only (a deck never loads the app boot).
-    if (options.prefetch ?? !options.boot) prefetchBoot(resolved.blueprint);
+    if (options.prefetch !== false) options.prefetchBoot?.(resolved.blueprint);
     if (resolved.share) {
       remember(resolved.share.payload);
       // The app's hash router (and a deck's slide links) would read `#bp=…` as a

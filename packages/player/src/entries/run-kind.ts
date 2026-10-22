@@ -2,7 +2,7 @@ import { type AnyBlueprint, isAppBlueprint } from '@protoyard/blueprint';
 import { mount, unmount } from 'svelte';
 import type { BootedPlayer } from '../boot.ts';
 import { type BootExtras, type RunningPlayer, runPlayer } from '../run.ts';
-import { loadKindBoot } from '../sources/boot-any.ts';
+import { loadKindBoot } from '../sources/kind-boot.ts';
 import KindMismatch from './KindMismatch.svelte';
 
 /**
