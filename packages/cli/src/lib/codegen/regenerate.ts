@@ -442,6 +442,9 @@ export async function checkBlueprintDrift(
       summary: '',
     };
   }
+  if (raw.kind === 'deck' || raw.kind === 'page' || raw.kind === 'doc') {
+    return checkContentKindDrift(dir, slug, raw, text ?? '', manifestSchemaVersion);
+  }
   const parsed = safeParseBlueprint(raw);
   if (!parsed.success) {
     return {
@@ -506,5 +509,64 @@ export async function checkBlueprintDrift(
     ok: problems.length === 0,
     problems,
     summary: `${blueprint.entities.length} entities, schema v${latest ?? '?'}, ${generated} generated files fresh`,
+  };
+}
+
+/** Drift check for deck, page and doc prototypes: no entities or migrations, schema v1. */
+async function checkContentKindDrift(
+  dir: string,
+  slug: string,
+  raw: Record<string, unknown>,
+  text: string,
+  manifestSchemaVersion: number
+): Promise<DriftReport> {
+  const parsed = await safeParseAnyBlueprint(raw);
+  if (!parsed.success || isAppBlueprint(parsed.data)) {
+    return {
+      ok: false,
+      problems: parsed.success
+        ? ['blueprint.json declares a content kind but parsed as an app']
+        : parsed.error.issues
+            .slice(0, 10)
+            .map((i) => `blueprint.json ${i.path.map(String).join('.') || '(root)'}: ${i.message}`),
+      summary: '',
+    };
+  }
+  const blueprint = parsed.data;
+  const problems: string[] = [];
+  const regenerate = `run \`pnpm protoyard generate ${slug} --blueprint prototypes/${slug}/blueprint.json\``;
+  if (manifestSchemaVersion !== 1) {
+    problems.push(
+      `content-kind prototypes use storage schema v1; protoyard.json has v${manifestSchemaVersion}`
+    );
+  }
+  const snapshot = await readSnapshot(dir).catch((error: Error) => {
+    problems.push(error.message);
+    return null;
+  });
+  if (snapshot) {
+    if (snapshot.codegenFormat !== CODEGEN_FORMAT_VERSION) {
+      problems.push(
+        `${SNAPSHOT_PATH} uses codegen format ${snapshot.codegenFormat ?? 1}: ${regenerate}`
+      );
+    }
+    if (!sameJson(snapshot.blueprint, withoutHistory(raw))) {
+      problems.push(`blueprint.json changed since the last generation: ${regenerate}`);
+    }
+  }
+  const files = await planGeneratedFiles(dir, emitContentKindPrototype(blueprint, text));
+  for (const file of files) {
+    if (file.status === 'created') problems.push(`missing ${file.path}`);
+    else if (file.status === 'conflicted')
+      problems.push(`${file.path} was edited by hand (hash mismatch)`);
+    else if (file.status === 'changed') problems.push(`${file.path} is stale: regenerate`);
+    else if (file.status === 'removed')
+      problems.push(`${file.path} is not generated for a ${blueprint.kind}: regenerate`);
+  }
+  const fresh = files.filter((f) => f.status === 'unchanged').length;
+  return {
+    ok: problems.length === 0,
+    problems,
+    summary: `${blueprint.kind} blueprint, schema v1, ${fresh} generated files fresh`,
   };
 }
