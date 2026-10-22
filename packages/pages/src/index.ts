@@ -21,6 +21,13 @@ export {
   UNTRUSTED_PAGE_DOC_HINT,
 } from './limits.ts';
 export {
+  definePrototypeFromDoc,
+  definePrototypeFromPage,
+  PAGES_DEFAULT_SCENARIO,
+  PAGES_GENERATOR_VERSION,
+  type RuntimeDefinitionOptions,
+} from './runtime-definition.ts';
+export {
   type DocDocument,
   DocDocumentSchema,
   type DocPrint,
