@@ -1,0 +1,13 @@
+@import "tailwindcss/utilities.css";
+@import "@protoyard/blocks-ui/styles.css";
+@import "@protoyard/decks-ui/styles.css";
+@import "@protoyard/pages-ui/styles.css";
+
+/* Keep the toolbar geometry stable when its Tailwind utilities are loaded lazily. */
+[data-py-deck-toolbar] {
+  column-gap: 4.5px;
+}
+
+[data-py-deck-toolbar] > button {
+  min-width: 36px;
+}
