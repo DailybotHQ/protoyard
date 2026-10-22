@@ -75,6 +75,8 @@ export interface MountPrototypeOptions {
   ) => PrototypeRuntime | Promise<PrototypeRuntime>;
   /** Force DevTools on/off (defaults to the build flag + `?devtools=0`). */
   devtools?: boolean;
+  /** Optional lazily loaded tabs contributed by the mounted prototype. */
+  devtoolsTabs?: readonly DevtoolsTab[];
   demoBadge?: boolean;
   /** Runtime build settings; each one overrides its Vite define. */
   build?: MountBuildOptions;
@@ -281,7 +283,14 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
         runtime: rt,
         themes,
         avatarImage,
-        ...(reviewTab ? { extraTabs: [reviewTab as DevtoolsTab] } : {}),
+        ...(options.devtoolsTabs?.length || reviewTab
+          ? {
+              extraTabs: [
+                ...(options.devtoolsTabs ?? []),
+                ...(reviewTab ? [reviewTab as DevtoolsTab] : []),
+              ],
+            }
+          : {}),
       });
       cleanups.push(() => panel.destroy());
     } catch (error) {

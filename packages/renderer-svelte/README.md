@@ -46,6 +46,13 @@ When DevTools is present, review mounts first, and DevTools shows its
 `placeFloating` (`src/shell/floating.ts`), which uses the demo badge's rules:
 no app control, never on the badge. The badge re-places itself on
 `protoyard:floating`.
+
+`mountPrototype` also accepts `devtoolsTabs?: readonly DevtoolsTab[]` for
+prototype-owned panels such as Deck Studio. These lazy tabs are combined with
+the optional review tab and passed to `mountDevtools`; with no contributed or
+review tabs, the existing app DevTools setup is unchanged. The tab's `load`
+function runs only after the visitor selects it, keeping optional UI out of
+the initial app bundle.
 Globals are typed in `@protoyard/renderer-svelte/env`.
 
 ## Avatars
