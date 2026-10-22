@@ -27,7 +27,11 @@
           "title": "Try the demo",
           "actions": [
             { "label": "Join the waitlist", "href": "#waitlist", "variant": "primary" },
-            { "label": "Read the docs", "href": "https://docs.example.com/harbor", "variant": "secondary" }
+            {
+              "label": "Read the docs",
+              "href": "https://docs.example.com/harbor",
+              "variant": "secondary"
+            }
           ]
         }
       ]
@@ -47,7 +51,11 @@
         {
           "type": "stat",
           "items": [
-            { "value": "12k", "label": "Example notes created", "context": "Last 30 days (fictional)" },
+            {
+              "value": "12k",
+              "label": "Example notes created",
+              "context": "Last 30 days (fictional)"
+            },
             { "value": "98%", "label": "Scenario replay match", "delta": "+2 pts" },
             { "value": "4.9", "label": "Example taster score" }
           ],
