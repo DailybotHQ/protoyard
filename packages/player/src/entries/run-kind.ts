@@ -1,15 +1,16 @@
 import { type AnyBlueprint, isAppBlueprint } from '@protoyard/blueprint';
 import { mount, unmount } from 'svelte';
 import type { BootedPlayer } from '../boot.ts';
-import { type BootExtras, type RunningPlayer, runPlayer } from '../run.ts';
-import { loadKindBoot } from '../sources/boot-any.ts';
+import { type BootExtras, type RunningPlayer, runPlayerWith } from '../run-core.ts';
+import { startPlayerWith } from '../sources/start-core.ts';
 import KindMismatch from './KindMismatch.svelte';
 
 /**
  * The per-kind player pages (`deck.html`, `page.html`, `doc.html`): the same
- * source resolution, live reload and embedding as `index.html` (run.ts), but
- * every blueprint boots through the kind boot only, so the page never
- * references the app boot (CRUD shell, Faker, world worker). A blueprint of
+ * source resolution, live reload and embedding as `index.html` (run-core.ts,
+ * start-core.ts), but every blueprint boots through the kind boot only. The
+ * page's chunk graph never references the app boot (CRUD shell, Faker, world
+ * worker), so a single-file export of it embeds none of them. A blueprint of
  * another kind gets a screen that says so and links to the page that runs it
  * (`index.html` for an app), keeping the same `?src=` and share link.
  */
@@ -71,13 +72,16 @@ export interface KindEntryOptions {
   kind: EntryKind;
   window: Window;
   target: HTMLElement;
-  /** Injected for tests (defaults to run.ts). */
-  run?: typeof runPlayer;
+  /** Injected for tests (defaults to run-core.ts). */
+  run?: typeof runPlayerWith;
   /** Injected for tests (defaults to the lazy kind boot chunk). */
   loadBoot?: () => Promise<Pick<typeof import('../boot-kind.ts'), 'bootKind'>>;
 }
 
 /** Boots `blueprint` when it is this page's kind; otherwise shows where it runs. */
+/** The kind boot chunk, loaded on its own (never through boot-any.ts, which also names boot.ts). */
+const loadKindBoot = () => import('../boot-kind.ts');
+
 export function kindEntryBoot(
   options: Pick<KindEntryOptions, 'kind' | 'window' | 'loadBoot'>
 ): (blueprint: AnyBlueprint, target: HTMLElement, extras?: BootExtras) => Promise<BootedPlayer> {
@@ -94,6 +98,11 @@ export function kindEntryBoot(
 export function runKindEntry(options: KindEntryOptions): Promise<RunningPlayer> {
   // Fetch the kind boot while the source resolves (a kind page always needs it).
   void (options.loadBoot ?? loadKindBoot)().catch(() => undefined);
-  const run = options.run ?? runPlayer;
-  return run({ window: options.window, target: options.target, boot: kindEntryBoot(options) });
+  const run = options.run ?? runPlayerWith;
+  return run({
+    window: options.window,
+    target: options.target,
+    start: startPlayerWith,
+    boot: kindEntryBoot(options),
+  });
 }

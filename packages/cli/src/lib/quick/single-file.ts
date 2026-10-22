@@ -1,6 +1,7 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { checkTextAsset, parseAttributes } from '../artifact-pack.ts';
+import { checkTextAsset } from '../artifact-pack.ts';
+import { entryGraph } from './chunk-graph.ts';
 
 /**
  * One self-contained HTML file for an exploration (`protoyard quick export
@@ -19,8 +20,11 @@ import { checkTextAsset, parseAttributes } from '../artifact-pack.ts';
  *   is rewritten to data URLs. Relative worker URLs then fail before network
  *   access (the player falls back to main-thread generation), while no
  *   preload can request the reserved `.invalid` host;
- * - every stylesheet is inlined up front, so lazy screens are styled without
- *   their CSS preloads;
+ * - only the chunks the chosen page can reach (static and dynamic imports,
+ *   chunk-graph.ts) are embedded: `deck.html`, `page.html` or `doc.html` for a
+ *   content kind (no CRUD shell, Faker or app kits), `index.html` for an app;
+ * - every stylesheet those chunks can load is inlined up front, so lazy
+ *   screens are styled without their CSS preloads;
  * - the world-generation worker cannot start from a blob base, so the player
  *   falls back to generating on the main thread (it already does when Workers
  *   fail).
@@ -36,6 +40,54 @@ import { checkTextAsset, parseAttributes } from '../artifact-pack.ts';
  * player dominates and the blueprint adds a few KB. 4 MiB leaves ~29% headroom.
  */
 export const QUICK_SINGLE_FILE_BUDGET_BYTES = 4 * 1024 * 1024;
+
+/** The player page a single file starts from (deck.html, page.html, doc.html or index.html). */
+export type SingleFileEntry = 'index' | 'deck' | 'page' | 'doc';
+
+/**
+ * Cap per entry. A deck, page or doc exported from its own page embeds only
+ * that page's graph: measured 2026-10-22 at 1,607,518–1,608,287 bytes (the
+ * catalog deck, page and doc). 2 MiB leaves ~23% headroom, like the app cap.
+ * The proposed 1.5 MiB deck budget (ADR-040, `kinds.deck.singleFileKb`) is
+ * not met: DevTools (Deck Studio, themes), review comments, device shells and
+ * chart blocks are all reachable from a kind page and ship with it.
+ */
+export const QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES: Record<SingleFileEntry, number> = {
+  index: QUICK_SINGLE_FILE_BUDGET_BYTES,
+  deck: 2 * 1024 * 1024,
+  page: 2 * 1024 * 1024,
+  doc: 2 * 1024 * 1024,
+};
+
+/**
+ * Modules a content kind can reach but never runs, left out of deck, page and
+ * doc files. Faker is reachable through the scenarios package's lazy loader,
+ * which only a generated world calls; the kind runtime (`defineKindRuntime`)
+ * supplies `generateWorld` and no timeline, so it never generates.
+ */
+export const SINGLE_FILE_KIND_EXCLUDED_MODULES: readonly RegExp[] = [
+  /[\\/]@faker-js[\\/]faker[\\/]/,
+];
+
+/** Emitted files of the modules matching `patterns`, from the player's Vite manifest (none without one). */
+async function manifestFiles(playerDir: string, patterns: readonly RegExp[]): Promise<Set<string>> {
+  const text = await readFile(join(playerDir, '.vite', 'manifest.json'), 'utf8').catch(() => null);
+  if (text === null) return new Set();
+  const manifest = JSON.parse(text) as Record<string, { file?: unknown }>;
+  const files = new Set<string>();
+  for (const [key, chunk] of Object.entries(manifest)) {
+    if (typeof chunk.file === 'string' && patterns.some((pattern) => pattern.test(key))) {
+      files.add(chunk.file.replace(/^assets\//, ''));
+    }
+  }
+  return files;
+}
+
+/** The page that runs a blueprint of this kind (an app may leave `kind` out). */
+export function singleFileEntryFor(blueprint: object): SingleFileEntry {
+  const kind = 'kind' in blueprint ? blueprint.kind : undefined;
+  return kind === 'deck' || kind === 'page' || kind === 'doc' ? kind : 'index';
+}
 /** The `id` the player reads the embedded blueprint from (EMBEDDED_BLUEPRINT_ID in the player). */
 export const SINGLE_FILE_BLUEPRINT_ID = 'protoyard-blueprint';
 /** Non-network base used by the inlined bundle; it cannot resolve external assets. */
@@ -67,12 +119,19 @@ export interface SingleFileInput {
   blueprintJson: string;
   /** Page title (the blueprint name). */
   title: string;
+  /**
+   * The player page to start from (default `index`). A player built before the
+   * per-kind pages has only index.html; the export then falls back to it.
+   */
+  entry?: SingleFileEntry;
 }
 
 export interface SingleFileResult {
   html: string;
   bytes: number;
-  /** Embedded JS chunks (the worker entry is left out). */
+  /** The page the file was built from (index when the requested one is missing). */
+  entry: SingleFileEntry;
+  /** Embedded JS chunks (reachable from the entry; the worker is left out). */
   chunks: number;
   stylesheets: number;
 }
@@ -147,23 +206,40 @@ function bootstrap(entry: string): string {
 
 /** Builds the single HTML file from a built player and a blueprint. */
 export async function buildSingleFile(input: SingleFileInput): Promise<SingleFileResult> {
-  const indexHtml = await readFile(join(input.playerDir, 'index.html'), 'utf8');
+  const requested = input.entry ?? 'index';
+  const exists = (file: string) =>
+    access(join(input.playerDir, file)).then(
+      () => true,
+      () => false
+    );
+  const page: SingleFileEntry =
+    requested !== 'index' && !(await exists(`${requested}.html`)) ? 'index' : requested;
+  const indexHtml = await readFile(join(input.playerDir, `${page}.html`), 'utf8');
   const assetsDir = join(input.playerDir, 'assets');
   const files = (await readdir(assetsDir)).sort();
   const issues: string[] = [];
 
-  const entryMatch = /<script\b[^>]*\btype="module"[^>]*\bsrc="\.\/assets\/([\w.-]+\.js)"/i.exec(
-    indexHtml
-  );
-  if (!entryMatch) throw new SingleFileError('The player index.html has no module entry script.');
-  const entry = entryMatch[1] as string;
-
-  // The world-generation worker never starts from a blob base: leave it out.
-  const jsFiles = files.filter((file) => file.endsWith('.js') && !/^generate\.worker-/.test(file));
+  // Only what this page can load: its entry chunk and every chunk and
+  // stylesheet reachable from it. The world-generation worker never starts
+  // from a blob base: leave it out. A kind page also leaves out what a kind
+  // never runs (Faker).
+  const neverRun =
+    page === 'index'
+      ? new Set<string>()
+      : await manifestFiles(input.playerDir, SINGLE_FILE_KIND_EXCLUDED_MODULES);
+  const graph = await entryGraph({
+    html: indexHtml,
+    files,
+    read: (file) => readFile(join(assetsDir, file), 'utf8'),
+    exclude: (file) => /^generate\.worker-/.test(file) || neverRun.has(file),
+  });
+  if (!graph) throw new SingleFileError(`The player ${page}.html has no module entry script.`);
+  const entry = graph.entry;
+  if (!files.includes(entry)) throw new SingleFileError(`The entry chunk ${entry} is missing.`);
+  const jsFiles = graph.js;
   const chunkSet = new Set(jsFiles);
-  if (!chunkSet.has(entry)) throw new SingleFileError(`The entry chunk ${entry} is missing.`);
 
-  const cssSet = new Set(files.filter((file) => file.endsWith('.css')));
+  const cssSet = new Set(graph.css);
   const chunkTags: string[] = [];
   for (const file of jsFiles) {
     const text = await readFile(join(assetsDir, file), 'utf8');
@@ -175,16 +251,7 @@ export async function buildSingleFile(input: SingleFileInput): Promise<SingleFil
   }
 
   // Stylesheets the page links come first, in order; lazy screens' CSS follows.
-  const linked = [...indexHtml.matchAll(/<link\b[^>]*>/gi)]
-    .map(([tag]) => parseAttributes(tag))
-    .filter(
-      (attributes) => attributes.rel === 'stylesheet' && attributes.href?.startsWith('./assets/')
-    )
-    .map((attributes) => (attributes.href as string).slice('./assets/'.length));
-  const cssFiles = [
-    ...linked,
-    ...files.filter((file) => file.endsWith('.css') && !linked.includes(file)),
-  ];
+  const cssFiles = graph.css;
   const styleTags: string[] = [];
   for (const file of cssFiles) {
     const css = await readFile(join(assetsDir, file), 'utf8');
@@ -244,6 +311,7 @@ ${chunkTags.join('\n')}
   return {
     html,
     bytes: Buffer.byteLength(html, 'utf8'),
+    entry: page,
     chunks: jsFiles.length,
     stylesheets: cssFiles.length,
   };

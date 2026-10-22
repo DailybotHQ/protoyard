@@ -212,7 +212,14 @@ pnpm protoyard quick export my-idea --single-file --out tmp/share/my-idea.html -
 ```
 
 **What's in the file** (`packages/cli/src/lib/quick/single-file.ts`):
-- the exploration's own built player, its JavaScript and CSS;
+- the exploration's own built player: the JavaScript chunks and stylesheets
+  its player page can reach, through static and dynamic imports and Vite's
+  preload lists ([`chunk-graph.ts`](../packages/cli/src/lib/quick/chunk-graph.ts)).
+  An app starts from `index.html`. A deck, page or doc starts from
+  `deck.html`, `page.html` or `doc.html`, so it carries no app boot, CRUD
+  shell or app kits. It also leaves out Faker: the kind runtime never
+  generates a world, so it never loads it. A player built before those pages
+  existed falls back to `index.html`;
 - the blueprint, as an inert `<script type="application/json"
   id="protoyard-blueprint">` with `<` escaped, so it can never close the
   element. The player reads it as an untrusted source, like a `#bp=` link.
@@ -232,6 +239,21 @@ up front.
 **Measured on 2026-10-20** over the 40 catalog blueprints: 3,245,592–3,246,497
 bytes, about 1.05 MB gzip. The player dominates, and the blueprint adds a few KB.
 The export refuses files over `QUICK_SINGLE_FILE_BUDGET_BYTES` (4 MiB).
+
+**Content kinds (measured 2026-10-22).** The catalog deck (Lumen launch), page
+and doc export at 1,607,518–1,608,287 bytes, against 3,050,811 bytes for the
+CRM app from the same player build.
+- **Budget:** a kind file is refused over 2 MiB
+  (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES`).
+- **Not met:** the proposed 1.5 MiB deck budget. DevTools (with Deck Studio
+  and the theme browser), review comments, device shells and the chart blocks
+  are all reachable from a kind page, and they ship with it.
+- **Tests:** `packages/cli/tests/quick/single-file-kinds.test.ts`.
+  - It fails if a CRUD, Faker or analytics chunk, or the app boot, appears in
+    a deck, page or doc file.
+  - It checks that an app file still carries every lazy CRUD screen.
+  - It opens a deck file from `file://` in Chromium, where it changes slides
+    with no network request.
 `packages/cli/tests/quick-single-file.test.ts` checks every catalog blueprint
 against that budget. It also opens an export from `file://` in Chromium: the
 blueprint boots, a lazy screen renders, and a reload reuses the IndexedDB world.
