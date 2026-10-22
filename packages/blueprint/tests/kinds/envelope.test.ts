@@ -23,6 +23,7 @@ import {
   safeParseAnyBlueprint,
   safeParseBlueprint,
 } from '../../src/index.ts';
+import { kindBodySchema } from '../../src/kinds/bodies.ts';
 import { withKindBodySchemaForTesting } from '../../src/kinds/testing.ts';
 
 const ROOT = fileURLToPath(new URL('../../../..', import.meta.url));
@@ -113,17 +114,28 @@ describe('apps through the union', () => {
   });
 });
 
+// Kinds whose engine schema is not wired into this build yet (page and doc are).
+const UNSHIPPED = CONTENT_KINDS.filter((kind) => !kindBodySchema(kind));
+
 describe('content kinds without a shipped body schema', () => {
-  it.each(CONTENT_KINDS)('refuses %s with a clear issue instead of a loose fallback', (kind) => {
-    const result = safeParseAnyBlueprint(content(kind));
-    expect(result.success).toBe(false);
-    expect(result.error?.issues).toEqual([
-      expect.objectContaining({
-        path: ['kind'],
-        message: `Blueprint kind "${kind}" is not available in this build of Protoyard yet.`,
-      }),
-    ]);
+  it('ships page and doc bodies', () => {
+    expect(kindBodySchema('page')).toBeDefined();
+    expect(kindBodySchema('doc')).toBeDefined();
   });
+
+  it.skipIf(UNSHIPPED.length === 0).each(UNSHIPPED)(
+    'refuses %s with a clear issue instead of a loose fallback',
+    (kind) => {
+      const result = safeParseAnyBlueprint(content(kind));
+      expect(result.success).toBe(false);
+      expect(result.error?.issues).toEqual([
+        expect.objectContaining({
+          path: ['kind'],
+          message: `Blueprint kind "${kind}" is not available in this build of Protoyard yet.`,
+        }),
+      ]);
+    }
+  );
 
   it('refuses to install a test body outside Vitest', () => {
     const saved = process.env.VITEST;

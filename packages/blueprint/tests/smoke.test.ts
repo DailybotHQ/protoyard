@@ -17,7 +17,14 @@ describe('@protoyard/blueprint package', () => {
     expect(computed.evaluateComputedExpression).toBeTypeOf('function');
     expect(workflows.checkWorkflowTransition).toBeTypeOf('function');
     // Only framework-agnostic engine packages (never ui, renderer or Svelte) plus zod (ADR-002).
-    const allowed = ['@protoyard/core', '@protoyard/scenarios', '@protoyard/themes', 'zod'];
+    const allowed = [
+      '@protoyard/blocks',
+      '@protoyard/core',
+      '@protoyard/pages',
+      '@protoyard/scenarios',
+      '@protoyard/themes',
+      'zod',
+    ];
     for (const dep of Object.keys(pkg.dependencies)) expect(allowed, dep).toContain(dep);
     expect(Object.keys(pkg.dependencies)).toContain('@protoyard/core');
     expect('peerDependencies' in pkg).toBe(false);

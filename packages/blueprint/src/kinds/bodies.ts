@@ -1,5 +1,7 @@
 import type { z } from 'zod';
+import { DocBodySchema } from './doc.ts';
 import type { ContentKind } from './kind.ts';
+import { PageBodySchema } from './page.ts';
 
 /**
  * Body schemas of the content kinds, one per kind, supplied by their engine
@@ -10,7 +12,10 @@ import type { ContentKind } from './kind.ts';
  * Wiring a kind is a static entry in `SHIPPED`, never runtime registration,
  * so untrusted input can never be validated against a schema someone injected.
  */
-const SHIPPED: Partial<Record<ContentKind, z.ZodType>> = {};
+const SHIPPED: Partial<Record<ContentKind, z.ZodType>> = {
+  page: PageBodySchema,
+  doc: DocBodySchema,
+};
 
 /** Test-only overrides (see `kinds/testing.ts`); empty outside Vitest. */
 const overrides = new Map<ContentKind, z.ZodType>();

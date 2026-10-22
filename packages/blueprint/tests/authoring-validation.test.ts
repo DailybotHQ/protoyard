@@ -7,6 +7,7 @@ import {
   safeParseBlueprint,
   validateBlueprintForAuthoring,
 } from '../src/index.ts';
+import { kindBodySchema } from '../src/kinds/bodies.ts';
 import { withKindBodySchemaForTesting } from '../src/kinds/testing.ts';
 
 function validBlueprint() {
@@ -225,21 +226,27 @@ describe('validateBlueprintForAuthoring across kinds', () => {
   });
 });
 
+// Kinds whose engine schema is not wired into this build yet (page and doc are).
+const UNSHIPPED = CONTENT_KINDS.filter((kind) => !kindBodySchema(kind));
+
 describe('validateBlueprintForAuthoring for kinds this build does not ship', () => {
-  it.each(CONTENT_KINDS)('reports %s as unavailable on $.kind', (kind) => {
-    const result = validateBlueprintForAuthoring({ kind, name: 'Later', [kind]: {} });
-    expect(result).toEqual({
-      valid: false,
-      kind,
-      diagnostics: [
-        {
-          code: 'kind-unavailable',
-          path: ['kind'],
-          jsonPath: '$["kind"]',
-          message: `Blueprint kind "${kind}" is not available in this build of Protoyard yet.`,
-          hint: `Update Protoyard to a build that ships the ${kind} engine, or author an app blueprint instead.`,
-        },
-      ],
-    });
-  });
+  it.skipIf(UNSHIPPED.length === 0).each(UNSHIPPED)(
+    'reports %s as unavailable on $.kind',
+    (kind) => {
+      const result = validateBlueprintForAuthoring({ kind, name: 'Later', [kind]: {} });
+      expect(result).toEqual({
+        valid: false,
+        kind,
+        diagnostics: [
+          {
+            code: 'kind-unavailable',
+            path: ['kind'],
+            jsonPath: '$["kind"]',
+            message: `Blueprint kind "${kind}" is not available in this build of Protoyard yet.`,
+            hint: `Update Protoyard to a build that ships the ${kind} engine, or author an app blueprint instead.`,
+          },
+        ],
+      });
+    }
+  );
 });

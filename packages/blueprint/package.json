@@ -21,7 +21,9 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@protoyard/blocks": "workspace:*",
     "@protoyard/core": "workspace:*",
+    "@protoyard/pages": "workspace:*",
     "@protoyard/scenarios": "workspace:*",
     "@protoyard/themes": "workspace:*",
     "zod": "^4.6.7"
