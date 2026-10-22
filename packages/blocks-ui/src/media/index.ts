@@ -1,6 +1,7 @@
-/**
- * `@protoyard/blocks-ui/media` — image, video and people (avatars) blocks.
- * Reserved by T-blocks-scaffold-packages; filled by T-blocks-ui-text-media of
- * PLAN_005_create_anything_decks_and_kits. No runtime exports yet.
- */
-export {};
+import type { Block } from '@protoyard/blocks';
+import type { Component } from 'svelte';
+import MediaFamilyRenderer from './MediaFamilyRenderer.svelte';
+
+export type { Block } from '@protoyard/blocks';
+
+export const BlockFamilyRenderer: Component<{ block: Block }> = MediaFamilyRenderer;

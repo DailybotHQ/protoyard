@@ -66,6 +66,20 @@ and are rendered through `@protoyard/blocks-ui/diagram`; they are not a
 | `./embed` | embed-app, mounted through the host's `mountEmbed` | T-blocks-ui-embed-app |
 | `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | this scaffold |
 
+## Text and media renderers
+
+`@protoyard/blocks-ui/text` renders headings, safe Markdown text, lists,
+quotes, callouts and dividers. Markdown uses the bounded AST from
+`@protoyard/ai/markdown`; raw HTML remains text and unsafe link or image URLs
+are omitted. `@protoyard/blocks-ui/media` renders images, video and people.
+Image and video sources are checked again by the renderer, so unsupported
+remote sources do not become browser requests. Images include their declared
+dimensions and accessible alt text (or an empty alt for decorative images).
+Video is muted, inline and controlled; autoplay is disabled when the user
+prefers reduced motion. Loaded media bubbles a `blocks:media-ready` event for
+hosts that need to recalculate layout. People and `avatar:` media use the
+renderer avatar URL helper.
+
 ## Icons
 
 `src/lib/icons.ts` exports `BLOCK_ICON_COMPONENTS`, which maps every
