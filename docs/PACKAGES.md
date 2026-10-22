@@ -128,6 +128,10 @@ These examples describe the npm package interface after release. In this reposit
 | `@protoyard/gallery` | Static gallery site package, not an app SDK | No module exports |
 | `@protoyard/templates` | Aggregate template package used by CLI scaffolding: every git-tracked file of each template | `.` |
 
+Template packaging tests discover the repository inventory from template folders with a
+`protoyard.json` manifest, then verify that prepack copying and the real tarball include every
+discovered template. Adding a template therefore does not require updating a count in the test.
+
 The public `/play/` site runs a blueprint without installing Protoyard into a host repository. The player accepts a blueprint at runtime and does not generate project source. To embed the hosted player in another page, use `connectPlayer` from `@protoyard/player/embed`; configure the exact player origin and allowed embedder origin as described in [PLAYER.md](PLAYER.md).
 
 A generated prototype is a separate Vite + Svelte project under `prototypes/<slug>/`. `protoyard generate` writes managed source from `blueprint.json`; developers can own additional code and build or export the result independently. This is the right path when the result needs its own codebase, dependencies or deployment. The hosted player is the no-install path for exploring a blueprint. The shared blueprint model keeps generated prototypes and the player aligned; see [GENERATOR.md](GENERATOR.md#running-a-blueprint-without-generating).
