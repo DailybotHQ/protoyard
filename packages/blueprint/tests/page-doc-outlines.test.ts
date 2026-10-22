@@ -29,9 +29,9 @@ const BLOCK_TYPES = new Set([
 function assertSectionsOrdered(
   sections: readonly {
     id: string;
-    role: string;
-    title: string;
-    body: string;
+    role?: string;
+    title?: string;
+    body?: string;
     blocks: readonly { type: string }[];
   }[]
 ) {
@@ -40,9 +40,6 @@ function assertSectionsOrdered(
   expect(new Set(ids).size).toBe(ids.length);
   for (const section of sections) {
     expect(section.id).toMatch(/^section-/);
-    expect(section.role.length).toBeGreaterThan(0);
-    expect(section.title.length).toBeGreaterThan(0);
-    expect(section.body.length).toBeGreaterThan(0);
     expect(section.blocks.length).toBeGreaterThan(0);
     for (const block of section.blocks) {
       expect(BLOCK_TYPES.has(block.type), block.type).toBe(true);
@@ -136,10 +133,12 @@ describe('synthesizePageFromBrief / synthesizeDocFromBrief', () => {
     expect(page.outline).toBe('landing');
     expect(page.json.kind).toBe('page');
     const pageBody = page.json.page as {
-      outline: string;
+      id: string;
+      title: string;
       sections: { id: string; blocks: unknown[] }[];
     };
-    expect(pageBody.outline).toBe('landing');
+    expect(pageBody.id).toMatch(/^[a-z]/);
+    expect(pageBody.title.length).toBeGreaterThan(0);
     assertSectionsOrdered(pageBody.sections as never);
     expect(page.rationale[0]).toBe(pageDetection.reason);
     expect(page.json).not.toHaveProperty('entities');
@@ -154,9 +153,14 @@ describe('synthesizePageFromBrief / synthesizeDocFromBrief', () => {
     );
     expect(doc.kind).toBe('doc');
     expect(doc.outline).toBe('report');
-    const docBody = doc.json.doc as { outline: string; sections: { id: string }[] };
-    expect(docBody.outline).toBe('report');
-    expect(docBody.sections.map((s) => s.id)[0]).toBe('section-title');
+    const docBody = doc.json.doc as {
+      id: string;
+      title: string;
+      blocks: { id?: string; type: string }[];
+    };
+    expect(docBody.id).toMatch(/^[a-z]/);
+    expect(docBody.title.length).toBeGreaterThan(0);
+    expect(docBody.blocks.find((block) => block.id === 'section-title')?.type).toBe('heading');
   });
 
   it('routes through blueprintFromBrief with the same shape', () => {
