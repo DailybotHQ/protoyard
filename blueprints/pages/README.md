@@ -62,8 +62,13 @@ the page body from `@protoyard/pages` and prints a kind-specific summary.
 2. Validate with `pnpm protoyard blueprint validate <file>`.
 3. Run `pnpm vitest run packages/blueprint/tests/page-doc-catalog.test.ts`.
 
-`protoyard generate --blueprint` accepts app blueprints only, so a page
-example cannot be generated into a prototype yet.
+To turn an example into a full prototype (level 2), generate it. The page template is
+picked from the blueprint's kind:
+
+```bash
+pnpm protoyard generate my-page --blueprint blueprints/pages/tidewater-roasters-landing.json
+pnpm protoyard validate my-page --build
+```
 
 ## Listing
 

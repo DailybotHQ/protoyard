@@ -308,7 +308,7 @@ with other builds running). They are not calibrated budgets.
 
 Reproduce the timings with `pnpm exec tsx scripts/bench-player.ts --runs 3` after
 building the player. The method, every phase and the main-thread long-task
-trace are in [PERFORMANCE](PERFORMANCE.md#player-blueprint-to-ready-measured-2026-10-20).
+trace are in [PERFORMANCE](PERFORMANCE.md#player-blueprint-to-ready-app-baseline-measured-2026-10-20).
 
 ## Honest boundaries
 
