@@ -9,7 +9,8 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
     "./layouts": "./src/layouts/index.ts",
-    "./style": "./src/style/index.ts"
+    "./style": "./src/style/index.ts",
+    "./quality": "./src/quality/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -53,6 +54,11 @@
         "types": "./dist/style/index.d.ts",
         "import": "./dist/style/index.js",
         "default": "./dist/style/index.js"
+      },
+      "./quality": {
+        "types": "./dist/quality/index.d.ts",
+        "import": "./dist/quality/index.js",
+        "default": "./dist/quality/index.js"
       }
     },
     "types": "./dist/index.d.ts"

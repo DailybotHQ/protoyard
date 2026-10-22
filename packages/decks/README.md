@@ -30,6 +30,7 @@ resolution and quality rules. It has no Svelte and does not use Reveal.js.
 | `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, slide and outline schemas, `DeckJsonSchema`, `safeParseDeck`, and the bounded deck types. `@protoyard/blueprint`'s `kind: "deck"` branch imports the schema from here. |
 | `@protoyard/decks/layouts` | Full layout catalog: 19 content layouts + `chart` + `free`, prop schemas, samples, pacing and use-when metadata |
 | `@protoyard/decks/style` | `resolveDeckStyle`, which resolves a built-in or library theme, numeric palette seed, font pairing and presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, combined CSS variables, the effective style and fallback warnings. |
+| `@protoyard/decks/quality` | `DECK_QUALITY` thresholds, `DECK_QUALITY_RULES` (static and rendered rules with severities), `checkDeckStatic`, `deckJsonPath`. Not imported by renderers. |
 
 `DeckSchema` accepts catalog slides (`layout` plus bounded JSON `props`) and
 free slides (`layout: "free"` plus validated `@protoyard/blocks` content).
@@ -241,11 +242,57 @@ motion or `none`, moving effects (`fade-up`, `grow`, `shrink`) become a plain
 `ResolvedTransition` carries a `reason` (`slide-override`, `deck-default`,
 `engine-default`, `subtle`, `reduced-motion`, `motion-none`) for DevTools.
 
+## Quality rules (`@protoyard/decks/quality`)
+
+Deck quality thresholds and static checks, as data. They are ported from the
+developer's keynote QA scripts. `deck lint` and the visual sweep both read
+them, so no rule is declared twice.
+
+- **`DECK_QUALITY`:**
+  - minimum rendered text: 24 px body and 18 px labels on the canvas (the same
+    values as `DECK_TEXT_MINIMUMS`);
+  - notes of at least 40 characters;
+  - at most two identical layouts in a row;
+  - visible words per pacing type: punch 15, idea 45, diagram 60, story 50;
+  - phrases that mark boilerplate notes.
+- **`DECK_QUALITY_RULES`:** every rule with its `severity` and where it runs.
+  `static` rules run in `checkDeckStatic`; `rendered` rules (font size,
+  overflow, failed images, contrast) need a browser and run in the visual
+  sweep. Structure, assets and step order are errors. Notes, density and
+  repetition are warnings.
+- **`checkDeckStatic(deck)`** takes a deck that passed `safeParseDeck` and
+  returns `{ ok, errors, warnings, issues }`. Each issue has its `rule`,
+  `severity`, `slideId`, `path` and a schema-style `jsonPath`
+  (`$.slides[2].props.image.alt`). It checks:
+
+  | Rule | Severity | What it flags |
+  | --- | --- | --- |
+  | `unknown-layout` | error | A layout the catalog does not have |
+  | `layout-props` | error | Props that break the layout's schema and limits (paths from `parseLayoutProps`) |
+  | `image-alt` | error | An image in props with no alt text |
+  | `image-size` | error | An image in props with no width and height |
+  | `step-order` | error | A fragment that reveals before content above it, in reading order (columns included) |
+  | `empty-steps` | warning | More step labels than fragments |
+  | `notes-missing` | warning | Notes absent or under 40 characters |
+  | `notes-duplicate` | warning | The same notes as an earlier slide, ignoring case and punctuation |
+  | `notes-boilerplate` | warning | Notes that only say not to read the slide |
+  | `layout-repetition` | warning | A third (or later) visible slide in a row with the same layout |
+  | `too-many-words` | warning | More visible words than the layout's most lenient pacing allows; code and alt text do not count |
+
+  Hidden slides are still checked for structure, assets and step order, but
+  not for notes, words or repetition. Image blocks on free slides already
+  require alt (or `decorative`) and a size in their schema.
+
+The subpath is 21.8 KB gzip minified with zod external. Most of that is the
+layout catalog and the block schemas it validates against. Only authoring
+tools and the sweep import it.
+
 ## Tests
 
 ```bash
 pnpm vitest run packages/decks
 pnpm vitest run packages/decks/tests/navigation.test.ts
 pnpm vitest run packages/decks/tests/layouts.test.ts
+pnpm vitest run packages/decks/tests/quality.test.ts
 pnpm --filter @protoyard/decks typecheck
 ```
