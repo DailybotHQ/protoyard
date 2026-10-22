@@ -7,14 +7,11 @@ Nothing here is re-exported from the `@protoyard/ui` barrel. The data engine is
 
 ## Status
 
-Scaffold only. Family subpaths export placeholders so imports and typecheck
-resolve before the hosts land.
-
 | Import | Contents today |
 | --- | --- |
-| `@protoyard/pages-ui` | `PAGE_UI_FAMILIES`, package version, `BlockHost`, re-export of `@protoyard/pages` identity |
+| `@protoyard/pages-ui` | `PAGE_UI_FAMILIES`, package version, `BlockHost`, `PageHost`, `DocHost`, pages identity |
 | `@protoyard/pages-ui/page` | `PageHost` marketing landing renderer |
-| `@protoyard/pages-ui/doc` | `DOC_UI_SUBPATH` placeholder (DocApp later) |
+| `@protoyard/pages-ui/doc` | `DocHost` continuous doc flow with DocsLayout TOC |
 | `@protoyard/pages-ui/form` | `FORM_UI_SUBPATH` placeholder (form block host + responses panel later) |
 | `@protoyard/pages-ui/print` | `PRINT_UI_SUBPATH` placeholder (print CSS + button later) |
 | `@protoyard/pages-ui/styles.css` | Empty kit stylesheet hook |
@@ -56,6 +53,20 @@ Composes `@protoyard/ui` **MarketingLayout** chrome (brand, hash nav, hero,
 sections, footer). Each section id is the deep-link target (`anchor` or `id`).
 Root attribute: `data-py-page-host`. Blocks render through `BlockHost`.
 
+## DocHost
+
+Continuous block-flow renderer for a `DocDocument`:
+
+```ts
+import { DocHost } from '@protoyard/pages-ui/doc';
+```
+
+Composes `@protoyard/ui` **DocsLayout**: optional left nav (level-2 TOC entries),
+main `BlockHost` list, and a sticky on-page TOC. TOC entries come from
+`buildDocToc` (`@protoyard/pages`); heading elements receive matching `id`s so
+deep links and `aria-current` stay aligned. Root attribute: `data-py-doc-host`.
+Set `showNav={false}` to hide the left rail.
+
 ## BlockHost
 
 Lazy single-block host used by page and doc surfaces:
@@ -73,8 +84,6 @@ chunks stay out of the page entry graph.
 
 ## Coming next (PLAN_005)
 
-- `PageApp` / `PageHost` on `./page` (MarketingLayout chrome, single scroll)
-- `DocApp` / `DocHost` on `./doc` (DocsLayout TOC)
 - Form block wiring and responses panel on `./form`
 - Print stylesheet and `PrintButton` on `./print`
 - Shared use by the player kind entries and level-2 `generate` templates
@@ -84,4 +93,5 @@ chunks stay out of the page entry graph.
 ```bash
 pnpm --filter @protoyard/pages-ui typecheck
 pnpm vitest run packages/pages-ui
+pnpm vitest run packages/pages-ui/tests/doc-host.test.ts
 ```
