@@ -1,0 +1,10 @@
+@import "../../../../../packages/renderer-svelte/src/app.css";
+@import "../../../../../packages/decks-ui/src/styles.css";
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}

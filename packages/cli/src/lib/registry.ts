@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import type { Blueprint } from '@protoyard/blueprint';
+import type { AnyBlueprint, BlueprintKind } from '@protoyard/blueprint';
+import { blueprintKind } from '@protoyard/blueprint';
 import {
   type Catalog,
   type PrototypeManifest,
@@ -26,8 +27,8 @@ import type { WorkspacePaths } from './paths.ts';
 
 export const REGISTRY_FORMAT = 'protoyard.registry';
 export const REGISTRY_VERSION = 1;
-/** v3: catalog blueprints (`blueprints/*.json`, kind `blueprint`) are indexed. */
-const CACHE_VERSION = 3;
+/** v4: cache entries expose blueprint kind for app and content catalogs. */
+const CACHE_VERSION = 4;
 
 /** The manifest's catalog block as indexed: `shell` resolved for card framing. */
 export interface RegistryCatalog {
@@ -43,6 +44,8 @@ export interface RegistryCatalog {
 
 export interface RegistryEntry {
   kind: FolderKind;
+  /** The data kind of a catalog blueprint; null for runnable folders. */
+  blueprintKind: BlueprintKind | null;
   id: string;
   slug: string;
   name: string;
@@ -122,6 +125,7 @@ export function toRegistryEntry(
 ): RegistryEntry {
   return {
     kind: location.folderKind,
+    blueprintKind: null,
     id: manifest.id,
     slug: manifest.slug,
     name: manifest.name,
@@ -164,7 +168,7 @@ function toRegistryCatalog(manifest: PrototypeManifest): RegistryCatalog | null 
   };
 }
 
-function catalogFromBlueprint(blueprint: Blueprint): RegistryCatalog | null {
+function catalogFromBlueprint(blueprint: AnyBlueprint): RegistryCatalog | null {
   const catalog = blueprint.catalog;
   if (!catalog) return null;
   return {
@@ -178,17 +182,19 @@ function catalogFromBlueprint(blueprint: Blueprint): RegistryCatalog | null {
   };
 }
 
-/** Registry row for a data-only catalog blueprint under `blueprints/<slug>.json`. */
+/** Registry row for a data-only catalog blueprint in a kind shelf. */
 export function toBlueprintRegistryEntry(
-  blueprint: Blueprint,
+  blueprint: AnyBlueprint,
   location: ManifestLocation,
   id: string,
   slug: string,
   mtimeMs: number
 ): RegistryEntry {
   const catalog = catalogFromBlueprint(blueprint);
+  const contentKind = blueprintKind(blueprint);
   return {
     kind: 'blueprint',
+    blueprintKind: contentKind,
     id,
     slug,
     name: blueprint.name,
@@ -198,7 +204,7 @@ export function toBlueprintRegistryEntry(
     tags: blueprint.tags,
     platform: 'responsive',
     status: 'ready',
-    template: 'crud-app',
+    template: contentKind === 'app' ? 'crud-app' : contentKind,
     icon: blueprint.icon ?? null,
     thumbnail: null,
     scenarios: [],

@@ -4,6 +4,8 @@ Framework-agnostic **page** and **doc** engine for Protoyard blueprints
 (`kind: "page"` and `kind: "doc"`, [ADR-036](../../docs/DECISIONS.md) and
 [ADR-039](../../docs/DECISIONS.md)). No Svelte. Svelte hosts live in
 [`@protoyard/pages-ui`](../pages-ui/README.md).
+For the authoring guide and current Player/generator limits, see
+[`docs/PAGES.md`](../../docs/PAGES.md).
 
 KINDS owns the blueprint `kind` discriminator and envelope. This package
 validates the **payload bodies** after that parse.
@@ -30,7 +32,6 @@ validates the **payload bodies** after that parse.
 | `createFormServices` / `FORM_CAPABILITIES` | Capability-checked submit, list, guarded CSV export and clear operations |
 | `PAGE_DOCUMENT_LIMITS` | Document caps (sections ≤ 32, blocks/section ≤ 24, doc blocks ≤ 200, …) |
 | `safeParsePageDocument` / `safeParseDocDocument` | Never-throw helpers |
-| `definePrototypeFromPage` / `definePrototypeFromDoc` | Minimal, Faker-free runtime definitions with an empty default world |
 
 ```ts
 import { PageDocumentSchema, DocDocumentSchema } from '@protoyard/pages';
@@ -47,12 +48,14 @@ Section `blocks` and doc `blocks` use `@protoyard/blocks` `BlockSchema`. Form
 *block* schema stays in blocks; `page.forms` only lists form block ids for the
 responses UI.
 
-`FormResponseSchema` stores a row `{ id, formId, createdAt, values }` where
-`createdAt` is an ISO datetime and `values` contains only bounded strings,
-finite numbers, booleans or bounded string arrays. Unsafe keys and unknown row
-fields are rejected. The values object is capped at 8 KiB and 32 entries.
-Responses use the non-reserved `formResponses` table with indexes
-`id, formId, createdAt, [formId+createdAt]` so snapshots include them.
+`FormResponseSchema` stores a row `{ id, formId, createdAt, values }` with
+optional `personaId` and `documentId`. `createdAt` is an ISO datetime and
+`values` contains only bounded strings, finite numbers, booleans or bounded
+string arrays. Unsafe keys and unknown row fields are rejected. The values
+object is capped at 8 KiB and 32 entries. The Dexie indexes also include
+`personaId`, `documentId` and `[formId+createdAt]`.
+Responses use the non-reserved `formResponses` feature table. The kind runtime
+includes it in its database and snapshot data.
 
 ## Form response services
 
@@ -149,35 +152,6 @@ const toc = buildDocToc(doc);
 // [{ id: 'getting-started', label: 'Getting Started', level: 2 }, …]
 expect(headingId('  Café  Overview! ')).toBe('cafe-overview');
 ```
-## Minimal runtimes
-
-The page/doc runtime entry points can use the same helpers to create
-definitions without the app blueprint generator or Faker:
-
-```ts
-import { definePrototypeFromPage } from '@protoyard/pages';
-
-const definition = definePrototypeFromPage(pageDocument, {
-  namespace: 'bp-example',
-  slug: 'example-page',
-  name: 'Example page',
-  brandThemeId: 'violet',
-});
-```
-
-The player and generated-prototype wiring is owned by the KINDS tasks. The
-document title and description seed the manifest unless root blueprint
-metadata overrides them. Pass a resolved `brandTheme` when the blueprint brand
-defines a local theme, or `brandThemeId` for a library theme. Each helper
-declares one `default` scenario with an empty world, no domain roles and no
-generator module. A `formResponses` store is declared only when the document
-contains a form block, including one nested inside columns, tabs or reveal.
-These are local prototype simulations; a form does not provide real
-authentication or data protection.
-
-## Remaining integration
-
-- `PageApp` / `DocApp` in `@protoyard/pages-ui`
 
 
 ## Fixtures
@@ -209,3 +183,28 @@ these fixtures stay small and package-local.
 pnpm --filter @protoyard/pages typecheck
 pnpm vitest run packages/pages
 ```
+
+## Runtime and forms
+
+This package is a **pure engine**: schemas, limits, TOC, `FormResponseSchema`,
+and `createFormServices`. It does **not** depend on `@protoyard/blueprint`.
+
+Build a page/doc prototype runtime from
+`@protoyard/blueprint/kinds`:
+
+```ts
+import {
+  defineKindRuntime,
+  definePrototypeFromPage,
+  definePrototypeFromDoc,
+} from '@protoyard/blueprint/kinds';
+```
+
+`definePrototypeFromPage` / `definePrototypeFromDoc` wrap a document body as a
+content blueprint and call `defineKindRuntime` (shared personas, policy, stores).
+Kind services (`createKindServices`) delegate form submit/list to
+`createFormServices` here.
+
+These runtime helpers do not mean that level-1 Player page/doc entries or
+level-2 `protoyard generate` templates are wired yet; see the current status in
+[`docs/PAGES.md`](../../docs/PAGES.md#current-support).

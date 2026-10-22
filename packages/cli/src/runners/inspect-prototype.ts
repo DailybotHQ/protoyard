@@ -38,11 +38,14 @@ async function importFile(path: string): Promise<Record<string, unknown>> {
   return (await import(pathToFileURL(path).href)) as Record<string, unknown>;
 }
 
-function readManifest(path: string): { name?: unknown; exports?: Record<string, unknown> } | null {
+function readManifest(
+  path: string
+): { name?: unknown; exports?: Record<string, unknown>; blueprintKind?: unknown } | null {
   try {
     return JSON.parse(readFileSync(path, 'utf8')) as {
       name?: unknown;
       exports?: Record<string, unknown>;
+      blueprintKind?: unknown;
     };
   } catch {
     return null;
@@ -284,6 +287,17 @@ async function main() {
       }
     }
     const routes = await loadRoutes(dir);
+    const blueprintKind = readManifest(join(dir, 'protoyard.json'))?.blueprintKind;
+    const template = definition.manifest.template;
+    const specKind =
+      blueprintKind === 'app' ||
+      blueprintKind === 'deck' ||
+      blueprintKind === 'page' ||
+      blueprintKind === 'doc'
+        ? blueprintKind
+        : template === 'deck' || template === 'page' || template === 'doc'
+          ? template
+          : 'app';
     result.spec = {
       manifest: {
         id: definition.manifest.id,
@@ -294,6 +308,7 @@ async function main() {
         category: definition.manifest.category,
         defaultTheme: definition.manifest.defaultTheme,
         namespace: definition.manifest.storage.namespace,
+        blueprintKind: specKind,
       },
       generatorVersion: definition.generatorVersion ?? null,
       versions: definition.database.versions.map((v) => ({ version: v.version, stores: v.stores })),

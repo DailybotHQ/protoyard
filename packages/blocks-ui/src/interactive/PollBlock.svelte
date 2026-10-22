@@ -64,7 +64,7 @@ function clearVote() {
       <li>
         <button
           type="button"
-          class="flex w-full flex-col gap-1 rounded-md border px-3 py-2 text-left text-sm transition-colors
+          class="flex w-full flex-col gap-1 rounded-md border px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring
             {selected
             ? 'border-primary bg-primary/10 ring-1 ring-primary'
             : 'border-border hover:bg-muted/50'}"

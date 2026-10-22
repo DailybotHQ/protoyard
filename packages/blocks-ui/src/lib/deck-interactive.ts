@@ -1,5 +1,6 @@
 /**
  * Attribute that tells deck input not to advance on click/swipe inside this
- * subtree. Same string as `@protoyard/decks` `DECK_INTERACTIVE_ATTRIBUTE`.
+ * subtree. Keep the literal local so block-family imports stay independent of
+ * the deck engine.
  */
-export { DECK_INTERACTIVE_ATTRIBUTE } from '@protoyard/decks';
+export const DECK_INTERACTIVE_ATTRIBUTE = 'data-py-deck-interactive';

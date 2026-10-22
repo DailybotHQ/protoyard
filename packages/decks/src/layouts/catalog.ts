@@ -438,7 +438,8 @@ export const DECK_LAYOUT_BY_ID: Readonly<Record<string, DeckLayoutEntry>> = Obje
 );
 
 export function getDeckLayout(id: string): DeckLayoutEntry | undefined {
-  return DECK_LAYOUT_BY_ID[id];
+  // Own keys only: an untrusted id such as `constructor` must never resolve through the prototype.
+  return Object.hasOwn(DECK_LAYOUT_BY_ID, id) ? DECK_LAYOUT_BY_ID[id] : undefined;
 }
 
 export const DECK_LAYOUT_IDS: readonly string[] = Object.freeze(DECK_LAYOUTS.map((l) => l.id));

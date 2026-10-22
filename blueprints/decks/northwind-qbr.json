@@ -1,0 +1,154 @@
+{
+  "formatVersion": 1,
+  "name": "Northwind QBR",
+  "description": "Fictional quarterly business review for Northwind Trading. Metrics are sample series for layout review, not real revenue.",
+  "tags": ["deck", "qbr", "example"],
+  "icon": "chart",
+  "category": "demos",
+  "kind": "deck",
+  "brand": {
+    "name": "Northwind Trading",
+    "seed": "#1d4ed8",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "deck": {
+    "style": {
+      "aspect": "16:9",
+      "density": "comfortable",
+      "transition": "fade",
+      "progress": "top"
+    },
+    "slides": [
+      {
+        "id": "title",
+        "layout": "title-hero",
+        "props": {
+          "title": "Northwind QBR",
+          "subtitle": "Q3 sample review (fictional)",
+          "meta": "Internal demo \u00b7 Example Co"
+        }
+      },
+      {
+        "id": "headline",
+        "layout": "big-stat",
+        "props": {
+          "number": "18%",
+          "label": "sample lift in closed deals vs last quarter",
+          "context": "Placeholder cohort of 40 fictional accounts",
+          "source": "Demo data only"
+        },
+        "notes": "Say out loud that the percentage is invented for the slide."
+      },
+      {
+        "id": "pipeline",
+        "layout": "chart",
+        "props": {
+          "title": "Pipeline by stage (sample)",
+          "spec": {
+            "kind": "funnel",
+            "title": "Deal stages",
+            "unit": "number",
+            "labels": ["Qualify", "Propose", "Negotiate", "Won"],
+            "series": [
+              {
+                "label": "Deals",
+                "values": [40, 28, 16, 9]
+              }
+            ]
+          },
+          "height": "md"
+        }
+      },
+      {
+        "id": "plans",
+        "layout": "comparison-table",
+        "props": {
+          "title": "Support tiers (fictional)",
+          "columns": ["Harbor", "Beacon", "Summit"],
+          "rows": [
+            {
+              "label": "Seats",
+              "values": ["5", "25", "Unlimited"]
+            },
+            {
+              "label": "SLA",
+              "values": ["Best effort", "1 business day", "4 hours"]
+            },
+            {
+              "label": "Audit export",
+              "values": [false, true, true]
+            },
+            {
+              "label": "Dedicated CSM",
+              "values": [false, false, true]
+            }
+          ]
+        }
+      },
+      {
+        "id": "pulse",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Room pulse",
+            "level": 2
+          },
+          {
+            "type": "text",
+            "markdown": "Interactive poll for the demo room. Votes stay in the browser and are not stored as customer data."
+          },
+          {
+            "type": "poll",
+            "id": "qbr-confidence",
+            "question": "How clear is the sample pipeline story?",
+            "options": [
+              {
+                "id": "clear",
+                "label": "Clear enough"
+              },
+              {
+                "id": "needs-notes",
+                "label": "Needs more notes"
+              },
+              {
+                "id": "redo",
+                "label": "Redo the chart"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "close",
+        "layout": "closing-cta",
+        "props": {
+          "title": "Continue the review",
+          "text": "Open the sample CRM prototype and walk one fictional account.",
+          "cta": {
+            "label": "example.com/northwind",
+            "href": "https://example.com/northwind-qbr"
+          },
+          "footnote": "All figures are placeholders."
+        }
+      }
+    ],
+    "outline": {
+      "sections": [
+        {
+          "id": "open",
+          "slideIds": ["title", "headline"]
+        },
+        {
+          "id": "numbers",
+          "slideIds": ["pipeline", "plans"]
+        },
+        {
+          "id": "room",
+          "slideIds": ["pulse", "close"]
+        }
+      ]
+    }
+  }
+}

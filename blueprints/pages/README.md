@@ -2,8 +2,8 @@
 
 Fictional `kind: "page"` blueprints (ADR-036): a single scrolling marketing page
 built from shared blocks. They live outside the flat `blueprints/*.json` app
-catalog, so `protoyard index` and the marketplace never list them as apps. They
-have no entities, roles or screens.
+catalog, so they are never listed as apps. They have no entities, roles or
+screens. Back to the [catalog index](../README.md#choose-an-example-by-kind).
 
 | Example | Shows |
 | --- | --- |
@@ -49,9 +49,26 @@ example:
 - that the data is fictional;
 - that it passes the kind union with a provisional body in the documented shape.
 
-The page body schema from `@protoyard/pages` is not wired into
-`parseAnyBlueprint` yet. `protoyard blueprint validate` still validates every
-file as an app blueprint, so today it rejects this example (missing `entities`
-and `roles`, unknown key `page`); that is expected until the kind-aware
-validation reaches the CLI. The test's "parses as kind
-page" case turns on by itself once the schema ships.
+`pnpm protoyard blueprint validate blueprints/pages/tidewater-roasters-landing.json` validates
+the page body from `@protoyard/pages` and prints a kind-specific summary.
+
+## Authoring a page
+
+1. Copy the example above, or start from a brief with
+   `blueprintFromBrief(brief, { kind: "page" })` in `@protoyard/blueprint`.
+   It picks a page outline (landing, pricing, waitlist or generic) and
+   returns placeholder sections to replace with real content. The
+   `protoyard blueprint new --from-brief` command makes app blueprints only.
+2. Validate with `pnpm protoyard blueprint validate <file>`.
+3. Run `pnpm vitest run packages/blueprint/tests/page-doc-catalog.test.ts`.
+
+`protoyard generate --blueprint` accepts app blueprints only, so a page
+example cannot be generated into a prototype yet.
+
+## Listing
+
+`protoyard index` scans this folder, but an example is listed (in the registry,
+`protoyard list` and the gallery) only when it has a `catalog` block. These
+examples have none yet, so `protoyard index` reports each one as invalid ('catalog
+blueprints need a "catalog" block') and none is listed. Adding a `catalog`
+block (category, product type, features…) is what lists an example.

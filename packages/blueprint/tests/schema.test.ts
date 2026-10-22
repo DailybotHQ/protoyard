@@ -354,21 +354,25 @@ describe('BlueprintSchema', () => {
 });
 
 describe('blueprint JSON Schema', () => {
-  it('is up to date with the zod schema', () => {
+  it('is up to date with the zod schema', async () => {
     // Regenerate with the command in packages/blueprint/README.md.
-    expect(committedJsonSchema).toEqual(blueprintJsonSchema());
+    expect(committedJsonSchema).toEqual(await blueprintJsonSchema());
   });
 
-  it('describes the input shape with defaults optional', () => {
-    const schema = blueprintJsonSchema() as {
+  it('keeps the app input branch unchanged with defaults optional', async () => {
+    const schema = (await blueprintJsonSchema()) as {
       $schema: string;
       $id: string;
-      required: string[];
-      additionalProperties: boolean;
+      oneOf: { required: string[]; additionalProperties: boolean }[];
     };
     expect(schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
     expect(schema.$id).toBe('https://github.com/DailybotHQ/protoyard/schema/blueprint/v1');
-    expect(schema.required.sort()).toEqual(['entities', 'formatVersion', 'name', 'roles']);
-    expect(schema.additionalProperties).toBe(false);
+    expect(schema.oneOf[0]?.required.sort()).toEqual([
+      'entities',
+      'formatVersion',
+      'name',
+      'roles',
+    ]);
+    expect(schema.oneOf[0]?.additionalProperties).toBe(false);
   });
 });

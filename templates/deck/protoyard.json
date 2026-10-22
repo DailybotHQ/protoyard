@@ -1,0 +1,36 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.deck",
+  "slug": "deck",
+  "kind": "template",
+  "blueprintKind": "deck",
+  "name": "Deck",
+  "description": "A level-two presentation template backed by the shared deck renderer and a data-only deck blueprint.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "presentation",
+  "tags": ["deck", "presentation", "slides"],
+  "catalog": {
+    "category": "productivity",
+    "productType": "Presentation deck",
+    "platforms": ["web"],
+    "features": ["slide-deck", "deck-studio", "interactive-blocks"],
+    "highlights": [
+      "Shared DeckApp renderer with keyboard navigation",
+      "A data-only blueprint that can be edited safely",
+      "Optional Deck Studio in DevTools"
+    ],
+    "difficulty": "beginner"
+  },
+  "status": "ready",
+  "icon": "🎞️",
+  "defaultScenario": "default",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-deck", "schemaVersion": 1 },
+  "build": { "includeDevtools": true, "demoBadge": true, "base": "./" },
+  "scenarios": ["default"],
+  "thumbnail": "public/thumbnail.png"
+}
