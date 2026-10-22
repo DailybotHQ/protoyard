@@ -5,6 +5,7 @@ import { fitText } from '../design/fit.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../prop-steps.ts';
 
 /**
  * A chart on a card. The data table stays behind the chart's own "View as
@@ -12,6 +13,7 @@ import type { PropsOf } from '../design/types.ts';
  * `showTable` asks for); a print-only copy of the table goes on paper.
  */
 let { props: p }: { props: PropsOf<typeof ChartLayoutPropsSchema> } = $props();
+const steps = getPropSteps();
 const series = $derived(p.spec.series);
 </script>
 
@@ -20,7 +22,7 @@ const series = $derived(p.spec.series);
     <h2 class={`${DECK_TYPE.title} line-clamp-2`} data-slot="title" {@attach fitText(40)}>{p.title}</h2>
   {/if}
   <div class="flex min-h-0 flex-1 flex-col justify-center">
-    <div class="rounded-[1.8cqw] border border-border bg-card px-[2.6cqw] py-[2cqw] text-card-foreground shadow-soft" data-slot="chart">
+    <div {...steps(['spec'])} class="rounded-[1.8cqw] border border-border bg-card px-[2.6cqw] py-[2cqw] text-card-foreground shadow-soft" data-slot="chart">
       <Blocks blocks={[{ type: 'chart', spec: p.spec, height: p.height ?? 'lg', showTable: false }]} />
     </div>
   </div>

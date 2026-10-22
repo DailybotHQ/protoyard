@@ -34,6 +34,12 @@ export {
 } from './catalog.ts';
 export * from './props.ts';
 export {
+  DECK_LAYOUT_STEPPABLE,
+  isSteppablePropPath,
+  stepMarkersOutsideLayout,
+  steppablePattern,
+} from './steppable.ts';
+export {
   type DeckLayoutEntry,
   LAYOUT_PACING,
   type LayoutLimits,

@@ -5,13 +5,15 @@ import { imageBlock } from '../design/media.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../prop-steps.ts';
 
 let { props: p }: { props: PropsOf<typeof ImageFullBleedPropsSchema> } = $props();
+const steps = getPropSteps();
 const overlay = $derived(p.overlay ?? (p.caption ? 'dark' : 'none'));
 </script>
 
 <SlideFrame layout="image-full-bleed">
-  <div class="absolute inset-0" data-slot="media" data-media="image" data-fit="cover">
+  <div {...steps(['image'])} class="absolute inset-0" data-slot="media" data-media="image" data-fit="cover">
     <Blocks blocks={[imageBlock(p.image)]} class="h-full" />
   </div>
   {#if overlay !== 'none'}

@@ -4,7 +4,7 @@ import { fitContent, fitText } from '../design/fit.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
-import { getPropSteps } from '../step-context.ts';
+import { getPropSteps } from '../prop-steps.ts';
 
 let { props: p }: { props: PropsOf<typeof ComparisonTablePropsSchema> } = $props();
 const steps = getPropSteps();

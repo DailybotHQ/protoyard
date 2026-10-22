@@ -217,10 +217,21 @@ On screen:
   fades in (`fade`, `in`), fades up (`fade-up`), or switches its effect on
   (`grow`, `shrink`, `highlight`, `strike`). `out` and `in-then-out` hide
   again. Going back hides it again.
-- **Catalog items** that take a step today: `three-column-cards` cards,
-  `process-steps` steps, `timeline` events, `comparison-table` rows and the
-  `two-column-split` sides. A marker on another prop counts as a step, but that
-  prop is always shown.
+- **Every catalog prop can take a step.** A marker on the props object
+  itself reveals the whole slide body (a `big-stat`, a `quote`, a hero). A
+  marker on a nested object reveals what it draws:
+  - the `image` or `video` media pane;
+  - the `code-with-callout` code panel;
+  - the `closing-cta` button;
+  - the `chart` spec;
+  - a `two-column-split` side.
+
+  On list items it reveals one card, process step, timeline event, table row
+  or team member. The full table is in the
+  [package guide](../packages/decks/README.md#steps-and-motion).
+  - A marker deeper inside a prop (a single chart series) still adds a step,
+    but nothing hides. `stepMarkersOutsideLayout` from
+    `@protoyard/decks/layouts` lists those markers.
 - **Code highlights move per step,** on free code blocks and on the
   `code-with-callout` code: highlight 0 is the initial state and each further
   highlight takes one step.
@@ -554,13 +565,10 @@ Every deck string renders as text, never as HTML; see
 
 ## What decks do not do yet
 
-- **Stepped catalog props outside the item lists do not hide.** A step marker
-  on a catalog prop that is not a card, process step, timeline event, table
-  row or split side (a `big-stat` number, a `closing-cta` button, a media
-  prop) adds a step, but the prop is shown from the start. Use a free slide
-  for those reveals. The steps model and its rules are in the
-  [steps and motion section](../packages/decks/README.md#steps-and-motion)
-  of the package guide.
+- **Steps inside a chart do not hide.** A marker on the `chart` spec reveals
+  the whole chart, but one on a single series adds a step without hiding
+  anything. Use one chart slide per reveal, or a free slide with several chart
+  blocks.
 - **No custom slide components.** A generated deck's `src/custom-slides.ts`
   is a typed registry for later. `DeckApp` renders only the catalog layouts
   and free blocks.
