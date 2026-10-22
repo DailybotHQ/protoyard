@@ -29,6 +29,8 @@ export interface QuickListEntry {
   /** The exploration folder, relative to the workspace. */
   dir: string;
   name: string | null;
+  /** `app`, `deck`, `page` or `doc` (an unreadable blueprint counts as an app). */
+  kind: 'app' | 'deck' | 'page' | 'doc';
   source: 'brief' | 'blueprint';
   createdAt: string;
   updatedAt: string;
@@ -54,15 +56,23 @@ export interface QuickScan {
 const isFile = async (path: string) =>
   (await lstat(path).catch(() => undefined))?.isFile() === true;
 
-/** The blueprint's `name`, or null; only used as a label, never trusted further. */
-async function blueprintName(path: string): Promise<string | null> {
+/** The blueprint's `name` (or null) and kind; only used as labels, never trusted further. */
+async function blueprintLabel(
+  path: string
+): Promise<{ name: string | null; kind: QuickListEntry['kind'] }> {
   const info = await lstat(path).catch(() => undefined);
-  if (!info?.isFile() || info.size > NAME_BLUEPRINT_MAX_BYTES) return null;
+  if (!info?.isFile() || info.size > NAME_BLUEPRINT_MAX_BYTES) return { name: null, kind: 'app' };
   try {
-    const name = (JSON.parse(await readFile(path, 'utf8')) as { name?: unknown }).name;
-    return typeof name === 'string' && name.length > 0 && name.length <= 160 ? name : null;
+    const { name, kind } = JSON.parse(await readFile(path, 'utf8')) as {
+      name?: unknown;
+      kind?: unknown;
+    };
+    return {
+      name: typeof name === 'string' && name.length > 0 && name.length <= 160 ? name : null,
+      kind: kind === 'deck' || kind === 'page' || kind === 'doc' ? kind : 'app',
+    };
   } catch {
-    return null;
+    return { name: null, kind: 'app' };
   }
 }
 
@@ -101,7 +111,7 @@ export async function scanQuickExplorations(
       slug: record.slug,
       folder: entry.name,
       dir: rel(dir),
-      name: await blueprintName(join(dir, 'blueprint.json')),
+      ...(await blueprintLabel(join(dir, 'blueprint.json'))),
       source: record.source,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
@@ -191,6 +201,7 @@ export const quickIndexCommand: Handler = async (ctx): Promise<CommandResult> =>
   const entries: QuickIndexEntry[] = scan.explorations.map((entry) => ({
     slug: entry.slug,
     name: entry.name,
+    kind: entry.kind,
     source: entry.source,
     updatedAt: entry.updatedAt,
     open: inZone(entry.open) ?? '',

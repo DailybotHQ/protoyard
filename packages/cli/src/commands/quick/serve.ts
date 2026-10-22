@@ -3,7 +3,7 @@ import { existsSync, lstatSync, statSync } from 'node:fs';
 import { lstat, readFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
-import { blueprintIdentity, parseBlueprint } from '@protoyard/blueprint';
+import { type AnyBlueprint, blueprintIdentity } from '@protoyard/blueprint';
 import { checkSlug } from '@protoyard/core';
 import { handleCommentsRequest } from '@protoyard/review/server';
 import type { CommandResult, Handler } from '../../lib/command.ts';
@@ -13,6 +13,7 @@ import { CliError, mark } from '../../lib/output.ts';
 import { QUICK_MARKER } from '../../lib/output-guard.ts';
 import { canonicalPath, toPosixRelative } from '../../lib/paths.ts';
 import { parsePort } from '../../lib/ports.ts';
+import { parseQuickBlueprint } from '../../lib/quick/blueprint-kind.ts';
 import { createFileCommentsStore } from '../../lib/quick/comments-store.ts';
 import {
   createQuickEventHub,
@@ -65,9 +66,9 @@ async function reviewSlugForBlueprint(path: string, expectedSha256: string): Pro
   if (!info?.isFile() || info.isSymbolicLink() || info.size > 2 * 1024 * 1024) {
     throw new CliError('unsafe_path', 'Refusing a missing, linked or oversized quick blueprint.');
   }
-  let blueprint: ReturnType<typeof parseBlueprint>;
+  let blueprint: AnyBlueprint;
   try {
-    blueprint = parseBlueprint(JSON.parse(await readFile(path, 'utf8')) as unknown);
+    blueprint = await parseQuickBlueprint(JSON.parse(await readFile(path, 'utf8')) as unknown);
   } catch {
     throw new CliError('validation', 'The quick blueprint is invalid; recreate the exploration.');
   }

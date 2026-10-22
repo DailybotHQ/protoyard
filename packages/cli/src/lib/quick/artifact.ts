@@ -11,7 +11,7 @@ import {
   checkTextAsset,
   escapeReplacementCharacters,
   firstSentence,
-  iconForCategory,
+  iconForBlueprint,
   type PackIssue,
 } from '../artifact-pack.ts';
 import { sha256Text } from '../checksum.ts';
@@ -53,7 +53,8 @@ export interface QuickArtifactInput {
   /** The single-file export's full HTML document. */
   singleFileHtml: string;
   slug: string;
-  blueprint: { name: string; description?: string; category?: string };
+  /** `kind` picks the icon of a deck, page or doc; an app's comes from its category. */
+  blueprint: { name: string; description?: string; category?: string; kind?: string };
   blueprintSha256: string;
   playerVersion: string;
 }
@@ -205,7 +206,7 @@ export function buildQuickArtifact(input: QuickArtifactInput): QuickArtifactPack
       page: { path: ARTIFACT_PAGE, bytes, sha256: sha256Text(page) },
       publish: {
         title,
-        icon: iconForCategory(input.blueprint.category),
+        icon: iconForBlueprint(input.blueprint),
         description: quickArtifactDescription(input.blueprint),
       },
     },

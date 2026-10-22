@@ -45,10 +45,32 @@ sha256 in `quick.json`. `--standalone` copies the player into the folder
 instead of sharing it, and `--out <dir>` writes elsewhere (standalone);
 `--force` replaces an exploration with the same slug.
 
+**Decks, pages and docs.** An exploration can hold any blueprint kind:
+
+```bash
+protoyard quick --blueprint blueprints/decks/lumen-launch.json --slug launch --variants 3
+protoyard quick "A ten-slide talk introducing a fictional climbing gym" --kind deck --slug gym-talk
+```
+
+- `--blueprint` reads a deck, page or doc through the untrusted document loader
+  (the kind's limits and body schema).
+- A brief makes whatever the synthesizer detects, or what `--kind app|deck|page|doc`
+  asks for. A drafted deck, page or doc is validated like any untrusted
+  document and refused with its issues when it does not pass.
+- The launcher opens the player's page for that kind (`deck.html`,
+  `page.html` or `doc.html`). A shared player built before those pages
+  existed opens `index.html`, which runs every kind.
+- Every JSON result (`quick`, `quick iterate`, `quick undo`, `quick export`,
+  `quick list`) carries `kind`, and `quick index` labels deck, page and doc
+  cards.
+
 ### 2. Variants
 
 `--variants <n>` (1 to 8) writes `v1/`…`vN/` and `compare.html`. The same
-blueprint and seed always give the same variants. See
+blueprint and seed always give the same variants. A deck varies only its
+style (theme, transition, density and font pair in `deck.style`); a page or
+doc varies its brand theme and density. Slides, sections, blocks and text
+never change. See
 [Variants and serving](#variants-and-serving).
 
 ### 3. Screenshots
@@ -85,7 +107,9 @@ protoyard quick export gym --single-file
   network and no service worker. It embeds only the chunks its player page
   can reach: a deck, page or doc starts from `deck.html`, `page.html` or
   `doc.html` and carries no CRUD shell, Faker or app kits. `--target artifact`
-  packs it as a Claude artifact page and never publishes
+  packs it as a Claude artifact page, titled from the blueprint name, with
+  the kind's icon (`slides`, `page` or `document`; an app's comes from its
+  category). It never publishes
   ([Publishing](PUBLISHING.md)).
 
 ### 5. Iterate and undo
@@ -142,6 +166,8 @@ protoyard quick promote gym gym-desk --variant v2 --no-install
 
 Runs `generate` on the exploration's (or one variant's) blueprint into
 `prototypes/<new-slug>`, checks it is the same app, and records `promotedTo`.
+It promotes apps only. For a deck, page or doc it refuses and prints the
+`protoyard generate <slug> --blueprint <file>` command to run instead.
 It needs a workspace and never replaces a prototype. From there, follow
 [Generator](GENERATOR.md#promoting-a-quick-exploration) and
 [Brief to prototype](BRIEF_TO_PROTOTYPE.md).
@@ -268,6 +294,10 @@ The review-comment controls are in the player's DevTools. Passing
   and two captures can differ by anti-aliasing at rounded corners.
 - **Iterate changes the base only.** Variants and `compare.html` keep the
   blueprint they were derived from.
+- **Content-kind patches.** `quick iterate` on a deck, page or doc validates
+  the result as an untrusted document and refuses a patch that changes
+  `kind`. There is no migration, because content kinds share one store
+  layout: `world` always reports schema v1, preserved.
 - **`quick serve` is a local convenience.** It binds to `127.0.0.1` and is not
   authentication; do not expose it.
 

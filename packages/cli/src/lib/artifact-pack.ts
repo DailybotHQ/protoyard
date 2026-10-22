@@ -528,6 +528,21 @@ export function iconForCategory(category: string | undefined): string {
   return CATEGORY_ICONS[(category ?? '').toLowerCase()] ?? 'app';
 }
 
+/** The icon of a deck, page or doc: what it is, whatever its category. */
+const KIND_ICONS: Readonly<Record<string, string>> = {
+  deck: 'slides',
+  page: 'page',
+  doc: 'document',
+};
+
+/** A content kind's icon (`slides`, `page`, `document`); an app's comes from its category. */
+export function iconForBlueprint(blueprint: { kind?: string; category?: string }): string {
+  return (
+    (blueprint.kind !== undefined && KIND_ICONS[blueprint.kind]) ||
+    iconForCategory(blueprint.category)
+  );
+}
+
 /** The first sentence of a description (up to the first `.`, `!` or `?` followed by a space or the end). */
 export function firstSentence(description: string): string {
   const text = description.replace(/\s+/g, ' ').trim();

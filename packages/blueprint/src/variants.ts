@@ -1,6 +1,7 @@
 import { createRng, type LayoutId } from '@protoyard/core';
 import { entityLabel } from './app-model.ts';
 import { canonicalJson } from './identity.ts';
+import type { DeckBlueprint, DocBlueprint, PageBlueprint } from './kinds/envelope.ts';
 import { type Blueprint, type BlueprintBrand, parseBlueprint } from './schema.ts';
 
 /**
@@ -224,6 +225,173 @@ export function deriveVariants(
   if (variants.length < count) {
     throw new RangeError(
       `Only ${variants.length} distinct variant(s) are possible with these axes; add layouts or themes, or lower the count.`
+    );
+  }
+  return variants;
+}
+
+// ── Content kinds (decks, pages, docs) ───────────────────────────────────────
+
+/** Deck transitions a variant may set (`deck.style.transition`). */
+export const VARIANT_DECK_TRANSITIONS = ['none', 'fade', 'slide', 'zoom', 'morph'] as const;
+export type VariantDeckTransition = (typeof VARIANT_DECK_TRANSITIONS)[number];
+
+/**
+ * What a content-kind variant may change. A deck varies its own style
+ * (`deck.style`: theme, transition, density, font pair); a page or doc has no
+ * renderer style yet, so it varies its brand (theme and density), like an
+ * app's shell. Slides, sections, blocks and text never change.
+ */
+export interface KindVariantAxes {
+  /** Theme ids: a built-in preset or a library theme id. */
+  themes?: readonly string[];
+  /** Deck only (default: every transition). */
+  transitions?: readonly VariantDeckTransition[];
+  /** Default: all three. */
+  densities?: readonly VariantDensity[];
+  /** Deck only: font pairing ids (`@protoyard/themes` FONT_CATALOG). */
+  fontPairs?: readonly string[];
+}
+
+export interface KindVariantChanges {
+  theme?: string;
+  transition?: VariantDeckTransition;
+  density?: VariantDensity;
+  fontPair?: string;
+}
+
+export interface KindBlueprintVariant<B extends DeckBlueprint | PageBlueprint | DocBlueprint> {
+  /** `v1` … `v8`. */
+  id: string;
+  /** What changed: `Ocean theme · Fade transition · Compact · Humanist fonts`. */
+  label: string;
+  changes: KindVariantChanges;
+  blueprint: B;
+}
+
+export interface DeriveKindVariantsOptions {
+  /** 1 to 8. */
+  count: number;
+  /** Any string; the same seed and blueprint give the same variants. */
+  seed?: string;
+  axes?: KindVariantAxes;
+}
+
+interface KindCombo {
+  theme: string | null;
+  transition: VariantDeckTransition | null;
+  density: VariantDensity | null;
+  fontPair: string | null;
+}
+
+function kindCombos(kind: 'deck' | 'page' | 'doc', axes: KindVariantAxes): KindCombo[] {
+  const deck = kind === 'deck';
+  const themes: (string | null)[] = axes.themes?.length ? unique(axes.themes) : [null];
+  const transitions: (VariantDeckTransition | null)[] = deck
+    ? unique(axes.transitions ?? VARIANT_DECK_TRANSITIONS)
+    : [null];
+  const densities = unique(axes.densities ?? VARIANT_DENSITIES);
+  const fontPairs: (string | null)[] =
+    deck && axes.fontPairs?.length ? unique(axes.fontPairs) : [null];
+  const out: KindCombo[] = [];
+  for (const theme of themes) {
+    // A page or doc brand carries a density only with a preset (a library theme has its own).
+    const options: (VariantDensity | null)[] =
+      densities.length === 0 || (!deck && theme !== null && !PRESETS.has(theme))
+        ? [null]
+        : densities;
+    for (const transition of transitions.length > 0 ? transitions : [null]) {
+      for (const density of options) {
+        for (const fontPair of fontPairs) out.push({ theme, transition, density, fontPair });
+      }
+    }
+  }
+  return out;
+}
+
+function applyKind<B extends DeckBlueprint | PageBlueprint | DocBlueprint>(
+  blueprint: B,
+  combo: KindCombo
+): B {
+  const next = structuredClone(blueprint) as B;
+  if (next.kind === 'deck') {
+    const style = { ...next.deck.style };
+    if (combo.theme !== null) {
+      // A theme and a palette seed are exclusive (as in Deck Studio).
+      delete style.paletteSeed;
+      style.theme = combo.theme;
+    }
+    if (combo.transition !== null) style.transition = combo.transition;
+    if (combo.density !== null) style.density = combo.density;
+    if (combo.fontPair !== null) style.fontPair = combo.fontPair;
+    next.deck = { ...next.deck, style };
+    return next;
+  }
+  const brand = themedBrand(next as unknown as Blueprint, {
+    layout: null,
+    theme: combo.theme,
+    density: combo.density,
+    primary: null,
+  });
+  if (brand === undefined) delete (next as { brand?: unknown }).brand;
+  else (next as { brand?: BlueprintBrand }).brand = brand;
+  return next;
+}
+
+function kindLabel(combo: KindCombo): string {
+  const parts: string[] = [];
+  if (combo.theme !== null) parts.push(`${titleCase(combo.theme)} theme`);
+  if (combo.transition !== null) parts.push(`${titleCase(combo.transition)} transition`);
+  if (combo.density !== null) parts.push(titleCase(combo.density));
+  if (combo.fontPair !== null) parts.push(`${titleCase(combo.fontPair)} fonts`);
+  return parts.length > 0 ? parts.join(' · ') : 'As written';
+}
+
+function kindChanges(combo: KindCombo): KindVariantChanges {
+  return {
+    ...(combo.theme === null ? {} : { theme: combo.theme }),
+    ...(combo.transition === null ? {} : { transition: combo.transition }),
+    ...(combo.density === null ? {} : { density: combo.density }),
+    ...(combo.fontPair === null ? {} : { fontPair: combo.fontPair }),
+  };
+}
+
+/**
+ * `count` distinct variants of a deck, page or doc, none identical to it:
+ * only the style axes change (see `KindVariantAxes`). Deterministic like
+ * `deriveVariants`: the same blueprint, seed and axes give byte-identical
+ * variants. The caller validates the result (`safeParseAnyBlueprint`) when
+ * an axis value may be unknown. Throws a RangeError when the axes cannot
+ * produce that many.
+ */
+export function deriveKindVariants<B extends DeckBlueprint | PageBlueprint | DocBlueprint>(
+  blueprint: B,
+  options: DeriveKindVariantsOptions
+): KindBlueprintVariant<B>[] {
+  const { count } = options;
+  if (!Number.isInteger(count) || count < 1 || count > VARIANT_MAX_COUNT) {
+    throw new RangeError(`count must be an integer from 1 to ${VARIANT_MAX_COUNT} (got ${count}).`);
+  }
+  const baseJson = canonicalJson(blueprint);
+  const rng = createRng(`protoyard-kind-variants:${options.seed ?? ''}:${baseJson}`);
+  const seen = new Set([baseJson]);
+  const variants: KindBlueprintVariant<B>[] = [];
+  for (const combo of rng.shuffle(kindCombos(blueprint.kind, options.axes ?? {}))) {
+    if (variants.length === count) break;
+    const next = applyKind(blueprint, combo);
+    const json = canonicalJson(next);
+    if (seen.has(json)) continue;
+    seen.add(json);
+    variants.push({
+      id: `v${variants.length + 1}`,
+      label: kindLabel(combo),
+      changes: kindChanges(combo),
+      blueprint: next,
+    });
+  }
+  if (variants.length < count) {
+    throw new RangeError(
+      `Only ${variants.length} distinct variant(s) are possible with these axes; add themes or lower the count.`
     );
   }
   return variants;

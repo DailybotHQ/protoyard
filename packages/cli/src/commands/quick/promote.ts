@@ -2,9 +2,11 @@ import { existsSync, lstatSync, statSync } from 'node:fs';
 import { lstat, readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import {
+  type AnyBlueprint,
   type Blueprint,
   blueprintIdentity,
   deriveDatabaseVersions,
+  isAppBlueprint,
   parseBlueprint,
 } from '@protoyard/blueprint';
 import { checkSlug, MANIFEST_FILENAME, type PrototypeManifest } from '@protoyard/core';
@@ -15,6 +17,7 @@ import { CliError, mark } from '../../lib/output.ts';
 import { QUICK_MARKER } from '../../lib/output-guard.ts';
 import { canonicalPath, toPosixRelative, workspaceLayout } from '../../lib/paths.ts';
 import { writeQuickTemp } from '../../lib/quick/atomic-write.ts';
+import { parseQuickBlueprint } from '../../lib/quick/blueprint-kind.ts';
 import { readQuickRecord, touchQuickRecord, writeQuickRecord } from '../../lib/quick/model.ts';
 import { resolveQuickBase } from '../../lib/quick/paths.ts';
 import { assertSlug } from '../../lib/workspace.ts';
@@ -83,14 +86,14 @@ export function resolveExploration(root: string, target: string): string {
 export async function readRecordedBlueprint(
   path: string,
   expectedSha256: string
-): Promise<{ blueprint: Blueprint; sha256: string }> {
+): Promise<{ blueprint: AnyBlueprint; sha256: string }> {
   const info = await lstat(path).catch(() => undefined);
   if (!info?.isFile() || info.size > MAX_BLUEPRINT_BYTES) {
     throw new CliError('unsafe_path', `Refusing a missing, linked or oversized blueprint: ${path}`);
   }
-  let blueprint: Blueprint;
+  let blueprint: AnyBlueprint;
   try {
-    blueprint = parseBlueprint(JSON.parse(await readFile(path, 'utf8')) as unknown);
+    blueprint = await parseQuickBlueprint(JSON.parse(await readFile(path, 'utf8')) as unknown);
   } catch {
     throw new CliError('validation', `The exploration blueprint is invalid: ${path}`, {
       hint: 'Recreate the exploration with `protoyard quick … --force`.',
@@ -132,10 +135,20 @@ export const quickPromoteCommand: Handler = async (ctx, args, options): Promise<
     });
   }
   const blueprintPath = join(dir, variant?.dir ?? '.', 'blueprint.json');
-  const source = await readRecordedBlueprint(
+  const loaded = await readRecordedBlueprint(
     blueprintPath,
     variant?.blueprintSha256 ?? record.blueprintSha256
   );
+  if (!isAppBlueprint(loaded.blueprint)) {
+    throw new CliError(
+      'usage',
+      `quick promote turns app explorations into prototypes; this one is a ${loaded.blueprint.kind}.`,
+      {
+        hint: `Generate it instead: protoyard generate ${slug} --blueprint ${toPosixRelative(ctx.root, blueprintPath)}`,
+      }
+    );
+  }
+  const source = { ...loaded, blueprint: loaded.blueprint };
 
   // generate regenerates a prototype it made earlier; promotion only ever creates one.
   const dest = join(ctx.paths.prototypes, slug);

@@ -1,6 +1,7 @@
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { type Blueprint, blueprintIdentity, parseBlueprint } from '@protoyard/blueprint';
+import { type AnyBlueprint, blueprintIdentity } from '@protoyard/blueprint';
+import { parseQuickBlueprint } from './blueprint-kind.ts';
 
 /**
  * The blueprints an exploration had before each `quick iterate`, read back
@@ -23,7 +24,7 @@ export interface EarlierBlueprint {
   sequence: number;
   namespace: string;
   identitySha256: string;
-  blueprint: Blueprint;
+  blueprint: AnyBlueprint;
 }
 
 /** Earlier blueprints of the exploration in `dir`, newest change first, at most `limit`. */
@@ -43,7 +44,7 @@ export async function historyBlueprints(dir: string, limit = 64): Promise<Earlie
         before?: { text?: unknown; identitySha256?: unknown };
       };
       if (typeof entry.before?.text !== 'string') continue;
-      const blueprint = parseBlueprint(JSON.parse(entry.before.text) as unknown);
+      const blueprint = await parseQuickBlueprint(JSON.parse(entry.before.text) as unknown);
       const identity = await blueprintIdentity(blueprint);
       const recorded = entry.before.identitySha256;
       if (recorded !== undefined && recorded !== identity.sha256) continue;
