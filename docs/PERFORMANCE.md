@@ -444,7 +444,7 @@ this change.
 | --- | ---: | ---: | ---: |
 | `BoardView` (`/board`) | 39.0 KB | **11.7 KB** | 12,800 B |
 | `CalendarView` (`/calendar`) | 42.9 KB | **15.7 KB** | 17,200 B |
-| `DataGrid` (`/grid`) | 58.8 KB | **18.7 KB** (over target) | 20,500 B |
+| `DataGrid` (`/grid`) | 58.8 KB | **18.7 KB** (over target) | 23,400 B (was 20,500; see [Grid toolkit](#grid-toolkit-2026-10-21)) |
 | `SimulatedMap` (`/map`) | 11.3 KB | 11.3 KB | 12,400 B |
 | `MarkdownEditor` (`/editor`) | 6.3 KB | 6.3 KB | 6,900 B |
 | `TimelineView` (`/timeline`) | 8.3 KB | 8.3 KB | 9,100 B |
@@ -476,6 +476,33 @@ What changed:
     setting.
   - `TimelineView`'s own `<style>` CSS is still emitted. The guard asserts
     both.
+
+### Grid toolkit (2026-10-21)
+
+Facet pickers, removable filter chips, saved-view "Modified / Save changes /
+Revert" and row selection with a bulk action bar joined `DataGrid`
+(PLAN_005 Task 102). Measured with the views bundle guard on the same machine
+(other lanes' builds running), gzip level 9, what the grid adds over the
+shell:
+
+| Step | Grid first screen |
+| --- | ---: |
+| Before (`dev`, the engine changes only) | 19,300 B |
+| Everything eager | 24,215 B |
+| Facets, chips and bulk bar in one lazy chunk (`GridExtras`) | 22,456 B |
+| Row selection checkboxes and rules lazy (`selection-kit`, only with `bulkActions`) | 22,085 B |
+| Inline cell editor lazy (`CellEditor`, loads with the first edit) | **21,859 B** |
+
+- The guard ceiling moved from 20,500 B to **23,400 B** (21,859 B + 7 %, the
+  file's rule), by the lead's decision.
+- Making the "Modified" comparison lazy too was tried and measured larger
+  (21,989 B): the `{#await}` block costs more than the comparison it defers,
+  so it stays eager in `SavedViews`.
+- What stays eager is the selection wiring in `DataGrid` (about 1.7 KB:
+  the selection state, Space handling and the sticky gutter's layout) and the
+  saved-view comparison (about 0.66 KB).
+- The first edit of a session now fetches the editor chunk before the editor
+  opens; read-only grids never download it.
 
 **Prototypes and templates using the kit** (initial JS stays the same,
 because views are lazy routes; what opening a view route downloads, after

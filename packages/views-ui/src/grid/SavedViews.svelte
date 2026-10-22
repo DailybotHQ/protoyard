@@ -1,13 +1,15 @@
 <script lang="ts">
 import { runService } from '@protoyard/renderer-svelte';
 import { Button, Input } from '@protoyard/ui';
-import type { SavedView } from '@protoyard/views/grid';
+import { isViewModified, type SavedView } from '@protoyard/views/grid';
 import { lazyDialog } from '../lib/lazy-overlays.svelte.ts';
+import type { GridViewState } from './model.ts';
 
 /**
  * Picks, saves, renames and deletes saved grid views. Each write goes through
  * its callback (the prototype's service) with pending feedback; a failure
- * keeps the form open.
+ * keeps the form open. With `current`, a picked view that was changed shows
+ * "Modified" with "Save changes" (through `onUpdate`) and "Revert".
  */
 let {
   views,
@@ -16,6 +18,8 @@ let {
   onCreate,
   onRename,
   onDelete,
+  current,
+  onUpdate,
 }: {
   views: readonly SavedView[];
   activeId?: string | null;
@@ -25,6 +29,10 @@ let {
   onCreate?: (name: string) => unknown;
   onRename?: (view: SavedView, name: string) => unknown;
   onDelete?: (view: SavedView) => unknown;
+  /** The state on screen; compared with the active view to show "Modified". */
+  current?: GridViewState;
+  /** Overwrites the active view with `state`. */
+  onUpdate?: (view: SavedView, state: GridViewState) => unknown;
 } = $props();
 
 const uid = $props.id();
@@ -32,6 +40,9 @@ let mode = $state<'idle' | 'create' | 'rename'>('idle');
 let name = $state('');
 let confirmDelete = $state(false);
 const active = $derived(views.find((view) => view.id === activeId) ?? null);
+const modified = $derived(
+  active !== null && current !== undefined && isViewModified(active, current)
+);
 
 async function submit() {
   const trimmed = name.trim();
@@ -66,6 +77,14 @@ async function submit() {
   </select>
 
   {#if mode === 'idle'}
+    {#if modified && active}
+      <span class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground" role="status">Modified</span>
+      {#if onUpdate && current}
+        {@const state = current}
+        <Button variant="secondary" size="sm" onclick={() => runService(() => onUpdate?.(active, state), { success: 'View updated' })}>Save changes</Button>
+      {/if}
+      <Button variant="ghost" size="sm" onclick={() => onApply(active)}>Revert</Button>
+    {/if}
     {#if onCreate}<Button variant="outline" size="sm" onclick={() => ((mode = 'create'), (name = ''))}>Save as new view</Button>{/if}
     {#if active && onRename}<Button variant="ghost" size="sm" onclick={() => ((mode = 'rename'), (name = active.name))}>Rename</Button>{/if}
     {#if active && onDelete}<Button variant="ghost" size="sm" onclick={() => lazyDialog.load().then(() => (confirmDelete = true))}>Delete</Button>{/if}
