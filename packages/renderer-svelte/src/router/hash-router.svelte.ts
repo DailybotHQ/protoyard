@@ -41,6 +41,35 @@ export interface RouteDefinition {
    * gating on the simulated session is UX, not security.
    */
   guard?: RouteGuard;
+  /**
+   * Opens the screen as an overlay over the last full-screen route instead of
+   * replacing it: a bottom sheet on phones and narrow hosts, a dialog (or a
+   * side panel) on wider ones. Closing returns to the screen underneath; Back,
+   * Forward and deep links keep working. `true` uses the defaults.
+   */
+  overlay?: boolean | RouteOverlayOptions;
+}
+
+export interface RouteOverlayOptions {
+  /** The wide-host presentation (default `dialog`); narrow hosts always get a sheet. */
+  desktop?: 'dialog' | 'side-panel';
+  /** Dialog or side-panel size (default `md`). */
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  /**
+   * The full-screen path shown underneath when the overlay is opened from a
+   * deep link (no earlier screen in this session). `:params` are filled from
+   * the overlay's params. Default: the nearest ancestor path that matches a
+   * full-screen route, else `/`.
+   */
+  base?: string;
+}
+
+/** The overlay options of a route, or null when it renders full screen. */
+export function routeOverlay(
+  route: RouteDefinition | null | undefined
+): RouteOverlayOptions | null {
+  if (!route?.overlay) return null;
+  return route.overlay === true ? {} : route.overlay;
 }
 
 /**
@@ -91,7 +120,22 @@ export interface RouterOptions {
 }
 
 export interface Router {
+  /** The matched location (an overlay route while one is open). */
   readonly current: RouteMatch;
+  /**
+   * The full-screen route rendered underneath: equal to `current` unless an
+   * overlay route is open, then the last full-screen match (or the overlay's
+   * `base` / nearest ancestor for a deep link).
+   */
+  readonly background: RouteMatch;
+  /** The open overlay route's match, or null. */
+  readonly overlay: RouteMatch | null;
+  /**
+   * Closes the open overlay: Back when it was opened from the screen
+   * underneath in this session (so history stays linear), otherwise replaces
+   * the address with the screen underneath. No-op without an overlay.
+   */
+  closeOverlay(): void;
   readonly routes: readonly RouteDefinition[];
   readonly notFound: RouterOptions['notFound'];
   /** True when `path` is the current route or one of its ancestors. */
@@ -200,6 +244,20 @@ export function createRouter(
     return result;
   };
 
+  /** What a deep-linked overlay shows underneath: its `base`, else the nearest full-screen ancestor, else `/`. */
+  const fallbackBackground = (overlay: RouteMatch): RouteMatch => {
+    const base = routeOverlay(overlay.route)?.base;
+    const candidates: string[] = [];
+    if (base) candidates.push(fillParams(base, overlay.params));
+    const parts = overlay.path.split('/').filter(Boolean);
+    for (let i = parts.length - 1; i >= 0; i--) candidates.push(`/${parts.slice(0, i).join('/')}`);
+    for (const candidate of candidates) {
+      const resolved = resolveGuards(candidate);
+      if (resolved.route && !routeOverlay(resolved.route)) return resolved;
+    }
+    return { route: null, params: {}, path: '/', query: new URLSearchParams() };
+  };
+
   const hrefOf = (m: RouteMatch) => {
     const query = m.query.toString();
     return toHref(`${m.path}${query ? `?${query}` : ''}`);
@@ -220,10 +278,27 @@ export function createRouter(
   const initial = resolveGuards(typeof location !== 'undefined' ? location.hash : '');
   replaceUrl(initial);
   let current = $state<RouteMatch>(initial);
+  let background = $state<RouteMatch>(
+    routeOverlay(initial.route) ? fallbackBackground(initial) : initial
+  );
+  /** Whether the open overlay was entered from `background` in this session (Back returns there). */
+  let enteredFromBackground = false;
 
   const update = () => {
     const next = resolveGuards(location.hash);
     replaceUrl(next);
+    const wasOverlay = routeOverlay(current.route) !== null;
+    const isOverlay = routeOverlay(next.route) !== null;
+    // Opening, moving between or closing overlays keeps the screen underneath (and its scroll).
+    const keepsBackground = isOverlay || (wasOverlay && hrefOf(next) === hrefOf(background));
+    if (isOverlay) {
+      // From the full screen underneath, Back returns to it. After a move between
+      // overlays Back would land on the previous overlay, so closing replaces instead.
+      enteredFromBackground = !wasOverlay && sameOutcome(current, background);
+    } else {
+      background = next;
+      enteredFromBackground = false;
+    }
     current = next;
     if (typeof document !== 'undefined') {
       const title =
@@ -232,7 +307,11 @@ export function createRouter(
         (next.route ? undefined : next.error ? 'Redirect loop' : 'Not found');
       document.title = title && baseTitle ? `${title} · ${baseTitle}` : (title ?? baseTitle);
     }
-    if (options.scrollToTop !== false && typeof window.scrollTo === 'function') {
+    if (
+      !keepsBackground &&
+      options.scrollToTop !== false &&
+      typeof window.scrollTo === 'function'
+    ) {
       try {
         window.scrollTo({ top: 0 });
       } catch {
@@ -264,12 +343,29 @@ export function createRouter(
     get current() {
       return current;
     },
+    get background() {
+      return background;
+    },
+    get overlay() {
+      return routeOverlay(current.route) ? current : null;
+    },
+    closeOverlay() {
+      if (!routeOverlay(current.route)) return;
+      if (enteredFromBackground && typeof history !== 'undefined' && history.length > 1) {
+        history.back();
+        return;
+      }
+      const query = background.query.toString();
+      navigate(`${background.path}${query ? `?${query}` : ''}`, { replace: true });
+    },
     routes,
     notFound: options.notFound,
     isActive(path, exact = false) {
       const target = parseHash(toHref(path)).path;
-      if (exact || target === '/') return current.path === target;
-      return current.path === target || current.path.startsWith(`${target}/`);
+      // Under an overlay, the screen underneath stays active too (navigation keeps its highlight).
+      const paths = routeOverlay(current.route) ? [current.path, background.path] : [current.path];
+      if (exact || target === '/') return paths.includes(target);
+      return paths.some((p) => p === target || p.startsWith(`${target}/`));
     },
     href: (path, params) => toHref(fillParams(path, params)),
     match,

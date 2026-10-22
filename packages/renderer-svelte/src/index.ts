@@ -62,10 +62,12 @@ export {
   type RouteGuard,
   type RouteMatch,
   type RouteMeta,
+  type RouteOverlayOptions,
   type RouteProps,
   type Router as HashRouter,
   type RouterOptions,
   redirectWithNext,
+  routeOverlay,
 } from './router/hash-router.svelte.ts';
 export { default as Link } from './router/Link.svelte';
 export {
