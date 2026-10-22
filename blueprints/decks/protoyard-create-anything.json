@@ -755,6 +755,8 @@
               "entities": [
                 {
                   "name": "idea",
+                  "plural": "ideas",
+                  "titleField": "title",
                   "fields": [
                     {
                       "name": "title",
@@ -768,15 +770,32 @@
                         "new",
                         "exploring",
                         "shipped"
+                      ],
+                      "default": "new",
+                      "required": true,
+                      "weights": [
+                        3,
+                        2,
+                        1
                       ]
                     }
+                  ],
+                  "searchable": [
+                    "title"
                   ]
                 }
               ],
               "roles": [
                 {
-                  "id": "member",
-                  "label": "Member"
+                  "name": "member",
+                  "permissions": {
+                    "*": [
+                      "read",
+                      "create",
+                      "update",
+                      "delete"
+                    ]
+                  }
                 }
               ]
             }
