@@ -395,7 +395,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
   it('counts errors and warnings and keeps ok true with warnings only', () => {
     const report = checkDeckStatic(deck([slide('a', 'big-stat', STAT, { notes: 'short' })]));
     expect(report).toMatchObject({ ok: true, errors: 0, warnings: 1 });
-    const failing = checkDeckStatic(deck([slide('a', 'nope', {}, { notes: 'short' })]));
+    const failing = checkDeckStatic(rawDeck([slide('a', 'nope', {}, { notes: 'short' })]));
     expect(failing).toMatchObject({ ok: false, errors: 1, warnings: 1 });
   });
 });
