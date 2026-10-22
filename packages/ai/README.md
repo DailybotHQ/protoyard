@@ -145,6 +145,46 @@ const reply = `Signups peaked on Wednesday.\n\n${chartBlock({
   - Every series needs one value per label. Donut, pie and funnel charts take
     one non-negative series.
 
+## Attention watchers (`@protoyard/ai/attention`)
+
+Pure, deterministic rules that turn a seeded world snapshot and simulated time
+into stable attention items with evidence links. Import the lazy subpath so the
+base engine entry stays lean:
+
+```ts
+import {
+  attentionFixtureWorld,
+  attentionWatchersForPreset,
+  runWatchers,
+} from '@protoyard/ai/attention';
+
+const now = '2026-10-14T18:00:00.000Z';
+const world = attentionFixtureWorld(now); // or assemble from your domain tables
+const open = runWatchers(world, now, existingItems, {
+  watchers: attentionWatchersForPreset('full'),
+  cleared: clearedKeys, // approved keys whose condition has gone away
+});
+```
+
+- **Determinism.** Ids are FNV-1a over `kind:subjectId`, `now` and the generation.
+  The same world, instant and existing rows always raise the same additions.
+  No `Math.random`, no `Date.now`.
+- **Suppression.** An open, dismissed or snoozed row blocks its key. An approved
+  row blocks until `cleared` records that the condition went away, then the next
+  raise may open a new generation.
+- **Built-in watchers.** Overloaded owners, stalled blocked work, slipping
+  milestones, quiet stand-up responders, falling team mood, and unposted weekly
+  summaries. Thresholds: `OVERLOAD_THRESHOLD` (8), `STALL_DAYS` (5),
+  `WORKING_DAY_THRESHOLD` (3).
+- **Presets.** `full`, `work-health`, `engagement`, `deadlines`, `none` select
+  which watchers run. Pass custom `watchers` or `moraleLeads` through
+  `runWatchers` options.
+- **Access helpers.** `attentionAccessOf` / `attentionVisibleTo` map simulated
+  roles onto who may see or decide. They are UX policy, not real authorization.
+- **Honesty.** Items are simulated decision support. Effect execution stays
+  behind an explicit service callback in the prototype. Label the queue as
+  simulated in the UI.
+
 ## Package output
 
 The manifest keeps TypeScript source exports for workspace development. `pnpm build:packages --filter engine` creates the ESM and declaration files under `dist/` that the packed manifest exposes.

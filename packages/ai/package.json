@@ -7,6 +7,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./attention": "./src/attention/index.ts",
     "./markdown": "./src/markdown.ts",
     "./packs": "./src/packs.ts",
     "./scenarios": "./src/scenarios.ts",
@@ -64,6 +65,11 @@
         "types": "./dist/chart.d.ts",
         "import": "./dist/chart.js",
         "default": "./dist/chart.js"
+      },
+      "./attention": {
+        "types": "./dist/attention/index.d.ts",
+        "import": "./dist/attention/index.js",
+        "default": "./dist/attention/index.js"
       }
     },
     "types": "./dist/index.d.ts"
