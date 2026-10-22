@@ -27,6 +27,7 @@ resolution and quality rules. It has no Svelte and does not use Reveal.js.
 | `@protoyard/decks` | `DECK_ASPECTS`, `DeckAspect`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DeckCanvasSize`, `DECK_TEXT_MINIMUMS`; steps and motion: `slideSteps`, `slideStepCount`, `fragmentPhase`, `activeCodeHighlight`, `resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`, `effectiveMotion`, `prefersReducedMotion`, `FRAGMENT_EFFECTS`, `DECK_TRANSITIONS`, `MAX_MOTION_MS` |
 | `@protoyard/decks` | Canvas helpers plus `DECK_LAYOUTS`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts` |
 | `@protoyard/decks` | Input: `decideDeckInput`, `inputPathFrom`, `DECK_KEY_BINDINGS`, `DECK_INPUT_ACTIONS`, `DECK_INTERACTIVE_ATTRIBUTE`, `DECK_CHROME_ATTRIBUTE` and the swipe thresholds |
+| `@protoyard/decks` | Backgrounds: `resolveDeckBackground`, `DeckBackgroundSchema`, `DECK_BACKGROUND_PRESETS`, `checkDeckMediaSrc`, `DECK_TEXT_CONTRAST_MIN` |
 | `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, slide and outline schemas, `DeckJsonSchema`, `safeParseDeck`, and the bounded deck types. `@protoyard/blueprint`'s `kind: "deck"` branch imports the schema from here. |
 | `@protoyard/decks/layouts` | Full layout catalog: 19 content layouts + `chart` + `free`, prop schemas, samples, pacing and use-when metadata |
 | `@protoyard/decks/style` | `resolveDeckStyle`, which resolves a built-in or library theme, numeric palette seed, font pairing and presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, combined CSS variables, the effective style and fallback warnings. |
@@ -154,6 +155,57 @@ Rules:
   count (DECKS-steps-motion).
 - **Deep links** use `#/<slide-id>/<step>`. `parseDeckHash` rejects path
   traversal, uppercase ids, queries, percents and out-of-range steps.
+## Backgrounds and the contrast rule
+
+`resolveDeckBackground(background, palette)` resolves a background against the theme palette of the
+mode the deck renders in. The result carries:
+
+- the colors, gradient, pattern or media to draw;
+- a **text tone**, light or dark, and its ink;
+- an optional scrim;
+- `--py-deck-bg*` CSS variables;
+- the worst-case contrast, which is always at least 4.5:1 (WCAG AA for body text).
+
+| Preset id | What it is |
+| --- | --- |
+| `solid-color` (default), `solid-surface`, `solid-primary`, `solid-accent`, `solid-muted`, `solid-inverse` | A theme token as a flat color |
+| `gradient-brand`, `gradient-dusk`, `gradient-dawn`, `gradient-forest`, `gradient-mist` | Five gradients of two or three theme tokens |
+| `pattern-dots`, `pattern-grid` | The page background with a pattern in the `border` token |
+
+Media are specs, not presets:
+
+- `{ kind: 'image' | 'image-full', src, alt?, fit?, position?, tone?, overlay? }`
+- `{ kind: 'video' | 'video-full', src, poster?, position?, tone?, overlay? }`
+
+Video is always muted, looping, inline and autoplaying, so iOS plays it.
+
+**The rule, ported from the developer's site.** Image and video backgrounds get light text over a dark
+scrim; `tone: 'light'` declares a light image, which gets dark text over a light scrim. Every
+background is checked against what can sit behind the text:
+
+- a solid color;
+- a gradient at its stops and in between;
+- a pattern's base and ink;
+- for media, the worst possible pixel: pure black **and** pure white.
+
+When the background alone is not enough, a scrim is added at the lowest alpha, in 0.05 steps, that
+reaches 4.5:1. An author's `overlay` can only strengthen it. Tests hold all 6 built-in themes and the
+70-theme library, light and dark, to this.
+
+**The media URL policy** is `checkDeckMediaSrc`. `DeckBackgroundSchema` enforces it, and it allows only:
+
+- relative paths inside the deck, without `..`;
+- base64 `data:` URIs of PNG, JPEG, WebP, GIF, AVIF, MP4 or WebM, up to 1.5 M characters;
+- library avatars (`avatar:av-012`).
+
+Remote and protocol-relative URLs, `javascript:` and every other scheme, `blob:`, SVG, backslashes and
+control or bidirectional characters are refused. This matches the artifact CSP, so there is no remote
+media at level 1. There are no iframe backgrounds. Media sources are never written into CSS: renderers
+use `<img>` and `<video>`.
+
+The deck schema's `style.background` and `slide.background` hold a preset id today. Media specs are
+validated by `DeckBackgroundSchema`, and accepting them in a slide is a schema change still to make.
+
 ## Input (pure)
 
 `decideDeckInput(event, state)` turns a key press, a click or a swipe into one action or `null`. The

@@ -1,4 +1,20 @@
 export {
+  checkDeckMediaSrc,
+  DECK_BACKGROUND_PRESET_IDS,
+  DECK_BACKGROUND_PRESETS,
+  DECK_GRADIENT_IDS,
+  DECK_TEXT_CONTRAST_MIN,
+  DEFAULT_DECK_BACKGROUND,
+  type DeckBackground,
+  type DeckBackgroundPalette,
+  type DeckBackgroundPresetId,
+  DeckBackgroundSchema,
+  type DeckBackgroundSpec,
+  DeckBackgroundSpecSchema,
+  type ResolvedDeckBackground,
+  resolveDeckBackground,
+} from './backgrounds/index.ts';
+export {
   DECK_ASPECTS,
   DECK_TEXT_MINIMUMS,
   DEFAULT_DECK_ASPECT,
