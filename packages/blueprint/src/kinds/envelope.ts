@@ -42,7 +42,11 @@ export type AnyBlueprint = Blueprint | DeckBlueprint | PageBlueprint | DocBluepr
 
 const contentSchemas = new Map<ContentKind, { body: z.ZodType; schema: z.ZodType }>();
 
-function contentBlueprintSchema(kind: ContentKind, body: z.ZodType): z.ZodType {
+/**
+ * The whole-blueprint schema of a content kind around its body schema (cached
+ * per kind). @internal Used by `parseAnyBlueprint` and `kinds/parse.ts`.
+ */
+export function contentBlueprintSchema(kind: ContentKind, body: z.ZodType): z.ZodType {
   const cached = contentSchemas.get(kind);
   if (cached?.body === body) return cached.schema;
   const schema = z.strictObject({

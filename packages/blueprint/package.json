@@ -16,6 +16,7 @@
     "./search": "./src/search.ts",
     "./workflows": "./src/workflows/index.ts",
     "./kinds": "./src/kinds/index.ts",
+    "./kinds/parse": "./src/kinds/parse.ts",
     "./schema.json": "./schema/blueprint.schema.json"
   },
   "scripts": {
