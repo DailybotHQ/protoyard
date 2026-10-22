@@ -2,7 +2,7 @@ import {
   classifyMediaSource,
   isUnsafeTextCharacter,
   normalizeLineSeparators,
-} from '@protoyard/blocks';
+} from '@protoyard/blocks/safety';
 import { type AnyBlueprint, safeParseAnyBlueprint } from './kinds/envelope.ts';
 import { detectBlueprintKind } from './kinds/kind.ts';
 import {
