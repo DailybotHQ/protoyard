@@ -16,7 +16,15 @@ import {
 } from '../src/motion/index.ts';
 import { DECK_LIMITS, type DeckSlide, DeckSlideSchema } from '../src/schema/index.ts';
 
-const slide = (input: unknown): DeckSlide => DeckSlideSchema.parse(input);
+/**
+ * The motion engine is a pure function over a slide; these fixtures probe its
+ * tolerance (unknown effects, invalid step values, made-up layouts) that the
+ * deck schema would refuse, so they are passed raw. Free slides still parse.
+ */
+const slide = (input: unknown): DeckSlide =>
+  (input as { layout?: unknown }).layout === 'free'
+    ? DeckSlideSchema.parse(input)
+    : (input as DeckSlide);
 
 /** Every fragment's step index, in the order the deck reveals them. */
 const order = (steps: SlideSteps) => slideFragments(steps).map((f) => f.index);

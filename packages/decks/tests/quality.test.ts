@@ -18,6 +18,16 @@ function deck(slides: unknown[]): Deck {
   return result.deck as Deck;
 }
 
+/**
+ * A draft the schema would refuse (unknown layout, bad props): the static
+ * checks also run on drafts an editor holds before they parse, so their
+ * structure rules are tested on raw input.
+ */
+function draft(slides: unknown[]): Deck {
+  expect(safeParseDeck({ style: {}, slides }).success).toBe(false);
+  return { style: {}, slides } as unknown as Deck;
+}
+
 const notes = (topic: string) =>
   `Talk through ${topic}: say why it matters and give one concrete example.`;
 
@@ -122,7 +132,7 @@ describe('deck quality: the good fixture passes', () => {
 
 describe('deck quality: each rule flags its bad fixture at the right path', () => {
   it('unknown-layout (error)', () => {
-    const report = checkDeckStatic(deck([slide('a', 'mystery-layout', {})]));
+    const report = checkDeckStatic(draft([slide('a', 'mystery-layout', {})]));
     expect(only(report.issues, 'unknown-layout')).toMatchObject([
       { severity: 'error', slideId: 'a', jsonPath: '$.slides[0].layout' },
     ]);
@@ -131,7 +141,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
 
   it('layout-props (error): missing fields and over-limit arrays', () => {
     const report = checkDeckStatic(
-      deck([
+      draft([
         slide('stat', 'big-stat', { label: 'no number' }),
         slide('steps', 'process-steps', {
           steps: Array.from({ length: 6 }, (_, i) => ({ title: `Step ${i + 1}` })),
@@ -335,7 +345,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
 
   it('checks hidden slides for structure but not for notes, words or repetition', () => {
     const report = checkDeckStatic(
-      deck([
+      draft([
         { id: 'h1', layout: 'mystery', props: {}, hidden: true },
         {
           id: 'h2',
@@ -376,7 +386,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
   it('counts errors and warnings and keeps ok true with warnings only', () => {
     const report = checkDeckStatic(deck([slide('a', 'big-stat', STAT, { notes: 'short' })]));
     expect(report).toMatchObject({ ok: true, errors: 0, warnings: 1 });
-    const failing = checkDeckStatic(deck([slide('a', 'nope', {}, { notes: 'short' })]));
+    const failing = checkDeckStatic(draft([slide('a', 'nope', {}, { notes: 'short' })]));
     expect(failing).toMatchObject({ ok: false, errors: 1, warnings: 1 });
   });
 });

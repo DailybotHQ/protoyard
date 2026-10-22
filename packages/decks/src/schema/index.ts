@@ -1,6 +1,9 @@
-import { type Block, BlockListSchema } from '@protoyard/blocks';
+import { type Block, BlockListSchema, LinkHrefSchema } from '@protoyard/blocks';
 import { z } from 'zod';
+import { checkDeckMediaSrc } from '../backgrounds/media.ts';
 import { DECK_ASPECTS } from '../canvas.ts';
+import { getDeckLayout, parseLayoutProps } from '../layouts/catalog.ts';
+import { isFragmentEffect, MAX_AUTHORED_STEP, REVEAL_WORDS } from '../motion/effects.ts';
 
 /** Deck documents are intentionally capped before they reach a renderer. */
 export const DECK_LIMITS = Object.freeze({
@@ -96,11 +99,138 @@ const SlideBaseShape = {
   hidden: z.boolean().optional(),
 } as const;
 
-export const CatalogSlideSchema = z.strictObject({
-  ...SlideBaseShape,
-  layout: LayoutIdSchema,
-  props: LayoutPropsSchema,
-});
+/** Keys a catalog prop object uses to mark a fragment (read by `slideSteps`). */
+export const STEP_MARKER_KEYS = ['step', 'fragment', 'reveal'] as const;
+const MARKER_KEYS: ReadonlySet<string> = new Set(STEP_MARKER_KEYS);
+
+type Path = (string | number)[];
+
+/**
+ * Validates `{ step, fragment | reveal }` markers anywhere in catalog props and
+ * returns a copy without them, for the layout's strict props schema: markers
+ * are motion metadata, not layout content.
+ */
+function checkStepMarkers(value: unknown, path: Path, ctx: z.RefinementCtx): unknown {
+  if (Array.isArray(value))
+    return value.map((item, i) => checkStepMarkers(item, [...path, i], ctx));
+  if (value === null || typeof value !== 'object') return value;
+  const record = value as Record<string, unknown>;
+  const has = (key: string) => Object.hasOwn(record, key);
+  if (has('step') || has('fragment') || has('reveal')) {
+    const step = record.step;
+    if (!has('step')) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [...path, has('fragment') ? 'fragment' : 'reveal'],
+        message: 'A fragment marker needs a "step" (an integer, 0 for the initial state).',
+      });
+    } else if (
+      typeof step !== 'number' ||
+      !Number.isInteger(step) ||
+      step < 0 ||
+      step > MAX_AUTHORED_STEP
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [...path, 'step'],
+        message: `"step" must be an integer from 0 to ${MAX_AUTHORED_STEP}.`,
+      });
+    }
+    if (has('fragment') && has('reveal')) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [...path, 'reveal'],
+        message: 'Use "fragment" or "reveal", not both.',
+      });
+    }
+    if (has('fragment') && !isFragmentEffect(record.fragment)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [...path, 'fragment'],
+        message:
+          'Unknown fragment effect (use fade-up, in, out, in-then-out, grow, shrink, highlight or strike).',
+      });
+    }
+    if (has('reveal') && !(REVEAL_WORDS as readonly unknown[]).includes(record.reveal)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [...path, 'reveal'],
+        message: `Unknown reveal (use ${REVEAL_WORDS.join(', ')}).`,
+      });
+    }
+  }
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(record)) {
+    if (MARKER_KEYS.has(key)) continue;
+    out[key] = checkStepMarkers(record[key], [...path, key], ctx);
+  }
+  return out;
+}
+
+/**
+ * Media and links inside catalog props follow the deck policies: a `src` or
+ * `poster` passes `checkDeckMediaSrc` (relative paths, bounded data: URIs,
+ * avatars; a `src` under a `video` key is a video), and an `href` passes the
+ * blocks link policy (http(s), mailto, #anchor or relative; never
+ * `javascript:` or protocol-relative).
+ */
+function checkPropUrls(value: unknown, path: Path, ctx: z.RefinementCtx, inVideo = false): void {
+  if (Array.isArray(value)) {
+    for (const [i, item] of value.entries()) checkPropUrls(item, [...path, i], ctx, inVideo);
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    const here = [...path, key];
+    if ((key === 'src' || key === 'poster') && typeof child === 'string') {
+      const check = checkDeckMediaSrc(child, key === 'src' && inVideo ? 'video' : 'image');
+      if (!check.ok) ctx.addIssue({ code: 'custom', path: here, message: check.reason });
+    } else if (key === 'href' && typeof child === 'string') {
+      if (!LinkHrefSchema.safeParse(child).success) {
+        ctx.addIssue({
+          code: 'custom',
+          path: here,
+          message: 'Use an http(s), mailto, #anchor or relative link',
+        });
+      }
+    } else {
+      checkPropUrls(child, here, ctx, inVideo || key === 'video');
+    }
+  }
+}
+
+/**
+ * A slide built from the layout catalog: `layout` must be a catalog id (not
+ * `free`) and `props` must pass that layout's props schema
+ * (`parseLayoutProps`), once step markers are validated and set aside. The
+ * parsed slide keeps the author's props, markers included.
+ */
+export const CatalogSlideSchema = z
+  .strictObject({
+    ...SlideBaseShape,
+    layout: LayoutIdSchema,
+    props: LayoutPropsSchema,
+  })
+  .superRefine((slide, ctx) => {
+    if (!getDeckLayout(slide.layout)) {
+      const unknown = parseLayoutProps(slide.layout, {});
+      ctx.addIssue({
+        code: 'custom',
+        path: ['layout'],
+        message: unknown.success
+          ? `Unknown layout "${slide.layout}".`
+          : (unknown.issues[0]?.message ?? 'Unknown layout'),
+      });
+      return;
+    }
+    const content = checkStepMarkers(slide.props, ['props'], ctx);
+    checkPropUrls(content, ['props'], ctx);
+    const parsed = parseLayoutProps(slide.layout, content);
+    if (parsed.success) return;
+    for (const issue of parsed.issues) {
+      ctx.addIssue({ code: 'custom', path: ['props', ...issue.path], message: issue.message });
+    }
+  });
 export type CatalogSlide = z.infer<typeof CatalogSlideSchema>;
 
 export const FreeSlideSchema = z.strictObject({

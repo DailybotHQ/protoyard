@@ -30,6 +30,13 @@ canvas, so image decoding does not change its alignment.
 The root never statically imports a subpath; `tests/package-shape.test.ts`
 enforces it.
 
+## Untrusted content
+
+Deck strings (titles, props, notes) render as text. decks-ui has no `{@html}`, `innerHTML`,
+`insertAdjacentHTML`, `document.write`, `eval` or `new Function`. Load decks from outside with
+`loadUntrustedDeck` from `@protoyard/decks`. `tests/hostile-render.test.ts` renders script-, image-
+and iframe-shaped strings and checks that no element, event handler or request comes out of them.
+
 ## Install in a workspace prototype
 
 Add `"@protoyard/decks-ui": "workspace:*"` to the prototype dependencies. Then
