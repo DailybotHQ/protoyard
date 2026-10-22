@@ -303,3 +303,26 @@ resolveHighlightSteps(['1-2,4', [[3, 5]]], 4); // [[1, 2, 4], [3, 4]]
 The manifest keeps TypeScript source exports for workspace development.
 `pnpm build:packages --filter @protoyard/blocks` creates the ESM and declaration
 files under `dist/` that the packed manifest exposes.
+
+## Text helpers
+
+Pure, DOM-free helpers for search, TOC, word counts and a Markdown twin:
+
+| Export | Role |
+| --- | --- |
+| `walkBlocks` | Depth-first walk with `jsonPath` (same paths as validation) |
+| `blockText` / `blocksText` | Plain text of one block or a whole tree |
+| `outlineOf` | Heading outline with unique stable slug ids |
+| `countWords` / `countBlockWords` | Word counts for authoring lint |
+| `blocksToMarkdown` / `escapeMarkdown` | Bounded Markdown export (plain labels escaped) |
+
+```ts
+import { blocksText, outlineOf, walkBlocks } from '@protoyard/blocks';
+
+const outline = outlineOf(blocks); // [{ id, label, level, jsonPath }]
+const words = blocksText(blocks);
+```
+
+Markdown fields are stripped with `@protoyard/ai` `parseMarkdown` / `inlineText`.
+Nothing uses the DOM or `{@html}`.
+
