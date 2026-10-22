@@ -1,7 +1,11 @@
 import { expect, type Page, test } from '@playwright/test';
 import { expectAccessible } from './support/a11y.ts';
 import { waitForPrototypeReady } from './support/ready.ts';
-import { readRegistry } from './targets.ts';
+import {
+  MARKETPLACE_CONTENT_KIND_TARGETS,
+  type MarketplaceContentKind,
+  readRegistry,
+} from './targets.ts';
 
 /**
  * The gallery marketplace on its REAL static build (`astro preview`, no control
@@ -17,7 +21,7 @@ import { readRegistry } from './targets.ts';
 
 type Shelved = {
   kind: 'prototype' | 'template' | 'blueprint';
-  blueprintKind?: 'app' | 'deck' | 'page' | 'doc' | null;
+  blueprintKind?: MarketplaceContentKind | null;
   slug: string;
   name: string;
   catalog?: { category?: string; features?: string[] } | null;
@@ -39,13 +43,13 @@ function requireFirst(kind: Shelved['kind']): Shelved {
   return entry as Shelved;
 }
 
-function requireContentBlueprint(kind: 'deck' | 'page' | 'doc'): Shelved {
+function requireContentBlueprint(kind: MarketplaceContentKind): Shelved {
   const entry = shelved.find((item) => item.kind === 'blueprint' && item.blueprintKind === kind);
   expect(entry, `the registry shelves a ${kind} blueprint`).toBeDefined();
   return entry as Shelved;
 }
 
-const hasPublishedContentBlueprints = (['deck', 'page', 'doc'] as const).every((kind) =>
+const hasPublishedContentBlueprints = MARKETPLACE_CONTENT_KIND_TARGETS.every(({ kind }) =>
   shelved.some((item) => item.kind === 'blueprint' && item.blueprintKind === kind)
 );
 
@@ -128,6 +132,32 @@ test.describe('marketplace', () => {
     ).toHaveAttribute('data-slug', target.slug);
   });
 
+  test('content-kind filters show every published blueprint kind and persist through reload', async ({
+    page,
+  }) => {
+    expect(
+      hasPublishedContentBlueprints,
+      'the app, deck, page, and document examples must be published with catalog metadata'
+    ).toBe(true);
+    await openMarketplace(page);
+    const filter = page.getByTestId('market-content-kind');
+    for (const { kind } of MARKETPLACE_CONTENT_KIND_TARGETS) {
+      const expected = shelved.filter((item) => item.blueprintKind === kind).length;
+      expect(expected, `at least one catalog blueprint of kind ${kind}`).toBeGreaterThan(0);
+      await filter.selectOption(kind);
+      await expect(page).toHaveURL(new RegExp(`[?&]contentKind=${kind}(?:&|$)`));
+      const cards = page.getByTestId('market-results').getByTestId('market-card');
+      await expect(cards).toHaveCount(expected);
+      await expect(cards.first()).toHaveAttribute('data-content-kind', kind);
+
+      await page.reload();
+      await expect(page.getByTestId('market-content-kind')).toHaveValue(kind);
+      await expect(page.getByTestId('market-results').getByTestId('market-card')).toHaveCount(
+        expected
+      );
+    }
+  });
+
   test('explains an empty result and restores everything', async ({ page }) => {
     await openMarketplace(page);
     await page.getByTestId('market-search').fill('zz-no-such-product-zz');
@@ -157,34 +187,41 @@ test.describe('marketplace', () => {
     }
   });
 
-  test('opens each content-kind blueprint in the hosted player from its detail page', async ({
+  test('opens every content-kind blueprint in its renderer from the detail page', async ({
     page,
   }) => {
-    test.skip(
-      !hasPublishedContentBlueprints,
-      'the kind examples are not published in the marketplace until they have catalog metadata'
-    );
-    const labels = { deck: 'Deck', page: 'Page', doc: 'Document' } as const;
-    for (const kind of ['deck', 'page', 'doc'] as const) {
+    expect(
+      hasPublishedContentBlueprints,
+      'the app, deck, page, and document examples must be published with catalog metadata'
+    ).toBe(true);
+    for (const { kind, label, renderer, action: actionLabel } of MARKETPLACE_CONTENT_KIND_TARGETS) {
       const entry = requireContentBlueprint(kind);
       await page.goto(`/marketplace/blueprint/${entry.slug}/`);
       await expect(page.getByTestId('market-detail-title')).toHaveText(entry.name);
-      await expect(
-        page.getByText(
-          `A ${labels[kind].toLowerCase()} blueprint: validated and ready to open in the player.`
-        )
-      ).toBeVisible();
+      if (kind === 'app') {
+        await expect(
+          page.getByText('An app blueprint: `protoyard generate` turns it into a new prototype.')
+        ).toBeVisible();
+      } else {
+        await expect(
+          page.getByText(
+            `A ${label.toLowerCase()} blueprint: validated and ready to open in the player.`
+          )
+        ).toBeVisible();
+      }
 
-      const action = page.getByTestId('open-in-player');
-      await expect(action).toHaveText(`Open ${labels[kind]} in player`);
-      await expect(action).toHaveAttribute('href', /\/play\/#bp=1\./);
-      await action.click();
+      const playerLink = page.getByTestId('open-in-player');
+      await expect(playerLink).toHaveText(actionLabel);
+      await expect(playerLink).toHaveAttribute('href', /\/play\/#bp=1\./);
+      await playerLink.click();
       await expect(page).toHaveURL(/\/play\/#bp=1\./);
       await expect(page.getByRole('heading', { name: 'Play a blueprint' })).toBeVisible();
-      await expect(page.locator('iframe[title="Running Protoyard prototype"]')).toHaveAttribute(
+      const player = page.frameLocator('iframe[title="Running Protoyard blueprint"]');
+      await expect(page.locator('iframe[title="Running Protoyard blueprint"]')).toHaveAttribute(
         'src',
         /\/player\/\?embedder=[^#]+#bp=1\./
       );
+      await expect(player.locator(renderer)).toBeVisible();
     }
   });
 
