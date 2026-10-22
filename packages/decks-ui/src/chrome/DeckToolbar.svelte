@@ -190,7 +190,7 @@ $effect(() => () => {
   <button
     type="button"
     class={`${buttonClass} ${mobile ? 'w-full justify-start' : ''} ${control.toggle && active ? 'ring-1 ring-primary' : ''}`}
-    aria-label={isJump ? `${control.label}, ${currentOrdinal} of ${slides.length}` : control.label}
+    aria-label={isJump ? `${control.label}, ${currentOrdinal} / ${slides.length}` : control.label}
     aria-pressed={control.toggle ? active : undefined}
     aria-expanded={action === 'help' ? help : isJump ? jumpOpen : undefined}
     aria-controls={action === 'help' ? helpId : isJump ? 'py-deck-slide-list' : undefined}

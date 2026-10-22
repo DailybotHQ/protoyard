@@ -1,4 +1,5 @@
 import { mount } from 'svelte';
+import everything from '../../../../../blueprints/decks/everything.json';
 import blueprint from '../../../../../blueprints/decks/lumen-launch.json';
 import flagship from '../../../../../blueprints/decks/protoyard-create-anything.json';
 import { DeckSchema } from '../../../../../packages/decks/src/schema/index.ts';
@@ -54,14 +55,19 @@ const flagshipDeck = DeckSchema.parse({
       : slide
   ),
 });
+// `?deck=everything` serves the reference deck (deck-everything.spec.ts).
 const chosen =
-  params.get('deck') === 'flagship'
-    ? params.get('motion') === 'none'
-      ? DeckSchema.parse({ ...flagshipDeck, style: { ...flagshipDeck.style, motion: 'none' } })
-      : flagshipDeck
-    : deck;
+  params.get('deck') === 'everything'
+    ? DeckSchema.parse(everything.deck)
+    : params.get('deck') === 'flagship'
+      ? params.get('motion') === 'none'
+        ? DeckSchema.parse({ ...flagshipDeck, style: { ...flagshipDeck.style, motion: 'none' } })
+        : flagshipDeck
+      : deck;
 
 const target = document.querySelector('#app');
 if (!target) throw new Error('Deck navigation fixture is missing #app.');
 
-mount(DeckApp, { target, props: { deck: chosen } });
+// `&mode=dark` renders the deck's theme in dark mode (DeckApp defaults to light).
+const mode = params.get('mode') === 'dark' ? 'dark' : 'light';
+mount(DeckApp, { target, props: { deck: chosen, mode } });

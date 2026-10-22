@@ -217,7 +217,8 @@ describe('DeckToolbar', () => {
       .map((b) => b.getAttribute('aria-label'));
     expect(names).toEqual([
       'Previous step or slide',
-      'Choose a slide, 1 of 2',
+      // The visible count is part of the name (WCAG 2.5.3, label in name).
+      'Choose a slide, 1 / 2',
       'Next step or slide',
       'First slide',
       'Last slide',

@@ -48,7 +48,7 @@ describe('lintDeckAssets', () => {
     expect(result.diagnostics).toEqual([]);
   });
 
-  it('rejects javascript and data schemes with exact source paths', () => {
+  it('rejects javascript and hostile data media with exact source paths', () => {
     const result = lintDeckAssets(
       deck([
         {
@@ -56,7 +56,7 @@ describe('lintDeckAssets', () => {
           layout: 'free',
           blocks: [
             { type: 'image', src: 'javascript:alert(1)', width: 10, height: 10 },
-            { type: 'video', src: 'data:video/mp4;base64,AAAA' },
+            { type: 'video', src: 'data:text/html;base64,PHNjcmlwdD4=' },
           ],
         },
       ])
@@ -72,11 +72,45 @@ describe('lintDeckAssets', () => {
     );
     expect(result.diagnostics).toContainEqual(
       expect.objectContaining({
-        code: 'unsafe-asset-url',
         severity: 'error',
         jsonPath: '$["slides"][0]["blocks"][1]["src"]',
       })
     );
+  });
+
+  it('accepts bounded data media, as the deck schema and the player do (DECKS.md, Limits)', () => {
+    const result = lintDeckAssets(
+      deck([
+        {
+          id: 'embedded',
+          layout: 'free',
+          blocks: [
+            {
+              type: 'image',
+              src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAX2Gk9wAAAABJRU5ErkJggg==',
+              alt: 'A pixel',
+              width: 10,
+              height: 10,
+            },
+            { type: 'video', src: 'data:video/mp4;base64,AAAA', poster: 'avatar:av-007' },
+          ],
+        },
+      ])
+    );
+    expect(result.diagnostics).toEqual([]);
+    // An SVG data URI is never raster media.
+    const svg = lintDeckAssets(
+      deck([
+        {
+          id: 'svg',
+          layout: 'free',
+          blocks: [
+            { type: 'image', src: 'data:image/svg+xml;base64,PHN2Zz4=', width: 10, height: 10 },
+          ],
+        },
+      ])
+    );
+    expect(svg.valid).toBe(false);
   });
 
   it('rejects malformed, insecure, protocol-relative and traversing references', () => {
