@@ -53,8 +53,9 @@ export function frameworkImports(text: string): string[] {
 describe('@protoyard/blocks package shape', () => {
   it('exposes the root plus one subpath per engine, and every target exists', () => {
     // `./schema` serves the generated JSON Schema module (T-blocks-json-schema) for agents and editors.
+    // `./safety` holds the dependency-light text and media predicates the player's first screen uses.
     expect(Object.keys(pkg.exports).sort()).toEqual(
-      ['.', './schema', ...SUBPATHS.map((name) => `./${name}`)].sort()
+      ['.', './schema', './safety', ...SUBPATHS.map((name) => `./${name}`)].sort()
     );
     for (const [key, target] of Object.entries(pkg.exports)) {
       expect(existsSync(join(PKG, target)), key).toBe(true);
@@ -117,5 +118,13 @@ describe('@protoyard/blocks package shape', () => {
     expect(frameworkImports("import Dexie from 'dexie';")).toEqual(['dexie']);
     expect(frameworkImports("import { z } from 'zod';")).toEqual([]);
     expect(frameworkImports("import { parseMarkdown } from '@protoyard/ai/markdown';")).toEqual([]);
+  });
+});
+
+describe('@protoyard/blocks/safety', () => {
+  it('stays free of zod, markdown, chart and catalog imports so first screens can use it', () => {
+    const source = readFileSync(join(PKG, 'src/safety.ts'), 'utf8');
+    const imports = [...source.matchAll(/from '([^']+)'/g)].map((match) => match[1]);
+    expect(imports).toEqual(['@protoyard/avatars']);
   });
 });
