@@ -26,6 +26,7 @@ resolution and quality rules. It has no Svelte and does not use Reveal.js.
 | `@protoyard/decks` | Canvas helpers, plus `createDeckNavigator`, `parseDeckHash`, `formatDeckHash`, `defaultSlideStepCount` and related types |
 | `@protoyard/decks` | `DECK_ASPECTS`, `DeckAspect`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DeckCanvasSize`, `DECK_TEXT_MINIMUMS`; steps and motion: `slideSteps`, `slideStepCount`, `fragmentPhase`, `activeCodeHighlight`, `resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`, `effectiveMotion`, `prefersReducedMotion`, `FRAGMENT_EFFECTS`, `DECK_TRANSITIONS`, `MAX_MOTION_MS` |
 | `@protoyard/decks` | Canvas helpers plus `DECK_LAYOUTS`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts` |
+| `@protoyard/decks` | Input: `decideDeckInput`, `inputPathFrom`, `DECK_KEY_BINDINGS`, `DECK_INPUT_ACTIONS`, `DECK_INTERACTIVE_ATTRIBUTE`, `DECK_CHROME_ATTRIBUTE` and the swipe thresholds |
 | `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, slide and outline schemas, `DeckJsonSchema`, `safeParseDeck`, and the bounded deck types. `@protoyard/blueprint`'s `kind: "deck"` branch imports the schema from here. |
 | `@protoyard/decks/layouts` | Full layout catalog: 19 content layouts + `chart` + `free`, prop schemas, samples, pacing and use-when metadata |
 | `@protoyard/decks/style` | `resolveDeckStyle`, which resolves a built-in or library theme, numeric palette seed, font pairing and presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, combined CSS variables, the effective style and fallback warnings. |
@@ -152,6 +153,43 @@ Rules:
   count (DECKS-steps-motion).
 - **Deep links** use `#/<slide-id>/<step>`. `parseDeckHash` rejects path
   traversal, uppercase ids, queries, percents and out-of-range steps.
+## Input (pure)
+
+`decideDeckInput(event, state)` turns a key press, a click or a swipe into one action or `null`. The
+actions are `next`, `prev`, `first`, `last`, `overview`, `presenter`, `fullscreen`, `blackout`,
+`laser`, `help` and `print`. The function never touches the DOM: the renderer passes the event target
+as a path of plain facts. `inputPathFrom(event.composedPath(), deckRoot)` builds that path from real
+elements.
+
+| Input | Action |
+| --- | --- |
+| `→` `↓` `Page Down` `Space` / `←` `↑` `Page Up` `Shift+Space` | `next` / `prev` (key repeat allowed) |
+| `Home` / `End` | `first` / `last` |
+| `O`, `S` or `P`, `F`, `B` or `.`, `L`, `?` | overview, presenter, fullscreen, blackout, laser, help (no key repeat) |
+| `Ctrl+P` / `⌘+P` | `print` (the one browser shortcut a deck takes over) |
+| `Esc` | Closes what is open, innermost first: help, overview, blackout, laser |
+| Primary click on slide content | `next` |
+| Touch or pen swipe left / right | `next` / `prev`: at least 50 px, 1.5 times longer horizontally than vertically, under 800 ms |
+
+Guards:
+
+- **Clicks** never advance in these cases:
+  - with a modifier, a non-primary button or a text selection;
+  - on a link, button, form control, label, summary, `iframe`, `video` or `audio`, a widget role
+    (button, tab, slider…) or `contenteditable`;
+  - inside an element marked `data-py-deck-interactive` (interactive blocks) or
+    `data-py-deck-chrome` (progress bar, slide number);
+  - while the overview is open **or closing**. That ports the fix for the Reveal double advance,
+    where the click that closed the overview also moved forward.
+  - while help, blackout or the laser is on.
+- **Keys** are ignored in fields and editable content, during IME composition, and with Ctrl, ⌘ or
+  Alt (except print). A focused control keeps its arrows and Space. The overview, help and a
+  blacked-out screen accept only their own toggle and `Esc`.
+- **Swipes** only count for touch and pen, never mouse drags. Vertical swipes scroll instead of
+  navigating.
+
+`DECK_KEY_BINDINGS` lists every binding with a label, for the help overlay.
+
 ## Steps and motion
 
 A slide starts at step 0, and each "next" advances one step until the slide
