@@ -52,6 +52,7 @@ exists and that its links and anchors resolve ([Testing guide](TESTING_GUIDE.md)
 | [Architecture](ARCHITECTURE.md) | Packages, the prototype contract, runtime lifecycle, isolation, scale |
 | [Decisions](DECISIONS.md) | ADRs and trade-offs |
 | [Security](SECURITY.md) | Threat model and trust boundaries |
+| [Accessibility](ACCESSIBILITY.md) | WCAG 2.1 A/AA checks for decks, pages and docs: axe in light and dark, phone and desktop, what is asserted, fixes and honest limits |
 | [Performance](PERFORMANCE.md) | Measured numbers and budgets |
 
 ## Integrate it
