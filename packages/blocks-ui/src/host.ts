@@ -119,18 +119,6 @@ export function getBlockHost(): BlockHost {
   return getContext<BlockHost>(BLOCK_HOST_CONTEXT) ?? DEFAULT_BLOCK_HOST;
 }
 
-const FRAGMENT_BASE =
-  'origin-left transition-[opacity,transform,background-color,box-shadow,translate,scale] duration-500 ease-out motion-reduce:transition-none motion-reduce:translate-none motion-reduce:scale-none [[data-py-deck-motion=none]_&]:transition-none';
-const FRAGMENT_HIDDEN: Record<string, string> = {
-  fade: 'invisible opacity-0',
-  'fade-up': 'invisible translate-y-[0.6em] opacity-0',
-};
-const FRAGMENT_ACTIVE: Record<string, string> = {
-  grow: 'scale-[1.04]',
-  highlight: 'rounded-md bg-primary/10 ring-2 ring-primary/50',
-  strike: 'line-through opacity-60',
-};
-
 /**
  * Wrapper attributes for a stepped block at the host's current step, or
  * `null` when the block shows as is. A hidden block keeps its space (no jump),
@@ -145,11 +133,24 @@ export function fragmentAttributes(
   const phase = host.fragment?.(block) ?? null;
   if (!phase) return null;
   const reveal = block.reveal ?? 'fade';
-  const look = phase.visible
-    ? `visible opacity-100 ${phase.active ? (FRAGMENT_ACTIVE[reveal] ?? '') : ''}`
-    : (FRAGMENT_HIDDEN[reveal] ?? 'invisible opacity-0');
+  const style = [
+    'transform-origin:0',
+    'transition-property:opacity,transform,background-color,box-shadow,translate,scale',
+    'transition-duration:500ms',
+    'transition-timing-function:var(--py-motion-easing,cubic-bezier(.4,0,.2,1))',
+    phase.visible ? 'visibility:visible;opacity:1' : 'visibility:hidden;opacity:0',
+    !phase.visible && reveal === 'fade-up' ? 'translate:0 .6em' : '',
+    phase.active && reveal === 'grow' ? 'scale:1.04' : '',
+    phase.active && reveal === 'highlight'
+      ? 'border-radius:calc(var(--py-radius) - var(--py-radius-step-2,2px));background-color:color-mix(in oklab,var(--py-primary) 10%,transparent);--tw-ring-color:color-mix(in oklab,var(--py-primary) 50%,transparent);--tw-ring-shadow:var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color,currentcolor);box-shadow:var(--tw-inset-shadow),var(--tw-inset-ring-shadow),var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow)'
+      : '',
+    phase.active && reveal === 'strike' ? 'text-decoration-line:line-through;opacity:.6' : '',
+  ]
+    .filter(Boolean)
+    .join(';');
   return {
-    class: `${FRAGMENT_BASE} ${look}`.trim(),
+    class: 'py-deck-fragment',
+    style,
     'data-py-fragment': phase.visible ? 'shown' : 'hidden',
     'data-py-fragment-active': phase.active ? 'true' : undefined,
     'data-py-fragment-reveal': reveal,
