@@ -5,6 +5,14 @@
  * persistent `BlockStateHost` and form responses). A subpath so app
  * prototypes and the universal player never load it.
  */
+
+export {
+  definePrototypeFromDoc,
+  definePrototypeFromPage,
+  PAGES_DEFAULT_SCENARIO,
+  PAGES_GENERATOR_VERSION,
+  type PageDocRuntimeOptions,
+} from './page-doc-runtime.ts';
 export {
   type AnyContentBlueprint,
   defineKindRuntime,

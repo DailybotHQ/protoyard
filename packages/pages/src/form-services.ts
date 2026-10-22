@@ -10,7 +10,8 @@ import { FORM_RESPONSES_TABLE, type FormResponse, FormResponseSchema } from './f
 import { PAGE_LIMITS } from './limits.ts';
 
 interface FormResponseTable {
-  add(row: FormResponse): Promise<unknown>;
+  add?(row: FormResponse): Promise<unknown>;
+  put?(row: FormResponse): Promise<unknown>;
   toArray(): Promise<unknown[]>;
   where(index: string): {
     equals(value: string): {
@@ -24,7 +25,7 @@ interface FormResponseDatabase {
   table(name: string): FormResponseTable;
   transaction<T>(
     mode: 'r' | 'rw',
-    table: FormResponseTable,
+    tables: FormResponseTable | string | readonly string[],
     callback: () => Promise<T>
   ): Promise<T>;
 }
@@ -133,9 +134,15 @@ function registeredForm(formId: string, forms: ReadonlyMap<string, FormBlock>) {
  * Creates service-only access to a page/doc form response table. Capabilities
  * are simulated UX policy checks, not authentication or data protection.
  */
+export interface CreateFormServicesOptions {
+  /** Optional document scope stored on each row (kind runtime namespace). */
+  documentId?: string;
+}
+
 export function createFormServices(
   runtime: PrototypeRuntime,
-  inputForms: readonly FormBlock[]
+  inputForms: readonly FormBlock[],
+  options: CreateFormServicesOptions = {}
 ): FormServices {
   const forms = new Map<string, FormBlock>();
   for (const input of inputForms) {
@@ -154,22 +161,27 @@ export function createFormServices(
       runtime.session.assert(FORM_CAPABILITIES.submit);
       const { id, form } = registeredForm(formId, forms);
       const parsedValues = parseInput(formValuesSchema(form), values);
+      const principal = runtime.session.principal?.() ?? null;
       const response = parseInput(FormResponseSchema, {
         id: createRuntimeId('response').replace(/_/g, '-'),
         formId: id,
         createdAt: runtime.clock.now().toISOString(),
         values: parsedValues,
+        ...(principal?.persona?.id ? { personaId: principal.persona.id } : {}),
+        ...(options.documentId ? { documentId: options.documentId } : {}),
       });
 
       return runtime.environment.run('forms.submit', () =>
-        db.transaction('rw', table, async () => {
+        db.transaction('rw', [FORM_RESPONSES_TABLE], async () => {
           const current = await table.where('formId').equals(id).toArray();
           if (current.length >= PAGE_LIMITS.maxResponsesPerForm) {
             throw new ValidationError({
               form: `This form has reached its ${PAGE_LIMITS.maxResponsesPerForm} response limit.`,
             });
           }
-          await table.add(response);
+          if (typeof table.add === 'function') await table.add(response);
+          else if (typeof table.put === 'function') await table.put(response);
+          else throw new Error('formResponses table cannot store rows');
           return response;
         })
       );
@@ -178,7 +190,7 @@ export function createFormServices(
     async list(formId) {
       runtime.session.assert(FORM_CAPABILITIES.read);
       const id = checkedFormId(formId, forms);
-      const rows = await db.transaction('r', table, () =>
+      const rows = await db.transaction('r', [FORM_RESPONSES_TABLE], () =>
         table.where('formId').equals(id).toArray()
       );
       return rows.map((row) => parseInput(FormResponseSchema, row)).sort(stableResponseOrder);
@@ -187,7 +199,7 @@ export function createFormServices(
     async exportCsv(formId) {
       runtime.session.assert(FORM_CAPABILITIES.read);
       const { id, form } = registeredForm(formId, forms);
-      const rows = await db.transaction('r', table, () =>
+      const rows = await db.transaction('r', [FORM_RESPONSES_TABLE], () =>
         table.where('formId').equals(id).toArray()
       );
       const responses = rows
@@ -205,7 +217,9 @@ export function createFormServices(
       runtime.session.assert(FORM_CAPABILITIES.admin);
       const id = checkedFormId(formId, forms);
       return runtime.environment.run('forms.clear', () =>
-        db.transaction('rw', table, () => table.where('formId').equals(id).delete())
+        db.transaction('rw', [FORM_RESPONSES_TABLE], () =>
+          table.where('formId').equals(id).delete()
+        )
       );
     },
   };

@@ -121,7 +121,7 @@ resolve them later.
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 
-## Deck lint
+## Deck structural lint
 
 `lintDeckStructure(input)` checks an untrusted **deck body** (the object under
 `blueprint.deck`, or a bare deck document) without rendering it or mutating the
