@@ -53,6 +53,8 @@ so chart code stays out of initial JS. The bundle guard fails when it leaks.
 | A number in a tile or cell | `Sparkline`, `Gauge`, `RadialProgress` | `compact` |
 | Values per region | `TileMap` (`WORLD_TILES`, `REGION_TILES` or your own tiles) | `geo` |
 
+The `chart` content block (`@protoyard/blocks-ui/data`, for decks, pages and docs) reuses the AI `ChartSpec` (`@protoyard/ai/chart`) unchanged and renders it with these components.
+
 ## Props and data contracts
 
 Every framed chart takes these props, besides those listed below:
