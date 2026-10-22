@@ -23,6 +23,7 @@ layout table, the limits table, and the decks-ui keyboard table.
 | `@protoyard/decks/quality` | `DECK_QUALITY` thresholds, `DECK_QUALITY_RULES`, `DECK_QUALITY_RULE_BY_ID`, `checkDeckStatic`, `deckJsonPath`. Renderers never import it. |
 | `@protoyard/decks/text` | `deckToMarkdown`, `deckOutline`, `formatDeckOutline`, `slideTitle`, `blocksMarkdown`, `chartTable`, `richText`, `mdDocumentToMarkdown`, `escapeText`, `escapeInline`, `stripInvisible`. It is a subpath so the Markdown parser never enters a deck entry. |
 | `@protoyard/decks/presenter` | The presenter view's protocol and transport (untrusted messages only): `PRESENTER_MESSAGE_TYPES`, `PresenterMessageSchema`, `parsePresenterMessage`, `presenterMessage`, `presenterChannelName`, `sanitizeNamespace`, `createBroadcastPresenterTransport` (same-origin `BroadcastChannel`), `createMemoryPresenterTransport` (tests and the in-page split fallback), `createPresenterLink`, plus the matching types (`PresenterMessage`, `PresenterMessageType`, `PresenterPosition`, `PresenterTransport`, `PresenterLink`, `PresenterLinkOptions`). Re-exported from `@protoyard/decks`. Messages are validated with zod; nothing is executed. |
+| `@protoyard/decks/agent` | "Debug for agents": `describeSlideForAgent`, `formatAgentReference`, `parseAgentReference`, `cleanReferenceText`, `capText`, `jsonPointer`, `referenceBytes`, `AGENT_REFERENCE_FORMAT`, `AGENT_REFERENCE_VERSION`, `AGENT_REFERENCE_LIMITS`, `AGENT_REFERENCE_MAX_BYTES`, `AGENT_REFERENCE_FORMATS`, `SLIDE_REF_PREFIX`. It is a subpath so the lint rules never enter a deck entry. |
 | `@protoyard/decks/patch` | Deck Studio's engine: `applyDeckEdits`, `deckEditsToPatch`, `compatibleLayouts`, `deckStudioOptions`, `DECK_STUDIO_STYLE_KEYS`, `DECK_STUDIO_SLIDE_KEYS`, `applyDeckPatch` (RFC 6902 test, add, replace and remove; prototype keys refused), `DECK_PATCH_MAX_OPS` (1,000), `DeckPatchError`, `parsePointer`, `formatPointer`, `jsonEquals`. It is a subpath so the theme-library listing never enters a deck entry. |
 
 ## The deck schema
@@ -503,6 +504,60 @@ them, so no rule is declared twice.
 The subpath is 21.8 KB gzip minified with zod external. Most of that is the
 layout catalog and the block schemas it validates against. Only authoring
 tools and the sweep import it.
+## Debug for agents (`@protoyard/decks/agent`)
+
+A structured reference to the slide on screen, for a person to paste to a
+coding agent. It is inspired by the developer's dev-only `[slide-ref]` button
+on xergioalex.com, with what an agent needs to change the slide without
+reading source.
+
+```ts
+import { describeSlideForAgent, formatAgentReference } from '@protoyard/decks/agent';
+
+const record = describeSlideForAgent(deck, { slideId: 'loop', step: 1 }, {
+  deckId: 'protoyard-create-anything',
+  source: { kind: 'blueprint', value: 'blueprints/decks/protoyard-create-anything.json' },
+});
+formatAgentReference(record, 'line');
+// [slide-ref] deck=protoyard-create-anything id=loop position=7/25 step=1/2 layout=free pointer=/deck/slides/6 source=blueprint:blueprints/decks/protoyard-create-anything.json text="From brief to shared artifact …"
+```
+
+- **The record** (`protoyard.slide-ref` version 1):
+  - the deck id, title and visible-slide count;
+  - the source (a blueprint path, a prototype slug or a share id), when the
+    host knows it;
+  - the slide id, layout, title and index;
+  - `position` among visible slides (as the deck shows it);
+  - `step` and `steps`: the hash step runs from 0 to `steps`;
+  - JSON pointers for the slide (`/deck/slides/6`, rooted at `pointerBase`,
+    `/deck` by default), a catalog slide's props and every block, nested
+    blocks included (`…/blocks/1/columns/0/0`, `…/panels/1/blocks/0`);
+  - block types and ids;
+  - a visible-text excerpt (markup and notes excluded), whether speaker
+    notes exist, the slide's lint findings (`checkDeckStatic`) with
+    pointers, the hash, and the page URL for http(s) hosts.
+- **The location** resolves the way `DeckApp` resolves it: an unknown or
+  hidden id opens the first visible slide, and the step is clamped.
+- **Formats** (`formatAgentReference`):
+  - `line`: the site's one-line format, plus layout, pointer and source;
+  - `markdown`: a paste-ready prompt with where the slide lives and how to
+    change and check it, with the slide text fenced as untrusted data;
+  - `json`: the record.
+
+  The Markdown names `protoyard deck inspect`, `deck lint` and `deck schema`
+  (the PLAN_006 deck command group) and `blueprint validate`.
+- **`parseAgentReference(text)`** reads a `[slide-ref]` line back, ours or
+  the site's, for `deck inspect --ref`.
+- **Untrusted text:** every deck string passes through `cleanReferenceText`
+  (no control, zero-width or bidirectional characters, whitespace squashed).
+  The line form escapes quotes and backslashes and keeps tokens free of
+  spaces, quotes and `=`. Every field is capped (`AGENT_REFERENCE_LIMITS`:
+  48 blocks, 12 findings, a 280-character excerpt…). The serialized record
+  stays at or under 8 KB: blocks, then findings, then the excerpt are cut,
+  and `truncated` is set.
+- **Pure and deterministic:** no DOM, clock or randomness, so the same deck
+  and location always give the same record.
+
 ## Text twins
 
 `@protoyard/decks/text` turns a deck into text with pure, deterministic
