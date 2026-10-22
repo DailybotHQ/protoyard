@@ -10,7 +10,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { BRIEFS } from '../../../scripts/bench-brief-kinds.ts';
 import {
@@ -81,9 +81,9 @@ function contentEnvelopeSchema(kind: 'deck' | 'page' | 'doc', body: z.ZodType) {
 }
 
 /** Generated JSON Schema documents (draft 2020-12) per kind — not hand-edited. */
-function kindJsonSchemas() {
+async function kindJsonSchemas() {
   return {
-    app: blueprintJsonSchema(),
+    app: await blueprintJsonSchema(),
     deck: z.toJSONSchema(contentEnvelopeSchema('deck', DeckBodySchema), {
       io: 'input',
       target: 'draft-2020-12',
@@ -120,7 +120,10 @@ function assertMatchesGeneratedShape(
 }
 
 describe('generated kind JSON Schema vs fixtures', () => {
-  const schemas = kindJsonSchemas();
+  let schemas: Awaited<ReturnType<typeof kindJsonSchemas>>;
+  beforeAll(async () => {
+    schemas = await kindJsonSchemas();
+  });
   const fixtures = listCatalogFixtures();
 
   it('exposes a draft-2020-12 schema per kind with a kind/body discriminator', () => {
