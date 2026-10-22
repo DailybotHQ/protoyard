@@ -169,6 +169,21 @@ describe.skipIf(!built)(
       expect(allKb, `all CSS ${allKb.toFixed(1)} KB gzip`).toBeLessThanOrEqual(budget.cssGzipKb);
     });
 
+    it('keeps deck and page utility sheets out of initial CSS and on the kind boot path', () => {
+      const bootFile = manifest['src/boot-kind.ts']?.file;
+      expect(bootFile, 'the shared kind boot').toBeDefined();
+      const bootCode = readFileSync(join(DIST, bootFile ?? ''), 'utf8');
+      for (const key of ['src/kinds/deck.css', 'src/kinds/page.css']) {
+        const style = manifest[key]?.file;
+        expect(style, `${key} is a built stylesheet`).toMatch(/\.css$/);
+        if (!style) continue;
+        expect(classes.initialCss, `${key} is not in initial CSS`).not.toContain(style);
+        expect(bootCode, `${key} is requested by the lazy kind renderer`).toContain(
+          basename(style)
+        );
+      }
+    });
+
     it.each(LAZY_MODULES)('keeps the %s out of the initial graph', (_label, pattern) => {
       const keys = Object.keys(manifest).filter((key) => pattern.test(key));
       expect(keys.length, `no ${pattern} module in the build`).toBeGreaterThan(0);

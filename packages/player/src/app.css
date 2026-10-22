@@ -3,10 +3,8 @@
 @import "@protoyard/views-ui/styles.css";
 @import "@protoyard/charts-ui/styles.css";
 @import "@protoyard/analytics-ui/styles.css";
-/* Decks, pages and docs (ADR-036): their renderers and the shared blocks. */
+/* The shared block renderer is used by apps and content kinds. */
 @import "@protoyard/blocks-ui/styles.css";
-@import "@protoyard/decks-ui/styles.css";
-@import "@protoyard/pages-ui/styles.css";
 
 /* Let Tailwind see the player's own markup; each kit stylesheet above registers its own. */
 @source "./";
