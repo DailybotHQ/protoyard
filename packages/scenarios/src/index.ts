@@ -73,6 +73,24 @@ export {
   WorldIntegrityError,
 } from './integrity.ts';
 export {
+  checkJourneyWorld,
+  JOURNEY_ACTOR_ID,
+  JOURNEY_ORGANIZATION_ID,
+  JOURNEY_PRESETS,
+  type JourneyExpectations,
+  type JourneyIssue,
+  journeyScenario,
+  LIFE_STAGE_DAYS,
+  LIFE_STAGE_JOURNEYS,
+  LIFE_STAGES,
+  type LifeStage,
+  type LifeStageJourney,
+  type LifeStageView,
+  lifeStageJourney,
+  lifeStageOf,
+  lifeStageView,
+} from './journeys.ts';
+export {
   fragments,
   PRESET_IDS,
   PRESET_REFERENCE_TIME,
