@@ -1,11 +1,11 @@
 <script lang="ts">
-import type { StepsBlock } from '@protoyard/blocks';
+import type { StepsBlock as StepsBlockData } from '@protoyard/blocks';
 import { getBlockHost } from '../host.ts';
 import BlockIcon from './BlockIcon.svelte';
 import SafeBody from './SafeBody.svelte';
 import { toneIcon } from './tones.ts';
 
-let { block }: { block: StepsBlock } = $props();
+let { block }: { block: StepsBlockData } = $props();
 const host = getBlockHost();
 const slide = $derived(host.canvasMode === 'slide');
 </script>

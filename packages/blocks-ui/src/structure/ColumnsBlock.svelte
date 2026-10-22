@@ -1,10 +1,10 @@
 <script lang="ts">
-import type { ColumnsBlock } from '@protoyard/blocks';
+import type { ColumnsBlock as ColumnsBlockData } from '@protoyard/blocks';
 import type { Component } from 'svelte';
 import { fragmentAttributes, getBlockHost } from '../host.ts';
 import type { BlockFamilyRenderer } from '../registry.ts';
 
-let { block }: { block: ColumnsBlock } = $props();
+let { block }: { block: ColumnsBlockData } = $props();
 const host = getBlockHost();
 const slide = $derived(host.canvasMode === 'slide');
 

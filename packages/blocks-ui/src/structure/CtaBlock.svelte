@@ -1,12 +1,12 @@
 <script lang="ts">
 import { safeHref } from '@protoyard/ai/markdown';
-import type { CtaBlock } from '@protoyard/blocks';
+import type { CtaBlock as CtaBlockData } from '@protoyard/blocks';
 import { Button, type ButtonVariant } from '@protoyard/ui';
 import { getBlockHost } from '../host.ts';
 import BlockIcon from './BlockIcon.svelte';
 import SafeBody from './SafeBody.svelte';
 
-let { block }: { block: CtaBlock } = $props();
+let { block }: { block: CtaBlockData } = $props();
 const host = getBlockHost();
 
 function buttonVariant(variant: 'primary' | 'secondary' | 'link' | undefined): ButtonVariant {

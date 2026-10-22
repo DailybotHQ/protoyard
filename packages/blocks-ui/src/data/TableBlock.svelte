@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { TableBlock } from '@protoyard/blocks';
+import type { TableBlock as TableBlockData } from '@protoyard/blocks';
 import { cn } from '@protoyard/ui';
 import { columnAlign, formatTableCell } from './format.ts';
 
@@ -9,7 +9,7 @@ import { columnAlign, formatTableCell } from './format.ts';
  * column (number, percent, integer cents in the table currency). Wide tables
  * scroll inside a focusable region so keyboard users can reach every column.
  */
-let { block }: { block: TableBlock } = $props();
+let { block }: { block: TableBlockData } = $props();
 
 const ALIGN = { start: 'text-left', center: 'text-center', end: 'text-right' } as const;
 const rowHeaders = $derived(

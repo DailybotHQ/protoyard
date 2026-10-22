@@ -1,12 +1,12 @@
 <script lang="ts">
 import { safeHref } from '@protoyard/ai/markdown';
-import type { CardsBlock } from '@protoyard/blocks';
+import type { CardsBlock as CardsBlockData } from '@protoyard/blocks';
 import { getBlockHost } from '../host.ts';
 import BlockIcon from './BlockIcon.svelte';
 import SafeBody from './SafeBody.svelte';
 import { toneBorder, toneIcon } from './tones.ts';
 
-let { block }: { block: CardsBlock } = $props();
+let { block }: { block: CardsBlockData } = $props();
 const host = getBlockHost();
 const cols = $derived(block.columns ?? 3);
 const slide = $derived(host.canvasMode === 'slide');
