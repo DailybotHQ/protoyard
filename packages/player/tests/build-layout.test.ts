@@ -47,7 +47,8 @@ describe('player build layout', () => {
 
   it('has build:packages keep dist/app when it cleans dist/ for the embed client', () => {
     const player = readPackageGraph(REPO).byName.get('@protoyard/player');
-    expect(player?.buildConfig).toBe('tsc');
+    // The package build publishes ./embed and the Svelte ./boot entry, so it uses the svelte build.
+    expect(player?.buildConfig).toBe('svelte');
     expect(player?.keep).toEqual(['app']);
   });
 });
