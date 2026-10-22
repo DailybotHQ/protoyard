@@ -56,6 +56,7 @@ export const FEATURE_AREAS: readonly FeatureArea[] = [
     ],
     guides: [
       { slug: 'generator', label: 'Generator guide' },
+      { slug: 'decks', label: 'Decks guide' },
       { slug: 'brief_to_prototype', label: 'Brief to prototype guide' },
       { slug: 'specs', label: 'Specs guide' },
       { slug: 'quickstart', label: 'Quickstart' },

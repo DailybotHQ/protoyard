@@ -38,18 +38,16 @@ let {
 } = $props();
 
 let mode = $state<'closed' | 'popup' | 'split'>('closed');
-/** Why the presenter opened in the page instead of a window (shown in the split view). */
-let fallbackReason = $state<'popup-blocked' | 'no-broadcast' | 'no-window' | null>(null);
-const FALLBACK_NOTES = {
-  'popup-blocked':
-    'The presenter window was blocked, so the presenter view opens here. Allow pop-ups for this page to present on another screen.',
-  'no-broadcast':
-    'This browser cannot keep a separate presenter window in sync, so the presenter view opens here.',
-  'no-window':
-    'A separate presenter window is not available here, so the presenter view opens here.',
-} as const;
 let link = $state.raw<PresenterLink | null>(null);
 let popupRef = $state.raw<Window | null>(null);
+/** Why the in-page split is used instead of a popup (when mode is split). */
+let fallbackReason = $state<'popup-blocked' | 'no-broadcast' | 'no-window' | null>(null);
+
+const FALLBACK_COPY: Record<'popup-blocked' | 'no-broadcast' | 'no-window', string> = {
+  'popup-blocked': 'The presenter popup was blocked, so this split view is open instead.',
+  'no-broadcast': 'BroadcastChannel is unavailable, so this split view is open instead.',
+  'no-window': 'No window is available, so this split view is open instead.',
+};
 
 const activeSlide = $derived(deck.slides.find((s) => s.id === slideId));
 const stepCount = $derived(activeSlide ? slideStepCount(activeSlide) : 1);
@@ -66,6 +64,7 @@ function teardown(): void {
   }
   popupRef = null;
   mode = 'closed';
+  fallbackReason = null;
 }
 
 function start(): void {
@@ -151,11 +150,12 @@ onDestroy(() => teardown());
     <aside class="min-h-0 overflow-auto">
       {#if fallbackReason}
         <p
-          class="m-4 mb-0 rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
-          role="note"
-          data-py-presenter-fallback={fallbackReason}
+          class="border-b border-border bg-muted/50 px-4 py-2 text-sm text-muted-foreground"
+          role="status"
+          data-py-presenter-fallback-reason
+          data-reason={fallbackReason}
         >
-          {FALLBACK_NOTES[fallbackReason]}
+          {FALLBACK_COPY[fallbackReason]}
         </p>
       {/if}
       <PresenterView {deck} {slideId} {step} {stepCount} {onNavigate} />

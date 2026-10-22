@@ -60,8 +60,8 @@ const pageUi = () => import('@protoyard/pages-ui/page');
 ## Page and document hosts
 
 `PageHost` renders a `PageDocument` as one marketing page with section anchors
-and `MarketingLayout` chrome. `DocHost` renders a `DocDocument` as a continuous
-flow with `DocsLayout` navigation and a heading-based table of contents.
+and `MarketingLayout` chrome. `DocHost` renders a `DocDocument` as a focused,
+continuous report with one title block and one heading-based table of contents.
 Both validate content blocks at their host boundary and render blocks through
 `BlockHost`, which dynamically imports the matching `@protoyard/blocks-ui`
 family. Unknown block types show a safe message; content is not inserted as
@@ -77,8 +77,57 @@ raw HTML.
 <PageHost {page} />
 ```
 
+### Landing page design
+
+`PageHost` gives a landing page a marketing design from its blocks alone. The
+decisions are pure functions in `src/page/design.ts`:
+
+- **Hero.** The section with `role: "hero"` is the hero. When no section has
+  that role, a first section that opens with a level-1 heading is the hero. The
+  heading renders at the display scale (36 px on phones, 60 px from `lg`), with
+  its eyebrow as a pill and its subtitle as the lead. Its `cta` actions render
+  as large buttons, not a card: the first is primary and the rest are outlined
+  unless they set a `variant`. On phones the buttons stack at full width.
+- **Section rhythm.** A section that opens with a heading gets a centered
+  section header. Body sections alternate plain and tinted (`bg-muted`)
+  full-width backgrounds. A last section made only of a CTA and short copy, or
+  any section with `role: "cta"`, renders as a closing band in the primary
+  color.
+- **Patterns.**
+  - A `stat` block without trends becomes one row of large figures.
+  - A `steps` block without icons becomes a numbered row with connectors
+    (up to four steps at `md`, six at `lg`). On phones it becomes a vertical
+    rail.
+  - A `quote` without an avatar becomes a pull quote.
+  - In a pricing section (`role: "pricing"`, or an anchor or id such as
+    `plans`, `pricing` or `tiers`), a `cards` block becomes pricing columns.
+    The highlighted plan is the `accent` card, otherwise the middle card of an
+    odd row.
+  - Forms, comparisons and text get widths that suit them.
+  - Every other block renders through `BlockHost`, as before.
+- **Navigation.** An explicit `page.nav` wins. Otherwise each body section
+  gets a link labeled by its `title`, or else by its opening heading. The
+  hero, the footer and the closing band get no link. Section ids are
+  humanized only when no section has a label. The header stays on screen
+  while the page scrolls, and the section in view gets
+  `aria-current="location"` and a highlight. Clicks scroll smoothly unless
+  the reader prefers reduced motion.
+- **Forms.** `PageApp` provides the page's form services when it initializes,
+  and form blocks render the real `FormBlock`, which loads lazily. Without
+  services, a form shows the block preview.
+
+All text is rendered as text nodes. Short markdown in these patterns is
+reduced to plain paragraphs, and links pass a second `safePageHref` check.
+`tests/page-design.test.ts` covers the decisions against the example
+`blueprints/pages/tidewater-roasters-landing.json`.
+
 `DocHost` derives heading ids and TOC entries from `buildDocToc` in
-`@protoyard/pages`. Its `showNav` prop can hide the left navigation rail.
+`@protoyard/pages`. When the first block is an `h1`, its eyebrow and subtitle
+join the document title in one title block; the source block is not rendered a
+second time. A single disclosure is a collapsible TOC on phones and a sticky
+rail on wide screens. Its active link follows the visible section. The
+`showNav` prop remains available to hide the outline. Content stays within a
+72-character reading measure, and the TOC is omitted from print output.
 
 ## Forms and responses
 

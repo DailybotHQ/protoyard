@@ -1,12 +1,12 @@
 <script lang="ts">
 /**
- * Test double for BlockHost: paints heading blocks as real hN elements
- * (marked `data-py-block-heading`, like blocks-ui) and a callout's title as
- * an h3 that is not a heading block, so
+ * Test double for BlockHost: paints heading text as real hN elements so
  * DocsLayout TOC + DocHost id stamping can be exercised without loading
  * blocks-ui family chunks.
  */
 import type { Block } from '@protoyard/blocks';
+import { getFormServices } from '../../src/form/context.ts';
+import FormBlock from '../../src/form/FormBlock.svelte';
 
 let {
   block,
@@ -17,6 +17,7 @@ let {
 const typed = $derived(
   block && typeof block === 'object' && 'type' in block ? (block as Block) : null
 );
+const formServices = getFormServices();
 </script>
 
 {#if typed?.type === 'heading'}
@@ -31,6 +32,10 @@ const typed = $derived(
 {:else if typed?.type === 'callout'}
   <!-- Like blocks-ui: a callout title is a heading element, but not a heading block. -->
   <div data-py-mock-block-host data-type="callout"><h3>{typed.title ?? 'Callout'}</h3></div>
+{:else if typed?.type === 'form' && formServices}
+  <FormBlock form={typed} services={formServices} />
+{:else if typed?.type === 'form'}
+  <div data-py-form-disabled>Form service unavailable</div>
 {:else if typed}
   <div data-py-mock-block-host data-type={typed.type}>{typed.type}</div>
 {:else}

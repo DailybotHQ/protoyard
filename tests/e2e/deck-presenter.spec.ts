@@ -106,9 +106,9 @@ test.describe('presenter view', () => {
     await page.keyboard.press('p');
     await expect(split(page), 'a blocked popup should open the in-page presenter').toBeVisible();
     // The in-page view says why it is not a separate window.
-    await expect(split(page).locator('[data-py-presenter-fallback="popup-blocked"]')).toContainText(
-      'The presenter window was blocked'
-    );
+    await expect(
+      split(page).locator('[data-py-presenter-fallback-reason][data-reason="popup-blocked"]')
+    ).toContainText('The presenter popup was blocked');
 
     // The deck and its chrome stay inside their own cell and never cover the presenter panel.
     const main = await split(page).locator('[data-py-deck-presenter-main]').boundingBox();
@@ -168,9 +168,9 @@ test.describe('presenter view', () => {
       split(page),
       'without BroadcastChannel the presenter falls back in-page'
     ).toBeVisible();
-    await expect(split(page).locator('[data-py-presenter-fallback="no-broadcast"]')).toContainText(
-      'cannot keep a separate presenter window in sync'
-    );
+    await expect(
+      split(page).locator('[data-py-presenter-fallback-reason][data-reason="no-broadcast"]')
+    ).toContainText('BroadcastChannel is unavailable');
     await split(page).getByRole('button', { name: 'Next' }).click();
     await expectSlide(page, 'divider');
   });
@@ -194,19 +194,19 @@ test.describe('presenter view', () => {
     await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:15');
 
     // Pause holds both timers; resume continues from there; reset goes back to zero.
-    const pause = split(page).getByRole('button', { name: 'Pause timers' });
+    const pause = split(page).getByRole('button', { name: 'Pause', exact: true });
     await pause.click();
-    await expect(split(page).getByRole('button', { name: 'Resume timers' })).toHaveAttribute(
+    await expect(split(page).getByRole('button', { name: 'Resume', exact: true })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
     await page.clock.runFor(30_000);
     await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:15');
     await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('00:10');
-    await split(page).getByRole('button', { name: 'Resume timers' }).click();
+    await split(page).getByRole('button', { name: 'Resume', exact: true }).click();
     await page.clock.runFor(5_000);
     await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:20');
-    await split(page).getByRole('button', { name: 'Reset timers' }).click();
+    await split(page).getByRole('button', { name: 'Reset', exact: true }).click();
     await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('00:00');
     await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('00:00');
     await page.clock.runFor(3_000);

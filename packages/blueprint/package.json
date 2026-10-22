@@ -17,7 +17,8 @@
     "./workflows": "./src/workflows/index.ts",
     "./kinds": "./src/kinds/index.ts",
     "./kinds/embed": "./src/kinds/embed/index.ts",
-    "./schema.json": "./schema/blueprint.schema.json"
+    "./schema.json": "./schema/blueprint.schema.json",
+    "./kinds/parse": "./src/kinds/parse.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -105,6 +106,11 @@
         "types": "./dist/kinds/embed/index.d.ts",
         "import": "./dist/kinds/embed/index.js",
         "default": "./dist/kinds/embed/index.js"
+      },
+      "./kinds/parse": {
+        "types": "./dist/kinds/parse.d.ts",
+        "import": "./dist/kinds/parse.js",
+        "default": "./dist/kinds/parse.js"
       },
       "./schema.json": "./dist/schema/blueprint.schema.json"
     },

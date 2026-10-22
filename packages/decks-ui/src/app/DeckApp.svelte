@@ -11,7 +11,7 @@ import {
 } from '@protoyard/decks';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import type { Component } from 'svelte';
-import { onMount, tick } from 'svelte';
+import { onMount } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
 import {
   BlackoutScreen,
@@ -161,31 +161,22 @@ function announceSlide(
   announce = `Slide ${ordinal} of ${n}`;
 }
 
+/** Keep keyboard navigation on the deck root after overlays dismiss. */
+function focusDeckRoot(): void {
+  if (typeof document === 'undefined' || !rootEl) return;
+  const active = document.activeElement;
+  if (active === rootEl) return;
+  if (active === document.body || active === null || rootEl.contains(active)) {
+    rootEl.focus({ preventScroll: true });
+  }
+}
+
 function applyLocation(next: DeckLocation): void {
   location = next;
   if (nav) writeHash(nav);
   announceSlide(next, deck.slides.length);
   // Move focus to the deck root so the live region and keyboard stay coupled.
-  if (typeof document !== 'undefined' && rootEl && document.activeElement !== rootEl) {
-    // Only steal focus when the user is interacting with the deck itself.
-    if (rootEl.contains(document.activeElement) || document.activeElement === document.body) {
-      rootEl.focus({ preventScroll: true });
-    }
-  }
-}
-
-/**
- * Gives the deck its keyboard back when focus has nowhere useful to be: the
- * control that had it is gone (the blackout screen after a click) or a tap
- * left it on the page body. Focus in a control elsewhere is never taken.
- */
-function refocusRoot(): void {
-  if (typeof document === 'undefined' || !rootEl || !rootEl.isConnected) return;
-  const active = document.activeElement;
-  if (active === rootEl) return;
-  if (active === null || active === document.body || !active.isConnected) {
-    rootEl.focus({ preventScroll: true });
-  }
+  focusDeckRoot();
 }
 
 function runAction(action: string): void {
@@ -211,17 +202,20 @@ function runAction(action: string): void {
         help: false,
       };
       break;
-    case 'blackout':
-      inputState = { ...inputState, blackout: !inputState.blackout, help: false };
-      // Closing by a click removes the focused blackout button: keep the keys working.
-      void tick().then(refocusRoot);
+    case 'blackout': {
+      const next = !inputState.blackout;
+      inputState = { ...inputState, blackout: next, help: false };
+      // Leaving blackout returns focus to the deck so B / arrows keep working.
+      if (!next) queueMicrotask(() => focusDeckRoot());
       break;
+    }
     case 'help':
       inputState = { ...inputState, help: !inputState.help };
       break;
     case 'laser':
       inputState = { ...inputState, laser: !inputState.laser };
-      void tick().then(refocusRoot);
+      // Laser is pointer-events: none, but a prior blackout button can leave focus adrift.
+      queueMicrotask(() => focusDeckRoot());
       break;
     case 'fullscreen':
       if (typeof document === 'undefined') break;
@@ -276,9 +270,6 @@ function onKeyDown(event: KeyboardEvent): void {
 }
 
 function onClick(event: MouseEvent): void {
-  // A click or tap on non-focusable slide content can leave focus on the body
-  // (touch moves focus after pointerup, before click): give the deck its keys back.
-  void tick().then(refocusRoot);
   const action = decideDeckInput(
     {
       kind: 'click',
@@ -552,7 +543,12 @@ onMount(() => {
     {/if}
 
     {#if inputState.blackout}
-      <BlackoutScreen onclose={() => runAction('blackout')} />
+      <BlackoutScreen
+        onclose={() => {
+          runAction('blackout');
+          queueMicrotask(() => focusDeckRoot());
+        }}
+      />
     {/if}
 
     {#if inputState.overview === 'open'}

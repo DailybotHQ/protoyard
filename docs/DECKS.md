@@ -1,9 +1,214 @@
 # Decks
 
-Protoyard decks are bounded, data-only presentations rendered by
-`@protoyard/decks-ui/app`. A deck uses stable slide IDs; the renderer keeps the
-current slide and step in the URL hash as `#/<slide-id>/<step>`, so a copied
-link opens the same place without a server or client-side router.
+Protoyard decks are bounded, data-only presentations: a `kind: "deck"`
+blueprint holds every slide as JSON, and `@protoyard/decks-ui`'s `DeckApp`
+renders it (ADR-038). The same component runs a deck in the no-install player
+(`deck.html`), in a quick exploration and in a generated prototype. A deck uses
+stable slide ids, and the renderer keeps the current slide and step in the URL
+hash as `#/<slide-id>/<step>`, so a copied link opens the same place without a
+server or client-side router.
+
+This guide is the product workflow. The API reference lives in the package
+guides: [`@protoyard/decks`](../packages/decks/README.md) for the schema,
+catalog, navigation, steps, quality rules and text twins, and
+[`@protoyard/decks-ui`](../packages/decks-ui/README.md) for `DeckApp`, the
+presenter, print and Deck Studio. There is no Reveal.js inside.
+
+## Start a deck
+
+Every command below runs in a clone of this repository.
+
+```sh
+# From a brief: a disposable deck in the player, no build.
+pnpm protoyard quick "A pitch deck for a fictional bakery ordering service: problem, solution, three features, traction and a closing call to action." --kind deck
+
+# From a catalog deck, or your own JSON file.
+pnpm protoyard blueprint validate blueprints/decks/example.json
+pnpm protoyard quick --blueprint blueprints/decks/example.json
+pnpm protoyard quick serve example-deck --open
+
+# As a prototype you own and build (the deck template, ADR-036).
+pnpm protoyard generate rehearsal --blueprint blueprints/decks/example.json --dry-run
+pnpm protoyard generate rehearsal --blueprint blueprints/decks/example.json
+pnpm protoyard dev rehearsal
+```
+
+- `quick` writes `.protoyard/quick/<slug>/` with the blueprint and a launcher.
+  With `--kind deck`, the offline brief synthesizer picks an outline (pitch,
+  update, training…) and one catalog layout per slide. Without `--kind`, it
+  detects decks from cues such as "pitch deck" or "slides".
+- `blueprint new --from-brief` does **not** write decks yet. It answers "This
+  brief looks like a deck, and generate still expects an app blueprint." Use
+  `quick --kind deck`, or write the JSON yourself.
+- `quick promote` turns only app explorations into prototypes. For a deck, run
+  `generate <slug> --blueprint .protoyard/quick/<exploration>/blueprint.json`.
+- The catalog decks live in [`blueprints/decks/`](../blueprints/decks/README.md):
+  `example`, `cedar-training`, `harbor-ops-pitch`, `lumen-launch`,
+  `northwind-qbr` and `protoyard-create-anything`.
+- A generated deck prototype changes through its data. Edit
+  `prototypes/<slug>/blueprint.json`, run the same `generate` command again,
+  then `validate`. Never edit `src/generated/**`; see
+  [GENERATOR](GENERATOR.md).
+
+## The deck JSON
+
+A deck blueprint is the shared blueprint envelope (`formatVersion`, `name`,
+`description`, optional `tags`, `icon`, `category` and `brand`) with
+`kind: "deck"` and a `deck` object of `{ style, slides, outline? }`. Every
+object is strict, so an unknown key fails validation with a JSON path. This
+three-slide deck validates and runs as written:
+
+```json
+{
+  "formatVersion": 1,
+  "kind": "deck",
+  "name": "Harbor kickoff",
+  "description": "A fictional three-slide kickoff deck.",
+  "deck": {
+    "style": {
+      "theme": "aurora-analytics",
+      "fontPair": "geometric",
+      "aspect": "16:9",
+      "transition": "fade",
+      "background": "solid-surface",
+      "slideNumbers": true
+    },
+    "slides": [
+      {
+        "id": "cover",
+        "layout": "title-hero",
+        "props": { "title": "Harbor kickoff", "subtitle": "Fictional figures only" },
+        "notes": "Welcome everyone and set the goal for the next twenty minutes."
+      },
+      {
+        "id": "plan",
+        "title": "The plan",
+        "layout": "free",
+        "steps": ["Scope", "Build", "Ship"],
+        "blocks": [
+          { "type": "heading", "text": "The plan" },
+          { "type": "text", "markdown": "1. Agree on the scope", "step": 1, "reveal": "fade-up" },
+          { "type": "text", "markdown": "2. Build the first slice", "step": 2, "reveal": "fade-up" },
+          { "type": "text", "markdown": "3. Ship it to the pilot team", "step": 3, "reveal": "highlight" }
+        ],
+        "notes": "Reveal one step at a time; each arrow press shows the next line."
+      },
+      {
+        "id": "next",
+        "title": "Next steps",
+        "layout": "free",
+        "blocks": [
+          { "type": "heading", "text": "Next steps" },
+          { "type": "text", "markdown": "Book the **pilot review** for Friday." }
+        ],
+        "notes": "Close with the one date that matters and who owns the review."
+      }
+    ],
+    "outline": {
+      "title": "Harbor kickoff",
+      "sections": [{ "id": "main", "title": "Kickoff", "slideIds": ["cover", "plan", "next"] }]
+    }
+  }
+}
+```
+
+Save it as `tmp/harbor-kickoff.json`, then run
+`pnpm protoyard blueprint validate tmp/harbor-kickoff.json` and
+`pnpm protoyard quick --blueprint tmp/harbor-kickoff.json`.
+
+- **Catalog slides** are `{ id, layout, props }`. `props` must pass the layout's
+  own schema; the error path points inside it
+  (`$.slides[3].props.steps`).
+- **Free slides** are `{ id, layout: "free", blocks }` with
+  `@protoyard/blocks` content: text, lists, charts, tables, code, people,
+  quizzes, polls, forms and the rest of the block catalog.
+- **Shared slide fields:** `title`, `background` (a preset id), `transition`,
+  `steps` (labels), `notes` (speaker notes) and `hidden`. Hidden slides are
+  skipped by navigation, the overview and print.
+- **Slide ids** are unique lowercase slugs. They are the deep links, so keep
+  them stable when you reorder slides.
+- **`outline`** groups existing slide ids into titled sections. Its title is
+  the deck's accessible name, and the Markdown text twin uses its sections.
+- **`style`** holds the theme, type and shape; see
+  [Customize a deck](#customize-a-deck).
+
+The full field list, with every bound, is in the
+[deck schema section](../packages/decks/README.md#the-deck-schema) of the
+package guide. `@protoyard/decks/schema` also exports `DeckJsonSchema`
+(Draft 2020-12) for editors and agents.
+
+## Layouts and when to use them
+
+The catalog has 21 layouts. Each entry carries use metadata that agents and
+the brief synthesizer read: `useWhen`, `dontUseWhen`, `pacing` (`punch`,
+`idea`, `diagram` or `story`), size `limits`, a props schema and a `sample`
+that passes it. `describeLayouts()` from `@protoyard/decks/layouts` prints the
+whole catalog as agent-readable text, and `selectDeckLayouts` in
+`@protoyard/blueprint` picks one layout per slide deterministically, avoiding
+three identical layouts in a row.
+
+| Layout | Use it when |
+| --- | --- |
+| `title-hero` | Opening slide: title, subtitle and an author or event line |
+| `section-divider` | Announcing a new chapter |
+| `two-column-split` | Two ideas side by side: before and after, problem and solution |
+| `three-column-cards` | Three parallel concepts: pillars, features, principles |
+| `image-left`, `image-right` | Walking through one image with text; `image-right` reads text first |
+| `image-centered` | One image is the focus, with a title |
+| `image-full-bleed` | The image is the message |
+| `quote` | One short quote that earns the space |
+| `code-with-callout` | Explaining a code block beside it |
+| `big-stat` | One number that lands a point |
+| `comparison-table` | Two to four options across three to five attributes |
+| `process-steps` | A linear process of three to five steps |
+| `timeline` | Four to eight dated events forming an arc |
+| `team-avatars` | Introducing the team or co-presenters |
+| `closing-cta` | The final slide: handle, call to action, contact |
+| `video-centered`, `video-left`, `video-right` | A demo or clip, alone or with text beside it |
+| `chart` | A real chart is clearer than a big stat or a table |
+| `free` | No layout fits: compose validated blocks |
+
+The generated table in the
+[layout catalog section](../packages/decks/README.md#layout-catalog) lists each
+layout's pacing and limits. It is kept in sync with the code by
+`packages/decks/tests/readme-sync.test.ts`.
+
+## Slide design
+
+Each of the 21 catalog layouts has its own composition on the stage: display
+titles on covers, dividers and closing slides, a dominant big-stat number, pull
+quotes, real two- and three-column grids, numbered process steps with
+connectors, timelines on an axis, room-sized comparison tables, team cards with
+avatars, media that crops and captions, and a chart whose data table stays
+behind its toggle (printed on paper). The type scale follows the stage width,
+so 16:9, 4:3, 9:16 and 1:1 stages all read well, and it never drops below the
+deck minimums of 24 px body and 18 px labels. Long text clamps, or the content
+zooms down to a floor; nothing overflows the stage. Layouts use theme tokens
+only, so themes and dark mode apply. The per-layout table and the scale are in
+[the decks-ui guide](../packages/decks-ui/README.md#slide-design).
+
+## Steps and step links
+
+A slide starts at step 0. Each "next" advances one step, then moves to the
+next visible slide; "previous" walks back the same way. Steps come from:
+
+- **Free slides:** a block's `step` (with an optional `reveal`: `fade`,
+  `fade-up`, `grow`, `highlight` or `strike`), and a code block's stepped
+  `highlights`.
+- **Catalog slides:** any object in `props` with an integer `step` and an
+  optional `fragment` (`fade-up`, `in`, `out`, `in-then-out`, `grow`,
+  `shrink`, `highlight`, `strike`) or `reveal`.
+- **`steps` labels**, which name the steps and can add steps of their own.
+
+Authored step numbers are renumbered densely (2, 5, 7 become 1, 2, 3), and a
+slide has at most 32 steps. A link `#/<slide-id>/<step>` opens that exact
+position. An unknown or hidden slide id opens the first visible slide, and a
+step past the slide's last step opens its last step. The position follows
+every move, so the address bar, the presenter and the copy-reference tool
+always agree.
+
+What steps do on screen today is narrower than the model. See
+[What decks do not do yet](#what-decks-do-not-do-yet).
 
 ## Navigation
 
@@ -13,6 +218,8 @@ link opens the same place without a server or client-side router.
   open deck overlay.
 - Press **F** to enter or leave fullscreen where the browser permits it; the
   browser's fullscreen controls are also available.
+- Press **?** for the keyboard shortcuts. The dialog is generated from the
+  same table the input guard uses, so it never drifts from the keys.
 - A click on the slide canvas advances. Links, buttons, embedded controls and
   the deck's progress chrome keep their own click behavior.
 - On touch devices, a horizontal swipe moves between slides; vertical movement
@@ -46,13 +253,16 @@ notes to two slides for the presenter checks.
   buttons, an elapsed timer and a per-slide timer. A note at the top says
   why it is not a separate window (pop-ups blocked, no `BroadcastChannel`,
   or no window at all).
-- **Pause timers** holds both timers and **Resume timers** continues from
-  there; **Reset timers** sets both back to 00:00. The per-slide timer
-  restarts on every slide change (a paused one stays paused).
+- **Pause** holds both timers and **Resume** continues from there; **Reset**
+  sets both back to 00:00. The per-slide timer restarts on every slide change
+  (a paused one stays paused, and pausing never resets it).
 - **B** or **.** blacks out the screen (a click, B or Escape brings the slide
   back; arrows do nothing meanwhile). **L** turns the mouse pointer into a
   laser dot, and clicks stop advancing while it is on. On touch screens the
   dot only shows under a finger.
+- The **copy slide reference** button copies the slide title, its id and the
+  deep link to the exact step. Where the clipboard is blocked it says "Could
+  not copy the slide reference" instead of claiming success.
 - `?print=1` (add `&notes=1` for speaker notes) or the browser's print command
   lays out every visible slide on its own page at the canvas size, with all
   steps shown and no deck chrome. A printed PDF has one page per slide, sized
@@ -78,7 +288,9 @@ focus kept on the deck after a click, the laser pointer, `?print=1` with and wit
 Chromium PDF. Each failure names what broke, for example
 "pressing S should open the presenter popup (was it blocked?)".
 
-## Style: theme, fonts and backgrounds
+## Customize a deck
+
+### Style: theme, fonts and backgrounds
 
 Everything a deck sets in `deck.style` is visible in every view that shows
 slides: the canvas, the overview thumbnails, the presenter's deck surface and
@@ -88,10 +300,20 @@ print pages.
   `paletteSeed` (a generated palette). It is applied to the deck root only, so
   the host page and DevTools keep their own theme. Library themes load lazily.
   An unknown theme or font pairing falls back to the default, and a short note
-  appears in the deck chrome; the deck never fails to render.
+  appears in the deck chrome; the deck never fails to render. Find a theme with
+  `pnpm protoyard theme list --search <query>` ([THEMES](THEMES.md)).
 - **Type and shape.** `fontPair` (system font stacks, no downloads), `radius`,
   `density` and `motion`. Headings, body text and default borders follow the
   deck as well as utility classes.
+- **Canvas.** `aspect` is `16:9` (1280 × 720, the default), `4:3`
+  (1024 × 768), `9:16` (720 × 1280) or `1:1` (1080 × 1080). Slides are laid
+  out in canvas pixels and scaled as a whole, so a deck looks the same on any
+  screen.
+- **Transitions.** `transition` on the deck or a slide: `fade` (the default),
+  `slide`, `zoom`, `morph` or `none`. `motion: "subtle"` shortens them and
+  `motion: "none"` turns them off. The viewer's reduced-motion preference can
+  only lower the level, never raise it, and no transition runs longer than
+  400 ms.
 - **Backgrounds.** `style.background` sets the deck background preset and each
   `slide.background` overrides it, from the 13 `DECK_BACKGROUND_PRESET_IDS`:
   six solids, five gradients and two patterns. Every preset gets a computed text
@@ -106,18 +328,53 @@ print pages.
 - **Mode.** `DeckApp` takes `mode` (`light` by default, for stable exports) or
   `dark`.
 
-## Authoring
+### Deck Studio
 
-Deck blueprints live in `blueprints/decks/` and declare `kind: "deck"`, a
-bounded `deck` object, slides with stable IDs, and optional outline sections.
-The layout catalog provides reusable compositions; `layout: "free"` uses
-validated content blocks. Read [the deck package guide](../packages/decks/README.md)
-for the schema, navigation model, layout props and authoring limits.
-Slide decks are `kind: "deck"` blueprints rendered by `@protoyard/decks-ui`
-`DeckApp` (ADR-038). Engine types and navigation live in `@protoyard/decks`.
-Example fixtures: [`blueprints/decks/`](../blueprints/decks/README.md).
+With DevTools on, the **Deck** tab edits the deck live: theme or palette seed,
+font pair, aspect, motion, background, slide numbers and progress position for
+the deck, and layout, background, transition and hidden for the current slide.
+Layout choices are only the layouts whose props schema already accepts the
+slide's content, so switching never drops content. Edits stay in memory: the
+studio writes no files. It shows them as an RFC 6902 JSON Patch with **Copy
+patch** and **Download patch**, and selects the patch text where the clipboard
+is blocked.
 
-## Visual QA sweep
+- In the player and quick explorations the patch is rooted at the blueprint
+  (`/deck/…`). Apply it with
+  `pnpm protoyard quick iterate <slug> --patch <file>`, which keeps an undo
+  history.
+- In a generated prototype the patch is rooted at the deck object
+  (`/slides/…`, `/style/…`). Prefix each path with `/deck` to apply it to
+  `prototypes/<slug>/blueprint.json`, then run `generate` again.
+
+## Check a deck
+
+### Authoring lint
+
+`lintDeckStructure(deck)` and `lintDeckAssets(deck)` from
+`@protoyard/blueprint` check a deck body before anyone sees it. They are
+deterministic, never fetch and never render. The structure lint runs the
+static quality rules of `@protoyard/decks/quality` (`checkDeckStatic`) and adds
+outline, slide-link and chart-description checks. The asset lint walks every
+image and video source, poster and embedded-app value. Each diagnostic has a
+`code`, a `severity` and a JSON path. There is no CLI command for them yet:
+call them from code, a test or an agent tool.
+
+- **Errors** fail the deck: duplicate or missing slide ids, unknown layouts,
+  props that break a layout's schema, images in props without alt text or a
+  size, fragment order that reveals content before what sits above it, and
+  unsafe asset URLs.
+- **Warnings** report and never fail: missing, short, duplicated or
+  boilerplate speaker notes; a third identical layout in a row; more visible
+  words than the layout's pacing allows; step labels without fragments; short
+  chart descriptions; external images without a credit.
+
+The warning thresholds (40-character notes; 15, 45, 60 and 50 visible words
+for punch, idea, diagram and story slides) are ported from the developer's
+keynote QA scripts and are **not calibrated** against a body of real decks.
+They stay report-only, as warnings, until they are.
+
+### Visual QA sweep
 
 `scripts/sweep-deck.ts` is the maintained browser sweep for a **built deck
 fixture** (SITE_QA). It is separate from authoring lint (`lintDeckStructure`)
@@ -159,3 +416,98 @@ pnpm exec tsx scripts/sweep-deck.ts --out tmp/deck-sweep --viewport 1280x720
 
 Authoring lint remains the source of truth for layout props, outline integrity
 and asset policy. The sweep does not replace `lintDeckStructure`.
+
+## Share and export
+
+| Where the deck is | How to share it | What you get |
+| --- | --- | --- |
+| A quick exploration | `pnpm protoyard quick export <slug> --single-file` | One HTML file that opens from `file://`, with no server or network |
+| A quick exploration | `pnpm protoyard quick export <slug> --target artifact` | A Claude artifact page in `<exploration>/artifact/`, never published by the command |
+| A generated prototype | `pnpm protoyard export <slug> --target artifact` | An artifact pack in `artifacts/<slug>/artifact/`: one script chunk and one stylesheet |
+| A generated prototype | `pnpm protoyard export <slug>` | A relocatable ZIP of the static build |
+| Any deck JSON | the player's `deck.html` with a `#bp=` share link or `?src=` | The deck in the no-install player ([PLAYER](PLAYER.md)) |
+
+Publishing an artifact is a separate step that needs your consent; see
+[Sharing as a Claude artifact](PUBLISHING.md#sharing-as-a-claude-artifact).
+`tests/e2e/deck-artifact.spec.ts` packs the `create-anything-deck` prototype
+and opens it the way the artifact viewer does: the first slide renders, keys
+and deep links navigate, only the entry script loads, and the deck still runs
+without `window.claude`, the clipboard or IndexedDB:
+
+```sh
+pnpm exec playwright test tests/e2e/deck-artifact.spec.ts
+```
+
+Measured 2026-10-22: that pack is 177 files plus the page (2,193,470 B), with
+one 548,131 B gzip script. A quick deck exported as one file measured
+1.53 MB, under the 2 MiB single-file cap for a deck page.
+
+## Limits
+
+| What | Limit | Enforced by |
+| --- | --- | ---: |
+| Document size from any untrusted source | 1 MiB of UTF-8 JSON, nesting depth 32 | `loadUntrustedDocument` |
+| Slides per deck | 200 | `DECK_LIMITS.slides` |
+| Blocks per slide / per deck | 200 / 2,000 (nested container blocks count) | `loadUntrustedDocument` |
+| Chart points across a deck | 23,424 (eight full charts) | `loadUntrustedDocument` |
+| Embedded apps per deck | 8, one level deep | `loadUntrustedDocument` |
+| Steps per slide | 32 (later ones play together on the last step) | `DECK_LIMITS.steps` |
+| Speaker notes per slide | 2,000 characters | `DECK_LIMITS.slideNotes` |
+| Slide title | 160 characters | `DECK_LIMITS.slideTitle` |
+| Rendered text minimum | 24 px body, 18 px labels, in canvas pixels | `DECK_TEXT_MINIMUMS` |
+| Slides mounted at once | the active slide and its neighbors (2–3) | `DeckCanvas` |
+| Single-file export of a deck page | 2 MiB | `quick export --single-file` |
+
+Media come only from the deck itself: relative paths without `..`, bounded
+base64 `data:` URIs of raster images and mp4/webm video, or library avatars
+(`avatar:av-012`). Remote URLs, SVG, `blob:` and every script-capable scheme
+are refused, which matches the player and artifact Content Security Policy.
+Every deck string renders as text, never as HTML; see
+[Kinds: hostile decks, pages and docs](SECURITY.md#kinds-hostile-decks-pages-and-docs).
+
+## What decks do not do yet
+
+- **Fragments and reveals do not animate yet.** The engine derives each
+  slide's steps and their effects, and navigation, deep links, the presenter
+  and print follow them, but `DeckApp` does not hide, reveal or highlight
+  content by step: every block and prop is visible at every step. Stepped
+  code highlights do not advance either. The steps model and its rules are in
+  the [steps and motion section](../packages/decks/README.md#steps-and-motion)
+  of the package guide.
+- **The last authored step is not reachable by navigation.** A slide whose
+  fragments define steps 1 to N offers positions 0 to N − 1, so its last step
+  is skipped. Slides that only use `steps` labels are not affected.
+- **Lint flags step markers in catalog props.** `DeckSchema` accepts
+  `{ step, fragment | reveal }` on catalog props, but `checkDeckStatic` (and
+  so `lintDeckStructure`) reports them as `layout-props` errors. Free-slide
+  block steps lint cleanly.
+- **No custom slide components.** A generated deck's `src/custom-slides.ts`
+  is a typed registry for later. `DeckApp` renders only the catalog layouts
+  and free blocks.
+- **No media backgrounds on slides.** `style.background` and
+  `slide.background` take a preset id. Image and video background specs
+  validate with `DeckBackgroundSchema`, but a slide cannot carry one yet.
+- **No remote media, iframes, math or syntax themes.** There is no KaTeX and
+  no highlight.js; code highlighting comes from the blocks tokenizer.
+- **Briefs to deck blueprints only through quick.** `blueprint new` refuses
+  deck briefs (see [Start a deck](#start-a-deck)).
+- **The presenter popup is minimal.** It shows the slide id and step; notes,
+  the next slide and timers are in the in-page view. The two windows sync only
+  within one browser (same-origin `BroadcastChannel`), never across devices.
+- **No PowerPoint, Keynote or Google Slides export.** Print to PDF from the
+  browser, or share the HTML file or artifact.
+- **Heuristics are report-only.** Lint warnings and the sweep's
+  `font-too-small` never fail a deck, and the sweep's contrast estimate is not
+  implemented, until they are calibrated.
+
+## Tests
+
+```sh
+pnpm vitest run packages/decks packages/decks-ui
+pnpm vitest run packages/cli/tests/decks-docs.test.ts   # this guide's commands, example and catalog
+pnpm vitest run scripts/tests/deck-sweep.test.ts
+pnpm exec playwright test tests/e2e/deck-navigation.spec.ts
+pnpm exec playwright test tests/e2e/deck-presenter.spec.ts
+pnpm exec playwright test tests/e2e/deck-artifact.spec.ts
+pnpm check:docs
+```

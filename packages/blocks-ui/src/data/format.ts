@@ -82,6 +82,20 @@ export function chartSeries(spec: ChartSpec) {
   }));
 }
 
+/**
+ * The x axis a line or area chart spec needs. Chart spec labels are free text
+ * ("W1", "Q3", "Jan"), so they are categories; only labels that are all ISO
+ * dates (`2026-03` or `2026-03-01…`) go on a time axis. Without this, the line
+ * chart's time default parsed "W1" as NaN and drew an empty path.
+ */
+export function chartXKind(spec: Pick<ChartSpec, 'labels'>): 'time' | 'category' {
+  const iso = /^\d{4}-\d{2}(?:-\d{2}(?:[T ][\d:.]+Z?)?)?$/;
+  return spec.labels.length > 0 &&
+    spec.labels.every((label) => iso.test(label) && !Number.isNaN(Date.parse(label)))
+    ? 'time'
+    : 'category';
+}
+
 /** The first series as part-whole slices (part-whole specs have exactly one series). */
 export function chartItems(spec: ChartSpec) {
   return spec.labels.map((label, i) => ({

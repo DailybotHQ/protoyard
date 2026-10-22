@@ -153,5 +153,13 @@
         "markdown": "Prepared by the fictional support operations team. Contact: support-ops@northwind.example."
       }
     ]
+  },
+  "catalog": {
+    "category": "support",
+    "productType": "Quarterly report",
+    "platforms": ["web"],
+    "features": ["doc", "stats", "charts", "timeline", "checklist"],
+    "highlights": ["Headline numbers", "Ticket volume chart", "Milestones and next steps"],
+    "difficulty": "beginner"
   }
 }

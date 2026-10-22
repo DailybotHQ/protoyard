@@ -1,6 +1,6 @@
 import type { DocDocument } from '@protoyard/pages';
 import { buildDocToc } from '@protoyard/pages';
-import { cleanup, render, waitFor, within } from '@testing-library/svelte';
+import { cleanup, render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DocHost from '../src/doc/DocHost.svelte';
 
@@ -14,10 +14,7 @@ vi.mock('@protoyard/blocks-ui', () => ({
   getBlockHost: () => ({ density: 'comfortable', canvasMode: 'flow' }),
 }));
 
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
+afterEach(() => cleanup());
 
 function fixtureDoc(): DocDocument {
   return {
@@ -32,154 +29,58 @@ function fixtureDoc(): DocDocument {
         id: 'title',
         level: 1,
         text: 'Fixture handbook',
+        eyebrow: 'A practical guide',
+        subtitle: 'Everything needed for the first day.',
       },
-      {
-        type: 'text',
-        markdown: 'Intro copy for the handbook.',
-      },
-      {
-        type: 'heading',
-        id: 'getting-started',
-        level: 2,
-        text: 'Getting started',
-      },
-      {
-        type: 'heading',
-        id: 'first-steps',
-        level: 3,
-        text: 'First steps',
-      },
-      {
-        type: 'text',
-        markdown: 'Do the first thing.',
-      },
-      {
-        type: 'heading',
-        id: 'next-section',
-        level: 2,
-        text: 'Next section',
-      },
-      {
-        type: 'text',
-        markdown: 'More body copy.',
-      },
+      { type: 'text', markdown: 'Intro copy for the handbook.' },
+      { type: 'heading', id: 'getting-started', level: 2, text: 'Getting started' },
+      { type: 'heading', id: 'first-steps', level: 3, text: 'First steps' },
+      { type: 'text', markdown: 'Do the first thing.' },
+      { type: 'heading', id: 'next-section', level: 2, text: 'Next section' },
+      { type: 'text', markdown: 'More body copy.' },
     ],
   };
 }
 
-function tocAside(container: HTMLElement): HTMLElement {
-  const aside = container.querySelector('[data-py-docs-layout] aside');
-  if (!aside) throw new Error('DocsLayout TOC aside missing');
-  return aside as HTMLElement;
-}
-
 describe('DocHost', () => {
-  it('renders continuous flow inside DocsLayout with data-py-doc-host', async () => {
+  it('renders one title and one TOC with ids from buildDocToc', async () => {
     const doc = fixtureDoc();
     const view = render(DocHost, { props: { doc } });
+    const expected = buildDocToc(doc);
 
-    const host = view.container.querySelector('[data-py-doc-host]');
-    expect(host).toBeTruthy();
-    expect(host?.getAttribute('data-doc-id')).toBe('fixture-doc');
-    expect(host?.getAttribute('data-style')).toBe('soft-violet');
-    expect(host?.getAttribute('data-toc-sticky')).toBe('true');
-    expect(view.container.querySelector('[data-py-docs-layout]')).toBeTruthy();
-    expect(view.container.querySelector('[data-py-doc-flow]')).toBeTruthy();
-    expect(view.container.querySelector('[data-py-doc-header]')).toBeTruthy();
-    expect(view.container.querySelector('[data-py-doc-brand]')?.textContent?.trim()).toBe(
+    expect(view.container.querySelector('[data-py-doc-host]')?.getAttribute('data-doc-id')).toBe(
+      'fixture-doc'
+    );
+    expect(view.container.querySelectorAll('[data-py-doc-host] h1')).toHaveLength(1);
+    expect(view.container.querySelector('[data-py-doc-title]')?.textContent?.trim()).toBe(
       'Fixture handbook'
     );
-
-    await waitFor(() => {
-      expect(view.container.querySelectorAll('[data-py-mock-block-host]').length).toBe(
-        doc.blocks.length
-      );
-    });
-  });
-
-  it('exposes heading ids that match buildDocToc and TOC links for h2/h3', async () => {
-    const doc = fixtureDoc();
-    const expected = buildDocToc(doc);
-    expect(expected.map((item) => item.id)).toEqual([
-      'getting-started',
-      'first-steps',
-      'next-section',
-    ]);
-
-    const view = render(DocHost, { props: { doc } });
-
-    await waitFor(() => {
-      expect(view.container.querySelector('#getting-started')).toBeTruthy();
-      expect(view.container.querySelector('#first-steps')).toBeTruthy();
-      expect(view.container.querySelector('#next-section')).toBeTruthy();
-    });
-
-    const toc = within(tocAside(view.container));
-    await waitFor(() => {
-      expect(toc.getByRole('link', { name: 'Getting started' })).toBeTruthy();
-      expect(toc.getByRole('link', { name: 'First steps' })).toBeTruthy();
-      expect(toc.getByRole('link', { name: 'Next section' })).toBeTruthy();
-    });
-
-    const tocLink = toc.getByRole('link', { name: 'Getting started' });
-    expect(tocLink.getAttribute('href')).toBe('#getting-started');
-
-    // Left nav also lists level-2 entries.
-    expect(view.container.querySelector('[data-py-doc-nav-link="getting-started"]')).toBeTruthy();
-    expect(view.container.querySelector('[data-py-doc-nav-link="next-section"]')).toBeTruthy();
-  });
-
-  it('updates aria-current under a test IntersectionObserver', async () => {
-    let observer: TestIntersectionObserver | undefined;
-    class TestIntersectionObserver {
-      private callback: IntersectionObserverCallback;
-      constructor(callback: IntersectionObserverCallback) {
-        this.callback = callback;
-        observer = this;
-      }
-      observe = vi.fn();
-      disconnect = vi.fn();
-      unobserve = vi.fn();
-      root = null;
-      rootMargin = '';
-      thresholds = [0];
-      trigger(target: Element) {
-        this.callback(
-          [
-            {
-              target,
-              isIntersecting: true,
-              boundingClientRect: { top: 20 } as DOMRectReadOnly,
-            } as IntersectionObserverEntry,
-          ],
-          this as unknown as IntersectionObserver
-        );
-      }
-    }
-    vi.stubGlobal('IntersectionObserver', TestIntersectionObserver);
-
-    const doc = fixtureDoc();
-    const view = render(DocHost, { props: { doc } });
-    const toc = within(tocAside(view.container));
-
-    await waitFor(() => expect(toc.getByRole('link', { name: 'Next section' })).toBeTruthy());
-
-    const nextHeading = document.getElementById('next-section');
-    expect(nextHeading).toBeTruthy();
-    if (nextHeading) observer?.trigger(nextHeading);
-
-    await waitFor(() =>
-      expect(toc.getByRole('link', { name: 'Next section' }).getAttribute('aria-current')).toBe(
-        'location'
-      )
+    expect(view.container.querySelector('[data-py-doc-eyebrow]')?.textContent?.trim()).toBe(
+      'A practical guide'
     );
+    expect(view.container.querySelector('[data-py-doc-subtitle]')?.textContent?.trim()).toBe(
+      'Everything needed for the first day.'
+    );
+    expect(view.container.querySelectorAll('[data-py-doc-toc]')).toHaveLength(1);
+    expect(view.container.querySelector('[data-py-doc-nav]')).toBeNull();
+
+    await waitFor(() => {
+      for (const item of expected) {
+        expect(view.container.querySelector(`#${item.id}`)).toBeTruthy();
+        expect(view.container.querySelector(`[data-py-doc-toc-link="${item.id}"]`)).toBeTruthy();
+      }
+    });
+    expect(view.container.querySelectorAll('[data-py-doc-block="heading"]')).toHaveLength(3);
   });
 
-  it('can hide the optional left nav', async () => {
+  it('can hide the outline without changing the document body', async () => {
     const doc = fixtureDoc();
     const view = render(DocHost, { props: { doc, showNav: false } });
     await waitFor(() => expect(view.container.querySelector('[data-py-doc-flow]')).toBeTruthy());
-    expect(view.container.querySelector('[data-py-doc-nav]')).toBeNull();
+    expect(view.container.querySelector('[data-py-doc-toc]')).toBeNull();
+    expect(view.container.querySelector('[data-py-doc-title]')?.textContent?.trim()).toBe(
+      'Fixture handbook'
+    );
   });
 });
 
@@ -197,8 +98,9 @@ describe('DocHost headings', () => {
     } as DocDocument;
     const { container } = render(DocHost, { doc });
     expect(container.querySelectorAll('h1')).toHaveLength(1);
-    expect(container.querySelector('[data-py-doc-header]')).toBeNull();
-    const toc = buildDocToc(doc);
+    // Every level-2 TOC id lands on its own heading block, after the callout.
+    const toc = buildDocToc(doc).filter((item) => item.level >= 2);
+    expect(toc.length).toBeGreaterThan(0);
     await waitFor(() => {
       for (const item of toc) {
         expect(container.querySelector(`#${item.id}`)?.textContent?.trim()).toBe(item.label);
@@ -207,27 +109,5 @@ describe('DocHost headings', () => {
     // The callout title is not a TOC entry, so it never takes a TOC id.
     const tocIds = new Set(toc.map((item) => item.id));
     expect(tocIds.has(container.querySelector('h3')?.id ?? '')).toBe(false);
-
-    // Without its own h1, the header shows the title as the one h1.
-    cleanup();
-    const plain = render(DocHost, {
-      doc: { ...doc, blocks: doc.blocks.slice(1) } as DocDocument,
-    });
-    expect(plain.container.querySelectorAll('h1')).toHaveLength(1);
-    expect(plain.container.querySelector('[data-py-doc-header] h1')?.textContent?.trim()).toBe(
-      'Fictional quarterly report'
-    );
-
-    // A first h1 block with other text is not a repeat: the header keeps the title.
-    cleanup();
-    const distinct = render(DocHost, {
-      doc: {
-        ...doc,
-        blocks: [{ type: 'heading', id: 'q3', level: 1, text: 'Q3' }, ...doc.blocks.slice(1)],
-      } as DocDocument,
-    });
-    expect(distinct.container.querySelector('[data-py-doc-header] h1')?.textContent?.trim()).toBe(
-      'Fictional quarterly report'
-    );
   });
 });

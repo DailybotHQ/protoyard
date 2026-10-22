@@ -44,11 +44,9 @@ no file is copied.
   `--foreground` variables. A deck, page or doc (which sits on the body) showed
   light text on a white page in dark mode. The body now uses the theme tokens.
 - **Wrong TOC targets in a doc.** Its table-of-contents ids were stamped on
-  every heading element in document order, the doc's own title and a callout's
-  title included, so each link landed one heading off. Ids now go only to
-  heading blocks (`data-py-block-heading`).
-- **Doubled doc title.** A doc whose first block repeats its title as a level-1
-  heading showed two identical `h1`s. The doc header now leaves its own out.
+  every heading element in document order, a callout's title included, so each
+  link after a callout landed one heading off. Ids now go only to heading
+  blocks (`data-py-block-heading`).
 
 ## Other fixes from accessibility checks
 

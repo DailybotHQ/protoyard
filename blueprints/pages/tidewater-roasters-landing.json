@@ -226,5 +226,17 @@
         ]
       }
     ]
+  },
+  "catalog": {
+    "category": "commerce",
+    "productType": "Landing page",
+    "platforms": ["web"],
+    "features": ["page", "hero", "pricing", "steps", "waitlist-form"],
+    "highlights": [
+      "Hero with calls to action",
+      "Pricing columns",
+      "Waitlist form that keeps responses"
+    ],
+    "difficulty": "beginner"
   }
 }

@@ -48,6 +48,31 @@ export const SHOWCASE_KIND_TARGETS = [
   },
 ] as const;
 
+/** Marketplace examples: each share link must boot its matching player renderer. */
+export const MARKETPLACE_CONTENT_KIND_TARGETS = [
+  { kind: 'app', label: 'App', renderer: 'main', action: 'Open in player' },
+  {
+    kind: 'deck',
+    label: 'Deck',
+    renderer: '[data-py-deck-app]',
+    action: 'Open Deck in player',
+  },
+  {
+    kind: 'page',
+    label: 'Page',
+    renderer: '[data-py-page-app]',
+    action: 'Open Page in player',
+  },
+  {
+    kind: 'doc',
+    label: 'Document',
+    renderer: '[data-py-doc-app]',
+    action: 'Open Document in player',
+  },
+] as const;
+
+export type MarketplaceContentKind = (typeof MARKETPLACE_CONTENT_KIND_TARGETS)[number]['kind'];
+
 export type ShowcaseKindTarget = (typeof SHOWCASE_KIND_TARGETS)[number];
 
 export function readShowcaseKindBlueprint(target: ShowcaseKindTarget): string {
@@ -160,11 +185,13 @@ export function devtoolsPrototypeUrl(slug: string): string {
 }
 
 export interface RegistryEntryLite {
-  kind: 'prototype' | 'template';
+  kind: 'prototype' | 'template' | 'blueprint';
   slug: string;
   name: string;
   tags: string[];
   scenarios: string[];
+  blueprintKind?: MarketplaceContentKind | null;
+  catalog?: { category?: string; features?: string[] } | null;
 }
 
 /** The registry the gallery was built from (the webServer re-indexes first). */

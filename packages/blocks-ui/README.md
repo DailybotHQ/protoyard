@@ -117,6 +117,9 @@ Lazy chunk for timeline, steps, comparison, cards, icon, CTA and columns:
 
 - **Flow vs slide:** below 640 px in `canvasMode: 'flow'`, multi-column layouts
   collapse to one column; `slide` keeps a fixed grid for the deck canvas.
+- **Timeline:** vertical flow timelines reserve a marker column beside each
+  event's time and title. Markers do not sit over text, including at narrow
+  widths. This same renderer is used by decks and page/doc flows.
 - **CTA:** every action has a schema-validated `href` run through `safeHref`.
   Set `onCtaAction` on the host to handle clicks; return a promise so
   `@protoyard/ui` `Button` shows pending feedback until it settles. Without a

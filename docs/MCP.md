@@ -53,10 +53,10 @@ The server supports only those two revisions. A request that negotiates or names
 
 | Tool | Arguments | Behavior |
 | --- | --- | --- |
-| `quick` | Exactly one of `brief` (1–65,536 characters) or `blueprint` (workspace path, 1–2,048 characters); optional `slug` (1–80), `name` (1–120), `seed` (integer 0–4,294,967,295), `variants` (integer 1–8), `standalone` (boolean) | Create a disposable prototype from a brief or blueprint. |
+| `quick` | Exactly one of `brief` (1–65,536 characters) or `blueprint` (workspace path, 1–2,048 characters); optional `slug` (1–80), `name` (1–120), `seed` (integer 0–4,294,967,295), `variants` (integer 1–8), `standalone` (boolean), `kind` (enum: app, deck, page, doc; only with `brief`) | Create a disposable prototype from a brief or blueprint. `kind` forces the synthesizer kind when a brief is given (CLI `--kind`). |
 | `iterate` | Required `dir` and `patchFile` (workspace paths, 1–2,048 characters each); optional `allowDrop` (boolean) | Apply a validated patch to an existing quick exploration. |
-| `validate_blueprint` | Required `file` (workspace path, 1–2,048 characters) | Validate blueprint JSON without generating a prototype. |
-| `blueprint_schema` | No arguments | Return the published Protoyard blueprint JSON Schema. |
+| `validate_blueprint` | Required `file` (workspace path, 1–2,048 characters) | Validate blueprint JSON without generating a prototype. The envelope `data` includes the kind summary (`kind`, and kind-specific counts such as slides or sections). |
+| `blueprint_schema` | No arguments | Return the published Protoyard blueprint JSON Schema (the kind union: app, deck, page and doc branches under oneOf). |
 | `screenshot` | Required `dir` (workspace path, 1–2,048 characters) | Capture screenshots for an existing quick exploration. |
 | `promote` | Required `dir` (workspace path, 1–2,048 characters) and `slug` (1–80); optional `variant` (`v1`–`v8`) and `noInstall` (boolean) | Promote a quick exploration to a full prototype. |
 | `doctor` | Optional `offline` (boolean) | Check the local CLI environment and machine interface. Offline checking is the default. |
