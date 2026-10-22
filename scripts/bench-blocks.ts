@@ -49,6 +49,7 @@ export interface ChunkLike {
   fileName: string;
   imports: string[];
   code: string;
+  modules?: Record<string, { renderedLength: number }>;
 }
 
 /** Return the static chunks a new lazy import adds after shell chunks are loaded. */
@@ -160,7 +161,7 @@ export async function measureFamilies() {
       if (process.env.PROTOYARD_BUNDLE_DEBUG) {
         const modules = added
           .flatMap((chunk) =>
-            Object.entries(chunk.modules).map(([id, info]) => ({
+            Object.entries(chunk.modules ?? {}).map(([id, info]) => ({
               id: id.replaceAll('\\', '/'),
               renderedBytes: info.renderedLength,
             }))

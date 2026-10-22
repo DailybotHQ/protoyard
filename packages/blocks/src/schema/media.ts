@@ -7,8 +7,8 @@ import { z } from 'zod';
  * - `avatar:av-007` — a portrait from `@protoyard/avatars`, shipped with every build;
  * - `data:image/png;base64,…` — an embedded raster image (png, jpeg, webp, gif)
  *   or video (mp4, webm), at most 192 KB decoded;
- * - `assets/cover.webp` — a path relative to a level-2 prototype. The level-1
- *   player rejects relative sources through its untrusted-input guard.
+ * - `assets/cover.webp` — a safe relative path accepted by the schema; the
+ *   active host resolves it from its own origin.
  *
  * SVG, `https:`, protocol-relative URLs, other schemes and `..` segments are
  * never accepted.
