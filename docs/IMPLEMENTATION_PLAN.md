@@ -367,7 +367,7 @@ or command named on each item.
 - **The debug panel's shared-chunk glue** (about 3 KB on the deck entry) was not recovered; Rolldown splits the modules the entry shares with the lazy panel.
 - **Custom slides run only at level 2** (generated prototypes). The player, the overview, print and previews show a card in their place.
 - **The flagship's CSS has no headroom** at 30.00 of 30 KB.
-- **Open when this section was written:** in the catalog's own block examples, the quiz shows `**markdown**` literally and a card's avatar image does not render; the `team-avatars` case in `packages/decks-ui/tests/steps-everywhere.test.ts` can time out under the full parallel suite and passes alone.
+- **Fixed by T-a11y-mobile:** the quiz prompt and explanation render inline Markdown (a small formatter, within the interactive family's ceiling); a card's avatar image renders under the media policy on its own lazy chunk; the `team-avatars` steps test preloads both lazy modules, so it no longer times out under the full parallel suite. The new deck chrome passes axe in light and dark, works keyboard-only and has 44 px targets on Pixel 7 (`tests/e2e/deck-controls.spec.ts`).
 
 ## Deferred and known gaps
 
