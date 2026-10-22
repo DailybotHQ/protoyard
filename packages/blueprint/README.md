@@ -610,6 +610,12 @@ const committed = await services.ticket.importCsv(text, {
 
 ## Brief to blueprint
 
+Kind synthesis fixtures live in `tests/fixtures/briefs/kinds.json` and are exercised by
+`tests/brief-kinds.test.ts` (all four kinds, cue conflicts, explicit overrides, empty and
+maximum-length input, content-only requests). The historical app set in
+`tests/fixtures/briefs/briefs.json` stays the regression baseline
+(`pnpm vitest run packages/blueprint/tests/brief-kinds.test.ts packages/blueprint/tests/brief.test.ts`).
+
 `blueprintFromBrief(brief, { archetype?, name?, kind? })` turns a short product brief into a
 valid blueprint (or content draft), offline and deterministically (same brief, same JSON; no
 network or model). Kind dispatch runs first (ADR-036):
