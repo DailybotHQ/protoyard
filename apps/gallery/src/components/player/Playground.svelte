@@ -108,7 +108,13 @@ async function copyShareLink(): Promise<void> {
 onMount(() => {
   shareAvailable = hasDeflateRaw();
   const share = readBlueprintShareFragment(window.location.hash);
-  status = 'Opening the player…';
+  const opening = 'Opening the player…';
+  status = opening;
+  // A load or share link started while the player opens keeps its own status
+  // (a player that fails to open still says so).
+  const settle = (next: string) => {
+    if (status === opening) status = next;
+  };
   let active = true;
   void (async () => {
     let kind: BlueprintKind = 'app';
@@ -130,10 +136,11 @@ onMount(() => {
       return;
     }
     if (!active) return;
-    status =
+    settle(
       !share && !shareAvailable
         ? 'Share links need CompressionStream with deflate-raw. This browser can still load pasted blueprints.'
-        : openingStatus;
+        : openingStatus
+    );
   })();
   return () => {
     active = false;
