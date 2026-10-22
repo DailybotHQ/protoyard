@@ -98,7 +98,8 @@ reads:
 Clicking slide content advances. A touch or pen swipe left or right moves next or previous: at least
 50 px, mainly horizontal, under 800 ms. Clicks and swipes on links, controls, media, interactive blocks
 and the chrome never advance (see the input guard in `@protoyard/decks`). The `presenter` action
-(`S`, `P`) is decided but has no surface yet.
+(`S`, `P`) opens the lazy presenter host: a popup when allowed, otherwise an in-page split
+with notes, timers and the next slide (see `@protoyard/decks-ui/presenter`).
 
 ### Overview grid (O)
 
@@ -202,9 +203,9 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 
 ## Known limits
 
-- **The presenter view is not built.** `S` and `P` do nothing yet. Even when it lands, a separate
-  presenter window depends on popups: the artifact sandbox and many browsers block them. The design
-  therefore keeps an in-page split view (`P`) as the fallback, and never requires the popup.
+- **Presenter popups may be blocked.** Artifact sandboxes and many browsers block `window.open`.
+  When the popup fails or `BroadcastChannel` is missing, `S` / `P` fall back to an in-page split
+  presenter (notes, timers, next slide) and never require the popup.
 - **No remote media at level 1.** Images and video come only from the deck (relative paths), bounded
   `data:` URIs or library avatars, matching the player and artifact CSP. There are no iframe
   backgrounds.
