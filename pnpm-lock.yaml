@@ -408,6 +408,9 @@ importers:
 
   packages/decks:
     dependencies:
+      '@protoyard/ai':
+        specifier: workspace:*
+        version: link:../ai
       '@protoyard/blocks':
         specifier: workspace:*
         version: link:../blocks
