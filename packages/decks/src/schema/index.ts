@@ -1,4 +1,10 @@
-import { BLOCK_REVEALS, type Block, BlockListSchema, LinkHrefSchema } from '@protoyard/blocks';
+import {
+  BLOCK_REVEALS,
+  type Block,
+  BlockListSchema,
+  duplicateBlockIdIssues,
+  LinkHrefSchema,
+} from '@protoyard/blocks';
 import { z } from 'zod';
 import { checkDeckMediaSrc } from '../backgrounds/media.ts';
 import { DECK_ASPECTS } from '../canvas.ts';
@@ -222,6 +228,17 @@ export const DeckSchema = z
     outline: DeckOutlineSchema.optional(),
   })
   .superRefine((deck, ctx) => {
+    // Block ids key interactive state and embedded-app storage: unique across slides.
+    for (const issue of duplicateBlockIdIssues(
+      deck.slides.flatMap((slide, index) =>
+        'blocks' in slide
+          ? [{ path: ['slides', index, 'blocks'], blocks: slide.blocks as Block[] }]
+          : []
+      ),
+      { crossListOnly: true }
+    )) {
+      ctx.addIssue({ code: 'custom', ...issue });
+    }
     const slidePaths = new Map<string, number>();
     deck.slides.forEach((slide, index) => {
       if ('props' in slide) {

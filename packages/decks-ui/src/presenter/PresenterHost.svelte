@@ -98,11 +98,21 @@ function start(): void {
   try {
     const doc = result.window.document;
     if (doc?.location?.href === 'about:blank') {
-      doc.open();
-      doc.write(
-        '<!doctype html><title>Presenter</title><body style="margin:0;font-family:system-ui;background:#0a0a0a;color:#fafafa;padding:1rem"><p data-py-presenter-popup>Presenter window — keep the deck tab open for sync.</p><p id="pos"></p></body>'
-      );
-      doc.close();
+      // Built with DOM APIs, never an HTML string, so deck data can never become markup here.
+      doc.title = 'Presenter';
+      Object.assign(doc.body.style, {
+        margin: '0',
+        fontFamily: 'system-ui',
+        background: '#0a0a0a',
+        color: '#fafafa',
+        padding: '1rem',
+      });
+      const note = doc.createElement('p');
+      note.setAttribute('data-py-presenter-popup', '');
+      note.textContent = 'Presenter window — keep the deck tab open for sync.';
+      const pos = doc.createElement('p');
+      pos.id = 'pos';
+      doc.body.replaceChildren(note, pos);
     }
   } catch {
     // ignore

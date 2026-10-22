@@ -197,6 +197,34 @@ describe('loadUntrustedDocument: caps', () => {
   });
 });
 
+describe('loadUntrustedDocument: chart points across deck chart slides', () => {
+  it('counts catalog chart slides against the document chart-point cap', async () => {
+    const doc = fixture('intro.deck.json');
+    const labels = Array.from({ length: 200 }, (_, i) => `P${i + 1}`);
+    const series = Array.from({ length: 8 }, (_, s) => ({
+      label: `Series ${s + 1}`,
+      values: labels.map((_, i) => i + s),
+    }));
+    for (let i = 0; i < 40; i++) {
+      const id = `chart-${i + 1}`;
+      doc.deck.slides.push({
+        id,
+        layout: 'chart',
+        props: { title: 'Load', spec: { kind: 'line', title: `Chart ${i + 1}`, labels, series } },
+      });
+      doc.deck.outline.sections[0].slideIds.push(id);
+    }
+    const result = await loadUntrustedDocument(doc);
+    expectIssue(result, 'too-many');
+    const issue = result.issues[0];
+    expect(issue?.path.slice(0, 2)).toEqual(['deck', 'slides']);
+    expect(issue?.path.slice(-2)).toEqual(['props', 'spec']);
+    expect(issue?.message).toContain(
+      `limit is ${DEFAULT_UNTRUSTED_DOCUMENT_LIMITS.maxChartPoints}`
+    );
+  });
+});
+
 describe('loadUntrustedDocument: embedded apps', () => {
   const embed = (appValue: unknown) => ({
     type: 'embed-app',
@@ -220,6 +248,59 @@ describe('loadUntrustedDocument: embedded apps', () => {
     const nested = { ...app(), extra: [embed(app())] };
     const result = await loadUntrustedDocument(doc([embed(nested)]));
     expectIssue(result, 'too-deep');
+  });
+
+  it('refuses two blocks that share an id on different slides (one storage namespace)', async () => {
+    const twoSlides = deck([embed(app())]);
+    twoSlides.deck.slides.push({
+      id: 'free-two',
+      layout: 'free',
+      title: 'Free two',
+      blocks: [embed({ ...app(), name: 'Another app' })],
+    });
+    twoSlides.deck.outline.sections[0].slideIds.push('free-two');
+    const result = await loadUntrustedDocument(twoSlides);
+    expect(result.success).toBe(false);
+    const issue = result.issues.find((entry) => entry.message.includes('its own id'));
+    expect(issue?.path.slice(-3)).toEqual(['blocks', 0, 'id']);
+    expect(issue?.path).toContain(twoSlides.deck.slides.length - 1);
+
+    // The same app under distinct ids is fine.
+    const distinct = deck([embed(app())]);
+    distinct.deck.slides.push({
+      id: 'free-two',
+      layout: 'free',
+      title: 'Free two',
+      blocks: [{ ...embed(app()), id: 'demo-two' }],
+    });
+    distinct.deck.outline.sections[0].slideIds.push('free-two');
+    const ok = await loadUntrustedDocument(distinct);
+    expect(ok.success, JSON.stringify(ok.issues)).toBe(true);
+  });
+
+  it('refuses page blocks that share an id within or across sections', async () => {
+    const poll = (question: string) => ({
+      type: 'poll',
+      id: 'vote',
+      question,
+      options: [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' },
+      ],
+    });
+    const across = fixture('landing.page.json');
+    across.page.sections[0].blocks.push(poll('First?'));
+    across.page.sections[1].blocks.push(poll('Second?'));
+    const crossResult = await loadUntrustedDocument(across);
+    expect(crossResult.success).toBe(false);
+    expect(
+      crossResult.issues.some((entry) => entry.message.includes('Block id "vote" is already used'))
+    ).toBe(true);
+
+    const within = fixture('landing.page.json');
+    within.page.sections[0].blocks.push(poll('First?'), poll('Again?'));
+    const withinResult = await loadUntrustedDocument(within);
+    expect(withinResult.success).toBe(false);
   });
 
   it('checks each embedded app with the app caps and reports its own path', async () => {

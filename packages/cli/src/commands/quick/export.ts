@@ -20,6 +20,7 @@ import {
 } from '../../lib/quick/artifact.ts';
 import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
 import { quickPlayerDir } from '../../lib/quick/paths.ts';
+import { readPlayerAssetsManifest, verifyPlayerAssets } from '../../lib/quick/player-assets.ts';
 import {
   buildSingleFile,
   QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES,
@@ -164,6 +165,11 @@ export const quickExportCommand: Handler = async (ctx, args, options): Promise<C
       hint: 'Pass --force to replace it.',
     });
   }
+
+  // The player folder is copied state on disk: check it against its sha256
+  // manifest (no links, no stray or changed files) before inlining it into a
+  // file someone will share, exactly as serving it does.
+  await verifyPlayerAssets(playerDir, readPlayerAssetsManifest(playerDir));
 
   let built: Awaited<ReturnType<typeof buildSingleFile>>;
   try {
