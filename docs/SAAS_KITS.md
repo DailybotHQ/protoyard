@@ -159,6 +159,7 @@ simulation does not protect data from the browser user or same-origin scripts.
 | Email and password | Simulated account creation, email verification, sign-in, sign-out, lockout and reset flows. |
 | OAuth | In-app provider consent and account linking with fictional identities; no provider SDK or redirect. |
 | Magic links and inbox | Single-use simulated tokens and local plain-text messages with in-app hash links. |
+| Phone sign-up | A phone-first persona flow with a deterministic local code, resend cooldown, expiry and attempt limit. No SMS is sent. |
 | MFA | A deterministic simulated authenticator code and recovery codes; no real TOTP device. |
 | Onboarding | A persisted, resumable wizard whose default steps can update a profile, workspace, invitations and preferences. |
 | Workspaces and members | Workspace creation and switching, member roles, invitation management and settings UI. |
@@ -176,6 +177,30 @@ switches to that workspace. Opening the link stands in for owning the
 mailbox. An account with an active simulated authenticator is never signed in
 this way: it joins the workspace and is sent to sign in with its code. Pass
 `{ signIn: false }` to only join.
+
+### Phone sign-up
+
+The auth routes include `#/auth/phone` and `#/auth/phone/code`; the standard
+sign-in screen links to the phone flow. `createPhoneServices(runtime)` issues a
+six-digit code derived from the normalized phone number and the simulated
+clock, permits a resend after 30 simulated seconds, expires challenges after
+10 simulated minutes, and records up to five attempts. The screens display the
+code in a persistent simulated-SMS toast. It is dismissed after successful
+verification. No network request or SMS delivery occurs.
+
+```ts
+import { createPhoneServices } from '@protoyard/saas';
+
+const phone = createPhoneServices(runtime);
+const issued = await phone.sendCode({ phone: '+1 202 555 0100', name: 'Alex Example' });
+await phone.verifyCode({ challengeId: issued.challengeId, code: issued.code });
+```
+
+This flow creates or reuses a phone-first persona and opens a simulated
+session. It does not create an email/password `SaasAccount`; email verification,
+password settings and account-bound MFA remain available only through their
+respective account flows. Phone numbers and challenge data remain in the
+prototype's local simulated token table, so use fictional numbers only.
 
 ### Invitation side effects
 
@@ -225,6 +250,7 @@ button.
 | Password sign-in and reset | Form validation, stored demo values, verification and lockout UX in browser storage. | Authentication, password hashing, an identity server or protection for credentials. |
 | OAuth / SSO | Provider-shaped consent and deterministic outcomes inside the prototype. | Contact with Google, GitHub or another provider; a real OAuth/OIDC flow. |
 | MFA | Codes derived from the simulated seed and clock, plus recovery-code UX. | A real authenticator, TOTP security or a second security factor. |
+| Phone sign-up | A code derived from the phone number and simulated clock, then a phone-first persona session. | SMS delivery, phone ownership proof or a security boundary. |
 | Roles and permissions | Services enforce capabilities so role-specific product behavior can be demonstrated. | An authorization boundary; users can alter browser state and same-origin scripts can access it. |
 | Inbox and invitations | Local messages, invitation links and an accept screen that joins the workspace and signs the invitee in (refused for disabled or locked accounts). | Email delivery or proof that someone owns the address. |
 

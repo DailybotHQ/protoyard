@@ -72,6 +72,7 @@ export const SIGN_IN_METHODS = [
   'password',
   'oauth',
   'magic-link',
+  'phone',
   'mfa',
   'invite',
   'sign-up',
@@ -94,6 +95,7 @@ export type SaasSessionLog = z.infer<typeof SaasSessionLogSchema>;
 export const TOKEN_KINDS = [
   'verify-email',
   'magic-link',
+  'phone-otp',
   'password-reset',
   'invite',
   'oauth-state',

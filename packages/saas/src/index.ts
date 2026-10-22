@@ -98,6 +98,23 @@ export {
 } from './onboarding.ts';
 export { assertInOrg, membershipInOrg, type OrgAccessRuntime } from './org-access.ts';
 export {
+  createPhoneServices,
+  PHONE_CODE_ATTEMPT_LIMIT,
+  PHONE_CODE_TOAST_ID,
+  PHONE_CODE_TTL_MS,
+  PHONE_RESEND_COOLDOWN_MS,
+  type PhoneChallengeView,
+  type PhoneCodeIssue,
+  PhoneNumberSchema,
+  type PhoneServices,
+  type PhoneSignInInput,
+  PhoneSignInInputSchema,
+  phoneResendSecondsRemaining,
+  simulatedPhoneCode,
+  type VerifyPhoneCodeInput,
+  VerifyPhoneCodeInputSchema,
+} from './phone.ts';
+export {
   defaultOAuthProviderScenarios,
   OAUTH_PROVIDER_REGISTRY,
   type OAuthIdentity,
