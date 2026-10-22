@@ -11,9 +11,34 @@ other way round). The Svelte half is
 
 > **Status:** all 30 block types are defined: static content, containers
 > (`columns`, `tabs`, `reveal`) and interactive blocks (poll, quiz,
-> calculator, counter, chart controls, map, embed-app, form). The untrusted
-> guard, the JSON Schema file and the remaining subpath engines land in later
-> PLAN_005 tasks.
+> calculator, counter, chart controls, map, embed-app, form). Authoring
+> metadata ships as `@protoyard/blocks/catalog`. Heavier engines
+> (`./formula`, `./code`, `./diagram`, `./interactive`) and the untrusted
+> guard land in related PLAN_005 tasks.
+
+## Authoring catalog (`@protoyard/blocks/catalog`)
+
+```ts
+import {
+  BLOCK_CATALOG,
+  validateBlocksForAuthoring,
+} from '@protoyard/blocks/catalog';
+
+const entry = BLOCK_CATALOG.heading;
+// entry.useWhen, dontUseWhen, limits, a11y, exampleMinimal, exampleRich
+
+const check = validateBlocksForAuthoring(input);
+// { valid, diagnostics: [{ jsonPath, message, hint, code, path }] }
+```
+
+| Export | What it is |
+| --- | --- |
+| `BLOCK_CATALOG` / `BLOCK_CATALOG_LIST` | One row per block type: label, family, use-when, don't-use-when, limits, a11y, minimal + rich examples |
+| `validateBlocksForAuthoring` | Path-addressed diagnostics (`jsonPath` + `hint`) for one block or a list |
+| `renderBlockCatalogMarkdown` | Generates the block reference region of `docs/BLOCKS.md` |
+| `MINIMAL_EXAMPLES` / `RICH_EXAMPLES` | The same examples keyed by type |
+
+Runtime renderers must **not** import this subpath (budget: catalog stays out of player bundles). Agents, MCP and deck lint read the catalog instead of free-form prose.
 
 ## Rules every block follows
 

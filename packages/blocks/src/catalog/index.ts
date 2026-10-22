@@ -1,6 +1,21 @@
 /**
- * `@protoyard/blocks/catalog` — BLOCK_CATALOG authoring metadata (use-when, limits, examples).
- * Reserved by T-blocks-scaffold-packages; filled by T-blocks-catalog of
- * PLAN_005_create_anything_decks_and_kits. No runtime exports yet.
+ * `@protoyard/blocks/catalog` — BLOCK_CATALOG authoring metadata.
+ *
+ * Labels, families, use-when / don't-use-when, limits, a11y notes and
+ * minimal/rich examples for every block type. `validateBlocksForAuthoring`
+ * returns `{ jsonPath, message, hint }` diagnostics for agents, MCP and
+ * deck lint. Runtime renderers must not import this subpath.
  */
-export {};
+export {
+  BLOCK_CATALOG,
+  BLOCK_CATALOG_LIST,
+  getBlockCatalogEntry,
+} from './entries.ts';
+export { MINIMAL_EXAMPLES, RICH_EXAMPLES } from './examples.ts';
+export type {
+  BlockAuthoringDiagnostic,
+  BlockAuthoringValidation,
+  BlockCatalogEntry,
+  BlockDiagnosticPath,
+} from './types.ts';
+export { renderBlockCatalogMarkdown, validateBlocksForAuthoring } from './validate.ts';
