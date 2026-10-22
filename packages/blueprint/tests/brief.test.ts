@@ -336,15 +336,25 @@ describe('blueprintFromBrief kind dispatch', () => {
     expect(doc.kind).toBe('doc');
     if (!isContentBriefResult(doc)) return;
     expect(doc.outline).toBe('report');
-    expect(
-      (doc.json.doc as { sections: unknown[] }).sections.map((s) => (s as { id: string }).id)
-    ).toEqual([
-      'section-title',
-      'section-summary',
-      'section-status',
-      'section-findings',
-      'section-next',
-    ]);
+    const docBody = doc.json.doc as {
+      id: string;
+      title: string;
+      blocks: { id?: string; type: string }[];
+    };
+    expect(docBody.id).toMatch(/^[a-z]/);
+    expect(docBody.title.length).toBeGreaterThan(0);
+    const headingIds = docBody.blocks
+      .filter((block) => block.type === 'heading' && block.id)
+      .map((block) => block.id);
+    expect(headingIds).toEqual(
+      expect.arrayContaining([
+        'section-title',
+        'section-summary',
+        'section-status',
+        'section-findings',
+        'section-next',
+      ])
+    );
   });
 
   it('rejects unknown explicit kinds with a stable actionable error', () => {

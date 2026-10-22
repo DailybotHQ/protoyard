@@ -7,6 +7,7 @@ import {
   toJsonPath,
 } from '../schema/index.ts';
 import { BLOCK_CATALOG } from './entries.ts';
+import { BLOCK_BASE_PROPS, blockProps } from './props.ts';
 import type {
   BlockAuthoringDiagnostic,
   BlockAuthoringValidation,
@@ -144,6 +145,8 @@ export function renderBlockCatalogMarkdown(): string {
     '',
     'Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and deck lint read `BLOCK_CATALOG` and `validateBlocksForAuthoring` instead of this prose. Runtime renderers never import the catalog subpath.',
     '',
+    `Every block may also carry ${BLOCK_BASE_PROPS.map((name) => `\`${name}\``).join(', ')} (optional; interactive blocks require \`id\`). Props below are read from the zod schemas: \`name?\` is optional, and \`{ a; b? }\` lists the keys of a nested object.`,
+    '',
     '| Type | Family | Label | Use when | Limits |',
     '| --- | --- | --- | --- | --- |',
   ];
@@ -168,10 +171,23 @@ export function renderBlockCatalogMarkdown(): string {
     lines.push("**Don't use when**");
     for (const item of row.dontUseWhen) lines.push(`- ${item}`);
     lines.push('');
+    lines.push('**Props**');
+    for (const prop of blockProps(row.type)) {
+      lines.push(
+        `- \`${prop.name}${prop.required ? '' : '?'}\`: ${prop.type.replace(/\|/g, '\\|')}`
+      );
+    }
+    lines.push('');
     lines.push('**Limits**');
     for (const item of row.limits) lines.push(`- ${item}`);
     lines.push('');
     lines.push(`**Accessibility:** ${row.a11y}`);
+    lines.push('');
+    lines.push('**Minimal example**');
+    lines.push('');
+    lines.push('```json');
+    lines.push(JSON.stringify(row.exampleMinimal, null, 2));
+    lines.push('```');
     lines.push('');
   }
   return `${lines.join('\n')}\n`;

@@ -88,7 +88,7 @@ function isCorrect(questionId: string): boolean | null {
             <li>
               <button
                 type="button"
-                class="w-full rounded-md border px-3 py-2 text-left text-sm
+                class="w-full rounded-md border px-3 py-2 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring
                   {selected ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'}"
                 aria-pressed={selected}
                 disabled={locked}

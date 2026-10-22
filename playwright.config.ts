@@ -100,6 +100,15 @@ const playerE2e = process.env.PROTOYARD_E2E_PLAYER === '1';
 const PLAYER_PORT = Number(process.env.PROTOYARD_E2E_PLAYER_PORT ?? 4861);
 const PLAYER_EMBEDDER_PORT = Number(process.env.PROTOYARD_E2E_PLAYER_EMBEDDER_PORT ?? 4862);
 const PLAYER_OUT = resolve('tmp/e2e-player');
+// Opt-in: the built catalog deck for tests/e2e/deck-navigation.spec.ts.
+const deckE2e =
+  process.env.PROTOYARD_E2E_DECK === '1' ||
+  // Asking for the deck spec by path starts its server too.
+  process.argv.some((arg) => arg.includes('deck-navigation'));
+const DECK_PORT = Number(process.env.PROTOYARD_E2E_DECK_PORT ?? 4891);
+if (!Number.isInteger(DECK_PORT) || DECK_PORT < 1024 || DECK_PORT > 65535) {
+  throw new Error('PROTOYARD_E2E_DECK_PORT must be a port number');
+}
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -163,6 +172,18 @@ export default defineConfig({
             url: `http://127.0.0.1:${PLAYER_EMBEDDER_PORT}/tests/e2e/fixtures/player-embedder.html`,
             reuseExistingServer: !ci,
             timeout: 30_000,
+          },
+        ]
+      : []),
+    ...(deckE2e
+      ? [
+          {
+            command:
+              'pnpm exec vite build --config tests/e2e/fixtures/deck-navigation/vite.config.ts --outDir ../../../../tmp/e2e-deck-navigation && ' +
+              `pnpm exec vite preview --config tests/e2e/fixtures/deck-navigation/vite.config.ts --outDir ../../../../tmp/e2e-deck-navigation --host 127.0.0.1 --port ${DECK_PORT} --strictPort`,
+            url: `http://127.0.0.1:${DECK_PORT}/`,
+            reuseExistingServer: !ci,
+            timeout: 180_000,
           },
         ]
       : []),

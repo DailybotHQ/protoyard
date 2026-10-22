@@ -115,7 +115,9 @@ describe('FormResponseSchema', () => {
 
   it('exports the ordinary feature table and stable Dexie store string', () => {
     expect(FORM_RESPONSES_TABLE).toBe('formResponses');
-    expect(FORM_RESPONSES_STORE_STRING).toBe('id, formId, createdAt, [formId+createdAt]');
+    expect(FORM_RESPONSES_STORE_STRING).toBe(
+      'id, formId, createdAt, personaId, documentId, [formId+createdAt]'
+    );
     expect(PAGE_FEATURE_TABLES.formResponses).toBe(FORM_RESPONSES_TABLE);
     expect(PAGE_FEATURE_STORE_STRINGS.formResponses).toBe(FORM_RESPONSES_STORE_STRING);
     expect(FORM_RESPONSES_TABLE.startsWith('py_')).toBe(false);

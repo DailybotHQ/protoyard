@@ -56,34 +56,46 @@ setBlockHost({
 Call `setBlockHost` from the host component during initialization. Family
 renderers call `getBlockHost()` to read the nearest context. The context reads
 through to the object you pass, so a `$state` host stays reactive: a deck that
-updates `host.step` moves code highlights without remounting. `density` accepts
-`compact`, `comfortable` or `spacious`; `canvasMode` is `flow` or `slide`.
-`stateHost` and `mountEmbed` are optional host capabilities. The dispatcher
-validates each input at render time, shows a skeleton while its family chunk
-loads, and renders a bounded note for malformed or unsupported blocks. It
-does not display invalid block content. `flow`, `tree`, `board` and
-`terminal` blocks route to `@protoyard/blocks-ui/diagram`.
-`stateHost`, `viewerId`, `onCtaAction` and `mountEmbed` are optional host
-capabilities. The dispatcher validates each input at render time, shows a
-skeleton while its family chunk loads, and renders a bounded note for
-malformed or unsupported blocks. It does not display invalid block content.
-Diagram models have their own schema and are rendered through
-`@protoyard/blocks-ui/diagram`; they are not a `Block` discriminator in this
-version.
+updates `host.step` moves code highlights without remounting.
 
-| Subpath | Blocks | Filled by |
+The host contract (`BlockHostOptions`; every field is optional):
+
+| Field | Default | Meaning |
 | --- | --- | --- |
-| `.` | `BlockRenderer` dispatcher and host context | T-blocks-ui-renderer-core |
-| `./text` | Heading, rich text, list, quote, callout, divider | T-blocks-ui-text-media (done) |
-| `./media` | Image, video, people (avatars) | T-blocks-ui-text-media (done) |
-| `./data` | Stat/KPI row, table, chart (charts-ui) | T-blocks-ui-data (done) |
-| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | T-blocks-ui-structure (done) |
-| `./code` | Code with stepped highlights | T-blocks-ui-code-diagram |
-| `./diagram` | Flow, tree, board, terminal | T-blocks-ui-code-diagram |
-| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart-controls, form | **done** (T-blocks-ui-interactive) |
-| `./map` | Map on the offline simulated map (views-ui/map, lazy) | **done** (T-blocks-ui-interactive) |
-| `./embed` | embed-app framed preview; `mountEmbed` only after **Start the app** | T-blocks-ui-embed-app |
-| `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | this scaffold |
+| `density` | `comfortable` | `compact`, `comfortable` or `spacious` |
+| `canvasMode` | `flow` | `flow` (pages, docs) or `slide` (decks: presentation-scale type) |
+| `step` | none | The current slide step; drives fragments and code highlights |
+| `documentId` | `preview` | The document's id; with a block id it forms the interactive state key (`stateKey`) |
+| `stateHost` | an in-memory preview host | A `BlockStateHost` from `@protoyard/blocks/interactive`. Without it, interactive blocks still work but their state is not persisted. |
+| `viewerId` | `viewer` | The persona that polls and quizzes record per viewer |
+| `onCtaAction` | none | Handles CTA actions; the returned promise drives pending feedback |
+| `mountEmbed` | none | Mounts an `embed-app` after the viewer presses **Start the app** |
+
+The dispatcher validates each input at render time, shows a skeleton while
+its family chunk loads, and renders a bounded note for malformed or
+unsupported blocks; it never displays invalid block content. Diagram blocks
+(`flow`, `tree`, `board`, `terminal`) are `Block` types like the others and
+route to `@protoyard/blocks-ui/diagram`.
+
+Measured with `npx tsx scripts/bench-blocks.ts --check` (gzip level 9, what
+each subpath adds over a minimal Svelte shell; 2026-10-22):
+
+| Subpath | Blocks | Gzip added | Budget |
+| --- | --- | --- | --- |
+| `.` | `BlockRenderer` dispatcher and host context | 2.1 KB | 3.0 KB |
+| `./text` | Heading, rich text, list, quote, callout, divider | 12.0 KB | 12.8 KB |
+| `./media` | Image, video, people (avatars) | 2.9 KB | 4.0 KB |
+| `./data` | Stat/KPI row, table, chart (charts-ui families load separately) | 4.0 KB | 5.0 KB |
+| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | 12.6 KB | 13.5 KB |
+| `./code` | Code with stepped highlights (grammars load per language) | 3.9 KB | 6.0 KB |
+| `./diagram` | Flow, tree, board, terminal | 4.8 KB | 6.0 KB |
+| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart-controls, form | 19.1 KB | 20.4 KB |
+| `./map` | Map on the offline simulated map (views-ui/map loads lazily) | 1.0 KB | 4.0 KB |
+| `./embed` | embed-app framed preview; the app loads only on start | 2.2 KB | 2.4 KB |
+| `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | — | — |
+
+Every block type's props, limits, use-when and a minimal example are in the
+generated [block reference](../../docs/BLOCKS.md).
 
 ## Text and media renderers
 
@@ -287,6 +299,23 @@ Measured with a Vite library build (Svelte external, minified, gzip):
 - **`./diagram`:** 5.4 KB.
 - **Icons:** neither chunk imports the icon library; their few icons are inline
   SVG strokes.
+
+## Accessibility and themes
+
+`src/lib/tones.ts` maps every `BlockTone` to theme-token Tailwind classes
+(icon chips, borders, indicators) and documents the palette pairs that must
+reach WCAG AA. `packages/blocks-ui/tests/a11y-themes.test.ts` renders every
+`RICH_EXAMPLES` catalog fixture, checks heading order, image `alt`, named
+focusable controls with `focus-visible` rings, and AA contrast of those tone
+pairs across all **6 built-in themes × light/dark**. Failures name the block,
+theme and mode. Interactive, map and embed roots also set
+`data-py-deck-interactive` so deck navigation ignores clicks inside them.
+The form block remains a placeholder until the pages `FormBlock` owns
+responses through the host.
+
+```bash
+pnpm vitest run packages/blocks-ui/tests/a11y-themes.test.ts
+```
 
 ## Security
 

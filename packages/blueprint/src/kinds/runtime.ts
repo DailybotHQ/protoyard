@@ -11,6 +11,7 @@ import {
   type Theme,
   type WorldSeed,
 } from '@protoyard/core';
+import { FORM_CAPABILITIES, FORM_RESPONSES_STORE_STRING } from '@protoyard/pages';
 import { brandLibraryThemeId, resolveBlueprintBrand } from '../brand.ts';
 import type { ContentBlueprint } from './envelope.ts';
 import type { ContentKind } from './kind.ts';
@@ -44,29 +45,46 @@ export const KIND_GENERATOR_VERSION = 1;
 export const KIND_STORES = Object.freeze({
   /** Interactive block state: `key` is `stateKey(documentId, blockId)`. */
   blockStates: 'key, documentId, blockId, updatedAt',
-  /** Submitted form blocks, one row per submission. */
-  formResponses: 'id, documentId, formId, personaId, submittedAt',
+  /**
+   * Submitted form blocks — same row contract and indexes as
+   * `@protoyard/pages` `FORM_RESPONSES_STORE_STRING` (lead form contract).
+   */
+  formResponses: FORM_RESPONSES_STORE_STRING,
 });
 
-/** Capabilities the kind services assert (simulated policy, not security). */
+/**
+ * Capabilities the kind services assert (simulated policy, not security).
+ * Form caps are the canonical `@protoyard/pages` FORM_CAPABILITIES strings so
+ * createFormServices and createKindServices share one policy vocabulary.
+ */
 export const KIND_CAPABILITIES = Object.freeze({
   /** Vote, answer, change a calculator, open a tab… on an interactive block. */
   interact: 'blocks:interact',
-  /** Submit a form block. */
-  respond: 'responses:create',
-  /** Read every submitted response (not only one's own). */
-  readResponses: 'responses:read',
+  /** Submit a form block (`form:submit`). */
+  respond: FORM_CAPABILITIES.submit,
+  /** Read form responses (`form:read`). */
+  readResponses: FORM_CAPABILITIES.read,
+  /** Clear / administer responses (`form:admin`). */
+  adminResponses: FORM_CAPABILITIES.admin,
 });
 
 /** The simulated roles of a content-kind prototype. */
 export const KIND_ROLES = Object.freeze({
+  /** Presenter: interact, submit/read forms, and administer responses. */
   presenter: [
     KIND_CAPABILITIES.interact,
     KIND_CAPABILITIES.respond,
     KIND_CAPABILITIES.readResponses,
+    KIND_CAPABILITIES.adminResponses,
   ],
-  audience: [KIND_CAPABILITIES.interact, KIND_CAPABILITIES.respond],
-  viewer: [],
+  /** Audience: interact and submit/read forms. */
+  audience: [
+    KIND_CAPABILITIES.interact,
+    KIND_CAPABILITIES.respond,
+    KIND_CAPABILITIES.readResponses,
+  ],
+  /** Viewer: submit and read forms (no interactive block mutations). */
+  viewer: [KIND_CAPABILITIES.respond, KIND_CAPABILITIES.readResponses],
 } satisfies Record<string, readonly string[]>);
 
 export type KindRole = keyof typeof KIND_ROLES;
