@@ -14,17 +14,17 @@
     "deck": {
       "initialJsGzipKb": 150,
       "cssGzipKb": 30,
-      "singleFileKb": 1536
+      "singleFileKb": 2048
     },
     "page": {
       "initialJsGzipKb": 150,
       "cssGzipKb": 30,
-      "singleFileKb": null
+      "singleFileKb": 2048
     },
     "doc": {
       "initialJsGzipKb": 150,
       "cssGzipKb": 30,
-      "singleFileKb": null
+      "singleFileKb": 2048
     }
   }
 }
