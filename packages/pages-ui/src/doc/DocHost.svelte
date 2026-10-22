@@ -1,15 +1,14 @@
 <script lang="ts">
+import type { HeadingBlock } from '@protoyard/blocks';
 import { forEachBlock } from '@protoyard/blocks';
 import { getBlockHost, setBlockHost } from '@protoyard/blocks-ui';
 import { allocateHeadingId, buildDocToc, type DocDocument } from '@protoyard/pages';
-import DocsLayout from '@protoyard/ui/layouts/docs';
-import { untrack } from 'svelte';
+import { onMount, untrack } from 'svelte';
 import { BlockHost } from '../block-host/index.ts';
 
 /**
- * Continuous doc flow inside DocsLayout: optional left nav, BlockHost list,
- * sticky TOC (buildDocToc + live active heading via DocsLayout). Heading
- * blocks get ids that match the TOC. Root attribute: `data-py-doc-host`.
+ * A focused reading layout for a continuous report. It uses one disclosure
+ * for both the wide-screen TOC rail and the compact phone navigation.
  */
 let {
   doc,
@@ -18,62 +17,82 @@ let {
   class: className = '',
 }: {
   doc: DocDocument;
-  /** Optional left-rail brand label (defaults to the doc title). */
+  /** Optional accessible name for the TOC (defaults to the document title). */
   brandName?: string;
-  /**
-   * When true (default), show a left nav of level-2 TOC entries for deep links.
-   * Set false for a content+TOC-only chrome.
-   */
+  /** Keep the document outline visible. Retained for existing DocHost callers. */
   showNav?: boolean;
   class?: string;
 } = $props();
 
-// Set during init (context cannot change later), merged over the parent host so
-// a kind runtime's persistent block state and mountEmbed reach the blocks.
 const parentHost = getBlockHost();
 setBlockHost({
   ...parentHost,
   canvasMode: 'flow',
   density: 'comfortable',
-  // Read once on purpose: the host context is fixed for this component's life.
   documentId: parentHost.documentId ?? untrack(() => doc.id),
 });
 
-const brandLabel = $derived(brandName?.trim() || doc.title);
-const tocItems = $derived(buildDocToc(doc));
-const navItems = $derived(tocItems.filter((item) => item.level === 2));
+const titleBlock = $derived(
+  doc.blocks[0]?.type === 'heading' && doc.blocks[0].level === 1
+    ? (doc.blocks[0] as HeadingBlock)
+    : undefined
+);
+const bodyBlocks = $derived(titleBlock ? doc.blocks.slice(1) : doc.blocks);
+const tocItems = $derived(showNav ? buildDocToc(bodyBlocks) : []);
+const title = $derived(doc.title.trim() || titleBlock?.text || 'Untitled document');
+const eyebrow = $derived(titleBlock?.eyebrow);
+const subtitle = $derived(titleBlock?.subtitle || doc.description);
+const tocLabel = 'On this page';
 
 let flowRoot = $state<HTMLElement | undefined>();
+let tocRoot = $state<HTMLDetailsElement | undefined>();
+let tocOpen = $state(false);
+let activeId = $state('');
 
-/**
- * Heading blocks must expose the same ids `buildDocToc` assigned so TOC
- * links and DocsLayout's live observer stay aligned. Blocks-ui headings do
- * not always paint `id`; we stamp them after the family renderers mount.
- */
-function expectedHeadings(
-  blocks: DocDocument['blocks']
-): { id: string; label: string; level: number }[] {
+function expectedHeadings(blocks: DocDocument['blocks']): { id: string; label: string }[] {
   const used = new Set<string>();
-  const out: { id: string; label: string; level: number }[] = [];
+  const out: { id: string; label: string }[] = [];
   forEachBlock(blocks, (block) => {
     if (block.type !== 'heading') return;
     const label = block.text.replace(/\s+/g, ' ').trim();
-    if (!label) return;
-    const level = block.level ?? 2;
-    const id = allocateHeadingId(label, used, block.id);
-    out.push({ id, label, level });
+    if (!label || (block.level ?? 2) < 2) return;
+    out.push({ id: allocateHeadingId(label, used, block.id), label });
   });
   return out;
 }
 
+onMount(() => {
+  if (typeof window.matchMedia !== 'function') return;
+  const media = window.matchMedia('(min-width: 72rem)');
+  const syncDisclosure = (): void => {
+    tocOpen = media.matches;
+  };
+  syncDisclosure();
+  media.addEventListener('change', syncDisclosure);
+  return () => media.removeEventListener('change', syncDisclosure);
+});
+
 $effect(() => {
   const root = flowRoot;
-  const blocks = doc.blocks;
-  if (!root || typeof MutationObserver === 'undefined') return;
+  const blocks = bodyBlocks;
+  if (!root) return;
+
+  const syncActiveHeading = (): void => {
+    const headings = Array.from(root.querySelectorAll<HTMLElement>('h2, h3, h4'));
+    const activationLine = window.innerHeight * 0.3;
+    let candidate = headings[0]?.id ?? '';
+    for (const heading of headings) {
+      const rect = heading.getBoundingClientRect();
+      if (rect.height === 0) continue;
+      if (rect.top > activationLine) break;
+      candidate = heading.id;
+    }
+    if (candidate) activeId = candidate;
+  };
 
   const applyIds = (): void => {
     const expected = expectedHeadings(blocks);
-    const nodes = Array.from(root.querySelectorAll<HTMLElement>('h1, h2, h3, h4'));
+    const nodes = Array.from(root.querySelectorAll<HTMLElement>('h2, h3, h4'));
     const count = Math.min(expected.length, nodes.length);
     for (let i = 0; i < count; i += 1) {
       const node = nodes[i];
@@ -81,49 +100,36 @@ $effect(() => {
       if (!node || !item) continue;
       if (node.id !== item.id) node.id = item.id;
     }
+
+    syncActiveHeading();
   };
 
   applyIds();
-  const mutation = new MutationObserver(() => {
-    applyIds();
-  });
+  const mutation = new MutationObserver(applyIds);
   mutation.observe(root, { childList: true, subtree: true, characterData: true });
-  return () => mutation.disconnect();
-});
-
-function scrollToHash(hash: string): void {
-  if (typeof document === 'undefined') return;
-  const id = hash.startsWith('#') ? hash.slice(1) : hash;
-  if (!id) return;
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function onNavClick(event: MouseEvent, href: string): void {
-  if (!href.startsWith('#')) return;
-  event.preventDefault();
-  if (typeof history !== 'undefined') {
-    history.pushState(null, '', href);
-  }
-  scrollToHash(href);
-}
-
-$effect(() => {
-  if (typeof window === 'undefined') return;
-  const docId = doc.id;
-  const blockCount = doc.blocks.length;
-  const onHash = (): void => {
-    scrollToHash(window.location.hash);
-  };
-  onHash();
-  window.addEventListener('hashchange', onHash);
+  window.addEventListener('scroll', syncActiveHeading, { passive: true });
+  document.addEventListener('scroll', syncActiveHeading, true);
+  window.addEventListener('resize', syncActiveHeading);
+  window.addEventListener('hashchange', syncActiveHeading);
   return () => {
-    window.removeEventListener('hashchange', onHash);
-    void docId;
-    void blockCount;
+    mutation.disconnect();
+    window.removeEventListener('scroll', syncActiveHeading);
+    document.removeEventListener('scroll', syncActiveHeading, true);
+    window.removeEventListener('resize', syncActiveHeading);
+    window.removeEventListener('hashchange', syncActiveHeading);
   };
 });
+
+function onTocClick(id: string): void {
+  activeId = id;
+  if (
+    !tocRoot ||
+    typeof window.matchMedia !== 'function' ||
+    !window.matchMedia('(min-width: 72rem)').matches
+  ) {
+    tocOpen = false;
+  }
+}
 </script>
 
 <div
@@ -134,54 +140,356 @@ $effect(() => {
   data-toc-sticky={doc.toc?.sticky === false ? 'false' : 'true'}
   data-print-breaks={doc.print?.pageBreaks ?? 'none'}
 >
-  <DocsLayout
-    navigationLabel="Document sections"
-    contentLabel="Document content"
-    tocLabel="On this page"
-  >
-    {#snippet navigation()}
-      {#if showNav}
-        <div class="space-y-3" data-py-doc-nav>
-          <p class="text-sm font-semibold tracking-tight text-foreground" data-py-doc-brand>
-            {brandLabel}
-          </p>
-          {#if navItems.length > 0}
-            <ul class="space-y-0.5" data-py-doc-nav-list>
-              {#each navItems as item (item.id)}
-                <li>
-                  <a
-                    href={`#${item.id}`}
-                    class="block rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    data-py-doc-nav-link={item.id}
-                    onclick={(event) => onNavClick(event, `#${item.id}`)}
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              {/each}
-            </ul>
-          {:else}
-            <p class="text-xs text-muted-foreground">No section headings.</p>
-          {/if}
-        </div>
-      {/if}
-    {/snippet}
+  <div class="doc-reading" data-py-doc-reading>
+    {#if tocItems.length > 0}
+      <details
+        bind:this={tocRoot}
+        bind:open={tocOpen}
+        class="doc-reading__toc"
+        data-py-doc-toc
+        data-brand-name={brandName?.trim() || undefined}
+      >
+        <summary class="doc-reading__toc-summary">{tocLabel}</summary>
+        <nav aria-label={tocLabel}>
+          <ol class="doc-reading__toc-list">
+            {#each tocItems as item (item.id)}
+              <li data-level={item.level}>
+                <a
+                  href={`#${item.id}`}
+                  aria-current={activeId === item.id ? 'location' : undefined}
+                  data-py-doc-toc-link={item.id}
+                  onclick={() => onTocClick(item.id)}
+                >
+                  {item.label}
+                </a>
+              </li>
+            {/each}
+          </ol>
+        </nav>
+      </details>
+    {/if}
 
-    <div bind:this={flowRoot} class="space-y-6" data-py-doc-flow>
-      <header class="space-y-1 border-b border-border pb-4" data-py-doc-header>
-        <h1 class="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          {doc.title}
-        </h1>
-        {#if doc.description}
-          <p class="text-sm text-muted-foreground">{doc.description}</p>
+    <main class="doc-reading__article" aria-label="Document content">
+      <header class="doc-reading__header" data-py-doc-header>
+        {#if eyebrow}
+          <p class="doc-reading__eyebrow" data-py-doc-eyebrow>{eyebrow}</p>
+        {/if}
+        <h1 data-py-doc-title>{title}</h1>
+        {#if subtitle}
+          <p class="doc-reading__subtitle" data-py-doc-subtitle>{subtitle}</p>
         {/if}
       </header>
 
-      {#each doc.blocks as block, index (block.id ?? `${block.type}-${index}`)}
-        <div data-py-doc-block={block.type} data-block-index={index}>
-          <BlockHost {block} />
-        </div>
-      {/each}
-    </div>
-  </DocsLayout>
+      <div bind:this={flowRoot} class="doc-reading__flow" data-py-doc-flow>
+        {#each bodyBlocks as block, index (block.id ?? `${block.type}-${index}`)}
+          <div class="doc-reading__block" data-py-doc-block={block.type} data-block-index={index}>
+            <BlockHost {block} />
+          </div>
+        {/each}
+      </div>
+    </main>
+  </div>
 </div>
+
+<style>
+  .doc-reading {
+    color: var(--py-foreground);
+    display: grid;
+    font-family: var(--py-font-sans, system-ui, sans-serif);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+    margin-inline: auto;
+    max-width: 76rem;
+    min-width: 0;
+    padding: clamp(1.25rem, 4vw, 3.5rem) clamp(1rem, 4vw, 2rem);
+  }
+
+  .doc-reading__article {
+    margin-inline: auto;
+    max-width: 72ch;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .doc-reading__header {
+    border-bottom: 1px solid var(--py-border);
+    margin-bottom: clamp(2rem, 5vw, 3.5rem);
+    padding-bottom: clamp(1.5rem, 4vw, 2.5rem);
+  }
+
+  .doc-reading__eyebrow {
+    color: var(--py-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    margin: 0 0 0.9rem;
+    text-transform: uppercase;
+  }
+
+  .doc-reading__header h1 {
+    color: var(--py-foreground);
+    font-family: var(--py-font-heading, var(--py-font-sans, system-ui, sans-serif));
+    font-size: clamp(2.25rem, 5vw, 4rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.08;
+    margin: 0;
+    max-width: 18ch;
+    text-wrap: balance;
+  }
+
+  .doc-reading__subtitle {
+    color: var(--py-muted-foreground);
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+    line-height: 1.65;
+    margin: 1rem 0 0;
+    max-width: 58ch;
+  }
+
+  .doc-reading__flow {
+    display: grid;
+    gap: clamp(1.75rem, 4vw, 3rem);
+    line-height: 1.75;
+    min-width: 0;
+  }
+
+  .doc-reading__block {
+    min-width: 0;
+    scroll-margin-top: 1.5rem;
+  }
+
+  .doc-reading__flow :global([data-py-block]),
+  .doc-reading__flow :global([data-block-type]) {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .doc-reading__block[data-py-doc-block='heading'] :global(h2),
+  .doc-reading__block[data-py-doc-block='heading'] :global(h3),
+  .doc-reading__block[data-py-doc-block='heading'] :global(h4) {
+    color: var(--py-foreground);
+    font-family: var(--py-font-heading, var(--py-font-sans, sans-serif));
+    font-weight: 650;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .doc-reading__block[data-py-doc-block='heading'] :global(h2) {
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  }
+
+  .doc-reading__block[data-py-doc-block='heading'] :global(h3) {
+    font-size: 1.2rem;
+  }
+
+  .doc-reading__block[data-py-doc-block='heading'] :global(h4) {
+    font-size: 1.05rem;
+  }
+
+  .doc-reading__flow :global([data-py-block='stat'] dl) {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  }
+
+  .doc-reading__flow :global([data-py-block='stat'] dl > div) {
+    background: var(--py-surface, #fff);
+    border: 1px solid var(--py-border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+  }
+
+  .doc-reading__flow :global([data-py-block='stat'] dt) {
+    color: var(--py-muted-foreground);
+    font-size: 0.85rem;
+  }
+
+  .doc-reading__flow :global([data-py-block='stat'] dd) {
+    color: var(--py-foreground);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    margin: 0.35rem 0 0;
+  }
+
+  .doc-reading__block[data-py-doc-block='callout'] :global(aside) {
+    background: color-mix(in srgb, var(--py-primary) 5%, var(--py-surface, #fff));
+    border: 1px solid var(--py-border);
+    border-left: 3px solid var(--py-primary);
+    border-radius: 0.65rem;
+    color: var(--py-foreground);
+    padding: 1rem 1.25rem;
+  }
+
+  .doc-reading__flow :global([data-py-block='chart'] svg) {
+    display: block;
+    height: auto;
+    max-width: 100%;
+  }
+
+  .doc-reading__flow :global([data-py-block='table']) {
+    border: 1px solid var(--py-border);
+    border-radius: 0.65rem;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .doc-reading__flow :global([data-py-block='table'] table) {
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 100%;
+    text-align: left;
+  }
+
+  .doc-reading__flow :global([data-py-block='table'] th),
+  .doc-reading__flow :global([data-py-block='table'] td) {
+    border-bottom: 1px solid var(--py-border);
+    padding: 0.65rem 0.8rem;
+  }
+
+  .doc-reading__flow :global([data-py-block='table'] thead) {
+    background: var(--py-muted);
+  }
+
+  .doc-reading__flow :global([data-block-type='timeline'] ol) {
+    border-left: 2px solid var(--py-border);
+    display: grid;
+    gap: 1.4rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .doc-reading__flow :global([data-py-timeline-event]) {
+    column-gap: 0.75rem;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
+    margin-left: -11px;
+    row-gap: 0.25rem;
+  }
+
+  .doc-reading__flow :global([data-py-timeline-marker]) {
+    align-items: center;
+    background: var(--py-primary);
+    border: 2px solid var(--py-background, #fff);
+    border-radius: 50%;
+    color: var(--py-primary-foreground, #fff);
+    display: grid;
+    grid-column: 1;
+    grid-row: span 3;
+    height: 20px;
+    justify-items: center;
+    margin-top: 2px;
+    place-items: center;
+    width: 20px;
+  }
+
+  .doc-reading__flow :global([data-py-timeline-time]),
+  .doc-reading__flow :global([data-py-timeline-event] > p:not([data-py-timeline-time])),
+  .doc-reading__flow :global([data-py-timeline-event] > div) {
+    grid-column: 2;
+    margin: 0;
+  }
+
+  .doc-reading__toc {
+    align-self: start;
+    background: color-mix(in srgb, var(--py-background) 96%, transparent);
+    border: 1px solid var(--py-border);
+    border-radius: 0.8rem;
+    color: var(--py-muted-foreground);
+    min-width: 0;
+    padding: 0.9rem 1rem;
+  }
+
+  .doc-reading__toc-summary {
+    color: var(--py-foreground);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 650;
+  }
+
+  .doc-reading__toc-list {
+    display: grid;
+    gap: 0.3rem;
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+  }
+
+  .doc-reading__toc-list li[data-level='3'],
+  .doc-reading__toc-list li[data-level='4'] {
+    padding-left: 0.75rem;
+  }
+
+  .doc-reading__toc-list a {
+    border-radius: 0.35rem;
+    display: block;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    padding: 0.35rem 0.45rem;
+    text-decoration: none;
+  }
+
+  .doc-reading__toc-list a:hover,
+  .doc-reading__toc-list a:focus-visible {
+    background: var(--py-muted);
+    color: var(--py-foreground);
+    outline-color: var(--py-ring);
+  }
+
+  .doc-reading__toc-list a[aria-current='location'] {
+    background: color-mix(in srgb, var(--py-primary) 10%, transparent);
+    color: var(--py-primary);
+    font-weight: 650;
+  }
+
+  @media (min-width: 72rem) {
+    .doc-reading {
+      align-items: start;
+      grid-template-columns: minmax(12rem, 15rem) minmax(0, 72ch);
+      justify-content: center;
+    }
+
+    .doc-reading__toc {
+      border: 0;
+      border-left: 1px solid var(--py-border);
+      border-radius: 0;
+      position: sticky;
+      top: 1.5rem;
+      padding: 0 0 0 1rem;
+    }
+
+    .doc-reading__toc-summary {
+      display: none;
+    }
+
+    .doc-reading__toc:not([open]) nav {
+      display: block;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .doc-reading__toc-list a {
+      transition: background-color 120ms ease, color 120ms ease;
+    }
+  }
+
+  @media print {
+    .doc-reading {
+      display: block;
+      max-width: none;
+      padding: 0;
+    }
+
+    .doc-reading__toc {
+      display: none !important;
+    }
+
+    .doc-reading__article {
+      max-width: none;
+    }
+  }
+</style>

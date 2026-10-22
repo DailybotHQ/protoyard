@@ -60,8 +60,8 @@ const pageUi = () => import('@protoyard/pages-ui/page');
 ## Page and document hosts
 
 `PageHost` renders a `PageDocument` as one marketing page with section anchors
-and `MarketingLayout` chrome. `DocHost` renders a `DocDocument` as a continuous
-flow with `DocsLayout` navigation and a heading-based table of contents.
+and `MarketingLayout` chrome. `DocHost` renders a `DocDocument` as a focused,
+continuous report with one title block and one heading-based table of contents.
 Both validate content blocks at their host boundary and render blocks through
 `BlockHost`, which dynamically imports the matching `@protoyard/blocks-ui`
 family. Unknown block types show a safe message; content is not inserted as
@@ -122,7 +122,12 @@ reduced to plain paragraphs, and links pass a second `safePageHref` check.
 `blueprints/pages/tidewater-roasters-landing.json`.
 
 `DocHost` derives heading ids and TOC entries from `buildDocToc` in
-`@protoyard/pages`. Its `showNav` prop can hide the left navigation rail.
+`@protoyard/pages`. When the first block is an `h1`, its eyebrow and subtitle
+join the document title in one title block; the source block is not rendered a
+second time. A single disclosure is a collapsible TOC on phones and a sticky
+rail on wide screens. Its active link follows the visible section. The
+`showNav` prop remains available to hide the outline. Content stays within a
+72-character reading measure, and the TOC is omitted from print output.
 
 ## Forms and responses
 

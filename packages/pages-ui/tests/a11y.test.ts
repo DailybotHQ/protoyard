@@ -129,17 +129,12 @@ describe('page and doc accessibility', () => {
       within(main).getByRole('heading', { level: 1, name: 'Accessible handbook' })
     ).toBeTruthy();
 
-    const toc = view.getByLabelText('On this page');
-    expect(toc.tagName.toLowerCase()).toBe('aside');
+    const toc = view.getByRole('navigation', { name: 'On this page' });
     await waitFor(() => {
       expect(within(toc).getByRole('link', { name: 'Getting started' })).toBeTruthy();
     });
     expect(within(toc).getByRole('link', { name: 'Next section' })).toBeTruthy();
     expect(within(toc).getByRole('link', { name: 'First steps' })).toBeTruthy();
-
-    const sectionsNav = view.getByRole('navigation', { name: 'Document sections' });
-    expect(within(sectionsNav).getByRole('link', { name: 'Getting started' })).toBeTruthy();
-    expect(within(sectionsNav).getByRole('link', { name: 'Next section' })).toBeTruthy();
   });
 
   it('associates form field labels with controls', () => {
