@@ -89,9 +89,7 @@ describe('DeckPrint DOM', () => {
       const count = Number(page.getAttribute('data-step-count'));
       expect(count).toBeGreaterThanOrEqual(1);
       expect(step).toBe(count - 1);
-      expect(page.getAttribute('style') ?? '').toMatch(
-        new RegExp(`--py-deck-step:\\s*${step}`)
-      );
+      expect(page.getAttribute('style') ?? '').toMatch(new RegExp(`--py-deck-step:\\s*${step}`));
       expect(page.querySelector('[data-py-deck-print-canvas]')).toBeTruthy();
     }
 
