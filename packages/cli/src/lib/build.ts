@@ -47,6 +47,8 @@ export interface BuildManifest {
   offline: OfflineRecord;
   /** Keeps an explicit shell frame when embedded (ADR-026); absent in older manifests. */
   frameWhenEmbedded?: boolean;
+  /** The build target when it had its own output shape (`artifact`); absent for a plain build. */
+  target?: 'artifact';
   /** Review activation and adapter kind only; never store endpoint credentials here. */
   review: { enabled: boolean; adapter: 'local' | 'cloudflare' | 'http' | 'artifact' };
   /**
@@ -80,6 +82,8 @@ export interface BuildOptions {
   avatarSizes?: readonly number[];
   /** Force review comments on with this adapter (`publish --comments`: http, `/api/comments`). */
   review?: { adapter: 'http' | 'cloudflare'; endpoint: string };
+  /** Build for a target with its own output shape (PROTOYARD_TARGET; the artifact export). */
+  target?: 'artifact';
 }
 
 export interface BuildResult {
@@ -222,6 +226,7 @@ export async function buildPrototype(
     ...(options.avatarBase ? { avatarBase: options.avatarBase } : {}),
     ...(options.avatarSizes ? { avatarSizes: options.avatarSizes } : {}),
     ...(options.review ? { review: options.review } : {}),
+    ...(options.target ? { target: options.target } : {}),
     quiet: ctx.out.options.json || ctx.out.options.quiet,
   });
   if (code !== 0) {
@@ -265,6 +270,7 @@ export async function buildPrototype(
     node: process.versions.node,
     offline: await readOfflineRecord(ctx.root, outDir),
     frameWhenEmbedded,
+    ...(options.target ? { target: options.target } : {}),
     review: { enabled: reviewEnabled, adapter: options.review?.adapter ?? reviewConfig.adapter },
     ...(bundle ? { bundle } : {}),
   };
