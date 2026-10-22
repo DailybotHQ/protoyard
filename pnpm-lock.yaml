@@ -515,9 +515,18 @@ importers:
 
   packages/pages-ui:
     dependencies:
+      '@protoyard/blocks':
+        specifier: workspace:*
+        version: link:../blocks
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../blocks-ui
       '@protoyard/pages':
         specifier: workspace:*
         version: link:../pages
+      '@protoyard/ui':
+        specifier: workspace:*
+        version: link:../ui
     devDependencies:
       svelte:
         specifier: ^5.57.2
