@@ -7,7 +7,8 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./layouts": "./src/layouts/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -40,6 +41,11 @@
         "types": "./dist/schema/index.d.ts",
         "import": "./dist/schema/index.js",
         "default": "./dist/schema/index.js"
+      },
+      "./layouts": {
+        "types": "./dist/layouts/index.d.ts",
+        "import": "./dist/layouts/index.js",
+        "default": "./dist/layouts/index.js"
       }
     },
     "types": "./dist/index.d.ts"

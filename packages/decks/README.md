@@ -12,6 +12,9 @@ resolution and quality rules. It has no Svelte and does not use Reveal.js.
 > are implemented. The layout catalog, navigation model, input guard, style
 > resolver, backgrounds and quality rules land in later PLAN_005 tasks. This
 > README lists only what exists.
+> **Status:** the bounded deck schema, virtual canvas and layout catalog are
+> implemented. Navigation, input guard, steps and motion, style resolver,
+> backgrounds and quality rules land in later PLAN_005 tasks.
 
 ## Exports
 
@@ -19,7 +22,9 @@ resolution and quality rules. It has no Svelte and does not use Reveal.js.
 | --- | --- |
 | `@protoyard/decks` | Canvas helpers, plus `createDeckNavigator`, `parseDeckHash`, `formatDeckHash`, `defaultSlideStepCount` and related types |
 | `@protoyard/decks` | `DECK_ASPECTS`, `DeckAspect`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DeckCanvasSize`, `DECK_TEXT_MINIMUMS`; steps and motion: `slideSteps`, `slideStepCount`, `fragmentPhase`, `activeCodeHighlight`, `resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`, `effectiveMotion`, `prefersReducedMotion`, `FRAGMENT_EFFECTS`, `DECK_TRANSITIONS`, `MAX_MOTION_MS` |
+| `@protoyard/decks` | Canvas helpers plus `DECK_LAYOUTS`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts` |
 | `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, slide and outline schemas, `DeckJsonSchema`, `safeParseDeck`, and the bounded deck types. `@protoyard/blueprint`'s `kind: "deck"` branch imports the schema from here. |
+| `@protoyard/decks/layouts` | Full layout catalog: 19 content layouts + `chart` + `free`, prop schemas, samples, pacing and use-when metadata |
 
 `DeckSchema` accepts catalog slides (`layout` plus bounded JSON `props`) and
 free slides (`layout: "free"` plus validated `@protoyard/blocks` content).
@@ -30,6 +35,36 @@ the Draft 2020-12 JSON Schema derived from the same Zod schema.
 
 `safeParseDeck(value)` returns either the typed deck or issues with a stable
 `jsonPath` for authoring feedback.
+
+## Layout catalog
+
+```ts
+import { DECK_LAYOUTS, describeLayouts, parseLayoutProps } from '@protoyard/decks/layouts';
+
+parseLayoutProps('timeline', { events: [/* 4–8 */] });
+describeLayouts(); // agent-readable summary of every layout
+```
+
+21 layouts: the 19 primitives from the developer’s deck kit (`title-hero`,
+`section-divider`, `two-column-split`, `three-column-cards`, `image-*`,
+`quote`, `code-with-callout`, `big-stat`, `comparison-table`, `process-steps`,
+`timeline`, `team-avatars`, `closing-cta`, `video-*`), plus `chart`
+(`ChartSpecSchema` via `@protoyard/blocks`) and `free` (validated blocks).
+
+Each entry has `id`, `label`, `useWhen`, `dontUseWhen`, `pacing`
+(`punch` \| `idea` \| `diagram` \| `story`), size `limits`, a zod `propsSchema`
+and a `sample`. AUTHORING consumes the catalog read-only for selection and
+lint. No brand hex values and no site-specific class names.
+
+| Layout | Prop limits (summary) |
+| --- | --- |
+| `three-column-cards` | exactly 3 cards |
+| `process-steps` | 3–5 steps |
+| `timeline` | 4–8 events |
+| `team-avatars` | ≤ 8 people |
+| `comparison-table` | 2–4 columns × 3–5 rows |
+| `chart` | ChartSpec caps |
+| `free` | 1–48 blocks |
 
 ## The virtual canvas
 
@@ -142,5 +177,6 @@ motion or `none`, moving effects (`fade-up`, `grow`, `shrink`) become a plain
 ```bash
 pnpm vitest run packages/decks
 pnpm vitest run packages/decks/tests/navigation.test.ts
+pnpm vitest run packages/decks/tests/layouts.test.ts
 pnpm --filter @protoyard/decks typecheck
 ```
