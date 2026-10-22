@@ -1,8 +1,10 @@
+import { loadBlockFamily } from '@protoyard/blocks-ui';
 import { DECK_LAYOUT_IDS, getDeckLayout, slidePositionCount } from '@protoyard/decks';
 import { DECK_LAYOUT_STEPPABLE } from '@protoyard/decks/layouts';
 import { type DeckSlide, safeParseDeck } from '@protoyard/decks/schema';
 import { cleanup, configure, render, waitFor } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { loadLayoutRenderer } from '../src/layouts/registry.ts';
 import SteppedSlideHarness from './fixtures/SteppedSlideHarness.svelte';
 
 /**
@@ -15,6 +17,19 @@ import SteppedSlideHarness from './fixtures/SteppedSlideHarness.svelte';
 configure({ asyncUtilTimeout: 15_000 });
 vi.setConfig({ testTimeout: 30_000 });
 afterEach(cleanup);
+
+// Every catalog layout loads two lazy levels: its layout family, then (for the
+// layouts that render shared blocks, like team-avatars' people grid) a blocks-ui
+// family. Cold, under the full parallel suite, those transforms could outlast a
+// test's wait. Load them all once here, so each test only waits for rendering.
+beforeAll(async () => {
+  await Promise.all([
+    ...DECK_LAYOUT_IDS.map((layout) => loadLayoutRenderer(layout)),
+    ...(['text', 'media', 'data', 'structure', 'code'] as const).map((family) =>
+      loadBlockFamily(family)
+    ),
+  ]);
+}, 120_000);
 
 /** The sample of `layout` with a marker on `pattern` (`*` is item 1). */
 function stepped(layout: string, pattern: string): DeckSlide {

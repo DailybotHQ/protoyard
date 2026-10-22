@@ -9,9 +9,36 @@ let {
   controls: readonly DeckControl[];
   children: Snippet<[DeckControl]>;
 } = $props();
+
+/** Escape closes the open menu and returns focus to "More"; the deck never sees it. */
+function onkeydown(event: KeyboardEvent): void {
+  const menu = event.currentTarget as HTMLDetailsElement;
+  if (event.key !== 'Escape' || !menu.open) return;
+  event.preventDefault();
+  event.stopPropagation();
+  menu.open = false;
+  menu.querySelector('summary')?.focus();
+}
+
+/**
+ * Choosing an item closes the menu, so the next Escape reaches what the item
+ * opened (the overview, help). Focus goes back to "More" unless the item moved
+ * it elsewhere.
+ */
+function onclick(event: MouseEvent): void {
+  const menu = event.currentTarget as HTMLDetailsElement;
+  const item = (event.target as Element | null)?.closest('button');
+  if (!item || !menu.contains(item)) return;
+  queueMicrotask(() => {
+    const keep = menu.contains(document.activeElement);
+    menu.open = false;
+    if (keep) menu.querySelector('summary')?.focus();
+  });
+}
 </script>
 
-<details class="relative" data-py-deck-more>
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -- delegated from the summary and the menu's buttons. -->
+<details class="relative" data-py-deck-more {onkeydown} {onclick}>
   <summary
     class="inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     aria-label="More presentation controls"

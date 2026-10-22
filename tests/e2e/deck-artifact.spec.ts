@@ -52,7 +52,12 @@ function watch(page: Page): Watch {
     const url = response.url();
     if (response.status() >= 400) seen.failed.push(`${response.status()} ${url}`);
     if (url.includes('/__packed__/') && new URL(url).pathname.endsWith('.js')) {
-      seen.scripts.push({ url, body: response.text() });
+      // The test's own fetch() of each packed script lands here too, and its body
+      // may still be pending when the test ends; Playwright then rejects it with
+      // "Test ended". Settle it, so only an awaited body can fail the test.
+      const body = response.text();
+      body.catch(() => undefined);
+      seen.scripts.push({ url, body });
     }
   });
   return seen;

@@ -1,4 +1,5 @@
 import type { Block } from '@protoyard/blocks';
+import { RICH_EXAMPLES } from '@protoyard/blocks/catalog';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -118,6 +119,30 @@ describe('structure family renderers', () => {
     render(StructureFamily, { block: icon });
     await tick();
     expect(screen.getByRole('img', { name: 'Featured' })).toBeTruthy();
+  });
+
+  it('renders a card image under the media policy, with its alt text', async () => {
+    // The catalog's own rich cards: "Safe" has a library avatar and imageAlt "A face".
+    render(StructureFamily, { block: RICH_EXAMPLES.cards });
+    // The image loads on its own chunk, only for cards that have one.
+    const image = await screen.findByRole('img', { name: 'A face' });
+    expect(image.getAttribute('src')).toMatch(/av-020/);
+    expect(image.getAttribute('referrerpolicy')).toBe('no-referrer');
+
+    document.body.replaceChildren();
+    render(StructureFamily, {
+      block: {
+        type: 'cards',
+        items: [
+          { title: 'Decorative', image: 'avatar:av-001' },
+          { title: 'Refused', image: 'javascript:alert(1)', imageAlt: 'Never shown' },
+        ],
+      } as Block,
+    });
+    // No alt: decorative. An unsafe source never becomes an image.
+    await waitFor(() => expect(document.querySelectorAll('img')).toHaveLength(1));
+    const images = document.querySelectorAll('img');
+    expect(images[0]?.getAttribute('alt')).toBe('');
   });
 
   it('shows CTA pending state until the host action promise settles', async () => {

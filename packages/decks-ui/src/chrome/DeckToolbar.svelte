@@ -120,6 +120,8 @@ function keysFor(control: DeckControl): string | undefined {
 }
 
 async function activate(control: DeckControl): Promise<void> {
+  // A pressed control's tooltip has done its job; left open, it would take the next Escape.
+  tooltip.hide();
   const action = actionFor(control);
   if (action === 'copy-link') {
     const ok = await copyText(reference());
@@ -140,8 +142,12 @@ async function activate(control: DeckControl): Promise<void> {
 }
 
 function selectSlide(slideId: string): void {
-  jumpOpen = false;
   onjump(slideId);
+  closeSlideList();
+}
+
+function closeSlideList(): void {
+  jumpOpen = false;
   queueMicrotask(() => jumpButton?.focus());
 }
 
@@ -212,7 +218,6 @@ $effect(() => () => {
         {#each DECK_ICON_PATHS[control.icon] as path (path)}<path d={path}></path>{/each}
       </svg>
       <span class={mobile ? '' : 'hidden sm:inline'}>{control.label}</span>
-      {#if control.toggle && active}<span class="rounded border border-current px-1 text-[10px] uppercase tracking-wide">On</span>{/if}
     {/if}
   </button>
 {/snippet}
@@ -225,7 +230,7 @@ $effect(() => () => {
       {/if}
       {#if control.action === 'jump' && jumpOpen}
         {#await import('./SlideJumpList.svelte') then list}
-          <list.default {slides} {currentOrdinal} onselect={selectSlide} />
+          <list.default {slides} {currentOrdinal} onselect={selectSlide} onclose={closeSlideList} />
         {/await}
       {/if}
     {/each}

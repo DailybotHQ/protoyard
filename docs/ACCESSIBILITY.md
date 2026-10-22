@@ -48,6 +48,45 @@ no file is copied.
   link after a callout landed one heading off. Ids now go only to heading
   blocks (`data-py-block-heading`).
 
+## Deck chrome: toolbar, menus and overlays
+
+The `accessible chrome on desktop and phone` group in
+[`tests/e2e/deck-controls.spec.ts`](../tests/e2e/deck-controls.spec.ts) runs on the
+built deck fixture (Desktop Chrome and Pixel 7):
+
+| Check | How |
+| --- | --- |
+| axe in light and dark | the toolbar, a focus tooltip, the More menu (phones), the slide list, the help dialog, the debug panel (`?debug=1`) and the full screen overlay, each open in turn, after their fades finish |
+| Keyboard only | Tab from the deck reaches every visible chrome control, each with a 2 px outline ring. The slide list opens on the current slide; arrows, Home and End move; Enter picks; Escape closes and returns focus. The More menu and the help dialog close on Escape and return focus to their opener (to More on a phone) |
+| Touch targets | on Pixel 7, every chrome button, the More menu, the slide list options, the help dialog and the debug panel buttons are at least 44 px |
+| Reduced motion | with `prefers-reduced-motion: reduce`, no transition or animation inside the deck lasts longer than 1 ms (`themes/base.css` turns them to 0.01 ms) |
+
+```sh
+PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-controls.spec.ts
+```
+
+**Fixed while adding this coverage:**
+- **The slide list had no keyboard model.** It opened with focus left on its
+  button, ignored the arrow keys, and Escape did not close it. It now behaves as
+  a listbox: focus starts on the current slide, the options use a roving
+  tab stop, and the keys it handles never reach the deck.
+- **The More menu ignored Escape and stayed open.** Escape now closes it and
+  returns focus to More. Choosing an item also closes it, so the next Escape
+  closes what the item opened (the overview), not the menu behind it.
+- **A tooltip held the first Escape after a click.** A pointer resting on a
+  control kept its tooltip open over the slide list, so the first Escape only
+  closed the tooltip. Pressing a control now hides its tooltip. A keyboard focus
+  tooltip still takes the first Escape on its own (WCAG 1.4.13).
+- **"On" was not in the toggle's name.** A pressed toggle (help, laser,
+  blackout) showed an "On" chip that its accessible name did not contain (axe
+  `label-content-name-mismatch`). The chip is gone; `aria-pressed` and the ring
+  and fill of a pressed button carry the state.
+- **Two catalog block examples rendered wrong.** A quiz prompt showed its
+  Markdown markers (`**tone**`), and a card dropped its image. Quiz prompts and
+  explanations now keep bold, italic and code. Card images render under the block
+  media policy, with `imageAlt`, or as decorative when there is none.
+  `content-kinds-a11y.spec.ts` checks both in the everything deck on the player.
+
 ## Other fixes from accessibility checks
 
 - **Notification bell name.** The `NotificationCenter` bell

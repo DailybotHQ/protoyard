@@ -203,3 +203,34 @@ for (const colorScheme of ['light', 'dark'] as const) {
     }
   });
 }
+
+// Two catalog block examples rendered wrong in the everything deck before
+// T-a11y-mobile: the quiz showed `**tone**` literally and a card dropped its
+// image. The player ships the avatar library, so the card's portrait loads here.
+test('the everything deck formats the quiz prompt and shows the card image', async ({ page }) => {
+  const everything = EXAMPLES.find((example) => example.name === 'everything');
+  expect(everything).toBeDefined();
+  if (!everything) return;
+  await openExample(page, everything);
+  const deck = page.locator(ROOT.deck);
+  const show = async (id: string) => {
+    await page.evaluate((slide) => {
+      window.location.hash = `#/${slide}/0`;
+    }, id);
+    await expect(deck).toHaveAttribute('data-slide-id', id);
+  };
+
+  await show('poll-quiz');
+  const legend = page.locator('[data-py-deck-slide="poll-quiz"] legend', { hasText: 'tone' });
+  await expect(legend).toHaveText('What does a tone replace?', { timeout: 15_000 });
+  await expect(legend.locator('strong')).toHaveText('tone');
+
+  await show('structure-b');
+  const image = page
+    .locator('[data-py-deck-slide="structure-b"]')
+    .getByRole('img', { name: 'A face' });
+  await expect(image).toBeVisible({ timeout: 15_000 });
+  await expect
+    .poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0);
+});
