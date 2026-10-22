@@ -8,6 +8,12 @@ export type MountEmbed = (
   app: Record<string, unknown>
 ) => void | (() => void) | Promise<void> | Promise<() => void>;
 
+/** CTA action payload after `safeHref` (structure family). */
+export type BlockCtaAction = {
+  label: string;
+  href: string;
+};
+
 /** Context available to every family renderer. Optional capabilities stay host-owned. */
 export interface BlockHostOptions {
   stateHost?: BlockStateHost;
@@ -18,6 +24,11 @@ export interface BlockHostOptions {
   step?: number;
   /** Stable document namespace used when family renderers address block state. */
   documentId?: string;
+  /**
+   * Structure CTAs call this when set. Return a promise so the Button shows
+   * pending feedback until it settles (AGENTS.md rule 5).
+   */
+  onCtaAction?: (action: BlockCtaAction) => void | Promise<void>;
 }
 
 export interface BlockHost extends BlockHostOptions {

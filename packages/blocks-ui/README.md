@@ -6,8 +6,9 @@ Svelte 5 renderers for Protoyard's shared content blocks
 levels (the player and generated prototypes), render blocks with these same
 components.
 
-> **Status:** the root dispatcher and host context are implemented. Family
-> subpaths are filled by the PLAN_005 tasks named in the table.
+> **Status:** the root dispatcher, host context and **structure** family
+> (timeline, steps, comparison, cards, icon, CTA, columns) are implemented.
+> Other family subpaths are filled by the PLAN_005 tasks named in the table.
 
 ## Shape
 
@@ -58,13 +59,38 @@ and are rendered through `@protoyard/blocks-ui/diagram`; they are not a
 | `./text` | Heading, rich text, list, quote, callout, divider | T-blocks-ui-text-media |
 | `./media` | Image, video, people (avatars) | T-blocks-ui-text-media |
 | `./data` | Stat/KPI row, table, chart (charts-ui) | T-blocks-ui-data |
-| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | T-blocks-ui-structure |
+| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | **done** (this package) |
 | `./code` | Code with stepped highlights | T-blocks-ui-code-diagram |
 | `./diagram` | Flow, tree, board, terminal | T-blocks-ui-code-diagram |
 | `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart controls | T-blocks-ui-interactive |
 | `./map` | Map on the offline simulated map (views-ui/map) | T-blocks-ui-interactive |
 | `./embed` | embed-app, mounted through the host's `mountEmbed` | T-blocks-ui-embed-app |
 | `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | this scaffold |
+
+## Structure family (`./structure`)
+
+Lazy chunk for timeline, steps, comparison, cards, icon, CTA and columns:
+
+- **Flow vs slide:** below 640 px in `canvasMode: 'flow'`, multi-column layouts
+  collapse to one column; `slide` keeps a fixed grid for the deck canvas.
+- **CTA:** every action has a schema-validated `href` run through `safeHref`.
+  Set `onCtaAction` on the host to handle clicks; return a promise so
+  `@protoyard/ui` `Button` shows pending feedback until it settles. Without a
+  host handler, external/mailto links navigate and hash/path links use `href`.
+- **Comparison** uses a real `<table>` with column and row headers.
+- **Columns** resolve nested blocks through the same dispatcher (lazy).
+- **Icons** come from `BLOCK_ICON_COMPONENTS` (static Lucide map).
+
+```ts
+setBlockHost({
+  canvasMode: 'flow',
+  onCtaAction: async ({ href }) => {
+    await router.navigate(href);
+  },
+});
+```
+
+Covered by `packages/blocks-ui/tests/structure.test.ts`.
 
 ## Icons
 
