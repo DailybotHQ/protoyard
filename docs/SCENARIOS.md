@@ -498,6 +498,28 @@ window must apply nothing twice. Event ids make the second part work
 part is your job: **the events for a day must not depend on the current
 state.**
 
+### Reacting to clock changes
+
+Use `onClockTick(handler)` from `@protoyard/renderer-svelte` for work that
+should run once when a prototype registers the handler and again when its
+runtime clock publishes a new simulated instant. The handler receives a
+snapshot `Date` from `runtime.clock`; same-turn changes coalesce to the latest instant, and
+asynchronous handlers run one at a time. A successfully handled instant is not
+repeated. If a handler fails (for example, while storage is unavailable), the
+error is sent to `onError` or logged, and a later clock notification can retry
+it. There is no timer or background polling, so this does not advance time or
+poll a running clock on its own. Keep the handler idempotent and persist row expiry or delayed decisions
+through the prototype's service and transaction boundary. Call the returned
+unsubscribe function when the handler's owner is disposed.
+
+```ts
+import { onDestroy } from 'svelte';
+import { onClockTick } from '@protoyard/renderer-svelte';
+
+const stopClockTicks = onClockTick((now) => expireDueItems(now));
+onDestroy(stopClockTicks);
+```
+
 The CRM demo learned this the hard way. Its first timeline filtered deals by
 their *current* stage and decided the target stage when generating the event.
 After advancing one day, some deals had moved, so day 2 picked from a

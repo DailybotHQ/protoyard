@@ -38,6 +38,7 @@ export {
   usePrincipal,
   useScenario,
 } from './bindings.svelte.ts';
+export { type ClockTickHandler, type ClockTickOptions, onClockTick } from './clock-tick.ts';
 export { getRuntime, provideRuntime, setMountedRuntime } from './context.ts';
 export { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED, REVIEW_ENABLED } from './flags.ts';
 export {
