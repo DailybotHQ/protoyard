@@ -211,6 +211,34 @@ gzip to the DeckApp entry. With print and the lazy overview also merged, the ent
 78,501 B gzip on 2026-10-22: a Vite build of `@protoyard/decks-ui/app`, excluding CSS and
 themes. Overview, studio and presenter code is not in that first chunk.
 
+### Tooltips
+
+A control explains itself in a tooltip: its label, the registry's one-sentence
+description, and its shortcut ("Full screen. Fills the whole screen with the
+slides; press Esc to leave. Press F."). The text comes from `DECK_CONTROLS`
+(`@protoyard/decks`) through `controlTooltip(control)`, so it never drifts from
+what the keys do. `src/chrome/tooltip.ts` holds the behavior and
+`ChromeTooltip.svelte` the one bubble:
+
+- **One per toolbar.** `createDeckTooltip()` makes a single tooltip that moves
+  between buttons. Each button attaches with
+  `{@attach tooltip.anchor(() => controlTooltip(control))}`.
+- **When it opens:** on hover after 300 ms, at once on keyboard focus
+  (`:focus-visible`), and on a 500 ms long press on touch. After a long press,
+  the click that follows does not press the button, and the tooltip stays
+  1.5 s so it can be read. Moving along the toolbar opens the next one at once.
+- **Escape closes only the tooltip.** It is caught before the deck sees it, so
+  it never also leaves the deck's full screen or closes the help dialog. With
+  no tooltip open, Escape reaches the deck as before.
+- **For assistive tech:** while it shows, the button is `aria-describedby` the
+  tooltip (`role="tooltip"`), whose text is on screen.
+- **Placement:** above the button, flipped below when there is no room, slid
+  sideways to stay inside the viewport (`placeTooltip`, `position: fixed`).
+- **Never in the way:** it never takes the pointer, is hidden in print, fades
+  only when motion is allowed, and shows nothing while `suppressed()` is true
+  (the toolbar passes the laser and blackout state). When one of them turns on
+  while a tooltip shows, the toolbar calls `tooltip.hide()`.
+
 ## Print (`./print`)
 
 ```ts
@@ -274,6 +302,7 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 | Deck style kit (lazy chunk: style resolution, library catalog, palette engine, backgrounds) | about 20 KB (2026-10-22) | not in the initial graph | `tests/budget.test.ts` |
 | All CSS emitted with it | 1,681 B (2026-10-22) | ≤ 20 KB | `tests/bundle-size.test.ts` |
 | Deck Studio panel (lazy chunk) | 3,141 B (2026-10-22) | — | measured with a Vite probe build |
+| Chrome tooltip on the deck entry (`ChromeTooltip` + `tooltip.ts`) | +1,510 B (2026-10-22; `@protoyard/ui` Tooltip measured +36,552 B) | ≤ 1,536 B | `tests/tooltip-budget.test.ts` |
 | 200-slide deck: parse + first render (happy-dom) | 50–142 ms over six runs | < 1 s | `tests/large-deck.perf.test.ts` |
 | 200-slide deck: one next or previous step, median | 0.27–0.39 ms over six runs | < 16 ms (median and p95) | `tests/large-deck.perf.test.ts` |
 | Slides in the DOM at once | 2–3 | ≤ 3 | `tests/large-deck.perf.test.ts` |
