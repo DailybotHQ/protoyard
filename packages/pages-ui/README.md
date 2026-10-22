@@ -7,21 +7,19 @@ Nothing here is re-exported from the `@protoyard/ui` barrel. The data engine is
 
 ## Status
 
-The page host, lazy block host and form renderer are implemented. Doc and print
-hosts and the form responses panel are still in progress.
+The page and doc hosts, shared block host, public form and responses panel, and
+print entry are implemented. `PageApp` and `DocApp` are the same kind-level
+hosts used by the player and generated prototypes.
 
-| Import | Contents today |
+| Import | Contents |
 | --- | --- |
-| `@protoyard/pages-ui` | `PAGE_UI_FAMILIES`, package version, `BlockHost`, `PageHost`, `DocHost`, pages identity |
-| `@protoyard/pages-ui/page` | `PageHost` marketing landing renderer |
-| `@protoyard/pages-ui/doc` | `DocHost` continuous doc flow with DocsLayout TOC |
-| `@protoyard/pages-ui/form` | `FORM_UI_SUBPATH` placeholder (form block host + responses panel later) |
-| `@protoyard/pages-ui/doc` | `DOC_UI_SUBPATH` placeholder (DocApp later) |
-| `@protoyard/pages-ui/form` | `FormBlock` public-form renderer and `ResponsesPanel` (live list, CSV download, guarded clear); both go through `@protoyard/pages` form services |
-| `@protoyard/pages-ui/print` | `PRINT_UI_SUBPATH` placeholder (print CSS + button later) |
-| `@protoyard/pages-ui/styles.css` | Empty kit stylesheet hook |
-| `@protoyard/pages-ui/print` | `PrintButton`, `PRINT_ROOT_CLASS` and the print stylesheet (`print.css`) |
-| `@protoyard/pages-ui/styles.css` | Kit stylesheet hook; includes the print rules (print media only) |
+| `@protoyard/pages-ui` | Package metadata, `BlockHost`, `PageHost`, `DocHost`, `PageApp`, `DocApp` and form context helpers |
+| `@protoyard/pages-ui/block-host` | Lazy `BlockHost` and block-family resolver |
+| `@protoyard/pages-ui/page` | `PageApp` and `PageHost` marketing landing renderer |
+| `@protoyard/pages-ui/doc` | `DocApp` and `DocHost` continuous document flow with TOC |
+| `@protoyard/pages-ui/form` | `FormBlock` and `ResponsesPanel` |
+| `@protoyard/pages-ui/print` | `PrintButton`, `PRINT_ROOT_CLASS` and print stylesheet |
+| `@protoyard/pages-ui/styles.css` | Kit stylesheet hook, including print-only rules |
 
 ## Install in a workspace prototype
 
@@ -189,13 +187,14 @@ The panel adds about 37 KB gzip to the form subpath when measured on its own
 Dexie are already loaded by the host. Import it only on the screen that shows
 responses.
 
-## Coming next (PLAN_005)
+## Bundle budgets
 
-- Form block wiring into the page and doc hosts on `./form`
-- `PageApp` / `PageHost` on `./page` (MarketingLayout chrome, single scroll)
-- `DocApp` / `DocHost` on `./doc` (DocsLayout TOC)
-- Print stylesheet and `PrintButton` on `./print`
-- Shared use by the player kind entries and level-2 `generate` templates
+`PageApp` and `DocApp` are measured independently with real production Vite
+fixtures. Each entry stays under 120 KB gzip JavaScript and its package-owned
+CSS stays under 20 KB gzip. Shared Tailwind, theme and UI stylesheets belong to
+the consuming app and are excluded. The static graph excludes the CRUD app,
+Faker and the player worker. Current measurements and the exact gate are in
+[`docs/PERFORMANCE.md`](../../docs/PERFORMANCE.md#page-and-doc-host-budgets).
 
 ## Security
 

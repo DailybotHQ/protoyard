@@ -1014,6 +1014,27 @@ after; the current pre-change tree includes additional merged work, so the two
 measurements are not directly comparable. The budget test now caps initial JS
 at 196,000 B gzip and asserts each content-kind schema is a dynamic entry.
 
+## Page and doc host budgets (measured 2026-10-21)
+
+`packages/pages-ui/tests/budget.test.ts` builds each kind host separately with
+Vite in production mode. The fixture imports the page or doc subpath and the
+pages-ui stylesheet hook; the measured JavaScript is the entry chunk and its
+static-import closure, gzip level 9. The CSS number is the gzip size of all
+emitted CSS assets from the pages-ui stylesheet hook and its Svelte components;
+the consuming app’s shared Tailwind, theme and UI stylesheets are not charged
+to either host. Dynamic chart and form chunks do not count toward the initial
+host graph. The same test checks emitted module ids to keep
+`@protoyard/crud/app` and screens, Faker and the player worker out.
+
+| Entry | Initial JS gzip | Budget | CSS gzip | Budget | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `PageApp` | **91,588 B** | 122,880 B | **1,164 B** | 20,480 B | Pass |
+| `DocApp` | **92,553 B** | 122,880 B | **1,690 B** | 20,480 B | Pass |
+
+These are host-only package measurements, not the complete player entry. The
+player's separate per-kind budget remains 150 KB initial JS and 30 KB CSS.
+Run the scoped gate with `pnpm vitest run packages/pages-ui/tests/budget.test.ts`.
+
 **`@protoyard/crud/app`.** The player loads the crud app shell lazily, but
 always, right after boot. Its own chunk is 21.9 KB gzip. Its static graph adds
 **107.7 KB gzip across 53 chunks** beyond initial JS, so it is on the path to
