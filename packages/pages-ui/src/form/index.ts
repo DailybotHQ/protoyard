@@ -1,6 +1,3 @@
-/**
- * `@protoyard/pages-ui/form` — form block host and responses panel (CSV export).
- * Placeholder until the form UI tasks land. The form *block schema* lives in
- * `@protoyard/blocks`; this subpath owns the Svelte wiring and services host.
- */
+/** `@protoyard/pages-ui/form` — public page form block UI. */
 export const FORM_UI_SUBPATH = 'form' as const;
+export { default as FormBlock } from './FormBlock.svelte';
