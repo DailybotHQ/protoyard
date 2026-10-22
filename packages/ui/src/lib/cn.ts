@@ -5,7 +5,7 @@ import { extendTailwindMerge } from 'tailwind-merge';
  * Protoyard custom utilities that plain `twMerge` does not know about
  * (`@utility` and `@theme` tokens in `@protoyard/themes/base.css`). Without
  * these class groups, a consumer override like `shadow-none` cannot replace a
- * component default `shadow-soft` (FORK_CORAG bug B1).
+ * component default `shadow-soft`.
  */
 const twMerge = extendTailwindMerge({
   extend: {

@@ -6,8 +6,9 @@ import type { MountEmbed } from '@protoyard/blocks-ui';
  * `protoyard-player/1`. A frame gives the embedded app its own runtime, its
  * own content namespace (`bp-…` from its identity) and its own URL hash, so it
  * never fights the deck for routing or storage. Before anything starts, the
- * app is checked with `loadUntrustedBlueprint`: app kind only, which keeps
- * embedding to one level (an app cannot hold blocks).
+ * app is checked with `loadEmbeddedApp` (the same loader level 2 uses): app
+ * kind only, and no `embed-app` block anywhere inside it, so embedding stays
+ * one level deep.
  */
 
 export interface MountEmbedOptions {
@@ -19,9 +20,9 @@ export interface MountEmbedOptions {
 
 export function createMountEmbed(options: MountEmbedOptions = {}): MountEmbed {
   return async (target, app) => {
-    // Destructured at the import: only the app loader, not the whole barrel.
-    const { loadUntrustedBlueprint } = await import('@protoyard/blueprint');
-    const loaded = loadUntrustedBlueprint(app);
+    // The embed subpath only: the app loader plus the one-level check.
+    const { loadEmbeddedApp } = await import('@protoyard/blueprint/kinds/embed');
+    const loaded = loadEmbeddedApp(app);
     if (!loaded.success) {
       const first = loaded.issues[0];
       throw new Error(first ? `${first.message} ${first.fix}` : 'The embedded app is not valid.');

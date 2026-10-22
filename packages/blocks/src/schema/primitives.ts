@@ -89,16 +89,26 @@ export const blockBase = {
 };
 
 // C0 controls (except the whitespace each kind allows: line breaks in markdown,
-// tabs and line breaks in code), DEL, C1 controls, and the
-// bidi embeddings, overrides and isolates used in "Trojan Source" spoofing.
-// biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
-const SINGLE_LINE_UNSAFE = /[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
+// tabs and line breaks in code), DEL, C1 controls, the bidi marks, embeddings,
+// overrides and isolates used in "Trojan Source" spoofing (U+061C, U+200E,
+// U+200F, U+202A–U+202E, U+2066–U+2069), the BOM, the invisible zero-width
+// space and word joiner (U+200B, U+2060), and the Unicode line and paragraph
+// separators (U+2028, U+2029). ZWJ/ZWNJ (U+200C, U+200D) stay: emoji and some
+// scripts need them. The untrusted loaders strip or convert all of these first.
+const SINGLE_LINE_UNSAFE =
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
+  /[\u0000-\u001f\u007f-\u009f\u061c\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/;
 const MULTI_LINE_UNSAFE =
   // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
-  /[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
+  /[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/;
 const CODE_UNSAFE =
   // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
-  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
+  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u061c\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/;
+
+/** True when `value` holds a character that one-line plain text never allows. */
+export function hasUnsafeSingleLineCharacters(value: string): boolean {
+  return SINGLE_LINE_UNSAFE.test(value);
+}
 
 /** One line of plain text: no line breaks, control or bidi override characters. */
 export function plainText(max: number) {

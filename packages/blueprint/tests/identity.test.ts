@@ -43,7 +43,9 @@ describe('canonicalJson', () => {
   });
 
   it('matches JSON.stringify for undefined, escapes and negative zero', () => {
-    expect(canonicalJson({ a: undefined, b: 'q" \n' })).toBe(JSON.stringify({ b: 'q" \n' }));
+    expect(canonicalJson({ a: undefined, b: 'q"\u2028\n' })).toBe(
+      JSON.stringify({ b: 'q"\u2028\n' })
+    );
     expect(canonicalJson([undefined])).toBe('[null]');
     expect(canonicalJson(-0)).toBe('0');
     expect(canonicalJson({ __proto__x: 1 })).toBe('{"__proto__x":1}');

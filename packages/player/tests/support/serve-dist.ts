@@ -22,12 +22,28 @@ const MIME: Record<string, string> = {
   '.png': 'image/png',
 };
 
+/** Every page a complete player build has, plus its `_headers`. */
+const PLAYER_PAGES = ['index', 'deck', 'page', 'doc'] as const;
+
+/**
+ * The one way tests get a built player: rebuild unless every kind page and
+ * `_headers` exist (an older dist without the kind pages is stale), and build
+ * for production. Vitest sets NODE_ENV=test, which would bundle Svelte's dev
+ * runtime and leave a larger dist behind for the budget suites.
+ */
 export function ensurePlayerBuild(root: string): string {
   const dist = join(root, 'packages/player/dist/app');
-  if (!existsSync(join(dist, 'index.html'))) {
+  const complete =
+    PLAYER_PAGES.every((name) => existsSync(join(dist, `${name}.html`))) &&
+    existsSync(join(dist, '_headers'));
+  if (!complete) {
+    const env = Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => key !== 'NODE_ENV' && !key.startsWith('VITEST'))
+    );
     const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
       cwd: root,
       encoding: 'utf8',
+      env,
     });
     if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
   }

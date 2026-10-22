@@ -67,6 +67,8 @@ export {
   childrenOf,
   containerDepth,
   type DividerBlock,
+  type DocumentBlockList,
+  duplicateBlockIdIssues,
   type EmbedAppBlock,
   type FlowBlock,
   type FormBlock,

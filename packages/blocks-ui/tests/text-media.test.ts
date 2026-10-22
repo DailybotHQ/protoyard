@@ -1,6 +1,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import MediaFamilyRenderer from '../src/media/MediaFamilyRenderer.svelte';
+import MdRenderer from '../src/text/MdRenderer.svelte';
 import TextFamilyRenderer from '../src/text/TextFamilyRenderer.svelte';
 
 afterEach(() => {
@@ -55,6 +56,29 @@ describe('text block family', () => {
     rerender({ block: { type: 'divider', label: 'Next section' } });
     expect(screen.getByText('Next section')).toBeTruthy();
     expect(container.querySelector('hr')).toBeTruthy();
+  });
+});
+
+describe('markdown images follow the block media policy', () => {
+  it('renders a relative image path without a referrer', () => {
+    const { container } = render(MdRenderer, { source: '![Cover](assets/cover.webp)' });
+    const img = container.querySelector('img');
+    expect(img?.getAttribute('src')).toBe('assets/cover.webp');
+    expect(img?.getAttribute('referrerpolicy')).toBe('no-referrer');
+  });
+
+  it('shows the alt text instead of requesting non-media or escaping paths', () => {
+    for (const [source, alt] of [
+      ['![Api](/api/comments/slug?x=1)', 'Api'],
+      ['![Up](../secrets.png)', 'Up'],
+      ['![Remote](https://evil.example/pixel.png)', 'Remote'],
+      ['![Svg](assets/logo.svg)', 'Svg'],
+    ] as const) {
+      const { container } = render(MdRenderer, { source });
+      expect(container.querySelector('img'), source).toBeNull();
+      expect(container.textContent).toContain(alt);
+      cleanup();
+    }
   });
 });
 

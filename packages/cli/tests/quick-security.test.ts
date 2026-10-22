@@ -1,5 +1,14 @@
 // @vitest-environment node
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS, loadUntrustedBlueprint } from '@protoyard/blueprint';
@@ -100,6 +109,72 @@ describe('quick trust boundaries', () => {
     } finally {
       undo();
       ws.cleanup();
+    }
+  });
+
+  it('refuses to inline a player folder that no longer matches its manifest', async () => {
+    const ws = createWorkspace();
+    const outside = mkdtempSync(join(tmpdir(), 'quick-outside-'));
+    const appDir = join(ws.root, 'fixture-player', 'dist', 'app');
+    mkdirSync(join(appDir, 'assets'), { recursive: true });
+    writeFileSync(join(appDir, 'index.html'), '<!doctype html><script type="module"></script>');
+    const manifest = await createPlayerAssetsManifest(appDir, '1.0.0');
+    const undo = setQuickPlayerLocator(() => ({
+      dir: appDir,
+      packageDir: join(ws.root, 'fixture-player'),
+      version: '1.0.0',
+      manifest,
+      source: 'repository',
+    }));
+    try {
+      const blueprint = join(import.meta.dirname, '../../../blueprints/quick/analytics.json');
+      const created = await cli([
+        '--root',
+        ws.root,
+        '--json',
+        'quick',
+        '--blueprint',
+        blueprint,
+        '--slug',
+        'linked-player',
+      ]);
+      expect(created.code).toBe(0);
+      // Find the player copy the exploration uses and plant a link in it.
+      const copies: string[] = [];
+      const find = (dir: string) => {
+        for (const name of readdirSync(dir)) {
+          const path = join(dir, name);
+          if (statSync(path).isDirectory()) find(path);
+          else if (name === 'index.html' && existsSync(join(dir, 'protoyard-player-assets.json')))
+            copies.push(path);
+        }
+      };
+      find(join(ws.root, '.protoyard', 'quick'));
+      expect(copies.length).toBeGreaterThan(0);
+      const secret = join(outside, 'secret.txt');
+      writeFileSync(secret, 'not for sharing');
+      for (const copy of copies) {
+        rmSync(copy);
+        symlinkSync(secret, copy);
+      }
+      const result = await cli([
+        '--root',
+        ws.root,
+        '--json',
+        'quick',
+        'export',
+        'linked-player',
+        '--single-file',
+      ]);
+      expect(result.code).not.toBe(0);
+      expect(result.json<{ error: { code: string; message: string } }>().error).toMatchObject({
+        code: 'validation',
+        message: expect.stringContaining('a link or special file'),
+      });
+    } finally {
+      undo();
+      ws.cleanup();
+      rmSync(outside, { recursive: true, force: true });
     }
   });
 

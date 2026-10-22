@@ -14,7 +14,20 @@ export const CHART_MAX_POINTS = 366;
 export const CHART_MAX_SERIES = 8;
 
 const PART_WHOLE = new Set(['donut', 'pie', 'funnel']);
-const text = (max: number) => z.string().trim().min(1).max(max);
+// One-line chart text: no control, bidi, zero-width or separator characters
+// (the same set block plain text refuses), so labels cannot spoof or hide text.
+const UNSAFE_TEXT =
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: matching them is the point.
+  /[\u0000-\u001f\u007f-\u009f\u061c\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/;
+const text = (max: number) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .refine((value) => !UNSAFE_TEXT.test(value), {
+      message: 'Remove line breaks and control, bidi or invisible characters',
+    });
 
 export const ChartSpecSchema = z
   .strictObject({

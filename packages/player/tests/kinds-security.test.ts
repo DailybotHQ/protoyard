@@ -155,7 +155,8 @@ describe('kind renderers never turn data into code or HTML', () => {
     ['new Function()', /new\s+Function\s*\(/],
     ['innerHTML/outerHTML assignment', /\.(?:inner|outer)HTML\s*=/],
     ['insertAdjacentHTML', /insertAdjacentHTML\s*\(/],
-    ['document.write', /document\.write(?:ln)?\s*\(/],
+    // Any document's write(): a popup or frame document is still an HTML string sink.
+    ['document.write', /\.write(?:ln)?\s*\(/],
     ['srcdoc', /\bsrcdoc\b/],
     ['dynamic import of a computed specifier', /(?<![.\w])import\(\s*(?!['"`]|\))/],
   ];
@@ -368,7 +369,7 @@ describe('mountEmbed frames only a valid app from this origin', () => {
     const target = document.body.appendChild(document.createElement('div'));
     const mount = createMountEmbed({ connect: connect as never, playerUrl: sameOrigin });
     const hostile = structuredClone(demo) as Json;
-    hostile.name = `Demo‮ app`;
+    hostile.name = `Demo\u202E app`;
     const unmount = await mount(target, hostile);
     const frame = target.querySelector('iframe');
     expect(frame?.getAttribute('src')).toBe(sameOrigin().href);

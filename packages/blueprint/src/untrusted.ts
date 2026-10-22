@@ -61,7 +61,14 @@ export type UntrustedBlueprintResult =
  */
 function stripControlAndBidi(value: string, context: TextContext = 'plain'): string {
   const keepNewlines = context !== 'plain';
-  return [...(keepNewlines ? value.replace(/\r\n?/g, '\n') : value)]
+  // Unicode line/paragraph separators become a real line break where one is
+  // allowed, and a space in one-line fields.
+  const separators = keepNewlines ? '\n' : ' ';
+  const normalized = (keepNewlines ? value.replace(/\r\n?/g, '\n') : value).replace(
+    /[\u2028\u2029]/g,
+    separators
+  );
+  return [...normalized]
     .filter((char) => {
       const code = char.codePointAt(0) ?? 0;
       if (code === 0x0a && keepNewlines) return true;
@@ -70,9 +77,11 @@ function stripControlAndBidi(value: string, context: TextContext = 'plain'): str
         code <= 0x1f ||
         (code >= 0x7f && code <= 0x9f) ||
         code === 0x061c ||
+        code === 0x200b ||
         code === 0x200e ||
         code === 0x200f ||
         (code >= 0x202a && code <= 0x202e) ||
+        code === 0x2060 ||
         (code >= 0x2066 && code <= 0x2069) ||
         code === 0xfeff
       );

@@ -24,7 +24,12 @@ export type UntrustedBlocksResult =
 type CloneResult = { ok: true; value: unknown } | { ok: false; issue: UntrustedBlockIssue };
 
 function stripUnsafe(value: string, allowNewlines: boolean, allowTabs: boolean): string {
-  return [...value.replace(/\r\n/g, '\n')]
+  // Unicode line/paragraph separators become a real line break where one is
+  // allowed, and a space in one-line fields.
+  const normalized = value
+    .replace(/\r\n/g, '\n')
+    .replace(/[\u2028\u2029]/g, allowNewlines ? '\n' : ' ');
+  return [...normalized]
     .filter((character) => {
       const code = character.codePointAt(0) ?? 0;
       if (code === 0x0a && allowNewlines) return true;
@@ -33,9 +38,11 @@ function stripUnsafe(value: string, allowNewlines: boolean, allowTabs: boolean):
         code <= 0x1f ||
         (code >= 0x7f && code <= 0x9f) ||
         code === 0x061c ||
+        code === 0x200b ||
         code === 0x200e ||
         code === 0x200f ||
         (code >= 0x202a && code <= 0x202e) ||
+        code === 0x2060 ||
         (code >= 0x2066 && code <= 0x2069) ||
         code === 0xfeff
       );
