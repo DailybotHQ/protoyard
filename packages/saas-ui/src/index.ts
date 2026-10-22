@@ -1,3 +1,8 @@
+export { default as AccountGate } from './account-gate/AccountGate.svelte';
+export type {
+  AccountGateController,
+  AccountGateRequest,
+} from './account-gate/account-gate.svelte.ts';
 export { default as InboxBadge } from './components/InboxBadge.svelte';
 export { default as SsoButtons } from './components/SsoButtons.svelte';
 export { default as TrialBanner } from './components/TrialBanner.svelte';

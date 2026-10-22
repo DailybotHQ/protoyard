@@ -1,6 +1,11 @@
 import type { PrototypeRuntime } from '@protoyard/core';
 import type { BillingService } from '@protoyard/saas';
 import { getContext, hasContext, setContext } from 'svelte';
+import {
+  type AccountGateController,
+  type AccountGateRequest,
+  createAccountGate,
+} from './account-gate/account-gate.svelte.ts';
 import { type ResolvedSaasUiConfig, resolveSaasUiConfig, type SaasUiConfig } from './config.ts';
 
 const SAAS_UI_KEY = Symbol.for('protoyard.saas-ui');
@@ -12,6 +17,10 @@ const SAAS_UI_KEY = Symbol.for('protoyard.saas-ui');
 export interface SaasContext {
   runtime: PrototypeRuntime;
   config: ResolvedSaasUiConfig;
+  /** Per-prototype just-in-time account prompt; UX only, never authorization. */
+  accountGate: AccountGateController;
+  /** Check an action at the moment it happens; false means the gate was opened. */
+  requireAccount: (request: AccountGateRequest) => boolean;
   /** Optional simulated billing engine for plans / checkout / portal. */
   billing?: BillingService;
 }
@@ -34,9 +43,12 @@ export function provideSaas(
   options: ProvideSaasOptions = {}
 ): SaasContext {
   const { billing, ...config } = options;
+  const accountGate = createAccountGate(runtime.session);
   const ctx: SaasContext = {
     runtime,
     config: resolveSaasUiConfig(config),
+    accountGate,
+    requireAccount: accountGate.requireAccount,
     ...(billing ? { billing } : {}),
   };
   setContext(SAAS_UI_KEY, ctx);
