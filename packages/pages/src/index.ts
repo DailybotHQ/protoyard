@@ -4,6 +4,7 @@
  *
  * Document schemas validate the payload bodies after KINDS parses the kind
  * union. Limits are published for the untrusted loader (KINDS wires them).
+ * union. TOC builders are pure (no DOM) so deep links work before paint.
  */
 
 export {
@@ -41,6 +42,15 @@ export {
   safeParseDocDocument,
   safeParsePageDocument,
 } from './schema.ts';
+export {
+  allocateHeadingId,
+  type BuildDocTocOptions,
+  type BuildPageTocOptions,
+  buildDocToc,
+  buildPageToc,
+  type DocTocItem,
+  headingId,
+} from './toc.ts';
 export {
   PAGES_PACKAGE,
   PAGES_PACKAGE_VERSION,

@@ -84,6 +84,32 @@ before full schema parse. This package does not patch the blueprint loader.
 ## Coming next
 
 - Pure TOC builder
+## Table of contents (pure, no DOM)
+
+`buildDocToc` walks heading blocks (and nested columns/tabs/reveals) and returns
+`{ id, label, level }[]` for deep links and print. Slug rules match
+`DocsLayout` / `@protoyard/blocks` `slugifyHeading`: NFKD, strip accents,
+kebab-case, empty → `section`, collisions → `-2`, `-3`, ….
+
+| `buildDocToc(doc \| blocks, { depth? })` | Doc flow TOC; levels 2…depth (default 3 from `doc.toc.depth` or 3) |
+| `buildPageToc(page, { depth? })` | Section titles (id = anchor ?? section id) then in-section headings |
+| `headingId(label)` | Same slug as DocsLayout `headingId` |
+| `allocateHeadingId(label, used, preferredId?)` | Keep author id when unique; else slug + suffix |
+
+Level 1 headings are omitted (document title). Author `block.id` / section
+`anchor` wins when unique. Pure: never mutates the document, never touches the DOM.
+
+```ts
+import { buildDocToc, headingId } from '@protoyard/pages';
+
+const toc = buildDocToc(doc);
+// [{ id: 'getting-started', label: 'Getting Started', level: 2 }, …]
+expect(headingId('  Café  Overview! ')).toBe('cafe-overview');
+```
+
+## Coming next
+
+- `PAGE_LIMITS` / `DOC_LIMITS` for the untrusted loader
 - `formResponses` services and minimal runtimes
 - `PageApp` / `DocApp` in `@protoyard/pages-ui`
 
