@@ -5,6 +5,7 @@
  */
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import { onDestroy, onMount } from 'svelte';
+import DeckSlidePreview from '../canvas/DeckSlidePreview.svelte';
 
 let {
   deck,
@@ -195,6 +196,12 @@ function notesOf(slide: DeckSlide | undefined): string {
     <section class="grid min-h-0 gap-2 rounded-xl border border-border bg-card p-4" aria-label="Next slide">
       <p class="text-xs font-semibold text-muted-foreground uppercase">Next</p>
       {#if nextSlide}
+        <DeckSlidePreview
+          slide={nextSlide}
+          aspect={deck.style?.aspect ?? '16:9'}
+          number={index + 2}
+          label={`Preview of the next slide: ${nextSlide.title ?? nextSlide.id}`}
+        />
         <h2 class="text-lg font-semibold" data-py-presenter-next-title>{nextSlide.title ?? nextSlide.id}</h2>
         <p class="text-sm text-muted-foreground whitespace-pre-wrap" data-py-presenter-next-notes>
           {notesOf(nextSlide) || 'No notes.'}

@@ -144,7 +144,7 @@ onDestroy(() => teardown());
     role="dialog"
     aria-label="Presenter view"
   >
-    <div class="relative min-h-0 overflow-hidden border-r border-border" data-py-deck-presenter-main>
+    <div class="relative flex min-h-0 flex-col overflow-hidden border-r border-border" data-py-deck-presenter-main>
       {#if children}{@render children()}{/if}
     </div>
     <aside class="min-h-0 overflow-auto">

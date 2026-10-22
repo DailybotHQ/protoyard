@@ -77,6 +77,31 @@ import type { Deck } from '@protoyard/decks';
 
 Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
 
+### Stage and chrome
+
+- **Height.** DeckApp is a column that takes the app height (`h-app`: the
+  window, or the device screen inside a shell frame). Pass `fit="container"`
+  to fill a parent the host has already sized instead.
+- **Stage.** The stage (`data-py-deck-stage`) takes the space the chrome row
+  leaves and letterboxes in the theme's `muted` token. The virtual canvas
+  (1280×720 for 16:9, 1024×768 for 4:3, 720×1280 for 9:16, 1080×1080 for
+  1:1) is out of the flow,
+  translated to the fitted offsets and scaled, so it is centered and fully
+  visible at every aspect (16:9, 4:3, 9:16, 1:1) and viewport. A
+  `ResizeObserver` refits it on resize and orientation changes, with no
+  transition.
+- **Chrome row.** Progress, the slide counter and the presenting tools are a
+  row of their own below the stage (`data-py-deck-chrome-root`). They never
+  cover a slide, and on phones the progress bar takes its own line. In full
+  screen the chrome is hidden and the stage takes the whole screen.
+- **DevTools offset.** While the deck owns the viewport it publishes the
+  chrome row's height as `--py-devtools-offset` on `:root`, so the DevTools
+  launcher sits above the deck's tools. The property is removed on unmount and
+  not set at all with `fit="container"`.
+- **Presenter preview.** `DeckSlidePreview` (`./canvas`) renders one slide
+  with the same renderer and frame, scaled to its width, inert and hidden from
+  assistive tech. The presenter's Next panel uses it.
+
 ### Deck style
 
 `deck.style` is applied by `DeckStyleState` (`./style`), which DeckApp creates.
@@ -215,7 +240,7 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 
 | What | Measured | Gate | Where |
 | --- | --- | --- | --- |
-| `@protoyard/decks-ui/app` initial JS | 80,367 B (2026-10-22, with deck style applied; 79,262 B before) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
+| `@protoyard/decks-ui/app` initial JS | 80,845 B (2026-10-22, with the fitted stage and chrome row; 80,550 B before them) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
 | Deck style kit (lazy chunk: style resolution, library catalog, palette engine, backgrounds) | about 20 KB (2026-10-22) | not in the initial graph | `tests/budget.test.ts` |
 | All CSS emitted with it | 1,681 B (2026-10-22) | ≤ 20 KB | `tests/bundle-size.test.ts` |
 | Deck Studio panel (lazy chunk) | 3,141 B (2026-10-22) | — | measured with a Vite probe build |

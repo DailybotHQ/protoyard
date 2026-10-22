@@ -48,17 +48,26 @@ onMount(() => {
 });
 </script>
 
+<!--
+  The stage fills its positioned parent and letterboxes in the theme's muted
+  token. The canvas is taken out of the flow (absolute, top-left origin) and
+  placed at the fitted offsets, so its 1280-px layout box can never grow the
+  stage: the fit always comes from the space the host leaves.
+-->
 <div
   bind:this={viewportElement}
   role="region"
   aria-label={label}
-  class="relative grid size-full place-items-center overflow-hidden bg-background"
+  class="absolute inset-0 overflow-hidden bg-muted"
+  data-py-deck-stage
 >
   <div
     data-testid="deck-canvas"
     data-scale={fit.scale}
-    class="relative shrink-0 origin-center overflow-hidden bg-background text-foreground"
-    style={`width:${size.width}px;height:${size.height}px;transform:scale(${fit.scale});visibility:${fit.scale > 0 ? 'visible' : 'hidden'}`}
+    data-offset-x={Math.round(fit.offsetX)}
+    data-offset-y={Math.round(fit.offsetY)}
+    class="absolute top-0 left-0 origin-top-left overflow-hidden bg-background text-foreground shadow-float"
+    style={`width:${size.width}px;height:${size.height}px;transform:translate(${fit.offsetX}px, ${fit.offsetY}px) scale(${fit.scale});visibility:${fit.scale > 0 ? 'visible' : 'hidden'}`}
   >
     {#each visibleSlides as entry (entry.slide.id)}
       {@const isActive = entry.index === currentIndex}
