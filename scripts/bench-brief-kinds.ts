@@ -205,7 +205,20 @@ async function main() {
     `Kind-aware brief synthesis, ${runs} runs × ${iterations} iterations · ${machine.cpu} · ${machine.os} · Node ${machine.node}`
   );
 
-  const results = BRIEFS.map(({ id, expected, brief }) => {
+  const results: {
+    id: string;
+    expected: Kind;
+    detected: Kind;
+    matches: boolean;
+    outline: string | null;
+    archetype: string | null;
+    synthesisMs: ReturnType<typeof stats>;
+    outputBytes: number;
+    outputGzipBytes: number;
+    validates: boolean;
+    validationIssue: string | null;
+  }[] = [];
+  for (const { id, expected, brief } of BRIEFS) {
     const first = blueprintFromBrief(brief);
     const json = first.json as unknown;
     const text = JSON.stringify(json);
@@ -220,8 +233,8 @@ async function main() {
       }
       perRun.push(median(samples));
     }
-    const validation = safeParseAnyBlueprint(json);
-    return {
+    const validation = await safeParseAnyBlueprint(json);
+    results.push({
       id,
       expected,
       detected: first.kind,
@@ -235,8 +248,8 @@ async function main() {
       validationIssue: validation.success
         ? null
         : `${validation.error.issues[0]?.path.join('.') || '(root)'}: ${validation.error.issues[0]?.message ?? ''}`,
-    };
-  });
+    });
+  }
 
   const byKind = Object.fromEntries(
     (['app', 'deck', 'page', 'doc'] as const).map((kind) => {

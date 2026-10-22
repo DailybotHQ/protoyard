@@ -8,6 +8,7 @@ import { hashString } from '@protoyard/core';
 import { propsForSelectedLayout, selectDeckLayouts } from '../authoring/select-deck-layouts.ts';
 import type { ContentKind } from '../kinds/kind.ts';
 import { synthesizeDeckOutline } from './deck-outlines.ts';
+import { docBodyFromOutline, draftSlugId, pageBodyFromOutline } from './draft-bodies.ts';
 import type { BriefKindDetection } from './kind-detection.ts';
 import {
   applyOutlineBounds,
@@ -166,9 +167,8 @@ export function synthesizeDeckFromBrief(
     rationale,
     json: {
       ...base('deck', name, outline.deck.title.slice(0, 280)),
+      // DeckBodySchema is DeckSchema: style + slides only (no title/aspect keys).
       deck: {
-        title: outline.deck.title.slice(0, 80),
-        aspect: outline.deck.aspect,
         style: { aspect: outline.deck.aspect },
         slides,
       },
@@ -190,22 +190,26 @@ export function synthesizePageFromBrief(
     title: built.title,
     sections: built.sections,
   });
+  const title = (clipped.outline.title ?? built.title).slice(0, 120);
   const name = options.name?.trim()
     ? options.name.trim().slice(0, 80)
-    : pickName(source, 'page', clipped.outline.title ?? built.title);
+    : pickName(source, 'page', title);
   const rationale = [detection.reason, ...bound.notices, ...clipped.notices, ...built.rationale];
+  const sections = (clipped.outline.sections ?? built.sections) as typeof built.sections;
+  const page = pageBodyFromOutline({
+    id: draftSlugId(name, 'page-draft'),
+    title,
+    description: title,
+    sections,
+  });
   return {
     kind: 'page',
     kindDetection: detection,
     outline: built.outline,
     rationale,
     json: {
-      ...base('page', name, (clipped.outline.title ?? built.title).slice(0, 280)),
-      page: {
-        title: (clipped.outline.title ?? built.title).slice(0, 80),
-        outline: built.outline,
-        sections: clipped.outline.sections ?? built.sections,
-      },
+      ...base('page', name, title.slice(0, 280)),
+      page,
     },
   };
 }
@@ -224,22 +228,26 @@ export function synthesizeDocFromBrief(
     title: built.title,
     sections: built.sections,
   });
+  const title = (clipped.outline.title ?? built.title).slice(0, 120);
   const name = options.name?.trim()
     ? options.name.trim().slice(0, 80)
-    : pickName(source, 'doc', clipped.outline.title ?? built.title);
+    : pickName(source, 'doc', title);
   const rationale = [detection.reason, ...bound.notices, ...clipped.notices, ...built.rationale];
+  const sections = (clipped.outline.sections ?? built.sections) as typeof built.sections;
+  const doc = docBodyFromOutline({
+    id: draftSlugId(name, 'doc-draft'),
+    title,
+    description: title,
+    sections,
+  });
   return {
     kind: 'doc',
     kindDetection: detection,
     outline: built.outline,
     rationale,
     json: {
-      ...base('doc', name, (clipped.outline.title ?? built.title).slice(0, 280)),
-      doc: {
-        title: (clipped.outline.title ?? built.title).slice(0, 80),
-        outline: built.outline,
-        sections: clipped.outline.sections ?? built.sections,
-      },
+      ...base('doc', name, title.slice(0, 280)),
+      doc,
     },
   };
 }

@@ -12,7 +12,7 @@ export {
   describeLayouts as describeDeckLayouts,
   getDeckLayout,
 } from '@protoyard/decks/layouts';
-export { lintDeckStructure } from './authoring/deck-lint.ts';
+export { lintDeckAssets, lintDeckContent, lintDeckStructure } from './authoring/deck-lint.ts';
 export { propsForSelectedLayout, selectDeckLayouts } from './authoring/index.ts';
 export { validateBlueprintForAuthoring } from './authoring-validation.ts';
 export {

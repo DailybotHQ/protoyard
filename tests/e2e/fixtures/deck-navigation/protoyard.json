@@ -1,0 +1,8 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "fixture.deck-navigation",
+  "slug": "deck-navigation",
+  "name": "Deck navigation E2E fixture",
+  "version": "0.1.0",
+  "storage": { "namespace": "fixture-deck-navigation", "schemaVersion": 1 }
+}

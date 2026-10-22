@@ -2,7 +2,7 @@
 import { forEachBlock } from '@protoyard/blocks';
 import { setBlockHost } from '@protoyard/blocks-ui';
 import { allocateHeadingId, buildDocToc, type DocDocument } from '@protoyard/pages';
-import DocsLayout from '../../../ui/src/layouts/DocsLayout.svelte';
+import DocsLayout from '@protoyard/ui/layouts/docs';
 import { BlockHost } from '../block-host/index.ts';
 
 /**

@@ -1,7 +1,6 @@
 /**
- * Shared entry: family metadata and package identity only. PageApp, DocApp,
- * form UI and print CSS live on their family subpaths so they stay out of
- * initial bundles (ADR-039, PLAN_005 scaffold).
+ * Shared entry: family metadata, BlockHost, and PageApp/DocApp shells.
+ * Lazy family subpaths keep print/form chunks out of the initial graph.
  */
 export type { PagesPackageIdentity } from '@protoyard/pages';
 export { PAGES_PACKAGE, PAGES_PACKAGE_VERSION } from '@protoyard/pages';
@@ -14,7 +13,8 @@ export {
   resolvePageBlock,
   UnknownBlock,
 } from './block-host/index.ts';
-export { DOC_UI_SUBPATH, DocHost } from './doc/index.ts';
+export { DOC_UI_SUBPATH, DocApp, DocHost } from './doc/index.ts';
 export { PAGE_UI_FAMILIES, type PageUiFamily } from './families.ts';
-export { PAGE_UI_SUBPATH, PageHost } from './page/index.ts';
+export { getFormServices, setFormServices } from './form/context.ts';
+export { PAGE_UI_SUBPATH, PageApp, PageHost } from './page/index.ts';
 export { PAGES_UI_PACKAGE_NAME, PAGES_UI_PACKAGE_VERSION } from './version.ts';

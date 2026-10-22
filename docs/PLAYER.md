@@ -150,14 +150,7 @@ The player generates worlds in a module Web Worker. The worker graph is 200 KB
 gzip, with Faker's English locale only, and
 `packages/player/tests/worker-bundle.test.ts` budgets it at 250 KB.
 
-The `@protoyard/pages` runtime-definition helpers,
-`definePrototypeFromPage` and `definePrototypeFromDoc`, provide the minimal
-definitions for page and doc entries. They use a single empty `default`
-scenario with a context-free world generator, so calling them does not load the
-app blueprint generator or Faker. Their database has a `formResponses` store
-only when the document contains a form block. Kind-entry wiring is owned by
-the KINDS tasks; see
-[`@protoyard/pages`](../packages/pages/README.md#minimal-runtimes).
+Page and doc runtimes come from `@protoyard/blueprint/kinds` (`defineKindRuntime`, or `definePrototypeFromPage` / `definePrototypeFromDoc` wrappers). See [`@protoyard/blueprint/kinds`](../packages/blueprint/README.md) and [`@protoyard/pages`](../packages/pages/README.md).
 
 Generated worlds are cached by content address in `protoyard.player.worlds`:
 - **Key:** blueprint SHA-256, scenario id, seed, scenario digest and generator
@@ -310,3 +303,12 @@ from its blueprint and validate the generated application:
 pnpm protoyard generate my-prototype --blueprint path/to/blueprint.json
 pnpm protoyard validate my-prototype --build
 ```
+
+## Content kinds (page and doc)
+
+When the blueprint `kind` is `page` or `doc`, the player mounts
+`@protoyard/pages-ui` `PageApp` / `DocApp` with the runtime from
+`defineKindRuntime` (`@protoyard/blueprint/kinds`). Form responses use
+`createFormServices` from `@protoyard/pages` (same store and capabilities as
+the kind services layer).
+

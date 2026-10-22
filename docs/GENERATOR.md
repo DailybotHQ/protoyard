@@ -69,8 +69,11 @@ would lose data.
 
 For a JSON editor with autocompletion, set `"$schema"` to
 `packages/blueprint/schema/blueprint.schema.json` (relative to the file). The
-JSON Schema covers the shape; the cross-reference checks run in `parseBlueprint`. Agent
-authoring tools can call `validateBlueprintForAuthoring(input)` from
+draft 2020-12 schema is a strict `oneOf` for app, deck, page and doc blueprints;
+the app branch retains its existing shape. It covers structural constraints;
+cross-reference checks run in `parseBlueprint` or `parseAnyBlueprint`.
+`blueprintJsonSchema()` loads the kind schemas asynchronously when requested.
+Agent authoring tools can call `validateBlueprintForAuthoring(input)` from
 `@protoyard/blueprint` to get a full validity flag and diagnostics with JSON paths and repair
 hints. The result uses `BlueprintSchema`, so a shape-only JSON Schema pass is not reported as
 full blueprint validity. Existing `parseBlueprint` and `safeParseBlueprint` behavior is
@@ -772,3 +775,10 @@ Build a Protoyard prototype for <product> from a blueprint.
 - Adding or removing `brand` on regeneration regenerates `brand-theme.ts` but
   does not rewire `src/prototype.ts` or `defaultTheme` (they are set on the
   first generation only).
+
+## Generated page and doc apps
+
+Level-2 `generate` for `kind: "page"` / `kind: "doc"` should import the same
+`PageApp` / `DocApp` entry components the player uses (`@protoyard/pages-ui/page`
+and `…/doc`), with `defineKindRuntime` so behaviour matches level 1.
+

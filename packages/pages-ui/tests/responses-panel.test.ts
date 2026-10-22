@@ -1,8 +1,8 @@
 import type { FormBlock as FormBlockData } from '@protoyard/blocks';
+import { definePrototypeFromPage } from '@protoyard/blueprint/kinds';
 import type { PrototypeDefinition, PrototypeRuntime, WorldSeed } from '@protoyard/core';
 import {
   createFormServices,
-  definePrototypeFromPage,
   FORM_CAPABILITIES,
   type FormServices,
   PageDocumentSchema,

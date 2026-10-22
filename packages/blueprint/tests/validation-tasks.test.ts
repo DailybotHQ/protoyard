@@ -168,10 +168,13 @@ describe('validation.tasks schema', () => {
     );
   });
 
-  it('is part of the JSON Schema export', () => {
-    const schema = blueprintJsonSchema() as { properties: Record<string, unknown> };
-    expect(schema.properties.validation).toBeDefined();
-    expect(JSON.stringify(schema.properties.validation)).toContain('count>=');
+  it('is part of the app branch of the JSON Schema export', async () => {
+    const schema = (await blueprintJsonSchema()) as {
+      oneOf: { properties: Record<string, unknown> }[];
+    };
+    const validation = schema.oneOf[0]?.properties.validation;
+    expect(validation).toBeDefined();
+    expect(JSON.stringify(validation)).toContain('count>=');
   });
 });
 

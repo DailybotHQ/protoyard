@@ -12,7 +12,8 @@
     "./style": "./src/style/index.ts",
     "./quality": "./src/quality/index.ts",
     "./text": "./src/text/index.ts",
-    "./presenter": "./src/presenter/index.ts"
+    "./presenter": "./src/presenter/index.ts",
+    "./patch": "./src/patch/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -67,6 +68,11 @@
         "types": "./dist/text/index.d.ts",
         "import": "./dist/text/index.js",
         "default": "./dist/text/index.js"
+      },
+      "./patch": {
+        "types": "./dist/patch/index.d.ts",
+        "import": "./dist/patch/index.js",
+        "default": "./dist/patch/index.js"
       }
     },
     "types": "./dist/index.d.ts"

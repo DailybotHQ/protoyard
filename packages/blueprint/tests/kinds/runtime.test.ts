@@ -121,7 +121,7 @@ describe('defineKindRuntime', () => {
       'presenter',
       'viewer',
     ]);
-    expect(definition.policy?.roles.viewer).toEqual([]);
+    expect(definition.policy?.roles.viewer).toEqual(['form:submit', 'form:read']);
     expect(definition.themes).toBeUndefined();
     expect(defineKindRuntime(deck(), { namespace: NAMESPACE }).manifest.category).toBe('deck');
   });
@@ -270,7 +270,7 @@ describe('kind runtime and services on a real runtime', () => {
     expect(services.blockStates.read(key)).toBeUndefined();
   });
 
-  it('asserts the simulated policy: viewers only look', async () => {
+  it('asserts the simulated policy: viewers cannot mutate interactive blocks but may submit forms', async () => {
     const { runtime, services } = await boot();
     await runtime.session.switchActor(KIND_PERSONAS.viewer);
     await expect(
@@ -278,11 +278,10 @@ describe('kind runtime and services on a real runtime', () => {
         type: 'increment',
       })
     ).rejects.toBeInstanceOf(PermissionDeniedError);
-    await expect(
-      services.responses.submit('signup', { email: 'v@example.com' })
-    ).rejects.toBeInstanceOf(PermissionDeniedError);
+    const saved = await services.responses.submit('signup', { email: 'v@example.com' });
+    expect(saved.personaId).toBe('viewer');
     expect(await rows(runtime, 'blockStates')).toEqual([]);
-    expect(await rows(runtime, 'formResponses')).toEqual([]);
+    expect(await rows(runtime, 'formResponses')).toHaveLength(1);
   });
 
   it('goes through environment.run: an offline environment fails the write and stores nothing', async () => {
@@ -306,28 +305,32 @@ describe('kind runtime and services on a real runtime', () => {
       plan: 'team',
     });
     expect(first).toMatchObject({
-      id: 'resp_000001',
       documentId: NAMESPACE,
       formId: 'signup',
       personaId: 'presenter',
       values: { email: 'rowan@example.com', team: 12, plan: 'team' },
     });
-    expect(first.submittedAt).toBe(runtime.clock.now().toISOString());
+    expect(first.createdAt).toBe(runtime.clock.now().toISOString());
+    expect(first.id).toMatch(/^response-/);
 
     const bad = services.responses.submit('signup', { email: 'not-an-email', team: 0, extra: 1 });
     await expect(bad).rejects.toBeInstanceOf(FormResponseError);
     const error = (await bad.catch((e: unknown) => e)) as FormResponseError;
-    expect(Object.keys(error.issues).sort()).toEqual(['', 'email', 'team'].sort());
+    expect(Object.keys(error.issues).sort()).toEqual(['email', 'form', 'team'].sort());
     await expect(services.responses.submit('nope', {})).rejects.toThrow(/No form "nope"/);
     await expect(services.responses.submit('favorite', {})).rejects.toThrow(/No form "favorite"/);
 
     await runtime.session.switchActor(KIND_PERSONAS.audience);
     await services.responses.submit('signup', { email: 'sam@example.com' });
-    expect((await services.responses.list('signup')).map((r) => r.personaId)).toEqual(['audience']);
-    await runtime.session.switchActor(KIND_PERSONAS.presenter);
-    expect((await services.responses.list()).map((r) => r.personaId)).toEqual([
-      'presenter',
+    // form:read is granted to audience and presenter — both see every response.
+    expect((await services.responses.list('signup')).map((r) => r.personaId).sort()).toEqual([
       'audience',
+      'presenter',
+    ]);
+    await runtime.session.switchActor(KIND_PERSONAS.presenter);
+    expect((await services.responses.list()).map((r) => r.personaId).sort()).toEqual([
+      'audience',
+      'presenter',
     ]);
   });
 
@@ -355,5 +358,52 @@ describe('kind runtime and services on a real runtime', () => {
     expect(findDocumentBlock(doc, 'claps')).toMatchObject({ type: 'counter' });
     expect(findDocumentBlock(doc, 'signup')).toMatchObject({ type: 'form' });
     expect(findDocumentBlock(doc, 'nothing')).toBeNull();
+  });
+});
+
+describe('page form through kind runtime (lead form contract)', () => {
+  function pageDoc(): AnyContentBlueprint {
+    return {
+      formatVersion: 1,
+      name: 'Landing with form',
+      description: 'Page form persistence through defineKindRuntime.',
+      tags: ['page'],
+      kind: 'page',
+      page: {
+        id: 'landing-form',
+        title: 'Landing',
+        sections: [
+          {
+            id: 'waitlist',
+            role: 'cta',
+            blocks: [blocks.form],
+          },
+        ],
+        forms: [{ formId: 'signup', sectionId: 'waitlist' }],
+      },
+    } as unknown as AnyContentBlueprint;
+  }
+
+  it('submits and lists a page form through createKindServices / createFormServices', async () => {
+    const doc = pageDoc();
+    // Validate the form block against the real schema.
+    expect(BlockSchema.parse(blocks.form).type).toBe('form');
+    const { runtime, services } = await boot(doc);
+    const saved = await services.responses.submit('signup', {
+      email: 'ada@example.com',
+      team: 3,
+      plan: 'free',
+    });
+    expect(saved).toMatchObject({
+      formId: 'signup',
+      personaId: 'presenter',
+      documentId: NAMESPACE,
+      values: { email: 'ada@example.com', team: 3, plan: 'free' },
+    });
+    expect(saved.createdAt).toBeTruthy();
+    const listed = await services.responses.list('signup');
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.id).toBe(saved.id);
+    expect(await rows(runtime, 'formResponses')).toHaveLength(1);
   });
 });
