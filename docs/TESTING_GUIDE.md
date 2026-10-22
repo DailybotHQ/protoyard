@@ -36,12 +36,20 @@ All commands run from the repository root. Labels: **full** runs everything;
 | E2E (gallery) | `pnpm test:e2e` | full |
 | E2E incl. prototypes | `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo pnpm test:e2e` | full |
 | Player sources, share links, embed, reload persistence and namespace isolation (desktop + Pixel 7) | `PROTOYARD_E2E_PLAYER=1 pnpm exec playwright test tests/e2e/player.spec.ts` | scoped |
-| Hosted player: paste and share, scenario and persona switch, a mutation, share-route reload, axe | `PROTOYARD_E2E_SHOWCASE=1 pnpm test:e2e tests/e2e/showcase.spec.ts` | scoped |
+| Hosted player: app/deck/page/doc share links, kind-specific ready state, deck navigation and reload at root and base path; paste/share, scenario and persona switch, mutation, axe | `PROTOYARD_E2E_SHOWCASE=1 pnpm exec playwright test tests/e2e/showcase.spec.ts` (run with `PROTOYARD_E2E_SHOWCASE_BASE=/` and `/protoyard/`) | scoped |
+| Deck navigation on the built catalog fixture (hash/steps, keyboard, guarded clicks, overview, fullscreen, swipe, reduced motion; desktop + Pixel 7) | `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-navigation.spec.ts` (port `PROTOYARD_E2E_DECK_PORT`, default 4891) | scoped |
+| Deck presenter, presenting tools and print (popup sync, blocked-popup and no-BroadcastChannel fallback, notes, clock-driven timers, blackout, laser, `?print=1`, PDF one page per slide; desktop + Pixel 7) | `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-presenter.spec.ts` (same deck port) | scoped |
+| Claude artifact harness: packed app (`artifact-pack.spec.ts`) and packed deck (`deck-artifact.spec.ts`) in an isolated iframe viewer | `pnpm exec playwright test tests/e2e/artifact-pack.spec.ts tests/e2e/deck-artifact.spec.ts` (self-started harness; packs `relay-chat-demo` and `create-anything-deck`) | scoped |
 | Quick loop: brief → quick → serve → ready (axe), per-variant persistence and isolation, compare.html namespaces, a review comment → review/comments.json and REVIEW.md, quick iterate live reload with rows kept, a validation task → quick report, quick shot or its recorded skip (desktop + Pixel 7) | `PROTOYARD_E2E_QUICK=1 pnpm exec playwright test tests/e2e/quick.spec.ts` (ports `PROTOYARD_E2E_QUICK_PORT`, 4878, and the next; rebuilds the player once, `PROTOYARD_E2E_QUICK_PLAYER=prebuilt` skips it) | scoped |
 | Public guides: every allowlisted guide has a source, every link and anchor resolves; with `--built`, every /docs/ route and the search index; with `--sitemap`, every sitemap `<loc>` is a built page | `pnpm exec tsx scripts/check-public-docs.ts [--built apps/gallery/dist] [--sitemap artifacts/showcase]` (after `pnpm build:showcase`: `--built artifacts/showcase --sitemap artifacts/showcase`, which also refuses a noindex page in the sitemap) | scoped |
 | /docs/ on the served gallery: search combobox (index fetched on first use, arrow keys, Enter, Escape) and axe on /docs/ and every guide page | `pnpm test:e2e tests/e2e/docs.spec.ts` | scoped |
 | One prototype end to end | `pnpm protoyard validate crm-demo --build` | scoped |
 | Bundle size budgets (after build) | `pnpm protoyard budget --all --skip-build` | full |
+| Player app entry budget (dist suite; skipped without a build) | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/budget.test.ts` | scoped |
+| Player per-kind entry budgets (`index`/`deck`/`page`/`doc.html`; content-kind graph exclusions; skipped without a build) | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/kind-budget.test.ts` | scoped |
+| Player ready-time bench by kind (report-only; no threshold) | `pnpm --filter @protoyard/player build && pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc` (writes `tmp/bench-player-*.json`) | scoped |
+| Player bench helpers (unit) | `pnpm vitest run scripts/tests/bench-player.test.ts` | scoped |
+| Brief synthesis by kind (report-only) | `pnpm exec tsx scripts/bench-brief-kinds.ts --runs 3` (writes `tmp/bench-brief-kinds-*.json`) | scoped |
 | Package tarball consumer loop (pnpm) | `pnpm build:packages && pnpm verify:packages` | full |
 | Package tarball consumer loop (npm) | `pnpm build:packages && pnpm verify:packages --pm npm` | full |
 | Package tarball lint (every publishable package must pass) | `pnpm build:packages && pnpm check:packages --require-all` | full |
@@ -76,7 +84,7 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Visual QA sweep (contact sheet, see below) | `pnpm visual:sweep --only crm-demo,mobile-banking-demo` | scoped |
 | Visual sweep logic (matrix, flags, PNG decode, contact sheet) | `pnpm vitest run tests/scripts/visual-sweep.test.ts` | scoped |
 | Deck visual QA sweep (unit) | `pnpm vitest run scripts/tests/deck-sweep.test.ts` | scoped |
-| Deck visual QA sweep (browser fixture) | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` | scoped |
+| Deck visual QA sweep (browser fixture; private loopback port) | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` (writes `tmp/deck-sweep/`; optional `--port`) | scoped |
 | Thumbnails stay deterministic | `pnpm exec tsx scripts/generate-thumbnails.ts crm-demo --check` | scoped |
 
 `protoyard spec <slug> --check` (or `spec --all --check`) is the drift check
@@ -136,7 +144,8 @@ targets are opt-in through environment variables:
 | Variable | Effect | Ports |
 | --- | --- | --- |
 | `PROTOYARD_E2E_PROTOTYPES=crm-demo,mobile-banking-demo` | Build and serve the listed prototypes for prototype and viewport tests | One server per slug from `4401`, in list order |
-| `PROTOYARD_E2E_SHOWCASE=1` | Include the combined gallery + prototype showcase | `4501`; `PROTOYARD_E2E_SHOWCASE_BASE=/path/` sets its public base |
+| `PROTOYARD_E2E_SHOWCASE=1` | Include the combined gallery + prototype showcase (hosted `/play/` for app, deck, page and doc share links) | `4501`; `PROTOYARD_E2E_SHOWCASE_BASE=/path/` sets its public base |
+| `PROTOYARD_E2E_DECK=1` | Build and serve the catalog deck fixture for `deck-navigation.spec.ts` and `deck-presenter.spec.ts` (also starts when either path is named on the Playwright argv) | `4891`; `PROTOYARD_E2E_DECK_PORT` overrides the port |
 | `PROTOYARD_E2E_DEVTOOLS_PROTOTYPES=mobile-banking-demo` | Also build the listed prototypes WITH DevTools into `tmp/e2e-devtools/<slug>` and serve them, for `tests/e2e/pending-feedback.spec.ts` (the standard builds stay DevTools-free) | One server per slug from `4451` (`PROTOYARD_E2E_DEVTOOLS_PORT_BASE` overrides it) |
 | `PROTOYARD_E2E_REVIEW=1` | Run the review-index page against the checked-in fixture ledger, with no deploy | `4502`; `PROTOYARD_E2E_REVIEW_PORT` overrides the port |
 | `PROTOYARD_E2E_COMMENTS_PROTOTYPES=crm-demo,mobile-banking-demo` | Build the listed prototypes with `PROTOYARD_REVIEW=1` into `tmp/e2e-comments/<slug>` for `tests/e2e/review-comments.spec.ts`; the first one is also built with the `http` adapter and served with the comments handler on an in-memory store (two reviewers) | One server per slug from `4601` (`PROTOYARD_E2E_COMMENTS_PORT_BASE`); the shared server on `4651` (`PROTOYARD_E2E_COMMENTS_SHARED_PORT`) |
@@ -229,7 +238,13 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | `packages/renderer-svelte/src/mount.ts` (build options) | `pnpm vitest run packages/renderer-svelte/tests/mount-build-options.test.ts` | runtime build options |
 | `packages/renderer-svelte/src/avatars-plugin.ts` | `pnpm vitest run packages/renderer-svelte/tests/avatars-resolution.test.ts packages/renderer-svelte/tests/avatars-build.test.ts` | avatar assets through package resolution |
 | `packages/player/src/**` | `pnpm vitest run packages/player` (`boot.test.ts` first), plus `pnpm --filter @protoyard/player build` | player unit and integration |
-| `packages/player/**`, `packages/player/vite.config.ts` (size) | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/budget.test.ts` (the dist suite is skipped without a build) | initial JS and CSS budget on the built player |
+| `packages/player/**`, `packages/player/vite.config.ts` (size) | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player/tests/budget.test.ts packages/player/tests/kind-budget.test.ts` (dist suites are skipped without a build) | app and per-kind initial JS/CSS budgets; content-kind static graphs exclude Faker, world worker, CRUD and DevTools |
+| `scripts/bench-player.ts` (ready time by kind) | `pnpm vitest run scripts/tests/bench-player.test.ts`; browser sample: `pnpm --filter @protoyard/player build && pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc` | unit helpers + report-only browser bench (JSON under `tmp/`) |
+| `scripts/sweep-deck.ts`, `scripts/lib/deck-sweep.ts` | `pnpm vitest run scripts/tests/deck-sweep.test.ts`; browser: `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` | unit classification + opt-in browser fixture sweep |
+| `packages/decks-ui/src/**` (DeckApp, navigation, input) | `pnpm vitest run packages/decks-ui` + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-navigation.spec.ts` | component + built-catalog browser E2E |
+| `packages/decks-ui/src/{presenter,print,chrome}/**` | `pnpm vitest run packages/decks-ui` + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/deck-presenter.spec.ts` | presenter, tools and print browser E2E |
+| `packages/cli` artifact export, packed `page.html` | `pnpm exec playwright test tests/e2e/artifact-pack.spec.ts tests/e2e/deck-artifact.spec.ts` (harness in `tests/e2e/support/artifact-harness.ts`) | opt-in artifact viewer harness (app + deck) |
+| Hosted `/play/` kind share links | `PROTOYARD_E2E_SHOWCASE=1 pnpm exec playwright test tests/e2e/showcase.spec.ts` (fixtures in `tests/e2e/targets.ts` `SHOWCASE_KIND_TARGETS`) | opt-in static showcase E2E for app, deck, page and doc |
 | `packages/cli/src/commands/quick/**`, `packages/cli/src/lib/quick/**` | `pnpm vitest run packages/cli/tests/quick` (every `quick*.test.ts`); focused: `quick-serve.test.ts`, `quick-variants.test.ts` + `quick.test.ts`, `quick-player-assets.test.ts` (its real-build case needs `pnpm --filter @protoyard/player build`) | CLI integration (temporary workspaces) |
 | `packages/cli/src/lib/capture/**` (shared with `scripts/visual-sweep.ts` and the thumbnails) | `pnpm vitest run packages/cli/tests/capture.test.ts tests/scripts/visual-sweep.test.ts` | readiness wait, PNG decode |
 | `packages/cli/src/lib/workspace.ts` (package lookup), `packages/cli/src/runners/inspect-prototype.ts`, `packages/cli/src/commands/blueprint.ts` (`$schema`) | `pnpm vitest run packages/cli/tests/package-resolution.test.ts` | packages found by Node resolution |
@@ -290,9 +305,10 @@ A command that exits 0 after selecting nothing is not evidence. Check the
   Node and the handler with an in-memory store are tested. KV's eventual
   consistency cannot be reproduced locally.
 - The dist-parity and prebuilt-player suites (`package-dist-parity.test.ts`,
-  `packages/player/tests/budget.test.ts`) are skipped when `dist/` is missing,
-  so a local `pnpm test` without a package build does not run them. The CI
-  `packages` job builds first, so they always run there.
+  `packages/player/tests/budget.test.ts`, `packages/player/tests/kind-budget.test.ts`)
+  are skipped when `dist/` is missing, so a local `pnpm test` without a package
+  build does not run them. The CI `packages` job builds first, so they always
+  run there.
 - The MCP tests drive the real `protoyard mcp` process with JSON-RPC written
   by the test helper. No round trip with an MCP SDK client has been run.
 - GitHub-hosted runner timing varies. Cold-start numbers are uploaded as
@@ -332,6 +348,78 @@ selects zero tests is reported as a failure, not a pass.
 
 No coverage quotas or test-count targets. A behavior change comes with a test
 that would have failed before it.
+
+## Blueprint kinds (deck, page, doc): default suite vs opt-in
+
+PLAN_005 adds content kinds beside apps. Their checks split into three tiers.
+Use the matching tier; do not promote a report-only bench into a gate without
+calibrated thresholds in [PERFORMANCE.md](PERFORMANCE.md).
+
+### Default unit and integration suite (`pnpm test`)
+
+These run in the ordinary Vitest job. Dist-dependent rows skip cleanly when
+`packages/player/dist/` is missing.
+
+| Check | Command | Notes |
+| --- | --- | --- |
+| Deck sweep classification | `pnpm vitest run scripts/tests/deck-sweep.test.ts` | Report parsing, severity policy, noise classifiers |
+| Player bench helpers | `pnpm vitest run scripts/tests/bench-player.test.ts` | Arg and sample shaping for the browser bench |
+| Deck / page / doc package unit tests | `pnpm vitest run packages/decks packages/decks-ui packages/pages packages/pages-ui packages/blocks packages/blocks-ui` | Schema, hosts, blocks |
+| Player unit tests | `pnpm vitest run packages/player` | Boot and kind routing without a production build |
+| Kind entry budgets (when `dist/` exists) | `pnpm vitest run packages/player/tests/kind-budget.test.ts` | Enforced 150 KB JS / 30 KB CSS for deck, page, doc; 250 KB / 30 KB for the app entry |
+
+### Opt-in browser and static-host checks
+
+These need a private Playwright config in a lane (COMMON.md ports), or the
+root config with the env flags below. They are **not** part of a bare
+`pnpm test`. CI's E2E job turns showcase on; deck and artifact specs are
+selected by path or by their own harness.
+
+| Check | Setup | Command |
+| --- | --- | --- |
+| Hosted kind showcase | `PROTOYARD_E2E_SHOWCASE=1`; also run with `PROTOYARD_E2E_SHOWCASE_BASE=/protoyard/` | `pnpm exec playwright test tests/e2e/showcase.spec.ts` |
+| Deck navigation | `PROTOYARD_E2E_DECK=1` (or name the spec on argv so the fixture server starts) | `pnpm exec playwright test tests/e2e/deck-navigation.spec.ts` |
+| Deck presenter and print | Same deck server as navigation | `pnpm exec playwright test tests/e2e/deck-presenter.spec.ts` |
+| Artifact harness (app) | Self-started; exports `relay-chat-demo` once under `artifacts/` | `pnpm exec playwright test tests/e2e/artifact-pack.spec.ts` |
+| Artifact harness (deck) | Self-started; exports `create-anything-deck` | `pnpm exec playwright test tests/e2e/deck-artifact.spec.ts` |
+| Deck visual QA sweep | Private loopback port (ephemeral or `--port`); never gallery 4321 / 4500 / 4501 | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` |
+| Prototype visual sweep | Review contact sheet; not a pixel gate | `pnpm visual:sweep --only <slug…>` |
+
+Lane runs copy `playwright.config.ts` to a private file and move ports to the
+lane range (flex lane L uses `493x`). Never kill shared gallery ports.
+
+### Report-only performance samples
+
+No threshold is set from uncalibrated samples. Numbers live under `tmp/` and
+are documented in [PERFORMANCE.md](PERFORMANCE.md) when a measured run is
+recorded. Setup is always: build the player first, exclude build time from
+the sample, use a fresh Chromium context per visit.
+
+```bash
+pnpm --filter @protoyard/player build
+pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc
+ls tmp/bench-player-*.json
+
+pnpm exec tsx scripts/bench-brief-kinds.ts --runs 3
+ls tmp/bench-brief-kinds-*.json
+```
+
+### Enforced per-kind bundle gates
+
+After a player production build:
+
+```bash
+pnpm --filter @protoyard/player build
+pnpm vitest run packages/player/tests/budget.test.ts packages/player/tests/kind-budget.test.ts
+```
+
+`kind-budget.test.ts` walks each of `index.html`, `deck.html`, `page.html` and
+`doc.html` as the sole Vite entry, asserts the configured gzip caps (see
+`protoyard.budgets.json` `kinds.*` and [PERFORMANCE.md](PERFORMANCE.md#player-bundle-budget-measured-2026-10-20)),
+and proves content-kind static graphs omit Faker, the world-generation worker,
+CRUD screens/app and DevTools. Host-only package budgets for PageApp and DocApp
+live in `packages/pages-ui/tests/budget.test.ts`; the DeckApp entry budget lives
+in `packages/decks-ui/tests/bundle-size.test.ts`.
 
 ## Visual QA sweep
 
