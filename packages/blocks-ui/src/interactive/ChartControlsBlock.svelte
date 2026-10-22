@@ -82,7 +82,7 @@ function setSeriesVisible(index: number, checked: boolean) {
         <label class="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            class="size-4 rounded border-border"
+            class="size-4 rounded border-border outline-none focus-visible:ring-2 focus-visible:ring-ring"
             {checked}
             disabled={ctl.pending}
             aria-label="Show {row.label}"
@@ -105,11 +105,12 @@ function setSeriesVisible(index: number, checked: boolean) {
           From
           <input
             type="number"
-            class="w-16 rounded border border-border px-1 py-0.5 tabular-nums"
+            class="w-16 rounded border border-border px-1 py-0.5 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={0}
             max={max - 1}
             value={range[0]}
             disabled={ctl.pending}
+            aria-label="Label range start"
             onchange={(e) => {
               const start = Number((e.currentTarget as HTMLInputElement).value);
               const end = Math.max(start + 1, range[1]);
@@ -121,11 +122,12 @@ function setSeriesVisible(index: number, checked: boolean) {
           To
           <input
             type="number"
-            class="w-16 rounded border border-border px-1 py-0.5 tabular-nums"
+            class="w-16 rounded border border-border px-1 py-0.5 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={1}
             max={max}
             value={range[1]}
             disabled={ctl.pending}
+            aria-label="Label range end"
             onchange={(e) => {
               const end = Number((e.currentTarget as HTMLInputElement).value);
               const start = Math.min(range[0], end - 1);

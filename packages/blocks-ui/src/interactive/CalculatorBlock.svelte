@@ -53,24 +53,26 @@ function setInput(name: string, raw: string | number) {
         {#if control === 'number'}
           <input
             type="number"
-            class="rounded-md border border-border bg-background px-2 py-1.5 tabular-nums"
+            class="rounded-md border border-border bg-background px-2 py-1.5 tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={input.min}
             max={input.max}
             step={input.step ?? 'any'}
             value={current}
             disabled={ctl.pending}
+            aria-label={input.label}
             aria-valuetext={valueText}
             onchange={(e) => setInput(input.name, (e.currentTarget as HTMLInputElement).value)}
           />
         {:else}
           <input
             type="range"
-            class="w-full"
+            class="w-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
             min={input.min}
             max={input.max}
             step={input.step ?? (input.max - input.min) / 100}
             value={current}
             disabled={ctl.pending}
+            aria-label={input.label}
             aria-valuemin={input.min}
             aria-valuemax={input.max}
             aria-valuenow={current}
