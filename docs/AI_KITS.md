@@ -53,7 +53,7 @@ work through the prototype’s services.
 
 | Package | Role | Entry |
 | --- | --- | --- |
-| `@protoyard/ai` | Engine: conversations, packs, agents, tools, safe markdown, scenario fixtures, voice session | `.` · `./packs` · `./scenarios` · `./voice` |
+| `@protoyard/ai` | Engine: conversations, packs, agents, tools, suggestion/approval loop, safe markdown, scenario fixtures, voice session | `.` · `./approvals` · `./packs` · `./scenarios` · `./voice` · `./chart` · `./markdown` |
 | `@protoyard/ai-ui` | Svelte 5 UI: workspace, composer, virtualized list, rich answers, canvas, voice panel, widget | `.` · `./voice` · `./widget` · `./styles.css` |
 
 Lazy subpaths (`ai/scenarios`, `ai/voice`, `ai-ui/voice`, `ai-ui/widget`) keep
@@ -137,6 +137,27 @@ const run = agent.start('Look up this customer and add a follow-up note.');
   `cancel()` ends a running or paused run.
 - Failure branches are deterministic for the same seed, run id, call order and
   tool name.
+
+### Suggestion and approval loop
+
+Pure detect → suggest → decide transitions with autonomy levels (1 inform · 2
+suggest · 3 act with approval · 4 act within limits), area caps, audit entries
+and **proposed** effects. The engine does not persist or execute; services
+carry `effects` out. Default areas: `records`, `notifications`, `workspace`,
+`external` (capped so external messaging always asks first). Import from
+`@protoyard/ai` or `@protoyard/ai/approvals`. Complements per-tool
+`requiresApproval` on the agent runner. Simulated only — label it in the UI.
+
+```ts
+import { DEFAULT_AUTONOMY, suggestFromCandidate, decideSuggestion } from '@protoyard/ai/approvals';
+
+const transition = suggestFromCandidate(candidate, DEFAULT_AUTONOMY, {
+  now: clock.now().toISOString(),
+  scopeId: workspaceId,
+  buildEffects: (suggestion) => ({ apply: { /* … */ }, notify: { /* … */ } }),
+});
+// service appends transition.audit and, after confirm/approve/auto, runs transition.effects
+```
 
 ### Scenario fixtures (lazy)
 

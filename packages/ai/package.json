@@ -7,6 +7,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./approvals": "./src/approvals/index.ts",
     "./attention": "./src/attention/index.ts",
     "./markdown": "./src/markdown.ts",
     "./packs": "./src/packs.ts",
@@ -40,6 +41,11 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js",
         "default": "./dist/index.js"
+      },
+      "./approvals": {
+        "types": "./dist/approvals/index.d.ts",
+        "import": "./dist/approvals/index.js",
+        "default": "./dist/approvals/index.js"
       },
       "./markdown": {
         "types": "./dist/markdown.d.ts",
