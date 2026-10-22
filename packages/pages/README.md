@@ -27,6 +27,7 @@ validates the **payload bodies** after that parse.
 | `FormResponseSchema` | Bounded persisted values keyed by a form field name |
 | `FORM_RESPONSES_TABLE` / `FORM_RESPONSES_STORE_STRING` | Ordinary IndexedDB feature table name and Dexie indexes |
 | `PAGE_FEATURE_TABLES` / `PAGE_FEATURE_STORE_STRINGS` | Feature descriptors for the page/doc runtime |
+| `createFormServices` / `FORM_CAPABILITIES` | Capability-checked submit, list, guarded CSV export and clear operations |
 | `PAGE_DOCUMENT_LIMITS` | Document caps (sections ≤ 32, blocks/section ≤ 24, doc blocks ≤ 200, …) |
 | `safeParsePageDocument` / `safeParseDocDocument` | Never-throw helpers |
 | `definePrototypeFromPage` / `definePrototypeFromDoc` | Minimal, Faker-free runtime definitions with an empty default world |
@@ -52,6 +53,40 @@ finite numbers, booleans or bounded string arrays. Unsafe keys and unknown row
 fields are rejected. The values object is capped at 8 KiB and 32 entries.
 Responses use the non-reserved `formResponses` table with indexes
 `id, formId, createdAt, [formId+createdAt]` so snapshots include them.
+
+## Form response services
+
+Build the response services with the active runtime and the form blocks from
+the document. The service validates each submission against that form's field
+names, required flags, types, options and bounds, then validates the complete
+row with `FormResponseSchema` before it writes:
+
+```ts
+import { createFormServices } from '@protoyard/pages';
+
+const forms = [contactForm]; // FormBlock values with stable ids
+const responses = createFormServices(runtime, forms);
+
+const saved = await responses.submit('contact-form', {
+  email: 'ada@example.com',
+  topics: ['research'],
+});
+const rows = await responses.list('contact-form');
+const csv = await responses.exportCsv('contact-form');
+const removed = await responses.clear('contact-form');
+```
+
+`submit` requires `form:submit`; `list` and `exportCsv` require `form:read`;
+`clear` requires `form:admin`. These are simulated capabilities, not real
+authentication or data protection. Writes pass through `environment.run` and
+a Dexie transaction on `formResponses`. A form retains at most
+`PAGE_LIMITS.maxResponsesPerForm` rows; clearing is explicit. CSV output uses
+RFC 4180 quoting and prefixes formula-like text so spreadsheet software treats
+it as text. Plain numeric values remain unmodified.
+
+The minimal page/doc runtime has an empty world and policy. A host must provide
+an active simulated principal with the needed capabilities before these
+operations can succeed.
 
 Unknown keys fail. Over-limit arrays fail. Section ids, anchors, nav fragments
 and form refs are cross-checked.
@@ -92,9 +127,6 @@ if (!gate.ok) console.error(gate.issues);
 (or a content-kind branch) so paste/link loads refuse oversized page/doc bodies
 before full schema parse. This package does not patch the blueprint loader.
 
-## Coming next
-
-- Pure TOC builder
 ## Table of contents (pure, no DOM)
 
 `buildDocToc` walks heading blocks (and nested columns/tabs/reveals) and returns
@@ -143,12 +175,8 @@ contains a form block, including one nested inside columns, tabs or reveal.
 These are local prototype simulations; a form does not provide real
 authentication or data protection.
 
-## Coming next
+## Remaining integration
 
-- `PAGE_LIMITS` / `DOC_LIMITS` for the untrusted loader
-- `formResponses` services and minimal runtimes
-- Pure TOC builder
-- `formResponses` services
 - `PageApp` / `DocApp` in `@protoyard/pages-ui`
 
 

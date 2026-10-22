@@ -176,6 +176,23 @@ Components never write to the database. They call domain services in
 4. **Transaction**: `db.transaction('rw', …tables, fn)` whenever more than
    one row or table changes, so related writes land together or not at all.
 
+### Public form response services
+
+Page and doc forms use `createFormServices` from `@protoyard/pages`. It accepts
+the runtime and the document's form blocks, validates values against the
+selected form, validates the persisted row with `FormResponseSchema`, and
+writes only through the `formResponses` feature table. `submit` asserts
+`form:submit`; `list` and `exportCsv` assert `form:read`; `clear` asserts
+`form:admin`. Each write runs through the simulated environment and a Dexie
+transaction. Exported CSV cells are quoted per RFC 4180 and formula-like text
+is prefixed so spreadsheet software displays it as text.
+
+Those capabilities are simulated policy checks, not authentication or data
+protection. They must be granted by the runtime's policy to the intended
+simulated roles. The page/doc minimal runtime currently has an empty world and
+policy, so its host must provide an active simulated principal and those grants
+before these operations can succeed.
+
 From `prototypes/crm-demo/src/domain/services.ts`:
 
 ```ts
