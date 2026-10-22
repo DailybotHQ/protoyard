@@ -406,6 +406,7 @@ Every block may also carry `id`, `step`, `reveal`, `tone` (optional; interactive
 - `currency?`: string
 - `columns`: { label; align?; format? }[]
 - `rows`: ((string \| number \| null)[])[]
+- `interactive?`: { sort?; filter?; rowHighlight? }
 - `highlightRow?`: number
 
 **Limits**
@@ -1582,6 +1583,29 @@ it, whatever the surrounding host says. A slide is a fixed-size canvas scaled
 to the screen, so viewport breakpoints (`sm:`, `lg:`) would follow the phone,
 not the slide. On a slide, cards, columns and steps use fixed column counts.
 Pages and docs (`flow`) stay responsive.
+
+Tables remain read-only by default. A deck author can opt a table into local
+exploration with `interactive: { sort: true, filter: true }`; setting
+`rowHighlight: true` also highlights rows on pointer hover and keyboard focus.
+Sorting uses a stable, locale-aware comparison; filtering searches
+the formatted cell text, and the controls do not change blueprint data. Sort,
+filter and row selection live only for the mounted slide view and reset when
+the view reloads. An interactive table carries `data-py-deck-interactive`, so
+its controls and rows do not trigger deck navigation.
+
+Chart blocks show the charts-ui hover details and keyboard point navigation.
+Multi-series charts expose the chart legend as a keyboard and pointer series
+toggle. Chart interaction stays within the chart and never advances the deck.
+
+```json
+{
+  "type": "table",
+  "caption": "Projects by team",
+  "interactive": { "sort": true, "filter": true, "rowHighlight": true },
+  "columns": [{ "label": "Project" }, { "label": "Seats", "format": "number" }],
+  "rows": [["Delta", 20], ["Alpha", 4]]
+}
+```
 
 ### Contract checks
 

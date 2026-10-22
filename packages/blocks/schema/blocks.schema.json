@@ -1510,6 +1510,25 @@
           },
           "description": "Bounded table rows or comparison rows."
         },
+        "interactive": {
+          "type": "object",
+          "properties": {
+            "sort": {
+              "type": "boolean",
+              "description": "Whether viewers may sort rows by a column."
+            },
+            "filter": {
+              "type": "boolean",
+              "description": "Whether viewers may filter rows by their formatted cell text."
+            },
+            "rowHighlight": {
+              "type": "boolean",
+              "description": "Whether viewers may highlight a row while pointing, focusing or selecting it."
+            }
+          },
+          "additionalProperties": false,
+          "description": "Optional table controls that keep their state local to the mounted view."
+        },
         "highlightRow": {
           "type": "integer",
           "minimum": 0,

@@ -1,5 +1,6 @@
 <script lang="ts">
 import { type ChartBlock as ChartBlockData, ChartSpecSchema } from '@protoyard/blocks';
+import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 import {
   chartItems,
   chartSeries,
@@ -70,7 +71,12 @@ const load = (kind: string) =>
     <p class="mt-1 text-muted-foreground">{problem}</p>
   </div>
 {:else if units}
-  <figure class="m-0 grid gap-2" data-py-block="chart" data-chart-kind={spec.kind}>
+  <figure
+    class="m-0 grid gap-2"
+    data-py-block="chart"
+    data-chart-kind={spec.kind}
+    {...{ [DECK_INTERACTIVE_ATTRIBUTE]: '' }}
+  >
     {#await load(spec.kind)}
       <!-- The data is readable at once; the chart takes its place when it loads. -->
       {@render table()}
