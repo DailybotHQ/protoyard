@@ -66,7 +66,12 @@ if (!result.valid) {
 ```
 
 Each diagnostic includes a machine-readable `code`, path segments in `path`, an unambiguous
-`jsonPath`, the original validation `message` and a concise next step in `hint`. `parseBlueprint`
+`jsonPath`, the original validation `message` and a concise next step in `hint`. Block and asset
+failures map to stable codes such as `unknown-block-type`, `invalid-chart-spec`,
+`missing-alt-text`, `unsupported-url-scheme`, `invalid-step-or-fragment-target` and
+`duplicate-block-id`. Use `diagnosticsFromBlockIssues(issues, pathPrefix)` to lift
+`@protoyard/blocks` parse issues into the same shape under a deck/page/doc path. Validation never
+fetches remote assets and never renders untrusted markdown as HTML. `parseBlueprint`
 and `safeParseBlueprint` keep their existing behavior. The helper is in the package entry module
 and is tree-shakeable for consumers that do not import it.
 
