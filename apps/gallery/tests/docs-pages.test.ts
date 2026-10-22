@@ -131,6 +131,7 @@ const AGREED_PUBLIC_GUIDES = [
   'SECURITY',
   'QUICK',
   'PLAYER',
+  'DECKS',
   'PACKAGES',
   'SKILL',
   'INTERFACE',
