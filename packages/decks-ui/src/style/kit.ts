@@ -1,6 +1,7 @@
 import {
   checkDeckMediaSrc,
   DECK_TEXT_CONTRAST_MIN,
+  type DeckBackground,
   type DeckBackgroundPalette,
   type ResolvedDeckBackground,
   resolveDeckBackground,
@@ -107,6 +108,12 @@ export function backgroundSamples(bg: ResolvedDeckBackground): string[] {
       : out;
   }
   if (bg.pattern) return [bg.color, bg.pattern.ink];
+  if (bg.media) {
+    const pixels = ['#000000', '#ffffff'];
+    return bg.overlay
+      ? pixels.map((color) => mix(color, bg.overlay?.color ?? '#000000', bg.overlay?.alpha ?? 0))
+      : pixels;
+  }
   return [bg.color];
 }
 
@@ -126,6 +133,8 @@ export interface SlideSurface {
   /** `style` attribute value: CSS variables and the background, numbers and theme colors only. */
   style: string;
   warning?: string;
+  media?: ResolvedDeckBackground['media'];
+  overlay: ResolvedDeckBackground['overlay'];
 }
 
 function backgroundCss(bg: ResolvedDeckBackground): string {
@@ -158,7 +167,10 @@ function backgroundCss(bg: ResolvedDeckBackground): string {
  * background the resolver proved ≥ 4.5:1. Otherwise only the text tokens
  * that would fall under 4.5:1 on this background are raised to the ink.
  */
-export function slideSurface(background: string | undefined, palette: DeckPalette): SlideSurface {
+export function slideSurface(
+  background: DeckBackground | string | undefined,
+  palette: DeckPalette
+): SlideSurface {
   const bg = resolveDeckBackground(background, palette as unknown as DeckBackgroundPalette);
   const samples = backgroundSamples(bg);
   const naturalTone =
@@ -185,7 +197,7 @@ export function slideSurface(background: string | undefined, palette: DeckPalett
   }
   Object.assign(vars, BASE_ALIASES);
   vars.color = text.foreground;
-  vars.background = backgroundCss(bg);
+  vars.background = bg.media ? bg.color : backgroundCss(bg);
   vars['print-color-adjust'] = 'exact';
   vars['-webkit-print-color-adjust'] = 'exact';
   const style = Object.entries(vars)
@@ -199,6 +211,8 @@ export function slideSurface(background: string | undefined, palette: DeckPalett
     ink: bg.textColor,
     text,
     style,
+    ...(bg.media ? { media: bg.media } : {}),
+    overlay: bg.overlay,
     ...(bg.warning ? { warning: bg.warning } : {}),
   };
 }

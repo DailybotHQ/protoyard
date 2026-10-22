@@ -525,7 +525,11 @@ onMount(() => {
               ? `--py-deck-step:${activeStep};--py-deck-step-count:${activeStepCount}`
               : undefined}
           >
-            <DeckSlideFrame background={slide.background} number={numberOf(slide.id)}>
+            <DeckSlideFrame
+              background={slide.background}
+              mediaPreload={_index === activeIndex || _index === activeIndex + 1 ? 'auto' : 'none'}
+              number={numberOf(slide.id)}
+            >
               <SlideStepHost {slide} step={stepOf(slide)}>
                 <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
               </SlideStepHost>

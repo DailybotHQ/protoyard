@@ -1,3 +1,4 @@
+import type { DeckBackground } from '@protoyard/decks';
 import type { DeckStyle } from '@protoyard/decks/schema';
 import { getContext, setContext } from 'svelte';
 import type { DeckMode, DeckStyleResolution, SlideSurface } from './kit.ts';
@@ -43,14 +44,19 @@ export class DeckStyleState {
   }
 
   /** The surface of a slide (its own background, else the deck background), cached per background. */
-  surface(background: string | undefined, deckBackground: string | undefined): SlideSurface | null {
+  surface(
+    background: DeckBackground | undefined,
+    deckBackground: string | undefined
+  ): SlideSurface | null {
     const kit = this.#kit;
     const resolution = this.resolution;
     if (!kit || !resolution) return null;
-    const key = background ?? deckBackground ?? '';
+    const value = background ?? deckBackground;
+    const key =
+      typeof value === 'string' || value === undefined ? (value ?? '') : JSON.stringify(value);
     let surface = this.#surfaces.get(key);
     if (!surface) {
-      surface = kit.slideSurface(key || undefined, resolution.palette);
+      surface = kit.slideSurface(value, resolution.palette);
       this.#surfaces.set(key, surface);
     }
     return surface;

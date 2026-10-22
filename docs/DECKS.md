@@ -122,7 +122,7 @@ Save it as `tmp/harbor-kickoff.json`, then run
 - **Free slides** are `{ id, layout: "free", blocks }` with
   `@protoyard/blocks` content: text, lists, charts, tables, code, people,
   quizzes, polls, forms and the rest of the block catalog.
-- **Shared slide fields:** `title`, `background` (a preset id), `transition`,
+- **Shared slide fields:** `title`, `background` (a preset id or validated local image/video spec), `transition`,
   `steps` (labels), `notes` (speaker notes) and `hidden`. Hidden slides are
   skipped by navigation, the overview and print.
 - **Slide ids** are unique lowercase slugs. They are the deep links, so keep
@@ -348,7 +348,8 @@ print pages.
   only lower the level, never raise it, and no transition runs longer than
   400 ms.
 - **Backgrounds.** `style.background` sets the deck background preset and each
-  `slide.background` overrides it, from the 13 `DECK_BACKGROUND_PRESET_IDS`:
+  `slide.background` overrides it with one of the 13 `DECK_BACKGROUND_PRESET_IDS`
+  or a validated local image/video spec:
   six solids, five gradients and two patterns. Every preset gets a computed text
   color with at least 4.5:1 contrast against all of the background. On a preset
   that flips the theme's text tone (light text on a light theme), the slide's
@@ -563,9 +564,14 @@ Every deck string renders as text, never as HTML; see
 - **No custom slide components.** A generated deck's `src/custom-slides.ts`
   is a typed registry for later. `DeckApp` renders only the catalog layouts
   and free blocks.
-- **No media backgrounds on slides.** `style.background` and
-  `slide.background` take a preset id. Image and video background specs
-  validate with `DeckBackgroundSchema`, but a slide cannot carry one yet.
+- **Media backgrounds.** Slides accept local image and video background specs.
+  Their sources use the same level-1 media policy as other deck media: relative
+  paths inside the deck, bounded base64 media, or library avatars for images;
+  remote URLs and `..` paths are refused. Image/video text gets a computed
+  contrast scrim. Background videos are muted and loop, load only for the
+  active or next slide, pause when outside the viewport, and use their poster
+  for reduced motion and print. Add a local poster to video specs so those
+  views have a still image.
 - **No remote media, iframes, math or syntax themes.** There is no KaTeX and
   no highlight.js; code highlighting comes from the blocks tokenizer.
 - **Briefs to deck blueprints only through quick.** `blueprint new` refuses
