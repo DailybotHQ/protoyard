@@ -21,6 +21,11 @@
       "svelte": "./src/approvals/index.ts",
       "default": "./src/approvals/index.ts"
     },
+    "./messages": {
+      "types": "./src/messages/index.ts",
+      "svelte": "./src/messages/index.ts",
+      "default": "./src/messages/index.ts"
+    },
     "./voice": {
       "types": "./src/voice/index.ts",
       "svelte": "./src/voice/index.ts",
@@ -71,6 +76,11 @@
         "types": "./dist/approvals/index.d.ts",
         "svelte": "./dist/approvals/index.js",
         "default": "./dist/approvals/index.js"
+      },
+      "./messages": {
+        "types": "./dist/messages/index.d.ts",
+        "svelte": "./dist/messages/index.js",
+        "default": "./dist/messages/index.js"
       },
       "./voice": {
         "types": "./dist/voice/index.d.ts",
