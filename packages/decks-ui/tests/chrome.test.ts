@@ -341,21 +341,23 @@ describe('the tools inside DeckApp', () => {
   });
 
   it('? opens the keyboard help from the real bindings, focused on Close; Close and Escape shut it', async () => {
+    // Every bound control is available once the host can print (happy-dom has no window.print).
+    vi.stubGlobal('print', () => {});
     const { app } = mount();
     await fireEvent.keyDown(app, { key: '?', shiftKey: true });
-    const dialog = await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+    const dialog = await screen.findByRole('dialog', { name: 'Controls and shortcuts' });
     for (const binding of DECK_KEY_BINDINGS) expect(dialog.textContent).toContain(binding.label);
     await waitFor(() => expect(document.activeElement?.textContent?.trim()).toBe('Close'));
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull()
+      expect(screen.queryByRole('dialog', { name: 'Controls and shortcuts' })).toBeNull()
     );
 
     await fireEvent.click(screen.getByRole('button', { name: 'Keyboard shortcuts' }));
-    expect(await screen.findByRole('dialog', { name: 'Keyboard shortcuts' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: 'Controls and shortcuts' })).toBeTruthy();
     await fireEvent.keyDown(app, { key: 'Escape' });
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Keyboard shortcuts' })).toBeNull()
+      expect(screen.queryByRole('dialog', { name: 'Controls and shortcuts' })).toBeNull()
     );
   });
 

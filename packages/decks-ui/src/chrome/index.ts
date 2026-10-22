@@ -8,6 +8,13 @@ export { default as ChromeToast, TOAST_DURATION_MS, type ToastTone } from './Chr
 export { default as ChromeTooltip } from './ChromeTooltip.svelte';
 export { copyText } from './clipboard.ts';
 export { default as DeckToolbar } from './DeckToolbar.svelte';
+export {
+  claimFirstRunHint,
+  default as FirstRunHint,
+  FIRST_RUN_HINT_MS,
+  firstRunHintAllowed,
+  firstRunHintKey,
+} from './FirstRunHint.svelte';
 export { default as FullscreenOverlay } from './FullscreenOverlay.svelte';
 export {
   createDeckFullscreen,

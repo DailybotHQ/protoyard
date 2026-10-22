@@ -261,8 +261,20 @@ On screen:
   fills the page's own window instead of failing silently. The button's
   tooltip and the overlay say so, and the root carries
   `data-fullscreen-mode="window"` (`native` for browser full screen).
-- Press **?** for the keyboard shortcuts. The dialog is generated from the
-  same table the input guard uses, so it never drifts from the keys.
+- Press **?** (or the Keyboard shortcuts button) for **Controls and
+  shortcuts**: every control this deck offers, grouped as in the toolbar
+  (move around, view, present, share and print, help), each with its icon,
+  label, one-sentence description and keys, or "Button only". It is built
+  from the same registry (`DECK_CONTROLS`) as the toolbar and the input
+  guard, so it never drifts from the buttons or the keys, and it leaves out
+  controls the host cannot offer.
+- On a deck's first visit a hint says "Use ← → to move, F for full screen, ?
+  for every control." It leaves after 6 seconds, on the first key or pointer
+  input, or with **Got it**, and never takes focus. It shows once per deck
+  namespace (remembered in `localStorage`; where storage is blocked it shows
+  again next time), never in print or the presenter, and never under
+  automation such as screenshots and artifact thumbnail capture. Add
+  `?hint=0` to the page URL to turn it off (`?hint=1` forces it for checks).
 - A click on the slide canvas advances. Links, buttons, embedded controls and
   the deck's progress chrome keep their own click behavior.
 - On touch devices, a horizontal swipe moves between slides; vertical movement
