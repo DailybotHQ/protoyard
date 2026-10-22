@@ -12,6 +12,7 @@ import {
   type UntrustedDocumentResult,
 } from '../../src/index.ts';
 import { kindBodySchema } from '../../src/kinds/bodies.ts';
+import { parseDeckBlueprint } from '../../src/kinds/parse.ts';
 
 /**
  * The threat model for content kinds (ADR-036, docs/SECURITY.md "Kinds"),
@@ -279,11 +280,26 @@ describe('URL fields accept only safe schemes', () => {
     expectLoaded(await loadUntrustedDocument(build(src)));
   });
 
-  it('accepts the other documented media forms: avatars and relative paths', async () => {
-    for (const src of ['avatar:av-007', 'assets/cover.webp', './img/a.png']) {
+  it('accepts avatars and data media at level 1, but refuses relative paths in every media field', async () => {
+    for (const src of ['avatar:av-007', PNG]) {
       const result = await loadUntrustedDocument(MEDIA_FIELDS[0]?.[1](src) ?? {});
       expect(result.success, `${src}: ${JSON.stringify(result.issues)}`).toBe(true);
     }
+
+    for (const [name, build] of MEDIA_FIELDS) {
+      const src =
+        name.includes('video block src') || name.includes('video-centered')
+          ? 'assets/clip.mp4'
+          : 'assets/cover.webp';
+      const result = await loadUntrustedDocument(build(src));
+      expect(result.success, `${name}: ${JSON.stringify(result.issues)}`).toBe(false);
+      expect(result.issues[0]?.message).toMatch(/relative media/i);
+    }
+
+    const level2 = deckWith([
+      { type: 'image', src: 'assets/cover.webp', alt: 'Cover', width: 10, height: 10 },
+    ]);
+    expect(() => parseDeckBlueprint(level2)).not.toThrow();
   });
 
   it.each(LINK_FIELDS)('%s refuses hostile links', async (_, build) => {
@@ -293,26 +309,22 @@ describe('URL fields accept only safe schemes', () => {
     }
   });
 
-  it.each(LINK_FIELDS)('%s accepts https and relative links', async (_, build) => {
-    for (const href of [
-      'https://example.com/docs',
-      'http://example.com/docs',
-      'mailto:team@example.com',
-      'guide/start.html',
-    ]) {
+  it.each(LINK_FIELDS)('%s accepts only https and mailto links', async (_, build) => {
+    for (const href of ['https://example.com/docs', 'mailto:team@example.com']) {
       expectLoaded(await loadUntrustedDocument(build(href)));
     }
   });
 
-  it('treats an entity-encoded scheme as the relative path it is', async () => {
-    // Renderers set href as a DOM attribute, which never decodes entities, so
-    // this resolves to a relative path plus a fragment on the player's origin.
-    const href = 'jav&#x61;script:alert(1)';
-    expect(new URL(href, 'https://protoyard.app/play/').protocol).toBe('https:');
-    const result = await loadUntrustedDocument(LINK_FIELDS[0]?.[1](href) ?? {});
-    if (result.success) {
-      expect(JSON.stringify(result.blueprint)).toContain(JSON.stringify(href).slice(1, -1));
+  it.each(LINK_FIELDS)('%s rejects http and relative links', async (_, build) => {
+    for (const href of ['http://example.com/docs', 'guide/start.html', '#/pricing']) {
+      expectRefused(await loadUntrustedDocument(build(href)), 'invalid-blueprint');
     }
+  });
+
+  it('refuses an entity-encoded scheme instead of treating it as a relative link', async () => {
+    const href = 'jav&#x61;script:alert(1)';
+    const result = await loadUntrustedDocument(LINK_FIELDS[0]?.[1](href) ?? {});
+    expectRefused(result, 'invalid-blueprint');
   });
 
   it('refuses hostile URLs that arrive through a share link too', async () => {

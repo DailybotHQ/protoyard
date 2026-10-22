@@ -282,7 +282,7 @@ describe('the DOM check itself', () => {
     }
     const clean = document.createElement('div');
     clean.innerHTML =
-      '<a href="https://example.com/docs">ok</a><a href="#/pricing">ok</a><img src="assets/cover.webp" alt=""><img src="data:image/png;base64,iVBORw0KGgo=" alt=""><div style="left: 8px; width: 160px"></div>';
+      '<a href="https://example.com/docs">ok</a><a href="https://example.com/pricing">ok</a><img src="assets/cover.webp" alt=""><img src="data:image/png;base64,iVBORw0KGgo=" alt=""><div style="left: 8px; width: 160px"></div>';
     expect(domViolations(clean)).toEqual([]);
   });
 });

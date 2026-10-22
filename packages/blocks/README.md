@@ -76,7 +76,7 @@ import { safeParseBlocks, type Block } from '@protoyard/blocks';
 const result = safeParseBlocks(input);
 if (!result.success) {
   for (const issue of result.issues) console.log(issue.jsonPath, issue.message);
-  // $[2]["actions"][0]["href"]  Use an http(s), mailto, #anchor or relative link
+  // $[2]["actions"][0]["href"]  Use an https: or mailto: link
 }
 ```
 
@@ -175,8 +175,8 @@ block list, including inside containers.
   breaks (LF or CRLF), and code also accepts tabs. Every field rejects other
   control characters and the bidi embeddings, overrides and isolates used for
   spoofing.
-- **Links** (`cta`, `cards`) must be http(s), mailto, an `#anchor` or a
-  relative path that `safeHref` returns unchanged. `javascript:`, `data:`,
+- **Links** (`cta`, `cards`) must be HTTPS or mailto URLs that `safeHref`
+  returns unchanged. `http:`, relative and fragment targets, `javascript:`, `data:`,
   `vbscript:`, `file:` and protocol-relative `//host` are rejected.
 - **Media sources** are one of:
   - `avatar:av-007`, an image from `@protoyard/avatars`;

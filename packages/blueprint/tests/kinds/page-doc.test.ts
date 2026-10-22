@@ -119,14 +119,14 @@ describe('page blueprints', () => {
     expect((await safeParseAnyBlueprint(nested)).success).toBe(true);
   });
 
-  it('rejects in-page links to anchors that do not exist', async () => {
+  it('rejects relative CTA links under the external-link policy', async () => {
     const broken = variant('landing.page.json', 'page', (page) => {
       const cta = (page.sections[0] as Section).blocks[1] as { actions: { href: string }[] };
       (cta.actions[1] as { href: string }).href = '#faq';
     });
-    expect(await issues(broken)).toEqual([
-      'page.sections.0.blocks.1.actions.1.href: Link "#faq" does not match a section anchor or block id on this page',
-    ]);
+    expect(await issues(broken)).toContainEqual(
+      expect.stringMatching(/^page\.sections\.0\.blocks\.1\.actions\.1\.href: /)
+    );
     const nav = variant('landing.page.json', 'page', (page) => {
       page.nav = [{ id: 'nav-faq', label: 'FAQ', href: '#faq' }];
     });
@@ -183,14 +183,14 @@ describe('doc blueprints', () => {
     expect((await safeParseAnyBlueprint(plain)).success).toBe(true);
   });
 
-  it('rejects links to block ids that do not exist', async () => {
+  it('rejects relative CTA links under the external-link policy', async () => {
     const broken = variant('quarterly-report.doc.json', 'doc', (doc) => {
       const cta = doc.blocks[2] as { actions: { href: string }[] };
       (cta.actions[0] as { href: string }).href = '#appendix';
     });
-    expect(await issues(broken)).toEqual([
-      'doc.blocks.2.actions.0.href: Link "#appendix" does not match a block id in this document',
-    ]);
+    expect(await issues(broken)).toContainEqual(
+      expect.stringMatching(/^doc\.blocks\.2\.actions\.0\.href: /)
+    );
   });
 
   it('rejects unknown body keys', async () => {

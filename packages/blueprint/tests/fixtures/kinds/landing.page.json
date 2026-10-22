@@ -29,8 +29,8 @@
           {
             "type": "cta",
             "actions": [
-              { "label": "Join the waitlist", "href": "#join" },
-              { "label": "See features", "href": "#features" }
+              { "label": "Join the waitlist", "href": "https://example.com/join" },
+              { "label": "See features", "href": "https://example.com/features" }
             ]
           }
         ]
@@ -51,7 +51,11 @@
             "items": [
               { "title": "Quick capture", "body": "Type, paste or drop a file." },
               { "title": "Linked notes", "body": "Related notes show up beside the one you read." },
-              { "title": "Plans", "body": "Compare plans further down.", "href": "#plans" }
+              {
+                "title": "Plans",
+                "body": "Compare plans further down.",
+                "href": "https://example.com/plans"
+              }
             ]
           }
         ]

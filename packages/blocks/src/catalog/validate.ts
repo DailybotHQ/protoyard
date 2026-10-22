@@ -53,7 +53,7 @@ function diagnosticHint(message: string, path: readonly BlockDiagnosticPath[]): 
     case 'duplicate-id':
       return 'Give each interactive or deep-linked block a unique id across the whole list.';
     case 'unsafe-link':
-      return 'Use http(s), mailto, a #anchor or a relative path. javascript: and data: links are refused.';
+      return 'Use an https: or mailto: link. Relative paths and other schemes are refused.';
     case 'unsafe-media':
       return 'Use avatar:av-001…175, a raster data URI, or a relative media path. No remote https or SVG.';
     case 'nesting-limit':
