@@ -2,6 +2,11 @@
 
 export { default as Accordion } from './components/accordion/Accordion.svelte';
 export type { AccordionItem } from './components/accordion/types.ts';
+export {
+  type ActorIdentity,
+  type ActorKind,
+  default as ActorRow,
+} from './components/actors/ActorRow.svelte';
 export { default as AlertDialog } from './components/alert-dialog/AlertDialog.svelte';
 // Layout & navigation
 export { default as AppShell } from './components/app-shell/AppShell.svelte';

@@ -50,7 +50,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
 | Disclosure | `Tabs`, `Accordion` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
-| Display | `Badge` (+ `badgeVariants`), `Avatar`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
+| Display | `Badge` (+ `badgeVariants`), `Avatar`, `ActorRow`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
 | Data | `DataTable`, `FilterBar` (+ `applyFilters`), `Pagination`, `Kanban` |
 | Layout | `LayoutHost`, `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid` |
 | Shells | `WindowChrome` |
@@ -93,6 +93,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `EmptyState` / `ErrorState` / `LoadingState` | `title`, `description`, `icon`, `action` snippet; `ErrorState.onRetry`; `LoadingState.label` |
 | `Badge` | `variant` default·secondary·outline·success·warning·destructive·info |
 | `Avatar` | `name` (initials + deterministic color), `src?`, `srcset?`, `size` xs·sm·md·lg, `decorative`. The image is lazy, async-decoded and fixed-size; an unsafe `src` (any scheme but https, `//host`) or a load error shows the initials. Persona faces: `<Avatar name={p.name} {...avatarImage(p.avatar)} />` (`avatarImage` from `@protoyard/renderer-svelte`) |
+| `ActorRow` | `actor: { name, kind: 'person'·'agent', role?, avatarUrl?, avatarSrcset? }`, optional `handledBy` with the same shape, `class`. Displays an accessible identity, a visible Person or Agent · simulated label, and an optional “Handled by …” badge. Resolve fictional avatar ids with `avatarImage()` from `@protoyard/renderer-svelte` before passing the image fields. |
 | `Card` + parts | `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
 | `Separator` / `Kbd` | `orientation` / children |
 | `StatCard` | `label`, `value`, `delta`, `trend` up·down·neutral, `positive`, `hint`, `icon` |
