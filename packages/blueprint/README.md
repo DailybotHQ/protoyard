@@ -30,6 +30,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | aggregate | count/sum/avg/min/max with groups and UTC date buckets for dashboards and analytics | `.` |
 | app-model | routes, navigation rows with icon ids, navigation groups and layout (`deriveAppModel`) | `.` |
 | runtime-definition | a complete `definePrototype`-valid definition plus the app model (`definePrototypeFromBlueprint`) | `.` (the generator stays lazy) |
+| kinds | content-kind runtime: `defineKindRuntime` (deck/page/doc definition: block-state and form-response stores, `default` scenario, presenter/audience/viewer personas, no generator) and `createKindServices` (persistent `BlockStateHost`, form responses) | `./kinds` (never in the app graph) |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | csv-shape | bounded CSV header/sample inference into a reviewable entity draft | `./import/csv-shape` (lazy authoring) |
 | json-shape | bounded JSON object/array shape inference into reviewable entity drafts | `./import/json-shape` (lazy authoring) |

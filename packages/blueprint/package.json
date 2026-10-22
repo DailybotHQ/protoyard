@@ -15,12 +15,14 @@
     "./generator": "./src/generator.ts",
     "./search": "./src/search.ts",
     "./workflows": "./src/workflows/index.ts",
+    "./kinds": "./src/kinds/index.ts",
     "./schema.json": "./schema/blueprint.schema.json"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@protoyard/blocks": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/scenarios": "workspace:*",
     "@protoyard/themes": "workspace:*",
@@ -90,6 +92,11 @@
         "types": "./dist/workflows/index.d.ts",
         "import": "./dist/workflows/index.js",
         "default": "./dist/workflows/index.js"
+      },
+      "./kinds": {
+        "types": "./dist/kinds/index.d.ts",
+        "import": "./dist/kinds/index.js",
+        "default": "./dist/kinds/index.js"
       },
       "./schema.json": "./dist/schema/blueprint.schema.json"
     },
