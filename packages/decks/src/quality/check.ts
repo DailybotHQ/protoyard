@@ -1,6 +1,7 @@
 import { type Block, blockText, countWords, forEachBlock } from '@protoyard/blocks';
 import { getDeckLayout, parseLayoutProps } from '../layouts/catalog.ts';
 import { stripStepMarkers } from '../layouts/props.ts';
+import { stepMarkersOutsideLayout } from '../layouts/steppable.ts';
 import { LAYOUT_PACING, type LayoutPacing } from '../layouts/types.ts';
 import { slideSteps } from '../motion/steps.ts';
 import type { Deck, DeckSlide } from '../schema/index.ts';
@@ -257,12 +258,21 @@ export function checkDeckStatic(deck: Deck): DeckQualityReport {
     }
     const labels = slide.steps?.length ?? 0;
     const used = slideSteps(slide).steps.filter((step) => step.fragments.length > 0).length;
-    if (labels > used) {
+    // A custom slide's steps are its labels: its component reveals what it likes.
+    if (labels > used && slide.layout !== 'custom') {
       add(
         'empty-steps',
         id,
         [...base, 'steps', used],
         `The slide labels ${labels} steps but only ${used} reveal something; the extra clicks do nothing.`
+      );
+    }
+    for (const path of stepMarkersOutsideLayout(slide)) {
+      add(
+        'step-unrevealed',
+        id,
+        [...base, 'props', ...path],
+        `The ${slide.layout} layout does not reveal a step marker here, so this click shows nothing. Move the marker to a prop the layout reveals (see DECK_LAYOUT_STEPPABLE), or use a free slide.`
       );
     }
 

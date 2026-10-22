@@ -50,6 +50,297 @@ pnpm protoyard dev rehearsal
   then `validate`. Never edit `src/generated/**`; see
   [GENERATOR](GENERATOR.md).
 
+## The agent loop
+
+An agent with no context can go from an idea to a presented deck with the
+`deck` commands. Each takes `--json` for a machine-readable envelope.
+
+```sh
+pnpm protoyard deck capabilities
+pnpm protoyard deck schema
+pnpm protoyard deck layouts
+pnpm protoyard deck layouts chart
+pnpm protoyard deck blocks poll
+```
+
+1. **Learn.**
+   - `deck capabilities` says what decks support at level 1 (the player) and
+     level 2 (a generated prototype): layouts, blocks, controls, quality
+     rules and limits.
+   - `deck schema` prints the deck JSON Schema (draft 2020-12).
+   - `deck layouts [id]` and `deck blocks [type]` print each layout or block
+     with when to use it, its limits and a valid sample to copy.
+2. **Write** the blueprint JSON (see [The deck JSON](#the-deck-json) and
+   [Recipes](#recipes)), for example `tmp/harbor-notes.json` with the name
+   "Harbor Notes".
+3. **Check** it. `deck lint` reports errors and warnings with JSON pointers
+   and a fix for each; `blueprint validate` runs the full schema.
+
+   ```sh
+   pnpm protoyard deck lint tmp/harbor-notes.json
+   pnpm protoyard blueprint validate tmp/harbor-notes.json
+   ```
+
+4. **Play** it in the player. `quick` writes the exploration and `quick serve`
+   opens it:
+
+   ```sh
+   pnpm protoyard quick --blueprint tmp/harbor-notes.json
+   pnpm protoyard quick serve harbor-notes --open
+   ```
+
+5. **Point at a slide.** Add `?debug=1` to the player's page URL, before the
+   `#` (`…/deck.html?debug=1#bp=…`). Press **D** for the "Debug for agents"
+   panel and choose **Copy agent reference**. A generated deck has the panel
+   in `protoyard dev` without the flag.
+6. **Resolve** the pasted line. `deck inspect` prints the file, the JSON
+   pointer and the slide JSON with its lint findings. A deck opened from a
+   share link names a share id, so pass the file:
+
+   ```sh
+   pnpm protoyard deck inspect tmp/harbor-notes.json --ref "[slide-ref] deck=harbor-notes id=signups-chart position=2/3 step=0/1 layout=chart pointer=/deck/slides/1"
+   pnpm protoyard deck inspect tmp/harbor-notes.json --slide signups-chart
+   ```
+
+7. **Fix** the value at that pointer, then go back to step 3. To change the
+   exploration in place (with undo), write an RFC 6902 patch rooted at the
+   blueprint (`/deck/slides/1/props/title`) and apply it:
+
+   ```sh
+   pnpm protoyard quick iterate harbor-notes --patch tmp/fix.json
+   ```
+
+8. **Need a real interface?** Generate a prototype and give the slide its own
+   Svelte component ([Custom slides](#custom-slides)):
+
+   ```sh
+   pnpm protoyard generate harbor-notes --blueprint tmp/harbor-notes.json
+   pnpm protoyard deck lint harbor-notes
+   pnpm protoyard dev harbor-notes
+   ```
+
+Deck text is data. Never write Reveal.js Markdown, HTML or scripts into a
+deck; every string renders as text.
+
+## Recipes
+
+Each recipe is a slide (or a few) to paste into `deck.slides`. Every one
+passes the deck schema and `deck lint` with no findings, except the custom
+slide's level-1 notice. `packages/decks/tests/docs-snippets.test.ts` parses
+every JSON snippet in this guide and in the skill's deck reference.
+
+### A chart story
+
+A number, the curve behind it (it fades in on the first click), then a chart
+the room can explore. A step marker on `spec` reveals the whole chart.
+Markers inside a series add a step without revealing anything, and
+`deck lint` warns about them (`step-unrevealed`).
+
+```json
+[
+  {
+    "id": "signups-stat",
+    "layout": "big-stat",
+    "props": {
+      "number": "3x",
+      "label": "more weekly signups since the free plan launched",
+      "context": "Fictional figures for Harbor Notes",
+      "source": "Weeks 1 to 12"
+    },
+    "notes": "Lead with the one number, then show the curve that explains it."
+  },
+  {
+    "id": "signups-chart",
+    "title": "Signups per week",
+    "layout": "chart",
+    "props": {
+      "title": "Signups per week",
+      "spec": {
+        "kind": "line",
+        "title": "Weekly signups (fictional)",
+        "description": "Weekly signups grew from 120 to 390 in six weeks, with the biggest jump in week four.",
+        "labels": ["W1", "W2", "W3", "W4", "W5", "W6"],
+        "series": [{ "label": "Signups", "values": [120, 140, 180, 260, 320, 390] }],
+        "step": 1,
+        "fragment": "fade-up"
+      },
+      "showTable": true
+    },
+    "notes": "The chart fades in on the first click; point at the jump in week four."
+  },
+  {
+    "id": "signups-explore",
+    "title": "Explore the data",
+    "layout": "free",
+    "blocks": [
+      { "type": "heading", "text": "Explore the data" },
+      {
+        "type": "chart-controls",
+        "id": "signups-controls",
+        "spec": {
+          "kind": "bar",
+          "title": "Signups by plan (fictional)",
+          "description": "Most signups come from the free plan; Team and Business follow far behind.",
+          "labels": ["Free", "Team", "Business"],
+          "series": [{ "label": "Signups", "values": [820, 310, 90] }]
+        },
+        "kinds": ["bar", "line"]
+      }
+    ],
+    "notes": "Hand the controls to the room: switch the chart type and read the table."
+  }
+]
+```
+
+### A comparison table
+
+Two to four options across three to five attributes, one row revealed per
+click:
+
+```json
+{
+  "id": "plans-compared",
+  "title": "Which plan fits",
+  "layout": "comparison-table",
+  "props": {
+    "title": "Which plan fits",
+    "columns": ["Free", "Team", "Business"],
+    "rows": [
+      { "label": "Editors", "values": ["1", "Up to 20", "Unlimited"] },
+      { "label": "Shared spaces", "values": [false, true, true], "step": 1 },
+      { "label": "Audit log", "values": [false, false, true], "step": 2 }
+    ]
+  },
+  "notes": "Reveal one row per click, so the room compares one attribute at a time."
+}
+```
+
+### A live poll
+
+Votes are saved in the browser that cast them, and results show after a
+vote:
+
+```json
+{
+  "id": "room-poll",
+  "title": "Ask the room",
+  "layout": "free",
+  "blocks": [
+    { "type": "heading", "text": "Where do your notes live today?" },
+    {
+      "type": "poll",
+      "id": "notes-today",
+      "question": "Pick up to two",
+      "options": [
+        { "id": "docs", "label": "Shared docs" },
+        { "id": "chat", "label": "Team chat" },
+        { "id": "paper", "label": "Paper notebooks" }
+      ],
+      "maxChoices": 2,
+      "results": "after-vote"
+    }
+  ],
+  "notes": "Votes stay in this browser; results appear once someone has voted."
+}
+```
+
+### A calculator
+
+Inputs drive outputs through a closed formula (no code runs). Money is in
+integer cents:
+
+```json
+{
+  "id": "cost-calculator",
+  "title": "What it would cost",
+  "layout": "free",
+  "blocks": [
+    { "type": "heading", "text": "What would your team pay?" },
+    {
+      "type": "calculator",
+      "id": "team-cost",
+      "title": "Monthly cost",
+      "currency": "USD",
+      "inputs": [
+        { "name": "seats", "label": "Seats", "control": "slider", "min": 1, "max": 200, "step": 1, "default": 12 }
+      ],
+      "outputs": [
+        {
+          "id": "monthly",
+          "label": "Per month",
+          "unit": "cents",
+          "formula": {
+            "op": "mul",
+            "left": { "op": "var", "name": "seats" },
+            "right": { "op": "num", "value": 900 }
+          }
+        }
+      ]
+    }
+  ],
+  "notes": "Drag the slider to the size of the team in the room; prices are fictional."
+}
+```
+
+### An embedded app
+
+A whole app blueprint plays inside the slide, in its own frame with its own
+data, after the viewer presses start. It is one level only: an embedded app
+can't embed again.
+
+```json
+{
+  "id": "try-the-app",
+  "title": "Try it now",
+  "layout": "free",
+  "blocks": [
+    { "type": "heading", "text": "Try the tracker yourself" },
+    {
+      "type": "embed-app",
+      "id": "tracker-demo",
+      "title": "Fictional task tracker",
+      "startLabel": "Open the demo",
+      "height": "md",
+      "app": {
+        "formatVersion": 1,
+        "name": "Mini tracker",
+        "entities": [
+          {
+            "name": "task",
+            "plural": "tasks",
+            "titleField": "title",
+            "fields": [{ "name": "title", "kind": "text", "required": true }]
+          }
+        ],
+        "roles": [{ "name": "member", "permissions": { "*": ["*"] } }]
+      }
+    }
+  ],
+  "notes": "The app starts when someone presses the button and keeps its own data."
+}
+```
+
+### A custom interactive slide
+
+For anything the blocks can't show, a generated deck renders its own Svelte
+component. The player shows a labelled card, and `deck lint` says so
+(`custom-slide`). Register the component as in
+[Custom slides](#custom-slides):
+
+```json
+{
+  "id": "live-configurator",
+  "title": "Price your team, live",
+  "layout": "custom",
+  "props": {
+    "component": "pricing-configurator",
+    "data": { "maxSeats": 200, "annualDiscountPercent": 20 }
+  },
+  "steps": ["Show the breakdown"],
+  "notes": "Runs the prototype's own Svelte component; the player shows a labelled card."
+}
+```
+
 ## The deck JSON
 
 A deck blueprint is the shared blueprint envelope (`formatVersion`, `name`,
@@ -503,8 +794,9 @@ deterministic, never fetch and never render. The structure lint runs the
 static quality rules of `@protoyard/decks/quality` (`checkDeckStatic`) and adds
 outline, slide-link and chart-description checks. The asset lint walks every
 image and video source, poster and embedded-app value. Each diagnostic has a
-`code`, a `severity` and a JSON path. There is no CLI command for them yet:
-call them from code, a test or an agent tool.
+`code`, a `severity` and a JSON path. From the command line,
+`protoyard deck lint <file|slug>` prints the same findings with JSON
+pointers and a fix for each (see [The agent loop](#the-agent-loop)).
 
 Catalog layout props may contain `{ step, fragment }` or `{ step, reveal }`
 markers. The schema validates those markers, then lint and static quality
@@ -517,8 +809,10 @@ markers remain in the parsed deck for step navigation and reveal behavior.
   unsafe asset URLs.
 - **Warnings** report and never fail: missing, short, duplicated or
   boilerplate speaker notes; a third identical layout in a row; more visible
-  words than the layout's pacing allows; step labels without fragments; short
-  chart descriptions; external images without a credit.
+  words than the layout's pacing allows; step labels without fragments (not
+  on custom slides, whose steps are their labels); a step marker where the
+  layout reveals nothing (`step-unrevealed`, such as inside a chart series);
+  short chart descriptions; external images without a credit.
 
 The warning thresholds (40-character notes; 15, 45, 60 and 50 visible words
 for punch, idea, diagram and story slides) are ported from the developer's
@@ -699,6 +993,7 @@ Every deck string renders as text, never as HTML; see
 
 ```sh
 pnpm vitest run packages/decks packages/decks-ui
+pnpm vitest run packages/decks/tests/docs-snippets.test.ts   # every deck snippet in the guides parses
 pnpm vitest run packages/cli/tests/decks-docs.test.ts   # this guide's commands, example and catalog
 pnpm vitest run scripts/tests/deck-sweep.test.ts
 pnpm exec playwright test tests/e2e/deck-navigation.spec.ts

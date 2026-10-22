@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DECK_TEXT_MINIMUMS } from '../src/canvas.ts';
-import { DECK_LAYOUTS } from '../src/layouts/index.ts';
+import { DECK_LAYOUTS, getDeckLayout } from '../src/layouts/index.ts';
 import {
   checkDeckStatic,
   DECK_QUALITY,
@@ -150,10 +150,13 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
         id: 'pricing',
         layout: 'custom',
         props: { component: 'pricing-configurator', data: { seats: 10, plan: { step: 'x' } } },
+        steps: ['Show the breakdown'],
         notes: 'Walk through the configurator: change the seats and watch the total.',
       },
     ]);
     const report = checkDeckStatic(deck);
+    // Its steps are its labels (the component reveals what it likes), so labels never count as empty.
+    expect(only(report.issues, 'empty-steps')).toEqual([]);
     expect(only(report.issues, 'custom-slide')).toMatchObject([
       { severity: 'warning', slideId: 'pricing', jsonPath: '$.slides[0].props.component' },
     ]);
@@ -259,6 +262,25 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
     );
     expect(only(report.issues, 'empty-steps')).toMatchObject([
       { severity: 'warning', jsonPath: '$.slides[0].steps[1]' },
+    ]);
+  });
+
+  it('step-unrevealed (warning): a marker the layout does not reveal', () => {
+    const sample = structuredClone(getDeckLayout('chart')?.sample) as {
+      spec: { series: Record<string, unknown>[] };
+    };
+    const series = structuredClone(sample);
+    series.spec.series[0] = { ...series.spec.series[0], step: 1 };
+    const whole = structuredClone(sample) as Record<string, Record<string, unknown>>;
+    whole.spec = { ...whole.spec, step: 1 };
+    const report = checkDeckStatic(
+      deck([
+        { id: 'series', layout: 'chart', props: series },
+        { id: 'whole', layout: 'chart', props: whole },
+      ] as never)
+    );
+    expect(only(report.issues, 'step-unrevealed')).toMatchObject([
+      { severity: 'warning', slideId: 'series', jsonPath: '$.slides[0].props.spec.series[0]' },
     ]);
   });
 
@@ -400,6 +422,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
       'image-size',
       'step-order',
       'empty-steps',
+      'step-unrevealed',
       'notes-missing',
       'notes-duplicate',
       'notes-boilerplate',

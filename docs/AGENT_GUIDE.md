@@ -145,6 +145,24 @@ private Claude artifact follows the same rule: `/share-artifact <slug>`
 `protoyard export <slug> --target artifact`, then asks for approval before
 the Artifact tool publishes it ([PUBLISHING.md](PUBLISHING.md#sharing-as-a-claude-artifact)).
 
+## Decks: from an idea to a presented deck
+
+A deck is a `kind: "deck"` JSON blueprint, not code. The loop is in
+[DECKS: The agent loop](DECKS.md#the-agent-loop):
+1. Learn the format with `pnpm protoyard deck schema`,
+   `pnpm protoyard deck layouts` and `pnpm protoyard deck blocks`.
+2. Write the JSON, check it with `pnpm protoyard deck lint <file>`, and play
+   it with `pnpm protoyard quick --blueprint <file>`.
+3. Open the player's "Debug for agents" panel (`?debug=1`, then **D**) and
+   copy the slide reference. Resolve it with
+   `pnpm protoyard deck inspect <file> --ref "<line>"`, fix the value at its
+   JSON pointer, and repeat.
+
+[DECKS: Recipes](DECKS.md#recipes) has a valid chart story, comparison table,
+poll, calculator, embedded app and custom slide to start from. Generate a
+prototype (`pnpm protoyard generate <slug> --blueprint <file>`) only when a
+slide needs its own Svelte component.
+
 ## From a brief to a blueprint
 
 For prose product ideas, use `/new-from-brief` (the `brief-to-prototype`

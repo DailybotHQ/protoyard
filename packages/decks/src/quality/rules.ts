@@ -97,6 +97,13 @@ export const DECK_QUALITY_RULES = Object.freeze([
     description: 'A slide labels more steps than it has fragments, so some clicks do nothing.',
   },
   {
+    id: 'step-unrevealed',
+    severity: 'warning',
+    check: 'static',
+    description:
+      'A step marker sits where the layout reveals nothing (inside a chart series, say): the click adds a step but nothing appears.',
+  },
+  {
     id: 'notes-missing',
     severity: 'warning',
     check: 'static',

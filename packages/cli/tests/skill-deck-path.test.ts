@@ -111,10 +111,11 @@ describe('the deck reference', () => {
   it('requires validation and a visual check, and names the checkout checks that exist', () => {
     const named = commands(DECKS);
     expect(named.some((args) => args.startsWith('quick shot'))).toBe(true);
-    const checks = text.split('## Validate and check')[1]?.split('\n## ')[0] ?? '';
-    expect(checks).toMatch(/1\. \*\*Validate\*\*/);
-    expect(checks).toContain('lintDeckStructure');
-    expect(checks).toContain('scripts/sweep-deck.ts');
+    const loop = text.split('## The agent loop')[1]?.split('\n## ')[0] ?? '';
+    expect(loop).toMatch(/3\. \*\*Check\*\* with `protoyard deck lint`/);
+    expect(loop).toContain('protoyard blueprint validate');
+    expect(loop).toContain('protoyard deck inspect');
+    expect(loop).toContain('scripts/sweep-deck.ts');
     expect(existsSync(join(REPO, 'scripts', 'sweep-deck.ts'))).toBe(true);
   });
 
