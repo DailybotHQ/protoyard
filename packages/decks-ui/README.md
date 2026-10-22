@@ -15,7 +15,7 @@ lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 | Subpath | Exports | Status |
 | --- | --- | --- |
 | `@protoyard/decks-ui` | `fitDeckCanvas(container, canvas)` returns `{ scale, offsetX, offsetY }`: a letterboxed scale-to-fit, with scale 0 until the container has a size. Also the `DeckCanvasFit` type. | available |
-| `@protoyard/decks-ui/app` | `DeckApp`: canvas, layouts, hash navigation, guarded input, step chrome, presenting tools (blackout, full screen, laser, copy reference, keyboard help), print, aria-live, lazy overview (`O`), lazy presenter (`S`/`P`) | available |
+| `@protoyard/decks-ui/app` | `DeckApp`: canvas, layouts, hash navigation, guarded input, registry-driven toolbar, slide jump list, print, aria-live, lazy overview (`O`), lazy presenter (`S`/`P`) | available |
 | `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer` and `loadLayoutRenderer(layoutId)`: validated catalog rendering through lazy text, media, data and diagram families | available |
 | `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page split fallback (notes, timers, next slide). Loaded only when opened. | available |
 | `@protoyard/decks-ui/print` | Print and PDF, one slide per page (`DeckPrint`, `PrintButton`, `print.css`) | available |
@@ -192,8 +192,15 @@ while the overview is open or closing, so a thumbnail never double-advances.
 
 ### Presenting tools
 
-Each tool is a key and a real, named button in the chrome toolbar (`src/chrome/`). Toggles
-report `aria-pressed`, and the help button reports `aria-expanded`:
+The chrome toolbar renders `DECK_CONTROLS` in Navigate, View, Present, Share, Help and Debug
+groups (`src/chrome/`). Registry capabilities filter controls before rendering. Inline SVG icons
+come from `src/chrome/icons.ts`; no icon dependency is added to the player. On narrow screens,
+secondary tools move into the native **More** disclosure. Buttons have 44 px minimum targets,
+visible labels on wide screens and a visible “On” state as well as `aria-pressed` for toggles.
+The slide counter opens a listbox of slide titles and returns focus to the counter after selection.
+
+Each control is a real named button. Toggles report `aria-pressed`, and the help button reports
+`aria-expanded`:
 
 | Key | Button | What it does |
 | --- | --- | --- |
@@ -202,14 +209,16 @@ report `aria-pressed`, and the help button reports `aria-expanded`:
 | `L` | Laser pointer | A red dot that follows the pointer (and replaces the cursor) until `L` or `Esc`. While it is on, clicks do not advance. |
 | — | Copy slide reference | Copies `<title> · <slide-id> · #/<id>/<step>`: the slide title (else the deck title) and the deep link to the exact step. Uses the Clipboard API with an `execCommand` fallback, and announces "Slide reference copied" or "Could not copy the slide reference". |
 | `?` | Keyboard shortcuts | A dialog generated from `DECK_KEY_BINDINGS` (the input guard's own table), so it can never drift from the keys. It focuses Close, and `Esc` or `?` closes it. |
+| — | Previous / next | Move one step or slide, matching the arrow and page keys. |
+| — | Choose a slide | Opens the numbered slide list; selecting a title jumps to it and returns focus to the counter. |
+| `O` | Overview of all slides | Opens the lazy overview grid. |
+| `S` or `P` | Presenter view | Opens presenter notes, timers and the next slide in a second window or beside the deck. |
+| — | Print, one slide per page | Prints the deck or saves it as a PDF. |
 
 The level-1 entry calls the Fullscreen API directly. A level-2 prototype that also wants the
-renderer's frame handling can call `enterFullScreen` / `exitFullScreen` from the renderer. The
-helpers (`slideReference`, `copyText`, `toggleFullscreen`, `fullscreenAvailable`,
-`onFullscreenChange`) and the components live in `src/chrome/index.ts`. They add about 2.4 KB
-gzip to the DeckApp entry. With print and the lazy overview also merged, the entry measured
-78,501 B gzip on 2026-10-22: a Vite build of `@protoyard/decks-ui/app`, excluding CSS and
-themes. Overview, studio and presenter code is not in that first chunk.
+renderer’s frame handling can call `enterFullScreen` / `exitFullScreen` from the renderer. The
+helpers and toolbar components live in `src/chrome/index.ts`; the current initial bundle size is
+recorded below. Overview, studio and presenter code is not in that first chunk.
 
 ### Tooltips
 
@@ -298,9 +307,9 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 
 | What | Measured | Gate | Where |
 | --- | --- | --- | --- |
-| `@protoyard/decks-ui/app` initial JS | 81,979 B (2026-10-22, with step reveals; 80,893 B before them) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
+| `@protoyard/decks-ui/app` initial JS | 88,426 B (2026-10-22, with registry toolbar) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
 | Deck style kit (lazy chunk: style resolution, library catalog, palette engine, backgrounds) | about 20 KB (2026-10-22) | not in the initial graph | `tests/budget.test.ts` |
-| All CSS emitted with it | 1,681 B (2026-10-22) | ≤ 20 KB | `tests/bundle-size.test.ts` |
+| All CSS emitted with it | 3,315 B (2026-10-22, with registry toolbar) | ≤ 20 KB | `tests/bundle-size.test.ts` |
 | Deck Studio panel (lazy chunk) | 3,141 B (2026-10-22) | — | measured with a Vite probe build |
 | Chrome tooltip on the deck entry (`ChromeTooltip` + `tooltip.ts`) | +1,510 B (2026-10-22; `@protoyard/ui` Tooltip measured +36,552 B) | ≤ 1,536 B | `tests/tooltip-budget.test.ts` |
 | 200-slide deck: parse + first render (happy-dom) | 50–142 ms over six runs | < 1 s | `tests/large-deck.perf.test.ts` |

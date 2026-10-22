@@ -266,7 +266,7 @@ describe('bindings for a help overlay', () => {
     // each control with keys that works by default (copy-link is a button, debug is opt-in).
     const covered = new Set(DECK_KEY_BINDINGS.map((binding) => binding.action));
     for (const action of DECK_INPUT_ACTIONS) {
-      const keyless = action === 'copy-link' || action === 'debug';
+      const keyless = action === 'copy-link' || action === 'jump' || action === 'debug';
       expect(covered.has(action), action).toBe(!keyless);
     }
     for (const binding of DECK_KEY_BINDINGS) {

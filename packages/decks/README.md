@@ -386,6 +386,7 @@ opens debug).
 | Control | Group | Label | Keys | Available | What it does |
 | --- | --- | --- | --- | --- | --- |
 | `prev` | navigate | Previous step or slide | `←`, `↑`, `Page Up`, `Shift + Space` | always | Goes back one step, or to the previous slide when this one is at its start. |
+| `jump` | navigate | Choose a slide | — | always | Opens the slide list so you can jump directly to a slide. |
 | `next` | navigate | Next step or slide | `→`, `↓`, `Page Down`, `Space` | always | Shows the next step of this slide, or the next slide when it has none left. |
 | `first` | navigate | First slide | `Home` | always | Jumps back to the first slide. |
 | `last` | navigate | Last slide | `End` | always | Jumps to the last slide. |

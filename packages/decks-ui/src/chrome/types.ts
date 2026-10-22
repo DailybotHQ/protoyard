@@ -1,2 +1,2 @@
-/** The deck actions the presenting toolbar can trigger (each mirrors a key). */
-export type DeckToolAction = 'blackout' | 'fullscreen' | 'laser' | 'help';
+/** The registry actions rendered by the deck toolbar. */
+export type DeckToolAction = import('@protoyard/decks').DeckInputAction;

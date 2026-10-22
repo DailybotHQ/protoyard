@@ -28,6 +28,7 @@ export const DECK_INPUT_ACTIONS = [
   'print',
   'fullscreen-exit',
   'copy-link',
+  'jump',
   'debug',
 ] as const;
 export type DeckInputAction = (typeof DECK_INPUT_ACTIONS)[number];

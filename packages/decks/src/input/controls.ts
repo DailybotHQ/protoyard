@@ -41,6 +41,7 @@ export const DECK_CONTROL_ICONS = [
   'printer',
   'link',
   'bug',
+  'list',
 ] as const;
 export type DeckControlIcon = (typeof DECK_CONTROL_ICONS)[number];
 
@@ -140,6 +141,16 @@ export const DECK_CONTROLS: readonly DeckControl[] = Object.freeze([
     ],
     toggle: false,
     icon: 'arrow-left',
+    requires: [],
+  }),
+  control({
+    action: 'jump',
+    group: 'navigate',
+    label: 'Choose a slide',
+    description: 'Opens the slide list so you can jump directly to a slide.',
+    keys: [],
+    toggle: false,
+    icon: 'list',
     requires: [],
   }),
   control({

@@ -199,6 +199,9 @@ describe('fullscreen helpers', () => {
 describe('DeckToolbar', () => {
   const props = (extra: Record<string, unknown> = {}) => ({
     reference: () => 'Intro · intro · #/intro/0',
+    slides: fixtureDeck().slides,
+    currentOrdinal: 1,
+    onjump: vi.fn(),
     onaction: vi.fn(),
     helpId: 'help-x',
     ...extra,
@@ -208,16 +211,24 @@ describe('DeckToolbar', () => {
     render(DeckToolbar, {
       props: props({ blackout: true, laser: false, fullscreen: true, help: true }),
     });
-    const bar = screen.getByRole('toolbar', { name: 'Presenting tools' });
+    const bar = screen.getByRole('toolbar', { name: 'Deck controls' });
     const names = within(bar)
       .getAllByRole('button')
-      .map((b) => b.textContent?.replace(/\s+/g, ' ').trim());
+      .map((b) => b.getAttribute('aria-label'));
     expect(names).toEqual([
-      '■Black out the screen',
-      '⛶Full screen',
-      '◉Laser pointer',
-      '⧉Copy slide reference',
-      '?Keyboard shortcuts',
+      'Previous step or slide',
+      'Choose a slide, 1 of 2',
+      'Next step or slide',
+      'First slide',
+      'Last slide',
+      'Overview of all slides',
+      'Full screen',
+      'Presenter view',
+      'Black out the screen',
+      'Laser pointer',
+      'Copy slide reference',
+      'Print, one slide per page',
+      'Keyboard shortcuts',
     ]);
     for (const button of within(bar).getAllByRole('button')) {
       expect(button.getAttribute('type')).toBe('button');
@@ -252,7 +263,17 @@ describe('DeckToolbar', () => {
   });
 
   it('hides full screen where the browser cannot do it (no dead control)', () => {
-    render(DeckToolbar, { props: props({ fullscreenAvailable: false }) });
+    render(DeckToolbar, {
+      props: props({
+        environment: {
+          fullscreen: false,
+          popup: false,
+          clipboard: true,
+          print: true,
+          debug: false,
+        },
+      }),
+    });
     expect(screen.queryByRole('button', { name: 'Full screen' })).toBeNull();
   });
 

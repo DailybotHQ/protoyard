@@ -2,6 +2,7 @@
 import type { PresenterPosition } from '@protoyard/decks';
 import {
   createDeckNavigator,
+  type DeckControlEnvironment,
   type DeckInputState,
   type DeckLocation,
   type DeckNavigator,
@@ -28,7 +29,7 @@ import {
 } from '../chrome/index.ts';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
 import SlideStepHost from '../layouts/SlideStepHost.svelte';
-import { DeckPrint, PrintButton, parseDeckPrintFlags } from '../print/index.ts';
+import { DeckPrint, parseDeckPrintFlags } from '../print/index.ts';
 import { DeckSlideFrame, DeckStyleState, setDeckStyleContext } from '../style/index.ts';
 
 /**
@@ -96,6 +97,14 @@ let inputState = $state<DeckInputState>({
 /** True while the deck root is the browser's full screen element (all chrome hidden). */
 let fullscreen = $state(false);
 let canFullscreen = $state(false);
+const controlEnvironment = $derived<DeckControlEnvironment>({
+  fullscreen: canFullscreen,
+  popup: typeof window !== 'undefined' && typeof window.open === 'function',
+  clipboard: true,
+  print: typeof window !== 'undefined' && typeof window.print === 'function',
+  // The agent debug panel is mounted by the opt-in debug integration task.
+  debug: false,
+});
 const uid = $props.id();
 const helpId = `deck-help-${uid}`;
 /** Stable navigator for the current deck; rebuilt only when the deck changes. */
@@ -384,6 +393,14 @@ function onTool(action: DeckToolAction): void {
   runAction(action);
 }
 
+function jumpToSlide(slideId: string): void {
+  if (!nav) return;
+  const next = nav.goTo(slideId, 0);
+  location = next;
+  writeHash(nav);
+  announceSlide(next, deck.slides.length);
+}
+
 function goOverview(slideId: string): void {
   if (!nav) return;
   // Close first so a bubbling click cannot double-advance while open/closing.
@@ -582,13 +599,17 @@ onMount(() => {
             blackout={inputState.blackout === true}
             laser={inputState.laser === true}
             help={inputState.help === true}
+            overview={inputState.overview === 'open'}
+            presenter={presenterOpen}
             {fullscreen}
-            fullscreenAvailable={canFullscreen}
             {helpId}
             reference={currentReference}
+            slides={visible}
+            currentOrdinal={visibleOrdinal + 1}
+            environment={controlEnvironment}
             onaction={onTool}
+            onjump={jumpToSlide}
           />
-          <PrintButton />
         </div>
       </div>
     {/if}
