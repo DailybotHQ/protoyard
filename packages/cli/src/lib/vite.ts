@@ -95,6 +95,11 @@ export interface ViteBuildOptions {
    * PROTOYARD_REVIEW_ADAPTER, PROTOYARD_REVIEW_ENDPOINT; `publish --comments`).
    */
   review?: { adapter: 'http' | 'cloudflare'; endpoint: string };
+  /**
+   * A build target with its own output shape (PROTOYARD_TARGET; `artifact`
+   * for `export --target artifact`: one script chunk and one stylesheet).
+   */
+  target?: 'artifact';
   /** Pipe output (for --json) instead of inheriting the terminal. */
   quiet: boolean;
 }
@@ -111,6 +116,7 @@ export function buildEnv(
     | 'avatarBase'
     | 'avatarSizes'
     | 'review'
+    | 'target'
   >
 ) {
   return {
@@ -128,6 +134,8 @@ export function buildEnv(
     // Set explicitly either way, so an inherited value never drops a build's avatars.
     PROTOYARD_AVATAR_BASE: options.avatarBase ?? '',
     PROTOYARD_AVATAR_SIZES: options.avatarSizes ? options.avatarSizes.join(',') : '',
+    // Set explicitly either way, so an inherited value never reshapes a plain build.
+    PROTOYARD_TARGET: options.target ?? '',
     // Only `publish --comments` forces review on with its backend; otherwise
     // PROTOYARD_REVIEW / PROTOYARD_REVIEW_ADAPTER from the shell or the manifest decide.
     ...(options.review

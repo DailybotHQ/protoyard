@@ -95,6 +95,7 @@ From a real `crm-demo` build (the `files` list is shortened):
 | `builtAt` | Build time (metadata only, never used for seeded data) |
 | `base`, `includeDevtools` | The settings this build used |
 | `outDir` | Workspace-relative when inside the workspace, absolute otherwise |
+| `target` | `"artifact"` for the single-chunk Claude artifact build (`export --target artifact`); absent for a plain build |
 | `fileCount`, `totalBytes`, `files[]` | Every emitted file with size and SHA-256 |
 | `generator`, `sdk`, `node` | CLI, package, Vite and Node versions that produced it |
 | `bundle` | gzip (level 9) bytes: `initialJsGzip` (entry chunks and their static imports), `lazyJsGzip` (chunks loaded through `import()`, such as Faker), `cssGzip`, `totalGzip` (every file), and `chunks[]` (`file`, `kind`: `initial`, `lazy` or `css`, `gzip`). Computed from Vite's chunk manifest, which is then deleted from `dist`. Absent when the prototype's `vite.config.ts` does not use `defineProtoyardConfig`. `build` prints the same figures. |
@@ -285,6 +286,27 @@ plain build in `dist/` is untouched:
 - `build.frameWhenEmbedded` is on, so an explicit shell (phone, tablet,
   browser, widget) keeps its frame inside the artifact viewer
   ([SHELLS.md](SHELLS.md#when-the-app-goes-full-bleed)).
+- It builds **one script chunk and one stylesheet**. The CLI sets
+  `PROTOYARD_TARGET=artifact` for this build, and always sets it to empty for
+  every other build, so a value inherited from the shell never changes a plain
+  build. The shared renderer config (`defineProtoyardConfig`) then puts every
+  module into a single chunk group (Rolldown `codeSplitting.groups`) and turns
+  off CSS code splitting. Images, fonts and avatars stay files.
+  - **Why:** lazy screens and kits would otherwise each be a file that counts
+    against the 511-file version cap.
+  - **Why a group:** unlike `codeSplitting: false`, it keeps tree-shaking of
+    dynamic imports. With `false`, the relay-chat-demo script grew from
+    1.27 MB to 3.24 MB raw (every Faker locale stayed in).
+  - **Cost:** the page downloads all of its code at open. For relay-chat-demo,
+    measured 2026-10-22, the single script is 411,835 B gzip and the
+    stylesheet 20,047 B. A plain build with DevTools has 163,489 B gzip of
+    initial JS plus 269,599 B lazy, across 38 files.
+  - **Recorded:** `artifact-build.json` stores `"target": "artifact"`.
+    `--skip-build` refuses a build without it, such as one made before this
+    change.
+  - **Your own config:** a `vite.config.ts` that is not built on
+    `defineProtoyardConfig` can read `process.env.PROTOYARD_TARGET` itself.
+    The single chunk group needs the page's single HTML entry.
 - It always uses the relative base `./`. `--base` with another path,
   `--offline` and `"build": { "offline": true }` are refused (exit 2 and 4).
 - Avatar images ship at 128 px only (175 files, 356,386 B), and 64 px
@@ -306,9 +328,9 @@ It then runs the isolation check and the pack step
 $ pnpm protoyard export relay-chat-demo --target artifact --dry-run
 ✓ Checked relay-chat-demo as a Claude artifact (dry run, nothing written)
   page    artifacts/relay-chat-demo/artifact/page.html
-  files   219 + the page, 1.7 MB in 1 publish batch
-  sha256  81710cde384510875d92a4b3841f886e1af0914f90cb44026616fbcde6037e50 (build)
-  build   DevTools included, explicit shells keep their frame when embedded
+  files   179 + the page, 1.8 MB in 1 publish batch
+  sha256  d9398bd9acfd603b0087940877e6960b707c7b91af1bfdbb5112e11509c06fbe (build)
+  build   DevTools included, explicit shells keep their frame when embedded, one script chunk
   Isolation: no references to the other 81 registered projects.
   Publish it with the share-as-artifact skill (--json lists the exact Artifact tool arguments). Artifacts are private until you share them.
 ```

@@ -35,8 +35,8 @@ import { AVATAR_DIR, AVATAR_IMAGE_SIZES, protoyardAvatars } from './avatars-plug
  * The CLI drives builds through environment variables so the config file
  * never needs editing: PROTOYARD_BASE, PROTOYARD_OUT_DIR,
  * PROTOYARD_INCLUDE_DEVTOOLS, PROTOYARD_DEMO_BADGE, PROTOYARD_PORT,
- * PROTOYARD_BUILT_AT, and for avatar images PROTOYARD_AVATARS,
- * PROTOYARD_AVATAR_BASE and PROTOYARD_AVATAR_SIZES.
+ * PROTOYARD_BUILT_AT, PROTOYARD_TARGET, and for avatar images
+ * PROTOYARD_AVATARS, PROTOYARD_AVATAR_BASE and PROTOYARD_AVATAR_SIZES.
  */
 
 export interface ProtoyardConfigOptions extends UserConfig {
@@ -48,6 +48,50 @@ export interface ProtoyardConfigOptions extends UserConfig {
    * for avatar ids, so the UI falls back to initials.
    */
   avatars?: boolean;
+}
+
+/**
+ * Build targets with their own output shape. `artifact` is the Claude
+ * artifact export (`protoyard export <slug> --target artifact`): an artifact
+ * version holds at most 511 files, and a regular build splits every lazy
+ * screen and kit into its own chunk, so the artifact build emits one script
+ * and one stylesheet instead (images, fonts and avatars stay files).
+ */
+export const PROTOYARD_TARGETS = ['artifact'] as const;
+export type ProtoyardTarget = (typeof PROTOYARD_TARGETS)[number];
+
+/**
+ * PROTOYARD_TARGET: empty or unset is a regular build; anything other than a
+ * known target fails, so a typo never silently ships the wrong shape.
+ */
+export function buildTarget(env: Env): ProtoyardTarget | null {
+  const raw = env.PROTOYARD_TARGET?.trim();
+  if (!raw) return null;
+  if ((PROTOYARD_TARGETS as readonly string[]).includes(raw)) return raw as ProtoyardTarget;
+  throw new Error(
+    `PROTOYARD_TARGET must be empty or one of ${PROTOYARD_TARGETS.join(', ')} (got ${JSON.stringify(raw.slice(0, 40))})`
+  );
+}
+
+/**
+ * The Vite build options a target adds. For `artifact`: one chunk group that
+ * takes every module, so the build emits a single script (dynamic imports
+ * resolve inside it), plus one stylesheet. A group, unlike `codeSplitting:
+ * false`, keeps Rolldown's tree-shaking of dynamic-import namespaces: with
+ * `false`, `import('@faker-js/faker').then((m) => m.Faker)` keeps every
+ * locale and the relay-chat-demo script grows from 1.27 MB to 3.24 MB raw.
+ * A regular build gets nothing, so its lazy chunks are unchanged.
+ */
+export function targetBuildOptions(
+  target: ProtoyardTarget | null
+): NonNullable<UserConfig['build']> {
+  if (target !== 'artifact') return {};
+  return {
+    cssCodeSplit: false,
+    rolldownOptions: {
+      output: { codeSplitting: { groups: [{ name: 'app', test: /./ }] } },
+    },
+  };
 }
 
 /** Shape of the `__PROTOYARD_BUILD__` global. */
@@ -182,6 +226,8 @@ export interface ResolvedProtoyardSettings {
   offline: boolean;
   port: number | undefined;
   avatars: AvatarSettings;
+  /** PROTOYARD_TARGET for builds; always null in dev. */
+  target: ProtoyardTarget | null;
   build: ProtoyardBuildInfo;
 }
 
@@ -257,6 +303,7 @@ export function resolveProtoyardSettings(
     avatars: resolveAvatarSettings(base, env, options),
     reviewEnabled: review.enabled,
     reviewAdapter: reviewAdapterOverride(env),
+    target: isBuild ? buildTarget(env) : null,
     build: {
       id: manifest.id,
       slug: manifest.slug,
@@ -348,6 +395,7 @@ export function defineProtoyardConfig(options: ProtoyardConfigOptions): UserConf
         sourcemap: false,
         reportCompressedSize: false,
         manifest: VITE_MANIFEST_PATH,
+        ...targetBuildOptions(settings.target),
       },
     };
     return mergeConfig(base, overrides) as UserConfig;
