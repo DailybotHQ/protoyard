@@ -7,6 +7,15 @@ export {
   type ActorKind,
   default as ActorRow,
 } from './components/actors/ActorRow.svelte';
+export {
+  ADAPTIVE_OVERLAY_BREAKPOINT,
+  AdaptiveOverlay,
+  type AdaptiveOverlayMode,
+  type AdaptiveOverlayPresentation,
+  type AdaptiveOverlayWideKind,
+  type ResolveAdaptiveOverlayInput,
+  resolveAdaptiveOverlayPresentation,
+} from './components/adaptive-overlay/index.ts';
 export { default as AlertDialog } from './components/alert-dialog/AlertDialog.svelte';
 // Layout & navigation
 export { default as AppShell } from './components/app-shell/AppShell.svelte';
@@ -138,6 +147,11 @@ export {
   type DrawerPlacement,
   resolveDrawerSize,
 } from './components/overlay/drawer.ts';
+export {
+  installUndoToasterFocusExemption,
+  isUndoToasterTarget,
+  UNDO_TOASTER_ATTR,
+} from './components/overlay/focus-exempt.ts';
 export {
   OVERLAY_Z_BASE,
   type OverlayEntry,

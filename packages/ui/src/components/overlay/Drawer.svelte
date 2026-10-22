@@ -6,12 +6,14 @@ import { cn } from '../../lib/cn.ts';
 import { overlayBackdrop } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
+import { undoToast } from '../toast/undo.svelte.ts';
 import {
   type DrawerPlacement,
   drawerPlacementClasses,
   isDrawerPlacement,
   resolveDrawerSize,
 } from './drawer.ts';
+import { isUndoToasterTarget } from './focus-exempt.ts';
 import { type OverlayStack, overlayStack } from './overlay-stack.ts';
 import { useOverlayLayer } from './use-overlay-layer.svelte.ts';
 
@@ -78,6 +80,9 @@ const layer = useOverlayLayer(() => open, { modal: () => modal, stack });
 const edge = $derived(isDrawerPlacement(placement) ? placement : 'right');
 const resolvedSize = $derived(resolveDrawerSize(edge, size));
 const outsideCloses = $derived(closeOnOutsideClick ?? modal);
+// While an undo toast is up, release the focus trap so Undo/Dismiss stay
+// keyboard-reachable outside the modal surface (toaster paints above the stack).
+const trapFocus = $derived(modal && undoToast.items.length === 0);
 
 function setOpen(next: boolean): void {
   if (open === next) return;
@@ -95,8 +100,18 @@ function handleEscape(event: KeyboardEvent): void {
 
 function handleInteractOutside(event: PointerEvent): void {
   event.preventDefault();
+  // Undo toasts live outside the drawer; a click on them must not close it.
+  if (isUndoToasterTarget(event.target)) return;
   if (!outsideCloses || !layer.stack.isTop(layer.entry)) return;
   setOpen(false);
+}
+
+function handleFocusOutside(event: FocusEvent): void {
+  // Non-modal: ignore outside focus. Modal: let the undo toaster keep focus
+  // (its capture listener also stops the focus trap; see UndoToaster).
+  if (!modal || isUndoToasterTarget(event.target)) {
+    event.preventDefault();
+  }
 }
 
 function handleCloseAutoFocus(event: Event): void {
@@ -117,13 +132,11 @@ function handleCloseAutoFocus(event: Event): void {
     {/if}
     <DialogPrimitive.Content
       bind:ref
-      trapFocus={modal}
+      trapFocus={trapFocus}
       preventScroll={modal}
       onEscapeKeydown={handleEscape}
       onInteractOutside={handleInteractOutside}
-      onFocusOutside={(event) => {
-        if (!modal) event.preventDefault();
-      }}
+      onFocusOutside={handleFocusOutside}
       onCloseAutoFocus={handleCloseAutoFocus}
     >
       <!-- Our attributes come after the spread: Bits always marks dialogs aria-modal. -->

@@ -73,7 +73,7 @@ cn('shadow-soft', 'shadow-none'); // → "shadow-none"
 | Disclosure | `Tabs`, `Accordion`, `Carousel` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `ActorRow`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
-| Overlays | `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip`, `overlayStack` / `useOverlayLayer` |
+| Overlays | `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`, `AdaptiveOverlay`, `DropdownMenu`, `Popover`, `Tooltip`, `overlayStack` / `useOverlayLayer` |
 | Disclosure | `Tabs`, `Accordion` |
 | Feedback | `Toaster` + `toast`, `UndoToaster` + `undoToast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
@@ -397,9 +397,17 @@ Every `Drawer` registers with the shared `overlayStack`:
   Escape then closes that layer first, never the drawer and its draft.
 
 A custom overlay joins the same stack with `useOverlayLayer(() => open, { modal: () => modal })`.
-It gets its `zIndex` and `restoreFocus(container)`. `Dialog`, `AlertDialog` and `BottomSheet` do
-not register yet: they use a fixed `z-50`, so a `Dialog` opened from inside a drawer paints below
-it. For a dialog over a drawer, use another `Drawer` (or `modal` drawer) for now.
+It gets its `zIndex` and `restoreFocus(container)`. `Dialog`, `AlertDialog`, `BottomSheet` and
+`DetailPanel` also register as modal layers, so a dialog opened inside a drawer paints above it
+and Escape closes only the top layer. `UndoToaster` stays above the stack (`useOverlayTopZIndex`)
+and remains keyboard-reachable outside a modal drawer's focus trap.
+
+### AdaptiveOverlay
+
+`AdaptiveOverlay` picks a presentation from host/container width (default breakpoint 768 CSS px):
+bottom sheet when narrow, centered `Dialog` or `DetailPanel` side panel when wide (`kind`). Pass
+`force="sheet" | "dialog" | "side-panel"` to lock a presentation (for example with an in-app
+phone/desktop toggle). See [docs/SHELLS.md](../../docs/SHELLS.md#adaptive-overlay-sheet--dialog--side-panel).
 
 ## Undo toasts
 
