@@ -16,6 +16,7 @@
     "./search": "./src/search.ts",
     "./workflows": "./src/workflows/index.ts",
     "./kinds": "./src/kinds/index.ts",
+    "./kinds/embed": "./src/kinds/embed/index.ts",
     "./schema.json": "./schema/blueprint.schema.json"
   },
   "scripts": {
@@ -99,6 +100,11 @@
         "types": "./dist/kinds/index.d.ts",
         "import": "./dist/kinds/index.js",
         "default": "./dist/kinds/index.js"
+      },
+      "./kinds/embed": {
+        "types": "./dist/kinds/embed/index.d.ts",
+        "import": "./dist/kinds/embed/index.js",
+        "default": "./dist/kinds/embed/index.js"
       },
       "./schema.json": "./dist/schema/blueprint.schema.json"
     },

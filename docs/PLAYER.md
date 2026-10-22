@@ -140,27 +140,31 @@ accessible error screen with every issue and its fix, never a blank page.
 
 ### Embedded apps in decks and pages
 
-A content document may include an `embed-app` block (opaque app JSON, bounded
+A deck, page, or doc may include an `embed-app` block (opaque app JSON, bounded
 by the blocks untrusted limits). The blocks-ui embed family shows a framed
 preview and a **Start the app** button. Only after that click does the host
-call `mountEmbed(target, app)`. The player provides that callback
+call `mountEmbed(target, app)`. The player and generated deck, page, and doc
+templates provide that callback
 ([`kinds/mount-embed.ts`](../packages/player/src/kinds/mount-embed.ts)):
 
 1. It checks the app with `loadUntrustedBlueprint`. Only an app is accepted,
    never a deck, page or doc, so embedding is one level deep.
-2. It opens this same player in a frame (`./index.html?devtools=0`, same
-   origin, http(s) only).
-3. It sends the app over `protoyard-player/1` with the `connectPlayer` client.
+2. It opens the player or generated prototype in a same-origin frame over
+   http(s). The generated template starts its dedicated app entry only in this
+   frame, after the button click.
+3. The player uses `protoyard-player/1`; generated templates use the strict
+   `protoyard-embedded-app/1` parent/frame handshake. Both validate the app
+   before booting it.
 
-The frame gives the embedded app its own runtime, its own content namespace
-(`bp-…` from its identity) and its own URL hash, so it never fights the deck
-for slide links or storage. Until the click, no app code is downloaded with
-the deck or page. A missing host shows an accessible note, and unmount runs the
-disposer, which closes the connection and removes the frame. Slide keyboard
-navigation must not leak into the running frame: the embed family traps Tab
-inside it while the app is open. **Not supported:** the single-file export and
-the Claude artifact, which have no `index.html` to frame (the block shows the
-error), and `file://` pages.
+The frame gives the embedded app its own runtime, its own storage namespace
+and its own URL hash, so it never fights the host for navigation or storage.
+The player derives `bp-…` from app identity; generated templates derive a
+stable `embed-…` namespace from the host namespace and block id. Until the
+click, no app runtime is loaded. A missing host shows an accessible note, and
+unmount destroys the runtime and removes the frame. Slide keyboard navigation
+must not leak into the running frame: the embed family traps Tab inside it
+while the app is open. **Not supported:** single-file exports, Claude
+artifacts, and `file://` pages, which cannot frame a same-origin app runtime.
 
 ## Storage: identity and keep mode
 

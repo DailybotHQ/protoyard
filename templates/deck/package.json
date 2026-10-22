@@ -13,10 +13,12 @@
   },
   "dependencies": {
     "@protoyard/blueprint": "workspace:*",
+    "@protoyard/blocks-ui": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/decks": "workspace:*",
     "@protoyard/decks-ui": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/player": "workspace:*",
     "svelte": "^5.57.2"
   }
 }
