@@ -1,0 +1,112 @@
+{
+  "id": "pebble-q3-report",
+  "title": "Pebble Analytics Q3 one-pager",
+  "description": "Fictional one-page product report for doc host, TOC and print QA. example.com data only.",
+  "style": "soft-violet",
+  "toc": { "depth": 3, "sticky": true },
+  "print": { "pageBreaks": "heading", "hideChrome": true },
+  "blocks": [
+    {
+      "type": "heading",
+      "id": "title",
+      "level": 1,
+      "eyebrow": "Q3 2026 · Fictional data",
+      "text": "Pebble Analytics quarterly one-pager",
+      "subtitle": "Pebble is a fictional analytics product. Every figure below is example data."
+    },
+    {
+      "type": "callout",
+      "tone": "info",
+      "title": "Summary",
+      "body": "Weekly active teams grew **14%** while median dashboard load stayed under **1.2 s** in the example period."
+    },
+    {
+      "type": "heading",
+      "id": "headline",
+      "level": 2,
+      "text": "Headline numbers"
+    },
+    {
+      "type": "stat",
+      "items": [
+        { "value": "842", "label": "Active workspaces" },
+        { "value": "1.1 s", "label": "Median dashboard load" },
+        { "value": "96%", "label": "Scenario integrity pass" }
+      ],
+      "source": "Pebble demo · metrics.example.com"
+    },
+    {
+      "type": "heading",
+      "id": "volume",
+      "level": 2,
+      "text": "Event volume by month"
+    },
+    {
+      "type": "chart",
+      "id": "events-chart",
+      "spec": {
+        "kind": "bar",
+        "title": "Events per month (fictional)",
+        "description": "Example series for chart block QA.",
+        "labels": ["July", "August", "September"],
+        "series": [
+          { "label": "Ingested", "values": [1.2e6, 1.35e6, 1.48e6] },
+          { "label": "Queried", "values": [4.1e5, 4.4e5, 4.9e5] }
+        ]
+      },
+      "height": "md",
+      "showTable": true
+    },
+    {
+      "type": "heading",
+      "id": "channels",
+      "level": 2,
+      "text": "Channels"
+    },
+    {
+      "type": "table",
+      "caption": "Sessions by channel, Q3 2026 (fictional)",
+      "columns": [
+        { "label": "Channel" },
+        { "label": "Sessions", "format": "number", "align": "end" },
+        { "label": "Share", "format": "percent", "align": "end" }
+      ],
+      "rows": [
+        ["Product app", 18200, 0.52],
+        ["Embed widget", 9800, 0.28],
+        ["Public link", 7000, 0.2]
+      ]
+    },
+    {
+      "type": "heading",
+      "id": "voice",
+      "level": 2,
+      "text": "Customer voice"
+    },
+    {
+      "type": "quote",
+      "quote": "The demo dashboard finally matches what we sketch in design reviews.",
+      "cite": "Jordan Example",
+      "role": "Design lead at a fictional studio"
+    },
+    {
+      "type": "heading",
+      "id": "next",
+      "level": 2,
+      "text": "Next steps"
+    },
+    {
+      "type": "list",
+      "style": "check",
+      "items": [
+        { "text": "Ship the example cohort view", "done": false },
+        { "text": "Publish the Q4 scenario pack", "done": false },
+        { "text": "Retire the legacy CSV importer", "done": true }
+      ]
+    },
+    {
+      "type": "text",
+      "markdown": "Prepared by the fictional product ops team. Contact: ops@pebble.example.com."
+    }
+  ]
+}

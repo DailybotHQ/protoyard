@@ -87,6 +87,30 @@ before full schema parse. This package does not patch the blueprint loader.
 - `formResponses` services and minimal runtimes
 - `PageApp` / `DocApp` in `@protoyard/pages-ui`
 
+
+## Fixtures
+
+Internal JSON under `packages/pages/fixtures/` for unit tests, KINDS smoke and
+visual QA. Fictional **example.com** data only.
+
+| File | Contents |
+| --- | --- |
+| `landing-page.json` | Marketing landing: hero, stats, CTA, waitlist form, nav |
+| `one-pager-doc.json` | Report one-pager: TOC, headings, stats, chart, table, quote |
+
+```ts
+import {
+  loadLandingPageFixture,
+  loadOnePagerDocFixture,
+} from '@protoyard/pages/fixtures';
+
+const page = loadLandingPageFixture();
+const doc = loadOnePagerDocFixture();
+```
+
+AUTHORING owns catalog blueprints under `blueprints/pages` and `blueprints/docs`;
+these fixtures stay small and package-local.
+
 ## Development
 
 ```bash
