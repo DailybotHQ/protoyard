@@ -1,5 +1,4 @@
-import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   type Blueprint,
@@ -23,7 +22,7 @@ import {
 } from '../src/archetypes/business/index.ts';
 import { type BootedPlayer, bootPlayer } from '../src/boot.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
-import { productionBuildEnv } from './support/build-env.ts';
+import { ensurePlayerBuild } from './support/serve-dist.ts';
 
 configure({ asyncUtilTimeout: 20_000 });
 
@@ -208,14 +207,7 @@ describe('laziness in the built player', () => {
   it('keeps the SaaS and analytics kits out of the initial JavaScript', {
     timeout: 600_000,
   }, () => {
-    if (!existsSync(join(DIST, 'index.html'))) {
-      const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
-        cwd: ROOT,
-        encoding: 'utf8',
-        env: productionBuildEnv(),
-      });
-      if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
-    }
+    ensurePlayerBuild(ROOT);
     const html = readFileSync(join(DIST, 'index.html'), 'utf8');
     const initial = [...html.matchAll(/(?:src|href)="\.\/(assets\/[^"]+\.js)"/g)].map(
       (match) => match[1] as string

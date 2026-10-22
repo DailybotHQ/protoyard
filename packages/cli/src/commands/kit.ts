@@ -124,6 +124,25 @@ export const kitSyncCommand: Handler = async (ctx, args, options): Promise<Comma
     );
   }
 
+  // The synced folder belongs to the prototype: never replace local edits silently.
+  if (existing && !flag(options, 'force')) {
+    const local = compareHashes(existing.files, hashFiles(readTree(targetDir, true)));
+    if (local.length > 0) {
+      throw new CliError(
+        'conflict',
+        `${relative(ctx.root, targetDir)} has local changes: ${local.join(', ')}.`,
+        {
+          hint:
+            'Keep them by moving them out of the folder, or replace them with protoyard kit sync ' +
+            kit.entry.slug +
+            ' ' +
+            prototype.entry.slug +
+            ' --force.',
+        }
+      );
+    }
+  }
+
   const manifest: KitManifest = {
     format: 'protoyard-kit-sync/v1',
     kit: kit.entry.slug,

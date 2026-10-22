@@ -88,17 +88,31 @@ export const blockBase = {
   tone: BlockToneSchema.optional(),
 };
 
-// C0/C1 controls, bidi marks/embeddings/overrides/isolates and BOMs. This
-// shared predicate also drives the untrusted-input sanitizer.
+// C0/C1 controls, bidi marks/embeddings/overrides/isolates ("Trojan Source"),
+// BOMs, the invisible zero-width space and word joiner (U+200B, U+2060) and
+// the Unicode line and paragraph separators (U+2028, U+2029). ZWJ/ZWNJ
+// (U+200C, U+200D) stay: emoji and some scripts need them. This shared
+// predicate also drives the untrusted-input sanitizers.
 const UNSAFE_TEXT_CODE_POINT_RANGES = [
   [0x00, 0x1f],
   [0x7f, 0x9f],
   [0x061c, 0x061c],
+  [0x200b, 0x200b],
   [0x200e, 0x200f],
+  [0x2028, 0x2029],
   [0x202a, 0x202e],
+  [0x2060, 0x2060],
   [0x2066, 0x2069],
   [0xfeff, 0xfeff],
 ] as const;
+
+/**
+ * Turns U+2028/U+2029 into a line break (multiline text) or a space, so the
+ * untrusted loaders keep the word boundary before the schema refuses them.
+ */
+export function normalizeLineSeparators(value: string, keepNewlines: boolean): string {
+  return value.replace(/[\u2028\u2029]/g, keepNewlines ? '\n' : ' ');
+}
 
 export function isUnsafeTextCharacter(
   character: string,

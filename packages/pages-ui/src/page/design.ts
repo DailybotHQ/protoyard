@@ -113,11 +113,14 @@ export function pageNavItems(page: Pick<PageDocument, 'sections' | 'nav'>): Page
   }));
 }
 
-const SAFE_HREF = /^(#[A-Za-z0-9_-]*|\/(?!\/)[^\s]*|https?:\/\/[^\s]+|mailto:[^\s]+)$/i;
+// Paths never start with `//` or `/\` and never hold a backslash: browsers read
+// `\` as `/` in http(s) URLs, so `/\evil.example` would be protocol-relative.
+const SAFE_HREF = /^(#[A-Za-z0-9_-]*|\/(?![/\\])[^\s\\]*|https?:\/\/[^\s\\]+|mailto:[^\s]+)$/i;
 
 /**
  * A link target the page may use: in-page hashes, same-site paths, http(s)
- * and mailto. Anything else (`javascript:`, `data:`, protocol-relative) is
+ * and mailto. Anything else (`javascript:`, `data:`, protocol-relative,
+ * backslash tricks) is
  * null. The block schema already rejects these; this is the second fence.
  */
 export function safePageHref(href: string): string | null {

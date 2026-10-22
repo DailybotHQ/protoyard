@@ -44,7 +44,7 @@ export function caretCoordinates(
   mirror.textContent = textarea.value.slice(0, position);
   const marker = document.createElement('span');
   // A zero-width space keeps an empty marker measurable at the line end.
-  marker.textContent = textarea.value.slice(position, position + 1) || '​';
+  marker.textContent = textarea.value.slice(position, position + 1) || '\u200B';
   mirror.appendChild(marker);
   document.body.appendChild(mirror);
   const lineHeight =

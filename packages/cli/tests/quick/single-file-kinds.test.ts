@@ -1,10 +1,10 @@
 // @vitest-environment node
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
+import { ensurePlayerBuild } from '../../../player/tests/support/serve-dist.ts';
 import { chunkReferences, entryGraph } from '../../src/lib/quick/chunk-graph.ts';
 import {
   buildSingleFile,
@@ -200,13 +200,9 @@ describe('buildSingleFile with an entry page', () => {
 });
 
 describe('single files from the real player build', () => {
+  // The player's shared helper: a production build, rebuilt when any kind page is missing.
   const ensureBuild = () => {
-    if (existsSync(join(PLAYER, 'deck.html'))) return;
-    const built = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
-      cwd: REPO,
-      encoding: 'utf8',
-    });
-    if (built.status !== 0) throw new Error(`player build failed:\n${built.stderr}${built.stdout}`);
+    ensurePlayerBuild(REPO);
   };
   /** Emitted files of modules matching `pattern`, from the player's Vite manifest. */
   const filesOf = (pattern: RegExp): string[] => {

@@ -8,12 +8,14 @@ import {
   evaluateFormula,
   FORMULA_LIMITS,
   type FormulaInputs,
+  FormulaVariableNameSchema,
   formatFormulaValue,
   formulaVariables,
   type NumberFormula,
   parseFormula,
   roundTo,
 } from '../src/formula/index.ts';
+import { safeParseBlock } from '../src/index.ts';
 
 const n = (value: number): NumberFormula => ({ op: 'num', value });
 const v = (name: string): NumberFormula => ({ op: 'var', name });
@@ -123,9 +125,11 @@ describe('formula evaluation', () => {
   });
 
   it('never reads inherited properties as inputs', () => {
-    for (const name of ['constructor', 'toString', 'valueOf', 'hasOwnProperty']) {
+    for (const name of ['toString', 'valueOf', 'hasOwnProperty']) {
       expect(run(v(name), {}), name).toBeNull();
     }
+    // The schema refuses "constructor"; the evaluator stays safe without it.
+    expect(evaluateFormula(v('constructor'), {})).toBeNull();
     const inherited = Object.create({ seats: 5 }) as FormulaInputs;
     expect(run(v('seats'), inherited)).toBeNull();
     expect(run(v('seats'), { seats: '5' } as unknown as FormulaInputs)).toBeNull();
@@ -203,6 +207,34 @@ describe('formula evaluation', () => {
     for (let i = 0; i < 5_000; i += 1) deep = add(deep, n(1));
     expect(() => evaluateFormula(deep, {})).not.toThrow();
     expect(evaluateFormula(deep, {})).toBeNull();
+  });
+});
+
+describe('variable names', () => {
+  it('reserves constructor and prototype (form responses refuse them as keys)', () => {
+    expect(FormulaVariableNameSchema.safeParse('constructor').success).toBe(false);
+    expect(FormulaVariableNameSchema.safeParse('prototype').success).toBe(false);
+    expect(FormulaVariableNameSchema.safeParse('hoursSaved').success).toBe(true);
+    expect(
+      safeParseBlock({
+        type: 'form',
+        id: 'signup',
+        title: 'Join the beta',
+        fields: [{ name: 'constructor', label: 'Name', type: 'text' }],
+        submitLabel: 'Request access',
+        successMessage: 'Thanks! This is a simulated form; nothing was sent.',
+      }).success
+    ).toBe(false);
+    expect(
+      safeParseBlock({
+        type: 'form',
+        id: 'signup',
+        title: 'Join the beta',
+        fields: [{ name: 'company', label: 'Name', type: 'text' }],
+        submitLabel: 'Request access',
+        successMessage: 'Thanks! This is a simulated form; nothing was sent.',
+      }).success
+    ).toBe(true);
   });
 });
 

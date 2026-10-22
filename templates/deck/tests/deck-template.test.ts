@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { safeParseAnyBlueprint } from '@protoyard/blueprint';
 import type { DeckPatchOperation } from '@protoyard/decks/patch';
 import { describe, expect, it } from 'vitest';
@@ -30,5 +32,10 @@ describe('deck level-two template', () => {
       { op: 'replace', path: '/deck/style/aspect', value: '4:3' },
       { op: 'remove', path: '/deck/slides/5/props/footnote' },
     ]);
+  });
+
+  it('scopes the presenter channel to this prototype, not the shared "deck" default', () => {
+    const app = readFileSync(join(import.meta.dirname, '../src/App.svelte'), 'utf8');
+    expect(app).toMatch(/<DeckApp\b[^>]*\bnamespace=\{runtime\.manifest\.storage\.namespace\}/);
   });
 });

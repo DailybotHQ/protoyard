@@ -156,7 +156,7 @@ describe('kind renderers never turn data into code or HTML', () => {
     ['new Function()', /new\s+Function\s*\(/],
     ['innerHTML/outerHTML assignment', /\.(?:inner|outer)HTML\s*=/],
     ['insertAdjacentHTML', /insertAdjacentHTML\s*\(/],
-    ['document.write', /document\.write(?:ln)?\s*\(/],
+    ['document.write', /\.write(?:ln)?\s*\(/],
     ['srcdoc', /\bsrcdoc\b/],
     ['dynamic import of a computed specifier', /(?<![.\w])import\(\s*(?!['"`]|\))/],
   ];

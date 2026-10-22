@@ -1,5 +1,14 @@
 // @vitest-environment node
-import { cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,6 +55,35 @@ const generate = (...args: string[]) => cli(['--root', ws.root, '--json', 'gener
 const read = (path: string) => readFileSync(join(ws.root, path), 'utf8');
 
 describe('protoyard generate content kinds', () => {
+  it('never regenerates a deck through a symlinked src/deck-blueprint.ts or src folder', async () => {
+    const file = writeFixture('deck');
+    expect((await generate('deck-links', '--blueprint', file, '--no-install')).code).toBe(0);
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-kind-outside-'));
+    try {
+      const target = join(outside, 'target.ts');
+      writeFileSync(target, 'outside\n');
+      const deckFile = join(ws.root, 'prototypes/deck-links/src/deck-blueprint.ts');
+      rmSync(deckFile);
+      symlinkSync(target, deckFile);
+      for (const flags of [[], ['--force']]) {
+        const run = await generate('deck-links', '--blueprint', file, '--no-install', ...flags);
+        expect(run.code).not.toBe(0);
+        expect(run.json<{ error?: { code: string } }>().error?.code).toBe('unsafe_path');
+        expect(readFileSync(target, 'utf8')).toBe('outside\n');
+      }
+
+      const src = join(ws.root, 'prototypes/deck-links/src');
+      rmSync(src, { recursive: true });
+      symlinkSync(outside, src, 'dir');
+      const run = await generate('deck-links', '--blueprint', file, '--no-install', '--force');
+      expect(run.code).not.toBe(0);
+      expect(run.json<{ error?: { code: string } }>().error?.code).toBe('unsafe_path');
+      expect(readFileSync(target, 'utf8')).toBe('outside\n');
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
+  });
+
   it.each(Object.keys(FIXTURES) as ContentKind[])(
     'defaults %s blueprints to their matching template and reports the kind',
     async (kind) => {

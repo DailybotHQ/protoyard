@@ -14,4 +14,5 @@ const studio = getTemplateDeckStudio();
 const deck = $derived(studio?.preview ?? deckBlueprint.deck);
 </script>
 
-<DeckApp {deck} />
+<!-- A per-prototype namespace keeps two decks on one origin from sharing presenter state. -->
+<DeckApp {deck} namespace={runtime.manifest.storage.namespace} />

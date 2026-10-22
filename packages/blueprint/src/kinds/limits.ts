@@ -188,6 +188,27 @@ export function checkContentLimits(
     return null;
   };
 
+  // A catalog `chart` slide carries its spec in props: it counts against the same
+  // document chart-point budget as chart blocks, or a deck of chart slides
+  // could ask a viewer's browser to draw far more than the limit allows.
+  if (kind === 'deck' && Array.isArray(body.slides)) {
+    for (const [i, slide] of body.slides.entries()) {
+      if (!isRecord(slide) || !isRecord(slide.props) || !isRecord(slide.props.spec)) continue;
+      const spec = slide.props.spec;
+      const labels = Array.isArray(spec.labels) ? spec.labels.length : 0;
+      const series = Array.isArray(spec.series) ? spec.series.length : 0;
+      chartPoints += labels * Math.max(1, series);
+      if (chartPoints > limits.maxChartPoints) {
+        return tooMany(
+          [kind, 'slides', i, 'props', 'spec'],
+          'chart points',
+          chartPoints,
+          limits.maxChartPoints
+        );
+      }
+    }
+  }
+
   const lists: { list: unknown[]; path: (string | number)[]; slide: boolean }[] = [];
   if (kind === 'deck' && Array.isArray(body.slides)) {
     for (const [i, slide] of body.slides.entries()) {
@@ -224,5 +245,6 @@ export function containsEmbeddedApp(value: unknown): boolean {
       for (const key of Object.keys(node)) stack.push(node[key]);
     }
   }
-  return false;
+  // Fail closed: a value too large to finish scanning is treated as nested.
+  return stack.length > 0;
 }

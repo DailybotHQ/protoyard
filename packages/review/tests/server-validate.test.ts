@@ -91,9 +91,9 @@ const STRING_PATHS: Record<string, unknown[]> = {
     'bell\u0007',
     'del\u007f',
     'c1\u0085',
-    'bidi\u202e',
+    'bidi\u202E',
     'iso\u2066',
-    'ls ok',
+    'ls\u2028ok',
     long(2000),
     long(2001),
     '<script>alert(1)</script>',
@@ -105,9 +105,9 @@ const STRING_PATHS: Record<string, unknown[]> = {
     long(60),
     long(61),
     'tab\tname',
-    'ls ',
-    'ps ',
-    'bidi\u202a',
+    'ls\u2028',
+    'ps\u2029',
+    'bidi\u202A',
     'Zoë',
   ],
   'author.clientId': ['abcdefgh', 'abcdefg', long(128), long(129), 'a:b.c-d_e', 'bad/slash'],

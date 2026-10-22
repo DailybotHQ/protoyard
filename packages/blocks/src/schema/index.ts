@@ -300,6 +300,46 @@ export const BlockListSchema = z.array(BlockSchema).superRefine((blocks, ctx) =>
   });
 });
 
+/** One block list inside a larger document (a deck slide or a page section). */
+export interface DocumentBlockList {
+  /** Path of the list within the document, e.g. `['slides', 3, 'blocks']`. */
+  path: (string | number)[];
+  blocks: readonly Block[];
+}
+
+/**
+ * Block ids must be unique across a whole document, not just within one list:
+ * interactive state, form responses and an embedded app's storage namespace
+ * are all keyed by block id, so two blocks sharing an id on different slides
+ * or sections would read and write each other's data. With `crossListOnly`,
+ * duplicates inside one list are left to `BlockListSchema`, which reports them.
+ */
+export function duplicateBlockIdIssues(
+  lists: readonly DocumentBlockList[],
+  options: { crossListOnly?: boolean } = {}
+): { path: (string | number)[]; message: string }[] {
+  const seen = new Map<string, { list: number; at: string }>();
+  const issues: { path: (string | number)[]; message: string }[] = [];
+  lists.forEach((list, index) => {
+    forEachBlock(list.blocks, (block, path) => {
+      const id = 'id' in block ? block.id : undefined;
+      if (id === undefined) return;
+      const full = [...list.path, ...path];
+      const first = seen.get(id);
+      if (!first) {
+        seen.set(id, { list: index, at: toJsonPath(full) });
+        return;
+      }
+      if (options.crossListOnly && first.list === index) return;
+      issues.push({
+        path: [...full, 'id'],
+        message: `Duplicate block id "${id}" (first used at ${first.at}); give every block in the document its own id`,
+      });
+    });
+  });
+  return issues;
+}
+
 /** One validation problem, addressed by a JSONPath-style string. */
 export interface BlockIssue {
   path: (string | number)[];

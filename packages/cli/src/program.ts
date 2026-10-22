@@ -481,6 +481,7 @@ export function createProgram(env: RunnerEnv): Command {
     .argument('<kit>', 'kit prototype or template slug')
     .argument('<prototype>', 'destination prototype slug')
     .option('--check', 'fail when the source, copied files or manifest have drifted')
+    .option('--force', 'replace local changes in the synced folder')
     .action(def('kit sync', kitSyncCommand));
 
   const snapshot = program

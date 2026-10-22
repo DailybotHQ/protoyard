@@ -33,10 +33,16 @@ const NUMBER_OPS = [
 ] as const;
 const CONDITION_OPS = ['lt', 'lte', 'gt', 'gte', 'eq', 'neq', 'and', 'or', 'not'] as const;
 
-/** A formula variable: lowerCamelCase, like calculator input names. */
+/** Object-model names never usable as keys: form responses refuse them too. */
+const RESERVED_VARIABLE_NAMES = new Set(['constructor', 'prototype']);
+
+/** A formula variable: lowerCamelCase, like calculator input and form field names. */
 export const FormulaVariableNameSchema = z
   .string()
-  .regex(/^[a-z][a-zA-Z0-9]{0,31}$/, 'Use a lowerCamelCase name of at most 32 characters');
+  .regex(/^[a-z][a-zA-Z0-9]{0,31}$/, 'Use a lowerCamelCase name of at most 32 characters')
+  .refine((name) => !RESERVED_VARIABLE_NAMES.has(name), {
+    message: '"constructor" and "prototype" are reserved; choose another name',
+  });
 
 export const NumberFormulaSchema: z.ZodType<NumberFormula> = z.lazy(() =>
   z.discriminatedUnion('op', [

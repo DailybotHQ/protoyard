@@ -1,6 +1,14 @@
 // @vitest-environment node
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { addPrototype, cli, createWorkspace, type TempWorkspace } from './helpers.ts';
@@ -157,6 +165,75 @@ describe('protoyard kit sync', () => {
         'utf8'
       )
     ).toBe('<button>Mine</button>');
+  });
+
+  it('refuses to overwrite local edits or added files in the synced folder unless --force', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'source-kit');
+    addPrototype(ws, 'consumer');
+    ws.write('prototypes/source-kit/src/components/Badge.svelte', '<span>Kit</span>\n');
+    await cli(['--root', ws.root, 'kit', 'sync', 'source-kit', 'consumer']);
+
+    const folder = join(ws.root, 'prototypes/consumer/src/components/source-kit');
+    writeFileSync(join(folder, 'Badge.svelte'), '<span>Hand edit</span>\n');
+    writeFileSync(join(folder, 'Mine.svelte'), '<span>Mine</span>\n');
+    const refused = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'kit',
+      'sync',
+      'source-kit',
+      'consumer',
+    ]);
+    expect(refused.code).toBe(1);
+    const error = refused.json<{ error: { code: string; message: string } }>().error;
+    expect(error.code).toBe('conflict');
+    expect(error.message).toContain('Badge.svelte, Mine.svelte');
+    expect(readFileSync(join(folder, 'Badge.svelte'), 'utf8')).toBe('<span>Hand edit</span>\n');
+    expect(existsSync(join(folder, 'Mine.svelte'))).toBe(true);
+
+    const forced = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'kit',
+      'sync',
+      'source-kit',
+      'consumer',
+      '--force',
+    ]);
+    expect(forced.code).toBe(0);
+    expect(readFileSync(join(folder, 'Badge.svelte'), 'utf8')).toBe('<span>Kit</span>\n');
+    expect(existsSync(join(folder, 'Mine.svelte'))).toBe(false);
+
+    // An unchanged folder re-syncs without --force.
+    const again = await cli(['--root', ws.root, '--json', 'kit', 'sync', 'source-kit', 'consumer']);
+    expect(again.code).toBe(0);
+  });
+
+  it('refuses a destination whose components folder links outside the workspace', async () => {
+    ws = createWorkspace();
+    addPrototype(ws, 'source-kit');
+    addPrototype(ws, 'consumer');
+    ws.write('prototypes/source-kit/src/components/Badge.svelte', '<span>Kit</span>\n');
+    const outside = join(ws.root, '..', `outside-${Date.now()}`);
+    mkdirSync(outside, { recursive: true });
+    mkdirSync(join(ws.root, 'prototypes/consumer/src'), { recursive: true });
+    symlinkSync(outside, join(ws.root, 'prototypes/consumer/src/components'));
+    const result = await cli([
+      '--root',
+      ws.root,
+      '--json',
+      'kit',
+      'sync',
+      'source-kit',
+      'consumer',
+    ]);
+    expect(result.code).toBe(2);
+    expect(result.json<{ error: { code: string } }>().error.code).toBe('unsafe_path');
+    expect(readdirSync(outside)).toEqual([]);
+    rmSync(outside, { recursive: true, force: true });
   });
 
   it('rejects symlinked kit source files', async () => {

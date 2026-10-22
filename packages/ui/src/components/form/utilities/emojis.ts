@@ -56,7 +56,7 @@ export const EMOJI_GROUPS: readonly {
       ['🫶', 'heart hands'],
       ['🤗', 'hugging'],
       ['🙋', 'person raising hand'],
-      ['🧑‍💻', 'technologist'],
+      ['🧑\u200D💻', 'technologist'],
     ],
   },
   {
