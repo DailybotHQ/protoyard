@@ -287,6 +287,9 @@ importers:
       '@playwright/test':
         specifier: ^1.64.1
         version: 1.64.1
+      '@protoyard/blocks':
+        specifier: workspace:*
+        version: link:../blocks
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../blueprint
@@ -296,6 +299,9 @@ importers:
       '@protoyard/crud':
         specifier: workspace:*
         version: link:../crud
+      '@protoyard/decks':
+        specifier: workspace:*
+        version: link:../decks
       '@protoyard/offline':
         specifier: workspace:*
         version: link:../offline
