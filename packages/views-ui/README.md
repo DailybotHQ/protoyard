@@ -415,7 +415,10 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   `safeImageSrc` again, so `javascript:` links render as text and remote or
   `data:` images as their alt text. Headings start at `h2` because the
   preview sits inside a page. `MarkdownPreview` is also exported for showing
-  saved Markdown.
+  saved Markdown. Scrollable fenced-code `<pre>` blocks use `tabindex="0"` and
+  an accessible name (axe `scrollable-region-focusable`), matching ui-kit
+  `CodeBlock`; covered with the ai-ui surfaces in
+  `packages/ai-ui/tests/scroll-regions.test.ts`.
 - **Limits and drafts:** `maxLength` (default 5,000) sets the textarea limit
   and a counter, and a command that would pass it is refused with a polite
   announcement. `onDraft` runs after typing pauses (`draftDelayMs`, default
