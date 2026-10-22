@@ -20,6 +20,13 @@ const catalog = readdirSync(join(ROOT, 'blueprints'))
   .sort();
 const generatedPrototypes = readdirSync(join(ROOT, 'prototypes'))
   .filter((slug) => existsSync(join(ROOT, 'prototypes', slug, 'blueprint.json')))
+  // App codegen only: deck, page and doc prototypes are covered by generate-kinds.test.ts.
+  .filter((slug) => {
+    const { kind } = JSON.parse(
+      readFileSync(join(ROOT, 'prototypes', slug, 'blueprint.json'), 'utf8')
+    ) as { kind?: string };
+    return kind === undefined || kind === 'app';
+  })
   .sort();
 
 const GENERATED = [

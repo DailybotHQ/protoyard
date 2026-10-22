@@ -2,11 +2,14 @@ import { lstat, mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import {
+  type AnyBlueprint,
   applyBlueprintPatch,
-  type Blueprint,
+  applyContentPatch,
   BlueprintPatchError,
   blueprintIdentity,
+  blueprintKind,
   encodeBlueprintShare,
+  isAppBlueprint,
   latestSchemaVersion,
   parseBlueprint,
   ShareLinkTooLargeError,
@@ -18,6 +21,7 @@ import { flag, opt } from '../../lib/command.ts';
 import { CliError, mark } from '../../lib/output.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
 import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
+import { parseQuickBlueprint, quickPlayerPage } from '../../lib/quick/blueprint-kind.ts';
 import { readQuickRecord, touchQuickRecord, writeQuickRecord } from '../../lib/quick/model.ts';
 import { quickPlayerDir } from '../../lib/quick/paths.ts';
 import { launcherHtml } from './index.ts';
@@ -41,6 +45,9 @@ import { type QuickServeTarget, resolveQuickServeTarget } from './serve.ts';
  *   restores that text byte for byte, then removes the entry.
  * - Every file is written to a temporary file and renamed, so a served player
  *   never reads a half-written blueprint.
+ * - A deck, page or doc is patched with `applyContentPatch`: validated as an
+ *   untrusted document, its kind fixed. Content kinds share one store layout,
+ *   so there is no migration and the world is always preserved (schema v1).
  */
 
 /** Cap on a patch file or stdin, checked before parsing (1000 operations fit easily). */
@@ -127,7 +134,8 @@ async function readPatchText(source: string): Promise<string> {
 const toUrlPath = (from: string, to: string) => relative(from, to).split(sep).join('/');
 
 /** The previous blueprint, without its own history (what a history entry stores). */
-function withoutHistory(blueprint: Blueprint): Record<string, unknown> {
+function withoutHistory(blueprint: AnyBlueprint): Record<string, unknown> {
+  if (!isAppBlueprint(blueprint)) return { ...blueprint };
   const { history: _history, ...rest } = blueprint;
   return rest;
 }
@@ -135,7 +143,7 @@ function withoutHistory(blueprint: Blueprint): Record<string, unknown> {
 /** Writes blueprint.json, the standalone player's copy and the launcher for `text`. */
 async function writeExploration(
   target: QuickServeTarget,
-  blueprint: Blueprint,
+  blueprint: AnyBlueprint,
   text: string,
   seed: string | null
 ): Promise<void> {
@@ -143,7 +151,7 @@ async function writeExploration(
   let href: string;
   if (target.layout === 'standalone') {
     const playerDir = join(target.dir, 'player');
-    href = `${toUrlPath(target.dir, join(playerDir, 'index.html'))}?${seedParam ? `${seedParam}&` : ''}src=./blueprint.json`;
+    href = `${toUrlPath(target.dir, join(playerDir, quickPlayerPage(blueprint, playerDir)))}?${seedParam ? `${seedParam}&` : ''}src=./blueprint.json`;
     await writeQuickAtomic(join(playerDir, 'blueprint.json'), text);
   } else {
     let share: string;
@@ -156,7 +164,7 @@ async function writeExploration(
       });
     }
     const playerDir = quickPlayerDir(dirname(target.dir), target.playerVersion);
-    href = `${toUrlPath(target.dir, join(playerDir, 'index.html'))}${seedParam ? `?${seedParam}` : ''}#bp=${share}`;
+    href = `${toUrlPath(target.dir, join(playerDir, quickPlayerPage(blueprint, playerDir)))}${seedParam ? `?${seedParam}` : ''}#bp=${share}`;
   }
   // The blueprint lands last but one, the launcher last: a reader sees either
   // the old pair or the new blueprint with a launcher that soon follows.
@@ -185,7 +193,7 @@ async function resolveTarget(ctx: { root: string }, target: string) {
   const record = await readQuickRecord(resolved.dir);
   const text = await readFile(join(resolved.dir, 'blueprint.json'), 'utf8');
   // resolveQuickServeTarget already checked this text's identity against quick.json.
-  const blueprint = parseBlueprint(JSON.parse(text) as unknown);
+  const blueprint = await parseQuickBlueprint(JSON.parse(text) as unknown);
   return { target: resolved, record, text, blueprint };
 }
 
@@ -210,15 +218,22 @@ export const quickIterateCommand: Handler = async (ctx, args, options): Promise<
     throw new CliError('validation', `The patch is not valid JSON: ${(error as Error).message}`);
   }
   const allowDrop = flag(options, 'allowDrop');
-  const fromVersion = latestSchemaVersion(before);
+  // A content kind has one store layout: always schema v1, never a migration.
+  const fromVersion = isAppBlueprint(before) ? latestSchemaVersion(before) : 1;
 
   // Applied to the blueprint without its history; quick iterate owns `history`.
-  let result: ReturnType<typeof applyBlueprintPatch>;
+  let result: {
+    blueprint: AnyBlueprint;
+    migration: ReturnType<typeof applyBlueprintPatch>['migration'];
+    destructive: boolean;
+  };
   try {
-    result = applyBlueprintPatch(parseBlueprint(withoutHistory(before)), patch, {
-      allowDrop,
-      fromVersion,
-    });
+    result = isAppBlueprint(before)
+      ? applyBlueprintPatch(parseBlueprint(withoutHistory(before)), patch, {
+          allowDrop,
+          fromVersion,
+        })
+      : { ...(await applyContentPatch(before, patch)), migration: null, destructive: false };
   } catch (error) {
     if (!(error instanceof BlueprintPatchError)) throw error;
     throw new CliError('validation', error.message, {
@@ -235,13 +250,13 @@ export const quickIterateCommand: Handler = async (ctx, args, options): Promise<
       },
     });
   }
-  if (result.blueprint.history.length > 0) {
+  if (isAppBlueprint(result.blueprint) && result.blueprint.history.length > 0) {
     throw new CliError('validation', 'A patch may not write "history"; quick iterate keeps it.', {
       data: { code: 'invalid-patch', index: null },
     });
   }
   const history = [
-    ...before.history,
+    ...(isAppBlueprint(before) ? before.history : []),
     ...(result.migration
       ? [
           {
@@ -252,8 +267,10 @@ export const quickIterateCommand: Handler = async (ctx, args, options): Promise<
         ]
       : []),
   ];
-  const after = parseBlueprint({ ...result.blueprint, history });
-  const toVersion = latestSchemaVersion(after);
+  const after: AnyBlueprint = isAppBlueprint(result.blueprint)
+    ? parseBlueprint({ ...result.blueprint, history })
+    : result.blueprint;
+  const toVersion = isAppBlueprint(after) ? latestSchemaVersion(after) : 1;
   if (toVersion !== (result.migration?.version ?? fromVersion)) {
     throw new CliError(
       'failure',
@@ -312,6 +329,7 @@ export const quickIterateCommand: Handler = async (ctx, args, options): Promise<
 
   const data = {
     slug: target.slug,
+    kind: blueprintKind(after),
     dir: toPosixRelative(ctx.root, target.dir),
     changed,
     history: entryFile ? toPosixRelative(ctx.root, entryFile) : null,
@@ -372,9 +390,9 @@ export const quickUndoCommand: Handler = async (ctx, args): Promise<CommandResul
   if (sha256Text(entry.before.text) !== entry.before.sha256) {
     throw new CliError('validation', `Change ${sequence} does not match its recorded hash.`);
   }
-  let restored: Blueprint;
+  let restored: AnyBlueprint;
   try {
-    restored = parseBlueprint(JSON.parse(entry.before.text) as unknown);
+    restored = await parseQuickBlueprint(JSON.parse(entry.before.text) as unknown);
   } catch {
     throw new CliError('validation', `Change ${sequence} holds an invalid blueprint.`);
   }
@@ -397,6 +415,7 @@ export const quickUndoCommand: Handler = async (ctx, args): Promise<CommandResul
   };
   const data = {
     slug: target.slug,
+    kind: blueprintKind(restored),
     dir: toPosixRelative(ctx.root, target.dir),
     undone: sequence,
     remaining: sequences.length - 1,

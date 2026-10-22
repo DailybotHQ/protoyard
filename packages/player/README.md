@@ -13,7 +13,10 @@ data" badge.
 
 ## How it boots
 
-`src/boot.ts` exports `bootPlayer({ blueprint, target })`:
+`src/boot.ts` provides the internal workspace boot path
+`bootPlayer({ blueprint, target })` used by the player app and generated
+level-two templates. It is not a packed package subpath because its Svelte app
+dependencies are shipped together in the prebuilt player assets:
 
 1. `blueprintIdentity(blueprint)` gives the content namespace `bp-<26 base32>`.
    Each blueprint stores its data in its own IndexedDB databases
@@ -35,6 +38,9 @@ data" badge.
    blueprint, scenario and generator version reloads the stored world instead of
    regenerating. Cache entries are read back as untrusted data (snapshot size and
    row limits, shape checks), and a corrupt entry is dropped and regenerated.
+   Hosts that need separate storage may pass `namespace`; generated level-two
+   embed hosts use a stable namespace derived from their own namespace and the
+   embed block id.
 4. The app (`src/PlayerApp.svelte`) lazily loads `BlueprintApp` from
    `@protoyard/crud/app`, the same routes, navigation and screens a generated
    prototype has. The settings screen gets the theme library on demand.

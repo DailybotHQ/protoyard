@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@protoyard/blueprint": "workspace:*",
+    "@protoyard/blocks-ui": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/pages": "workspace:*",
     "@protoyard/pages-ui": "workspace:*",
+    "@protoyard/player": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "dexie": "^4.4.6",

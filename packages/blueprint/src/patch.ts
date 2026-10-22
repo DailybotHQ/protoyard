@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { DeckBlueprint, DocBlueprint, PageBlueprint } from './kinds/envelope.ts';
 import {
   type BlueprintMigration,
   type DiffBlueprintsOptions,
@@ -6,6 +7,7 @@ import {
   MigrationError,
 } from './migrations.ts';
 import { type Blueprint, safeParseBlueprint } from './schema.ts';
+import { loadUntrustedDocument } from './untrusted.ts';
 
 /**
  * RFC 6902 JSON Patch for blueprints (`protoyard quick iterate`), with no
@@ -353,4 +355,47 @@ export function applyBlueprintPatch(
       destructive: true,
     };
   }
+}
+
+/** A deck, page or doc blueprint. */
+type ContentKindBlueprint = DeckBlueprint | PageBlueprint | DocBlueprint;
+
+export interface ContentPatchResult<B extends ContentKindBlueprint> {
+  blueprint: B;
+}
+
+/**
+ * Applies a JSON Patch to a deck, page or doc and validates the result as
+ * untrusted input (`loadUntrustedDocument`: kind limits, text sanitizing and
+ * the kind's body schema). Content kinds share one store layout, so there is
+ * never a data migration: block state and form responses stay keyed by block
+ * id. The patch may not change `kind`.
+ */
+export async function applyContentPatch<B extends ContentKindBlueprint>(
+  blueprint: B,
+  operations: unknown
+): Promise<ContentPatchResult<B>> {
+  const patched = applyJsonPatch(blueprint, operations);
+  const kind = (patched as { kind?: unknown } | null)?.kind;
+  if (kind !== blueprint.kind) {
+    throw new BlueprintPatchError(
+      'invalid-result',
+      `A patch may not change the blueprint kind (${blueprint.kind} → ${String(kind)}).`,
+      { issues: [{ path: ['kind'], message: 'kind is fixed for an exploration' }] }
+    );
+  }
+  const loaded = await loadUntrustedDocument(patched);
+  if (!loaded.success) {
+    const issues = loaded.issues.map((issue) => ({
+      path: [...issue.path],
+      message: issue.message,
+    }));
+    const first = issues[0];
+    throw new BlueprintPatchError(
+      'invalid-result',
+      `The patched ${blueprint.kind} is invalid: ${first ? `${first.path.join('.') || '(root)'}: ${first.message}` : 'unknown issue'}${issues.length > 1 ? ` (+${issues.length - 1} more)` : ''}.`,
+      { issues }
+    );
+  }
+  return { blueprint: loaded.blueprint as B };
 }

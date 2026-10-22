@@ -61,8 +61,13 @@ the doc body from `@protoyard/pages` and prints a kind-specific summary.
 2. Validate with `pnpm protoyard blueprint validate <file>`.
 3. Run `pnpm vitest run packages/blueprint/tests/page-doc-catalog.test.ts`.
 
-`protoyard generate --blueprint` accepts app blueprints only, so a doc
-example cannot be generated into a prototype yet.
+To turn an example into a full prototype (level 2), generate it. The doc template is
+picked from the blueprint's kind:
+
+```bash
+pnpm protoyard generate my-doc --blueprint blueprints/docs/northwind-quarterly-report.json
+pnpm protoyard validate my-doc --build
+```
 
 ## Listing
 

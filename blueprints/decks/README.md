@@ -11,6 +11,7 @@ entities, roles or screens. Back to the [catalog index](../README.md#choose-an-e
 | [Northwind QBR](./northwind-qbr.json) | Quarterly review | Big stat, funnel chart, comparison, free poll |
 | [Lumen launch](./lumen-launch.json) | Product launch | Process, three cards, free quiz |
 | [Cedar training](./cedar-training.json) | Internal training | Timeline, free counter + poll, code callout |
+| [Protoyard: create anything](./protoyard-create-anything.json) | Flagship | 25 slides: every layout family, flow, terminal, stats, charts with a data table, an explorable chart, poll, calculator, quiz and an embedded app; generated as `prototypes/create-anything-deck` |
 
 ## Shape
 
@@ -75,13 +76,19 @@ example:
    from `@protoyard/decks/quality` on the parsed deck.
 4. Run `pnpm vitest run packages/blueprint/tests/deck-catalog.test.ts`.
 
-`protoyard generate --blueprint` accepts app blueprints only, so a deck example
-cannot be generated into a prototype yet.
+To turn an example into a full prototype (level 2), generate it. The deck template is
+picked from the blueprint's kind:
+
+```bash
+pnpm protoyard generate my-deck --blueprint blueprints/decks/protoyard-create-anything.json
+pnpm protoyard validate my-deck --build
+```
 
 ## Listing
 
 `protoyard index` scans this folder, but an example is listed (in the registry,
-`protoyard list` and the gallery) only when it has a `catalog` block. These
-examples have none yet, so `protoyard index` reports each one as invalid ('catalog
-blueprints need a "catalog" block') and none is listed. Adding a `catalog`
+`protoyard list` and the gallery) only when it has a `catalog` block. The
+flagship, `protoyard-create-anything.json`, has one and is listed. The other
+examples have none yet, so `protoyard index` reports each of them as invalid
+('catalog blueprints need a "catalog" block') and they are not listed. Adding a `catalog`
 block (category, product type, features…) is what lists an example.

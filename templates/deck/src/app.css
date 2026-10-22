@@ -1,4 +1,7 @@
 @import "@protoyard/renderer-svelte/app.css";
 @import "@protoyard/decks-ui/styles.css";
+@import "@protoyard/blocks-ui/styles.css";
+@import "@protoyard/charts-ui/styles.css";
+@import "@protoyard/views-ui/styles.css";
 
 @source "./";

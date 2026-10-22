@@ -54,6 +54,8 @@ so chart code stays out of initial JS. The bundle guard fails when it leaks.
 | Values per region | `TileMap` (`WORLD_TILES`, `REGION_TILES` or your own tiles) | `geo` |
 
 The `chart` content block (`@protoyard/blocks-ui/data`, for decks, pages and docs) reuses the AI `ChartSpec` (`@protoyard/ai/chart`) unchanged and renders it with these components.
+Its labels are categories, so the block adapter selects a categorical x-axis for
+line and area charts; direct `LineChart` callers keep the time-axis default.
 
 ## Props and data contracts
 

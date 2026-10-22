@@ -2,20 +2,28 @@ import { lstat, mkdir, readFile, rm } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import {
+  type AnyBlueprint,
   type Blueprint,
-  type BlueprintVariant,
+  type BlueprintKind,
   blueprintFromBrief,
   blueprintIdentity,
+  blueprintKind,
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
+  deriveKindVariants,
   deriveVariants,
   encodeBlueprintShare,
+  isAppBlueprint,
   isAppBriefResult,
-  loadUntrustedBlueprint,
+  isBlueprintKind,
+  type KindVariantAxes,
+  loadUntrustedDocument,
   ShareLinkTooLargeError,
+  type UntrustedBlueprintIssue,
   VARIANT_MAX_COUNT,
   VARIANT_THEME_PRESETS,
 } from '@protoyard/blueprint';
 import { checkSlug } from '@protoyard/core';
+import { FONT_CATALOG } from '@protoyard/themes';
 import { THEME_LIBRARY_META } from '@protoyard/themes/library';
 import type { CommandResult, Handler } from '../../lib/command.ts';
 import { flag, opt } from '../../lib/command.ts';
@@ -23,6 +31,7 @@ import { CliError, mark } from '../../lib/output.ts';
 import { QUICK_MARKER } from '../../lib/output-guard.ts';
 import { toPosixRelative } from '../../lib/paths.ts';
 import { writeQuickAtomic } from '../../lib/quick/atomic-write.ts';
+import { quickPlayerPage } from '../../lib/quick/blueprint-kind.ts';
 import { compareModelFromRecord, renderComparePage } from '../../lib/quick/compare-html.ts';
 import { createQuickRecord, parseQuickRecord, writeQuickRecord } from '../../lib/quick/model.ts';
 import { resolveQuickDir } from '../../lib/quick/paths.ts';
@@ -49,7 +58,14 @@ import { ensurePlayerAssets } from '../../lib/quick/player-build.ts';
  *
  * With `--variants N` (1–8) it also writes `v1/`…`vN/`, each with its own
  * `blueprint.json` and launcher, from `deriveVariants` (layout, theme,
- * density and first entity change; the domain does not). Variants share the
+ * density and first entity change; the domain does not). A deck, page or doc
+ * varies only its style (`deriveKindVariants`: a deck's theme, transition,
+ * density and font pair; a page's or doc's brand theme and density).
+ *
+ * A deck, page or doc (`--blueprint`, or a brief with `--kind`) is an
+ * exploration like an app: its launcher opens the player's own page for that
+ * kind (`deck.html`, `page.html`, `doc.html`), falling back to `index.html`
+ * on a player built before those pages. Variants share the
  * one player, and each opens its own world: the player stores data per
  * blueprint content hash. `compare.html` shows them side by side.
  *
@@ -80,6 +96,26 @@ export function variantAxes(blueprint: Blueprint) {
     layouts: [blueprint.layout?.id ?? 'sidebar'],
     themes: [...VARIANT_THEME_PRESETS, ...THEME_LIBRARY_META.map((theme) => theme.id)],
   };
+}
+
+/** Variant axes for a deck, page or doc: theme catalogs, plus a deck's font pairings. */
+export function kindVariantAxes(kind: Exclude<BlueprintKind, 'app'>): KindVariantAxes {
+  return {
+    themes: [...VARIANT_THEME_PRESETS, ...THEME_LIBRARY_META.map((theme) => theme.id)],
+    ...(kind === 'deck' ? { fontPairs: FONT_CATALOG.map((pair) => pair.id) } : {}),
+  };
+}
+
+/** The validation error for a blueprint the untrusted loader refused. */
+function invalidBlueprint(issues: readonly UntrustedBlueprintIssue[]): CliError {
+  const shown = issues.slice(0, 10);
+  return new CliError(
+    'validation',
+    `The blueprint is invalid (${issues.length} issue${issues.length === 1 ? '' : 's'}): ${shown
+      .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+      .join('; ')}`,
+    { hint: shown.map((issue) => issue.fix).join(' '), data: { issues } }
+  );
 }
 
 /** `--variants` as a count, or null when absent. */
@@ -129,7 +165,7 @@ async function readStdin(stream: Readable): Promise<string> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-async function readBlueprintFile(file: string): Promise<Blueprint> {
+async function readBlueprintFile(file: string): Promise<AnyBlueprint> {
   const path = resolve(process.cwd(), file);
   const info = await lstat(path).catch(() => null);
   if (!info?.isFile()) {
@@ -146,17 +182,9 @@ async function readBlueprintFile(file: string): Promise<Blueprint> {
       }
     );
   }
-  const result = loadUntrustedBlueprint(await readFile(path, 'utf8'));
-  if (!result.success) {
-    const shown = result.issues.slice(0, 10);
-    throw new CliError(
-      'validation',
-      `The blueprint is invalid (${result.issues.length} issue${result.issues.length === 1 ? '' : 's'}): ${shown
-        .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
-        .join('; ')}`,
-      { hint: shown.map((issue) => issue.fix).join(' '), data: { issues: result.issues } }
-    );
-  }
+  // Any kind: an app keeps the app loader's contract; a deck, page or doc its own.
+  const result = await loadUntrustedDocument(await readFile(path, 'utf8'));
+  if (!result.success) throw invalidBlueprint(result.issues);
   return result.blueprint;
 }
 
@@ -209,6 +237,8 @@ const toUrlPath = (from: string, to: string) => relative(from, to).split(sep).jo
 
 export interface QuickResult {
   slug: string;
+  /** The blueprint kind: `app`, `deck`, `page` or `doc`. */
+  kind: BlueprintKind;
   dir: string;
   blueprintSha256: string;
   ready: boolean;
@@ -260,8 +290,18 @@ export const quickCommand: Handler = async (
     );
   }
   const variantCount = parseVariantCount(opt(options, 'variants'));
+  const kindOption = opt(options, 'kind');
+  if (kindOption !== undefined && !isBlueprintKind(kindOption)) {
+    throw new CliError('usage', `--kind must be app, deck, page or doc (got "${kindOption}").`);
+  }
+  if (kindOption !== undefined && blueprintFile !== undefined) {
+    throw new CliError(
+      'usage',
+      '--kind applies to a brief; a --blueprint file declares its own kind.'
+    );
+  }
 
-  let blueprint: Blueprint;
+  let blueprint: AnyBlueprint;
   let brief: string | undefined;
   let rationale: string[] = [];
   if (blueprintFile !== undefined) {
@@ -281,17 +321,18 @@ export const quickCommand: Handler = async (
     }
     const name = opt(options, 'name');
     try {
-      const synthesized = blueprintFromBrief(brief, name ? { name } : {});
-      if (!isAppBriefResult(synthesized)) {
-        throw new CliError(
-          'validation',
-          `This brief looks like a ${synthesized.kind}; quick still expects an app blueprint.`,
-          {
-            hint: `Rephrase toward an app, or pass kind "app" when the CLI supports --kind. Detector: ${synthesized.kindDetection.reason}`,
-          }
-        );
+      const synthesized = blueprintFromBrief(brief, {
+        ...(name ? { name } : {}),
+        ...(kindOption !== undefined ? { kind: kindOption } : {}),
+      });
+      if (isAppBriefResult(synthesized)) {
+        blueprint = synthesized.blueprint;
+      } else {
+        // The content synthesizer's draft is checked like any untrusted document.
+        const loaded = await loadUntrustedDocument(synthesized.json);
+        if (!loaded.success) throw invalidBlueprint(loaded.issues);
+        blueprint = loaded.blueprint;
       }
-      blueprint = synthesized.blueprint;
       rationale = synthesized.rationale;
     } catch (error) {
       if (error instanceof CliError) throw error;
@@ -361,15 +402,21 @@ export const quickCommand: Handler = async (
   }
   // Variants are derived (and their share links encoded) before anything is
   // written, so a refusal leaves the folder as it was.
-  let variants: BlueprintVariant[] = [];
+  let variants: { id: string; label: string; blueprint: AnyBlueprint }[] = [];
   if (variantCount !== null) {
     try {
-      variants = deriveVariants(blueprint, {
-        count: variantCount,
-        // The same blueprint and seed always give the same variants.
-        seed: seed ?? '',
-        axes: variantAxes(blueprint),
-      });
+      // The same blueprint and seed always give the same variants.
+      variants = isAppBlueprint(blueprint)
+        ? deriveVariants(blueprint, {
+            count: variantCount,
+            seed: seed ?? '',
+            axes: variantAxes(blueprint),
+          })
+        : deriveKindVariants(blueprint, {
+            count: variantCount,
+            seed: seed ?? '',
+            axes: kindVariantAxes(blueprint.kind),
+          });
     } catch (error) {
       if (!(error instanceof RangeError)) throw error;
       throw new CliError('validation', error.message, { hint: 'Ask for fewer --variants.' });
@@ -403,12 +450,14 @@ export const quickCommand: Handler = async (
   const json = `${JSON.stringify(blueprint, null, 2)}\n`;
   await writeAtomic(join(quick.dir, 'blueprint.json'), json);
   const params = `?${seed !== undefined ? `seed=${seed}&` : ''}`;
+  // index.html for an app; deck.html, page.html or doc.html for a content kind.
+  const page = join(player.dir, quickPlayerPage(blueprint, player.dir));
   let href: string;
   if (standalone) {
     await writeAtomic(join(player.dir, 'blueprint.json'), json);
-    href = `${toUrlPath(quick.dir, join(player.dir, 'index.html'))}${params}src=./blueprint.json`;
+    href = `${toUrlPath(quick.dir, page)}${params}src=./blueprint.json`;
   } else {
-    href = `${toUrlPath(quick.dir, join(player.dir, 'index.html'))}${params.replace(/[?&]$/, '')}#bp=${share}`;
+    href = `${toUrlPath(quick.dir, page)}${params.replace(/[?&]$/, '')}#bp=${share}`;
   }
   await writeAtomic(join(quick.dir, 'index.html'), launcherHtml(blueprint.name, href));
 
@@ -423,9 +472,9 @@ export const quickCommand: Handler = async (
       // Next to the player, so `?src=` stays a plain relative path.
       const file = `${variant.id}.blueprint.json`;
       await writeAtomic(join(player.dir, file), variantJson);
-      variantHref = `${toUrlPath(dir, join(player.dir, 'index.html'))}${params}src=./${file}`;
+      variantHref = `${toUrlPath(dir, page)}${params}src=./${file}`;
     } else {
-      variantHref = `${toUrlPath(dir, join(player.dir, 'index.html'))}${params.replace(/[?&]$/, '')}#bp=${variantShares[index]}`;
+      variantHref = `${toUrlPath(dir, page)}${params.replace(/[?&]$/, '')}#bp=${variantShares[index]}`;
     }
     await writeAtomic(
       join(dir, 'index.html'),
@@ -474,6 +523,7 @@ export const quickCommand: Handler = async (
   const rel = (path: string) => toPosixRelative(ctx.root, path);
   const data: QuickResult = {
     slug,
+    kind: blueprintKind(blueprint),
     dir: rel(quick.dir),
     blueprintSha256: identity.sha256,
     ready: true,
@@ -501,7 +551,9 @@ export const quickCommand: Handler = async (
     data,
     render(output) {
       const { c } = output;
-      output.always(`${mark(c, 'pass')} ${data.name} is ready in ${c.cyan(`${data.dir}/`)}`);
+      output.always(
+        `${mark(c, 'pass')} ${data.name}${data.kind === 'app' ? '' : ` (${data.kind})`} is ready in ${c.cyan(`${data.dir}/`)}`
+      );
       output.info(
         `  blueprint  ${data.dir}/blueprint.json (${data.source === 'brief' ? 'from the brief' : 'validated'})`
       );

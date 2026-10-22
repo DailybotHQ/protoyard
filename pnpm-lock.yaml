@@ -1948,6 +1948,9 @@ importers:
 
   templates/deck:
     dependencies:
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../../packages/blocks-ui
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../../packages/blueprint
@@ -1960,6 +1963,9 @@ importers:
       '@protoyard/decks-ui':
         specifier: workspace:*
         version: link:../../packages/decks-ui
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../../packages/player
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../../packages/renderer-svelte
@@ -2031,6 +2037,9 @@ importers:
 
   templates/doc:
     dependencies:
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../../packages/blocks-ui
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../../packages/blueprint
@@ -2043,6 +2052,9 @@ importers:
       '@protoyard/pages-ui':
         specifier: workspace:*
         version: link:../../packages/pages-ui
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../../packages/player
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../../packages/renderer-svelte
@@ -2370,6 +2382,9 @@ importers:
 
   templates/page:
     dependencies:
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../../packages/blocks-ui
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../../packages/blueprint
@@ -2382,6 +2397,9 @@ importers:
       '@protoyard/pages-ui':
         specifier: workspace:*
         version: link:../../packages/pages-ui
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../../packages/player
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../../packages/renderer-svelte

@@ -27,6 +27,7 @@ import {
 } from '../chrome/index.ts';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
 import { DeckPrint, PrintButton, parseDeckPrintFlags } from '../print/index.ts';
+import { DeckSlideFrame, DeckStyleState, setDeckStyleContext } from '../style/index.ts';
 
 /**
  * The one deck component both the player deck entry and generated deck
@@ -35,6 +36,11 @@ import { DeckPrint, PrintButton, parseDeckPrintFlags } from '../print/index.ts';
  * aria-live announcements. Print mode (`?print=1`, print button, Ctrl/Cmd+P)
  * swaps in the one-slide-per-page layout from `@protoyard/decks-ui/print`.
  * Presenter (S/P) loads `@protoyard/decks-ui/presenter` lazily.
+ *
+ * `deck.style` (theme, palette seed, fonts, density, radius, motion, deck
+ * and per-slide backgrounds, logo, footer, slide numbers) is resolved by a
+ * lazy style kit and applied to this root only, never to `<html>`, so the
+ * host and DevTools keep their own theme.
  */
 let {
   deck,
@@ -42,6 +48,7 @@ let {
   syncHash = true,
   autofocus = true,
   namespace = 'deck',
+  mode = 'light',
 }: {
   /** Validated deck document. */
   deck: Deck;
@@ -52,7 +59,20 @@ let {
   autofocus?: boolean;
   /** BroadcastChannel namespace for the presenter (defaults to "deck"). */
   namespace?: string;
+  /** Appearance mode for the deck's theme. Decks default to light for stable exports. */
+  mode?: 'light' | 'dark';
 } = $props();
+
+const deckStyle = new DeckStyleState();
+setDeckStyleContext({
+  state: deckStyle,
+  get deckBackground() {
+    return deck.style?.background;
+  },
+});
+$effect(() => {
+  void deckStyle.resolve(deck.style, mode);
+});
 
 let rootEl = $state<HTMLDivElement | undefined>();
 let location = $state<DeckLocation | null>(null);
@@ -296,6 +316,12 @@ function onHashChange(): void {
   }
 }
 
+/** 1-based position of a slide among the visible slides (hidden slides have none). */
+function numberOf(slideId: string): number | undefined {
+  const at = visible.findIndex((slide) => slide.id === slideId);
+  return at >= 0 ? at + 1 : undefined;
+}
+
 function layoutPropsFor(slide: DeckSlide): { layout: string; props: unknown } {
   if (slide.layout === 'free') {
     return { layout: 'free', props: { blocks: 'blocks' in slide ? slide.blocks : [] } };
@@ -385,7 +411,14 @@ onMount(() => {
 </script>
 
 {#if showPrint}
-  <DeckPrint deck={deck} notes={printFlags.notes} />
+  <div
+    class="contents"
+    style={deckStyle.rootStyle}
+    data-py-deck-theme={deckStyle.resolution?.themeId}
+    data-py-deck-mode={deckStyle.resolution?.mode}
+  >
+    <DeckPrint deck={deck} notes={printFlags.notes} />
+  </div>
 {:else}
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -399,6 +432,10 @@ onMount(() => {
   data-laser={inputState.laser ? 'true' : undefined}
   data-fullscreen={fullscreen ? 'true' : undefined}
   data-presenter={presenterOpen ? 'true' : undefined}
+  data-py-deck-theme={deckStyle.resolution?.themeId}
+  data-py-deck-mode={deckStyle.resolution?.mode}
+  data-py-deck-style={deckStyle.status}
+  style={deckStyle.rootStyle}
   role="application"
   aria-label={deck.outline?.title ?? 'Presentation'}
   tabindex="0"
@@ -429,7 +466,9 @@ onMount(() => {
               ? `--py-deck-step:${activeStep};--py-deck-step-count:${activeStepCount}`
               : undefined}
           >
-            <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+            <DeckSlideFrame background={slide.background} number={numberOf(slide.id)}>
+              <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+            </DeckSlideFrame>
           </div>
         {/snippet}
       </DeckCanvas>
@@ -476,6 +515,16 @@ onMount(() => {
           <PrintButton />
         </div>
       </div>
+    {/if}
+
+    {#if !fullscreen && deckStyle.warnings.length > 0}
+      <p
+        class="pointer-events-none absolute top-3 left-3 max-w-md rounded-md border border-border bg-background/90 px-2 py-1 text-xs text-muted-foreground backdrop-blur"
+        role="status"
+        data-py-deck-style-warning
+      >
+        {deckStyle.warnings.join(' ')}
+      </p>
     {/if}
 
     {#if inputState.laser}
