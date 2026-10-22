@@ -97,7 +97,7 @@ onMount(() => {
 <section class="grid gap-6 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
   <div class="space-y-4">
     <label class="block space-y-2 text-sm font-medium" for="blueprint-source">
-      Blueprint JSON
+      Blueprint JSON (app, deck, page, or document)
       <textarea
         id="blueprint-source"
         bind:value={source}
@@ -129,7 +129,7 @@ onMount(() => {
   <div class="min-h-[34rem] overflow-hidden rounded-xl border border-line bg-surface-1">
     <iframe
       bind:this={frame}
-      title="Running Protoyard prototype"
+      title="Running Protoyard blueprint"
       src={playerSource}
       class="h-[min(75vh,56rem)] min-h-[34rem] w-full border-0 bg-white"
       referrerpolicy="strict-origin-when-cross-origin"

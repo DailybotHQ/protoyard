@@ -12,10 +12,15 @@ describe('/play metadata and indexing', () => {
     const page = readSource('../src/pages/play.astro');
     const layout = readSource('../src/layouts/BaseLayout.astro');
 
-    expect(page).toContain('title="Play a blueprint"');
+    expect(page).toContain('title="Run a blueprint"');
     expect(page).toContain(
-      'description="Paste a Protoyard blueprint or open a share link to run a working prototype in your browser."'
+      'description="Run app, deck, page, or document blueprints in your browser. Paste JSON, open a share link, or load a local blueprint file; simulated data stays in this browser."'
     );
+    expect(page).toContain('Run an app, deck, page, or document blueprint in this browser.');
+    expect(page).toContain(
+      'choose a local JSON file in the player. Simulated data stays in this browser.'
+    );
+    expect(page).not.toContain('working prototype');
     expect(page).toContain("canonicalPath={withBase('/play/')}");
     expect(layout).toContain('<meta name="description" content={description} />');
     expect(layout).toContain('<link rel="canonical" href={canonical} />');
@@ -23,6 +28,18 @@ describe('/play metadata and indexing', () => {
     expect(layout).toContain('<meta property="og:description" content={description} />');
     expect(layout).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(layout).toContain('new URL(canonicalPath ?? withBase(routePath), Astro.site).href');
+  });
+
+  it('keeps the hosted player embed and its accessible labels kind-neutral', () => {
+    const playground = readSource('../src/components/player/Playground.svelte');
+
+    expect(playground).toContain('Blueprint JSON (app, deck, page, or document)');
+    expect(playground).toContain('title="Running Protoyard blueprint"');
+    expect(playground).not.toContain('Running Protoyard prototype');
+    expect(playground).toContain("target.searchParams.set('embedder', window.location.origin)");
+    expect(playground).toContain("new URLSearchParams(window.location.hash.slice(1)).get('bp')");
+    expect(playground).toContain('if (share) target.hash =');
+    expect(playground).toContain('shareAvailable = hasDeflateRaw()');
   });
 
   it('keeps the landing page indexable and marks only share-fragment visits noindex', () => {
