@@ -6,8 +6,7 @@ progress, missions (accept, progress/goal, optional deadline, reward), ISO-week
 streaks and a leaderboard with a privacy opt-out. Pure TypeScript and zod — no
 Svelte, no product branding.
 
-Promoted from the generic patterns in the Corag fork research (PLAN_005
-`T-pages-gamification-engine`); all names here are product-agnostic.
+A generic, product-agnostic engine (ADR-041).
 
 ## Install
 

@@ -38,6 +38,7 @@ protoyard blueprint validate my-idea.blueprint.json
 | Key | Required | Meaning |
 | --- | --- | --- |
 | `formatVersion` | yes | Always `1` |
+| `kind` | no | `app` (the default when omitted). `deck`, `page` and `doc` are content kinds rolling out in PLAN_005 (ADR-036); app blueprints never need it |
 | `name` | yes | Up to 80 characters; the product name |
 | `description` | no | Up to 280 characters |
 | `entities` | yes | Records with typed fields; each gets a route `#/<plural>` |
