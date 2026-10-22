@@ -70,6 +70,14 @@ Each diagnostic includes a machine-readable `code`, path segments in `path`, an 
 and `safeParseBlueprint` keep their existing behavior. The helper is in the package entry module
 and is tree-shakeable for consumers that do not import it.
 
+The helper validates every kind through the shared kind union (`safeParseAnyBlueprint`) and returns
+the `kind` it used. An input with no `kind` is an app (the compatibility rule), so existing app
+blueprints and their diagnostics are unchanged. A deck, page or doc runs through its strict envelope
+and body schema: its diagnostics point into the body, under `$["<kind>"]`, and keys that belong only
+to apps get a hint naming the keys that kind accepts. Problems with `kind` itself are reported on
+`$["kind"]`: `invalid-kind` (not a string) and `unknown-kind` (needs a newer Protoyard) return
+`kind: null`, and `kind-unavailable` names a known kind whose engine this build does not ship yet.
+
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 

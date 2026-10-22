@@ -1,4 +1,12 @@
-import { safeParseBlueprint } from './schema.ts';
+import { safeParseAnyBlueprint } from './kinds/envelope.ts';
+import {
+  BLUEPRINT_KINDS,
+  type BlueprintKind,
+  type ContentKind,
+  detectBlueprintKind,
+  isContentKind,
+} from './kinds/kind.ts';
+import { BLUEPRINT_BASE_SHAPE } from './schema.ts';
 
 /** A JSON path segment in a blueprint validation diagnostic. */
 export type BlueprintDiagnosticPath = string | number;
@@ -20,32 +28,107 @@ export type BlueprintAuthoringDiagnostic = {
 /** Full blueprint validity and diagnostics. `valid` uses the complete Zod schema. */
 export type BlueprintAuthoringValidation = {
   valid: boolean;
+  /**
+   * The kind the input was validated as: `app` when `kind` is missing (the
+   * legacy compatibility rule), `null` when `kind` itself is unusable.
+   */
+  kind: BlueprintKind | null;
   diagnostics: BlueprintAuthoringDiagnostic[];
 };
 
 /**
- * Validate untrusted author input and return path-addressed repair guidance.
- * This runs the full blueprint schema, including cross-reference checks; a
- * JSON Schema shape check alone is not enough to establish `valid`.
+ * Validate untrusted author input of any kind and return path-addressed repair
+ * guidance. Each kind runs through the shared kind union
+ * (`safeParseAnyBlueprint`): an app (with no `kind`, or `kind: "app"`) through
+ * the full app schema, including cross-reference checks, and a deck, page or
+ * doc through its strict envelope and body schema. A JSON Schema shape check
+ * alone is not enough to establish `valid`.
  */
 export function validateBlueprintForAuthoring(input: unknown): BlueprintAuthoringValidation {
-  const result = safeParseBlueprint(input);
-  if (result.success) return { valid: true, diagnostics: [] };
+  const detected = detectBlueprintKind(input);
+  if (!detected.ok) {
+    return {
+      valid: false,
+      kind: null,
+      diagnostics: [kindDiagnostic(input, detected.message, detected.fix)],
+    };
+  }
+  const kind = detected.kind;
+  const result = safeParseAnyBlueprint(input);
+  if (result.success) return { valid: true, kind, diagnostics: [] };
 
   return {
     valid: false,
+    kind,
     diagnostics: result.error.issues.map((issue) => {
+      const path = [...issue.path] as BlueprintDiagnosticPath[];
       const message = issue.message;
+      if (
+        isContentKind(kind) &&
+        issue.code === 'custom' &&
+        path.length === 1 &&
+        path[0] === 'kind'
+      ) {
+        return {
+          code: 'kind-unavailable',
+          path,
+          jsonPath: toJsonPath(path),
+          message,
+          hint: `Update Protoyard to a build that ships the ${kind} engine, or author an app blueprint instead.`,
+        };
+      }
       const code = diagnosticCode(issue.code, message);
       return {
         code,
-        path: [...issue.path] as BlueprintDiagnosticPath[],
-        jsonPath: toJsonPath(issue.path as BlueprintDiagnosticPath[]),
+        path,
+        jsonPath: toJsonPath(path),
         message,
-        hint: diagnosticHint(code, message),
+        hint: isContentKind(kind)
+          ? contentHint(kind, code, issue, path, message)
+          : diagnosticHint(code, message),
       };
     }),
   };
+}
+
+/** `kind` is not a string, or names a kind this version does not know. */
+function kindDiagnostic(
+  input: unknown,
+  message: string,
+  fix: string
+): BlueprintAuthoringDiagnostic {
+  const kind = (input as { kind?: unknown }).kind;
+  return {
+    code: typeof kind === 'string' ? 'unknown-kind' : 'invalid-kind',
+    path: ['kind'],
+    jsonPath: toJsonPath(['kind']),
+    message,
+    hint: fix,
+  };
+}
+
+const SHARED_KEYS = Object.keys(BLUEPRINT_BASE_SHAPE);
+
+function contentHint(
+  kind: ContentKind,
+  code: string,
+  issue: { code: string; keys?: readonly PropertyKey[] },
+  path: readonly BlueprintDiagnosticPath[],
+  message: string
+): string {
+  if (code === 'unknown-key' && path.length === 0) {
+    const others = (issue.keys ?? []).filter((key) =>
+      (BLUEPRINT_KINDS as readonly PropertyKey[]).includes(key)
+    );
+    if (others.length) {
+      return `A ${kind} blueprint has exactly one body, "${kind}". Remove ${others.map((key) => `"${String(key)}"`).join(', ')}, or change "kind" to match it.`;
+    }
+    return `A ${kind} blueprint accepts only ${[...SHARED_KEYS, 'kind', kind].join(', ')}. App keys such as entities, roles and screens belong to app blueprints: remove them, or drop "kind" to author an app.`;
+  }
+  if (code === 'invalid-type' && path.length === 1 && path[0] === kind) {
+    return `Add the "${kind}" body: an object with the ${kind}'s content.`;
+  }
+  return diagnosticHint(code, message);
 }
 
 function toJsonPath(path: readonly BlueprintDiagnosticPath[]): string {
