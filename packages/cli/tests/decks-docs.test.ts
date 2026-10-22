@@ -56,7 +56,10 @@ describe('docs/DECKS.md', () => {
   });
 
   it('has an example deck that validates and lints without errors or warnings', async () => {
-    const block = /```json\n([\s\S]*?)\n```/.exec(text)?.[1];
+    // The whole example blueprint (the recipes are slides; docs-snippets.test.ts checks them).
+    const block = [...text.matchAll(/```json\n([\s\S]*?)\n```/g)]
+      .map((match) => match[1] ?? '')
+      .find((json) => json.includes('"kind": "deck"'));
     expect(block, 'the guide has a json example').toBeDefined();
     const loaded = await loadUntrustedDocument(block ?? '');
     expect(loaded.success, JSON.stringify(loaded.issues)).toBe(true);

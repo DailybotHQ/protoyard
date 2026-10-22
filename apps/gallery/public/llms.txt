@@ -1,0 +1,22 @@
+# Protoyard
+
+> Protoyard builds prototypes that feel real: apps, slide decks, landing pages and documents described as data-only JSON blueprints, played in the browser with no backend (fictional data only), or generated into Vite + Svelte 5 prototypes. Real behavior. Fake infrastructure.
+
+## Decks for agents
+
+A slide deck is a `kind: "deck"` JSON blueprint, never Reveal.js Markdown or HTML. The loop: learn the format, write JSON, lint it, play it, point at a slide with the debug panel's reference, resolve it, fix it.
+
+- [Decks guide](https://protoyard.app/docs/decks/): the agent loop, the deck JSON, layouts and when to use them, steps, custom slides and limits
+- [Recipes](https://protoyard.app/docs/decks/#recipes): a chart story, a comparison table, a live poll, a calculator, an embedded app and a custom interactive slide, each one valid JSON
+- [Reference deck](https://github.com/DailybotHQ/protoyard/blob/main/blueprints/decks/protoyard-create-anything.json): the flagship catalog deck, with layouts, blocks, charts, steps and interactive slides to copy from
+- `protoyard deck schema`: prints the deck JSON Schema (draft 2020-12)
+- `protoyard deck layouts [id]` and `protoyard deck blocks [type]`: every layout and block with when to use it, its limits and a valid sample
+- `protoyard deck lint <file|slug>`: findings with JSON pointers and fixes
+- `protoyard deck inspect <file|slug> --ref "<[slide-ref] line>"`: resolves a reference copied from the deck's "Debug for agents" panel (press D; add ?debug=1 in the player) to the file, the JSON pointer and the slide JSON
+- `protoyard deck capabilities`: what decks support in the player (level 1) and in a generated prototype (level 2)
+
+## More
+
+- [Documentation](https://protoyard.app/docs/): every public guide
+- [Agent guide](https://protoyard.app/docs/agent_guide/): the build loop for prototypes
+- [Player](https://protoyard.app/docs/player/): play any blueprint with no install
