@@ -253,6 +253,7 @@ button.
 | Phone sign-up | A code derived from the phone number and simulated clock, then a phone-first persona session. | SMS delivery, phone ownership proof or a security boundary. |
 | Roles and permissions | Services enforce capabilities so role-specific product behavior can be demonstrated. | An authorization boundary; users can alter browser state and same-origin scripts can access it. |
 | Inbox and invitations | Local messages, invitation links and an accept screen that joins the workspace and signs the invitee in (refused for disabled or locked accounts). | Email delivery or proof that someone owns the address. |
+| Checkout and billing | In-browser plan changes, checkout outcomes, subscriptions and invoices. | Payment processing, card collection or a charge. |
 
 The simulation still follows the kit's own rules consistently, so a demo never
 shows a shortcut a real product would forbid. MFA (password, magic link and
@@ -263,7 +264,6 @@ revoke invitation, cancel subscription) ask for confirmation. Every password
 field says: "Simulation only — do not use a real password. What you type is
 kept as plain text in this browser and in exported snapshots." These are
 product behaviors, not security: anyone can edit browser storage.
-| Checkout and billing | In-browser plan changes, checkout outcomes, subscriptions and invoices. | Payment processing, card collection or a charge. |
 
 All account, token, MFA, inbox and billing rows are fictional prototype data in
 IndexedDB. Browser users and same-origin scripts can read or change that data;

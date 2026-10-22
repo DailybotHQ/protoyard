@@ -14,6 +14,7 @@ protoyard quick iterate <slug|dir> --patch <file|-> [--allow-drop]
 protoyard quick undo <slug|dir>
 protoyard quick list
 protoyard quick open <slug> [--port <port>] [--strict-port]
+protoyard quick shot <slug|dir> [--phone]
 ```
 
 `quick serve` serves a marked exploration on 127.0.0.1 until Ctrl+C (port 4180
@@ -39,6 +40,7 @@ Give exactly one brief (a positional string or `-` for stdin) or use
 | `--blueprint <file>` | Read a regular JSON file instead of a brief; symlinks are refused and input is limited to 256 KB before untrusted blueprint validation. |
 | `--slug <slug>` | Choose the output folder name; otherwise it is derived from the blueprint name. |
 | `--name <name>` | Set the generated product name when starting from a brief. |
+| `--kind <kind>` | What a brief makes: `app`, `deck`, `page` or `doc` (default: detected from the brief). Refused together with `--blueprint`, which already declares its kind. Variants of a deck change only `deck.style`; a page or doc varies its theme and density, never its blocks or copy. `quick promote` is app-only. |
 | `--out <dir>` | Choose another output directory; this makes the output self-contained. |
 | `--allow-external-out` | Allow a custom output outside the workspace, subject to the same marker and path guards. |
 | `--seed <n>` | Set the scenario seed, an integer from 0 through 4294967295. |
@@ -49,7 +51,9 @@ Give exactly one brief (a positional string or `-` for stdin) or use
 
 Brief input is capped at 64 KB; the offline synthesizer uses its first 5,000
 characters. Blueprint input goes through `loadUntrustedBlueprint` with the
-player's 256 KB cap. Neither path runs user-supplied code. Invalid input fails
+player's 256 KB cap. A deck, page or doc goes through the untrusted document loader instead.
+`quick shot` captures each exploration and variant at 1280x800 (and 390x844
+with `--phone`); it needs Playwright. Neither path runs user-supplied code. Invalid input fails
 with validation issues rather than producing a playable result.
 When run outside a workspace, the default output is relative to the current
 folder, but Protoyard refuses to use the home directory or a path containing

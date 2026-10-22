@@ -126,9 +126,10 @@ protoyard/
 ├── skills/protoyard/      the distributable agent skill: SKILL.md router, sub-skills, setup.sh   (docs/SKILL.md)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/
 ├── scripts/               bench-index.ts, bench-cold-start.ts, bench-charts.ts, bench-grid.ts, bench-idea.ts,
-│                          bench-player.ts, bench-integrations.ts, visual-sweep.ts (+ lib/), generate-thumbnails.ts,
+│                          bench-player.ts, bench-integrations.ts, bench-blocks.ts, bench-brief-kinds.ts,
+│                          visual-sweep.ts (+ lib/), sweep-deck.ts, blocks-reference.ts, generate-thumbnails.ts,
 │                          import-avatars.ts, {build,check,verify,version}-packages.ts, skill and integration checks,
-│                          check-public-hygiene.sh, changelog-section.sh
+│                          check-public-hygiene.sh, check-public-docs.ts, changelog-section.sh
 ├── docs/                  the guides above
 ├── .agents/               skills, agents, commands (.claude and .cursor symlink here)
 ├── .review/extension.md   repo rules for the AI Diff Reviewer local review
@@ -183,7 +184,8 @@ Nothing requires Docker or CI-only tooling.
    `templates`, `player`, `blocks`, `blocks-ui`, `decks`, `decks-ui`, `pages`,
    `pages-ui`, `flows`, `flows-ui`, `gamification`, `gamification-ui`,
    `<prototype-slug>`,
-   `docs`, `ci`, `deps`, `dwp`. **Stage exact paths**, never `git add -A`.
+   `docs`, `ci`, `deps`, `dwp`, `e2e`, `scripts`. Integration merges use
+   `merge(<branch or task>): …`. **Stage exact paths**, never `git add -A`.
 3. **Validation follows the touched surface.** Pick gates from the
    source→test map in [TESTING_GUIDE](docs/TESTING_GUIDE.md). Core or root
    config changes run the full `pnpm check`. When unsure, run the full suite.
