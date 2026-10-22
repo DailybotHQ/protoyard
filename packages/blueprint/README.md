@@ -904,6 +904,38 @@ if (!blocks.success) {
   const lifted = diagnosticsFromBlockIssues(blocks.issues, ['deck', 'slides', 0, 'blocks']);
 }
 ```
+## Authoring exports
+
+Authoring APIs ship from the package root (`@protoyard/blueprint`); there is no separate
+subpath. They are plain named exports of a `sideEffects: false` package, so a prototype that
+only parses or generates never bundles them:
+
+| Need | Exports |
+| --- | --- |
+| Brief to blueprint, by kind | `blueprintFromBrief`, `synthesizeAppFromBrief`, `synthesizeContentFromBrief`, `synthesizeDeckFromBrief`, `synthesizePageFromBrief`, `synthesizeDocFromBrief`, `isAppBriefResult`, `isContentBriefResult` |
+| Kind detection | `detectBriefKind`, `KIND_CUES`, `APP_CUES`; blueprint kinds: `detectBlueprintKind`, `BLUEPRINT_KINDS`, `CONTENT_KINDS` |
+| Outlines and bounds | `synthesizeDeckOutline`, `chooseDeckOutline`, `DECK_OUTLINES`, `buildPageOutline`, `buildDocOutline`, `selectPageOutline`, `selectDocOutline`, `boundBriefInput`, `prepareBriefForSynthesis`, `checkOutlineBounds`, `applyOutlineBounds`, `OUTLINE_LIMITS` |
+| Deck layouts and lint | `selectDeckLayouts`, `propsForSelectedLayout`, `lintDeckStructure`; catalog types `DeckLayoutEntry`, `DeckLayoutId`, `LayoutPacing` (type-only) |
+| Validation | `validateBlueprintForAuthoring`, `parseAnyBlueprint`, `safeParseAnyBlueprint` |
+| Lazy, for browsers | `loadAuthoringApis()` |
+
+`loadAuthoringApis()` resolves to brief synthesis, kind detection, outlines, deck lint, layout
+selection, authoring validation and the deck layout catalog (`deckLayouts`, `getDeckLayout`,
+`describeDeckLayouts`). It loads them as one chunk, so a browser tool can parse blueprints first
+and fetch authoring only when the author opens it. The functions are the same ones the root
+exports. Server tools (CLI, MCP) can simply import the named exports.
+
+Measured with a real Vite build of the linked package (minified, gzip level 9; asserted in
+`tests/authoring-exports.test.ts`):
+
+| Entry imports | Initial JS |
+| `parseBlueprint` only (a generated app) | 39.3 KB |
+| `parseAnyBlueprint` (the kind union, as the player uses it) | 41.6 KB |
+| The kind union plus `loadAuthoringApis` | 42.1 KB (+0.5 KB); authoring loads lazily |
+| Static authoring imports (`blueprintFromBrief`, `detectBriefKind`, `lintDeckStructure`, `selectDeckLayouts`, `validateBlueprintForAuthoring`) | 80.2 KB (+38.6 KB) |
+
+The test also checks that the app-only and kind-union bundles contain no authoring module and
+no deck layout catalog.
 
 ## Workflow state models
 
