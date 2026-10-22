@@ -107,6 +107,11 @@
         "import": "./dist/kinds/embed/index.js",
         "default": "./dist/kinds/embed/index.js"
       },
+      "./kinds/parse": {
+        "types": "./dist/kinds/parse.d.ts",
+        "import": "./dist/kinds/parse.js",
+        "default": "./dist/kinds/parse.js"
+      },
       "./schema.json": "./dist/schema/blueprint.schema.json"
     },
     "types": "./dist/index.d.ts"
