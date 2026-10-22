@@ -296,6 +296,9 @@ importers:
       '@protoyard/review':
         specifier: workspace:*
         version: link:../review
+      '@protoyard/scenarios':
+        specifier: workspace:*
+        version: link:../scenarios
       '@protoyard/templates':
         specifier: workspace:*
         version: link:../templates
