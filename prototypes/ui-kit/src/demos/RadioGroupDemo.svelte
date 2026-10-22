@@ -9,6 +9,7 @@ const plans: RadioOption[] = [
 
 let plan = $state('team');
 let density = $state('comfortable');
+let cardPlan = $state('team');
 </script>
 
 <div class="grid max-w-md gap-6">
@@ -16,6 +17,17 @@ let density = $state('comfortable');
     <p id="radio-demo-plan" class="text-sm font-medium">Plan</p>
     <RadioGroup aria-labelledby="radio-demo-plan" items={plans} bind:value={plan} />
     <p class="text-xs text-muted-foreground" aria-live="polite">Selected: {plan}</p>
+  </div>
+
+  <div class="grid gap-2">
+    <p id="radio-demo-card" class="text-sm font-medium">Plan (card variant)</p>
+    <RadioGroup
+      aria-labelledby="radio-demo-card"
+      variant="card"
+      items={plans}
+      bind:value={cardPlan}
+    />
+    <p class="text-xs text-muted-foreground" aria-live="polite">Selected: {cardPlan}</p>
   </div>
 
   <div class="grid gap-2">

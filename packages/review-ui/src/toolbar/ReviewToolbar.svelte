@@ -27,6 +27,52 @@ let actionError = $state('');
 let fileInput: HTMLInputElement | undefined = $state();
 let toolbar: HTMLElement | undefined = $state();
 let launcher: HTMLButtonElement | undefined = $state();
+let placement: ReturnType<NonNullable<ReviewToolbarProps['place']>> | undefined;
+
+/**
+ * Without a host placer, sit above a fixed bottom nav (`data-py-bottom-nav`,
+ * as the DevTools launcher does), measured against the *visible* bottom, so
+ * the toolbar never covers a phone tab bar. The right edge follows
+ * `--py-fixed-right-edge` in CSS.
+ */
+let navOffset = $state(0);
+$effect(() => {
+  if (place) return;
+  let frame = 0;
+  const measure = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      const vv = window.visualViewport;
+      const visibleBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+      let offset = 0;
+      for (const nav of document.querySelectorAll<HTMLElement>('[data-py-bottom-nav]')) {
+        const rect = nav.getBoundingClientRect();
+        if (
+          getComputedStyle(nav).position === 'fixed' &&
+          rect.height > 0 &&
+          rect.bottom >= visibleBottom - 1
+        ) {
+          offset = Math.max(offset, Math.round(visibleBottom - rect.top));
+        }
+      }
+      navOffset = offset;
+    });
+  };
+  measure();
+  // App DOM changes only; the toolbar's own action row never moves it.
+  const observer = new MutationObserver((mutations) => {
+    if (mutations.some(({ target }) => !toolbar?.contains(target))) measure();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('resize', measure);
+  window.visualViewport?.addEventListener('resize', measure);
+  return () => {
+    cancelAnimationFrame(frame);
+    observer.disconnect();
+    window.removeEventListener('resize', measure);
+    window.visualViewport?.removeEventListener('resize', measure);
+  };
+});
 
 function refreshPending(): void {
   pending = Math.max(0, adapter.pendingCount?.() ?? 0);
@@ -35,12 +81,21 @@ function refreshPending(): void {
 onMount(() => {
   refreshPending();
   const unsubscribe = adapter.subscribePending?.(refreshPending);
-  const placement =
-    toolbar && place ? place(toolbar, { handle: () => launcher ?? null }) : undefined;
+  placement = toolbar && place ? place(toolbar, { handle: () => launcher ?? null }) : undefined;
   return () => {
     unsubscribe?.();
     placement?.destroy();
+    placement = undefined;
   };
+});
+
+// The open action row is wider than the launcher and may now cover the target
+// the reviewer is about to pin, or run past the visible edge: re-place once it
+// has rendered.
+$effect(() => {
+  if (!open || !placement) return;
+  const frame = requestAnimationFrame(() => placement?.update());
+  return () => cancelAnimationFrame(frame);
 });
 
 async function run(
@@ -63,6 +118,31 @@ async function readImport(file?: File): Promise<void> {
   if (!file || !onImport) return;
   await run('import', async () => onImport(await file.text()));
   if (fileInput) fileInput.value = '';
+}
+
+/** `showPicker` throws without user activation or in some frames; `click` is the fallback. */
+function openImportPicker(): void {
+  const input = fileInput;
+  if (!input) return;
+  try {
+    if (typeof input.showPicker === 'function') {
+      input.showPicker();
+      return;
+    }
+  } catch {
+    // Fall through to the classic click.
+  }
+  input.click();
+}
+
+/** The launcher collapses an open bar; while commenting, it stops comment mode instead. */
+async function toggleToolbar(): Promise<void> {
+  if (commentMode) {
+    await run('comment', () => onCommentModeChange?.(false));
+    return;
+  }
+  if (open) await collapse();
+  else expanded = true;
 }
 
 async function collapse(): Promise<void> {
@@ -97,6 +177,7 @@ const adapterLabel = $derived.by(() => {
   class="review-toolbar"
   class:review-toolbar--placed={Boolean(place)}
   data-py-review-toolbar={open ? 'expanded' : 'collapsed'}
+  style:bottom={!place && navOffset > 0 ? `${navOffset + 12}px` : undefined}
   aria-label="Prototype review toolbar"
 >
   <button
@@ -107,7 +188,7 @@ const adapterLabel = $derived.by(() => {
     aria-controls="review-toolbar-actions"
     aria-label={`Review: ${count} comment thread${count === 1 ? '' : 's'}${pending ? `, ${pending} waiting to sync` : ''}`}
     title="Review comments"
-    onclick={() => (open && !commentMode ? collapse() : (expanded = true))}
+    onclick={toggleToolbar}
   >
     <span aria-hidden="true">💬</span><span class="review-toolbar__badge" aria-hidden="true">{count}</span>{#if pending}<span class="review-toolbar__dot" aria-hidden="true"></span>{/if}
   </button>
@@ -120,7 +201,7 @@ const adapterLabel = $derived.by(() => {
       <button type="button" aria-expanded={panelOpen} aria-controls="review-comments-panel" aria-busy={busyAction === 'panel'} disabled={!onPanelChange || Boolean(busyAction)} onclick={() => run('panel', () => onPanelChange?.(!panelOpen))}>Comments</button>
     {/if}
     {#if onExport}<button type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'export'} onclick={() => run('export', onExport)}>Export</button>{/if}
-    {#if onImport}<button type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'import'} onclick={() => fileInput?.click()}>Import</button>{/if}
+    {#if onImport}<button type="button" disabled={Boolean(busyAction)} aria-busy={busyAction === 'import'} onclick={openImportPicker}>Import</button>{/if}
     <span class="review-toolbar__adapter" title={adapterLabel}>{adapterLabel}</span>
     {#if open}<span class="review-toolbar__pending" role="status" aria-live="polite">{pendingLabel}</span>{/if}
   </div>

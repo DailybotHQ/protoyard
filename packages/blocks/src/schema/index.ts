@@ -1,5 +1,13 @@
 import { z } from 'zod';
 import {
+  ColumnsBlockSchema,
+  childPaths,
+  childrenOf,
+  containerDepth,
+  RevealBlockSchema,
+  TabsBlockSchema,
+} from './containers.ts';
+import {
   CalloutBlockSchema,
   CardsBlockSchema,
   ChartBlockSchema,
@@ -20,8 +28,20 @@ import {
   TimelineBlockSchema,
   VideoBlockSchema,
 } from './content.ts';
-import { BLOCK_CONTENT_LIMITS, blockBase } from './primitives.ts';
-import type { BlockFamily } from './vocabulary.ts';
+import {
+  CalculatorBlockSchema,
+  ChartControlsBlockSchema,
+  CounterBlockSchema,
+  EmbedAppBlockSchema,
+  FormBlockSchema,
+  MapBlockSchema,
+  PollBlockSchema,
+  QuizBlockSchema,
+} from './interactive.ts';
+import type { BlockReveal } from './primitives.ts';
+import type { BlockFamily, BlockTone } from './vocabulary.ts';
+
+export { ColumnsBlockSchema, childrenOf, containerDepth, RevealBlockSchema, TabsBlockSchema };
 
 export type HeadingBlock = z.infer<typeof HeadingBlockSchema>;
 export type TextBlock = z.infer<typeof TextBlockSchema>;
@@ -42,22 +62,52 @@ export type ComparisonBlock = z.infer<typeof ComparisonBlockSchema>;
 export type CardsBlock = z.infer<typeof CardsBlockSchema>;
 export type IconBlock = z.infer<typeof IconBlockSchema>;
 export type CtaBlock = z.infer<typeof CtaBlockSchema>;
+export type PollBlock = z.infer<typeof PollBlockSchema>;
+export type QuizBlock = z.infer<typeof QuizBlockSchema>;
+export type CalculatorBlock = z.infer<typeof CalculatorBlockSchema>;
+export type CounterBlock = z.infer<typeof CounterBlockSchema>;
+export type ChartControlsBlock = z.infer<typeof ChartControlsBlockSchema>;
+export type MapBlock = z.infer<typeof MapBlockSchema>;
+export type EmbedAppBlock = z.infer<typeof EmbedAppBlockSchema>;
+export type FormBlock = z.infer<typeof FormBlockSchema>;
 
-/** Side-by-side columns of blocks. Columns may nest, at most three deep. */
-export type ColumnsBlock = {
+/** Fields every block may carry; containers are typed by hand because they recurse. */
+interface ContainerBase {
+  step?: number | undefined;
+  reveal?: BlockReveal | undefined;
+  tone?: BlockTone | undefined;
+}
+
+/** Side-by-side columns of blocks. */
+export interface ColumnsBlock extends ContainerBase {
   type: 'columns';
   id?: string | undefined;
-  step?: number | undefined;
-  reveal?: HeadingBlock['reveal'];
-  tone?: HeadingBlock['tone'];
   /** `wide-start` gives the first column twice the width of the others. */
   widths?: 'equal' | 'wide-start' | 'wide-end' | undefined;
-  /** Vertical alignment of the columns. */
   align?: 'start' | 'center' | undefined;
   columns: Block[][];
-};
+}
 
-/** Any content block, discriminated on `type`. */
+/** Panels of blocks, one visible at a time. */
+export interface TabsBlock extends ContainerBase {
+  type: 'tabs';
+  id: string;
+  label: string;
+  panels: { id: string; label: string; icon?: IconBlock['icon'] | undefined; blocks: Block[] }[];
+  defaultPanel?: string | undefined;
+}
+
+/** Blocks behind a button, for answers and details. */
+export interface RevealBlock extends ContainerBase {
+  type: 'reveal';
+  id: string;
+  label: string;
+  openLabel?: string | undefined;
+  blocks: Block[];
+  open?: boolean | undefined;
+}
+
+/** Any block, discriminated on `type`. */
 export type Block =
   | HeadingBlock
   | TextBlock
@@ -78,45 +128,19 @@ export type Block =
   | CardsBlock
   | IconBlock
   | CtaBlock
-  | ColumnsBlock;
+  | ColumnsBlock
+  | TabsBlock
+  | RevealBlock
+  | PollBlock
+  | QuizBlock
+  | CalculatorBlock
+  | CounterBlock
+  | ChartControlsBlock
+  | MapBlock
+  | EmbedAppBlock
+  | FormBlock;
 
 export type BlockType = Block['type'];
-
-/** How deep `columns` blocks nest inside `block` (0 for a leaf block). */
-export function containerDepth(block: Block): number {
-  if (block.type !== 'columns') return 0;
-  let deepest = 0;
-  for (const column of block.columns) {
-    for (const child of column) deepest = Math.max(deepest, containerDepth(child));
-  }
-  return deepest + 1;
-}
-
-export const ColumnsBlockSchema = z
-  .strictObject({
-    type: z.literal('columns'),
-    ...blockBase,
-    widths: z.enum(['equal', 'wide-start', 'wide-end']).optional(),
-    align: z.enum(['start', 'center']).optional(),
-    columns: z
-      .array(
-        z
-          .array(z.lazy((): z.ZodType<Block> => BlockSchema))
-          .min(1)
-          .max(BLOCK_CONTENT_LIMITS.blocksPerColumn)
-      )
-      .min(2)
-      .max(BLOCK_CONTENT_LIMITS.columns),
-  })
-  .superRefine((block, ctx) => {
-    if (containerDepth(block) > BLOCK_CONTENT_LIMITS.containerDepth) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['columns'],
-        message: `Columns nest at most ${BLOCK_CONTENT_LIMITS.containerDepth} deep`,
-      });
-    }
-  });
 
 /** One block of any type, validated strictly. */
 export const BlockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
@@ -140,9 +164,23 @@ export const BlockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
   IconBlockSchema,
   CtaBlockSchema,
   ColumnsBlockSchema,
+  TabsBlockSchema,
+  RevealBlockSchema,
+  PollBlockSchema,
+  QuizBlockSchema,
+  CalculatorBlockSchema,
+  CounterBlockSchema,
+  ChartControlsBlockSchema,
+  MapBlockSchema,
+  EmbedAppBlockSchema,
+  FormBlockSchema,
 ]);
 
-/** The render family of every block type (`@protoyard/blocks-ui/<family>`). */
+/**
+ * The render family of every block type (`@protoyard/blocks-ui/<family>`).
+ * `form` renders in the interactive family through a host-provided form
+ * renderer (`@protoyard/pages-ui/form` owns the form UI and responses).
+ */
 export const BLOCK_TYPE_FAMILY = Object.freeze({
   heading: 'text',
   text: 'text',
@@ -164,12 +202,44 @@ export const BLOCK_TYPE_FAMILY = Object.freeze({
   icon: 'structure',
   cta: 'structure',
   columns: 'structure',
+  tabs: 'interactive',
+  reveal: 'interactive',
+  poll: 'interactive',
+  quiz: 'interactive',
+  calculator: 'interactive',
+  counter: 'interactive',
+  'chart-controls': 'interactive',
+  form: 'interactive',
+  map: 'map',
+  'embed-app': 'embed',
 } as const satisfies Record<BlockType, BlockFamily>);
 
 /** Every block type, in catalog order. */
 export const BLOCK_TYPES = Object.freeze(Object.keys(BLOCK_TYPE_FAMILY)) as readonly BlockType[];
 
-/** Calls `visit` on every block, depth-first, including blocks inside columns. */
+/** Block types that keep viewer state and therefore require an `id`. */
+export const STATEFUL_BLOCK_TYPES = Object.freeze([
+  'tabs',
+  'reveal',
+  'poll',
+  'quiz',
+  'calculator',
+  'counter',
+  'chart-controls',
+  'map',
+  'embed-app',
+  'form',
+] as const satisfies readonly BlockType[]);
+
+export type StatefulBlockType = (typeof STATEFUL_BLOCK_TYPES)[number];
+export type StaticBlockType = Exclude<BlockType, StatefulBlockType>;
+
+/** Block types without viewer state: content, media, data and `columns`. */
+export const STATIC_BLOCK_TYPES = Object.freeze(
+  BLOCK_TYPES.filter((type) => !(STATEFUL_BLOCK_TYPES as readonly string[]).includes(type))
+) as readonly StaticBlockType[];
+
+/** Calls `visit` on every block, depth-first, including blocks inside containers. */
 export function forEachBlock(
   blocks: readonly Block[],
   visit: (block: Block, path: (string | number)[]) => void,
@@ -178,18 +248,17 @@ export function forEachBlock(
   blocks.forEach((block, i) => {
     const here = [...path, i];
     visit(block, here);
-    if (block.type === 'columns') {
-      block.columns.forEach((column, c) => {
-        forEachBlock(column, visit, [...here, 'columns', c]);
-      });
-    }
+    const paths = childPaths(block);
+    childrenOf(block).forEach((list, l) => {
+      forEachBlock(list, visit, [...here, ...(paths[l] as (string | number)[])]);
+    });
   });
 }
 
 /**
  * A list of blocks: a slide region, a page section or a doc body. Block ids
- * must be unique across the list and every column nested in it, because deep
- * links and interactive state address blocks by id.
+ * must be unique across the list and every container nested in it, because
+ * deep links and interactive state address blocks by id.
  */
 export const BlockListSchema = z.array(BlockSchema).superRefine((blocks, ctx) => {
   const seen = new Map<string, string>();
@@ -228,17 +297,13 @@ export function toJsonPath(path: readonly PropertyKey[]): string {
   return result;
 }
 
-/** Zod issues as path-addressed block issues; nested union failures are flattened. */
+/** Zod issues as path-addressed block issues. */
 export function blockIssues(error: z.ZodError): BlockIssue[] {
-  const issues: BlockIssue[] = [];
-  for (const issue of error.issues) {
-    issues.push({
-      path: issue.path.map((segment) => (typeof segment === 'number' ? segment : String(segment))),
-      jsonPath: toJsonPath(issue.path),
-      message: issue.message,
-    });
-  }
-  return issues;
+  return error.issues.map((issue) => ({
+    path: issue.path.map((segment) => (typeof segment === 'number' ? segment : String(segment))),
+    jsonPath: toJsonPath(issue.path),
+    message: issue.message,
+  }));
 }
 
 /** Validates one block. Never throws. */

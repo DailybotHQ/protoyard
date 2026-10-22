@@ -233,7 +233,7 @@ function presentationMode() {
 <div class="py-devtools-root pointer-events-auto font-sans text-[13px] leading-normal text-foreground antialiased">
   {#if !open}
     {#if appModalOpen || narrow}
-      <!-- Docked to the visible right edge (`--py-fixed-right-edge`) so it never covers an app dialog's actions or a phone's bottom controls. -->
+      <!-- Docked to the right edge so it never covers an app dialog's actions or a phone's bottom controls. -->
       <button
         bind:this={launcher}
         type="button"
@@ -269,7 +269,7 @@ function presentationMode() {
   {:else}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -- Escape-to-close is delegated from the whole dock. -->
     <aside
-      class="fixed inset-x-0 right-[var(--py-fixed-right-edge,0px)] bottom-0 z-[2147483000] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-background shadow-float sm:inset-x-auto sm:right-[calc(1rem+var(--py-fixed-right-edge,0px))] sm:bottom-4 sm:h-[min(680px,calc(100dvh-2rem))] sm:max-h-none sm:w-[400px] sm:rounded-xl"
+      class="fixed inset-x-0 bottom-0 z-[2147483000] flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-border bg-background shadow-float sm:inset-x-auto sm:right-[calc(1rem+var(--py-fixed-right-edge,0px))] sm:bottom-4 sm:h-[min(680px,calc(100dvh-2rem))] sm:max-h-none sm:w-[400px] sm:rounded-xl"
       aria-label="Protoyard DevTools"
       onkeydown={onPanelKeydown}
     >

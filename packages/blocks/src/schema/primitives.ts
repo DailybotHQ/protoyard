@@ -32,10 +32,28 @@ export const BLOCK_CONTENT_LIMITS = Object.freeze({
   people: 24,
   ctaActions: 3,
   columns: 4,
-  /** Blocks in one column of a `columns` block. */
+  /** Blocks in one column, tab panel or reveal. */
   blocksPerColumn: 12,
-  /** `columns` inside `columns` nests at most this deep. */
+  /** Containers (columns, tabs, reveal) nest at most this deep. */
   containerDepth: 3,
+  tabPanels: 6,
+  pollOptions: 8,
+  quizQuestions: 20,
+  quizChoices: 6,
+  calculatorInputs: 8,
+  calculatorOutputs: 6,
+  /** Positions on one calculator slider: (max − min) / step. */
+  calculatorSteps: 10_000,
+  calculatorChartPoints: 50,
+  mapPoints: 200,
+  mapRoute: 50,
+  /** UTF-8 bytes of an embedded app's JSON, and its nesting. */
+  embedBytes: 64 * 1024,
+  embedDepth: 24,
+  formFields: 20,
+  formOptions: 20,
+  formTextLength: 4_000,
+  formTags: 20,
   code: 20_000,
   codeLines: 400,
   highlightSteps: 16,
@@ -58,6 +76,7 @@ export const BlockStepSchema = z.number().int().min(0).max(32);
 /** How a block enters when its step is reached. */
 export const BLOCK_REVEALS = ['fade', 'fade-up', 'grow', 'highlight', 'strike'] as const;
 export const BlockRevealSchema = z.enum(BLOCK_REVEALS);
+export type BlockReveal = (typeof BLOCK_REVEALS)[number];
 
 export const BlockToneSchema = z.enum(BLOCK_TONES);
 

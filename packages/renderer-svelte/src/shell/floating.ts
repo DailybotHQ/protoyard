@@ -106,50 +106,62 @@ export function visiblePlacementContainer(
   };
 }
 
-/** CSS variable on `<html>`: px of the layout viewport hidden past the visible right edge. */
+/**
+ * Where the demo badge may sit, and the origin of its containing block. Under
+ * a viewport preset `#app` has a transform, so it is the containing block and
+ * the area. Full-bleed, the area is the *visible* viewport (as for floating
+ * chrome) while fixed coordinates stay relative to the layout viewport at 0,0.
+ */
+export function badgeContainer(
+  app: Rect | null,
+  win: Pick<Window, 'innerWidth' | 'innerHeight' | 'visualViewport'> = window
+): { container: Rect; origin: { left: number; top: number } } {
+  if (app) return { container: app, origin: { left: app.left, top: app.top } };
+  return { container: visiblePlacementContainer(win), origin: { left: 0, top: 0 } };
+}
+
+/** Custom property on `<html>`: layout-viewport px hidden to the right of the visual viewport. */
 export const FIXED_RIGHT_EDGE_VAR = '--py-fixed-right-edge';
 
 /**
- * How far the visible right edge sits inside the layout viewport's right edge,
- * in whole CSS px (0 when the whole width is visible). Fixed chrome adds it to
- * its `right` offset so it stays on the clickable part of a phone frame or a
- * mobile-emulated window.
+ * How far the layout viewport extends past the visible right edge, in CSS px
+ * (0 unless phone emulation, a frame or pinch zoom makes the visual viewport
+ * narrower). `position: fixed; right: …` chrome adds it to stay clickable.
  */
-export function fixedRightEdge(
-  win: Pick<Window, 'innerWidth' | 'innerHeight' | 'visualViewport'> = window
+export function visibleRightEdge(
+  win: Pick<Window, 'innerWidth' | 'visualViewport'> = window
 ): number {
-  const visible = visiblePlacementContainer(win);
-  return Math.max(0, Math.round(win.innerWidth - (visible.left + visible.width)));
+  const vv = win.visualViewport;
+  if (!vv) return 0;
+  return Math.max(0, Math.round(win.innerWidth - (vv.offsetLeft + vv.width)));
 }
 
 /**
- * Keeps `--py-fixed-right-edge` on `root` (default `<html>`) in step with the
- * visual viewport: set now, then after resizes, visual-viewport resizes and
- * pans. Returns the cleanup, which removes the variable again.
+ * Keeps `--py-fixed-right-edge` on `root` equal to `visibleRightEdge()`, so
+ * fixed chrome in any package (review toolbar, DevTools launcher, toasts) can
+ * use `right: calc(… + var(--py-fixed-right-edge, 0px))`. Returns a stop
+ * function that removes the listeners and the property.
  */
 export function trackFixedRightEdge(
   root: HTMLElement = document.documentElement,
   win: Window = window
 ): () => void {
-  let frame = 0;
-  const apply = () => {
-    root.style.setProperty(FIXED_RIGHT_EDGE_VAR, `${fixedRightEdge(win)}px`);
+  let last = '';
+  const sync = () => {
+    const value = `${visibleRightEdge(win)}px`;
+    if (value === last) return;
+    last = value;
+    root.style.setProperty(FIXED_RIGHT_EDGE_VAR, value);
   };
-  const schedule = () => {
-    if (typeof win.requestAnimationFrame !== 'function') return apply();
-    win.cancelAnimationFrame(frame);
-    frame = win.requestAnimationFrame(apply);
-  };
-  apply();
+  sync();
   const vv = win.visualViewport;
-  win.addEventListener('resize', schedule);
-  vv?.addEventListener('resize', schedule);
-  vv?.addEventListener('scroll', schedule);
+  win.addEventListener('resize', sync);
+  vv?.addEventListener('resize', sync);
+  vv?.addEventListener('scroll', sync);
   return () => {
-    if (typeof win.cancelAnimationFrame === 'function') win.cancelAnimationFrame(frame);
-    win.removeEventListener('resize', schedule);
-    vv?.removeEventListener('resize', schedule);
-    vv?.removeEventListener('scroll', schedule);
+    win.removeEventListener('resize', sync);
+    vv?.removeEventListener('resize', sync);
+    vv?.removeEventListener('scroll', sync);
     root.style.removeProperty(FIXED_RIGHT_EDGE_VAR);
   };
 }
@@ -331,7 +343,7 @@ export function placeFloating(
   // Start with a safe fallback, then place synchronously so a fast click cannot
   // hit the launcher while it still overlaps a fixed app control.
   element.style.position = 'fixed';
-  element.style.right = `calc(${FLOATING_INSET}px + var(${FIXED_RIGHT_EDGE_VAR}, 0px))`;
+  element.style.right = `${FLOATING_INSET}px`;
   element.style.bottom = `${FLOATING_INSET}px`;
   place();
   schedule();

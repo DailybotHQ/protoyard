@@ -15,6 +15,7 @@ import { type Component, mount, tick, unmount } from 'svelte';
 import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
 import { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
+import { consumeArtifactLink } from './shell/artifact-link.ts';
 import BootError from './shell/BootError.svelte';
 import { placeFloating, trackFixedRightEdge } from './shell/floating.ts';
 import Root from './shell/Root.svelte';
@@ -169,8 +170,22 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   } catch (error) {
     return showBootErrorFor(options.definition, target, error);
   }
-  const link = parseScenarioLink(options.search ?? location.search);
   const themes = mergeThemes(BUILTIN_THEMES, definition.themes);
+  const artifactSearch =
+    options.search === undefined
+      ? consumeArtifactLink({
+          scenarios: definition.scenarios.map((scenario) => scenario.id),
+          personas: definition.scenarios.flatMap((scenario) =>
+            scenario.actor?.id ? [scenario.actor.id] : []
+          ),
+          themes: themes.map((theme) => theme.id),
+        })
+      : undefined;
+  const search = new URLSearchParams(options.search ?? location.search);
+  if (artifactSearch) {
+    for (const [key, value] of new URLSearchParams(artifactSearch)) search.set(key, value);
+  }
+  const link = parseScenarioLink(search.toString());
   const root = document.documentElement;
   delete root.dataset.protoyardReady;
   const cleanups: (() => void | Promise<void>)[] = [];
@@ -200,8 +215,8 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   setMountedRuntime(rt);
   window.__protoyard = rt;
   cleanups.push(bindAppearance(rt, themes, root));
-  // Fixed chrome (toasts, DevTools, review) reads this to stay on the visible width.
-  cleanups.push(trackFixedRightEdge(root));
+  // Fixed chrome (review toolbar, DevTools launcher, toasts) reads this to stay on screen.
+  cleanups.push(trackFixedRightEdge());
 
   // The define is read inline (not via flags.ts) so the minifier can fold it
   // and drop the DevTools chunk entirely from builds without DevTools.

@@ -31,6 +31,16 @@ export {
 } from './context.ts';
 export { createGenerateContext, createSeededFaker } from './context-sync.ts';
 export {
+  COUNTERPART_DELAY,
+  COUNTERPART_TYPING_SECONDS,
+  type CounterpartMessage,
+  type CounterpartReply,
+  type CounterpartState,
+  type ScriptedCounterpart,
+  type ScriptedCounterpartOptions,
+  scriptedCounterpart,
+} from './counterpart.ts';
+export {
   ALLOWED_FIXTURE_EMAIL_DOMAINS,
   FIXTURE_ALLOW_KEY,
   type FixtureFinding,
@@ -72,6 +82,24 @@ export {
   type WorldIntegrity,
   WorldIntegrityError,
 } from './integrity.ts';
+export {
+  checkJourneyWorld,
+  JOURNEY_ACTOR_ID,
+  JOURNEY_ORGANIZATION_ID,
+  JOURNEY_PRESETS,
+  type JourneyExpectations,
+  type JourneyIssue,
+  journeyScenario,
+  LIFE_STAGE_DAYS,
+  LIFE_STAGE_JOURNEYS,
+  LIFE_STAGES,
+  type LifeStage,
+  type LifeStageJourney,
+  type LifeStageView,
+  lifeStageJourney,
+  lifeStageOf,
+  lifeStageView,
+} from './journeys.ts';
 export {
   fragments,
   PRESET_IDS,

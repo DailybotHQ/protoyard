@@ -74,6 +74,28 @@ describe('mountPrototype', () => {
     expect(scrollRoot?.parentElement?.contains(toaster)).toBe(true);
   });
 
+  it('consumes a validated artifact hash before creating the runtime', async () => {
+    history.replaceState(null, '', '/?devtools=0#busy--user_0001');
+    const runtime = createFakeRuntime();
+    const target = document.body.appendChild(document.createElement('div'));
+    let runtimeLink: { scenario?: string; actor?: string; devtools?: boolean } | undefined;
+    const mounted = await mountPrototype({
+      definition: runtime.definition,
+      App: ProbeApp,
+      target,
+      devtools: false,
+      createRuntime: (_definition, options) => {
+        runtimeLink = options.link;
+        return runtime;
+      },
+    });
+    destroy = mounted.destroy;
+
+    expect(runtimeLink).toMatchObject({ scenario: 'busy', actor: 'user_0001', devtools: false });
+    expect(location.hash).toBe('#/');
+    expect(location.search).toBe('?devtools=0');
+  });
+
   it("renders the app directly with shell 'none': no frame, no shell styles", async () => {
     const { runtime, target } = await boot();
     expect(runtime.theme.appearance().shell.value).toBe('none');
@@ -232,34 +254,6 @@ describe('mountPrototype', () => {
     expect(remove).toHaveBeenCalledWith('protoyard:offline-update', listener);
     add.mockRestore();
     remove.mockRestore();
-  });
-
-  it('publishes the visible right edge for fixed chrome while mounted', async () => {
-    const width = window.innerWidth;
-    const viewport = Object.getOwnPropertyDescriptor(window, 'visualViewport');
-    Object.defineProperty(window, 'visualViewport', {
-      configurable: true,
-      value: {
-        width: 390,
-        height: 800,
-        offsetLeft: 0,
-        offsetTop: 0,
-        addEventListener() {},
-        removeEventListener() {},
-      },
-    });
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 980 });
-    try {
-      const { mounted } = await boot();
-      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('590px');
-      await mounted.destroy();
-      destroy = undefined;
-      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('');
-    } finally {
-      Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
-      if (viewport) Object.defineProperty(window, 'visualViewport', viewport);
-      else delete (window as { visualViewport?: unknown }).visualViewport;
-    }
   });
 
   it('shows a storage warning banner when persistence is degraded', async () => {

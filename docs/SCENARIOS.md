@@ -165,6 +165,58 @@ its id. Cycles, unknown parents and duplicate ids throw a
 reference time (`2026-03-02T09:00:00.000Z`), so override both to anchor the
 world where your prototype needs it.
 
+### Life-stage journeys
+
+Four presets in the group `Journeys` model one account's life. Each is the
+same product at a different moment, and each declares what its world must
+look like:
+
+| Preset id | Persona | Simulated time | Expected world |
+| --- | --- | --- | --- |
+| `journey-signup` | `owner`, onboarding not started | organization and actor 0 days | 1 person, empty data, no activity |
+| `journey-invited` | `member`, onboarding not started | organization 90 days, actor 0 days | 6 people, at least one joined before the actor |
+| `journey-first-week` | `owner`, onboarded | organization and actor 7 days | 3 people, sparse data, 7 days of history |
+| `journey-established` | `owner`, onboarded | organization and actor 90 days | 8 people, normal data, 90 days of weekly history |
+
+- **Stable ids.** Every stage uses the same seed, reference time, organization
+  id (`org_0001`) and actor id (`user_0001`), so links, tests and screens that
+  name the actor survive a stage switch.
+- **Domain-free.** The stages hold only the shared axes. A prototype extends
+  one by id (`{ id: 'new-hire', extends: 'journey-invited', … }`) and adds its
+  own `generators` knobs and data.
+- **What a stage promises** (`LIFE_STAGE_JOURNEYS[i].persona`, `.time` and
+  `.expect`) is checked by
+  `checkJourneyWorld(stage, seed, { integrity?, referenceTime?, actorId? })`.
+  It returns the problems in a generated world, and an empty list means the
+  world passes:
+  - `validateWorld` violations at the reference time, plus your own integrity
+    rules;
+  - the actor's role, tenure and onboarding;
+  - the people count and the organization's age;
+  - an existing team, for `invited`;
+  - whether the world reads as the stage.
+- **From data to stage.** `lifeStageOf({ actorTenureDays, organizationAgeDays,
+  onboardingComplete })` is pure, so a reload or a scenario switch lands on the
+  same stage. `lifeStageView(seed, actorId, referenceTime)` reads those numbers
+  from a world. The rules, in order:
+  1. Joined less than 7 days ago into an organization at least 7 days older:
+     `invited`.
+  2. Otherwise less than 7 days in without finished onboarding: `signup`.
+  3. Less than 30 days in: `first-week`.
+  4. Otherwise: `established`.
+
+```ts
+import { checkJourneyWorld, journeyScenario } from '@protoyard/scenarios';
+
+const scenario = journeyScenario('invited', { id: 'new-hire' }); // validated
+const world = await definition.generate(createGenerateContext(scenario));
+expect(checkJourneyWorld('invited', world, { integrity: myRules })).toEqual([]);
+```
+
+The older single presets (`brand-new-signup`, `first-week`, `six-month-new-member`,
+`active-month`…) are unchanged. Each of them stands alone, while the journeys
+form one consistent sequence with declared expectations.
+
 ## The generator
 
 `generate(ctx)` in `src/scenarios/generators.ts` returns a `WorldSeed`:
@@ -519,6 +571,52 @@ import { onClockTick } from '@protoyard/renderer-svelte';
 const stopClockTicks = onClockTick((now) => expireDueItems(now));
 onDestroy(stopClockTicks);
 ```
+
+#### A scripted counterpart in a chat
+
+`scriptedCounterpart({ scripts, seed? })` from `@protoyard/scenarios` makes the
+other person in a simulated chat answer on the simulated clock, from fixed
+lines, the same way on every replay. It is pure: it reads a conversation's
+messages, and your clock pass writes the replies through your own service.
+
+- **Delay.** The delay before a reply is fixed by the answered message's id
+  and the seed. It is 2-45 simulated seconds by default (`minDelaySeconds` and
+  `maxDelaySeconds` change it), so advancing the clock one minute delivers
+  every pending reply.
+- **What gets answered.** A reply answers the conversation's latest message
+  when the person wrote it. The line is the conversation's script line after
+  the counterpart lines already in the thread, and the script is chosen by
+  conversation id. When the script runs out, the state is `done` and the
+  counterpart stays silent.
+- **States.** `state(messages, now)` returns:
+  - `idle`: no messages, or the counterpart spoke last;
+  - `waiting`;
+  - `typing`: the last `typingSeconds` before the reply, 4 by default, for a
+    typing indicator;
+  - `due`: with a reply to store;
+  - `done`.
+- **Writing replies.** `dueReplies(messages, now)` lists every due reply across
+  conversations, in time order. Each reply has a stable id
+  (`<message id>~reply`) and its due time, strictly after the answered message
+  rather than "now". A pass that skips ids it already stored is idempotent.
+
+```ts
+import { scriptedCounterpart } from '@protoyard/scenarios';
+
+const counterpart = scriptedCounterpart({
+  scripts: [['Hi! Thanks for writing.', 'Let me check and get back to you.']],
+  seed: scenario.seed,
+});
+onClockTick(async (now) => {
+  const messages = await chatService.recentMessages(); // { id, conversationId, author, sentAt }
+  for (const reply of counterpart.dueReplies(messages, now)) await chatService.storeReply(reply);
+});
+// Typing indicator for an open thread:
+const typing = counterpart.state(threadMessages, runtime.clock.now()).status === 'typing';
+```
+
+Keep the scripts fictional and honest. A counterpart line says what the
+person will do or ask, never an outcome that the simulation cannot keep.
 
 The CRM demo learned this the hard way. Its first timeline filtered deals by
 their *current* stage and decided the target stage when generating the event.

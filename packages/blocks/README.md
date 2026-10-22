@@ -9,9 +9,11 @@ database or `@protoyard/blueprint` (the blueprint imports blocks, not the
 other way round). The Svelte half is
 [`@protoyard/blocks-ui`](../blocks-ui/README.md).
 
-> **Status:** the static content blocks are defined (schemas, types, parse
-> helpers). Interactive and container blocks beyond `columns`, the untrusted
-> guard, the JSON Schema and the subpath engines land in later PLAN_005 tasks.
+> **Status:** all 30 block types are defined: static content, containers
+> (`columns`, `tabs`, `reveal`) and interactive blocks (poll, quiz,
+> calculator, counter, chart controls, map, embed-app, form). The untrusted
+> guard, the JSON Schema file and the remaining subpath engines land in later
+> PLAN_005 tasks.
 
 ## Rules every block follows
 
@@ -45,7 +47,9 @@ if (!result.success) {
 | `safeParseBlock`, `blockIssues`, `toJsonPath` | Never-throwing parsing; issues carry `path` and a `jsonPath` like `$[0]["items"][2]` (the blueprint authoring format) |
 | `<Type>BlockSchema`, `<Type>Block` | One schema and type per block |
 | `BLOCK_TYPES`, `BLOCK_TYPE_FAMILY` | Every type and its render family |
-| `forEachBlock`, `containerDepth` | Depth-first walk with paths; columns nesting depth |
+| `STATEFUL_BLOCK_TYPES`, `STATIC_BLOCK_TYPES` | Types that keep viewer state (and require `id`), and the rest |
+| `childrenOf`, `embeddedAppProblem`, `FORM_FIELD_TYPES`, `MAP_BASEMAPS` | Container children, the embed check, form field types, simulated basemaps |
+| `forEachBlock`, `containerDepth` | Depth-first walk with paths (through columns, tab panels and reveals); container nesting depth |
 | `BLOCK_CONTENT_LIMITS` | Per-block caps (below) |
 | `classifyMediaSource`, `ImageSourceSchema`, `VideoSourceSchema`, `AvatarIdSchema`, `MEDIA_DATA_URI_MAX_BYTES` | The media source policy |
 | `BLOCK_ICONS`, `BlockIcon`, `isBlockIcon` | The icon allow-list |
@@ -53,8 +57,9 @@ if (!result.success) {
 | `ChartSpecSchema`, `parseChartSpec`, `ChartSpec` | Re-exported from `@protoyard/ai/chart`, unchanged |
 | `BLOCK_TONES`, `isBlockTone`, `BLOCK_FAMILIES`, `isBlockFamily` | The tone and render-family vocabulary |
 
-Root entry size: 5.3 KB gzip minified with zod external (it includes the chart
-spec, `safeHref` and the avatar id rules).
+Root entry size: 10.8 KB gzip minified with zod external. It includes every
+block schema, the formula schema (calculators), the chart spec, `safeHref`
+and the avatar id rules.
 
 ### Block types
 
@@ -84,6 +89,40 @@ fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
 | structure | `icon` | `icon`, `label` (or `decorative: true`), `size` |
 | structure | `cta` | `actions` 1–3 (`label`, `href`, `variant`, `icon`), `title`, `body`, `footnote` |
 | structure | `columns` | `columns` 2–4, each 1–12 blocks, nested at most 3 deep; `widths`, `align` |
+
+### Containers and interactive blocks
+
+Containers (`columns`, `tabs`, `reveal`) hold 1–12 blocks per column, panel
+or reveal, and any mix of them nests at most 3 deep. Every block marked
+**id** keeps viewer state through the kind runtime's `BlockStateHost`
+(`<documentId>/<blockId>`), so its `id` is required. Ids are unique across a
+block list, including inside containers.
+
+| Family | Type | Main fields and limits |
+| --- | --- | --- |
+| interactive | `tabs` (id) | `label`, `panels` 2–6 (`id`, `label`, `icon`, `blocks`), `defaultPanel` |
+| interactive | `reveal` (id) | `label` (button), `openLabel`, `blocks`, `open` |
+| interactive | `poll` (id) | `question`, `options` 2–8 (`id`, `label`), `maxChoices`, `results` after-vote/always/hidden |
+| interactive | `quiz` (id) | `questions` 1–20 (`prompt`, `choices` 2–6, `answers` (choice ids), `explanation`), `feedback`, `passScore` 0–1, `shuffle` (seeded by the id) |
+| interactive | `calculator` (id) | `inputs` 1–8 (`name`, `label`, `min`, `max`, `step` (≤ 10,000 positions), `default`, `unit`), `outputs` 1–6 (`id`, `label`, `formula`, `unit`), `currency`, `chart` (one output over one input) |
+| interactive | `counter` (id) | `label`, `start`, `step`, `min`, `max`, `unit` |
+| interactive | `chart-controls` (id) | `spec`, plus at least one of `kinds` (2–4 compatible kinds, including the spec's), `seriesToggle` (2+ series), `range` (3+ labels) |
+| interactive | `form` (id) | `fields` 1–20 (`name`, `label`, `type` text/longText/email/url/phone/number/boolean/enum/tags, `required`, `help`, `placeholder`, `options` (enum), `min`/`max` (number), `maxLength` (text), `maxTags` (tags)), `submitLabel`, `successMessage`. `@protoyard/pages` owns responses. |
+| map | `map` (id) | `label`, `basemap` (`port-meridian`, a fictional simulated map), `points` 1–200 (`id`, `label`, `lng`, `lat`, `icon`, `tone`), `route` (point ids) |
+| embed | `embed-app` (id) | `title`, `app` (an opaque app blueprint, ≤ 64 KB and 24 levels), `startLabel`, `height` |
+
+- **Calculator formulas** are validated by `@protoyard/blocks/formula`: 64
+  nodes, 12 levels, number and condition types, and only declared input
+  names. Their diagnostics keep their full path, for example
+  `$["outputs"][0]["formula"]["right"]["name"]`.
+- **An embedded app** is opaque here: the host validates it with the
+  blueprint's untrusted loader and mounts it through `mountEmbed` in its own
+  namespace. The schema rejects anything that is not an app (a `kind` of deck,
+  page or doc), JSON over 64 KB or deeper than 24 levels, cycles, and any
+  nested `type: "embed-app"`, so an embedded app can never embed another.
+- **Forms** collect fictional data in a simulation. Field names are
+  lowerCamelCase response keys, and options, bounds and caps apply only to
+  their field types.
 
 ### Text, links and media
 
@@ -120,6 +159,32 @@ fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
 | `./code` | Tiny code tokenizer with stepped line highlights; see [Code](#code-protoyardblockscode) | done |
 | `./diagram` | Flow, tree, board and terminal layout math | T-blocks-diagram-models |
 | `./catalog` | `BLOCK_CATALOG` authoring metadata (use-when, limits, examples) | T-blocks-catalog |
+
+### Diagram models (`@protoyard/blocks/diagram`)
+
+The diagram subpath validates four strict data models and computes deterministic
+positions and edges. Renderers draw these records as HTML or SVG and keep labels
+as text; the engine never creates images or markup.
+
+```ts
+import { layoutFlow, parseDiagram } from '@protoyard/blocks/diagram';
+
+const parsed = parseDiagram({
+  type: 'flow',
+  nodes: [{ id: 'brief', label: 'Write a brief' }, { id: 'build', label: 'Build' }],
+});
+if (parsed.success) layoutFlow(parsed.data);
+```
+
+`DiagramSchema` is the discriminated union, with individual
+`FlowDiagramSchema`, `TreeDiagramSchema`, `BoardDiagramSchema` and
+`TerminalDiagramSchema` exports. `parseDiagram` never throws and reports
+`jsonPath` diagnostics. Layouts are computed by `layoutFlow`, `layoutTree`,
+`layoutBoard` and `layoutTerminal`; each returns canvas dimensions, node or line
+positions, and edges. Limits are 12 flow nodes, 64 tree nodes at depth 6, 6
+board columns with 8 cards each, and 40 terminal lines. Tree ids and parents
+must form an acyclic forest; board and flow ids are unique. Status colors use
+the shared tone allow-list, never CSS values.
 
 The untrusted-input guard, the JSON Schema and the text helpers will also be
 exported from the root entry.

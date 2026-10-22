@@ -115,6 +115,43 @@ prototype's services in its simulated policy, and use fictional `example.com`
 addresses. The kit README documents routes, guards, screen configuration and
 component APIs.
 
+### Gate an action on an account
+
+Mount the account-gate host once in the app shell, alongside the router and
+inside the `provideSaas` context. It uses the adaptive overlay: a sheet in a
+narrow host and a dialog in a wide host.
+
+```svelte
+<script lang="ts">
+  import { AccountGate, getSaas } from '@protoyard/saas-ui';
+
+  const { requireAccount } = getSaas();
+
+  function saveDraft() {
+    if (!requireAccount({ reason: 'Save this draft to your account.', next: '/drafts/new' })) {
+      return;
+    }
+    // Continue through the prototype's service.
+  }
+</script>
+
+<Router {router} />
+<AccountGate />
+```
+
+`requireAccount` returns `true` for a signed-in visitor. For a guest it
+opens the prompt and returns `false`, so the caller should stop that action.
+The reason is shown in the prompt, and `next` must be an in-app route beginning
+with one slash. Choosing **Create account** opens the configured sign-up path
+with that destination attached. The gate resumes it when the simulated session
+becomes signed in, including after the verification and sign-in steps. Choosing
+**Keep browsing** clears the pending destination; navigating to another screen
+closes the prompt.
+
+The gate is only presentation behavior. It does not make an action secure:
+services still check capabilities and validate every mutation, and this
+simulation does not protect data from the browser user or same-origin scripts.
+
 ## What each kit provides
 
 | Kit | What it does |

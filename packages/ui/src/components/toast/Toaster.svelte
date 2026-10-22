@@ -48,17 +48,15 @@ function handleFocusOut(event: FocusEvent): void {
 
 <!--
   The region and the list are pointer-transparent, so taps in the gaps between
-  toasts (and around them) reach the page; only the toasts themselves take
-  pointer events. Toasts sit `--py-toast-offset` above the bottom and inside
-  the visible right edge (`--py-fixed-right-edge`, set by the renderer).
+  toasts (and around them) reach the page; only the toasts take pointer
+  events. `--py-toast-offset` lifts them above a bottom nav or sticky composer.
 -->
 <section
   aria-label={label}
   class={cn(
-    'pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center px-4',
-    'pb-[calc(max(1rem,env(safe-area-inset-bottom))+var(--py-toast-offset,0px))]',
-    'right-[var(--py-fixed-right-edge,0px)]',
-    'sm:left-auto sm:justify-end sm:px-6 sm:pt-6 sm:pb-[calc(1.5rem+var(--py-toast-offset,0px))]',
+    // `--py-fixed-right-edge` (set by the renderer) keeps toasts inside a narrower visual viewport.
+    'pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center pl-4 pr-[calc(1rem+var(--py-fixed-right-edge,0px))] pb-[calc(max(1rem,env(safe-area-inset-bottom))+var(--py-toast-offset,0px))]',
+    'sm:inset-x-auto sm:right-0 sm:justify-end sm:p-6 sm:pr-[calc(1.5rem+var(--py-fixed-right-edge,0px))] sm:pb-[calc(1.5rem+var(--py-toast-offset,0px))]',
     className
   )}
   style:--py-toast-offset={offsetValue}

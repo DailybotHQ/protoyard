@@ -6,10 +6,9 @@ a run starts, the steps it takes and what it keeps. Conditions are a closed,
 data-only rule AST. No flow can hold executable JavaScript, a URL, headers or
 a credential, so a flow can never run code or reach a network on its own.
 
-> **Status:** the model is available (`@protoyard/flows/model`, re-exported from
-> the root). The deterministic mock runtime and the Svelte editor
-> (`@protoyard/flows-ui`) land in later PLAN_005 tasks
-> (T-fork-dailybot-flows-runtime, T-fork-dailybot-flows-ui).
+> **Status:** the model (`@protoyard/flows/model`) and the deterministic mock
+> runtime (`@protoyard/flows/runtime`) are available. The Svelte editor
+> (`@protoyard/flows-ui`) lands in a later PLAN_005 task.
 
 ## The model
 
@@ -82,17 +81,54 @@ operation index. Copies get deterministic ids (`step-copy`, `step-copy-2`, …).
 | Operations per batch | 200 |
 | Raw depth / values / string length | 48 / 50,000 / 4,000 |
 
+## Mock runtime
+
+```ts
+import { findRecipe, runFlow } from '@protoyard/flows';
+// or: import { runFlow } from '@protoyard/flows/runtime';
+
+const flow = findRecipe('approval-request')!.build({ id: 'expense-approvals' });
+const result = runFlow(flow, {
+  now: '2026-03-15T10:00:00.000Z',
+  seed: 1,
+  trigger: { summary: 'Laptop for Ada Example' },
+  decisions: { approve: 'approved' },
+});
+// result.run.status === 'done'
+// result.effects  → proposed writes for a service adapter
+// result.outbox   → masked delivery log (no network)
+// result.keeps    → records + lists the run produced
+// result.signals  → waiting / approval / failed attention items
+```
+
+| Piece | Role |
+| --- | --- |
+| `runFlow(flow, options)` | One-shot execution; pure w.r.t. inputs (same flow + options → identical result) |
+| `createFlowRuntime(defaults)` | Binds people, tools, seed; each `.run` still takes overrides |
+| `now` / `seed` | Injected clock and deterministic picks (no `Date.now` / `Math.random`) |
+| `answers` / `decisions` | Mock people replies for `ask` / `approval`; missing values leave `waiting` |
+| `tools` | Local handlers only — never `fetch` |
+| `maskUrl` | Host kept; deep path segments and query values become `••••` |
+| `attentionOf` | Open signals ordered for a runs/attention UI |
+
+`wait` advances the mock clock; `wait_until` (except `time`) leaves the run
+waiting. Branch arms use `evaluateCondition`. Assistant steps return scripted
+local results from the task + seed. Nothing is sent to a network.
+
 ## Honest limits
 
 - Every trigger and effect is a simulation. A schedule fires from the simulated
   clock, and `message`, `assistant` and `call_tool` steps become proposed
-  effects for a service adapter (the runtime task). Nothing is sent anywhere.
+  effects for a service adapter. Nothing is sent anywhere.
 - `judge` conditions are never decided by the model itself. Without an
   injected judge they stay `needs_judgment`.
+- The runtime does not persist rows. A prototype service carries `effects` and
+  `keeps` through `session.assert` → zod → `environment.run` → `db.transaction`.
 
 ## Tests
 
 ```bash
 pnpm vitest run packages/flows/tests/model.test.ts
+pnpm vitest run packages/flows/tests/runtime.test.ts
 pnpm --filter @protoyard/flows typecheck
 ```

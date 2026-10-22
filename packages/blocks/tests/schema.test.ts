@@ -6,7 +6,6 @@ import {
   BLOCK_TYPE_FAMILY,
   BLOCK_TYPES,
   type Block,
-  type BlockType,
   base64DecodedBytes,
   type ColumnsBlock,
   ColumnsBlockSchema,
@@ -15,6 +14,8 @@ import {
   forEachBlock,
   MEDIA_DATA_URI_MAX_BYTES,
   parseLineSpec,
+  STATIC_BLOCK_TYPES,
+  type StaticBlockType,
   safeParseBlock,
   safeParseBlocks,
   toJsonPath,
@@ -26,7 +27,7 @@ const PNG =
 const MP4 = 'data:video/mp4;base64,AAAAIGZ0eXBpc29t';
 
 /** One valid, realistic fixture per block type. */
-const FIXTURES: Record<BlockType, Block> = {
+const FIXTURES: Record<StaticBlockType, Block> = {
   heading: {
     type: 'heading',
     id: 'intro',
@@ -199,12 +200,12 @@ function issuesOf(input: unknown) {
 }
 
 describe('block schema: valid fixtures', () => {
-  it('covers every block type, each mapped to a render family', () => {
-    expect(Object.keys(FIXTURES).sort()).toEqual([...BLOCK_TYPES].sort());
+  it('covers every static content type, each mapped to a render family', () => {
+    expect(Object.keys(FIXTURES).sort()).toEqual([...STATIC_BLOCK_TYPES].sort());
     for (const type of BLOCK_TYPES) expect(BLOCK_FAMILIES).toContain(BLOCK_TYPE_FAMILY[type]);
   });
 
-  it.each(BLOCK_TYPES)('parses a valid %s block unchanged', (type) => {
+  it.each(STATIC_BLOCK_TYPES)('parses a valid %s block unchanged', (type) => {
     const result = safeParseBlock(FIXTURES[type]);
     expect(result.issues).toEqual([]);
     expect(result.data).toEqual(FIXTURES[type]);
@@ -213,7 +214,7 @@ describe('block schema: valid fixtures', () => {
   it('parses a list of every fixture with unique ids', () => {
     const result = safeParseBlocks(Object.values(FIXTURES));
     expect(result.issues).toEqual([]);
-    expect(result.data).toHaveLength(BLOCK_TYPES.length);
+    expect(result.data).toHaveLength(STATIC_BLOCK_TYPES.length);
   });
 
   it('accepts minimal blocks with only required fields', () => {

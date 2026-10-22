@@ -127,6 +127,17 @@ serves `index.html` and the assets, so refresh, back, forward and deep links
 work on every static host, including a ZIP unpacked into a sub-folder. You do
 not need redirect or rewrite rules.
 
+Claude artifact links can use the hash for a validated app scenario because
+the artifact URL retains its fragment but not a query string. Use
+`#scenario--persona--theme`; omit the trailing fields when they are not
+needed. A theme may also be supplied without a persona as
+`#scenario--theme`. At boot, the renderer accepts only scenario, persona and
+theme ids present in the prototype, turns them into the existing
+`?scenario=…&actor=…&theme=…` inputs, and clears the consumed hash before the
+app router starts. Unknown persona or theme ids are ignored. Unknown
+scenarios and ordinary route hashes (including deck slide hashes) are left
+untouched. Existing query options such as `?devtools=0` remain in effect.
+
 ## What a build includes
 
 | Item | Default | Change it |

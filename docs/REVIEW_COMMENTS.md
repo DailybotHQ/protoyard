@@ -61,7 +61,11 @@ nothing typed is lost. The package details are in
 
 1. Open the **Review** launcher, a small round button that names the thread
    count. It sits in a corner of the window where it covers no control of the
-   app and not the "Prototype · simulated data" badge.
+   app and not the "Prototype · simulated data" badge. On a phone it stays
+   above the app's bottom tab bar and inside the visible screen, even when
+   phone emulation or pinch zoom makes the visible area narrower than the page.
+   Its actions stay hidden until you open it. While you are placing pins, the
+   launcher turns comment mode off.
 2. Choose **Comment**. The app stops reacting to clicks: a click now places a
    pin instead of pressing a button.
 3. Click the spot you mean. The first time, the browser asks for the name

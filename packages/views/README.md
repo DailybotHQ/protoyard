@@ -54,6 +54,24 @@ The registry keeps the flat `list`, `search`, `register`, `addRecent` and
 `matchShortcut` APIs for existing consumers. It re-checks capabilities when an
 action runs; capability filtering is simulated UX, not security.
 
+Display-only keyboard bindings use `HotkeyBinding`, `formatHotkeyKeys` and
+`filterHotkeyBindings`. The binding data contains labels, groups, alternative
+chords or sequences, and optional scopes. Formatting takes an explicit
+`'mac' | 'other'` platform, so the framework-free engine never reads browser
+state. Unscoped and `global` bindings stay visible; scoped bindings appear when
+an active scope matches. Hosts own key registration and dispatch.
+
+```ts
+import { filterHotkeyBindings, formatHotkeyKeys, type HotkeyBinding } from '@protoyard/views/commands';
+
+const shortcuts: HotkeyBinding[] = [
+  { id: 'save', label: 'Save', group: 'Editing', keys: ['mod+s'], scopes: ['editor'] },
+  { id: 'help', label: 'Help', group: 'General', keys: ['?'], scopes: ['global'] },
+];
+const visible = filterHotkeyBindings(shortcuts, ['editor']);
+formatHotkeyKeys(visible[0]!, 'mac'); // ['⌘S']
+```
+
 ## Board (`@protoyard/views/board`)
 
 Pure functions; persisting a move is the prototype's service job (policy,

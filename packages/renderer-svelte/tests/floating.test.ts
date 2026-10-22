@@ -1,15 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CONTROL_COST, type Rect } from '../src/shell/badge-placement.ts';
 import {
+  badgeContainer,
   FIXED_RIGHT_EDGE_VAR,
   FLOATING_EVENT,
   FLOATING_INSET,
-  fixedRightEdge,
   floatingSpots,
   pickFloatingSpot,
   placeFloating,
   trackFixedRightEdge,
   visiblePlacementContainer,
+  visibleRightEdge,
 } from '../src/shell/floating.ts';
 
 const VIEW: Rect = { left: 0, top: 0, width: 400, height: 800 };
@@ -432,89 +433,83 @@ describe('floating chrome placement', () => {
   });
 });
 
-describe('visible right edge for fixed chrome', () => {
-  const layoutWidth = window.innerWidth;
-  const fakeWindow = (
+describe('the visible right edge for fixed chrome', () => {
+  const viewport = (values: { width: number; offsetLeft: number }) =>
+    Object.assign(new EventTarget(), { height: 700, offsetTop: 0, ...values });
+
+  it('is the layout width hidden to the right of the visual viewport, never negative', () => {
+    const vv = (width: number, offsetLeft: number) =>
+      ({ width, offsetLeft }) as unknown as VisualViewport;
+    expect(visibleRightEdge({ innerWidth: 980, visualViewport: vv(390, 0) })).toBe(590);
+    expect(visibleRightEdge({ innerWidth: 980, visualViewport: vv(390, 100) })).toBe(490);
+    expect(visibleRightEdge({ innerWidth: 390, visualViewport: vv(390, 0) })).toBe(0);
+    expect(visibleRightEdge({ innerWidth: 390, visualViewport: vv(390.4, 0.3) })).toBe(0);
+    expect(visibleRightEdge({ innerWidth: 800, visualViewport: null })).toBe(0);
+  });
+
+  it('keeps --py-fixed-right-edge current on visual viewport changes and removes it on stop', () => {
+    const vv = viewport({ width: 390, offsetLeft: 0 });
+    const win = Object.assign(new EventTarget(), {
+      innerWidth: 980,
+      visualViewport: vv,
+    }) as unknown as Window;
+    const root = document.createElement('html');
+    const stop = trackFixedRightEdge(root, win);
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('590px');
+
+    Object.assign(vv, { offsetLeft: 200 });
+    vv.dispatchEvent(new Event('scroll'));
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('390px');
+
+    Object.assign(vv, { width: 780 });
+    vv.dispatchEvent(new Event('resize'));
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('0px');
+
+    Object.assign(win, { innerWidth: 1000 });
+    win.dispatchEvent(new Event('resize'));
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('20px');
+
+    stop();
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('');
+    Object.assign(vv, { offsetLeft: 0, width: 100 });
+    vv.dispatchEvent(new Event('resize'));
+    expect(root.style.getPropertyValue(FIXED_RIGHT_EDGE_VAR)).toBe('');
+  });
+});
+
+describe('demo badge containing block', () => {
+  const win = (
     innerWidth: number,
-    visualViewport: { width: number; height: number; offsetLeft: number; offsetTop: number } | null
-  ) => ({ innerWidth, innerHeight: 800, visualViewport }) as unknown as Window;
+    vv: { width: number; height: number; offsetLeft: number; offsetTop: number } | null
+  ) => ({ innerWidth, innerHeight: 800, visualViewport: vv }) as unknown as Window;
 
-  it('is 0 when the whole layout width is visible or there is no visual viewport', () => {
-    expect(fixedRightEdge(fakeWindow(400, null))).toBe(0);
+  it('uses the visible viewport full-bleed, with fixed coordinates from the layout origin', () => {
     expect(
-      fixedRightEdge(fakeWindow(400, { width: 400, height: 800, offsetLeft: 0, offsetTop: 0 }))
-    ).toBe(0);
-  });
-
-  it('measures the layout width hidden past the visible right edge, panned or zoomed', () => {
-    // Mobile emulation: a 980px layout viewport behind a 390px visual one.
+      badgeContainer(null, win(980, { width: 390, height: 700, offsetLeft: 0, offsetTop: 0 }))
+    ).toEqual({
+      container: { left: 0, top: 0, width: 390, height: 700 },
+      origin: { left: 0, top: 0 },
+    });
+    // Panned: the area moves, the containing block does not.
     expect(
-      fixedRightEdge(fakeWindow(980, { width: 390, height: 800, offsetLeft: 0, offsetTop: 0 }))
-    ).toBe(590);
-    // Panned right by 100px: less is hidden on the right.
-    expect(
-      fixedRightEdge(fakeWindow(980, { width: 390, height: 800, offsetLeft: 100, offsetTop: 0 }))
-    ).toBe(490);
-    // Fractional zoom rounds to whole px and never goes negative.
-    expect(
-      fixedRightEdge(fakeWindow(400, { width: 333.4, height: 800, offsetLeft: 0, offsetTop: 0 }))
-    ).toBe(67);
-    expect(
-      fixedRightEdge(fakeWindow(400, { width: 390, height: 800, offsetLeft: 20, offsetTop: 0 }))
-    ).toBe(0);
-  });
-
-  it('publishes --py-fixed-right-edge on <html>, follows the visual viewport and cleans up', () => {
-    const listeners = new Map<string, EventListener>();
-    stubVisualViewport({
-      width: 390,
+      badgeContainer(null, win(980, { width: 390, height: 700, offsetLeft: 200, offsetTop: 40 }))
+    ).toEqual({
+      container: { left: 200, top: 40, width: 390, height: 700 },
+      origin: { left: 0, top: 0 },
+    });
+    expect(badgeContainer(null, win(1200, null)).container).toEqual({
+      left: 0,
+      top: 0,
+      width: 1200,
       height: 800,
-      addEventListener: (type: string, fn: EventListener) => listeners.set(type, fn),
-      removeEventListener: (type: string) => listeners.delete(type),
     });
-    // The stub copies its argument: change the installed object.
-    const viewport = window.visualViewport as unknown as { width: number; offsetLeft: number };
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 980 });
-    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((fn) => {
-      fn(0);
-      return 1;
-    });
-    const root = document.documentElement;
-    try {
-      const stop = trackFixedRightEdge(root, window);
-      expect(FIXED_RIGHT_EDGE_VAR).toBe('--py-fixed-right-edge');
-      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('590px');
-      expect([...listeners.keys()].sort()).toEqual(['resize', 'scroll']);
-
-      viewport.offsetLeft = 590;
-      listeners.get('scroll')?.(new Event('scroll'));
-      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('0px');
-
-      viewport.offsetLeft = 0;
-      viewport.width = 980;
-      window.dispatchEvent(new Event('resize'));
-      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('0px');
-
-      viewport.width = 500;
-      listeners.get('resize')?.(new Event('resize'));
-      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('480px');
-
-      stop();
-      expect(root.style.getPropertyValue('--py-fixed-right-edge')).toBe('');
-      expect(listeners.size).toBe(0);
-    } finally {
-      raf.mockRestore();
-      Object.defineProperty(window, 'innerWidth', { configurable: true, value: layoutWidth });
-      root.style.removeProperty('--py-fixed-right-edge');
-    }
   });
 
-  it('starts floating chrome inside the visible right edge before it is placed', () => {
-    const element = document.createElement('div');
-    document.body.append(element);
-    const placement = placeFloating(element);
-    // happy-dom has no layout, so placement keeps the safe fallback.
-    expect(element.style.right).toBe(`calc(${FLOATING_INSET}px + var(--py-fixed-right-edge, 0px))`);
-    placement.destroy();
+  it('uses #app as both area and origin under a viewport preset', () => {
+    const app = { left: 100, top: 20, width: 390, height: 844 };
+    expect(badgeContainer(app, win(1440, null))).toEqual({
+      container: app,
+      origin: { left: 100, top: 20 },
+    });
   });
 });

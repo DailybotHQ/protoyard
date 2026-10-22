@@ -5,10 +5,45 @@ import {
   COMMAND_QUERY_MAX_LENGTH,
   type CommandEntry,
   createCommands,
+  filterHotkeyBindings,
+  formatHotkeyChord,
+  formatHotkeyKeys,
   normalizeShortcut,
   type RouteLike,
   scoreCommand,
 } from '../src/commands/index.ts';
+
+describe('hotkey bindings', () => {
+  const bindings = [
+    { id: 'save', label: 'Save', group: 'General', keys: ['mod+s'], scopes: ['editor'] },
+    { id: 'help', label: 'Help', group: 'General', keys: ['?'], scopes: ['global'] },
+    { id: 'search', label: 'Search', group: 'General', keys: ['g s', 'mod+k'] },
+    { id: 'hidden', label: 'Hidden', group: 'Editor', keys: ['e'], scopes: ['canvas'] },
+  ] as const;
+
+  it('formats platform chords and multi-key sequences without browser state', () => {
+    expect(formatHotkeyChord('mod+shift+n', 'mac')).toBe('⌘⇧N');
+    expect(formatHotkeyChord('mod+shift+n', 'other')).toBe('Ctrl+Shift+N');
+    expect(formatHotkeyChord('arrowleft', 'other')).toBe('←');
+    expect(formatHotkeyKeys(bindings[2], 'other')).toEqual(['G then S', 'Ctrl+K']);
+    expect(() => formatHotkeyChord('mod+shift', 'mac')).toThrow(RangeError);
+    expect(() => formatHotkeyKeys({ keys: [''] }, 'mac')).toThrow(RangeError);
+  });
+
+  it('filters scoped bindings and always includes global and unscoped shortcuts', () => {
+    expect(filterHotkeyBindings(bindings, ['editor']).map(({ id }) => id)).toEqual([
+      'save',
+      'help',
+      'search',
+    ]);
+    expect(filterHotkeyBindings(bindings).map(({ id }) => id)).toEqual([
+      'save',
+      'help',
+      'search',
+      'hidden',
+    ]);
+  });
+});
 
 function fakeSession(initial: string[] = []) {
   let capabilities = new Set(initial);

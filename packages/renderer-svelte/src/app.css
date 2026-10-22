@@ -35,10 +35,9 @@
 }
 
 /*
- * Px of the layout viewport hidden past the visible right edge (mobile
- * emulation, a zoomed phone). mountPrototype keeps it current; fixed chrome
- * (toasts, the DevTools launcher, the review toolbar) adds it to its `right`
- * so it stays clickable.
+ * Layout-viewport px hidden past the visible right edge (phone emulation, pinch
+ * zoom). mountPrototype keeps it current inline (trackFixedRightEdge); fixed
+ * chrome adds it to its `right` offset so it stays clickable.
  */
 :root {
   --py-fixed-right-edge: 0px;
