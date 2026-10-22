@@ -68,7 +68,7 @@ cn('shadow-soft', 'shadow-none'); // → "shadow-none"
 | Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone` |
 | Form utilities | `TagEmailInput`, `EmojiPicker`, `PasswordStrengthMeter`, `TextCounter` (+ email and password-score helpers) |
 | Scheduling | `TimeZoneSelect`, `WeekdayPicker`, `TimeInput`, `DatePicker`, `DateRangePicker`, `Calendar` (+ pure date, time, weekday and zone helpers) |
-| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput` |
+| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem` (`variant="card"`), `StarRating`, `NumberStepper`, `ChipGroup`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput` |
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
 | Disclosure | `Tabs`, `Accordion`, `Carousel` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState`, `Notice`, `SimulatedTag`, `ProposalTag`, `StatusChip` |
@@ -107,7 +107,10 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `PasswordStrengthMeter` | `value` (display-only score 0–5), never stores or sends the password; optional `onScore` / `onFeedback` |
 | `TextCounter` | `bind:value`, `maxlength`, countdown while focused once `showAfter` chars remain; `tag="input"\|"textarea"` |
 | `Checkbox` | `bind:checked`, `bind:indeterminate`, `label`, `description` |
-| `RadioGroup` / `RadioGroupItem` | `items: { value, label, description?, disabled? }[]`, `bind:value` (Bits props pass through) |
+| `RadioGroup` / `RadioGroupItem` | `items: { value, label, description?, disabled? }[]`, `bind:value`, `variant` `default`·`card` (Bits props pass through) |
+| `StarRating` | `bind:value` (0…maxStars), `label`, `maxStars` (2–10, default 5), `disabled`, `onchange`; radiogroup with roving arrows |
+| `NumberStepper` | `label` (required), `bind:value`, `min`·`max`·`step`, `unit`, `disabled`, `onchange`; spinbutton + ± buttons |
+| `ChipGroup` | `label`, `items`, `mode` `single`·`multi`, `bind:value` (`string[]`), `size` sm·md, `disabled`, `onchange` |
 | `Switch` | `bind:checked`, `label`, `description` |
 | `Select` | `items: { value, label, disabled? }[]`, `bind:value`, `bind:open`, `placeholder`, `name` (hidden input). Name comes from your label/`aria-label`; the selected value is exposed via `aria-describedby` |
 | `Combobox` | like `Select` + `filter`, `emptyText`; external `value` changes are mirrored into the input (unless a search is open) |
