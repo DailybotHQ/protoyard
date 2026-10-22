@@ -8,6 +8,20 @@ let { block }: { block: ColumnsBlockData } = $props();
 const host = getBlockHost();
 const slide = $derived(host.canvasMode === 'slide');
 
+// On a slide (a fixed-size canvas) the columns are fixed; viewport
+// breakpoints would follow the phone, not the slide.
+const slideWidths = $derived(
+  block.widths === 'wide-start'
+    ? 'grid-cols-[2fr_1fr]'
+    : block.widths === 'wide-end'
+      ? 'grid-cols-[1fr_2fr]'
+      : block.columns.length === 3
+        ? 'grid-cols-3'
+        : block.columns.length >= 4
+          ? 'grid-cols-4'
+          : 'grid-cols-2'
+);
+
 const widths = $derived(
   block.widths === 'wide-start'
     ? 'sm:grid-cols-[2fr_1fr]'
@@ -33,7 +47,7 @@ async function resolveChild(input: unknown): Promise<ChildResult> {
 </script>
 
 <div
-  class="grid gap-4 {slide ? widths : `max-[639px]:grid-cols-1 ${widths}`}"
+  class="grid gap-4 {slide ? slideWidths : `max-[639px]:grid-cols-1 ${widths}`}"
   data-block-type="columns"
   data-align={block.align ?? 'start'}
   style:align-items={block.align === 'center' ? 'center' : 'start'}

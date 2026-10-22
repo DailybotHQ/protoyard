@@ -10,13 +10,16 @@ let { block }: { block: CardsBlockData } = $props();
 const host = getBlockHost();
 const cols = $derived(block.columns ?? 3);
 const slide = $derived(host.canvasMode === 'slide');
+// A slide is a fixed-size canvas scaled to the screen: viewport breakpoints
+// (sm:, lg:) follow the phone, not the slide, and would stack the cards past
+// the stage. On a slide the columns are fixed.
 const gridClass = $derived(
   slide
     ? cols === 2
-      ? 'sm:grid-cols-2'
+      ? 'grid-cols-2'
       : cols === 4
-        ? 'sm:grid-cols-2 lg:grid-cols-4'
-        : 'sm:grid-cols-2 lg:grid-cols-3'
+        ? 'grid-cols-4'
+        : 'grid-cols-3'
     : cols === 2
       ? 'max-[639px]:grid-cols-1 sm:grid-cols-2'
       : cols === 4

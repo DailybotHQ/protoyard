@@ -27,6 +27,12 @@ setBlockHost({
   mountEmbed,
   documentId: namespace,
   canvasMode: blueprint.kind === 'deck' ? 'slide' : 'flow',
+  // The kind services record poll votes and quiz answers under the active
+  // persona; blocks must read "mine" as the same viewer, or a saved vote never
+  // shows as the viewer's own. Read at use, so a persona switch follows.
+  get viewerId() {
+    return runtime.session.principal()?.persona.id ?? 'viewer';
+  },
 });
 
 let attempt = $state(0);

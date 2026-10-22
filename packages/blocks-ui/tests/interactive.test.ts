@@ -74,6 +74,41 @@ describe('interactive family through BlockStateHost', () => {
     expect(pollResults(poll, state, 'ada').mine).toEqual(['yes']);
   }, 20_000);
 
+  it('keeps an unsubmitted poll choice when the state changes under it', async () => {
+    // Regression: the draft followed every state update, so a host attaching or
+    // another viewer voting wiped a choice before the viewer pressed Vote.
+    const stateHost = createMemoryBlockStateHost();
+    render(InteractiveHarness, {
+      props: { blocks: [poll], stateHost, documentId: 'deck-2', viewerId: 'ada' },
+    });
+    await waitFor(() => expect(screen.getByText(poll.question)).toBeTruthy(), long);
+    const [first, second] = poll.options;
+    if (!first || !second) throw new Error('the poll example needs two options');
+    await fireEvent.click(screen.getByRole('button', { name: new RegExp(first.label, 'i') }));
+    expect(
+      screen
+        .getByRole('button', { name: new RegExp(first.label, 'i') })
+        .getAttribute('aria-pressed')
+    ).toBe('true');
+
+    await stateHost.dispatch(stateKey('deck-2', poll.id), poll, {
+      type: 'vote',
+      viewer: 'grace',
+      options: [second.id],
+    });
+    await waitFor(() =>
+      expect(
+        pollResults(poll, readBlockState(stateHost, stateKey('deck-2', poll.id), poll), 'ada').mine
+      ).toBeNull()
+    );
+    expect(
+      screen
+        .getByRole('button', { name: new RegExp(first.label, 'i') })
+        .getAttribute('aria-pressed')
+    ).toBe('true');
+    expect(screen.getByRole('button', { name: /^Vote$/i }).hasAttribute('disabled')).toBe(false);
+  }, 20_000);
+
   it('keeps counter state across a re-render with a memory host', async () => {
     const stateHost = createMemoryBlockStateHost();
     const first = render(InteractiveHarness, {

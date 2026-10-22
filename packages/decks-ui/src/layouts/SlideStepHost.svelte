@@ -12,8 +12,9 @@ import {
 
 /**
  * Gives the blocks of one slide its current step: stepped blocks reveal in
- * order and code highlights move per step. Every other host capability (state,
- * embeds, density) passes through from the surrounding host.
+ * order and code highlights move per step. The canvas mode is always `slide`.
+ * Every other host capability (state, embeds, density) passes through from the
+ * surrounding host.
  */
 let {
   slide,
@@ -37,8 +38,11 @@ setBlockHost({
   get density() {
     return parent.density;
   },
+  // A deck slide is always a fixed-size canvas, whatever the surrounding host
+  // says (a generated deck mounts DeckApp without one): blocks lay out for the
+  // slide, never for the viewport.
   get canvasMode() {
-    return parent.canvasMode;
+    return 'slide' as const;
   },
   get documentId() {
     return parent.documentId;

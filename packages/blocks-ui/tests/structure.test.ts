@@ -158,3 +158,43 @@ describe('structure family renderers', () => {
     expect(document.querySelector('[data-block-type="columns"]')).toBeTruthy();
   });
 });
+
+describe('structure grids on a slide', () => {
+  // Regression: on a phone, `sm:`/`lg:` breakpoints follow the 412px viewport,
+  // not the fixed-size slide canvas, so cards stacked in one column and ran
+  // past the stage over the deck footer (deck design gate, flagship "kinds").
+  const viewportBreakpoint = /(^|\s)(sm|md|lg|xl|max-\[[^\]]+\]):grid-cols/;
+  const gridClassOf = (container: HTMLElement) =>
+    [...container.querySelectorAll<HTMLElement>('.grid')]
+      .map((node) => node.getAttribute('class') ?? '')
+      .filter((value) => value.includes('grid-cols'));
+
+  it('fixes the columns of cards, columns and steps on a slide', () => {
+    const blocks = [
+      {
+        type: 'cards',
+        columns: 4,
+        items: [1, 2, 3, 4].map((n) => ({ title: `Card ${n}`, text: 'Fictional.' })),
+      },
+      {
+        type: 'columns',
+        columns: [[{ type: 'text', markdown: 'Left' }], [{ type: 'text', markdown: 'Right' }]],
+      },
+      { type: 'steps', items: [{ title: 'One' }, { title: 'Two' }, { title: 'Three' }] },
+    ];
+    for (const block of blocks) {
+      const { container, unmount } = render(StructureHarness, {
+        props: { block: block as never, canvasMode: 'slide' },
+      });
+      const classes = gridClassOf(container);
+      expect(classes.length, block.type).toBeGreaterThan(0);
+      for (const value of classes) expect(value, block.type).not.toMatch(viewportBreakpoint);
+      unmount();
+    }
+    // Pages and docs (flow) stay responsive.
+    const { container } = render(StructureHarness, {
+      props: { block: blocks[0] as never, canvasMode: 'flow' },
+    });
+    expect(gridClassOf(container).join(' ')).toMatch(viewportBreakpoint);
+  });
+});

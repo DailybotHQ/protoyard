@@ -49,27 +49,58 @@ export function textOverflows(
   );
 }
 
-function watch(node: HTMLElement, run: () => void): () => void {
+/** Why a fit runs again: a box resized, or the content itself changed. */
+export type FitReason = 'resize' | 'content';
+
+/**
+ * Whether a re-fit may keep the zoom it already applied instead of resetting
+ * and measuring again. Measuring with the zoom reset reads a layout the
+ * content has not reflowed to yet (a block sized for the zoomed width), which
+ * can find "it fits", drop the zoom, and flip back a frame later, forever. So
+ * a resize keeps a zoom under which the content still fits, unless the space
+ * around it changed; new content always measures from scratch.
+ */
+export function keepsZoom(state: {
+  applied: number;
+  reason: FitReason;
+  spaceChanged: boolean;
+  fitsAtApplied: boolean;
+}): boolean {
+  return (
+    state.applied < 1 && state.reason === 'resize' && !state.spaceChanged && state.fitsAtApplied
+  );
+}
+
+function watch(node: HTMLElement, run: (reason: FitReason) => void): () => void {
   let frame = 0;
-  const schedule = () => {
+  let pending: FitReason = 'content';
+  const schedule = (reason: FitReason) => {
+    // Content outranks a resize when both arrive in one frame.
+    pending = pending === 'content' || reason === 'content' ? 'content' : 'resize';
     cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(run);
+    frame = requestAnimationFrame(() => {
+      const why = pending;
+      pending = 'resize';
+      run(why);
+    });
   };
-  schedule();
-  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(schedule) : null;
+  schedule('content');
+  const resized = () => schedule('resize');
+  const changed = () => schedule('content');
+  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(resized) : null;
   observer?.observe(node);
   if (node.parentElement) observer?.observe(node.parentElement);
   // Images and fonts change the size after the first measure.
-  node.addEventListener('load', schedule, true);
+  node.addEventListener('load', changed, true);
   // Lazy blocks arrive after the first measure without resizing this box, so
   // added content also triggers a re-fit (only nodes, never style changes).
-  const mutations = typeof MutationObserver === 'function' ? new MutationObserver(schedule) : null;
+  const mutations = typeof MutationObserver === 'function' ? new MutationObserver(changed) : null;
   mutations?.observe(node, { childList: true, subtree: true });
   return () => {
     cancelAnimationFrame(frame);
     observer?.disconnect();
     mutations?.disconnect();
-    node.removeEventListener('load', schedule, true);
+    node.removeEventListener('load', changed, true);
   };
 }
 
@@ -79,13 +110,44 @@ function watch(node: HTMLElement, run: () => void): () => void {
  * above the 18 px label minimum).
  */
 export function fitContent(min = 0.72) {
-  return (node: HTMLElement) =>
-    watch(node, () => {
+  return (node: HTMLElement) => {
+    let applied = 1;
+    let space = '';
+    const spaceOf = () => {
+      const parent = node.parentElement;
+      return parent ? `${parent.clientWidth}x${parent.clientHeight}` : '';
+    };
+    return watch(node, (reason) => {
+      const now = spaceOf();
+      if (
+        keepsZoom({
+          applied,
+          reason,
+          spaceChanged: now !== space,
+          fitsAtApplied: node.scrollHeight <= node.clientHeight + 2,
+        })
+      ) {
+        return;
+      }
       node.style.zoom = '';
-      const scale = fitScale(node.scrollHeight, node.clientHeight, min);
+      let scale = fitScale(node.scrollHeight, node.clientHeight, min);
+      // Content reflows under the zoom (a wider box, shorter lines), so the
+      // first estimate is checked under the zoom itself and tightened until it
+      // fits there: the result is a fixed point, not a guess the next frame undoes.
+      for (let pass = 0; scale < 1 && pass < 6; pass += 1) {
+        node.style.zoom = String(scale);
+        if (node.scrollHeight <= node.clientHeight + 2 || scale <= min) break;
+        scale = Math.max(
+          min,
+          Math.floor(scale * (node.clientHeight / node.scrollHeight) * 1000) / 1000
+        );
+      }
       node.style.zoom = scale < 1 ? String(scale) : '';
       node.dataset.pyDeckFit = scale < 1 ? String(scale) : '1';
+      applied = scale;
+      space = now;
     });
+  };
 }
 
 /**

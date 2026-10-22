@@ -36,7 +36,9 @@ export function createMountEmbed(options: MountEmbedOptions = {}): MountEmbed {
     frame.src = url.href;
     frame.title = loaded.blueprint.name;
     frame.className = 'block h-full w-full border-0';
-    frame.setAttribute('loading', 'lazy');
+    // Never `loading="lazy"`: the block keeps its mount area hidden until the
+    // app has started, and a lazy frame in a hidden area never loads, so the
+    // start would wait forever. Starting is already on demand (the viewer asks).
     target.replaceChildren(frame);
     const connect = options.connect ?? (await import('../embed/client.ts')).connectPlayer;
     const connection = connect({ frame, playerOrigin: url.origin });
