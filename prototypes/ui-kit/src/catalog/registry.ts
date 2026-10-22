@@ -341,6 +341,29 @@ export const DEMOS: Record<string, CatalogDemo> = {
       'Pass label to name the tab list; disabled tabs are skipped.',
     ],
   },
+  carousel: {
+    load: demo('CarouselDemo'),
+    snippet: `<script lang="ts">
+  import { Carousel } from '@protoyard/ui';
+  let index = $state(0);
+</script>
+
+<Carousel
+  bind:index
+  label="Product tour"
+  items={[
+    { id: 'welcome', label: 'Welcome' },
+    { id: 'team', label: 'Your team' },
+    { id: 'ready', label: 'You are ready' },
+  ]}
+>
+  {#snippet children(item)}<p>{item.label}</p>{/snippet}
+</Carousel>`,
+    a11y: [
+      'region with aria-roledescription="carousel"; each slide is a group with aria-roledescription="slide".',
+      'Previous/next buttons, dots, arrow keys, Home/End; swipe on pointer devices; reduced motion skips track transitions.',
+    ],
+  },
   accordion: {
     load: demo('AccordionDemo'),
     snippet: `<script lang="ts">
