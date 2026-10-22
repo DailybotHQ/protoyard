@@ -36,6 +36,10 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 | `form` | interactive | Form | Collect structured fields; pages own responses | id required; 1–20 fields; closed field types; responses via @protoyard/pages |
 | `map` | map | Map | Points and routes on the simulated basemap | id required; basemap port-meridian only; 1–200 points; route ≤ 50 |
 | `embed-app` | embed | Embedded app | Mount a small opaque app blueprint inside a deck or page | id required; app ≤ 64 KB; depth ≤ 24; host validates with blueprint loader |
+| `flow` | diagram | Flow diagram | Show a short process or chain of steps as connected nodes | 1–12 nodes; labels ≤ 120 characters; unique node ids |
+| `tree` | diagram | Tree diagram | A file tree or an org chart | 1–64 nodes; depth ≤ 6; every parentId must exist; no cycles |
+| `board` | diagram | Board diagram | A static kanban-style snapshot of work by column | 1–6 columns; ≤ 8 cards per column; unique column and card ids |
+| `terminal` | diagram | Terminal | Show a command-line session: prompts, output and comments | 1–40 lines; line text ≤ 240 characters; kinds: prompt, output, comment |
 
 ## Per-type notes
 
@@ -565,4 +569,78 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - host validates with blueprint loader
 
 **Accessibility:** title names the embed; start control is a real button; nested app keeps its own a11y.
+
+### `flow` — Flow diagram
+
+**Family:** diagram
+
+**Use when**
+- Show a short process or chain of steps as connected nodes
+- Explain a loop (set loopBack)
+
+**Don't use when**
+- More than 12 steps (split it)
+- Numbered prose steps (use steps)
+
+**Limits**
+- 1–12 nodes
+- labels ≤ 120 characters
+- unique node ids
+
+**Accessibility:** Rendered as an ordered list of nodes with arrows as decoration; order carries the meaning.
+
+### `tree` — Tree diagram
+
+**Family:** diagram
+
+**Use when**
+- A file tree or an org chart
+- Hierarchy that is at most 6 levels deep
+
+**Don't use when**
+- Flat lists (use list)
+- Graphs with cycles (not supported)
+
+**Limits**
+- 1–64 nodes
+- depth ≤ 6
+- every parentId must exist; no cycles
+
+**Accessibility:** Rendered as nested lists so the hierarchy is announced; tone never carries meaning alone.
+
+### `board` — Board diagram
+
+**Family:** diagram
+
+**Use when**
+- A static kanban-style snapshot of work by column
+
+**Don't use when**
+- A live, editable board (use a level-2 board view)
+- More than 6 columns
+
+**Limits**
+- 1–6 columns
+- ≤ 8 cards per column
+- unique column and card ids
+
+**Accessibility:** Each column is a labelled list; card tone is decorative and backed by text.
+
+### `terminal` — Terminal
+
+**Family:** diagram
+
+**Use when**
+- Show a command-line session: prompts, output and comments
+
+**Don't use when**
+- Source code with highlighting (use code)
+- Real secrets or real hosts
+
+**Limits**
+- 1–40 lines
+- line text ≤ 240 characters
+- kinds: prompt, output, comment
+
+**Accessibility:** Rendered as preformatted text in a focusable, labelled region; prompts are marked in text.
 

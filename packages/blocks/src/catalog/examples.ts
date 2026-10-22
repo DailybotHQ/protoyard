@@ -20,6 +20,16 @@ const APP = {
 };
 
 export const MINIMAL_EXAMPLES: Record<BlockType, Block> = {
+  flow: {
+    type: 'flow',
+    nodes: [
+      { id: 'idea', label: 'Idea' },
+      { id: 'ship', label: 'Ship' },
+    ],
+  },
+  tree: { type: 'tree', style: 'file-tree', nodes: [{ id: 'root', parentId: null, label: 'src' }] },
+  board: { type: 'board', columns: [{ id: 'todo', title: 'To do', cards: [] }] },
+  terminal: { type: 'terminal', lines: [{ kind: 'prompt', text: 'pnpm test' }] },
   heading: { type: 'heading', text: 'Hi' },
   text: { type: 'text', markdown: 'Hello' },
   list: { type: 'list', items: [{ text: 'One item' }] },
@@ -155,6 +165,54 @@ export const MINIMAL_EXAMPLES: Record<BlockType, Block> = {
 };
 
 export const RICH_EXAMPLES: Record<BlockType, Block> = {
+  flow: {
+    type: 'flow',
+    id: 'build-loop',
+    loopBack: true,
+    nodes: [
+      { id: 'brief', label: 'Brief' },
+      { id: 'blueprint', label: 'Blueprint', tone: 'accent' },
+      { id: 'prototype', label: 'Prototype' },
+      { id: 'feedback', label: 'Feedback', tone: 'success' },
+    ],
+  },
+  tree: {
+    type: 'tree',
+    id: 'repo-tree',
+    style: 'file-tree',
+    nodes: [
+      { id: 'root', parentId: null, label: 'example-app' },
+      { id: 'src', parentId: 'root', label: 'src' },
+      { id: 'app', parentId: 'src', label: 'App.svelte', tone: 'accent' },
+      { id: 'tests', parentId: 'root', label: 'tests' },
+    ],
+  },
+  board: {
+    type: 'board',
+    id: 'launch-board',
+    columns: [
+      { id: 'todo', title: 'To do', cards: [{ id: 'copy', title: 'Write launch copy' }] },
+      {
+        id: 'doing',
+        title: 'Doing',
+        cards: [{ id: 'demo', title: 'Record the demo', tone: 'info' }],
+      },
+      {
+        id: 'done',
+        title: 'Done',
+        cards: [{ id: 'deck', title: 'Ship the deck', tone: 'success' }],
+      },
+    ],
+  },
+  terminal: {
+    type: 'terminal',
+    id: 'quick-start',
+    lines: [
+      { kind: 'comment', text: '# create a deck from a brief (fictional example)' },
+      { kind: 'prompt', text: 'pnpm protoyard quick "a deck about our launch"' },
+      { kind: 'output', text: 'ready: .protoyard/quick/launch-deck' },
+    ],
+  },
   heading: {
     type: 'heading',
     id: 'intro',

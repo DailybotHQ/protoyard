@@ -6,6 +6,37 @@ import type { BlockCatalogEntry } from './types.ts';
 type Meta = Pick<BlockCatalogEntry, 'label' | 'useWhen' | 'dontUseWhen' | 'limits' | 'a11y'>;
 
 const META: Record<BlockType, Meta> = {
+  flow: {
+    label: 'Flow diagram',
+    useWhen: [
+      'Show a short process or chain of steps as connected nodes',
+      'Explain a loop (set loopBack)',
+    ],
+    dontUseWhen: ['More than 12 steps (split it)', 'Numbered prose steps (use steps)'],
+    limits: ['1–12 nodes', 'labels ≤ 120 characters', 'unique node ids'],
+    a11y: 'Rendered as an ordered list of nodes with arrows as decoration; order carries the meaning.',
+  },
+  tree: {
+    label: 'Tree diagram',
+    useWhen: ['A file tree or an org chart', 'Hierarchy that is at most 6 levels deep'],
+    dontUseWhen: ['Flat lists (use list)', 'Graphs with cycles (not supported)'],
+    limits: ['1–64 nodes', 'depth ≤ 6', 'every parentId must exist; no cycles'],
+    a11y: 'Rendered as nested lists so the hierarchy is announced; tone never carries meaning alone.',
+  },
+  board: {
+    label: 'Board diagram',
+    useWhen: ['A static kanban-style snapshot of work by column'],
+    dontUseWhen: ['A live, editable board (use a level-2 board view)', 'More than 6 columns'],
+    limits: ['1–6 columns', '≤ 8 cards per column', 'unique column and card ids'],
+    a11y: 'Each column is a labelled list; card tone is decorative and backed by text.',
+  },
+  terminal: {
+    label: 'Terminal',
+    useWhen: ['Show a command-line session: prompts, output and comments'],
+    dontUseWhen: ['Source code with highlighting (use code)', 'Real secrets or real hosts'],
+    limits: ['1–40 lines', 'line text ≤ 240 characters', 'kinds: prompt, output, comment'],
+    a11y: 'Rendered as preformatted text in a focusable, labelled region; prompts are marked in text.',
+  },
   heading: {
     label: 'Heading',
     useWhen: ['Open a section or slide with a clear title', 'Mark hierarchy (H1–H4)'],

@@ -245,6 +245,16 @@ export function blockText(block: Block): string {
         block.submitLabel,
         block.successMessage,
       ]);
+    case 'flow':
+      return joinParts(block.nodes.map((node) => node.label));
+    case 'tree':
+      return joinParts(block.nodes.map((node) => node.label));
+    case 'board':
+      return joinParts(
+        block.columns.flatMap((column) => [column.title, ...column.cards.map((card) => card.title)])
+      );
+    case 'terminal':
+      return joinParts(block.lines.map((line) => line.text));
     default: {
       const _exhaustive: never = block;
       void _exhaustive;
@@ -534,6 +544,32 @@ function blockToMarkdown(block: Block): string {
       ]
         .filter(Boolean)
         .join('\n\n');
+    case 'flow':
+      return block.nodes.map((node, index) => `${index + 1}. ${mdInline(node.label)}`).join('\n');
+    case 'tree': {
+      const depthOf = (id: string): number => {
+        let depth = 0;
+        let parent = block.nodes.find((node) => node.id === id)?.parentId ?? null;
+        while (parent !== null && depth < 64) {
+          depth += 1;
+          const parentId: string = parent;
+          parent = block.nodes.find((node) => node.id === parentId)?.parentId ?? null;
+        }
+        return depth;
+      };
+      return block.nodes
+        .map((node) => `${'  '.repeat(depthOf(node.id))}- ${mdInline(node.label)}`)
+        .join('\n');
+    }
+    case 'board':
+      return block.columns
+        .map(
+          (column) =>
+            `**${mdInline(column.title)}**${column.cards.map((card) => `\n- ${mdInline(card.title)}`).join('')}`
+        )
+        .join('\n\n');
+    case 'terminal':
+      return `\`\`\`text\n${block.lines.map((line) => (line.kind === 'prompt' ? `$ ${stripNull(line.text)}` : stripNull(line.text))).join('\n')}\n\`\`\``;
     default: {
       const _exhaustive: never = block;
       void _exhaustive;

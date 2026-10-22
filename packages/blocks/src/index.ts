@@ -157,6 +157,7 @@ export {
   type WalkedBlock,
   walkBlocks,
 } from './text.ts';
+export {
   parseUntrustedBlocks,
   type UntrustedBlockIssue,
   type UntrustedBlocksResult,
