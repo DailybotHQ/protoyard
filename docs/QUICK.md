@@ -45,7 +45,8 @@ sha256 in `quick.json`. `--standalone` copies the player into the folder
 instead of sharing it, and `--out <dir>` writes elsewhere (standalone);
 `--force` replaces an exploration with the same slug.
 
-**Decks, pages and docs.** An exploration can hold any blueprint kind:
+**Decks, pages and docs.** An exploration can hold any blueprint kind
+(`kind: "app"` by default, or `kind: "deck"`, `kind: "page"`, `kind: "doc"`):
 
 ```bash
 protoyard quick --blueprint blueprints/decks/lumen-launch.json --slug launch --variants 3
@@ -53,16 +54,27 @@ protoyard quick "A ten-slide talk introducing a fictional climbing gym" --kind d
 ```
 
 - `--blueprint` reads a deck, page or doc through the untrusted document loader
-  (the kind's limits and body schema).
+  (the kind's limits and body schema). Apps keep the ordinary app loader.
 - A brief makes whatever the synthesizer detects, or what `--kind app|deck|page|doc`
   asks for. A drafted deck, page or doc is validated like any untrusted
-  document and refused with its issues when it does not pass.
+  document and refused with its issues when it does not pass. `--kind` is
+  refused together with `--blueprint` (the file already declares its kind).
 - The launcher opens the player's page for that kind (`deck.html`,
   `page.html` or `doc.html`). A shared player built before those pages
   existed opens `index.html`, which runs every kind.
 - Every JSON result (`quick`, `quick iterate`, `quick undo`, `quick export`,
   `quick list`) carries `kind`, and `quick index` labels deck, page and doc
   cards.
+- **Variants** for a deck kind change only `deck.style` (theme, transition,
+  density, font pair). A page or doc varies brand theme and density. Blocks
+  and copy stay fixed; the same seed always yields the same variants
+  (`deriveKindVariants` in `@protoyard/blueprint`).
+- **Iterate** uses `applyContentPatch`: JSON Patch, then the untrusted
+  document loader. A patch that changes `kind` is refused and writes nothing.
+  There is no entity migration; `world` stays schema v1.
+- **Promote** is app-only. For a deck, page or doc, `quick promote` refuses
+  with the hint to run `protoyard generate <slug> --blueprint <file>`
+  ([Generator](GENERATOR.md#generated-decks-pages-and-docs)).
 
 ### 2. Variants
 

@@ -9,21 +9,29 @@ Vite projects that can be edited, validated and exported.
 ## What level 1 gives you
 
 A blueprint (`blueprint.json`) is data only. The player turns it into a running
-prototype with no build and no install:
-- The same app a generated prototype renders: `BlueprintApp` from
-  `@protoyard/crud/app`, with the blueprint's routes, navigation, layout and
-  every screen kind. Assistant and team-chat archetypes get the conversational
-  workspace.
-- A real runtime: IndexedDB data, personas and simulated roles, the blueprint's
-  scenarios (`empty`, `active`, `viewer`, `massive`), simulated time and
-  environment, themes (including a brand theme), layouts, device shells, and
-  DevTools (hide them with `?devtools=0`).
-- Entity services that validate every write
-  (`session.assert` → zod → `environment.run` → `db.transaction`).
+prototype with no build and no install. Routing follows blueprint `kind`
+(ADR-036) before any boot code loads (see
+[Content kinds](#content-kinds-deck-page-and-doc)):
+
+- **App** (no `kind`, or `kind: "app"`): the same shell a generated prototype
+  renders — `BlueprintApp` from `@protoyard/crud/app`, with the blueprint's
+  routes, navigation, layout and every screen kind. Assistant and team-chat
+  archetypes get the conversational workspace. Entity services validate every
+  write (`session.assert` → zod → `environment.run` → `db.transaction`).
+  Scenarios are the template set (`empty`, `active`, `viewer`, `massive`).
+- **Deck, page or doc** (`kind: "deck"`, `kind: "page"`, `kind: "doc"`):
+  `defineKindRuntime` and the matching `DeckApp` / `PageApp` / `DocApp`. One
+  Dexie version for block state and form responses, the `default` scenario, and
+  presenter / audience / viewer personas. No CRUD shell, Faker or world worker
+  on the kind boot path.
+- Shared chrome for every kind: IndexedDB namespaces, themes (including a brand
+  theme), layouts, device shells, and DevTools (hide them with `?devtools=0`).
 
 Everything is simulated, and every page shows the "Prototype · simulated data"
-badge. Promote an exploration to level 2 with `protoyard generate` (see
-[Validate and promote](#validate-and-promote)).
+badge. Promote an **app** exploration to level 2 with `protoyard generate`, or
+generate a content-kind prototype from its blueprint (see
+[Validate and promote](#validate-and-promote) and
+[Generator](GENERATOR.md#generated-decks-pages-and-docs)).
 
 ## Entry points
 
@@ -296,23 +304,32 @@ to a built page.
 
 ## Measured size and speed
 
-All numbers come from real runs on 2026-10-20 (Apple M1 Max, macOS, Chromium 156,
-with other builds running). They are not calibrated budgets.
+App-path numbers come from real runs on 2026-10-20 (Apple M1 Max, macOS,
+Chromium 156, with other builds running). Kind-page entry sizes are from the
+2026-10-22 player build (same host family). They are measured values, not
+calibrated product SLOs; the gate columns are the repository budgets.
 
 | Measure | Value | Gate |
 | --- | --- | --- |
-| Initial JavaScript (gzip) | 178.1 KB | 250 KB (`packages/player/tests/budget.test.ts`) |
-| Initial CSS (gzip) | 18.1 KB | 30 KB (same test) |
-| World-generation worker graph (gzip) | 200.2 KB | 250 KB (`worker-bundle.test.ts`) |
+| Universal player initial JS (gzip), historical app path | 178.1 KB | 250 KB (`packages/player/tests/budget.test.ts`) |
+| Initial CSS (gzip), historical app path | 18.1 KB | 30 KB (same test) |
+| World-generation worker graph (gzip) | 200.2 KB | 220 KB shared cap (`player-budgets.ts`) |
+| `index.html` initial JS / CSS (gzip -9, 2026-10-22) | 123 349 B / 20 627 B | 250 KB / 30 KB |
+| `deck.html` initial JS / CSS (gzip -9, 2026-10-22) | 124 643 B / 18 516 B | **150 KB** / 30 KB |
+| `page.html` initial JS / CSS (gzip -9, 2026-10-22) | 124 644 B / 18 688 B | **150 KB** / 30 KB |
+| `doc.html` initial JS / CSS (gzip -9, 2026-10-22) | 124 642 B / 18 688 B | **150 KB** / 30 KB |
 | First visit through `#bp=`, catalog blueprints (median) | 190–232 ms | report only |
 | Repeat visit (stored world) | 76–107 ms | report only |
 | Scenario switch that generates | 55–74 ms | report only |
 | Scenario switch served by the world cache | 7.9–9.8 ms | report only |
 | Large fixture (40 entities): first visit / cache hit | 368 ms / 66 ms | report only |
 
-Reproduce the timings with `pnpm exec tsx scripts/bench-player.ts --runs 3` after
-building the player. The method, every phase and the main-thread long-task
-trace are in [PERFORMANCE](PERFORMANCE.md#player-blueprint-to-ready-app-baseline-measured-2026-10-20).
+Kind pages stay under the per-kind 150 KB JS budget and do not statically pull
+the CRUD shell, Faker or the world worker; details and the reachable-graph
+proof are in
+[PERFORMANCE](PERFORMANCE.md#player-bundle-budget-measured-2026-10-20)
+(`kind-budget.test.ts`, `budget.test.ts`). Reproduce app timings with
+`pnpm exec tsx scripts/bench-player.ts --runs 3` after building the player.
 
 ## Honest boundaries
 
