@@ -72,13 +72,20 @@ onMount(() => {
   return () => media.removeEventListener('change', syncDisclosure);
 });
 
+/**
+ * Only heading blocks carry TOC ids (`data-py-block-heading`, set by
+ * blocks-ui): headings inside other blocks (a callout's title, markdown) are
+ * not TOC entries, and counting them would shift every id after them.
+ */
+const HEADING_BLOCKS = '[data-py-block-heading]';
+
 $effect(() => {
   const root = flowRoot;
   const blocks = bodyBlocks;
   if (!root) return;
 
   const syncActiveHeading = (): void => {
-    const headings = Array.from(root.querySelectorAll<HTMLElement>('h2, h3, h4'));
+    const headings = Array.from(root.querySelectorAll<HTMLElement>(HEADING_BLOCKS));
     const activationLine = window.innerHeight * 0.3;
     let candidate = headings[0]?.id ?? '';
     for (const heading of headings) {
@@ -92,7 +99,7 @@ $effect(() => {
 
   const applyIds = (): void => {
     const expected = expectedHeadings(blocks);
-    const nodes = Array.from(root.querySelectorAll<HTMLElement>('h2, h3, h4'));
+    const nodes = Array.from(root.querySelectorAll<HTMLElement>(HEADING_BLOCKS));
     const count = Math.min(expected.length, nodes.length);
     for (let i = 0; i < count; i += 1) {
       const node = nodes[i];

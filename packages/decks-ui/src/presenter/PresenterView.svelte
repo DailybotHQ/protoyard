@@ -4,7 +4,7 @@
  * timers, and position. Used in a popup window or the in-page split fallback.
  */
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
-import { onDestroy, onMount } from 'svelte';
+import { onDestroy, onMount, untrack } from 'svelte';
 import DeckSlidePreview from '../canvas/DeckSlidePreview.svelte';
 
 let {
@@ -105,7 +105,9 @@ onDestroy(() => {
 $effect(() => {
   slideId;
   step;
-  if (paused) {
+  // Only a slide change resets the slide timer: pausing or resuming is not one,
+  // so `paused` is read without tracking it (else Pause would zero the timer).
+  if (untrack(() => paused)) {
     pausedSlide = 0;
     slideMs = 0;
   } else {

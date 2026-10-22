@@ -149,7 +149,8 @@ function openItem(item: NotificationItem) {
 </script>
 
 {#snippet defaultTrigger({ props }: { props: Record<string, unknown> })}
-  <Button {...props} variant="ghost" size="icon" aria-label={label} class="relative">
+  <!-- The unread badge is the button's only visible text, so the name starts with it (WCAG 2.5.3, label in name). -->
+  <Button {...props} variant="ghost" size="icon" aria-label={unreadCount ? `${unreadCount} unread, ${label}` : label} class="relative">
     <Bell size={18} />
     {#if unreadCount}<span aria-live="polite" aria-atomic="true" class="absolute -top-1 -right-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] text-destructive-foreground">{unreadCount}</span>{/if}
   </Button>

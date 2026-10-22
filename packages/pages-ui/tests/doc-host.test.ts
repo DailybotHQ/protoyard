@@ -83,3 +83,31 @@ describe('DocHost', () => {
     );
   });
 });
+
+describe('DocHost headings', () => {
+  it('keeps one h1 and stamps TOC ids only on heading blocks, never on a callout title', async () => {
+    const doc: DocDocument = {
+      id: 'report',
+      title: 'Fictional quarterly report',
+      blocks: [
+        { type: 'heading', id: 'title', level: 1, text: 'Fictional quarterly report' },
+        { type: 'callout', tone: 'info', title: 'Summary', body: 'Example numbers only.' },
+        { type: 'heading', id: 'numbers', level: 2, text: 'Headline numbers' },
+        { type: 'heading', id: 'next', level: 2, text: 'Next steps' },
+      ],
+    } as DocDocument;
+    const { container } = render(DocHost, { doc });
+    expect(container.querySelectorAll('h1')).toHaveLength(1);
+    // Every level-2 TOC id lands on its own heading block, after the callout.
+    const toc = buildDocToc(doc).filter((item) => item.level >= 2);
+    expect(toc.length).toBeGreaterThan(0);
+    await waitFor(() => {
+      for (const item of toc) {
+        expect(container.querySelector(`#${item.id}`)?.textContent?.trim()).toBe(item.label);
+      }
+    });
+    // The callout title is not a TOC entry, so it never takes a TOC id.
+    const tocIds = new Set(toc.map((item) => item.id));
+    expect(tocIds.has(container.querySelector('h3')?.id ?? '')).toBe(false);
+  });
+});
