@@ -18,6 +18,11 @@ import { expectAccessible } from './support/a11y.ts';
  * the visual sweep screenshots remain the review for that (docs/ACCESSIBILITY.md).
  */
 
+test.skip(
+  process.env.PROTOYARD_E2E_PLAYER !== '1',
+  'set PROTOYARD_E2E_PLAYER=1 (needs the built player server)'
+);
+
 const PLAYER = `http://127.0.0.1:${Number(process.env.PROTOYARD_E2E_PLAYER_PORT ?? 4861)}/`;
 const ROOT = { deck: '[data-py-deck-app]', page: '[data-py-page-app]', doc: '[data-py-doc-app]' };
 type Kind = keyof typeof ROOT;
