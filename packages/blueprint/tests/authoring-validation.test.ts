@@ -302,7 +302,7 @@ describe('block and asset authoring hints', () => {
       expect.objectContaining({
         code: 'unsupported-url-scheme',
         path: ['deck', 'blocks', 'actions', 0, 'href'],
-        message: 'Use an http(s), mailto, #anchor or relative link',
+        message: 'Use an https: or mailto: link, or a #section on this page',
       })
     );
   });

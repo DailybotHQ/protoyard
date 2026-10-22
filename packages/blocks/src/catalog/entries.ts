@@ -180,7 +180,7 @@ const META: Record<BlockType, Meta> = {
     label: 'Call to action',
     useWhen: ['One to three safe links as primary actions'],
     dontUseWhen: ['Long forms (use form)', 'Unsafe javascript: links'],
-    limits: [`1–${L.ctaActions} actions`, `https or mailto href only`],
+    limits: [`1–${L.ctaActions} actions`, `https, mailto or #section href only`],
     a11y: 'Buttons/links use visible labels; variants are not the only cue.',
   },
   columns: {

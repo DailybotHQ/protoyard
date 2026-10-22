@@ -70,13 +70,15 @@ export const MARKDOWN_MAX_LENGTH = 100_000;
 const MAX_DEPTH = 8;
 
 const SAFE_SCHEME = /^(?:https|mailto):/i;
+const SAME_DOCUMENT = /^#[\w\-/.~%]*$/;
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 const ID = /^[\w-]{1,64}$/;
 
 /**
- * A link target the UI may put in `href`, or `null`. Allows only HTTPS and
- * mailto; rejects relative URLs and every other scheme after stripping the
- * control characters and whitespace browsers ignore.
+ * A link target the UI may put in `href`, or `null`. Allows HTTPS, mailto and
+ * same-document fragments (`#section`, `#/route`); rejects relative paths and
+ * every other scheme after stripping the control characters and whitespace
+ * browsers ignore.
  */
 export function safeHref(raw: string): string | null {
   // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point.
@@ -85,6 +87,8 @@ export function safeHref(raw: string): string | null {
   // Reject protocol-relative forms browsers normalize, including `/\host` and `\/host`.
   const normalizedSlashes = url.replace(/\\/g, '/');
   if (/^\/{2}/.test(normalizedSlashes) || normalizedSlashes.startsWith('\\')) return null;
+  // Same-document fragments (`#plans`, `#/tasks/42`) never leave the page.
+  if (SAME_DOCUMENT.test(url)) return url;
   return SAFE_SCHEME.test(url) ? url : null;
 }
 

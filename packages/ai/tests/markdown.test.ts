@@ -245,11 +245,14 @@ describe('sanitization', () => {
     expect(safeImageSrc(url)).toBeNull();
   });
 
-  it('allows only https and mailto link targets while keeping relative images local', () => {
+  it('allows https, mailto and same-document fragments while keeping relative images local', () => {
     expect(safeHref('https://example.com/a?b=1#c')).toBe('https://example.com/a?b=1#c');
     expect(safeHref('mailto:team@example.com')).toBe('mailto:team@example.com');
     expect(safeHref('http://example.com')).toBeNull();
-    expect(safeHref('#/deals/42')).toBeNull();
+    // Same-document fragments never leave the page: in-app routes and section anchors.
+    expect(safeHref('#/deals/42')).toBe('#/deals/42');
+    expect(safeHref('#plans')).toBe('#plans');
+    expect(safeHref('#"><script>')).toBeNull();
     expect(safeHref('./notes.md')).toBeNull();
     expect(safeImageSrc('./assets/chart.png')).toBe('./assets/chart.png');
     expect(safeImageSrc('https://example.com/a.png')).toBeNull();

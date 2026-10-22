@@ -313,15 +313,18 @@ describe('URL tricks in every URL-bearing field', () => {
     expect(parseUntrustedBlocks(ctaWith('mailto:team@example.com')).success).toBe(true);
   });
 
-  it.each(['http://example.com/docs', '#/pricing', 'guide/start.html'])(
+  it.each(['http://example.com/docs', '/pricing', 'guide/start.html'])(
     'rejects non-approved link target %j',
     (href) => {
       expect(parseUntrustedBlocks(ctaWith(href)).success).toBe(false);
     }
   );
 
-  it('allows only HTTPS and mailto links', () => {
+  it('allows only HTTPS, mailto and same-document fragment links', () => {
     expect(parseUntrustedBlocks(ctaWith('https://example.com/docs')).success).toBe(true);
     expect(parseUntrustedBlocks(ctaWith('mailto:team@example.com')).success).toBe(true);
+    expect(parseUntrustedBlocks(ctaWith('#waitlist')).success).toBe(true);
+    expect(parseUntrustedBlocks(ctaWith('/waitlist')).success).toBe(false);
+    expect(parseUntrustedBlocks(ctaWith('http://example.com/docs')).success).toBe(false);
   });
 });
