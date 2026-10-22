@@ -22,7 +22,7 @@ layout table, the limits table, and the decks-ui keyboard table.
 | `@protoyard/decks/style` | `resolveDeckStyle`: a built-in or library theme or a numeric palette seed, a font pairing and the presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, CSS variables, the effective style and fallback warnings. |
 | `@protoyard/decks/quality` | `DECK_QUALITY` thresholds, `DECK_QUALITY_RULES`, `DECK_QUALITY_RULE_BY_ID`, `checkDeckStatic`, `deckJsonPath`. Renderers never import it. |
 | `@protoyard/decks/text` | `deckToMarkdown`, `deckOutline`, `formatDeckOutline`, `slideTitle`, `blocksMarkdown`, `chartTable`, `richText`, `mdDocumentToMarkdown`, `escapeText`, `escapeInline`, `stripInvisible`. It is a subpath so the Markdown parser never enters a deck entry. |
-| `@protoyard/decks/presenter` | The presenter view's protocol and transport: `createPresenterLink`, `PRESENTER_MESSAGE_TYPES`, `PresenterMessageSchema`, `parsePresenterMessage`, `presenterChannelName`, `presenterMessage`, `sanitizeNamespace`, `createBroadcastPresenterTransport` (same-origin `BroadcastChannel`), `createMemoryPresenterTransport` (tests and the in-page split fallback). Messages are validated with zod; nothing is executed. |
+| `@protoyard/decks/presenter` | The presenter view's protocol and transport (untrusted messages only): `PRESENTER_MESSAGE_TYPES`, `PresenterMessageSchema`, `parsePresenterMessage`, `presenterMessage`, `presenterChannelName`, `sanitizeNamespace`, `createBroadcastPresenterTransport` (same-origin `BroadcastChannel`), `createMemoryPresenterTransport` (tests and the in-page split fallback), `createPresenterLink`, plus the matching types (`PresenterMessage`, `PresenterMessageType`, `PresenterPosition`, `PresenterTransport`, `PresenterLink`, `PresenterLinkOptions`). Re-exported from `@protoyard/decks`. Messages are validated with zod; nothing is executed. |
 | `@protoyard/decks/patch` | Deck Studio's engine: `applyDeckEdits`, `deckEditsToPatch`, `compatibleLayouts`, `deckStudioOptions`, `DECK_STUDIO_STYLE_KEYS`, `DECK_STUDIO_SLIDE_KEYS`, `applyDeckPatch` (RFC 6902 test, add, replace and remove; prototype keys refused), `DECK_PATCH_MAX_OPS` (1,000), `DeckPatchError`, `parsePointer`, `formatPointer`, `jsonEquals`. It is a subpath so the theme-library listing never enters a deck entry. |
 
 ## The deck schema
@@ -478,9 +478,9 @@ Deck data is untrusted, so nothing from it can become Markdown structure:
 - **Media backgrounds need a schema change.** `style.background` and `slide.background` accept a
   preset id. Image and video background specs validate with `DeckBackgroundSchema`, but a slide
   cannot carry one yet.
-- **The presenter view is not built yet.** The planned design is a window over `BroadcastChannel`,
-  with an in-page split view when popups are blocked (see decks-ui). `S` and `P` are decided as
-  `presenter` but do nothing today.
+- **Presenter needs a same-origin peer.** The protocol is ready (`@protoyard/decks/presenter`); the UI
+  is lazy in `@protoyard/decks-ui/presenter` (popup over `BroadcastChannel`, in-page split when blocked).
+  Cross-origin and multi-tab beyond one presenter peer are out of scope at level 1.
 - **No KaTeX or math, and no highlight.js.** Code highlighting comes from the blocks tokenizer.
 - **Rendered checks need a browser.** `checkDeckStatic` covers structure, assets, steps, notes and
   density; font size, overflow and contrast on real pixels belong to the visual sweep.

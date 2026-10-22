@@ -30,6 +30,9 @@ const slugArg = z
   .max(80)
   .refine((value) => checkSlug(value).ok, 'Not a valid slug (lowercase kebab-case).');
 
+/** Blueprint kinds `quick --kind` accepts when a brief is given. */
+const quickKindArg = z.enum(['app', 'deck', 'page', 'doc']);
+
 const quickArgs = z
   .object({
     // `-` would make the CLI read stdin, which is the JSON-RPC channel here.
@@ -45,10 +48,16 @@ const quickArgs = z
     seed: z.number().int().min(0).max(4_294_967_295).optional(),
     variants: z.number().int().min(1).max(8).optional(),
     standalone: z.boolean().optional(),
+    /** Forces the synthesizer kind when `brief` is set (CLI `--kind`). */
+    kind: quickKindArg.optional(),
   })
   .strict()
   .refine((value) => Boolean(value.brief) !== Boolean(value.blueprint), {
     message: 'Provide exactly one of brief or blueprint.',
+  })
+  .refine((value) => value.kind === undefined || value.brief !== undefined, {
+    message: 'kind applies only when brief is set (a blueprint file declares its own kind).',
+    path: ['kind'],
   });
 const iterateArgs = z
   .object({
@@ -94,6 +103,7 @@ const toolSchemas: Record<ToolName, McpTool> = {
         seed: { type: 'integer', minimum: 0, maximum: 4294967295 },
         variants: { type: 'integer', minimum: 1, maximum: 8 },
         standalone: { type: 'boolean' },
+        kind: { type: 'string', enum: ['app', 'deck', 'page', 'doc'] },
       },
       oneOf: [
         { required: ['brief'], not: { required: ['blueprint'] } },
@@ -221,6 +231,7 @@ export function cliArgs(name: ToolName, value: Record<string, unknown>): string[
     if (value.seed !== undefined) options.push('--seed', String(value.seed));
     if (value.variants !== undefined) options.push('--variants', String(value.variants));
     if (value.standalone) options.push('--standalone');
+    if (value.kind) options.push('--kind', String(value.kind));
     return command(['quick'], options, value.brief ? [String(value.brief)] : []);
   }
   if (name === 'iterate') {
