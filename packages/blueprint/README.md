@@ -746,9 +746,36 @@ training, lesson, report and talk (`DECK_OUTLINE_IDS`).
 - **Deterministic.** The same brief and options always give the same slide ids, order, blocks
   and rationale. The module never reads the clock or a random source.
 
-The module is not yet exported from the package entry, and `synthesizeDeckFromBrief` still
-returns the three-slide generic outline. Wiring them together is a one-line switch once the deck
-body schema ships.
+`synthesizeDeckFromBrief` calls `synthesizeDeckOutline`, then `selectDeckLayouts` (see below),
+and exports the outline helpers from `@protoyard/blueprint` / `./brief`.
+
+### Deck layout selection
+
+`src/authoring/select-deck-layouts.ts` maps each slide's `role`, `pacing` and optional
+`blockTypes` to a catalog layout id from `@protoyard/decks/layouts`. It is pure (no clock or
+random source):
+
+```ts
+import { selectDeckLayouts, synthesizeDeckOutline } from '@protoyard/blueprint';
+
+const outline = synthesizeDeckOutline('A pitch deck about Example Harbor.');
+const layouts = selectDeckLayouts(
+  outline.plan.map((slide, i) => ({
+    id: slide.id,
+    role: slide.role,
+    pacing: slide.pacing,
+    blockTypes: outline.deck.slides[i]?.blocks.map((b) => b.type),
+  })),
+  { aspect: outline.deck.aspect }
+);
+// layouts[i].layout — e.g. title-hero, process-steps, closing-cta
+// layouts[i].rationale — stable explanation for agents
+```
+
+Rules: explicit `layout` overrides win; block types (chart, steps, …) rank above a generic
+role; pacing must fit the catalog entry when possible; three identical layouts in a row are
+avoided when another compatible candidate exists. `propsForSelectedLayout` seeds catalog
+`props` from the layout sample and slide title when a free outline slide is rewritten.
 
 ## Workflow state models
 

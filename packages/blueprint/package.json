@@ -24,6 +24,7 @@
   "dependencies": {
     "@protoyard/blocks": "workspace:*",
     "@protoyard/core": "workspace:*",
+    "@protoyard/decks": "workspace:*",
     "@protoyard/pages": "workspace:*",
     "@protoyard/scenarios": "workspace:*",
     "@protoyard/themes": "workspace:*",

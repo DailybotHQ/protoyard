@@ -5,7 +5,9 @@
  * fabricated facts. Page and doc section outlines live in `page-doc-outlines.ts`.
  */
 import { hashString } from '@protoyard/core';
+import { propsForSelectedLayout, selectDeckLayouts } from '../authoring/select-deck-layouts.ts';
 import type { ContentKind } from '../kinds/kind.ts';
+import { synthesizeDeckOutline } from './deck-outlines.ts';
 import type { BriefKindDetection } from './kind-detection.ts';
 import {
   applyOutlineBounds,
@@ -55,15 +57,6 @@ export interface ContentBriefResult {
   rationale: string[];
 }
 
-function firstSentence(source: string): string {
-  const sentence =
-    source
-      .replace(/\s+/g, ' ')
-      .trim()
-      .split(/(?<=[.!?])\s/)[0] ?? '';
-  return sentence.slice(0, 280);
-}
-
 function pickName(source: string, kind: ContentKind, forced?: string): string {
   if (forced?.trim()) return forced.trim().slice(0, 80);
   const normalized = normalize(source);
@@ -102,7 +95,11 @@ function base(kind: ContentKind, name: string, description: string): Record<stri
   };
 }
 
-/** Minimal deck: title, agenda, close. Stable slide ids; placeholder copy only. */
+/**
+ * Deck brief → outline templates (pitch/QBR/…) + deterministic layout selection.
+ * Free-slide blocks stay as draft scaffolding; catalog layouts get minimal props
+ * from the slide title when selection leaves `free`.
+ */
 export function synthesizeDeckFromBrief(
   brief: string,
   detection: BriefKindDetection,
@@ -111,46 +108,69 @@ export function synthesizeDeckFromBrief(
   const bound = boundBriefInput(brief, { maxLength: MAX_CONTENT_BRIEF_LENGTH });
   const source = bound.brief;
   const name = pickName(source, 'deck', options.name);
-  const title = (firstSentence(source) || name).slice(0, 80);
-  const slides = [
-    {
-      id: 'slide-title',
-      role: 'title',
-      title,
-      body: 'Add the opening claim here.',
-    },
-    {
-      id: 'slide-agenda',
-      role: 'agenda',
-      title: 'Agenda',
-      body: 'List the sections you will cover.',
-    },
-    {
-      id: 'slide-close',
-      role: 'close',
-      title: 'Next steps',
-      body: 'Close with a clear ask or summary.',
-    },
-  ];
-  const clipped = applyOutlineBounds({ kind: 'deck', title, slides });
+  const outline = synthesizeDeckOutline(source, {
+    title: options.name?.trim() ? options.name.trim().slice(0, 80) : undefined,
+  });
+
+  const selections = selectDeckLayouts(
+    outline.plan.map((slide, index) => {
+      const body = outline.deck.slides[index];
+      const blockTypes =
+        body && Array.isArray(body.blocks)
+          ? body.blocks
+              .map((block) =>
+                block && typeof block === 'object' && 'type' in block
+                  ? String((block as { type: unknown }).type)
+                  : ''
+              )
+              .filter(Boolean)
+          : [];
+      return {
+        id: slide.id,
+        role: slide.role,
+        pacing: slide.pacing,
+        purpose: slide.purpose,
+        blockTypes,
+      };
+    }),
+    { aspect: outline.deck.aspect }
+  );
+
+  const slides = outline.deck.slides.map((slide, index) => {
+    const choice = selections[index];
+    const layout = choice?.layout ?? 'free';
+    if (layout === 'free') {
+      return slide;
+    }
+    return {
+      id: slide.id,
+      title: slide.title,
+      layout,
+      props: propsForSelectedLayout(layout, { title: slide.title, purpose: slide.notes }),
+      notes: slide.notes,
+    };
+  });
+
   const rationale = [
     detection.reason,
     ...bound.notices,
-    ...clipped.notices,
-    'Deck outline: generic (title, agenda, close). Richer pitch/QBR/lesson templates land in deck-outlines.',
-    'Slide bodies are placeholders — no fabricated facts.',
+    ...outline.rationale,
+    ...selections.map((row) => `${row.id}: ${row.rationale}`),
+    'Slide bodies are draft placeholders — no fabricated facts.',
   ];
+
   return {
     kind: 'deck',
     kindDetection: detection,
-    outline: 'generic',
+    outline: outline.outline,
     rationale,
     json: {
-      ...base('deck', name, (clipped.outline.title ?? title).slice(0, 280)),
+      ...base('deck', name, outline.deck.title.slice(0, 280)),
       deck: {
-        title: (clipped.outline.title ?? title).slice(0, 80),
-        aspect: '16:9',
-        slides: clipped.outline.slides ?? slides,
+        title: outline.deck.title.slice(0, 80),
+        aspect: outline.deck.aspect,
+        style: { aspect: outline.deck.aspect },
+        slides,
       },
     },
   };
