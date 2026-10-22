@@ -82,7 +82,8 @@ export const blockRendererRegistry: Readonly<Record<BlockType, BlockRendererRegi
 export async function loadBlockFamily(family: BlockFamily): Promise<BlockFamilyRenderer | null> {
   const load = familyLoaders[family];
   if (!load) return null;
-  const module = await load();
+  // A failed import is usually a dropped download, not a missing renderer: retry once.
+  const module = await load().catch(() => load());
   return typeof module.BlockFamilyRenderer === 'function' ? module.BlockFamilyRenderer : null;
 }
 

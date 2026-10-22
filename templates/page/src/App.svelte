@@ -2,7 +2,7 @@
 import { setBlockHost } from '@protoyard/blocks-ui';
 import { PageApp } from '@protoyard/pages-ui/page';
 import { getRuntime } from '@protoyard/renderer-svelte';
-import { mountEmbeddedApp } from '../../deck/src/embed-host.ts';
+import { mountEmbeddedApp } from './embed-host.ts';
 import { pageDocument } from './prototype.ts';
 
 /** Level-2 page entry: same PageApp as the player for kind: "page". */
