@@ -111,7 +111,7 @@ fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
 
 | Subpath | Engine | Filled by |
 | --- | --- | --- |
-| `./formula` | Closed JSON-AST formulas for calculator blocks (no `eval`) | T-blocks-formula |
+| `./formula` | Closed JSON-AST formulas for calculator blocks; see [Formulas](#formulas-protoyardblocksformula) | done |
 | `./interactive` | Pure reducers and the `BlockStateHost` contract | T-blocks-interactive-reducers |
 | `./code` | Tiny code tokenizer with stepped line highlights | T-blocks-code-tokenizer |
 | `./diagram` | Flow, tree, board and terminal layout math | T-blocks-diagram-models |
@@ -119,6 +119,67 @@ fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
 
 The untrusted-input guard, the JSON Schema and the text helpers will also be
 exported from the root entry.
+
+## Formulas (`@protoyard/blocks/formula`)
+
+Calculator blocks compute their outputs with formulas. A formula is a closed
+JSON AST, never a string: nothing in it is parsed as code or executed.
+
+```ts
+import { evaluateFormula, formatFormulaValue, parseFormula } from '@protoyard/blocks/formula';
+
+const parsed = parseFormula(
+  {
+    op: 'mul',
+    left: { op: 'var', name: 'seats' },
+    right: {
+      op: 'if',
+      test: { op: 'gte', left: { op: 'var', name: 'seats' }, right: { op: 'num', value: 10 } },
+      ifTrue: { op: 'num', value: 900 },
+      ifFalse: { op: 'num', value: 1200 },
+    },
+  },
+  { variables: ['seats'] }
+);
+if (parsed.success) {
+  formatFormulaValue(evaluateFormula(parsed.formula, { seats: 12 }), 'cents'); // "$108.00"
+}
+```
+
+| Kind | Ops |
+| --- | --- |
+| Number | `num` (finite, at most ±1e15), `var` (lowerCamelCase input name), `add`, `sub`, `mul`, `div` (`left`, `right`), `pow` (`base`, `exponent`), `min`, `max` (`args`, 2–8), `round` (`value`, `digits` −6…6), `clamp` (`value`, `min`, `max`), `if` (`test`, `ifTrue`, `ifFalse`) |
+| Condition | `lt`, `lte`, `gt`, `gte`, `eq`, `neq` (`left`, `right` numbers), `and`, `or` (`args` 2–8 conditions), `not` (`value`) |
+
+- **Types are separate.** A condition can only appear as an `if` test or
+  inside `and`/`or`/`not`. Using one where a number belongs (or the reverse)
+  is a `type-mismatch` diagnostic.
+- **Limits (`FORMULA_LIMITS`):** at most 64 nodes and 12 levels. A preflight
+  rejects oversize arrays, cycles and non-plain objects before any recursive
+  parsing.
+- **`parseFormula(input, { variables? })`** never throws. It returns the
+  formula and its free variables, or diagnostics with `code`, `jsonPath` and
+  `hint`. The codes are `formula-too-large`, `formula-too-deep`,
+  `cyclic-formula`, `invalid-container`, `type-mismatch`, `unknown-op`,
+  `unknown-variable` and `invalid-formula`.
+- **`evaluateFormula(formula, inputs)`** is pure. It reads only own input
+  properties and never throws. It returns `null` for:
+  - a missing, null or non-finite input;
+  - division by zero, NaN or ±Infinity;
+  - a `pow` exponent beyond ±64;
+  - `clamp` with min > max.
+
+  `null` propagates through every operation. Conditions use three-valued
+  logic: `and` with one false operand is false even if another is undefined.
+  `round` rounds half away from zero.
+- **`formatFormulaValue(value, unit, options)`** uses the chart-spec units:
+  `number`, `compact`, `cents` (integer minor units) and `percent` (a ratio).
+  It defaults to the `en-US` locale so output is stable, and shows `—` for
+  `null`.
+- The branches are named `ifTrue`/`ifFalse`, not `then`/`else`, so a formula
+  node is never mistaken for a promise.
+- **Size:** 3.1 KB gzip minified for the whole subpath with zod external. The
+  evaluator and formatter alone are 1.4 KB.
 
 ## Package output
 
