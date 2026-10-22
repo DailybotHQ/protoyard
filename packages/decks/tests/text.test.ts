@@ -143,13 +143,14 @@ describe('deckToMarkdown', () => {
   });
 
   it('falls back to every prop string for unknown layouts or props that fail their schema', () => {
-    const odd = deck({
+    // DeckSchema now rejects these; the text twin still degrades gracefully on unvalidated input.
+    const odd = {
       style: {},
       slides: [
         { id: 'custom', layout: 'my-layout', props: { headline: 'Hi', items: ['a', 'b'], n: 3 } },
         { id: 'broken', layout: 'big-stat', props: { label: 'Missing number' } },
       ],
-    });
+    } as unknown as Deck;
     const md = deckToMarkdown(odd);
     expect(md).toContain('*Layout `my-layout`*');
     expect(md).toContain('- headline: Hi\n- items.1: a\n- items.2: b\n- n: 3');
