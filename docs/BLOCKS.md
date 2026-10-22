@@ -1269,6 +1269,8 @@ Every block may also carry `id`, `step`, `reveal`, `tone` (optional; interactive
     "entities": [
       {
         "name": "task",
+        "plural": "tasks",
+        "titleField": "title",
         "fields": [
           {
             "name": "title",
@@ -1280,8 +1282,12 @@ Every block may also carry `id`, `step`, `reveal`, `tone` (optional; interactive
     ],
     "roles": [
       {
-        "id": "member",
-        "label": "Member"
+        "name": "member",
+        "permissions": {
+          "*": [
+            "*"
+          ]
+        }
       }
     ]
   }
