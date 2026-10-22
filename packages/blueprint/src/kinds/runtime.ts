@@ -108,7 +108,8 @@ export interface KindRuntimeOptions {
 }
 
 /** Any parsed content-kind blueprint. */
-export type AnyContentBlueprint = ContentBlueprint<ContentKind>;
+/** One content blueprint of any kind (a union over kinds, not an intersection of bodies). */
+export type AnyContentBlueprint = { [K in ContentKind]: ContentBlueprint<K> }[ContentKind];
 
 /** The theme id a content blueprint opens in: its library theme, its built brand theme, or null. */
 export function kindDefaultThemeId(doc: AnyContentBlueprint): string | null {

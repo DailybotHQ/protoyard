@@ -14,6 +14,7 @@
   "dependencies": {
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/core": "workspace:*",
+    "@protoyard/decks": "workspace:*",
     "@protoyard/decks-ui": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "svelte": "^5.57.2"

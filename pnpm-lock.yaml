@@ -1924,6 +1924,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@protoyard/decks':
+        specifier: workspace:*
+        version: link:../../packages/decks
       '@protoyard/decks-ui':
         specifier: workspace:*
         version: link:../../packages/decks-ui
