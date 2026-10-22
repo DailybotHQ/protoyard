@@ -222,7 +222,7 @@ describe('unsafe links', () => {
     '//evil.example.com',
     '/\\evil.example.com',
     'https://user:pass@example.com/',
-    'https://exa‮mple.com',
+    'https://exa\u202emple.com',
     'relative/path',
     'mailto:',
   ];
@@ -309,7 +309,7 @@ describe('markup payloads', () => {
 
   it('rejects control and bidi characters, allowing newlines only where text is multiline', () => {
     expect(issues(message_([{ type: 'text', text: 'bell\u0007' }]))[0]?.message).toMatch(/control/);
-    expect(issues(message_([{ type: 'text', text: 'flip‮exe.pdf' }]))[0]?.message).toMatch(
+    expect(issues(message_([{ type: 'text', text: 'flip\u202eexe.pdf' }]))[0]?.message).toMatch(
       /bidirectional/
     );
     expect(

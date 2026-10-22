@@ -1,6 +1,12 @@
 /**
- * `@protoyard/blocks-ui/diagram` — flow, tree, board and terminal diagram blocks.
- * Reserved by T-blocks-scaffold-packages; filled by T-blocks-ui-code-diagram of
- * PLAN_005_create_anything_decks_and_kits. No runtime exports yet.
+ * `@protoyard/blocks-ui/diagram` — flow, tree, board and terminal blocks.
+ * Flow and org trees are drawn from `@protoyard/blocks/diagram` layouts (SVG
+ * connectors, HTML boxes); file trees, boards and terminals are semantic
+ * lists. Labels always stay text, and every diagram has a text alternative.
  */
-export {};
+export { default as BoardDiagram } from './BoardDiagram.svelte';
+export { default as BlockFamilyRenderer } from './DiagramFamily.svelte';
+export { default as FlowDiagram } from './FlowDiagram.svelte';
+export { default as TerminalDiagram } from './TerminalDiagram.svelte';
+export { default as TreeDiagram } from './TreeDiagram.svelte';
+export { TONE_BORDER } from './tones.ts';

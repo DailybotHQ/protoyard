@@ -9,6 +9,9 @@ components.
 > **Status:** the root dispatcher, host context and **structure** family
 > (timeline, steps, comparison, cards, icon, CTA, columns) are implemented.
 > Other family subpaths are filled by the PLAN_005 tasks named in the table.
+> **Status:** the root dispatcher, the host context and the `./code` and
+> `./diagram` families are implemented. The other family subpaths are filled
+> by the PLAN_005 tasks named in the table.
 
 ## Shape
 
@@ -44,14 +47,15 @@ setBlockHost({
 ```
 
 Call `setBlockHost` from the host component during initialization. Family
-renderers call `getBlockHost()` to read the nearest context. `density` accepts
+renderers call `getBlockHost()` to read the nearest context. The context reads
+through to the object you pass, so a `$state` host stays reactive: a deck that
+updates `host.step` moves code highlights without remounting. `density` accepts
 `compact`, `comfortable` or `spacious`; `canvasMode` is `flow` or `slide`.
 `stateHost` and `mountEmbed` are optional host capabilities. The dispatcher
 validates each input at render time, shows a skeleton while its family chunk
 loads, and renders a bounded note for malformed or unsupported blocks. It
-does not display invalid block content. Diagram models have their own schema
-and are rendered through `@protoyard/blocks-ui/diagram`; they are not a
-`Block` discriminator in this version.
+does not display invalid block content. `flow`, `tree`, `board` and
+`terminal` blocks route to `@protoyard/blocks-ui/diagram`.
 
 | Subpath | Blocks | Filled by |
 | --- | --- | --- |
@@ -179,6 +183,57 @@ See [PLAYER.md](../../docs/PLAYER.md#embedded-apps-in-decks-and-pages).
   the ui class helper, as every prototype does; 2026-10-21): the data chunk is
   4,253 B, including the chart spec schema. The charts-ui families stay
   separate lazy chunks: cartesian 11.1 KB, part-whole 9.5 KB, compact 3.4 KB.
+## Code (`./code`)
+
+`CodeBlock` renders `@protoyard/blocks/code` tokens as text spans, never HTML,
+so markup in the source stays text. The `<code>` element's text equals the
+source exactly: line numbers (`lineNumbers`) are CSS `content`, and each line
+ends with a real newline, so a copied selection matches. It also provides:
+
+- **Colors** (`CODE_TOKEN_STYLES`). Each token kind maps to a theme token that
+  reaches WCAG AA (4.5:1) on the code surface (`surface`) and on a highlighted
+  line (`muted`), in every built-in theme and mode
+  (`tests/code-contrast.test.ts`). Keywords and tags are also bold and comments
+  italic, so meaning never rests on color alone.
+- **Stepped highlights.** `highlights` holds one line spec per step. With a
+  host `step`, the block shows `highlights[step - block.step]`, clamped to the
+  first and last (`activeHighlightIndex`). Without a host step (pages, docs) it
+  shows the first step. Highlighted lines are `<mark>` elements with a primary
+  bar; other lines are never dimmed.
+- **Copy.** The button writes the exact source to the clipboard. It shows
+  "Copied" or "Copy failed" and announces the result politely.
+- **Keyboard.** The scroller (`<pre tabindex="0">`) is labelled by the file
+  name or language, so long lines are reachable from the keyboard.
+- **Lazy grammars.** Only the block's language grammar is downloaded
+  (`grammars.ts`, one chunk per language). Until it arrives, and for `text`,
+  lines show as plain text with the same content and highlights.
+
+## Diagrams (`./diagram`)
+
+| Block | Rendering | Text alternative |
+| --- | --- | --- |
+| `flow` | `layoutFlow` positions: HTML step boxes, SVG arrows, a dashed loop-back | An ordered list "Step n of N: label" (plus the loop), in a labelled, focusable scroller |
+| `tree` `org` | `layoutTree` positions: HTML boxes, SVG elbow connectors | A nested list in the same order |
+| `tree` `file-tree` | A visible nested list with folder and file icons | The list itself; folders announce their item count |
+| `board` | Columns of cards, horizontally scrollable | Each column is a section named "Title, N cards" with a list of its cards |
+| `terminal` | Prompt, output and comment lines in a code surface | An ordered list. The `$` marker is hidden from assistive tech, which hears "Command:" instead |
+
+Labels are always text: long ones clamp to two lines with the full label as a
+`title`. Tones (`TONE_BORDER`) only tint borders. The drawn layers of flows and
+org charts are `aria-hidden`, and every wide diagram scrolls inside a
+focusable region.
+
+Measured with a Vite library build (Svelte external, minified, gzip):
+
+- **`./code`:** 3.6 KB, plus the tokenizer core (1.2 KB), so 4.7 KB before
+  any grammar.
+- **Grammars:** each language adds its grammar plus 0.4 KB of shared helpers,
+  only when a block uses it. That is json 0.8, html 0.9, yaml 1.0, css 1.1,
+  python 1.1, bash 1.2, sql 1.2 and ts/js 1.5 KB. So a code block costs
+  5.5–6.2 KB in all, and ts/js is the one language past 6 KB.
+- **`./diagram`:** 5.4 KB.
+- **Icons:** neither chunk imports the icon library; their few icons are inline
+  SVG strokes.
 
 ## Icons
 

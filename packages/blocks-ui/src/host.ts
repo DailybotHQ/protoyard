@@ -42,12 +42,33 @@ const DEFAULT_BLOCK_HOST: BlockHost = Object.freeze({
   canvasMode: 'flow',
 });
 
-/** Set the render context from a host component during its initialization. */
+/**
+ * Set the render context from a host component during its initialization.
+ * The context reads through to `host`, so a `$state` host (a deck's current
+ * `step`, say) stays reactive in every block that reads it.
+ */
 export function setBlockHost(host: BlockHostOptions): void {
-  setContext(BLOCK_HOST_CONTEXT, {
-    ...DEFAULT_BLOCK_HOST,
-    ...host,
-  } satisfies BlockHost);
+  const live: BlockHost = {
+    get stateHost() {
+      return host.stateHost;
+    },
+    get mountEmbed() {
+      return host.mountEmbed;
+    },
+    get density() {
+      return host.density ?? DEFAULT_BLOCK_HOST.density;
+    },
+    get canvasMode() {
+      return host.canvasMode ?? DEFAULT_BLOCK_HOST.canvasMode;
+    },
+    get step() {
+      return host.step;
+    },
+    get documentId() {
+      return host.documentId;
+    },
+  };
+  setContext(BLOCK_HOST_CONTEXT, live);
 }
 
 /** Read the nearest host context, with safe layout defaults for static blocks. */
