@@ -48,7 +48,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 | --- | --- |
 | Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone` |
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
-| Disclosure | `Tabs`, `Accordion` |
+| Disclosure | `Tabs`, `Accordion`, `Carousel` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `ActorRow`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
 | Data | `DataTable`, `FilterBar` (+ `applyFilters`), `Pagination`, `Kanban` |
@@ -86,6 +86,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Popover` | `bind:open`, `trigger`, `side`, `align`, children |
 | `Tooltip` | `content` (string or snippet), `children` is the trigger, `side`, `delayDuration` |
 | `Tabs` | `items: { value, label, icon?, badge?, disabled? }[]`, `bind:value`, `content(item)` snippet, `variant`, `label` |
+| `Carousel` | `items: { id, label }[]`, `bind:index`, `label`, `children(item, index)` snippet, `showControls`, `showDots`, `loop`, `swipeThreshold`; region with `aria-roledescription="carousel"`, arrow keys, swipe, reduced motion |
 | `Accordion` | `items: { value, title, content?, disabled? }[]`, `type` single·multiple, `bind:value`, `content(item)` snippet, `headingLevel` |
 | `Toaster` / `toast` | see *Toasts* below |
 | `Progress` | `value` (`null` = indeterminate), `max`, `label` or `ariaLabel`, `showValue`, `tone`, `size` |

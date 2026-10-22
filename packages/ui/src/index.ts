@@ -40,6 +40,8 @@ export { default as CardFooter } from './components/card/CardFooter.svelte';
 export { default as CardHeader } from './components/card/CardHeader.svelte';
 export { default as CardTitle } from './components/card/CardTitle.svelte';
 export { default as CardGrid } from './components/card-grid/CardGrid.svelte';
+export { default as Carousel } from './components/carousel/Carousel.svelte';
+export type { CarouselItem } from './components/carousel/types.ts';
 // Collaboration
 export { default as ChatThread } from './components/chat/ChatThread.svelte';
 export { groupMessages, type MessageGroup } from './components/chat/group-messages.ts';

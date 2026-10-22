@@ -6,7 +6,11 @@
 export const CATALOG_GROUPS = [
   { id: 'forms', name: 'Forms', description: 'Inputs, choices and field wiring.' },
   { id: 'overlays', name: 'Overlays', description: 'Dialogs, menus, popovers, sheets.' },
-  { id: 'navigation', name: 'Navigation', description: 'Tabs, accordions, breadcrumbs, paging.' },
+  {
+    id: 'navigation',
+    name: 'Navigation',
+    description: 'Tabs, carousels, accordions, breadcrumbs, paging.',
+  },
   { id: 'feedback', name: 'Feedback', description: 'Toasts, progress and page states.' },
   { id: 'display', name: 'Display', description: 'Badges, avatars, cards and stats.' },
   { id: 'data', name: 'Data', description: 'Tables and boards.' },
@@ -76,6 +80,7 @@ export const CATALOG: readonly CatalogEntryMeta[] = [
   e('overlays', 'detail-panel', 'DetailPanel', 'Side sheet for record details.'),
   e('overlays', 'bottom-sheet', 'BottomSheet', 'Mobile sheet with swipe to dismiss.'),
   e('navigation', 'tabs', 'Tabs', 'Switch between views of the same context.'),
+  e('navigation', 'carousel', 'Carousel', 'Slides with dots, arrows, keys and swipe.'),
   e('navigation', 'accordion', 'Accordion', 'Progressive disclosure of sections.'),
   e('navigation', 'breadcrumb', 'Breadcrumb', 'Where am I in the hierarchy.'),
   e('navigation', 'pagination', 'Pagination', 'Numbered paging with ellipses.'),
