@@ -1,4 +1,6 @@
-@import "tailwindcss/utilities.css";
+/* Single-file app output inlines this lazy sheet after index CSS; rescan layout variants after its shared utility reset. */
+@import "@protoyard/ui/player.css";
+@import "tailwindcss/utilities.css" layer(utilities);
 @import "@protoyard/blocks-ui/styles.css";
 @import "@protoyard/decks-ui/styles.css";
 @import "@protoyard/pages-ui/styles.css";
