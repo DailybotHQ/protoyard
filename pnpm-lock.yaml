@@ -221,6 +221,9 @@ importers:
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
+      '@protoyard/decks':
+        specifier: workspace:*
+        version: link:../decks
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../renderer-svelte
@@ -405,6 +408,9 @@ importers:
 
   packages/decks:
     dependencies:
+      '@protoyard/ai':
+        specifier: workspace:*
+        version: link:../ai
       '@protoyard/blocks':
         specifier: workspace:*
         version: link:../blocks
@@ -417,6 +423,12 @@ importers:
 
   packages/decks-ui:
     dependencies:
+      '@protoyard/blocks':
+        specifier: workspace:*
+        version: link:../blocks
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../blocks-ui
       '@protoyard/decks':
         specifier: workspace:*
         version: link:../decks

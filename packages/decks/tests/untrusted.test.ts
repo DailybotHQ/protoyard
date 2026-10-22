@@ -115,10 +115,14 @@ describe('the schema enforces the layout catalog', () => {
       '$.slides[0].props.cards[0].fragment',
     ]);
     expect(paths(bad({ step: 1, reveal: 'spin' }))).toEqual(['$.slides[0].props.cards[0].reveal']);
+    // Both effects at once is reported on the marker object itself.
     expect(paths(bad({ step: 1, fragment: 'in', reveal: 'fade' }))).toEqual([
-      '$.slides[0].props.cards[0].reveal',
+      '$.slides[0].props.cards[0]',
     ]);
-    expect(paths(bad({ fragment: 'in' }))).toEqual(['$.slides[0].props.cards[0].fragment']);
+    // Without a step, `fragment` is plain content, which the strict card schema refuses.
+    const stepless = bad({ fragment: 'in' });
+    expect(paths(stepless)).toEqual(['$.slides[0].props.cards[0]']);
+    expect(stepless.issues[0]?.message).toMatch(/fragment/);
   });
 });
 

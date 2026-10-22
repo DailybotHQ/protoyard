@@ -4,11 +4,10 @@ Data-only blueprints for Protoyard ([ADR-017](../../docs/DECISIONS.md)). A `blue
 describes a product (entities, fields, relations, roles, screens) without any executable
 code. This package validates it and derives what a working prototype needs from it.
 
-Framework-agnostic: it depends on `@protoyard/core`, `@protoyard/scenarios` (generator
-helpers), `@protoyard/themes` (brand themes) and zod, and never imports Svelte (ADR-002). The
-Svelte CRUD screens live in [`@protoyard/crud`](../crud/README.md). How a blueprint becomes a
-prototype (`protoyard generate`, regeneration, drift checks) is in
-[docs/GENERATOR.md](../../docs/GENERATOR.md).
+Framework-agnostic: it uses the shared core, scenarios, themes, blocks, pages and deck schemas,
+plus zod, and never imports Svelte (ADR-002). The Svelte CRUD screens live in
+[`@protoyard/crud`](../crud/README.md). How a blueprint becomes a prototype (`protoyard generate`,
+regeneration, drift checks) is in [docs/GENERATOR.md](../../docs/GENERATOR.md).
 
 ## Modules
 
@@ -38,6 +37,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 | search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
 | identity | content sha256 and `bp-…` storage namespace (`blueprintIdentity`); every shipped blueprint's identity is frozen in `tests/fixtures/identity-golden.json` | `.` |
+| deck authoring lint | structural diagnostics for slide ids, layout props, outline order, fragments and internal links | `.` |
 
 ## The schema
 
@@ -58,7 +58,7 @@ repair hints. Its `valid` flag comes from the complete blueprint parser, includi
 checks; passing the JSON Schema shape alone does not make a blueprint valid:
 
 ```ts
-const result = validateBlueprintForAuthoring(untrustedJson);
+const result = await validateBlueprintForAuthoring(untrustedJson);
 if (!result.valid) {
   for (const diagnostic of result.diagnostics) {
     console.log(diagnostic.jsonPath, diagnostic.message, diagnostic.hint);
@@ -77,16 +77,19 @@ and `safeParseBlueprint` keep their existing behavior. The helper is in the pack
 and is tree-shakeable for consumers that do not import it.
 
 The helper validates every kind through the shared kind union (`safeParseAnyBlueprint`) and returns
-the `kind` it used. An input with no `kind` is an app (the compatibility rule), so existing app
-blueprints and their diagnostics are unchanged. A deck, page or doc runs through its strict envelope
-and body schema: its diagnostics point into the body, under `$["<kind>"]`, and keys that belong only
-to apps get a hint naming the keys that kind accepts. Problems with `kind` itself are reported on
-`$["kind"]`: `invalid-kind` (not a string) and `unknown-kind` (needs a newer Protoyard) return
-`kind: null`, and `kind-unavailable` names a known kind whose engine this build does not ship yet.
+the `kind` it used. Any-kind parsing and authoring validation are asynchronous because deck, page and
+doc body schemas load dynamically by kind. An input with no `kind` is an app (the compatibility rule),
+so existing app blueprints and their diagnostics are unchanged; an app never imports those body
+schemas. A deck, page or doc runs through its strict envelope and body schema: its diagnostics point
+into the body, under `$["<kind>"]`, and keys that belong only to apps get a hint naming the keys that
+kind accepts. Problems with `kind` itself are reported on `$["kind"]`: `invalid-kind` (not a string)
+and `unknown-kind` (needs a newer Protoyard) return `kind: null`, and `kind-unavailable` names a known
+kind whose engine this build does not ship yet.
 
 ### Page and doc bodies
 
-This build ships the `page` and `doc` bodies. The deck body is not wired yet.
+This build ships the `deck`, `page` and `doc` bodies. Each body schema is loaded only when its
+content kind is parsed.
 
 **`kind: "page"` is a single-scroll page.** It is `{ kind: "page", page: { id, title, sections, nav?, forms? } }`.
 The body is `@protoyard/pages`' `PageDocumentSchema` plus `kinds/page.ts`, which checks:
@@ -110,13 +113,32 @@ checks:
 Fixtures: `tests/fixtures/kinds/landing.page.json` and `tests/fixtures/kinds/quarterly-report.doc.json`
 (`pnpm vitest run packages/blueprint/tests/kinds/page-doc.test.ts`).
 
-**Bundle cost.** The package entry now imports `@protoyard/pages` and `@protoyard/blocks` statically.
-Measured on 2026-10-22, the player's initial JS goes from 188,442 B to 202,253 B gzip (+13.8 KB),
-inside its 250 KB budget. A generated app prototype is unchanged: cadence-studio-demo measured
-169,383 B before and 169,387 B after.
+Deck bodies validate unique slide ids, outline references, known layout ids, catalog props and
+bounded step markers. The layout catalog validates props after temporarily removing animation
+metadata; the parsed props keep `{ step, fragment }` and `{ step, reveal }` so the motion engine can
+resolve them later.
 
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
+
+## Deck structural lint
+
+`lintDeckStructure(deck)` checks an untrusted deck body without rendering it or
+changing the input. It returns `{ valid, diagnostics }`; each error has a stable
+code, severity, path segments and JSONPath. It validates against the shared
+`@protoyard/decks/schema` and layout catalog, checks outline references against
+slide order, validates fragment ordering and resolves `#/slide-id[/step]`
+links to visible slides. The API reports structural errors only; visual and
+content quality checks are handled by later deck lint rules.
+
+```ts
+import { lintDeckStructure } from '@protoyard/blueprint';
+
+const result = lintDeckStructure(deckJson);
+for (const issue of result.diagnostics) {
+  console.log(issue.code, issue.jsonPath, issue.message);
+}
+```
 
 ## Agent authoring sequence
 

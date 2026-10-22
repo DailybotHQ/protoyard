@@ -56,6 +56,12 @@ export {
   createAuditWriter,
 } from './audit.ts';
 export {
+  type DeckLintDiagnostic,
+  type DeckLintResult,
+  type DeckLintSeverity,
+  lintDeckStructure,
+} from './authoring/deck-lint.ts';
+export {
   type DeckLayoutSelection,
   type DeckLayoutSlideInput,
   propsForSelectedLayout,

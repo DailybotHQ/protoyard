@@ -1,6 +1,7 @@
 import { type Block, forEachBlock } from '@protoyard/blocks';
 import { DECK_LIMITS, type DeckSlide } from '../schema/index.ts';
-import { type FragmentEffect, isFragmentEffect, MAX_AUTHORED_STEP } from './effects.ts';
+import type { FragmentEffect } from './effects.ts';
+import { isFragmentEffect } from './effects.ts';
 
 /**
  * Steps and fragments of one slide.
@@ -12,8 +13,6 @@ import { type FragmentEffect, isFragmentEffect, MAX_AUTHORED_STEP } from './effe
  * order is always monotonic and gaps ("step": 2 then 5) never cost an empty
  * click. A fragment with step 0 is part of the slide's initial state.
  */
-
-export { FRAGMENT_EFFECTS, type FragmentEffect, isFragmentEffect } from './effects.ts';
 
 /** The block contract's `reveal` vocabulary, in fragment terms (`fade` is a plain `in`). */
 const REVEAL_EFFECT: Readonly<Record<NonNullable<Block['reveal']>, FragmentEffect>> = {
@@ -69,9 +68,7 @@ interface Raw {
 const MAX_PROP_DEPTH = DECK_LIMITS.propsDepth + 1;
 
 function validStep(value: unknown): value is number {
-  return (
-    typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MAX_AUTHORED_STEP
-  );
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 1_000;
 }
 
 function fromBlocks(blocks: readonly Block[], out: Raw[]): void {

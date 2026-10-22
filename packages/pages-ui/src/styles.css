@@ -1,3 +1,4 @@
 /* Import after Tailwind and the Protoyard theme/UI styles.
- * Family-specific print rules land under ./print in a later task. */
+ * The print rules apply only in print media (see ./print/print.css). */
+@import "./print/print.css";
 @source "./";

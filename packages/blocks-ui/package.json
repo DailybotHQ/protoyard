@@ -70,6 +70,7 @@
     "@protoyard/blocks": "workspace:*",
     "@protoyard/charts-ui": "workspace:*",
     "@protoyard/core": "workspace:*",
+    "@protoyard/decks": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/ui": "workspace:*",
     "@protoyard/views-ui": "workspace:*"

@@ -19,13 +19,17 @@ function deck(slides: unknown[]): Deck {
 }
 
 /**
- * A draft the schema would refuse (unknown layout, bad props): the static
- * checks also run on drafts an editor holds before they parse, so their
- * structure rules are tested on raw input.
+ * A structurally invalid fixture the deck schema now refuses (catalog layout ids and props are
+ * enforced by DeckSchema). Lint still checks unvalidated input as a second line of defense, so these
+ * fixtures bypass the schema; each test also proves the schema rejects them at the same path.
  */
-function draft(slides: unknown[]): Deck {
-  expect(safeParseDeck({ style: {}, slides }).success).toBe(false);
+function rawDeck(slides: unknown[]): Deck {
   return { style: {}, slides } as unknown as Deck;
+}
+
+function schemaRejectsAt(slides: unknown[], jsonPath: string): void {
+  const result = safeParseDeck({ style: {}, slides });
+  expect(result.issues.map((issue) => issue.jsonPath)).toContain(jsonPath);
 }
 
 const notes = (topic: string) =>
@@ -132,7 +136,8 @@ describe('deck quality: the good fixture passes', () => {
 
 describe('deck quality: each rule flags its bad fixture at the right path', () => {
   it('unknown-layout (error)', () => {
-    const report = checkDeckStatic(draft([slide('a', 'mystery-layout', {})]));
+    schemaRejectsAt([slide('a', 'mystery-layout', {})], '$.slides[0].layout');
+    const report = checkDeckStatic(rawDeck([slide('a', 'mystery-layout', {})]));
     expect(only(report.issues, 'unknown-layout')).toMatchObject([
       { severity: 'error', slideId: 'a', jsonPath: '$.slides[0].layout' },
     ]);
@@ -140,8 +145,12 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
   });
 
   it('layout-props (error): missing fields and over-limit arrays', () => {
+    schemaRejectsAt(
+      [slide('stat', 'big-stat', { label: 'no number' })],
+      '$.slides[0].props.number'
+    );
     const report = checkDeckStatic(
-      draft([
+      rawDeck([
         slide('stat', 'big-stat', { label: 'no number' }),
         slide('steps', 'process-steps', {
           steps: Array.from({ length: 6 }, (_, i) => ({ title: `Step ${i + 1}` })),
@@ -345,7 +354,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
 
   it('checks hidden slides for structure but not for notes, words or repetition', () => {
     const report = checkDeckStatic(
-      draft([
+      rawDeck([
         { id: 'h1', layout: 'mystery', props: {}, hidden: true },
         {
           id: 'h2',
@@ -386,7 +395,7 @@ describe('deck quality: each rule flags its bad fixture at the right path', () =
   it('counts errors and warnings and keeps ok true with warnings only', () => {
     const report = checkDeckStatic(deck([slide('a', 'big-stat', STAT, { notes: 'short' })]));
     expect(report).toMatchObject({ ok: true, errors: 0, warnings: 1 });
-    const failing = checkDeckStatic(draft([slide('a', 'nope', {}, { notes: 'short' })]));
+    const failing = checkDeckStatic(rawDeck([slide('a', 'nope', {}, { notes: 'short' })]));
     expect(failing).toMatchObject({ ok: false, errors: 1, warnings: 1 });
   });
 });

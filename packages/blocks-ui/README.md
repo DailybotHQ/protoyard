@@ -6,9 +6,12 @@ Svelte 5 renderers for Protoyard's shared content blocks
 levels (the player and generated prototypes), render blocks with these same
 components.
 
-> **Status:** the root dispatcher, host context and **structure** family
-> (timeline, steps, comparison, cards, icon, CTA, columns) are implemented.
+> **Status:** the root dispatcher, host context, **structure**, **data**,
+> **text/media**, **interactive** and **map** family subpaths are implemented.
 > Other family subpaths are filled by the PLAN_005 tasks named in the table.
+> **Status:** the root dispatcher, the host context and the `./code` and
+> `./diagram` families are implemented. The other family subpaths are filled
+> by the PLAN_005 tasks named in the table.
 
 ## Shape
 
@@ -34,9 +37,16 @@ import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
 setBlockHost({
   stateHost: createMemoryBlockStateHost(),
   documentId: 'quarterly-review',
+  viewerId: 'persona-ada',
   density: 'comfortable',
   canvasMode: 'slide',
   step: 0,
+  onCtaAction: async ({ href }) => {
+    /* structure CTAs */
+  },
+  mountEmbed: (target, app) => {
+    /* embed-app after Start the app */
+  },
 });
 </script>
 
@@ -44,28 +54,34 @@ setBlockHost({
 ```
 
 Call `setBlockHost` from the host component during initialization. Family
-renderers call `getBlockHost()` to read the nearest context. `density` accepts
+renderers call `getBlockHost()` to read the nearest context. The context reads
+through to the object you pass, so a `$state` host stays reactive: a deck that
+updates `host.step` moves code highlights without remounting. `density` accepts
 `compact`, `comfortable` or `spacious`; `canvasMode` is `flow` or `slide`.
 `stateHost` and `mountEmbed` are optional host capabilities. The dispatcher
 validates each input at render time, shows a skeleton while its family chunk
 loads, and renders a bounded note for malformed or unsupported blocks. It
-does not display invalid block content. Diagram models have their own schema
-and are rendered through `@protoyard/blocks-ui/diagram`; they are not a
-`Block` discriminator in this version.
+does not display invalid block content. `flow`, `tree`, `board` and
+`terminal` blocks route to `@protoyard/blocks-ui/diagram`.
+`stateHost`, `viewerId`, `onCtaAction` and `mountEmbed` are optional host
+capabilities. The dispatcher validates each input at render time, shows a
+skeleton while its family chunk loads, and renders a bounded note for
+malformed or unsupported blocks. It does not display invalid block content.
+Diagram models have their own schema and are rendered through
+`@protoyard/blocks-ui/diagram`; they are not a `Block` discriminator in this
+version.
 
 | Subpath | Blocks | Filled by |
 | --- | --- | --- |
 | `.` | `BlockRenderer` dispatcher and host context | T-blocks-ui-renderer-core |
-| `./text` | Heading, rich text, list, quote, callout, divider | T-blocks-ui-text-media |
-| `./media` | Image, video, people (avatars) | T-blocks-ui-text-media |
-| `./data` | Stat/KPI row, table, chart (charts-ui) | T-blocks-ui-data |
-| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | **done** (this package) |
+| `./text` | Heading, rich text, list, quote, callout, divider | T-blocks-ui-text-media (done) |
+| `./media` | Image, video, people (avatars) | T-blocks-ui-text-media (done) |
 | `./data` | Stat/KPI row, table, chart (charts-ui) | T-blocks-ui-data (done) |
-| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | T-blocks-ui-structure |
+| `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | T-blocks-ui-structure (done) |
 | `./code` | Code with stepped highlights | T-blocks-ui-code-diagram |
 | `./diagram` | Flow, tree, board, terminal | T-blocks-ui-code-diagram |
-| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart controls | T-blocks-ui-interactive |
-| `./map` | Map on the offline simulated map (views-ui/map) | T-blocks-ui-interactive |
+| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart-controls, form | **done** (T-blocks-ui-interactive) |
+| `./map` | Map on the offline simulated map (views-ui/map, lazy) | **done** (T-blocks-ui-interactive) |
 | `./embed` | embed-app framed preview; `mountEmbed` only after **Start the app** | T-blocks-ui-embed-app |
 | `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | this scaffold |
 
@@ -82,6 +98,7 @@ Video is muted, inline and controlled; autoplay is disabled when the user
 prefers reduced motion. Loaded media bubbles a `blocks:media-ready` event for
 hosts that need to recalculate layout. People and `avatar:` media use the
 renderer avatar URL helper.
+
 ## Structure family (`./structure`)
 
 Lazy chunk for timeline, steps, comparison, cards, icon, CTA and columns:
@@ -106,6 +123,42 @@ setBlockHost({
 ```
 
 Covered by `packages/blocks-ui/tests/structure.test.ts`.
+
+## Interactive family (`./interactive`)
+
+Every change goes through `stateHost.dispatch` (a promise so `Button` can show
+pending). blocks-ui never imports `@protoyard/database` or Dexie. Roots carry
+`data-py-deck-interactive` (`DECK_INTERACTIVE_ATTRIBUTE` from `@protoyard/decks`)
+so a click or swipe inside never advances a deck.
+
+```svelte
+<script lang="ts">
+import { BlockRenderer, setBlockHost } from '@protoyard/blocks-ui';
+import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
+
+setBlockHost({
+  stateHost: createMemoryBlockStateHost(),
+  documentId: 'quarterly-review',
+  viewerId: 'persona-ada',
+});
+</script>
+
+<BlockRenderer blocks={slide.blocks} />
+```
+
+| Block | Notes |
+| --- | --- |
+| `poll` | Vote / clear; Progress bars for shares; live region announces results |
+| `quiz` | Deterministic shuffle; Correct/Not quite text (not color alone) |
+| `calculator` | Sliders with `aria-valuetext` (units); formula outputs; optional chart |
+| `counter` | Increment / decrement / reset |
+| `tabs` / `reveal` | Dispatch select/toggle; nested blocks via the family dispatcher |
+| `chart-controls` | Kind switch, series toggle, label range; charts-ui lazy |
+| `form` | Honest placeholder — responses belong to the pages form runtime |
+
+Map blocks load `@protoyard/views-ui/map` only from `./map` (not from the
+interactive chunk) and also set `data-py-deck-interactive`.
+
 ## Embed-app (`./embed`)
 
 An `embed-app` block is a framed level-1 app preview. The family chunk is small
@@ -144,6 +197,7 @@ setBlockHost({ canvasMode: 'slide', mountEmbed });
 
 Coordinate `MountEmbed` with KINDS (`loadUntrustedBlueprint` + level-1 mount).
 See [PLAYER.md](../../docs/PLAYER.md#embedded-apps-in-decks-and-pages).
+
 ## Data family (`./data`)
 
 `BlockFamilyRenderer` routes `stat`, `table` and `chart` blocks. `StatBlock`,
@@ -179,6 +233,57 @@ See [PLAYER.md](../../docs/PLAYER.md#embedded-apps-in-decks-and-pages).
   the ui class helper, as every prototype does; 2026-10-21): the data chunk is
   4,253 B, including the chart spec schema. The charts-ui families stay
   separate lazy chunks: cartesian 11.1 KB, part-whole 9.5 KB, compact 3.4 KB.
+## Code (`./code`)
+
+`CodeBlock` renders `@protoyard/blocks/code` tokens as text spans, never HTML,
+so markup in the source stays text. The `<code>` element's text equals the
+source exactly: line numbers (`lineNumbers`) are CSS `content`, and each line
+ends with a real newline, so a copied selection matches. It also provides:
+
+- **Colors** (`CODE_TOKEN_STYLES`). Each token kind maps to a theme token that
+  reaches WCAG AA (4.5:1) on the code surface (`surface`) and on a highlighted
+  line (`muted`), in every built-in theme and mode
+  (`tests/code-contrast.test.ts`). Keywords and tags are also bold and comments
+  italic, so meaning never rests on color alone.
+- **Stepped highlights.** `highlights` holds one line spec per step. With a
+  host `step`, the block shows `highlights[step - block.step]`, clamped to the
+  first and last (`activeHighlightIndex`). Without a host step (pages, docs) it
+  shows the first step. Highlighted lines are `<mark>` elements with a primary
+  bar; other lines are never dimmed.
+- **Copy.** The button writes the exact source to the clipboard. It shows
+  "Copied" or "Copy failed" and announces the result politely.
+- **Keyboard.** The scroller (`<pre tabindex="0">`) is labelled by the file
+  name or language, so long lines are reachable from the keyboard.
+- **Lazy grammars.** Only the block's language grammar is downloaded
+  (`grammars.ts`, one chunk per language). Until it arrives, and for `text`,
+  lines show as plain text with the same content and highlights.
+
+## Diagrams (`./diagram`)
+
+| Block | Rendering | Text alternative |
+| --- | --- | --- |
+| `flow` | `layoutFlow` positions: HTML step boxes, SVG arrows, a dashed loop-back | An ordered list "Step n of N: label" (plus the loop), in a labelled, focusable scroller |
+| `tree` `org` | `layoutTree` positions: HTML boxes, SVG elbow connectors | A nested list in the same order |
+| `tree` `file-tree` | A visible nested list with folder and file icons | The list itself; folders announce their item count |
+| `board` | Columns of cards, horizontally scrollable | Each column is a section named "Title, N cards" with a list of its cards |
+| `terminal` | Prompt, output and comment lines in a code surface | An ordered list. The `$` marker is hidden from assistive tech, which hears "Command:" instead |
+
+Labels are always text: long ones clamp to two lines with the full label as a
+`title`. Tones (`TONE_BORDER`) only tint borders. The drawn layers of flows and
+org charts are `aria-hidden`, and every wide diagram scrolls inside a
+focusable region.
+
+Measured with a Vite library build (Svelte external, minified, gzip):
+
+- **`./code`:** 3.6 KB, plus the tokenizer core (1.2 KB), so 4.7 KB before
+  any grammar.
+- **Grammars:** each language adds its grammar plus 0.4 KB of shared helpers,
+  only when a block uses it. That is json 0.8, html 0.9, yaml 1.0, css 1.1,
+  python 1.1, bash 1.2, sql 1.2 and ts/js 1.5 KB. So a code block costs
+  5.5–6.2 KB in all, and ts/js is the one language past 6 KB.
+- **`./diagram`:** 5.4 KB.
+- **Icons:** neither chunk imports the icon library; their few icons are inline
+  SVG strokes.
 
 ## Icons
 

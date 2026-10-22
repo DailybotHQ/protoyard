@@ -1,7 +1,5 @@
 import type { z } from 'zod';
-import { DocBodySchema } from './doc.ts';
 import type { ContentKind } from './kind.ts';
-import { PageBodySchema } from './page.ts';
 
 /**
  * Body schemas of the content kinds, one per kind, supplied by their engine
@@ -12,17 +10,22 @@ import { PageBodySchema } from './page.ts';
  * Wiring a kind is a static entry in `SHIPPED`, never runtime registration,
  * so untrusted input can never be validated against a schema someone injected.
  */
-const SHIPPED: Partial<Record<ContentKind, z.ZodType>> = {
-  page: PageBodySchema,
-  doc: DocBodySchema,
-};
-
 /** Test-only overrides (see `kinds/testing.ts`); empty outside Vitest. */
 const overrides = new Map<ContentKind, z.ZodType>();
 
-/** The body schema for a content kind, or undefined when this build does not ship it. */
-export function kindBodySchema(kind: ContentKind): z.ZodType | undefined {
-  return overrides.get(kind) ?? SHIPPED[kind];
+/** Load only the requested kind body, keeping all content schemas off the app path. */
+export async function kindBodySchema(kind: ContentKind): Promise<z.ZodType | undefined> {
+  const override = overrides.get(kind);
+  if (override) return override;
+
+  switch (kind) {
+    case 'deck':
+      return (await import('./deck.ts')).DeckBodySchema;
+    case 'page':
+      return (await import('./page.ts')).PageBodySchema;
+    case 'doc':
+      return (await import('./doc.ts')).DocBodySchema;
+  }
 }
 
 /** @internal Used only by `kinds/testing.ts`. */

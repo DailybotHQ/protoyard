@@ -48,7 +48,9 @@ export type BlueprintAuthoringValidation = {
  * Block and media failures map to stable codes (unknown block type, chart
  * specs, alt text, URL schemes, step/fragment targets) with the original path.
  */
-export function validateBlueprintForAuthoring(input: unknown): BlueprintAuthoringValidation {
+export async function validateBlueprintForAuthoring(
+  input: unknown
+): Promise<BlueprintAuthoringValidation> {
   const detected = detectBlueprintKind(input);
   if (!detected.ok) {
     return {
@@ -58,7 +60,7 @@ export function validateBlueprintForAuthoring(input: unknown): BlueprintAuthorin
     };
   }
   const kind = detected.kind;
-  const result = safeParseAnyBlueprint(input);
+  const result = await safeParseAnyBlueprint(input);
   if (result.success) return { valid: true, kind, diagnostics: [] };
 
   return {

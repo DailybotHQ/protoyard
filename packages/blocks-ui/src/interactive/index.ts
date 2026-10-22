@@ -1,6 +1,9 @@
 /**
- * `@protoyard/blocks-ui/interactive` — poll, quiz, calculator, tabs/reveal, counter and chart-controls blocks.
- * Reserved by T-blocks-scaffold-packages; filled by T-blocks-ui-interactive of
- * PLAN_005_create_anything_decks_and_kits. No runtime exports yet.
+ * `@protoyard/blocks-ui/interactive` — poll, quiz, calculator, tabs/reveal,
+ * counter, chart-controls and form blocks. State changes go only through
+ * BlockStateHost.dispatch (never the database package or Dexie).
  */
-export {};
+
+export { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
+export { default as BlockFamilyRenderer } from './BlockFamilyRenderer.svelte';
+export { formatUnitValue } from './format.ts';

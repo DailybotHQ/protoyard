@@ -1,0 +1,25 @@
+export const LAYOUT_FAMILIES = {
+  'title-hero': 'text',
+  'section-divider': 'text',
+  'two-column-split': 'text',
+  'three-column-cards': 'text',
+  'image-left': 'media',
+  'image-right': 'media',
+  'image-centered': 'media',
+  'image-full-bleed': 'media',
+  quote: 'text',
+  'code-with-callout': 'diagram',
+  'big-stat': 'data',
+  'comparison-table': 'data',
+  'process-steps': 'diagram',
+  timeline: 'diagram',
+  'team-avatars': 'media',
+  'closing-cta': 'text',
+  'video-centered': 'media',
+  'video-left': 'media',
+  'video-right': 'media',
+  chart: 'data',
+  free: 'diagram',
+} as const;
+
+export type LayoutFamily = (typeof LAYOUT_FAMILIES)[keyof typeof LAYOUT_FAMILIES];

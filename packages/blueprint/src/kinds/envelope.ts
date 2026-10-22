@@ -1,3 +1,4 @@
+import type { Deck } from '@protoyard/decks/schema';
 import type { DocDocument, PageDocument } from '@protoyard/pages';
 import { z } from 'zod';
 import { BLUEPRINT_BASE_SHAPE, type Blueprint, BlueprintSchema } from '../schema.ts';
@@ -11,8 +12,10 @@ import { type BlueprintKind, type ContentKind, detectBlueprintKind } from './kin
  * stays app-only, so every consumer that reads `.entities` keeps its type.
  *
  * A content blueprint is strict: the shared root keys plus `kind` and one body
- * key named after the kind. App-only keys (entities, roles, screens, layout,
- * archetype, notifications, history, validation) are rejected there.
+ * key named after the kind. Content schemas load through a kind-specific
+ * dynamic import; app parsing never loads deck, page, or doc validators.
+ * App-only keys (entities, roles, screens, layout, archetype, notifications,
+ * history, validation) are rejected there.
  */
 
 const BlueprintBaseSchema = z.strictObject(BLUEPRINT_BASE_SHAPE);
@@ -20,12 +23,10 @@ const BlueprintBaseSchema = z.strictObject(BLUEPRINT_BASE_SHAPE);
 export type BlueprintBase = z.output<typeof BlueprintBaseSchema>;
 
 /**
- * The parsed body of each content kind. The deck stays `unknown` until
- * `@protoyard/decks/schema` is wired in; page and doc come from
- * `@protoyard/pages` (`kinds/page.ts`, `kinds/doc.ts`).
+ * The parsed body of each content kind, as defined by its engine package.
  */
 export interface KindBodies {
-  deck: unknown;
+  deck: Deck;
   page: PageDocument;
   doc: DocDocument;
 }
@@ -59,12 +60,14 @@ function failure(message: string, input: unknown): z.ZodSafeParseResult<AnyBluep
 }
 
 /** Validates any kind of blueprint. Never throws; an unknown kind fails on `kind`. */
-export function safeParseAnyBlueprint(input: unknown): z.ZodSafeParseResult<AnyBlueprint> {
+export async function safeParseAnyBlueprint(
+  input: unknown
+): Promise<z.ZodSafeParseResult<AnyBlueprint>> {
   const detected = detectBlueprintKind(input);
   const kind = (input as { kind?: unknown } | null)?.kind;
   if (!detected.ok) return failure(detected.message, kind);
   if (detected.kind === 'app') return BlueprintSchema.safeParse(input);
-  const body = kindBodySchema(detected.kind);
+  const body = await kindBodySchema(detected.kind);
   if (!body) {
     return failure(
       `Blueprint kind "${detected.kind}" is not available in this build of Protoyard yet.`,
@@ -77,8 +80,8 @@ export function safeParseAnyBlueprint(input: unknown): z.ZodSafeParseResult<AnyB
 }
 
 /** Validates any kind of blueprint; throws a `ZodError` on failure. */
-export function parseAnyBlueprint(input: unknown): AnyBlueprint {
-  const result = safeParseAnyBlueprint(input);
+export async function parseAnyBlueprint(input: unknown): Promise<AnyBlueprint> {
+  const result = await safeParseAnyBlueprint(input);
   if (!result.success) throw result.error;
   return result.data;
 }

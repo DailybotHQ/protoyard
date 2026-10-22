@@ -1,0 +1,101 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: print overrides must beat utility classes and inline styles on screen-first markup. */
+/*
+ * Print styles for page and doc kinds (`@protoyard/pages-ui/print`).
+ *
+ * Every rule sits inside `@media print`, so the stylesheet costs nothing on
+ * screen. It applies to the PageHost and DocHost roots (`data-py-page-host`,
+ * `data-py-doc-host`) and to any host root that opts in with the
+ * `py-print-root` class. Deck slide-per-page printing lives in decks-ui.
+ *
+ * - Chrome that is not content does not print: DevTools, the demo badge,
+ *   toasts and other fixed overlays, the progress bar, review comments, page
+ *   and doc navigation, the TOC, skip links, the print button itself and
+ *   anything marked `data-py-print-hide`.
+ * - External links print their address after the text.
+ * - Cards, figures, tables, code and quotes avoid breaking across pages;
+ *   headings stay with what follows.
+ * - Paper gets white background, dark text and @page margins.
+ */
+@media print {
+  @page {
+    margin: 16mm 14mm 18mm;
+  }
+
+  /* Chrome outside the document. */
+  .py-devtools,
+  [data-py-demo-badge],
+  [data-py-review-toolbar],
+  [data-py-review-overlay],
+  [data-py-review-pin],
+  [role="progressbar"],
+  [data-py-print-hide],
+  [data-py-print-button] {
+    display: none !important;
+  }
+
+  /* Fixed overlays (toasts, floating panels) would repeat on every sheet. */
+  body .fixed {
+    display: none !important;
+  }
+
+  /* Paper colors: the document prints dark on white whatever the theme. */
+  html,
+  body,
+  [data-py-page-host],
+  [data-py-doc-host],
+  .py-print-root {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  :is([data-py-page-host], [data-py-doc-host], .py-print-root) * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Navigation and the table of contents are for screens. */
+  :is([data-py-page-host], [data-py-doc-host], .py-print-root)
+  :is([data-py-page-nav], .docs-layout__navigation, .docs-layout__toc, nav) {
+    display: none !important;
+  }
+
+  /* The content takes the full sheet once the side columns are gone. */
+  :is([data-py-page-host], [data-py-doc-host], .py-print-root) .docs-layout__grid {
+    display: block !important;
+  }
+
+  :is([data-py-page-host], [data-py-doc-host], .py-print-root) :is(.sticky, header) {
+    position: static !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Keep the destination of external links on paper. */
+  :is([data-py-page-host], [data-py-doc-host], .py-print-root)
+  a[href^="http"]:not(:has(img))::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    font-weight: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Blocks that read badly when split. */
+  :is([data-py-page-host], [data-py-doc-host], .py-print-root)
+  :is([data-py-block], figure, table, pre, blockquote, img, svg, li) {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  :is([data-py-page-host], [data-py-doc-host], .py-print-root) :is(h1, h2, h3, h4) {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Scroll regions print their whole content. */
+  :is([data-py-page-host], [data-py-doc-host], .py-print-root)
+  :is(.overflow-auto, .overflow-x-auto, .overflow-y-auto) {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+}
