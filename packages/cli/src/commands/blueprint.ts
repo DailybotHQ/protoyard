@@ -5,10 +5,11 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 import {
+  type AppBriefResult,
   ARCHETYPE_IDS,
-  type BriefResult,
   blueprintFromBrief,
   brandLibraryThemeId,
+  isAppBriefResult,
   latestSchemaVersion,
   MAX_BRIEF_LENGTH,
   safeParseBlueprint,
@@ -332,13 +333,24 @@ export const blueprintNewCommand: Handler = async (ctx, args, options): Promise<
   }
   if (brief.trim() === '') throw new CliError('usage', 'The brief is empty.');
 
-  let result: BriefResult;
+  let result: AppBriefResult;
   try {
-    result = blueprintFromBrief(brief, {
+    const synthesized = blueprintFromBrief(brief, {
       ...(archetype ? { archetype } : {}),
       ...(name ? { name } : {}),
     });
+    if (!isAppBriefResult(synthesized)) {
+      throw new CliError(
+        'validation',
+        `This brief looks like a ${synthesized.kind}, and generate still expects an app blueprint.`,
+        {
+          hint: `Pass an app brief, or force an app with kind "app" once the CLI accepts --kind. Detector: ${synthesized.kindDetection.reason}`,
+        }
+      );
+    }
+    result = synthesized;
   } catch (error) {
+    if (error instanceof CliError) throw error;
     throw new CliError('validation', `Could not build a blueprint: ${(error as Error).message}`);
   }
   const ref = schemaRef(ctx.root, target);
