@@ -10,12 +10,15 @@ import {
 import { copyFile, mkdir } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { detectBlueprintKind, isBlueprintKind } from '@protoyard/blueprint';
+import { CatalogSchema } from '@protoyard/core';
 import { ReviewCommentSchema } from '@protoyard/core/review';
 
 const VIRTUAL_ID = 'virtual:protoyard-registry';
 const RESOLVED_ID = `\0${VIRTUAL_ID}`;
 const THUMBNAIL_DIR = 'thumbnails';
 const THUMBNAIL_MAX_BYTES = 2 * 1024 * 1024;
+const BLUEPRINT_MAX_BYTES = 256 * 1024;
 const REVIEW_COMMENTS_MAX_BYTES = 5 * 1024 * 1024;
 /**
  * Raster formats only: an SVG opened directly from the gallery origin can run
@@ -45,18 +48,29 @@ export function readRegistry(registryPath) {
       // Slugs become page routes and file names: drop entries that could
       // escape (e.g. slug "../../x") instead of trusting the file.
       const workspaceRoot = dirname(dirname(registryPath));
-      const entries = parsed.entries.filter(
-        (/** @type {Record<string, unknown>} */ e) =>
-          e &&
-          typeof e.slug === 'string' &&
-          SLUG_PATTERN.test(e.slug) &&
-          KINDS.has(/** @type {string} */ (e.kind)) &&
-          typeof e.path === 'string' &&
-          !isAbsolute(e.path) &&
-          !e.path.split(/[\\/]/).includes('..')
-      );
+      const entries = [];
+      const issues = [];
+      for (const [index, raw] of parsed.entries.entries()) {
+        const result = validateRegistryEntry(workspaceRoot, raw);
+        if (result.entry) entries.push(result.entry);
+        else issues.push({ path: getDiagnosticPath(raw, index), errors: [result.error] });
+      }
+      const invalid = [...(Array.isArray(parsed.invalid) ? parsed.invalid : []), ...issues];
+      const stats = parsed.stats && typeof parsed.stats === 'object' ? parsed.stats : {};
       return {
-        registry: { ...parsed, entries: attachReviewCounts(workspaceRoot, entries) },
+        registry: {
+          ...parsed,
+          entries: attachReviewCounts(workspaceRoot, entries),
+          invalid,
+          stats: {
+            ...stats,
+            total: entries.length,
+            prototypes: entries.filter((entry) => entry.kind === 'prototype').length,
+            templates: entries.filter((entry) => entry.kind === 'template').length,
+            blueprints: entries.filter((entry) => entry.kind === 'blueprint').length,
+            invalid: invalid.length,
+          },
+        },
         error: null,
       };
     }
@@ -130,6 +144,134 @@ const SLUG_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const KINDS = new Set(['prototype', 'template', 'blueprint']);
 /** Kinds whose folder may publish a thumbnail (a blueprint's path is a JSON file, not a folder). */
 const THUMBNAIL_KINDS = new Set(['prototype', 'template']);
+
+/** @param {unknown} raw @param {number} index */
+function getDiagnosticPath(raw, index) {
+  const entry =
+    raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : null;
+  return entry && typeof entry.path === 'string' ? entry.path : `entries[${index}]`;
+}
+
+/** @param {string} workspaceRoot @param {unknown} raw */
+function validateRegistryEntry(workspaceRoot, raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { entry: null, error: 'Registry entry must be an object.' };
+  }
+  const entry = /** @type {Record<string, unknown>} */ (raw);
+  if (typeof entry.slug !== 'string' || !SLUG_PATTERN.test(entry.slug)) {
+    return { entry: null, error: 'Registry entry has an unsafe or invalid slug.' };
+  }
+  if (typeof entry.kind !== 'string' || !KINDS.has(entry.kind)) {
+    return { entry: null, error: 'Registry entry has an unsupported source kind.' };
+  }
+  if (
+    typeof entry.path !== 'string' ||
+    isAbsolute(entry.path) ||
+    entry.path.split(/[\\/]/).includes('..')
+  ) {
+    return { entry: null, error: 'Registry entry has an unsafe source path.' };
+  }
+
+  if (entry.kind === 'blueprint') {
+    const result = readCatalogBlueprint(workspaceRoot, entry);
+    if (!result.ok) return { entry: null, error: result.error };
+    return { entry: { ...entry, blueprintKind: result.kind }, error: null };
+  }
+
+  if (entry.blueprintKind !== undefined && !isBlueprintKind(entry.blueprintKind)) {
+    return { entry: null, error: 'Registry entry has an unsupported blueprintKind.' };
+  }
+  return { entry, error: null };
+}
+
+/** @param {string} workspaceRoot @param {Record<string, unknown>} entry */
+function readCatalogBlueprint(workspaceRoot, entry) {
+  const sourcePath = /** @type {string} */ (entry.path);
+  if (
+    !sourcePath.startsWith('blueprints/') ||
+    !sourcePath.endsWith('.json') ||
+    sourcePath.includes('\\')
+  ) {
+    return {
+      ok: false,
+      error: 'Blueprint source path must be a workspace-relative blueprints/*.json path.',
+    };
+  }
+  const filename = sourcePath.split('/').at(-1);
+  if (filename !== `${entry.slug}.json`) {
+    return { ok: false, error: 'Blueprint source file name does not match its registry slug.' };
+  }
+  const root = resolve(workspaceRoot);
+  const source = resolve(root, sourcePath);
+  if (!contains(root, source) || source === root) {
+    return { ok: false, error: 'Blueprint source path escapes the workspace.' };
+  }
+
+  let raw;
+  try {
+    const realRoot = realpathSync.native(root);
+    const parts = relative(root, source).split(sep);
+    let current = root;
+    for (const part of parts) {
+      current = join(current, part);
+      if (lstatSync(current).isSymbolicLink()) {
+        return { ok: false, error: 'Blueprint source path contains a symlink.' };
+      }
+    }
+    const realSource = realpathSync.native(source);
+    if (!contains(realRoot, realSource)) {
+      return { ok: false, error: 'Blueprint source path resolves outside the workspace.' };
+    }
+    const stat = statSync(realSource);
+    if (!stat.isFile()) return { ok: false, error: 'Blueprint source is not a regular file.' };
+    if (stat.size > BLUEPRINT_MAX_BYTES) {
+      return {
+        ok: false,
+        error: `Blueprint source exceeds the ${BLUEPRINT_MAX_BYTES}-byte limit.`,
+      };
+    }
+    raw = JSON.parse(readFileSync(realSource, 'utf8'));
+  } catch (error) {
+    return {
+      ok: false,
+      error: `Blueprint source could not be read safely (${/** @type {Error} */ (error).message}).`,
+    };
+  }
+
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { ok: false, error: 'Blueprint source must contain a JSON object.' };
+  }
+  const kind = detectBlueprintKind(raw);
+  if (!kind.ok) return { ok: false, error: kind.message };
+  if (entry.blueprintKind !== undefined && entry.blueprintKind !== kind.kind) {
+    return { ok: false, error: 'Registry blueprintKind does not match the blueprint source.' };
+  }
+  const catalog = CatalogSchema.safeParse(raw.catalog);
+  if (!catalog.success) {
+    return { ok: false, error: 'Blueprint catalog metadata is missing or invalid.' };
+  }
+  if (!entry.catalog || typeof entry.catalog !== 'object' || Array.isArray(entry.catalog)) {
+    return { ok: false, error: 'Registry blueprint is missing catalog metadata.' };
+  }
+  const registryCatalog = /** @type {Record<string, unknown>} */ (entry.catalog);
+  const registryCatalogResult = CatalogSchema.safeParse({
+    category: registryCatalog.category,
+    ...(typeof registryCatalog.productType === 'string'
+      ? { productType: registryCatalog.productType }
+      : {}),
+    platforms: registryCatalog.platforms,
+    ...(typeof registryCatalog.shell === 'string' ? { shell: registryCatalog.shell } : {}),
+    features: registryCatalog.features,
+    highlights: registryCatalog.highlights,
+    ...(typeof registryCatalog.difficulty === 'string'
+      ? { difficulty: registryCatalog.difficulty }
+      : {}),
+  });
+  if (!registryCatalogResult.success) {
+    return { ok: false, error: 'Registry catalog metadata is invalid.' };
+  }
+  return { ok: true, kind: kind.kind };
+}
 
 /**
  * @param {string} parent
@@ -287,7 +429,11 @@ export function protoyardRegistry(options) {
         updateConfig({ vite: { plugins: [vitePlugin] } });
       },
       'astro:build:done': async ({ dir, logger }) => {
-        const list = [...thumbnails().values()];
+        const { registry } = readRegistry(registryPath);
+        for (const issue of registry?.invalid ?? []) {
+          logger.warn(`Omitted registry record ${issue.path}: ${issue.errors.join(' ')}`);
+        }
+        const list = [...resolveThumbnails(workspaceRoot, registry?.entries ?? []).values()];
         if (list.length === 0) return;
         const target = join(fileURLToPath(dir), THUMBNAIL_DIR);
         await mkdir(target, { recursive: true });
