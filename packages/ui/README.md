@@ -384,7 +384,9 @@ drawers, `auto` up to 85% for top and bottom ones), so a size can never inject o
 is **non-modal by default**: the page behind stays usable, outside clicks do not close it, and it
 only owns Escape. With `modal`, it dims the page, traps focus and locks scroll, and outside clicks
 close it (`closeOnOutsideClick` overrides either default). Like `Dialog`, it portals into the device
-screen when a shell frames the prototype.
+screen when a shell frames the prototype. If that screen is detached, the portal target is cleared
+and Bits UI falls back to `document.body`. The shared Vitest setup resets portal and toast state,
+plus local and session storage, after each test.
 
 Every `Drawer` registers with the shared `overlayStack`:
 
