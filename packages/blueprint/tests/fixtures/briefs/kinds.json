@@ -30,7 +30,7 @@
     "expect": {
       "kind": "deck",
       "confidence": "high",
-      "outline": "generic",
+      "outline": "pitch",
       "minSlides": 3,
       "hasEntities": false,
       "hasRoles": false
@@ -43,7 +43,7 @@
     "expect": {
       "kind": "deck",
       "confidence": "high",
-      "outline": "generic",
+      "outline": "talk",
       "minSlides": 3,
       "hasEntities": false,
       "hasRoles": false
@@ -116,11 +116,13 @@
   {
     "id": "conflict-explicit-deck",
     "brief": "A CRM app that tracks deals and contacts.",
-    "options": { "kind": "deck" },
+    "options": {
+      "kind": "deck"
+    },
     "expect": {
       "kind": "deck",
       "confidence": "explicit",
-      "outline": "generic",
+      "outline": "talk",
       "minSlides": 3,
       "hasEntities": false,
       "hasRoles": false
@@ -129,7 +131,9 @@
   {
     "id": "conflict-explicit-app",
     "brief": "A pitch deck of slides about our roadmap.",
-    "options": { "kind": "app" },
+    "options": {
+      "kind": "app"
+    },
     "expect": {
       "kind": "app",
       "confidence": "explicit",
@@ -140,7 +144,9 @@
   {
     "id": "conflict-explicit-page",
     "brief": "Track invoices and customers in a dashboard app.",
-    "options": { "kind": "page" },
+    "options": {
+      "kind": "page"
+    },
     "expect": {
       "kind": "page",
       "confidence": "explicit",
@@ -152,7 +158,9 @@
   {
     "id": "conflict-explicit-doc",
     "brief": "A marketing landing page with hero and pricing.",
-    "options": { "kind": "doc" },
+    "options": {
+      "kind": "doc"
+    },
     "expect": {
       "kind": "doc",
       "confidence": "explicit",

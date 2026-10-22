@@ -22,6 +22,7 @@ describe('@protoyard/blueprint package', () => {
     const allowed = [
       '@protoyard/blocks',
       '@protoyard/core',
+      '@protoyard/decks',
       '@protoyard/pages',
       '@protoyard/scenarios',
       '@protoyard/themes',
