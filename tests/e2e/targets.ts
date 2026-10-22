@@ -19,6 +19,41 @@ export const PEBBLESTAT_DEMO = 'pebblestat-analytics-demo';
 /** PLAN_003 artifact-pack browser harness target. */
 export const ARTIFACT_PACK_TARGET = 'relay-chat-demo';
 
+/** Authored examples exercised through the hosted player's four content-kind entries. */
+export const SHOWCASE_KIND_TARGETS = [
+  {
+    kind: 'app',
+    path: 'blueprints/quick/analytics.json',
+    root: 'main',
+    heading: 'Metrics',
+  },
+  {
+    kind: 'deck',
+    path: 'blueprints/decks/cedar-training.json',
+    root: '[data-py-deck-app]',
+    heading: 'Cedar Desk training',
+    nextSlide: 'agenda',
+  },
+  {
+    kind: 'page',
+    path: 'blueprints/pages/tidewater-roasters-landing.json',
+    root: '[data-py-page-app]',
+    heading: 'Fresh beans at your door every two weeks',
+  },
+  {
+    kind: 'doc',
+    path: 'blueprints/docs/northwind-quarterly-report.json',
+    root: '[data-py-doc-app]',
+    heading: 'Northwind support quarterly report',
+  },
+] as const;
+
+export type ShowcaseKindTarget = (typeof SHOWCASE_KIND_TARGETS)[number];
+
+export function readShowcaseKindBlueprint(target: ShowcaseKindTarget): string {
+  return readFileSync(join(process.cwd(), target.path), 'utf8');
+}
+
 /** First prototype port (default 4401). Override for private verification servers. */
 const PROTOTYPE_PORT_BASE = Number(process.env.PROTOYARD_E2E_PROTOTYPE_PORT_BASE ?? 4401);
 

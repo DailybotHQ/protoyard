@@ -161,7 +161,7 @@ const CONTENT_BLUEPRINT_TYPES = {
 /** Validated kind blueprint module. parseAnyBlueprint loads only its body schema. */
 function contentBlueprintModule(kind: keyof typeof CONTENT_BLUEPRINT_TYPES): string {
   const typeName = CONTENT_BLUEPRINT_TYPES[kind];
-  return `import { parseAnyBlueprint, type ${typeName} } from '@protoyard/blueprint';
+  return `import { type ${typeName}, parseAnyBlueprint } from '@protoyard/blueprint';
 import blueprintJson from '../../blueprint.json';
 
 const parsed = await parseAnyBlueprint(blueprintJson);
@@ -179,10 +179,10 @@ function contentRuntimeModule(kind: keyof typeof CONTENT_BLUEPRINT_TYPES): strin
   const typeName = CONTENT_BLUEPRINT_TYPES[kind];
   const bodyExport = kind === 'page' ? 'pageDocument' : kind === 'doc' ? 'docDocument' : null;
   return `import type { ${typeName} } from '@protoyard/blueprint';
-import { defineKindRuntime, type AnyContentBlueprint } from '@protoyard/blueprint/kinds';
+import { type AnyContentBlueprint, defineKindRuntime } from '@protoyard/blueprint/kinds';
 import { parseManifest } from '@protoyard/core';
-import { blueprint } from './generated/blueprint.ts';
 import manifestJson from '../protoyard.json';
+import { blueprint } from './generated/blueprint.ts';
 
 const manifest = parseManifest(manifestJson);
 const contentBlueprint = blueprint as ${typeName};
