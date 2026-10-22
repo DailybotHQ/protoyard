@@ -18,8 +18,9 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
 
 describe('@protoyard/analytics-ui scaffold', () => {
   it('exposes one subpath export per view plus styles', () => {
+    // ./player.css: the narrow stylesheet the prebuilt player imports (package-owned scan).
     expect(Object.keys(pkg.exports).sort()).toEqual(
-      ['.', './styles.css', ...ANALYTICS_VIEWS.map((view) => `./${view}`)].sort()
+      ['.', './styles.css', './player.css', ...ANALYTICS_VIEWS.map((view) => `./${view}`)].sort()
     );
   });
 
