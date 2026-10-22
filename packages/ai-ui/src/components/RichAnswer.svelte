@@ -63,7 +63,12 @@ function sourceFor(id: string) {
             <span>{block.lang || 'code'}</span>
             {#if !block.closed}<span role="status">Streaming</span>{/if}
           </div>
-          <pre class="overflow-x-auto p-3 text-xs leading-5"><code>{block.text}</code></pre>
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -- scrollable code; keyboard users must reach it (WCAG 2.1.1 / axe scrollable-region-focusable). -->
+          <pre
+            tabindex="0"
+            aria-label={`${block.lang || 'code'} code`}
+            class="overflow-x-auto p-3 text-xs leading-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          ><code>{block.text}</code></pre>
         </div>
       {:else if block.type === 'chart'}
         {#snippet chartStatus(text: string)}<p role="status" class="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">{text}</p>{/snippet}

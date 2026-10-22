@@ -69,7 +69,12 @@ const external = (href: string) => /^https?:/i.test(href);
     {:else if block.type === 'heading'}
       <svelte:element this={`h${Math.min(6, block.level + 1)}`} class="font-semibold">{@render inline(block.children)}</svelte:element>
     {:else if block.type === 'code'}
-      <pre class="overflow-x-auto rounded-md border border-border bg-muted/60 p-3 text-xs"><code>{block.text}</code></pre>
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -- scrollable code fence; keyboard users must reach it (WCAG 2.1.1 / axe scrollable-region-focusable). -->
+      <pre
+        tabindex="0"
+        aria-label="Code block"
+        class="overflow-x-auto rounded-md border border-border bg-muted/60 p-3 text-xs focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+      ><code>{block.text}</code></pre>
     {:else if block.type === 'list'}
       <svelte:element this={block.ordered ? 'ol' : 'ul'} class={cn('space-y-1 pl-6', block.ordered ? 'list-decimal' : 'list-disc')} start={block.ordered ? block.start : undefined}>
         {#each block.items as item, j (j)}
