@@ -75,7 +75,7 @@ fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
 | data | `stat` | `items` 1–6 (`value`, `label`, `delta`, `deltaTone`, `context`, `trend` 2–60 numbers), `source` |
 | data | `table` | `caption` (required), `columns` 1–8 (`format` text/number/percent/cents), `rows` ≤ 50 with one typed cell per column, `currency`, `highlightRow` |
 | data | `chart` | `spec` (`ChartSpecSchema`: line, area, bar, donut, pie, funnel; ≤ 366 points, ≤ 8 series), `height`, `showTable` |
-| code | `code` | `code` ≤ 20,000 characters and 400 lines, `lang` ts/js/json/bash/python/html/css/sql/text, `highlights` ≤ 16 steps like `"1-2,4"` |
+| code | `code` | `code` ≤ 20,000 characters and 400 lines, `lang` ts/js/json/bash/python/html/css/sql/yaml/text, `highlights` ≤ 16 steps like `"1-2,4"` |
 | structure | `timeline` | `events` 2–12 (`time`, `title`, `body`, `icon`, `tone`), `orientation` |
 | structure | `steps` | `items` 2–8 (`title`, `body`, `icon`), `numbered` |
 | structure | `comparison` | `columns` 2–4 (`label`, `highlight`), `rows` 1–8 with one text or boolean per column |
@@ -113,7 +113,7 @@ fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
 | --- | --- | --- |
 | `./formula` | Closed JSON-AST formulas for calculator blocks; see [Formulas](#formulas-protoyardblocksformula) | done |
 | `./interactive` | Pure reducers and the `BlockStateHost` contract | T-blocks-interactive-reducers |
-| `./code` | Tiny code tokenizer with stepped line highlights | T-blocks-code-tokenizer |
+| `./code` | Tiny code tokenizer with stepped line highlights; see [Code](#code-protoyardblockscode) | done |
 | `./diagram` | Flow, tree, board and terminal layout math | T-blocks-diagram-models |
 | `./catalog` | `BLOCK_CATALOG` authoring metadata (use-when, limits, examples) | T-blocks-catalog |
 
@@ -180,6 +180,54 @@ if (parsed.success) {
   node is never mistaken for a promise.
 - **Size:** 3.1 KB gzip minified for the whole subpath with zod external. The
   evaluator and formatter alone are 1.4 KB.
+
+## Code (`@protoyard/blocks/code`)
+
+Code blocks are highlighted by a tiny pure-TypeScript tokenizer. It replaces a
+303 KB highlight.js, and nothing loads from a CDN.
+
+```ts
+import { resolveHighlightSteps, splitTokenLines, tokenizeCode } from '@protoyard/blocks/code';
+
+const lines = splitTokenLines(tokenizeCode('const a = 1;', 'ts'));
+// [[{ kind: 'keyword', text: 'const' }, { kind: 'plain', text: ' a ' }, …]]
+resolveHighlightSteps(['1-2,4', [[3, 5]]], 4); // [[1, 2, 4], [3, 4]]
+```
+
+- **Languages:** `ts`, `js`, `json` (JSONC comments allowed), `bash`, `python`,
+  `html`, `css`, `sql` and `yaml`. Aliases such as `typescript`, `tsx`, `sh`,
+  `zsh`, `py`, `yml` and `postgres` resolve with `resolveCodeLanguage`. Any
+  other language, including `text`, is one plain token.
+- **Output:** `{ kind, text }` tokens, where `kind` is one of
+  `CODE_TOKEN_KINDS`: plain, keyword, string, number, comment, operator,
+  punctuation, function, type, property, constant, variable, tag and attr.
+  Adjacent tokens of one kind are merged, and the token texts always
+  concatenate back to the input. Renderers map kinds to theme-token classes
+  and print text; tokens are never HTML.
+- **Linear time:** each grammar is a few states of sticky regex rules,
+  compiled into one alternation per state, so there is one `exec` per position.
+  - An opening delimiter always matches: an unterminated string ends at its
+    line, and an unterminated block comment, template literal or triple-quoted
+    string at the end of the input. No position is scanned twice.
+  - Keywords are set lookups after a word match.
+  - The only lookahead that could scan far (CSS nested rules) is bounded to
+    200 characters.
+  - Tests time 20 KB pathological inputs, such as runs of `"\`, `/*`, `${`
+    and `a{`, in every grammar. The budget is 50 ms; the measured worst
+    median is about 7 ms on a heavily loaded machine.
+- **Cap:** the first 20,000 characters are tokenized
+  (`CODE_TOKENIZE_MAX_LENGTH`), and the rest is one plain token.
+- **Highlight steps:** `resolveHighlightSteps(steps, lineCount)` accepts the
+  schema's `"1-2,4"` specs or `[[1, 2], 4]` lists. It returns sorted, unique
+  lines clamped to the code, and a malformed step highlights nothing.
+- **Limits:**
+  - Grammars are honest approximations, not parsers.
+  - JS regex literals are not detected.
+  - `${…}` stays inside its template string.
+  - HTML does not re-tokenize `<script>` or `<style>` bodies.
+  - Nested CSS blocks return to the selector state after an inner `}`.
+- **Size:** 4.4 KB gzip minified for all nine grammars. One grammar with
+  `tokenize` imported directly (for example `typescriptGrammar`) is 2.1 KB.
 
 ## Package output
 
