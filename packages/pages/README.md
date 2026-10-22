@@ -24,6 +24,9 @@ validates the **payload bodies** after that parse.
 | --- | --- |
 | `PageDocumentSchema` | Landing/marketing: meta, `sections[]` of blocks, optional `nav` and `forms` |
 | `DocDocumentSchema` | Continuous flow: meta, `blocks[]`, optional `toc` and `print` |
+| `FormResponseSchema` | Bounded persisted values keyed by a form field name |
+| `FORM_RESPONSES_TABLE` / `FORM_RESPONSES_STORE_STRING` | Ordinary IndexedDB feature table name and Dexie indexes |
+| `PAGE_FEATURE_TABLES` / `PAGE_FEATURE_STORE_STRINGS` | Feature descriptors for the page/doc runtime |
 | `PAGE_DOCUMENT_LIMITS` | Document caps (sections ≤ 32, blocks/section ≤ 24, doc blocks ≤ 200, …) |
 | `safeParsePageDocument` / `safeParseDocDocument` | Never-throw helpers |
 
@@ -41,6 +44,13 @@ Shared meta: `id`, `title`, optional `description` and `style` (theme preset id)
 Section `blocks` and doc `blocks` use `@protoyard/blocks` `BlockSchema`. Form
 *block* schema stays in blocks; `page.forms` only lists form block ids for the
 responses UI.
+
+`FormResponseSchema` stores a row `{ id, formId, createdAt, values }` where
+`createdAt` is an ISO datetime and `values` contains only bounded strings,
+finite numbers, booleans or bounded string arrays. Unsafe keys and unknown row
+fields are rejected. The values object is capped at 8 KiB and 32 entries.
+Responses use the non-reserved `formResponses` table with indexes
+`id, formId, createdAt, [formId+createdAt]` so snapshots include them.
 
 Unknown keys fail. Over-limit arrays fail. Section ids, anchors, nav fragments
 and form refs are cross-checked.
