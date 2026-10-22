@@ -50,6 +50,8 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Player ready-time bench by kind (report-only; no threshold) | `pnpm --filter @protoyard/player build && pnpm exec tsx scripts/bench-player.ts --runs 3 --kinds app,deck,page,doc` (writes `tmp/bench-player-*.json`) | scoped |
 | Player bench helpers (unit) | `pnpm vitest run scripts/tests/bench-player.test.ts` | scoped |
 | Brief synthesis by kind (report-only) | `pnpm exec tsx scripts/bench-brief-kinds.ts --runs 3` (writes `tmp/bench-brief-kinds-*.json`) | scoped |
+| Brief-kinds bench helpers (unit) | `pnpm vitest run tests/scripts/bench-brief-kinds.test.ts` | scoped |
+| Block family chunk bench | `pnpm exec tsx scripts/bench-blocks.ts --check` + `pnpm vitest run tests/scripts/bench-blocks.test.ts` | scoped |
 | Package tarball consumer loop (pnpm) | `pnpm build:packages && pnpm verify:packages` | full |
 | Package tarball consumer loop (npm) | `pnpm build:packages && pnpm verify:packages --pm npm` | full |
 | Package tarball lint (every publishable package must pass) | `pnpm build:packages && pnpm check:packages --require-all` | full |
@@ -85,7 +87,6 @@ All commands run from the repository root. Labels: **full** runs everything;
 | Visual sweep logic (matrix, flags, PNG decode, contact sheet) | `pnpm vitest run tests/scripts/visual-sweep.test.ts` | scoped |
 | Deck visual QA sweep (unit) | `pnpm vitest run scripts/tests/deck-sweep.test.ts` | scoped |
 | Deck visual QA sweep (browser fixture; private loopback port) | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` (writes `tmp/deck-sweep/`; optional `--port`) | scoped |
-| Deck visual QA sweep (browser fixture) | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` | scoped |
 | Interaction / dead-control sweep | `PROTOYARD_E2E_DECK=1 pnpm exec playwright test tests/e2e/interaction-sweep.spec.ts` | scoped |
 | Thumbnails stay deterministic | `pnpm exec tsx scripts/generate-thumbnails.ts crm-demo --check` | scoped |
 
@@ -187,25 +188,25 @@ A command that exits 0 after selecting nothing is not evidence. Check the
 | Source | Tests | Layer |
 | --- | --- | --- |
 | `packages/<pkg>/src/**` | `packages/<pkg>/tests/*.test.ts` | unit / integration |
-| `packages/blocks/src/**`, `packages/blocks-ui/src/**` | `pnpm vitest run packages/blocks packages/blocks-ui` (`chart-paths.test.ts`, `timeline-layout.test.ts`, `security.test.ts`, `a11y-themes.test.ts`) + `npx tsx scripts/blocks-reference.ts --check` | unit + render + generated reference |
+| `packages/blocks/src/**`, `packages/blocks-ui/src/**` | `pnpm vitest run packages/blocks packages/blocks-ui` (`chart-paths.test.ts`, `timeline-layout.test.ts`, `security.test.ts`, `a11y-themes.test.ts`) + `npx tsx scripts/blocks-reference.ts --check` + `pnpm vitest run tests/scripts/blocks-reference.test.ts` | unit + render + generated reference |
 | `packages/decks/src/**`, `packages/decks-ui/src/**` | `pnpm vitest run packages/decks packages/decks-ui` (`style-apply.test.ts`, `layout-design.test.ts`, `budget.test.ts`, `presenter.test.ts`) + `PROTOYARD_E2E_DECK=1 pnpm exec playwright test deck-navigation deck-presenter interaction-sweep` | unit + render + opt-in browser |
 | `packages/pages/src/**`, `packages/pages-ui/src/**` | `pnpm vitest run packages/pages packages/pages-ui` (`page-design.test.ts`, `doc-design.test.ts`, `budget.test.ts`) | unit + render + bundle |
 | `packages/flows/src/**`, `packages/flows-ui/src/**`, `packages/gamification/src/**`, `packages/gamification-ui/src/**` | `pnpm vitest run packages/flows packages/flows-ui packages/gamification packages/gamification-ui` | unit + render |
 | `packages/blueprint/src/kinds/**` (kind union, untrusted loader, share links, `kinds/parse`) | `pnpm vitest run packages/blueprint/tests/kinds packages/blueprint/tests/identity-golden.test.ts packages/player/tests/kinds-parity.test.ts` | unit + both-level parity |
-| `packages/cli/src/lib/codegen/{emit,regenerate}.ts` (content kinds), `templates/{deck,page,doc}/**` | `pnpm vitest run packages/cli/tests/generate-kinds.test.ts packages/cli/tests/embed-level2.test.ts templates/deck templates/page templates/doc` | CLI integration (generation, drift, lint-clean output, embedded apps) |
+| `packages/cli/src/lib/codegen/{emit,regenerate}.ts` (content kinds), `templates/{deck,page,doc,design-kit}/**` | `pnpm vitest run packages/cli/tests/generate-kinds.test.ts packages/cli/tests/embed-level2.test.ts packages/cli/tests/content-templates.test.ts templates/deck templates/page templates/doc templates/design-kit` | CLI integration (generation, drift, lint-clean output, embedded apps) |
 | `packages/player/src/**` (kind routing and entries) | `pnpm --filter @protoyard/player build && pnpm vitest run packages/player` (`kind-entries`, `kind-budget`, `kinds-security`, `budget`) | integration + bundle + security |
 | `packages/cli/src/lib/quick/**` (kinds, single file) | `pnpm vitest run packages/cli/tests/quick packages/cli/tests/quick.test.ts` | CLI integration |
 | `blueprints/{decks,pages,docs}/**` | `pnpm vitest run packages/blueprint/tests/deck-catalog.test.ts packages/blueprint/tests/page-doc-catalog.test.ts packages/blueprint/tests/catalog-docs.test.ts packages/blueprint/tests/kinds/share-kinds.test.ts` | catalog validation, docs and share-link fit |
 | `skills/protoyard/**` (deck path) | `pnpm check:skill` + `pnpm vitest run packages/cli/tests/skill-deck-path.test.ts` | skill integrity and routing |
 | `packages/{decks-ui,pages-ui,blocks-ui}/src/**`, `packages/player/src/{app.css,entries/**}` (accessibility) | `pnpm exec playwright test tests/e2e/content-kinds-a11y.spec.ts tests/e2e/deck-presenter.spec.ts` (every deck slide, the page and the doc under axe in light and dark, desktop and phone) | browser a11y E2E |
 | `tests/e2e/{showcase,marketplace,deck-artifact,artifact-pack}.spec.ts` | `PROTOYARD_E2E_SHOWCASE=1 pnpm exec playwright test tests/e2e/showcase.spec.ts`; `pnpm exec playwright test tests/e2e/marketplace.spec.ts tests/e2e/deck-artifact.spec.ts tests/e2e/artifact-pack.spec.ts` | browser E2E (hosted player kinds, marketplace kinds, artifact harness) |
-| `packages/runtime/src/**` | `packages/runtime/tests/runtime.test.ts`, which uses the fixture `tests/fixtures/tasks-prototype.ts` | integration on fake IndexedDB |
+| `packages/runtime/src/**` | `packages/runtime/tests/runtime.test.ts`, which uses the fixture `packages/runtime/tests/fixtures/tasks-prototype.ts` | integration on fake IndexedDB |
 | `packages/cli/src/**` | `packages/cli/tests/*.test.ts` (temporary workspaces) | integration |
 | `scripts/verify-packages.ts` | `packages/cli/tests/verify-packages.test.ts` + `pnpm verify:packages` (pnpm and npm) | packed consumer integration |
 | `packages/cli/src/commands/publish.ts`, publish batch helpers | `publish.test.ts`, `publish-batch.test.ts` | integration; batch command row above |
 | `packages/cli/src/lib/publish-ledger.ts` | `publish-ledger.test.ts`; ledger consumers in `publish-batch.test.ts` and `review-index.test.ts` | ledger persistence and consumers |
 | `packages/cli/src/commands/review-index.ts` | `review-index.test.ts` + `tests/e2e/review-index.spec.ts` | CLI integration + opt-in browser E2E |
-| `packages/review/src/**` | `packages/review/tests/*.test.ts` (every adapter runs `tests/conformance.ts`; `server-validate.test.ts` keeps the worker validator in parity with the zod schema) | unit / integration |
+| `packages/review/src/**` | `packages/review/tests/*.test.ts` (every adapter runs `packages/review/tests/conformance.ts`; `server-validate.test.ts` keeps the worker validator in parity with the zod schema) | unit / integration |
 | `packages/review-ui/src/**` | `packages/review-ui/tests/*.test.ts` + `tests/e2e/review-comments.spec.ts` | happy-dom unit + browser E2E (anchoring, frames, focus, capture) |
 | `packages/cli/src/commands/comments.ts`, `publish --comments` | `comments-command.test.ts`, `publish-comments.test.ts` | CLI integration; worker bundle size, routes and a KV round trip in Node |
 | `packages/cli/src/commands/ci.ts` | `ci-init.test.ts` | workflow init, drift and integrity checks |
@@ -384,8 +385,8 @@ These run in the ordinary Vitest job. Dist-dependent rows skip cleanly when
 
 ### Opt-in browser and static-host checks
 
-These need a private Playwright config in a lane (COMMON.md ports), or the
-root config with the env flags below. They are **not** part of a bare
+These need the root Playwright config with the env flags below, or a private
+copy of it with moved ports. They are **not** part of a bare
 `pnpm test`. CI's E2E job turns showcase on; deck and artifact specs are
 selected by path or by their own harness.
 
@@ -399,8 +400,8 @@ selected by path or by their own harness.
 | Deck visual QA sweep | Private loopback port (ephemeral or `--port`); never gallery 4321 / 4500 / 4501 | `pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json` |
 | Prototype visual sweep | Review contact sheet; not a pixel gate | `pnpm visual:sweep --only <slug…>` |
 
-Lane runs copy `playwright.config.ts` to a private file and move ports to the
-lane range (flex lane L uses `493x`). Never kill shared gallery ports.
+Parallel runs copy `playwright.config.ts` to a private file and move ports.
+Never kill shared gallery ports.
 
 ### Report-only performance samples
 
@@ -521,7 +522,7 @@ exits 1; flags and axe findings never fail it. `--templates` adds every
 template demo, served from the showcase build (`pnpm build:showcase`, run
 unless `--skip-build`). `--concurrency N` (default 2) sets parallel shots.
 
-Measured 2026-10-19 on the lane-D machine (Apple M1 Max) under heavy
+Measured 2026-10-19 on one Apple M1 Max under heavy
 parallel load (load average about 150):
 
 | Run | Shots | Time |
@@ -529,9 +530,9 @@ parallel load (load average about 150):
 | `--only mobile-banking-demo,crm-demo` (2 builds, axe on) | 18 | 51.4 s |
 | `--only crm-demo --skip-build --no-axe --concurrency 3 --compare …` | 10 | 17.0 s, 0 changed pixels against the first run |
 
-Without `--only`, the 15 prototypes make 310 shots and `--templates` adds
-534 for the 27 templates (the sweep's own `buildMatrix` over the manifests,
-counted on 2026-10-20: every applicable shell × the manifest layouts ×
+Without `--only`, on 2026-10-20 (15 prototypes, 27 templates; there are now
+16 and 31), the prototypes made 310 shots and `--templates` added 534 (the
+sweep's own `buildMatrix` over the manifests: every applicable shell × the manifest layouts ×
 light/dark on desktop, plus the manifest shell × layouts × light/dark on the
 phone; `--themes a,b` multiplies these). A full run has not been timed yet.
 

@@ -403,6 +403,9 @@ pnpm vitest run scripts/tests/deck-sweep.test.ts
 # Browser sweep — private loopback port (ephemeral unless --port)
 pnpm exec tsx scripts/sweep-deck.ts --blueprint blueprints/decks/example.json
 pnpm exec tsx scripts/sweep-deck.ts --out tmp/deck-sweep --viewport 1280x720
+
+# Plan only: list the visits and write sweep.json and index.html, no browser
+pnpm exec tsx scripts/sweep-deck.ts --dry-run --out tmp/deck-sweep
 ```
 
 **What it does**

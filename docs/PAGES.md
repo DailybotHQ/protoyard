@@ -80,9 +80,23 @@ family on demand. Unknown or unavailable block types show a safe message;
 page and doc content is never inserted with raw HTML.
 
 Page sections may have roles `hero`, `body`, `footer`, `cta`, `features`,
-`pricing` or `faq`. The current host gives special placement to `hero` and
-`footer`; other roles render in the normal section flow. A missing nav is
-derived from section titles and ids. The v1 page is a single scroll with hash
+`pricing` or `faq`. `PageHost` decides each section's layout in
+`packages/pages-ui/src/page/design.ts`:
+
+- `hero`, or a first role-less section that opens with a level-1 heading,
+  becomes the hero at the display scale.
+- `cta`, or a closing role-less section made of a CTA and short copy, becomes
+  a primary-colored band.
+- `footer` goes to the page footer.
+- A `pricing` role, or a pricing-like id or anchor (`plans`, `pricing`,
+  `tiers`), renders its cards as plan columns with one plan emphasized.
+- Plain stat rows, numbered steps and quotes get page-specific rows. `features`,
+  `faq` and every other block render in the normal body flow on alternating
+  backgrounds.
+
+A missing nav links every body section by its title or opening heading, never
+the hero, band or footer, and falls back to humanized ids only when no section
+has a label. The v1 page is a single scroll with hash
 anchors. Multi-route marketing sites belong in a generated level-2 app or a
 later pages version.
 
@@ -171,11 +185,12 @@ to 500. Individual block and form-field schemas have their own limits. Use
 `checkFormResponseLimits` before accepting untrusted JSON at an application
 boundary; then parse with the corresponding document or blueprint schema.
 
-The configured provisional player entry ceilings are 150 KB initial JS gzip
-and 30 KB CSS gzip for each of page and doc. There is no measured page/doc
-player entry in this revision because those entries are not wired yet. See
-[Performance](PERFORMANCE.md#versioned-budgets) for the active budget contract
-and the evidence recorded when the entry build is added.
+The player's `page.html` and `doc.html` entries have ceilings of 150 KB
+initial JS gzip and 30 KB CSS gzip each (`protoyard.budgets.json` `kinds`),
+enforced by `packages/player/tests/kind-budget.test.ts`; `budget.test.ts` adds
+a tighter 125 KB regression cap. Both measure about 122 KB of initial JS
+(2026-10-22). See [Performance](PERFORMANCE.md#versioned-budgets) for the
+budget contract and the current measurements.
 
 ## Packages and development
 
