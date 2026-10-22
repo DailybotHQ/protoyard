@@ -440,8 +440,10 @@ carry over. Measured sizes are in
 **Limits.**
 - The picker's bundled demo is an app, so on a kind page it leads to that
   link.
-- Nothing links to the kind pages yet: the gallery, `/play/` and share links
-  still open `index.html`, which runs every kind.
+- The hosted `/play/` route validates pasted JSON and share fragments with
+  `loadUntrustedDocument`, then opens the matching entry (`index.html`,
+  `deck.html`, `page.html` or `doc.html`). The `?embedder=` value remains the
+  gallery's exact origin so the player bridge accepts only its host page.
 
 ### Deck Studio in the player
 
