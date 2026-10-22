@@ -76,9 +76,6 @@ const LAZY_MODULES: [string, RegExp][] = [
   ['analytics kit', /\/analytics-ui\/src\//],
   ['views kit', /\/views-ui\/src\//],
   ['blueprint world generator', /\/blueprint\/src\/generator/],
-  ['deck body schema', /\/blueprint\/src\/kinds\/deck\.ts$/],
-  ['page body schema', /\/blueprint\/src\/kinds\/page\.ts$/],
-  ['doc body schema', /\/blueprint\/src\/kinds\/doc\.ts$/],
   ['main-thread generation fallback', /\/worker\/generate-world-core/],
 ];
 
@@ -146,6 +143,31 @@ describe.skipIf(!built)(
         expect(initial.has(key), key).toBe(false);
         expect(classes.initialJs, key).not.toContain(manifest[key]?.file);
       }
+    });
+
+    it('keeps the content-kind body schemas off the app path (lazy or not bundled at all)', () => {
+      // An app blueprint never pays for decks, pages or docs: their body schemas
+      // load through `kindBodySchema(kind)` only for content kinds. Until the
+      // player routes kinds they may be absent from the build; never initial.
+      const kinds = Object.keys(manifest).filter((key) =>
+        /\/blueprint\/src\/kinds\/(deck|page|doc)\.ts$|\/(decks|pages)\/src\//.test(key)
+      );
+      for (const key of kinds) expect(initial.has(key), key).toBe(false);
+      const initialCode = classes.initialJs
+        .map((file) => readFileSync(join(DIST, file), 'utf8'))
+        .join('\n');
+      // Literal messages unique to each schema (they survive minification).
+      expect(initialCode.includes('block ids must be unique'), 'the page body schema').toBe(false);
+      expect(initialCode.includes('lists headings of level 2'), 'the doc body schema').toBe(false);
+      expect(initialCode.includes('Opening cover: title, subtitle'), 'the deck layout catalog').toBe(false);
+      expect(initialCode.includes('A step marker may set fragment'), 'the deck schema').toBe(false);
+    });
+
+    it('keeps the app path at or under its pre-kinds initial size (188 KB measured)', () => {
+      // Measured 2026-10-21: 188,442 B before the kind bodies, 202,253 B after
+      // wiring them statically, 115.9 KB once the player imported only
+      // `parseBlueprint` from the blueprint barrel (docs/PERFORMANCE.md).
+      expect(sum(classes.initialJs) / KB).toBeLessThanOrEqual(190);
     });
 
     it('ships no Faker data or worker reference in initial JS', () => {

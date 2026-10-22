@@ -44,8 +44,8 @@ const ISSUE_CODES: readonly UntrustedBlueprintIssue['code'][] = [
 /** The loader's catch-all message: seeing it means an internal error was swallowed. */
 const CATCH_ALL = 'Blueprint could not be safely loaded.';
 // biome-ignore lint/suspicious/noControlCharactersInRegex: the point is to detect them.
-const CONTROL_OR_BIDI = /[\u0000-\u001f\u007f-\u009f؜‎‏‪-‮⁦-⁩﻿]/;
-const NASTY_CHARS = ['\u0000', '\u0007', '\u001b', '\u007f', '\u0085', '‮', '⁦', '‏', '﻿', '\n', '\t'];
+const CONTROL_OR_BIDI = /[\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]/;
+const NASTY_CHARS = ['\u0000', '\u0007', '\u001b', '\u007f', '\u0085', '\u202e', '\u2066', '\u200f', '\ufeff', '\n', '\t'];
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 type Container = Json[] | { [key: string]: Json };
@@ -183,13 +183,13 @@ function mutateText(text: string, rng: Rng): { kind: string; input: string } {
       return { kind: 'truncate', input: text.slice(0, rng.int(0, text.length - 1)) };
     case 1: {
       // An own `__proto__` or `constructor` key, as a crafted link would carry.
-      const key = rng.pick(['__proto__', 'constructor', '__pro‎to__']);
+      const key = rng.pick(['__proto__', 'constructor', '__pro\u200eto__']);
       return { kind: 'unsafe-key', input: text.replace(/^\{/, `{"${key}":{"polluted":true},`) };
     }
     case 2:
       return { kind: 'deep-text', input: `${'['.repeat(rng.pick([33, 5_000]))}${']'.repeat(10)}` };
     case 3:
-      return { kind: 'bom-and-padding', input: `﻿  ${text}\n\n` };
+      return { kind: 'bom-and-padding', input: `\ufeff  ${text}\n\n` };
     case 4: {
       const at = rng.int(0, text.length);
       return {
@@ -331,8 +331,8 @@ describe('untrusted loader fuzzing', () => {
     const raw = JSON.parse(CATALOG[0]!) as { name: string; description?: string };
     const result = loadUntrustedBlueprint({
       ...raw,
-      name: `Ac‮me\u0000 ${raw.name}`,
-      description: 'Line⁦ one',
+      name: `Ac\u202eme\u0000 ${raw.name}`,
+      description: 'Line\u2066 one',
     });
     expect(result.success).toBe(true);
     if (result.success) {

@@ -222,6 +222,10 @@ export {
   unknownKindMessage,
 } from './kinds/kind.ts';
 export {
+  DEFAULT_UNTRUSTED_DOCUMENT_LIMITS,
+  type UntrustedDocumentLimits,
+} from './kinds/limits.ts';
+export {
   appendMigration,
   applyUpgradeOps,
   type BlueprintMigration,
@@ -339,9 +343,12 @@ export {
 } from './services.ts';
 export {
   blueprintShareFragment,
+  type DocumentShareDecodeResult,
   decodeBlueprintShare,
+  decodeDocumentShare,
   encodeBlueprintShare,
   MAX_SHARE_DECODED_BYTES,
+  MAX_SHARE_DOCUMENT_DECODED_BYTES,
   MAX_SHARE_ENCODED_LENGTH,
   readBlueprintShareFragment,
   SHARE_FRAGMENT_PARAM,
@@ -364,9 +371,11 @@ export {
 export {
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
   loadUntrustedBlueprint,
+  loadUntrustedDocument,
   type UntrustedBlueprintIssue,
   type UntrustedBlueprintLimits,
   type UntrustedBlueprintResult,
+  type UntrustedDocumentResult,
 } from './untrusted.ts';
 export {
   deriveInputSchemas,

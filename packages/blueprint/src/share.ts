@@ -1,8 +1,11 @@
 import { canonicalJson } from './identity.ts';
+import type { AnyBlueprint } from './kinds/envelope.ts';
+import { DEFAULT_UNTRUSTED_DOCUMENT_LIMITS } from './kinds/limits.ts';
 import type { Blueprint } from './schema.ts';
 import {
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
   loadUntrustedBlueprint,
+  loadUntrustedDocument,
   type UntrustedBlueprintIssue,
 } from './untrusted.ts';
 
@@ -24,6 +27,8 @@ export const SHARE_FRAGMENT_PARAM = 'bp';
 export const MAX_SHARE_ENCODED_LENGTH = 16 * 1024;
 /** Decompression stops past this many bytes: the untrusted loader's input cap. */
 export const MAX_SHARE_DECODED_BYTES = DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS.maxBytes;
+/** The same cap for links to any kind (`decodeDocumentShare`): the document loader's input cap. */
+export const MAX_SHARE_DOCUMENT_DECODED_BYTES = DEFAULT_UNTRUSTED_DOCUMENT_LIMITS.maxBytes;
 
 const PREFIX = `${SHARE_LINK_VERSION}.`;
 const BASE64URL = /^[A-Za-z0-9_-]*$/;
@@ -57,6 +62,10 @@ export type ShareDecodeResult =
   | { success: true; blueprint: Blueprint; issues: [] }
   | { success: false; blueprint: null; issues: ShareLinkIssue[] };
 
+export type DocumentShareDecodeResult =
+  | { success: true; blueprint: AnyBlueprint; issues: [] }
+  | { success: false; blueprint: null; issues: ShareLinkIssue[] };
+
 /** Thrown by `encodeBlueprintShare` when a blueprint does not fit in a link. */
 export class ShareLinkTooLargeError extends Error {
   readonly encodedLength: number;
@@ -69,7 +78,9 @@ export class ShareLinkTooLargeError extends Error {
   }
 }
 
-const fail = (code: ShareLinkIssue['code'], message: string, fix: string): ShareDecodeResult => ({
+type FailedDecode = { success: false; blueprint: null; issues: ShareLinkIssue[] };
+
+const fail = (code: ShareLinkIssue['code'], message: string, fix: string): FailedDecode => ({
   success: false,
   blueprint: null,
   issues: [{ code, path: [], message, fix }],
@@ -133,11 +144,11 @@ function fromBase64Url(text: string): Uint8Array<ArrayBuffer> | null {
 }
 
 /**
- * Encodes a blueprint as `1.<base64url(deflate-raw(canonical JSON))>`. The same
- * blueprint always gives the same link, whatever its key order. Throws
+ * Encodes a blueprint of any kind as `1.<base64url(deflate-raw(canonical JSON))>`.
+ * The same blueprint always gives the same link, whatever its key order. Throws
  * `ShareLinkTooLargeError` past `MAX_SHARE_ENCODED_LENGTH`.
  */
-export async function encodeBlueprintShare(blueprint: Blueprint): Promise<string> {
+export async function encodeBlueprintShare(blueprint: AnyBlueprint): Promise<string> {
   if (!supportsShareLinks()) {
     throw new Error(
       `This environment cannot create share links: it lacks CompressionStream("deflate-raw") (${SHARE_LINK_BROWSERS}). Share the blueprint.json file instead.`
@@ -172,85 +183,137 @@ export function readBlueprintShareFragment(hash: string): string | null {
   return null;
 }
 
-/**
- * Decodes a share link payload (`1.<data>`, or a whole `#bp=` fragment) into a
- * validated blueprint or typed issues. Never throws.
- */
-export async function decodeBlueprintShare(input: string): Promise<ShareDecodeResult> {
+/** The link payload's JSON text, or the issue that stopped it (size, version, encoding). */
+async function inflateShare(
+  input: string,
+  maxBytes: number
+): Promise<{ ok: true; text: string } | { ok: false; result: FailedDecode }> {
   try {
     const raw = typeof input === 'string' ? input.trim() : '';
     const encoded = raw.startsWith('#') ? (readBlueprintShareFragment(raw) ?? '') : raw;
     if (encoded.length > MAX_SHARE_ENCODED_LENGTH) {
-      return fail(
-        'too-large',
-        `The link is ${encoded.length} characters; share links are limited to ${MAX_SHARE_ENCODED_LENGTH}.`,
-        'Open the blueprint.json file instead of a link.'
-      );
+      return {
+        ok: false,
+        result: fail(
+          'too-large',
+          `The link is ${encoded.length} characters; share links are limited to ${MAX_SHARE_ENCODED_LENGTH}.`,
+          'Open the blueprint.json file instead of a link.'
+        ),
+      };
     }
     const dot = encoded.indexOf('.');
     if (dot < 1) {
-      return fail(
-        'invalid-link',
-        'The link has no format version.',
-        'Copy the whole link, including the part after "#bp=".'
-      );
+      return {
+        ok: false,
+        result: fail(
+          'invalid-link',
+          'The link has no format version.',
+          'Copy the whole link, including the part after "#bp=".'
+        ),
+      };
     }
     const version = encoded.slice(0, dot);
     if (version !== SHARE_LINK_VERSION) {
-      return fail(
-        'unsupported-version',
-        `The link uses share format "${version.slice(0, 8)}"; this player reads format ${SHARE_LINK_VERSION}.`,
-        'Open the link in a newer player, or share the blueprint.json file.'
-      );
+      return {
+        ok: false,
+        result: fail(
+          'unsupported-version',
+          `The link uses share format "${version.slice(0, 8)}"; this player reads format ${SHARE_LINK_VERSION}.`,
+          'Open the link in a newer player, or share the blueprint.json file.'
+        ),
+      };
     }
     if (!supportsShareLinks()) {
-      return fail(
-        'unsupported-browser',
-        `This browser cannot open share links: it lacks DecompressionStream("deflate-raw") (${SHARE_LINK_BROWSERS}).`,
-        'Open the link in a current browser, or ask for the blueprint.json file and open it.'
-      );
+      return {
+        ok: false,
+        result: fail(
+          'unsupported-browser',
+          `This browser cannot open share links: it lacks DecompressionStream("deflate-raw") (${SHARE_LINK_BROWSERS}).`,
+          'Open the link in a current browser, or ask for the blueprint.json file and open it.'
+        ),
+      };
     }
     const data = encoded.slice(dot + 1);
     const bytes = BASE64URL.test(data) && data.length > 0 ? fromBase64Url(data) : null;
     if (!bytes) {
-      return fail(
-        'invalid-link',
-        'The link is not valid base64url data.',
-        'Copy the whole link again; it may have been cut or changed.'
-      );
+      return {
+        ok: false,
+        result: fail(
+          'invalid-link',
+          'The link is not valid base64url data.',
+          'Copy the whole link again; it may have been cut or changed.'
+        ),
+      };
     }
     let inflated: Uint8Array | null;
     try {
       inflated = await collect(
         streamOf(bytes).pipeThrough(new DecompressionStream('deflate-raw')),
-        MAX_SHARE_DECODED_BYTES
+        maxBytes
       );
     } catch {
-      return fail(
-        'invalid-link',
-        'The link data could not be decompressed.',
-        'Copy the whole link again; it may have been cut or changed.'
-      );
+      return {
+        ok: false,
+        result: fail(
+          'invalid-link',
+          'The link data could not be decompressed.',
+          'Copy the whole link again; it may have been cut or changed.'
+        ),
+      };
     }
     if (!inflated) {
-      return fail(
-        'too-large',
-        `The blueprint in this link is larger than ${MAX_SHARE_DECODED_BYTES} bytes.`,
-        'Open the blueprint.json file instead of a link.'
-      );
+      return {
+        ok: false,
+        result: fail(
+          'too-large',
+          `The blueprint in this link is larger than ${maxBytes} bytes.`,
+          'Open the blueprint.json file instead of a link.'
+        ),
+      };
     }
     let text: string;
     try {
       text = new TextDecoder('utf-8', { fatal: true }).decode(inflated);
     } catch {
-      return fail('invalid-link', 'The link data is not UTF-8 text.', 'Copy the whole link again.');
+      return {
+        ok: false,
+        result: fail(
+          'invalid-link',
+          'The link data is not UTF-8 text.',
+          'Copy the whole link again.'
+        ),
+      };
     }
-    return loadUntrustedBlueprint(text);
+    return { ok: true, text };
   } catch {
-    return fail(
-      'invalid-link',
-      'The link could not be read.',
-      'Copy the whole link again, or open the blueprint.json file.'
-    );
+    return {
+      ok: false,
+      result: fail(
+        'invalid-link',
+        'The link could not be read.',
+        'Copy the whole link again, or open the blueprint.json file.'
+      ),
+    };
   }
+}
+
+/**
+ * Decodes an app share link payload (`1.<data>`, or a whole `#bp=` fragment)
+ * into a validated app blueprint or typed issues (`loadUntrustedBlueprint`).
+ * Never throws.
+ */
+export async function decodeBlueprintShare(input: string): Promise<ShareDecodeResult> {
+  const inflated = await inflateShare(input, MAX_SHARE_DECODED_BYTES);
+  return inflated.ok ? loadUntrustedBlueprint(inflated.text) : inflated.result;
+}
+
+/**
+ * Decodes a share link to a blueprint of any kind (app, deck, page, doc)
+ * through `loadUntrustedDocument`: content caps, multiline fields and the
+ * kind's body schema. Decompression stops at the document loader's byte cap.
+ * Never throws.
+ */
+export async function decodeDocumentShare(input: string): Promise<DocumentShareDecodeResult> {
+  const inflated = await inflateShare(input, MAX_SHARE_DOCUMENT_DECODED_BYTES);
+  return inflated.ok ? loadUntrustedDocument(inflated.text) : inflated.result;
 }
