@@ -104,7 +104,7 @@ const PLAYER_OUT = resolve('tmp/e2e-player');
 const deckE2e =
   process.env.PROTOYARD_E2E_DECK === '1' ||
   // Asking for the deck spec by path starts its server too.
-  process.argv.some((arg) => arg.includes('deck-navigation'));
+  process.argv.some((arg) => arg.includes('deck-navigation') || arg.includes('deck-presenter'));
 const DECK_PORT = Number(process.env.PROTOYARD_E2E_DECK_PORT ?? 4891);
 if (!Number.isInteger(DECK_PORT) || DECK_PORT < 1024 || DECK_PORT > 65535) {
   throw new Error('PROTOYARD_E2E_DECK_PORT must be a port number');
