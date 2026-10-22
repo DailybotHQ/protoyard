@@ -140,6 +140,40 @@ mailbox. An account with an active simulated authenticator is never signed in
 this way: it joins the workspace and is sent to sign in with its code. Pass
 `{ signIn: false }` to only join.
 
+### Invitation side effects
+
+`create(input, sideEffect)` can also make domain writes as part of the
+invitation, for example a seat reservation or an onboarding note. The side
+effect runs after the invitation, its token and its inbox message exist, in
+the same transaction. If it throws or rejects, all of it rolls back, and the
+error reaches the caller:
+
+```ts
+const invites = createInvitationServices(runtime, { tables: ['seat_reservations'] });
+const { invitation, effect } = await invites.create(
+  { email: 'grace@example.com', role: 'member' },
+  async (invitation, { table }) => {
+    const seats = table<SeatReservation>('seat_reservations');
+    if ((await seats.where('organizationId').equals(invitation.organizationId).count()) >= 5) {
+      throw new ValidationError({ form: 'All seats are taken.' });
+    }
+    await seats.add({ id: `seat_${invitation.id}`, organizationId: invitation.organizationId });
+    return 'reserved';
+  }
+);
+```
+
+- Declare the tables the side effect writes in `InvitationOptions.tables` for
+  every call, or per call with `create(input, { sideEffect, tables })`.
+  `context.table<T>(name)` returns typed access to a declared table only.
+  Unknown names, the invitation's own `saas_*` tables and the identity `py_*`
+  tables are refused before anything is written.
+- The side effect receives the invitation plus `{ invitation, token, message, table }`.
+  Whatever it returns comes back as `effect`.
+- It runs only after the capability, input and membership checks pass. Inside
+  it, await only table operations: a timer or a fetch would end the
+  transaction early. Call it from a service, never from a component.
+
 `saasRoutes` registers the accept screen at `#/invites/accept?token=…`, the
 canonical form that service and scenario-fragment links use, and at the alias
 `#/invite?token=…`. It has no guard: guests and signed-in people can both open

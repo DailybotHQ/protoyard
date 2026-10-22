@@ -35,13 +35,18 @@ export {
   type AcceptInvitationInput,
   type AcceptInvitationOptions,
   AcceptInvitationSchema,
+  type CreatedInvitation,
   type CreateInvitationInput,
+  type CreateInvitationOptions,
   CreateInvitationSchema,
   createInvitationServices,
   type InvitationOptions,
   type InvitationPreview,
   type InvitationPreviewStatus,
   type InvitationServices,
+  type InvitationSideEffect,
+  type InvitationSideEffectContext,
+  type InvitationTable,
 } from './invitations.ts';
 export {
   createMagicLinkServices,
