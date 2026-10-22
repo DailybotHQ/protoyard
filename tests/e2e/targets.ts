@@ -50,22 +50,31 @@ export const SHOWCASE_KIND_TARGETS = [
 
 /** Marketplace examples: each share link must boot its matching player renderer. */
 export const MARKETPLACE_CONTENT_KIND_TARGETS = [
-  { kind: 'app', label: 'App', renderer: 'main', action: 'Open in player' },
+  {
+    kind: 'app',
+    label: 'App',
+    playerPage: 'index.html',
+    renderer: '[data-py-layout-host]',
+    action: 'Open in player',
+  },
   {
     kind: 'deck',
     label: 'Deck',
+    playerPage: 'deck.html',
     renderer: '[data-py-deck-app]',
     action: 'Open Deck in player',
   },
   {
     kind: 'page',
     label: 'Page',
+    playerPage: 'page.html',
     renderer: '[data-py-page-app]',
     action: 'Open Page in player',
   },
   {
     kind: 'doc',
     label: 'Document',
+    playerPage: 'doc.html',
     renderer: '[data-py-doc-app]',
     action: 'Open Document in player',
   },
