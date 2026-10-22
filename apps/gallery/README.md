@@ -100,8 +100,11 @@ then this repository's `.protoyard/registry.json`. The published path runs
 ## Marketplace
 
 `/marketplace/` lists every prototype, template and blueprint from the
-registry's `catalog` blocks: category rails, search, filters (kind, category,
-platform, shell, features, theme collection) kept in the URL, and a detail page per entry. Try it,
+registry's `catalog` blocks: category rails, search, filters (source type,
+content type, category, platform, shell, features and theme collection) kept
+in the URL, and a detail page per entry. Cards show source type (prototype,
+template or blueprint) separately from content type (App, Deck, Page or
+Document); a missing blueprint kind is shown as App. Try it,
 Use this template and Remix use the local control server (`POST /api/dev/<slug>`,
 `POST /api/new`) and fall back to the exact CLI commands when the site is
 read-only (a published showcase). Creating from the gallery writes files and

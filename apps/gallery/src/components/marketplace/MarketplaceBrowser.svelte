@@ -70,7 +70,7 @@ function showCategory(category: string) {
 
 const select =
   'h-9 rounded-lg border border-line bg-surface px-2.5 text-sm text-fg focus-visible:outline-2 focus-visible:outline-accent';
-const kinds = [
+const sourceKinds = [
   { value: '', label: 'Everything', count: entries.length },
   ...facets.kind.map(([value, count]) => ({ value, label: `${label(value)}s`, count })),
 ] as const;
@@ -94,8 +94,8 @@ const kinds = [
           data-testid="market-search"
         />
       </label>
-      <div role="group" aria-label="Kind" class="flex flex-wrap rounded-lg border border-line bg-bg p-0.5">
-        {#each kinds as kind (kind.value)}
+      <div role="group" aria-label="Source type" class="flex flex-wrap rounded-lg border border-line bg-bg p-0.5">
+        {#each sourceKinds as kind (kind.value)}
           <button
             type="button"
             class="rounded-md px-3 py-1.5 text-sm text-muted aria-pressed:bg-surface aria-pressed:text-fg aria-pressed:shadow-sm"
@@ -108,6 +108,13 @@ const kinds = [
       </div>
     </div>
     <div class="flex flex-wrap items-center gap-2">
+      <label class="flex items-center gap-1.5 text-sm text-muted">
+        <span>Content type</span>
+        <select class={select} value={query.contentKind} onchange={(e) => update({ contentKind: e.currentTarget.value as MarketQuery['contentKind'] })} data-testid="market-content-kind">
+          <option value="">Any</option>
+          {#each facets.contentKind as [value, n] (value)}<option {value}>{label(value)} ({n})</option>{/each}
+        </select>
+      </label>
       <label class="flex items-center gap-1.5 text-sm text-muted">
         <span>Category</span>
         <select class={select} value={query.category} onchange={(e) => update({ category: e.currentTarget.value })} data-testid="market-category">
