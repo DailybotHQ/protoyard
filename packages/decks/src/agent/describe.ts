@@ -2,6 +2,7 @@ import { createDeckNavigator } from '../navigation/navigator.ts';
 import { slidePositionCount } from '../navigation/steps.ts';
 import { checkDeckStatic, type DeckQualityIssue } from '../quality/check.ts';
 import type { Deck, DeckSlide } from '../schema/index.ts';
+import { isSafeDeckPath, isSafeShareId, SAFE_SLUG } from '../text/safe.ts';
 
 /**
  * "Debug for agents": a structured reference to the slide on screen, for a
@@ -124,6 +125,27 @@ export interface DescribeSlideOptions {
 export interface DeckLocationInput {
   slideId: string;
   step?: number;
+}
+
+/**
+ * The source only when its value is safe to print inside a suggested command
+ * and to resolve in a workspace: a relative `.json` path with no `..`, a
+ * prototype slug or a share id. Anything else (a crafted `?src=` carrying
+ * shell syntax or a path escape) is dropped rather than echoed to an agent.
+ */
+export function safeAgentSource(
+  source: AgentReferenceSource | null | undefined
+): AgentReferenceSource | null {
+  if (!source) return null;
+  const value = cleanReferenceText(source.value);
+  if (value.length > AGENT_REFERENCE_LIMITS.source) return null;
+  const safe =
+    source.kind === 'blueprint'
+      ? isSafeDeckPath(value)
+      : source.kind === 'prototype'
+        ? SAFE_SLUG.test(value)
+        : isSafeShareId(value);
+  return safe ? { kind: source.kind, value } : null;
 }
 
 /** Removes control, zero-width and bidirectional characters, then squashes whitespace. */
@@ -333,12 +355,7 @@ export function describeSlideForAgent(
       title: title ? capText(title, AGENT_REFERENCE_LIMITS.title) || null : null,
       visibleSlides: visible.length,
     },
-    source: options.source
-      ? {
-          kind: options.source.kind,
-          value: capText(options.source.value, AGENT_REFERENCE_LIMITS.source),
-        }
-      : null,
+    source: safeAgentSource(options.source),
     slide: {
       id: slide.id,
       title: slide.title ? capText(slide.title, AGENT_REFERENCE_LIMITS.title) || null : null,

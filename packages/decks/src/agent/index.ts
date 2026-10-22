@@ -22,6 +22,7 @@ export {
   describeSlideForAgent,
   jsonPointer,
   referenceBytes,
+  safeAgentSource,
 } from './describe.ts';
 export {
   AGENT_REFERENCE_FORMATS,

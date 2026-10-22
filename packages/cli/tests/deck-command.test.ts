@@ -1,6 +1,7 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BLOCK_CATALOG_LIST } from '@protoyard/blocks/catalog';
 import { DECK_CONTROLS, loadUntrustedDeck } from '@protoyard/decks';
@@ -262,6 +263,44 @@ describe('deck inspect', () => {
     const text = await deck('inspect', '--ref', stale);
     expect(text.code).toBe(4);
     expect(text.stderr + text.stdout).toContain('close');
+  });
+
+  it('never reads outside the workspace for a pasted reference (security review)', async () => {
+    // A JSON deck and a secret outside the workspace, plus a symlink to the deck inside it.
+    const outside = mkdtempSync(join(tmpdir(), 'protoyard-outside-'));
+    try {
+      writeFileSync(join(outside, 'deck.json'), JSON.stringify(EXAMPLE));
+      writeFileSync(join(outside, 'secret.env'), 'SECRET_TOKEN=do-not-print');
+      symlinkSync(join(outside, 'deck.json'), join(ws.root, 'decks', 'linked.json'));
+      const escapes = [
+        `blueprint:${join(outside, 'deck.json')}`,
+        `blueprint:${relative(ws.root, join(outside, 'deck.json'))}`,
+        'blueprint:decks/../../deck.json',
+        'blueprint:decks/x.json?/../../deck.json',
+        'prototype:../demo-deck',
+      ];
+      for (const source of escapes) {
+        const result = await deckJson('inspect', '--ref', `[slide-ref] id=open source=${source}`);
+        expect(result.code, source).not.toBe(0);
+        expect(result.stdout + result.stderr, source).not.toContain('"slide"');
+      }
+      // A symlink inside the workspace that points out of it is refused too.
+      const linked = await deckJson(
+        'inspect',
+        '--ref',
+        '[slide-ref] id=open source=blueprint:decks/linked.json'
+      );
+      expect(linked.code).toBe(4);
+
+      // A file that is not JSON is named, never quoted.
+      ws.write('decks/notes.json', 'SECRET_TOKEN=do-not-print');
+      const notJson = await deck('inspect', 'decks/notes.json', '--slide', 'open');
+      expect(notJson.code).toBe(4);
+      expect(notJson.stdout + notJson.stderr).toContain('is not valid JSON.');
+      expect(notJson.stdout + notJson.stderr).not.toContain('SECRET');
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
   });
 
   it('exits 4 when the referenced deck no longer exists', async () => {

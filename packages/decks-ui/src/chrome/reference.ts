@@ -1,4 +1,6 @@
 import { formatDeckHash } from '@protoyard/decks';
+// The shared definition: control, zero-width and bidi characters never reach the clipboard (Trojan Source).
+import { isInvisibleCodePoint as isInvisible } from '@protoyard/decks/text';
 
 /**
  * The one-line slide reference the "Copy slide reference" button copies, to
@@ -13,18 +15,6 @@ export interface SlideReferenceInput {
 }
 
 const SEPARATOR = ' · ';
-
-/** Control, zero-width and bidi characters never reach the clipboard (Trojan Source). */
-function isInvisible(code: number): boolean {
-  return (
-    code <= 0x1f ||
-    (code >= 0x7f && code <= 0x9f) ||
-    (code >= 0x200b && code <= 0x200f) ||
-    (code >= 0x202a && code <= 0x202e) ||
-    (code >= 0x2060 && code <= 0x2069) ||
-    code === 0xfeff
-  );
-}
 
 /** One line of visible text: invisible characters dropped, whitespace collapsed. */
 export function cleanReferenceText(text: string): string {

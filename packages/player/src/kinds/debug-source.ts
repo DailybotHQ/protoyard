@@ -18,9 +18,16 @@ export function deckDebugSource(search: string, namespace: string): DeckDebugSou
   } catch {
     src = null;
   }
-  const path = src?.trim().replace(/^\.\//, '') ?? '';
-  if (path && !/^[a-z][a-z0-9+.-]*:/i.test(path) && path.length <= 512) {
-    return { kind: 'blueprint', value: path };
-  }
+  // The player loads `?src=` by its path only, so a query or fragment is dropped here too.
+  const path = (src?.trim().replace(/^\.\//, '') ?? '').split(/[?#]/, 1)[0] ?? '';
+  // Untrusted: the value reaches a command an agent may run, so only a plain relative
+  // `.json` path qualifies (the rule of isSafeDeckPath in @protoyard/decks/text).
+  if (isSafeDeckPath(path)) return { kind: 'blueprint', value: path };
   return { kind: 'share', value: namespace };
+}
+
+/** Mirrors `isSafeDeckPath` (`@protoyard/decks/text`); the player does not depend on that package. */
+function isSafeDeckPath(value: string): boolean {
+  if (value.length > 256 || !/^[A-Za-z0-9_][A-Za-z0-9_./-]*\.json$/.test(value)) return false;
+  return value.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..');
 }

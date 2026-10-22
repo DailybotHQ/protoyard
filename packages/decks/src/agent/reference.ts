@@ -1,8 +1,10 @@
+import { SAFE_SLUG } from '../text/safe.ts';
 import {
   AGENT_REFERENCE_LIMITS,
   type AgentSlideReference,
   capText,
   cleanReferenceText,
+  safeAgentSource,
 } from './describe.ts';
 
 /**
@@ -67,13 +69,15 @@ function lineForm(record: AgentSlideReference): string {
     `layout=${token(slide.layout)}`,
     `pointer=${token(slide.pointer || '/')}`,
   ];
-  if (record.source) parts.push(`source=${token(`${record.source.kind}:${record.source.value}`)}`);
+  const source = safeAgentSource(record.source);
+  if (source) parts.push(`source=${source.kind}:${source.value}`);
   parts.push(`text=${quoted(capText(record.text, 120))}`);
   return parts.join(' ');
 }
 
 function markdownForm(record: AgentSlideReference): string {
-  const { slide, deck, source } = record;
+  const { slide, deck } = record;
+  const source = safeAgentSource(record.source);
   const name = slide.title ?? slide.id;
   const where = source
     ? source.kind === 'blueprint'
@@ -83,7 +87,9 @@ function markdownForm(record: AgentSlideReference): string {
         : `the blueprint behind share link ${code(source.value)}`
     : 'the deck blueprint';
   // `deck inspect` and `deck lint` take a file or a prototype slug; a share link has neither.
+  // Only a source that passes safeAgentSource reaches a command line.
   const target = source && source.kind !== 'share' ? source.value : '<deck.json>';
+  const slideArg = SAFE_SLUG.test(slide.id) ? slide.id : '<slide-id>';
   const lines: string[] = [
     `## Slide reference: ${code(name)}`,
     '',
@@ -122,7 +128,7 @@ function markdownForm(record: AgentSlideReference): string {
     '### How to change it',
     '',
     `1. Edit the JSON value at ${code(slide.pointer || '/')} in ${where}. Keep the slide id ${code(slide.id)} so links keep working; the slide must match the deck schema and its layout's props.`,
-    `2. See the slide as JSON: ${code(`protoyard deck inspect ${target} --slide ${slide.id}`)}.`,
+    `2. See the slide as JSON: ${code(`protoyard deck inspect ${target} --slide ${slideArg}`)}.`,
     `3. Check the deck: ${code(`protoyard deck lint ${target}`)} and ${code(`protoyard blueprint validate ${target}`)}. The schema is ${code('protoyard deck schema')}.`
   );
   return lines.join('\n');

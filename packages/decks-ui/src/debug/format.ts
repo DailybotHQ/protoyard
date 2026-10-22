@@ -5,31 +5,8 @@
  * can never reorder or hide text in an editor or a prompt (Trojan Source).
  */
 
-/** C0/C1 controls, zero-width, line/paragraph separators, bidi controls, BOM. */
-function isInvisible(code: number): boolean {
-  return (
-    code <= 0x1f ||
-    (code >= 0x7f && code <= 0x9f) ||
-    (code >= 0x200b && code <= 0x200f) ||
-    code === 0x2028 ||
-    code === 0x2029 ||
-    (code >= 0x202a && code <= 0x202e) ||
-    (code >= 0x2060 && code <= 0x2069) ||
-    code === 0xfeff
-  );
-}
-
-/** Pretty JSON with every invisible character escaped. */
-export function inertJson(value: unknown): string {
-  const text = JSON.stringify(value, null, 2) ?? 'null';
-  let out = '';
-  for (const char of text) {
-    const code = char.codePointAt(0) ?? 0;
-    // JSON.stringify already escapes C0 controls (and keeps the newlines it adds).
-    out += code > 0x1f && isInvisible(code) ? `\\u${code.toString(16).padStart(4, '0')}` : char;
-  }
-  return out;
-}
+/** Pretty JSON with every invisible character escaped (the shared definition in `@protoyard/decks/text`). */
+export { inertJson } from '@protoyard/decks/text';
 
 /** A safe download name: `<slug>.deck.json`. */
 export function deckFileName(deckId: string | null | undefined): string {

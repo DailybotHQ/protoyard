@@ -15,10 +15,12 @@ import {
 import { DECK_LAYOUTS, describeLayouts } from '@protoyard/decks/layouts';
 import { DECK_QUALITY_RULES } from '@protoyard/decks/quality';
 import { DECK_LIMITS, DeckJsonSchema } from '@protoyard/decks/schema';
+import { inertJson, isSafeDeckPath, SAFE_SLUG } from '@protoyard/decks/text';
 import { z } from 'zod';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { opt } from '../lib/command.ts';
 import { CliError } from '../lib/output.ts';
+import { isInside } from '../lib/paths.ts';
 import type { CommandContext } from '../lib/workspace.ts';
 
 /**
@@ -66,10 +68,19 @@ function loadDeck(
   const prototypeFile = resolve(ctx.root, 'prototypes', target, 'blueprint.json');
   const isSlug = SLUG.test(target) && existsSync(prototypeFile);
   const base = opt(options, 'cwd') ?? process.cwd();
+  // A pasted reference is untrusted: its source resolves only inside the workspace,
+  // after symlinks, so a crafted `source=` can never read a file elsewhere.
+  const candidates =
+    missing === 'validation'
+      ? [resolve(ctx.root, target)]
+      : [resolve(base, target), resolve(ctx.root, target)];
   const path = isSlug
     ? prototypeFile
-    : [resolve(base, target), resolve(ctx.root, target)].find(
-        (candidate) => existsSync(candidate) && statSync(candidate).isFile()
+    : candidates.find(
+        (candidate) =>
+          existsSync(candidate) &&
+          statSync(candidate).isFile() &&
+          (missing !== 'validation' || isInside(ctx.root, candidate))
       );
   if (!path) {
     throw new CliError(
@@ -93,8 +104,9 @@ function loadDeck(
   let raw: unknown;
   try {
     raw = JSON.parse(readFileSync(path, 'utf8'));
-  } catch (error) {
-    throw new CliError('validation', `${file} is not valid JSON: ${(error as Error).message}`, {
+  } catch {
+    // The parser's message would quote the file's first characters; say only that it is not JSON.
+    throw new CliError('validation', `${file} is not valid JSON.`, {
       data: { file },
     });
   }
@@ -120,14 +132,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /** Text for a terminal: control and bidirectional characters removed. */
 function inert(value: unknown): string {
   return cleanReferenceText(value);
-}
-
-/** Pretty JSON for a terminal: every invisible or bidirectional character escaped. */
-function inertJson(value: unknown): string {
-  return JSON.stringify(value, null, 2).replace(
-    /[\u007f-\u009f\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2069\ufeff]/g,
-    (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`
-  );
 }
 
 function editDistance(a: string, b: string): number {
@@ -404,7 +408,11 @@ export const deckLintCommand: Handler = async (ctx, args, options): Promise<Comm
 /** The prototype slug or file a pasted reference's `source=` names, if any. */
 function referenceTarget(reference: ParsedAgentReference): string | null {
   const match = /^(blueprint|prototype):(.+)$/.exec(reference.source ?? '');
-  return match?.[2] ?? null;
+  if (!match?.[2]) return null;
+  // Untrusted: only a relative `.json` path with no `..`, or a prototype slug.
+  return (match[1] === 'blueprint' ? isSafeDeckPath(match[2]) : SAFE_SLUG.test(match[2]))
+    ? match[2]
+    : null;
 }
 
 export const deckInspectCommand: Handler = async (ctx, args, options): Promise<CommandResult> => {
