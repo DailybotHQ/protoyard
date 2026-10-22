@@ -190,6 +190,21 @@ export default defineProtoyardConfig({
     outDir: process.env.PROTOYARD_OUT_DIR
       ? undefined
       : resolve(import.meta.dirname, PLAYER_APP_DIR),
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          // Rolldown places its tiny module runtime in the first chunk that needs
+          // it. With two lazy boots sharing Dexie (apps and kinds), that was the
+          // Dexie chunk, which every chunk then imported for the helpers, so
+          // 132 KB of Dexie landed on the first screen. Own chunks for both keep
+          // Dexie behind the boots.
+          groups: [
+            { name: 'rolldown-runtime', test: /rolldown[\\/]runtime/ },
+            { name: 'dexie', test: /[\\/]dexie[\\/]/ },
+          ],
+        },
+      },
+    },
   },
   // The world-generation worker is a module worker. Building it as ES modules
   // lets it code-split and tree-shake like the app: its dynamic Faker import

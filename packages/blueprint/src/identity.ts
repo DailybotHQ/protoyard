@@ -1,4 +1,4 @@
-import type { Blueprint } from './schema.ts';
+import type { AnyBlueprint } from './kinds/envelope.ts';
 
 /**
  * Content identity for blueprints (ADR-030). A blueprint's identity is the
@@ -97,13 +97,13 @@ async function sha256(text: string): Promise<Uint8Array> {
 }
 
 /**
- * The content identity of a parsed blueprint. Parse first (`parseBlueprint`)
+ * The content identity of a parsed blueprint of any kind. Parse first (`parseBlueprint`, `parseAnyBlueprint`)
  * so defaults are applied: a blueprint that omits `tags` and one that sets
  * `tags: []` are the same product and share an identity. Key order and
  * whitespace never matter. `$schema` is an editor hint, not content, and is
  * left out.
  */
-export async function blueprintIdentity(blueprint: Blueprint): Promise<BlueprintIdentity> {
+export async function blueprintIdentity(blueprint: AnyBlueprint): Promise<BlueprintIdentity> {
   const { $schema: _schema, ...content } = blueprint;
   const bytes = await sha256(canonicalJson(content));
   return {

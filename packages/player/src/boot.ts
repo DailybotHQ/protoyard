@@ -11,15 +11,11 @@ import {
 import { createPlayerWorldCache, type WorldCache, withWorldCache } from './cache/index.ts';
 import PlayerApp from './PlayerApp.svelte';
 import { setPlayerBlueprint } from './player-blueprint.ts';
+import { QUICK_REVIEW_ENDPOINT } from './review-endpoint.ts';
 import { markActiveExploration, recordExploration, resolvePlayerStorage } from './storage/index.ts';
 import { withWorkerGeneration } from './worker/generate-world.ts';
 
-/**
- * The comments API `protoyard quick serve` hosts on its own origin
- * (`/api/comments/<namespace>`). Fixed here, never taken from a URL or a
- * response, so nothing can point the player's comments at another server.
- */
-export const QUICK_REVIEW_ENDPOINT = '/api/comments';
+export { QUICK_REVIEW_ENDPOINT };
 
 export interface BootPlayerOptions {
   blueprint: Blueprint;

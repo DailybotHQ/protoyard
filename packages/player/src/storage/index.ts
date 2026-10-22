@@ -106,7 +106,7 @@ export async function keepNamespace(name: string): Promise<string> {
 
 /** Resolves content-addressed storage by default, or stable keep-mode storage. */
 export async function resolvePlayerStorage(
-  blueprint: Blueprint,
+  blueprint: Pick<Blueprint, 'name'>,
   identity: BlueprintIdentity,
   search = ''
 ): Promise<PlayerStoragePlan> {

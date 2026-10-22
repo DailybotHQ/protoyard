@@ -11,6 +11,7 @@ vi.mock('../src/block-host/index.ts', async () => {
 
 vi.mock('@protoyard/blocks-ui', () => ({
   setBlockHost: vi.fn(),
+  getBlockHost: () => ({ density: 'comfortable', canvasMode: 'flow' }),
 }));
 
 afterEach(() => {

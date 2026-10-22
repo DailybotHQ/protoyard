@@ -1,7 +1,8 @@
-import type { Blueprint } from '@protoyard/blueprint';
-import type { BootedPlayer, BootPlayerOptions } from './boot.ts';
+import type { AnyBlueprint } from '@protoyard/blueprint';
+import type { BootedPlayer } from './boot.ts';
 import type { EmbedListener, StartEmbedOptions } from './embed/index.ts';
 import type { LiveBlueprint, LiveReload, LiveWorld, QuickServeInfo } from './live-reload.ts';
+import { type BootExtras, bootByKind } from './sources/boot-any.ts';
 import {
   PLAYER_SHARE_SESSION_KEY,
   type StartedPlayer,
@@ -10,15 +11,22 @@ import {
 } from './sources/start.ts';
 
 /** Per-boot settings run.ts adds on top of the blueprint and target. */
-export type BootExtras = Pick<BootPlayerOptions, 'namespace' | 'generatorVersion' | 'review'>;
+export type { BootExtras };
 
 export interface RunPlayerOptions {
   window: Window;
   target: HTMLElement;
   /** Defaults to `startPlayer` (tests inject a fake). */
   start?: (options: StartPlayerOptions) => Promise<StartedPlayer>;
-  /** Defaults to `bootPlayer` from the lazily loaded boot chunk. */
-  boot?: (blueprint: Blueprint, target: HTMLElement, extras?: BootExtras) => Promise<BootedPlayer>;
+  /**
+   * Defaults to `bootByKind`: `bootPlayer` (lazy boot chunk) for apps,
+   * `bootKind` (lazy kind chunk) for decks, pages and docs.
+   */
+  boot?: (
+    blueprint: AnyBlueprint,
+    target: HTMLElement,
+    extras?: BootExtras
+  ) => Promise<BootedPlayer>;
   /** Defaults to the lazily loaded embed module. */
   loadEmbed?: () => Promise<{ startEmbed(options: StartEmbedOptions): EmbedListener | null }>;
   /**
@@ -39,12 +47,11 @@ export interface RunningPlayer {
 }
 
 async function defaultBoot(
-  blueprint: Blueprint,
+  blueprint: AnyBlueprint,
   target: HTMLElement,
   extras: BootExtras = {}
 ): Promise<BootedPlayer> {
-  const { bootPlayer } = await import('./boot.ts');
-  return bootPlayer({ blueprint, target, ...extras });
+  return bootByKind(blueprint, target, extras);
 }
 
 /**
@@ -60,9 +67,8 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
   const { target } = options;
   const win = options.window;
   const boot = options.boot ?? defaultBoot;
-  // Fetch the boot chunk while the source resolves (startPlayer skips its own
-  // prefetch when a boot function is passed in).
-  if (!options.boot) void import('./boot.ts').catch(() => undefined);
+  // The boot chunk for the blueprint's kind is fetched once the source has
+  // resolved (startPlayer), so a deck never downloads the app boot.
   const loadLive = options.loadLiveReload ?? (() => import('./live-reload.ts'));
   const served: Promise<QuickServeInfo | null> = (
     options.detectQuickServe ??
@@ -83,7 +89,7 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
     queue = next.catch(() => undefined);
     return next;
   };
-  const bootInto = async (blueprint: Blueprint, world?: LiveWorld) => {
+  const bootInto = async (blueprint: AnyBlueprint, world?: LiveWorld) => {
     const info = await served;
     if (!info) {
       current = await boot(blueprint, target);
@@ -110,7 +116,7 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
     return current;
   };
   /** Tears down what runs (and `before`, e.g. the picker), then boots `blueprint`. */
-  const replace = (blueprint: Blueprint, world?: LiveWorld, before?: () => Promise<void>) =>
+  const replace = (blueprint: AnyBlueprint, world?: LiveWorld, before?: () => Promise<void>) =>
     swap(async () => {
       const previous = current;
       current = null;
@@ -119,7 +125,11 @@ export async function runPlayer(options: RunPlayerOptions): Promise<RunningPlaye
       return bootInto(blueprint, world);
     });
   const start = options.start ?? startPlayer;
-  const started = await start({ target, boot: (blueprint) => swap(() => bootInto(blueprint)) });
+  const started = await start({
+    target,
+    boot: (blueprint) => swap(() => bootInto(blueprint)),
+    prefetch: !options.boot,
+  });
 
   let live: LiveReload | null = null;
   const info = await served;

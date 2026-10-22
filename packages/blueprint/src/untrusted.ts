@@ -521,25 +521,11 @@ export async function loadUntrustedDocument(
           )
         );
       }
-      if (!checkJsonDepth(input, caps.maxDepth)) {
-        return failed(
-          FATAL(
-            'too-deep',
-            'Document JSON exceeds the maximum nesting depth.',
-            `Flatten the document so it is at most ${caps.maxDepth} levels deep.`
-          )
-        );
-      }
       try {
         parsed = JSON.parse(input) as unknown;
       } catch {
-        return failed(
-          FATAL(
-            'invalid-json',
-            'Document input is not valid JSON.',
-            'Fix the JSON syntax and try again.'
-          )
-        );
+        // Not JSON at all: the app loader's contract (size, depth, then JSON) answers.
+        return loadUntrustedBlueprint(input, limits);
       }
     } else {
       parsed = input;
@@ -554,9 +540,18 @@ export async function loadUntrustedDocument(
         fix: detected.fix,
       });
     }
-    // Apps: the app loader, its limits and its result, unchanged.
-    if (detected.kind === 'app') return loadUntrustedBlueprint(parsed, limits);
+    // Apps: the app loader, its limits and its result, unchanged, on the original input.
+    if (detected.kind === 'app') return loadUntrustedBlueprint(input, limits);
 
+    if (typeof input === 'string' && !checkJsonDepth(input, caps.maxDepth)) {
+      return failed(
+        FATAL(
+          'too-deep',
+          'Document JSON exceeds the maximum nesting depth.',
+          `Flatten the document so it is at most ${caps.maxDepth} levels deep.`
+        )
+      );
+    }
     const safe = sanitizeJson(parsed, caps.maxDepth, true);
     if (!safe.ok) return failed(safe.issue);
     const serialized = JSON.stringify(safe.value);
