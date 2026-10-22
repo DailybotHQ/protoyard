@@ -46,7 +46,7 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 
 | Group | Components |
 | --- | --- |
-| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone` |
+| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput` |
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
 | Disclosure | `Tabs`, `Accordion`, `Carousel` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
@@ -75,6 +75,7 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Input` / `Textarea` | native attributes, `bind:value`, `aria-invalid` styling |
 | `Label` | `for` |
 | `FileDropzone` | `accept`, `maxSize`, `maxFiles`, `multiple`, `bind:files` (`DropzoneFile[]` with real `File`s), `bind:rejects`, drag-and-drop + keyboard file input, image previews via `URL.createObjectURL` (revoked on remove/destroy), per-file `Progress`, inline limit errors. Never reads file contents as HTML. |
+| `ImageInput` | Labeled local image picker (`label`, `hint`, `accept`, `multiple`, `required`, `onFilesSelected`). Raster previews only via object URLs (`image/jpeg|png|gif|webp|avif`); SVG/HTML never become markup. Every object URL is revoked on replace, clear and unmount. Persistence and upload stay in the caller service. |
 | `FormField` | `label`, `description`, `error`, `required`, `hideLabel`, `id`; `children({ id, describedBy, invalid, required, props })` |
 | `Checkbox` | `bind:checked`, `bind:indeterminate`, `label`, `description` |
 | `RadioGroup` / `RadioGroupItem` | `items: { value, label, description?, disabled? }[]`, `bind:value` (Bits props pass through) |

@@ -110,6 +110,15 @@ export type {
 export { default as FormField } from './components/form-field/FormField.svelte';
 export type { FormFieldControl } from './components/form-field/form-field.ts';
 export { default as Header } from './components/header/Header.svelte';
+export { default as ImageInput } from './components/image-input/ImageInput.svelte';
+export {
+  buildImagePreviews,
+  DEFAULT_IMAGE_ACCEPT,
+  type ImagePreview,
+  isPreviewableImage,
+  RASTER_IMAGE_TYPES,
+  revokeImagePreviews,
+} from './components/image-input/preview.ts';
 export { default as Input } from './components/input/Input.svelte';
 export { default as Kanban } from './components/kanban/Kanban.svelte';
 export type { KanbanColumn } from './components/kanban/types.ts';
