@@ -81,6 +81,10 @@ test.describe('interaction sweep fixture', () => {
 });
 
 test.describe('deck controls and focus restore', () => {
+  test.skip(
+    process.env.PROTOYARD_E2E_DECK !== '1',
+    'Opt-in: PROTOYARD_E2E_DECK=1 (or name a deck spec) starts the built deck server.'
+  );
   test('quiz control is live and blackout dismiss restores deck keyboard focus', async ({
     page,
   }, testInfo) => {
