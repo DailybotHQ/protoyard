@@ -356,6 +356,11 @@ image and video source, poster and embedded-app value. Each diagnostic has a
 `code`, a `severity` and a JSON path. There is no CLI command for them yet:
 call them from code, a test or an agent tool.
 
+Catalog layout props may contain `{ step, fragment }` or `{ step, reveal }`
+markers. The schema validates those markers, then lint and static quality
+checks strip them before checking the layout's strict content props; the
+markers remain in the parsed deck for step navigation and reveal behavior.
+
 - **Errors** fail the deck: duplicate or missing slide ids, unknown layouts,
   props that break a layout's schema, images in props without alt text or a
   size, fragment order that reveals content before what sits above it, and
@@ -473,10 +478,6 @@ Every deck string renders as text, never as HTML; see
 - **The last authored step is not reachable by navigation.** A slide whose
   fragments define steps 1 to N offers positions 0 to N − 1, so its last step
   is skipped. Slides that only use `steps` labels are not affected.
-- **Lint flags step markers in catalog props.** `DeckSchema` accepts
-  `{ step, fragment | reveal }` on catalog props, but `checkDeckStatic` (and
-  so `lintDeckStructure`) reports them as `layout-props` errors. Free-slide
-  block steps lint cleanly.
 - **No custom slide components.** A generated deck's `src/custom-slides.ts`
   is a typed registry for later. `DeckApp` renders only the catalog layouts
   and free blocks.

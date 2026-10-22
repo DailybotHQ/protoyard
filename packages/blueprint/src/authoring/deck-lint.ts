@@ -1,5 +1,5 @@
 import { forEachBlock } from '@protoyard/blocks';
-import { DECK_LAYOUT_BY_ID, parseLayoutProps } from '@protoyard/decks/layouts';
+import { DECK_LAYOUT_BY_ID, parseLayoutProps, stripStepMarkers } from '@protoyard/decks/layouts';
 import { checkDeckStatic } from '@protoyard/decks/quality';
 import { type Deck, type DeckSlide, safeParseDeck } from '@protoyard/decks/schema';
 
@@ -339,7 +339,7 @@ export function lintDeckStructure(input: unknown): DeckLintResult {
     } else {
       const propsResult = parseLayoutProps(
         slide.layout,
-        'blocks' in slide ? { blocks: slide.blocks } : slide.props
+        'blocks' in slide ? { blocks: slide.blocks } : stripStepMarkers(slide.props)
       );
       if (!propsResult.success) {
         for (const issue of propsResult.issues) {
