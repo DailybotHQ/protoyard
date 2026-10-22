@@ -60,6 +60,8 @@ covers Protoyard's threat model and the rules contributors and agents follow.
 | Indexing ↔ prototype code | Running untrusted code just to list it | `index` reads data-only `protoyard.json` files and validates them with zod. **No prototype code runs** (ADR-003). |
 | Snapshot import ↔ browser data | Malformed or malicious files | `parseSnapshotText` / `validateSnapshot`: JSON only, 25 MB limit, strict schema, prototype id must match, newer schemas rejected. Import is validated before anything is written, and failures leave current data untouched. Snapshots are never evaluated, and strings render as escaped text. |
 | Prototype ↔ prototype (same origin) | One app reading another's IndexedDB | The player gives each blueprint a content-hash namespace by default and `?keep=<name>` opts into a stable namespace ([`storage/index.ts`](../packages/player/src/storage/index.ts), [`storage-isolation.test.ts`](../packages/player/tests/storage-isolation.test.ts)); this prevents accidental row reuse, not access. **Not prevented:** any script on the same origin can open or alter the other blueprint's IndexedDB databases and world cache. Serve untrusted prototypes from separate origins; see [PLAYER](PLAYER.md#storage-identity-and-keep-mode). |
+| `kit sync` ↔ a prototype's synced folder | Silently overwriting a person's local edits, or writing through a symlinked destination | `kit sync` compares the folder with the hashes it recorded at the last sync. When files were changed, added or removed, it stops with `conflict` and lists them; `--force` replaces them on purpose. The destination path and each of its parents must be real directories inside the prototype; a symlinked folder fails with `unsafe_path` ([`kit-sync.test.ts`](../packages/cli/tests/kit-sync.test.ts)). The folder swap is not atomic, so an interrupted sync can leave a partial folder. |
+| `export --target artifact` and `quick export --single-file` ↔ the hosted page | A single-chunk bundle that never starts, because a top-level `await` on a dynamic import deadlocks once chunks are inlined; or a tampered player copy inlined into a shared page | The artifact pack parses every JavaScript asset and refuses a top-level `await` (including `for await`) outside functions, and refuses a file it cannot parse ([`artifact-pack.test.ts`](../packages/cli/tests/artifact-pack.test.ts)). `quick export --single-file` re-verifies the prototype's player copy against its asset manifest (hashes, no links or special files) before inlining it ([`quick-security.test.ts`](../packages/cli/tests/quick-security.test.ts)). A quick single-file artifact page has no CSP of its own; it relies on the Claude artifact sandbox. |
 | Builds ↔ public internet | Shipping author-only controls or secrets | DevTools are excluded by default (`--include-devtools` to opt in). The exceptions are `export --target artifact` and `showcase`, which include them by default so viewers can switch scenarios and personas (`--no-devtools` leaves them out). Builds contain no environment secrets, and the export isolation check confirms no other prototype's code is bundled. |
 | Player page ↔ blueprint content in the browser | A blueprint string becoming markup or code, injected scripts, the player framed by a hostile site | Blueprint text reaches the UI only as text nodes: [`security.test.ts`](../packages/player/tests/security.test.ts) fails if the player, crud or blueprint sources use `{@html}`, `eval`, `new Function`/`Function()`, `innerHTML`/`outerHTML`/`insertAdjacentHTML`, `document.write` or a dynamic `import()` of a computed specifier. The built `index.html` opens `<head>` with `<meta charset>` (kept in the first 1024 bytes) and then a Content-Security-Policy meta tag, before every script ([`vite.config.ts`](../packages/player/vite.config.ts)): `script-src 'self'` plus the sha256 of each inline script (the no-flash appearance scripts and the offline registration), no `unsafe-eval`; `connect-src`, `worker-src`, `frame-src` and `default-src` `'self'`; `object-src`, `base-uri` and `form-action` `'none'`; `style-src` allows `'unsafe-inline'` because Svelte and the theme engine set styles at runtime. A meta tag cannot set `frame-ancestors`, so the player build writes `dist/_headers` with the same policy plus `frame-ancestors 'self' https://protoyard.app http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:*` (built from the embed allowlist, so the pages that may frame the player are the pages that may send it a blueprint), `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`. Cloudflare Pages reads `_headers` only at the artifact root: the showcase copies these rules into root `artifacts/showcase/_headers` under `/player/*`, preserving the gallery's rules; [`showcase.test.ts`](../packages/cli/tests/showcase.test.ts) checks that merge. Other hosts must send the frame header themselves. zod's `new Function` probe would be reported as a violation, so an inline script sets zod's `jitless` before any module loads. The browser security test opens a share link under the header and fails on any policy violation in the page or generation worker. |
 | Player world cache ↔ IndexedDB | A tampered or corrupted cached world, an oversized or decompression-bomb entry, a cache filling the origin's storage | Generated worlds are cached in `protoyard.player.worlds` (`packages/player/src/cache/`), keyed by the blueprint SHA-256, scenario id, seed, scenario digest and generator version. Entries are read back as untrusted: gzip inflated as a stream that stops at the snapshot cap (25 MB), fatal UTF-8, then a shape check (the WorldSeed lists, every row an object with a string or number `id`, at most 250,000 rows). An entry that fails is deleted and the world regenerates; it is never loaded. The cache evicts least recently used entries past 48 MB of compressed data. **Not prevented:** any script on the same origin can write a valid but altered world into the cache; like the prototype databases, it is not a security boundary. |
@@ -118,6 +120,41 @@ and
   A deck, page and doc full of `<script>`, `onerror=` and
   `[x](javascript:…)` render as text: no script, frame or style elements,
   no `on*` attributes and no script URLs.
+- **Hidden characters are refused, not just stripped.** Block text, deck
+  text and AI chart specs refuse C0/C1 controls, bidi marks, embeddings,
+  overrides and isolates (U+061C, U+200E/F, U+202A–U+202E, U+2066–U+2069),
+  the BOM, the zero-width space and word joiner (U+200B, U+2060) and the line
+  and paragraph separators (U+2028, U+2029) at the schema level. One shared
+  predicate (`isUnsafeTextCharacter` in `@protoyard/blocks`) drives both the
+  schemas and the untrusted loaders, so content that skips a loader still
+  fails validation. The loaders turn U+2028/U+2029 into a line break
+  (multiline fields) or a space, so words never run together. ZWJ and ZWNJ
+  (U+200C, U+200D) stay allowed, because emoji and some scripts need them.
+  [`hidden-characters.test.ts`](../packages/blocks/tests/hidden-characters.test.ts).
+- **Block ids are unique across a document.** Interactive state and the
+  level-2 embed namespace (`embed-<sha256(host, blockId)>`) are keyed by block
+  id. A page already refuses a block id reused in another section. A deck
+  now refuses the same id on two free slides, so two embedded apps or two
+  polls cannot share storage or state. Formula variables, calculator inputs
+  and form field names also refuse `constructor` and `prototype`, alongside
+  the existing `__proto__` key guards.
+- **Caps cannot be bypassed through layouts.** Chart-layout slides count
+  toward the document's chart-point cap like chart blocks do. Embedded-app
+  detection fails closed: a document too large to walk is treated as one
+  that contains an app.
+- **Markdown images and page actions stay local.** A Markdown image renders
+  only when it is a relative media path with a media extension
+  (`classifyMediaSource`): no `/api/…`, `..`, SVG or remote URL. It always
+  carries `referrerpolicy="no-referrer"`. Page action links refuse
+  protocol-relative (`//host`) and backslash (`/\host`) forms.
+- **Both embed paths apply the same rule.** The level-1 player's `mountEmbed`
+  and the level-2 template host both call `loadEmbeddedApp`, so either
+  refuses a nested embed or a non-app kind before any frame exists.
+- **Presenter windows build their content from DOM nodes.** The presenter
+  popup uses `createElement` and `textContent`, never `document.write`. The
+  player's source guard rejects any `.write(` call in kind sources. The deck
+  template scopes the presenter's BroadcastChannel to the prototype's storage
+  namespace, so two decks served from one origin never drive each other.
 - **Oversize input fails first.** Documents over 1 MiB (as text or as an
   object), past depth 32, or over the slide, block, chart-point or
   embedded-app caps are refused before the kind body schemas load. In the
@@ -196,6 +233,10 @@ pnpm vitest run packages/cli/tests/commands/validate.test.ts
 - Never commit secrets, tokens, `.env` files, real personal data, real
   company data or real financial data. Use `.example` / `example.com` domains.
 - Never use `{@html}`, `eval` or `new Function` on user or snapshot data.
+- Never write literal bidi control characters (U+202A–U+202E,
+  U+2066–U+2069) in source, tests or docs; use `\u` escapes.
+  `scripts/check-public-hygiene.sh` reports any tracked file that contains
+  one as `trojan-source` (Trojan Source spoofing).
 - Never weaken the path guards, the control server's binding or Origin checks,
   or snapshot validation without a security review.
 - Never run a real `publish` without the developer's explicit authorization
