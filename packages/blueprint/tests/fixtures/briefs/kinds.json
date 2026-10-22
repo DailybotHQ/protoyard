@@ -1,0 +1,223 @@
+[
+  {
+    "id": "app-helpdesk",
+    "brief": "An internal IT help desk for Example Harbor: employees open tickets, agents work them by priority and SLA due time.",
+    "options": {},
+    "expect": {
+      "kind": "app",
+      "confidence": "fallback",
+      "archetype": "helpdesk",
+      "hasEntities": true,
+      "hasRoles": true
+    }
+  },
+  {
+    "id": "app-crm",
+    "brief": "A CRM for a small design agency to track leads, deals by stage and contacts at client companies.",
+    "options": {},
+    "expect": {
+      "kind": "app",
+      "confidence": "fallback",
+      "archetype": "crm",
+      "hasEntities": true,
+      "hasRoles": true
+    }
+  },
+  {
+    "id": "deck-pitch",
+    "brief": "A pitch deck of twelve slides about our fictional launch plan for Example Harbor.",
+    "options": {},
+    "expect": {
+      "kind": "deck",
+      "confidence": "high",
+      "outline": "generic",
+      "minSlides": 3,
+      "hasEntities": false,
+      "hasRoles": false
+    }
+  },
+  {
+    "id": "deck-keynote",
+    "brief": "Keynote presentation slides for the Example Harbor all-hands meeting.",
+    "options": {},
+    "expect": {
+      "kind": "deck",
+      "confidence": "high",
+      "outline": "generic",
+      "minSlides": 3,
+      "hasEntities": false,
+      "hasRoles": false
+    }
+  },
+  {
+    "id": "page-landing",
+    "brief": "A marketing landing page for Example Harbor with a hero section and pricing.",
+    "options": {},
+    "expect": {
+      "kind": "page",
+      "confidence": "high",
+      "outline": "landing",
+      "minSections": 4,
+      "hasEntities": false,
+      "hasRoles": false
+    }
+  },
+  {
+    "id": "page-waitlist",
+    "brief": "Coming soon waitlist page for early access to Cedar Tools.",
+    "options": {},
+    "expect": {
+      "kind": "page",
+      "confidence": "high",
+      "outline": "waitlist",
+      "minSections": 3,
+      "hasEntities": false,
+      "hasRoles": false
+    }
+  },
+  {
+    "id": "doc-report",
+    "brief": "Write the quarterly report for Example Harbor covering status and next steps.",
+    "options": {},
+    "expect": {
+      "kind": "doc",
+      "confidence": "high",
+      "outline": "report",
+      "minSections": 5,
+      "hasEntities": false,
+      "hasRoles": false
+    }
+  },
+  {
+    "id": "doc-one-pager",
+    "brief": "A one-pager on the product for Example Harbor investors.",
+    "options": {},
+    "expect": {
+      "kind": "doc",
+      "confidence": "high",
+      "outline": "one-pager",
+      "minSections": 3,
+      "hasEntities": false,
+      "hasRoles": false
+    }
+  },
+  {
+    "id": "conflict-cues-app-wins",
+    "brief": "A CRM app pitch deck with slides about deals and a landing page for customers.",
+    "options": {},
+    "expect": {
+      "kind": "app",
+      "confidence": "fallback",
+      "archetype": "crm",
+      "hasEntities": true,
+      "hasRoles": true
+    }
+  },
+  {
+    "id": "conflict-explicit-deck",
+    "brief": "A CRM app that tracks deals and contacts.",
+    "options": { "kind": "deck" },
+    "expect": {
+      "kind": "deck",
+      "confidence": "explicit",
+      "outline": "generic",
+      "minSlides": 3,
+      "hasEntities": false,
+      "hasRoles": false
+    }
+  },
+  {
+    "id": "conflict-explicit-app",
+    "brief": "A pitch deck of slides about our roadmap.",
+    "options": { "kind": "app" },
+    "expect": {
+      "kind": "app",
+      "confidence": "explicit",
+      "hasEntities": true,
+      "hasRoles": true
+    }
+  },
+  {
+    "id": "conflict-explicit-page",
+    "brief": "Track invoices and customers in a dashboard app.",
+    "options": { "kind": "page" },
+    "expect": {
+      "kind": "page",
+      "confidence": "explicit",
+      "hasEntities": false,
+      "hasRoles": false,
+      "minSections": 3
+    }
+  },
+  {
+    "id": "conflict-explicit-doc",
+    "brief": "A marketing landing page with hero and pricing.",
+    "options": { "kind": "doc" },
+    "expect": {
+      "kind": "doc",
+      "confidence": "explicit",
+      "hasEntities": false,
+      "hasRoles": false,
+      "minSections": 3
+    }
+  },
+  {
+    "id": "empty-brief",
+    "brief": "",
+    "options": {},
+    "expect": {
+      "kind": "app",
+      "confidence": "fallback",
+      "hasEntities": true,
+      "hasRoles": true
+    }
+  },
+  {
+    "id": "whitespace-brief",
+    "brief": "   \n\t  ",
+    "options": {},
+    "expect": {
+      "kind": "app",
+      "confidence": "fallback",
+      "hasEntities": true,
+      "hasRoles": true
+    }
+  },
+  {
+    "id": "max-brief",
+    "brief": "__MAX__",
+    "options": {},
+    "expect": {
+      "kind": "app",
+      "confidence": "fallback",
+      "truncated": true,
+      "hasEntities": true,
+      "hasRoles": true
+    }
+  },
+  {
+    "id": "content-only-page",
+    "brief": "Just a one page website splash for Cedar Tools with a call to action.",
+    "options": {},
+    "expect": {
+      "kind": "page",
+      "confidence": "high",
+      "hasEntities": false,
+      "hasRoles": false,
+      "minSections": 3
+    }
+  },
+  {
+    "id": "content-only-doc-handbook",
+    "brief": "Employee handbook for onboarding at Example Harbor.",
+    "options": {},
+    "expect": {
+      "kind": "doc",
+      "confidence": "high",
+      "outline": "handbook",
+      "minSections": 4,
+      "hasEntities": false,
+      "hasRoles": false
+    }
+  }
+]
