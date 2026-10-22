@@ -1,7 +1,9 @@
+import { forEachBlock } from '@protoyard/blocks';
 import { DECK_LAYOUT_BY_ID, parseLayoutProps } from '@protoyard/decks/layouts';
+import { checkDeckStatic } from '@protoyard/decks/quality';
 import { type Deck, type DeckSlide, safeParseDeck } from '@protoyard/decks/schema';
 
-export type DeckLintSeverity = 'error';
+export type DeckLintSeverity = 'error' | 'warning';
 
 /** Stable structural diagnostic returned by the deck authoring lint. */
 export type DeckLintDiagnostic = {
@@ -42,8 +44,21 @@ function jsonPath(path: readonly (string | number)[]): string {
   );
 }
 
-function diagnostic(code: string, path: (string | number)[], message: string): DeckLintDiagnostic {
-  return { code, severity: 'error', path, jsonPath: jsonPath(path), message };
+function diagnostic(
+  code: string,
+  path: (string | number)[],
+  message: string,
+  severity: DeckLintSeverity = 'error'
+): DeckLintDiagnostic {
+  return { code, severity, path, jsonPath: jsonPath(path), message };
+}
+
+function schemaDiagnosticCode(path: readonly (string | number)[]): string | null {
+  if (path.at(-1) === 'alt') return 'image-alt';
+  if (path.at(-1) === 'label' && (path.includes('cta') || path.includes('actions'))) {
+    return 'cta-label';
+  }
+  return null;
 }
 
 function schemaDiagnostics(
@@ -73,12 +88,30 @@ function schemaDiagnostics(
       const missingPath = isSlideId ? path : [...path, 'id'];
       return diagnostic('missing-slide-id', missingPath, 'Every slide needs a valid id.');
     }
+    const contentCode = schemaDiagnosticCode(path);
+    if (contentCode === 'image-alt') {
+      return diagnostic(
+        contentCode,
+        path,
+        'Describe the image in alt text, or mark it decorative.'
+      );
+    }
+    if (contentCode === 'cta-label') {
+      return diagnostic(contentCode, path, 'Every call to action needs a visible label.');
+    }
     if (invalidStep) {
       return diagnostic(
         'invalid-fragment-order',
         path,
         'Fragment steps must be valid integers from 0 through 32.'
       );
+    }
+    // DeckSchema enforces the layout catalog; keep its findings under the lint's specific codes.
+    if (path[0] === 'slides' && path.length === 3 && path[2] === 'layout') {
+      return diagnostic('unknown-layout', path, issue.message);
+    }
+    if (path[0] === 'slides' && path[2] === 'props') {
+      return diagnostic('invalid-layout-props', path.slice(0, 3), issue.message);
     }
     return diagnostic('invalid-deck-structure', path, 'This value does not match the deck schema.');
   });
@@ -99,6 +132,77 @@ function missingSlideIds(input: unknown): DeckLintDiagnostic[] {
       );
     }
   });
+  return diagnostics;
+}
+
+/** Preserve useful CTA paths when a nested schema union reports only its parent. */
+function missingCtaLabels(input: unknown): DeckLintDiagnostic[] {
+  const diagnostics: DeckLintDiagnostic[] = [];
+  const stack: { value: unknown; path: (string | number)[] }[] = [{ value: input, path: [] }];
+  let visited = 0;
+
+  while (stack.length > 0 && visited < 20_000) {
+    const current = stack.pop();
+    if (!current || current.value === null || typeof current.value !== 'object') continue;
+    visited += 1;
+    const node = current.value;
+    if (Array.isArray(node)) {
+      for (let index = node.length - 1; index >= 0; index -= 1) {
+        const property = Object.getOwnPropertyDescriptor(node, String(index));
+        if (property && 'value' in property) {
+          stack.push({ value: property.value, path: [...current.path, index] });
+        }
+      }
+      continue;
+    }
+    const record = node as Record<string, unknown>;
+    const descriptor = (key: string): unknown => {
+      const property = Object.getOwnPropertyDescriptor(node, key);
+      return property && 'value' in property ? property.value : undefined;
+    };
+    const type = descriptor('type');
+    const actions = descriptor('actions');
+    if (type === 'cta' && Array.isArray(actions)) {
+      actions.forEach((action, index) => {
+        if (action === null || typeof action !== 'object') return;
+        const label = Object.getOwnPropertyDescriptor(action, 'label');
+        if (
+          !label ||
+          !('value' in label) ||
+          typeof label.value !== 'string' ||
+          !label.value.trim()
+        ) {
+          diagnostics.push(
+            diagnostic(
+              'cta-label',
+              [...current.path, 'actions', index, 'label'],
+              'Every call to action needs a visible label.'
+            )
+          );
+        }
+      });
+    }
+    const cta = descriptor('cta');
+    if (cta !== null && typeof cta === 'object' && !Array.isArray(cta)) {
+      const label = Object.getOwnPropertyDescriptor(cta, 'label');
+      if (!label || !('value' in label) || typeof label.value !== 'string' || !label.value.trim()) {
+        diagnostics.push(
+          diagnostic(
+            'cta-label',
+            [...current.path, 'cta', 'label'],
+            'Every call to action needs a visible label.'
+          )
+        );
+      }
+    }
+    for (const key of Object.keys(record)) {
+      const property = Object.getOwnPropertyDescriptor(node, key);
+      if (property && 'value' in property) {
+        stack.push({ value: property.value, path: [...current.path, key] });
+      }
+    }
+  }
+
   return diagnostics;
 }
 
@@ -326,4 +430,90 @@ export function lintDeckStructure(input: unknown): DeckLintResult {
   });
 
   return { valid: diagnostics.length === 0, diagnostics };
+}
+
+const MIN_CHART_DESCRIPTION_LENGTH = 40;
+
+/**
+ * Check accessible content and static readability guidance for an untrusted
+ * deck. Schema omissions are errors; word-count estimates and missing speaker
+ * notes are warnings. Rendered contrast, font size and fit still need visual QA.
+ */
+export function lintDeckContent(input: unknown): DeckLintResult {
+  const structure = lintDeckStructure(input);
+  if (!structure.valid) {
+    const diagnostics = [...structure.diagnostics];
+    const existing = new Set(diagnostics.map((item) => `${item.code}:${item.jsonPath}`));
+    for (const issue of missingCtaLabels(input)) {
+      const key = `${issue.code}:${issue.jsonPath}`;
+      if (!existing.has(key)) diagnostics.push(issue);
+    }
+    return { valid: false, diagnostics };
+  }
+
+  const parsed = safeParseDeck(input);
+  if (!parsed.success) return structure;
+
+  const diagnostics = [...structure.diagnostics];
+  const quality = checkDeckStatic(parsed.deck);
+  for (const issue of quality.issues) {
+    diagnostics.push(diagnostic(issue.rule, issue.path, issue.message, issue.severity));
+  }
+
+  const checkChartDescription = (description: string | undefined, path: (string | number)[]) => {
+    if (!description || description.trim().length === 0) {
+      diagnostics.push(
+        diagnostic(
+          'chart-description',
+          path,
+          'Add a concise accessible description that explains the chart’s takeaway.'
+        )
+      );
+    } else if (description.trim().length < MIN_CHART_DESCRIPTION_LENGTH) {
+      diagnostics.push(
+        diagnostic(
+          'chart-description-short',
+          path,
+          `Chart descriptions under ${MIN_CHART_DESCRIPTION_LENGTH} characters may not explain the data clearly.`,
+          'warning'
+        )
+      );
+    }
+  };
+
+  parsed.deck.slides.forEach((slide, slideIndex) => {
+    const base = ['slides', slideIndex];
+    if ('props' in slide && slide.layout === 'chart') {
+      const props = slide.props as Record<string, unknown>;
+      const spec = props.spec;
+      const description =
+        spec !== null && typeof spec === 'object' && !Array.isArray(spec)
+          ? (spec as Record<string, unknown>).description
+          : undefined;
+      checkChartDescription(typeof description === 'string' ? description : undefined, [
+        ...base,
+        'props',
+        'spec',
+        'description',
+      ]);
+    }
+    if ('blocks' in slide) {
+      forEachBlock(slide.blocks, (block, path) => {
+        if (block.type === 'chart' || block.type === 'chart-controls') {
+          checkChartDescription(block.spec.description, [
+            ...base,
+            'blocks',
+            ...path,
+            'spec',
+            'description',
+          ]);
+        }
+      });
+    }
+  });
+
+  return {
+    valid: diagnostics.every((item) => item.severity !== 'error'),
+    diagnostics,
+  };
 }

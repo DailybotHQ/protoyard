@@ -72,6 +72,12 @@ export function setBlockHost(host: BlockHostOptions): void {
     get documentId() {
       return host.documentId;
     },
+    get viewerId() {
+      return host.viewerId;
+    },
+    get onCtaAction() {
+      return host.onCtaAction;
+    },
   };
   setContext(BLOCK_HOST_CONTEXT, live);
 }

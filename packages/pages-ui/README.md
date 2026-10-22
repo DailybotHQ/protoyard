@@ -159,10 +159,27 @@ local form is not authentication, an authorization boundary or a network form.
 - Print stylesheet and `PrintButton` on `./print`
 - Shared use by the player kind entries and level-2 `generate` templates
 
+## Security
+
+Page and doc hosts never inject raw HTML. Rich text goes through the same
+safe markdown path as the rest of Protoyard (`safeHref` / `safeImageSrc`);
+`javascript:` and `data:` links are dropped; form field names
+`__proto__`, `constructor` and `prototype` are ignored on submit. The suite
+[`tests/security.test.ts`](./tests/security.test.ts) scans `src/` for
+`{@html}`, `eval`, `innerHTML` assignment and related patterns, and proves
+the rendering rules above.
+
+```bash
+pnpm vitest run packages/pages-ui/tests/security.test.ts
+# companion gate: no raw HTML directive in source
+rg -n '\{@html\}' packages/pages-ui/src && exit 1 || true
+```
+
 ## Development
 
 ```bash
 pnpm --filter @protoyard/pages-ui typecheck
 pnpm vitest run packages/pages-ui
 pnpm vitest run packages/pages-ui/tests/doc-host.test.ts
+pnpm vitest run packages/pages-ui/tests/security.test.ts
 ```

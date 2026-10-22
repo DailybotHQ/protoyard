@@ -10,7 +10,8 @@
     "./schema": "./src/schema/index.ts",
     "./layouts": "./src/layouts/index.ts",
     "./style": "./src/style/index.ts",
-    "./quality": "./src/quality/index.ts"
+    "./quality": "./src/quality/index.ts",
+    "./text": "./src/text/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -18,7 +19,8 @@
   "dependencies": {
     "@protoyard/blocks": "workspace:*",
     "zod": "^4.6.7",
-    "@protoyard/themes": "workspace:*"
+    "@protoyard/themes": "workspace:*",
+    "@protoyard/ai": "workspace:*"
   },
   "protoyard": {
     "build": {
@@ -59,6 +61,11 @@
         "types": "./dist/quality/index.d.ts",
         "import": "./dist/quality/index.js",
         "default": "./dist/quality/index.js"
+      },
+      "./text": {
+        "types": "./dist/text/index.d.ts",
+        "import": "./dist/text/index.js",
+        "default": "./dist/text/index.js"
       }
     },
     "types": "./dist/index.d.ts"

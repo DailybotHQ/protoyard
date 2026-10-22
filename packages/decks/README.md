@@ -6,18 +6,11 @@ not rendering: the deck schema, the layout catalog, navigation, steps, style
 resolution and quality rules. It has no Svelte and does not use Reveal.js.
 [`@protoyard/decks-ui`](../decks-ui/README.md) renders it.
 
-> **Status:** the bounded deck schema, virtual canvas and pure navigation model
-> are implemented. The layout catalog, input guard, steps and motion, style
-> **Status:** the bounded deck schema, the virtual canvas, and steps and motion
-> are implemented. The layout catalog, navigation model, input guard, style
-> resolver, backgrounds and quality rules land in later PLAN_005 tasks. This
-> **Status:** the bounded deck schema, virtual canvas and style resolver are
-> implemented. The layout catalog, navigation model, input guard, steps and
-> motion, backgrounds and quality rules land in later PLAN_005 tasks. This
-> README lists only what exists.
-> **Status:** the bounded deck schema, virtual canvas and layout catalog are
-> implemented. Navigation, input guard, steps and motion, style resolver,
-> backgrounds and quality rules land in later PLAN_005 tasks.
+> **Status:** implemented: the bounded deck schema, the virtual canvas, the
+> layout catalog, the pure navigation model, steps and motion, the style
+> resolver, and the text twins (Markdown and outline). The input guard,
+> backgrounds and quality rules land in later PLAN_005 tasks. This README lists
+> only what exists.
 
 ## Exports
 
@@ -32,6 +25,8 @@ resolution and quality rules. It has no Svelte and does not use Reveal.js.
 | `@protoyard/decks/layouts` | Full layout catalog: 19 content layouts + `chart` + `free`, prop schemas, samples, pacing and use-when metadata |
 | `@protoyard/decks/style` | `resolveDeckStyle`, which resolves a built-in or library theme, numeric palette seed, font pairing and presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, combined CSS variables, the effective style and fallback warnings. |
 | `@protoyard/decks/quality` | `DECK_QUALITY` thresholds, `DECK_QUALITY_RULES` (static and rendered rules with severities), `checkDeckStatic`, `deckJsonPath`. Not imported by renderers. |
+| `@protoyard/decks` | Canvas helpers (`DECK_ASPECTS`, `DeckAspect`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DeckCanvasSize`, `DECK_TEXT_MINIMUMS`); the layout catalog (`DECK_LAYOUTS`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts`); navigation (`createDeckNavigator`, `parseDeckHash`, `formatDeckHash`, `defaultSlideStepCount`); steps and motion (`slideSteps`, `slideStepCount`, `fragmentPhase`, `activeCodeHighlight`, `resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`, `effectiveMotion`, `prefersReducedMotion`, `FRAGMENT_EFFECTS`, `DECK_TRANSITIONS`, `MAX_MOTION_MS`) |
+| `@protoyard/decks/text` | `deckToMarkdown`, `deckOutline`, `formatDeckOutline`, `slideTitle`, `blocksMarkdown`, `chartTable`, `richText`, `mdDocumentToMarkdown`, `escapeText`, `escapeInline`, `stripInvisible` (a subpath, so the Markdown parser never enters a deck entry bundle) |
 
 `DeckSchema` accepts catalog slides (`layout` plus bounded JSON `props`) and
 free slides (`layout: "free"` plus validated `@protoyard/blocks` content).
@@ -338,6 +333,47 @@ them, so no rule is declared twice.
 The subpath is 21.8 KB gzip minified with zod external. Most of that is the
 layout catalog and the block schemas it validates against. Only authoring
 tools and the sweep import it.
+## Text twins
+
+`@protoyard/decks/text` turns a deck into text with pure, deterministic
+functions: the same deck always gives the same output, with no dates, random
+ids or locale formatting.
+
+- **`deckToMarkdown(deck, { title?, includeHidden?, notes? })`** is a Markdown
+  twin for accessibility, artifact descriptions, LLM context and the
+  "Markdown next to every deck" idea:
+  - The `# title` is the outline title, then `options.title`, then "Deck".
+  - Outline sections become `##` headings, and slides outside every section
+    come under "Other slides".
+  - Each slide is a numbered heading with its title, its body, and its speaker
+    notes under a "Notes" heading (`notes: false` leaves them out).
+  - Hidden slides are skipped unless `includeHidden` is set.
+  - Catalog layouts render from their validated props.
+  - A layout whose props fail their schema, or an unknown layout, lists every
+    prop string by key path.
+  - Free slides render their blocks.
+  - Charts become a caption plus a data table, with one row per label and one
+    column per series.
+- **`deckOutline(deck)`** returns one row per slide (`number`, `id`, `layout`,
+  `title`, `section`, `hidden`). `formatDeckOutline` prints it as lines such as
+  `3. growth · chart · Tickets per month`. `slideTitle(slide)` is the title
+  both use: the slide's own title, else the layout's `title`, `heading` or
+  `number` prop, else the first heading block, else a shortened quote.
+
+Deck data is untrusted, so nothing from it can become Markdown structure:
+
+- Plain strings are escaped by context. Inline syntax and HTML characters are
+  escaped everywhere; `#`, `-`, `+`, `=` and `1.` only where they would start
+  a block.
+- Bare `https://` and `www.` URLs are broken so they never turn into links.
+- Control, zero-width and bidi characters (Trojan Source) are removed.
+- Author Markdown (text blocks, list items, callout and card bodies…) is
+  parsed with `@protoyard/ai/markdown` and serialized back from that safe
+  AST, never copied as a raw string. Raw HTML stays escaped text, and only
+  links and images that passed `safeHref` / `safeImageSrc` stay links.
+  Author headings are demoted below the slide heading.
+- Code goes in a fence longer than any backtick run inside it.
+- Inline `data:` images are replaced by their alt text.
 
 ## Tests
 
