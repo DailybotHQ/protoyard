@@ -114,6 +114,7 @@ export * from './components/form/utilities/index.ts';
 export { default as FormField } from './components/form-field/FormField.svelte';
 export type { FormFieldControl } from './components/form-field/form-field.ts';
 export { default as Header } from './components/header/Header.svelte';
+export { ProposalTag, SimulatedTag } from './components/honesty/index.ts';
 export { default as ImageInput } from './components/image-input/ImageInput.svelte';
 export {
   buildImagePreviews,
@@ -131,6 +132,13 @@ export { default as Label } from './components/label/Label.svelte';
 export { default as LoadingState } from './components/loading-state/LoadingState.svelte';
 export { default as MobileAppShell } from './components/mobile-app-shell/MobileAppShell.svelte';
 export { default as MobileHeader } from './components/mobile-header/MobileHeader.svelte';
+export { default as Notice } from './components/notice/Notice.svelte';
+export {
+  NOTICE_DEFAULT_ICONS,
+  NOTICE_TONE_CLASSES,
+  NOTICE_TONES,
+  type NoticeTone,
+} from './components/notice/tones.ts';
 export { default as Drawer } from './components/overlay/Drawer.svelte';
 export {
   DEFAULT_DRAWER_SIZE,
@@ -175,6 +183,12 @@ export {
   trendTone,
   trendWord,
 } from './components/stat-card/trend.ts';
+export { default as StatusChip } from './components/status-chip/StatusChip.svelte';
+export {
+  STATUS_CHIP_TONE_CLASSES,
+  STATUS_CHIP_TONES,
+  type StatusChipTone,
+} from './components/status-chip/tones.ts';
 // Flows
 export { default as Stepper } from './components/stepper/Stepper.svelte';
 export type { StepperStep } from './components/stepper/types.ts';
