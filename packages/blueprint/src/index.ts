@@ -116,6 +116,35 @@ export {
   canonicalJson,
 } from './identity.ts';
 export {
+  type AnyBlueprint,
+  type BlueprintBase,
+  blueprintKind,
+  type ContentBlueprint,
+  type DeckBlueprint,
+  type DocBlueprint,
+  isAppBlueprint,
+  isContentBlueprint,
+  isDeckBlueprint,
+  isDocBlueprint,
+  isPageBlueprint,
+  type KindBodies,
+  type PageBlueprint,
+  parseAnyBlueprint,
+  safeParseAnyBlueprint,
+} from './kinds/envelope.ts';
+export {
+  BLUEPRINT_KINDS,
+  type BlueprintKind,
+  CONTENT_KINDS,
+  type ContentKind,
+  DEFAULT_BLUEPRINT_KIND,
+  detectBlueprintKind,
+  isBlueprintKind,
+  isContentKind,
+  type KindDetection,
+  unknownKindMessage,
+} from './kinds/kind.ts';
+export {
   appendMigration,
   applyUpgradeOps,
   type BlueprintMigration,

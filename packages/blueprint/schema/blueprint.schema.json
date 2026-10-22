@@ -184,6 +184,10 @@
       },
       "additionalProperties": false
     },
+    "kind": {
+      "type": "string",
+      "const": "app"
+    },
     "layout": {
       "type": "object",
       "properties": {

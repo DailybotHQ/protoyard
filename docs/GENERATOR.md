@@ -158,6 +158,7 @@ A blueprint is strict: an unknown key anywhere fails validation.
 | Top-level key | Required | Meaning |
 | --- | --- | --- |
 | `formatVersion` | yes | Always `1`. |
+| `kind` | no | `app` (the default when missing), `deck`, `page` or `doc`. See [Blueprint kinds](#blueprint-kinds). |
 | `name` | yes | Up to 80 characters. It becomes the prototype name unless `--name` is passed. |
 | `description` | no | Up to 280 characters. It becomes the manifest description unless `--description` is passed. |
 | `entities` | yes | One or more entities (see below). |
@@ -168,6 +169,29 @@ A blueprint is strict: an unknown key anywhere fails validation.
 | `catalog`, `tags`, `icon`, `category` | no | Catalog metadata for files under `blueprints/`. |
 | `history` | no | Written by `generate`; never edit it by hand (see [Migrations](#regeneration-and-migrations)). |
 | `validation` | no | Validation tasks for exploration sessions (see [Validation tasks](#validation-tasks)). |
+
+### Blueprint kinds
+
+A blueprint's `kind` (ADR-036) names what it renders as. A missing `kind` means `app`: everything
+on this page describes apps, and every blueprint written before kinds existed is an app.
+
+- `kind: "app"` is accepted and removed when the blueprint is parsed, so an app with and without it
+  has one content identity (share links, player namespaces and world caches do not change). A
+  golden file, `packages/blueprint/tests/fixtures/identity-golden.json`, freezes the identity of
+  every shipped blueprint.
+- `deck`, `page` and `doc` are content kinds. They share the root keys `formatVersion`, `name`,
+  `description`, `catalog`, `tags`, `icon`, `category` and `brand`, plus one body key named
+  after the kind (`"deck": { … }`). App-only keys (`entities`, `roles`, `screens`, `layout`,
+  `archetype`, `notifications`, `history`, `validation`) are rejected on them.
+- A kind this version does not know fails on `kind` with a "needs a newer Protoyard" message.
+  `formatVersion` stays `1`.
+
+In code, `parseBlueprint` and the `Blueprint` type stay app-only. `parseAnyBlueprint`,
+`safeParseAnyBlueprint` and the `AnyBlueprint` union accept every kind, and `blueprintKind()`,
+`isAppBlueprint()`, `isDeckBlueprint()`, `isPageBlueprint()` and `isDocBlueprint()` tell them
+apart. **Status today:** the envelope ships, but the deck, page and doc body schemas are not
+wired yet. Until they are, a content-kind blueprint fails with "not available in this build of
+Protoyard yet", and the player and `generate` still run apps only.
 
 ### Entities
 
