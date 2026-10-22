@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onMount } from 'svelte';
+import { chromeMessages, formatMessage } from '../messages.ts';
 import {
   type BadgeCorner,
   everyCornerBlocked,
@@ -108,12 +109,13 @@ onMount(() => {
     window.removeEventListener('hashchange', schedule);
   };
 });
+const messages = chromeMessages().badge;
 </script>
 
 {#if compact}
   <aside
     bind:this={badge}
-    aria-label="About this prototype"
+    aria-label={messages.label}
     data-py-demo-badge="compact"
     class="pointer-events-none fixed z-30 flex size-5 select-none"
     style:left="{compact.left}px"
@@ -123,8 +125,8 @@ onMount(() => {
       type="button"
       class="pointer-events-auto inline-flex size-5 items-center justify-center rounded-full border border-border bg-elevated/90 shadow-soft backdrop-blur focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       aria-expanded={expanded}
-      aria-label="Prototype · simulated data"
-      title="{name} is an interactive prototype. Data is simulated and stored only in this browser."
+      aria-label={messages.text}
+      title={formatMessage(messages.title, { name })}
       onclick={() => (expanded = !expanded)}
     >
       <span class="size-1.5 rounded-full bg-primary" aria-hidden="true"></span>
@@ -138,23 +140,23 @@ onMount(() => {
         ]}
         role="status"
       >
-        Prototype · simulated data
+        {messages.text}
       </span>
     {/if}
   </aside>
 {:else}
 <aside
   bind:this={badge}
-  aria-label="About this prototype"
+  aria-label={messages.label}
   data-py-demo-badge={corner}
   class={[
     'pointer-events-none fixed z-30 select-none whitespace-nowrap rounded-full border border-border bg-elevated px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-soft',
     corner.startsWith('top') ? 'top-3' : 'bottom-3 pb-safe',
     corner.endsWith('left') ? 'left-3' : 'right-3',
   ]}
-  title="{name} is an interactive prototype. Data is simulated and stored only in this browser."
+  title={formatMessage(messages.title, { name })}
 >
   <span class="mr-1 inline-block size-1.5 rounded-full bg-primary align-middle" aria-hidden="true"></span>
-  Prototype · simulated data
+  {messages.text}
 </aside>
 {/if}

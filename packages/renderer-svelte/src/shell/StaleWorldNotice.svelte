@@ -1,7 +1,9 @@
 <script lang="ts">
 import type { PrototypeRuntime } from '@protoyard/core';
 import { Button } from '@protoyard/ui';
+import { chromeMessages, formatMessage } from '../messages.ts';
 import Icon from './Icon.svelte';
+import MessageText from './MessageText.svelte';
 
 /** The fields of `@protoyard/runtime`'s `StaleWorld` this notice reads. */
 export interface StaleWorldInfo {
@@ -27,7 +29,8 @@ let open = $state(true);
 let restored = $state(false);
 let error = $state<string | null>(null);
 const scenarioName = $derived(runtime.scenarios.get(stale.scenario)?.name ?? stale.scenario);
-const snapshotName = $derived(`Before refreshing ${scenarioName}`);
+const messages = chromeMessages().staleWorld;
+const snapshotName = $derived(formatMessage(messages.snapshotName, { scenario: scenarioName }));
 
 async function restore() {
   if (!stale.snapshotId) return;
@@ -44,7 +47,7 @@ async function restore() {
 {#if open}
   <div
     role="region"
-    aria-label={stale.status === 'kept' ? 'Prototype data kept' : 'Prototype data rebuilt'}
+    aria-label={stale.status === 'kept' ? messages.keptLabel : messages.rebuiltLabel}
     data-py-stale-world={stale.status}
     class="relative z-40 border-b border-border bg-accent px-4 py-3 text-sm text-accent-foreground"
   >
@@ -52,25 +55,31 @@ async function restore() {
       <Icon name="refresh" class="hidden size-4 shrink-0 sm:block" />
       <div class="min-w-0 flex-1" aria-live="polite">
         {#if restored}
-          <p>Your previous data is back. It will not be rebuilt again on the next visit.</p>
+          <p>{messages.restored}</p>
         {:else if stale.status === 'kept'}
           <p>
-            This prototype's generator changed, but its stored data was kept because a safety
-            snapshot could not be saved. Reset the <strong class="font-semibold">{scenarioName}</strong>
-            scenario to rebuild it{devtools ? ' (DevTools → Scenario, Ctrl or ⌘ + .)' : ''}.
+            <MessageText
+              template={devtools ? messages.keptWithDevtools : messages.kept}
+              values={{ scenario: scenarioName }}
+              strong={['scenario']}
+            />
           </p>
         {:else}
           <p>
-            This prototype's generator changed, so the stored data was rebuilt from the
-            <strong class="font-semibold">{scenarioName}</strong> scenario (seed {stale.seed}).
+            <MessageText
+              template={messages.rebuilt}
+              values={{ scenario: scenarioName, seed: stale.seed }}
+              strong={['scenario']}
+            />
           </p>
           {#if stale.snapshotId}
             <p class="text-xs opacity-80">
-              Your earlier data, edits included, was saved first as the snapshot “{snapshotName}”.
-              Restore it here{devtools ? ', or later from DevTools → Snaps (Ctrl or ⌘ + .)' : ''}.
+              {formatMessage(devtools ? messages.snapshotSavedWithDevtools : messages.snapshotSaved, {
+                snapshot: snapshotName,
+              })}
             </p>
           {:else}
-            <p class="text-xs opacity-80">This sandbox is disposable, so no snapshot was saved.</p>
+            <p class="text-xs opacity-80">{messages.noSnapshot}</p>
           {/if}
         {/if}
         {#if error}
@@ -79,9 +88,9 @@ async function restore() {
       </div>
       <div class="flex gap-2">
         {#if stale.snapshotId && !restored && stale.status === 'reseeded'}
-          <Button size="sm" onclick={restore}>Restore previous data</Button>
+          <Button size="sm" onclick={restore}>{messages.restore}</Button>
         {/if}
-        <Button size="sm" variant="outline" onclick={() => (open = false)}>Dismiss</Button>
+        <Button size="sm" variant="outline" onclick={() => (open = false)}>{messages.dismiss}</Button>
       </div>
     </div>
   </div>

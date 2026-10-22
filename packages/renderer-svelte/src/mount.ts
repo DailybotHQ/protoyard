@@ -15,6 +15,7 @@ import { type Component, mount, tick, unmount } from 'svelte';
 import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
 import { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
+import { type ChromeMessagesInput, setChromeMessages } from './messages.ts';
 import { consumeArtifactLink } from './shell/artifact-link.ts';
 import BootError from './shell/BootError.svelte';
 import { placeFloating, trackFixedRightEdge } from './shell/floating.ts';
@@ -81,6 +82,13 @@ export interface MountPrototypeOptions {
   demoBadge?: boolean;
   /** Runtime build settings; each one overrides its Vite define. */
   build?: MountBuildOptions;
+  /**
+   * The renderer's own words in another language: any subset of
+   * `ChromeMessages` (service error toasts, router fallbacks, loading text,
+   * banners, frame toggles, the demo badge, the boot error). Missing keys stay
+   * English; unknown keys or empty strings fail at mount with a boot error.
+   */
+  messages?: ChromeMessagesInput;
 }
 
 export interface MountedPrototype {
@@ -164,6 +172,13 @@ export function applyBuildOptions(
  */
 export async function mountPrototype(options: MountPrototypeOptions): Promise<MountedPrototype> {
   const { App, target, build } = options;
+  // Set before anything renders, so even the boot error speaks the prototype's language.
+  try {
+    setChromeMessages(options.messages);
+  } catch (error) {
+    setChromeMessages();
+    return showBootErrorFor(options.definition, target, error);
+  }
   let definition: PrototypeDefinition;
   try {
     definition = applyBuildOptions(applyBuildInfo(options.definition, BUILD_INFO), build);

@@ -42,6 +42,18 @@ export { type ClockTickHandler, type ClockTickOptions, onClockTick } from './clo
 export { getRuntime, provideRuntime, setMountedRuntime } from './context.ts';
 export { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED, REVIEW_ENABLED } from './flags.ts';
 export {
+  CHROME_MESSAGE_MAX_LENGTH,
+  type ChromeMessages,
+  type ChromeMessagesInput,
+  chromeMessages,
+  DEFAULT_CHROME_MESSAGES,
+  formatMessage,
+  type MessagePart,
+  messageParts,
+  resolveChromeMessages,
+  setChromeMessages,
+} from './messages.ts';
+export {
   applyBuildOptions,
   type MountBuildOptions,
   type MountedPrototype,
