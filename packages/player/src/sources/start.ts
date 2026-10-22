@@ -79,11 +79,11 @@ async function defaultBoot(blueprint: Blueprint, target: HTMLElement) {
 }
 
 async function defaultDemo(): Promise<Blueprint> {
-  const [{ parseBlueprint }, demo] = await Promise.all([
-    import('@protoyard/blueprint'),
-    import('../fixtures/demo.blueprint.json'),
-  ]);
-  return parseBlueprint(demo.default);
+  const demo = import('../fixtures/demo.blueprint.json');
+  // Destructured at the import so the bundler keeps only `parseBlueprint`, not
+  // the whole package barrel (authoring, brief and kind modules), in this chunk.
+  const { parseBlueprint } = await import('@protoyard/blueprint');
+  return parseBlueprint((await demo).default);
 }
 
 /** Turns an exception thrown while defining or booting into issues for the error screen. */

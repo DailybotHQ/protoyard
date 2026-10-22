@@ -56,8 +56,19 @@ const check = (id: string, label: string, status: CheckStatus, details: string[]
   details,
 });
 
-export function checkContractFiles(dir: string): Check {
-  const missing = CONTRACT_FILES.filter((f) => !existsSync(join(dir, f)));
+/** App-only contract files: content kinds (deck, page, doc) have no app database or scenarios. */
+const APP_ONLY_CONTRACT_FILES: ReadonlySet<string> = new Set([
+  'src/database/schema.ts',
+  'src/scenarios/index.ts',
+  'src/scenarios/generators.ts',
+]);
+
+export function checkContractFiles(dir: string, blueprintKind?: string): Check {
+  const contentKind = blueprintKind !== undefined && blueprintKind !== 'app';
+  const required = contentKind
+    ? CONTRACT_FILES.filter((f) => !APP_ONLY_CONTRACT_FILES.has(f))
+    : CONTRACT_FILES;
+  const missing = required.filter((f) => !existsSync(join(dir, f)));
   const details = missing.map((f) => `missing ${f}`);
   if (!existsSync(join(dir, 'README.md'))) details.push('no README.md (recommended)');
   return check(
@@ -458,7 +469,7 @@ export const validateCommand: Handler = async (ctx, args, options): Promise<Comm
         ])
       : check('manifest', 'protoyard.json schema', 'fail', parsed.errors)
   );
-  checks.push(checkContractFiles(dir));
+  checks.push(checkContractFiles(dir, parsed.manifest?.blueprintKind));
   const links = findEscapingSymlinks(dir);
   checks.push(
     links.length > 0

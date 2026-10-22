@@ -1,0 +1,109 @@
+{
+  "formatVersion": 1,
+  "kind": "deck",
+  "name": "Lumen launch rehearsal",
+  "description": "A fictional, simulated product launch rehearsal. All metrics are illustrative.",
+  "tags": ["launch", "rehearsal", "example"],
+  "icon": "rocket",
+  "category": "demos",
+  "brand": {
+    "name": "Lumen Notes",
+    "seed": "#7c3aed",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "deck": {
+    "style": {
+      "aspect": "16:9",
+      "density": "comfortable",
+      "transition": "slide",
+      "motion": "subtle"
+    },
+    "slides": [
+      {
+        "id": "cover",
+        "layout": "title-hero",
+        "props": {
+          "title": "Lumen Notes",
+          "subtitle": "A launch rehearsal",
+          "meta": "Fictional product · simulated scenario"
+        }
+      },
+      {
+        "id": "promise",
+        "layout": "three-column-cards",
+        "props": {
+          "title": "A calmer shared workspace",
+          "cards": [
+            { "icon": "file-text", "heading": "Capture", "body": "Keep project notes together." },
+            { "icon": "users", "heading": "Collaborate", "body": "Invite a small example team." },
+            {
+              "icon": "sparkles",
+              "heading": "Focus",
+              "body": "Turn updates into clear next steps."
+            }
+          ]
+        }
+      },
+      {
+        "id": "sample-metric",
+        "layout": "big-stat",
+        "props": {
+          "number": "42%",
+          "label": "fewer duplicate updates in this simulated rehearsal",
+          "context": "Illustrative placeholder, not a measured result"
+        }
+      },
+      {
+        "id": "checklist",
+        "layout": "process-steps",
+        "props": {
+          "title": "Rehearse the story",
+          "steps": [
+            { "title": "Set the scene", "body": "Introduce the fictional workspace." },
+            { "title": "Show the flow", "body": "Walk through a note from draft to decision." },
+            { "title": "Invite questions", "body": "Use the presenter view and audience controls." }
+          ]
+        }
+      },
+      {
+        "id": "audience-check",
+        "layout": "free",
+        "blocks": [
+          { "type": "heading", "text": "Quick audience check", "level": 2 },
+          {
+            "type": "text",
+            "markdown": "This poll is simulated. Responses stay in this browser runtime."
+          },
+          {
+            "type": "poll",
+            "id": "launch-poll",
+            "question": "Which part should we rehearse again?",
+            "options": [
+              { "id": "capture", "label": "Capture" },
+              { "id": "collaborate", "label": "Collaboration" },
+              { "id": "focus", "label": "Focus" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "close",
+        "layout": "closing-cta",
+        "props": {
+          "title": "Thanks for joining",
+          "text": "Continue the rehearsal at your own pace.",
+          "cta": { "label": "example.com/lumen", "href": "https://example.com/lumen" },
+          "footnote": "All names and scenarios are fictional."
+        }
+      }
+    ],
+    "outline": {
+      "sections": [
+        { "id": "opening", "title": "Opening", "slideIds": ["cover", "promise"] },
+        { "id": "story", "title": "Story", "slideIds": ["sample-metric", "checklist"] },
+        { "id": "discussion", "title": "Discussion", "slideIds": ["audience-check", "close"] }
+      ]
+    }
+  }
+}

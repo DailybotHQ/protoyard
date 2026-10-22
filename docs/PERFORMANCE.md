@@ -1004,6 +1004,29 @@ Faker, DevTools, the theme library, the crud screen kits, the crud app shell
 generator, and the main-thread generation fallback. It also checks the content:
 no Faker data and no worker reference appear in initial JS.
 
+**App path after the kinds work (measured 2026-10-22).** PLAN_005 regressed the
+universal player's initial JS. Wiring the page and doc bodies statically
+added 13.8 KB. Later the brief synthesizer, the deck schema and layout
+catalog, and deck lint all entered the initial graph through the
+`@protoyard/blueprint` barrel, because
+[`sources/start.ts`](../packages/player/src/sources/start.ts) loaded the demo
+blueprint with `Promise.all([import('@protoyard/blueprint'), …])`. That form
+keeps the whole barrel. Destructuring `parseBlueprint` at the import lets the
+bundler keep only what is used. The content-kind body schemas load through
+`kindBodySchema(kind)` only for decks, pages and docs.
+
+| Build | Initial JS (gzip -9) |
+| --- | ---: |
+| Before PLAN_005 | 188,442 B |
+| Page and doc bodies wired statically | 202,253 B |
+| `dev` before this fix (synthesizer 30.5 KB, decks schema 7.4 KB, barrel 25.2 KB) | 228,317 B |
+| After this fix | **116.2 KB** |
+
+`budget.test.ts` now proves the content-kind body schemas, deck layout catalog
+and deck schema are absent from the initial graph, by module and by literal
+messages unique to each. It also caps the app path's initial JS at 125 KB, the
+measurement plus about 7 %.
+
 **Deck UI entry (measured 2026-10-21).**
 `packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
 minimal Svelte host that imports `@protoyard/decks-ui/app` and its stylesheet,
