@@ -759,7 +759,13 @@ export const BlueprintBrandSchema = z
 export type BlueprintBrand = z.infer<typeof BlueprintBrandSchema>;
 export type BlueprintBrandInput = z.input<typeof BlueprintBrandSchema>;
 
-const BlueprintShape = z.strictObject({
+/**
+ * Root keys every blueprint kind shares (ADR-036): identity, catalog metadata
+ * and brand. App-only keys (entities, roles, screens, layout, archetype,
+ * notifications, history, validation) stay on the app shape; content kinds
+ * add their own body key (`deck`, `page`, `doc`) in `kinds/`.
+ */
+export const BLUEPRINT_BASE_SHAPE = {
   $schema: z.string().optional(),
   formatVersion: z.literal(1),
   name: z.string().min(1).max(80),
@@ -778,6 +784,16 @@ const BlueprintShape = z.strictObject({
   category: z.string().min(1).max(40).optional(),
   /** Optional brand → generated on-brand theme for `protoyard generate`. */
   brand: BlueprintBrandSchema.optional(),
+};
+
+const BlueprintShape = z.strictObject({
+  ...BLUEPRINT_BASE_SHAPE,
+  /**
+   * The blueprint kind (ADR-036). A missing kind means an app; an explicit
+   * `"app"` is accepted and removed by parsing, so both share one identity.
+   * There is deliberately no default: a default would change every identity.
+   */
+  kind: z.literal('app').optional(),
   /** Shared app layout selected by generated apps. */
   layout: z
     .strictObject({
@@ -1388,6 +1404,15 @@ function checkScreens(blueprint: Shape, add: Add) {
   });
 }
 
+/**
+ * The parsed app blueprint: an explicit `kind: "app"` is dropped (a missing
+ * kind means app), then entity CRUD defaults are materialized.
+ */
+function withoutAppKind(blueprint: Shape): Omit<Shape, 'kind'> {
+  const { kind: _kind, ...app } = withEntityScreenDefaults(blueprint);
+  return app;
+}
+
 /** Materializes entity CRUD defaults into ordinary screens for every consumer. */
 function withEntityScreenDefaults(blueprint: Shape): Shape {
   const screens = [...blueprint.screens];
@@ -1411,7 +1436,7 @@ export const BlueprintSchema = BlueprintShape.superRefine((blueprint, ctx) => {
   for (const issue of blueprintIssues(blueprint)) {
     ctx.addIssue({ code: 'custom', path: issue.path, message: issue.message });
   }
-}).transform(withEntityScreenDefaults);
+}).transform(withoutAppKind);
 
 export type Blueprint = z.output<typeof BlueprintSchema>;
 export type BlueprintInput = z.input<typeof BlueprintSchema>;
