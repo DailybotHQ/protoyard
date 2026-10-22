@@ -570,6 +570,9 @@ importers:
       '@protoyard/analytics-ui':
         specifier: workspace:*
         version: link:../analytics-ui
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../blocks-ui
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../blueprint
@@ -582,6 +585,12 @@ importers:
       '@protoyard/crud':
         specifier: workspace:*
         version: link:../crud
+      '@protoyard/decks-ui':
+        specifier: workspace:*
+        version: link:../decks-ui
+      '@protoyard/pages-ui':
+        specifier: workspace:*
+        version: link:../pages-ui
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../renderer-svelte
