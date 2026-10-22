@@ -1466,8 +1466,38 @@ guards that family modules do not import sibling families, dynamically import
 the `@protoyard/ui` barrel, or pull in the app, player, Faker or database
 packages. `lib/` and the text renderer are the declared shared areas.
 
-Per-family gzip measurements are pending `BLOCKS-bench`; this section will be
-updated with its real Vite build results rather than estimates.
+Method: `npx tsx scripts/bench-blocks.ts --check` builds one fixture with a
+real production Vite build, a lazy import for the root and every family
+subpath, and pnpm-linked workspace packages. It gzips each import's static
+chunk closure at level 9, excluding chunks already loaded by the entry. The
+report is written to `tmp/bench-blocks.json`. Measured 2026-10-22 (Node
+26.11.1, Vite 8.3.4):
+
+| Import | Gzip beyond entry | Ceiling | Result |
+| --- | ---: | ---: | --- |
+| Root dispatcher | 2.91 KB | 3 KB | Pass |
+| Text | 25.43 KB | 6 KB | Over |
+| Media | 53.15 KB | 4 KB | Over |
+| Data | 53.78 KB | 5 KB | Over |
+| Structure | 39.95 KB | 8 KB | Over |
+| Code | 5.14 KB | 6 KB | Pass |
+| Diagram | 4.59 KB | 6 KB | Pass |
+| Interactive | 74.43 KB | 10 KB | Over |
+| Map | 1.30 KB | 4 KB | Pass |
+| Embed | 11.62 KB | 2 KB | Over |
+
+The map ceiling is 4 KB, matching the small map family entry; the task
+contract did not list a separate map value. The interactive marker test also
+guards that poll, quiz, calculator, counter, tabs, reveal, chart-controls,
+form, map and embed roots carry `data-py-deck-interactive`. The form block
+remains a non-submitting preview; `@protoyard/pages-ui`'s FormBlock replaces it
+through the host for page forms.
+
+Six family entries meet their ceilings. The remaining closures include shared
+UI chunks such as `tailwind-merge`, Lucide icons, and runtime dependencies, so
+the current `--check` correctly exits 1. These measured overruns need follow-up
+chunk reductions before the per-family budget gate is green; the figures are
+reported as measured rather than hidden or raised ceilings.
 
 ## Generated CRUD screens
 
