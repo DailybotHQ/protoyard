@@ -40,6 +40,7 @@ let tryOpen = $state(false);
   class="group relative flex h-full flex-col overflow-hidden rounded-xl border border-line bg-surface transition-[box-shadow,translate] duration-200 ease-out focus-within:ring-2 focus-within:ring-accent hover:shadow-md motion-safe:hover:-translate-y-0.5 motion-reduce:transition-none"
   data-testid="market-card"
   data-kind={entry.k}
+  data-content-kind={entry.contentKind}
   data-slug={entry.s}
 >
   <DeviceThumb shell={entry.sh} src={entry.th ? withBase(`/${entry.th}`) : null} icon={entry.i} name={entry.n} />
@@ -47,6 +48,9 @@ let tryOpen = $state(false);
     <div class="flex items-center gap-2 text-xs text-muted">
       <span class={['rounded-full px-2 py-0.5 font-medium', entry.k === 'prototype' ? 'bg-accent-soft text-accent-fg' : 'border border-line']}>
         {label(entry.k)}
+      </span>
+      <span class="rounded-full border border-line px-2 py-0.5" data-testid="market-content-kind">
+        {label(entry.contentKind)}
       </span>
       {#if entry.pt}<span class="truncate">{entry.pt}</span>{/if}
     </div>
