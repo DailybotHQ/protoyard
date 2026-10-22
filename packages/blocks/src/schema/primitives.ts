@@ -1,5 +1,6 @@
 import { safeHref } from '@protoyard/ai/markdown';
 import { z } from 'zod';
+import { BLOCK_ICONS } from '../icons.ts';
 import { BLOCK_TONES } from './vocabulary.ts';
 
 /**
@@ -132,12 +133,9 @@ export const LinkHrefSchema = z
   });
 
 /**
- * A Lucide icon name in kebab case. T-blocks-icons narrows this to the
- * `BLOCK_ICONS` allow-list so renderers can import icons statically.
+ * An icon from the `BLOCK_ICONS` allow-list (kebab-case Lucide names), so
+ * renderers import icons statically and an unknown name fails validation.
  */
-export const IconNameSchema = z
-  .string()
-  .regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/, 'Use a kebab-case Lucide icon name')
-  .max(48);
+export const IconNameSchema = z.enum(BLOCK_ICONS);
 
 export const TextAlignSchema = z.enum(['start', 'center']);

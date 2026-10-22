@@ -10,6 +10,7 @@
 
 export type { AiChartSpec as ChartSpec } from '@protoyard/ai';
 export { type ChartSpecResult, ChartSpecSchema, parseChartSpec } from '@protoyard/ai/chart';
+export { BLOCK_ICONS, type BlockIcon, isBlockIcon } from './icons.ts';
 export {
   CalloutBlockSchema,
   CardsBlockSchema,
