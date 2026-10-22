@@ -1447,7 +1447,7 @@ Every block may also carry `id`, `step`, `reveal`, `tone` (optional; interactive
 
 <!-- END GENERATED BLOCK CATALOG -->
 
-# Authoring and rendering blocks
+## Authoring and rendering blocks
 
 Protoyard decks, pages and documents share the same JSON block vocabulary. A
 block is content data: it is validated against the closed schemas and is never
@@ -1455,7 +1455,7 @@ executed as code or rendered as HTML. Blueprint files, shared blueprint data,
 and restored snapshots are untrusted input even when they came from a known
 author. Keep validation at the boundary where data enters the app.
 
-## Choose a block family
+### Choose a block family
 
 Most blocks display authored content: text (`heading`, `text`, `list`, `quote`,
 `callout`, `divider`), media (`image`, `video`, `people`), data (`stat`,
@@ -1477,7 +1477,7 @@ limits and accessibility guidance. It is rendered from `BLOCK_CATALOG`; do not
 edit its contents by hand. The family and type lists are exported from
 `@protoyard/blocks` (`BLOCK_TYPES` and `BLOCK_TYPE_FAMILY`).
 
-## Validate before rendering
+### Validate before rendering
 
 Use the schema parser for plain block data. It rejects unknown fields, invalid
 types and duplicate ids and returns structured paths for errors:
@@ -1506,7 +1506,7 @@ keys, and reports path-addressed issues with fix hints. Caller-provided limits
 can be lowered but not raised. Schema validation does not make external data
 trusted; keep it inert after parsing too.
 
-## Text, links and media safety
+### Text, links and media safety
 
 Rich text is bounded Markdown, not HTML. The `text.markdown`, `callout.body`,
 and related Markdown fields are parsed at render time by the safe parser from
@@ -1529,7 +1529,7 @@ rejected. Images require alternative text unless marked decorative, and video
 requires a label; autoplay must be muted. Keep captions and labels visible so
 meaning is not carried only by an image, icon, or color.
 
-## Lazy rendering boundary
+### Lazy rendering boundary
 
 `@protoyard/blocks-ui` exposes a small root dispatcher and separate family
 subpaths. `BlockRenderer` checks data again at the rendering boundary, loads
@@ -1553,7 +1553,7 @@ The root entry does not statically import family renderers, and none of these
 families belong in the `@protoyard/ui` barrel. This keeps a host's reachable
 graph limited to the families it renders.
 
-## Interactive state and accessibility
+### Interactive state and accessibility
 
 Renderers do not write database rows. Stateful controls read and dispatch
 through the `BlockStateHost` contract from `@protoyard/blocks/interactive`,
@@ -1575,7 +1575,7 @@ only the viewer's own stored vote. The host must name that viewer: set
 `viewerId` to the same id the services record votes and answers under (the
 player passes the active persona).
 
-## Blocks on a slide
+### Blocks on a slide
 
 A deck renders blocks with `canvasMode: 'slide'`, and every deck slide sets
 it, whatever the surrounding host says. A slide is a fixed-size canvas scaled
@@ -1583,7 +1583,7 @@ to the screen, so viewport breakpoints (`sm:`, `lg:`) would follow the phone,
 not the slide. On a slide, cards, columns and steps use fixed column counts.
 Pages and docs (`flow`) stay responsive.
 
-## Contract checks
+### Contract checks
 
 Run the package tests and documentation link check after changing authoring
 content or renderer behavior:
