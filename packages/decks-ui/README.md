@@ -27,13 +27,17 @@ slide layout in virtual canvas pixels (1280×720, 1024×768, 720×1280 or
 mounts only the active slide and its immediate neighbors. CSS centers the
 canvas, so image decoding does not change its alignment.
 
-`DeckLayoutRenderer` consumes one `@protoyard/decks` layout id and its props.
-It validates the layout props and the composed block list before rendering
-through `@protoyard/blocks-ui`; free layouts use the same bounded block
-renderer. Each catalog id resolves to a lazy family chunk. Body content has a
-24 px minimum and labels an 18 px minimum in virtual canvas pixels. Interactive,
-data and code block roots carry the deck input guard attribute so their
-controls do not advance the presentation.
+`DeckLayoutRenderer` consumes one `@protoyard/decks` layout id and its props,
+validates the props against the layout's schema, and renders that layout's own
+slide composition from a lazy family chunk (text, media, data, diagram). Every
+composition is a `<section data-py-deck-layout data-py-deck-design>` on the
+slide stage. Plain props (titles, labels, numbers) render as text nodes.
+Markdown bodies, icons, images, video, avatars, code and charts go through
+validated `@protoyard/blocks` blocks, so media policy and safe Markdown stay in
+one place. Free slides render their blocks, with a leading heading promoted to
+the slide title. Interactive, data and code block roots carry the deck input
+guard attribute so their controls do not advance the presentation. See
+"Slide design" below and [docs/DECKS.md](../../docs/DECKS.md#slide-design).
 
 The root never statically imports a subpath; `tests/package-shape.test.ts`
 enforces it.
@@ -235,6 +239,52 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
   DevTools is on.
 - **Some measurements are happy-dom only.** The 200-slide timings have no layout or paint; real
   browser timings belong to the site's QA budgets.
+
+## Slide design
+
+The type scale (`src/layouts/design/scale.ts`) is in virtual-canvas pixels and
+follows the stage width through container query units. Every step clamps to the
+deck text minimums (24 px body, 18 px labels):
+
+| Step | On a 1280 px stage | Used for |
+| --- | --- | --- |
+| `display` | 96 px (56–112) | cover, divider and closing titles |
+| `stat` | 192 px (96–220) | the big-stat number |
+| `title` | 54 px (40–60) | content slide titles |
+| `quote` | 56 px (36–60) | pull quotes |
+| `lead` | 33 px (28–36) | subtitles, stat labels, card and step headings |
+| `body` | 27 px (24–28) | body copy |
+| `label` / `caption` | 19 px (18–20) | eyebrows and meta / captions, sources, credits |
+
+Compositions per layout:
+
+| Layout | Composition |
+| --- | --- |
+| `title-hero` | accent bar, display title, lead subtitle, meta label, soft primary glows |
+| `section-divider` | primary edge band and wash, eyebrow, display title, rule |
+| `two-column-split` | two cards (the second accented) with an arrow between; stacks on 9:16 |
+| `three-column-cards` | three equal cards with icon tiles; stacks on 9:16 |
+| `quote` | pull quote with a large decorative mark and a ruled citation |
+| `closing-cta` | centered display title, lead text, one large pill action, footnote |
+| `image-left` / `image-right`, `video-left` / `video-right` | media bleeds to one edge and crops (`object-fit: cover`); copy on the other side, in reading order |
+| `image-centered` / `video-centered` | framed media stage (`contain`) with title and caption |
+| `image-full-bleed` | cover image with a dark, light or no gradient overlay and its caption |
+| `team-avatars` | grid of centered cards with large ringed avatars (up to four per row) |
+| `big-stat` | dominant stat-scale number, label, context and source |
+| `comparison-table` | room-sized table; yes, no and empty cells as marks with screen reader text |
+| `chart` | chart on a card. Its data table stays behind the chart's own "View as table" toggle even with `showTable`, and a print-only copy goes on paper |
+| `code-with-callout` | code card (stepped highlights kept) beside an accented callout list |
+| `process-steps` | numbered markers joined by connectors (3–5 steps); vertical on 9:16 |
+| `timeline` | events on an axis with markers; six to eight events split into two axes |
+| `free` | the author's blocks under a promoted title |
+
+Content always fits the stage. Titles and copy have line clamps. `fitText`
+steps a title's size down to its floor when it would still hide text, and
+`fitContent` zooms a content area down to a floor of 0.72 when it would overflow
+(`src/layouts/design/fit.ts`). Layouts use theme tokens only (`bg-primary`,
+`bg-card`, `text-muted-foreground`…), so deck themes and dark mode apply, and
+their backgrounds stay transparent for deck backgrounds. Tests:
+`pnpm vitest run packages/decks-ui/tests/layout-design.test.ts`.
 
 ## Install in a workspace prototype
 

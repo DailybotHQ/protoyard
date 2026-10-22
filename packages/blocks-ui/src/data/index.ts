@@ -13,6 +13,7 @@ export {
   chartItems,
   chartSeries,
   chartValueFormatter,
+  chartXKind,
   columnAlign,
   DATA_LOCALE,
   formatCents,
