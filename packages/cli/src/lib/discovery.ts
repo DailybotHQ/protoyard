@@ -1,12 +1,19 @@
 import { lstat, readdir, readFile, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-import { type Blueprint, brandThemeId, safeParseBlueprint } from '@protoyard/blueprint';
+import {
+  type AnyBlueprint,
+  type BlueprintKind,
+  blueprintKind,
+  brandThemeId,
+  safeParseAnyBlueprint,
+} from '@protoyard/blueprint';
 import { MANIFEST_FILENAME, type PrototypeManifest, safeParseManifest } from '@protoyard/core';
 import { toPosixRelative, type WorkspacePaths } from './paths.ts';
 
 /**
  * Discovery is deliberately bounded: one directory level under `prototypes/`
- * and `templates/`, flat `blueprints/*.json` files, no recursion, a size
+ * and `templates/`, flat app `blueprints/*.json` files plus closed one-level
+ * content-kind shelves, no recursion, a size
  * ceiling per file, and JSON data only — prototype code is never imported.
  */
 
@@ -18,6 +25,8 @@ export type FolderKind = 'prototype' | 'template' | 'blueprint';
 
 export interface ManifestLocation {
   folderKind: FolderKind;
+  /** Content blueprint folder discriminator; flat blueprints default to `app`. */
+  blueprintKind?: BlueprintKind;
   /** Folder name (expected to equal the manifest slug), or blueprint file stem. */
   folder: string;
   dir: string;
@@ -35,7 +44,8 @@ export interface ManifestLocation {
 }
 
 export interface ParsedBlueprintCatalog {
-  blueprint: Blueprint | null;
+  blueprint: AnyBlueprint | null;
+  blueprintKind: BlueprintKind | null;
   /** Stable id for the registry (`local.blueprint.<slug>`). */
   id: string | null;
   slug: string | null;
@@ -96,6 +106,7 @@ export async function listManifestLocations(paths: WorkspacePaths): Promise<Mani
       const manifestPath = join(paths.blueprints, entry.name);
       out.push({
         folderKind: 'blueprint',
+        blueprintKind: 'app',
         folder: slug,
         dir: paths.blueprints,
         manifestPath,
@@ -104,6 +115,36 @@ export async function listManifestLocations(paths: WorkspacePaths): Promise<Mani
     }
   } catch {
     // Missing blueprints/ is fine — catalogs are optional.
+  }
+
+  // Content catalogs live in a closed set of one-level folders. Do not recurse
+  // through arbitrary directories or follow symlinks from this data boundary.
+  const contentFolders = [
+    ['deck', 'decks'],
+    ['page', 'pages'],
+    ['doc', 'docs'],
+  ] as const satisfies readonly (readonly [BlueprintKind, string])[];
+  for (const [kind, folder] of contentFolders) {
+    const base = join(paths.blueprints, folder);
+    try {
+      const entries = await readdir(base, { withFileTypes: true });
+      for (const entry of entries
+        .filter((e) => e.isFile() && e.name.endsWith('.json') && !/^[._]/.test(e.name))
+        .sort((a, b) => a.name.localeCompare(b.name))) {
+        const slug = basename(entry.name, '.json');
+        const manifestPath = join(base, entry.name);
+        out.push({
+          folderKind: 'blueprint',
+          blueprintKind: kind,
+          folder: slug,
+          dir: base,
+          manifestPath,
+          relDir: toPosixRelative(paths.root, manifestPath),
+        });
+      }
+    } catch {
+      // A missing kind shelf is fine; catalog content is optional.
+    }
   }
   return out;
 }
@@ -194,20 +235,26 @@ export function validateManifestData(raw: unknown, location: ManifestLocation): 
 }
 
 /**
- * Reads a catalog blueprint file (`blueprints/<slug>.json`). Requires a valid
- * blueprint body, a `brand` block and a `catalog` block so the marketplace can
- * list it. Never throws: problems become `errors`.
+ * Reads a catalog blueprint file. App catalogs require brand + catalog;
+ * content kind catalogs require catalog and may omit brand. Never throws.
  */
 export async function readBlueprintCatalog(
   location: ManifestLocation,
   fileStat: ManifestStat | null
 ): Promise<ParsedBlueprintCatalog> {
   if (location.folderKind !== 'blueprint') {
-    return { blueprint: null, id: null, slug: null, errors: ['Not a blueprint location.'] };
+    return {
+      blueprint: null,
+      blueprintKind: null,
+      id: null,
+      slug: null,
+      errors: ['Not a blueprint location.'],
+    };
   }
   if (!fileStat) {
     return {
       blueprint: null,
+      blueprintKind: null,
       id: null,
       slug: null,
       errors: [`Missing blueprint file ${location.relDir}.`],
@@ -216,6 +263,7 @@ export async function readBlueprintCatalog(
   if (fileStat.size > BLUEPRINT_MAX_BYTES) {
     return {
       blueprint: null,
+      blueprintKind: null,
       id: null,
       slug: null,
       errors: [`Blueprint is ${fileStat.size} bytes (limit ${BLUEPRINT_MAX_BYTES}).`],
@@ -227,28 +275,38 @@ export async function readBlueprintCatalog(
   } catch (error) {
     return {
       blueprint: null,
+      blueprintKind: null,
       id: null,
       slug: null,
       errors: [`Not valid JSON: ${(error as Error).message}`],
     };
   }
-  return validateBlueprintCatalogData(raw, location.folder);
+  return validateBlueprintCatalogData(raw, location.folder, location.blueprintKind ?? 'app');
 }
 
 /** Pure validation of a catalog blueprint document (filename stem = slug). */
-export function validateBlueprintCatalogData(raw: unknown, slug: string): ParsedBlueprintCatalog {
-  const parsed = safeParseBlueprint(raw);
+export async function validateBlueprintCatalogData(
+  raw: unknown,
+  slug: string,
+  expectedKind: BlueprintKind = 'app'
+): Promise<ParsedBlueprintCatalog> {
+  const parsed = await safeParseAnyBlueprint(raw);
   if (!parsed.success) {
     return {
       blueprint: null,
+      blueprintKind: null,
       id: null,
       slug: null,
       errors: parsed.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`),
     };
   }
   const blueprint = parsed.data;
+  const kind = blueprintKind(blueprint);
   const errors: string[] = [];
-  if (!blueprint.brand) {
+  if (kind !== expectedKind) {
+    errors.push(`blueprint kind "${kind}" does not match its location (${expectedKind}).`);
+  }
+  if (kind === 'app' && !blueprint.brand) {
     errors.push('catalog blueprints need a "brand" block (seed and/or preset).');
   }
   if (!blueprint.catalog) {
@@ -258,10 +316,11 @@ export function validateBlueprintCatalogData(raw: unknown, slug: string): Parsed
     errors.push(`file stem "${slug}" must be lowercase kebab-case (min 2 chars).`);
   }
   if (errors.length > 0) {
-    return { blueprint: null, id: null, slug: null, errors };
+    return { blueprint: null, blueprintKind: null, id: null, slug: null, errors };
   }
   return {
     blueprint,
+    blueprintKind: kind,
     id: `local.blueprint.${slug}`,
     slug,
     errors: [],
@@ -269,7 +328,7 @@ export function validateBlueprintCatalogData(raw: unknown, slug: string): Parsed
 }
 
 /** Theme id a catalog blueprint would use after `protoyard generate`. */
-export function catalogBlueprintThemeId(blueprint: Blueprint): string {
+export function catalogBlueprintThemeId(blueprint: AnyBlueprint): string {
   if (!blueprint.brand) return 'violet';
   return brandThemeId(blueprint.brand, blueprint.name);
 }
