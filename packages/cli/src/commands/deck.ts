@@ -66,7 +66,12 @@ function loadDeck(
   missing: 'not_found' | 'validation' = 'not_found'
 ): LoadedDeck {
   const prototypeFile = resolve(ctx.root, 'prototypes', target, 'blueprint.json');
-  const isSlug = SLUG.test(target) && existsSync(prototypeFile);
+  // A pasted `prototype:<slug>` gets the same guard as a `blueprint:` path: the
+  // file must still be inside the workspace after symlinks.
+  const isSlug =
+    SLUG.test(target) &&
+    existsSync(prototypeFile) &&
+    (missing !== 'validation' || isInside(ctx.root, prototypeFile));
   const base = opt(options, 'cwd') ?? process.cwd();
   // A pasted reference is untrusted: its source resolves only inside the workspace,
   // after symlinks, so a crafted `source=` can never read a file elsewhere.
