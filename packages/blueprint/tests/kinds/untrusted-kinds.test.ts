@@ -87,7 +87,7 @@ describe('loadUntrustedDocument: kinds', () => {
 
 describe('loadUntrustedDocument: text', () => {
   it('keeps newlines in speaker notes, markdown and list items, and tabs in code', async () => {
-    const notes = 'First point\r\nSecond point\nThird‮ point';
+    const notes = 'First point\r\nSecond point\nThird\u202e point';
     const deckResult = await loadUntrustedDocument(deck([{ type: 'heading', text: 'Hi' }], notes));
     expect(deckResult.success, JSON.stringify(deckResult.issues)).toBe(true);
     if (!deckResult.success) return;
@@ -99,7 +99,7 @@ describe('loadUntrustedDocument: text', () => {
 
     const docResult = await loadUntrustedDocument(
       doc([
-        { type: 'text', markdown: 'Line one\nLine two⁦' },
+        { type: 'text', markdown: 'Line one\nLine two\u2066' },
         { type: 'code', lang: 'ts', code: 'if (ok) {\n\treturn 1;\n}' },
         { type: 'list', items: [{ text: 'Item\nwith a break' }] },
       ])
@@ -110,11 +110,13 @@ describe('loadUntrustedDocument: text', () => {
       .blocks;
     expect(blocks.at(-3)?.markdown).toBe('Line one\nLine two');
     expect(blocks.at(-2)?.code).toBe('if (ok) {\n\treturn 1;\n}');
-    expect((blocks.at(-1)?.items as { text: string }[])[0]?.text).toBe('Item\nwith a break');
+    expect((blocks.at(-1)?.items as { text: string }[] | undefined)?.[0]?.text).toBe(
+      'Item\nwith a break'
+    );
   });
 
   it('still strips newlines, tabs and bidi controls from titles, labels and names', async () => {
-    const value = deck([{ type: 'heading', text: 'Head\ning\twith‪ breaks' }]);
+    const value = deck([{ type: 'heading', text: 'Head\ning\twith\u202a breaks' }]);
     value.name = 'Line\nbreak name';
     value.deck.slides[1].title = 'Free\r\nslide';
     const result = await loadUntrustedDocument(value);

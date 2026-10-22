@@ -159,15 +159,21 @@ describe.skipIf(!built)(
       // Literal messages unique to each schema (they survive minification).
       expect(initialCode.includes('block ids must be unique'), 'the page body schema').toBe(false);
       expect(initialCode.includes('lists headings of level 2'), 'the doc body schema').toBe(false);
-      expect(initialCode.includes('Opening cover: title, subtitle'), 'the deck layout catalog').toBe(false);
+      expect(
+        initialCode.includes('Opening cover: title, subtitle'),
+        'the deck layout catalog'
+      ).toBe(false);
       expect(initialCode.includes('A step marker may set fragment'), 'the deck schema').toBe(false);
     });
 
-    it('keeps the app path at or under its pre-kinds initial size (188 KB measured)', () => {
-      // Measured 2026-10-21: 188,442 B before the kind bodies, 202,253 B after
-      // wiring them statically, 115.9 KB once the player imported only
-      // `parseBlueprint` from the blueprint barrel (docs/PERFORMANCE.md).
-      expect(sum(classes.initialJs) / KB).toBeLessThanOrEqual(190);
+    it('keeps the app path initial JS at its measured size (regression cap)', () => {
+      // Measured 2026-10-22 (gzip -9, static closure of index.html): 188,442 B
+      // before PLAN_005; 202,253 B, then 228,317 B on dev once content-kind
+      // schemas, the brief synthesizer and deck lint rode in through the
+      // blueprint barrel; 116.2 KB after sources/start.ts imported only
+      // `parseBlueprint` (docs/PERFORMANCE.md). The cap is that measurement
+      // plus about 7 %: anything that grows the app path must say why here.
+      expect(sum(classes.initialJs) / KB).toBeLessThanOrEqual(125);
     });
 
     it('ships no Faker data or worker reference in initial JS', () => {
