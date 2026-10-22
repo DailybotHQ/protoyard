@@ -6,10 +6,9 @@ player's deck entry and generated deck prototypes both mount it, so a deck
 renders the same at both levels. The presenting surfaces each have their own
 lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 
-> **Status:** scaffolding. Today the root exports `fitDeckCanvas`, and the four
-> subpaths below are reserved: each exists as a package entry but exports
-> nothing yet. Later PLAN_005 tasks fill them. This README lists only what
-> exists.
+> **Status:** the virtual canvas fit helper and canvas component are available.
+> The `./app`, `./presenter`, `./print` and `./studio` subpaths are reserved for
+> later PLAN_005 tasks. This README lists only what exists.
 
 ## Subpaths
 
@@ -21,6 +20,12 @@ lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 | `@protoyard/decks-ui/print` | Print and PDF, one slide per page | reserved (T-decks-print) |
 | `@protoyard/decks-ui/studio` | Deck Studio, a lazy DevTools tab that exports RFC 6902 patches | reserved (T-decks-studio) |
 | `@protoyard/decks-ui/styles.css` | Tailwind `@source` for the package | available |
+
+`DeckCanvas` is the internal slide viewport used by the app subpath. It keeps
+slide layout in virtual canvas pixels (1280×720, 1024×768, 720×1280 or
+1080×1080), scales the canvas to its container with `ResizeObserver`, and
+mounts only the active slide and its immediate neighbors. CSS centers the
+canvas, so image decoding does not change its alignment.
 
 The root never statically imports a subpath; `tests/package-shape.test.ts`
 enforces it.
