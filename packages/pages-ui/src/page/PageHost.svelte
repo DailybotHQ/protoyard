@@ -1,7 +1,7 @@
 <script lang="ts">
 import { setBlockHost } from '@protoyard/blocks-ui';
 import type { PageDocument, PageSection } from '@protoyard/pages';
-import MarketingLayout from '../../../ui/src/layouts/MarketingLayout.svelte';
+import MarketingLayout from '@protoyard/ui/layouts/marketing';
 import { BlockHost } from '../block-host/index.ts';
 
 /**
