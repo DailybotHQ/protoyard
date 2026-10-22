@@ -5,13 +5,14 @@ import {
   TableBlockSchema,
 } from '@protoyard/blocks';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, onTestFinished } from 'vitest';
 import {
   BlockFamilyRenderer,
   ChartBlock as ChartBlockView,
   chartItems,
   chartSeries,
   chartValueFormatter,
+  chartXKind,
   columnAlign,
   formatCents,
   formatTableCell,
@@ -191,6 +192,52 @@ describe('ChartBlock', () => {
     expect(toggles).toHaveLength(1);
     await fireEvent.click(toggles[0] as HTMLElement);
     expect(toggles[0]?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('draws line and area charts over free-text labels (category x axis, not dates)', async () => {
+    expect(chartXKind({ labels: ['W1', 'W2', 'W3'] })).toBe('category');
+    expect(chartXKind({ labels: ['Jan', 'Feb'] })).toBe('category');
+    expect(chartXKind({ labels: ['2026-01', '2026-02'] })).toBe('time');
+    expect(chartXKind({ labels: ['2026-01-05', 'W2'] })).toBe('category');
+    const weekly = ChartBlockSchema.parse({
+      type: 'chart',
+      spec: {
+        kind: 'area',
+        title: 'Weekly prototypes',
+        labels: ['W1', 'W2', 'W3'],
+        series: [{ label: 'Decks', values: [4, 9, 15] }],
+      },
+    });
+    // happy-dom lays nothing out; give the chart a width as a browser would.
+    class FixedWidthObserver {
+      callback: ResizeObserverCallback;
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback;
+      }
+      observe(target: Element) {
+        this.callback(
+          [{ target, contentRect: { width: 600, height: 260 } } as unknown as ResizeObserverEntry],
+          this as unknown as ResizeObserver
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    }
+    const original = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = FixedWidthObserver as unknown as typeof ResizeObserver;
+    onTestFinished(() => {
+      globalThis.ResizeObserver = original;
+    });
+    render(BlockFamilyRenderer, { block: weekly });
+    await screen.findByRole('figure', { name: 'Weekly prototypes' });
+    await waitFor(() => {
+      const drawn = [...document.querySelectorAll('path[d]')]
+        .map((path) => path.getAttribute('d') ?? '')
+        .filter((d) => d.length > 0);
+      // Before the fix every series path was empty: "W1" parsed as a NaN date.
+      expect(drawn.length).toBeGreaterThan(0);
+      expect(drawn.some((d) => d.includes('NaN'))).toBe(false);
+    });
   });
 
   it('renders part-whole charts with the table beside them when showTable is set', async () => {
