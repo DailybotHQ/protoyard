@@ -25,6 +25,11 @@ export interface BlockHostOptions {
   /** Stable document namespace used when family renderers address block state. */
   documentId?: string;
   /**
+   * Viewer (persona) id for poll and quiz votes. Supplied by the host from the
+   * session, never by block content. Defaults to `viewer` in previews.
+   */
+  viewerId?: string;
+  /**
    * Structure CTAs call this when set. Return a promise so the Button shows
    * pending feedback until it settles (AGENTS.md rule 5).
    */
