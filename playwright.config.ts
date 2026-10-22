@@ -98,7 +98,7 @@ if (!Number.isInteger(REVIEW_PORT) || REVIEW_PORT < 1024 || REVIEW_PORT > 65535)
 
 // Specs that open the built player; naming one on the command line turns the player
 // servers on (and tells its workers through the environment they inherit).
-const PLAYER_SPECS = ['marketplace', 'content-kinds-a11y'];
+const PLAYER_SPECS = ['marketplace', 'content-kinds-a11y', 'deck-design'];
 if (process.argv.some((arg) => PLAYER_SPECS.some((spec) => arg.includes(spec)))) {
   process.env.PROTOYARD_E2E_PLAYER = '1';
 }
@@ -120,6 +120,9 @@ const deckE2e =
   // Asking for the deck spec by path starts its server too.
   process.argv.some((arg) => DECK_SERVER_SPECS.some((spec) => arg.includes(spec)));
 const DECK_PORT = Number(process.env.PROTOYARD_E2E_DECK_PORT ?? 4891);
+// The deck design gate also opens the generated flagship prototype (level 2).
+const deckDesignE2e = process.argv.some((arg) => arg.includes('deck-design'));
+const DECK_PROTOTYPE_PORT = Number(process.env.PROTOYARD_E2E_DECK_PROTOTYPE_PORT ?? 4892);
 if (!Number.isInteger(DECK_PORT) || DECK_PORT < 1024 || DECK_PORT > 65535) {
   throw new Error('PROTOYARD_E2E_DECK_PORT must be a port number');
 }
@@ -199,6 +202,16 @@ export default defineConfig({
             reuseExistingServer: !ci,
             timeout: 180_000,
           },
+          ...(deckDesignE2e
+            ? [
+                {
+                  command: `pnpm protoyard build create-anything-deck --out tmp/e2e-deck-design/create-anything-deck && pnpm exec tsx tests/e2e/support/serve-static.ts tmp/e2e-deck-design/create-anything-deck ${DECK_PROTOTYPE_PORT}`,
+                  url: `http://127.0.0.1:${DECK_PROTOTYPE_PORT}/`,
+                  reuseExistingServer: !ci,
+                  timeout: 300_000,
+                },
+              ]
+            : []),
         ]
       : []),
     ...devtoolsPrototypes.map((slug, i) => ({

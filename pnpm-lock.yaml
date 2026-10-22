@@ -978,6 +978,9 @@ importers:
 
   prototypes/create-anything-deck:
     dependencies:
+      '@protoyard/blocks-ui':
+        specifier: workspace:*
+        version: link:../../packages/blocks-ui
       '@protoyard/blueprint':
         specifier: workspace:*
         version: link:../../packages/blueprint
@@ -990,6 +993,9 @@ importers:
       '@protoyard/decks-ui':
         specifier: workspace:*
         version: link:../../packages/decks-ui
+      '@protoyard/player':
+        specifier: workspace:*
+        version: link:../../packages/player
       '@protoyard/renderer-svelte':
         specifier: workspace:*
         version: link:../../packages/renderer-svelte
