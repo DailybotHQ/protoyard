@@ -116,7 +116,11 @@ describe('protoyard generate content kinds', () => {
       }
 
       const generatedBlueprint = read(`prototypes/${slug}/src/generated/blueprint.ts`);
-      expect(generatedBlueprint).toContain('parseAnyBlueprint');
+      expect(generatedBlueprint).toContain(
+        `parse${kind[0]?.toUpperCase()}${kind.slice(1)}Blueprint(`
+      );
+      // No top-level await outside comments: it deadlocks the single-chunk artifact build.
+      expect(generatedBlueprint).not.toMatch(/^(?!\s*(?:\*|\/\/|\/\*)).*\bawait\b/m);
       expect(checkHeader(generatedBlueprint)).toEqual({ generated: true, intact: true });
       const runtime = read(`prototypes/${slug}/src/prototype.ts`);
       expect(runtime).toContain('defineKindRuntime');

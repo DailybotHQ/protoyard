@@ -17,7 +17,8 @@
     "./workflows": "./src/workflows/index.ts",
     "./kinds": "./src/kinds/index.ts",
     "./kinds/embed": "./src/kinds/embed/index.ts",
-    "./schema.json": "./schema/blueprint.schema.json"
+    "./schema.json": "./schema/blueprint.schema.json",
+    "./kinds/parse": "./src/kinds/parse.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"

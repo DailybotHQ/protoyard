@@ -797,7 +797,10 @@ pnpm protoyard generate rehearsal --blueprint blueprints/decks/example.json --dr
 
 Content kinds use the shared runtime and renderer from their templates. Their
 generated modules are `src/generated/blueprint.ts` and `src/prototype.ts`; the
-blueprint module validates the full kind document, and the runtime module calls
+blueprint module validates the full kind document synchronously
+(`parseDeckBlueprint`, `parsePageBlueprint` or `parseDocBlueprint` from
+`@protoyard/blueprint/kinds/parse`, never a top-level `await`, which would
+leave a Claude artifact export blank), and the runtime module calls
 `defineKindRuntime`. A deck also gets a generated `src/deck-blueprint.ts`, which
 points the template's App at the generated blueprint, and it does not copy the
 template's sample `src/blueprint.json`. They do not emit app entity schema, policy, services,

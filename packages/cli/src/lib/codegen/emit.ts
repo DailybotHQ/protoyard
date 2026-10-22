@@ -158,19 +158,20 @@ const CONTENT_BLUEPRINT_TYPES = {
   doc: 'DocBlueprint',
 } as const;
 
-/** Validated kind blueprint module. parseAnyBlueprint loads only its body schema. */
+/** Validated kind blueprint module: the kind's synchronous parser (kinds/parse) keeps only its body schema. */
 function contentBlueprintModule(kind: keyof typeof CONTENT_BLUEPRINT_TYPES): string {
   const typeName = CONTENT_BLUEPRINT_TYPES[kind];
-  return `import { type ${typeName}, parseAnyBlueprint } from '@protoyard/blueprint';
+  const parser = `parse${typeName}`;
+  return `import type { ${typeName} } from '@protoyard/blueprint';
+import { ${parser} } from '@protoyard/blueprint/kinds/parse';
 import blueprintJson from '../../blueprint.json';
 
-const parsed = await parseAnyBlueprint(blueprintJson);
-if (!('kind' in parsed) || parsed.kind !== '${kind}') {
-  throw new Error('Generated blueprint kind does not match ${kind}.');
-}
-
-/** The validated ${kind} blueprint (blueprint.json is the single source of truth). */
-export const blueprint: ${typeName} = parsed;
+/**
+ * The validated ${kind} blueprint (blueprint.json is the single source of truth).
+ * Parsed synchronously: a top-level await on a lazily loaded schema would
+ * deadlock the single-chunk Claude artifact build.
+ */
+export const blueprint: ${typeName} = ${parser}(blueprintJson);
 `;
 }
 
