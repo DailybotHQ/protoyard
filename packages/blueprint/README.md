@@ -324,7 +324,7 @@ finds it through that export, from this repository or an installed package, and 
 relative `$schema`. A test fails when the file is out of date. Regenerate it with:
 
 ```bash
-pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/schema.ts'; import { writeFileSync } from 'node:fs'; writeFileSync('packages/blueprint/schema/blueprint.schema.json', JSON.stringify(blueprintJsonSchema(), null, 2) + '\n');" && npx biome format --write packages/blueprint/schema
+pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/index.ts'; import { writeFileSync } from 'node:fs'; void blueprintJsonSchema().then(schema => writeFileSync('packages/blueprint/schema/blueprint.schema.json', JSON.stringify(schema, null, 2) + '\n'));" && npx biome format --write packages/blueprint/schema
 ```
 
 **Size:** measured with esbuild (minified, zod and `@protoyard/core` external) and gzip -9:
