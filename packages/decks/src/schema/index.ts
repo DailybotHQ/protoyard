@@ -1,5 +1,6 @@
-import { BLOCK_REVEALS, type Block, BlockListSchema } from '@protoyard/blocks';
+import { BLOCK_REVEALS, type Block, BlockListSchema, LinkHrefSchema } from '@protoyard/blocks';
 import { z } from 'zod';
+import { checkDeckMediaSrc } from '../backgrounds/media.ts';
 import { DECK_ASPECTS } from '../canvas.ts';
 import { parseLayoutProps } from '../layouts/catalog.ts';
 import { FRAGMENT_EFFECTS } from '../motion/effects.ts';
@@ -177,6 +178,44 @@ function stripStepMarkers(
   return cleaned;
 }
 
+/**
+ * Media and links inside catalog props follow the deck policies: a `src` or
+ * `poster` passes `checkDeckMediaSrc` (relative paths, bounded data: URIs,
+ * avatars; a `src` under a `video` key is a video), and an `href` passes the
+ * blocks link policy (http(s), mailto, #anchor or relative; never
+ * `javascript:` or protocol-relative).
+ */
+function checkPropUrls(
+  value: unknown,
+  path: (string | number)[],
+  ctx: z.RefinementCtx,
+  inVideo = false
+): void {
+  if (Array.isArray(value)) {
+    for (const [index, item] of value.entries())
+      checkPropUrls(item, [...path, index], ctx, inVideo);
+    return;
+  }
+  if (value === null || typeof value !== 'object') return;
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    const here = [...path, key];
+    if ((key === 'src' || key === 'poster') && typeof child === 'string') {
+      const check = checkDeckMediaSrc(child, key === 'src' && inVideo ? 'video' : 'image');
+      if (!check.ok) ctx.addIssue({ code: 'custom', path: here, message: check.reason });
+    } else if (key === 'href' && typeof child === 'string') {
+      if (!LinkHrefSchema.safeParse(child).success) {
+        ctx.addIssue({
+          code: 'custom',
+          path: here,
+          message: 'Use an http(s), mailto, #anchor or relative link',
+        });
+      }
+    } else {
+      checkPropUrls(child, here, ctx, inVideo || key === 'video');
+    }
+  }
+}
+
 export const DeckSchema = z
   .strictObject({
     style: DeckStyleSchema,
@@ -188,6 +227,7 @@ export const DeckSchema = z
     deck.slides.forEach((slide, index) => {
       if ('props' in slide) {
         const props = stripStepMarkers(slide.props, ['slides', index, 'props'], ctx);
+        checkPropUrls(props, ['slides', index, 'props'], ctx);
         const parsedProps = parseLayoutProps(slide.layout, props);
         if (!parsedProps.success) {
           for (const issue of parsedProps.issues) {

@@ -21,6 +21,7 @@ resolution and quality rules. It has no Svelte and does not use Reveal.js.
 | `@protoyard/decks` | Canvas helpers plus `DECK_LAYOUTS`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts` |
 | `@protoyard/decks` | Input: `decideDeckInput`, `inputPathFrom`, `DECK_KEY_BINDINGS`, `DECK_INPUT_ACTIONS`, `DECK_INTERACTIVE_ATTRIBUTE`, `DECK_CHROME_ATTRIBUTE` and the swipe thresholds |
 | `@protoyard/decks` | Backgrounds: `resolveDeckBackground`, `DeckBackgroundSchema`, `DECK_BACKGROUND_PRESETS`, `checkDeckMediaSrc`, `DECK_TEXT_CONTRAST_MIN` |
+| `@protoyard/decks` | Untrusted input: `loadUntrustedDeck`, `DEFAULT_UNTRUSTED_DECK_LIMITS`, `stripHiddenCharacters` |
 | `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, slide and outline schemas, `DeckJsonSchema`, `safeParseDeck`, and the bounded deck types. `@protoyard/blueprint`'s `kind: "deck"` branch imports the schema from here. |
 | `@protoyard/decks/layouts` | Full layout catalog: 19 content layouts + `chart` + `free`, prop schemas, samples, pacing and use-when metadata |
 | `@protoyard/decks/style` | `resolveDeckStyle`, which resolves a built-in or library theme, numeric palette seed, font pairing and presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, combined CSS variables, the effective style and fallback warnings. |
@@ -37,6 +38,40 @@ the Draft 2020-12 JSON Schema derived from the same Zod schema.
 
 `safeParseDeck(value)` returns either the typed deck or issues with a stable
 `jsonPath` for authoring feedback.
+
+## Loading untrusted decks
+
+`loadUntrustedDeck(textOrData, limits?)` loads a deck from a link, a paste, a file, an embed message
+or an artifact. It never throws and never fetches, runs or renders anything. Cheap checks run
+**before** zod, so hostile input never costs a deep parse:
+
+1. **Size and depth.** At most 1 MiB of UTF-8 JSON and 32 levels, scanned on the text.
+2. **A plain-data copy.** The loader refuses accessors (they are never called), holes, cycles, class
+   instances, symbols, NaN and `__proto__` / `constructor` / `prototype` keys. It strips control and
+   bidirectional characters from strings, keeping newlines and tabs.
+3. **Counts.** At most 200 slides and 20,000 block nodes across free slides.
+4. **`safeParseDeck`.** It enforces the rules below.
+
+Issues carry a `code` (`invalid-input`, `invalid-json`, `too-large`, `too-deep`, `too-many`,
+`unsafe-key` or `invalid-deck`), a `jsonPath`, a message and a fix.
+
+`DeckSchema` itself enforces three things:
+
+- **The layout catalog.** A catalog slide's `layout` must be a catalog id, and its `props` must
+  pass that layout's props schema (`parseLayoutProps`). Diagnostics point into the props
+  (`$.slides[3].props.steps`).
+- **Step markers.** `{ step, fragment | reveal }` may sit on any props object; `slideSteps` reads
+  them. `step` is an integer from 0 to 1,000, `fragment` one of the effects, and `reveal` one of
+  the block reveal words, never both. The markers are checked, then set aside for the props schema,
+  and kept in the parsed slide. A `fragment` or `reveal` without `step` is ordinary content, so a
+  strict layout refuses it.
+- **The media and link policy in props.** Every `src` or `poster` passes `checkDeckMediaSrc`; a
+  `src` under `video` is checked as a video. Every `href` passes the blocks link policy: http(s),
+  mailto, `#anchor` or relative, never `javascript:` or protocol-relative. Free slides get the
+  blocks media policy from `@protoyard/blocks`.
+
+Rendering is the other half: decks-ui shows every deck string as text and has no `{@html}`,
+`innerHTML` or eval sink. `decks-ui/tests/hostile-render.test.ts` checks both.
 
 ## Layout catalog
 

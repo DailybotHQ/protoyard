@@ -285,6 +285,23 @@ Measured with a Vite library build (Svelte external, minified, gzip):
 - **Icons:** neither chunk imports the icon library; their few icons are inline
   SVG strokes.
 
+## Accessibility and themes
+
+`src/lib/tones.ts` maps every `BlockTone` to theme-token Tailwind classes
+(icon chips, borders, indicators) and documents the palette pairs that must
+reach WCAG AA. `packages/blocks-ui/tests/a11y-themes.test.ts` renders every
+`RICH_EXAMPLES` catalog fixture, checks heading order, image `alt`, named
+focusable controls with `focus-visible` rings, and AA contrast of those tone
+pairs across all **6 built-in themes × light/dark**. Failures name the block,
+theme and mode. Interactive, map and embed roots also set
+`data-py-deck-interactive` so deck navigation ignores clicks inside them.
+The form block remains a placeholder until the pages `FormBlock` owns
+responses through the host.
+
+```bash
+pnpm vitest run packages/blocks-ui/tests/a11y-themes.test.ts
+```
+
 ## Icons
 
 `src/lib/icons.ts` exports `BLOCK_ICON_COMPONENTS`, which maps every

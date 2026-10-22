@@ -11,6 +11,23 @@
 /** Version of the blueprint document format. Bumped only on breaking changes. */
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
+/**
+ * Authoring APIs (brief synthesis and kind detection, outlines, deck lint and
+ * layout selection, authoring validation) are named exports of this entry and
+ * tree-shake: a prototype that only parses or generates never bundles them.
+ * Browser consumers that want them on demand can load them as one lazy chunk,
+ * together with the deck layout catalog, through `loadAuthoringApis()`.
+ */
+export function loadAuthoringApis(): Promise<typeof import('./authoring-apis.ts')> {
+  return import('./authoring-apis.ts');
+}
+
+/** What `loadAuthoringApis()` resolves to. */
+export type AuthoringApis = Awaited<ReturnType<typeof loadAuthoringApis>>;
+
+/** Layout catalog types for authoring tools (type-only; the catalog itself loads lazily). */
+export type { DeckLayoutEntry, DeckLayoutId, LayoutPacing } from '@protoyard/decks/layouts';
+
 export {
   type AggregateCell,
   type AggregateQuerySpec,
@@ -59,6 +76,7 @@ export {
   type DeckLintDiagnostic,
   type DeckLintResult,
   type DeckLintSeverity,
+  lintDeckContent,
   lintDeckStructure,
 } from './authoring/deck-lint.ts';
 export {
@@ -120,6 +138,7 @@ export {
   boundBriefInput,
   buildDocOutline,
   buildPageOutline,
+  type ContentBriefOptions,
   type ContentBriefResult,
   type CueStrength,
   checkOutlineBounds,

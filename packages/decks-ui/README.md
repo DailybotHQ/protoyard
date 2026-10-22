@@ -6,10 +6,8 @@ player's deck entry and generated deck prototypes both mount it, so a deck
 renders the same at both levels. The presenting surfaces each have their own
 lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 
-> **Status:** the virtual canvas fit helper, canvas component and catalog
-> layout renderer are available.
-> The `./app`, `./presenter`, `./print` and `./studio` subpaths are reserved for
-> later PLAN_005 tasks. This README lists only what exists.
+> **Status:** the virtual canvas, catalog layout renderer and `DeckApp` are
+> available. Presenter, print and studio surfaces remain later PLAN_005 tasks.
 
 ## Subpaths
 
@@ -17,7 +15,7 @@ lazy subpath, and nothing here is re-exported from the `@protoyard/ui` barrel.
 | --- | --- | --- |
 | `@protoyard/decks-ui` | `fitDeckCanvas(container, canvas)` → `{ scale, offsetX, offsetY }`: letterboxed scale-to-fit, and scale 0 until the container has a size | available |
 | `@protoyard/decks-ui/layouts` | `DeckLayoutRenderer` and `loadLayoutRenderer(layoutId)`: validated catalog rendering through lazy text, media, data and diagram families | available |
-| `@protoyard/decks-ui/app` | `DeckApp` | reserved (T-decks-deck-app) |
+| `@protoyard/decks-ui/app` | `DeckApp` — canvas, layouts, hash navigation, guarded input, step chrome, aria-live | available |
 | `@protoyard/decks-ui/presenter` | Presenter window over `BroadcastChannel`, with an in-page fallback | reserved (T-decks-presenter) |
 | `@protoyard/decks-ui/print` | Print and PDF, one slide per page | reserved (T-decks-print) |
 | `@protoyard/decks-ui/studio` | Deck Studio, a lazy DevTools tab that exports RFC 6902 patches | reserved (T-decks-studio) |
@@ -40,6 +38,42 @@ controls do not advance the presentation.
 The root never statically imports a subpath; `tests/package-shape.test.ts`
 enforces it.
 
+## DeckApp
+
+```ts
+import { DeckApp } from '@protoyard/decks-ui/app';
+import type { Deck } from '@protoyard/decks';
+
+// player entry and generated deck prototypes both mount the same component
+```
+
+```svelte
+<script lang="ts">
+  import { DeckApp } from '@protoyard/decks-ui/app';
+  let { deck }: { deck: import('@protoyard/decks').Deck } = $props();
+</script>
+
+<DeckApp {deck} />
+```
+
+`DeckApp` takes a validated deck and composes:
+
+- `DeckCanvas` (virtual canvas + neighbor mount)
+- `DeckLayoutRenderer` per slide (catalog + free)
+- pure `createDeckNavigator` with `slideStepCount` and `#/<id>/<step>` hash sync
+- guarded keyboard, click and swipe via `decideDeckInput` / `inputPathFrom`
+- progress bar and slide-number chrome (`data-py-deck-chrome`)
+- `aria-live` announcements (`Slide n of N`) and `aria-roledescription="slide"`
+- blackout, overview and help overlays (presenter/print stay later surfaces)
+
+Root attribute: `data-py-deck-app`. Set `syncHash={false}` to own the hash yourself.
+## Untrusted content
+
+Deck strings (titles, props, notes) render as text. decks-ui has no `{@html}`, `innerHTML`,
+`insertAdjacentHTML`, `document.write`, `eval` or `new Function`. Load decks from outside with
+`loadUntrustedDeck` from `@protoyard/decks`. `tests/hostile-render.test.ts` renders script-, image-
+and iframe-shaped strings and checks that no element, event handler or request comes out of them.
+
 ## Install in a workspace prototype
 
 Add `"@protoyard/decks-ui": "workspace:*"` to the prototype dependencies. Then
@@ -53,5 +87,6 @@ import the styles after Tailwind and the theme/UI styles:
 
 ```bash
 pnpm vitest run packages/decks-ui
+pnpm vitest run packages/decks-ui/tests/deck-app.test.ts
 pnpm --filter @protoyard/decks-ui typecheck
 ```
