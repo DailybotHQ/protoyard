@@ -16,7 +16,7 @@ layout table, the limits table, and the decks-ui keyboard table.
 
 | Subpath | Exports |
 | --- | --- |
-| `@protoyard/decks` | **Canvas:** `DECK_ASPECTS`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DECK_TEXT_MINIMUMS`. **Catalog:** `DECK_LAYOUTS`, `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts`. **Navigation:** `createDeckNavigator`, `parseDeckHash`, `formatDeckHash`, `defaultSlideStepCount`, `slidePositionCount`, `DECK_HASH_ID_MAX`, `DECK_HASH_STEP_MAX`. **Input:** `decideDeckInput`, `inputPathFrom`, `DECK_INPUT_ACTIONS`, `DECK_KEY_BINDINGS`, `DECK_INTERACTIVE_ATTRIBUTE`, `DECK_CHROME_ATTRIBUTE`, `DECK_SWIPE_MIN_DISTANCE`, `DECK_SWIPE_AXIS_RATIO`, `DECK_SWIPE_MAX_DURATION_MS`. **Steps and motion:** `slideSteps`, `slideStepCount`, `slideFragments`, `fragmentPhase`, `activeCodeHighlight`, `FRAGMENT_EFFECTS`, `isFragmentEffect`, `DECK_TRANSITIONS`, `DEFAULT_TRANSITION`, `DEFAULT_MOTION`, `MAX_MOTION_MS`, `REDUCED_FADE_MS`, `resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`, `effectiveMotion`, `prefersReducedMotion`. **Backgrounds:** `resolveDeckBackground`, `DeckBackgroundSchema`, `DeckBackgroundSpecSchema`, `DECK_BACKGROUND_PRESETS`, `DECK_BACKGROUND_PRESET_IDS`, `DECK_GRADIENT_IDS`, `DEFAULT_DECK_BACKGROUND`, `checkDeckMediaSrc`, `DECK_TEXT_CONTRAST_MIN`. **Untrusted input:** `loadUntrustedDeck`, `DEFAULT_UNTRUSTED_DECK_LIMITS`, `stripHiddenCharacters`. **Presenter protocol:** `PRESENTER_MESSAGE_TYPES`, `PresenterMessageSchema`, `presenterMessage`, `sanitizeNamespace`. Plus the matching types. |
+| `@protoyard/decks` | **Canvas:** `DECK_ASPECTS`, `DEFAULT_DECK_ASPECT`, `isDeckAspect`, `deckCanvasSize`, `DECK_TEXT_MINIMUMS`. **Catalog:** `DECK_LAYOUTS`, `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps`, `describeLayouts`. **Navigation:** `createDeckNavigator`, `parseDeckHash`, `formatDeckHash`, `defaultSlideStepCount`, `slidePositionCount`, `DECK_HASH_ID_MAX`, `DECK_HASH_STEP_MAX`. **Controls:** `DECK_CONTROLS`, `deckControlFor`, `availableDeckControls`, `deckKeyBindings`, `DECK_CONTROL_GROUPS`, `DECK_CONTROL_ICONS`, `DECK_CONTROL_CAPABILITIES`, `DEFAULT_DECK_CONTROL_ENVIRONMENT`. **Input:** `decideDeckInput`, `inputPathFrom`, `DECK_INPUT_ACTIONS`, `DECK_ESCAPE_ORDER`, `DECK_KEY_BINDINGS`, `DECK_INTERACTIVE_ATTRIBUTE`, `DECK_CHROME_ATTRIBUTE`, `DECK_SWIPE_MIN_DISTANCE`, `DECK_SWIPE_AXIS_RATIO`, `DECK_SWIPE_MAX_DURATION_MS`. **Steps and motion:** `slideSteps`, `slideStepCount`, `slideFragments`, `fragmentPhase`, `activeCodeHighlight`, `FRAGMENT_EFFECTS`, `isFragmentEffect`, `DECK_TRANSITIONS`, `DEFAULT_TRANSITION`, `DEFAULT_MOTION`, `MAX_MOTION_MS`, `REDUCED_FADE_MS`, `resolveSlideTransition`, `resolveDeckTransitions`, `resolveFragmentMotion`, `effectiveMotion`, `prefersReducedMotion`. **Backgrounds:** `resolveDeckBackground`, `DeckBackgroundSchema`, `DeckBackgroundSpecSchema`, `DECK_BACKGROUND_PRESETS`, `DECK_BACKGROUND_PRESET_IDS`, `DECK_GRADIENT_IDS`, `DEFAULT_DECK_BACKGROUND`, `checkDeckMediaSrc`, `DECK_TEXT_CONTRAST_MIN`. **Untrusted input:** `loadUntrustedDeck`, `DEFAULT_UNTRUSTED_DECK_LIMITS`, `stripHiddenCharacters`. **Presenter protocol:** `PRESENTER_MESSAGE_TYPES`, `PresenterMessageSchema`, `presenterMessage`, `sanitizeNamespace`. Plus the matching types. |
 | `@protoyard/decks/schema` | `DeckSchema`, `DeckStyleSchema`, `DeckSlideSchema`, `CatalogSlideSchema`, `FreeSlideSchema`, `DeckOutlineSchema`, `DeckSectionSchema`, `DeckAspectSchema`, `DeckDensitySchema`, `DeckRadiusSchema`, `DeckMotionSchema`, `DeckJsonSchema` (Draft 2020-12), `safeParseDeck`, `DECK_LIMITS`, and the deck types. `@protoyard/blueprint`'s `kind: "deck"` branch validates its body with this schema. |
 | `@protoyard/decks/layouts` | The catalog (`DECK_LAYOUTS`, `DECK_LAYOUT_BY_ID`, `DECK_LAYOUT_IDS`, `LAYOUT_PACING`, `getDeckLayout`, `parseLayoutProps`, `stripStepMarkers`, `describeLayouts`). `stripStepMarkers` removes reveal metadata before strict catalog props validation; DeckSchema validates markers before stripping them. The entries one by one: `titleHero`, `sectionDivider`, `twoColumnSplit`, `threeColumnCards`, `imageLeft`, `imageRight`, `imageCentered`, `imageFullBleed`, `quote`, `codeWithCallout`, `bigStat`, `comparisonTable`, `processSteps`, `timeline`, `teamAvatars`, `closingCta`, `videoCentered`, `videoLeft`, `videoRight`, `chart`, `free`. Their props schemas: `TitleHeroPropsSchema`, `SectionDividerPropsSchema`, `TwoColumnSplitPropsSchema`, `ThreeColumnCardsPropsSchema`, `ImageSidePropsSchema`, `ImageCenteredPropsSchema`, `ImageFullBleedPropsSchema`, `QuotePropsSchema`, `CodeWithCalloutPropsSchema`, `BigStatPropsSchema`, `ComparisonTablePropsSchema`, `ProcessStepsPropsSchema`, `TimelinePropsSchema`, `TeamAvatarsPropsSchema`, `ClosingCtaPropsSchema`, `VideoCenteredPropsSchema`, `VideoSidePropsSchema`, `ChartLayoutPropsSchema`, `FreeLayoutPropsSchema`, `LayoutImageSchema`, `LayoutVideoSchema`. |
 | `@protoyard/decks/style` | `resolveDeckStyle`: a built-in or library theme or a numeric palette seed, a font pairing and the presentation tokens. It returns an `AppearanceInput` for `@protoyard/themes` `applyAppearance`, CSS variables, the effective style and fallback warnings. |
@@ -330,7 +330,8 @@ elements.
 | `Home` / `End` | `first` / `last` |
 | `O`, `S` or `P`, `F`, `B` or `.`, `L`, `?` | overview, presenter, fullscreen, blackout, laser, help (no key repeat) |
 | `Ctrl+P` / `⌘+P` | `print` (the one browser shortcut a deck takes over) |
-| `Esc` | Closes what is open, innermost first: help, overview, blackout, laser |
+| `Esc` | Closes what is open, innermost first: help, overview, blackout, laser, then full screen (`fullscreen-exit`) |
+| `D` | `debug`, only where the debug panel is available (`debugAvailable`) |
 | Primary click on slide content | `next` |
 | Touch or pen swipe left / right | `next` / `prev`: at least 50 px, 1.5 times longer horizontally than vertically, under 800 ms |
 
@@ -351,7 +352,53 @@ Guards:
 - **Swipes** only count for touch and pen, never mouse drags. Vertical swipes scroll instead of
   navigating.
 
-`DECK_KEY_BINDINGS` lists every binding with a label, for the help overlay.
+`DECK_KEY_BINDINGS` lists the bindings a normal viewer has, with a label, for the help overlay;
+`deckKeyBindings(env)` lists them for another environment (with debug on, it adds `D`).
+
+### Controls
+
+`DECK_CONTROLS` describes every deck control once, and everything that shows or
+runs a control reads it: the toolbar, its tooltips, the help dialog, this table
+and `protoyard deck capabilities`. The input guard derives its key maps from it,
+so a label, a shortcut and what the key does cannot drift apart.
+
+Each control has:
+
+- `id` and `action` (one control per `DeckInputAction`);
+- a `group` (`navigate`, `view`, `present`, `share`, `help`, `debug`);
+- a short `label` and a one-sentence `description` for a first-time viewer;
+- its `keys` (`KeyboardEvent.key`, a readable label, Shift and modifier rules,
+  and `closes` for `Esc`);
+- `toggle` (it turns something on and off), an `icon` id (a Lucide name the
+  renderer maps);
+- the capabilities it `requires`, and `available(env)`.
+
+A renderer passes what it detected as a `DeckControlEnvironment` (`fullscreen`,
+`popup`, `clipboard`, `print`, `debug`). `availableDeckControls(env)` and
+`deckKeyBindings(env)` list only what works there.
+`DEFAULT_DECK_CONTROL_ENVIRONMENT` is a normal viewer's browser, with debug off.
+The input guard needs two facts of deck state for the new keys: `fullscreen`
+(`Esc` leaves full screen once nothing else is open) and `debugAvailable` (`D`
+opens debug).
+
+<!-- controls:start (generated by packages/decks/tests/readme-sync.test.ts) -->
+| Control | Group | Label | Keys | Available | What it does |
+| --- | --- | --- | --- | --- | --- |
+| `prev` | navigate | Previous step or slide | `←`, `↑`, `Page Up`, `Shift + Space` | always | Goes back one step, or to the previous slide when this one is at its start. |
+| `next` | navigate | Next step or slide | `→`, `↓`, `Page Down`, `Space` | always | Shows the next step of this slide, or the next slide when it has none left. |
+| `first` | navigate | First slide | `Home` | always | Jumps back to the first slide. |
+| `last` | navigate | Last slide | `End` | always | Jumps to the last slide. |
+| `overview` | view | Overview of all slides | `O`, `Esc` | always | Shows every slide as a grid, so you can jump straight to any of them. |
+| `fullscreen` | view | Full screen | `F` | fullscreen | Fills the whole screen with the slides; press Esc to leave. |
+| `fullscreen-exit` | view | Leave full screen | `Esc` | fullscreen | Leaves full screen and returns the deck to its normal place on the page. |
+| `presenter` | present | Presenter view | `S`, `P` | always | Shows your notes, the next slide and timers, in a second window or beside the deck. |
+| `blackout` | present | Black out the screen | `B`, `.`, `Esc` | always | Turns the screen black to pause the room; press B again or click to come back. |
+| `laser` | present | Laser pointer | `L`, `Esc` | always | Turns the mouse pointer into a bright dot for pointing at the slide. |
+| `copy-link` | share | Copy slide reference | — | clipboard | Copies this slide's title, id and #/slide/step address, to paste into notes or a chat. |
+| `print` | share | Print, one slide per page | `Ctrl + P`, `⌘ + P` | print | Prints the deck with one slide per page, or saves it as a PDF. |
+| `help` | help | Keyboard shortcuts | `?`, `Esc` | always | Lists every keyboard shortcut for this deck. |
+| `debug` | debug | Debug for agents | `D` | debug | Shows this slide's source, its checks and a reference to paste into an AI agent. |
+<!-- controls:end -->
 
 ## Steps and motion
 
