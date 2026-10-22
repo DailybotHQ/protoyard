@@ -10,7 +10,15 @@
 
 export type { AiChartSpec as ChartSpec } from '@protoyard/ai';
 export { type ChartSpecResult, ChartSpecSchema, parseChartSpec } from '@protoyard/ai/chart';
+export {
+  BoardDiagramSchema,
+  DiagramSchema,
+  FlowDiagramSchema,
+  TerminalDiagramSchema,
+  TreeDiagramSchema,
+} from './diagram/schema.ts';
 export { BLOCK_ICONS, type BlockIcon, isBlockIcon } from './icons.ts';
+export { BLOCK_LIMITS, type BlockLimits } from './limits.ts';
 export {
   CalloutBlockSchema,
   CardsBlockSchema,
@@ -43,6 +51,7 @@ export {
   type BlockParseResult,
   BlockSchema,
   type BlockType,
+  type BoardBlock,
   blockIssues,
   type CalculatorBlock,
   type CalloutBlock,
@@ -59,6 +68,7 @@ export {
   containerDepth,
   type DividerBlock,
   type EmbedAppBlock,
+  type FlowBlock,
   type FormBlock,
   forEachBlock,
   type HeadingBlock,
@@ -83,8 +93,10 @@ export {
   type TableBlock,
   type TabsBlock,
   TabsBlockSchema,
+  type TerminalBlock,
   type TextBlock,
   type TimelineBlock,
+  type TreeBlock,
   toJsonPath,
   type VideoBlock,
 } from './schema/index.ts';
@@ -130,3 +142,8 @@ export {
   isBlockFamily,
   isBlockTone,
 } from './schema/vocabulary.ts';
+export {
+  parseUntrustedBlocks,
+  type UntrustedBlockIssue,
+  type UntrustedBlocksResult,
+} from './untrusted.ts';

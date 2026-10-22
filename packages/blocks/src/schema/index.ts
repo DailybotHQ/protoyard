@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import {
+  BoardDiagramSchema,
+  FlowDiagramSchema,
+  TerminalDiagramSchema,
+  TreeDiagramSchema,
+} from '../diagram/schema.ts';
+import {
   ColumnsBlockSchema,
   childPaths,
   childrenOf,
@@ -70,6 +76,10 @@ export type ChartControlsBlock = z.infer<typeof ChartControlsBlockSchema>;
 export type MapBlock = z.infer<typeof MapBlockSchema>;
 export type EmbedAppBlock = z.infer<typeof EmbedAppBlockSchema>;
 export type FormBlock = z.infer<typeof FormBlockSchema>;
+export type FlowBlock = z.infer<typeof FlowDiagramSchema>;
+export type TreeBlock = z.infer<typeof TreeDiagramSchema>;
+export type BoardBlock = z.infer<typeof BoardDiagramSchema>;
+export type TerminalBlock = z.infer<typeof TerminalDiagramSchema>;
 
 /** Fields every block may carry; containers are typed by hand because they recurse. */
 interface ContainerBase {
@@ -138,7 +148,11 @@ export type Block =
   | ChartControlsBlock
   | MapBlock
   | EmbedAppBlock
-  | FormBlock;
+  | FormBlock
+  | FlowBlock
+  | TreeBlock
+  | BoardBlock
+  | TerminalBlock;
 
 export type BlockType = Block['type'];
 
@@ -174,6 +188,10 @@ export const BlockSchema: z.ZodType<Block> = z.discriminatedUnion('type', [
   MapBlockSchema,
   EmbedAppBlockSchema,
   FormBlockSchema,
+  FlowDiagramSchema,
+  TreeDiagramSchema,
+  BoardDiagramSchema,
+  TerminalDiagramSchema,
 ]);
 
 /**
@@ -212,6 +230,10 @@ export const BLOCK_TYPE_FAMILY = Object.freeze({
   form: 'interactive',
   map: 'map',
   'embed-app': 'embed',
+  flow: 'diagram',
+  tree: 'diagram',
+  board: 'diagram',
+  terminal: 'diagram',
 } as const satisfies Record<BlockType, BlockFamily>);
 
 /** Every block type, in catalog order. */
@@ -263,16 +285,17 @@ export function forEachBlock(
 export const BlockListSchema = z.array(BlockSchema).superRefine((blocks, ctx) => {
   const seen = new Map<string, string>();
   forEachBlock(blocks, (block, path) => {
-    if (block.id === undefined) return;
-    const first = seen.get(block.id);
+    const id = 'id' in block ? block.id : undefined;
+    if (id === undefined) return;
+    const first = seen.get(id);
     if (first !== undefined) {
       ctx.addIssue({
         code: 'custom',
         path: [...path, 'id'],
-        message: `Duplicate block id "${block.id}" (first used at ${first})`,
+        message: `Duplicate block id "${id}" (first used at ${first})`,
       });
     } else {
-      seen.set(block.id, toJsonPath(path));
+      seen.set(id, toJsonPath(path));
     }
   });
 });

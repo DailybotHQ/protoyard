@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BlockToneSchema, plainText } from '../schema/primitives.ts';
+import { BlockToneSchema, blockBase, plainText } from '../schema/primitives.ts';
 
 export const DIAGRAM_LIMITS = Object.freeze({
   flowNodes: 12,
@@ -22,6 +22,7 @@ const FlowNodeSchema = z.strictObject({
 export const FlowDiagramSchema = z
   .strictObject({
     type: z.literal('flow'),
+    ...blockBase,
     nodes: z.array(FlowNodeSchema).min(1).max(DIAGRAM_LIMITS.flowNodes),
     loopBack: z.boolean().optional(),
   })
@@ -49,6 +50,7 @@ const TreeNodeSchema = z.strictObject({
 export const TreeDiagramSchema = z
   .strictObject({
     type: z.literal('tree'),
+    ...blockBase,
     style: z.enum(['file-tree', 'org']),
     nodes: z.array(TreeNodeSchema).min(1).max(DIAGRAM_LIMITS.treeNodes),
   })
@@ -120,6 +122,7 @@ const BoardColumnSchema = z.strictObject({
 export const BoardDiagramSchema = z
   .strictObject({
     type: z.literal('board'),
+    ...blockBase,
     columns: z.array(BoardColumnSchema).min(1).max(DIAGRAM_LIMITS.boardColumns),
   })
   .superRefine((board, ctx) => {
@@ -153,6 +156,7 @@ const TerminalLineSchema = z.strictObject({
 
 export const TerminalDiagramSchema = z.strictObject({
   type: z.literal('terminal'),
+  ...blockBase,
   lines: z.array(TerminalLineSchema).min(1).max(DIAGRAM_LIMITS.terminalLines),
 });
 

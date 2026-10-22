@@ -9,11 +9,11 @@ database or `@protoyard/blueprint` (the blueprint imports blocks, not the
 other way round). The Svelte half is
 [`@protoyard/blocks-ui`](../blocks-ui/README.md).
 
-> **Status:** all 30 block types are defined: static content, containers
+> **Status:** all 34 block types are defined: static content, containers
 > (`columns`, `tabs`, `reveal`) and interactive blocks (poll, quiz,
 > calculator, counter, chart controls, map, embed-app, form). The untrusted
-> guard, the JSON Schema file and the remaining subpath engines land in later
-> PLAN_005 tasks.
+> guard and limits are available; the JSON Schema file and remaining subpath
+> engines land in later PLAN_005 tasks.
 
 ## Rules every block follows
 
@@ -43,7 +43,7 @@ if (!result.success) {
 | Export | What it is |
 | --- | --- |
 | `BlockSchema`, `Block`, `BlockType` | One block, a strict zod union discriminated on `type` |
-| `BlockListSchema`, `safeParseBlocks` | A list of blocks; ids must be unique across the list and nested columns |
+| `BlockListSchema`, `safeParseBlocks` | A list of blocks; ids must be unique across the list and nested containers |
 | `safeParseBlock`, `blockIssues`, `toJsonPath` | Never-throwing parsing; issues carry `path` and a `jsonPath` like `$[0]["items"][2]` (the blueprint authoring format) |
 | `<Type>BlockSchema`, `<Type>Block` | One schema and type per block |
 | `BLOCK_TYPES`, `BLOCK_TYPE_FAMILY` | Every type and its render family |
@@ -51,19 +51,20 @@ if (!result.success) {
 | `childrenOf`, `embeddedAppProblem`, `FORM_FIELD_TYPES`, `MAP_BASEMAPS` | Container children, the embed check, form field types, simulated basemaps |
 | `forEachBlock`, `containerDepth` | Depth-first walk with paths (through columns, tab panels and reveals); container nesting depth |
 | `BLOCK_CONTENT_LIMITS` | Per-block caps (below) |
+| `BLOCK_LIMITS`, `parseUntrustedBlocks` | Document-level input caps and the inert input sanitizer/validator |
 | `classifyMediaSource`, `ImageSourceSchema`, `VideoSourceSchema`, `AvatarIdSchema`, `MEDIA_DATA_URI_MAX_BYTES` | The media source policy |
 | `BLOCK_ICONS`, `BlockIcon`, `isBlockIcon` | The icon allow-list |
 | `LinkHrefSchema`, `IconNameSchema`, `BlockIdSchema`, `BlockStepSchema`, `BLOCK_REVEALS`, `BlockToneSchema` | Shared field schemas |
 | `ChartSpecSchema`, `parseChartSpec`, `ChartSpec` | Re-exported from `@protoyard/ai/chart`, unchanged |
 | `BLOCK_TONES`, `isBlockTone`, `BLOCK_FAMILIES`, `isBlockFamily` | The tone and render-family vocabulary |
 
-Root entry size: 10.8 KB gzip minified with zod external. It includes every
-block schema, the formula schema (calculators), the chart spec, `safeHref`
-and the avatar id rules.
+The root entry includes every block schema (including the diagram models),
+document-level limits and the untrusted input guard. Heavier engines stay in
+their subpaths.
 
 ### Block types
 
-Every block may carry `id` (`/^[a-z][a-z0-9-]{0,47}$/`), `step` (0–32, slide
+Every block, including a diagram, may carry `id` (`/^[a-z][a-z0-9-]{0,47}$/`), `step` (0–32, slide
 fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
 `tone`. Unknown keys are errors, so `style`, `class` or `html` never pass.
 
@@ -89,6 +90,10 @@ fragments), `reveal` (`fade`, `fade-up`, `grow`, `highlight`, `strike`) and
 | structure | `icon` | `icon`, `label` (or `decorative: true`), `size` |
 | structure | `cta` | `actions` 1–3 (`label`, `href`, `variant`, `icon`), `title`, `body`, `footnote` |
 | structure | `columns` | `columns` 2–4, each 1–12 blocks, nested at most 3 deep; `widths`, `align` |
+| diagram | `flow` | 1–12 labeled nodes; optional loop-back edge |
+| diagram | `tree` | 1–64 nodes, depth ≤ 6; `file-tree` or `org` layout |
+| diagram | `board` | 1–6 columns, up to 8 cards per column; tone-based status |
+| diagram | `terminal` | 1–40 prompt, output or comment lines |
 
 ### Containers and interactive blocks
 
@@ -186,8 +191,19 @@ board columns with 8 cards each, and 40 terminal lines. Tree ids and parents
 must form an acyclic forest; board and flow ids are unique. Status colors use
 the shared tone allow-list, never CSS values.
 
-The untrusted-input guard, the JSON Schema and the text helpers will also be
-exported from the root entry.
+The JSON Schema and the text helpers will also be exported from the root
+entry.
+
+### Untrusted block documents
+
+`parseUntrustedBlocks(input, limits?)` accepts a block list as JSON text or
+plain data, strips unsafe control and bidi characters, normalizes CRLF, rejects
+prototype-related keys, and returns path-addressed issues with fix hints. It
+does not execute input or render HTML. `BLOCK_LIMITS` caps JSON at 1 MiB and
+depth 12, documents at 2,000 blocks, containers at depth 3, one raster media
+data URI at 192 KiB, and all embedded media at 512 KiB. Text and table-cell
+limits are 20,000 characters and 400 cells; individual schemas apply tighter
+field limits. Callers may lower these limits, never raise them.
 
 ## Formulas (`@protoyard/blocks/formula`)
 
