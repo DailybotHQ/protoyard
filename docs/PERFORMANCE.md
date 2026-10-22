@@ -1157,11 +1157,27 @@ landing and doc designs).** A fresh player build:
 | `doc.html` | 125,298 B | 19,543 B | 27,767 B |
 
 JS stays under the 125 KB regression cap (about 2 % headroom) and the 150 KB
-kind budget. **Open:** all CSS reachable from `index.html` is 33.7 KB gzip,
-over the 30 KB player CSS budget, so `budget.test.ts` "keeps initial CSS
-inside the CSS budget" fails on current `dev`. `index.html`'s own stylesheet
-grew from 20.1 KB to 23.1 KB. Either the stylesheet shrinks or the budget is
-raised with a recorded reason.
+kind budget. All CSS reachable from `index.html` reached 33.7 KB gzip during
+the plan. The Final Review brought it back under the unchanged 30 KB player
+CSS budget, without raising the cap:
+
+- content-kind stylesheets load with their renderer, not on every app
+  session;
+- shared utilities are deduplicated;
+- each kit's stylesheet scans only the families the player mounts
+  (`player.css`).
+
+Re-measured on `dev` 266fb823 (gzip -9, initial graph):
+
+| Entry | JS | CSS |
+| --- | ---: | ---: |
+| `index.html` | 126,142 B | 18,423 B |
+| `deck.html` | 126,266 B | 20,357 B |
+| `page.html` | 126,267 B | 19,560 B |
+| `doc.html` | 126,265 B | 19,560 B |
+
+All CSS reachable from `index.html` is 29.37 KiB, measured by
+`budget.test.ts`.
 
 **Deck UI entry (measured 2026-10-21).**
 `packages/decks-ui/tests/bundle-size.test.ts` makes a production Vite build of a
