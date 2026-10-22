@@ -39,9 +39,17 @@ function center(overrides: Record<string, unknown> = {}) {
 }
 
 describe('NotificationCenter', () => {
+  it('names its trigger starting with the visible unread count (label in name)', () => {
+    center();
+    const trigger = screen.getByRole('button', { name: /Notifications$/ });
+    const visible = trigger.textContent?.trim() ?? '';
+    expect(visible).toMatch(/^\d+$/);
+    expect(trigger.getAttribute('aria-label')).toBe(`${visible} unread, Notifications`);
+  });
+
   it('opens to unread notifications, switches to all, and groups by day', async () => {
     center();
-    await fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
     expect(screen.getByText('Marta mentioned you')).toBeTruthy();
     expect(screen.queryByText('A task was assigned')).toBeNull();
     await fireEvent.click(screen.getByRole('tab', { name: 'All' }));
@@ -59,7 +67,7 @@ describe('NotificationCenter', () => {
         })
     );
     center({ onMarkAllRead });
-    await fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
     const markAll = screen.getByRole('button', { name: /Mark all read/ });
     await fireEvent.click(markAll);
     expect(markAll.hasAttribute('disabled')).toBe(true);
@@ -71,7 +79,7 @@ describe('NotificationCenter', () => {
 
   it('updates mute preferences through the supplied service callback', async () => {
     const { onMuteChange } = center();
-    await fireEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+    await fireEvent.click(screen.getByRole('button', { name: /Notifications$/ }));
     await fireEvent.click(screen.getByRole('button', { name: 'Mute mention' }));
     await waitFor(() => expect(onMuteChange).toHaveBeenCalledWith('mention', true));
     expect(

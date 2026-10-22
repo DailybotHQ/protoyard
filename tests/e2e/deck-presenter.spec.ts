@@ -105,6 +105,10 @@ test.describe('presenter view', () => {
     await page.goto(`${deckUrl}#/cover/0`);
     await page.keyboard.press('p');
     await expect(split(page), 'a blocked popup should open the in-page presenter').toBeVisible();
+    // The in-page view says why it is not a separate window.
+    await expect(split(page).locator('[data-py-presenter-fallback="popup-blocked"]')).toContainText(
+      'The presenter window was blocked'
+    );
 
     // The deck and its chrome stay inside their own cell and never cover the presenter panel.
     const main = await split(page).locator('[data-py-deck-presenter-main]').boundingBox();
@@ -164,6 +168,9 @@ test.describe('presenter view', () => {
       split(page),
       'without BroadcastChannel the presenter falls back in-page'
     ).toBeVisible();
+    await expect(split(page).locator('[data-py-presenter-fallback="no-broadcast"]')).toContainText(
+      'cannot keep a separate presenter window in sync'
+    );
     await split(page).getByRole('button', { name: 'Next' }).click();
     await expectSlide(page, 'divider');
   });
@@ -185,6 +192,25 @@ test.describe('presenter view', () => {
     await page.clock.runFor(10_000);
     await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('00:10');
     await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:15');
+
+    // Pause holds both timers; resume continues from there; reset goes back to zero.
+    const pause = split(page).getByRole('button', { name: 'Pause timers' });
+    await pause.click();
+    await expect(split(page).getByRole('button', { name: 'Resume timers' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await page.clock.runFor(30_000);
+    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:15');
+    await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('00:10');
+    await split(page).getByRole('button', { name: 'Resume timers' }).click();
+    await page.clock.runFor(5_000);
+    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('01:20');
+    await split(page).getByRole('button', { name: 'Reset timers' }).click();
+    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('00:00');
+    await expect(view.locator('[data-py-presenter-slide-time]')).toHaveText('00:00');
+    await page.clock.runFor(3_000);
+    await expect(view.locator('[data-py-presenter-elapsed]')).toHaveText('00:03');
   });
 });
 
@@ -200,8 +226,8 @@ test.describe('presenting tools', () => {
     await blackout.click();
     await expect(blackout).toBeHidden();
     await expectSlide(page, 'divider');
-    // The blackout button is gone after the click, so give the deck focus back for the keys.
-    await app(page).focus();
+    // The clicked blackout button is gone: focus returns to the deck, so its keys still work.
+    await expect(app(page)).toBeFocused();
     await page.keyboard.press('.');
     await expect(blackout).toBeVisible();
     await page.keyboard.press('Escape');
@@ -214,9 +240,9 @@ test.describe('presenting tools', () => {
     await page.goto(`${deckUrl}#/divider/0`);
     await page.keyboard.press('l');
     await expect(app(page)).toHaveAttribute('data-laser', 'true');
-    const slide = page.locator('[data-py-deck-slide="divider"]');
-    const box = await slide.boundingBox();
-    expect(box, 'the active slide should be laid out').not.toBeNull();
+    // The deck's own box: slide elements can sit off screen in the canvas track.
+    const box = await app(page).boundingBox();
+    expect(box, 'the deck should be laid out').not.toBeNull();
     if (!box) return;
     const x = box.x + box.width / 2;
     const y = box.y + box.height / 2;
@@ -229,8 +255,8 @@ test.describe('presenting tools', () => {
       await page.mouse.click(x, y);
     }
     await expectSlide(page, 'divider');
-    // The deck listens for keys on its own root; a tap can move focus to the page.
-    await app(page).focus();
+    // A tap or click never strands focus on the page: the deck keeps its keys.
+    await expect(app(page)).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(app(page)).not.toHaveAttribute('data-laser', 'true');
     await expect(page.locator('[data-py-deck-laser-dot]')).toHaveCount(0);

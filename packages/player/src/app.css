@@ -19,6 +19,7 @@ body,
 
 body {
   margin: 0;
-  background: var(--background);
-  color: var(--foreground);
+  /* Theme tokens (@protoyard/themes): a deck, page or doc sits on the body itself. */
+  background: var(--py-background);
+  color: var(--py-foreground);
 }

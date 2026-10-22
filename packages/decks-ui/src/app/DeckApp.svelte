@@ -11,7 +11,7 @@ import {
 } from '@protoyard/decks';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
 import type { Component } from 'svelte';
-import { onMount } from 'svelte';
+import { onMount, tick } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
 import {
   BlackoutScreen,
@@ -174,6 +174,20 @@ function applyLocation(next: DeckLocation): void {
   }
 }
 
+/**
+ * Gives the deck its keyboard back when focus has nowhere useful to be: the
+ * control that had it is gone (the blackout screen after a click) or a tap
+ * left it on the page body. Focus in a control elsewhere is never taken.
+ */
+function refocusRoot(): void {
+  if (typeof document === 'undefined' || !rootEl || !rootEl.isConnected) return;
+  const active = document.activeElement;
+  if (active === rootEl) return;
+  if (active === null || active === document.body || !active.isConnected) {
+    rootEl.focus({ preventScroll: true });
+  }
+}
+
 function runAction(action: string): void {
   const current = nav;
   if (!current) return;
@@ -199,12 +213,15 @@ function runAction(action: string): void {
       break;
     case 'blackout':
       inputState = { ...inputState, blackout: !inputState.blackout, help: false };
+      // Closing by a click removes the focused blackout button: keep the keys working.
+      void tick().then(refocusRoot);
       break;
     case 'help':
       inputState = { ...inputState, help: !inputState.help };
       break;
     case 'laser':
       inputState = { ...inputState, laser: !inputState.laser };
+      void tick().then(refocusRoot);
       break;
     case 'fullscreen':
       if (typeof document === 'undefined') break;
@@ -259,6 +276,9 @@ function onKeyDown(event: KeyboardEvent): void {
 }
 
 function onClick(event: MouseEvent): void {
+  // A click or tap on non-focusable slide content can leave focus on the body
+  // (touch moves focus after pointerup, before click): give the deck its keys back.
+  void tick().then(refocusRoot);
   const action = decideDeckInput(
     {
       kind: 'click',

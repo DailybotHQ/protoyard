@@ -40,6 +40,19 @@ setBlockHost({
 });
 
 const brandLabel = $derived(brandName?.trim() || doc.title);
+/**
+ * A doc that opens with a level-1 heading block repeating its title would show
+ * the title twice as h1 (a screen reader hears it twice): the header leaves it out.
+ */
+const normalized = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
+const ownsTitle = $derived.by(() => {
+  const first = doc.blocks[0];
+  return (
+    first?.type === 'heading' &&
+    (first.level ?? 2) === 1 &&
+    normalized(first.text) === normalized(doc.title)
+  );
+});
 const tocItems = $derived(buildDocToc(doc));
 const navItems = $derived(tocItems.filter((item) => item.level === 2));
 
@@ -73,7 +86,9 @@ $effect(() => {
 
   const applyIds = (): void => {
     const expected = expectedHeadings(blocks);
-    const nodes = Array.from(root.querySelectorAll<HTMLElement>('h1, h2, h3, h4'));
+    // Only heading blocks: the header's title and headings inside other blocks
+    // (a callout title, markdown) are not TOC entries and must not shift the ids.
+    const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-py-block-heading]'));
     const count = Math.min(expected.length, nodes.length);
     for (let i = 0; i < count; i += 1) {
       const node = nodes[i];
@@ -168,14 +183,18 @@ $effect(() => {
     {/snippet}
 
     <div bind:this={flowRoot} class="space-y-6" data-py-doc-flow>
-      <header class="space-y-1 border-b border-border pb-4" data-py-doc-header>
-        <h1 class="font-heading text-2xl font-semibold tracking-tight text-foreground">
-          {doc.title}
-        </h1>
-        {#if doc.description}
-          <p class="text-sm text-muted-foreground">{doc.description}</p>
-        {/if}
-      </header>
+      {#if !ownsTitle || doc.description}
+        <header class="space-y-1 border-b border-border pb-4" data-py-doc-header>
+          {#if !ownsTitle}
+            <h1 class="font-heading text-2xl font-semibold tracking-tight text-foreground">
+              {doc.title}
+            </h1>
+          {/if}
+          {#if doc.description}
+            <p class="text-sm text-muted-foreground">{doc.description}</p>
+          {/if}
+        </header>
+      {/if}
 
       {#each doc.blocks as block, index (block.id ?? `${block.type}-${index}`)}
         <div data-py-doc-block={block.type} data-block-index={index}>

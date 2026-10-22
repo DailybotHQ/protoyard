@@ -182,3 +182,52 @@ describe('DocHost', () => {
     expect(view.container.querySelector('[data-py-doc-nav]')).toBeNull();
   });
 });
+
+describe('DocHost headings', () => {
+  it('keeps one h1 and stamps TOC ids only on heading blocks, never on a callout title', async () => {
+    const doc: DocDocument = {
+      id: 'report',
+      title: 'Fictional quarterly report',
+      blocks: [
+        { type: 'heading', id: 'title', level: 1, text: 'Fictional quarterly report' },
+        { type: 'callout', tone: 'info', title: 'Summary', body: 'Example numbers only.' },
+        { type: 'heading', id: 'numbers', level: 2, text: 'Headline numbers' },
+        { type: 'heading', id: 'next', level: 2, text: 'Next steps' },
+      ],
+    } as DocDocument;
+    const { container } = render(DocHost, { doc });
+    expect(container.querySelectorAll('h1')).toHaveLength(1);
+    expect(container.querySelector('[data-py-doc-header]')).toBeNull();
+    const toc = buildDocToc(doc);
+    await waitFor(() => {
+      for (const item of toc) {
+        expect(container.querySelector(`#${item.id}`)?.textContent?.trim()).toBe(item.label);
+      }
+    });
+    // The callout title is not a TOC entry, so it never takes a TOC id.
+    const tocIds = new Set(toc.map((item) => item.id));
+    expect(tocIds.has(container.querySelector('h3')?.id ?? '')).toBe(false);
+
+    // Without its own h1, the header shows the title as the one h1.
+    cleanup();
+    const plain = render(DocHost, {
+      doc: { ...doc, blocks: doc.blocks.slice(1) } as DocDocument,
+    });
+    expect(plain.container.querySelectorAll('h1')).toHaveLength(1);
+    expect(plain.container.querySelector('[data-py-doc-header] h1')?.textContent?.trim()).toBe(
+      'Fictional quarterly report'
+    );
+
+    // A first h1 block with other text is not a repeat: the header keeps the title.
+    cleanup();
+    const distinct = render(DocHost, {
+      doc: {
+        ...doc,
+        blocks: [{ type: 'heading', id: 'q3', level: 1, text: 'Q3' }, ...doc.blocks.slice(1)],
+      } as DocDocument,
+    });
+    expect(distinct.container.querySelector('[data-py-doc-header] h1')?.textContent?.trim()).toBe(
+      'Fictional quarterly report'
+    );
+  });
+});

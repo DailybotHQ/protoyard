@@ -43,10 +43,12 @@ notes to two slides for the presenter checks.
   frame) or the browser has no `BroadcastChannel`, the presenter opens in the
   page instead, as a split view: the deck beside a panel with the position,
   the current and next slide with their speaker notes, Previous and Next
-  buttons, an elapsed timer and a per-slide timer. The panel does not say
-  which of the two caused the fallback.
-- The timers only count up; there are no pause or reset controls. The
-  per-slide timer restarts on every slide change.
+  buttons, an elapsed timer and a per-slide timer. A note at the top says
+  why it is not a separate window (pop-ups blocked, no `BroadcastChannel`,
+  or no window at all).
+- **Pause timers** holds both timers and **Resume timers** continues from
+  there; **Reset timers** sets both back to 00:00. The per-slide timer
+  restarts on every slide change (a paused one stays paused).
 - **B** or **.** blacks out the screen (a click, B or Escape brings the slide
   back; arrows do nothing meanwhile). **L** turns the mouse pointer into a
   laser dot, and clicks stop advancing while it is on. On touch screens the
@@ -56,9 +58,10 @@ notes to two slides for the presenter checks.
   steps shown and no deck chrome. A printed PDF has one page per slide, sized
   to the deck aspect (1280 x 720 CSS px for 16:9).
 
-The keys only reach the deck while it has focus. After a click on the
-blackout screen or a tap with the laser on, select the deck again before using
-the keyboard.
+The keys reach the deck while it has focus. When a click or tap would leave
+focus nowhere (the blackout screen removes itself after a click, a tap lands
+on plain slide content), the deck takes focus back, so its keys keep working.
+It never takes focus from a control elsewhere on the page.
 
 The browser checks run on the same built fixture, on the desktop and mobile
 projects, with the timers on Playwright's controlled clock:
@@ -68,8 +71,9 @@ pnpm exec playwright test tests/e2e/deck-presenter.spec.ts
 ```
 
 They cover the popup in both sync directions, malformed messages, the in-page
-fallback for a blocked popup and for a missing `BroadcastChannel`, notes,
-timers, blackout, the laser pointer, `?print=1` with and without notes, the
+fallback for a blocked popup and for a missing `BroadcastChannel` (with the
+reason shown), notes, timers with pause, resume and reset, blackout and the
+focus kept on the deck after a click, the laser pointer, `?print=1` with and without notes, the
 `beforeprint` and `afterprint` swap, and the page count and size of a
 Chromium PDF. Each failure names what broke, for example
 "pressing S should open the presenter popup (was it blocked?)".

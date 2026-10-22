@@ -1,10 +1,10 @@
 <script lang="ts">
 /**
  * Presenter chrome: current + next slide titles, notes, elapsed and per-slide
- * timers, and position. Used in a popup window or the in-page split fallback.
+ * timers (pause, resume and reset), and position. Used in a popup window or the in-page split fallback.
  */
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
-import { onDestroy, onMount } from 'svelte';
+import { onDestroy, onMount, untrack } from 'svelte';
 
 let {
   deck,
@@ -33,9 +33,45 @@ const positionLabel = $derived(slides.length === 0 ? '0 / 0' : `${index + 1} / $
 
 let elapsedMs = $state(0);
 let slideMs = $state(0);
-let startedAt = 0;
-let slideStartedAt = 0;
+let running = $state(true);
+/** Time counted before the current run (pauses split runs). */
+let elapsedBase = 0;
+let slideBase = 0;
+/** When the current run started, or null while paused. */
+let runStartedAt: number | null = null;
+let slideRunStartedAt: number | null = null;
 let timer: ReturnType<typeof setInterval> | undefined;
+
+function tickTimers(now = Date.now()): void {
+  elapsedMs = elapsedBase + (runStartedAt === null ? 0 : now - runStartedAt);
+  slideMs = slideBase + (slideRunStartedAt === null ? 0 : now - slideRunStartedAt);
+}
+
+/** Pauses or resumes both timers; the time so far is kept. */
+function toggleTimers(): void {
+  const now = Date.now();
+  if (running) {
+    tickTimers(now);
+    elapsedBase = elapsedMs;
+    slideBase = slideMs;
+    runStartedAt = null;
+    slideRunStartedAt = null;
+  } else {
+    runStartedAt = now;
+    slideRunStartedAt = now;
+  }
+  running = !running;
+}
+
+/** Sets both timers back to 00:00 (they keep running or stay paused). */
+function resetTimers(): void {
+  const now = Date.now();
+  elapsedBase = 0;
+  slideBase = 0;
+  runStartedAt = running ? now : null;
+  slideRunStartedAt = running ? now : null;
+  tickTimers(now);
+}
 
 function formatMs(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -45,13 +81,9 @@ function formatMs(ms: number): string {
 }
 
 onMount(() => {
-  startedAt = Date.now();
-  slideStartedAt = startedAt;
-  timer = setInterval(() => {
-    const now = Date.now();
-    elapsedMs = now - startedAt;
-    slideMs = now - slideStartedAt;
-  }, 250);
+  runStartedAt = Date.now();
+  slideRunStartedAt = runStartedAt;
+  timer = setInterval(() => tickTimers(), 250);
   return () => {
     if (timer) clearInterval(timer);
   };
@@ -61,11 +93,13 @@ onDestroy(() => {
   if (timer) clearInterval(timer);
 });
 
-// Reset per-slide timer when the slide changes.
+// Reset per-slide timer when the slide changes (paused timers stay paused).
 $effect(() => {
   slideId;
   step;
-  slideStartedAt = Date.now();
+  slideBase = 0;
+  // Pausing or resuming is not a slide change: read `running` without tracking it.
+  slideRunStartedAt = untrack(() => running) ? Date.now() : null;
   slideMs = 0;
 });
 
@@ -95,6 +129,21 @@ function notesOf(slide: DeckSlide | undefined): string {
         <span class="text-muted-foreground">Slide</span>
         <span class="ml-2 font-semibold" data-py-presenter-slide-time>{formatMs(slideMs)}</span>
       </p>
+      <div class="flex gap-2" data-py-presenter-timer-controls>
+        <button
+          type="button"
+          class="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted"
+          aria-pressed={!running}
+          data-py-presenter-pause
+          onclick={toggleTimers}>{running ? 'Pause timers' : 'Resume timers'}</button
+        >
+        <button
+          type="button"
+          class="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted"
+          data-py-presenter-reset
+          onclick={resetTimers}>Reset timers</button
+        >
+      </div>
     </div>
     {#if onNavigate}
       <div class="flex gap-2" data-py-presenter-nav>

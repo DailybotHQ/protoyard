@@ -38,6 +38,16 @@ let {
 } = $props();
 
 let mode = $state<'closed' | 'popup' | 'split'>('closed');
+/** Why the presenter opened in the page instead of a window (shown in the split view). */
+let fallbackReason = $state<'popup-blocked' | 'no-broadcast' | 'no-window' | null>(null);
+const FALLBACK_NOTES = {
+  'popup-blocked':
+    'The presenter window was blocked, so the presenter view opens here. Allow pop-ups for this page to present on another screen.',
+  'no-broadcast':
+    'This browser cannot keep a separate presenter window in sync, so the presenter view opens here.',
+  'no-window':
+    'A separate presenter window is not available here, so the presenter view opens here.',
+} as const;
 let link = $state.raw<PresenterLink | null>(null);
 let popupRef = $state.raw<Window | null>(null);
 
@@ -67,6 +77,7 @@ function start(): void {
     onRemote: (pos) => onPosition?.(pos),
   });
   if (result.mode === 'fallback') {
+    fallbackReason = result.reason;
     const transport = createBroadcastPresenterTransport(namespace);
     if (transport) {
       link = createPresenterLink({
@@ -80,6 +91,7 @@ function start(): void {
     open = true;
     return;
   }
+  fallbackReason = null;
   link = result.link;
   popupRef = result.window;
   mode = 'popup';
@@ -137,6 +149,15 @@ onDestroy(() => teardown());
       {#if children}{@render children()}{/if}
     </div>
     <aside class="min-h-0 overflow-auto">
+      {#if fallbackReason}
+        <p
+          class="m-4 mb-0 rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
+          role="note"
+          data-py-presenter-fallback={fallbackReason}
+        >
+          {FALLBACK_NOTES[fallbackReason]}
+        </p>
+      {/if}
       <PresenterView {deck} {slideId} {step} {stepCount} {onNavigate} />
       <div class="border-t border-border p-3">
         <button
