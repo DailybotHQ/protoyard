@@ -2,11 +2,15 @@ import type { FilterNode, GridValue, SavedView } from '@protoyard/views/grid';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
+  BulkActionBar,
+  ColumnChooser,
   completeFilter,
   DataGrid,
   type DataGridColumn,
   emptyView,
+  FacetPicker,
   FilterBuilder,
+  FilterChips,
   type GridViewState,
   nextSort,
   parseEditorValue,
@@ -82,6 +86,8 @@ beforeAll(async () => {
     lazyMenu.load(),
     lazyDialog.load(),
     import('../src/grid/FilterBuilder.svelte'),
+    import('../src/grid/GridExtras.svelte'),
+    import('../src/grid/selection-kit.ts'),
   ]);
 }, 30_000);
 
@@ -510,5 +516,349 @@ describe('grid model helpers', () => {
     expect(parseEditorValue(amount, '12')).toBe(12);
     expect(parseEditorValue(amount, '')).toBeNull();
     expect(parseEditorValue(COLUMNS[4] as DataGridColumn<Deal>, true)).toBe(true);
+  });
+});
+
+describe('FilterChips', () => {
+  const filter: FilterNode = {
+    type: 'group',
+    op: 'and',
+    children: [
+      { type: 'condition', field: 'stage', operator: 'in', value: ['lead', 'won'] },
+      { type: 'condition', field: 'amount', operator: 'between', value: [100, 900] },
+    ],
+  };
+
+  it('shows one removable chip per condition and clears all', async () => {
+    const onchange = vi.fn();
+    render(FilterChips<Deal>, { columns: COLUMNS, value: filter, onchange, label: 'Deal filters' });
+    const list = screen.getByRole('list', { name: 'Deal filters' });
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent?.trim())
+    ).toEqual(['Stage is any of lead or won', 'Amount is between 100 and 900', 'Clear all']);
+    await fireEvent.click(
+      screen.getByRole('button', { name: 'Remove filter: Stage is any of lead or won' })
+    );
+    expect(onchange).toHaveBeenLastCalledWith({
+      type: 'condition',
+      field: 'amount',
+      operator: 'between',
+      value: [100, 900],
+    });
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+    expect(onchange).toHaveBeenLastCalledWith(null);
+  });
+
+  it('renders nothing without a filter', () => {
+    render(FilterChips<Deal>, { columns: COLUMNS, value: null, onchange: vi.fn() });
+    expect(screen.queryByRole('list')).toBeNull();
+  });
+});
+
+describe('FacetPicker', () => {
+  const stage = COLUMNS[1] as DataGridColumn<Deal>;
+
+  it('picks values from the keyboard as an OR facet and closes with Escape', async () => {
+    let value: FilterNode | null = {
+      type: 'condition',
+      field: 'name',
+      operator: 'contains',
+      value: 'deal',
+    };
+    const onchange = vi.fn((next: FilterNode | null) => {
+      value = next;
+    });
+    const { rerender } = render(FacetPicker<Deal>, { column: stage, value, onchange });
+    const trigger = screen.getByRole('button', { name: /Stage/ });
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    await fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const search = await screen.findByRole('combobox', { name: 'Search Stage values' });
+    await waitFor(() => expect(document.activeElement).toBe(search));
+    const listbox = screen.getByRole('listbox', { name: 'Stage' });
+    expect(listbox.getAttribute('aria-multiselectable')).toBe('true');
+    expect(
+      within(listbox)
+        .getAllByRole('option')
+        .map((o) => o.textContent?.trim())
+    ).toEqual(['lead', 'won', 'lost']);
+
+    await fireEvent.keyDown(search, { key: 'ArrowDown' });
+    expect(search.getAttribute('aria-activedescendant')).toBe(
+      within(listbox).getAllByRole('option')[1]?.id
+    );
+    await fireEvent.keyDown(search, { key: 'Enter' });
+    expect(onchange).toHaveBeenLastCalledWith({
+      type: 'group',
+      op: 'and',
+      children: [
+        { type: 'condition', field: 'stage', operator: 'eq', value: 'won' },
+        { type: 'condition', field: 'name', operator: 'contains', value: 'deal' },
+      ],
+    });
+    await rerender({ column: stage, value, onchange });
+    await fireEvent.keyDown(search, { key: 'Home' });
+    await fireEvent.keyDown(search, { key: ' ' });
+    expect(facetsOf(onchange.mock.lastCall?.[0] ?? null)).toEqual(['lead', 'won']);
+    await rerender({ column: stage, value, onchange });
+    expect(
+      within(listbox)
+        .getAllByRole('option')
+        .map((o) => o.getAttribute('aria-selected'))
+    ).toEqual(['true', 'true', 'false']);
+    expect(trigger.textContent).toContain('· 2');
+
+    await fireEvent.keyDown(search, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('narrows the options by typing and clears the facet', async () => {
+    const value: FilterNode = {
+      type: 'condition',
+      field: 'stage',
+      operator: 'in',
+      value: ['lead', 'won'],
+    };
+    const onchange = vi.fn();
+    render(FacetPicker<Deal>, { column: stage, value, onchange });
+    await fireEvent.click(screen.getByRole('button', { name: /Stage/ }));
+    const search = await screen.findByRole('combobox');
+    await fireEvent.input(search, { target: { value: 'lo' } });
+    expect(screen.getAllByRole('option').map((o) => o.textContent?.trim())).toEqual(['lost']);
+    await fireEvent.input(search, { target: { value: 'zzz' } });
+    expect(screen.getByText('No matching values')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear Stage' }));
+    expect(onchange).toHaveBeenLastCalledWith(null);
+  });
+
+  it('offers Yes and No for a boolean column', async () => {
+    const onchange = vi.fn();
+    render(FacetPicker<Deal>, {
+      column: COLUMNS[4] as DataGridColumn<Deal>,
+      value: null,
+      onchange,
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /Active/ }));
+    await fireEvent.click(await screen.findByRole('option', { name: 'No' }));
+    expect(onchange).toHaveBeenLastCalledWith({
+      type: 'condition',
+      field: 'active',
+      operator: 'eq',
+      value: false,
+    });
+  });
+});
+
+function facetsOf(node: FilterNode | null): unknown {
+  if (!node) return [];
+  const all = node.type === 'group' ? node.children : [node];
+  const stage = all.find((child) => child.type === 'condition' && child.field === 'stage');
+  if (stage?.type !== 'condition') return [];
+  return Array.isArray(stage.value) ? stage.value : [stage.value];
+}
+
+describe('ColumnChooser', () => {
+  it('shows, hides, reorders and resets columns through onchange', async () => {
+    const onchange = vi.fn();
+    const { rerender } = render(ColumnChooser<Deal>, { columns: COLUMNS, value: [], onchange });
+    expect(screen.getByRole('group', { name: 'Columns' })).toBeTruthy();
+    await fireEvent.click(screen.getByLabelText('Stage'));
+    expect(onchange).toHaveBeenLastCalledWith([
+      { key: 'name' },
+      { key: 'stage', hidden: true },
+      { key: 'amount' },
+      { key: 'closes' },
+      { key: 'active' },
+    ]);
+
+    const state = [
+      { key: 'name', width: 220 },
+      { key: 'stage', hidden: true },
+      { key: 'amount' },
+      { key: 'closes' },
+      { key: 'active' },
+    ];
+    await rerender({ columns: COLUMNS, value: state, onchange });
+    expect((screen.getByLabelText('Stage') as HTMLInputElement).checked).toBe(false);
+    await fireEvent.click(screen.getByRole('button', { name: 'Move Name down' }));
+    expect(onchange.mock.lastCall?.[0].map((e: { key: string }) => e.key)).toEqual([
+      'stage',
+      'name',
+      'amount',
+      'closes',
+      'active',
+    ]);
+    expect(onchange.mock.lastCall?.[0][1]).toEqual({ key: 'name', width: 220 });
+    expect(
+      (screen.getByRole('button', { name: 'Move Name up' }) as HTMLButtonElement).disabled
+    ).toBe(true);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Show all' }));
+    expect(onchange.mock.lastCall?.[0].some((e: { hidden?: boolean }) => e.hidden)).toBe(false);
+    await fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+    expect(onchange).toHaveBeenLastCalledWith(COLUMNS.map((c) => ({ key: c.key })));
+  });
+
+  it('never hides the last visible column', async () => {
+    const value = COLUMNS.map((c) =>
+      c.key === 'name' ? { key: c.key } : { key: c.key, hidden: true }
+    );
+    render(ColumnChooser<Deal>, { columns: COLUMNS, value, onchange: vi.fn() });
+    const name = screen.getByLabelText('Name') as HTMLInputElement;
+    expect(name.checked).toBe(true);
+    expect(name.disabled).toBe(true);
+    expect(name.getAttribute('aria-describedby')).toBeTruthy();
+  });
+});
+
+describe('BulkActionBar', () => {
+  const rows = deals(3);
+
+  it('runs an action on the selected rows and clears the selection on success', async () => {
+    const run = vi.fn(async (_rows: readonly Deal[]) => {});
+    const onClear = vi.fn();
+    render(BulkActionBar<Deal>, {
+      rows,
+      actions: [{ id: 'won', label: 'Mark won', run }],
+      onClear,
+    });
+    const bar = screen.getByRole('toolbar', { name: 'Bulk actions' });
+    expect(within(bar).getByText('3 selected')).toBeTruthy();
+    await fireEvent.click(within(bar).getByRole('button', { name: 'Mark won' }));
+    await waitFor(() => expect(onClear).toHaveBeenCalledTimes(1));
+    expect(run).toHaveBeenCalledWith(rows);
+  });
+
+  it('keeps the selection when an action fails, and confirms destructive actions', async () => {
+    const onClear = vi.fn();
+    const failing = vi.fn(async () => {
+      throw new Error('Archive is unavailable');
+    });
+    const remove = vi.fn(async (_rows: readonly Deal[]) => {});
+    render(BulkActionBar<Deal>, {
+      rows,
+      actions: [
+        { id: 'archive', label: 'Archive', run: failing },
+        {
+          id: 'delete',
+          label: 'Delete',
+          destructive: true,
+          confirm: { title: 'Delete 3 deals?' },
+          run: remove,
+        },
+        { id: 'off', label: 'Export', run: vi.fn(), disabled: () => true },
+      ],
+      onClear,
+    });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await fireEvent.click(screen.getByRole('button', { name: 'Archive' }));
+    await waitFor(() => expect(failing).toHaveBeenCalled());
+    expect(onClear).not.toHaveBeenCalled();
+    expect((screen.getByRole('button', { name: 'Export' }) as HTMLButtonElement).disabled).toBe(
+      true
+    );
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(remove).not.toHaveBeenCalled();
+    expect(await screen.findByText('Delete 3 deals?')).toBeTruthy();
+    const dialog = screen.getByRole('alertdialog');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(rows));
+    await waitFor(() => expect(onClear).toHaveBeenCalledTimes(1));
+  });
+
+  it('hides without selected rows', () => {
+    render(BulkActionBar<Deal>, { rows: [], actions: [], onClear: vi.fn() });
+    expect(screen.queryByRole('toolbar')).toBeNull();
+  });
+});
+
+describe('DataGrid toolkit', () => {
+  it('selects rows with Space and the header checkbox, then runs a bulk action', async () => {
+    const run = vi.fn(async (_rows: readonly Deal[]) => {});
+    grid({ bulkActions: [{ id: 'won', label: 'Mark won', run }] }, deals(6));
+    const g = table();
+    // The checkboxes arrive with the lazy selection kit.
+    await screen.findByLabelText('Select all shown rows');
+    expect(g.getAttribute('aria-multiselectable')).toBe('true');
+    expect(g.getAttribute('aria-colcount')).toBe('6');
+    cell(1, 0).focus();
+    press(' ');
+    await waitFor(() =>
+      expect(cell(1, 0).closest('[role="row"]')?.getAttribute('aria-selected')).toBe('true')
+    );
+    expect(await screen.findByText('1 selected')).toBeTruthy();
+    // Shift+Space extends from the anchor.
+    cell(3, 0).focus();
+    press(' ', { shiftKey: true });
+    await waitFor(() => expect(screen.getByText('3 selected')).toBeTruthy());
+
+    const all = screen.getByLabelText('Select all shown rows') as HTMLInputElement;
+    expect(all.indeterminate).toBe(true);
+    await fireEvent.click(all);
+    await waitFor(() => expect(screen.getByText('6 selected')).toBeTruthy());
+    await fireEvent.click(screen.getByRole('button', { name: 'Mark won' }));
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(1));
+    expect(run.mock.calls[0]?.[0].map((d) => d.id)).toEqual(['d0', 'd1', 'd2', 'd3', 'd4', 'd5']);
+    await waitFor(() => expect(screen.queryByText('6 selected')).toBeNull());
+  });
+
+  it('filters through facet pickers and removable chips', async () => {
+    const { view } = grid({ facets: ['stage'] }, deals(9));
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole('button', { name: /^Stage/ })
+          .some((b) => b.getAttribute('aria-haspopup') === 'listbox')
+      ).toBe(true)
+    );
+    const picker = screen
+      .getAllByRole('button', { name: /^Stage/ })
+      .find((b) => b.getAttribute('aria-haspopup') === 'listbox') as HTMLElement;
+    await fireEvent.click(picker);
+    await fireEvent.click(await screen.findByRole('option', { name: 'won' }));
+    await waitFor(() => expect(screen.getByText('3 rows')).toBeTruthy());
+    expect(view().filter).toEqual({
+      type: 'condition',
+      field: 'stage',
+      operator: 'eq',
+      value: 'won',
+    });
+    const chips = await screen.findByRole('list', { name: 'Deals active filters' });
+    await fireEvent.click(
+      within(chips).getByRole('button', { name: 'Remove filter: Stage is won' })
+    );
+    await waitFor(() => expect(screen.getByText('9 rows')).toBeTruthy());
+    expect(view().filter).toBeNull();
+  });
+
+  it('marks a changed saved view as modified, saves it and reverts it', async () => {
+    const saved: SavedView = {
+      id: 'v1',
+      name: 'Compact',
+      columns: [],
+      sort: [],
+      groupBy: null,
+      filter: null,
+      density: 'compact',
+    };
+    const onUpdateView = vi.fn(async (_view: SavedView, _state: GridViewState) => {});
+    const { view } = grid({ savedViews: [saved], onUpdateView });
+    await fireEvent.change(screen.getByLabelText('View'), { target: { value: 'v1' } });
+    expect(screen.queryByText('Modified')).toBeNull();
+    await fireEvent.change(screen.getByLabelText('Density'), { target: { value: 'spacious' } });
+    expect(await screen.findByText('Modified')).toBeTruthy();
+    await fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() =>
+      expect(onUpdateView).toHaveBeenCalledWith(
+        saved,
+        expect.objectContaining({ density: 'spacious' })
+      )
+    );
+    await fireEvent.click(screen.getByRole('button', { name: 'Revert' }));
+    await waitFor(() => expect(view().density).toBe('compact'));
+    expect(screen.queryByText('Modified')).toBeNull();
   });
 });

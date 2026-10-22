@@ -17,6 +17,8 @@ in [`@protoyard/views-ui`](../packages/views-ui/README.md) and
 | Browse dated events or bookings | `CalendarView` from `calendar` | calendar math, recurrence expansion and series splitting |
 | Plan task durations, links and critical path | `TimelineView` from `timeline` | working-day schedule, dependency validation, cascade and critical path; stable grouping, milestone focus, an unscheduled tray and explicit row truncation |
 | Explore and edit many records | `DataGrid`, `FilterBuilder`, `SavedViews` from `grid` | virtualization, sorting, grouping, filters and saved view state |
+| Plan task durations, links and critical path | `TimelineView` from `timeline` | working-day schedule, dependency validation, cascade and critical path |
+| Explore and edit many records | `DataGrid`, `FilterBuilder`, `SavedViews`, `FilterChips`, `FacetPicker`, `ColumnChooser`, `BulkActionBar` from `grid` | virtualization, sorting, grouping, composable filters (facets and chips), saved view state with change tracking, column choice, row selection and bulk actions |
 | Browse a hierarchy or edit an outline | `TreeView`, `OutlineEditor` from `tree` | tree indexing, cycle-safe moves, ranks and outline operations |
 | Show locations in a fictional offline city | `SimulatedMap` from `map` | projection, markers, clustering, routes and geofences |
 | Write and preview safe Markdown | `MarkdownEditor`, `MarkdownPreview` from `editor` | text commands and mention token helpers |
@@ -72,6 +74,41 @@ Generators use the scenario context (`ctx.rng`, `ctx.faker`, `ctx.ids`,
 than reading the system clock. The engine README documents each generator and
 its integrity checks.
 
+## Grid filters, saved views and bulk actions
+
+`DataGrid` composes filters from three places, all editing one plain filter
+tree in the view state (`view.filter`):
+
+- **Facet pickers** (`facets={['stage', 'active']}`): one keyboard picker per
+  column, OR within a column and AND with everything else ("Stage is any of
+  Lead or Won").
+- **Filter chips**: one removable chip per top-level condition, plus "Clear all".
+- **The filter builder** (Filters button): nested and/or groups for anything else.
+
+The engine (`@protoyard/views/grid`) keeps this deterministic:
+
+- `serializeFilter` gives equal filters equal text, whatever order they were
+  built in, and `parseSerializedFilter` reads it back as untrusted input.
+- `facetsFromFilter`, `setFacet` and `toggleFacetValue` change one facet and
+  keep every other condition.
+- `describeFilter` and `removeFilterAt` back the chips.
+
+**Saved views.** With `onUpdateView`, a saved view that was changed on screen
+shows "Modified", "Save changes" and "Revert". Building the same filter in
+another order is not a change. `nextViewId(name, existing)` derives stable
+ids for new views.
+
+**Selection and bulk actions.** `bulkActions` turns on row selection:
+checkboxes in a sticky first column, Space on any cell, and a header checkbox
+for the shown rows. `selection` is the bindable list of ids, and rows that
+disappear leave it. Each action's `run(rows)` is a service call: it shows
+pending feedback, `confirm` asks before a destructive action, and the
+selection clears on success.
+
+`FilterChips`, `FacetPicker`, `ColumnChooser` and `BulkActionBar` are also
+exported on their own, for grids or lists of your own. The optional parts
+load lazily (see [PERFORMANCE](PERFORMANCE.md#grid-toolkit-2026-10-21)).
+
 ## Keyboard and phone behavior
 
 | View | Keyboard model | Narrow-screen behavior |
@@ -80,6 +117,8 @@ its integrity checks.
 | Calendar | Arrows move focus; Enter opens or creates; Space grabs; arrows reschedule; Enter saves; Escape cancels | Agenda is the default below `sm` |
 | Timeline | Tab reaches task bars, milestone focus, unscheduled items and group controls; Space picks up or Shift+Space resizes the end; ←/→ adjusts dates; Enter saves; Escape cancels | Date canvas is hidden; rows show compact schedule bars and dates |
 | Grid | Roving ARIA grid; arrows, Home/End, Ctrl+Home/End, PageUp/Down; header controls sort, pin, resize and reorder | Rows become cards; saved views, filters and density stay in the toolbar |
+| Timeline | Tab reaches task bars; Space picks up or Shift+Space resizes the end; ←/→ adjusts dates; Enter saves; Escape cancels | Date canvas is hidden; rows show compact schedule bars and dates |
+| Grid | Roving ARIA grid; arrows, Home/End, Ctrl+Home/End, PageUp/Down; header controls sort, pin, resize and reorder; with bulk actions Space selects a row and Shift+Space extends from the last one; facet pickers open with ↓ and take arrows, Enter/Space, typing and Escape | Rows become cards (with a checkbox when rows are selectable); saved views, filters and density stay in the toolbar |
 | Tree / outline | Tree arrows, Home/End, typeahead; Enter/Space select; outline Enter creates, Tab indents, Shift+Tab outdents | Tree scrolls within its view; touch row moves start at the grip |
 | Map | Arrow keys pan; + / − zoom; 0 fits all; Escape clears selection; marker list has roving focus | Map controls and the synchronized marker list remain available |
 | Editor | Textarea shortcuts; preview is keyboard reachable; Escape exits reply/edit context | Write and preview tabs can be used instead of split view |
@@ -107,14 +146,15 @@ All views are lazy-route candidates, so the initial JavaScript cost is 0 KB
 when the first route does not import them. Task 117 measured isolated Vite
 builds over a realistic Protoyard shell (Svelte, renderer, UI, services and
 runtime dependencies), gzip -9, on an M1 Max. These are the enforced view
-chunk figures; the table gives before/after for the overlay-lazy-loading
+chunk figures (the grid re-measured on 2026-10-21 after the filter, saved-view and
+bulk-action toolkit); the table gives before/after for the overlay-lazy-loading
 change and its current ceiling:
 
 | View | Before | Current | Ceiling |
 | --- | ---: | ---: | ---: |
 | Board | 39,934 B | 11,966 B | 12,800 B |
 | Calendar | 43,942 B | 16,106 B | 17,200 B |
-| Grid | 60,243 B | 19,142 B | 20,500 B |
+| Grid | 60,243 B | 21,859 B | 23,400 B |
 | Map | — | 11,573 B | 12,400 B |
 | Editor | — | 6,452 B | 6,900 B |
 | Timeline | — | 8,458 B | 9,100 B |

@@ -25,7 +25,7 @@ import { rankBetween } from '@protoyard/views/board'; // once the board engine l
 | `./board` | Ordering ranks, WIP limits, swimlanes, keyboard move state |
 | `./calendar` | Month/week/day grids, recurrence subset, overlap layout |
 | `./timeline` | Dependencies, critical path, cascade |
-| `./grid` | Row/column virtualization, column state, grouping, filter AST, saved views |
+| `./grid` | Row/column virtualization, column state, grouping, filter AST, filter composition, row selection, saved views |
 | `./tree` | Flatten, move, indent/outdent, cycle-safe reparent |
 | `./map` | Fictional offline basemap, projection, clustering, geofences |
 | `./editor` | Markdown text commands |
@@ -188,6 +188,27 @@ const visible = windowGrid({ rows: createAxis({ count: rows.length, size: 36 }),
   nested thousands of levels deep fails validation instead of overflowing the
   stack; `exceedsFilterLimits`), and compiled to closures (never `eval` or `new Function`). Text
   comparisons ignore case.
+- **Filter composition** (`normalizeFilter`, `tidyFilter`, `serializeFilter`,
+  `parseSerializedFilter`, `filtersEqual`, `facetsFromFilter`,
+  `filterFromFacets`, `setFacet`, `toggleFacetValue`, `describeFilter`,
+  `removeFilterAt`):
+  - **Canonical form:** same-op groups are flattened, duplicates dropped,
+    `in` lists sorted and deduplicated, and children sorted, so equal
+    filters serialize to the same text. An empty group matches every row (as
+    `compileFilter` treats it), so an `or` holding one normalizes to "no
+    filter".
+  - **Untrusted text:** `parseSerializedFilter` reads serialized text as
+    untrusted input (32 KB cap, the bounded schema, and the columns when
+    given).
+  - **Facets:** OR within a field, AND across fields. A facet edit keeps every
+    other condition in its order.
+  - **Chips and removal:** `describeFilter` gives one chip per top-level
+    condition ("Stage is any of Lead or Won"). `removeFilterAt` removes by
+    path, and a group emptied by the removal goes with it.
+- **Row selection** (`toggleRow`, `selectRange`, `setVisibleSelected`,
+  `selectionState`, `pruneSelection`): selected ids as a plain array in row
+  order, shift-range from an anchor, a none/some/all state for a tri-state
+  checkbox, and pruning when rows disappear.
 - **Grouping** (`groupRows`, `flattenGroups`): one column, groups ordered by
   value with the empty group last, `count`/`sum`/`min`/`max` aggregates, and a
   flat header-plus-rows list (honoring collapsed groups) for the virtualizer.
@@ -195,6 +216,9 @@ const visible = windowGrid({ rows: createAxis({ count: rows.length, size: 36 }),
   `{ id, name, columns, sort, groupBy, filter, density }`, strict and bounded,
   safe to store in IndexedDB and import from snapshots. `sanitizeView` removes
   references to columns that no longer exist and lists what it removed.
+  `viewStatesEqual` / `isViewModified` compare view states (filters by
+  canonical form), `nextViewId(name, existing)` derives a stable unique id,
+  and `showAllColumns` backs a column chooser's "Show all".
 - **Speed** (100,000 in-memory rows): `tests/grid.test.ts` asserts each of
   multi-key sort, unique-text sort, filter and group in under 150 ms, scaled
   by a same-process calibration (a native sort of 100,000 numbers) on a busy
@@ -203,8 +227,11 @@ const visible = windowGrid({ rows: createAxis({ count: rows.length, size: 36 }),
   101–273 ms, unique-text sort 174–676 ms, filter 9–32 ms, group 16–56 ms.
   Quiet-machine numbers are not measured yet; the browser benchmark is
   T-grid-perf-bench.
-- **Size** (esbuild, minified, gzip -9, zod excluded): the whole subpath is
-  4.6 KB; what a grid view imports is 4.0 KB; the virtualizer alone 0.6 KB.
+- **Size** (esbuild, minified, gzip -9, zod and `@protoyard/core` excluded;
+  re-measured 2026-10-21): the whole subpath is 6.7 KB (6,853 B; 4.6 KB
+  before filter composition and selection); `compose.ts` with the filter
+  schema it uses is 3.0 KB, and selection alone 0.4 KB. Earlier figures:
+  what a grid view imported was 4.0 KB, and the virtualizer alone 0.6 KB.
 
 ## Map (`@protoyard/views/map`)
 

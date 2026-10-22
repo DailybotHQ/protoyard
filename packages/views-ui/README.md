@@ -583,7 +583,8 @@ of inline titles), on the `@protoyard/views/tree` engine over
 
 ## Grid (`@protoyard/views-ui/grid`)
 
-`DataGrid` (tables of records), `FilterBuilder` and `SavedViews`, on the
+`DataGrid` (tables of records), `FilterBuilder`, `SavedViews`,
+`FilterChips`, `FacetPicker`, `ColumnChooser` and `BulkActionBar`, on the
 `@protoyard/views/grid` engine.
 
 ```svelte
@@ -601,6 +602,13 @@ of inline titles), on the `@protoyard/views/tree` engine over
   onCreateView={(name, v) => services.createView({ name, ...v })}
   onRenameView={(v, name) => services.renameView(v.id, name)}
   onDeleteView={(v) => services.deleteView(v.id)}
+  onUpdateView={(v, state) => services.updateView(v.id, state)}
+  facets={['stage']}
+  bulkActions={[
+    { id: 'won', label: 'Mark won', run: (rows) => services.markWon(rows.map((d) => d.id)) },
+    { id: 'delete', label: 'Delete', destructive: true, confirm: {}, run: (rows) => services.deleteDeals(rows.map((d) => d.id)) },
+  ]}
+  bind:selection
   onRowOpen={(deal) => navigate(`/deals/${deal.id}`)}
 />
 ```
@@ -628,10 +636,11 @@ of inline titles), on the `@protoyard/views/tree` engine over
   type:
   - text and number: an input
   - date: `input type=date`
-  - enum: the ui `Select`
-  - boolean: the ui `Switch`
+  - enum: a native `<select>`
+  - boolean: a native checkbox switch
 
-  Enter or blur commits, and Escape cancels. The commit goes through
+  The editor (`CellEditor`) loads with the first edit, so read-only grids
+  never download it. Enter or blur commits, and Escape cancels. The commit goes through
   `onCommit` in `runService`. The cell shows the new value with a spinner
   and `aria-busy` until the promise settles. If it rejects, the cell goes
   back to the saved value and shows the reason: the field's zod issue or the
@@ -641,10 +650,33 @@ of inline titles), on the `@protoyard/views/tree` engine over
   named, and the operators match each column type. While a condition has no
   value yet, the grid applies the rest and says so (`completeFilter`). A
   filter the engine rejects is not applied, and its message is shown.
+- **Quick filters and chips:** `facets` lists column keys that get a
+  `FacetPicker` in the row under the toolbar. It is a keyboard-first
+  multi-select (↓ opens; arrows, Home/End, Enter or Space toggle; typing
+  searches; Escape closes and returns focus). Picks are OR within the column
+  and AND with everything else. `FilterChips` shows every top-level condition
+  as a removable chip ("Stage is any of lead or won"), with "Clear all". All
+  three editors change the same `view.filter`.
 - **Saved views:** `SavedViews` picks, saves, renames and deletes through
   your callbacks, with pending feedback and a confirm step before deleting.
   Applying a view runs `sanitizeView`, which drops columns that no longer
-  exist and announces the drop.
+  exist and announces the drop. With `current` (DataGrid passes its view)
+  and `onUpdate` (`onUpdateView` on DataGrid), a changed view shows
+  "Modified", **Save changes** and **Revert**. Equivalent filters built in
+  another order do not count as a change (`isViewModified`).
+- **Selection and bulk actions:** `bulkActions` adds a sticky checkbox column
+  (the header box selects the shown rows, and Shift+click selects a range).
+  Space on any cell selects the row, and Shift+Space extends from the last
+  one. Rows carry `aria-selected`, and phone cards get a checkbox.
+  `selection` is the bindable list of ids in row order; rows that disappear
+  leave it. `BulkActionBar` runs each `BulkAction` through `runService`
+  (pending, a `confirm` step for destructive actions, and the selection
+  clears on success unless `keepSelection`). The checkboxes, chips, pickers
+  and bar are lazy chunks loaded only when a grid uses them.
+- **Standalone pieces:** `FilterChips`, `FacetPicker`, `ColumnChooser` (a
+  checkbox per column, move up/down, Show all, Reset; the last visible
+  column cannot be hidden) and `BulkActionBar` are controlled components with
+  typed `onchange`/`run` callbacks, for lists that are not a `DataGrid`.
 - **View state:** `view` is plain data (columns, sort, groupBy, filter,
   density). Bind it, or persist it from `onViewChange`.
 - **Phones:** below `md` the same rows show as cards, under the same
@@ -652,9 +684,12 @@ of inline titles), on the `@protoyard/views/tree` engine over
   title and the next four are details, 50 cards at a time with **Show
   more**.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, Bits UI and zod external; 2026-10-19): 13.9 KB for
-  the subpath's components, or 17.8 KB with the grid engine bundled in
-  (about 4 KB of that is the engine).
+  ui, renderer, lucide, Bits UI and zod external; 2026-10-19, before the
+  filter, saved-view and bulk-action toolkit; not re-measured with this
+  method): 13.9 KB for the subpath's components, or 17.8 KB with the grid
+  engine bundled in (about 4 KB of that is the engine). The real-build guard
+  measured the grid's first screen at 21,859 B on 2026-10-21 (19,300 B
+  before the toolkit); see [PERFORMANCE](../../docs/PERFORMANCE.md#grid-toolkit-2026-10-21).
 
 ## Activity (`@protoyard/views-ui/activity`)
 

@@ -7,22 +7,45 @@ import {
   compileFilter,
   createAxis,
   defaultColumnState,
+  describeFilter,
   exceedsFilterLimits,
   FILTER_LIMITS,
+  FILTER_OPERATOR_LABELS,
   type FilterNode,
   FilterNodeSchema,
+  facetsFromFilter,
+  filterFromFacets,
+  filtersEqual,
   flattenGroups,
   type GridColumnDef,
   groupRows,
+  isViewModified,
   moveColumn,
+  nextViewId,
+  normalizeFilter,
+  parseSerializedFilter,
   pinColumn,
+  pruneSelection,
+  removeFilterAt,
   resizeColumn,
   resolveColumns,
   type SavedView,
   SavedViewSchema,
+  SERIALIZED_FILTER_MAX_BYTES,
   sanitizeView,
+  selectionState,
+  selectRange,
+  serializeFilter,
   setColumnHidden,
+  setFacet,
+  setVisibleSelected,
+  showAllColumns,
   sortRows,
+  tidyFilter,
+  toggleFacetValue,
+  toggleRow,
+  type ViewState,
+  viewStatesEqual,
   windowAxis,
   windowGrid,
 } from '../src/grid/index.ts';
@@ -516,5 +539,306 @@ describe('100,000 rows', () => {
     expect(textSortMs).toBeLessThan(budget);
     expect(filterMs).toBeLessThan(budget);
     expect(groupMs).toBeLessThan(budget);
+  });
+});
+
+describe('filter composition', () => {
+  const stageIn = (...values: string[]): FilterNode => ({
+    type: 'condition',
+    field: 'stage',
+    operator: 'in',
+    value: values,
+  });
+  const wonEq: FilterNode = { type: 'condition', field: 'won', operator: 'eq', value: true };
+  const nameHas: FilterNode = {
+    type: 'condition',
+    field: 'name',
+    operator: 'contains',
+    value: 'acme',
+  };
+
+  it('serializes equal filters to the same text whatever the build order', () => {
+    const a: FilterNode = {
+      type: 'group',
+      op: 'and',
+      children: [stageIn('won', 'lead', 'won'), { type: 'group', op: 'and', children: [wonEq] }],
+    };
+    const b: FilterNode = {
+      type: 'group',
+      op: 'and',
+      children: [wonEq, { type: 'group', op: 'or', children: [] }, stageIn('lead', 'won')],
+    };
+    expect(serializeFilter(a)).toBe(serializeFilter(b));
+    expect(serializeFilter(a)).toBe(
+      '{"type":"group","op":"and","children":[{"type":"condition","field":"stage","operator":"in","value":["lead","won"]},{"type":"condition","field":"won","operator":"eq","value":true}]}'
+    );
+    expect(filtersEqual(a, b)).toBe(true);
+    expect(filtersEqual(a, { ...b, op: 'or' } as FilterNode)).toBe(false);
+    expect(serializeFilter(null)).toBe('');
+    expect(serializeFilter({ type: 'group', op: 'and', children: [] })).toBe('');
+  });
+
+  it('normalizes without changing which rows match', () => {
+    const messy: FilterNode = {
+      type: 'group',
+      op: 'or',
+      children: [
+        { type: 'group', op: 'or', children: [stageIn('won', 'won'), nameHas] },
+        {
+          type: 'group',
+          op: 'and',
+          children: [stageIn('lead'), { type: 'group', op: 'and', children: [] }],
+        },
+        { type: 'group', op: 'and', children: [wonEq, wonEq] },
+      ],
+    };
+    const normal = normalizeFilter(messy) as FilterNode;
+    expect(ids(DEALS.filter(compileFilter(normal, COLUMNS)))).toEqual(
+      ids(DEALS.filter(compileFilter(messy, COLUMNS)))
+    );
+    // Same-op group merged, duplicates gone, single-child groups unwrapped: 4 distinct children.
+    expect((normal as { children: FilterNode[] }).children).toHaveLength(4);
+    expect(normalizeFilter(normal)).toEqual(normal);
+  });
+
+  it('treats an empty group as matching every row, like compileFilter does', () => {
+    const empty: FilterNode = { type: 'group', op: 'and', children: [] };
+    const orWithEmpty: FilterNode = { type: 'group', op: 'or', children: [wonEq, empty] };
+    expect(DEALS.filter(compileFilter(orWithEmpty, COLUMNS))).toHaveLength(DEALS.length);
+    expect(normalizeFilter(orWithEmpty)).toBeNull();
+    expect(tidyFilter(orWithEmpty)).toBeNull();
+    expect(normalizeFilter({ type: 'group', op: 'and', children: [wonEq, empty] })).toEqual(wonEq);
+    expect(tidyFilter({ type: 'group', op: 'and', children: [wonEq, empty] })).toEqual(wonEq);
+  });
+
+  it('orders scalars deterministically across types', () => {
+    const value = (
+      normalizeFilter({
+        type: 'condition',
+        field: 'stage',
+        operator: 'in',
+        value: ['b', 10, null, true, 2, 'a', 'b'],
+      }) as { value: unknown[] }
+    ).value;
+    expect(value).toEqual([null, true, 2, 10, 'a', 'b']);
+  });
+
+  it('tidies structure but keeps the author order', () => {
+    const tree: FilterNode = {
+      type: 'group',
+      op: 'and',
+      children: [wonEq, { type: 'group', op: 'or', children: [nameHas] }, stageIn('lead')],
+    };
+    expect(tidyFilter(tree)).toEqual({
+      type: 'group',
+      op: 'and',
+      children: [wonEq, nameHas, stageIn('lead')],
+    });
+    expect(tidyFilter({ type: 'group', op: 'and', children: [] })).toBeNull();
+  });
+
+  it('round-trips through serialized text, validated as untrusted input', () => {
+    const filter: FilterNode = { type: 'group', op: 'and', children: [stageIn('won'), nameHas] };
+    const text = serializeFilter(filter);
+    expect(parseSerializedFilter(text, COLUMNS)).toEqual(normalizeFilter(filter));
+    expect(parseSerializedFilter('')).toBeNull();
+    expect(() => parseSerializedFilter('{oops')).toThrow(/not valid JSON/);
+    expect(() =>
+      parseSerializedFilter(
+        '{"type":"condition","field":"ghost","operator":"eq","value":1}',
+        COLUMNS
+      )
+    ).toThrow(/unknown field "ghost"/);
+    expect(() => parseSerializedFilter(' '.repeat(SERIALIZED_FILTER_MAX_BYTES + 1))).toThrow(
+      /limited to/
+    );
+    let deep = '{"type":"condition","field":"name","operator":"isEmpty"}';
+    for (let i = 0; i < 50; i++) deep = `{"type":"group","op":"and","children":[${deep}]}`;
+    expect(() => parseSerializedFilter(deep)).toThrow(/levels/);
+  });
+
+  it('composes facets: OR within a field, AND across fields', () => {
+    let filter: FilterNode | null = null;
+    filter = toggleFacetValue(filter, 'stage', 'won');
+    expect(filter).toEqual({ type: 'condition', field: 'stage', operator: 'eq', value: 'won' });
+    filter = toggleFacetValue(filter, 'stage', 'lead');
+    filter = toggleFacetValue(filter, 'won', false);
+    expect(filter).toEqual({
+      type: 'group',
+      op: 'and',
+      children: [
+        stageIn('lead', 'won'),
+        { type: 'condition', field: 'won', operator: 'eq', value: false },
+      ],
+    });
+    // stage ∈ {lead, won} AND won = false → d3 (lead) only.
+    expect(ids(DEALS.filter(compileFilter(filter, COLUMNS)))).toEqual(['d3']);
+    expect(facetsFromFilter(filter).facets).toEqual({ stage: ['lead', 'won'], won: [false] });
+    filter = toggleFacetValue(filter, 'stage', 'lead');
+    filter = toggleFacetValue(filter, 'stage', 'won');
+    expect(filter).toEqual({ type: 'condition', field: 'won', operator: 'eq', value: false });
+    expect(toggleFacetValue(filter, 'won', false)).toBeNull();
+  });
+
+  it('keeps conditions that are not facets when facets change', () => {
+    const start: FilterNode = { type: 'group', op: 'and', children: [nameHas, stageIn('won')] };
+    const { facets, rest } = facetsFromFilter(start);
+    expect(facets).toEqual({ stage: ['won'] });
+    expect(rest).toEqual([nameHas]);
+    expect(setFacet(start, 'stage', ['lead', 'proposal'])).toEqual({
+      type: 'group',
+      op: 'and',
+      children: [stageIn('lead', 'proposal'), nameHas],
+    });
+    expect(setFacet(start, 'stage', [])).toEqual(nameHas);
+    // An OR root is not a facet: the facet is AND-ed with it.
+    const either: FilterNode = { type: 'group', op: 'or', children: [nameHas, wonEq] };
+    expect(setFacet(either, 'stage', ['won'])).toEqual({
+      type: 'group',
+      op: 'and',
+      children: [{ type: 'condition', field: 'stage', operator: 'eq', value: 'won' }, either],
+    });
+    expect(filterFromFacets({ stage: [], won: [] })).toBeNull();
+  });
+
+  it('describes a filter as chips and removes one by path', () => {
+    const filter: FilterNode = {
+      type: 'group',
+      op: 'and',
+      children: [
+        stageIn('lead', 'proposal', 'won'),
+        { type: 'condition', field: 'amount', operator: 'between', value: [100, 500] },
+        { type: 'condition', field: 'closesOn', operator: 'isEmpty' },
+        { type: 'group', op: 'or', children: [nameHas, wonEq] },
+      ],
+    };
+    const chips = describeFilter(filter, COLUMNS, {
+      formatValue: (field, value) =>
+        field === 'stage' ? String(value).toUpperCase() : String(value),
+    });
+    expect(chips.map((chip) => chip.text)).toEqual([
+      'Stage is any of LEAD, PROPOSAL or WON',
+      'Amount is between 100 and 500',
+      'Closes on is empty',
+      'Any of 2 conditions',
+    ]);
+    expect(chips.map((chip) => chip.id)).toEqual(['0', '1', '2', '3']);
+    expect(describeFilter(wonEq, COLUMNS)[0]).toMatchObject({ id: '', text: 'Won is Yes' });
+    expect(describeFilter(null, COLUMNS)).toEqual([]);
+    expect(FILTER_OPERATOR_LABELS.neq).toBe('is not');
+
+    const withoutAmount = removeFilterAt(filter, chips[1]?.path ?? []);
+    expect(describeFilter(withoutAmount, COLUMNS).map((chip) => chip.label)).toEqual([
+      'Stage',
+      'Closes on',
+      'Any of',
+    ]);
+    expect(removeFilterAt(filter, [3, 0])).toMatchObject({
+      children: [stageIn('lead', 'proposal', 'won'), expect.anything(), expect.anything(), wonEq],
+    });
+    expect(removeFilterAt(wonEq, [])).toBeNull();
+    // Emptying a nested group removes the group, so an OR never widens to every row.
+    const either: FilterNode = {
+      type: 'group',
+      op: 'or',
+      children: [nameHas, { type: 'group', op: 'and', children: [wonEq] }],
+    };
+    expect(removeFilterAt(either, [1, 0])).toEqual(nameHas);
+    expect(removeFilterAt({ type: 'group', op: 'and', children: [wonEq, nameHas] }, [0])).toEqual(
+      nameHas
+    );
+  });
+});
+
+describe('saved view state', () => {
+  const base: ViewState = {
+    columns: [{ key: 'name' }, { key: 'stage', width: 120 }],
+    sort: [{ key: 'name', direction: 'asc' }],
+    groupBy: null,
+    filter: null,
+    density: 'comfortable',
+  };
+
+  it('detects modifications but ignores equivalent filters and default keys', () => {
+    expect(viewStatesEqual(base, structuredClone(base))).toBe(true);
+    expect(
+      viewStatesEqual(base, {
+        ...base,
+        columns: [{ key: 'name', hidden: false } as never, { key: 'stage', width: 120 }],
+      })
+    ).toBe(true);
+    const a: FilterNode = {
+      type: 'condition',
+      field: 'stage',
+      operator: 'in',
+      value: ['won', 'lead'],
+    };
+    const b: FilterNode = {
+      type: 'condition',
+      field: 'stage',
+      operator: 'in',
+      value: ['lead', 'won'],
+    };
+    expect(isViewModified({ ...base, filter: a }, { ...base, filter: b })).toBe(false);
+    expect(isViewModified(base, { ...base, density: 'compact' })).toBe(true);
+    expect(isViewModified(base, { ...base, groupBy: 'stage' })).toBe(true);
+    expect(isViewModified(base, { ...base, sort: [] })).toBe(true);
+    expect(
+      isViewModified(base, { ...base, columns: setColumnHidden(base.columns, 'stage', true) })
+    ).toBe(true);
+  });
+
+  it('derives deterministic, unique view ids from names', () => {
+    expect(nextViewId('My open deals', [])).toBe('my-open-deals');
+    expect(nextViewId('My open deals', ['my-open-deals', 'my-open-deals-2'])).toBe(
+      'my-open-deals-3'
+    );
+    expect(nextViewId('Café Q3 — top!', [])).toBe('cafe-q3-top');
+    expect(nextViewId('***', [])).toBe('view');
+    expect(nextViewId('x'.repeat(100), []).length).toBeLessThanOrEqual(48);
+    expect(
+      SavedViewSchema.shape.id.safeParse(nextViewId('A long name '.repeat(9), [])).success
+    ).toBe(true);
+  });
+
+  it('shows every column for the chooser while keeping order and widths', () => {
+    const state = setColumnHidden([{ key: 'stage', width: 120 }, { key: 'ghost' }], 'stage', true);
+    expect(showAllColumns(state, COLUMNS)).toEqual([
+      { key: 'stage', width: 120 },
+      { key: 'name' },
+      { key: 'amount' },
+      { key: 'closesOn' },
+      { key: 'won' },
+    ]);
+    expect(showAllColumns([], COLUMNS)).toEqual(defaultColumnState(COLUMNS));
+  });
+});
+
+describe('row selection', () => {
+  const order = ['d1', 'd2', 'd3', 'd4', 'd5'];
+
+  it('toggles rows and keeps them in row order', () => {
+    let selection = toggleRow([], 'd4', order);
+    selection = toggleRow(selection, 'd1', order);
+    expect(selection).toEqual(['d1', 'd4']);
+    expect(toggleRow(selection, 'd4', order)).toEqual(['d1']);
+  });
+
+  it('selects a range from the anchor in either direction', () => {
+    expect(selectRange(['d1'], order, 'd2', 'd4')).toEqual(['d1', 'd2', 'd3', 'd4']);
+    expect(selectRange([], order, 'd5', 'd3')).toEqual(['d3', 'd4', 'd5']);
+    expect(selectRange([], order, null, 'd3')).toEqual(['d3']);
+    expect(selectRange([], order, 'gone', 'd3')).toEqual(['d3']);
+  });
+
+  it('selects and clears the visible rows, keeping hidden selections', () => {
+    const visible = ['d2', 'd3'];
+    expect(setVisibleSelected(['d5'], visible, true)).toEqual(['d2', 'd3', 'd5']);
+    expect(setVisibleSelected(['d2', 'd3', 'd5'], visible, false)).toEqual(['d5']);
+    expect(selectionState(['d5'], visible)).toBe('none');
+    expect(selectionState(['d2'], visible)).toBe('some');
+    expect(selectionState(['d3', 'd2'], visible)).toBe('all');
+    expect(selectionState(['d1'], [])).toBe('none');
+    expect(pruneSelection(['d1', 'd9', 'd3'], order)).toEqual(['d1', 'd3']);
   });
 });
