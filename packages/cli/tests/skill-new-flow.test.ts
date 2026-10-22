@@ -77,9 +77,9 @@ describe('the blueprint reference', () => {
 
   it('lists exactly the top-level keys of the blueprint JSON Schema', () => {
     const schema = JSON.parse(read('packages/blueprint/schema/blueprint.schema.json')) as {
-      properties: Record<string, unknown>;
+      oneOf: { properties: Record<string, unknown> }[];
     };
-    const keys = Object.keys(schema.properties).filter((key) => key !== '$schema');
+    const keys = Object.keys(schema.oneOf[0]?.properties ?? {}).filter((key) => key !== '$schema');
     const start = text.indexOf('## Top-level keys');
     const table = text.slice(start, text.indexOf('\n## ', start + 1));
     const documented = [...table.matchAll(/^\| ((?:`[a-zA-Z]+`(?:, )?)+) \|/gm)].flatMap((row) =>
