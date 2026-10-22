@@ -400,6 +400,51 @@ const router = createRouter(
 - Guards are synchronous. Gating on the simulated session is UX, not
   security (ADR-008, ADR-018).
 
+### Overlay routes
+
+A route with `overlay: true` opens over the last full-screen route instead of
+replacing it. It shows as a bottom sheet on phones and narrow hosts, and as a
+dialog (or side panel) on wider hosts, through `@protoyard/ui`
+`AdaptiveOverlay`. The screen underneath stays mounted, so its state and
+scroll survive. The address still changes, so Back, Forward, refresh and
+shared links behave like any route.
+
+```ts
+createRouter([
+  { path: '/deals', component: Deals },
+  { path: '/deals/:id', component: Deal },
+  { path: '/deals/:id/edit', load: () => import('./screens/EditDeal.svelte'), title: 'Edit deal',
+    overlay: true },
+  { path: '/deals/:id/share', component: Share, title: 'Share',
+    overlay: { desktop: 'side-panel', size: 'lg', base: '/deals/:id' } },
+]);
+```
+
+- **Opening:** navigating to an overlay route keeps `router.background` (the
+  screen underneath) and sets `router.overlay`. `router.current` is the
+  overlay's match, and `isActive` stays true for the screen underneath, so
+  navigation keeps its highlight. Neither opening nor closing scrolls the
+  screen underneath.
+- **Closing:** Escape, the close button, the backdrop, or the `close` prop
+  every overlay screen receives all call `router.closeOverlay()`. If the
+  overlay was opened from the screen underneath, that is Back. If it was a
+  deep link, or after moving between overlays, it replaces the address with
+  the screen underneath, so history never gains a stray entry. Focus returns
+  to the link or button that opened the overlay, or to the screen.
+- **Deep links:** a deep link to an overlay renders, underneath it, its
+  `base` (with `:params` filled from the overlay), else the nearest ancestor
+  path that matches a full-screen route (`/deals/42/edit` → `/deals/42`),
+  else `/`.
+- **Options:** `desktop` (`dialog` by default, or `side-panel`) and `size`
+  apply to wide hosts. Narrow hosts always get the sheet. Guards apply as
+  usual: a guard that redirects to a full-screen route replaces the overlay
+  with that screen.
+- **Size:** the overlay outlet (`OverlayOutlet.svelte`, with the
+  `AdaptiveOverlay` code) is a lazy chunk, loaded when an overlay route first
+  opens. Measured on `crm-demo` (which declares no overlay routes) on
+  2026-10-21: initial JS 176.33 → 176.88 KB gzip, for the router's overlay
+  state and the lazy-load hook.
+
 ## Services
 
 ```ts
