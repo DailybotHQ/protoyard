@@ -13,13 +13,13 @@ let {
 
 <details class="relative" data-py-deck-more>
   <summary
-    class="inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
+    class="inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     aria-label="More presentation controls"
   >
     More
   </summary>
   <div
-    class="absolute right-0 top-full z-40 mt-2 flex min-w-48 flex-col gap-1 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-lg"
+    class="absolute right-0 top-full z-40 mt-2 flex min-w-44 flex-col gap-1 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-lg"
     data-py-deck-more-menu
   >
     {#each DECK_CONTROL_GROUPS as group (group)}

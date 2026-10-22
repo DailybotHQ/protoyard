@@ -36,7 +36,7 @@ onMount(() => {
   }}
 >
   <span
-    class={`rounded-md px-4 py-2 text-sm font-medium text-white motion-safe:transition-opacity motion-safe:duration-500 print:hidden ${hint ? 'opacity-100' : 'opacity-0'}`}
+    class={`rounded-md px-4 py-2 text-sm font-medium text-white transition-opacity duration-200 ${hint ? '' : 'opacity-0'}`}
     aria-hidden="true"
     data-py-deck-blackout-hint
     data-visible={hint ? 'true' : 'false'}

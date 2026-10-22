@@ -12,7 +12,6 @@ import ChromeTooltip from './ChromeTooltip.svelte';
 import { copyText } from './clipboard.ts';
 import { type DeckFullscreenMode, FULLSCREEN_WINDOW_DESCRIPTION } from './fullscreen.ts';
 import { DECK_ICON_PATHS } from './icons.ts';
-import MoreMenu from './MoreMenu.svelte';
 import { controlTooltip, createDeckTooltip } from './tooltip.ts';
 
 let {
@@ -75,7 +74,7 @@ const mobileSecondaryControls = $derived(
 );
 
 const buttonClass =
-  'inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md border border-border bg-background/90 px-2 text-sm font-medium text-foreground backdrop-blur transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary';
+  'inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md border border-border bg-background/90 px-2 text-sm font-medium text-foreground backdrop-blur transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-pressed:border-primary aria-pressed:bg-primary/10';
 
 function pressed(action: DeckInputAction): boolean {
   switch (action) {
@@ -138,13 +137,6 @@ async function activate(control: DeckControl): Promise<void> {
     return;
   }
   onaction(action);
-}
-
-/** A catalog slide's `title` prop (a custom slide's props are its component and data). */
-function propsTitle(slide: DeckSlide): string | null {
-  if (!('props' in slide)) return null;
-  const title = (slide.props as Record<string, unknown>).title;
-  return typeof title === 'string' ? title : null;
 }
 
 function selectSlide(slideId: string): void {
@@ -232,19 +224,9 @@ $effect(() => () => {
         {@render controlButton(control, false)}
       {/if}
       {#if control.action === 'jump' && jumpOpen}
-        <div id="py-deck-slide-list" class="fixed bottom-16 right-3 z-[100] max-h-[min(60vh,28rem)] w-64 overflow-y-auto rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-lg" role="listbox" aria-label="Choose a slide" data-py-deck-slide-list>
-          {#each slides as slide, index (slide.id)}
-            <button
-              type="button"
-              role="option"
-              aria-selected={index + 1 === currentOrdinal}
-              class="block min-h-11 w-full rounded px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
-              onclick={() => selectSlide(slide.id)}
-            >
-              <span class="mr-2 text-muted-foreground">{index + 1}.</span>{slide.title ?? (propsTitle(slide) ?? slide.id)}
-            </button>
-          {/each}
-        </div>
+        {#await import('./SlideJumpList.svelte') then list}
+          <list.default {slides} {currentOrdinal} onselect={selectSlide} />
+        {/await}
       {/if}
     {/each}
   </div>
@@ -261,9 +243,12 @@ $effect(() => () => {
       {/if}
     {/each}
   {:else}
-    <MoreMenu controls={mobileSecondaryControls}>
+    <!-- Phones only: the More menu loads on its own chunk. -->
+    {#await import('./MoreMenu.svelte') then menu}
+      <menu.default controls={mobileSecondaryControls}>
       {#snippet children(control)}{@render controlButton(control, true)}{/snippet}
-    </MoreMenu>
+    </menu.default>
+    {/await}
   {/if}
 
   <ChromeTooltip {tooltip} />

@@ -56,9 +56,9 @@ $effect(() => () => clearTimeout(timer));
 <span class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-py-deck-copy-status data-py-deck-toast-live>{message}</span>
 
 {#if visible && message}
-  <div class="pointer-events-none absolute inset-x-0 bottom-20 z-50 flex justify-center px-4 print:hidden" data-py-deck-chrome>
+  <div style="bottom: 4rem" class="pointer-events-none absolute inset-x-0 z-50 flex justify-center px-4" data-py-deck-chrome>
     <div
-      class={`pointer-events-auto max-w-sm rounded-md border px-3 py-2 text-sm font-medium shadow-lg motion-safe:transition-opacity ${tone === 'error' ? 'border-destructive bg-background text-destructive' : 'border-border bg-popover text-popover-foreground'}`}
+      class={`pointer-events-auto max-w-sm rounded-md border px-3 py-2 text-sm font-medium shadow-lg transition-opacity duration-200 ${tone === 'error' ? 'border-destructive bg-background text-destructive' : 'border-border bg-popover text-popover-foreground'}`}
       aria-hidden="true"
       data-py-deck-toast
       data-tone={tone}

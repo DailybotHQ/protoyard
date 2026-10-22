@@ -81,7 +81,7 @@ describe('DeckToolbar', () => {
     const trigger = screen.getByRole('button', { name: /Choose a slide/ });
     trigger.focus();
     await fireEvent.keyDown(trigger, { key: 'Enter' });
-    const list = screen.getByRole('listbox', { name: 'Choose a slide' });
+    const list = await screen.findByRole('listbox', { name: 'Choose a slide' });
     expect(
       within(list)
         .getAllByRole('option')
@@ -126,7 +126,7 @@ describe('DeckToolbar', () => {
     });
     expect(screen.queryByRole('button', { name: 'Full screen' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Print, one slide per page' })).toBeNull();
-    const more = screen.getByText('More').closest('details');
+    const more = (await screen.findByText('More')).closest('details');
     expect(more).not.toBeNull();
     expect(
       within(more as HTMLElement).getByRole('button', { name: 'Presenter view' })

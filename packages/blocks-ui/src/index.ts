@@ -13,3 +13,4 @@ export {
   type SteppedBlock,
   setBlockHost,
 } from './host.ts';
+export { blockRendererRegistry, loadBlockFamily } from './registry.ts';

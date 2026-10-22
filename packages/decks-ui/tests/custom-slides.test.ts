@@ -196,11 +196,12 @@ describe('without owned code', () => {
     expect(note.textContent).toContain('Live slide');
   });
 
-  it('thumbnails, print and previews show a card and never run the component', () => {
+  it('thumbnails, print and previews show a card and never run the component', async () => {
     const { container } = render(DeckLayoutRenderer, {
       props: { layout: 'custom' as never, props: { component: 'probe' } },
     });
-    expect(container.textContent).toContain('Interactive slide');
+    // The custom-slide host is its own chunk.
+    await waitFor(() => expect(container.textContent).toContain('Interactive slide'));
     expect(container.querySelector('[data-probe]')).toBeNull();
   });
 });

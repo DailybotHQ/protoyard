@@ -106,7 +106,7 @@ const buttonClass =
 {/if}
 
 <aside
-  class="absolute inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-border bg-background text-foreground shadow-xl print:hidden"
+  class="absolute inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-border bg-background text-foreground shadow-xl"
   aria-labelledby={titleId}
   data-py-deck-debug
   data-py-deck-chrome
@@ -116,7 +116,7 @@ const buttonClass =
     <button bind:this={closeButton} type="button" class={buttonClass} onclick={onclose}>Close</button>
   </div>
 
-  <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 text-sm">
+  <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 text-sm">
     <section aria-label="This slide">
       <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         <dt class="text-muted-foreground">Slide</dt>
@@ -145,7 +145,8 @@ const buttonClass =
       <button type="button" class={buttonClass} data-py-deck-debug-action="download" onclick={download}>Download deck JSON</button>
       <button
         type="button"
-        class={`${buttonClass} sm:col-span-2 aria-pressed:border-primary aria-pressed:bg-primary/10`}
+        class={`${buttonClass} aria-pressed:border-primary aria-pressed:bg-primary/10`}
+        style="grid-column: 1 / -1"
         aria-pressed={outline}
         data-py-deck-debug-action="outline"
         onclick={() => (outline = !outline)}
@@ -155,7 +156,7 @@ const buttonClass =
     </section>
 
     <section aria-labelledby={`${titleId}-findings`}>
-      <h3 id={`${titleId}-findings`} class="mb-1.5 font-semibold">Checks on this slide</h3>
+      <h3 id={`${titleId}-findings`} class="mb-2 font-semibold">Checks on this slide</h3>
       {#if record.findings.length === 0}
         <p class="text-muted-foreground">No findings on this slide.</p>
       {:else}
@@ -170,7 +171,7 @@ const buttonClass =
         </ul>
       {/if}
       {#if otherSlides.length > 0}
-        <h4 class="mt-3 mb-1.5 font-medium">Other slides with findings</h4>
+        <h4 class="mt-3 mb-2 font-medium">Other slides with findings</h4>
         <ul class="flex flex-wrap gap-2">
           {#each otherSlides as other (other.id)}
             <li>
@@ -185,7 +186,7 @@ const buttonClass =
 
     {#if record.blocks.length > 0}
       <section aria-labelledby={`${titleId}-blocks`}>
-        <h3 id={`${titleId}-blocks`} class="mb-1.5 font-semibold">Blocks</h3>
+        <h3 id={`${titleId}-blocks`} class="mb-2 font-semibold">Blocks</h3>
         <ul class="space-y-1 font-mono text-xs">
           {#each record.blocks as block (block.pointer)}
             <li class="break-all"><span class="text-muted-foreground">{block.pointer}</span> {block.type}{block.id ? ` #${block.id}` : ''}</li>
@@ -195,7 +196,7 @@ const buttonClass =
     {/if}
 
     <section aria-labelledby={`${titleId}-text`}>
-      <h3 id={`${titleId}-text`} class="mb-1.5 font-semibold">Slide text</h3>
+      <h3 id={`${titleId}-text`} class="mb-2 font-semibold">Slide text</h3>
       <p class="whitespace-pre-wrap text-muted-foreground" data-py-deck-debug-text>{record.text || '(no text)'}</p>
     </section>
   </div>

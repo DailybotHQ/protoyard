@@ -41,7 +41,8 @@ const LARGE = join(ROOT, 'packages/blueprint/tests/fixtures/large.blueprint.json
 const DEFAULT_BLUEPRINTS = ['crm', 'clinic', 'logistics', 'lms', 'project-management'];
 const CATALOG_EXAMPLES = {
   app: DEFAULT_BLUEPRINTS,
-  deck: ['decks/harbor-ops-pitch'],
+  // The everything deck exercises every layout, block family and lazy chunk (T-perf).
+  deck: ['decks/harbor-ops-pitch', 'decks/everything'],
   page: ['pages/tidewater-roasters-landing'],
   doc: ['docs/northwind-quarterly-report'],
 } as const;

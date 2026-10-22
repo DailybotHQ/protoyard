@@ -14,6 +14,7 @@ export {
   FIRST_RUN_HINT_MS,
   firstRunHintAllowed,
   firstRunHintKey,
+  firstRunHintSeen,
 } from './FirstRunHint.svelte';
 export { default as FullscreenOverlay } from './FullscreenOverlay.svelte';
 export {

@@ -37,14 +37,14 @@ const label = $derived(slide.title ?? id);
 
 {#snippet card(heading: string, detail: string, tone: 'info' | 'error' = 'info')}
   <div
-    class="grid size-full place-items-center p-[64px]"
+    class="grid size-full place-items-center p-16"
     role={tone === 'error' ? 'alert' : 'note'}
     data-py-deck-custom-card={tone}
   >
-    <div class="max-w-[880px] rounded-2xl border-2 border-dashed border-border bg-muted/40 p-[48px] text-center">
-      <p class="text-[24px] font-semibold tracking-wide text-muted-foreground uppercase">{label}</p>
-      <p class={`mt-4 text-[40px] font-semibold ${tone === 'error' ? 'text-destructive' : 'text-foreground'}`}>{heading}</p>
-      <p class="mt-4 text-[24px] text-muted-foreground">{detail}</p>
+    <div class="max-w-4xl rounded-2xl border-2 border-dashed border-border bg-muted/40 p-8 text-center">
+      <p class="text-2xl font-semibold tracking-wide text-muted-foreground uppercase">{label}</p>
+      <p class={`mt-4 text-3xl font-semibold ${tone === 'error' ? 'text-destructive' : 'text-foreground'}`}>{heading}</p>
+      <p class="mt-4 text-2xl text-muted-foreground">{detail}</p>
     </div>
   </div>
 {/snippet}
@@ -66,7 +66,7 @@ const label = $derived(slide.title ?? id);
   {:else if load}
     {#await load}
       <div class="grid size-full place-items-center" role="status" aria-label="Loading the slide">
-        <span class="text-[24px] text-muted-foreground">Loading the slide…</span>
+        <span class="text-2xl text-muted-foreground">Loading the slide…</span>
       </div>
     {:then module}
       {@const Slide = module.default}
@@ -76,13 +76,13 @@ const label = $derived(slide.title ?? id);
           <Slide slide={ownSlide} {step} {stepCount} {data} />
         </div>
         {#snippet failed(_error, reset)}
-          <div class="grid size-full place-items-center p-[64px]" role="alert" data-py-deck-custom-card="error">
-            <div class="max-w-[880px] rounded-2xl border-2 border-destructive bg-background p-[48px] text-center">
-              <p class="text-[40px] font-semibold text-destructive">This slide stopped working</p>
-              <p class="mt-4 text-[24px] text-muted-foreground">The "{id}" component failed. The rest of the deck still works.</p>
+          <div class="grid size-full place-items-center p-16" role="alert" data-py-deck-custom-card="error">
+            <div class="max-w-4xl rounded-2xl border-2 border-destructive bg-background p-8 text-center">
+              <p class="text-3xl font-semibold text-destructive">This slide stopped working</p>
+              <p class="mt-4 text-2xl text-muted-foreground">The "{id}" component failed. The rest of the deck still works.</p>
               <button
                 type="button"
-                class="mt-8 min-h-11 rounded-md border border-border px-6 text-[24px] font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                class="mt-6 min-h-11 rounded-md border border-border px-6 text-2xl font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 onclick={reset}
               >
                 Try again

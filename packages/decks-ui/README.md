@@ -340,16 +340,20 @@ All gzip level 9 (Node 26.11.1, Vite 8.3.4):
 
 | What | Measured | Gate | Where |
 | --- | --- | --- | --- |
-| `@protoyard/decks-ui/app` initial JS | 94,724 B (2026-10-22, with the debug panel's lazy import; the probe build groups Rolldown's runtime and Dexie into their own chunks, as the player does) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
+| `@protoyard/decks-ui/app` initial JS | 92,464 B (2026-10-22, after moving help, the overlay, the hint, the More menu, the slide list and the custom-slide host to lazy chunks; 95,837 B before; the probe build groups Rolldown's runtime and Dexie into their own chunks, as the player does) | ≤ 120 KB | `tests/bundle-size.test.ts`, `tests/budget.test.ts` |
 | Deck style kit (lazy chunk: style resolution, library catalog, palette engine, backgrounds) | about 20 KB (2026-10-22) | not in the initial graph | `tests/budget.test.ts` |
-| All CSS emitted with it | 3,315 B (2026-10-22, with registry toolbar) | ≤ 20 KB | `tests/bundle-size.test.ts` |
+| All CSS emitted with it | 3,284 B (2026-10-22) | ≤ 20 KB | `tests/bundle-size.test.ts` |
 | Deck Studio panel (lazy chunk) | 3,141 B (2026-10-22) | — | measured with a Vite probe build |
 | Debug for agents panel (lazy chunk) | 9,486 B (2026-10-22) | ≤ 12 KB, not in the initial graph | `tests/debug-panel.test.ts` |
 | Chrome tooltip on the deck entry (`ChromeTooltip` + `tooltip.ts`) | +1,510 B (2026-10-22; `@protoyard/ui` Tooltip measured +36,552 B) | ≤ 1,536 B | `tests/tooltip-budget.test.ts` |
 | 200-slide deck: parse + first render (happy-dom) | 50–142 ms over six runs | < 1 s | `tests/large-deck.perf.test.ts` |
 | 200-slide deck: one next or previous step, median | 0.27–0.39 ms over six runs | < 16 ms (median and p95) | `tests/large-deck.perf.test.ts` |
 | Slides in the DOM at once | 2–3 | ≤ 3 | `tests/large-deck.perf.test.ts` |
+| Full screen enter / leave (window mode, happy-dom) | 1.79–3.13 ms / 4.1–7.28 ms | < 50 ms | `tests/large-deck.perf.test.ts` |
+| First-paint chrome kept lazy (help, overlay, hint, More menu, slide list, custom-slide host, debug, prefetch) | not in the initial graph | enforced | `tests/lazy-chrome.test.ts` |
 
+- **Idle prefetch:** when the browser is idle, DeckApp loads the layout and block-family chunks of
+  the next two slides beyond the window.
 - **Lazy surfaces:** layout families, the overview, print and studio code all stay out of the app's
   first chunk; `tests/bundle-hygiene.test.ts` guards that.
 - **More detail:** `docs/PERFORMANCE.md` has the full deck sections.

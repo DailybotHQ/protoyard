@@ -72,16 +72,16 @@ const showBreakdown = $derived(stepCount === 0 || step >= 1);
 const uid = $props.id();
 </script>
 
-<div class="grid size-full grid-cols-[1fr_1fr] gap-[48px] px-[64px] pt-[44px] pb-[76px] text-foreground" data-pricing-configurator>
-  <div class="flex min-h-0 flex-col gap-[20px]">
-    <h2 class="text-[48px] leading-tight font-bold">{slide.title ?? 'Price your team'}</h2>
+<div class="grid size-full grid-cols-2 gap-8 p-16 pb-20 text-foreground" data-pricing-configurator>
+  <div class="flex min-h-0 flex-col gap-5">
+    <h2 class="text-3xl leading-tight font-bold">{slide.title ?? 'Price your team'}</h2>
 
-    <fieldset class="flex flex-col gap-[12px]">
-      <legend class="mb-[8px] text-[24px] font-semibold text-muted-foreground">Plan</legend>
-      <div class="grid grid-cols-3 gap-[12px]">
+    <fieldset class="flex flex-col gap-3">
+      <legend class="mb-2 text-2xl font-semibold text-muted-foreground">Plan</legend>
+      <div class="grid grid-cols-3 gap-3">
         {#each plans as option (option.id)}
           <label
-            class={`flex min-h-[72px] cursor-pointer items-center gap-[12px] rounded-xl border-2 px-[16px] ${option.id === plan?.id ? 'border-primary bg-primary/10' : 'border-border'}`}
+            class={`flex min-h-16 cursor-pointer items-center gap-3 rounded-xl border-2 px-4 ${option.id === plan?.id ? 'border-primary bg-primary/10' : 'border-border'}`}
           >
             <input
               type="radio"
@@ -89,46 +89,46 @@ const uid = $props.id();
               value={option.id}
               checked={option.id === plan?.id}
               onchange={() => (planId = option.id)}
-              class="size-[22px] accent-[var(--color-primary)]"
+              class="size-5"
             />
             <span class="flex flex-col leading-tight">
-              <span class="text-[24px] font-semibold">{option.name}</span>
-              <span class="text-[20px] text-muted-foreground">{usd(option.centsPerSeat)}/seat</span>
+              <span class="text-2xl font-semibold">{option.name}</span>
+              <span class="text-xl text-muted-foreground">{usd(option.centsPerSeat)}/seat</span>
             </span>
           </label>
         {/each}
       </div>
     </fieldset>
 
-    <label class="flex flex-col gap-[12px] text-[24px]">
+    <label class="flex flex-col gap-3 text-2xl">
       <span class="font-semibold text-muted-foreground">Seats: <span class="text-foreground tabular-nums">{seats}</span></span>
       <input
         type="range"
         min="1"
         max={maxSeats}
         bind:value={seats}
-        class="h-[32px] w-full accent-[var(--color-primary)]"
+        class="h-8 w-full"
         aria-valuetext={`${seats} seats`}
       />
     </label>
 
-    <label class="flex min-h-[48px] cursor-pointer items-center gap-[16px] text-[24px]">
-      <input type="checkbox" bind:checked={annual} class="size-[24px] accent-[var(--color-primary)]" />
+    <label class="flex min-h-12 cursor-pointer items-center gap-4 text-2xl">
+      <input type="checkbox" bind:checked={annual} class="size-6" />
       Pay yearly ({annualDiscountPercent}% off)
     </label>
 
-    <div class="mt-auto rounded-2xl bg-muted/60 px-[28px] py-[20px]" aria-live="polite">
-      <p class="text-[24px] text-muted-foreground">Per month</p>
-      <p class="text-[64px] leading-none font-bold tabular-nums" data-pricing-total>{usd(totalCents)}</p>
+    <div class="mt-auto rounded-2xl bg-muted/60 px-6 py-4" aria-live="polite">
+      <p class="text-2xl text-muted-foreground">Per month</p>
+      <p class="text-3xl leading-none font-bold tabular-nums" data-pricing-total>{usd(totalCents)}</p>
       {#if showBreakdown}
-        <p class="mt-[10px] text-[24px] text-muted-foreground" data-pricing-breakdown>
+        <p class="mt-2.5 text-2xl text-muted-foreground" data-pricing-breakdown>
           {seats} seats × {usd(plan?.centsPerSeat ?? 0)}{annual ? `, minus ${usd(savingsCents)} for paying yearly` : ''}
         </p>
       {/if}
     </div>
   </div>
 
-  <figure class="flex min-h-0 flex-col justify-end gap-[16px]">
+  <figure class="flex min-h-0 flex-col justify-end gap-4">
     <svg
       viewBox="0 0 600 420"
       class="w-full flex-1"
@@ -144,13 +144,15 @@ const uid = $props.id();
           width={width * 0.7}
           {height}
           rx="12"
-          class={bar.plan.id === plan?.id ? 'fill-primary' : 'fill-muted-foreground/30'}
+          class={bar.plan.id === plan?.id ? 'text-primary' : 'text-muted-foreground'}
+          fill="currentColor"
+          fill-opacity={bar.plan.id === plan?.id ? 1 : 0.3}
           data-pricing-bar={bar.plan.id}
         />
-        <text x={index * width + width / 2} y={410} text-anchor="middle" class="fill-foreground text-[22px]">{bar.plan.name}</text>
-        <text x={index * width + width / 2} y={370 - height} text-anchor="middle" class="fill-foreground text-[22px] font-semibold">{usd(bar.cents)}</text>
+        <text x={index * width + width / 2} y={410} text-anchor="middle" class="fill-foreground text-xl">{bar.plan.name}</text>
+        <text x={index * width + width / 2} y={370 - height} text-anchor="middle" class="fill-foreground text-xl font-semibold">{usd(bar.cents)}</text>
       {/each}
     </svg>
-    <figcaption class="text-[22px] text-muted-foreground">Monthly total by plan at {seats} seats. Fictional prices.</figcaption>
+    <figcaption class="text-xl text-muted-foreground">Monthly total by plan at {seats} seats. Fictional prices.</figcaption>
   </figure>
 </div>

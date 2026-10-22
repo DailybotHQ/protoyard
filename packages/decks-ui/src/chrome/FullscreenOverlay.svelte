@@ -75,7 +75,7 @@ const buttonClass =
 
 <div
   bind:this={node}
-  class={`absolute inset-x-0 bottom-4 z-30 flex justify-center px-4 motion-safe:transition-opacity motion-safe:duration-200 print:hidden ${visible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+  class={`absolute inset-x-0 bottom-4 z-30 flex justify-center px-4 transition-opacity duration-200 ${visible ? '' : 'pointer-events-none opacity-0'}`}
   inert={!visible}
   data-py-deck-chrome
   data-py-deck-fullscreen-overlay

@@ -17,23 +17,22 @@ import { type Deck, type DeckSlide, isCustomSlide } from '@protoyard/decks/schem
 import type { Component } from 'svelte';
 import { onMount, tick } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
+// Direct imports, not the chrome barrel: the dialogs and overlays below load on their own chunks.
+import BlackoutScreen from '../chrome/BlackoutScreen.svelte';
+import ChromeToast from '../chrome/ChromeToast.svelte';
+import DeckToolbar from '../chrome/DeckToolbar.svelte';
+import { firstRunHintAllowed, firstRunHintSeen } from '../chrome/first-run.ts';
 import {
-  BlackoutScreen,
-  ChromeToast,
   createDeckFullscreen,
   type DeckFullscreen,
   type DeckFullscreenMode,
-  type DeckToolAction,
-  DeckToolbar,
-  FirstRunHint,
-  FullscreenOverlay,
-  KeyboardHelp,
-  LaserPointer,
-} from '../chrome/index.ts';
+} from '../chrome/fullscreen.ts';
+import LaserPointer from '../chrome/LaserPointer.svelte';
+import type { DeckToolAction } from '../chrome/types.ts';
 import { type DeckDebugSetting, deckDebugAvailable, isDevBuild } from '../debug/availability.ts';
-import CustomSlideHost from '../layouts/CustomSlideHost.svelte';
 import type { CustomSlideRegistry } from '../layouts/custom-slides.ts';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
+import { loadLayoutRenderer } from '../layouts/registry.ts';
 import SlideStepHost from '../layouts/SlideStepHost.svelte';
 import { DeckPrint, parseDeckPrintFlags } from '../print/index.ts';
 import { DeckSlideFrame, DeckStyleState, setDeckStyleContext } from '../style/index.ts';
@@ -169,6 +168,9 @@ type PresenterHostProps = {
 let PresenterHostComp = $state.raw<Component<PresenterHostProps> | null>(null);
 let presenterLoadError = $state(false);
 
+/** True when this page may show the first-visit hint and this namespace has not shown it yet. */
+let hintWanted = $state(false);
+
 /** The deck's one feedback toast (copy results). */
 let toast = $state<ReturnType<typeof ChromeToast> | undefined>();
 /** The last pointer position over the deck (client pixels): the laser starts there. */
@@ -204,6 +206,25 @@ const visibleOrdinal = $derived.by(() => {
   return at >= 0 ? at : 0;
 });
 const progress = $derived(visible.length === 0 ? 0 : ((visibleOrdinal + 1) / visible.length) * 100);
+
+/** Slides whose code an idle moment loads ahead: the two past the mounted neighbour. */
+const ahead = $derived(visible.slice(visibleOrdinal + 2, visibleOrdinal + 4));
+$effect(() => {
+  const slides = ahead;
+  if (slides.length === 0 || showPrint || typeof window === 'undefined') return;
+  const run = () => {
+    // The prefetch module is lazy too: it adds nothing to the deck entry.
+    void import('./prefetch.ts')
+      .then((module) => module.prefetchSlides(slides, loadLayoutRenderer))
+      .catch(() => undefined);
+  };
+  if ('requestIdleCallback' in window) {
+    const handle = window.requestIdleCallback(run, { timeout: 2_000 });
+    return () => window.cancelIdleCallback(handle);
+  }
+  const handle = setTimeout(run, 200);
+  return () => clearTimeout(handle);
+});
 const slideLabel = $derived(
   visible.length === 0 ? 'No slides' : `Slide ${visibleOrdinal + 1} of ${visible.length}`
 );
@@ -511,6 +532,9 @@ $effect(() => {
 onMount(() => {
   if (autofocus && !showPrint) rootEl?.focus({ preventScroll: true });
   if (typeof window === 'undefined') return undefined;
+  hintWanted =
+    firstRunHintAllowed() &&
+    !firstRunHintSeen(namespace, () => (typeof localStorage === 'undefined' ? null : localStorage));
   const fullscreenController = createDeckFullscreen({
     element: () => rootEl,
     onChange: (mode) => {
@@ -566,7 +590,7 @@ onMount(() => {
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   bind:this={rootEl}
-  class={`deck-app flex w-full min-h-0 flex-col overflow-hidden bg-background text-foreground outline-none ${fullscreenMode === 'window' ? 'fixed inset-0 z-[2147483000] h-dvh' : `relative ${fit === 'container' ? 'h-full' : 'h-app'}`} ${className}`}
+  class={`deck-app flex w-full min-h-0 flex-col overflow-hidden bg-background text-foreground outline-none ${fullscreenMode === 'window' ? 'fixed inset-0 z-[2147483000]' : `relative ${fit === 'container' ? 'h-full' : 'h-app'}`} ${className}`}
   data-py-deck-fit={fit}
   data-py-deck-app
   data-slide-id={location?.slideId ?? ''}
@@ -620,12 +644,15 @@ onMount(() => {
             >
               <SlideStepHost {slide} step={stepOf(slide)}>
                 {#if isCustomSlide(slide)}
-                  <CustomSlideHost
-                    {slide}
-                    step={stepOf(slide)}
-                    stepCount={slideStepCount(slide)}
-                    registry={customSlides}
-                  />
+                  <!-- Only decks with a custom slide load its host (its own chunk). -->
+                  {#await import('../layouts/CustomSlideHost.svelte') then host}
+                    <host.default
+                      {slide}
+                      step={stepOf(slide)}
+                      stepCount={slideStepCount(slide)}
+                      registry={customSlides}
+                    />
+                  {/await}
                 {:else}
                   <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
                 {/if}
@@ -698,13 +725,15 @@ onMount(() => {
     {/if}
 
     {#if fullscreenMode}
-      <FullscreenOverlay
+{#await import('../chrome/FullscreenOverlay.svelte') then overlay}
+              <overlay.default
         mode={fullscreenMode}
         counter={`${visibleOrdinal + 1} / ${visible.length}`}
         container={rootEl}
         suppressed={inputState.blackout === true || inputState.laser === true}
         onaction={runAction}
       />
+      {/await}
     {/if}
 
     {#if inputState.laser}
@@ -752,12 +781,14 @@ onMount(() => {
     {/if}
 
     {#if inputState.help}
-      <KeyboardHelp id={helpId} environment={controlEnvironment} onclose={() => runAction('help')} />
+      {#await import('../chrome/KeyboardHelp.svelte') then help}
+        <help.default id={helpId} environment={controlEnvironment} onclose={() => runAction('help')} />
+      {/await}
     {/if}
 
     {#if debugOpen && debugAvailable && !presenterOpen}
       {#await import('../debug/DeckDebugPanel.svelte')}
-        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background print:hidden" role="status" data-py-deck-debug-loading data-py-deck-chrome>
+        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background" role="status" data-py-deck-debug-loading data-py-deck-chrome>
           <span class="text-sm text-muted-foreground">Loading the debug panel…</span>
         </div>
       {:then mod}
@@ -772,7 +803,7 @@ onMount(() => {
           onnotify={(message, tone) => toast?.show(message, tone)}
         />
       {:catch}
-        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background p-6 print:hidden" role="alert" data-py-deck-chrome>
+        <div class="absolute inset-y-0 right-0 z-40 grid w-full max-w-md place-items-center border-l border-border bg-background p-6" role="alert" data-py-deck-chrome>
           <p class="text-sm text-destructive">The debug panel could not be loaded.</p>
         </div>
       {/await}
@@ -780,8 +811,11 @@ onMount(() => {
 
     <ChromeToast bind:this={toast} />
 
-    {#if !presenterOpen}
-      <FirstRunHint {namespace} container={rootEl} />
+    {#if hintWanted && !presenterOpen}
+      <!-- First visits only: the hint and its timers load on their own chunk. -->
+      {#await import('../chrome/FirstRunHint.svelte') then hint}
+        <hint.default {namespace} container={rootEl} />
+      {/await}
     {/if}
 
     <div class="sr-only" aria-live="polite" aria-atomic="true" data-py-deck-live>

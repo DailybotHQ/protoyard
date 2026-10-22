@@ -64,13 +64,13 @@ onMount(() => {
   data-py-deck-help
   data-py-deck-chrome
 >
-  <div class="flex max-h-full w-full max-w-xl flex-col rounded-xl border border-border bg-card text-card-foreground shadow-lg">
+  <div style="max-height: 100%" class="flex w-full max-w-xl flex-col rounded-xl border border-border bg-card text-card-foreground shadow-lg">
     <div class="flex items-center justify-between gap-4 border-b border-border px-5 py-3">
       <h2 id={`${id ?? 'deck-help'}-title`} class="text-lg font-semibold">Controls and shortcuts</h2>
       <button
         bind:this={closeButton}
         type="button"
-        class="inline-flex min-h-11 items-center rounded-md border border-border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:min-h-8 sm:text-xs"
+        class="inline-flex min-h-11 items-center rounded-md border border-border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring text-sm"
         onclick={onclose}
       >
         Close
@@ -79,7 +79,7 @@ onMount(() => {
     <div class="min-h-0 overflow-y-auto px-5 py-3">
       {#each groups as { group, controls } (group)}
         <section class="py-2" data-py-deck-help-group={group}>
-          <h3 class="mb-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{GROUP_NAMES[group]}</h3>
+          <h3 class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{GROUP_NAMES[group]}</h3>
           <ul class="space-y-2">
             {#each controls as control (control.id)}
               <li class="grid grid-cols-[auto_1fr] items-start gap-x-3" data-py-deck-help-control={control.id}>
