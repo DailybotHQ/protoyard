@@ -76,6 +76,7 @@ export {
   type DeckLintDiagnostic,
   type DeckLintResult,
   type DeckLintSeverity,
+  lintDeckAssets,
   lintDeckContent,
   lintDeckStructure,
 } from './authoring/deck-lint.ts';

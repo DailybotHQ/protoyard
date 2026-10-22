@@ -99,18 +99,18 @@ function schemaDiagnostics(
     if (contentCode === 'cta-label') {
       return diagnostic(contentCode, path, 'Every call to action needs a visible label.');
     }
-    if (issue.message.startsWith('Too big:')) {
-      return diagnostic(
-        'layout-capacity',
-        path,
-        'This slide exceeds a hard capacity declared by its layout catalog entry.'
-      );
-    }
     if (invalidStep) {
       return diagnostic(
         'invalid-fragment-order',
         path,
         'Fragment steps must be valid integers from 0 through 32.'
+      );
+    }
+    if (issue.message.startsWith('Too big:')) {
+      return diagnostic(
+        'layout-capacity',
+        path,
+        'This slide exceeds a hard capacity declared by its layout catalog entry.'
       );
     }
     // DeckSchema enforces the layout catalog; keep its findings under the lint's specific codes.
@@ -527,6 +527,215 @@ export function lintDeckContent(input: unknown): DeckLintResult {
       });
     }
   });
+
+  return {
+    valid: diagnostics.every((item) => item.severity !== 'error'),
+    diagnostics,
+  };
+}
+
+type AssetKind = 'image' | 'video';
+
+const MAX_ASSET_URL_LENGTH = 2_048;
+const MAX_ASSET_SCAN_NODES = 20_000;
+const MAX_ASSET_SCAN_DEPTH = 32;
+
+function ownDataValue(record: object, key: string): unknown {
+  const descriptor = Object.getOwnPropertyDescriptor(record, key);
+  return descriptor && 'value' in descriptor ? descriptor.value : undefined;
+}
+
+function assetUrlProblem(value: unknown, kind: AssetKind): string | null {
+  if (typeof value !== 'string' || value.length === 0)
+    return 'Asset reference needs a URL or local path.';
+  if (value.length > MAX_ASSET_URL_LENGTH)
+    return 'Asset references must be at most 2,048 characters.';
+  if (value !== value.trim()) return 'Asset references cannot start or end with whitespace.';
+  for (const character of value) {
+    const code = character.codePointAt(0) ?? 0;
+    if (
+      code <= 0x20 ||
+      (code >= 0x7f && code <= 0x9f) ||
+      (code >= 0x202a && code <= 0x202e) ||
+      (code >= 0x2066 && code <= 0x2069)
+    ) {
+      return 'Asset references cannot contain control or bidirectional characters.';
+    }
+  }
+  if (value.includes('\\')) return 'Asset references cannot contain backslashes.';
+
+  const scheme = /^([a-z][a-z\d+.-]*):/i.exec(value)?.[1]?.toLowerCase();
+  if (scheme === 'https') {
+    if (!/^https:\/\//i.test(value)) return 'Use a complete HTTPS URL with a host.';
+    try {
+      const parsed = new URL(value);
+      if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password) {
+        return 'Use HTTPS with a hostname and without embedded credentials.';
+      }
+      return null;
+    } catch {
+      return 'Asset URL is not valid.';
+    }
+  }
+  if (scheme === 'avatar') {
+    return kind === 'image' && /^avatar:av-(?:00[1-9]|0[1-9]\d|1[0-6]\d|17[0-5])$/.test(value)
+      ? null
+      : 'Use a valid image avatar reference.';
+  }
+  if (scheme !== undefined) return `The ${scheme}: protocol is not allowed for slide assets.`;
+  if (value.startsWith('//')) return 'Protocol-relative asset URLs are not allowed.';
+
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    return 'Local asset path has invalid percent encoding.';
+  }
+  const path = decoded.split(/[?#]/, 1)[0] ?? '';
+  const localPath = path.startsWith('./')
+    ? path.slice(2)
+    : path.startsWith('/')
+      ? path.slice(1)
+      : path;
+  if (
+    localPath.length === 0 ||
+    path.includes('\\') ||
+    path.startsWith('//') ||
+    localPath.split('/').some((segment) => segment === '..' || segment === '.' || segment === '')
+  ) {
+    return 'Use a local asset path without parent-directory traversal.';
+  }
+  return null;
+}
+
+/**
+ * Inspect media references in raw deck JSON without fetching, parsing remote
+ * content, or invoking object accessors. HTTPS is syntax-checked only; runtime
+ * hosts apply their own media policy. Embedded-app data is walked recursively.
+ */
+export function lintDeckAssets(input: unknown): DeckLintResult {
+  const diagnostics: DeckLintDiagnostic[] = [];
+  const stack: {
+    value: unknown;
+    path: (string | number)[];
+    key: string | number | null;
+    inheritedCredit: unknown;
+    depth: number;
+  }[] = [{ value: input, path: [], key: null, inheritedCredit: undefined, depth: 0 }];
+  let visited = 0;
+
+  const inspect = (value: unknown, kind: AssetKind, path: (string | number)[], credit: unknown) => {
+    const problem = assetUrlProblem(value, kind);
+    if (problem) {
+      diagnostics.push(
+        diagnostic(
+          problem.startsWith('The ') ? 'unsafe-asset-url' : 'invalid-asset-url',
+          path,
+          problem
+        )
+      );
+      return;
+    }
+    if (kind === 'image' && typeof value === 'string' && /^https:\/\//i.test(value)) {
+      const creditText = typeof credit === 'string' ? credit.trim() : '';
+      if (!creditText) {
+        diagnostics.push(
+          diagnostic(
+            'image-credit',
+            path,
+            'Add an attribution credit for this external image.',
+            'warning'
+          )
+        );
+      }
+    }
+  };
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) continue;
+    visited += 1;
+    if (visited > MAX_ASSET_SCAN_NODES || current.depth > MAX_ASSET_SCAN_DEPTH) {
+      diagnostics.push(
+        diagnostic(
+          'asset-scan-limit',
+          current.path,
+          'Asset scanning stopped at its depth or node limit to keep validation bounded.'
+        )
+      );
+      break;
+    }
+    const node = current.value;
+    if (node === null || typeof node !== 'object') {
+      if (current.key === 'image' && typeof node === 'string') {
+        inspect(node, 'image', current.path, current.inheritedCredit);
+      } else if (current.key === 'poster' && typeof node === 'string') {
+        inspect(node, 'image', current.path, current.inheritedCredit);
+      }
+      continue;
+    }
+    if (Array.isArray(node)) {
+      for (let index = node.length - 1; index >= 0; index -= 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(node, String(index));
+        if (descriptor && 'value' in descriptor) {
+          stack.push({
+            value: descriptor.value,
+            path: [...current.path, index],
+            key: index,
+            inheritedCredit: current.inheritedCredit,
+            depth: current.depth + 1,
+          });
+        }
+      }
+      continue;
+    }
+
+    const record = node as Record<string, unknown>;
+    const type = ownDataValue(node, 'type');
+    const credit = ownDataValue(node, 'credit') ?? current.inheritedCredit;
+    const isImageObject = type === 'image' || current.key === 'image';
+    const isVideoObject = type === 'video' || current.key === 'video';
+    if (isImageObject || isVideoObject) {
+      const mediaKind: AssetKind = isVideoObject ? 'video' : 'image';
+      const src = ownDataValue(node, 'src');
+      inspect(src, mediaKind, [...current.path, 'src'], credit);
+      if (type === 'image') {
+        const width = ownDataValue(node, 'width');
+        const height = ownDataValue(node, 'height');
+        if (typeof width !== 'number' || width <= 0 || typeof height !== 'number' || height <= 0) {
+          diagnostics.push(
+            diagnostic(
+              'image-dimensions',
+              current.path,
+              'Images need positive width and height values.'
+            )
+          );
+        }
+      }
+    }
+    if (type === 'image' && ownDataValue(node, 'src') === undefined) {
+      diagnostics.push(
+        diagnostic('invalid-asset-url', [...current.path, 'src'], 'Image block needs a source URL.')
+      );
+    }
+    if (type === 'video' && ownDataValue(node, 'src') === undefined) {
+      diagnostics.push(
+        diagnostic('invalid-asset-url', [...current.path, 'src'], 'Video block needs a source URL.')
+      );
+    }
+
+    for (const key of Object.keys(record).reverse()) {
+      const descriptor = Object.getOwnPropertyDescriptor(node, key);
+      if (!descriptor || !('value' in descriptor)) continue;
+      stack.push({
+        value: descriptor.value,
+        path: [...current.path, key],
+        key,
+        inheritedCredit: credit,
+        depth: current.depth + 1,
+      });
+    }
+  }
 
   return {
     valid: diagnostics.every((item) => item.severity !== 'error'),

@@ -145,14 +145,17 @@ layout repetition, WCAG) live in `@protoyard/decks` quality rules, not here.
 `lintDeckStructure(deck)` checks an untrusted deck's schema, layout props,
 outline references, fragment ordering and `#/slide-id[/step]` links without
 rendering or changing it. `lintDeckContent(deck)` adds image alt requirements,
-chart descriptions, CTA labels, word density and speaker-note guidance. Both
-return `{ valid, diagnostics }` with stable codes, severity, path segments and
-JSONPath. Layout capacity violations are errors. Three repeated visible layouts
-in a row produce a warning when the catalog offers alternatives. Missing
-accessible content is an error; short chart descriptions, dense copy and
-missing or brief optional presenter notes are warnings. Density is an estimate:
-rendered text must still meet the 24 px body and 18 px label minimums on the
-1280×720 canvas. Final contrast, text size and fit need rendered visual QA.
+chart descriptions, CTA labels, word density and speaker-note guidance.
+`lintDeckAssets(deck)` separately checks media URL syntax and protocol
+allowlists on raw deck data, including media nested in embedded-app data; it
+never fetches. All return `{ valid, diagnostics }` with stable codes, severity,
+path segments and JSONPath. Layout capacity violations are errors. Three
+repeated visible layouts in a row produce a warning when the catalog offers
+alternatives. Missing accessible content is an error; short chart descriptions,
+dense copy and missing or brief optional presenter notes are warnings. Density
+is an estimate: rendered text must still meet the 24 px body and 18 px label
+minimums on the 1280×720 canvas. Final contrast, text size and fit need rendered
+visual QA.
 
 ```ts
 import { lintDeckContent } from '@protoyard/blueprint';
@@ -187,8 +190,9 @@ Prose is only the offline seed that produces a draft blueprint file.
 4. **Validate** with `validateBlueprintForAuthoring(json)` and/or
    `pnpm protoyard blueprint validate <file>`. Diagnostics carry stable `code`,
    `path`, `jsonPath`, `message` and `hint`. Revalidate after every edit.
-5. **Deck-only structure pass:** `lintDeckStructure(json.deck)` after layout and
-   fragment edits (see [Deck structural lint](#deck-structural-lint)).
+5. **Deck-only lint:** `lintDeckStructure(json.deck)` checks layout structure
+   and capacity; `lintDeckAssets(json.deck)` checks source URL syntax without
+   network access.
 6. **Generate / play** with `pnpm protoyard generate` or the player when the
    draft is valid. See [the generator guide](../../docs/GENERATOR.md) and
    [BRIEF_TO_PROTOTYPE](../../docs/BRIEF_TO_PROTOTYPE.md).
@@ -873,7 +877,8 @@ blueprint JSON. It never fetches remote assets and never renders markdown as HTM
 | --- | --- | --- |
 | Full blueprint (any kind) | `validateBlueprintForAuthoring` | `code`, `path`, `jsonPath`, `message`, `hint` |
 | Block list under a path | `diagnosticsFromBlockIssues(issues, pathPrefix)` | Lifts `@protoyard/blocks` parse issues |
-| Deck body structure | `lintDeckStructure` | Slide ids, layouts, fragments, outline links |
+| Deck body structure | `lintDeckStructure` | Slide ids, layouts, capacities, fragments, outline links |
+| Deck asset references | `lintDeckAssets` | URL syntax and protocol allowlist; never fetches |
 
 Stable block/asset codes include `unknown-block-type`, `invalid-chart-spec`,
 `missing-alt-text`, `unsupported-url-scheme`, `invalid-step-or-fragment-target` and
@@ -916,7 +921,7 @@ only parses or generates never bundles them:
 | Brief to blueprint, by kind | `blueprintFromBrief`, `synthesizeAppFromBrief`, `synthesizeContentFromBrief`, `synthesizeDeckFromBrief`, `synthesizePageFromBrief`, `synthesizeDocFromBrief`, `isAppBriefResult`, `isContentBriefResult` |
 | Kind detection | `detectBriefKind`, `KIND_CUES`, `APP_CUES`; blueprint kinds: `detectBlueprintKind`, `BLUEPRINT_KINDS`, `CONTENT_KINDS` |
 | Outlines and bounds | `synthesizeDeckOutline`, `chooseDeckOutline`, `DECK_OUTLINES`, `buildPageOutline`, `buildDocOutline`, `selectPageOutline`, `selectDocOutline`, `boundBriefInput`, `prepareBriefForSynthesis`, `checkOutlineBounds`, `applyOutlineBounds`, `OUTLINE_LIMITS` |
-| Deck layouts and lint | `selectDeckLayouts`, `propsForSelectedLayout`, `lintDeckStructure`; catalog types `DeckLayoutEntry`, `DeckLayoutId`, `LayoutPacing` (type-only) |
+| Deck layouts and lint | `selectDeckLayouts`, `propsForSelectedLayout`, `lintDeckStructure`, `lintDeckAssets`; catalog types `DeckLayoutEntry`, `DeckLayoutId`, `LayoutPacing` (type-only) |
 | Validation | `validateBlueprintForAuthoring`, `parseAnyBlueprint`, `safeParseAnyBlueprint` |
 | Lazy, for browsers | `loadAuthoringApis()` |
 
