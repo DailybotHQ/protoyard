@@ -1,6 +1,6 @@
 <script lang="ts">
 /**
- * Short markdown body as plain text nodes only — no HTML, no {@html}.
+ * Short markdown body as plain text nodes only — never raw HTML.
  * Structure blocks keep the chunk small by skipping a full rich renderer.
  */
 let { text = '' }: { text?: string } = $props();

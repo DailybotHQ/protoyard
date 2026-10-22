@@ -5,8 +5,9 @@ import { DECK_INTERACTIVE_ATTRIBUTE } from '../lib/deck-interactive.ts';
 
 /**
  * Form blocks store responses through the pages form-response runtime, not
- * BlockStateHost. This view is honest: it shows fields and explains that
- * submit is handled by the page host.
+ * BlockStateHost. This view is an honest placeholder until the pages kit's
+ * FormBlock replaces it through the host: it shows the fields disabled and
+ * explains that submit is handled by the page host.
  */
 let { block }: { block: FormBlockType } = $props();
 </script>
