@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 
 /*
  * Deck chrome controls (PLAN_006 T-audit-controls). One reproduction per defect
@@ -16,6 +16,25 @@ const deckUrl = `http://127.0.0.1:${deckPort}/`;
 
 const root = (page: Page) => page.locator('[data-py-deck-app]');
 const tool = (page: Page, name: string) => page.locator(`[data-py-deck-tool="${name}"]`);
+
+async function visibleControl(page: Page, control: Locator): Promise<Locator> {
+  if (await control.isVisible()) return control;
+  const more = page.locator('[data-py-deck-more]');
+  if (await more.count()) {
+    const disclosure = more.locator('summary');
+    if (
+      !(await more.evaluate((element) => element.hasAttribute('open'))) &&
+      (await disclosure.isVisible())
+    ) {
+      await disclosure.click();
+    }
+  }
+  return control;
+}
+
+async function clickTool(page: Page, name: string): Promise<void> {
+  await (await visibleControl(page, tool(page, name))).click();
+}
 
 async function openDeck(page: Page, hash = '#/cover/0'): Promise<void> {
   await page.goto(`${deckUrl}${hash}`);
@@ -102,7 +121,7 @@ test.describe('deck chrome controls', () => {
         'The pressed button unmounts with the chrome, so focus falls to <body> and the deck root (which owns keydown) hears nothing. WebKit keeps focus on a focusable ancestor.'
       );
       await openDeck(page);
-      await tool(page, 'fullscreen').click();
+      await clickTool(page, 'fullscreen');
       await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
       await page.keyboard.press('ArrowRight');
       await expect(root(page)).toHaveAttribute('data-slide-id', 'divider', { timeout: 2_000 });
@@ -155,13 +174,9 @@ test.describe('deck chrome controls', () => {
 
   test.describe('print (T-print-and-feedback)', () => {
     test('the Print button prints one slide per page', async ({ page }) => {
-      test.fail(
-        true,
-        'PrintButton calls window.print() synchronously (PrintButton.svelte:18); beforeprint sets `printing`, but the DOM flush runs after the snapshot.'
-      );
       await openDeck(page);
       await capturePrintLayout(page);
-      await page.locator('[data-py-print-button]').click();
+      await (await visibleControl(page, page.locator('[data-py-print-button]'))).click();
       await expect.poll(() => printedLayout(page)).not.toBeNull();
       expect(await printedLayout(page)).toBe(true);
     });
@@ -185,7 +200,7 @@ test.describe('deck chrome controls', () => {
           value: { writeText: async () => undefined },
         });
       });
-      await tool(page, 'copy-reference').click();
+      await clickTool(page, 'copy-reference');
       await expect(page.locator('[data-py-deck-copy-status]')).toHaveText(/copied/i);
       await expect.poll(() => visiblyShown(page, /copied/)).toBe(true);
     });
@@ -207,7 +222,7 @@ test.describe('deck chrome controls', () => {
           },
         });
       });
-      await tool(page, 'copy-reference').click();
+      await clickTool(page, 'copy-reference');
       const read = () =>
         page.evaluate(() => (window as typeof window & { __copied?: string }).__copied ?? '');
       await expect.poll(read).not.toBe('');
@@ -235,7 +250,7 @@ test.describe('deck chrome controls', () => {
         'A tap shows no dot (pointerleave follows at once) and clicks are ignored while the laser is on (decide.ts:262).'
       );
       await openDeck(page);
-      await tool(page, 'laser').tap();
+      await (await visibleControl(page, tool(page, 'laser'))).tap();
       const stage = await page.locator('[data-py-deck-stage-area]').boundingBox();
       if (!stage) throw new Error('no stage');
       await page.touchscreen.tap(stage.x + stage.width / 2, stage.y + stage.height / 2);
@@ -248,14 +263,14 @@ test.describe('deck chrome controls', () => {
         'The blackout is a bare black button; its hint is only an aria-label (BlackoutScreen.svelte:20).'
       );
       await openDeck(page);
-      await tool(page, 'blackout').click();
+      await clickTool(page, 'blackout');
       await expect(page.locator('[data-py-deck-blackout]')).toBeVisible();
       await expect.poll(() => visiblyShown(page, /press b|tap|click/)).toBe(true);
     });
 
     test('blackout closes with Escape, B and a click (works today)', async ({ page }) => {
       await openDeck(page);
-      await tool(page, 'blackout').click();
+      await clickTool(page, 'blackout');
       await page.keyboard.press('Escape');
       await expect(page.locator('[data-py-deck-blackout]')).toHaveCount(0);
       await root(page).focus();
@@ -263,7 +278,7 @@ test.describe('deck chrome controls', () => {
       await expect(page.locator('[data-py-deck-blackout]')).toBeVisible();
       await page.keyboard.press('b');
       await expect(page.locator('[data-py-deck-blackout]')).toHaveCount(0);
-      await tool(page, 'blackout').click();
+      await clickTool(page, 'blackout');
       await page.locator('[data-py-deck-blackout]').click();
       await expect(page.locator('[data-py-deck-blackout]')).toHaveCount(0);
     });
@@ -271,21 +286,14 @@ test.describe('deck chrome controls', () => {
 
   test.describe('understandable controls (T-tooltip-primitive, T-toolbar-redesign)', () => {
     test('a control explains itself on keyboard focus', async ({ page }) => {
-      test.fail(
-        true,
-        'Controls carry only a `title`, which never shows on focus or touch (DeckToolbar.svelte:57).'
-      );
       await openDeck(page);
-      await tool(page, 'blackout').focus();
+      await root(page).focus();
+      await page.keyboard.press('Tab');
       await expect(page.getByRole('tooltip')).toBeVisible({ timeout: 2_000 });
-      await expect(page.getByRole('tooltip')).toContainText(/B/);
+      await expect(page.getByRole('tooltip')).toContainText(/Page Up/);
     });
 
     test('toolbar buttons use recognizable icons, not bare Unicode glyphs', async ({ page }) => {
-      test.fail(
-        true,
-        'Each tool is a glyph (■ ⛶ ◉ ⧉ ?) with an sr-only name (DeckToolbar.svelte:53).'
-      );
       await openDeck(page);
       const glyphOnly = await page
         .locator('[data-py-deck-toolbar] button')
@@ -298,11 +306,15 @@ test.describe('deck chrome controls', () => {
     });
 
     test('previous, next, overview and presenter have buttons', async ({ page }) => {
-      test.fail(
-        true,
-        'These actions have keys only (decide.ts:162, 175); the toolbar renders five tools.'
-      );
       await openDeck(page);
+      if (
+        await page
+          .getByText('More', { exact: true })
+          .isVisible()
+          .catch(() => false)
+      ) {
+        await page.getByText('More', { exact: true }).click();
+      }
       for (const name of [/previous/i, /next/i, /overview/i, /presenter/i]) {
         await expect(page.getByRole('button', { name })).toBeVisible();
       }
@@ -314,7 +326,7 @@ test.describe('deck chrome controls', () => {
         'KeyboardHelp lists DECK_KEY_BINDINGS only (KeyboardHelp.svelte:47); copy and the buttons are missing.'
       );
       await openDeck(page);
-      await tool(page, 'help').click();
+      await clickTool(page, 'help');
       const help = page.getByRole('dialog', { name: /keyboard shortcuts|controls/i });
       await expect(help).toBeVisible();
       await expect(help).toContainText(/copy/i);
@@ -325,10 +337,6 @@ test.describe('deck chrome controls', () => {
         testInfo.project.name !== 'mobile',
         'Coarse-pointer sizing is checked on the phone.'
       );
-      test.fail(
-        true,
-        'Tool buttons are h-8 min-w-8 (about 36 px) on every pointer (DeckToolbar.svelte:48).'
-      );
       await openDeck(page);
       const sizes = await page.locator('[data-py-deck-chrome-root] button').evaluateAll((buttons) =>
         buttons.map((button) => {
@@ -338,6 +346,40 @@ test.describe('deck chrome controls', () => {
       );
       expect(sizes.length).toBeGreaterThan(0);
       expect(Math.min(...sizes)).toBeGreaterThanOrEqual(44);
+    });
+
+    test('navigation, jump, overview and presenter controls work on desktop and phone', async ({
+      page,
+    }, testInfo) => {
+      await openDeck(page);
+      const before = await root(page).getAttribute('data-slide-id');
+      await clickTool(page, 'next');
+      await expect.poll(() => root(page).getAttribute('data-slide-id')).not.toBe(before);
+      await expect(page.locator('[data-py-deck-jump-count]')).toContainText(/\d+ \/ \d+/);
+
+      await clickTool(page, 'jump');
+      const list = page.getByRole('listbox', { name: 'Choose a slide' });
+      await expect(list).toBeVisible();
+      await list.getByRole('option').first().click();
+      await expect(root(page)).toHaveAttribute('data-slide-id', 'cover');
+      await expect(tool(page, 'jump')).toBeFocused();
+
+      const openMoreOnPhone = async () => {
+        if (testInfo.project.name !== 'mobile') return;
+        const details = page.locator('[data-py-deck-more]');
+        if (!(await details.evaluate((element) => element.hasAttribute('open')))) {
+          await details.locator('summary').click();
+        }
+      };
+      await openMoreOnPhone();
+      await clickTool(page, 'overview');
+      await expect(page.locator('[data-py-deck-overview]')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.locator('[data-py-deck-overview]')).toHaveCount(0);
+
+      await openMoreOnPhone();
+      await clickTool(page, 'presenter');
+      await expect(root(page)).toHaveAttribute('data-presenter', 'true');
     });
 
     test('the help dialog opens and closes with ? and Escape (works today)', async ({ page }) => {
