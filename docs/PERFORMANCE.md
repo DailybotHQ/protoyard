@@ -1512,6 +1512,41 @@ Bits UI Tabs as another contributor; embed is 166 B over its ceiling, led by
 chunk reductions. The figures are measured additions over the shared shell,
 not full static closures.
 
+## Decks: a 200-slide deck (measured 2026-10-22)
+
+`packages/decks-ui/tests/large-deck.perf.test.ts` runs a 200-slide deck, the schema maximum, through
+the real `DeckApp` and the real lazy layout renderers in happy-dom.
+
+- **The fixture** is deterministic: every catalog layout in turn with its sample props, and a free
+  slide with blocks every tenth slide.
+- **What it times:** `safeParseDeck`, the first render (until the active slide's layout chunk has
+  loaded), every next and previous key step across the whole deck (398 steps), and Home and End.
+- **The DOM window:** after each step it checks that the DOM holds at most three slides, the current
+  one and its neighbours. Mid-deck it is exactly three, and two at either end.
+- **The numbers** are printed as `[large-deck] {...}` and copied from there, never typed by hand.
+
+Ranges over six runs (Node 26.11.1, happy-dom 21, vitest 5):
+
+| Measure | Measured | Gate in the test |
+| --- | --- | --- |
+| `safeParseDeck`, 200 slides | 14.7–19.1 ms | — |
+| Parse + first render | 50–142 ms | < 1,000 ms |
+| Next step: median / p95 | 0.35–0.39 ms / 0.77–4.99 ms | < 16 ms each |
+| Previous step: median / p95 | 0.27–0.31 ms / 0.53–4.06 ms | < 16 ms each |
+| Slowest single step | 6.5–64 ms (garbage-collection pauses) | not gated |
+| Home / End jump | 0.38–11.9 ms | < 50 ms (single sample) |
+| Slides in the DOM | 2–3 | ≤ 3 after every step |
+
+Step times cover the synchronous update: the key decision, the navigator, the Svelte update and the
+DOM. A layout family's lazy chunk loads asynchronously the first time a slide of that family comes
+into the window, and is cached afterwards.
+
+The per-step gate applies to the median and p95, not the maximum, because one sample can absorb a
+GC pause. A regression to rendering every slide fails the window check at once: a mutation that
+dropped the canvas window failed all three tests.
+
+Run it with `pnpm vitest run packages/decks-ui/tests/large-deck.perf.test.ts`.
+
 ## Generated CRUD screens
 
 Blueprint-declared screen routes are lazy chunks, and the template imports the shared view,
