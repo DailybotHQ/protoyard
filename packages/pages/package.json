@@ -6,13 +6,16 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./fixtures": "./fixtures/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "zod": "^4.6.7"
+    "@protoyard/core": "workspace:*",
+    "zod": "^4.6.7",
+    "@protoyard/blocks": "workspace:*"
   },
   "protoyard": {
     "build": {
@@ -23,7 +26,8 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "fixtures"
   ],
   "publishConfig": {
     "access": "public",
@@ -33,6 +37,11 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js",
         "default": "./dist/index.js"
+      },
+      "./fixtures": {
+        "types": "./dist/fixtures/index.d.ts",
+        "import": "./dist/fixtures/index.js",
+        "default": "./dist/fixtures/index.js"
       }
     },
     "types": "./dist/index.d.ts"

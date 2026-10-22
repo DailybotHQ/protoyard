@@ -20,6 +20,37 @@ export {
   type KindCue,
 } from './kind-detection.ts';
 export {
+  type ApplyOutlineBoundsResult,
+  applyOutlineBounds,
+  type BoundBriefInput,
+  type BriefLimitCode,
+  type BriefLimitIssue,
+  boundBriefInput,
+  checkOutlineBounds,
+  OUTLINE_LIMITS,
+  type OutlineBoundsInput,
+  type OutlineLimits,
+  type OutlineUnitInput,
+  prepareBriefForSynthesis,
+} from './limits.ts';
+export {
+  buildDocOutline,
+  buildPageOutline,
+  DOC_OUTLINE_IDS,
+  type DocOutlineId,
+  type DocOutlineResult,
+  detectPageDocOmissions,
+  type OutlineBlock,
+  type OutlineBuildOptions,
+  type OutlineSection,
+  PAGE_OUTLINE_IDS,
+  type PageOutlineId,
+  type PageOutlineResult,
+  sectionIds,
+  selectDocOutline,
+  selectPageOutline,
+} from './page-doc-outlines.ts';
+export {
   type AppBriefResult,
   type BriefOptions,
   type BriefResult,

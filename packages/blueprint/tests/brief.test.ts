@@ -319,16 +319,28 @@ describe('blueprintFromBrief kind dispatch', () => {
     );
     expect(page.kind).toBe('page');
     if (!isContentBriefResult(page)) return;
-    expect((page.json.page as { sections: unknown[] }).sections).toHaveLength(3);
+    expect(page.outline).toBe('landing');
+    const pageSections = (page.json.page as { sections: { id: string; blocks: unknown[] }[] })
+      .sections;
+    expect(pageSections.length).toBeGreaterThanOrEqual(4);
+    expect(pageSections[0]?.id).toBe('section-hero');
+    expect(pageSections[0]?.blocks?.length).toBeGreaterThan(0);
 
     const doc = blueprintFromBrief(
       'Write the quarterly report for Example Harbor covering status and next steps.'
     );
     expect(doc.kind).toBe('doc');
     if (!isContentBriefResult(doc)) return;
+    expect(doc.outline).toBe('report');
     expect(
       (doc.json.doc as { sections: unknown[] }).sections.map((s) => (s as { id: string }).id)
-    ).toEqual(['section-title', 'section-summary', 'section-body']);
+    ).toEqual([
+      'section-title',
+      'section-summary',
+      'section-status',
+      'section-findings',
+      'section-next',
+    ]);
   });
 
   it('rejects unknown explicit kinds with a stable actionable error', () => {

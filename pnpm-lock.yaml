@@ -237,6 +237,9 @@ importers:
 
   packages/blueprint:
     dependencies:
+      '@protoyard/blocks':
+        specifier: workspace:*
+        version: link:../blocks
       '@protoyard/core':
         specifier: workspace:*
         version: link:../core
@@ -396,6 +399,9 @@ importers:
 
   packages/decks:
     dependencies:
+      '@protoyard/blocks':
+        specifier: workspace:*
+        version: link:../blocks
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -491,6 +497,12 @@ importers:
 
   packages/pages:
     dependencies:
+      '@protoyard/blocks':
+        specifier: workspace:*
+        version: link:../blocks
+      '@protoyard/core':
+        specifier: workspace:*
+        version: link:../core
       zod:
         specifier: ^4.6.7
         version: 4.6.7

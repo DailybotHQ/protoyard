@@ -30,6 +30,7 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | aggregate | count/sum/avg/min/max with groups and UTC date buckets for dashboards and analytics | `.` |
 | app-model | routes, navigation rows with icon ids, navigation groups and layout (`deriveAppModel`) | `.` |
 | runtime-definition | a complete `definePrototype`-valid definition plus the app model (`definePrototypeFromBlueprint`) | `.` (the generator stays lazy) |
+| kinds | content-kind runtime: `defineKindRuntime` (deck/page/doc definition: block-state and form-response stores, `default` scenario, presenter/audience/viewer personas, no generator) and `createKindServices` (persistent `BlockStateHost`, form responses) | `./kinds` (never in the app graph) |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | csv-shape | bounded CSV header/sample inference into a reviewable entity draft | `./import/csv-shape` (lazy authoring) |
 | json-shape | bounded JSON object/array shape inference into reviewable entity drafts | `./import/json-shape` (lazy authoring) |
@@ -66,7 +67,12 @@ if (!result.valid) {
 ```
 
 Each diagnostic includes a machine-readable `code`, path segments in `path`, an unambiguous
-`jsonPath`, the original validation `message` and a concise next step in `hint`. `parseBlueprint`
+`jsonPath`, the original validation `message` and a concise next step in `hint`. Block and asset
+failures map to stable codes such as `unknown-block-type`, `invalid-chart-spec`,
+`missing-alt-text`, `unsupported-url-scheme`, `invalid-step-or-fragment-target` and
+`duplicate-block-id`. Use `diagnosticsFromBlockIssues(issues, pathPrefix)` to lift
+`@protoyard/blocks` parse issues into the same shape under a deck/page/doc path. Validation never
+fetches remote assets and never renders untrusted markdown as HTML. `parseBlueprint`
 and `safeParseBlueprint` keep their existing behavior. The helper is in the package entry module
 and is tree-shakeable for consumers that do not import it.
 
@@ -580,8 +586,24 @@ network or model). Kind dispatch runs first (ADR-036):
 1. An explicit `kind` (`app` | `deck` | `page` | `doc`) overrides every cue; unknown kinds throw a
    stable `RangeError`.
 2. Strong deck / page / doc cues route to kind-specific synthesizers **before** app archetype
-   scoring (generic title/agenda/close or section scaffolding — richer outlines land later).
+   scoring. Decks use title/agenda/close scaffolding; pages use landing/pricing/waitlist/generic
+   section outlines; docs use report/handbook/one-pager/proposal/generic outlines (bounded
+   block vocabulary, stable section ids, explicit interactive omissions).
 3. App briefs keep the historical result fields and byte-compatible JSON.
+
+### Brief and outline bounds (`src/brief/limits.ts`)
+
+| Cap | Value | Notes |
+| --- | --- | --- |
+| `MAX_BRIEF_LENGTH` / `MAX_CONTENT_BRIEF_LENGTH` | 5,000 characters | Longer briefs are truncated; synthesizers record a stable notice in `rationale`. |
+| `OUTLINE_LIMITS.maxSlides` | 64 | Deck outlines only. |
+| `OUTLINE_LIMITS.maxSections` | 64 | Page and doc outlines. |
+| `OUTLINE_LIMITS.maxBlocksPerUnit` | 12 | Per slide/section (matches block column capacity). |
+| `OUTLINE_LIMITS.maxTitleLength` | 80 | Envelope and unit titles. |
+| `OUTLINE_LIMITS.maxBodyLength` | 600 | Short body copy (block shortMarkdown). |
+| `OUTLINE_LIMITS.maxTextLength` | 4,000 | Long text (block markdown). |
+
+Use `boundBriefInput` / `prepareBriefForSynthesis` before custom synthesis, `checkOutlineBounds` for hard failures, and `applyOutlineBounds` to clip deterministically with notices. Text ceilings agree with `@protoyard/blocks` content limits so drafts stay within untrusted validators.
 
 ```ts
 import { blueprintFromBrief, isAppBriefResult } from '@protoyard/blueprint';
@@ -649,9 +671,53 @@ can show as is.
 
 `detectBriefKind` and the content synthesizers (`synthesizeDeckFromBrief`,
 `synthesizePageFromBrief`, `synthesizeDocFromBrief`) are exported from `@protoyard/blueprint`.
+Page/doc section templates live in `buildPageOutline` / `buildDocOutline`
+(`packages/blueprint/src/brief/page-doc-outlines.ts`): ordered sections with draft blocks
+(heading, text, list, cta, …) and rationale lines for omitted interactive features (forms,
+payments, auth). No app entities or roles.
 `blueprintFromBrief` returns `AppBriefResult | ContentBriefResult`; narrow with
 `isAppBriefResult` / `isContentBriefResult`. Content drafts carry `kind`, `outline`, `json` and
 `rationale` (no app `entities` / `roles`); engine body schemas validate them once wired.
+
+### Deck outline templates
+
+`src/brief/deck-outlines.ts` has eight deterministic deck outlines: pitch, QBR, launch, status,
+training, lesson, report and talk (`DECK_OUTLINE_IDS`).
+
+`synthesizeDeckOutline(brief, { outline?, slides?, title? })` returns:
+
+- `deck`: a deck body (`{ title, aspect, slides }`) of free slides
+  (`{ id, title, layout: "free", blocks, notes }`) built from `@protoyard/blocks` blocks;
+- `plan`: one `{ id, role, pacing, purpose, core }` per slide, read by layout selection;
+- `rationale`: why this outline and size were chosen.
+
+- **Choosing a template.** `chooseDeckOutline` matches whole-word cues, and multi-word cues
+  count more ("status update" beats "update", "pitch deck" beats "deck"). With no cue it uses
+  the general talk outline and says so. An explicit `outline` wins.
+- **Size.** `requestedSlideCount` reads "12 slides", "a ten-slide pitch" or "a 15-minute talk"
+  (one slide a minute); `slides` overrides it.
+  - Each template has core slides, which are always present, and optional slides, which fill
+    a larger count in template order (`deckOutlineRange`). Templates range from 6 to 12
+    slides (pitch 7–12, QBR 7–11, launch 6–9, status 6–8, training 8–11, lesson 6–9, report
+    6–10, talk 6–11), under a cap of 16.
+  - A count outside the range is clamped, and the rationale says so.
+  - Slide ids (`slide-<key>`) are stable at every size.
+- **Pacing.** Every slide is tagged punch (one line, about 8 s), idea (one concept, about 25 s),
+  diagram (a structure to walk through) or story (a sequence). Speaker notes repeat the purpose
+  and the pacing guidance.
+- **Honest scaffolding.** Every slide body is a placeholder marked "Draft:" that says what to
+  write. Metrics show "—", charts are a note asking for real data, people are "Person 1…", and
+  nothing links anywhere. No facts, numbers, quotes or names are invented.
+  - Lessons and training always get a placeholder quiz. A warm-up poll (lessons) or an
+    audience poll (talks) is optional and appears when the slide count leaves room.
+  - The deck title is the brief's topic (after about/on/for), with control and bidi
+    characters stripped, at most 80 characters.
+- **Deterministic.** The same brief and options always give the same slide ids, order, blocks
+  and rationale. The module never reads the clock or a random source.
+
+The module is not yet exported from the package entry, and `synthesizeDeckFromBrief` still
+returns the three-slide generic outline. Wiring them together is a one-line switch once the deck
+body schema ships.
 
 ## Workflow state models
 

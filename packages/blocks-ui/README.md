@@ -6,19 +6,51 @@ Svelte 5 renderers for Protoyard's shared content blocks
 levels (the player and generated prototypes), render blocks with these same
 components.
 
-> **Status:** scaffold. Every subpath is reserved and has no runtime exports
-> yet. They are filled by the PLAN_005 tasks named in the table.
+> **Status:** the root dispatcher and host context are implemented. Family
+> subpaths are filled by the PLAN_005 tasks named in the table.
 
 ## Shape
 
-- **The root entry** will hold only the small dispatcher (`BlockRenderer`) and
-  the host context. It never re-exports a family.
+- **The root entry** holds only the small dispatcher (`BlockRenderer`) and
+  host context. It never re-exports a family or statically imports a family
+  subpath.
 - **Each family is its own lazy subpath**, so a document downloads only the
-  families its blocks use.
+  families its blocks use. Each subpath exports one `BlockFamilyRenderer`
+  component that accepts `{ block }`; `BlockRenderer` routes validated blocks
+  through this component contract.
 - **Never in the `@protoyard/ui` barrel**, like the views kit (ADR-022).
 - **No app stack:** nothing here imports `@protoyard/crud`, the player, the
   database, Dexie or Faker. Interactive blocks change state through the
   host's `BlockStateHost`, never by writing tables.
+
+## Root dispatcher and host
+
+```svelte
+<script lang="ts">
+import { BlockRenderer, setBlockHost } from '@protoyard/blocks-ui';
+import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
+
+setBlockHost({
+  stateHost: createMemoryBlockStateHost(),
+  documentId: 'quarterly-review',
+  density: 'comfortable',
+  canvasMode: 'slide',
+  step: 0,
+});
+</script>
+
+<BlockRenderer blocks={slide.blocks} />
+```
+
+Call `setBlockHost` from the host component during initialization. Family
+renderers call `getBlockHost()` to read the nearest context. `density` accepts
+`compact`, `comfortable` or `spacious`; `canvasMode` is `flow` or `slide`.
+`stateHost` and `mountEmbed` are optional host capabilities. The dispatcher
+validates each input at render time, shows a skeleton while its family chunk
+loads, and renders a bounded note for malformed or unsupported blocks. It
+does not display invalid block content. Diagram models have their own schema
+and are rendered through `@protoyard/blocks-ui/diagram`; they are not a
+`Block` discriminator in this version.
 
 | Subpath | Blocks | Filled by |
 | --- | --- | --- |

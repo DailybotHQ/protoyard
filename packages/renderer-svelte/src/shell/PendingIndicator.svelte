@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { LoadProgress, PrototypeRuntime } from '@protoyard/core';
 import { usePending } from '../bindings.svelte.ts';
+import { chromeMessages } from '../messages.ts';
 import { describeLoadProgress } from '../progress.ts';
 
 /**
@@ -47,7 +48,7 @@ const message = $derived.by(() => {
   if (load) return load.label;
   const first = pending.operations[0];
   // Service operations carry code names (`deals.update`): say something human instead.
-  return first && first.kind !== 'service' ? first.label : 'Working…';
+  return first && first.kind !== 'service' ? first.label : chromeMessages().pending.working;
 });
 </script>
 
