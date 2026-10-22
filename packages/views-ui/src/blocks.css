@@ -1,0 +1,3 @@
+/* View families that content blocks render (the map block and its states); used by the deck template and the flagship. Keep this scan next to the package sources. */
+@source "./map";
+@source "./states";

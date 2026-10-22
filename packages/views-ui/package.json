@@ -80,7 +80,8 @@
       "default": "./src/scenarios/index.ts"
     },
     "./player.css": "./src/player.css",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./blocks.css": "./src/blocks.css"
   },
   "scripts": {
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
@@ -195,6 +196,11 @@
         "types": "./dist/styles.css.d.ts",
         "svelte": "./dist/styles.css",
         "default": "./dist/styles.css"
+      },
+      "./blocks.css": {
+        "types": "./dist/blocks.css.d.ts",
+        "svelte": "./dist/blocks.css",
+        "default": "./dist/blocks.css"
       }
     },
     "files": [
