@@ -191,6 +191,38 @@ const FIXTURES: Record<StaticBlockType, Block> = {
       [{ type: 'icon', icon: 'check', decorative: true }],
     ],
   },
+  flow: {
+    type: 'flow',
+    id: 'prototype-flow',
+    step: 1,
+    reveal: 'fade-up',
+    nodes: [
+      { id: 'plan', label: 'Plan' },
+      { id: 'build', label: 'Build', tone: 'accent' },
+    ],
+    loopBack: true,
+  },
+  tree: {
+    type: 'tree',
+    style: 'file-tree',
+    nodes: [
+      { id: 'src', parentId: null, label: 'src' },
+      { id: 'index', parentId: 'src', label: 'index.ts' },
+    ],
+  },
+  board: {
+    type: 'board',
+    columns: [
+      { id: 'doing', title: 'Doing', cards: [{ id: 'wire', title: 'Wire guard', tone: 'info' }] },
+    ],
+  },
+  terminal: {
+    type: 'terminal',
+    lines: [
+      { kind: 'prompt', text: '$ protoyard validate demo' },
+      { kind: 'output', text: 'Valid' },
+    ],
+  },
 };
 
 function issuesOf(input: unknown) {
@@ -555,5 +587,14 @@ describe('block schema rejects hostile input', () => {
     expect(result.success).toBe(false);
     expect(result.issues[0]?.jsonPath).toBe('$[1]["columns"][0][0]["id"]');
     expect(result.issues[0]?.message).toContain('first used at $[0]');
+  });
+
+  it('tracks diagram ids in the shared block-list namespace', () => {
+    const result = safeParseBlocks([
+      { type: 'flow', id: 'same', nodes: [{ id: 'start', label: 'Start' }] },
+      { type: 'terminal', id: 'same', lines: [{ kind: 'output', text: 'Done' }] },
+    ]);
+    expect(result.success).toBe(false);
+    expect(result.issues[0]?.jsonPath).toBe('$[1]["id"]');
   });
 });
