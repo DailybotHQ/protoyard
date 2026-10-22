@@ -183,6 +183,17 @@ frame:
   (`@md:`, `@max-2xl:` and so on) follow the device width.
 - **Fixed elements:** `position: fixed` (a bottom nav, toasts, the demo badge) is pinned to
   the device screen. The app scrolls inside the renderer's scroll root, not the page.
+- **Floating chrome placement:** non-app chrome such as the review toolbar launcher uses
+  `placeFloating` (`packages/renderer-svelte/src/shell/floating.ts`). It measures
+  `window.visualViewport` (size and `offsetLeft` / `offsetTop`) so phone frames and mobile
+  emulation keep controls inside the clickable area when the layout viewport is wider than
+  the visual one. Placement avoids the demo badge, `[data-py-bottom-nav]` on narrow widths,
+  and review overlay roots; hit-tests look through the floating element itself. It
+  repositions on window resize, visual-viewport resize/scroll, hash changes and app DOM
+  mutations, and ignores mutations inside the floating element so an expanding toolbar
+  cannot feedback-loop. When the visual viewport is smaller or offset, expanded bars pin
+  to the visible left so every action stays on screen. Unit coverage:
+  `packages/renderer-svelte/tests/floating.test.ts`.
 - **Overlays:** Bits UI dialogs and sheets portal into the device screen, so they stay
   inside the frame.
 - **Widget badge:** in `widget-host`, call `getWidgetHost().setUnread(n)` (exported by
