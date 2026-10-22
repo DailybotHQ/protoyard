@@ -86,7 +86,6 @@ test.describe('deck chrome controls', () => {
 
   test.describe('full screen (T-fullscreen-fix)', () => {
     test('Escape on the deck leaves full screen', async ({ page }) => {
-      test.fail(true, 'decideKey never maps Escape to leaving full screen (decide.ts:222).');
       await openDeck(page);
       await enterFullscreenWithKey(page);
       // A synthetic key never triggers the browser's own Escape handling, so this
@@ -100,26 +99,18 @@ test.describe('deck chrome controls', () => {
     });
 
     test('full screen shows a visible way out', async ({ page }) => {
-      test.fail(
-        true,
-        'All chrome is removed in full screen (DeckApp.svelte:549 `{#if !fullscreen}`).'
-      );
       await openDeck(page);
       await enterFullscreenWithKey(page);
       await page.mouse.move(200, 200);
-      await expect(page.getByRole('button', { name: /(exit|leave) full ?screen/i })).toBeVisible({
-        timeout: 2_000,
-      });
+      const exit = page.getByRole('button', { name: /(exit|leave) full ?screen/i });
+      await expect(exit).toBeVisible({ timeout: 2_000 });
+      await exit.click();
+      await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+      await expect(page.locator('[data-py-deck-toolbar]')).toBeVisible();
+      await expect(root(page)).toBeFocused();
     });
 
-    test('the full screen button keeps keyboard control of the deck', async ({
-      page,
-      browserName,
-    }) => {
-      test.fail(
-        browserName === 'chromium',
-        'The pressed button unmounts with the chrome, so focus falls to <body> and the deck root (which owns keydown) hears nothing. WebKit keeps focus on a focusable ancestor.'
-      );
+    test('the full screen button keeps keyboard control of the deck', async ({ page }) => {
       await openDeck(page);
       await clickTool(page, 'fullscreen');
       await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
@@ -130,10 +121,6 @@ test.describe('deck chrome controls', () => {
     test('a refused full screen (cross-origin embed without allow) is not silent', async ({
       page,
     }) => {
-      test.fail(
-        true,
-        'toggleFullscreen swallows the refusal and the deck shows nothing (fullscreen.ts:36).'
-      );
       // A real cross-origin embed, like the gallery frame or an artifact viewer:
       // both origins are routed so no browser blocks a public page framing 127.0.0.1.
       await page.route('http://deck.example/**', async (route) => {
@@ -154,13 +141,25 @@ test.describe('deck chrome controls', () => {
       const deck = frame.locator('[data-py-deck-app]');
       await expect(deck).toHaveAttribute('data-slide-id', 'cover');
       expect(await deck.evaluate(() => document.fullscreenEnabled)).toBe(false);
-      // No dead control: the button is hidden where full screen is unavailable…
-      await expect(frame.locator('[data-py-deck-tool="fullscreen"]')).toHaveCount(0);
-      // …but the F key still asks, and the viewer must see that something happened
-      // (the planned fill-the-window mode marks the root like real full screen).
+      // The deck fills the frame instead, and says so.
       await deck.focus();
       await page.keyboard.press('f');
       await expect(deck).toHaveAttribute('data-fullscreen', /.+/, { timeout: 2_000 });
+      await expect(deck).toHaveAttribute('data-fullscreen-mode', 'window');
+      await expect(frame.locator('[data-py-deck-fullscreen-mode-note]')).toBeVisible();
+      const box = await deck.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(899);
+      expect(box?.height).toBeGreaterThanOrEqual(559);
+      // Escape leaves it and gives the deck its chrome back.
+      await page.keyboard.press('Escape');
+      await expect(deck).not.toHaveAttribute('data-fullscreen', /.+/);
+      await expect(frame.locator('[data-py-deck-toolbar]')).toBeVisible();
+      // The button is a real control there too, and the overlay's exit works.
+      await frame.locator('[data-py-deck-tool="fullscreen"]').click();
+      await expect(deck).toHaveAttribute('data-fullscreen-mode', 'window');
+      await frame.getByRole('button', { name: 'Leave full screen' }).click();
+      await expect(deck).not.toHaveAttribute('data-fullscreen', /.+/);
+      await expect(deck).toBeFocused();
     });
 
     test('F toggles full screen when the deck has focus (works today)', async ({ page }) => {

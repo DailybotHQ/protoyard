@@ -17,15 +17,15 @@ import { onMount } from 'svelte';
 import DeckCanvas from '../canvas/DeckCanvas.svelte';
 import {
   BlackoutScreen,
+  createDeckFullscreen,
+  type DeckFullscreen,
+  type DeckFullscreenMode,
   type DeckToolAction,
   DeckToolbar,
-  fullscreenAvailable,
-  isFullscreen,
+  FullscreenOverlay,
   KeyboardHelp,
   LaserPointer,
-  onFullscreenChange,
   slideReference,
-  toggleFullscreen,
 } from '../chrome/index.ts';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
 import SlideStepHost from '../layouts/SlideStepHost.svelte';
@@ -94,11 +94,19 @@ let inputState = $state<DeckInputState>({
   laser: false,
   help: false,
 });
-/** True while the deck root is the browser's full screen element (all chrome hidden). */
-let fullscreen = $state(false);
-let canFullscreen = $state(false);
+/**
+ * `native` while the deck root is the browser's full screen element, `window`
+ * while it fills the page instead (the API is missing or refused); null
+ * otherwise. The chrome row gives way to the full screen overlay.
+ */
+let fullscreenMode = $state<DeckFullscreenMode | null>(null);
+const fullscreen = $derived(fullscreenMode !== null);
+/** What the full screen control will do here, for its tooltip. */
+let fullscreenPreferred = $state<DeckFullscreenMode>('native');
+let fullscreenControl: DeckFullscreen | null = null;
 const controlEnvironment = $derived<DeckControlEnvironment>({
-  fullscreen: canFullscreen,
+  // Always available: fill-the-window mode covers a missing or refused Fullscreen API.
+  fullscreen: true,
   popup: typeof window !== 'undefined' && typeof window.open === 'function',
   clipboard: true,
   print: typeof window !== 'undefined' && typeof window.print === 'function',
@@ -239,10 +247,10 @@ function runAction(action: string): void {
       queueMicrotask(() => focusDeckRoot());
       break;
     case 'fullscreen':
-      if (typeof document === 'undefined') break;
-      void toggleFullscreen(rootEl).then((on) => {
-        fullscreen = on;
-      });
+      void fullscreenControl?.toggle();
+      break;
+    case 'fullscreen-exit':
+      void fullscreenControl?.exit();
       break;
     case 'presenter':
       presenterOpen = !presenterOpen;
@@ -270,6 +278,11 @@ function eventPath(event: Event): ReturnType<typeof inputPathFrom> {
   return inputPathFrom(path, rootEl);
 }
 
+/** The guard's view of the deck: overlays plus whether it is full screen. */
+function guardState(): DeckInputState {
+  return { ...inputState, fullscreen };
+}
+
 function onKeyDown(event: KeyboardEvent): void {
   const action = decideDeckInput(
     {
@@ -283,7 +296,7 @@ function onKeyDown(event: KeyboardEvent): void {
       isComposing: event.isComposing,
       path: eventPath(event),
     },
-    inputState
+    guardState()
   );
   if (!action) return;
   event.preventDefault();
@@ -303,7 +316,7 @@ function onClick(event: MouseEvent): void {
         typeof window !== 'undefined' ? (window.getSelection()?.toString().length ?? 0) : 0,
       path: eventPath(event),
     },
-    inputState
+    guardState()
   );
   if (!action) return;
   event.preventDefault();
@@ -332,7 +345,7 @@ function onPointerUp(event: PointerEvent): void {
         event.pointerType === 'touch' || event.pointerType === 'pen' ? event.pointerType : 'mouse',
       path: eventPath(event),
     },
-    inputState
+    guardState()
   );
   if (!action) return;
   event.preventDefault();
@@ -454,10 +467,16 @@ $effect(() => {
 onMount(() => {
   if (autofocus && !showPrint) rootEl?.focus({ preventScroll: true });
   if (typeof window === 'undefined') return undefined;
-  canFullscreen = fullscreenAvailable();
-  const stopFullscreen = onFullscreenChange(() => {
-    fullscreen = isFullscreen(rootEl);
+  const fullscreenController = createDeckFullscreen({
+    element: () => rootEl,
+    onChange: (mode) => {
+      fullscreenMode = mode;
+      // The pressed button unmounts with the chrome: keep the keyboard on the deck.
+      queueMicrotask(() => focusDeckRoot());
+    },
   });
+  fullscreenControl = fullscreenController;
+  fullscreenPreferred = fullscreenController.preferred;
   const onBeforePrint = () => {
     printing = true;
   };
@@ -473,7 +492,8 @@ onMount(() => {
   window.addEventListener('popstate', onPopState);
   if (syncHash) window.addEventListener('hashchange', onHashChange);
   return () => {
-    stopFullscreen();
+    fullscreenController.destroy();
+    fullscreenControl = null;
     window.removeEventListener('beforeprint', onBeforePrint);
     window.removeEventListener('afterprint', onAfterPrint);
     window.removeEventListener('popstate', onPopState);
@@ -496,7 +516,7 @@ onMount(() => {
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   bind:this={rootEl}
-  class={`deck-app relative flex w-full min-h-0 flex-col overflow-hidden bg-background text-foreground outline-none ${fit === 'container' ? 'h-full' : 'h-app'} ${className}`}
+  class={`deck-app flex w-full min-h-0 flex-col overflow-hidden bg-background text-foreground outline-none ${fullscreenMode === 'window' ? 'fixed inset-0 z-[2147483000] h-dvh' : `relative ${fit === 'container' ? 'h-full' : 'h-app'}`} ${className}`}
   data-py-deck-fit={fit}
   data-py-deck-app
   data-slide-id={location?.slideId ?? ''}
@@ -504,6 +524,7 @@ onMount(() => {
   data-blackout={inputState.blackout ? 'true' : undefined}
   data-laser={inputState.laser ? 'true' : undefined}
   data-fullscreen={fullscreen ? 'true' : undefined}
+  data-fullscreen-mode={fullscreenMode ?? undefined}
   data-presenter={presenterOpen ? 'true' : undefined}
   data-py-deck-theme={deckStyle.resolution?.themeId}
   data-py-deck-mode={deckStyle.resolution?.mode}
@@ -602,6 +623,7 @@ onMount(() => {
             overview={inputState.overview === 'open'}
             presenter={presenterOpen}
             {fullscreen}
+            {fullscreenPreferred}
             {helpId}
             reference={currentReference}
             slides={visible}
@@ -612,6 +634,16 @@ onMount(() => {
           />
         </div>
       </div>
+    {/if}
+
+    {#if fullscreenMode}
+      <FullscreenOverlay
+        mode={fullscreenMode}
+        counter={`${visibleOrdinal + 1} / ${visible.length}`}
+        container={rootEl}
+        suppressed={inputState.blackout === true || inputState.laser === true}
+        onaction={runAction}
+      />
     {/if}
 
     {#if inputState.laser}

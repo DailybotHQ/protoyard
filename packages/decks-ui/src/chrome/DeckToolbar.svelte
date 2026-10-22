@@ -10,6 +10,7 @@ import {
 import type { DeckSlide } from '@protoyard/decks/schema';
 import ChromeTooltip from './ChromeTooltip.svelte';
 import { copyText } from './clipboard.ts';
+import { type DeckFullscreenMode, FULLSCREEN_WINDOW_DESCRIPTION } from './fullscreen.ts';
 import { DECK_ICON_PATHS } from './icons.ts';
 import MoreMenu from './MoreMenu.svelte';
 import { controlTooltip, createDeckTooltip } from './tooltip.ts';
@@ -21,6 +22,7 @@ let {
   overview = false,
   presenter = false,
   fullscreen = false,
+  fullscreenPreferred = 'native',
   helpId,
   reference,
   slides = [],
@@ -35,6 +37,8 @@ let {
   overview?: boolean;
   presenter?: boolean;
   fullscreen?: boolean;
+  /** `window` when full screen will fill the window instead (the tooltip says so). */
+  fullscreenPreferred?: DeckFullscreenMode;
   helpId?: string;
   reference: () => string;
   slides?: readonly DeckSlide[];
@@ -86,6 +90,13 @@ function pressed(action: DeckInputAction): boolean {
 
 function actionFor(control: DeckControl): DeckInputAction {
   return control.action === 'fullscreen' && fullscreen ? 'fullscreen-exit' : control.action;
+}
+
+function tooltipFor(control: DeckControl) {
+  const content = controlTooltip(control);
+  return control.action === 'fullscreen' && fullscreenPreferred === 'window'
+    ? { ...content, description: FULLSCREEN_WINDOW_DESCRIPTION }
+    : content;
 }
 
 function stableId(control: DeckControl): string {
@@ -164,7 +175,7 @@ $effect(() => () => {
     aria-keyshortcuts={keysFor(control)}
     data-py-deck-tool={stableId(control)}
     data-py-print-button={control.action === 'print' ? true : undefined}
-    {@attach tooltip.anchor(() => controlTooltip(control))}
+    {@attach tooltip.anchor(() => tooltipFor(control))}
     {@attach attachControl(control)}
     onkeydown={(event) => {
       if (isJump && (event.key === 'Enter' || event.key === ' ')) {

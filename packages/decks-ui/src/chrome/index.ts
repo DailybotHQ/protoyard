@@ -7,7 +7,13 @@ export { default as BlackoutScreen } from './BlackoutScreen.svelte';
 export { default as ChromeTooltip } from './ChromeTooltip.svelte';
 export { copyText } from './clipboard.ts';
 export { default as DeckToolbar } from './DeckToolbar.svelte';
+export { default as FullscreenOverlay } from './FullscreenOverlay.svelte';
 export {
+  createDeckFullscreen,
+  type DeckFullscreen,
+  type DeckFullscreenMode,
+  FULLSCREEN_OVERLAY_IDLE_MS,
+  FULLSCREEN_WINDOW_DESCRIPTION,
   fullscreenAvailable,
   isFullscreen,
   onFullscreenChange,
