@@ -4,6 +4,7 @@ import {
   defaultSlideStepCount,
   formatDeckHash,
   parseDeckHash,
+  slidePositionCount,
 } from '../src/navigation/index.ts';
 import type { Deck } from '../src/schema/index.ts';
 
@@ -64,10 +65,12 @@ describe('parseDeckHash / formatDeckHash', () => {
 });
 
 describe('defaultSlideStepCount', () => {
-  it('is 1 without steps and matches the labels length otherwise', () => {
+  it('is 1 without steps, and one position per labelled step plus the initial state', () => {
     expect(defaultSlideStepCount(slide('a'))).toBe(1);
     expect(defaultSlideStepCount(slide('b', { steps: [] }))).toBe(1);
-    expect(defaultSlideStepCount(slide('c', { steps: ['one', 'two', 'three'] }))).toBe(3);
+    // Labels name steps 1, 2, 3; step 0 is the initial state, so the last label is reachable.
+    expect(defaultSlideStepCount(slide('c', { steps: ['one', 'two', 'three'] }))).toBe(4);
+    expect(slidePositionCount(slide('c', { steps: ['one', 'two', 'three'] }))).toBe(4);
   });
 });
 
@@ -85,7 +88,7 @@ describe('createDeckNavigator', () => {
       slideIndex: 0,
       slideId: 'intro',
       step: 0,
-      stepCount: 2,
+      stepCount: 3,
     });
     expect(nav.visibleSlides().map((s) => s.id)).toEqual(['intro', 'body', 'end']);
     expect(nav.toHash()).toBe('#/intro/0');
@@ -93,10 +96,12 @@ describe('createDeckNavigator', () => {
 
   it('next walks steps then slides and skips hidden slides', () => {
     const nav = createDeckNavigator(sample);
-    // intro has steps [hook, promise] → positions 0,1
+    // intro has steps [hook, promise] → positions 0 (initial), 1 (hook), 2 (promise)
     expect(nav.next()).toMatchObject({ slideId: 'intro', step: 1 });
-    // past last step → body (skips hidden-gap), body has one step label → only step 0
-    expect(nav.next()).toMatchObject({ slideId: 'body', step: 0, stepCount: 1 });
+    expect(nav.next()).toMatchObject({ slideId: 'intro', step: 2 });
+    // past the last step → body (skips hidden-gap); one label → positions 0 and 1
+    expect(nav.next()).toMatchObject({ slideId: 'body', step: 0, stepCount: 2 });
+    expect(nav.next()).toMatchObject({ slideId: 'body', step: 1 });
     expect(nav.next()).toMatchObject({ slideId: 'end', step: 0 });
     expect(nav.next()).toMatchObject({ slideId: 'end', step: 0 }); // clamp at end
   });
@@ -104,7 +109,10 @@ describe('createDeckNavigator', () => {
   it('prev walks steps then previous slides last step', () => {
     const nav = createDeckNavigator(sample);
     nav.goTo('end', 0);
+    // Back onto a slide lands on its last step.
+    expect(nav.prev()).toMatchObject({ slideId: 'body', step: 1 });
     expect(nav.prev()).toMatchObject({ slideId: 'body', step: 0 });
+    expect(nav.prev()).toMatchObject({ slideId: 'intro', step: 2 });
     expect(nav.prev()).toMatchObject({ slideId: 'intro', step: 1 });
     expect(nav.prev()).toMatchObject({ slideId: 'intro', step: 0 });
     expect(nav.prev()).toMatchObject({ slideId: 'intro', step: 0 });
@@ -119,7 +127,7 @@ describe('createDeckNavigator', () => {
 
   it('goTo clamps steps and falls back for unknown or hidden ids', () => {
     const nav = createDeckNavigator(sample);
-    expect(nav.goTo('intro', 99)).toMatchObject({ slideId: 'intro', step: 1 });
+    expect(nav.goTo('intro', 99)).toMatchObject({ slideId: 'intro', step: 2 });
     expect(nav.goTo('intro', -1)).toMatchObject({ slideId: 'intro', step: 0 });
     expect(nav.goTo('nope', 0)).toMatchObject({ slideId: 'intro', step: 0 });
     expect(nav.goTo('hidden-gap', 2)).toMatchObject({ slideId: 'intro', step: 0 });

@@ -7,6 +7,7 @@ import {
   type DeckNavigator,
   decideDeckInput,
   inputPathFrom,
+  slidePositionCount,
   slideStepCount,
 } from '@protoyard/decks';
 import type { Deck, DeckSlide } from '@protoyard/decks/schema';
@@ -26,6 +27,7 @@ import {
   toggleFullscreen,
 } from '../chrome/index.ts';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
+import SlideStepHost from '../layouts/SlideStepHost.svelte';
 import { DeckPrint, PrintButton, parseDeckPrintFlags } from '../print/index.ts';
 import { DeckSlideFrame, DeckStyleState, setDeckStyleContext } from '../style/index.ts';
 
@@ -124,7 +126,9 @@ let pointerDown: { x: number; y: number; t: number; id: number } | null = null;
 
 // Rebuild the navigator when the deck document changes.
 $effect(() => {
-  const next = createDeckNavigator(deck, { stepCount: slideStepCount });
+  // Positions are the initial state plus one per advance (`slidePositionCount`),
+  // so the last step of every slide is reachable by keys and by `#/<id>/<step>`.
+  const next = createDeckNavigator(deck, { stepCount: slidePositionCount });
   nav = next;
   let loc = next.getLocation();
   if (syncHash && typeof window !== 'undefined') {
@@ -331,8 +335,22 @@ function onHashChange(): void {
   const next = nav.applyHash(window.location.hash);
   if (next) {
     location = next;
+    // A clamped link (`#/<id>/99`) is rewritten to the step it shows.
+    writeHash(nav);
     announceSlide(next, deck.slides.length);
   }
+}
+
+/**
+ * The step a mounted slide shows: the active one its current step, a
+ * neighbour before it its last step (where going back lands), one after it
+ * its initial state.
+ */
+function stepOf(slide: DeckSlide): number {
+  if (location?.slideId === slide.id) return activeStep;
+  const at = numberOf(slide.id) ?? 0;
+  const here = location ? (numberOf(location.slideId) ?? 0) : 0;
+  return at < here ? slideStepCount(slide) : 0;
 }
 
 /** 1-based position of a slide among the visible slides (hidden slides have none). */
@@ -473,6 +491,7 @@ onMount(() => {
   data-py-deck-theme={deckStyle.resolution?.themeId}
   data-py-deck-mode={deckStyle.resolution?.mode}
   data-py-deck-style={deckStyle.status}
+  data-py-deck-motion={deck.style?.motion ?? 'default'}
   style={deckStyle.rootStyle}
   role="application"
   aria-label={deck.outline?.title ?? 'Presentation'}
@@ -500,14 +519,16 @@ onMount(() => {
           <div
             class="deck-app__slide size-full"
             data-py-deck-slide={slide.id}
-            data-step={location?.slideId === slide.id ? activeStep : 0}
+            data-step={stepOf(slide)}
             data-step-count={location?.slideId === slide.id ? activeStepCount : 1}
             style={location?.slideId === slide.id
               ? `--py-deck-step:${activeStep};--py-deck-step-count:${activeStepCount}`
               : undefined}
           >
             <DeckSlideFrame background={slide.background} number={numberOf(slide.id)}>
-              <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+              <SlideStepHost {slide} step={stepOf(slide)}>
+                <DeckLayoutRenderer layout={layout.layout as never} props={layout.props} />
+              </SlideStepHost>
             </DeckSlideFrame>
           </div>
         {/snippet}

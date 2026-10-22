@@ -4,8 +4,10 @@ import { fitContent, fitText } from '../design/fit.ts';
 import SlideFrame from '../design/SlideFrame.svelte';
 import { DECK_TYPE } from '../design/scale.ts';
 import type { PropsOf } from '../design/types.ts';
+import { getPropSteps } from '../step-context.ts';
 
 let { props: p }: { props: PropsOf<typeof ComparisonTablePropsSchema> } = $props();
+const steps = getPropSteps();
 </script>
 
 <SlideFrame layout="comparison-table" class="gap-[3cqw] px-[7cqw] py-[6cqw]">
@@ -25,7 +27,7 @@ let { props: p }: { props: PropsOf<typeof ComparisonTablePropsSchema> } = $props
       </thead>
       <tbody>
         {#each p.rows as row, r (r)}
-          <tr class={r % 2 === 1 ? 'bg-muted/40' : ''}>
+          <tr {...steps(['rows', r])} class={r % 2 === 1 ? 'bg-muted/40' : ''}>
             <th scope="row" class="border-b border-border px-[2cqw] py-[1.3cqw] text-left font-semibold text-foreground">{row.label}</th>
             {#each row.values as value, c (c)}
               <td class="border-b border-border px-[2cqw] py-[1.3cqw] text-center text-foreground" data-value={value === true ? 'yes' : value === false ? 'no' : value === null ? 'none' : 'text'}>

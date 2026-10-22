@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { ColumnsBlock } from '@protoyard/blocks';
 import type { Component } from 'svelte';
-import { getBlockHost } from '../host.ts';
+import { fragmentAttributes, getBlockHost } from '../host.ts';
 import type { BlockFamilyRenderer } from '../registry.ts';
 
 let { block }: { block: ColumnsBlock } = $props();
@@ -50,7 +50,12 @@ async function resolveChild(input: unknown): Promise<ChildResult> {
             </p>
           {:else}
             {@const Renderer = result.component as Component<{ block: unknown }>}
-            <Renderer block={result.block} />
+            {@const fragment = fragmentAttributes(host, result.block as { type: string })}
+            {#if fragment}
+              <div {...fragment}><Renderer block={result.block} /></div>
+            {:else}
+              <Renderer block={result.block} />
+            {/if}
           {/if}
         {:catch}
           <p class="text-sm text-muted-foreground" role="note">This block could not be displayed.</p>

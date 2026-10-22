@@ -120,6 +120,23 @@ function fromProps(value: unknown, path: (string | number)[], depth: number, out
     return;
   }
   const record = value as Record<string, unknown>;
+  // A catalog code prop (`{ source, highlights: ["1-2", "4"] }`, as in
+  // code-with-callout) steps its highlights like a code block does.
+  if (
+    typeof record.source === 'string' &&
+    Array.isArray(record.highlights) &&
+    record.highlights.every((lines) => typeof lines === 'string')
+  ) {
+    const base = validStep(record.step) ? record.step : 0;
+    (record.highlights as string[]).forEach((lines, i) => {
+      out.push({
+        authored: base + i,
+        effect: 'highlight',
+        source: { kind: 'code-highlight', path: [...path, 'highlights', i], lines },
+        order: out.length,
+      });
+    });
+  }
   if (validStep(record.step)) {
     const effect = isFragmentEffect(record.fragment)
       ? record.fragment

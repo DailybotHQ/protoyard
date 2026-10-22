@@ -65,6 +65,8 @@ The host contract (`BlockHostOptions`; every field is optional):
 | `density` | `comfortable` | `compact`, `comfortable` or `spacious` |
 | `canvasMode` | `flow` | `flow` (pages, docs) or `slide` (decks: presentation-scale type) |
 | `step` | none | The current slide step; drives fragments and code highlights |
+| `fragment` | none | Decks: `(block) => { visible, active } \| null` for a block with a `step`. `BlockRenderer` and `columns` then wrap the block in a `data-py-fragment` box that keeps its space and is invisible, `inert` and `aria-hidden` until visible. Without it every block shows. |
+| `codeHighlight` | none | Decks: `(block) => index` of the code highlight to show (−1 for none). Without it, code blocks follow `step` relative to the block's own `step`. |
 | `documentId` | `preview` | The document's id; with a block id it forms the interactive state key (`stateKey`) |
 | `stateHost` | an in-memory preview host | A `BlockStateHost` from `@protoyard/blocks/interactive`. Without it, interactive blocks still work but their state is not persisted. |
 | `viewerId` | `viewer` | The persona that polls and quizzes record per viewer |

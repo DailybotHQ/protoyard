@@ -201,14 +201,36 @@ next visible slide; "previous" walks back the same way. Steps come from:
 - **`steps` labels**, which name the steps and can add steps of their own.
 
 Authored step numbers are renumbered densely (2, 5, 7 become 1, 2, 3), and a
-slide has at most 32 steps. A link `#/<slide-id>/<step>` opens that exact
-position. An unknown or hidden slide id opens the first visible slide, and a
-step past the slide's last step opens its last step. The position follows
-every move, so the address bar, the presenter and the copy-reference tool
-always agree.
+slide has at most 32 steps. A slide with N steps has N + 1 positions: step 0
+(the initial state) and steps 1 to N. Labels name steps 1, 2, 3…, so three
+labels give positions 0 to 3. A link `#/<slide-id>/<step>` opens that exact
+position, including the last one. An unknown or hidden slide id opens the
+first visible slide, and a step past the slide's last step opens its last step
+and rewrites the link to it. The position follows every move, so the address
+bar, the presenter and the copy-reference tool always agree.
 
-What steps do on screen today is narrower than the model. See
-[What decks do not do yet](#what-decks-do-not-do-yet).
+On screen:
+
+- **Reveals keep the layout still.** A stepped block or catalog item stays in
+  the layout while it waits, so nothing jumps: it is invisible, `inert` and
+  `aria-hidden` (screen readers are not told about it) until its step, then
+  fades in (`fade`, `in`), fades up (`fade-up`), or switches its effect on
+  (`grow`, `shrink`, `highlight`, `strike`). `out` and `in-then-out` hide
+  again. Going back hides it again.
+- **Catalog items** that take a step today: `three-column-cards` cards,
+  `process-steps` steps, `timeline` events, `comparison-table` rows and the
+  `two-column-split` sides. A marker on another prop counts as a step, but that
+  prop is always shown.
+- **Code highlights move per step,** on free code blocks and on the
+  `code-with-callout` code: highlight 0 is the initial state and each further
+  highlight takes one step.
+- **Motion:** reveals animate for 500 ms. The browser's reduced-motion
+  preference and the deck's `motion: none` turn the animation off; the
+  content still appears on its step.
+- **Overview, print and the presenter's next-slide preview** show each slide
+  at its last step, with every fragment visible and the last highlight on.
+  The slide just before the current one is mounted at its last step, so
+  going back shows it complete.
 
 ## Navigation
 
@@ -479,16 +501,13 @@ Every deck string renders as text, never as HTML; see
 
 ## What decks do not do yet
 
-- **Fragments and reveals do not animate yet.** The engine derives each
-  slide's steps and their effects, and navigation, deep links, the presenter
-  and print follow them, but `DeckApp` does not hide, reveal or highlight
-  content by step: every block and prop is visible at every step. Stepped
-  code highlights do not advance either. The steps model and its rules are in
-  the [steps and motion section](../packages/decks/README.md#steps-and-motion)
+- **Stepped catalog props outside the item lists do not hide.** A step marker
+  on a catalog prop that is not a card, process step, timeline event, table
+  row or split side (a `big-stat` number, a `closing-cta` button, a media
+  prop) adds a step, but the prop is shown from the start. Use a free slide
+  for those reveals. The steps model and its rules are in the
+  [steps and motion section](../packages/decks/README.md#steps-and-motion)
   of the package guide.
-- **The last authored step is not reachable by navigation.** A slide whose
-  fragments define steps 1 to N offers positions 0 to N − 1, so its last step
-  is skipped. Slides that only use `steps` labels are not affected.
 - **No custom slide components.** A generated deck's `src/custom-slides.ts`
   is a typed registry for later. `DeckApp` renders only the catalog layouts
   and free blocks.
