@@ -176,6 +176,50 @@ root after 150 ms. A `@protoyard/ui` `Button` whose `onclick` returns the
 service promise shows its own spinner (see
 [renderer README → Pending feedback](../packages/renderer-svelte/README.md#pending-feedback)).
 
+## Content-kind runtime (deck, page, doc)
+
+A blueprint with `kind: "deck" | "page" | "doc"` (ADR-036) has no entities, but it
+still runs on the same runtime, so themes, shells, DevTools, snapshots and the
+persona switcher keep working. `defineKindRuntime(doc, { namespace })` from
+`@protoyard/blueprint/kinds` builds its `PrototypeDefinition`. The player and
+generated kind prototypes share it, so both levels behave the same.
+
+```text
+defineKindRuntime(doc)
+  ├─ database   one version: blockStates (key = stateKey(documentId, blockId)), formResponses
+  ├─ scenarios  `default` only
+  ├─ world      generateWorld(scenario): one organization + presenter, audience, viewer personas
+  │             (fixed data; no generation context, no Faker, no blueprint generator)
+  ├─ policy     presenter: blocks:interact, responses:create, responses:read
+  │             audience:  blocks:interact, responses:create      viewer: none (simulated)
+  └─ theme      the brand's built theme, or its library theme id, as for apps
+```
+
+`createKindServices(runtime, doc)` implements the `BlockStateHost` contract
+from `@protoyard/blocks/interactive`. Interactive blocks render from it and
+never touch a table. Each `dispatch(key, block, action)` follows the service
+path:
+
+1. It resolves the block from the document by the key's block id, never trusting
+   the caller's copy.
+2. `session.assert('blocks:interact')`.
+3. For poll and quiz actions, it sets the active persona as `viewer`.
+4. `reduceBlockState`, which zod-validates the action.
+5. `environment.run('blocks.dispatch')` → `db.transaction` writes the new state
+   under its key. A refused action rejects with `BlockActionError` and writes
+   nothing.
+
+`read` returns the stored raw state from a cache that reloads after scenario
+loads, and blocks-ui restores it with `readBlockState`. Form submissions go
+through `responses.submit(formId, values)` the same way:
+
+1. The form is resolved from the document.
+2. `session.assert('responses:create')`.
+3. The values are validated against the form's own fields.
+4. `environment.run` → `db.transaction` writes them.
+
+Presenters list every response; everyone else lists only their own.
+
 ## Optional mock HTTP layer
 
 `@protoyard/http` turns a prototype's services into a fetch-compatible mock

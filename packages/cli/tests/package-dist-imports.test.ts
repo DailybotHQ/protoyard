@@ -33,6 +33,7 @@ const ENGINE = [
   'runtime',
   'themes',
   'blueprint',
+  'blocks',
   'charts',
   'analytics',
   'views',
