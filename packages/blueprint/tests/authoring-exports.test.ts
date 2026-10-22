@@ -11,6 +11,7 @@ import {
   buildDocOutline,
   buildPageOutline,
   detectBriefKind,
+  lintDeckAssets,
   lintDeckStructure,
   loadAuthoringApis,
   propsForSelectedLayout,
@@ -59,6 +60,7 @@ const AUTHORING_FUNCTIONS = [
   'checkOutlineBounds',
   'applyOutlineBounds',
   'lintDeckStructure',
+  'lintDeckAssets',
   'selectDeckLayouts',
   'propsForSelectedLayout',
   'validateBlueprintForAuthoring',
@@ -118,6 +120,7 @@ describe('the authoring interface on the public entry', () => {
     expect(apis.buildPageOutline).toBe(buildPageOutline);
     expect(apis.buildDocOutline).toBe(buildDocOutline);
     expect(apis.lintDeckStructure).toBe(lintDeckStructure);
+    expect(apis.lintDeckAssets).toBe(lintDeckAssets);
     expect(apis.selectDeckLayouts).toBe(selectDeckLayouts);
     expect(apis.propsForSelectedLayout).toBe(propsForSelectedLayout);
     expect(apis.validateBlueprintForAuthoring).toBe(validateBlueprintForAuthoring);

@@ -24,12 +24,14 @@ import {
   toggleFullscreen,
 } from '../chrome/index.ts';
 import { DeckLayoutRenderer } from '../layouts/index.ts';
+import { DeckPrint, PrintButton, parseDeckPrintFlags } from '../print/index.ts';
 
 /**
  * The one deck component both the player deck entry and generated deck
  * prototypes mount (ADR-038). Composes canvas, layout renderers, navigation
  * (with `#/<id>/<step>` hash), guarded input, step progress chrome and
- * aria-live announcements.
+ * aria-live announcements. Print mode (`?print=1`, print button, Ctrl/Cmd+P)
+ * swaps in the one-slide-per-page layout from `@protoyard/decks-ui/print`.
  */
 let {
   deck,
@@ -62,6 +64,11 @@ const uid = $props.id();
 const helpId = `deck-help-${uid}`;
 /** Stable navigator for the current deck; rebuilt only when the deck changes. */
 let nav = $state.raw<DeckNavigator | null>(null);
+
+/** URL print mode (`?print=1`) or temporary layout while the browser prints. */
+let printFlags = $state(parseDeckPrintFlags());
+let printing = $state(false);
+const showPrint = $derived(printFlags.print || printing);
 
 // Pointer tracking for swipe decisions.
 let pointerDown: { x: number; y: number; t: number; id: number } | null = null;
@@ -165,8 +172,14 @@ function runAction(action: string): void {
       });
       break;
     case 'presenter':
+      // Presenter window is a dedicated surface (T-decks-presenter).
+      break;
     case 'print':
-      // Handled by dedicated surfaces in later tasks; ignore here.
+      // Enter print layout then open the browser dialog (also Ctrl/Cmd+P).
+      printing = true;
+      if (typeof window !== 'undefined' && typeof window.print === 'function') {
+        queueMicrotask(() => window.print());
+      }
       break;
     default:
       break;
@@ -288,26 +301,49 @@ function onTool(action: DeckToolAction): void {
 
 function goOverview(slideId: string): void {
   if (!nav) return;
+  // Close first so a bubbling click cannot double-advance while open/closing.
+  inputState = { ...inputState, overview: 'closed' };
   applyLocation(nav.goTo(slideId, 0));
+}
+
+function closeOverview(): void {
   inputState = { ...inputState, overview: 'closed' };
 }
 
 onMount(() => {
-  if (autofocus) rootEl?.focus({ preventScroll: true });
+  if (autofocus && !showPrint) rootEl?.focus({ preventScroll: true });
+  if (typeof window === 'undefined') return undefined;
   canFullscreen = fullscreenAvailable();
   const stopFullscreen = onFullscreenChange(() => {
     fullscreen = isFullscreen(rootEl);
   });
-  if (syncHash && typeof window !== 'undefined') {
-    window.addEventListener('hashchange', onHashChange);
-  }
+  const onBeforePrint = () => {
+    printing = true;
+  };
+  const onAfterPrint = () => {
+    // Stay in print layout when the URL asked for it.
+    if (!parseDeckPrintFlags().print) printing = false;
+  };
+  const onPopState = () => {
+    printFlags = parseDeckPrintFlags();
+  };
+  window.addEventListener('beforeprint', onBeforePrint);
+  window.addEventListener('afterprint', onAfterPrint);
+  window.addEventListener('popstate', onPopState);
+  if (syncHash) window.addEventListener('hashchange', onHashChange);
   return () => {
     stopFullscreen();
-    if (typeof window !== 'undefined') window.removeEventListener('hashchange', onHashChange);
+    window.removeEventListener('beforeprint', onBeforePrint);
+    window.removeEventListener('afterprint', onAfterPrint);
+    window.removeEventListener('popstate', onPopState);
+    if (syncHash) window.removeEventListener('hashchange', onHashChange);
   };
 });
 </script>
 
+{#if showPrint}
+  <DeckPrint deck={deck} notes={printFlags.notes} />
+{:else}
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
@@ -381,16 +417,19 @@ onMount(() => {
     >
       {slideLabel}
     </p>
-    <DeckToolbar
-      blackout={inputState.blackout === true}
-      laser={inputState.laser === true}
-      help={inputState.help === true}
-      {fullscreen}
-      fullscreenAvailable={canFullscreen}
-      {helpId}
-      reference={currentReference}
-      onaction={onTool}
-    />
+    <div class="pointer-events-auto flex shrink-0 items-center gap-1" data-py-deck-chrome>
+      <DeckToolbar
+        blackout={inputState.blackout === true}
+        laser={inputState.laser === true}
+        help={inputState.help === true}
+        {fullscreen}
+        fullscreenAvailable={canFullscreen}
+        {helpId}
+        reference={currentReference}
+        onaction={onTool}
+      />
+      <PrintButton />
+    </div>
   </div>
   {/if}
 
@@ -403,31 +442,34 @@ onMount(() => {
   {/if}
 
   {#if inputState.overview === 'open'}
-    <div
-      class="absolute inset-0 z-30 overflow-auto bg-background/95 p-4 backdrop-blur"
-      data-py-deck-overview
-      role="dialog"
-      aria-label="Slide overview"
-    >
-      <ul class="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-        {#each visible as slide, index (slide.id)}
-          <li>
-            <button
-              type="button"
-              class="flex w-full flex-col gap-1 rounded-lg border border-border bg-card p-3 text-left text-sm hover:border-primary focus-visible:ring-2 focus-visible:ring-ring"
-              data-py-deck-overview-item={slide.id}
-              onclick={(event) => {
-                event.stopPropagation();
-                goOverview(slide.id);
-              }}
-            >
-              <span class="text-xs text-muted-foreground">{index + 1}</span>
-              <span class="font-medium text-foreground">{slide.title ?? slide.id}</span>
-            </button>
-          </li>
-        {/each}
-      </ul>
-    </div>
+    {#await import('../overview/index.ts')}
+      <div
+        class="absolute inset-0 z-30 grid place-items-center bg-background/95 backdrop-blur"
+        data-py-deck-overview
+        data-py-deck-overview-loading
+        role="status"
+        aria-label="Loading slide overview"
+      >
+        <span class="text-sm text-muted-foreground">Loading overview…</span>
+      </div>
+    {:then mod}
+      {@const Overview = mod.DeckOverview}
+      <Overview
+        slides={visible}
+        activeSlideId={location?.slideId ?? ''}
+        aspect={deck.style?.aspect ?? '16:9'}
+        onSelect={goOverview}
+        onClose={closeOverview}
+      />
+    {:catch}
+      <div
+        class="absolute inset-0 z-30 grid place-items-center bg-background/95 p-6 backdrop-blur"
+        data-py-deck-overview
+        role="alert"
+      >
+        <p class="text-sm text-destructive">The overview could not be loaded.</p>
+      </div>
+    {/await}
   {/if}
 
   {#if inputState.help}
@@ -438,6 +480,7 @@ onMount(() => {
     {announce}
   </div>
 </div>
+{/if}
 
 <style>
   .deck-app :global([data-py-deck-slide]) {

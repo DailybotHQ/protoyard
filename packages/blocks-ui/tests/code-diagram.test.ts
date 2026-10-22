@@ -17,6 +17,7 @@ import BoardDiagram from '../src/diagram/BoardDiagram.svelte';
 import FlowDiagram from '../src/diagram/FlowDiagram.svelte';
 import TerminalDiagram from '../src/diagram/TerminalDiagram.svelte';
 import TreeDiagram from '../src/diagram/TreeDiagram.svelte';
+import { DIAGRAM_PAD } from '../src/diagram/tones.ts';
 import HostHarness from './fixtures/HostHarness.svelte';
 import RendererHarness from './fixtures/RendererHarness.svelte';
 
@@ -228,7 +229,7 @@ describe('flow diagram', () => {
     const layout = layoutFlow(block);
     for (const position of layout.positions) {
       const node = container.querySelector(`[data-node="${position.id}"]`) as HTMLElement;
-      expect(node.style.left).toBe(`${position.x + 8}px`);
+      expect(node.style.left).toBe(`${position.x + DIAGRAM_PAD}px`);
       expect(node.style.width).toBe(`${position.width}px`);
       expect(node.getAttribute('title')).toBe(position.label);
     }
@@ -299,7 +300,7 @@ describe('tree diagram', () => {
     expect(layout.edges).toHaveLength(3);
     const ceo = layout.positions.find((p) => p.id === 'ceo');
     expect((container.querySelector('[data-node="ceo"]') as HTMLElement).style.top).toBe(
-      `${(ceo?.y ?? 0) + 8}px`
+      `${(ceo?.y ?? 0) + DIAGRAM_PAD}px`
     );
     expect(container.querySelector('[data-node="cto"]')?.className).toContain('border-info');
   });

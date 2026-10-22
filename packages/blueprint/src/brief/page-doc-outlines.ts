@@ -231,7 +231,10 @@ export function selectDocOutline(brief: string): DocOutlineId {
     hasPhrase(n, 'one pager') ||
     hasPhrase(n, 'one-pager') ||
     hasPhrase(n, 'onepagers') ||
-    hasPhrase(n, 'one pagers')
+    hasPhrase(n, 'one pagers') ||
+    hasPhrase(n, 'one page report') ||
+    hasPhrase(n, 'one-page report') ||
+    hasPhrase(n, 'one page summary')
   ) {
     return 'one-pager';
   }
@@ -258,6 +261,7 @@ export function selectDocOutline(brief: string): DocOutlineId {
     hasPhrase(n, 'the report') ||
     hasPhrase(n, 'a report') ||
     hasPhrase(n, 'write the report') ||
+    hasPhrase(n, 'write a report') ||
     hasPhrase(n, 'report covering') ||
     hasPhrase(n, 'report for') ||
     hasPhrase(n, 'whitepaper') ||

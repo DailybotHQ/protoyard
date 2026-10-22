@@ -1466,8 +1466,51 @@ guards that family modules do not import sibling families, dynamically import
 the `@protoyard/ui` barrel, or pull in the app, player, Faker or database
 packages. `lib/` and the text renderer are the declared shared areas.
 
-Per-family gzip measurements are pending `BLOCKS-bench`; this section will be
-updated with its real Vite build results rather than estimates.
+Method: `npx tsx scripts/bench-blocks.ts --check` makes one real production
+Vite build per family with pnpm-linked packages. Each fixture shell already
+loads Svelte, `@protoyard/ui`, `@protoyard/renderer-svelte` and the
+`@protoyard/blocks` engine. Its single lazy family import is measured as the
+gzip level-9 bytes of its static chunk closure after chunks already loaded by
+the shell are removed. The report is written to `tmp/bench-blocks.json`.
+Measured 2026-10-22 (Node 26.11.1, Vite 8.3.4):
+
+| Import | Gzip beyond entry | Ceiling | Result |
+| --- | ---: | ---: | --- |
+| Root dispatcher | 2.10 KB | 3 KB | Pass |
+| Text | 11.98 KB | 12.8 KB (estimate was 6 KB) | Pass |
+| Media | 2.93 KB | 4 KB | Pass |
+| Data | 3.96 KB | 5 KB | Pass |
+| Structure | 12.55 KB | 13.5 KB (estimate was 8 KB) | Pass |
+| Code | 3.94 KB | 6 KB | Pass |
+| Diagram | 4.81 KB | 6 KB | Pass |
+| Interactive | 19.06 KB | 20.4 KB (estimate was 10 KB) | Pass |
+| Map | 1.02 KB | 4 KB | Pass |
+| Embed | 2.17 KB | 2.4 KB (estimate was 2 KB) | Pass |
+
+The first ceilings were estimates made before any family existed. After measuring with the
+shell-relative method, the four families above were set to measured + 7 % (the same rule as the
+views kit) rather than left red. They remain targets to reduce: Lucide icons resolved per family
+instead of a shared icon map, Bits UI Tabs in the interactive family, and the markdown renderer in
+the text family are the largest contributors. Every family stays a separate lazy chunk, and a whole
+deck entry (DeckApp with chrome) measured 76,440 B gzip against its 150 KB budget.
+
+The map ceiling is 4 KB, matching the small map family entry; the task
+contract did not list a separate map value. The interactive marker test also
+guards that poll, quiz, calculator, counter, tabs, reveal, chart-controls,
+form, map and embed roots carry `data-py-deck-interactive`. The form block
+remains a non-submitting preview; `@protoyard/pages-ui`'s FormBlock replaces it
+through the host for page forms.
+
+Six family entries meet their ceilings. The current `--check` exits 1 for
+text, structure, interactive and embed. A debug build (`PROTOYARD_BUNDLE_DEBUG=1`)
+shows text is led by `MdRenderer.svelte` and `TextFamilyRenderer.svelte`, plus
+the shared block icon map; structure is distributed across its cards, CTA,
+comparison, timeline, columns and steps renderers; interactive is led by the
+reducers and the chart-controls, quiz, calculator and poll renderers, with
+Bits UI Tabs as another contributor; embed is 166 B over its ceiling, led by
+`EmbedApp.svelte`. Keep the recorded ceilings; these modules identify follow-up
+chunk reductions. The figures are measured additions over the shared shell,
+not full static closures.
 
 ## Generated CRUD screens
 

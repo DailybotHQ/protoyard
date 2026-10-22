@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "kind": "deck",
+  "name": "Minimal deck",
+  "description": "The smallest valid fictional deck: one title slide.",
+  "deck": {
+    "style": {},
+    "slides": [
+      {
+        "id": "title",
+        "layout": "title-hero",
+        "props": { "title": "Minimal deck", "subtitle": "One slide, valid by construction" }
+      }
+    ]
+  }
+}
