@@ -45,6 +45,72 @@ const result = await run.done;
 
 Tools receive service functions, simulated time and a deterministic random stream. They do not receive database handles. Implement service-backed reads and writes through `serviceAiTool`; the domain service remains responsible for policy, validation, environment simulation and transactions. Approvals pause a run before the tool executes. A rejection returns a graceful answer, while `cancel()` ends a running or paused run. Tool failure branches are deterministic for the same seed, run id, call order and tool name. The built-in search, calendar, and CRM tools use fictional local fixtures; `code.run` reports a simulated result and never executes supplied code.
 
+## Suggestion and approval loop
+
+A pure detect → suggest → decide reducer for multi-step agent suggestions with
+autonomy levels, area caps, audit entries and **proposed** effects. The engine
+never persists rows or runs effects; a prototype service carries `effects` out
+through the usual `session.assert` → zod → `environment.run` → `db.transaction`
+path. Import from the main entry or the lazy `@protoyard/ai/approvals` subpath.
+
+```ts
+import {
+  DEFAULT_AUTONOMY,
+  decideSuggestion,
+  setLevel,
+  suggestFromCandidate,
+} from '@protoyard/ai/approvals';
+
+const ctx = {
+  now: clock.now().toISOString(),
+  scopeId: 'org_example',
+  buildEffects: (suggestion) => ({
+    apply: {
+      type: 'link_record',
+      targetId: suggestion.targetId ?? '',
+      summary: `Link to ${suggestion.targetKey}`,
+      payload: suggestion.payload,
+    },
+    notify: { channelId: 'channel_ops', text: `Please review ${suggestion.targetKey}` },
+  }),
+};
+
+// Levels: 1 inform · 2 suggest · 3 act with approval · 4 act within limits.
+// Caps refuse Level 4 on `external` (always asks first).
+const config = setLevel(DEFAULT_AUTONOMY, 'records', 2);
+const { suggestion, audit, effects } = suggestFromCandidate(
+  {
+    sourceId: 'resp_1',
+    subjectId: 'person_oscar',
+    kind: 'link_record',
+    action: 'apply',
+    summary: 'Link blocker to ENG-12',
+    targetId: 'task_12',
+    targetKey: 'ENG-12',
+    targetLabel: 'Ship onboarding',
+  },
+  config,
+  ctx
+);
+// Level 2: status pending, audit "suggested", effects {}.
+// On confirm/approve the service applies `effects`; dismiss audits only.
+const decided = decideSuggestion(suggestion, 'confirm', { id: 'person_avery', canApprove: true }, config, ctx);
+```
+
+| Level | Mode | Behavior |
+| --- | --- | --- |
+| 1 Inform | `inform` | Status `informed`, audit only, no waiting card |
+| 2 Suggest | `suggest` | Waiting card; subject or approver **confirms** |
+| 3 Act with approval | `act_with_approval` | Prepared apply/notify summaries; only an approver **approves** |
+| 4 Act within limits | `act` | Status `auto`, effects proposed immediately |
+
+Default areas: `records`, `notifications`, `workspace`, `external` (capped at 3).
+Side notifications follow the `notifications` area (`notifyAllowed`): auto path
+only at Level 4; after a person, dropped only at Level 1. Per-tool
+`requiresApproval` on the agent runner remains the single-call gate; this loop
+is the multi-step product policy layer. Everything is simulated and must be
+labeled as such in the UI.
+
 ## AI scenario fixtures
 
 Import scenario generation from the lazy subpath so its fixture generator is not part of the base AI entrypoint:
