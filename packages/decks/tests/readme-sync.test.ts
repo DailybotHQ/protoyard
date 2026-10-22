@@ -89,7 +89,10 @@ function region(file: string, name: string, expected: string): string {
   expect(to, `${file} is missing the ${name} end marker`).toBeGreaterThan(from);
   const current = content.slice(from + start.length, to).trim();
   if (UPDATE && current !== expected) {
-    writeFileSync(file, `${content.slice(0, from + start.length)}\n${expected}\n${content.slice(to)}`);
+    writeFileSync(
+      file,
+      `${content.slice(0, from + start.length)}\n${expected}\n${content.slice(to)}`
+    );
     return expected;
   }
   return current;
@@ -129,7 +132,9 @@ describe('deck READMEs stay in sync with the code', () => {
   });
 
   it('keeps the package.json subpaths and the README exports table aligned', () => {
-    const manifest = JSON.parse(readFileSync(join(import.meta.dirname, '../package.json'), 'utf8')) as {
+    const manifest = JSON.parse(
+      readFileSync(join(import.meta.dirname, '../package.json'), 'utf8')
+    ) as {
       exports: Record<string, string>;
     };
     const readme = readFileSync(DECKS_README, 'utf8');
