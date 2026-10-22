@@ -3,28 +3,14 @@
   "kind": "deck",
   "name": "Protoyard: create anything",
   "description": "The flagship deck: what Protoyard builds from a single JSON file, shown with every layout family, live charts, interactive blocks and an app embedded in a slide.",
-  "tags": [
-    "deck",
-    "flagship",
-    "example"
-  ],
+  "tags": ["deck", "flagship", "example"],
   "icon": "🎞️",
   "category": "demos",
   "catalog": {
     "category": "design",
     "productType": "Presentation deck",
-    "platforms": [
-      "web"
-    ],
-    "features": [
-      "deck",
-      "charts",
-      "poll",
-      "quiz",
-      "calculator",
-      "embed-app",
-      "presenter"
-    ],
+    "platforms": ["web"],
+    "features": ["deck", "charts", "poll", "quiz", "calculator", "embed-app", "presenter"],
     "highlights": [
       "Every layout family",
       "Charts with data tables",
@@ -52,57 +38,27 @@
         {
           "id": "s-why",
           "title": "Why",
-          "slideIds": [
-            "cover",
-            "promise",
-            "problem",
-            "quote"
-          ]
+          "slideIds": ["cover", "promise", "problem", "quote"]
         },
         {
           "id": "s-how",
           "title": "How it works",
-          "slideIds": [
-            "how-divider",
-            "levels",
-            "loop",
-            "blocks",
-            "terminal",
-            "code"
-          ]
+          "slideIds": ["how-divider", "levels", "loop", "blocks", "terminal", "code"]
         },
         {
           "id": "s-what",
           "title": "What you can make",
-          "slideIds": [
-            "what-divider",
-            "kinds",
-            "compare",
-            "stat",
-            "chart",
-            "explore"
-          ]
+          "slideIds": ["what-divider", "kinds", "compare", "stat", "chart", "explore"]
         },
         {
           "id": "s-try",
           "title": "Try it here",
-          "slideIds": [
-            "try-divider",
-            "poll",
-            "calculator",
-            "local",
-            "quiz",
-            "embed"
-          ]
+          "slideIds": ["try-divider", "poll", "calculator", "local", "quiz", "embed"]
         },
         {
           "id": "s-next",
           "title": "What's next",
-          "slideIds": [
-            "timeline",
-            "team",
-            "close"
-          ]
+          "slideIds": ["timeline", "team", "close"]
         }
       ]
     },
@@ -308,10 +264,7 @@
           "code": {
             "lang": "json",
             "source": "{\n  \"id\": \"stat\",\n  \"layout\": \"big-stat\",\n  \"props\": {\n    \"number\": \"3x\",\n    \"label\": \"faster to a clickable idea\"\n  }\n}",
-            "highlights": [
-              "3",
-              "4-7"
-            ]
+            "highlights": ["3", "4-7"]
           },
           "heading": "What the renderer reads",
           "bullets": [
@@ -375,38 +328,23 @@
         "layout": "comparison-table",
         "props": {
           "title": "Where each level fits",
-          "columns": [
-            "Level 1 · JSON",
-            "Level 2 · prototype"
-          ],
+          "columns": ["Level 1 · JSON", "Level 2 · prototype"],
           "rows": [
             {
               "label": "Time to first click",
-              "values": [
-                "Seconds",
-                "Minutes"
-              ]
+              "values": ["Seconds", "Minutes"]
             },
             {
               "label": "Needs a build",
-              "values": [
-                false,
-                true
-              ]
+              "values": [false, true]
             },
             {
               "label": "Custom Svelte code",
-              "values": [
-                false,
-                true
-              ]
+              "values": [false, true]
             },
             {
               "label": "Best for",
-              "values": [
-                "Exploring ideas",
-                "Polished demos"
-              ]
+              "values": ["Exploring ideas", "Polished demos"]
             }
           ]
         },
@@ -450,36 +388,15 @@
           "spec": {
             "kind": "area",
             "title": "Prototypes created per week (fictional)",
-            "labels": [
-              "W1",
-              "W2",
-              "W3",
-              "W4",
-              "W5",
-              "W6"
-            ],
+            "labels": ["W1", "W2", "W3", "W4", "W5", "W6"],
             "series": [
               {
                 "label": "Decks",
-                "values": [
-                  4,
-                  9,
-                  15,
-                  22,
-                  31,
-                  40
-                ]
+                "values": [4, 9, 15, 22, 31, 40]
               },
               {
                 "label": "Apps",
-                "values": [
-                  12,
-                  14,
-                  17,
-                  19,
-                  22,
-                  24
-                ]
+                "values": [12, 14, 17, 19, 22, 24]
               }
             ],
             "description": "Fictional data: weekly decks grow tenfold over six weeks while apps grow steadily."
@@ -504,56 +421,24 @@
             "spec": {
               "kind": "line",
               "title": "Weekly prototypes by kind (fictional)",
-              "labels": [
-                "W1",
-                "W2",
-                "W3",
-                "W4",
-                "W5",
-                "W6"
-              ],
+              "labels": ["W1", "W2", "W3", "W4", "W5", "W6"],
               "series": [
                 {
                   "label": "Decks",
-                  "values": [
-                    4,
-                    9,
-                    15,
-                    22,
-                    31,
-                    40
-                  ]
+                  "values": [4, 9, 15, 22, 31, 40]
                 },
                 {
                   "label": "Pages",
-                  "values": [
-                    2,
-                    4,
-                    7,
-                    9,
-                    12,
-                    16
-                  ]
+                  "values": [2, 4, 7, 9, 12, 16]
                 },
                 {
                   "label": "Apps",
-                  "values": [
-                    12,
-                    14,
-                    17,
-                    19,
-                    22,
-                    24
-                  ]
+                  "values": [12, 14, 17, 19, 22, 24]
                 }
               ],
               "description": "Fictional data: decks overtake apps by week five; pages grow steadily."
             },
-            "kinds": [
-              "line",
-              "bar",
-              "area"
-            ],
+            "kinds": ["line", "bar", "area"],
             "seriesToggle": true,
             "range": true
           }
@@ -704,9 +589,7 @@
                     "label": "A browser extension"
                   }
                 ],
-                "answers": [
-                  "a"
-                ]
+                "answers": ["a"]
               },
               {
                 "id": "q2",
@@ -725,9 +608,7 @@
                     "label": "Nothing; decks cannot be generated"
                   }
                 ],
-                "answers": [
-                  "b"
-                ]
+                "answers": ["b"]
               }
             ]
           }
@@ -766,35 +647,20 @@
                     {
                       "name": "status",
                       "kind": "enum",
-                      "values": [
-                        "new",
-                        "exploring",
-                        "shipped"
-                      ],
+                      "values": ["new", "exploring", "shipped"],
                       "default": "new",
                       "required": true,
-                      "weights": [
-                        3,
-                        2,
-                        1
-                      ]
+                      "weights": [3, 2, 1]
                     }
                   ],
-                  "searchable": [
-                    "title"
-                  ]
+                  "searchable": ["title"]
                 }
               ],
               "roles": [
                 {
                   "name": "member",
                   "permissions": {
-                    "*": [
-                      "read",
-                      "create",
-                      "update",
-                      "delete"
-                    ]
+                    "*": ["read", "create", "update", "delete"]
                   }
                 }
               ]
