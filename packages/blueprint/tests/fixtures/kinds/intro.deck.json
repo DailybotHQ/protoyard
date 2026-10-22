@@ -1,0 +1,28 @@
+{
+  "formatVersion": 1,
+  "name": "A bounded presentation",
+  "description": "A fictional example deck.",
+  "tags": ["example"],
+  "kind": "deck",
+  "deck": {
+    "style": { "aspect": "16:9" },
+    "slides": [
+      {
+        "id": "opening",
+        "title": "A bounded presentation",
+        "layout": "process-steps",
+        "props": {
+          "title": "The plan",
+          "steps": [
+            { "title": "Set the scope", "step": 1, "fragment": "fade-up" },
+            { "title": "Review the result", "step": 2, "reveal": "highlight" },
+            { "title": "Share the outcome", "step": 3 }
+          ]
+        }
+      }
+    ],
+    "outline": {
+      "sections": [{ "id": "opening-section", "slideIds": ["opening"] }]
+    }
+  }
+}

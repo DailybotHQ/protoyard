@@ -13,6 +13,8 @@ interface Props {
   class?: string;
   mainClass?: string;
   mainId?: string;
+  /** Text of the skip link (keyboard users jump past the header); translate it with the app. */
+  skipLabel?: string;
 }
 
 let {
@@ -23,6 +25,7 @@ let {
   class: className,
   mainClass,
   mainId = 'mobile-app-content',
+  skipLabel = 'Skip to content',
 }: Props = $props();
 
 let mainElement: HTMLElement;
@@ -45,7 +48,7 @@ $effect(() => {
       mainElement.focus();
     }}
   >
-    Skip to content
+    {skipLabel}
   </a>
 
   {@render header?.()}

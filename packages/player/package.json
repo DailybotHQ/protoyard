@@ -5,11 +5,13 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    "./embed": "./src/embed/index.ts"
+    "./embed": "./src/embed/index.ts",
+    "./boot": "./src/boot.ts"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:package": "node scripts/package-dist.ts && vite build",
     "preview": "vite preview",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
   },
@@ -19,10 +21,13 @@
     "@protoyard/ai-ui": "workspace:*",
     "@protoyard/analytics": "workspace:*",
     "@protoyard/analytics-ui": "workspace:*",
+    "@protoyard/blocks-ui": "workspace:*",
     "@protoyard/blueprint": "workspace:*",
     "@protoyard/charts-ui": "workspace:*",
     "@protoyard/core": "workspace:*",
     "@protoyard/crud": "workspace:*",
+    "@protoyard/decks-ui": "workspace:*",
+    "@protoyard/pages-ui": "workspace:*",
     "@protoyard/renderer-svelte": "workspace:*",
     "@protoyard/saas": "workspace:*",
     "@protoyard/saas-ui": "workspace:*",
@@ -49,6 +54,11 @@
         "types": "./dist/embed/index.d.ts",
         "import": "./dist/embed/index.js",
         "default": "./dist/embed/index.js"
+      },
+      "./boot": {
+        "types": "./dist/boot/boot.d.ts",
+        "import": "./dist/boot/boot.js",
+        "default": "./dist/boot/boot.js"
       }
     }
   },
@@ -77,13 +87,14 @@
       "keep": [
         "app"
       ],
-      "postBuild": "build"
+      "postBuild": "build:package"
     },
     "pack": {
       "required": [
         "dist/app/index.html",
         "dist/app/protoyard-player-assets.json",
-        "dist/embed/index.js"
+        "dist/embed/index.js",
+        "dist/boot/boot.js"
       ]
     }
   }

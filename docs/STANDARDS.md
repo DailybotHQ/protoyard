@@ -91,6 +91,36 @@ AA in light and dark mode (checked for theme presets in
 `packages/themes/tests`). `prefers-reduced-motion` is honored. Touch targets
 are at least 44px on mobile.
 
+### Roving selection (`@protoyard/ui` `rovingKeydown`)
+
+Single-choice groups that act as a `radiogroup` or `tablist` (segmented
+controls, custom tab strips, toolbar toggles) share one keyboard helper in
+`packages/ui/src/lib/roving.ts`:
+
+- **Keys:** ArrowRight/Down and ArrowLeft/Up move with wrap-around; Home and
+  End jump to the first and last **enabled** option; other keys are ignored.
+- **Disabled:** options with `disabled: true` are skipped.
+- **Selection follows focus:** the helper calls `select(nextValue)` and focuses
+  the matching `[data-value="…"]` inside the nearest group.
+- **Safe values:** focus moves via `data-value` attribute equality (not a CSS
+  attribute selector), so option values may contain quotes, dots or brackets.
+  `escapeSelectorValue` remains available for callers that still build selectors.
+- **Tab order:** use `rovingTabIndex(value, entryValue, entries)` so only the
+  selected option (or the first enabled one when empty) has `tabindex={0}`.
+
+Bits UI-backed `Tabs` and `RadioGroup` already implement roving focus; use this
+helper for hand-rolled groups. Wire it on each option:
+
+```ts
+import { rovingKeydown, rovingTabIndex } from '@protoyard/ui';
+
+onkeydown={(event) => rovingKeydown(event, options, value, select)}
+tabindex={rovingTabIndex(value, option.value, options)}
+// each option: data-value={option.value}
+```
+
+Covered by `pnpm vitest run packages/ui/tests/roving.test.ts`.
+
 ## Commits
 
 Use Conventional Commits, `type(scope): summary`, with the scopes listed in

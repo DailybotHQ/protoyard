@@ -11,6 +11,8 @@ import { safeRelativeUrl } from './compare-html.ts';
  * Content-Security-Policy allows only its own inline style (by hash).
  */
 
+const KIND_LABELS = { deck: 'Deck', page: 'Page', doc: 'Document' } as const;
+
 export interface QuickIndexLink {
   label: string;
   /** Relative URL inside the quick zone (`crm-idea/index.html`). */
@@ -21,6 +23,8 @@ export interface QuickIndexEntry {
   slug: string;
   /** The blueprint name, when it could be read. */
   name: string | null;
+  /** Shown on the card for a deck, page or doc (default app). */
+  kind?: 'app' | 'deck' | 'page' | 'doc';
   source: 'brief' | 'blueprint';
   updatedAt: string;
   open: string;
@@ -66,7 +70,7 @@ function renderEntry(entry: QuickIndexEntry): string {
   const promoted = entry.promotedTo
     ? `<p class="meta">Promoted to prototypes/${escapeHtml(entry.promotedTo)}</p>`
     : '';
-  return `<li><article><h2>${escapeHtml(title)}</h2><p><span class="id">${escapeHtml(entry.slug)}</span></p><p class="meta">From a ${entry.source === 'brief' ? 'brief' : 'blueprint'} · updated ${escapeHtml(entry.updatedAt)}</p>${promoted}<ul class="links">${links}</ul></article></li>`;
+  return `<li><article><h2>${escapeHtml(title)}</h2><p><span class="id">${escapeHtml(entry.slug)}</span></p><p class="meta">${entry.kind && entry.kind !== 'app' ? `${KIND_LABELS[entry.kind]} · ` : ''}From a ${entry.source === 'brief' ? 'brief' : 'blueprint'} · updated ${escapeHtml(entry.updatedAt)}</p>${promoted}<ul class="links">${links}</ul></article></li>`;
 }
 
 /** Renders the page. Deterministic: no clock, no randomness, no environment. */

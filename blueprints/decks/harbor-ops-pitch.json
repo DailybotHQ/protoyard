@@ -1,0 +1,173 @@
+{
+  "formatVersion": 1,
+  "name": "Harbor Ops pitch",
+  "description": "Fictional pitch deck for Harbor Ops, a simulated field-service console. Numbers and quotes are placeholders, not evidence.",
+  "tags": ["deck", "pitch", "example"],
+  "icon": "ship",
+  "category": "demos",
+  "kind": "deck",
+  "brand": {
+    "name": "Harbor Ops",
+    "seed": "#0f766e",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "deck": {
+    "style": {
+      "aspect": "16:9",
+      "density": "comfortable",
+      "transition": "fade",
+      "slideNumbers": true,
+      "progress": "bottom"
+    },
+    "slides": [
+      {
+        "id": "open",
+        "title": "Harbor Ops",
+        "layout": "title-hero",
+        "props": {
+          "title": "Harbor Ops",
+          "subtitle": "A simulated console for field crews",
+          "meta": "Fictional pitch · Example Co · 2026"
+        },
+        "notes": "Open with the product name. Stress that every figure is a placeholder."
+      },
+      {
+        "id": "problem",
+        "title": "The problem",
+        "layout": "two-column-split",
+        "props": {
+          "title": "Dispatch today",
+          "left": {
+            "heading": "What crews see",
+            "body": "Paper routes, radio check-ins, and a spreadsheet that is always one hour late."
+          },
+          "right": {
+            "heading": "What we want",
+            "body": "One shared board of jobs, statuses, and ETAs — still a prototype, still simulated."
+          }
+        },
+        "notes": "Keep claims qualitative. Do not invent market stats."
+      },
+      {
+        "id": "process",
+        "title": "How it works",
+        "layout": "process-steps",
+        "props": {
+          "title": "Four steps on one board",
+          "steps": [
+            {
+              "title": "Intake",
+              "body": "A job lands with a site and a window."
+            },
+            {
+              "title": "Assign",
+              "body": "A lead picks a crew from the simulated roster."
+            },
+            {
+              "title": "Run",
+              "body": "Status moves as the crew checks in."
+            },
+            {
+              "title": "Close",
+              "body": "Notes and photos stay on the job card."
+            }
+          ]
+        }
+      },
+      {
+        "id": "compare",
+        "title": "Compared",
+        "layout": "comparison-table",
+        "props": {
+          "title": "Harbor Ops vs a spreadsheet",
+          "columns": ["Harbor Ops", "Shared sheet"],
+          "rows": [
+            {
+              "label": "Live status",
+              "values": [true, false]
+            },
+            {
+              "label": "Crew view",
+              "values": ["Phone shell", "Desktop only"]
+            },
+            {
+              "label": "Audit trail",
+              "values": ["Simulated log", "Cell edits"]
+            },
+            {
+              "label": "Setup time",
+              "values": ["Minutes", "Days"]
+            }
+          ]
+        },
+        "notes": "Booleans are product features of the prototype, not measured outcomes."
+      },
+      {
+        "id": "trend",
+        "title": "Sample trend",
+        "layout": "chart",
+        "props": {
+          "title": "Jobs closed (placeholder)",
+          "spec": {
+            "kind": "bar",
+            "title": "Closed jobs by week",
+            "unit": "number",
+            "labels": ["W1", "W2", "W3", "W4"],
+            "series": [
+              {
+                "label": "Closed",
+                "values": [12, 18, 15, 22]
+              }
+            ]
+          },
+          "height": "md",
+          "showTable": true
+        },
+        "notes": "Invented weekly counts for layout only. Label them as sample data when speaking."
+      },
+      {
+        "id": "close",
+        "title": "Next step",
+        "layout": "closing-cta",
+        "props": {
+          "title": "Try the demo",
+          "text": "Open the Harbor Ops prototype and walk one fictional job end to end.",
+          "cta": {
+            "label": "Open example.com/docs",
+            "href": "https://example.com/docs/harbor-ops"
+          },
+          "footnote": "Fictional product. No real customers or telemetry."
+        }
+      }
+    ],
+    "outline": {
+      "title": "Harbor Ops pitch",
+      "sections": [
+        {
+          "id": "opening",
+          "title": "Opening",
+          "slideIds": ["open", "problem"]
+        },
+        {
+          "id": "product",
+          "title": "Product",
+          "slideIds": ["process", "compare", "trend"]
+        },
+        {
+          "id": "close",
+          "title": "Close",
+          "slideIds": ["close"]
+        }
+      ]
+    }
+  },
+  "catalog": {
+    "category": "operations",
+    "productType": "Pitch deck",
+    "platforms": ["web"],
+    "features": ["deck", "process", "comparison", "charts"],
+    "highlights": ["Process steps", "Comparison table", "Bar chart"],
+    "difficulty": "beginner"
+  }
+}

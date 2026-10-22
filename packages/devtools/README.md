@@ -18,6 +18,9 @@ await panel.destroy();
 | `isolateFromAppLayers(host)` | Keeps app focus traps / outside-dismiss listeners from reacting to the panel; returns a release function (used by `mountDevtools`) |
 | `reproducibleLink(runtime, { presentation?, href? })` | Current URL + `scenario`/`actor`/`seed` (+ `shell` and `layout` when overridden, + `devtools=0`), dropping stale params |
 | `DevtoolsPanel` | The Svelte component, for custom hosts |
+| `createTourController(def, { onClockAdvance?, resolveTarget? })` | Deterministic guided-tour session: step progression, dismiss, missing-target safety; clock moves only via the host hook (use `createScenarioClockHandler(runtime.scenarios.advance)`) |
+| `TourPlayer` | Dismissible Svelte card + optional spotlight for a running controller (player or custom host) |
+| `parseTourDefinition` / `clockRequestForAdvance` / `resolveTourTarget` | Pure tour helpers (no DOM mutation, no clock writes) |
 
 | Tab | What it does |
 | --- | --- |

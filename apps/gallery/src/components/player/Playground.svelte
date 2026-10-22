@@ -1,5 +1,12 @@
 <script lang="ts">
-import { encodeBlueprintShare } from '@protoyard/blueprint';
+import {
+  type AnyBlueprint,
+  type BlueprintKind,
+  decodeDocumentShare,
+  detectBlueprintKind,
+  encodeBlueprintShare,
+  readBlueprintShareFragment,
+} from '@protoyard/blueprint';
 import { connectPlayer, type PlayerConnection } from '@protoyard/player/embed';
 import { onMount } from 'svelte';
 import { parsePastedBlueprint } from './blueprint.ts';
@@ -9,7 +16,9 @@ let source = $state('');
 let status = $state('Paste a blueprint JSON file or open a share link.');
 let busy = $state(false);
 let shareAvailable = $state(false);
+let playerReady = $state(false);
 let playerSource = $state('about:blank');
+let playerKind: BlueprintKind | null = null;
 let connection: PlayerConnection | null = null;
 
 function hasDeflateRaw(): boolean {
@@ -22,20 +31,35 @@ function hasDeflateRaw(): boolean {
   }
 }
 
-function playerUrl(): string {
-  const target = new URL(`${import.meta.env.BASE_URL}player/`, window.location.href);
+function playerUrl(kind: BlueprintKind, share?: string): string {
+  const page = kind === 'app' ? 'index.html' : `${kind}.html`;
+  const target = new URL(`${import.meta.env.BASE_URL}player/${page}`, window.location.href);
   target.searchParams.set('embedder', window.location.origin);
-  const share = new URLSearchParams(window.location.hash.slice(1)).get('bp');
   if (share) target.hash = `bp=${share}`;
   return target.href;
 }
 
-function connect(): PlayerConnection {
-  if (!connection) {
-    const origin = new URL(frame.src).origin;
-    connection = connectPlayer({ frame, playerOrigin: origin });
+async function openPlayer(kind: BlueprintKind, share?: string): Promise<PlayerConnection> {
+  if (playerKind !== kind || !connection) {
+    playerReady = false;
+    connection?.close();
+    connection = null;
+    playerKind = kind;
+    const loaded = new Promise<void>((resolve) => {
+      frame.addEventListener('load', () => resolve(), { once: true });
+    });
+    playerSource = playerUrl(kind, share);
+    await loaded;
+    connection = connectPlayer({ frame, playerOrigin: new URL(frame.src).origin });
   }
+  await connection.ready;
+  playerReady = true;
   return connection;
+}
+
+function kindOf(blueprint: AnyBlueprint): BlueprintKind {
+  const detected = detectBlueprintKind(blueprint);
+  return detected.ok ? detected.kind : 'app';
 }
 
 async function loadPasted(): Promise<void> {
@@ -43,11 +67,14 @@ async function loadPasted(): Promise<void> {
   busy = true;
   status = 'Validating blueprint…';
   try {
-    const blueprint = parsePastedBlueprint(source);
-    const player = connection ?? connect();
-    await player.ready;
-    const result = await player.load(blueprint);
-    status = `${result.name} is running in this browser.`;
+    const blueprint = await parsePastedBlueprint(source);
+    const kind = kindOf(blueprint);
+    const player = await openPlayer(kind);
+    await player.load(blueprint);
+    const next = new URL(window.location.href);
+    next.hash = '';
+    window.history.replaceState(null, '', next);
+    status = `${blueprint.name} is running in this browser.`;
   } catch (error) {
     status = error instanceof Error ? error.message : 'The blueprint could not be loaded.';
   } finally {
@@ -60,7 +87,7 @@ async function copyShareLink(): Promise<void> {
   busy = true;
   status = 'Preparing share link…';
   try {
-    const blueprint = parsePastedBlueprint(source);
+    const blueprint = await parsePastedBlueprint(source);
     const encoded = await encodeBlueprintShare(blueprint);
     const next = new URL(window.location.href);
     next.hash = `bp=${encoded}`;
@@ -80,24 +107,52 @@ async function copyShareLink(): Promise<void> {
 
 onMount(() => {
   shareAvailable = hasDeflateRaw();
-  const sourceUrl = playerUrl();
-  connection = connectPlayer({ frame, playerOrigin: new URL(sourceUrl).origin });
-  void connection.ready.catch((error: unknown) => {
-    status = error instanceof Error ? error.message : 'The player frame did not become ready.';
-  });
-  playerSource = sourceUrl;
-  if (!shareAvailable) {
-    status =
-      'Share links need CompressionStream with deflate-raw. This browser can still load pasted blueprints.';
-  }
-  return () => connection?.close();
+  const share = readBlueprintShareFragment(window.location.hash);
+  const opening = 'Opening the player…';
+  status = opening;
+  // A load or share link started while the player opens keeps its own status
+  // (a player that fails to open still says so).
+  const settle = (next: string) => {
+    if (status === opening) status = next;
+  };
+  let active = true;
+  void (async () => {
+    let kind: BlueprintKind = 'app';
+    let openingStatus = 'Paste a blueprint JSON file or open a share link.';
+    if (share) {
+      const decoded = await decodeDocumentShare(share);
+      if (decoded.success) {
+        kind = kindOf(decoded.blueprint);
+        openingStatus = `${decoded.blueprint.name} is open in the player.`;
+      } else {
+        openingStatus = decoded.issues.map((issue) => issue.message).join(' ');
+      }
+    }
+    if (!active) return;
+    try {
+      await openPlayer(kind, share ?? undefined);
+    } catch (error) {
+      status = error instanceof Error ? error.message : 'The player frame did not become ready.';
+      return;
+    }
+    if (!active) return;
+    settle(
+      !share && !shareAvailable
+        ? 'Share links need CompressionStream with deflate-raw. This browser can still load pasted blueprints.'
+        : openingStatus
+    );
+  })();
+  return () => {
+    active = false;
+    connection?.close();
+  };
 });
 </script>
 
 <section class="grid gap-6 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
   <div class="space-y-4">
     <label class="block space-y-2 text-sm font-medium" for="blueprint-source">
-      Blueprint JSON
+      Blueprint JSON (app, deck, page, or document)
       <textarea
         id="blueprint-source"
         bind:value={source}
@@ -113,7 +168,7 @@ onMount(() => {
       <button
         type="button"
         class="rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:cursor-wait disabled:opacity-60"
-        disabled={busy || source.trim().length === 0}
+        disabled={busy || !playerReady || source.trim().length === 0}
         onclick={loadPasted}
       >{busy ? 'Loading…' : 'Load blueprint'}</button>
       <button
@@ -129,7 +184,7 @@ onMount(() => {
   <div class="min-h-[34rem] overflow-hidden rounded-xl border border-line bg-surface-1">
     <iframe
       bind:this={frame}
-      title="Running Protoyard prototype"
+      title="Running Protoyard blueprint"
       src={playerSource}
       class="h-[min(75vh,56rem)] min-h-[34rem] w-full border-0 bg-white"
       referrerpolicy="strict-origin-when-cross-origin"

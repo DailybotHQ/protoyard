@@ -8,9 +8,9 @@ package never imports Svelte or a UI package. The Svelte half is
 [`@protoyard/views-ui`](../views-ui/README.md).
 
 > **Status:** board, calendar, timeline, grid, tree, map, editor, activity,
-> files and scenarios have engine helpers. `notifications`, `settings`,
-> `states` and `commands` reserve subpath names but currently have no runtime
-> exports; their UI components are documented in the [views kit guide](../../docs/VIEWS.md).
+> files, commands and scenarios have engine helpers. `notifications`, `settings`
+> and `states` reserve subpath names; their UI components are documented in the
+> [views kit guide](../../docs/VIEWS.md).
 
 ## Subpaths
 
@@ -25,7 +25,7 @@ import { rankBetween } from '@protoyard/views/board'; // once the board engine l
 | `./board` | Ordering ranks, WIP limits, swimlanes, keyboard move state |
 | `./calendar` | Month/week/day grids, recurrence subset, overlap layout |
 | `./timeline` | Dependencies, critical path, cascade |
-| `./grid` | Row/column virtualization, column state, grouping, filter AST, saved views |
+| `./grid` | Row/column virtualization, column state, grouping, filter AST, filter composition, row selection, saved views |
 | `./tree` | Flatten, move, indent/outdent, cycle-safe reparent |
 | `./map` | Fictional offline basemap, projection, clustering, geofences |
 | `./editor` | Markdown text commands |
@@ -34,10 +34,43 @@ import { rankBetween } from '@protoyard/views/board'; // once the board engine l
 | `./files` | File and folder helpers, deterministic thumbnails |
 | `./settings` | Reserved subpath; settings patterns live in views-ui |
 | `./states` | Reserved subpath; query state classification lives in views-ui |
-| `./commands` | Reserved subpath; command registry lives in views-ui |
+| `./commands` | Command registry, deterministic ranking, async search, scopes and nested command steps |
 | `./scenarios` | Deterministic generators and scenario fragments |
 
 The root entry (`@protoyard/views`) exports types only (`ViewName`).
+
+## Commands (`@protoyard/views/commands`)
+
+The command engine builds a compatible registry from named routes, registered
+actions and recent records. It filters entries against the current simulated
+capabilities and active scopes; the host still owns navigation and action
+execution. Query ranking is deterministic, uses stable tie-breaking, and is
+bounded to 256 query characters and 100 results. Async search providers receive
+an `AbortSignal`; starting a newer search cancels the previous one.
+
+Actions can expose static or lazy `children` for hierarchical selection. A host
+may also supply `createFallback(query)` to offer a create-from-typed-text action.
+The registry keeps the flat `list`, `search`, `register`, `addRecent` and
+`matchShortcut` APIs for existing consumers. It re-checks capabilities when an
+action runs; capability filtering is simulated UX, not security.
+
+Display-only keyboard bindings use `HotkeyBinding`, `formatHotkeyKeys` and
+`filterHotkeyBindings`. The binding data contains labels, groups, alternative
+chords or sequences, and optional scopes. Formatting takes an explicit
+`'mac' | 'other'` platform, so the framework-free engine never reads browser
+state. Unscoped and `global` bindings stay visible; scoped bindings appear when
+an active scope matches. Hosts own key registration and dispatch.
+
+```ts
+import { filterHotkeyBindings, formatHotkeyKeys, type HotkeyBinding } from '@protoyard/views/commands';
+
+const shortcuts: HotkeyBinding[] = [
+  { id: 'save', label: 'Save', group: 'Editing', keys: ['mod+s'], scopes: ['editor'] },
+  { id: 'help', label: 'Help', group: 'General', keys: ['?'], scopes: ['global'] },
+];
+const visible = filterHotkeyBindings(shortcuts, ['editor']);
+formatHotkeyKeys(visible[0]!, 'mac'); // ['⌘S']
+```
 
 ## Board (`@protoyard/views/board`)
 
@@ -173,6 +206,27 @@ const visible = windowGrid({ rows: createAxis({ count: rows.length, size: 36 }),
   nested thousands of levels deep fails validation instead of overflowing the
   stack; `exceedsFilterLimits`), and compiled to closures (never `eval` or `new Function`). Text
   comparisons ignore case.
+- **Filter composition** (`normalizeFilter`, `tidyFilter`, `serializeFilter`,
+  `parseSerializedFilter`, `filtersEqual`, `facetsFromFilter`,
+  `filterFromFacets`, `setFacet`, `toggleFacetValue`, `describeFilter`,
+  `removeFilterAt`):
+  - **Canonical form:** same-op groups are flattened, duplicates dropped,
+    `in` lists sorted and deduplicated, and children sorted, so equal
+    filters serialize to the same text. An empty group matches every row (as
+    `compileFilter` treats it), so an `or` holding one normalizes to "no
+    filter".
+  - **Untrusted text:** `parseSerializedFilter` reads serialized text as
+    untrusted input (32 KB cap, the bounded schema, and the columns when
+    given).
+  - **Facets:** OR within a field, AND across fields. A facet edit keeps every
+    other condition in its order.
+  - **Chips and removal:** `describeFilter` gives one chip per top-level
+    condition ("Stage is any of Lead or Won"). `removeFilterAt` removes by
+    path, and a group emptied by the removal goes with it.
+- **Row selection** (`toggleRow`, `selectRange`, `setVisibleSelected`,
+  `selectionState`, `pruneSelection`): selected ids as a plain array in row
+  order, shift-range from an anchor, a none/some/all state for a tri-state
+  checkbox, and pruning when rows disappear.
 - **Grouping** (`groupRows`, `flattenGroups`): one column, groups ordered by
   value with the empty group last, `count`/`sum`/`min`/`max` aggregates, and a
   flat header-plus-rows list (honoring collapsed groups) for the virtualizer.
@@ -180,6 +234,9 @@ const visible = windowGrid({ rows: createAxis({ count: rows.length, size: 36 }),
   `{ id, name, columns, sort, groupBy, filter, density }`, strict and bounded,
   safe to store in IndexedDB and import from snapshots. `sanitizeView` removes
   references to columns that no longer exist and lists what it removed.
+  `viewStatesEqual` / `isViewModified` compare view states (filters by
+  canonical form), `nextViewId(name, existing)` derives a stable unique id,
+  and `showAllColumns` backs a column chooser's "Show all".
 - **Speed** (100,000 in-memory rows): `tests/grid.test.ts` asserts each of
   multi-key sort, unique-text sort, filter and group in under 150 ms, scaled
   by a same-process calibration (a native sort of 100,000 numbers) on a busy
@@ -188,8 +245,11 @@ const visible = windowGrid({ rows: createAxis({ count: rows.length, size: 36 }),
   101–273 ms, unique-text sort 174–676 ms, filter 9–32 ms, group 16–56 ms.
   Quiet-machine numbers are not measured yet; the browser benchmark is
   T-grid-perf-bench.
-- **Size** (esbuild, minified, gzip -9, zod excluded): the whole subpath is
-  4.6 KB; what a grid view imports is 4.0 KB; the virtualizer alone 0.6 KB.
+- **Size** (esbuild, minified, gzip -9, zod and `@protoyard/core` excluded;
+  re-measured 2026-10-21): the whole subpath is 6.7 KB (6,853 B; 4.6 KB
+  before filter composition and selection); `compose.ts` with the filter
+  schema it uses is 3.0 KB, and selection alone 0.4 KB. Earlier figures:
+  what a grid view imported was 4.0 KB, and the virtualizer alone 0.6 KB.
 
 ## Map (`@protoyard/views/map`)
 
@@ -251,6 +311,17 @@ text and selection out), used by `@protoyard/views-ui/editor`:
 quote, for every selected line), `setHeading`, `insertCodeBlock`,
 `continueList` (Enter in a list), `triggerAt` (the `@`/`#` being typed,
 never inside an email or a word) and `applyCompletion`.
+
+`parseEditorDocument(markdown)` converts a bounded Markdown subset into a
+strict versioned document model. It supports paragraphs, headings, marks,
+safe links, explicit mentions (`@{id|label}`), lists, quotes and fenced code.
+`serializeEditorDocument(document)` validates the same schema and emits
+canonical Markdown. Link targets permit http, https, mailto and relative links;
+unsafe schemes are removed while their labels remain visible text. Raw HTML is
+plain text and is never interpreted. Documents are capped at 32,000 source
+characters, 256 blocks, 100 items per list and 12,000 characters per code
+block. The model has no UI or database dependency; persistence belongs to the
+consuming prototype's service.
 
 ## Scenario generators (`@protoyard/views/scenarios`)
 

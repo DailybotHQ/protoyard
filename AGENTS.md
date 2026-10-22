@@ -28,10 +28,14 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Agents | [AGENT_GUIDE](docs/AGENT_GUIDE.md) | The build loop for a new prototype, prompts, troubleshooting |
 | Database | [DATABASE](docs/DATABASE.md) | Schemas, migrations, services, `liveQuery`, storage caveats |
 | Scenarios | [SCENARIOS](docs/SCENARIOS.md) | Axes, presets, generators, personas/policy, time, environment, snapshots |
-| Generator | [GENERATOR](docs/GENERATOR.md) | Blueprints → prototypes: format, screens, layouts, generate/regenerate, ownership, migrations, drift |
+| Kinds | [KINDS](docs/KINDS.md) | App, deck, page and doc blueprints: the two levels (player JSON, generated prototype), authoring, packages, catalog, limits |
+| Decks | [DECKS](docs/DECKS.md) | Slide decks: deck JSON, 21 layouts, steps, presenter, print, style and Deck Studio, lint, sharing, limits |
+| Pages | [PAGES](docs/PAGES.md) | Landing pages and documents: hosts, sections, forms and responses, reading layout, print |
+| Blocks | [BLOCKS](docs/BLOCKS.md) | Shared content blocks for decks, pages and docs: schemas, limits, lazy families, interactive state, embedded apps |
+| Generator | [GENERATOR](docs/GENERATOR.md) | Blueprints → app, deck, page and doc prototypes: format, screens, layouts, generate/regenerate, ownership, migrations, drift |
 | Brief to prototype | [BRIEF_TO_PROTOTYPE](docs/BRIEF_TO_PROTOTYPE.md) | Prose brief → offline blueprint → review → generate → validate → export |
 | Quick CLI | [QUICK](docs/QUICK.md) | Disposable `protoyard quick` explorations, variants, loopback serving, report and feedback scope |
-| Player | [PLAYER](docs/PLAYER.md) | No-install blueprint player: entry points, hosted `/play/`, share links, storage, worlds, parity, browser limits |
+| Player | [PLAYER](docs/PLAYER.md) | No-install player for app, deck, page and doc blueprints: per-kind entries, hosted `/play/`, share links, storage, worlds, parity, browser limits |
 | Themes | [THEMES](docs/THEMES.md) | Style model, palette engine, 64-theme library, Theme Studio, `theme` CLI, brand blocks, measured bundle impact |
 | Layouts | [LAYOUTS](docs/LAYOUTS.md) | Shared layout catalog, manifest setup, responsive fallbacks, shell composition, authoring and tests |
 | Shells | [SHELLS](docs/SHELLS.md) | Device and host shells, manifest preview fields, `?shell=`, layout inside frames |
@@ -53,6 +57,7 @@ Fake infrastructure.* No backend. See [docs/PRODUCT_SPEC.md](docs/PRODUCT_SPEC.m
 | Testing | [TESTING_GUIDE](docs/TESTING_GUIDE.md) | Full and scoped commands, source→test map, blind spots, posture |
 | Commands | [DEVELOPMENT_COMMANDS](docs/DEVELOPMENT_COMMANDS.md) | Every script and CLI command |
 | Security | [SECURITY](docs/SECURITY.md) | Threat model, trust boundaries, rules |
+| Accessibility | [ACCESSIBILITY](docs/ACCESSIBILITY.md) | WCAG 2.1 A/AA checks: content-kind axe in light and dark, phone and desktop, what is asserted, fixes, honest limits |
 | Performance | [PERFORMANCE](docs/PERFORMANCE.md) | Measured index and bundle numbers, budgets |
 | Onboarding | [AI_AGENT_ONBOARDING](docs/AI_AGENT_ONBOARDING.md) | First-session checklist |
 | Collaboration | [AI_AGENT_COLLAB](docs/AI_AGENT_COLLAB.md) | Path ownership, lockfile, commits in a shared checkout, handoffs |
@@ -90,7 +95,17 @@ protoyard/
 │   ├── review/            review comments engine: anchors, adapter contract, local/http/artifact adapters, server handler (no Svelte) (README)
 │   ├── review-ui/         Svelte review UI: comment mode and pins, threads, panel, toolbar, lazy mount (README)
 │   ├── avatars/           175 fictional portraits (WebP 64/128 px) + verified manifest, data only   (README)
-│   ├── player/            prebuilt static app that runs any blueprint at runtime, no build or install (level 1) (README)
+│   ├── blocks/            content block engine: schemas, limits, untrusted-input guard, closed formula AST, text helpers (no Svelte) (README)
+│   ├── blocks-ui/         Svelte block renderers, one lazy subpath per family (text, media, data, structure, code, diagram, interactive, map, embed) (README)
+│   ├── decks/             slide deck engine: schema, 21-layout catalog, navigation, steps, style, quality checks (no Svelte) (README)
+│   ├── decks-ui/          Svelte DeckApp, presenter, overview, print and Deck Studio, each on its own lazy chunk (README)
+│   ├── pages/             page and doc engine: schemas, limits, TOC helpers, form-response services (no Svelte) (README)
+│   ├── pages-ui/          Svelte PageApp and DocApp hosts, forms and responses UI, print CSS (README)
+│   ├── flows/             workflow engine: serializable flows, triggers, steps, data-only conditions, simulated runs (no Svelte) (README)
+│   ├── flows-ui/          Svelte workflow editor and simulated run panels (README)
+│   ├── gamification/      points ledger, levels, badges, missions and streaks (no Svelte) (README)
+│   ├── gamification-ui/   Svelte level, points and streak chips, badges and mission panels (README)
+│   ├── player/            prebuilt static player for app, deck, page and doc blueprints, per-kind entries, no build or install (level 1) (README)
 │   ├── templates/         @protoyard/templates: packs templates/* for npm; listTemplates()/templateDir()  (README)
 │   ├── protoyard/         unscoped `protoyard` npm package: bin that runs @protoyard/cli in-process, same version (README)
 │   ├── create-protoyard/  `npm create protoyard` scaffolder for a consumer workspace (not on npm yet)   (README)
@@ -98,22 +113,23 @@ protoyard/
 ├── apps/gallery/          Astro static gallery + /marketplace/ (reads the registry only)           (README)
 ├── templates/<name>/      admin-console, agent-console, ai-assistant, analytics, b2b-saas, blank,
 │                          booking-calendar, chat, chat-widget, clinic, course-lms, crud-app,
-│                          dashboard, desktop-app, docs-wiki, ecommerce, fintech-dashboard,
+│                          dashboard, deck, design-kit, desktop-app, doc, docs-wiki, ecommerce, fintech-dashboard,
 │                          iot-monitoring, logistics-map, marketplace, mobile-app, onboarding,
-│                          plugin-panel, project-management, social-feed, task-manager, team-chat
-├── prototypes/<slug>/     ai-chat-demo, atlas-workspace-demo, cadence-studio-demo*, crm-demo,
+│                          page, plugin-panel, project-management, social-feed, task-manager, team-chat
+├── prototypes/<slug>/     ai-chat-demo, atlas-workspace-demo, cadence-studio-demo*, create-anything-deck*, crm-demo,
 │                          harbor-dispatch-demo*, helpdesk-demo*, keel-projects-demo,
 │                          lattice-saas-demo, mobile-banking-demo, nova-assistant-demo,
 │                          pebblestat-analytics-demo, pulse-revenue-demo*, relay-chat-demo,
 │                          support-widget-demo, ui-kit, …yours   (* generated from a blueprint)
-├── blueprints/            40 data-only product blueprints for `protoyard generate`                (README)
+├── blueprints/            40 app blueprints + deck, page and doc examples (decks/, pages/, docs/) for the player and `protoyard generate` (README)
 ├── integrations/deepworkplan/protoyard/  DWP addon packet: addon.json, SPEC.md, SKILL.md, UPSTREAM.md, templates/
 ├── skills/protoyard/      the distributable agent skill: SKILL.md router, sub-skills, setup.sh   (docs/SKILL.md)
 ├── tests/                 support/ (runtime + generator harness), e2e/ (Playwright + axe), setup/
 ├── scripts/               bench-index.ts, bench-cold-start.ts, bench-charts.ts, bench-grid.ts, bench-idea.ts,
-│                          bench-player.ts, bench-integrations.ts, visual-sweep.ts (+ lib/), generate-thumbnails.ts,
+│                          bench-player.ts, bench-integrations.ts, bench-blocks.ts, bench-brief-kinds.ts,
+│                          visual-sweep.ts (+ lib/), sweep-deck.ts, blocks-reference.ts, generate-thumbnails.ts,
 │                          import-avatars.ts, {build,check,verify,version}-packages.ts, skill and integration checks,
-│                          check-public-hygiene.sh, changelog-section.sh
+│                          check-public-hygiene.sh, check-public-docs.ts, changelog-section.sh
 ├── docs/                  the guides above
 ├── .agents/               skills, agents, commands (.claude and .cursor symlink here)
 ├── .review/extension.md   repo rules for the AI Diff Reviewer local review
@@ -133,7 +149,8 @@ protoyard/
 | Unit + integration | `pnpm test` | `pnpm vitest run <path>` · `pnpm vitest run -t "<name>"` |
 | E2E | `pnpm test:e2e` (`pnpm test:e2e:install` once) | `PROTOYARD_E2E_PROTOTYPES=<slug> pnpm test:e2e` |
 | Turn a brief into a blueprint | — | `echo "<brief>" \| pnpm protoyard blueprint new <file> --from-brief - [--generate <slug>] [--dry-run]` |
-| Generate from a blueprint | — | `pnpm protoyard blueprint validate <file>` · `pnpm protoyard generate <slug> --blueprint <file> [--dry-run]` |
+| Generate from a blueprint | — | `pnpm protoyard blueprint validate <file>` · `pnpm protoyard generate <slug> --blueprint <file> [--dry-run]` (app, deck, page or doc) |
+| Make a slide deck | — | `pnpm protoyard quick "<topic>" --kind deck` · `pnpm protoyard generate my-deck --blueprint blueprints/decks/protoyard-create-anything.json` |
 | Find or apply a theme | — | `pnpm protoyard theme list --search <query>` · `pnpm protoyard theme use <slug> <theme-id> --dry-run` |
 | Quick exploration (no build) | — | `pnpm protoyard quick "<brief>" [--variants <1-8>]` · `pnpm protoyard quick serve <slug> --open` |
 | Validate a prototype | — | `pnpm protoyard validate <slug> --build` |
@@ -164,8 +181,11 @@ Nothing requires Docker or CI-only tooling.
    `cli`, `gallery`, `http`, `offline`, `blueprint`, `crud`, `saas`,
    `saas-ui`, `ai`, `ai-ui`, `charts`, `charts-ui`, `analytics`,
    `analytics-ui`, `views`, `views-ui`, `review`, `review-ui`, `avatars`,
-   `templates`, `player`, `<prototype-slug>`,
-   `docs`, `ci`, `deps`, `dwp`. **Stage exact paths**, never `git add -A`.
+   `templates`, `player`, `blocks`, `blocks-ui`, `decks`, `decks-ui`, `pages`,
+   `pages-ui`, `flows`, `flows-ui`, `gamification`, `gamification-ui`,
+   `<prototype-slug>`,
+   `docs`, `ci`, `deps`, `dwp`, `e2e`, `scripts`. Integration merges use
+   `merge(<branch or task>): …`. **Stage exact paths**, never `git add -A`.
 3. **Validation follows the touched surface.** Pick gates from the
    source→test map in [TESTING_GUIDE](docs/TESTING_GUIDE.md). Core or root
    config changes run the full `pnpm check`. When unsure, run the full suite.

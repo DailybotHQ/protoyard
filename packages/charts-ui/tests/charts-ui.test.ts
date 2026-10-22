@@ -11,8 +11,9 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
 describe('@protoyard/charts-ui scaffold', () => {
   it('exposes one subpath export per chart family plus styles', () => {
     const keys = Object.keys(pkg.exports).sort();
+    // ./player.css: the narrow stylesheet the prebuilt player imports (package-owned scan).
     expect(keys).toEqual(
-      ['.', './styles.css', ...CHART_FAMILIES.map((family) => `./${family}`)].sort()
+      ['.', './styles.css', './player.css', ...CHART_FAMILIES.map((family) => `./${family}`)].sort()
     );
   });
 

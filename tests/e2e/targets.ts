@@ -19,6 +19,75 @@ export const PEBBLESTAT_DEMO = 'pebblestat-analytics-demo';
 /** PLAN_003 artifact-pack browser harness target. */
 export const ARTIFACT_PACK_TARGET = 'relay-chat-demo';
 
+/** Authored examples exercised through the hosted player's four content-kind entries. */
+export const SHOWCASE_KIND_TARGETS = [
+  {
+    kind: 'app',
+    path: 'blueprints/quick/analytics.json',
+    root: 'main',
+    heading: 'Metrics',
+  },
+  {
+    kind: 'deck',
+    path: 'blueprints/decks/cedar-training.json',
+    root: '[data-py-deck-app]',
+    heading: 'Cedar Desk training',
+    nextSlide: 'agenda',
+  },
+  {
+    kind: 'page',
+    path: 'blueprints/pages/tidewater-roasters-landing.json',
+    root: '[data-py-page-app]',
+    heading: 'Fresh beans at your door every two weeks',
+  },
+  {
+    kind: 'doc',
+    path: 'blueprints/docs/northwind-quarterly-report.json',
+    root: '[data-py-doc-app]',
+    heading: 'Northwind support quarterly report',
+  },
+] as const;
+
+/** Marketplace examples: each share link must boot its matching player renderer. */
+export const MARKETPLACE_CONTENT_KIND_TARGETS = [
+  {
+    kind: 'app',
+    label: 'App',
+    playerPage: 'index.html',
+    renderer: '[data-py-layout-host]',
+    action: 'Open in player',
+  },
+  {
+    kind: 'deck',
+    label: 'Deck',
+    playerPage: 'deck.html',
+    renderer: '[data-py-deck-app]',
+    action: 'Open Deck in player',
+  },
+  {
+    kind: 'page',
+    label: 'Page',
+    playerPage: 'page.html',
+    renderer: '[data-py-page-app]',
+    action: 'Open Page in player',
+  },
+  {
+    kind: 'doc',
+    label: 'Document',
+    playerPage: 'doc.html',
+    renderer: '[data-py-doc-app]',
+    action: 'Open Document in player',
+  },
+] as const;
+
+export type MarketplaceContentKind = (typeof MARKETPLACE_CONTENT_KIND_TARGETS)[number]['kind'];
+
+export type ShowcaseKindTarget = (typeof SHOWCASE_KIND_TARGETS)[number];
+
+export function readShowcaseKindBlueprint(target: ShowcaseKindTarget): string {
+  return readFileSync(join(process.cwd(), target.path), 'utf8');
+}
+
 /** First prototype port (default 4401). Override for private verification servers. */
 const PROTOTYPE_PORT_BASE = Number(process.env.PROTOYARD_E2E_PROTOTYPE_PORT_BASE ?? 4401);
 
@@ -125,11 +194,13 @@ export function devtoolsPrototypeUrl(slug: string): string {
 }
 
 export interface RegistryEntryLite {
-  kind: 'prototype' | 'template';
+  kind: 'prototype' | 'template' | 'blueprint';
   slug: string;
   name: string;
   tags: string[];
   scenarios: string[];
+  blueprintKind?: MarketplaceContentKind | null;
+  catalog?: { category?: string; features?: string[] } | null;
 }
 
 /** The registry the gallery was built from (the webServer re-indexes first). */

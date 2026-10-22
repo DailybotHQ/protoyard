@@ -7,6 +7,9 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./approvals": "./src/approvals/index.ts",
+    "./attention": "./src/attention/index.ts",
+    "./messages": "./src/messages/index.ts",
     "./markdown": "./src/markdown.ts",
     "./packs": "./src/packs.ts",
     "./scenarios": "./src/scenarios.ts",
@@ -40,6 +43,11 @@
         "import": "./dist/index.js",
         "default": "./dist/index.js"
       },
+      "./approvals": {
+        "types": "./dist/approvals/index.d.ts",
+        "import": "./dist/approvals/index.js",
+        "default": "./dist/approvals/index.js"
+      },
       "./markdown": {
         "types": "./dist/markdown.d.ts",
         "import": "./dist/markdown.js",
@@ -64,6 +72,16 @@
         "types": "./dist/chart.d.ts",
         "import": "./dist/chart.js",
         "default": "./dist/chart.js"
+      },
+      "./attention": {
+        "types": "./dist/attention/index.d.ts",
+        "import": "./dist/attention/index.js",
+        "default": "./dist/attention/index.js"
+      },
+      "./messages": {
+        "types": "./dist/messages/index.d.ts",
+        "import": "./dist/messages/index.js",
+        "default": "./dist/messages/index.js"
       }
     },
     "types": "./dist/index.d.ts"

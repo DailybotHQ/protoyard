@@ -11,6 +11,23 @@
 /** Version of the blueprint document format. Bumped only on breaking changes. */
 export const BLUEPRINT_FORMAT_VERSION = 1;
 
+/**
+ * Authoring APIs (brief synthesis and kind detection, outlines, deck lint and
+ * layout selection, authoring validation) are named exports of this entry and
+ * tree-shake: a prototype that only parses or generates never bundles them.
+ * Browser consumers that want them on demand can load them as one lazy chunk,
+ * together with the deck layout catalog, through `loadAuthoringApis()`.
+ */
+export function loadAuthoringApis(): Promise<typeof import('./authoring-apis.ts')> {
+  return import('./authoring-apis.ts');
+}
+
+/** What `loadAuthoringApis()` resolves to. */
+export type AuthoringApis = Awaited<ReturnType<typeof loadAuthoringApis>>;
+
+/** Layout catalog types for authoring tools (type-only; the catalog itself loads lazily). */
+export type { DeckLayoutEntry, DeckLayoutId, LayoutPacing } from '@protoyard/decks/layouts';
+
 export {
   type AggregateCell,
   type AggregateQuerySpec,
@@ -56,9 +73,29 @@ export {
   createAuditWriter,
 } from './audit.ts';
 export {
+  type DeckLintDiagnostic,
+  type DeckLintResult,
+  type DeckLintSeverity,
+  lintDeckAssets,
+  lintDeckContent,
+  lintDeckStructure,
+} from './authoring/deck-lint.ts';
+export {
+  type DeckLayoutSelection,
+  type DeckLayoutSlideInput,
+  propsForSelectedLayout,
+  type SelectDeckLayoutsOptions,
+  selectDeckLayouts,
+} from './authoring/index.ts';
+export {
   type BlueprintAuthoringDiagnostic,
   type BlueprintAuthoringValidation,
   type BlueprintDiagnosticPath,
+  blockOrAssetHint,
+  diagnosticCode,
+  diagnosticsFromBlockIssues,
+  issueToDiagnostic,
+  toJsonPath as authoringToJsonPath,
   validateBlueprintForAuthoring,
 } from './authoring-validation.ts';
 export {
@@ -85,17 +122,77 @@ export {
   type StyleProfile,
 } from './brand.ts';
 export {
+  APP_CUES,
+  type AppBriefResult,
+  type ApplyOutlineBoundsResult,
   ARCHETYPE_IDS,
   ARCHETYPES,
   type Archetype,
+  applyOutlineBounds,
+  type BoundBriefInput,
+  type BriefKindDetection,
+  type BriefLimitCode,
+  type BriefLimitIssue,
   type BriefOptions,
   type BriefResult,
   blueprintFromBrief,
+  boundBriefInput,
+  buildDocOutline,
+  buildPageOutline,
+  type ContentBriefOptions,
+  type ContentBriefResult,
+  type CueStrength,
+  checkOutlineBounds,
+  chooseDeckOutline,
+  DECK_OUTLINE_IDS,
+  DECK_OUTLINE_LIMITS,
+  DECK_OUTLINES,
+  type DeckOutlineId,
+  type DeckOutlineOptions,
+  type DeckOutlineResult,
+  type DeckOutlineSlide,
+  type DeckPacing,
+  type DeckSlidePlan,
+  type DetectKindOptions,
+  DOC_OUTLINE_IDS,
+  type DocOutlineId,
+  type DocOutlineResult,
+  deckOutlineRange,
+  deckTitleFromBrief,
+  detectBriefKind,
+  detectPageDocOmissions,
   fieldFromPhrase,
   GENERIC_ARCHETYPE,
+  isAppBriefResult,
+  isContentBriefResult,
+  KIND_CUES,
+  type KindConfidence,
+  type KindCue,
   MAX_BRIEF_LENGTH,
+  MAX_CONTENT_BRIEF_LENGTH,
+  OUTLINE_LIMITS,
+  type OutlineBlock,
+  type OutlineBoundsInput,
+  type OutlineBuildOptions,
+  type OutlineLimits,
+  type OutlineSection,
+  type OutlineUnitInput,
+  PAGE_OUTLINE_IDS,
+  type PageOutlineId,
+  type PageOutlineResult,
   PEOPLE_ENTITIES,
+  prepareBriefForSynthesis,
+  requestedSlideCount,
   type SuggestedLayout,
+  sectionIds,
+  selectDocOutline,
+  selectPageOutline,
+  synthesizeAppFromBrief,
+  synthesizeContentFromBrief,
+  synthesizeDeckFromBrief,
+  synthesizeDeckOutline,
+  synthesizeDocFromBrief,
+  synthesizePageFromBrief,
 } from './brief/index.ts';
 export { guardCsvFormula, needsCsvFormulaGuard, unguardCsvFormula } from './csv-guard.ts';
 export {
@@ -115,6 +212,39 @@ export {
   blueprintIdentity,
   canonicalJson,
 } from './identity.ts';
+export {
+  type AnyBlueprint,
+  type BlueprintBase,
+  blueprintKind,
+  type ContentBlueprint,
+  type DeckBlueprint,
+  type DocBlueprint,
+  isAppBlueprint,
+  isContentBlueprint,
+  isDeckBlueprint,
+  isDocBlueprint,
+  isPageBlueprint,
+  type KindBodies,
+  type PageBlueprint,
+  parseAnyBlueprint,
+  safeParseAnyBlueprint,
+} from './kinds/envelope.ts';
+export {
+  BLUEPRINT_KINDS,
+  type BlueprintKind,
+  CONTENT_KINDS,
+  type ContentKind,
+  DEFAULT_BLUEPRINT_KIND,
+  detectBlueprintKind,
+  isBlueprintKind,
+  isContentKind,
+  type KindDetection,
+  unknownKindMessage,
+} from './kinds/kind.ts';
+export {
+  DEFAULT_UNTRUSTED_DOCUMENT_LIMITS,
+  type UntrustedDocumentLimits,
+} from './kinds/limits.ts';
 export {
   appendMigration,
   applyUpgradeOps,
@@ -138,10 +268,12 @@ export {
 export {
   type ApplyBlueprintPatchOptions,
   applyBlueprintPatch,
+  applyContentPatch,
   applyJsonPatch,
   BlueprintPatchError,
   type BlueprintPatchErrorCode,
   type BlueprintPatchResult,
+  type ContentPatchResult,
   JSON_PATCH_MAX_NODES,
   JSON_PATCH_MAX_OPS,
   JSON_POINTER_MAX_LENGTH,
@@ -184,7 +316,6 @@ export {
   type BlueprintScreenNav,
   BUCKET_UNITS,
   blueprintIssues,
-  blueprintJsonSchema,
   CHART_KINDS,
   DashboardWidgetSchema,
   type DateWindow,
@@ -218,6 +349,7 @@ export {
   safeParseBlueprint,
   screenPath,
 } from './schema.ts';
+export { blueprintJsonSchema } from './schema-json.ts';
 export {
   BULK_CHUNK,
   createEntityServices,
@@ -233,9 +365,12 @@ export {
 } from './services.ts';
 export {
   blueprintShareFragment,
+  type DocumentShareDecodeResult,
   decodeBlueprintShare,
+  decodeDocumentShare,
   encodeBlueprintShare,
   MAX_SHARE_DECODED_BYTES,
+  MAX_SHARE_DOCUMENT_DECODED_BYTES,
   MAX_SHARE_ENCODED_LENGTH,
   readBlueprintShareFragment,
   SHARE_FRAGMENT_PARAM,
@@ -258,9 +393,11 @@ export {
 export {
   DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS,
   loadUntrustedBlueprint,
+  loadUntrustedDocument,
   type UntrustedBlueprintIssue,
   type UntrustedBlueprintLimits,
   type UntrustedBlueprintResult,
+  type UntrustedDocumentResult,
 } from './untrusted.ts';
 export {
   deriveInputSchemas,
@@ -294,13 +431,20 @@ export {
 } from './validation-tasks.ts';
 export {
   type BlueprintVariant,
+  type DeriveKindVariantsOptions,
   type DeriveVariantsOptions,
+  deriveKindVariants,
   deriveVariants,
+  type KindBlueprintVariant,
+  type KindVariantAxes,
+  type KindVariantChanges,
+  VARIANT_DECK_TRANSITIONS,
   VARIANT_DENSITIES,
   VARIANT_DENSITY_SCALE,
   VARIANT_MAX_COUNT,
   VARIANT_THEME_PRESETS,
   type VariantAxes,
   type VariantChanges,
+  type VariantDeckTransition,
   type VariantDensity,
 } from './variants.ts';

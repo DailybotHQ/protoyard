@@ -2,7 +2,9 @@
  * `@protoyard/views/grid` — the framework-free data grid engine: 2D windowing
  * with measured sizes, serializable column state (order, width, pin, hidden),
  * stable multi-sort, grouping with count/sum/min/max, a zod-validated filter
- * AST compiled to closures, and saved views that are safe to store and import.
+ * AST compiled to closures, filter composition (canonical serialization,
+ * facets, chips), row selection for bulk actions, and saved views that are
+ * safe to store and import.
  * `@protoyard/views-ui/grid` renders it.
  */
 export {
@@ -22,7 +24,28 @@ export {
   resizeColumn,
   resolveColumns,
   setColumnHidden,
+  showAllColumns,
 } from './columns.ts';
+export {
+  compareScalars,
+  type DescribeFilterOptions,
+  describeFilter,
+  describeValues,
+  FILTER_OPERATOR_LABELS,
+  type FilterChip,
+  type FilterFacets,
+  facetsFromFilter,
+  filterFromFacets,
+  filtersEqual,
+  normalizeFilter,
+  parseSerializedFilter,
+  removeFilterAt,
+  SERIALIZED_FILTER_MAX_BYTES,
+  serializeFilter,
+  setFacet,
+  tidyFilter,
+  toggleFacetValue,
+} from './compose.ts';
 export {
   compileFilter,
   exceedsFilterLimits,
@@ -46,6 +69,15 @@ export {
   type RowGroup,
 } from './group.ts';
 export {
+  pruneSelection,
+  type RowSelection,
+  type SelectionState,
+  selectionState,
+  selectRange,
+  setVisibleSelected,
+  toggleRow,
+} from './selection.ts';
+export {
   type CompareOptions,
   compareNormalized,
   type GridSort,
@@ -56,10 +88,14 @@ export {
   applyView,
   GRID_DENSITIES,
   type GridDensity,
+  isViewModified,
+  nextViewId,
   type SavedView,
   SavedViewSchema,
   sanitizeView,
   type ViewResult,
+  type ViewState,
+  viewStatesEqual,
 } from './view.ts';
 export {
   type Axis,

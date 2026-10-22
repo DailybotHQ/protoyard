@@ -1,0 +1,165 @@
+{
+  "formatVersion": 1,
+  "kind": "doc",
+  "name": "Northwind support quarterly report",
+  "description": "A fictional one-page quarterly report for a support team: summary, headline numbers, a ticket chart, a channel table, milestones and next steps.",
+  "tags": ["report", "one-pager", "support"],
+  "icon": "📄",
+  "category": "reports",
+  "doc": {
+    "id": "northwind-quarterly-report",
+    "title": "Northwind support quarterly report",
+    "toc": {
+      "depth": 2,
+      "sticky": true
+    },
+    "blocks": [
+      {
+        "type": "heading",
+        "id": "title",
+        "level": 1,
+        "eyebrow": "Q3 2026 · Fictional data",
+        "text": "Northwind support quarterly report",
+        "subtitle": "Northwind Labs is a fictional company; every number below is example data."
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Summary",
+        "body": "Median first response time fell from **4 h** to **2 h 30 min** while ticket volume grew **18%**."
+      },
+      {
+        "type": "heading",
+        "id": "headline-numbers",
+        "level": 2,
+        "text": "Headline numbers"
+      },
+      {
+        "type": "stat",
+        "items": [
+          {
+            "value": "3,412",
+            "label": "Tickets closed"
+          },
+          {
+            "value": "2 h 30 min",
+            "label": "Median first response"
+          },
+          {
+            "value": "92%",
+            "label": "Satisfaction (example survey)"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "id": "volume",
+        "level": 2,
+        "text": "Ticket volume by month"
+      },
+      {
+        "type": "chart",
+        "spec": {
+          "kind": "bar",
+          "title": "Tickets per month",
+          "labels": ["July", "August", "September"],
+          "series": [
+            {
+              "label": "Opened",
+              "values": [1080, 1150, 1240]
+            },
+            {
+              "label": "Closed",
+              "values": [1050, 1130, 1232]
+            }
+          ]
+        }
+      },
+      {
+        "type": "heading",
+        "id": "channels",
+        "level": 2,
+        "text": "Channels"
+      },
+      {
+        "type": "table",
+        "caption": "Tickets by channel, Q3 2026 (fictional)",
+        "columns": [
+          {
+            "label": "Channel"
+          },
+          {
+            "label": "Tickets"
+          },
+          {
+            "label": "Median first response"
+          }
+        ],
+        "rows": [
+          ["Email", "1,640", "3 h 10 min"],
+          ["Chat", "1,288", "6 min"],
+          ["Phone", "484", "Immediate"]
+        ]
+      },
+      {
+        "type": "heading",
+        "id": "milestones",
+        "level": 2,
+        "text": "Milestones"
+      },
+      {
+        "type": "timeline",
+        "events": [
+          {
+            "time": "July",
+            "title": "Chat moved to business hours in two time zones"
+          },
+          {
+            "time": "August",
+            "title": "New macros for billing questions"
+          },
+          {
+            "time": "September",
+            "title": "Self-serve refund guide published"
+          }
+        ]
+      },
+      {
+        "type": "heading",
+        "id": "next-steps",
+        "level": 2,
+        "text": "Next steps"
+      },
+      {
+        "type": "list",
+        "style": "check",
+        "items": [
+          {
+            "text": "Cut email first response under 2 h",
+            "done": false
+          },
+          {
+            "text": "Publish the Q4 staffing plan",
+            "done": false
+          },
+          {
+            "text": "Retire the legacy phone menu",
+            "done": true
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "markdown": "Prepared by the fictional support operations team. Contact: support-ops@northwind.example."
+      }
+    ]
+  },
+  "catalog": {
+    "category": "support",
+    "productType": "Quarterly report",
+    "platforms": ["web"],
+    "features": ["doc", "stats", "charts", "timeline", "checklist"],
+    "highlights": ["Headline numbers", "Ticket volume chart", "Milestones and next steps"],
+    "difficulty": "beginner"
+  }
+}

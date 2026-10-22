@@ -13,7 +13,9 @@ data" badge.
 
 ## How it boots
 
-`src/boot.ts` exports `bootPlayer({ blueprint, target })`:
+`@protoyard/player/boot` provides `bootPlayer({ blueprint, target })`, used by
+the player app and generated level-two templates. This packed subpath lets a
+generated app load a validated embedded app into the player runtime:
 
 1. `blueprintIdentity(blueprint)` gives the content namespace `bp-<26 base32>`.
    Each blueprint stores its data in its own IndexedDB databases
@@ -35,6 +37,9 @@ data" badge.
    blueprint, scenario and generator version reloads the stored world instead of
    regenerating. Cache entries are read back as untrusted data (snapshot size and
    row limits, shape checks), and a corrupt entry is dropped and regenerated.
+   Hosts that need separate storage may pass `namespace`; generated level-two
+   embed hosts use a stable namespace derived from their own namespace and the
+   embed block id.
 4. The app (`src/PlayerApp.svelte`) lazily loads `BlueprintApp` from
    `@protoyard/crud/app`, the same routes, navigation and screens a generated
    prototype has. The settings screen gets the theme library on demand.
@@ -69,6 +74,23 @@ every SaaS screen load when their route opens.
 
 The page reaches `performance.mark('protoyard:ready')` and
 `<html data-protoyard-ready="1">` like any prototype.
+
+### Decks, pages and docs
+
+`src/sources/boot-any.ts` picks the boot path by blueprint kind (ADR-036): apps
+go to `boot.ts`, while decks, pages and docs go to `src/boot-kind.ts`. That
+path builds the same `defineKindRuntime` definition a generated kind prototype
+exports from its `src/prototype.ts`, and mounts `DeckApp`, `PageApp` or `DocApp`
+through `src/kinds/KindApp.svelte`. Each path is its own lazy chunk.
+`tests/kinds-parity.test.ts` renders one deck, page and doc both ways (the
+player's `bootKind`, and the kind template with the real
+`emitContentKindPrototype` files on top). It fails if the two differ in slide
+or section order, stores, scenarios, policy, generator version, active theme
+or principal persona:
+
+```sh
+pnpm vitest run packages/player/tests/kinds-parity.test.ts
+```
 
 ## Where the blueprint comes from
 
@@ -316,9 +338,23 @@ the worker's. Load timings are in [PLAYER](../../docs/PLAYER.md#measured-size-an
 
 ## Published package
 
-`@protoyard/player` publishes the typed `@protoyard/player/embed` protocol
-client and server helpers from `dist/embed/`. The static player app is built
-separately with `pnpm --filter @protoyard/player build` into `dist/app/`, for
+`@protoyard/player` publishes two entries, each in its own folder:
+
+- `@protoyard/player/embed`: the typed protocol client and server helpers,
+  from `dist/embed/`.
+- `@protoyard/player/boot`: `bootPlayer`, from `dist/boot/`, with exactly the
+  modules and compiled components it imports.
+
+`pnpm build:packages` compiles `src/` with `svelte-package` and then runs
+`build:package`. That script (`scripts/package-dist.ts`) keeps only the
+import closure of those two entries and their declarations, and deletes the
+rest, so no other source (the app entry, fixtures, kind pages) is published.
+It also points the world-generation worker URL at the emitted `.js`, and
+fails the build if an entry imports a file the compile did not emit. Then
+`build:package` runs the Vite app build below.
+
+The static player app is built separately with
+`pnpm --filter @protoyard/player build` into `dist/app/`, for
 hosted deployments and for `protoyard quick`; that Vite output is not the
 package entry point. The two builds never delete each other's output:
 `pnpm build:packages` cleans `dist/` but keeps `dist/app/`

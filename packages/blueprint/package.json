@@ -15,13 +15,19 @@
     "./generator": "./src/generator.ts",
     "./search": "./src/search.ts",
     "./workflows": "./src/workflows/index.ts",
-    "./schema.json": "./schema/blueprint.schema.json"
+    "./kinds": "./src/kinds/index.ts",
+    "./kinds/embed": "./src/kinds/embed/index.ts",
+    "./schema.json": "./schema/blueprint.schema.json",
+    "./kinds/parse": "./src/kinds/parse.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@protoyard/blocks": "workspace:*",
     "@protoyard/core": "workspace:*",
+    "@protoyard/decks": "workspace:*",
+    "@protoyard/pages": "workspace:*",
     "@protoyard/scenarios": "workspace:*",
     "@protoyard/themes": "workspace:*",
     "zod": "^4.6.7"
@@ -90,6 +96,21 @@
         "types": "./dist/workflows/index.d.ts",
         "import": "./dist/workflows/index.js",
         "default": "./dist/workflows/index.js"
+      },
+      "./kinds": {
+        "types": "./dist/kinds/index.d.ts",
+        "import": "./dist/kinds/index.js",
+        "default": "./dist/kinds/index.js"
+      },
+      "./kinds/embed": {
+        "types": "./dist/kinds/embed/index.d.ts",
+        "import": "./dist/kinds/embed/index.js",
+        "default": "./dist/kinds/embed/index.js"
+      },
+      "./kinds/parse": {
+        "types": "./dist/kinds/parse.d.ts",
+        "import": "./dist/kinds/parse.js",
+        "default": "./dist/kinds/parse.js"
       },
       "./schema.json": "./dist/schema/blueprint.schema.json"
     },

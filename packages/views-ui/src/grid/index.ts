@@ -1,12 +1,18 @@
 /**
  * `@protoyard/views-ui/grid` — `DataGrid` (the ARIA grid with virtualized
  * rows and columns, column controls, grouping, inline edit, filters and saved
- * views; cards on phones), `FilterBuilder` and `SavedViews`, on the
- * `@protoyard/views/grid` engine.
+ * views, facets, filter chips and bulk actions; cards on phones),
+ * `FilterBuilder`, `FilterChips`, `FacetPicker`, `ColumnChooser`,
+ * `BulkActionBar` and `SavedViews`, on the `@protoyard/views/grid` engine.
  */
+export { default as BulkActionBar } from './BulkActionBar.svelte';
+export { default as ColumnChooser } from './ColumnChooser.svelte';
 export { default as DataGrid } from './DataGrid.svelte';
+export { default as FacetPicker } from './FacetPicker.svelte';
 export { default as FilterBuilder } from './FilterBuilder.svelte';
+export { default as FilterChips } from './FilterChips.svelte';
 export {
+  type BulkAction,
   completeFilter,
   type DataGridColumn,
   emptyView,

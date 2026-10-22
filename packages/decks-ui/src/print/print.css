@@ -1,0 +1,151 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: print overrides must beat screen utilities. */
+/*
+ * Deck print: one slide per page at the virtual canvas size (ADR-038).
+ * Screen rules under [data-py-deck-print] prepare the layout; @media print
+ * finalizes page breaks, hides chrome, and keeps background colors.
+ */
+
+/* --- Screen print-preview layout (?print=1) --- */
+[data-py-deck-print] {
+  --py-deck-print-width: 1280px;
+  --py-deck-print-height: 720px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  color: #111;
+}
+
+[data-py-deck-print] *,
+[data-py-deck-print] *::before,
+[data-py-deck-print] *::after {
+  box-sizing: border-box;
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-py-deck-print-page] {
+  position: relative;
+  width: var(--py-deck-print-width);
+  height: var(--py-deck-print-height);
+  max-width: 100%;
+  margin: 0 auto 1.5rem;
+  overflow: hidden;
+  background: var(--py-background, #fff);
+  color: var(--py-foreground, #111);
+  border: 1px solid var(--py-border, #e4e4e7);
+  break-after: page;
+  page-break-after: always;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+[data-py-deck-print-page]:last-child {
+  break-after: auto;
+  page-break-after: auto;
+  margin-bottom: 0;
+}
+
+[data-py-deck-print-canvas] {
+  width: var(--py-deck-print-width);
+  height: var(--py-deck-print-height);
+  overflow: hidden;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+[data-py-deck-print-notes-block] {
+  margin: 0.75rem auto 1.5rem;
+  max-width: var(--py-deck-print-width);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: #111;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+[data-py-deck-print-hide],
+[data-py-deck-print] [data-py-deck-chrome],
+[data-py-deck-print] [data-py-deck-chrome-root],
+[data-py-deck-print] [data-py-deck-overview],
+[data-py-deck-print] [data-py-deck-help],
+[data-py-deck-print] [data-py-deck-blackout],
+[data-py-deck-print] [data-py-print-button] {
+  display: none !important;
+}
+
+@media print {
+  /* The page size comes from DeckPrint, which knows the deck aspect: var() does not resolve in @page. */
+  @page {
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: var(--py-deck-print-width) !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* Hide everything that is not the print root (or a container of it) while printing. */
+  body > *:not([data-py-deck-print]):not(:has([data-py-deck-print])):not(script):not(style) {
+    display: none !important;
+  }
+
+  [data-py-deck-print] {
+    display: block !important;
+    width: var(--py-deck-print-width) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  [data-py-deck-print-page] {
+    width: var(--py-deck-print-width) !important;
+    height: var(--py-deck-print-height) !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border: none !important;
+    break-after: page;
+    page-break-after: always;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  [data-py-deck-print-page]:last-of-type {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  [data-py-deck-print-notes-block] {
+    break-before: avoid;
+    page-break-before: avoid;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .py-devtools,
+  [data-py-demo-badge],
+  [data-py-review-toolbar],
+  [data-py-review-overlay],
+  [role="progressbar"],
+  [data-py-print-hide],
+  [data-py-print-button],
+  [data-py-deck-chrome],
+  [data-py-deck-chrome-root] {
+    display: none !important;
+  }
+
+  body .fixed {
+    display: none !important;
+  }
+}

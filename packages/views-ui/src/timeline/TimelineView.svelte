@@ -1,4 +1,4 @@
-<script lang="ts" generics="T extends ScheduleTask">
+<script lang="ts" generics="T extends TimelineItem">
 import type { PrototypeRuntime } from '@protoyard/core';
 import { runService, useClock } from '@protoyard/renderer-svelte';
 import { addDays, daysBetween, type IsoDate } from '@protoyard/views/calendar';
@@ -9,6 +9,8 @@ import {
   type Dependency,
   type ScheduleTask,
   type TaskChange,
+  type TimelineItem,
+  timelineModel,
 } from '@protoyard/views/timeline';
 import QueryState from '../states/QueryState.svelte';
 import {
@@ -38,6 +40,8 @@ let {
   onReschedule,
   onOpen,
   onRetry,
+  getGroup,
+  maxRows = 500,
   class: className,
 }: {
   query: { readonly current: T[] | undefined; readonly loading: boolean; readonly error: unknown };
@@ -53,6 +57,8 @@ let {
   onReschedule?: (changes: readonly TaskChange[]) => unknown;
   onOpen?: (task: T) => void;
   onRetry?: () => void | Promise<void>;
+  getGroup?: (task: T) => { id: string; label: string } | undefined;
+  maxRows?: number;
   class?: string;
 } = $props();
 
@@ -61,11 +67,14 @@ const clock = now ? null : useClock(runtime);
 const uid = $props.id();
 const today = $derived((now ?? clock?.now ?? new Date(0)).toISOString().slice(0, 10) as IsoDate);
 const tasks = $derived(query.current ?? []);
-const range = $derived(timelineRange(tasks, today));
+let milestonesOnly = $state(false);
+const model = $derived(timelineModel(tasks, { getGroup, maxRows, milestonesOnly }));
+const visibleTasks = $derived(model.visible as (T & ScheduleTask)[]);
+const range = $derived(timelineRange(visibleTasks, today));
 const width = $derived(DAY_WIDTH[zoom]);
 const totalDays = $derived(Math.max(1, daysBetween(range.start, range.end) + 1));
 const canvasWidth = $derived(totalDays * width);
-const axis = $derived(createAxis({ count: tasks.length, size: ROW_HEIGHT }));
+const axis = $derived(createAxis({ count: visibleTasks.length, size: ROW_HEIGHT }));
 
 let scroller = $state<HTMLDivElement>();
 let scrollTop = $state(0);
@@ -83,7 +92,7 @@ let announcement = $state('');
 
 const visible = $derived(windowAxis(axis, scrollTop, viewportHeight, 4));
 const positionedTasks = $derived(
-  tasks.map((task) => ({ ...task, ...(optimistic[task.id] ?? {}) }))
+  visibleTasks.map((task) => ({ ...task, ...(optimistic[task.id] ?? {}) }))
 );
 const critical = $derived(new Set(criticalPath(positionedTasks, dependencies).critical));
 const activePreview = $derived.by(() => {
@@ -110,7 +119,7 @@ const dayTicks = $derived.by(() => {
 });
 const todayOffset = $derived(dateOffset(today, range.start) * width);
 
-function scheduled(task: T): ScheduleTask {
+function scheduled(task: T & ScheduleTask): ScheduleTask {
   const change = previewById.get(task.id);
   return {
     ...task,
@@ -119,14 +128,18 @@ function scheduled(task: T): ScheduleTask {
   };
 }
 
-function taskStyle(task: ScheduleTask) {
-  const position = scheduled(task as T);
+function taskStyle(task: T & ScheduleTask) {
+  const position = scheduled(task);
   const left = dateOffset(position.start, range.start) * width;
   const days = Math.max(task.milestone ? 0 : 1, daysBetween(position.start, position.end) + 1);
   return `left:${left}px;width:${task.milestone ? 12 : Math.max(width * 0.7, days * width)}px`;
 }
 
-function begin(task: T, mode: 'move' | 'resize-start' | 'resize-end', event?: PointerEvent) {
+function begin(
+  task: T & ScheduleTask,
+  mode: 'move' | 'resize-start' | 'resize-end',
+  event?: PointerEvent
+) {
   if (!onReschedule || pending[task.id]) return;
   const current = positionedTasks.find((item) => item.id === task.id) ?? task;
   interaction = {
@@ -199,7 +212,7 @@ function cancel() {
   announcement = 'Reschedule cancelled.';
 }
 
-function keyTask(task: T, event: KeyboardEvent) {
+function keyTask(task: T & ScheduleTask, event: KeyboardEvent) {
   if (!onReschedule) return;
   if (!interaction || interaction.id !== task.id) {
     if (event.key === ' ') {
@@ -244,6 +257,7 @@ function formatDate(date: string) {
 <section class={`timeline ${className ?? ''}`} data-timeline data-zoom={zoom} aria-label={label}>
   <header class="toolbar">
     <h2>{label}</h2>
+    <button type="button" aria-pressed={milestonesOnly} onclick={() => (milestonesOnly = !milestonesOnly)}>{milestonesOnly ? 'Show all tasks' : 'Milestones only'}</button>
     <div class="zooms" role="group" aria-label="Timeline zoom">
       {#each ZOOMS as option}
         <button type="button" aria-pressed={zoom === option} onclick={() => (zoom = option)}>{option[0]?.toUpperCase()}{option.slice(1)}</button>
@@ -251,18 +265,23 @@ function formatDate(date: string) {
     </div>
   </header>
   <QueryState {query} label={label} onRetry={onRetry}>
-    {#if tasks.length > 0}
+    {#if model.truncatedCount > 0}<p class="truncated-notice" role="status">Showing {model.visible.length} of {model.totalScheduled} scheduled tasks; {model.truncatedCount} are hidden.</p>{/if}
+    {#if milestonesOnly}<p class="milestone-lens" role="status">Showing only milestone tasks <button type="button" onclick={() => (milestonesOnly = false)}>Show all</button></p>{/if}
+    {#if model.unscheduled.length > 0}
+      <aside class="unscheduled-tray" aria-label="Unscheduled tasks"><h3>Unscheduled <span>{model.unscheduled.length}</span></h3><ul>{#each model.unscheduled as task (task.id)}<li><button type="button" onclick={() => onOpen?.(task as T)}>{getTitle(task as T)}</button></li>{/each}</ul></aside>
+    {/if}
+    {#if visibleTasks.length > 0}
       <div class="timeline-body" class:has-interaction={!!interaction}>
-        <div class="task-table" role="treegrid" aria-label={`${label} tasks`} aria-colcount="4" aria-rowcount={tasks.length + 1}>
+        <div class="task-table" role="treegrid" aria-label={`${label} tasks`} aria-colcount="4" aria-rowcount={visibleTasks.length + 1}>
           <div class="table-head" role="row" aria-rowindex="1">
             <span role="columnheader">Task</span><span role="columnheader">Start</span><span role="columnheader">End</span><span role="columnheader">Duration</span>
           </div>
           <div class="table-viewport" style={`height:${Math.max(ROW_HEIGHT, viewportHeight)}px`}>
-            {#each visible.items as row (tasks[row.index]?.id)}
-              {@const task = tasks[row.index] as T}
+            {#each visible.items as row (visibleTasks[row.index]?.id)}
+              {@const task = visibleTasks[row.index] as T & ScheduleTask}
               {@const dates = scheduled(task)}
               <div class="table-row" role="row" aria-rowindex={row.index + 2} style={`top:${row.start - scrollTop}px;height:${row.size}px`} data-task-row={task.id}>
-                <span role="gridcell" class="task-name" title={getTitle(task)}>{#if critical.has(task.id)}<span class="critical-mark" aria-label="Critical path">●</span>{/if}{getTitle(task)}<span class="mini-bar" aria-hidden="true"><i style={`width:${progressValue(getProgress(task))}%`}></i></span></span>
+                <span role="gridcell" class="task-name" title={getTitle(task)}>{#if getGroup}<span class="group-label">{getGroup(task)?.label}</span>{/if}{#if critical.has(task.id)}<span class="critical-mark" aria-label="Critical path">●</span>{/if}{getTitle(task)}<span class="mini-bar" aria-hidden="true"><i style={`width:${progressValue(getProgress(task))}%`}></i></span></span>
                 <span role="gridcell">{dates.start}</span><span role="gridcell">{dates.end}</span><span role="gridcell">{durationLabel({ ...dates, id: task.id, milestone: task.milestone })}</span>
               </div>
             {/each}
@@ -279,8 +298,8 @@ function formatDate(date: string) {
                 <svg class="dependencies" aria-hidden="true" style={`top:${HEADER_HEIGHT}px;width:${canvasWidth}px;height:${axis.total}px`}>
               <defs><marker id={`${uid}-dependency-arrow`} markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" /></marker></defs>
               {#each dependencies as dependency (`${dependency.from}:${dependency.to}`)}
-                {@const fromIndex = tasks.findIndex((task) => task.id === dependency.from)}
-                {@const toIndex = tasks.findIndex((task) => task.id === dependency.to)}
+                {@const fromIndex = visibleTasks.findIndex((task) => task.id === dependency.from)}
+                {@const toIndex = visibleTasks.findIndex((task) => task.id === dependency.to)}
                 {@const fromTask = positionedTasks.find((task) => task.id === dependency.from)}
                 {@const toTask = positionedTasks.find((task) => task.id === dependency.to)}
                 {#if fromIndex >= visible.start && fromIndex < visible.end && toIndex >= visible.start && toIndex < visible.end && fromTask && toTask}
@@ -292,8 +311,8 @@ function formatDate(date: string) {
                 {/if}
               {/each}
             </svg>
-            {#each visible.items as row (tasks[row.index]?.id)}
-              {@const task = tasks[row.index] as T}
+            {#each visible.items as row (visibleTasks[row.index]?.id)}
+              {@const task = visibleTasks[row.index] as T & ScheduleTask}
               {@const change = previewById.get(task.id)}
               {@const shown = scheduled(task)}
               <div class="bar-row" style={`top:${row.start + HEADER_HEIGHT}px;height:${row.size}px`}>
@@ -318,4 +337,5 @@ function formatDate(date: string) {
 .timeline-body{height:min(32rem,70vh);min-height:18rem}.task-table,.canvas-scroll{min-height:0}.canvas-scroll{height:100%}
 @media(max-width:767px){.timeline-body{height:auto;min-height:0}}
 .timeline :global(button:focus-visible){outline:var(--py-focus-ring-width,2px) solid var(--py-ring);outline-offset:var(--py-focus-ring-offset,2px)}
+.unscheduled-tray,.truncated-notice{padding:.5rem .75rem;border-bottom:1px solid var(--line)}.unscheduled-tray h3{font-size:.8rem;margin:0 0 .35rem}.unscheduled-tray ul{display:flex;gap:.35rem;list-style:none;margin:0;padding:0}.unscheduled-tray button{background:transparent;color:inherit}
 </style>

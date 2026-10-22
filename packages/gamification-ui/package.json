@@ -1,0 +1,82 @@
+{
+  "name": "@protoyard/gamification-ui",
+  "version": "1.0.0",
+  "description": "Svelte 5 gamification UI for Protoyard prototypes: level, points and streak chips, achievement badges with progress rings, mission cards and a privacy-aware leaderboard.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "dist/**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@lucide/svelte": "^1.59.0",
+    "@protoyard/gamification": "workspace:*",
+    "@protoyard/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.2"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "protoyard": {
+    "build": {
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./styles.css": {
+        "types": "./dist/styles.css.d.ts",
+        "svelte": "./dist/styles.css",
+        "default": "./dist/styles.css"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/gamification-ui"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "gamification"
+  ]
+}

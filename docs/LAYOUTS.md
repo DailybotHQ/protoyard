@@ -7,6 +7,44 @@ Layouts render navigation from data, so the same route set can work in several
 page structures. The implementation is in `@protoyard/ui`; the contract and
 width fallbacks are data in `@protoyard/core`.
 
+
+### Page kind host (`@protoyard/pages-ui`)
+
+`PageHost` composes the shared **marketing** layout chrome for `kind: "page"`
+documents: brand, hash navigation, hero section, sequential body sections and
+footer. Section elements expose `id` (from `section.anchor` or `section.id`),
+`data-py-page-section`, and `scroll-mt-20` so in-page `#` links scroll into view.
+The root node is `data-py-page-host` for tests and visual sweep.
+
+```svelte
+<script lang="ts">
+  import { PageHost } from '@protoyard/pages-ui/page';
+  import type { PageDocument } from '@protoyard/pages';
+  let { page }: { page: PageDocument } = $props();
+</script>
+
+<PageHost {page} />
+```
+
+### Doc kind host (`@protoyard/pages-ui`)
+
+`DocHost` composes the shared **docs** layout chrome for `kind: "doc"` documents:
+optional left section nav, continuous `BlockHost` flow, and a sticky on-page TOC.
+TOC entries come from `buildDocToc` in `@protoyard/pages`; heading elements get
+matching `id`s so `#` links and live `aria-current` stay aligned. The root node
+is `data-py-doc-host`. Docs layout CSS is scoped inside `DocsLayout` (sticky TOC
+from the `72rem` container breakpoint).
+
+```svelte
+<script lang="ts">
+  import { DocHost } from '@protoyard/pages-ui/doc';
+  import type { DocDocument } from '@protoyard/pages';
+  let { doc }: { doc: DocDocument } = $props();
+</script>
+
+<DocHost {doc} />
+```
+
 ## Catalog
 
 The shared layouts are selected from `preview.layout`, DevTools, or a
@@ -110,15 +148,46 @@ accepts navigation and content snippets and builds a table of contents from
 visible h2 and h3 headings. All three can also host the routed outlet through
 `LayoutHost`.
 
+For composition inside a screen, `PageGrid` fits cards to a minimum preferred
+item width and caps the number of columns, while `SplitView` provides labeled
+list and detail regions. The grid and panes use `min-width: 0` so wide child
+content can shrink within narrow containers. `SplitView` shows the list or the
+selected detail on narrow hosts via `detailActive`, and both panes at the
+existing 56rem desktop breakpoint. The caller owns route selection and back
+navigation; these primitives add no navigation catalog entries.
+
+```svelte
+<script lang="ts">
+  import { PageGrid, SplitView } from '@protoyard/ui';
+  let detailActive = $state(false);
+</script>
+
+<PageGrid label="Projects" columns={3} minItem={280}>
+  <ProjectCards />
+</PageGrid>
+
+<SplitView bind:detailActive listLabel="Projects" detailLabel="Project details">
+  {#snippet list()}<ProjectList />{/snippet}
+  {#snippet detail()}<ProjectDetails />{/snippet}
+</SplitView>
+```
+Rich views remain screen content inside these page structures. For example,
+`TimelineView` keeps its grouped schedule, milestone focus, unscheduled tray
+and truncation notice inside the active route; the shared layout owns page
+navigation and responsive chrome, while the timeline owns its task controls.
+
 ## Responsive rules and shells
 
 Desktop layouts use container queries. Below their catalog width they fall
 back to mobile tabs, mobile drawer, or—in the dual-sidebar chain—the sidebar
 before its own mobile fallback. Mobile tabs show up to five destinations and
 put the remainder in a **More** sheet. Mobile drawer keeps the complete model
-in a side drawer. The tabs and mobile header stay in normal flow around one
-scrollable content area; test that the active shell does not cover primary
-inputs.
+in a side drawer. The first `nav.actions` entry, when present, is rendered as
+the mobile tab bar's primary action; later actions remain in the header. The
+tab bar stays in normal flow, includes horizontal and bottom safe-area padding,
+and exposes badge values as part of each destination's accessible name. The
+mobile header and tabs stay around one scrollable content area; test that the
+active shell does not cover primary inputs.
 
 A layout inside a phone, tablet, browser, desktop window or panel should size
 to the app container, not the browser viewport. Prefer container queries to

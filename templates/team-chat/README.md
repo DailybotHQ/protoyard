@@ -9,7 +9,7 @@ deterministic packs; huddles use local captions (and optional `speechSynthesis`)
 | Area | Behavior |
 | --- | --- |
 | Workspaces & channels | Public/private channels, create channel, DMs |
-| Messages | Channel posts, threads, unread markers |
+| Messages | Channel posts, threads, unread markers. Write times use `nextMonotonicIso` so a paused simulated clock never shuffles `sortBy('at')` order. |
 | Reactions | Toggle emoji reactions |
 | Mentions & slash | `@standup` / `/ops` / `/people` summon bots; `/huddle` starts a huddle |
 | Presence | Seeded + timeline-driven (`presence.tick`) |

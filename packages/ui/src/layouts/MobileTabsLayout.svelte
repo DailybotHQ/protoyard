@@ -2,6 +2,7 @@
 import { Ellipsis } from '@lucide/svelte';
 import BottomNav from '../components/bottom-nav/BottomNav.svelte';
 import BottomSheet from '../components/bottom-sheet/BottomSheet.svelte';
+import Button from '../components/button/Button.svelte';
 import MobileAppShell from '../components/mobile-app-shell/MobileAppShell.svelte';
 import MobileHeader from '../components/mobile-header/MobileHeader.svelte';
 import { cn } from '../lib/cn.ts';
@@ -44,6 +45,10 @@ const more = $derived(items.length > MAX_TABS ? items.slice(MAX_TABS - 1) : []);
 const moreInTrail = $derived(more.some((item) => item.inTrail));
 const current = $derived(items.find((item) => item.inTrail));
 const title = $derived(current?.label ?? nav?.brand?.label ?? 'Home');
+const primaryAction = $derived(nav?.actions?.[0]);
+const headerNav = $derived(
+  nav ? { ...nav, actions: nav.actions?.slice(primaryAction ? 1 : 0) } : undefined
+);
 
 function tabItem(item: ResolvedNavItem) {
   const icon = navIconComponent(item.icon);
@@ -61,7 +66,7 @@ function tabItem(item: ResolvedNavItem) {
 <MobileAppShell {mainId} class="mx-auto w-full max-w-2xl device-frame:max-w-none" mainClass="flex flex-col">
   {#snippet header()}
     <MobileHeader {title} titleAs="p">
-      {#snippet actions()}<LayoutChrome part="actions" {nav} compact class="flex-row" />{/snippet}
+      {#snippet actions()}<LayoutChrome part="actions" nav={headerNav} compact class="flex-row" />{/snippet}
     </MobileHeader>
   {/snippet}
   <div bind:this={target} class="flex min-h-full flex-1 flex-col" data-py-layout="mobile-tabs"></div>
@@ -74,6 +79,20 @@ function tabItem(item: ResolvedNavItem) {
           label="Primary"
           class="min-w-0 flex-1 border-0 bg-transparent pb-0 px-0 backdrop-blur-none"
         />
+        {#if primaryAction}
+          <div class="flex min-w-0 shrink-0 flex-col items-center justify-center px-2 pt-1">
+            <Button
+              href={primaryAction.href}
+              onclick={primaryAction.onSelect ? () => primaryAction.onSelect?.() : undefined}
+              class="-mt-4 size-11 rounded-full p-0"
+              aria-label={primaryAction.label}
+            >
+              {#if primaryAction.icon}<NavIcon icon={primaryAction.icon} />{/if}
+              {#if !primaryAction.icon}<span aria-hidden="true">+</span>{/if}
+            </Button>
+            <span class="max-w-24 truncate pt-0.5 text-[0.7rem] font-medium">{primaryAction.label}</span>
+          </div>
+        {/if}
         {#if more.length}
           <button
             type="button"

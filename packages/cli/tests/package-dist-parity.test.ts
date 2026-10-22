@@ -25,9 +25,12 @@ export const SVELTE_PACKAGES = [
   'charts-ui',
   'analytics-ui',
   'views-ui',
+  'blocks-ui',
   'review-ui',
   'saas-ui',
   'ai-ui',
+  'flows-ui',
+  'gamification-ui',
 ] as const;
 
 /** `./src/a/b.ts` → `./dist/a/b.js`; `.svelte`, `.css`, `.d.ts` and data keep their name. */
@@ -182,6 +185,7 @@ describe.skipIf(!built)('dist parity (after pnpm build:packages --filter svelte)
       'analytics-ui': 8,
       crud: 8,
       'review-ui': 6,
+      'blocks-ui': 11,
     };
     for (const [pkg, floor] of Object.entries(floors)) {
       expect(Object.keys(manifest(pkg).exports).length, pkg).toBeGreaterThanOrEqual(floor);

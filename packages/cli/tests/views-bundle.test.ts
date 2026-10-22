@@ -30,15 +30,22 @@ type View = (typeof VIEWS)[number];
  * 9), about 7 % above the values measured on 2026-10-20 with one build per
  * view (board 11,966, calendar 16,106, grid 19,142, map 11,573, editor 6,452,
  * timeline 8,458); see docs/PERFORMANCE.md → Views kit. Lower them when the
- * kit shrinks.
+ * kit shrinks. The grid was re-measured on 2026-10-21 at 21,859 after facets,
+ * filter chips, saved-view changes and row selection joined it (19,300 before;
+ * the optional parts load lazily), so its ceiling is 21,859 + 7 %. The editor
+ * was re-measured on 2026-10-21 at 7,090 after slash commands and the safe link
+ * menu joined it (6,452 before), so its ceiling is 7,090 + 7 %. The timeline
+ * was re-measured on 2026-10-22 at 9,100 after grouped lanes and their extras
+ * joined it (8,458 before; Linux gzip measures about 1 % more), so its ceiling
+ * is 9,100 + 7 %.
  */
 export const CEILINGS: Record<View, number> = {
   board: 12_800,
   calendar: 17_200,
-  grid: 20_500,
+  grid: 23_400,
   map: 12_400,
-  editor: 6_900,
-  timeline: 9_100,
+  editor: 7_600,
+  timeline: 9_750,
 };
 
 let dir = '';

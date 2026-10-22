@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { getDevice, type PrototypeRuntime, parseManifest } from '@protoyard/core';
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { flushSync } from 'svelte';
@@ -492,6 +494,13 @@ describe('demo badge placement (full-bleed)', () => {
     ]);
     // Everything covered: the least covered spot, never undefined.
     expect(placeCompact(container, () => button)).toBeDefined();
+  });
+
+  it('keeps its right corners inside the visible right edge', () => {
+    // Unit tests load no layout, so the corner class is checked at its source.
+    const source = readFileSync(join(import.meta.dirname, '../src/shell/DemoBadge.svelte'), 'utf8');
+    expect(source).toContain("'right-[calc(0.75rem+var(--py-fixed-right-edge,0px))]'");
+    expect(source).not.toMatch(/'left-3' : 'right-3'/);
   });
 
   it('renders as a labelled, non-interactive landmark', () => {

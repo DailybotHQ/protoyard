@@ -1,0 +1,110 @@
+{
+  "formatVersion": 1,
+  "kind": "page",
+  "name": "Fieldnote landing page",
+  "description": "A fictional note-taking app's single-scroll landing page with a waitlist form.",
+  "tags": ["landing", "marketing"],
+  "page": {
+    "id": "fieldnote-landing",
+    "title": "Fieldnote: notes that find you",
+    "description": "Capture, link and recall your notes. A fictional product.",
+    "nav": [
+      { "id": "nav-features", "label": "Features", "href": "#features" },
+      { "id": "nav-pricing", "label": "Pricing", "href": "#pricing" },
+      { "id": "nav-waitlist", "label": "Join the waitlist", "href": "#join" }
+    ],
+    "sections": [
+      {
+        "id": "hero",
+        "role": "hero",
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "hero-title",
+            "level": 1,
+            "text": "Notes that find you",
+            "eyebrow": "Fieldnote",
+            "subtitle": "Capture anything, then let related notes surface on their own."
+          },
+          {
+            "type": "cta",
+            "actions": [
+              { "label": "Join the waitlist", "href": "https://example.com/join" },
+              { "label": "See features", "href": "https://example.com/features" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "features",
+        "title": "Features",
+        "role": "features",
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "features-title",
+            "level": 2,
+            "text": "Everything in one place"
+          },
+          {
+            "type": "cards",
+            "items": [
+              { "title": "Quick capture", "body": "Type, paste or drop a file." },
+              { "title": "Linked notes", "body": "Related notes show up beside the one you read." },
+              {
+                "title": "Plans",
+                "body": "Compare plans further down.",
+                "href": "https://example.com/plans"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "pricing",
+        "title": "Pricing",
+        "role": "pricing",
+        "blocks": [
+          { "type": "heading", "id": "plans", "level": 2, "text": "Simple plans" },
+          {
+            "type": "stat",
+            "items": [
+              { "value": "$0", "label": "Personal" },
+              { "value": "$8", "label": "Team, per person" }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "signup",
+        "anchor": "join",
+        "title": "Join the waitlist",
+        "role": "cta",
+        "blocks": [
+          { "type": "heading", "id": "join-title", "level": 2, "text": "Be the first to try it" },
+          {
+            "type": "form",
+            "id": "waitlist",
+            "title": "Waitlist",
+            "fields": [
+              { "name": "email", "label": "Email", "type": "email", "required": true },
+              {
+                "name": "teamSize",
+                "label": "Team size",
+                "type": "enum",
+                "options": [
+                  { "value": "solo", "label": "Just me" },
+                  { "value": "small", "label": "2-10" },
+                  { "value": "large", "label": "More than 10" }
+                ]
+              }
+            ],
+            "submitLabel": "Join",
+            "successMessage": "Thanks, you are on the list. This is a simulated form."
+          }
+        ]
+      }
+    ],
+    "forms": [{ "formId": "waitlist", "sectionId": "signup" }]
+  }
+}

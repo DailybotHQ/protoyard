@@ -1,6 +1,8 @@
 <script lang="ts">
 import type { PrototypeRuntime } from '@protoyard/core';
+import { chromeMessages } from '../messages.ts';
 import Icon from './Icon.svelte';
+import MessageText from './MessageText.svelte';
 
 interface PendingLink {
   scenario: string;
@@ -24,6 +26,8 @@ function readPending(): PendingLink | null {
 // svelte-ignore state_referenced_locally
 let pending = $state(readPending());
 let snapshotFirst = $state(true);
+const messages = chromeMessages().linkedScenario;
+const loadingText = chromeMessages().pending.loading;
 let busy = $state(false);
 let error = $state<string | null>(null);
 const scenarioName = $derived(
@@ -51,17 +55,18 @@ async function load() {
 {#if pending}
   <div
     role="region"
-    aria-label="Linked scenario"
+    aria-label={messages.label}
     class="relative z-40 border-b border-border bg-accent px-4 py-3 text-sm text-accent-foreground"
   >
     <div class="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center">
       <Icon name="link" class="hidden size-4 shrink-0 sm:block" />
       <div class="min-w-0 flex-1">
         <p>
-          This link opens the <strong class="font-semibold">{scenarioName}</strong> scenario{pending.seed !==
-          undefined
-            ? ` (seed ${pending.seed})`
-            : ''}, but this browser already has its own data.
+          <MessageText
+            template={pending.seed !== undefined ? messages.bodyWithSeed : messages.body}
+            values={{ scenario: scenarioName, ...(pending.seed !== undefined ? { seed: pending.seed } : {}) }}
+            strong={['scenario']}
+          />
         </p>
         <p class="text-xs opacity-80">{pending.reason}</p>
         {#if error}
@@ -70,7 +75,7 @@ async function load() {
       </div>
       <label class="inline-flex min-h-touch items-center gap-2 text-xs sm:min-h-0">
         <input type="checkbox" class="size-4 accent-primary" bind:checked={snapshotFirst} />
-        Snapshot my data first
+        {messages.snapshotFirst}
       </label>
       <div class="flex gap-2">
         <button
@@ -80,7 +85,7 @@ async function load() {
           aria-busy={busy}
           onclick={load}
         >
-          {busy ? 'Loading…' : 'Load linked scenario'}
+          {busy ? loadingText : messages.load}
         </button>
         <button
           type="button"
@@ -88,7 +93,7 @@ async function load() {
           disabled={busy}
           onclick={() => (pending = null)}
         >
-          Keep my data
+          {messages.keep}
         </button>
       </div>
     </div>

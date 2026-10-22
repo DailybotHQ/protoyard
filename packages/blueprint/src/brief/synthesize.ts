@@ -1,4 +1,6 @@
 import { hashString } from '@protoyard/core';
+import type { BlueprintKind, ContentKind } from '../kinds/kind.ts';
+import { isBlueprintKind, isContentKind, unknownKindMessage } from '../kinds/kind.ts';
 import {
   type Blueprint,
   type BlueprintInput,
@@ -13,29 +15,41 @@ import {
   type FieldInput,
   GENERIC_ARCHETYPE,
 } from './archetypes.ts';
+import { type ContentBriefResult, synthesizeContentFromBrief } from './content-synthesize.ts';
 import { avatarFieldFor, fieldFromPhrase, GLOBAL_CUES, PEOPLE_ENTITIES } from './fields.ts';
+import { type BriefKindDetection, detectBriefKind } from './kind-detection.ts';
+import { MAX_BRIEF_LENGTH as BRIEF_CAP, boundBriefInput } from './limits.ts';
 import { camel, hasPhrase, normalize, plural, singular, titleCase, words } from './text.ts';
 
 /**
  * Brief → blueprint, offline and deterministic: the same brief (and options)
  * always gives the same blueprint, with no network, model or randomness.
- * It picks an archetype by keywords, adds entities for nouns the brief asks
- * to track, infers field kinds from cue words, and derives screens from the
- * resulting data. The result is a valid starting point, not a final design:
- * the rationale says what was inferred so a person or agent can refine it.
+ *
+ * Kind dispatch (ADR-036): `detectBriefKind` runs first. An explicit `kind`
+ * overrides cues. Detected `deck` / `page` / `doc` briefs go to kind-specific
+ * synthesizers before any app archetype is scored. App briefs keep the same
+ * result fields and deterministic JSON as before kinds existed.
  */
 
 export interface BriefOptions {
-  /** Force an archetype id (see `ARCHETYPE_IDS`) instead of keyword scoring. */
+  /** Force an archetype id (see `ARCHETYPE_IDS`) instead of keyword scoring. App only. */
   archetype?: string;
   /** Product name; default: a fictional name derived from the brief. */
   name?: string;
+  /**
+   * Explicit blueprint kind (`app` | `deck` | `page` | `doc`). Overrides every
+   * cue. An unknown string throws a stable `RangeError`.
+   */
+  kind?: BlueprintKind | string;
 }
 
 export type SuggestedLayout = 'sidebar' | 'mobile-tabs';
 
-export interface BriefResult {
-  /** Parsed and validated. */
+/** App brief result (the historical shape, plus kind metadata). */
+export interface AppBriefResult {
+  kind: 'app';
+  kindDetection: BriefKindDetection;
+  /** Parsed and validated app blueprint. */
   blueprint: Blueprint;
   /** The same blueprint as plain JSON, ready to write as `blueprint.json`. */
   json: BlueprintInput;
@@ -46,8 +60,18 @@ export interface BriefResult {
   rationale: string[];
 }
 
+export type BriefResult = AppBriefResult | ContentBriefResult;
+
+export function isAppBriefResult(result: BriefResult): result is AppBriefResult {
+  return result.kind === 'app';
+}
+
+export function isContentBriefResult(result: BriefResult): result is ContentBriefResult {
+  return isContentKind(result.kind);
+}
+
 /** Longer briefs are cut here; the synthesizer reads keywords, not essays. */
-export const MAX_BRIEF_LENGTH = 5_000;
+export const MAX_BRIEF_LENGTH = BRIEF_CAP;
 const MAX_EXTRA_ENTITIES = 4;
 const MAX_CLAUSE_FIELDS = 8;
 
@@ -399,11 +423,22 @@ function entityNoun(noun: string): string {
     : noun;
 }
 
-/** A valid blueprint from a short product brief, plus the reasons for each choice. */
-export function blueprintFromBrief(brief: string, options: BriefOptions = {}): BriefResult {
-  const source = brief.slice(0, MAX_BRIEF_LENGTH);
+/**
+ * App-only synthesis (archetype scoring, entities, screens). Extracted so
+ * `blueprintFromBrief` can dispatch content kinds without scoring apps.
+ * Exported for tests that need the app path in isolation.
+ */
+export function synthesizeAppFromBrief(
+  brief: string,
+  options: BriefOptions = {},
+  kindDetection?: BriefKindDetection
+): AppBriefResult {
+  const bound = boundBriefInput(brief, { maxLength: MAX_BRIEF_LENGTH });
+  const source = bound.brief;
   const normalized = normalize(source);
-  const rationale: string[] = [];
+  const rationale: string[] = [...bound.notices];
+  const detection =
+    kindDetection ?? detectBriefKind(source, options.kind !== undefined ? { kind: 'app' } : {});
 
   const { archetype, matched } = chooseArchetype(normalized, options.archetype);
   rationale.push(
@@ -558,10 +593,44 @@ export function blueprintFromBrief(brief: string, options: BriefOptions = {}): B
   };
 
   return {
+    kind: 'app',
+    kindDetection: detection,
     blueprint: parseBlueprint(json),
     json,
     archetype: archetype.id,
     layout,
     rationale,
   };
+}
+
+/**
+ * A blueprint (app or content draft) from a short product brief, plus the
+ * reasons for each choice. Same brief and options → same result.
+ *
+ * 1. Resolve kind (`options.kind` or `detectBriefKind`).
+ * 2. Content kinds → kind-specific synthesizers (no app archetype scoring).
+ * 3. App → existing archetype / entity / screen path (byte-compatible JSON).
+ */
+export function blueprintFromBrief(brief: string, options: BriefOptions = {}): BriefResult {
+  if (options.kind !== undefined && !isBlueprintKind(options.kind)) {
+    throw new RangeError(unknownKindMessage(String(options.kind)));
+  }
+
+  // Bound once for kind detection; synthesizers bound again and record notices.
+  const source = boundBriefInput(brief, { maxLength: MAX_BRIEF_LENGTH }).brief;
+  const explicitKind = options.kind !== undefined ? (options.kind as BlueprintKind) : undefined;
+  const detection = detectBriefKind(
+    source,
+    explicitKind !== undefined ? { kind: explicitKind } : {}
+  );
+
+  if (detection.kind !== 'app') {
+    // Never score app archetypes for content kinds (even if `archetype` was passed).
+    // Pass the original brief so content synthesizers can attach truncation notices.
+    return synthesizeContentFromBrief(detection.kind as ContentKind, brief, detection, {
+      name: options.name,
+    });
+  }
+
+  return synthesizeAppFromBrief(brief, options, detection);
 }

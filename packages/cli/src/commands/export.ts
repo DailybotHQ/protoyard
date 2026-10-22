@@ -197,12 +197,16 @@ export async function exportArtifact(
   const buildManifestPath = join(artifacts, ARTIFACT_BUILD_MANIFEST);
   if (flag(options, 'skipBuild')) {
     const manifest = await verifyExistingBuild(buildDir, buildManifestPath);
-    if (manifest.frameWhenEmbedded !== true || manifest.includeDevtools !== includeDevtools) {
+    if (
+      manifest.frameWhenEmbedded !== true ||
+      manifest.includeDevtools !== includeDevtools ||
+      manifest.target !== 'artifact'
+    ) {
       throw new CliError(
         'validation',
         'The existing artifact build was made with other settings.',
         {
-          hint: 'Rebuild without --skip-build (DevTools and embedded frames must match this export).',
+          hint: 'Rebuild without --skip-build (DevTools, embedded frames and the single-chunk artifact target must match this export).',
         }
       );
     }
@@ -214,6 +218,9 @@ export async function exportArtifact(
       out: buildDir,
       manifestPath: buildManifestPath,
       frameWhenEmbedded: true,
+      // One script chunk and one stylesheet: lazy chunks would count against
+      // the 511-file version cap (PROTOYARD_TARGET=artifact, renderer config).
+      target: 'artifact',
       // 128 px only: 175 avatar files instead of 350 against the 511-file
       // version cap; `avatarUrl(id, 64)` resolves to 128 px (ARTIFACT_AVATAR_SIZES).
       avatarSizes: ARTIFACT_AVATAR_SIZES,
@@ -290,7 +297,7 @@ function renderArtifact(data: ArtifactExportResult): CommandResult['render'] {
     );
     out.always(`  sha256  ${data.buildSha256} (build)`);
     out.always(
-      `  build   DevTools ${data.includeDevtools ? 'included' : 'excluded'}, explicit shells keep their frame when embedded`
+      `  build   DevTools ${data.includeDevtools ? 'included' : 'excluded'}, explicit shells keep their frame when embedded, one script chunk`
     );
     if (data.capabilities)
       out.always(`  capabilities ${Object.keys(data.capabilities).join(', ')}`);

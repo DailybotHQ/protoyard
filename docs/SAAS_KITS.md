@@ -115,6 +115,43 @@ prototype's services in its simulated policy, and use fictional `example.com`
 addresses. The kit README documents routes, guards, screen configuration and
 component APIs.
 
+### Gate an action on an account
+
+Mount the account-gate host once in the app shell, alongside the router and
+inside the `provideSaas` context. It uses the adaptive overlay: a sheet in a
+narrow host and a dialog in a wide host.
+
+```svelte
+<script lang="ts">
+  import { AccountGate, getSaas } from '@protoyard/saas-ui';
+
+  const { requireAccount } = getSaas();
+
+  function saveDraft() {
+    if (!requireAccount({ reason: 'Save this draft to your account.', next: '/drafts/new' })) {
+      return;
+    }
+    // Continue through the prototype's service.
+  }
+</script>
+
+<Router {router} />
+<AccountGate />
+```
+
+`requireAccount` returns `true` for a signed-in visitor. For a guest it
+opens the prompt and returns `false`, so the caller should stop that action.
+The reason is shown in the prompt, and `next` must be an in-app route beginning
+with one slash. Choosing **Create account** opens the configured sign-up path
+with that destination attached. The gate resumes it when the simulated session
+becomes signed in, including after the verification and sign-in steps. Choosing
+**Keep browsing** clears the pending destination; navigating to another screen
+closes the prompt.
+
+The gate is only presentation behavior. It does not make an action secure:
+services still check capabilities and validate every mutation, and this
+simulation does not protect data from the browser user or same-origin scripts.
+
 ## What each kit provides
 
 | Kit | What it does |
@@ -122,6 +159,7 @@ component APIs.
 | Email and password | Simulated account creation, email verification, sign-in, sign-out, lockout and reset flows. |
 | OAuth | In-app provider consent and account linking with fictional identities; no provider SDK or redirect. |
 | Magic links and inbox | Single-use simulated tokens and local plain-text messages with in-app hash links. |
+| Phone sign-up | A phone-first persona flow with a deterministic local code, resend cooldown, expiry and attempt limit. No SMS is sent. |
 | MFA | A deterministic simulated authenticator code and recovery codes; no real TOTP device. |
 | Onboarding | A persisted, resumable wizard whose default steps can update a profile, workspace, invitations and preferences. |
 | Workspaces and members | Workspace creation and switching, member roles, invitation management and settings UI. |
@@ -140,6 +178,64 @@ mailbox. An account with an active simulated authenticator is never signed in
 this way: it joins the workspace and is sent to sign in with its code. Pass
 `{ signIn: false }` to only join.
 
+### Phone sign-up
+
+The auth routes include `#/auth/phone` and `#/auth/phone/code`; the standard
+sign-in screen links to the phone flow. `createPhoneServices(runtime)` issues a
+six-digit code derived from the normalized phone number and the simulated
+clock, permits a resend after 30 simulated seconds, expires challenges after
+10 simulated minutes, and records up to five attempts. The screens display the
+code in a persistent simulated-SMS toast. It is dismissed after successful
+verification. No network request or SMS delivery occurs.
+
+```ts
+import { createPhoneServices } from '@protoyard/saas';
+
+const phone = createPhoneServices(runtime);
+const issued = await phone.sendCode({ phone: '+1 202 555 0100', name: 'Alex Example' });
+await phone.verifyCode({ challengeId: issued.challengeId, code: issued.code });
+```
+
+This flow creates or reuses a phone-first persona and opens a simulated
+session. It does not create an email/password `SaasAccount`; email verification,
+password settings and account-bound MFA remain available only through their
+respective account flows. Phone numbers and challenge data remain in the
+prototype's local simulated token table, so use fictional numbers only.
+
+### Invitation side effects
+
+`create(input, sideEffect)` can also make domain writes as part of the
+invitation, for example a seat reservation or an onboarding note. The side
+effect runs after the invitation, its token and its inbox message exist, in
+the same transaction. If it throws or rejects, all of it rolls back, and the
+error reaches the caller:
+
+```ts
+const invites = createInvitationServices(runtime, { tables: ['seat_reservations'] });
+const { invitation, effect } = await invites.create(
+  { email: 'grace@example.com', role: 'member' },
+  async (invitation, { table }) => {
+    const seats = table<SeatReservation>('seat_reservations');
+    if ((await seats.where('organizationId').equals(invitation.organizationId).count()) >= 5) {
+      throw new ValidationError({ form: 'All seats are taken.' });
+    }
+    await seats.add({ id: `seat_${invitation.id}`, organizationId: invitation.organizationId });
+    return 'reserved';
+  }
+);
+```
+
+- Declare the tables the side effect writes in `InvitationOptions.tables` for
+  every call, or per call with `create(input, { sideEffect, tables })`.
+  `context.table<T>(name)` returns typed access to a declared table only.
+  Unknown names, the invitation's own `saas_*` tables and the identity `py_*`
+  tables are refused before anything is written.
+- The side effect receives the invitation plus `{ invitation, token, message, table }`.
+  Whatever it returns comes back as `effect`.
+- It runs only after the capability, input and membership checks pass. Inside
+  it, await only table operations: a timer or a fetch would end the
+  transaction early. Call it from a service, never from a component.
+
 `saasRoutes` registers the accept screen at `#/invites/accept?token=…`, the
 canonical form that service and scenario-fragment links use, and at the alias
 `#/invite?token=…`. It has no guard: guests and signed-in people can both open
@@ -154,8 +250,10 @@ button.
 | Password sign-in and reset | Form validation, stored demo values, verification and lockout UX in browser storage. | Authentication, password hashing, an identity server or protection for credentials. |
 | OAuth / SSO | Provider-shaped consent and deterministic outcomes inside the prototype. | Contact with Google, GitHub or another provider; a real OAuth/OIDC flow. |
 | MFA | Codes derived from the simulated seed and clock, plus recovery-code UX. | A real authenticator, TOTP security or a second security factor. |
+| Phone sign-up | A code derived from the phone number and simulated clock, then a phone-first persona session. | SMS delivery, phone ownership proof or a security boundary. |
 | Roles and permissions | Services enforce capabilities so role-specific product behavior can be demonstrated. | An authorization boundary; users can alter browser state and same-origin scripts can access it. |
 | Inbox and invitations | Local messages, invitation links and an accept screen that joins the workspace and signs the invitee in (refused for disabled or locked accounts). | Email delivery or proof that someone owns the address. |
+| Checkout and billing | In-browser plan changes, checkout outcomes, subscriptions and invoices. | Payment processing, card collection or a charge. |
 
 The simulation still follows the kit's own rules consistently, so a demo never
 shows a shortcut a real product would forbid. MFA (password, magic link and
@@ -166,7 +264,6 @@ revoke invitation, cancel subscription) ask for confirmation. Every password
 field says: "Simulation only — do not use a real password. What you type is
 kept as plain text in this browser and in exported snapshots." These are
 product behaviors, not security: anyone can edit browser storage.
-| Checkout and billing | In-browser plan changes, checkout outcomes, subscriptions and invoices. | Payment processing, card collection or a charge. |
 
 All account, token, MFA, inbox and billing rows are fictional prototype data in
 IndexedDB. Browser users and same-origin scripts can read or change that data;

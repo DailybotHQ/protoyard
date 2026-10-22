@@ -28,6 +28,14 @@ import {
 import { type Component, onDestroy, tick } from 'svelte';
 import { isMacPlatform, shortcutKeys, shortcutLabel } from '../lib/platform.ts';
 import { caretCoordinates } from './caret.ts';
+import {
+  clearSlashQuery,
+  DEFAULT_SLASH_COMMANDS,
+  filterSlashCommands,
+  type SlashCommand,
+  type SlashMatch,
+  slashAt,
+} from './slash.ts';
 import type { EditorSuggestion } from './types.ts';
 
 interface Props {
@@ -44,8 +52,12 @@ interface Props {
   mentions?: readonly EditorSuggestion[];
   /** Records for `#` completion. */
   references?: readonly EditorSuggestion[];
+  /** Slash menu entries (`/` at line start). Defaults to block formatting commands. */
+  slashCommands?: readonly SlashCommand[];
   /** Called with the text after typing pauses (draft autosave), and once more on unmount. */
   onDraft?: (text: string) => void;
+  /** Called after any successful transform (toolbar, shortcut, slash, completion). */
+  onChange?: (text: string) => void;
   draftDelayMs?: number;
   rows?: number;
   disabled?: boolean;
@@ -60,7 +72,9 @@ let {
   layout = 'tabs',
   mentions = [],
   references = [],
+  slashCommands = DEFAULT_SLASH_COMMANDS,
   onDraft,
+  onChange,
   draftDelayMs = 800,
   rows = 6,
   disabled = false,
@@ -188,6 +202,7 @@ async function apply(transform: (state: TextState) => TextState | null): Promise
     return true;
   }
   value = next.text;
+  onChange?.(next.text);
   await tick();
   textarea?.focus();
   textarea?.setSelectionRange(next.start, next.end);
@@ -195,8 +210,9 @@ async function apply(transform: (state: TextState) => TextState | null): Promise
   return true;
 }
 
-// ── @ / # suggestions ────────────────────────────────────────────────────
+// ── @ / # suggestions and / slash menu ───────────────────────────────────
 let match = $state<TriggerMatch | null>(null);
+let slashMatch = $state<SlashMatch | null>(null);
 let active = $state(0);
 let anchor = $state({ top: 0, left: 0 });
 const suggestions = $derived.by(() => {
@@ -210,16 +226,35 @@ const suggestions = $derived.by(() => {
     )
     .slice(0, 8);
 });
+const slashItems = $derived.by(() =>
+  slashMatch ? filterSlashCommands(slashMatch.query, slashCommands).slice(0, 8) : []
+);
 const open = $derived(suggestions.length > 0);
+const slashOpen = $derived(slashItems.length > 0 && slashMatch !== null);
 const listId = `editor-${uid}-suggestions`;
+const slashListId = `editor-${uid}-slash`;
 
 function updateSuggestions() {
   // Only while writing: the preview tab has no caret.
   if (!textarea || (layout === 'tabs' && tab !== 'write')) {
     match = null;
+    slashMatch = null;
     return;
   }
-  const next = triggerAt(selection());
+  const state = selection();
+  const nextSlash = slashAt(state);
+  if (nextSlash) {
+    if (nextSlash.start !== slashMatch?.start || nextSlash.query !== slashMatch?.query) active = 0;
+    slashMatch = nextSlash;
+    match = null;
+    if (textarea) {
+      const at = caretCoordinates(textarea, nextSlash.start);
+      anchor = { top: at.top + at.height, left: at.left };
+    }
+    return;
+  }
+  slashMatch = null;
+  const next = triggerAt(state);
   if (next?.start !== match?.start || next?.query !== match?.query) active = 0;
   match = next;
   if (next && textarea) {
@@ -236,8 +271,35 @@ async function choose(index: number) {
   match = null;
 }
 
+async function chooseSlash(index: number) {
+  const item = slashItems[index];
+  const current = slashMatch;
+  if (!item || !current) return;
+  await apply((s) => item.apply(clearSlashQuery(s, current)));
+  slashMatch = null;
+}
+
 // ── keys ─────────────────────────────────────────────────────────────────
 async function onKeydown(event: KeyboardEvent) {
+  if (slashOpen) {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      active = (active + step + slashItems.length) % slashItems.length;
+      return;
+    }
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      await chooseSlash(active);
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      slashMatch = null;
+      return;
+    }
+  }
   if (open) {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
@@ -385,8 +447,12 @@ function toolbarKey(event: KeyboardEvent, index: number) {
         id={`editor-${uid}-input`}
         aria-label={label}
         aria-autocomplete="list"
-        aria-controls={open ? listId : undefined}
-        aria-activedescendant={open ? `${listId}-${active}` : undefined}
+        aria-controls={slashOpen ? slashListId : open ? listId : undefined}
+        aria-activedescendant={slashOpen
+          ? `${slashListId}-${active}`
+          : open
+            ? `${listId}-${active}`
+            : undefined}
         aria-describedby={`editor-${uid}-count`}
         aria-invalid={remaining < 0 || undefined}
         {placeholder}
@@ -406,10 +472,42 @@ function toolbarKey(event: KeyboardEvent, index: number) {
         onkeydown={onKeydown}
         onblur={() => {
           match = null;
+          slashMatch = null;
           flushDraft();
         }}
       ></textarea>
-      {#if open && match}
+      {#if slashOpen && slashMatch}
+        <ul
+          id={slashListId}
+          role="listbox"
+          aria-label="Commands"
+          class="absolute z-20 max-h-56 w-64 overflow-y-auto rounded-md border border-border bg-elevated p-1 text-sm shadow-float"
+          style:top={`${anchor.top + 8}px`}
+          style:left={`${Math.max(0, anchor.left)}px`}
+        >
+          {#each slashItems as item, index (item.id)}
+            <li
+              id={`${slashListId}-${index}`}
+              role="option"
+              aria-selected={index === active}
+              class={cn(
+                'flex cursor-pointer items-center gap-2 rounded px-2 py-1.5',
+                index === active && 'bg-muted'
+              )}
+              onmousedown={(event) => {
+                event.preventDefault();
+                void chooseSlash(index);
+              }}
+            >
+              <span
+                class="inline-flex min-w-8 justify-center rounded bg-muted px-1 font-mono text-xs text-muted-foreground"
+                aria-hidden="true">{item.glyph}</span
+              >
+              <span class="font-medium">{item.label}</span>
+            </li>
+          {/each}
+        </ul>
+      {:else if open && match}
         <ul
           id={listId}
           role="listbox"

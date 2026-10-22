@@ -1,7 +1,9 @@
 # Marketplace blueprint catalog
 
-Data-only product blueprints (`*.json`) indexed by `protoyard index` as
-`kind: blueprint`. Each file is a full [blueprint](../packages/blueprint/README.md)
+Data-only blueprints. The flat `*.json` files in this folder are the app
+marketplace, indexed by `protoyard index` as `kind: blueprint`. Deck, page and
+doc examples live in their own folders (see [Choose an example by
+kind](#choose-an-example-by-kind)). Each app file is a full [blueprint](../packages/blueprint/README.md)
 with a required **brand** and **catalog** block so the gallery can list it and
 `protoyard generate <slug> --blueprint blueprints/<name>.json` can create an
 on-brand prototype. The catalog spans four or more related entities per
@@ -13,6 +15,65 @@ for every file.
 
 Fictional data only (`.example` domains via generator fakes). Blueprints are
 never bundled into a running prototype’s JS — they are source for generate.
+
+## Choose an example by kind
+
+A blueprint has a `kind` (ADR-036): `app` (the default, used when `kind` is
+missing), `deck`, `page` or `doc`. Each kind keeps its examples in its own
+catalog, so an agent can pick a starting point without mixing apps and content.
+
+| Kind | Catalog | Examples | Start from it when |
+| --- | --- | --- | --- |
+| `app` | [Marketplace catalog](#catalog) (`blueprints/*.json`) and [quick examples](./quick/README.md) (`blueprints/quick/`) | 40 + 4 | The idea is a product with data: entities, roles, screens and scenarios |
+| `deck` | [Deck examples](./decks/README.md) (`blueprints/decks/`) | 6 | The idea is a presentation: a pitch, review, launch or training (plus the flagship deck and a minimal visual-QA deck) |
+| `page` | [Page examples](./pages/README.md) (`blueprints/pages/`) | 1 | The idea is a single scrolling marketing or waitlist page |
+| `doc` | [Doc examples](./docs/README.md) (`blueprints/docs/`) | 1 | The idea is a report, one-pager or data story to read and print |
+
+Content kinds (`deck`, `page`, `doc`) have no entities, roles or screens. They
+are built from the shared blocks in `@protoyard/blocks`; a deck adds slide
+layouts from `@protoyard/decks/layouts`.
+
+### Deterministic authoring workflow
+
+1. **Pick the kind and the closest example.** Use the table above. Each kind
+   catalog explains its shape and lists what every example shows.
+2. **Draft from a brief, offline.** `blueprintFromBrief(brief, { kind })` in
+   `@protoyard/blueprint` detects the kind from the brief, or takes it
+   explicitly, and returns a draft that is the same for the same brief.
+   - Decks pick one of eight outlines: pitch, qbr, launch, status, training,
+     lesson, report, talk. Layouts are then selected from each slide's role.
+   - Pages use landing, pricing, waitlist or generic; docs use report,
+     handbook, one-pager, proposal or generic.
+   - Drafts are placeholder scaffolding, never research.
+
+   The `protoyard blueprint new --from-brief` command creates app blueprints
+   only; for a content brief it stops with a message naming the detected kind.
+3. **Write or edit the JSON** against the shape in the kind catalog. Copy an
+   example rather than starting from a blank file.
+4. **Validate.** `pnpm protoyard blueprint validate <file>` checks any kind
+   and prints a kind-specific summary, for example "a valid deck blueprint: 6
+   slides". In code, `safeParseAnyBlueprint` and
+   `validateBlueprintForAuthoring` return issues with JSON paths. For a deck,
+   `checkDeckStatic` from `@protoyard/decks/quality` adds the deck quality
+   rules (notes, layout repetition, word density, image alt and size, step
+   order).
+5. **Run the catalog tests** for the kind you touched (commands below).
+
+### What works today for each kind
+
+| | `app` | `deck`, `page`, `doc` |
+| --- | --- | --- |
+| `protoyard blueprint validate` | Yes | Yes |
+| `protoyard generate --blueprint` | Yes | Yes: the deck, page or doc template is picked from the blueprint's kind |
+| `protoyard blueprint new --from-brief` | Yes | Not yet: use `blueprintFromBrief(brief, { kind })` |
+| `protoyard index` and `protoyard list` | Yes (every flat `blueprints/*.json` file) | The kind folders are scanned, and an entry is listed when it has a `catalog` block. Every deck, page and doc example has one except the visual-QA fixture `decks/example.json`, which stays unlisted on purpose. |
+
+```bash
+pnpm protoyard blueprint validate blueprints/decks/northwind-qbr.json
+pnpm vitest run packages/blueprint/tests/deck-catalog.test.ts
+pnpm vitest run packages/blueprint/tests/page-doc-catalog.test.ts
+pnpm vitest run packages/blueprint/tests/catalog-docs.test.ts
+```
 
 ## Quick examples
 

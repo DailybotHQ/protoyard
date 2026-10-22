@@ -1,5 +1,6 @@
 <script lang="ts">
 import { onMount } from 'svelte';
+import { chromeMessages } from '../messages.ts';
 import { isFrameExitKey } from './frame-mode.ts';
 import Icon from './Icon.svelte';
 
@@ -35,14 +36,15 @@ onMount(() => {
     document.removeEventListener('fullscreenchange', onFullscreen);
   };
 });
+const messages = chromeMessages().frame;
 </script>
 
 <button
   type="button"
   data-py-frame-toggle
-  aria-label="Show in frame"
+  aria-label={messages.exit}
   aria-pressed="true"
-  title="Show in frame (Esc)"
+  title={messages.exitHint}
   class="pointer-events-none fixed top-2 right-2 z-[70] flex size-8 items-center justify-center rounded-full border border-white/20 bg-zinc-800/90 text-white opacity-0 shadow-sm focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-zinc-950/90"
   onclick={onexit}
 >
@@ -54,6 +56,6 @@ onMount(() => {
     role="status"
     class="pointer-events-none fixed top-3 left-1/2 z-[70] -translate-x-1/2 rounded-full bg-zinc-900/85 px-3 py-1 text-xs text-white shadow-sm"
   >
-    Full screen · press Esc to show the frame
+    {messages.fullScreenNotice}
   </p>
 {/if}

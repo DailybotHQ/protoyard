@@ -53,10 +53,10 @@ work through the prototype’s services.
 
 | Package | Role | Entry |
 | --- | --- | --- |
-| `@protoyard/ai` | Engine: conversations, packs, agents, tools, safe markdown, scenario fixtures, voice session | `.` · `./packs` · `./scenarios` · `./voice` |
-| `@protoyard/ai-ui` | Svelte 5 UI: workspace, composer, virtualized list, rich answers, canvas, voice panel, widget | `.` · `./voice` · `./widget` · `./styles.css` |
+| `@protoyard/ai` | Engine: conversations, packs, agents, tools, suggestion/approval loop, safe markdown, scenario fixtures, voice session | `.` · `./approvals` · `./packs` · `./scenarios` · `./voice` · `./chart` · `./markdown` · `./messages` |
+| `@protoyard/ai-ui` | Svelte 5 UI: workspace, composer, virtualized list, rich answers, canvas, voice panel, widget, suggestion approvals, chat message blocks | `.` · `./approvals` · `./messages` · `./voice` · `./widget` · `./styles.css` |
 
-Lazy subpaths (`ai/scenarios`, `ai/voice`, `ai-ui/voice`, `ai-ui/widget`) keep
+Lazy subpaths (`ai/scenarios`, `ai/voice`, `ai-ui/messages`, `ai-ui/voice`, `ai-ui/widget`) keep
 optional features out of the initial JS budget. Import styles after Tailwind
 and the theme/UI sheets:
 
@@ -138,6 +138,56 @@ const run = agent.start('Look up this customer and add a follow-up note.');
 - Failure branches are deterministic for the same seed, run id, call order and
   tool name.
 
+### Suggestion and approval loop
+
+Pure detect → suggest → decide transitions with autonomy levels (1 inform · 2
+suggest · 3 act with approval · 4 act within limits), area caps, audit entries
+and **proposed** effects. The engine does not persist or execute; services
+carry `effects` out. Default areas: `records`, `notifications`, `workspace`,
+`external` (capped so external messaging always asks first). Import from
+`@protoyard/ai` or `@protoyard/ai/approvals`. Complements per-tool
+`requiresApproval` on the agent runner. Simulated only — label it in the UI.
+
+**UI** (lazy `@protoyard/ai-ui/approvals`):
+
+| Component | Role |
+| --- | --- |
+| `SuggestionCard` | Evidence (summary, target, prepared apply/notify), Confirm / Approve / Edit / Dismiss with required callbacks and pending feedback |
+| `ChatApprovalCard` | Compact chat-row decisions for the same suggestion model |
+| `AutonomyLevelPicker` | Per-area level radios; uses `setLevel`; caps disable higher options |
+| `AuditTrail` | Newest-first table of `AuditEntry` rows |
+
+Every decision is an explicit callback. The components never call the reducer or
+write IndexedDB; prototypes wire `onConfirm` / `onApprove` / `onDismiss` /
+`onEdit` / `onChange` through services. Copy keeps the simulated boundary
+visible ("Simulated · no real authority").
+
+```svelte
+<script lang="ts">
+  import { SuggestionCard, AutonomyLevelPicker, AuditTrail } from '@protoyard/ai-ui/approvals';
+  import { decideSuggestion, DEFAULT_AUTONOMY } from '@protoyard/ai/approvals';
+</script>
+
+<SuggestionCard
+  {suggestion}
+  viewer={{ id: me, canApprove: true }}
+  onConfirm={(s) => service.confirm(s.id)}
+  onDismiss={(s) => service.dismiss(s.id)}
+/>
+```
+
+
+```ts
+import { DEFAULT_AUTONOMY, suggestFromCandidate, decideSuggestion } from '@protoyard/ai/approvals';
+
+const transition = suggestFromCandidate(candidate, DEFAULT_AUTONOMY, {
+  now: clock.now().toISOString(),
+  scopeId: workspaceId,
+  buildEffects: (suggestion) => ({ apply: { /* … */ }, notify: { /* … */ } }),
+});
+// service appends transition.audit and, after confirm/approve/auto, runs transition.effects
+```
+
 ### Scenario fixtures (lazy)
 
 ```ts
@@ -159,6 +209,35 @@ components and text nodes — **never `{@html}`**. Hostile URLs are stripped
 (`safeHref` / `safeImageSrc`). Input is bounded (`MARKDOWN_MAX_LENGTH`). See
 the package README for the supported subset (headings, lists, tables, code
 fences, citations, attachments).
+
+### Chat message blocks (`@protoyard/ai/messages`)
+
+`parseChatMessage(input)` validates a versioned chat message AST
+(`format: "protoyard.message@1"`): `text` (plain, or the safe markdown
+subset), `buttons` (an `action` or an http(s)/mailto `url`, with an optional
+confirmation), `select`, `form` (text, textarea, number, date, checkbox,
+select, multiselect), `table` and `link_preview`, plus local attachments.
+This is the message protocol between a simulated agent and a chat UI; it is
+not the same as an assistant answer (safe markdown above).
+
+- **Bounded.** `MESSAGE_LIMITS` caps the bytes (64 KB), nesting, block count
+  and every list and string (buttons, options, fields, table rows and cells,
+  labels, attachments) before and during parsing.
+- **Safe links.** Buttons and previews accept absolute http(s) without
+  credentials (buttons also accept `mailto:`). Everything else (`javascript:`,
+  `data:`, `file:`, `//host`, control or bidi characters) is rejected.
+  Attachments are local only: a relative path without `..`, `attachment:<id>`,
+  or a small inline PNG/JPEG/GIF/WebP image. A preview's image follows the
+  attachment rules, so a message never loads remote media.
+- **No markup.** Any string with an HTML tag, comment, doctype or processing
+  instruction rejects the message. `a < b` is fine.
+- **Forward compatible.** A block whose `type` this version does not know
+  becomes a plain text block with the sender's `fallback` (or a neutral notice),
+  listed in `degraded`. A known block that is invalid rejects the message with
+  path-addressed issues (`jsonPath`). A newer `protoyard.message@N` is reported
+  as `unsupported-version`.
+- `messagePlainText(message)` gives a text rendering for notifications,
+  previews and transcripts.
 
 ### Simulated voice (lazy)
 
@@ -191,6 +270,48 @@ parent owns streaming state and must route mutations through services.
   picker, files, slash commands, @mentions.
 - `RichAnswer` renders the markdown AST; `CanvasPanel` shows code or editable
   document text.
+
+### Chat message blocks (lazy `@protoyard/ai-ui/messages`)
+
+`ChatMessageBlocks` renders a `protoyard.message@1` message.
+
+```svelte
+<ChatMessageBlocks {message} onAction={(event) => runService(event)} />
+```
+
+- **Validation first.** `message` (an object or JSON text) always goes through
+  `parseChatMessage`. An invalid message shows "This message could not be shown
+  (N problems)" and none of its content. An unknown block shows the plain
+  notice the parser put in its place.
+- **Blocks:**
+  - **Text** renders as text, keeping line breaks. `format: "markdown"` goes
+    through `RichAnswer`, never `{@html}`.
+  - **Buttons:** action buttons report `{ kind: "button", action, value }`. A
+    `confirm` opens an inline confirmation (`role="alertdialog"`, Cancel
+    focused, Escape cancels, focus returns to the button). Link buttons open
+    in a new tab with `noopener noreferrer`.
+  - **Selects:** a single select reports `{ kind: "select", values }` on change
+    and restores the previous choice if the host rejects. A multiple select is
+    a checkbox group with a Send button.
+  - **Forms:** required fields are checked first (`aria-invalid`, focus moves
+    to the first problem). A submission reports
+    `{ kind: "form", values }` with typed values (strings, numbers, booleans,
+    string lists or null). It keeps the input and shows the host's error on
+    failure, and locks as "Submitted." on success.
+  - **Tables** have a caption, column headers, alignment, Yes/No for booleans
+    and "—" for empty cells, and a keyboard-scrollable region.
+  - **Link previews** are cards that never fetch the page. Images come from
+    the message and must be local or inline.
+  - **Attachments:** inline images (local or `data:`), other files by name and
+    size, opened through `onOpenAttachment`.
+- **Feedback.** Every action awaits the promise `onAction` returns: the
+  control is busy (`aria-busy`, spinner, disabled) until it settles, and a
+  rejection's message appears as an alert. Without `onAction`, actions are
+  disabled with a note, so a read-only view has no dead controls.
+- **Size.** Measured in a Vite library build (minified, gzip, zod external),
+  the subpath adds about 13.6 KB to the entry over `RichAnswer` alone. That
+  covers the components plus the message parser and schema. Chart chunks stay
+  lazy.
 
 ### Widget modes (lazy `@protoyard/ai-ui/widget`)
 

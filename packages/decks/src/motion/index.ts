@@ -1,0 +1,35 @@
+export {
+  FRAGMENT_EFFECTS,
+  type FragmentEffect,
+  isFragmentEffect,
+} from './effects.ts';
+export {
+  activeCodeHighlight,
+  type FragmentPhase,
+  type FragmentSource,
+  fragmentPhase,
+  type SlideFragment,
+  type SlideStep,
+  type SlideSteps,
+  slideFragments,
+  slideStepCount,
+  slideSteps,
+} from './steps.ts';
+export {
+  DECK_TRANSITIONS,
+  DEFAULT_MOTION,
+  DEFAULT_TRANSITION,
+  type DeckTransition,
+  effectiveMotion,
+  MAX_MOTION_MS,
+  type MotionContext,
+  type MotionLevel,
+  prefersReducedMotion,
+  REDUCED_FADE_MS,
+  type ResolvedFragmentMotion,
+  type ResolvedTransition,
+  resolveDeckTransitions,
+  resolveFragmentMotion,
+  resolveSlideTransition,
+  type TransitionReason,
+} from './transition.ts';

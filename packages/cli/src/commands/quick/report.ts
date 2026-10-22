@@ -1,5 +1,6 @@
 import { lstat, mkdir, readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { type AnyBlueprint, isAppBlueprint } from '@protoyard/blueprint';
 import { z } from 'zod';
 import { sha256Text } from '../../lib/checksum.ts';
 import type { CommandResult, Handler } from '../../lib/command.ts';
@@ -374,10 +375,13 @@ export const quickReportCommand: Handler = async (ctx, args, options): Promise<C
     attempts.sort(
       (a, b) => a.startedAt.localeCompare(b.startedAt) || a.taskId.localeCompare(b.taskId)
     );
+  // Validation tasks are an app feature; a deck, page or doc defines none.
+  const validationTasks = (blueprint: AnyBlueprint) =>
+    isAppBlueprint(blueprint) ? (blueprint.validation?.tasks ?? []) : [];
   const summaries: GroupSummary[] = groups.map((group) => {
     const attempts = sortAttempts(byNamespace.get(group.namespace) ?? []);
     const tasks = summarizeGroup(
-      group.blueprint.validation?.tasks ?? [],
+      validationTasks(group.blueprint),
       attempts,
       prompts.get(group.namespace) ?? new Map()
     );
@@ -390,8 +394,8 @@ export const quickReportCommand: Handler = async (ctx, args, options): Promise<C
         total += older.length;
         // A live-reloaded tab shows the newer blueprint's tasks, so both versions define tasks.
         const defined = [
-          ...(entry.blueprint.validation?.tasks ?? []),
-          ...(group.blueprint.validation?.tasks ?? []),
+          ...validationTasks(entry.blueprint),
+          ...validationTasks(group.blueprint),
         ].filter((task, index, all) => all.findIndex((t) => t.id === task.id) === index);
         for (const row of summarizeGroup(
           defined,

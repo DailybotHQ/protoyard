@@ -67,6 +67,46 @@ Templates that start in a shell: `chat-widget` (`widget-host`), `plugin-panel`
 (`side-panel`), `desktop-app` (`desktop-window`), and `crud-app`, `ai-assistant` and
 `team-chat` (`browser`). `mobile-app` prototypes get `phone` through `auto`.
 
+## Adaptive overlay (sheet / dialog / side panel)
+
+`AdaptiveOverlay` from `@protoyard/ui` renders one content snippet as a bottom
+sheet on a narrow host and as a centered dialog or side panel on a wider host.
+It composes the shared `BottomSheet`, `Dialog` and `DetailPanel` primitives so
+focus trap, Escape, titles and close controls stay identical to opening those
+components directly.
+
+- **Host width by default:** measures the nearest `[data-py-app-host]`, `#app` or
+  `document.documentElement` (or an explicit `host` element) with a
+  `ResizeObserver`. The breakpoint is 768 CSS px (`ADAPTIVE_OVERLAY_BREAKPOINT`).
+- **Wide kind:** `kind="dialog"` (default) or `kind="side-panel"`.
+- **Force:** `force="sheet" | "dialog" | "side-panel"` skips measurement (useful
+  with an in-app phone/desktop toggle). `force="auto"` is the default.
+- **Stacking:** `Dialog`, `AlertDialog`, `BottomSheet`, `DetailPanel` and `Drawer`
+  register with `overlayStack`, so a dialog opened inside a drawer paints above
+  it and Escape closes only the top layer. `UndoToaster` stays above the stack
+  and remains keyboard-reachable outside a modal drawer's focus trap.
+
+Unit coverage: `packages/ui/tests/adaptive-overlay.test.ts`.
+
+## Adaptive phone and desktop presentation
+
+An app that offers both a phone experience and a desktop experience can opt in to
+`createAdaptivePresentation` from `@protoyard/renderer-svelte`. It observes the app host
+width, which may be narrower than the browser because the app is inside a device frame or
+plugin panel. The resolved view follows this order: a valid `?view=phone|desktop` link
+override, an active phone frame, the visitor's saved choice, then the host width (desktop at
+1024 px or wider by default). The link value may also be on a hash route, such as
+`#/settings?view=phone`.
+
+The store is opt-in. Call `observe(hostElement)` once the app host exists, call
+`syncShell()` when the app should align its shell to the resolved view, and call `destroy()`
+when the host is removed. By default, phone maps to the `phone` shell and `iphone` viewport;
+desktop maps to the `none` shell and `desktop` viewport. Callers can configure the query key,
+preference storage key, breakpoint, and those mappings. Without a runtime, the store still
+resolves and remembers the view but does not change shell overrides. Browser storage failures
+leave the current page's choice active without persisting it. Choosing `auto` removes the
+saved choice and clears shell and viewport overrides.
+
 ## When the app goes full-bleed
 
 The renderer shows the bare app, with no frame, when:
@@ -164,6 +204,17 @@ frame:
   (`@md:`, `@max-2xl:` and so on) follow the device width.
 - **Fixed elements:** `position: fixed` (a bottom nav, toasts, the demo badge) is pinned to
   the device screen. The app scrolls inside the renderer's scroll root, not the page.
+- **Floating chrome placement:** non-app chrome such as the review toolbar launcher uses
+  `placeFloating` (`packages/renderer-svelte/src/shell/floating.ts`). It measures
+  `window.visualViewport` (size and `offsetLeft` / `offsetTop`) so phone frames and mobile
+  emulation keep controls inside the clickable area when the layout viewport is wider than
+  the visual one. Placement avoids the demo badge, `[data-py-bottom-nav]` on narrow widths,
+  and review overlay roots; hit-tests look through the floating element itself. It
+  repositions on window resize, visual-viewport resize/scroll, hash changes and app DOM
+  mutations, and ignores mutations inside the floating element so an expanding toolbar
+  cannot feedback-loop. When the visual viewport is smaller or offset, expanded bars pin
+  to the visible left so every action stays on screen. Unit coverage:
+  `packages/renderer-svelte/tests/floating.test.ts`.
 - **Overlays:** Bits UI dialogs and sheets portal into the device screen, so they stay
   inside the frame.
 - **Widget badge:** in `widget-host`, call `getWidgetHost().setUnread(n)` (exported by

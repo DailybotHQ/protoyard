@@ -1,0 +1,230 @@
+{
+  "formatVersion": 1,
+  "kind": "page",
+  "name": "Tidewater Roasters landing page",
+  "description": "A fictional coffee subscription landing page: hero, proof stats, plans, how it works, a comparison, a waitlist form and a closing call to action.",
+  "tags": ["landing", "subscription", "coffee"],
+  "icon": "☕",
+  "category": "marketing",
+  "page": {
+    "id": "tidewater-roasters-landing",
+    "title": "Tidewater Roasters landing page",
+    "sections": [
+      {
+        "id": "hero",
+        "anchor": "top",
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "hero-title",
+            "level": 1,
+            "eyebrow": "Small-batch coffee, delivered",
+            "text": "Fresh beans at your door every two weeks",
+            "subtitle": "Tidewater Roasters is a fictional roastery. Every name and number on this page is example data.",
+            "align": "center"
+          },
+          {
+            "type": "cta",
+            "actions": [
+              {
+                "label": "Join the waitlist",
+                "href": "#waitlist"
+              },
+              {
+                "label": "See the plans",
+                "href": "#plans"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "proof",
+        "anchor": "proof",
+        "blocks": [
+          {
+            "type": "stat",
+            "items": [
+              {
+                "value": "48 h",
+                "label": "From roast to shipping"
+              },
+              {
+                "value": "12",
+                "label": "Single origins this season"
+              },
+              {
+                "value": "4.8/5",
+                "label": "Example taster rating"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "plans",
+        "anchor": "plans",
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "plans-title",
+            "level": 2,
+            "text": "Pick a plan"
+          },
+          {
+            "type": "cards",
+            "items": [
+              {
+                "title": "Starter",
+                "body": "One 250 g bag every two weeks."
+              },
+              {
+                "title": "Household",
+                "body": "Two bags every two weeks, one of them decaf on request."
+              },
+              {
+                "title": "Office",
+                "body": "A 1 kg bag every week for a small team."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "how-it-works",
+        "anchor": "how-it-works",
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "how-title",
+            "level": 2,
+            "text": "How it works"
+          },
+          {
+            "type": "steps",
+            "items": [
+              {
+                "title": "Choose",
+                "body": "Pick a plan and a roast level."
+              },
+              {
+                "title": "Roast",
+                "body": "We roast your beans the Monday before shipping."
+              },
+              {
+                "title": "Enjoy",
+                "body": "Pause, skip or change plans at any time."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "compare",
+        "anchor": "compare",
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "compare-title",
+            "level": 2,
+            "text": "Subscription or the supermarket?"
+          },
+          {
+            "type": "comparison",
+            "columns": [
+              {
+                "label": "Tidewater"
+              },
+              {
+                "label": "Supermarket bag"
+              }
+            ],
+            "rows": [
+              {
+                "label": "Roast date on the bag",
+                "values": ["Yes", "Rarely"]
+              },
+              {
+                "label": "Days since roasting",
+                "values": ["2 to 5", "30 or more"]
+              }
+            ]
+          },
+          {
+            "type": "quote",
+            "quote": "The first bag converted our whole office.",
+            "cite": "Riley Example",
+            "role": "Office manager at a fictional design studio"
+          }
+        ]
+      },
+      {
+        "id": "waitlist",
+        "anchor": "waitlist",
+        "blocks": [
+          {
+            "type": "heading",
+            "id": "waitlist-title",
+            "level": 2,
+            "text": "Join the waitlist"
+          },
+          {
+            "type": "form",
+            "id": "waitlist-form",
+            "title": "Get the first roast",
+            "description": "This form is simulated: responses stay in this browser.",
+            "fields": [
+              {
+                "name": "email",
+                "label": "Email",
+                "type": "email",
+                "required": true,
+                "placeholder": "you@example.com"
+              },
+              {
+                "name": "plan",
+                "label": "Plan",
+                "type": "enum",
+                "options": [
+                  {
+                    "value": "starter",
+                    "label": "Starter"
+                  },
+                  {
+                    "value": "household",
+                    "label": "Household"
+                  },
+                  {
+                    "value": "office",
+                    "label": "Office"
+                  }
+                ]
+              }
+            ],
+            "submitLabel": "Join the waitlist",
+            "successMessage": "Thanks. You are on the (fictional) list."
+          }
+        ]
+      },
+      {
+        "id": "closing",
+        "blocks": [
+          {
+            "type": "callout",
+            "tone": "info",
+            "body": "Questions? Write to hello@tidewater.example. Nobody reads it: this is a prototype."
+          },
+          {
+            "type": "cta",
+            "actions": [
+              {
+                "label": "Back to top",
+                "href": "#top"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

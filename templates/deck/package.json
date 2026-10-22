@@ -1,0 +1,24 @@
+{
+  "name": "@protoyard-template/deck",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Protoyard level-two deck template with the shared DeckApp renderer and optional Deck Studio.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@protoyard/blueprint": "workspace:*",
+    "@protoyard/blocks-ui": "workspace:*",
+    "@protoyard/core": "workspace:*",
+    "@protoyard/decks": "workspace:*",
+    "@protoyard/decks-ui": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/player": "workspace:*",
+    "svelte": "^5.57.2"
+  }
+}

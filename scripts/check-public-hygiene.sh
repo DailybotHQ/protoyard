@@ -21,6 +21,10 @@
 #                   Google, Cloudflare/Netlify/Vercel-style quoted tokens,
 #                   private-key headers, long quoted secret assignments,
 #                   npm tokens and _authToken lines, JWTs)
+#   trojan-source   a literal bidi embedding, override or isolate character
+#                   (U+202A-U+202E, U+2066-U+2069) in a text file: source then reads
+#                   differently than it runs. Write \u escapes instead. Needs
+#                   `git grep -P`; skipped with a warning where git has no PCRE.
 #
 # A fixture that needs a secret-shaped string lists it in
 # .public-hygiene-allow as `<path> <secret-rule> <reason>`; only secret-*
@@ -35,7 +39,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --root) [ $# -ge 2 ] || { echo "usage: $0 [--root DIR] [--max-kb N]" >&2; exit 2; }; ROOT=$2; shift 2 ;;
     --max-kb) [ $# -ge 2 ] || { echo "usage: $0 [--root DIR] [--max-kb N]" >&2; exit 2; }; MAX_KB=$2; shift 2 ;;
-    -h | --help) sed -n '2,26p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,30p' "$0"; exit 0 ;;
     *) echo "usage: $0 [--root DIR] [--max-kb N]" >&2; exit 2 ;;
   esac
 done
@@ -168,6 +172,21 @@ content_hits=$(scan_content)
 if [ -n "$content_hits" ]; then
   printf '%s\n' "$content_hits"
   hits=$((hits + $(printf '%s\n' "$content_hits" | wc -l)))
+fi
+
+# Trojan Source (literal bidi controls). git grep -P exits 0/1 when PCRE works
+# and 128 when this git was built without it.
+git grep -qP -e '\x{41}' -- "$SELF" >/dev/null 2>&1
+pcre=$?
+if [ "$pcre" -le 1 ]; then
+  bidi_hits=$(git grep -nIP -e '[\x{202A}-\x{202E}\x{2066}-\x{2069}]' -- . ':!.agents/skills' ':!.claude' 2>/dev/null |
+    awk -F: '{print $1 ":" $2 ": trojan-source"}')
+  if [ -n "$bidi_hits" ]; then
+    printf '%s\n' "$bidi_hits"
+    hits=$((hits + $(printf '%s\n' "$bidi_hits" | wc -l)))
+  fi
+else
+  echo "check-public-hygiene: git grep -P is unavailable; skipped the trojan-source rule." >&2
 fi
 
 if [ "$hits" -gt 0 ]; then

@@ -1,0 +1,5 @@
+/* Import after Tailwind and the Protoyard theme/UI styles. */
+/* Every deck renders shared blocks (and their step reveals), so their classes are always needed. */
+@import "@protoyard/blocks-ui/styles.css";
+
+@source "./";

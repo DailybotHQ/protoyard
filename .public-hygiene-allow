@@ -1,2 +1,3 @@
 packages/cli/tests/publish-ledger.test.ts secret-assignment fake test token proving the ledger never records credentials
 packages/cli/tests/control-server.test.ts secret-assignment fake per-run create token used only by the control-server tests
+packages/cli/tests/commands/validate.test.ts secret-slack fake Slack-shaped token proving the fixture guard detects it and never echoes it

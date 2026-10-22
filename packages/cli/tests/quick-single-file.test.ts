@@ -1,9 +1,9 @@
 // @vitest-environment node
-import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { ensurePlayerBuild } from '../../player/tests/support/serve-dist.ts';
 import { setQuickPlayerLocator } from '../src/commands/quick/index.ts';
 import {
   createPlayerAssetsManifest,
@@ -73,10 +73,10 @@ describe('single-file building blocks', () => {
   });
 
   it('makes the blueprint inert JSON that parses back to the same value', () => {
-    const value = { name: 'x </script><!-- y', note: 'line sep' };
+    const value = { name: 'x </script><!-- y', note: 'line\u2028sep' };
     const inert = inertJson(JSON.stringify(value));
     expect(inert).not.toContain('<');
-    expect(inert).not.toContain(' ');
+    expect(inert).not.toContain('\u2028');
     expect(JSON.parse(inert)).toEqual(value);
   });
 
@@ -201,14 +201,8 @@ describe('protoyard quick export --single-file', () => {
 
 describe('single file from the real player build', () => {
   const playerDir = join(REPO, 'packages/player/dist/app');
-  const ensureBuild = () => {
-    if (existsSync(join(playerDir, 'index.html'))) return;
-    const built = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
-      cwd: REPO,
-      encoding: 'utf8',
-    });
-    if (built.status !== 0) throw new Error(`player build failed:\n${built.stderr}${built.stdout}`);
-  };
+  // The player's shared helper: one locked production build across test files.
+  const ensureBuild = () => ensurePlayerBuild(REPO);
 
   it('stays under the budget for every catalog blueprint', async () => {
     ensureBuild();

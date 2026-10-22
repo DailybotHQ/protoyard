@@ -30,7 +30,7 @@ function sourceFor(id: string) {
         </a>
       {:else if node.type === 'image'}
         {#if node.src}
-          <img class="my-2 max-h-80 max-w-full rounded-lg border border-border object-contain" src={node.src} alt={node.alt} loading="lazy" />
+          <img class="my-2 max-h-80 max-w-full rounded-lg border border-border object-contain" src={node.src} alt={node.alt} loading="lazy" referrerpolicy="no-referrer" />
         {:else}
           <span class="rounded bg-muted px-2 py-1 text-xs text-muted-foreground">Image: {node.alt}</span>
         {/if}
@@ -63,7 +63,12 @@ function sourceFor(id: string) {
             <span>{block.lang || 'code'}</span>
             {#if !block.closed}<span role="status">Streaming</span>{/if}
           </div>
-          <pre class="overflow-x-auto p-3 text-xs leading-5"><code>{block.text}</code></pre>
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -- scrollable code; keyboard users must reach it (WCAG 2.1.1 / axe scrollable-region-focusable). -->
+          <pre
+            tabindex="0"
+            aria-label={`${block.lang || 'code'} code`}
+            class="overflow-x-auto p-3 text-xs leading-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          ><code>{block.text}</code></pre>
         </div>
       {:else if block.type === 'chart'}
         {#snippet chartStatus(text: string)}<p role="status" class="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">{text}</p>{/snippet}

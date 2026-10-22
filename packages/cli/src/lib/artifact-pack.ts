@@ -98,6 +98,10 @@ const CONTENT_TYPES: Record<string, { type: string; text: boolean }> = {
   ico: { type: 'image/x-icon', text: false },
   woff2: { type: 'font/woff2', text: false },
   woff: { type: 'font/woff', text: false },
+  // font/ttf and font/otf are registered web types (RFC 8081); the Artifact tool
+  // serves them as binary assets the same way it serves woff/woff2.
+  ttf: { type: 'font/ttf', text: false },
+  otf: { type: 'font/otf', text: false },
 };
 const SOURCE_MAP = { type: 'application/json', text: true };
 
@@ -105,6 +109,61 @@ export interface PackIssue {
   /** The file (published path) or `page.html` the issue is about. */
   path: string;
   reason: string;
+}
+
+// ── Top-level await ─────────────────────────────────────────────────────────
+
+/** Nodes whose bodies are not the module's top level (an `await` there is fine). */
+const FUNCTION_SCOPES = new Set([
+  'FunctionDeclaration',
+  'FunctionExpression',
+  'ArrowFunctionExpression',
+]);
+
+/**
+ * Finds `await` and `for await` at a module's top level. An artifact build is
+ * one chunk; a top-level await on a dynamic import of that same chunk never
+ * settles, so the page opens blank while every other check passes. Fails
+ * closed: a chunk that cannot be parsed is reported too.
+ */
+export async function topLevelAwaitIssues(path: string, code: string): Promise<PackIssue[]> {
+  const { parseAst } = await import('vite');
+  let ast: unknown;
+  try {
+    ast = parseAst(code);
+  } catch {
+    return [{ path, reason: 'could not be parsed to check for a top-level await' }];
+  }
+  let found = 0;
+  const visit = (node: unknown, depth: number): void => {
+    if (found > 0 || depth > 4_000 || node === null || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const child of node) visit(child, depth + 1);
+      return;
+    }
+    const record = node as Record<string, unknown>;
+    const type = record.type;
+    if (typeof type === 'string') {
+      if (FUNCTION_SCOPES.has(type)) return;
+      if (type === 'AwaitExpression' || (type === 'ForOfStatement' && record.await === true)) {
+        found += 1;
+        return;
+      }
+    }
+    for (const [key, value] of Object.entries(record)) {
+      if (key !== 'type' && value && typeof value === 'object') visit(value, depth + 1);
+    }
+  };
+  visit(ast, 0);
+  return found > 0
+    ? [
+        {
+          path,
+          reason:
+            'has a top-level await; in a single-chunk artifact it can deadlock and open blank (await inside a function instead)',
+        },
+      ]
+    : [];
 }
 
 // ── Tag scanner ─────────────────────────────────────────────────────────────
@@ -205,6 +264,144 @@ export const ARTIFACT_PAGE_STYLE = [
 ].join('\n');
 
 const SERVICE_WORKER = /\bserviceWorker\s*\.\s*register\s*\(/;
+
+function maskCommentsAndLiterals(source: string): string {
+  const output = [...source];
+  const blank = (start: number, end: number): void => {
+    for (let index = start; index < end; index += 1) {
+      if (output[index] !== '\n' && output[index] !== '\r') output[index] = ' ';
+    }
+  };
+  for (let index = 0; index < source.length; ) {
+    const character = source[index];
+    const next = source[index + 1];
+    if (character === '/' && next === '/') {
+      const end = source.indexOf('\n', index + 2);
+      const stop = end < 0 ? source.length : end;
+      blank(index, stop);
+      index = stop;
+      continue;
+    }
+    if (character === '/' && next === '*') {
+      const end = source.indexOf('*/', index + 2);
+      const stop = end < 0 ? source.length : end + 2;
+      blank(index, stop);
+      index = stop;
+      continue;
+    }
+    if (character === '"' || character === "'" || character === '`') {
+      const quote = character;
+      let stop = index + 1;
+      while (stop < source.length) {
+        if (source[stop] === '\\') {
+          stop += 2;
+          continue;
+        }
+        if (source[stop] === quote) {
+          stop += 1;
+          break;
+        }
+        stop += 1;
+      }
+      blank(index, stop);
+      index = stop;
+      continue;
+    }
+    index += 1;
+  }
+  return output.join('');
+}
+
+function matchingDelimiter(source: string, start: number, open: string, close: string): number {
+  let depth = 0;
+  for (let index = start; index < source.length; index += 1) {
+    if (source[index] === open) depth += 1;
+    else if (source[index] === close && --depth === 0) return index;
+  }
+  return -1;
+}
+
+function previousNonSpace(source: string, index: number): string {
+  let cursor = index - 1;
+  while (cursor >= 0 && /\s/.test(source[cursor] as string)) cursor -= 1;
+  return source[cursor] ?? '';
+}
+
+function topLevelAwaitDynamicImport(source: string): boolean {
+  const code = maskCommentsAndLiterals(source);
+  const functionBodies = new Set<number>();
+  for (const match of code.matchAll(/\bfunction\b/g)) {
+    const parameters = code.indexOf('(', match.index + match[0].length);
+    const endParameters = parameters < 0 ? -1 : matchingDelimiter(code, parameters, '(', ')');
+    const body = endParameters < 0 ? -1 : code.indexOf('{', endParameters + 1);
+    if (body >= 0) functionBodies.add(body);
+  }
+  for (const match of code.matchAll(/=>\s*\{/g)) {
+    const body = code.indexOf('{', match.index + match[0].indexOf('=>') + 2);
+    if (body >= 0) functionBodies.add(body);
+  }
+  for (let body = code.indexOf('{'); body >= 0; body = code.indexOf('{', body + 1)) {
+    if (previousNonSpace(code, body) !== ')') continue;
+    const close = body - 1;
+    let depth = 1;
+    let open = close - 1;
+    for (; open >= 0; open -= 1) {
+      if (code[open] === ')') depth += 1;
+      else if (code[open] === '(' && --depth === 0) break;
+    }
+    if (open < 0) continue;
+    const prefix = code.slice(Math.max(0, open - 24), open).trimEnd();
+    if (!/(?:\bif|\bfor|\bwhile|\bswitch|\bcatch|\bwith)$/.test(prefix)) {
+      functionBodies.add(body);
+    }
+  }
+
+  const functionRanges = [...functionBodies]
+    .map((body) => [body, matchingDelimiter(code, body, '{', '}')] as const)
+    .filter((range) => range[1] >= 0);
+  const arrowExpressions: [number, number][] = [];
+  for (const match of code.matchAll(/=>/g)) {
+    let start = match.index + 2;
+    while (/\s/.test(code[start] ?? '')) start += 1;
+    if (code[start] === '{') continue;
+    let round = 0;
+    let square = 0;
+    let curly = 0;
+    let end = start;
+    for (; end < code.length; end += 1) {
+      const character = code[end];
+      if (character === '(') round += 1;
+      else if (character === ')') {
+        if (round === 0) break;
+        round -= 1;
+      } else if (character === '[') square += 1;
+      else if (character === ']') {
+        if (square === 0) break;
+        square -= 1;
+      } else if (character === '{') curly += 1;
+      else if (character === '}') {
+        if (curly === 0) break;
+        curly -= 1;
+      } else if (
+        (character === ',' || character === ';') &&
+        round === 0 &&
+        square === 0 &&
+        curly === 0
+      ) {
+        break;
+      }
+    }
+    arrowExpressions.push([start, end]);
+  }
+
+  const inFunction = (index: number): boolean =>
+    functionRanges.some(([start, end]) => index > start && index < end) ||
+    arrowExpressions.some(([start, end]) => index >= start && index < end);
+  for (const match of code.matchAll(/\bawait\s+import\s*\(/g)) {
+    if (!inFunction(match.index)) return true;
+  }
+  return false;
+}
 
 /** Turns a build's `index.html` into Artifact page content, checking every reference. */
 export function transformPage(
@@ -402,6 +599,13 @@ export function checkTextAsset(path: string, text: string): PackIssue[] {
     }
   }
   if (/\.(?:m?js|html)$/i.test(path)) {
+    if (topLevelAwaitDynamicImport(text)) {
+      issues.push({
+        path,
+        reason:
+          'uses top-level await on a dynamic import; single-chunk Artifact bundles cannot resolve lazy chunks',
+      });
+    }
     if (SERVICE_WORKER.test(text)) {
       issues.push({ path, reason: 'registers a service worker; build without offline support' });
     }
@@ -522,6 +726,21 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export function iconForCategory(category: string | undefined): string {
   return CATEGORY_ICONS[(category ?? '').toLowerCase()] ?? 'app';
+}
+
+/** The icon of a deck, page or doc: what it is, whatever its category. */
+const KIND_ICONS: Readonly<Record<string, string>> = {
+  deck: 'slides',
+  page: 'page',
+  doc: 'document',
+};
+
+/** A content kind's icon (`slides`, `page`, `document`); an app's comes from its category. */
+export function iconForBlueprint(blueprint: { kind?: string; category?: string }): string {
+  return (
+    (blueprint.kind !== undefined && KIND_ICONS[blueprint.kind]) ||
+    iconForCategory(blueprint.category)
+  );
 }
 
 /** The first sentence of a description (up to the first `.`, `!` or `?` followed by a space or the end). */
@@ -680,6 +899,10 @@ export async function packArtifact(options: PackArtifactOptions): Promise<PackAr
     if (kind.text) {
       const text = await readFile(join(distDir, digest.path), 'utf8');
       issues.push(...checkTextAsset(digest.path, text));
+      // A file already refused for its size is not worth parsing.
+      if (/\.m?js$/i.test(digest.path) && digest.size <= limit) {
+        issues.push(...(await topLevelAwaitIssues(digest.path, text)));
+      }
       packed = escapeReplacementCharacters(digest.path, text);
       if (packed === null && text.includes('�')) {
         issues.push({

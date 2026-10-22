@@ -110,3 +110,12 @@ describe('Toaster', () => {
     expect(within(region).queryByText('Hover me')).toBeNull();
   });
 });
+
+describe('Toaster on a narrower visual viewport', () => {
+  it('pads its region by --py-fixed-right-edge so toasts stay on screen', () => {
+    render(Toaster, {});
+    const region = screen.getByRole('region', { name: 'Notifications' });
+    expect(region.className).toContain('pr-[calc(1rem+var(--py-fixed-right-edge,0px))]');
+    expect(region.className).toContain('sm:pr-[calc(1.5rem+var(--py-fixed-right-edge,0px))]');
+  });
+});

@@ -16,7 +16,18 @@
       "svelte": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./styles.css": "./src/styles.css"
+    "./player.css": "./src/player.css",
+    "./styles.css": "./src/styles.css",
+    "./layouts/docs": {
+      "types": "./src/layouts/DocsLayout.svelte",
+      "svelte": "./src/layouts/DocsLayout.svelte",
+      "default": "./src/layouts/DocsLayout.svelte"
+    },
+    "./layouts/marketing": {
+      "types": "./src/layouts/MarketingLayout.svelte",
+      "svelte": "./src/layouts/MarketingLayout.svelte",
+      "default": "./src/layouts/MarketingLayout.svelte"
+    }
   },
   "scripts": {
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
@@ -36,7 +47,9 @@
   },
   "protoyard": {
     "build": {
-      "assets": []
+      "assets": [
+        "src/player.css"
+      ]
     }
   },
   "files": [
@@ -53,10 +66,25 @@
         "svelte": "./dist/index.js",
         "default": "./dist/index.js"
       },
+      "./player.css": {
+        "types": "./dist/player.css.d.ts",
+        "svelte": "./dist/player.css",
+        "default": "./dist/player.css"
+      },
       "./styles.css": {
         "types": "./dist/styles.css.d.ts",
         "svelte": "./dist/styles.css",
         "default": "./dist/styles.css"
+      },
+      "./layouts/docs": {
+        "types": "./dist/layouts/DocsLayout.svelte.d.ts",
+        "svelte": "./dist/layouts/DocsLayout.svelte",
+        "default": "./dist/layouts/DocsLayout.svelte"
+      },
+      "./layouts/marketing": {
+        "types": "./dist/layouts/MarketingLayout.svelte.d.ts",
+        "svelte": "./dist/layouts/MarketingLayout.svelte",
+        "default": "./dist/layouts/MarketingLayout.svelte"
       }
     },
     "files": [

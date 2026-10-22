@@ -7,6 +7,10 @@ import { overlayBackdrop } from '../../lib/overlay.ts';
 import type { TriggerSnippet } from '../../lib/types.ts';
 import { useOverlayPortalTarget } from '../../lib/use-overlay-portal.svelte.ts';
 import Button from '../button/Button.svelte';
+import { isUndoToasterTarget } from '../overlay/focus-exempt.ts';
+import { type OverlayStack, overlayStack } from '../overlay/overlay-stack.ts';
+import { useOverlayLayer } from '../overlay/use-overlay-layer.svelte.ts';
+import { undoToast } from '../toast/undo.svelte.ts';
 
 interface Props {
   open?: boolean;
@@ -23,6 +27,8 @@ interface Props {
   /** Extra content between the description and the actions (e.g. a consequences list). */
   children?: Snippet;
   class?: string;
+  /** Defaults to the shared stack; pass one to isolate a subtree (tests). Read once at mount. */
+  stack?: OverlayStack;
 }
 
 let {
@@ -37,9 +43,13 @@ let {
   trigger,
   children,
   class: className,
+  stack = overlayStack,
 }: Props = $props();
 
 const portal = useOverlayPortalTarget();
+// svelte-ignore state_referenced_locally
+const layer = useOverlayLayer(() => open, { modal: () => true, stack });
+const trapFocus = $derived(undoToast.items.length === 0);
 
 let pending = $state(false);
 /** Cancel is the safe default: it receives focus when the dialog opens. */
@@ -70,12 +80,31 @@ function cancel(): void {
 function blockWhilePending(event: Event): void {
   if (pending) event.preventDefault();
 }
+
+function handleEscape(event: KeyboardEvent): void {
+  blockWhilePending(event);
+  if (event.defaultPrevented) return;
+  event.preventDefault();
+  if (!layer.stack.isTop(layer.entry)) return;
+  if (layer.stack.dismissLayerFor(event, cancelButton)) return;
+  cancel();
+}
+
+function handleInteractOutside(event: PointerEvent): void {
+  if (pending || isUndoToasterTarget(event.target) || !layer.stack.isTop(layer.entry)) {
+    event.preventDefault();
+  }
+}
 </script>
 
 <AlertDialogPrimitive.Root
-  bind:open
+  open={open}
   onOpenChange={(isOpen) => {
-    if (!isOpen) error = null;
+    if (!isOpen) {
+      error = null;
+      if (pending) return;
+    }
+    open = isOpen;
   }}
 >
   {#if trigger}
@@ -84,19 +113,22 @@ function blockWhilePending(event: Event): void {
     </AlertDialogPrimitive.Trigger>
   {/if}
   <AlertDialogPrimitive.Portal to={portal.current}>
-    <AlertDialogPrimitive.Overlay class={overlayBackdrop} />
+    <AlertDialogPrimitive.Overlay class={overlayBackdrop} style={`z-index:${layer.zIndex}`} />
     <AlertDialogPrimitive.Content
-      onEscapeKeydown={blockWhilePending}
+      trapFocus={trapFocus}
+      onEscapeKeydown={handleEscape}
+      onInteractOutside={handleInteractOutside}
       onOpenAutoFocus={(event) => {
         event.preventDefault();
         cancelButton?.focus();
       }}
       aria-busy={pending || undefined}
       class={cn(
-        'fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 sm:max-w-md',
+        'fixed top-1/2 left-1/2 grid w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 sm:max-w-md',
         'rounded-xl border border-border bg-elevated p-6 text-foreground shadow-float outline-none ui-anim-pop',
         className
       )}
+      style={`z-index:${layer.zIndex}`}
     >
       <div class="flex gap-4">
         {#if destructive}

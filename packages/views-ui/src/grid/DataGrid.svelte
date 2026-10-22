@@ -25,6 +25,7 @@ import { tick } from 'svelte';
 import LazyDropdownMenu from '../lib/LazyDropdownMenu.svelte';
 import QueryState from '../states/QueryState.svelte';
 import {
+  type BulkAction,
   completeFilter,
   type DataGridColumn,
   emptyView,
@@ -40,8 +41,10 @@ import SavedViews from './SavedViews.svelte';
  * A data grid on the `@protoyard/views/grid` engine: the ARIA grid pattern
  * with roving focus, virtualized rows and columns, sticky header and pinned
  * columns, sort, resize, reorder, pin and hide, grouping with aggregates,
- * inline editing through `onCommit`, a filter builder and saved views. Below
- * `md` it shows the same rows as cards.
+ * inline editing through `onCommit`, a filter builder, facet pickers and
+ * removable filter chips, saved views (with "Modified", "Save changes" and
+ * "Revert") and, with `bulkActions`, row selection and a bulk action bar.
+ * Below `md` it shows the same rows as cards.
  */
 let {
   query,
@@ -53,10 +56,14 @@ let {
   onCreateView,
   onRenameView,
   onDeleteView,
+  onUpdateView,
   onViewChange,
   onCommit,
   onRowOpen,
   aggregates = [],
+  facets = [],
+  bulkActions = [],
+  selection = $bindable([]),
   onRetry,
   label = 'Data',
   height = '28rem',
@@ -73,12 +80,20 @@ let {
   onCreateView?: (name: string, view: GridViewState) => unknown;
   onRenameView?: (view: SavedView, name: string) => unknown;
   onDeleteView?: (view: SavedView) => unknown;
+  /** Overwrites the active saved view with the current state ("Save changes"). */
+  onUpdateView?: (view: SavedView, state: GridViewState) => unknown;
   /** Called with every view change (to persist it, for example). */
   onViewChange?: (view: GridViewState) => void;
   /** Persists an inline edit; reject (or fail in runService) to roll the cell back. */
   onCommit?: (row: T, key: string, value: GridValue) => unknown;
   onRowOpen?: (row: T) => void;
   aggregates?: readonly GridAggregate[];
+  /** Column keys that get a facet picker in the toolbar (enum and boolean columns fit best). */
+  facets?: readonly string[];
+  /** Actions for selected rows; when set, rows get checkboxes and Space selects. */
+  bulkActions?: readonly BulkAction<T>[];
+  /** Selected row ids in row order (bindable, plain data). */
+  selection?: string[];
   onRetry?: () => void | Promise<void>;
   label?: string;
   height?: string;
@@ -87,6 +102,23 @@ let {
 
 const uid = $props.id();
 const HEADER = 40;
+/** Row selection loads with the first bulk action (its checkboxes and rules are a lazy chunk). */
+let kit = $state<typeof import('./selection-kit.ts') | null>(null);
+$effect(() => {
+  if (bulkActions.length === 0 || kit) return;
+  import('./selection-kit.ts').then(
+    (loaded) => {
+      kit = loaded;
+    },
+    () => announce('Row selection could not load. Check the connection and reload.')
+  );
+});
+const selectable = $derived(bulkActions.length > 0 && kit !== null);
+/** Width of the sticky selection column (0 without bulk actions). */
+const GUTTER = $derived(selectable ? 40 : 0);
+/** aria-colindex offset: the selection column is column 1. */
+const COL0 = $derived(selectable ? 2 : 1);
+let anchor: string | null = null;
 let scroller = $state<HTMLDivElement>();
 let scrollTop = $state(0);
 let scrollLeft = $state(0);
@@ -135,6 +167,40 @@ const display = $derived<GridDisplayRow<T>[]>(
     : result.rows.map((row) => ({ kind: 'row', row, groupId: '' }))
 );
 
+// ── selection ───────────────────────────────────────────────────────────
+const visibleIds = $derived(result.rows.map(getRowId));
+const selectedSet = $derived(new Set(selection));
+const selectedRows = $derived(
+  (query.current ?? []).filter((row) => selectedSet.has(getRowId(row)))
+);
+
+// Rows that no longer exist (deleted, new data) leave the selection.
+$effect(() => {
+  const rows = query.current;
+  if (!rows || !kit || selection.length === 0) return;
+  const pruned = kit.pruneSelection(selection, rows.map(getRowId));
+  if (pruned.length !== selection.length) selection = pruned;
+});
+
+function selectRow(id: string, range: boolean) {
+  if (!kit) return;
+  const step = kit.selectRow(selection, visibleIds, anchor, id, range);
+  selection = step.selection;
+  anchor = step.anchor;
+  announce(step.message);
+}
+
+function clearSelection() {
+  selection = [];
+  anchor = null;
+}
+
+/** A row's name for labels: its first visible column. */
+function rowName(row: T): string {
+  const first = visible[0]?.def as DataGridColumn<T> | undefined;
+  return (first && formatValue(first, cellValue(row, first), row)) || 'row';
+}
+
 // ── columns ─────────────────────────────────────────────────────────────
 const resolved = $derived(
   resolveColumns(columns, view.columns.length ? view.columns : columns.map((c) => ({ key: c.key })))
@@ -155,7 +221,7 @@ const win = $derived(
     scrollLeft,
     viewportHeight: Math.max(0, (viewportHeight || 600) - HEADER),
     viewportWidth: viewportWidth || 1200,
-    pinnedLeftWidth: leftWidth,
+    pinnedLeftWidth: leftWidth + GUTTER,
     pinnedRightWidth: rightWidth,
   })
 );
@@ -183,7 +249,7 @@ function stateFor(): GridViewState['columns'] {
   return view.columns.length ? view.columns : columns.map((c) => ({ key: c.key }));
 }
 function stickyLeft(index: number) {
-  return resolved.left.slice(0, index).reduce((sum, c) => sum + c.width, 0);
+  return GUTTER + resolved.left.slice(0, index).reduce((sum, c) => sum + c.width, 0);
 }
 function stickyRight(index: number) {
   return resolved.right
@@ -323,7 +389,7 @@ async function focusCell(row: number, col: number) {
       const left = resolved.center.slice(0, centerIndex).reduce((sum, x) => sum + x.width, 0);
       const width = resolved.center[centerIndex]?.width ?? 0;
       const viewportCenter =
-        (scroller.clientWidth || viewportWidth || 1200) - leftWidth - rightWidth;
+        (scroller.clientWidth || viewportWidth || 1200) - GUTTER - leftWidth - rightWidth;
       if (left < nextLeft) nextLeft = left;
       else if (left + width > nextLeft + viewportCenter) nextLeft = left + width - viewportCenter;
     }
@@ -372,6 +438,11 @@ function onGridKey(event: KeyboardEvent) {
     return;
   }
   if (item.kind !== 'row') return;
+  if (event.key === ' ' && selectable) {
+    event.preventDefault();
+    selectRow(getRowId(item.row), event.shiftKey);
+    return;
+  }
   const column = visible[col]?.def as DataGridColumn<T> | undefined;
   if ((event.key === 'Enter' || event.key === 'F2') && column?.editable && onCommit) {
     event.preventDefault();
@@ -395,6 +466,8 @@ function cellValue(row: T, column: DataGridColumn<T>): GridValue {
   return key in optimistic ? (optimistic[key] as GridValue) : readValue(row, column);
 }
 
+let CellEditor = $state<typeof import('./CellEditor.svelte').default<T> | null>(null);
+
 function startEdit(row: T, column: DataGridColumn<T>) {
   const value = cellValue(row, column);
   const draft =
@@ -405,9 +478,20 @@ function startEdit(row: T, column: DataGridColumn<T>) {
         : value === null || value === undefined
           ? ''
           : String(value);
-  editing = { rowId: getRowId(row), key: column.key, draft };
-  void tick().then(() =>
-    document.querySelector<HTMLElement>(`[data-grid="${uid}"] [data-editor]`)?.focus()
+  const open = () => {
+    editing = { rowId: getRowId(row), key: column.key, draft };
+    void tick().then(() =>
+      document.querySelector<HTMLElement>(`[data-grid="${uid}"] [data-editor]`)?.focus()
+    );
+  };
+  if (CellEditor) return open();
+  // The editor loads with the first edit; read-only grids never download it.
+  import('./CellEditor.svelte').then(
+    (loaded) => {
+      CellEditor = loaded.default as typeof CellEditor;
+      open();
+    },
+    () => announce('The cell editor could not load. Check the connection and try again.')
   );
 }
 
@@ -496,6 +580,8 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
       onCreate={onCreateView ? (name) => onCreateView(name, view) : undefined}
       onRename={onRenameView}
       onDelete={onDeleteView}
+      current={view}
+      onUpdate={onUpdateView}
     />
     <Button variant={view.filter ? 'secondary' : 'outline'} size="sm" aria-expanded={showFilters} onclick={() => (showFilters = !showFilters)}>
       <Filter class="size-4" aria-hidden="true" />Filters{view.filter ? ' (on)' : ''}
@@ -526,6 +612,14 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
       <p class="text-sm text-destructive" role="alert">The filter builder could not load. Check the connection and try again.</p>
     {/await}
   {/if}
+  {#if facets.length > 0 || view.filter || selectedRows.length > 0}
+    <!-- Quick filters, chips and the bulk bar: one lazy chunk, only for grids that use them. -->
+    {#await import('./GridExtras.svelte') then { default: GridExtras }}
+      <GridExtras {columns} {facets} filter={view.filter} onFilter={(filter) => setView({ ...view, filter })} rows={selectedRows} actions={bulkActions} onClear={clearSelection} {label} />
+    {:catch}
+      <p class="text-sm text-destructive" role="alert">Quick filters, chips and bulk actions could not load. Check the connection and try again.</p>
+    {/await}
+  {/if}
   <p class="text-sm text-muted-foreground empty:hidden" role="status">
     {#if filterError}Filter not applied: {filterError}{:else if prepared.incomplete}{prepared.incomplete === 1 ? 'One condition needs a value before it applies.' : `${prepared.incomplete} conditions need a value before they apply.`}{/if}
   </p>
@@ -548,13 +642,23 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
           role="grid"
           aria-label={label}
           aria-rowcount={display.length + 1}
-          aria-colcount={visible.length}
+          aria-colcount={visible.length + COL0 - 1}
+          aria-multiselectable={selectable || undefined}
           tabindex="-1"
           class="relative text-sm"
-          style:width={`${leftWidth + centerTotal + rightWidth}px`}
+          style:width={`${GUTTER + leftWidth + centerTotal + rightWidth}px`}
           onkeydown={onGridKey}
         >
           <div role="row" aria-rowindex={1} class="sticky top-0 z-20 flex border-b border-border bg-muted" style:height={`${HEADER}px`}>
+            {#if selectable && kit}
+              {@const all = kit.stateOf(selection, visibleIds)}
+              <kit.SelectBox variant="header" width={GUTTER} label="Select all shown rows" checked={all === 'all'} indeterminate={all === 'some'} disabled={visibleIds.length === 0} onToggle={() => {
+                if (!kit) return;
+                const step = kit.toggleVisible(selection, visibleIds);
+                selection = step.selection;
+                announce(step.message);
+              }} />
+            {/if}
             {#each drawn as { c, index, pin } (c.def.key)}
               {#if pin === null && index === resolved.left.length + (win.columns.items[0]?.index ?? 0)}
                 <div aria-hidden="true" style:width={`${centerStart}px`} class="shrink-0"></div>
@@ -563,7 +667,7 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
               <div
                 role="columnheader"
                 tabindex="-1"
-                aria-colindex={index + 1}
+                aria-colindex={index + COL0}
                 aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : undefined}
                 class={cn('group relative flex shrink-0 items-center gap-1 bg-muted px-2 font-medium', pin && 'sticky z-10')}
                 style:width={colTemplate(c)}
@@ -625,7 +729,7 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
               <div role="row" aria-rowindex={r + 2} aria-expanded={!item.collapsed} class="flex border-b border-border bg-muted/50 font-medium" style:height={`${rowHeight}px`}>
                 <div
                   role="gridcell"
-                  aria-colspan={visible.length}
+                  aria-colspan={visible.length + COL0 - 1}
                   data-cell={`${r}:0`}
                   tabindex={active.row === r ? 0 : -1}
                   class="sticky left-0 flex items-center gap-2 px-2 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
@@ -645,12 +749,20 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
               </div>
             {:else}
               {@const rowId = getRowId(item.row)}
+              {@const isSelected = selectable && selectedSet.has(rowId)}
               <div
                 role="row"
                 aria-rowindex={r + 2}
-                class="flex border-b border-border bg-surface hover:bg-muted/30"
+                aria-selected={selectable ? isSelected : undefined}
+                class={cn('flex border-b border-border hover:bg-muted/30', isSelected ? 'bg-primary/10' : 'bg-surface')}
                 style:height={`${rowHeight}px`}
               >
+                {#if selectable && kit}
+                  <kit.SelectBox variant="cell" width={GUTTER} label={`Select ${rowName(item.row)}`} checked={isSelected} onToggle={(range) => {
+                    active = { row: r, col: active.col };
+                    selectRow(rowId, range);
+                  }} />
+                {/if}
                 {#each drawn as { c, index, pin } (c.def.key)}
                   {#if pin === null && index === resolved.left.length + (win.columns.items[0]?.index ?? 0)}
                     <div aria-hidden="true" style:width={`${centerStart}px`} class="shrink-0"></div>
@@ -660,7 +772,7 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
                   {@const isEditing = editing?.rowId === rowId && editing.key === column.key}
                   <div
                     role="gridcell"
-                    aria-colindex={index + 1}
+                    aria-colindex={index + COL0}
                     aria-busy={pending[key] || undefined}
                     aria-invalid={errors[key] ? true : undefined}
                     aria-describedby={errors[key] ? `grid-${uid}-err-${rowId}-${column.key}` : undefined}
@@ -681,44 +793,8 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
                     ondblclick={() => onRowOpen?.(item.row)}
                     onkeydown={() => {}}
                   >
-                    {#if isEditing && editing}
-                      {#if column.type === 'boolean'}
-                        <!-- Native controls edit in place: no Bits UI layers inside a cell. -->
-                        <input
-                          data-editor
-                          type="checkbox"
-                          role="switch"
-                          aria-label={column.header}
-                          class="size-4 accent-primary"
-                          checked={editing.draft === true}
-                          onchange={(event) => editing && (editing = { ...editing, draft: (event.currentTarget as HTMLInputElement).checked })}
-                          onkeydown={(event) => onEditorKey(event, item.row, column)}
-                        />
-                        <Button size="sm" variant="ghost" onclick={() => commitEdit(item.row, column)}>Save</Button>
-                      {:else if column.type === 'enum' && column.options}
-                        <select
-                          data-editor
-                          aria-label={column.header}
-                          class="h-7 rounded border border-input bg-background px-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          value={String(editing.draft)}
-                          onchange={(event) => editing && (editing = { ...editing, draft: (event.currentTarget as HTMLSelectElement).value })}
-                          onkeydown={(event) => onEditorKey(event, item.row, column)}
-                        >
-                          {#each column.options as option (option)}<option value={option}>{column.format ? column.format(option, item.row) : option}</option>{/each}
-                        </select>
-                        <Button size="sm" variant="ghost" onclick={() => commitEdit(item.row, column)}>Save</Button>
-                      {:else}
-                        <input
-                          data-editor
-                          aria-label={column.header}
-                          type={column.type === 'number' ? 'number' : column.type === 'date' ? 'date' : 'text'}
-                          class="h-7 w-full rounded border border-input bg-background px-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          value={String(editing.draft)}
-                          oninput={(event) => editing && (editing = { ...editing, draft: (event.currentTarget as HTMLInputElement).value })}
-                          onkeydown={(event) => onEditorKey(event, item.row, column)}
-                          onblur={() => commitEdit(item.row, column)}
-                        />
-                      {/if}
+                    {#if isEditing && editing && CellEditor}
+                      <CellEditor {column} row={item.row} draft={editing.draft} onDraft={(draft) => editing && (editing = { ...editing, draft })} onKeydown={(event) => onEditorKey(event, item.row, column)} onSave={() => commitEdit(item.row, column)} />
                     {:else}
                       <span class="truncate">{formatValue(column, cellValue(item.row, column), item.row)}</span>
                       {#if pending[key]}<Spinner class="size-3.5 shrink-0" /><span class="sr-only">Saving</span>{/if}
@@ -739,9 +815,13 @@ const sortOf = (key: string) => view.sort.find((s) => s.key === key)?.direction;
           {#if item.kind === 'group'}
             <li><h3 class="pt-2 text-sm font-semibold">{item.group.value ?? '(empty)'} · {item.group.rows.length}</h3></li>
           {:else}
-            <li class="rounded-lg border border-border bg-surface p-3 text-sm">
-              <button type="button" class="w-full text-left" onclick={() => onRowOpen?.(item.row)} disabled={!onRowOpen}>
-                <span class="block font-medium">{formatValue(visible[0]?.def as DataGridColumn<T>, cellValue(item.row, visible[0]?.def as DataGridColumn<T>), item.row)}</span>
+            {@const cardId = getRowId(item.row)}
+            <li class={cn('flex gap-3 rounded-lg border border-border p-3 text-sm', selectable && selectedSet.has(cardId) ? 'bg-primary/10' : 'bg-surface')}>
+              {#if selectable && kit}
+                <kit.SelectBox variant="card" label={`Select ${rowName(item.row)}`} checked={selectedSet.has(cardId)} onToggle={(range) => selectRow(cardId, range)} />
+              {/if}
+              <button type="button" class="min-w-0 flex-1 text-left" onclick={() => onRowOpen?.(item.row)} disabled={!onRowOpen}>
+                <span class="block font-medium">{rowName(item.row)}</span>
                 <dl class="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
                   {#each visible.slice(1, 5) as c (c.def.key)}
                     <dt class="text-muted-foreground">{c.def.header}</dt>

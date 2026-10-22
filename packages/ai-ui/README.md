@@ -48,6 +48,8 @@ The workspace renders its conversation through `MessageList`, which virtualizes 
 
 The composer supports Enter to send, Shift+Enter for a newline, Escape to stop a stream, model selection, file selection, slash-command suggestions, and @mention suggestions. The parent owns streaming state and should update `messages` as deterministic chunks arrive. `RichAnswer` renders the plain-data AST from `parseMarkdown` using text nodes and Svelte elements; it never uses `{@html}`. `CanvasPanel` displays code or editable document text in a responsive side panel.
 
+**Scrollable code regions.** Overflowing `<pre>` blocks in `RichAnswer` (fenced code), `ChartAnswer` (invalid chart data), and `CanvasPanel` (code kind) use `tabindex="0"` and an `aria-label`, matching the ui-kit `CodeBlock` pattern, so keyboard users can reach them (axe `scrollable-region-focusable` / WCAG 2.1.1). Covered by `packages/ai-ui/tests/scroll-regions.test.ts`.
+
 **Chart answers.** `RichAnswer` parses with `{ charts: true }`.
 - A ```` ```chart ```` fence (see `@protoyard/ai/chart`) shows "Preparing
   chart…" while it streams.
@@ -87,3 +89,61 @@ const { AssistantWidget } = await import('@protoyard/ai-ui/widget');
 ## Package output
 
 The repository keeps source exports for workspace development. `pnpm build:packages --filter svelte` creates the compiled ESM, declarations and Svelte components under `dist/` that the packed manifest exposes.
+
+
+## Suggestion approvals (lazy)
+
+Import from `@protoyard/ai-ui/approvals` so the approval surface stays out of the
+assistant boot chunk. Pair with `@protoyard/ai/approvals` pure helpers.
+
+| Export | Purpose |
+| --- | --- |
+| `SuggestionCard` | Waiting or decided suggestion with evidence and decision buttons |
+| `ChatApprovalCard` | Compact chat-row approval |
+| `AutonomyLevelPicker` | Per-area autonomy radios (`setLevel` via `onChange`) |
+| `AuditTrail` | Newest-first audit table |
+
+Callbacks are required for every decision. Show pending state is built in.
+Label the UI as simulated — these controls are prototype UX, not security.
+
+```ts
+import {
+  AuditTrail,
+  AutonomyLevelPicker,
+  ChatApprovalCard,
+  SuggestionCard,
+} from '@protoyard/ai-ui/approvals';
+```
+
+Bundle note: the approvals subpath is optional; assistant workspace entry graphs
+do not import it until a screen does.
+
+## Chat message blocks (lazy)
+
+Import `ChatMessageBlocks` from `@protoyard/ai-ui/messages` to render
+`protoyard.message@1` messages from `@protoyard/ai/messages`. It renders text
+(plain or safe markdown), buttons with inline confirmations, selects, forms,
+tables, link previews, attachments and the fallback for unknown blocks.
+
+```svelte
+<script lang="ts">
+import { ChatMessageBlocks, type MessageActionEvent } from '@protoyard/ai-ui/messages';
+
+let { message, services } = $props();
+const onAction = (event: MessageActionEvent) => services.chat.respond(event);
+</script>
+
+<ChatMessageBlocks {message} {onAction} onOpenAttachment={(file) => services.files.open(file.id)} />
+```
+
+- **Validation:** input is always validated with `parseChatMessage`. An invalid
+  message shows a short note and none of its content.
+- **Actions:** buttons, selects and forms report one typed `MessageActionEvent`
+  (`kind: "button" | "select" | "form"`) through `onAction`. The returned
+  promise drives pending, error and done feedback. Without `onAction` the
+  controls are disabled with a note.
+- **No data writes:** the component never writes data. Route every action
+  through a service (`session.assert` → zod → `environment.run`).
+- **Size:** about 13.6 KB gzip over `RichAnswer` (zod external), and only for
+  screens that import the subpath.
+

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { ColumnStateSchema, type GridColumnDef } from './columns.ts';
+import { type ColumnState, ColumnStateSchema, type GridColumnDef } from './columns.ts';
+import { filtersEqual } from './compose.ts';
 import { compileFilter, type FilterNode, FilterNodeSchema, filterSchemaFor } from './filter.ts';
 import { type GridAggregate, groupRows, type RowGroup } from './group.ts';
 import { SortSchema, sortRows } from './sort.ts';
@@ -94,4 +95,62 @@ export function sanitizeView<T>(
     },
     dropped,
   };
+}
+
+/** Everything a saved view stores except its id and name. */
+export type ViewState = Pick<SavedView, 'columns' | 'sort' | 'groupBy' | 'filter' | 'density'>;
+
+/** Column state without default-valued keys, so `{ key }` and `{ key, hidden: false }` compare equal. */
+function columnsKey(columns: ColumnState): string {
+  return JSON.stringify(
+    columns.map((entry) => [
+      entry.key,
+      entry.width ?? null,
+      entry.pinned ?? null,
+      entry.hidden === true,
+    ])
+  );
+}
+
+/**
+ * Whether two view states show the same thing: same columns (order, widths,
+ * pins, visibility), sort, grouping, density and an equivalent filter (by
+ * canonical form, so building the same filter in another order is no change).
+ */
+export function viewStatesEqual(a: ViewState, b: ViewState): boolean {
+  return (
+    a.density === b.density &&
+    a.groupBy === b.groupBy &&
+    JSON.stringify(a.sort) === JSON.stringify(b.sort) &&
+    columnsKey(a.columns) === columnsKey(b.columns) &&
+    filtersEqual(a.filter, b.filter)
+  );
+}
+
+/** Whether `current` differs from the saved view it started from (the "Modified" badge). */
+export function isViewModified(saved: ViewState, current: ViewState): boolean {
+  return !viewStatesEqual(saved, current);
+}
+
+/**
+ * A saved-view id derived from its name: lowercase kebab-case (at most 48
+ * characters, `view` when the name has no letters or digits), with `-2`,
+ * `-3`… appended until it is not in `existing`. Deterministic: the same name
+ * and existing ids always give the same id.
+ */
+export function nextViewId(name: string, existing: Iterable<string>): string {
+  const taken = new Set(existing);
+  const base =
+    name
+      .normalize('NFKD')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48)
+      .replace(/-+$/g, '') || 'view';
+  if (!taken.has(base)) return base;
+  for (let n = 2; ; n += 1) {
+    const id = `${base}-${n}`;
+    if (!taken.has(id)) return id;
+  }
 }

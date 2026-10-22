@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { afterEach, describe, expect, it } from 'vitest';
+import MarketCard from '../src/components/marketplace/MarketCard.svelte';
+import MarketplaceBrowser from '../src/components/marketplace/MarketplaceBrowser.svelte';
 import {
   createCommand,
   createRequest,
@@ -18,6 +21,8 @@ import {
   suggestSlug,
   toMarketEntry,
 } from '../src/components/marketplace/model';
+
+afterEach(() => cleanup());
 
 function source(overrides: Partial<MarketSource> = {}): MarketSource {
   return {
@@ -112,13 +117,37 @@ describe('toMarketEntry', () => {
     expect(toMarketEntry(source({ catalog: { category: 'helpdesks' } }), null)).toBeNull();
     expect(toMarketEntry(source({ kind: 'theme' }), null)).toBeNull();
   });
+
+  it('keeps registry source kind separate and defaults omitted blueprint kind to app', () => {
+    expect(entry({ kind: 'blueprint', contentKind: 'deck' })).toMatchObject({
+      k: 'blueprint',
+      contentKind: 'deck',
+    });
+    expect(entry({ kind: 'blueprint', blueprintKind: 'page' })).toMatchObject({
+      k: 'blueprint',
+      contentKind: 'page',
+    });
+    expect(entry({ kind: 'blueprint' })).toMatchObject({
+      k: 'blueprint',
+      contentKind: 'app',
+    });
+  });
 });
 
 describe('filtering', () => {
-  it('filters by kind, category, platform, shell and every selected feature', () => {
+  it('filters by source kind, content kind, category, platform, shell and every feature', () => {
     const slugs = (q: Partial<typeof EMPTY_QUERY>) =>
       filterMarket(shelf, { ...EMPTY_QUERY, ...q }).map((e) => e.s);
     expect(slugs({ kind: 'blueprint' })).toEqual(['booking-scheduling']);
+    expect(slugs({ contentKind: 'app' }).sort()).toEqual(
+      [
+        'crm-demo',
+        'mobile-banking-demo',
+        'helpdesk-tpl',
+        'chat-widget',
+        'booking-scheduling',
+      ].sort()
+    );
     expect(slugs({ category: 'support' })).toEqual(['helpdesk-tpl', 'chat-widget']);
     expect(slugs({ platform: 'mobile' })).toEqual(['mobile-banking-demo']);
     expect(slugs({ shell: 'widget-host' })).toEqual(['chat-widget']);
@@ -171,6 +200,31 @@ describe('rails and facets', () => {
     expect(f.features[0]).toEqual(['offline', 3]);
     expect(f.platform).toContainEqual(['web', 3]);
     expect(f.shell).toContainEqual(['phone', 1]);
+    expect(f.contentKind).toEqual([['app', 5]]);
+  });
+
+  it('counts content kind independently from registry source type', () => {
+    const entries = [
+      entry({ kind: 'blueprint', slug: 'app-blueprint' }),
+      entry({ kind: 'blueprint', slug: 'roadmap-deck', blueprintKind: 'deck' }),
+      entry({ kind: 'template', slug: 'page-template', blueprintKind: 'page' }),
+      entry({ kind: 'blueprint', slug: 'guide-doc', blueprintKind: 'doc' }),
+    ];
+    expect(facets(entries).kind).toEqual([
+      ['template', 1],
+      ['blueprint', 3],
+    ]);
+    expect(facets(entries).contentKind).toEqual([
+      ['app', 1],
+      ['deck', 1],
+      ['page', 1],
+      ['doc', 1],
+    ]);
+    expect(
+      filterMarket(entries, { ...EMPTY_QUERY, kind: 'blueprint', contentKind: 'deck' }).map(
+        (marketEntry) => marketEntry.s
+      )
+    ).toEqual(['roadmap-deck']);
   });
 });
 
@@ -180,14 +234,20 @@ describe('URL state', () => {
       ...EMPTY_QUERY,
       q: 'chat',
       kind: 'template' as const,
+      contentKind: 'page' as const,
       category: 'support',
       features: ['chat', 'offline'],
     };
     const search = paramsFromQuery(query);
-    expect(search).toBe('?q=chat&kind=template&category=support&feature=chat&feature=offline');
+    expect(search).toBe(
+      '?q=chat&kind=template&contentKind=page&category=support&feature=chat&feature=offline'
+    );
     expect(queryFromParams(new URLSearchParams(search))).toEqual(query);
-    expect(queryFromParams(new URLSearchParams('kind=theme&category=helpdesks'))).toMatchObject({
+    expect(
+      queryFromParams(new URLSearchParams('kind=theme&contentKind=unknown&category=helpdesks'))
+    ).toMatchObject({
       kind: '',
+      contentKind: '',
       category: '',
     });
     expect(paramsFromQuery(EMPTY_QUERY)).toBe('');
@@ -201,6 +261,40 @@ describe('URL state', () => {
     expect(detailHref({ k: 'blueprint', s: 'booking-scheduling' })).toBe(
       '/marketplace/blueprint/booking-scheduling/'
     );
+  });
+});
+
+describe('content-kind marketplace UI', () => {
+  it('shows source and content kind separately on cards', () => {
+    render(MarketCard, {
+      entry: entry({ kind: 'blueprint', blueprintKind: 'deck', slug: 'roadmap-deck' }),
+    });
+
+    const card = screen.getByTestId('market-card');
+    expect(card.getAttribute('data-kind')).toBe('blueprint');
+    expect(card.getAttribute('data-content-kind')).toBe('deck');
+    expect(screen.getByTestId('market-content-kind').textContent?.trim()).toBe('Deck');
+    expect(screen.getByRole('link', { name: 'Pipeline CRM' }).getAttribute('href')).toBe(
+      '/marketplace/blueprint/roadmap-deck/'
+    );
+  });
+
+  it('filters by content type without changing the source type', async () => {
+    window.history.replaceState(null, '', '/marketplace/');
+    const entries = [
+      entry({ kind: 'blueprint', blueprintKind: 'deck', slug: 'roadmap-deck' }),
+      entry({ kind: 'blueprint', slug: 'crm-blueprint' }),
+    ];
+    render(MarketplaceBrowser, { entries, facets: facets(entries) });
+
+    await fireEvent.change(screen.getByLabelText('Content type'), { target: { value: 'deck' } });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('market-count').textContent).toContain('1 result')
+    );
+    const card = screen.getByTestId('market-card');
+    expect(card.getAttribute('data-kind')).toBe('blueprint');
+    expect(card.getAttribute('data-content-kind')).toBe('deck');
   });
 });
 

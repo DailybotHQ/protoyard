@@ -25,6 +25,7 @@ import {
   planBatches,
   publishArguments,
   summarizeAvatars,
+  topLevelAwaitIssues,
   transformPage,
 } from '../src/lib/artifact-pack.ts';
 import { digestDirectory } from '../src/lib/checksum.ts';
@@ -174,12 +175,22 @@ describe('asset checks', () => {
   it('allows standard web media types and refuses source maps and unknown files', () => {
     expect(contentTypeFor('assets/a.js')).toEqual({ type: 'text/javascript', text: true });
     expect(contentTypeFor('fonts/a.WOFF2')).toEqual({ type: 'font/woff2', text: false });
+    expect(contentTypeFor('fonts/Inter.ttf')).toEqual({ type: 'font/ttf', text: false });
+    expect(contentTypeFor('fonts/icons.otf')).toEqual({ type: 'font/otf', text: false });
+    expect(contentTypeFor('fonts/Brand.TTF')).toEqual({ type: 'font/ttf', text: false });
+    expect(contentTypeFor('fonts/Brand.OTF')).toEqual({ type: 'font/otf', text: false });
     expect(contentTypeFor('assets/a.js.map')).toBeNull();
     expect(contentTypeFor('assets/a.js.map', { allowSourceMaps: true })?.type).toBe(
       'application/json'
     );
     expect(contentTypeFor('app.webmanifest')).toBeNull();
     expect(contentTypeFor('README')).toBeNull();
+  });
+
+  it('classifies TrueType and OpenType fonts as binary', () => {
+    expect(contentTypeFor('fonts/a.ttf')?.text).toBe(false);
+    expect(contentTypeFor('fonts/a.otf')?.text).toBe(false);
+    expect(contentTypeFor('fonts/a.woff')?.text).toBe(false);
   });
 
   it('refuses external and root-absolute CSS references but keeps relative ones', () => {
@@ -296,6 +307,24 @@ describe('packArtifact', () => {
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
+  it('refuses top-level awaited dynamic imports that deadlock single-chunk artifacts', async () => {
+    write('assets/index-abc.js', 'const boot = await import("./chunk-def.js");');
+    const result = await pack();
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues).toContainEqual({
+      path: 'assets/index-abc.js',
+      reason:
+        'uses top-level await on a dynamic import; single-chunk Artifact bundles cannot resolve lazy chunks',
+    });
+    expect(
+      checkTextAsset(
+        'assets/lazy.js',
+        'async function load() { return await import("./chunk.js"); } const click = async () => await import("./view.js");'
+      )
+    ).toEqual([]);
+  });
+
   it('escapes U+FFFD in bundled JS and CSS so the Artifact accepts them', async () => {
     write('assets/chunk-def.js', 'export const nul = `�`;');
     write('assets/index-ghi.css', '.a::after{content:"�"}');
@@ -312,6 +341,31 @@ describe('packArtifact', () => {
       bytes: Buffer.byteLength(js),
       sha256: createHash('sha256').update(js).digest('hex'),
     });
+  });
+
+  it('refuses a single-chunk script with a top-level await (it deadlocks and opens blank)', async () => {
+    write('assets/index-abc.js', 'const m = await import("./chunk-def.js"); console.log(m);');
+    const result = await pack();
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues).toContainEqual({
+      path: 'assets/index-abc.js',
+      reason: expect.stringContaining('top-level await'),
+    });
+  });
+
+  it('accepts awaits inside functions, and reports what it cannot parse', async () => {
+    expect(
+      await topLevelAwaitIssues(
+        'a.js',
+        'async function f(){ await 1; for await (const x of y) {} } const g = async () => await f(); class C { async m(){ await 2 } }'
+      )
+    ).toEqual([]);
+    expect(await topLevelAwaitIssues('b.js', 'for await (const x of xs) {}')).toHaveLength(1);
+    expect(await topLevelAwaitIssues('c.js', 'if (x) { await y; }')).toHaveLength(1);
+    expect(await topLevelAwaitIssues('d.js', 'const = ;')).toEqual([
+      { path: 'd.js', reason: 'could not be parsed to check for a top-level await' },
+    ]);
   });
 
   it('refuses U+FFFD in a text file type that has no escape', async () => {
@@ -368,6 +422,32 @@ describe('packArtifact', () => {
       { index: 1, files: manifest.files.map((file) => file.path), bytes: manifest.totalBytes },
     ]);
     expect(existsSync(join(out, '.protoyard-out'))).toBe(false);
+  });
+
+  it('packs TrueType and OpenType fonts as binary with registered MIME types', async () => {
+    write('fonts/Inter.TTF', Buffer.from([0x00, 0x01, 0x00, 0x00]));
+    write('fonts/Icons.otf', Buffer.from([0x4f, 0x54, 0x54, 0x4f]));
+    const result = await pack();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const byPath = Object.fromEntries(
+      result.manifest.files.map((file) => [file.path, file.contentType])
+    );
+    expect(byPath['fonts/Inter.TTF']).toBe('font/ttf');
+    expect(byPath['fonts/Icons.otf']).toBe('font/otf');
+    expect(readFileSync(join(out, 'fonts/Inter.TTF'))).toEqual(
+      Buffer.from([0x00, 0x01, 0x00, 0x00])
+    );
+    // Over the binary limit (15 MB), not the text limit.
+    write('fonts/huge.ttf', '');
+    truncateSync(join(dist, 'fonts/huge.ttf'), ARTIFACT_LIMITS.binaryFileBytes + 1);
+    const refused = await pack();
+    expect(refused.ok).toBe(false);
+    if (refused.ok) return;
+    expect(refused.issues).toContainEqual({
+      path: 'fonts/huge.ttf',
+      reason: '15000001 bytes exceed the 15000000-byte limit for a binary file',
+    });
   });
 
   it('builds the exact Artifact publish arguments', async () => {

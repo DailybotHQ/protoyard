@@ -9,5 +9,22 @@
     "indexColdMs": 100,
     "quickReadyMs": 5000
   },
-  "overrides": {}
+  "overrides": {},
+  "kinds": {
+    "deck": {
+      "initialJsGzipKb": 150,
+      "cssGzipKb": 30,
+      "singleFileKb": 2048
+    },
+    "page": {
+      "initialJsGzipKb": 150,
+      "cssGzipKb": 30,
+      "singleFileKb": 2048
+    },
+    "doc": {
+      "initialJsGzipKb": 150,
+      "cssGzipKb": 30,
+      "singleFileKb": 2048
+    }
+  }
 }

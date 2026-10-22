@@ -686,8 +686,8 @@ describe('entity screen defaults', () => {
 });
 
 describe('screens in the JSON Schema', () => {
-  it('lists every screen type for editors', () => {
-    const text = JSON.stringify(blueprintJsonSchema());
+  it('lists every screen type for editors', async () => {
+    const text = JSON.stringify(await blueprintJsonSchema());
     for (const type of SCREEN_TYPES) {
       expect(text).toContain(`"const":"${type}"`);
     }

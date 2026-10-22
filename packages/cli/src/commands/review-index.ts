@@ -5,6 +5,7 @@ import { PulledReviewCommentsSchema } from '@protoyard/review/report';
 import type { CommandResult, Handler } from '../lib/command.ts';
 import { flag, opt } from '../lib/command.ts';
 import { inspectPrototype } from '../lib/inspect.ts';
+import { applyListing, readListingConfig } from '../lib/listing.ts';
 import { untilSignal } from '../lib/network.ts';
 import { CliError, formatBytes, mark } from '../lib/output.ts';
 import { guardOutputDir } from '../lib/output-guard.ts';
@@ -240,7 +241,10 @@ export const reviewIndexCommand: Handler = async (ctx, _args, options): Promise<
     ...(flag(options, 'allowExternalOut') ? { allowExternal: true } : {}),
   });
 
-  const registry = await loadRegistry(ctx.paths);
+  // The review index lists what the gallery lists (protoyard.workspace.json).
+  const listing = readListingConfig(ctx.root);
+  if (listing.problem) ctx.out.warn(listing.problem);
+  const registry = applyListing(await loadRegistry(ctx.paths), listing.rule).registry;
   const ledgerOption = opt(options, 'ledger');
   const ledgerFile =
     ledgerOption === undefined ? ledgerPath(ctx.paths) : resolve(ctx.root, ledgerOption);

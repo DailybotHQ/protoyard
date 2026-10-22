@@ -46,7 +46,50 @@ When DevTools is present, review mounts first, and DevTools shows its
 `placeFloating` (`src/shell/floating.ts`), which uses the demo badge's rules:
 no app control, never on the badge. The badge re-places itself on
 `protoyard:floating`.
+`mountPrototype` also keeps `--py-fixed-right-edge` on `<html>` current
+(`trackFixedRightEdge`). It is the number of layout-viewport pixels hidden past
+the visible right edge, which is `0px` unless phone emulation or pinch zoom makes
+the visual viewport narrower. Fixed chrome adds it to its `right` offset: the
+unplaced review toolbar, the DevTools launcher, the `Toaster` and `UndoToaster`
+(phone layout) and the demo badge's right corners do. The badge also picks its
+corner inside the visible viewport (`badgeContainer`), not the layout one.
+
+`mountPrototype` also accepts `devtoolsTabs?: readonly DevtoolsTab[]` for
+prototype-owned panels such as Deck Studio. These lazy tabs are combined with
+the optional review tab and passed to `mountDevtools`; with no contributed or
+review tabs, the existing app DevTools setup is unchanged. The tab's `load`
+function runs only after the visitor selects it, keeping optional UI out of
+the initial app bundle.
 Globals are typed in `@protoyard/renderer-svelte/env`.
+
+## In-app scenario switcher
+
+For demos that should change world or persona without opening DevTools, use
+`ScenarioSwitcher` from `@protoyard/ui` with the glue in this package:
+
+```svelte
+<script lang="ts">
+  import { scenarioSwitcherProps, usePrincipal, useScenario } from '@protoyard/renderer-svelte';
+  import { ScenarioSwitcher } from '@protoyard/ui';
+  import { getRuntime } from '@protoyard/renderer-svelte';
+
+  const runtime = getRuntime();
+  // Re-read when scenario or principal changes:
+  const scenario = useScenario(runtime);
+  const principal = usePrincipal(runtime);
+  const props = $derived.by(() => {
+    void scenario.active;
+    void principal.current;
+    return scenarioSwitcherProps(runtime);
+  });
+</script>
+
+<ScenarioSwitcher {...props} />
+```
+
+`createScenarioSwitcherActions(runtime)` exposes `loadScenario` and `viewAs`
+(`session.switchActor`). Loads default to a safety snapshot first. The control
+is always labelled **Simulated** — not multiplayer or authentication.
 
 ## Avatars
 
@@ -359,6 +402,51 @@ const router = createRouter(
 - Guards are synchronous. Gating on the simulated session is UX, not
   security (ADR-008, ADR-018).
 
+### Overlay routes
+
+A route with `overlay: true` opens over the last full-screen route instead of
+replacing it. It shows as a bottom sheet on phones and narrow hosts, and as a
+dialog (or side panel) on wider hosts, through `@protoyard/ui`
+`AdaptiveOverlay`. The screen underneath stays mounted, so its state and
+scroll survive. The address still changes, so Back, Forward, refresh and
+shared links behave like any route.
+
+```ts
+createRouter([
+  { path: '/deals', component: Deals },
+  { path: '/deals/:id', component: Deal },
+  { path: '/deals/:id/edit', load: () => import('./screens/EditDeal.svelte'), title: 'Edit deal',
+    overlay: true },
+  { path: '/deals/:id/share', component: Share, title: 'Share',
+    overlay: { desktop: 'side-panel', size: 'lg', base: '/deals/:id' } },
+]);
+```
+
+- **Opening:** navigating to an overlay route keeps `router.background` (the
+  screen underneath) and sets `router.overlay`. `router.current` is the
+  overlay's match, and `isActive` stays true for the screen underneath, so
+  navigation keeps its highlight. Neither opening nor closing scrolls the
+  screen underneath.
+- **Closing:** Escape, the close button, the backdrop, or the `close` prop
+  every overlay screen receives all call `router.closeOverlay()`. If the
+  overlay was opened from the screen underneath, that is Back. If it was a
+  deep link, or after moving between overlays, it replaces the address with
+  the screen underneath, so history never gains a stray entry. Focus returns
+  to the link or button that opened the overlay, or to the screen.
+- **Deep links:** a deep link to an overlay renders, underneath it, its
+  `base` (with `:params` filled from the overlay), else the nearest ancestor
+  path that matches a full-screen route (`/deals/42/edit` → `/deals/42`),
+  else `/`.
+- **Options:** `desktop` (`dialog` by default, or `side-panel`) and `size`
+  apply to wide hosts. Narrow hosts always get the sheet. Guards apply as
+  usual: a guard that redirects to a full-screen route replaces the overlay
+  with that screen.
+- **Size:** the overlay outlet (`OverlayOutlet.svelte`, with the
+  `AdaptiveOverlay` code) is a lazy chunk, loaded when an overlay route first
+  opens. Measured on `crm-demo` (which declares no overlay routes) on
+  2026-10-21: initial JS 176.33 → 176.88 KB gzip, for the router's overlay
+  state and the lazy-load hook.
+
 ## Services
 
 ```ts
@@ -371,6 +459,58 @@ an `issues` object are returned for inline display. The call counts as pending
 (global bar), and a `Button` whose `onclick` returns it shows `loading`
 ([Pending feedback](#pending-feedback)). Services throw them with
 `parseInput(schema, input)` / `ValidationError` from `@protoyard/core`.
+
+## Chrome messages (any language)
+
+The renderer's own words are English by default and can all be replaced:
+
+- service error toasts (`runService` / `reportServiceError`);
+- router fallbacks: page not found, redirect loop, a screen that failed to
+  load, overlay loading;
+- loading and working text;
+- the storage, data-rebuilt and linked-scenario banners;
+- the full-screen toggles;
+- the demo badge;
+- the boot error.
+
+Pass any subset with `mountPrototype({ messages })`:
+
+```ts
+await mountPrototype({
+  definition,
+  App,
+  target,
+  messages: {
+    service: { notAllowedTitle: 'No permitido', offline: 'Sin conexión' },
+    router: { notFoundTitle: 'Página no encontrada', notFoundBody: 'No hay nada en {path}.' },
+    badge: { text: 'Prototipo · datos simulados' },
+  },
+});
+```
+
+- **Shape.** `DEFAULT_CHROME_MESSAGES` lists every group and key with its
+  English text. The groups are `service`, `router`, `pending`, `storage`,
+  `staleWorld`, `linkedScenario`, `frame`, `badge` and `boot`.
+- **Placeholders.** `{path}`, `{scenario}`, `{seed}`, `{name}`,
+  `{capability}` and `{snapshot}` are filled as text and never rendered as
+  HTML. The path shows as code and scenario names as bold.
+- **Validation.** Messages are plain strings, so they can live in a JSON file.
+  Unknown groups or keys, empty strings and values over 500 characters fail
+  the mount with a boot error that names the key.
+- **Defaults per mount.** Each `mountPrototype` call sets the messages, and
+  missing keys stay English. `chromeMessages()` reads the current set;
+  `formatMessage` and `messageParts` fill templates for your own chrome.
+- **Skip links.** These belong to `@protoyard/ui`: pass
+  `<AppShell skipLabel="Saltar al contenido">` and `<MobileAppShell skipLabel=…>`.
+- **What stays English.** Messages generated by the runtime itself, such as
+  `SimulatedServiceError` descriptions and `storage.warning`. A simulated
+  error's toast title is translated, but its description shows that runtime
+  text.
+
+Cost, measured on 2026-10-22 with `crm-demo`: initial JS goes from 182,317 B
+to 184,380 B gzip (+2,063 B). That covers the message table and the
+`MessageText` component, and the strings of lazy notices now live in it. Lazy
+JS goes down by 218 B.
 
 ## Package output
 

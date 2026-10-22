@@ -45,8 +45,16 @@ view stays its own chunk and adds 0 KB to a prototype's initial JS:
 
 Subpaths: `./board`, `./calendar`, `./timeline`, `./grid`, `./tree`, `./map`,
 `./editor`, `./activity`, `./notifications`, `./files`, `./settings`,
-`./states`, `./commands`, `./scenarios` and `./styles.css`. Views are never
+`./states`, `./commands`, `./scenarios`, `./player.css`, `./blocks.css` and `./styles.css`. Views are never
 re-exported from `@protoyard/ui`.
+
+Three stylesheets scan different sets of view families:
+
+- `player.css`: the board, calendar, map, states and timeline families the
+  prebuilt player renders.
+- `blocks.css`: only the map and states families that content blocks render
+  (the deck template and generated decks).
+- `styles.css`: every view family; other hosts should import this one.
 
 ## Bundle hygiene
 
@@ -315,7 +323,8 @@ data-less states.
 
 An app command palette on ⌘K (Mac) / Ctrl+K (elsewhere). DevTools keep
 Ctrl/⌘ + `.`, keys typed inside the DevTools panel are ignored, and `mod+k`
-and `mod+.` cannot be registered as action shortcuts.
+and `mod+.` cannot be registered as action shortcuts. The pure registry and
+contracts are also available from `@protoyard/views/commands`.
 
 ```svelte
 <script lang="ts">
@@ -358,20 +367,50 @@ and `mod+.` cannot be registered as action shortcuts.
 - **Hints:** shortcuts show as `Kbd` keys, `⌘ ⇧ N` on Mac and
   `Ctrl Shift N` elsewhere (platform read from `navigator` in UI code only),
   with `aria-keyshortcuts` on the item.
-- **Size** (Svelte 5 client output, esbuild minified with code splitting,
-  gzip -9; svelte, core, ui, renderer, lucide and Bits UI external;
-  2026-10-19): the static listener component is 0.8 KB plus a 0.3 KB shared
-  platform helper; `createCommands` is 1.2 KB; the dialog is a separate
-  2.4 KB chunk fetched on the first open.
-
-## Editor (`@protoyard/views-ui/editor`)
-
-A lightweight Markdown editor on a plain `<textarea>` (no contenteditable
-library). Text commands are the pure functions of `@protoyard/views/editor`.
+- **Async search:** register an abortable source with
+  `commands.registerSearchSource((query, signal) => search(query, signal))`.
+  The palette displays pending and failure feedback and ignores stale results.
+- **Nested steps:** an action may expose static or lazy `children`; selecting it
+  opens those results in the same dialog with a Back control.
+- **Create fallback:** pass `createFallback(query)` to `createCommands` to offer
+  a create action for typed text when ordinary search has no match. Selection
+  still runs through `runService` and displays pending feedback.
+- **Scopes:** actions may list `scopes`. They appear only when one matches the
+  registry's active scopes, updated through `commands.setScopes(...)`.
+- **Shortcut sheet:** `ShortcutSheet` renders explicitly supplied hotkey data
+  in accessible groups, formats chords for Mac or other platforms, and filters
+  scoped bindings against `activeScopes`. It supports label/chord search and
+  never registers keyboard listeners; the host remains responsible for
+  dispatch.
 
 ```svelte
 <script lang="ts">
-  import { MarkdownEditor } from '@protoyard/views-ui/editor';
+  import { ShortcutSheet } from '@protoyard/views-ui/commands';
+  import type { HotkeyBinding } from '@protoyard/views/commands';
+
+  const bindings: HotkeyBinding[] = [
+    { id: 'save', label: 'Save', group: 'Editing', keys: ['mod+s'], scopes: ['editor'] },
+  ];
+</script>
+
+<ShortcutSheet {bindings} activeScopes={['editor']} />
+```
+
+- **Size** (last measured 2026-10-19, before async search and nested steps):
+  the static listener component was 0.8 KB plus a 0.3 KB shared platform
+  helper; `createCommands` was 1.2 KB; the dialog was a separate 2.4 KB chunk
+  fetched on first open. The extended command engine has not been remeasured.
+
+## Editor (`@protoyard/views-ui/editor`)
+
+A dependency-free Markdown rich-text editor on a plain `<textarea>` (no
+contenteditable library). Text commands and the document model are the pure
+functions of `@protoyard/views/editor`. Values leave through typed callbacks
+(`bind:value`, `onChange`, `onDraft`); the editor never writes database tables.
+
+```svelte
+<script lang="ts">
+  import { MarkdownEditor, RichTextView } from '@protoyard/views-ui/editor';
   let body = $state(draft?.body ?? '');
 </script>
 
@@ -382,7 +421,11 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   references={deals.map((d) => ({ id: d.id, value: d.code, label: d.name }))}
   maxLength={2000}
   onDraft={(text) => services.saveDraft(text)}
+  onChange={(text) => { /* optional live hook */ }}
 />
+
+<!-- Read-only: safe document model (no {@html}) -->
+<RichTextView value={body} label="Comment body" />
 ```
 
 - **Toolbar and shortcuts** (`mod` is ⌘ on Mac, Ctrl elsewhere; matched on
@@ -392,6 +435,10 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   `mod+Shift+7`, task `mod+Shift+9` and quote `mod+Shift+.` lists, code
   block `mod+Alt+C`. The toolbar is one tab stop with arrow-key focus. Enter
   continues lists, and Enter on an empty item ends them.
+- **Slash commands:** typing `/` at the start of a line (or after whitespace)
+  opens a command listbox (heading, lists, quote, code block). Filter by
+  name; arrows move, Enter or Tab applies, Escape closes. Override with
+  `slashCommands` (`DEFAULT_SLASH_COMMANDS` is the built-in set).
 - **Completion:** typing `@` or `#` (after a space or at the start) offers
   `mentions` or `references` in a listbox anchored at the caret (mirror-div
   measurement). The textarea keeps its textbox role and points at the list
@@ -405,7 +452,18 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   `safeImageSrc` again, so `javascript:` links render as text and remote or
   `data:` images as their alt text. Headings start at `h2` because the
   preview sits inside a page. `MarkdownPreview` is also exported for showing
-  saved Markdown.
+  saved Markdown. Scrollable fenced-code `<pre>` blocks use `tabindex="0"` and
+  an accessible name (axe `scrollable-region-focusable`), matching ui-kit
+  `CodeBlock`; covered with the ai-ui surfaces in
+  `packages/ai-ui/tests/scroll-regions.test.ts`.
+- **RichTextView:** read-only renderer over `parseEditorDocument` /
+  `EditorDocument` from `@protoyard/views/editor`. Mentions (`@{id|label}`),
+  marks, lists, quotes and code fences become elements; unsafe `href` values
+  are stripped to plain text. Optional `onLinkClick` / `onMentionClick`
+  callbacks — still no database writes.
+- **LinkMenu:** small dialog to apply or remove a URL; refuses non-web
+  schemes via `safeHref`. Use beside a custom toolbar if you want an explicit
+  URL field instead of the default `mod+K` placeholder link.
 - **Limits and drafts:** `maxLength` (default 5,000) sets the textarea limit
   and a counter, and a command that would pass it is refused with a polite
   announcement. `onDraft` runs after typing pauses (`draftDelayMs`, default
@@ -414,6 +472,7 @@ library). Text commands are the pure functions of `@protoyard/views/editor`.
   gzip -9; svelte, core, ui, renderer, lucide and Bits UI external;
   2026-10-19): the editor chunk is 6.0 KB; the preview and the shared parser
   load as a separate 4.5 KB chunk on the first preview (at once in `split`).
+  Slash and `RichTextView` stay in the same lazy `./editor` subpath.
 - **Limits:** toolbar commands set the textarea value directly, so the
   browser's undo history does not include them.
 
@@ -570,7 +629,8 @@ of inline titles), on the `@protoyard/views/tree` engine over
 
 ## Grid (`@protoyard/views-ui/grid`)
 
-`DataGrid` (tables of records), `FilterBuilder` and `SavedViews`, on the
+`DataGrid` (tables of records), `FilterBuilder`, `SavedViews`,
+`FilterChips`, `FacetPicker`, `ColumnChooser` and `BulkActionBar`, on the
 `@protoyard/views/grid` engine.
 
 ```svelte
@@ -588,6 +648,13 @@ of inline titles), on the `@protoyard/views/tree` engine over
   onCreateView={(name, v) => services.createView({ name, ...v })}
   onRenameView={(v, name) => services.renameView(v.id, name)}
   onDeleteView={(v) => services.deleteView(v.id)}
+  onUpdateView={(v, state) => services.updateView(v.id, state)}
+  facets={['stage']}
+  bulkActions={[
+    { id: 'won', label: 'Mark won', run: (rows) => services.markWon(rows.map((d) => d.id)) },
+    { id: 'delete', label: 'Delete', destructive: true, confirm: {}, run: (rows) => services.deleteDeals(rows.map((d) => d.id)) },
+  ]}
+  bind:selection
   onRowOpen={(deal) => navigate(`/deals/${deal.id}`)}
 />
 ```
@@ -615,10 +682,11 @@ of inline titles), on the `@protoyard/views/tree` engine over
   type:
   - text and number: an input
   - date: `input type=date`
-  - enum: the ui `Select`
-  - boolean: the ui `Switch`
+  - enum: a native `<select>`
+  - boolean: a native checkbox switch
 
-  Enter or blur commits, and Escape cancels. The commit goes through
+  The editor (`CellEditor`) loads with the first edit, so read-only grids
+  never download it. Enter or blur commits, and Escape cancels. The commit goes through
   `onCommit` in `runService`. The cell shows the new value with a spinner
   and `aria-busy` until the promise settles. If it rejects, the cell goes
   back to the saved value and shows the reason: the field's zod issue or the
@@ -628,10 +696,33 @@ of inline titles), on the `@protoyard/views/tree` engine over
   named, and the operators match each column type. While a condition has no
   value yet, the grid applies the rest and says so (`completeFilter`). A
   filter the engine rejects is not applied, and its message is shown.
+- **Quick filters and chips:** `facets` lists column keys that get a
+  `FacetPicker` in the row under the toolbar. It is a keyboard-first
+  multi-select (↓ opens; arrows, Home/End, Enter or Space toggle; typing
+  searches; Escape closes and returns focus). Picks are OR within the column
+  and AND with everything else. `FilterChips` shows every top-level condition
+  as a removable chip ("Stage is any of lead or won"), with "Clear all". All
+  three editors change the same `view.filter`.
 - **Saved views:** `SavedViews` picks, saves, renames and deletes through
   your callbacks, with pending feedback and a confirm step before deleting.
   Applying a view runs `sanitizeView`, which drops columns that no longer
-  exist and announces the drop.
+  exist and announces the drop. With `current` (DataGrid passes its view)
+  and `onUpdate` (`onUpdateView` on DataGrid), a changed view shows
+  "Modified", **Save changes** and **Revert**. Equivalent filters built in
+  another order do not count as a change (`isViewModified`).
+- **Selection and bulk actions:** `bulkActions` adds a sticky checkbox column
+  (the header box selects the shown rows, and Shift+click selects a range).
+  Space on any cell selects the row, and Shift+Space extends from the last
+  one. Rows carry `aria-selected`, and phone cards get a checkbox.
+  `selection` is the bindable list of ids in row order; rows that disappear
+  leave it. `BulkActionBar` runs each `BulkAction` through `runService`
+  (pending, a `confirm` step for destructive actions, and the selection
+  clears on success unless `keepSelection`). The checkboxes, chips, pickers
+  and bar are lazy chunks loaded only when a grid uses them.
+- **Standalone pieces:** `FilterChips`, `FacetPicker`, `ColumnChooser` (a
+  checkbox per column, move up/down, Show all, Reset; the last visible
+  column cannot be hidden) and `BulkActionBar` are controlled components with
+  typed `onchange`/`run` callbacks, for lists that are not a `DataGrid`.
 - **View state:** `view` is plain data (columns, sort, groupBy, filter,
   density). Bind it, or persist it from `onViewChange`.
 - **Phones:** below `md` the same rows show as cards, under the same
@@ -639,9 +730,12 @@ of inline titles), on the `@protoyard/views/tree` engine over
   title and the next four are details, 50 cards at a time with **Show
   more**.
 - **Size** (Svelte 5 client output, esbuild minified, gzip -9; svelte, core,
-  ui, renderer, lucide, Bits UI and zod external; 2026-10-19): 13.9 KB for
-  the subpath's components, or 17.8 KB with the grid engine bundled in
-  (about 4 KB of that is the engine).
+  ui, renderer, lucide, Bits UI and zod external; 2026-10-19, before the
+  filter, saved-view and bulk-action toolkit; not re-measured with this
+  method): 13.9 KB for the subpath's components, or 17.8 KB with the grid
+  engine bundled in (about 4 KB of that is the engine). The real-build guard
+  measured the grid's first screen at 21,859 B on 2026-10-21 (19,300 B
+  before the toolkit); see [PERFORMANCE](../../docs/PERFORMANCE.md#grid-toolkit-2026-10-21).
 
 ## Activity (`@protoyard/views-ui/activity`)
 

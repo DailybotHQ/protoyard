@@ -1,0 +1,72 @@
+{
+  "formatVersion": 1,
+  "name": "Example deck",
+  "description": "Minimal kind:deck fixture for the deck visual QA sweep. Fictional copy only.",
+  "tags": ["deck", "example", "qa"],
+  "icon": "book",
+  "category": "demos",
+  "kind": "deck",
+  "brand": {
+    "name": "Example Co",
+    "seed": "#0f766e",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "deck": {
+    "style": {
+      "aspect": "16:9",
+      "density": "comfortable",
+      "transition": "fade",
+      "slideNumbers": true,
+      "progress": "bottom"
+    },
+    "slides": [
+      {
+        "id": "open",
+        "title": "Welcome",
+        "layout": "title-hero",
+        "props": {
+          "title": "Example deck",
+          "subtitle": "Visual QA fixture",
+          "meta": "Fictional · Protoyard"
+        },
+        "notes": "Opening slide for the deck sweep harness."
+      },
+      {
+        "id": "body",
+        "title": "Process",
+        "layout": "process-steps",
+        "props": {
+          "title": "Three steps",
+          "steps": [
+            { "title": "Author", "body": "Write a kind deck blueprint." },
+            { "title": "Lint", "body": "Run lintDeckStructure." },
+            { "title": "Sweep", "body": "Run scripts/sweep-deck.ts." }
+          ]
+        }
+      },
+      {
+        "id": "close",
+        "title": "Thanks",
+        "layout": "closing-cta",
+        "props": {
+          "title": "Ready",
+          "text": "Open the contact sheet under tmp/deck-sweep.",
+          "cta": {
+            "label": "example.com/docs",
+            "href": "https://example.com/docs"
+          },
+          "footnote": "Fictional fixture."
+        }
+      }
+    ],
+    "outline": {
+      "title": "Example deck",
+      "sections": [
+        { "id": "start", "title": "Start", "slideIds": ["open"] },
+        { "id": "middle", "title": "Middle", "slideIds": ["body"] },
+        { "id": "end", "title": "End", "slideIds": ["close"] }
+      ]
+    }
+  }
+}

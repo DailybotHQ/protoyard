@@ -10,7 +10,6 @@
  *  3. in Chromium, the built player opens a share link under that CSP with no
  *     policy violation.
  */
-import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
@@ -22,6 +21,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { allowedByRules, DEFAULT_ALLOWLIST, frameAncestorSources } from '../src/embed/origins.ts';
 import demo from '../src/fixtures/demo.blueprint.json';
 import { inlineScripts, insertCspMeta, PLAYER_FRAME_ANCESTORS } from '../vite.config.ts';
+import { ensurePlayerBuild } from './support/serve-dist.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const DIST = join(ROOT, 'packages/player/dist/app');
@@ -102,13 +102,7 @@ describe('source guard', () => {
 let html = '';
 let headers = '';
 beforeAll(() => {
-  if (!existsSync(join(DIST, 'index.html'))) {
-    const run = spawnSync('pnpm', ['--filter', '@protoyard/player', 'build'], {
-      cwd: ROOT,
-      encoding: 'utf8',
-    });
-    if (run.status !== 0) throw new Error(`player build failed:\n${run.stderr}${run.stdout}`);
-  }
+  ensurePlayerBuild(ROOT);
   html = readFileSync(join(DIST, 'index.html'), 'utf8');
   headers = readFileSync(join(DIST, '_headers'), 'utf8');
 }, 600_000);

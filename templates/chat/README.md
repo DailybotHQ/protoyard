@@ -36,6 +36,8 @@ src/
   status `streaming` and writes each chunk into it. The screens read with `liveQuery`, so the
   reply grows on screen with no extra code. A reload mid-stream keeps what had arrived. The
   message is then marked "interrupted" and can be retried.
+- **Timestamps:** each message `at` uses `nextMonotonicIso` from `@protoyard/core` so a prompt
+  and its reply (and any paused-clock burst) keep insertion order when sorted by `at`.
 - **Failures:** the "model call" is the environment operation `assistant.reply`. The
   `assistant-outage` scenario sets `failureScope: ['assistant.']`, so only replies fail. The
   failed message shows the error and a **Retry** button. Offline sends fail with a toast and

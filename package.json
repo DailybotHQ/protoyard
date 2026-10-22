@@ -35,6 +35,7 @@
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "visual:sweep": "tsx scripts/visual-sweep.ts",
     "thumbnails": "tsx scripts/generate-thumbnails.ts",
+    "covers": "tsx scripts/content-covers.ts",
     "build:showcase": "pnpm protoyard showcase --site https://protoyard.app",
     "preview:showcase": "pnpm protoyard showcase --skip-build --serve",
     "hygiene": "bash scripts/check-public-hygiene.sh",

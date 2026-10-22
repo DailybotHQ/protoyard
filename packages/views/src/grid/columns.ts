@@ -182,3 +182,20 @@ export function setColumnHidden(
     hidden ? { ...entry, hidden: true } : entry
   );
 }
+
+/**
+ * Shows every column (the column chooser's "Show all"): each column is listed,
+ * in its current order, with `hidden` removed. Columns missing from `state`
+ * are appended in definition order.
+ */
+export function showAllColumns<T>(
+  state: ColumnState,
+  columns: readonly GridColumnDef<T>[]
+): ColumnState {
+  const known = new Set(columns.map((column) => column.key));
+  const listed = state
+    .filter((entry) => known.has(entry.key))
+    .map(({ hidden: _hidden, ...entry }) => entry);
+  const seen = new Set(listed.map((entry) => entry.key));
+  return [...listed, ...columns.filter((c) => !seen.has(c.key)).map((c) => ({ key: c.key }))];
+}

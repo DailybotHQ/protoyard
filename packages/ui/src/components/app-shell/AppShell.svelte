@@ -25,6 +25,8 @@ interface Props {
   sidebarClass?: string;
   /** Use `div` for a shell nested inside another page's `<main>` (demos, previews). */
   mainElement?: 'main' | 'div';
+  /** Text of the skip link (keyboard users jump past the navigation); translate it with the app. */
+  skipLabel?: string;
 }
 
 let {
@@ -39,6 +41,7 @@ let {
   mainId = 'main-content',
   sidebarClass,
   mainElement = 'main',
+  skipLabel = 'Skip to content',
 }: Props = $props();
 
 // Any in-app navigation (hash routers, history) reveals the new screen, so
@@ -100,7 +103,7 @@ function closeOnNavigate(event: MouseEvent): void {
       document.getElementById(mainId)?.focus();
     }}
   >
-    Skip to content
+    {skipLabel}
   </a>
 
   {#if sidebar}

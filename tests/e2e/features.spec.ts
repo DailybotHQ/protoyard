@@ -44,11 +44,11 @@ test('the home page leads to the player, the docs and a guide for every capabili
   );
   await expect(page.getByRole('link', { name: 'Read the docs' })).toHaveAttribute('href', '/docs/');
   const section = page.getByRole('region', { name: 'What you can do' });
-  await expect(section.getByRole('heading', { level: 3 })).toHaveCount(9);
+  await expect(section.getByRole('heading', { level: 3 })).toHaveCount(10);
   const guides = (await links(page, 'section[aria-labelledby="what-title"] li')).filter((p) =>
     p.startsWith('/docs/')
   );
-  expect(guides).toHaveLength(9);
+  expect(guides).toHaveLength(10);
   for (const path of guides) {
     const response = await page.request.get(path);
     expect(response.status(), path).toBe(200);

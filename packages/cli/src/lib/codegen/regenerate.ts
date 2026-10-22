@@ -1,15 +1,19 @@
 import { lstat, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+  type AnyBlueprint,
   type Blueprint,
   BrandThemeError,
+  blueprintKind,
   diffBlueprints,
+  isAppBlueprint,
   latestSchemaVersion,
   MigrationError,
+  safeParseAnyBlueprint,
   safeParseBlueprint,
 } from '@protoyard/blueprint';
 import { CliError } from '../output.ts';
-import { type EmittedFile, emitPrototype } from './emit.ts';
+import { type EmittedFile, emitContentKindPrototype, emitPrototype } from './emit.ts';
 import { formatJson } from './format.ts';
 import { checkHeader } from './header.ts';
 
@@ -201,6 +205,110 @@ export interface RegenerationPlan {
   files: FilePlan[];
 }
 
+export interface ContentKindRegenerationPlan {
+  blueprint: Exclude<AnyBlueprint, Blueprint>;
+  blueprintText: string;
+  fromVersion: number;
+  toVersion: number;
+  /** Content kinds have no entity schema migrations. */
+  ops: readonly unknown[];
+  files: FilePlan[];
+}
+
+async function parseContentOrThrow(raw: unknown, label: string) {
+  const parsed = await safeParseAnyBlueprint(raw);
+  if (parsed.success && !isAppBlueprint(parsed.data)) return parsed.data;
+  const issue = parsed.success ? undefined : parsed.error.issues[0];
+  throw new CliError(
+    'validation',
+    `${label} is invalid: ${issue ? `${issue.path.map(String).join('.') || '(root)'} — ${issue.message}` : 'expected a deck, page or doc blueprint'}`
+  );
+}
+
+/** Plans regeneration for content kinds without deriving entity migrations. */
+export async function planContentKindRegeneration(input: {
+  dest: string;
+  slug: string;
+  inputRaw: Record<string, unknown>;
+  manifestSchemaVersion: number;
+}): Promise<ContentKindRegenerationPlan> {
+  const { dest, slug, inputRaw, manifestSchemaVersion } = input;
+  const onDiskText = await readText(join(dest, 'blueprint.json'));
+  if (onDiskText === null) {
+    throw new CliError(
+      'conflict',
+      `prototypes/${slug} has no blueprint.json, so it was not generated.`
+    );
+  }
+  let onDiskRaw: Record<string, unknown>;
+  try {
+    onDiskRaw = JSON.parse(onDiskText) as Record<string, unknown>;
+  } catch (error) {
+    throw new CliError(
+      'validation',
+      `prototypes/${slug}/blueprint.json is not valid JSON: ${(error as Error).message}`
+    );
+  }
+  const onDiskBlueprint = await parseContentOrThrow(onDiskRaw, `prototypes/${slug}/blueprint.json`);
+  const blueprint = await parseContentOrThrow(inputRaw, 'The blueprint');
+  if (blueprintKind(blueprint) !== blueprintKind(onDiskBlueprint)) {
+    throw new CliError(
+      'validation',
+      `Cannot regenerate a ${blueprintKind(onDiskBlueprint)} prototype from a ${blueprintKind(blueprint)} blueprint.`,
+      { hint: 'Use the kind declared by this prototype template.' }
+    );
+  }
+
+  const snapshot = (await readSnapshot(dest)) ?? {
+    schemaVersion: manifestSchemaVersion,
+    blueprint: withoutHistory(onDiskRaw),
+  };
+  const snapshotBlueprint = await parseContentOrThrow(snapshot.blueprint, SNAPSHOT_PATH);
+  if (blueprintKind(snapshotBlueprint) !== blueprintKind(blueprint)) {
+    throw new CliError('validation', `${SNAPSHOT_PATH} has a different content kind.`);
+  }
+  if (manifestSchemaVersion !== 1 || snapshot.schemaVersion !== 1) {
+    throw new CliError(
+      'validation',
+      `Content-kind prototypes use storage schema v1; found manifest v${manifestSchemaVersion} and snapshot v${snapshot.schemaVersion}.`
+    );
+  }
+
+  const blueprintText = formatJson(withoutHistory(inputRaw));
+  const emitted = emitContentKindPrototype(blueprint, blueprintText);
+  const files = await planGeneratedFiles(dest, emitted);
+  const nextSnapshot: Snapshot = {
+    schemaVersion: 1,
+    blueprint: withoutHistory(inputRaw),
+    codegenFormat: CODEGEN_FORMAT_VERSION,
+  };
+  for (const [path, content] of [
+    ['blueprint.json', blueprintText],
+    [SNAPSHOT_PATH, snapshotText(nextSnapshot)],
+  ] as const) {
+    const current = await readText(join(dest, path));
+    files.push(
+      current !== null && sameJsonText(current, content)
+        ? { path, status: 'unchanged' }
+        : { path, status: current === null ? 'created' : 'changed', content }
+    );
+  }
+  for (const path of [
+    'src/App.svelte',
+    ...(blueprint.kind === 'deck' ? ['src/custom-slides.ts'] : []),
+  ]) {
+    if ((await readText(join(dest, path))) !== null) files.push({ path, status: 'skipped' });
+  }
+  return {
+    blueprint,
+    blueprintText,
+    fromVersion: 1,
+    toVersion: 1,
+    ops: [],
+    files,
+  };
+}
+
 /**
  * Plans a regeneration of `dest` to `inputRaw` (the requested blueprint):
  * diffs it against the generation snapshot, appends a history entry when
@@ -334,6 +442,9 @@ export async function checkBlueprintDrift(
       summary: '',
     };
   }
+  if (raw.kind === 'deck' || raw.kind === 'page' || raw.kind === 'doc') {
+    return checkContentKindDrift(dir, slug, raw, text ?? '', manifestSchemaVersion);
+  }
   const parsed = safeParseBlueprint(raw);
   if (!parsed.success) {
     return {
@@ -398,5 +509,64 @@ export async function checkBlueprintDrift(
     ok: problems.length === 0,
     problems,
     summary: `${blueprint.entities.length} entities, schema v${latest ?? '?'}, ${generated} generated files fresh`,
+  };
+}
+
+/** Drift check for deck, page and doc prototypes: no entities or migrations, schema v1. */
+async function checkContentKindDrift(
+  dir: string,
+  slug: string,
+  raw: Record<string, unknown>,
+  text: string,
+  manifestSchemaVersion: number
+): Promise<DriftReport> {
+  const parsed = await safeParseAnyBlueprint(raw);
+  if (!parsed.success || isAppBlueprint(parsed.data)) {
+    return {
+      ok: false,
+      problems: parsed.success
+        ? ['blueprint.json declares a content kind but parsed as an app']
+        : parsed.error.issues
+            .slice(0, 10)
+            .map((i) => `blueprint.json ${i.path.map(String).join('.') || '(root)'}: ${i.message}`),
+      summary: '',
+    };
+  }
+  const blueprint = parsed.data;
+  const problems: string[] = [];
+  const regenerate = `run \`pnpm protoyard generate ${slug} --blueprint prototypes/${slug}/blueprint.json\``;
+  if (manifestSchemaVersion !== 1) {
+    problems.push(
+      `content-kind prototypes use storage schema v1; protoyard.json has v${manifestSchemaVersion}`
+    );
+  }
+  const snapshot = await readSnapshot(dir).catch((error: Error) => {
+    problems.push(error.message);
+    return null;
+  });
+  if (snapshot) {
+    if (snapshot.codegenFormat !== CODEGEN_FORMAT_VERSION) {
+      problems.push(
+        `${SNAPSHOT_PATH} uses codegen format ${snapshot.codegenFormat ?? 1}: ${regenerate}`
+      );
+    }
+    if (!sameJson(snapshot.blueprint, withoutHistory(raw))) {
+      problems.push(`blueprint.json changed since the last generation: ${regenerate}`);
+    }
+  }
+  const files = await planGeneratedFiles(dir, emitContentKindPrototype(blueprint, text));
+  for (const file of files) {
+    if (file.status === 'created') problems.push(`missing ${file.path}`);
+    else if (file.status === 'conflicted')
+      problems.push(`${file.path} was edited by hand (hash mismatch)`);
+    else if (file.status === 'changed') problems.push(`${file.path} is stale: regenerate`);
+    else if (file.status === 'removed')
+      problems.push(`${file.path} is not generated for a ${blueprint.kind}: regenerate`);
+  }
+  const fresh = files.filter((f) => f.status === 'unchanged').length;
+  return {
+    ok: problems.length === 0,
+    problems,
+    summary: `${blueprint.kind} blueprint, schema v1, ${fresh} generated files fresh`,
   };
 }

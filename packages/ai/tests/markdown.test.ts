@@ -23,11 +23,12 @@ const inlines = (md: string) => {
 /** Every URL that would reach an attribute, plus every node type, from a document. */
 function walk(doc: MdDocument) {
   const urls: string[] = [];
+  const images: string[] = [];
   const types = new Set<string>();
   const visitInline = (node: MdInline) => {
     types.add(node.type);
     if (node.type === 'link') urls.push(node.href);
-    if (node.type === 'image' && node.src) urls.push(node.src);
+    if (node.type === 'image' && node.src) images.push(node.src);
     if ('children' in node) node.children.forEach(visitInline);
   };
   const visitBlock = (block: MdBlock) => {
@@ -42,7 +43,7 @@ function walk(doc: MdDocument) {
   };
   doc.blocks.forEach(visitBlock);
   for (const source of doc.sources) if (source.href) urls.push(source.href);
-  return { urls, types };
+  return { urls, images, types };
 }
 
 /**
@@ -244,11 +245,16 @@ describe('sanitization', () => {
     expect(safeImageSrc(url)).toBeNull();
   });
 
-  it('allows http(s), mailto and relative targets', () => {
+  it('allows https, mailto and same-document fragments while keeping relative images local', () => {
     expect(safeHref('https://example.com/a?b=1#c')).toBe('https://example.com/a?b=1#c');
     expect(safeHref('mailto:team@example.com')).toBe('mailto:team@example.com');
+    expect(safeHref('http://example.com')).toBeNull();
+    // Same-document fragments never leave the page: in-app routes and section anchors.
     expect(safeHref('#/deals/42')).toBe('#/deals/42');
-    expect(safeHref('./notes.md')).toBe('./notes.md');
+    expect(safeHref('#plans')).toBe('#plans');
+    expect(safeHref('#"><script>')).toBeNull();
+    expect(safeHref('./notes.md')).toBeNull();
+    expect(safeImageSrc('./assets/chart.png')).toBe('./assets/chart.png');
     expect(safeImageSrc('https://example.com/a.png')).toBeNull();
   });
 
@@ -308,13 +314,14 @@ describe('sanitization', () => {
         rng.pick(['', ' ', '\n'])
       );
       const doc = parseMarkdown(md);
-      const { urls } = walk(doc);
+      const { urls, images } = walk(doc);
       for (const url of urls) {
         expect(safeHref(url), `unsafe url ${JSON.stringify(url)} from ${JSON.stringify(md)}`).toBe(
           url
         );
         expect(url.toLowerCase()).not.toMatch(/^\s*(?:javascript|vbscript|data):/);
       }
+      for (const src of images) expect(safeImageSrc(src)).toBe(src);
       const dom = renderToDom(doc);
       expect(dom.querySelector('script, iframe, svg, object, embed')).toBeNull();
       for (const el of dom.querySelectorAll('*')) {
@@ -380,6 +387,24 @@ describe('chart answers', () => {
     });
     expect(bad({ currency: 'usd' })).toMatchObject({ ok: false });
     expect(() => chartBlock({ ...spec, labels: [] })).toThrow();
+  });
+
+  it('rejects control and bidi characters in chart labels and series labels', () => {
+    expect(
+      parseChartSpec(JSON.stringify({ ...spec, labels: ['Mon\u200e', 'Tue', 'Wed'] }))
+    ).toMatchObject({
+      ok: false,
+    });
+    expect(
+      parseChartSpec(
+        JSON.stringify({ ...spec, series: [{ ...spec.series[0], label: 'Signups\u061c' }] })
+      )
+    ).toMatchObject({ ok: false });
+    expect(
+      parseChartSpec(JSON.stringify({ ...spec, labels: ['Mon\u0001', 'Tue', 'Wed'] }))
+    ).toMatchObject({
+      ok: false,
+    });
   });
 
   it('treats markup in spec strings as data', () => {

@@ -1,25 +1,35 @@
 # Generator: blueprints to prototypes
 
-A **blueprint** is a data-only JSON description of a product: entities with typed
-fields and relations, roles with per-entity actions, screens, notification rules
-and optional branding. `pnpm protoyard generate` turns one into a working
-prototype: a versioned Dexie schema, a capability policy, entity services,
-deterministic scenario data and lazily loaded CRUD screens. You then add the
-hand-written screens that make it feel like the real product.
+A **blueprint** is a data-only JSON description of a product. Its `kind` (ADR-036)
+is either an **app** (entities, roles, screens — the default when `kind` is
+absent) or a **content kind**: `kind: "deck"`, `kind: "page"` or `kind: "doc"`.
+`pnpm protoyard generate` turns one into a working prototype:
+
+- **Apps** get a versioned Dexie schema, a capability policy, entity services,
+  deterministic scenario data and lazily loaded CRUD screens. You then add the
+  hand-written screens that make it feel like the real product.
+- **Decks, pages and docs** copy the matching kind template (`templates/deck`,
+  `templates/page`, `templates/doc`), emit a small generated set
+  (`src/generated/blueprint.ts`, `src/prototype.ts`, and for decks
+  `src/deck-blueprint.ts`), and mount the same `DeckApp` / `PageApp` / `DocApp`
+  the player uses through `defineKindRuntime` ([Generated decks, pages and
+  docs](#generated-decks-pages-and-docs)).
 
 Everything stays a simulation, as everywhere in Protoyard. Data lives in the
 browser, roles are UX and not security, and all generated data is fictional.
-The decision is recorded in [ADR-017](DECISIONS.md#adr-017--data-only-blueprints-generate-prototypes).
+The decision is recorded in [ADR-017](DECISIONS.md#adr-017--data-only-blueprints-generate-prototypes)
+and [ADR-036](DECISIONS.md#adr-036--blueprint-kinds-app-deck-page-and-doc).
 
 ## Pieces
 
 | Piece | Role |
 | --- | --- |
-| [`@protoyard/blueprint`](../packages/blueprint/README.md) | Framework-agnostic. The zod schema and JSON Schema, plus the derivations: stores and integrity, migrations, input validation, policy, generator and entity services (`session.assert` → zod → `environment.run` → `db.transaction`). |
-| [`@protoyard/crud`](../packages/crud/README.md) | Svelte CRUD kit: `EntityList`, `EntityForm`, `EntityDetail`, `RelationPicker`, `NotificationsBell`, `MembersScreen`. |
-| `templates/crud-app` | The base template `generate` copies: an `App.svelte` that renders the shared `BlueprintApp` shell from `@protoyard/crud/app`, the scenarios, the stylesheet and the spec docs. |
-| `protoyard generate` / `protoyard blueprint validate` | CLI commands that validate, generate, regenerate and check drift. |
-| [`blueprints/`](../blueprints/README.md) | A catalog of branded example blueprints you can generate from. |
+| [`@protoyard/blueprint`](../packages/blueprint/README.md) | Framework-agnostic. App and content-kind schemas, JSON Schema `oneOf`, derivations for apps, and `@protoyard/blueprint/kinds` (`defineKindRuntime`, `createKindServices`) for decks, pages and docs. |
+| [`@protoyard/crud`](../packages/crud/README.md) | Svelte CRUD kit for **apps**: `EntityList`, `EntityForm`, `EntityDetail`, `RelationPicker`, `NotificationsBell`, `MembersScreen`. |
+| `templates/crud-app` | Default template when the blueprint is an app (or has no `kind`): `BlueprintApp` from `@protoyard/crud/app`, scenarios, stylesheet and spec docs. |
+| `templates/deck`, `templates/page`, `templates/doc` | Default templates when `kind` is `deck`, `page` or `doc`. Each mounts the shared kind renderer and runtime (ADR-040). |
+| `protoyard generate` / `protoyard blueprint validate` | CLI commands that validate any kind, generate or regenerate, and check drift. Template selection follows the blueprint kind unless `--template` matches the same `blueprintKind`. |
+| [`blueprints/`](../blueprints/README.md) | Catalog of branded example blueprints (apps under the root; decks, pages and docs under `decks/`, `pages/`, `docs/`). |
 | [`blueprints/quick/`](../blueprints/quick/README.md) | Compact archetype starters with kit, route, source-size and validation-exercise metadata. |
 
 ## The loop
@@ -69,8 +79,11 @@ would lose data.
 
 For a JSON editor with autocompletion, set `"$schema"` to
 `packages/blueprint/schema/blueprint.schema.json` (relative to the file). The
-JSON Schema covers the shape; the cross-reference checks run in `parseBlueprint`. Agent
-authoring tools can call `validateBlueprintForAuthoring(input)` from
+draft 2020-12 schema is a strict `oneOf` for app, deck, page and doc blueprints;
+the app branch retains its existing shape. It covers structural constraints;
+cross-reference checks run in `parseBlueprint` or `parseAnyBlueprint`.
+`blueprintJsonSchema()` loads the kind schemas asynchronously when requested.
+Agent authoring tools can call `validateBlueprintForAuthoring(input)` from
 `@protoyard/blueprint` to get a full validity flag and diagnostics with JSON paths and repair
 hints. The result uses `BlueprintSchema`, so a shape-only JSON Schema pass is not reported as
 full blueprint validity. Existing `parseBlueprint` and `safeParseBlueprint` behavior is
@@ -140,7 +153,11 @@ owned files that call the generated entity services. Use
 
 ## The blueprint format
 
-A blueprint is strict: an unknown key anywhere fails validation.
+A blueprint is strict: an unknown key anywhere fails validation. The example and
+the required columns below describe an **app** blueprint. A content kind
+(`kind: "deck"`, `kind: "page"` or `kind: "doc"`) omits `entities` / `roles` /
+`screens` and carries one body key instead — see
+[Blueprint kinds](#blueprint-kinds).
 
 ```json
 {
@@ -158,16 +175,48 @@ A blueprint is strict: an unknown key anywhere fails validation.
 | Top-level key | Required | Meaning |
 | --- | --- | --- |
 | `formatVersion` | yes | Always `1`. |
+| `kind` | no | `app` (the default when missing), `deck`, `page` or `doc`. See [Blueprint kinds](#blueprint-kinds). |
 | `name` | yes | Up to 80 characters. It becomes the prototype name unless `--name` is passed. |
 | `description` | no | Up to 280 characters. It becomes the manifest description unless `--description` is passed. |
-| `entities` | yes | One or more entities (see below). |
-| `roles` | yes | One or more roles with permissions. |
+| `entities` | yes (apps) | One or more entities (see below). Forbidden on content kinds. |
+| `roles` | yes (apps) | One or more roles with permissions. Forbidden on content kinds. |
 | `notifications` | no | Notification rules. |
-| `screens` | no | Route declarations for generated `list`, `detail`, `form`, `board`, `calendar`, `timeline`, `map`, `analytics`, `dashboard` and `settings` screens. |
+| `screens` | no (apps) | Route declarations for generated `list`, `detail`, `form`, `board`, `calendar`, `timeline`, `map`, `analytics`, `dashboard` and `settings` screens. Forbidden on content kinds. |
 | `brand` | no | A seed color or preset that `generate` turns into a WCAG AA theme, or a `libraryTheme` id it uses as-is. |
 | `catalog`, `tags`, `icon`, `category` | no | Catalog metadata for files under `blueprints/`. |
 | `history` | no | Written by `generate`; never edit it by hand (see [Migrations](#regeneration-and-migrations)). |
 | `validation` | no | Validation tasks for exploration sessions (see [Validation tasks](#validation-tasks)). |
+
+### Blueprint kinds
+
+A blueprint's `kind` (ADR-036) names what it renders as. A missing `kind` means `app`: the
+entities / roles / screens sections on this page describe apps, and every blueprint written
+before kinds existed is an app. Content kinds are first-class for validate, generate, the
+player and `protoyard quick`.
+
+- `kind: "app"` is accepted and removed when the blueprint is parsed, so an app with and without it
+  has one content identity (share links, player namespaces and world caches do not change). A
+  golden file, `packages/blueprint/tests/fixtures/identity-golden.json`, freezes the identity of
+  every shipped blueprint.
+- `kind: "deck"`, `kind: "page"` and `kind: "doc"` are content kinds. They share the root keys
+  `formatVersion`, `name`, `description`, `catalog`, `tags`, `icon`, `category` and `brand`,
+  plus one body key named after the kind (`"deck": { … }`, `"page": { … }` or `"doc": { … }`).
+  App-only keys (`entities`, `roles`, `screens`, `layout`, `archetype`, `notifications`,
+  `history`, `validation`) are rejected on them. Body schemas come from
+  `@protoyard/decks` (deck) and `@protoyard/pages` (page and doc), wrapped with cross-block
+  checks in `@protoyard/blueprint/kinds`; the untrusted loader
+  enforces per-kind size and depth limits.
+- A kind this version does not know fails on `kind` with a "needs a newer Protoyard" message.
+  `formatVersion` stays `1`.
+
+In code, `parseBlueprint` and the `Blueprint` type stay app-only. `parseAnyBlueprint`,
+`safeParseAnyBlueprint` and the `AnyBlueprint` union accept every kind, and `blueprintKind()`,
+`isAppBlueprint()`, `isDeckBlueprint()`, `isPageBlueprint()` and `isDocBlueprint()` tell them
+apart. `loadUntrustedDocument` is the shared entry for decks, pages and docs (and for apps
+when loaded as untrusted input). **Status today:** all four kinds validate, run in the
+player, generate into `templates/{crud-app,deck,page,doc}`, and explore through
+`protoyard quick`. App compatibility is unchanged: omit `kind` or set `kind: "app"` and the
+app path behaves as before.
 
 ### Entities
 
@@ -258,6 +307,13 @@ only seeded data, never validation:
   keyed by entity and field; generator SDK 5). Faces do not repeat within the
   field until all 175 are used, the team's faces are dealt last, adding rows
   keeps the earlier faces, and other fields of the row do not shift.
+
+### Scenario world validation
+
+`protoyard scenario validate` checks each generated world for integrity and
+verifies that its scenario actor is present. A world with zero personas is a
+valid signed-out starting state; registering creates the first persona. When a
+world contains personas, its configured actor must still match one of them.
 
 ### Computed expressions
 
@@ -525,11 +581,14 @@ proves it on a real promotion. Then continue with the usual loop:
 
 ## What `generate` writes
 
-`generate` copies `templates/crud-app` into a hidden staging folder, writes the
-files below, and renames it to `prototypes/<slug>`. An interrupted run never
-leaves a half-written prototype. It then runs `pnpm install` (skip it with
-`--no-install`), fills the spec regions of `AGENTS.md` and `docs/` for the new
-slug, and re-indexes.
+For an **app** blueprint, `generate` copies `templates/crud-app` into a hidden
+staging folder, writes the files below, and renames it to `prototypes/<slug>`.
+For a **deck**, **page** or **doc**, it copies the matching kind template
+instead and writes the smaller generated set described under
+[Generated decks, pages and docs](#generated-decks-pages-and-docs). An
+interrupted run never leaves a half-written prototype. It then runs
+`pnpm install` (skip it with `--no-install`), fills the spec regions of
+`AGENTS.md` and `docs/` for the new slug, and re-indexes.
 
 | Path | Kind | Content |
 | --- | --- | --- |
@@ -741,3 +800,43 @@ Build a Protoyard prototype for <product> from a blueprint.
 - Adding or removing `brand` on regeneration regenerates `brand-theme.ts` but
   does not rewire `src/prototype.ts` or `defaultTheme` (they are set on the
   first generation only).
+
+## Generated decks, pages and docs
+
+`generate` chooses a template from the validated blueprint kind:
+
+| Blueprint kind | Default template |
+| --- | --- |
+| `app` or no `kind` | `crud-app` |
+| `deck` | `deck` |
+| `page` | `page` |
+| `doc` | `doc` |
+
+Pass `--template` to choose another template only when its `protoyard.json`
+declares the same `blueprintKind`. A mismatch fails before the prototype folder
+is written. JSON dry runs include the resolved `kind` and template:
+
+```sh
+pnpm protoyard generate rehearsal --blueprint blueprints/decks/example.json --dry-run --json
+```
+
+Content kinds use the shared runtime and renderer from their templates. Their
+generated modules are `src/generated/blueprint.ts` and `src/prototype.ts`; the
+blueprint module validates the full kind document synchronously
+(`parseDeckBlueprint`, `parsePageBlueprint` or `parseDocBlueprint` from
+`@protoyard/blueprint/kinds/parse`, never a top-level `await`, which would
+leave a Claude artifact export blank), and the runtime module calls
+`defineKindRuntime`. A deck also gets a generated `src/deck-blueprint.ts`, which
+points the template's App at the generated blueprint, and it does not copy the
+template's sample `src/blueprint.json`. They do not emit app entity schema, policy, services,
+world-generator modules or entity tests. The template's owned `App.svelte`
+continues to render the shared `DeckApp`, `PageApp` or `DocApp`; deck-owned
+`src/custom-slides.ts` also stays in place.
+
+Regeneration rewrites only generated kind modules and the managed blueprint
+snapshot. It does not derive database migrations or create `history`, because
+content kinds have no entity schema. It leaves the owned app and custom slide
+files untouched. App blueprints keep the existing `crud-app` code generation
+and entity migration behavior. The app emitter's generated files remain
+unchanged by kind support.
+

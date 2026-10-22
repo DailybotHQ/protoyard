@@ -294,6 +294,12 @@ export const PrototypeManifestSchema = z
     tags: z.array(z.string().min(1).max(32)).max(16).default([]),
     /** Template this prototype was created from (informational). */
     template: z.string().optional(),
+    /**
+     * Blueprint content kind this project renders (ADR-036, ADR-040). Omitted means an app;
+     * `deck`, `page` and `doc` projects mount the shared content-kind renderers and have no
+     * app database or scenario sources.
+     */
+    blueprintKind: z.enum(['app', 'deck', 'page', 'doc']).optional(),
     status: ProjectStatusSchema.default('active'),
     /** Emoji or short glyph used by the gallery when no thumbnail exists. */
     icon: z.string().max(8).optional(),

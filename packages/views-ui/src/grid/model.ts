@@ -20,6 +20,24 @@ export interface DataGridColumn<T> extends GridColumnDef<T> {
 /** The view state the grid edits: everything in a saved view except its id and name. */
 export type GridViewState = Pick<SavedView, 'columns' | 'sort' | 'groupBy' | 'filter' | 'density'>;
 
+/** One action of the bulk action bar, applied to the selected rows. */
+export interface BulkAction<T> {
+  id: string;
+  label: string;
+  /** Runs the action (a prototype service); reject or throw to report a failure. */
+  run: (rows: readonly T[]) => unknown;
+  /** Styled as destructive (and the confirmation, when set, too). */
+  destructive?: boolean;
+  /** Ask before running. */
+  confirm?: { title?: string; description?: string; confirmLabel?: string };
+  /** Disables the action for this selection (for example, nothing to archive). */
+  disabled?: (rows: readonly T[]) => boolean;
+  /** Success toast (default: "<label>: N rows"). */
+  success?: string;
+  /** Keep the rows selected after a success (default: the selection clears). */
+  keepSelection?: boolean;
+}
+
 export const ROW_HEIGHT: Record<GridDensity, number> = {
   compact: 32,
   comfortable: 40,

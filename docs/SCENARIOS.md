@@ -165,6 +165,58 @@ its id. Cycles, unknown parents and duplicate ids throw a
 reference time (`2026-03-02T09:00:00.000Z`), so override both to anchor the
 world where your prototype needs it.
 
+### Life-stage journeys
+
+Four presets in the group `Journeys` model one account's life. Each is the
+same product at a different moment, and each declares what its world must
+look like:
+
+| Preset id | Persona | Simulated time | Expected world |
+| --- | --- | --- | --- |
+| `journey-signup` | `owner`, onboarding not started | organization and actor 0 days | 1 person, empty data, no activity |
+| `journey-invited` | `member`, onboarding not started | organization 90 days, actor 0 days | 6 people, at least one joined before the actor |
+| `journey-first-week` | `owner`, onboarded | organization and actor 7 days | 3 people, sparse data, 7 days of history |
+| `journey-established` | `owner`, onboarded | organization and actor 90 days | 8 people, normal data, 90 days of weekly history |
+
+- **Stable ids.** Every stage uses the same seed, reference time, organization
+  id (`org_0001`) and actor id (`user_0001`), so links, tests and screens that
+  name the actor survive a stage switch.
+- **Domain-free.** The stages hold only the shared axes. A prototype extends
+  one by id (`{ id: 'new-hire', extends: 'journey-invited', … }`) and adds its
+  own `generators` knobs and data.
+- **What a stage promises** (`LIFE_STAGE_JOURNEYS[i].persona`, `.time` and
+  `.expect`) is checked by
+  `checkJourneyWorld(stage, seed, { integrity?, referenceTime?, actorId? })`.
+  It returns the problems in a generated world, and an empty list means the
+  world passes:
+  - `validateWorld` violations at the reference time, plus your own integrity
+    rules;
+  - the actor's role, tenure and onboarding;
+  - the people count and the organization's age;
+  - an existing team, for `invited`;
+  - whether the world reads as the stage.
+- **From data to stage.** `lifeStageOf({ actorTenureDays, organizationAgeDays,
+  onboardingComplete })` is pure, so a reload or a scenario switch lands on the
+  same stage. `lifeStageView(seed, actorId, referenceTime)` reads those numbers
+  from a world. The rules, in order:
+  1. Joined less than 7 days ago into an organization at least 7 days older:
+     `invited`.
+  2. Otherwise less than 7 days in without finished onboarding: `signup`.
+  3. Less than 30 days in: `first-week`.
+  4. Otherwise: `established`.
+
+```ts
+import { checkJourneyWorld, journeyScenario } from '@protoyard/scenarios';
+
+const scenario = journeyScenario('invited', { id: 'new-hire' }); // validated
+const world = await definition.generate(createGenerateContext(scenario));
+expect(checkJourneyWorld('invited', world, { integrity: myRules })).toEqual([]);
+```
+
+The older single presets (`brand-new-signup`, `first-week`, `six-month-new-member`,
+`active-month`…) are unchanged. Each of them stands alone, while the journeys
+form one consistent sequence with declared expectations.
+
 ## The generator
 
 `generate(ctx)` in `src/scenarios/generators.ts` returns a `WorldSeed`:
@@ -346,6 +398,31 @@ $ pnpm protoyard scenario validate crm-demo -s rep-view
 The runtime option `validation: 'throw' | 'warn' | 'off'` (default `throw`)
 exists for tests and debugging.
 
+## Fixture hygiene (emails and secrets)
+
+Generated worlds and scenario sources must use fictional data only
+(AGENTS.md rule 7). `@protoyard/scenarios` provides a deterministic scanner
+that reports paths and fix hints without rewriting anything:
+
+```ts
+import { scanFixtureWorld, scanFixtureText } from '@protoyard/scenarios';
+
+expect(scanFixtureText('ops@example.com')).toEqual([]);
+expect(scanFixtureText('lead@gmail.com')[0]?.detail).toBe('gmail.com');
+expect(scanFixtureWorld(world)).toEqual([]); // empty when clean
+```
+
+Allowed domains: `example.com` / `example.net` / `example.org`, plus
+`*.example`, `*.test`, `*.invalid`, `*.localhost`. Common secret shapes
+(Slack, Stripe live, AWS, GitHub, private keys, JWTs) are flagged by pattern
+name only — the matched text never appears in the finding. Suppress a
+structured subtree with `$fixtureAllow: true`, or pass
+`allowEmailDomains` / `ignorePaths` for deliberate test fixtures.
+
+`protoyard validate` runs the same rules as the **fixtures** check over
+`src/scenarios`, `src/database`, `src/domain` and `fixtures/` (read-only).
+See [SECURITY](SECURITY.md#fixture-hygiene-generated-worlds-and-scenario-sources).
+
 ## Personas, roles and policy
 
 **This is a simulation of user experience, not security.** Everything runs
@@ -473,6 +550,74 @@ window must apply nothing twice. Event ids make the second part work
 part is your job: **the events for a day must not depend on the current
 state.**
 
+### Reacting to clock changes
+
+Use `onClockTick(handler)` from `@protoyard/renderer-svelte` for work that
+should run once when a prototype registers the handler and again when its
+runtime clock publishes a new simulated instant. The handler receives a
+snapshot `Date` from `runtime.clock`; same-turn changes coalesce to the latest instant, and
+asynchronous handlers run one at a time. A successfully handled instant is not
+repeated. If a handler fails (for example, while storage is unavailable), the
+error is sent to `onError` or logged, and a later clock notification can retry
+it. There is no timer or background polling, so this does not advance time or
+poll a running clock on its own. Keep the handler idempotent and persist row expiry or delayed decisions
+through the prototype's service and transaction boundary. Call the returned
+unsubscribe function when the handler's owner is disposed.
+
+```ts
+import { onDestroy } from 'svelte';
+import { onClockTick } from '@protoyard/renderer-svelte';
+
+const stopClockTicks = onClockTick((now) => expireDueItems(now));
+onDestroy(stopClockTicks);
+```
+
+#### A scripted counterpart in a chat
+
+`scriptedCounterpart({ scripts, seed? })` from `@protoyard/scenarios` makes the
+other person in a simulated chat answer on the simulated clock, from fixed
+lines, the same way on every replay. It is pure: it reads a conversation's
+messages, and your clock pass writes the replies through your own service.
+
+- **Delay.** The delay before a reply is fixed by the answered message's id
+  and the seed. It is 2-45 simulated seconds by default (`minDelaySeconds` and
+  `maxDelaySeconds` change it), so advancing the clock one minute delivers
+  every pending reply.
+- **What gets answered.** A reply answers the conversation's latest message
+  when the person wrote it. The line is the conversation's script line after
+  the counterpart lines already in the thread, and the script is chosen by
+  conversation id. When the script runs out, the state is `done` and the
+  counterpart stays silent.
+- **States.** `state(messages, now)` returns:
+  - `idle`: no messages, or the counterpart spoke last;
+  - `waiting`;
+  - `typing`: the last `typingSeconds` before the reply, 4 by default, for a
+    typing indicator;
+  - `due`: with a reply to store;
+  - `done`.
+- **Writing replies.** `dueReplies(messages, now)` lists every due reply across
+  conversations, in time order. Each reply has a stable id
+  (`<message id>~reply`) and its due time, strictly after the answered message
+  rather than "now". A pass that skips ids it already stored is idempotent.
+
+```ts
+import { scriptedCounterpart } from '@protoyard/scenarios';
+
+const counterpart = scriptedCounterpart({
+  scripts: [['Hi! Thanks for writing.', 'Let me check and get back to you.']],
+  seed: scenario.seed,
+});
+onClockTick(async (now) => {
+  const messages = await chatService.recentMessages(); // { id, conversationId, author, sentAt }
+  for (const reply of counterpart.dueReplies(messages, now)) await chatService.storeReply(reply);
+});
+// Typing indicator for an open thread:
+const typing = counterpart.state(threadMessages, runtime.clock.now()).status === 'typing';
+```
+
+Keep the scripts fictional and honest. A counterpart line says what the
+person will do or ask, never an outcome that the simulation cannot keep.
+
 The CRM demo learned this the hard way. Its first timeline filtered deals by
 their *current* stage and decided the target stage when generating the event.
 After advancing one day, some deals had moved, so day 2 picked from a
@@ -511,6 +656,80 @@ Other rules:
 - `dailyEvents(ctx, { perDay, make, hours? })` from `@protoyard/scenarios`
   implements the window-independent pattern for you (count, instants and a
   per-slot rng derived from seed + day).
+
+### Named timeline sources
+
+Several kits can contribute events without one shared monolith. Register each
+source once at module load with a **stable id**, an optional map of event-type
+appliers, and an optional per-source cap (default 10,000 events):
+
+```ts
+import {
+  collectTimelineEvents,
+  localTimeToUtc,
+  registerTimelineSource,
+  timelineFromSources,
+} from '@protoyard/scenarios';
+
+registerTimelineSource({
+  id: 'billing',
+  collect: async (ctx) => {
+    const due = localTimeToUtc('2026-10-14', '09:00', 'America/New_York');
+    if (due.getTime() <= ctx.from.getTime() || due.getTime() > ctx.to.getTime()) return [];
+    return [
+      {
+        id: `evt:invoice-due:2026-10-14`,
+        type: 'billing.invoice.due',
+        at: due.toISOString(),
+        payload: { invoiceId: 'inv_1' },
+        source: 'timeline',
+      },
+    ];
+  },
+  apply: {
+    'billing.invoice.due': async (event, ctx) => {
+      /* put rows from event.payload; stay idempotent */
+      void event;
+      void ctx;
+    },
+  },
+});
+
+// Option A — wire the registry into the prototype definition:
+const { timeline, applyEvent } = timelineFromSources();
+// definePrototype({ timeline, applyEvent, … })
+
+// Option B — merge with hand-written events:
+timeline: async (ctx) => [
+  ...dailyEvents(ctx, { /* … */ }),
+  ...(await collectTimelineEvents(ctx)).events,
+],
+```
+
+`collectTimelineEvents(ctx)` runs every registered source, bounds each source,
+merges, sorts by `at` then `id`, rejects duplicate ids, and applies a total
+cap (default 50,000). The result is deterministic for the same registrations
+and window. `applyTimelineEvent(event, ctx)` dispatches by `event.type` and
+returns whether a handler ran. `clearTimelineSources()` is for tests only.
+
+Event types are exclusive: two sources may not register the same `apply` key.
+Source ids must start with a letter and use only letters, digits, `.`, `_` or
+`-`.
+
+### Local time zones (explicit IANA)
+
+Zone helpers never read the host time zone. Pass an IANA id on every call
+(`UTC`, `America/New_York`, …):
+
+| Helper | Returns | Notes |
+| --- | --- | --- |
+| `localTimeToUtc(day, hhmm, timeZone)` | `Date` | Civil `YYYY-MM-DD` + `HH:mm` or `HH:mm:ss` → UTC instant. Spring-forward gaps move forward by the jump; fall-back folds take the earlier occurrence (RFC 5545). |
+| `localDayOf(at, timeZone)` | `YYYY-MM-DD` | Civil day of an instant in the zone (the shared day key for due events and reports). |
+| `localDayBounds(day, timeZone)` | `{ start, end, durationMs }` | `[start, end)` of a civil day; 23 or 25 hours on DST edges. |
+| `zonedInstantMs(wall, timeZone)` | epoch ms | Low-level wall → instant with the same gap/fold rules. |
+
+Unknown zone ids and empty strings throw. Tests cover US and EU DST edges
+(`pnpm vitest run packages/scenarios/tests/timeline.test.ts`).
 
 ### Series, schedules, events and geo
 

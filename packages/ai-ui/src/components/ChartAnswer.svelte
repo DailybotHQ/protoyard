@@ -78,7 +78,12 @@ const load = () =>
     <p class="mt-1 text-muted-foreground">{result.error}</p>
     <details class="mt-2">
       <summary class="cursor-pointer text-muted-foreground">Show the chart data</summary>
-      <pre class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all font-mono">{text}</pre>
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex -- scrollable chart data; keyboard users must reach it (WCAG 2.1.1 / axe scrollable-region-focusable). -->
+      <pre
+        tabindex="0"
+        aria-label="Chart data"
+        class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all font-mono focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+      >{text}</pre>
     </details>
   </div>
 {:else if spec && units}

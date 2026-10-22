@@ -34,6 +34,7 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 | `src/lib/library.svelte.ts` | Favorites and recently opened entries, in guarded `localStorage`. |
 | `src/lib/control.svelte.ts` | Client for the local control server. |
 | `src/lib/theme.ts` | Light / dark / system, applied by an inline head script before first paint (no flash). |
+| `src/lib/content-examples.ts`, `content-showcase.ts`, `components/features/ContentShowcase.astro` | The deck, page and doc examples on the home page and `/features/`: covers from `public/examples/` (`pnpm covers`), share links into the hosted player built at static-build time, stills of the flagship deck, and the generated flagship running live in a showcase build. |
 | `src/components/*` | `Browser`, `ProjectCard`, `LivePreview`, `CreateBuilder`, `CommandBlock`, `ThemeToggle`, `FavoriteButton`, `FirstRun`. |
 
 ## Pages
@@ -47,6 +48,14 @@ templates/*/protoyard.json  ─┴─ pnpm protoyard index ──▶ .protoyard/
 | `/new/` | The create builder: the `protoyard new` command and an agent prompt |
 | `/themes/` | The theme browser: built-in and library themes with live swatches, opening any prototype in a chosen theme |
 | `/marketplace/`, `/marketplace/<kind>/<slug>/` | The marketplace shelf and one page per prototype, template or blueprint ([below](#marketplace)) |
+
+The sitemap indexes each marketplace entry at its canonical source-kind URL. A blueprint's content
+kind (App, Deck, Page or Document) is metadata on that page; it does not create alternate URL
+aliases. Share fragments and query-based player states are excluded from the sitemap.
+Blueprint detail pages name their content kind. Deck, page and document blueprints open in the hosted
+player through a validated share link; when a blueprint is too large for a link, the page offers the
+generate and dev commands. App blueprints keep their generation instructions, and prototype and
+template live previews keep their existing behavior.
 
 ## Registry contract
 
@@ -65,6 +74,13 @@ The gallery consumes `protoyard.registry` v1 (`format`, `version`, `generatedAt`
   real path must stay inside the real prototype folder. Otherwise the card falls back to the icon.
   Untrusted registries are filtered: entries with a slug that fails `SLUG_PATTERN`, an unknown kind
   or a `..` path are dropped.
+- **Blueprint catalog records:** source kind (`blueprint`) stays separate from the blueprint's
+  content kind (`app`, `deck`, `page` or `doc`). The gallery resolves only workspace-relative
+  `blueprints/**/*.json` sources, rejects symlinks and files over 256 KB, and checks the JSON
+  discriminator and catalog metadata before publishing a record. Missing kind means `app`; unknown
+  or mismatched content-kind metadata is omitted and listed in the registry's `invalid`
+  diagnostics; static builds also warn with the source path and reason. The body remains data and is
+  handed to the player for its own validation; it is never executed by the gallery build.
 - **`embedded: { url }`** (added only by `protoyard showcase`): the prototype's static build ships
   inside the site at `<base><url>`.
 - **`reviewCounts: { open, resolved, pulledAt }`** (optional): derived at build time from a validated
@@ -100,8 +116,11 @@ then this repository's `.protoyard/registry.json`. The published path runs
 ## Marketplace
 
 `/marketplace/` lists every prototype, template and blueprint from the
-registry's `catalog` blocks: category rails, search, filters (kind, category,
-platform, shell, features, theme collection) kept in the URL, and a detail page per entry. Try it,
+registry's `catalog` blocks: category rails, search, filters (source type,
+content type, category, platform, shell, features and theme collection) kept
+in the URL, and a detail page per entry. Cards show source type (prototype,
+template or blueprint) separately from content type (App, Deck, Page or
+Document); a missing blueprint kind is shown as App. Try it,
 Use this template and Remix use the local control server (`POST /api/dev/<slug>`,
 `POST /api/new`) and fall back to the exact CLI commands when the site is
 read-only (a published showcase). Creating from the gallery writes files and

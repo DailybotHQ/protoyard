@@ -4,11 +4,10 @@ Data-only blueprints for Protoyard ([ADR-017](../../docs/DECISIONS.md)). A `blue
 describes a product (entities, fields, relations, roles, screens) without any executable
 code. This package validates it and derives what a working prototype needs from it.
 
-Framework-agnostic: it depends on `@protoyard/core`, `@protoyard/scenarios` (generator
-helpers), `@protoyard/themes` (brand themes) and zod, and never imports Svelte (ADR-002). The
-Svelte CRUD screens live in [`@protoyard/crud`](../crud/README.md). How a blueprint becomes a
-prototype (`protoyard generate`, regeneration, drift checks) is in
-[docs/GENERATOR.md](../../docs/GENERATOR.md).
+Framework-agnostic: it uses the shared core, scenarios, themes, blocks, pages and deck schemas,
+plus zod, and never imports Svelte (ADR-002). The Svelte CRUD screens live in
+[`@protoyard/crud`](../crud/README.md). How a blueprint becomes a prototype (`protoyard generate`,
+regeneration, drift checks) is in [docs/GENERATOR.md](../../docs/GENERATOR.md).
 
 ## Modules
 
@@ -30,12 +29,15 @@ prototype (`protoyard generate`, regeneration, drift checks) is in
 | aggregate | count/sum/avg/min/max with groups and UTC date buckets for dashboards and analytics | `.` |
 | app-model | routes, navigation rows with icon ids, navigation groups and layout (`deriveAppModel`) | `.` |
 | runtime-definition | a complete `definePrototype`-valid definition plus the app model (`definePrototypeFromBlueprint`) | `.` (the generator stays lazy) |
+| kinds | content-kind runtime: `defineKindRuntime` (deck/page/doc definition: block-state and form-response stores, `default` scenario, presenter/audience/viewer personas, no generator) and `createKindServices` (persistent `BlockStateHost`, form responses) | `./kinds` (never in the app graph); `./kinds/parse` (synchronous `parseDeckBlueprint`, `parsePageBlueprint`, `parseDocBlueprint`, for generated kind prototypes: no top-level await, see [PUBLISHING](../../docs/PUBLISHING.md)) |
 | csv | RFC 4180 parse/serialize + row validation | `./csv` (lazy) |
 | csv-shape | bounded CSV header/sample inference into a reviewable entity draft | `./import/csv-shape` (lazy authoring) |
 | json-shape | bounded JSON object/array shape inference into reviewable entity drafts | `./import/json-shape` (lazy authoring) |
 | sqlite-schema | bounded SQLite `CREATE TABLE` DDL inference into reviewable entity drafts | `./import/sqlite-schema` (lazy authoring) |
 | generator | deterministic worlds (`ctx.rng`, `ctx.faker`, `ctx.ids`, `ctx.time`) | `./generator` (lazy) |
 | search | ranked, policy-filtered record search across `searchable` fields (the CRUD search palette) | `./search` |
+| identity | content sha256 and `bp-…` storage namespace (`blueprintIdentity`); every shipped blueprint's identity is frozen in `tests/fixtures/identity-golden.json` | `.` |
+| deck authoring lint | structural diagnostics for slide ids, layout props, outline order, fragments and internal links | `.` |
 
 ## The schema
 
@@ -56,7 +58,7 @@ repair hints. Its `valid` flag comes from the complete blueprint parser, includi
 checks; passing the JSON Schema shape alone does not make a blueprint valid:
 
 ```ts
-const result = validateBlueprintForAuthoring(untrustedJson);
+const result = await validateBlueprintForAuthoring(untrustedJson);
 if (!result.valid) {
   for (const diagnostic of result.diagnostics) {
     console.log(diagnostic.jsonPath, diagnostic.message, diagnostic.hint);
@@ -65,16 +67,138 @@ if (!result.valid) {
 ```
 
 Each diagnostic includes a machine-readable `code`, path segments in `path`, an unambiguous
-`jsonPath`, the original validation `message` and a concise next step in `hint`. `parseBlueprint`
+`jsonPath`, the original validation `message` and a concise next step in `hint`. Block and asset
+failures map to stable codes such as `unknown-block-type`, `invalid-chart-spec`,
+`missing-alt-text`, `unsupported-url-scheme`, `invalid-step-or-fragment-target` and
+`duplicate-block-id`. Use `diagnosticsFromBlockIssues(issues, pathPrefix)` to lift
+`@protoyard/blocks` parse issues into the same shape under a deck/page/doc path. Validation never
+fetches remote assets and never renders untrusted markdown as HTML. `parseBlueprint`
 and `safeParseBlueprint` keep their existing behavior. The helper is in the package entry module
 and is tree-shakeable for consumers that do not import it.
+
+The helper validates every kind through the shared kind union (`safeParseAnyBlueprint`) and returns
+the `kind` it used. Any-kind parsing and authoring validation are asynchronous because deck, page and
+doc body schemas load dynamically by kind. An input with no `kind` is an app (the compatibility rule),
+so existing app blueprints and their diagnostics are unchanged; an app never imports those body
+schemas. A deck, page or doc runs through its strict envelope and body schema: its diagnostics point
+into the body, under `$["<kind>"]`, and keys that belong only to apps get a hint naming the keys that
+kind accepts. Problems with `kind` itself are reported on `$["kind"]`: `invalid-kind` (not a string)
+and `unknown-kind` (needs a newer Protoyard) return `kind: null`, and `kind-unavailable` names a known
+kind whose engine this build does not ship yet.
+
+### Page and doc bodies
+
+This build ships the `deck`, `page` and `doc` bodies. Each body schema is loaded only when its
+content kind is parsed.
+
+**`kind: "page"` is a single-scroll page.** It is `{ kind: "page", page: { id, title, sections, nav?, forms? } }`.
+The body is `@protoyard/pages`' `PageDocumentSchema` plus `kinds/page.ts`, which checks:
+
+- section ids and anchors are unique, and nav links and `forms[].formId` resolve (from the pages schema);
+- block ids, headings included, are unique across **all** sections, because one page is one DOM and
+  one form-response store;
+- a block id is never also a section id or anchor;
+- `forms[].sectionId`, when set, is the section that holds that form, containers included;
+- every `#fragment` link in a block (`cta` actions, `cards` items) points at a section anchor or a
+  block id on the page.
+
+**`kind: "doc"` is a continuous block flow.** It is `{ kind: "doc", doc: { id, title, blocks, toc?, print? } }`.
+The body is `DocDocumentSchema` (block ids, and so heading ids, are unique) plus `kinds/doc.ts`, which
+checks:
+
+- a `toc` lists at least one heading from level 2 to `toc.depth` (3 by default). A heading without
+  `level` counts as level 2.
+- every `#fragment` link points at a block id in the doc.
+
+Fixtures: `tests/fixtures/kinds/landing.page.json` and `tests/fixtures/kinds/quarterly-report.doc.json`
+(`pnpm vitest run packages/blueprint/tests/kinds/page-doc.test.ts`).
+
+Deck bodies validate unique slide ids, outline references, known layout ids, catalog props and
+bounded step markers. The layout catalog validates props after temporarily removing animation
+metadata; the parsed props keep `{ step, fragment }` and `{ step, reveal }` so the motion engine can
+resolve them later.
 
 A blueprint has `formatVersion: 1`, a `name`, one or more `entities`, one or more `roles` and
 optional `screens`, `brand` and `archetype`. Every object is strict, so unknown keys fail.
 
+## Deck structural lint
+
+`lintDeckStructure(input)` checks an untrusted **deck body** (the object under
+`blueprint.deck`, or a bare deck document) without rendering it or mutating the
+input. It returns `{ valid, diagnostics }`. Each diagnostic has a stable
+`code`, `severity: 'error'`, path segments, `jsonPath` and `message`.
+
+What it checks (against `@protoyard/decks/schema` and the layout catalog):
+
+| Code | Meaning |
+| --- | --- |
+| `missing-slide-id` / `duplicate-slide-id` | Every slide needs a unique slug id |
+| `unknown-layout` | `layout` is not in `@protoyard/decks/layouts` |
+| `invalid-layout-props` | Catalog slide `props` fail that layout's zod schema |
+| `invalid-fragment-order` | Fragment / block `step` values are out of range or out of order |
+| `duplicate-outline-slide` / `invalid-slide-order` | Outline `slideIds` must exist once and follow deck order |
+| `invalid-deck-structure` | Other schema failures |
+
+Deep links of the form `#/slide-id` or `#/slide-id/step` must resolve to a
+**visible** (non-hidden) slide. Visual and content quality (notes length,
+layout repetition, WCAG) live in `@protoyard/decks` quality rules, not here.
+
+`lintDeckContent(deck)` adds image alt requirements, chart descriptions, CTA
+labels, word density and speaker-note guidance. `lintDeckAssets(deck)` separately
+checks media URL syntax and protocol allowlists on raw deck data, including
+media nested in embedded-app data; it never fetches. All return
+`{ valid, diagnostics }` with stable codes, severity, path segments and
+JSONPath. Layout capacity violations are errors. Three repeated visible layouts
+in a row produce a warning when the catalog offers alternatives. Missing
+accessible content is an error; short chart descriptions, dense copy and missing
+or brief optional presenter notes are warnings. Density is an estimate: rendered
+text must still meet the 24 px body and 18 px label minimums on the 1280×720
+canvas. Final contrast, text size and fit need rendered visual QA.
+
+```ts
+import { lintDeckContent, lintDeckStructure } from '@protoyard/blueprint';
+
+const structure = lintDeckStructure(deckJson);
+const content = lintDeckContent(deckJson);
+for (const issue of [...structure.diagnostics, ...content.diagnostics]) {
+  console.log(issue.code, issue.jsonPath, issue.message);
+}
+```
+
+CLI packaging of `deck lint` is owned by the CLI / KINDS lane; agents can call
+`lintDeckStructure` and `lintDeckContent` in-process today.
+
 ## Agent authoring sequence
 
-For an offline end-to-end path, start from a [quick blueprint](../../blueprints/quick/README.md)
+**Primary path for agents is validated JSON**, not free-form prose at runtime.
+Prose is only the offline seed that produces a draft blueprint file.
+
+### Content kinds (deck, page, doc)
+
+1. **Detect kind** with `detectBriefKind(brief)` or pass `{ kind: 'deck' | 'page' | 'doc' | 'app' }`
+   into `blueprintFromBrief` (see [Kind detection](#kind-detection)).
+2. **Synthesize a draft** with `blueprintFromBrief(brief)` (or
+   `synthesizeDeckFromBrief` / page / doc helpers). The result is
+   `ContentBriefResult`: `{ kind, outline, json, rationale, kindDetection }`.
+   **Generated copy is draft scaffolding only** — placeholders marked "Draft:",
+   metrics as "—", no invented facts, quotes or real people (see
+   [Deck outline templates](#deck-outline-templates)).
+3. **Write the JSON** to disk (`pnpm protoyard blueprint new <file> --from-brief …`
+   or your own writer). Prefer the full blueprint envelope:
+   `{ formatVersion, name, kind, deck|page|doc, … }`.
+4. **Validate** with `validateBlueprintForAuthoring(json)` and/or
+   `pnpm protoyard blueprint validate <file>`. Diagnostics carry stable `code`,
+   `path`, `jsonPath`, `message` and `hint`. Revalidate after every edit.
+5. **Deck-only lint:** `lintDeckStructure(json.deck)` checks layout structure
+   and capacity; `lintDeckAssets(json.deck)` checks source URL syntax without
+   network access.
+6. **Generate / play** with `pnpm protoyard generate` or the player when the
+   draft is valid. See [the generator guide](../../docs/GENERATOR.md) and
+   [BRIEF_TO_PROTOTYPE](../../docs/BRIEF_TO_PROTOTYPE.md).
+
+### Apps
+
+For an offline end-to-end app path, start from a [quick blueprint](../../blueprints/quick/README.md)
 or synthesize one with `pnpm protoyard blueprint new <file> --from-brief <brief-file>` (use `-`
 for stdin). Read the rationale, edit the JSON, and run `pnpm protoyard blueprint validate <file>`.
 For machine-actionable repairs, pass the parsed input to `validateBlueprintForAuthoring`; each
@@ -203,7 +327,7 @@ finds it through that export, from this repository or an installed package, and 
 relative `$schema`. A test fails when the file is out of date. Regenerate it with:
 
 ```bash
-pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/schema.ts'; import { writeFileSync } from 'node:fs'; writeFileSync('packages/blueprint/schema/blueprint.schema.json', JSON.stringify(blueprintJsonSchema(), null, 2) + '\n');" && npx biome format --write packages/blueprint/schema
+pnpm exec tsx -e "import { blueprintJsonSchema } from './packages/blueprint/src/index.ts'; import { writeFileSync } from 'node:fs'; void blueprintJsonSchema().then(schema => writeFileSync('packages/blueprint/schema/blueprint.schema.json', JSON.stringify(schema, null, 2) + '\n'));" && npx biome format --write packages/blueprint/schema
 ```
 
 **Size:** measured with esbuild (minified, zod and `@protoyard/core` external) and gzip -9:
@@ -564,16 +688,61 @@ const committed = await services.ticket.importCsv(text, {
 
 ## Brief to blueprint
 
-`blueprintFromBrief(brief, { archetype?, name? })` turns a short product brief into a valid
-blueprint, offline and deterministically (same brief, same JSON; no network or model):
+Kind synthesis fixtures live in `tests/fixtures/briefs/kinds.json` and are exercised by
+`tests/brief-kinds.test.ts` (all four kinds, cue conflicts, explicit overrides, empty and
+maximum-length input, content-only requests). The historical app set in
+`tests/fixtures/briefs/briefs.json` stays the regression baseline
+(`pnpm vitest run packages/blueprint/tests/brief-kinds.test.ts packages/blueprint/tests/brief.test.ts`).
+
+Generated kind JSON Schema (from the live Zod unions via `z.toJSONSchema`) is checked against
+catalog fixtures in `tests/kind-json-schema.test.ts`. That suite also locks synthesizer drafts:
+every bench brief (`scripts/bench-brief-kinds.ts`) must detect the expected kind and pass
+`safeParseAnyBlueprint` (page/doc bodies include `id` + `title`; deck body is `style` + `slides`
+only). Cross-reference and lint rules still require the package validator — JSON Schema alone is
+not enough.
+
+`blueprintFromBrief(brief, { archetype?, name?, kind? })` turns a short product brief into a
+valid blueprint (or content draft), offline and deterministically (same brief, same JSON; no
+network or model). Kind dispatch runs first (ADR-036):
+
+1. An explicit `kind` (`app` | `deck` | `page` | `doc`) overrides every cue; unknown kinds throw a
+   stable `RangeError`.
+2. Strong deck / page / doc cues route to kind-specific synthesizers **before** app archetype
+   scoring:
+   - **Deck** — eight outline templates (pitch, QBR, launch, status, training, lesson, report,
+     talk) via `synthesizeDeckOutline`, then catalog layout selection via `selectDeckLayouts`
+     (see below). Bodies are draft placeholders, not research.
+   - **Page** — landing / pricing / waitlist / generic section outlines
+     (`buildPageOutline`).
+   - **Doc** — report / handbook / one-pager / proposal / generic outlines
+     (`buildDocOutline`). Bounded block vocabulary, stable section ids, explicit interactive
+     omissions in the rationale.
+3. App briefs keep the historical result fields and byte-compatible JSON.
+
+### Brief and outline bounds (`src/brief/limits.ts`)
+
+| Cap | Value | Notes |
+| --- | --- | --- |
+| `MAX_BRIEF_LENGTH` / `MAX_CONTENT_BRIEF_LENGTH` | 5,000 characters | Longer briefs are truncated; synthesizers record a stable notice in `rationale`. |
+| `OUTLINE_LIMITS.maxSlides` | 64 | Deck outlines only. |
+| `OUTLINE_LIMITS.maxSections` | 64 | Page and doc outlines. |
+| `OUTLINE_LIMITS.maxBlocksPerUnit` | 12 | Per slide/section (matches block column capacity). |
+| `OUTLINE_LIMITS.maxTitleLength` | 80 | Envelope and unit titles. |
+| `OUTLINE_LIMITS.maxBodyLength` | 600 | Short body copy (block shortMarkdown). |
+| `OUTLINE_LIMITS.maxTextLength` | 4,000 | Long text (block markdown). |
+
+Use `boundBriefInput` / `prepareBriefForSynthesis` before custom synthesis, `checkOutlineBounds` for hard failures, and `applyOutlineBounds` to clip deterministically with notices. Text ceilings agree with `@protoyard/blocks` content limits so drafts stay within untrusted validators.
 
 ```ts
-import { blueprintFromBrief } from '@protoyard/blueprint';
+import { blueprintFromBrief, isAppBriefResult } from '@protoyard/blueprint';
 
-const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
+const result = blueprintFromBrief(
   'A dog grooming salon that books appointments, tracks groomers and invoices with amount and due date.'
 );
-// archetype 'booking'; entities appointment, client, groomer, invoice; rationale explains each choice
+if (isAppBriefResult(result)) {
+  // archetype 'booking'; entities appointment, client, groomer, invoice
+  const { blueprint, json, archetype, layout, rationale, kindDetection } = result;
+}
 ```
 
 - **Archetype:** keyword scoring over `ARCHETYPES` (help desk, CRM, booking, logistics,
@@ -605,6 +774,182 @@ const { blueprint, json, archetype, layout, rationale } = blueprintFromBrief(
   blueprint's top-level `{ "id": "mobile-tabs" }` layout configuration.
 
 It is a heuristic starting point: read the `rationale`, then refine `blueprint.json`.
+
+### Kind detection
+
+`detectBriefKind(brief, { kind? })` in `src/brief/kind-detection.ts` decides whether a brief asks
+for an `app`, a `deck`, a `page` or a `doc` (ADR-036). It runs before archetype scoring. It is
+deterministic and offline, and it matches whole words, longest phrase first. It returns
+`{ kind, confidence, ambiguous, reason, cues, suggestion }`. `reason` is one sentence a CLI or UI
+can show as is.
+
+- **Strong cues** switch the kind: `slides`, `slide deck`, `pitch deck`, `keynote`,
+  `presentation` (deck); `landing page`, `marketing site`, `pricing page`, `microsite` (page);
+  `a report`, `quarterly report`, `one-pager`, `whitepaper`, `handbook`, `design doc` (doc). The
+  full lists are `KIND_CUES`.
+- **Weak cues** (`talk`, `website`, a bare `report`, which is often a verb) only fill
+  `suggestion`. The kind stays `app`.
+- **App fallback.** The kind stays `app`, with `confidence: 'fallback'` and a reason, in four
+  cases: there is no cue; a cue names a tool that makes the content (`slide deck builder`,
+  `report generator`); an app noun from `APP_CUES` (`app`, `dashboard`, `platform`, `wiki`…)
+  comes before the first strong cue; or two content kinds both have strong cues. The last two
+  cases set `ambiguous: true`.
+- An explicit `kind` overrides every cue (`confidence: 'explicit'`). An unknown explicit kind
+  throws a `RangeError`.
+
+`detectBriefKind` and the content synthesizers (`synthesizeDeckFromBrief`,
+`synthesizePageFromBrief`, `synthesizeDocFromBrief`) are exported from `@protoyard/blueprint`.
+Page/doc section templates live in `buildPageOutline` / `buildDocOutline`
+(`packages/blueprint/src/brief/page-doc-outlines.ts`): ordered sections with draft blocks
+(heading, text, list, cta, …) and rationale lines for omitted interactive features (forms,
+payments, auth). No app entities or roles.
+`blueprintFromBrief` returns `AppBriefResult | ContentBriefResult`; narrow with
+`isAppBriefResult` / `isContentBriefResult`. Content drafts carry `kind`, `outline`, `json` and
+`rationale` (no app `entities` / `roles`); engine body schemas validate them once wired.
+
+### Deck outline templates
+
+`src/brief/deck-outlines.ts` has eight deterministic deck outlines: pitch, QBR, launch, status,
+training, lesson, report and talk (`DECK_OUTLINE_IDS`).
+
+`synthesizeDeckOutline(brief, { outline?, slides?, title? })` returns:
+
+- `deck`: a deck body (`{ title, aspect, slides }`) of free slides
+  (`{ id, title, layout: "free", blocks, notes }`) built from `@protoyard/blocks` blocks;
+- `plan`: one `{ id, role, pacing, purpose, core }` per slide, read by layout selection;
+- `rationale`: why this outline and size were chosen.
+
+- **Choosing a template.** `chooseDeckOutline` matches whole-word cues, and multi-word cues
+  count more ("status update" beats "update", "pitch deck" beats "deck"). With no cue it uses
+  the general talk outline and says so. An explicit `outline` wins.
+- **Size.** `requestedSlideCount` reads "12 slides", "a ten-slide pitch" or "a 15-minute talk"
+  (one slide a minute); `slides` overrides it.
+  - Each template has core slides, which are always present, and optional slides, which fill
+    a larger count in template order (`deckOutlineRange`). Templates range from 6 to 12
+    slides (pitch 7–12, QBR 7–11, launch 6–9, status 6–8, training 8–11, lesson 6–9, report
+    6–10, talk 6–11), under a cap of 16.
+  - A count outside the range is clamped, and the rationale says so.
+  - Slide ids (`slide-<key>`) are stable at every size.
+- **Pacing.** Every slide is tagged punch (one line, about 8 s), idea (one concept, about 25 s),
+  diagram (a structure to walk through) or story (a sequence). Speaker notes repeat the purpose
+  and the pacing guidance.
+- **Honest scaffolding.** Every slide body is a placeholder marked "Draft:" that says what to
+  write. Metrics show "—", charts are a note asking for real data, people are "Person 1…", and
+  nothing links anywhere. No facts, numbers, quotes or names are invented.
+  - Lessons and training always get a placeholder quiz. A warm-up poll (lessons) or an
+    audience poll (talks) is optional and appears when the slide count leaves room.
+  - The deck title is the brief's topic (after about/on/for), with control and bidi
+    characters stripped, at most 80 characters.
+- **Deterministic.** The same brief and options always give the same slide ids, order, blocks
+  and rationale. The module never reads the clock or a random source.
+
+`synthesizeDeckFromBrief` calls `synthesizeDeckOutline`, then `selectDeckLayouts` (see below),
+and exports the outline helpers from `@protoyard/blueprint` / `./brief`.
+
+### Deck layout selection
+
+`src/authoring/select-deck-layouts.ts` maps each slide's `role`, `pacing` and optional
+`blockTypes` to a catalog layout id from `@protoyard/decks/layouts`. It is pure (no clock or
+random source):
+
+```ts
+import { selectDeckLayouts, synthesizeDeckOutline } from '@protoyard/blueprint';
+
+const outline = synthesizeDeckOutline('A pitch deck about Example Harbor.');
+const layouts = selectDeckLayouts(
+  outline.plan.map((slide, i) => ({
+    id: slide.id,
+    role: slide.role,
+    pacing: slide.pacing,
+    blockTypes: outline.deck.slides[i]?.blocks.map((b) => b.type),
+  })),
+  { aspect: outline.deck.aspect }
+);
+// layouts[i].layout — e.g. title-hero, process-steps, closing-cta
+// layouts[i].rationale — stable explanation for agents
+```
+
+Rules: explicit `layout` overrides win; block types (chart, steps, …) rank above a generic
+role; pacing must fit the catalog entry when possible; three identical layouts in a row are
+avoided when another compatible candidate exists. `propsForSelectedLayout` seeds catalog
+`props` from the layout sample and slide title when a free outline slide is rewritten.
+
+### Authoring diagnostics (JSON path + hint)
+
+`validateBlueprintForAuthoring(input)` is the primary machine interface for agents editing
+blueprint JSON. It never fetches remote assets and never renders markdown as HTML.
+
+| Surface | API | Notes |
+| --- | --- | --- |
+| Full blueprint (any kind) | `validateBlueprintForAuthoring` | `code`, `path`, `jsonPath`, `message`, `hint` |
+| Block list under a path | `diagnosticsFromBlockIssues(issues, pathPrefix)` | Lifts `@protoyard/blocks` parse issues |
+| Deck body structure | `lintDeckStructure` | Slide ids, layouts, capacities, fragments, outline links |
+| Deck asset references | `lintDeckAssets` | URL syntax and protocol allowlist; never fetches |
+
+Stable block/asset codes include `unknown-block-type`, `invalid-chart-spec`,
+`missing-alt-text`, `unsupported-url-scheme`, `invalid-step-or-fragment-target` and
+`duplicate-block-id`. App codes still cover `unknown-entity`, `unknown-field`,
+`invalid-reference`, and so on. After each repair, re-run validation until `valid: true`.
+
+```ts
+import {
+  validateBlueprintForAuthoring,
+  lintDeckStructure,
+  diagnosticsFromBlockIssues,
+} from '@protoyard/blueprint';
+import { safeParseBlocks } from '@protoyard/blocks';
+
+const authoring = validateBlueprintForAuthoring(blueprintJson);
+if (!authoring.valid) {
+  for (const d of authoring.diagnostics) {
+    console.log(d.jsonPath, d.code, d.hint);
+  }
+}
+
+if (blueprintJson.kind === 'deck' && blueprintJson.deck) {
+  const lint = lintDeckStructure(blueprintJson.deck);
+  // …
+}
+
+const blocks = safeParseBlocks(someBlocks);
+if (!blocks.success) {
+  const lifted = diagnosticsFromBlockIssues(blocks.issues, ['deck', 'slides', 0, 'blocks']);
+}
+```
+
+## Authoring exports
+
+Authoring APIs ship from the package root (`@protoyard/blueprint`); there is no separate
+subpath. They are plain named exports of a `sideEffects: false` package, so a prototype that
+only parses or generates never bundles them:
+
+| Need | Exports |
+| --- | --- |
+| Brief to blueprint, by kind | `blueprintFromBrief`, `synthesizeAppFromBrief`, `synthesizeContentFromBrief`, `synthesizeDeckFromBrief`, `synthesizePageFromBrief`, `synthesizeDocFromBrief`, `isAppBriefResult`, `isContentBriefResult` |
+| Kind detection | `detectBriefKind`, `KIND_CUES`, `APP_CUES`; blueprint kinds: `detectBlueprintKind`, `BLUEPRINT_KINDS`, `CONTENT_KINDS` |
+| Outlines and bounds | `synthesizeDeckOutline`, `chooseDeckOutline`, `DECK_OUTLINES`, `buildPageOutline`, `buildDocOutline`, `selectPageOutline`, `selectDocOutline`, `boundBriefInput`, `prepareBriefForSynthesis`, `checkOutlineBounds`, `applyOutlineBounds`, `OUTLINE_LIMITS` |
+| Deck layouts and lint | `selectDeckLayouts`, `propsForSelectedLayout`, `lintDeckStructure`, `lintDeckContent`, `lintDeckAssets`; catalog types `DeckLayoutEntry`, `DeckLayoutId`, `LayoutPacing` (type-only) |
+| Validation | `validateBlueprintForAuthoring`, `parseAnyBlueprint`, `safeParseAnyBlueprint` |
+| Lazy, for browsers | `loadAuthoringApis()` |
+
+`loadAuthoringApis()` resolves to brief synthesis, kind detection, outlines, deck lint, layout
+selection, authoring validation and the deck layout catalog (`deckLayouts`, `getDeckLayout`,
+`describeDeckLayouts`). It loads them as one chunk, so a browser tool can parse blueprints first
+and fetch authoring only when the author opens it. The functions are the same ones the root
+exports. Server tools (CLI, MCP) can simply import the named exports.
+
+Measured on 2026-10-22 with a real Vite build of the linked package (minified, gzip level 9; asserted in
+`tests/authoring-exports.test.ts`):
+
+| Entry imports | Initial JS |
+| --- | --- |
+| `parseBlueprint` only (a generated app) | 39.3 KB |
+| `parseAnyBlueprint` (the kind union, as the player uses it) | 41.6 KB |
+| The kind union plus `loadAuthoringApis` | 42.3 KB (+0.6 KB); authoring loads lazily |
+| Static authoring imports (`blueprintFromBrief`, `detectBriefKind`, `lintDeckStructure`, `selectDeckLayouts`, `validateBlueprintForAuthoring`) | 83.0 KB (+41.3 KB) |
+
+The test also checks that the app-only and kind-union bundles contain no authoring module and
+no deck layout catalog.
 
 ## Workflow state models
 
@@ -787,6 +1132,10 @@ all derived from its blueprint.
 
 ```bash
 pnpm vitest run packages/blueprint
+pnpm vitest run packages/blueprint/tests/authoring-docs.test.ts
+pnpm vitest run packages/blueprint/tests/brief-kinds.test.ts
+pnpm vitest run packages/blueprint/tests/deck-lint.test.ts
+pnpm vitest run packages/blueprint/tests/select-deck-layouts.test.ts
 pnpm --filter @protoyard/blueprint typecheck
 ```
 

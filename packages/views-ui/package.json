@@ -79,7 +79,9 @@
       "svelte": "./src/scenarios/index.ts",
       "default": "./src/scenarios/index.ts"
     },
-    "./styles.css": "./src/styles.css"
+    "./player.css": "./src/player.css",
+    "./styles.css": "./src/styles.css",
+    "./blocks.css": "./src/blocks.css"
   },
   "scripts": {
     "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
@@ -101,7 +103,9 @@
   },
   "protoyard": {
     "build": {
-      "assets": []
+      "assets": [
+        "src/player.css"
+      ]
     }
   },
   "files": [
@@ -183,10 +187,20 @@
         "svelte": "./dist/scenarios/index.js",
         "default": "./dist/scenarios/index.js"
       },
+      "./player.css": {
+        "types": "./dist/player.css.d.ts",
+        "svelte": "./dist/player.css",
+        "default": "./dist/player.css"
+      },
       "./styles.css": {
         "types": "./dist/styles.css.d.ts",
         "svelte": "./dist/styles.css",
         "default": "./dist/styles.css"
+      },
+      "./blocks.css": {
+        "types": "./dist/blocks.css.d.ts",
+        "svelte": "./dist/blocks.css",
+        "default": "./dist/blocks.css"
       }
     },
     "files": [

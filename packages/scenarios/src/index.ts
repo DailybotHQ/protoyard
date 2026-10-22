@@ -31,6 +31,31 @@ export {
 } from './context.ts';
 export { createGenerateContext, createSeededFaker } from './context-sync.ts';
 export {
+  COUNTERPART_DELAY,
+  COUNTERPART_TYPING_SECONDS,
+  type CounterpartMessage,
+  type CounterpartReply,
+  type CounterpartState,
+  type ScriptedCounterpart,
+  type ScriptedCounterpartOptions,
+  scriptedCounterpart,
+} from './counterpart.ts';
+export {
+  ALLOWED_FIXTURE_EMAIL_DOMAINS,
+  FIXTURE_ALLOW_KEY,
+  type FixtureFinding,
+  type FixtureFindingKind,
+  formatFixtureFinding,
+  isAllowedFixtureEmailDomain,
+  type ScanFixtureFileInput,
+  type ScanFixtureOptions,
+  SECRET_PATTERNS,
+  scanFixtureFiles,
+  scanFixtureText,
+  scanFixtureValue,
+  scanFixtureWorld,
+} from './fixture-guard.ts';
+export {
   GEO_REGION_IDS,
   GEO_REGIONS,
   type GeoAnchor,
@@ -57,6 +82,24 @@ export {
   type WorldIntegrity,
   WorldIntegrityError,
 } from './integrity.ts';
+export {
+  checkJourneyWorld,
+  JOURNEY_ACTOR_ID,
+  JOURNEY_ORGANIZATION_ID,
+  JOURNEY_PRESETS,
+  type JourneyExpectations,
+  type JourneyIssue,
+  journeyScenario,
+  LIFE_STAGE_DAYS,
+  LIFE_STAGE_JOURNEYS,
+  LIFE_STAGES,
+  type LifeStage,
+  type LifeStageJourney,
+  type LifeStageView,
+  lifeStageJourney,
+  lifeStageOf,
+  lifeStageView,
+} from './journeys.ts';
 export {
   fragments,
   PRESET_IDS,
@@ -90,4 +133,28 @@ export {
   type Trend,
   timeSeries,
 } from './series.ts';
-export { type DailyEventsOptions, type DaySlot, dailyEvents, dayRng } from './timeline.ts';
+export {
+  applyTimelineEvent,
+  type CollectTimelineEventsOptions,
+  type CollectTimelineEventsResult,
+  clearTimelineSources,
+  collectTimelineEvents,
+  type DailyEventsOptions,
+  type DaySlot,
+  DEFAULT_TIMELINE_COLLECT_MAX_EVENTS,
+  DEFAULT_TIMELINE_SOURCE_MAX_EVENTS,
+  dailyEvents,
+  dayRng,
+  type LocalWallTime,
+  listTimelineSources,
+  localDayBounds,
+  localDayOf,
+  localTimeToUtc,
+  registerTimelineSource,
+  type TimelineEventApplier,
+  type TimelineSourceCollector,
+  type TimelineSourceRegistration,
+  timelineFromSources,
+  unregisterTimelineSource,
+  zonedInstantMs,
+} from './timeline.ts';

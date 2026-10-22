@@ -55,7 +55,7 @@ describe('listTemplates and templateDir in the repository', () => {
     expect(realpathSync(TEMPLATES_ROOT)).toBe(realpathSync(REPO_TEMPLATES));
     const templates = listTemplates();
     expect(templates.map((t) => t.name)).toEqual(repoTemplates);
-    expect(templates).toHaveLength(27);
+    expect(templates).toHaveLength(repoTemplates.length);
     for (const t of templates) {
       expect(() => parseManifest(t.manifest), t.name).not.toThrow();
       expect(t.dir).toBe(join(TEMPLATES_ROOT, t.name));
@@ -90,7 +90,7 @@ describe('copyTemplates (prepack) and cleanTemplates (postpack)', () => {
   it('copies exactly the files `protoyard new` would copy for every template', async () => {
     const destination = join(tempDir('protoyard-templates-copy-'), 'templates');
     const result = copyTemplates(REPO_TEMPLATES, destination);
-    expect(result.templates).toBe(27);
+    expect(result.templates).toBe(repoTemplates.length);
     let expectedFiles = 0;
     for (const name of repoTemplates) {
       const expected = (await listTemplateFiles(join(REPO_TEMPLATES, name))).filter(
@@ -151,7 +151,7 @@ describe('copyTemplates (prepack) and cleanTemplates (postpack)', () => {
 });
 
 describe('the packed tarball', () => {
-  it('carries all 27 templates with valid manifests and leaves no copy behind', async () => {
+  it('carries every repository template with valid manifests and leaves no copy behind', async () => {
     const destination = tempDir('protoyard-templates-pack-');
     const result = spawnSync('pnpm', ['pack', '--pack-destination', destination, '--json'], {
       cwd: PACKAGE_DIR,

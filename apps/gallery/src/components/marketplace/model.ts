@@ -1,3 +1,9 @@
+import {
+  BLUEPRINT_KINDS,
+  type BlueprintKind,
+  DEFAULT_BLUEPRINT_KIND,
+  isBlueprintKind,
+} from '@protoyard/blueprint';
 import { CATALOG_CATEGORIES } from '@protoyard/core';
 import { normalize } from '../../lib/search.ts';
 
@@ -25,7 +31,10 @@ export interface MarketTheme {
 
 /** One shelf item, kept small: the browse island inlines every entry as JSON. */
 export interface MarketEntry {
+  /** Registry source type: prototype, template or blueprint. */
   k: MarketKind;
+  /** Rendered blueprint type, independent of its registry source type. */
+  contentKind: BlueprintKind;
   s: string;
   n: string;
   d: string;
@@ -51,6 +60,10 @@ export interface MarketEntry {
 /** The registry fields the marketplace reads (any kind, including blueprints). */
 export interface MarketSource {
   kind: string;
+  /** Content kind when supplied directly by a marketplace adapter. */
+  contentKind?: unknown;
+  /** Blueprint kind copied into the registry; omitted values mean an app. */
+  blueprintKind?: unknown;
   slug: string;
   name: string;
   description: string;
@@ -76,12 +89,17 @@ export function toMarketEntry(
   theme: MarketTheme | null = null
 ): MarketEntry | null {
   const kind = source.kind as MarketKind;
+  const sourceContentKind = source.contentKind ?? source.blueprintKind;
+  const contentKind = isBlueprintKind(sourceContentKind)
+    ? sourceContentKind
+    : DEFAULT_BLUEPRINT_KIND;
   const catalog = source.catalog;
   if (!KINDS.includes(kind) || !catalog?.category || !CATEGORY_ORDER.includes(catalog.category)) {
     return null;
   }
   return {
     k: kind,
+    contentKind,
     s: source.slug,
     n: source.name,
     d: source.description,
@@ -100,7 +118,10 @@ export function toMarketEntry(
 
 export interface MarketQuery {
   q: string;
+  /** Registry source type. */
   kind: '' | MarketKind;
+  /** Rendered content type, independent of registry source type. */
+  contentKind: '' | BlueprintKind;
   category: string;
   platform: string;
   shell: string;
@@ -113,6 +134,7 @@ export interface MarketQuery {
 export const EMPTY_QUERY: MarketQuery = {
   q: '',
   kind: '',
+  contentKind: '',
   category: '',
   platform: '',
   shell: '',
@@ -124,6 +146,7 @@ export function isFiltered(query: MarketQuery): boolean {
   return (
     query.q.trim() !== '' ||
     query.kind !== '' ||
+    query.contentKind !== '' ||
     query.category !== '' ||
     query.platform !== '' ||
     query.shell !== '' ||
@@ -138,6 +161,7 @@ function haystack(entry: MarketEntry): string {
       entry.n,
       entry.s,
       entry.d,
+      entry.contentKind,
       entry.pt ?? '',
       entry.c,
       ...entry.pf,
@@ -150,6 +174,7 @@ function haystack(entry: MarketEntry): string {
 
 export function matches(entry: MarketEntry, query: MarketQuery): boolean {
   if (query.kind && entry.k !== query.kind) return false;
+  if (query.contentKind && entry.contentKind !== query.contentKind) return false;
   if (query.category && entry.c !== query.category) return false;
   if (query.platform && !entry.pf.includes(query.platform)) return false;
   if (query.shell && entry.sh !== query.shell) return false;
@@ -185,6 +210,7 @@ export type Facet = [value: string, count: number];
 
 export interface Facets {
   kind: Facet[];
+  contentKind: Facet[];
   category: Facet[];
   platform: Facet[];
   shell: Facet[];
@@ -204,6 +230,11 @@ export function facets(entries: readonly MarketEntry[]): Facets {
     kind: count(entries.map((e) => e.k)).sort(
       (a, b) => KIND_RANK[a[0] as MarketKind] - KIND_RANK[b[0] as MarketKind]
     ),
+    contentKind: count(entries.map((e) => e.contentKind)).sort(
+      (a, b) =>
+        BLUEPRINT_KINDS.indexOf(a[0] as BlueprintKind) -
+        BLUEPRINT_KINDS.indexOf(b[0] as BlueprintKind)
+    ),
     category: count(entries.map((e) => e.c)).sort(
       (a, b) => CATEGORY_ORDER.indexOf(a[0]) - CATEGORY_ORDER.indexOf(b[0])
     ),
@@ -217,9 +248,11 @@ export function facets(entries: readonly MarketEntry[]): Facets {
 /** URL ↔ query, so a filtered view is shareable (`?category=ai&feature=voice`). */
 export function queryFromParams(params: URLSearchParams): MarketQuery {
   const kind = params.get('kind') ?? '';
+  const contentKind = params.get('contentKind') ?? '';
   return {
     q: params.get('q') ?? '',
     kind: KINDS.includes(kind as MarketKind) ? (kind as MarketKind) : '',
+    contentKind: isBlueprintKind(contentKind) ? contentKind : '',
     category: CATEGORY_ORDER.includes(params.get('category') ?? '')
       ? (params.get('category') ?? '')
       : '',
@@ -236,6 +269,7 @@ export function paramsFromQuery(query: MarketQuery): string {
   const params = new URLSearchParams();
   if (query.q.trim()) params.set('q', query.q.trim());
   if (query.kind) params.set('kind', query.kind);
+  if (query.contentKind) params.set('contentKind', query.contentKind);
   if (query.category) params.set('category', query.category);
   if (query.platform) params.set('platform', query.platform);
   if (query.shell) params.set('shell', query.shell);
@@ -264,6 +298,10 @@ const LABELS: Record<string, string> = {
   prototype: 'Prototype',
   template: 'Template',
   blueprint: 'Blueprint',
+  app: 'App',
+  deck: 'Deck',
+  page: 'Page',
+  doc: 'Document',
 };
 
 /** "developer-tools" → "Developer tools"; known acronyms and shells get fixed labels. */

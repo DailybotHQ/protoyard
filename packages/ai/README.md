@@ -45,6 +45,72 @@ const result = await run.done;
 
 Tools receive service functions, simulated time and a deterministic random stream. They do not receive database handles. Implement service-backed reads and writes through `serviceAiTool`; the domain service remains responsible for policy, validation, environment simulation and transactions. Approvals pause a run before the tool executes. A rejection returns a graceful answer, while `cancel()` ends a running or paused run. Tool failure branches are deterministic for the same seed, run id, call order and tool name. The built-in search, calendar, and CRM tools use fictional local fixtures; `code.run` reports a simulated result and never executes supplied code.
 
+## Suggestion and approval loop
+
+A pure detect → suggest → decide reducer for multi-step agent suggestions with
+autonomy levels, area caps, audit entries and **proposed** effects. The engine
+never persists rows or runs effects; a prototype service carries `effects` out
+through the usual `session.assert` → zod → `environment.run` → `db.transaction`
+path. Import from the main entry or the lazy `@protoyard/ai/approvals` subpath.
+
+```ts
+import {
+  DEFAULT_AUTONOMY,
+  decideSuggestion,
+  setLevel,
+  suggestFromCandidate,
+} from '@protoyard/ai/approvals';
+
+const ctx = {
+  now: clock.now().toISOString(),
+  scopeId: 'org_example',
+  buildEffects: (suggestion) => ({
+    apply: {
+      type: 'link_record',
+      targetId: suggestion.targetId ?? '',
+      summary: `Link to ${suggestion.targetKey}`,
+      payload: suggestion.payload,
+    },
+    notify: { channelId: 'channel_ops', text: `Please review ${suggestion.targetKey}` },
+  }),
+};
+
+// Levels: 1 inform · 2 suggest · 3 act with approval · 4 act within limits.
+// Caps refuse Level 4 on `external` (always asks first).
+const config = setLevel(DEFAULT_AUTONOMY, 'records', 2);
+const { suggestion, audit, effects } = suggestFromCandidate(
+  {
+    sourceId: 'resp_1',
+    subjectId: 'person_oscar',
+    kind: 'link_record',
+    action: 'apply',
+    summary: 'Link blocker to ENG-12',
+    targetId: 'task_12',
+    targetKey: 'ENG-12',
+    targetLabel: 'Ship onboarding',
+  },
+  config,
+  ctx
+);
+// Level 2: status pending, audit "suggested", effects {}.
+// On confirm/approve the service applies `effects`; dismiss audits only.
+const decided = decideSuggestion(suggestion, 'confirm', { id: 'person_avery', canApprove: true }, config, ctx);
+```
+
+| Level | Mode | Behavior |
+| --- | --- | --- |
+| 1 Inform | `inform` | Status `informed`, audit only, no waiting card |
+| 2 Suggest | `suggest` | Waiting card; subject or approver **confirms** |
+| 3 Act with approval | `act_with_approval` | Prepared apply/notify summaries; only an approver **approves** |
+| 4 Act within limits | `act` | Status `auto`, effects proposed immediately |
+
+Default areas: `records`, `notifications`, `workspace`, `external` (capped at 3).
+Side notifications follow the `notifications` area (`notifyAllowed`): auto path
+only at Level 4; after a person, dropped only at Level 1. Per-tool
+`requiresApproval` on the agent runner remains the single-call gate; this loop
+is the multi-step product policy layer. Everything is simulated and must be
+labeled as such in the UI.
+
 ## AI scenario fixtures
 
 Import scenario generation from the lazy subpath so its fixture generator is not part of the base AI entrypoint:
@@ -102,9 +168,9 @@ const doc = parseMarkdown(message.text);
 - **Prototype assets:** `![alt](./assets/chart.png)` (relative paths only) and
   `![alt](attachment:<id>)` / `[label](attachment:<id>)` for files the prototype stores.
   Remote and `data:` images render as their alt text.
-- **Safety:** raw HTML stays literal text. `safeHref` allows only http(s), mailto and
-  relative or `#` targets after stripping the control characters and whitespace browsers
-  ignore; `javascript:`, `data:`, `vbscript:`, `file:` and protocol-relative `//host` are
+- **Safety:** raw HTML stays literal text. `safeHref` allows only https and mailto targets
+  after stripping the control characters and whitespace browsers ignore; `http:`, relative,
+  `#`, `javascript:`, `data:`, `vbscript:`, `file:` and protocol-relative `//host` are
   dropped and the link renders as its label. Fuzz tests feed hostile fragments and check
   that no unsafe URL or executable element comes out.
 - **Bounds:** input is cut at `MARKDOWN_MAX_LENGTH` (100,000 characters), nesting deeper
@@ -144,6 +210,90 @@ const reply = `Signups peaked on Wednesday.\n\n${chartBlock({
     series. Strings are bounded and unknown keys are rejected.
   - Every series needs one value per label. Donut, pie and funnel charts take
     one non-negative series.
+
+## Attention watchers (`@protoyard/ai/attention`)
+
+Pure, deterministic rules that turn a seeded world snapshot and simulated time
+into stable attention items with evidence links. Import the lazy subpath so the
+base engine entry stays lean:
+
+```ts
+import {
+  attentionFixtureWorld,
+  attentionWatchersForPreset,
+  runWatchers,
+} from '@protoyard/ai/attention';
+
+const now = '2026-10-14T18:00:00.000Z';
+const world = attentionFixtureWorld(now); // or assemble from your domain tables
+const open = runWatchers(world, now, existingItems, {
+  watchers: attentionWatchersForPreset('full'),
+  cleared: clearedKeys, // approved keys whose condition has gone away
+});
+```
+
+- **Determinism.** Ids are FNV-1a over `kind:subjectId`, `now` and the generation.
+  The same world, instant and existing rows always raise the same additions.
+  No `Math.random`, no `Date.now`.
+- **Suppression.** An open, dismissed or snoozed row blocks its key. An approved
+  row blocks until `cleared` records that the condition went away, then the next
+  raise may open a new generation.
+- **Built-in watchers.** Overloaded owners, stalled blocked work, slipping
+  milestones, quiet stand-up responders, falling team mood, and unposted weekly
+  summaries. Thresholds: `OVERLOAD_THRESHOLD` (8), `STALL_DAYS` (5),
+  `WORKING_DAY_THRESHOLD` (3).
+- **Presets.** `full`, `work-health`, `engagement`, `deadlines`, `none` select
+  which watchers run. Pass custom `watchers` or `moraleLeads` through
+  `runWatchers` options.
+- **Access helpers.** `attentionAccessOf` / `attentionVisibleTo` map simulated
+  roles onto who may see or decide. They are UX policy, not real authorization.
+- **Honesty.** Items are simulated decision support. Effect execution stays
+  behind an explicit service callback in the prototype. Label the queue as
+  simulated in the UI.
+
+## Chat message blocks (`@protoyard/ai/messages`)
+
+A bounded, versioned message AST for chat UIs, separate from rich answers:
+
+```ts
+import { messagePlainText, parseChatMessage } from '@protoyard/ai/messages';
+
+const result = parseChatMessage({
+  format: 'protoyard.message@1',
+  blocks: [
+    { type: 'text', text: 'Approve the **Q3 budget**?', format: 'markdown' },
+    {
+      type: 'buttons',
+      buttons: [
+        { label: 'Approve', action: 'budget.approve', style: 'primary' },
+        { label: 'Open sheet', url: 'https://sheets.example.com/q3' },
+      ],
+    },
+  ],
+  attachments: [{ id: 'q3', name: 'q3.csv', mime: 'text/csv', size: 2048, url: 'files/q3.csv' }],
+});
+if (result.success) console.log(messagePlainText(result.message));
+else for (const issue of result.issues) console.log(issue.jsonPath, issue.message);
+```
+
+| Block | Fields (caps in `MESSAGE_LIMITS`) |
+| --- | --- |
+| `text` | `text` (4,000 chars, newlines allowed), `format` `plain` · `markdown` |
+| `buttons` | 1–5 `{ label, action \| url, value?, style?, confirm? }`; a link button has no value or confirmation |
+| `select` | `action`, `placeholder`, `label?`, 1–100 unique `options`, `multiple?`, `initial?` (must be options; one when single) |
+| `form` | `action`, `title`, 1–20 fields with unique `key` and `kind` text · textarea · number · date · checkbox · select · multiselect; `initial` must fit the kind |
+| `table` | `title?`, 1–12 columns with unique `key`, ≤100 rows of string · number · boolean · null cells (500 chars) keyed by declared columns |
+| `link_preview` | https `url` (never fetched), `title?`, `description?`, `siteName?`, `image?` (local only) |
+
+Every block may carry a plain-text `fallback`. An unknown block `type` turns
+into a `text` block (`replaces` names the original type when it is safe text)
+and is reported in `degraded`. The parser checks, in order: JSON text, the byte
+budget, plain-JSON structure (depth, `__proto__`/`constructor`/`prototype`
+keys, cycles, non-finite numbers), the format version, the block budget, then
+the schemas. `isSafeLinkUrl`, `isSafePreviewUrl`, `attachmentUrlIssue` and
+`textIssue` are exported for renderers that want the same rules. Rendering stays
+the UI's job: show strings as text and markdown through `parseMarkdown`, never
+with `{@html}`.
 
 ## Package output
 

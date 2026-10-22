@@ -95,6 +95,7 @@ From a real `crm-demo` build (the `files` list is shortened):
 | `builtAt` | Build time (metadata only, never used for seeded data) |
 | `base`, `includeDevtools` | The settings this build used |
 | `outDir` | Workspace-relative when inside the workspace, absolute otherwise |
+| `target` | `"artifact"` for the single-chunk Claude artifact build (`export --target artifact`); absent for a plain build |
 | `fileCount`, `totalBytes`, `files[]` | Every emitted file with size and SHA-256 |
 | `generator`, `sdk`, `node` | CLI, package, Vite and Node versions that produced it |
 | `bundle` | gzip (level 9) bytes: `initialJsGzip` (entry chunks and their static imports), `lazyJsGzip` (chunks loaded through `import()`, such as Faker), `cssGzip`, `totalGzip` (every file), and `chunks[]` (`file`, `kind`: `initial`, `lazy` or `css`, `gzip`). Computed from Vite's chunk manifest, which is then deleted from `dist`. Absent when the prototype's `vite.config.ts` does not use `defineProtoyardConfig`. `build` prints the same figures. |
@@ -125,6 +126,17 @@ Prototype routes live after the `#` (`#/deals/42`). The server only ever
 serves `index.html` and the assets, so refresh, back, forward and deep links
 work on every static host, including a ZIP unpacked into a sub-folder. You do
 not need redirect or rewrite rules.
+
+Claude artifact links can use the hash for a validated app scenario because
+the artifact URL retains its fragment but not a query string. Use
+`#scenario--persona--theme`; omit the trailing fields when they are not
+needed. A theme may also be supplied without a persona as
+`#scenario--theme`. At boot, the renderer accepts only scenario, persona and
+theme ids present in the prototype, turns them into the existing
+`?scenario=…&actor=…&theme=…` inputs, and clears the consumed hash before the
+app router starts. Unknown persona or theme ids are ignored. Unknown
+scenarios and ordinary route hashes (including deck slide hashes) are left
+untouched. Existing query options such as `?devtools=0` remain in effect.
 
 ## What a build includes
 
@@ -200,7 +212,14 @@ pnpm protoyard quick export my-idea --single-file --out tmp/share/my-idea.html -
 ```
 
 **What's in the file** (`packages/cli/src/lib/quick/single-file.ts`):
-- the exploration's own built player, its JavaScript and CSS;
+- the exploration's own built player: the JavaScript chunks and stylesheets
+  its player page can reach, through static and dynamic imports and Vite's
+  preload lists ([`chunk-graph.ts`](../packages/cli/src/lib/quick/chunk-graph.ts)).
+  An app starts from `index.html`. A deck, page or doc starts from
+  `deck.html`, `page.html` or `doc.html`, so it carries no app boot, CRUD
+  shell or app kits. It also leaves out Faker: the kind runtime never
+  generates a world, so it never loads it. A player built before those pages
+  existed falls back to `index.html`;
 - the blueprint, as an inert `<script type="application/json"
   id="protoyard-blueprint">` with `<` escaped, so it can never close the
   element. The player reads it as an untrusted source, like a `#bp=` link.
@@ -220,6 +239,21 @@ up front.
 **Measured on 2026-10-20** over the 40 catalog blueprints: 3,245,592–3,246,497
 bytes, about 1.05 MB gzip. The player dominates, and the blueprint adds a few KB.
 The export refuses files over `QUICK_SINGLE_FILE_BUDGET_BYTES` (4 MiB).
+
+**Content kinds (measured 2026-10-22).** The catalog deck (Lumen launch), page
+and doc export at 1,606,788–1,607,557 bytes, against 3,051,751 bytes for the
+CRM app from the same player build.
+- **Budget:** a kind file is refused over 2 MiB
+  (`QUICK_SINGLE_FILE_ENTRY_BUDGET_BYTES`).
+- **Not met:** the proposed 1.5 MiB deck budget. DevTools (with Deck Studio
+  and the theme browser), review comments, device shells and the chart blocks
+  are all reachable from a kind page, and they ship with it.
+- **Tests:** `packages/cli/tests/quick/single-file-kinds.test.ts`.
+  - It fails if a CRUD, Faker or analytics chunk, or the app boot, appears in
+    a deck, page or doc file.
+  - It checks that an app file still carries every lazy CRUD screen.
+  - It opens a deck file from `file://` in Chromium, where it changes slides
+    with no network request.
 `packages/cli/tests/quick-single-file.test.ts` checks every catalog blueprint
 against that budget. It also opens an export from `file://` in Chromium: the
 blueprint boots, a lazy screen renders, and a reload reuses the IndexedDB world.
@@ -285,6 +319,34 @@ plain build in `dist/` is untouched:
 - `build.frameWhenEmbedded` is on, so an explicit shell (phone, tablet,
   browser, widget) keeps its frame inside the artifact viewer
   ([SHELLS.md](SHELLS.md#when-the-app-goes-full-bleed)).
+- It builds **one script chunk and one stylesheet**. The CLI sets
+  `PROTOYARD_TARGET=artifact` for this build, and always sets it to empty for
+  every other build, so a value inherited from the shell never changes a plain
+  build. The shared renderer config (`defineProtoyardConfig`) then puts every
+  module into a single chunk group (Rolldown `codeSplitting.groups`) and turns
+  off CSS code splitting. Images, fonts and avatars stay files.
+  - **Why:** lazy screens and kits would otherwise each be a file that counts
+    against the 511-file version cap.
+  - **Why a group:** unlike `codeSplitting: false`, it keeps tree-shaking of
+    dynamic imports. With `false`, the relay-chat-demo script grew from
+    1.27 MB to 3.24 MB raw (every Faker locale stayed in).
+  - **Cost:** the page downloads all of its code at open. For relay-chat-demo,
+    measured 2026-10-22, the single script is 411,835 B gzip and the
+    stylesheet 20,047 B. A plain build with DevTools has 163,489 B gzip of
+    initial JS plus 269,599 B lazy, across 38 files.
+  - **Recorded:** `artifact-build.json` stores `"target": "artifact"`.
+    `--skip-build` refuses a build without it, such as one made before this
+    change.
+  - **Your own config:** a `vite.config.ts` that is not built on
+    `defineProtoyardConfig` can read `process.env.PROTOYARD_TARGET` itself.
+    The single chunk group needs the page's single HTML entry.
+  - **No top-level await on a lazy import:** inside one chunk, a dynamic
+    import resolves back into the chunk that is still evaluating. A module
+    that awaits one at its top level never finishes, and the page stays blank
+    with nothing in the console. Generated decks, pages and docs therefore
+    parse their blueprint synchronously
+    (`@protoyard/blueprint/kinds/parse`), not with
+    `await parseAnyBlueprint(…)`.
 - It always uses the relative base `./`. `--base` with another path,
   `--offline` and `"build": { "offline": true }` are refused (exit 2 and 4).
 - Avatar images ship at 128 px only (175 files, 356,386 B), and 64 px
@@ -306,9 +368,9 @@ It then runs the isolation check and the pack step
 $ pnpm protoyard export relay-chat-demo --target artifact --dry-run
 ✓ Checked relay-chat-demo as a Claude artifact (dry run, nothing written)
   page    artifacts/relay-chat-demo/artifact/page.html
-  files   219 + the page, 1.7 MB in 1 publish batch
-  sha256  81710cde384510875d92a4b3841f886e1af0914f90cb44026616fbcde6037e50 (build)
-  build   DevTools included, explicit shells keep their frame when embedded
+  files   179 + the page, 1.8 MB in 1 publish batch
+  sha256  d9398bd9acfd603b0087940877e6960b707c7b91af1bfdbb5112e11509c06fbe (build)
+  build   DevTools included, explicit shells keep their frame when embedded, one script chunk
   Isolation: no references to the other 81 registered projects.
   Publish it with the share-as-artifact skill (--json lists the exact Artifact tool arguments). Artifacts are private until you share them.
 ```
@@ -319,7 +381,9 @@ with exit 4 and lists each reason:
 - external scripts outside the allowed CDNs, and stylesheets other than
   Google Fonts
 - network fetches and imports, and service workers
-- non-web file types (source maps are refused)
+- non-web file types (source maps are refused). Accepted binary fonts are
+  `.woff`, `.woff2`, `.ttf` and `.otf` (`font/woff`, `font/woff2`, `font/ttf`,
+  `font/otf`); extensions are matched case-insensitively
 - the 16 MB page and text-file limit and the 15 MB binary limit
 - 255 files and 64 MB per publish, and 511 files and 256 MB per version
 - a missing `<title>`. A title longer than four words is a warning.
@@ -569,10 +633,34 @@ Verified once, on 2026-10-19:
 - An ArtifactData list of `review/relay-chat-demo/threads` returned an empty
   list as the owner and at `view` level.
 
+Verified locally in the artifact viewer harness (no upload):
+[`tests/e2e/artifact-pack.spec.ts`](../tests/e2e/artifact-pack.spec.ts)
+packs relay-chat-demo, and
+[`tests/e2e/deck-artifact.spec.ts`](../tests/e2e/deck-artifact.spec.ts) packs
+the `create-anything-deck` deck. The harness
+([`tests/e2e/support/artifact-harness.ts`](../tests/e2e/support/artifact-harness.ts))
+wraps `page.html` in a document skeleton inside an iframe, as the viewer does.
+For the deck, the spec checks the following, on desktop and phone viewports:
+
+- the first slide renders;
+- arrow keys and `#/<slide>/<step>` links navigate, including opening
+  straight on a deep link;
+- the only script fetched is the entry that `page.html` loads. Any other
+  script must be a re-export facade of it, and a split chunk with code of its
+  own fails the test;
+- without `window.claude`, the clipboard or IndexedDB, the deck still runs,
+  copying a slide reference says it failed, and there is no review UI;
+- no console errors and no failed requests.
+
+Measured 2026-10-22: the deck pack is 177 files plus the page, 2,193,470 B,
+with one script (1,705,116 B raw, 548,131 B gzip) and one stylesheet
+(129,948 B raw, 21,004 B gzip).
+
 Not verified yet:
 
 - boot, routing, query parameters (`?scenario=`, `?actor=`) and DevTools
-  inside the claude.ai viewer
+  inside the real claude.ai viewer (the harness is same-origin and
+  unsandboxed)
 - writing a real comment
 - other viewers, and Commenter-level behavior
 - a showcase pack published as an artifact.

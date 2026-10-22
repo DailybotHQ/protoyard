@@ -1,0 +1,187 @@
+{
+  "formatVersion": 1,
+  "name": "Lumen launch brief",
+  "description": "Fictional product launch deck for Lumen Notes. Copy is draft scaffolding with no real launch metrics.",
+  "tags": ["deck", "launch", "example"],
+  "icon": "rocket",
+  "category": "demos",
+  "kind": "deck",
+  "brand": {
+    "name": "Lumen Notes",
+    "seed": "#7c3aed",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "deck": {
+    "style": {
+      "aspect": "16:9",
+      "density": "comfortable",
+      "transition": "slide"
+    },
+    "slides": [
+      {
+        "id": "cover",
+        "layout": "title-hero",
+        "props": {
+          "title": "Lumen Notes",
+          "subtitle": "Launch readiness (simulated)",
+          "meta": "Example Co · Internal dry run"
+        }
+      },
+      {
+        "id": "divider",
+        "layout": "section-divider",
+        "props": {
+          "eyebrow": "01",
+          "title": "The plan"
+        }
+      },
+      {
+        "id": "path",
+        "layout": "process-steps",
+        "props": {
+          "title": "Launch path",
+          "steps": [
+            {
+              "title": "Freeze scope",
+              "body": "Lock the three demo screens."
+            },
+            {
+              "title": "Seed the world",
+              "body": "Load the fictional workspace scenario."
+            },
+            {
+              "title": "Walkthrough",
+              "body": "Record the click path once."
+            },
+            {
+              "title": "Share",
+              "body": "Publish the static export to the review index."
+            }
+          ]
+        }
+      },
+      {
+        "id": "pillars",
+        "layout": "three-column-cards",
+        "props": {
+          "title": "What we demo",
+          "cards": [
+            {
+              "icon": "file-text",
+              "heading": "Notes",
+              "body": "A shared pad with personas and permissions."
+            },
+            {
+              "icon": "users",
+              "heading": "Teams",
+              "body": "Simulated seats, never real billing."
+            },
+            {
+              "icon": "bell",
+              "heading": "Nudges",
+              "body": "In-app banners driven by scenario time."
+            }
+          ]
+        }
+      },
+      {
+        "id": "quiz",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Readiness check",
+            "level": 2
+          },
+          {
+            "type": "text",
+            "markdown": "A short quiz for the dry-run room. Answers are local and simulated."
+          },
+          {
+            "type": "quiz",
+            "id": "launch-quiz",
+            "title": "Before we share",
+            "questions": [
+              {
+                "id": "q1",
+                "prompt": "Where do launch metrics come from in this deck?",
+                "choices": [
+                  {
+                    "id": "a",
+                    "label": "Production analytics"
+                  },
+                  {
+                    "id": "b",
+                    "label": "Placeholder series for layout"
+                  },
+                  {
+                    "id": "c",
+                    "label": "Customer interviews"
+                  }
+                ],
+                "answers": ["b"]
+              },
+              {
+                "id": "q2",
+                "prompt": "What does the quiz store?",
+                "choices": [
+                  {
+                    "id": "a",
+                    "label": "Nothing durable — browser state only"
+                  },
+                  {
+                    "id": "b",
+                    "label": "A CRM lead"
+                  },
+                  {
+                    "id": "c",
+                    "label": "A server cookie"
+                  }
+                ],
+                "answers": ["a"]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "close",
+        "layout": "closing-cta",
+        "props": {
+          "title": "Ship the dry run",
+          "text": "Export the Lumen Notes prototype and walk the review checklist.",
+          "cta": {
+            "label": "example.com/lumen-launch",
+            "href": "https://example.com/lumen-launch"
+          },
+          "footnote": "No real launch dates or customers."
+        }
+      }
+    ],
+    "outline": {
+      "sections": [
+        {
+          "id": "intro",
+          "slideIds": ["cover", "divider"]
+        },
+        {
+          "id": "plan",
+          "slideIds": ["path", "pillars", "quiz"]
+        },
+        {
+          "id": "end",
+          "slideIds": ["close"]
+        }
+      ]
+    }
+  },
+  "catalog": {
+    "category": "marketing",
+    "productType": "Launch deck",
+    "platforms": ["web"],
+    "features": ["deck", "process", "cards", "quiz"],
+    "highlights": ["Launch path", "Three pillars", "Readiness quiz"],
+    "difficulty": "beginner"
+  }
+}

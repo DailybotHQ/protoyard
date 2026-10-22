@@ -14,6 +14,11 @@ export const PUBLIC_GUIDES: readonly string[] = [
   'AGENT_GUIDE',
   'QUICK',
   'PLAYER',
+  'DECKS',
+  'PAGES',
+  'BLOCKS',
+  'KINDS',
+  'ACCESSIBILITY',
   'GENERATOR',
   'BRIEF_TO_PROTOTYPE',
   'DATABASE',
@@ -138,7 +143,13 @@ function renderInline(value: string, sourceFilename: string, basePath: string): 
   for (const match of value.matchAll(pattern)) {
     const index = match.index ?? 0;
     output += escapeHtml(value.slice(cursor, index));
-    const [whole, , label, rawHref, title, code, strong, emphasis] = match;
+    const whole = match[0] ?? '';
+    const label = match[2] ?? '';
+    const rawHref = match[3];
+    const title = match[4];
+    const code = match[5];
+    const strong = match[6];
+    const emphasis = match[7];
     if (rawHref) {
       const href = rewriteDocLink(sourceFilename, rawHref, basePath);
       const image = whole.startsWith('!');

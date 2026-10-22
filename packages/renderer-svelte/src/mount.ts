@@ -15,8 +15,10 @@ import { type Component, mount, tick, unmount } from 'svelte';
 import { bindAppearance } from './appearance.ts';
 import { setMountedRuntime } from './context.ts';
 import { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED } from './flags.ts';
+import { type ChromeMessagesInput, setChromeMessages } from './messages.ts';
+import { consumeArtifactLink } from './shell/artifact-link.ts';
 import BootError from './shell/BootError.svelte';
-import { placeFloating } from './shell/floating.ts';
+import { placeFloating, trackFixedRightEdge } from './shell/floating.ts';
 import Root from './shell/Root.svelte';
 
 export interface RuntimeFactoryOptions {
@@ -75,9 +77,18 @@ export interface MountPrototypeOptions {
   ) => PrototypeRuntime | Promise<PrototypeRuntime>;
   /** Force DevTools on/off (defaults to the build flag + `?devtools=0`). */
   devtools?: boolean;
+  /** Optional lazily loaded tabs contributed by the mounted prototype. */
+  devtoolsTabs?: readonly DevtoolsTab[];
   demoBadge?: boolean;
   /** Runtime build settings; each one overrides its Vite define. */
   build?: MountBuildOptions;
+  /**
+   * The renderer's own words in another language: any subset of
+   * `ChromeMessages` (service error toasts, router fallbacks, loading text,
+   * banners, frame toggles, the demo badge, the boot error). Missing keys stay
+   * English; unknown keys or empty strings fail at mount with a boot error.
+   */
+  messages?: ChromeMessagesInput;
 }
 
 export interface MountedPrototype {
@@ -161,14 +172,35 @@ export function applyBuildOptions(
  */
 export async function mountPrototype(options: MountPrototypeOptions): Promise<MountedPrototype> {
   const { App, target, build } = options;
+  // Set before anything renders, so even the boot error speaks the prototype's language.
+  try {
+    setChromeMessages(options.messages);
+  } catch (error) {
+    setChromeMessages();
+    return showBootErrorFor(options.definition, target, error);
+  }
   let definition: PrototypeDefinition;
   try {
     definition = applyBuildOptions(applyBuildInfo(options.definition, BUILD_INFO), build);
   } catch (error) {
     return showBootErrorFor(options.definition, target, error);
   }
-  const link = parseScenarioLink(options.search ?? location.search);
   const themes = mergeThemes(BUILTIN_THEMES, definition.themes);
+  const artifactSearch =
+    options.search === undefined
+      ? consumeArtifactLink({
+          scenarios: definition.scenarios.map((scenario) => scenario.id),
+          personas: definition.scenarios.flatMap((scenario) =>
+            scenario.actor?.id ? [scenario.actor.id] : []
+          ),
+          themes: themes.map((theme) => theme.id),
+        })
+      : undefined;
+  const search = new URLSearchParams(options.search ?? location.search);
+  if (artifactSearch) {
+    for (const [key, value] of new URLSearchParams(artifactSearch)) search.set(key, value);
+  }
+  const link = parseScenarioLink(search.toString());
   const root = document.documentElement;
   delete root.dataset.protoyardReady;
   const cleanups: (() => void | Promise<void>)[] = [];
@@ -198,6 +230,8 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
   setMountedRuntime(rt);
   window.__protoyard = rt;
   cleanups.push(bindAppearance(rt, themes, root));
+  // Fixed chrome (review toolbar, DevTools launcher, toasts) reads this to stay on screen.
+  cleanups.push(trackFixedRightEdge());
 
   // The define is read inline (not via flags.ts) so the minifier can fold it
   // and drop the DevTools chunk entirely from builds without DevTools.
@@ -281,7 +315,14 @@ export async function mountPrototype(options: MountPrototypeOptions): Promise<Mo
         runtime: rt,
         themes,
         avatarImage,
-        ...(reviewTab ? { extraTabs: [reviewTab as DevtoolsTab] } : {}),
+        ...(options.devtoolsTabs?.length || reviewTab
+          ? {
+              extraTabs: [
+                ...(options.devtoolsTabs ?? []),
+                ...(reviewTab ? [reviewTab as DevtoolsTab] : []),
+              ],
+            }
+          : {}),
       });
       cleanups.push(() => panel.destroy());
     } catch (error) {

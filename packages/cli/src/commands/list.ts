@@ -1,5 +1,11 @@
 import type { CommandResult, Handler } from '../lib/command.ts';
-import { opt } from '../lib/command.ts';
+import { flag, opt } from '../lib/command.ts';
+import {
+  applyListing,
+  type ListingConfigResult,
+  listingNote,
+  readListingConfig,
+} from '../lib/listing.ts';
 import { CliError, formatTable } from '../lib/output.ts';
 import { filterEntries, loadRegistry, type RegistryQuery } from '../lib/registry.ts';
 
@@ -22,8 +28,14 @@ export const listCommand: Handler = async (ctx, _args, options): Promise<Command
     ...(opt(options, 'category') ? { category: opt(options, 'category') } : {}),
     ...(opt(options, 'platform') ? { platform: opt(options, 'platform') } : {}),
   };
-  const registry = await loadRegistry(ctx.paths);
+  // `--all` ignores protoyard.workspace.json, like PROTOYARD_LISTING=all.
+  const listing: ListingConfigResult = flag(options, 'all')
+    ? { rule: null, source: 'all' }
+    : readListingConfig(ctx.root);
+  if (listing.problem) ctx.out.warn(listing.problem);
+  const { registry, hidden } = applyListing(await loadRegistry(ctx.paths), listing.rule);
   const entries = filterEntries(registry.entries, query);
+  const note = listingNote(hidden, listing);
   return {
     data: {
       query,
@@ -31,15 +43,23 @@ export const listCommand: Handler = async (ctx, _args, options): Promise<Command
       count: entries.length,
       entries,
       invalid: registry.invalid.length,
+      listing: {
+        source: listing.source,
+        hidden,
+        ...(listing.rule ? { categories: listing.rule.categories, kinds: listing.rule.kinds } : {}),
+      },
     },
     render(out) {
       const { c } = out;
       if (entries.length === 0) {
         out.always(
           registry.entries.length === 0
-            ? `No prototypes or templates yet. Create one: ${c.cyan('pnpm protoyard new my-app --template blank')}`
+            ? hidden > 0
+              ? `Nothing listed: ${note}`
+              : `No prototypes or templates yet. Create one: ${c.cyan('pnpm protoyard new my-app --template blank')}`
             : 'Nothing matches those filters.'
         );
+        if (registry.entries.length > 0 && note) out.info(c.dim(note));
         return;
       }
       out.always(
@@ -58,6 +78,7 @@ export const listCommand: Handler = async (ctx, _args, options): Promise<Command
         )
       );
       out.info(c.dim(`\n${entries.length} of ${registry.entries.length} shown.`));
+      if (note) out.info(c.dim(note));
       if (registry.invalid.length > 0) {
         out.info(
           c.yellow(

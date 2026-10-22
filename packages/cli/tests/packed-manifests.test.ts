@@ -8,6 +8,9 @@ import { describe, expect, it } from 'vitest';
 import { readPackageGraph, selectPackageNames } from '../../../scripts/lib/package-graph.ts';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
+const DEV_ONLY_EXPORTS: Record<string, string[]> = {
+  '@protoyard/pages': ['./fixtures'],
+};
 
 /**
  * The packages a build group selects, read from the existing dist. This file
@@ -80,7 +83,8 @@ describe.skipIf(!HAS_DIST)('packed engine manifests (after pnpm build:packages)'
     const engineFolders = built.packages
       .filter((item) => readPackage(item.directory).protoyard?.build?.group === 'engine')
       .map((item) => item.directory);
-    expect(engineFolders.length).toBe(16);
+    // A floor, not an exact count: new engine packages (blocks, decks, pages, flows…) join the group.
+    expect(engineFolders.length).toBeGreaterThanOrEqual(16);
     const destination = mkdtempSync(join(tmpdir(), 'protoyard-engine-packs-'));
     try {
       for (const folder of engineFolders) {
@@ -94,10 +98,18 @@ describe.skipIf(!HAS_DIST)('packed engine manifests (after pnpm build:packages)'
         expect(configured?.exports, source.name).toEqual(
           expect.objectContaining(
             Object.fromEntries(
-              Object.keys(source.exports ?? {}).map((key) => [key, expect.anything()])
+              Object.keys(source.exports ?? {})
+                .filter((key) => !DEV_ONLY_EXPORTS[source.name]?.includes(key))
+                .map((key) => [key, expect.anything()])
             )
           )
         );
+        for (const key of DEV_ONLY_EXPORTS[source.name] ?? []) {
+          expect(
+            configured?.exports,
+            `${source.name} excludes development-only ${key}`
+          ).not.toHaveProperty(key);
+        }
         for (const [key, exportValue] of Object.entries(configured?.exports ?? {})) {
           for (const target of targets(exportValue)) {
             expect(target, `${source.name} ${key}`).toMatch(/^\.\/(?:dist|assets|types)\//);
@@ -138,7 +150,8 @@ describe.skipIf(!HAS_DIST)('packed svelte manifests (after pnpm build:packages)'
     const svelteFolders = built.packages
       .filter((item) => readPackage(item.directory).peerDependencies?.svelte)
       .map((item) => item.directory);
-    expect(svelteFolders.length).toBe(10);
+    // A floor, not an exact count: new Svelte packages (blocks-ui, decks-ui, pages-ui…) join the group.
+    expect(svelteFolders.length).toBeGreaterThanOrEqual(10);
     const destination = mkdtempSync(join(tmpdir(), 'protoyard-svelte-packs-'));
     try {
       for (const folder of svelteFolders) {

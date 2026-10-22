@@ -35,13 +35,18 @@ export {
   type AcceptInvitationInput,
   type AcceptInvitationOptions,
   AcceptInvitationSchema,
+  type CreatedInvitation,
   type CreateInvitationInput,
+  type CreateInvitationOptions,
   CreateInvitationSchema,
   createInvitationServices,
   type InvitationOptions,
   type InvitationPreview,
   type InvitationPreviewStatus,
   type InvitationServices,
+  type InvitationSideEffect,
+  type InvitationSideEffectContext,
+  type InvitationTable,
 } from './invitations.ts';
 export {
   createMagicLinkServices,
@@ -92,6 +97,23 @@ export {
   ValidationError,
 } from './onboarding.ts';
 export { assertInOrg, membershipInOrg, type OrgAccessRuntime } from './org-access.ts';
+export {
+  createPhoneServices,
+  PHONE_CODE_ATTEMPT_LIMIT,
+  PHONE_CODE_TOAST_ID,
+  PHONE_CODE_TTL_MS,
+  PHONE_RESEND_COOLDOWN_MS,
+  type PhoneChallengeView,
+  type PhoneCodeIssue,
+  PhoneNumberSchema,
+  type PhoneServices,
+  type PhoneSignInInput,
+  PhoneSignInInputSchema,
+  phoneResendSecondsRemaining,
+  simulatedPhoneCode,
+  type VerifyPhoneCodeInput,
+  VerifyPhoneCodeInputSchema,
+} from './phone.ts';
 export {
   defaultOAuthProviderScenarios,
   OAUTH_PROVIDER_REGISTRY,

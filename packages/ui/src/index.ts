@@ -2,6 +2,20 @@
 
 export { default as Accordion } from './components/accordion/Accordion.svelte';
 export type { AccordionItem } from './components/accordion/types.ts';
+export {
+  type ActorIdentity,
+  type ActorKind,
+  default as ActorRow,
+} from './components/actors/ActorRow.svelte';
+export {
+  ADAPTIVE_OVERLAY_BREAKPOINT,
+  AdaptiveOverlay,
+  type AdaptiveOverlayMode,
+  type AdaptiveOverlayPresentation,
+  type AdaptiveOverlayWideKind,
+  type ResolveAdaptiveOverlayInput,
+  resolveAdaptiveOverlayPresentation,
+} from './components/adaptive-overlay/index.ts';
 export { default as AlertDialog } from './components/alert-dialog/AlertDialog.svelte';
 // Layout & navigation
 export { default as AppShell } from './components/app-shell/AppShell.svelte';
@@ -28,6 +42,7 @@ export {
   type ButtonVariant,
   buttonVariants,
 } from './components/button/button-variants.ts';
+export { default as ChipGroup } from './components/ChipGroup.svelte';
 export { default as Card } from './components/card/Card.svelte';
 export { default as CardContent } from './components/card/CardContent.svelte';
 export { default as CardDescription } from './components/card/CardDescription.svelte';
@@ -35,6 +50,8 @@ export { default as CardFooter } from './components/card/CardFooter.svelte';
 export { default as CardHeader } from './components/card/CardHeader.svelte';
 export { default as CardTitle } from './components/card/CardTitle.svelte';
 export { default as CardGrid } from './components/card-grid/CardGrid.svelte';
+export { default as Carousel } from './components/carousel/Carousel.svelte';
+export type { CarouselItem } from './components/carousel/types.ts';
 // Collaboration
 export { default as ChatThread } from './components/chat/ChatThread.svelte';
 export { groupMessages, type MessageGroup } from './components/chat/group-messages.ts';
@@ -45,6 +62,7 @@ export type {
   ChatMessageStatus,
 } from './components/chat/types.ts';
 export { default as Checkbox } from './components/checkbox/Checkbox.svelte';
+export type { ChipOption } from './components/chip-group-types.ts';
 export { default as Combobox } from './components/combobox/Combobox.svelte';
 export { default as CommandPalette } from './components/command-palette/CommandPalette.svelte';
 export type {
@@ -100,9 +118,23 @@ export type {
   FilterValues,
   RelationFilterField,
 } from './components/filter-bar/types.ts';
+// Scheduling inputs: timezone, weekdays, time, date and date range
+export * from './components/form/scheduling/index.ts';
+// Form utilities: tags/email, emoji, password strength, character counter
+export * from './components/form/utilities/index.ts';
 export { default as FormField } from './components/form-field/FormField.svelte';
 export type { FormFieldControl } from './components/form-field/form-field.ts';
 export { default as Header } from './components/header/Header.svelte';
+export { ProposalTag, SimulatedTag } from './components/honesty/index.ts';
+export { default as ImageInput } from './components/image-input/ImageInput.svelte';
+export {
+  buildImagePreviews,
+  DEFAULT_IMAGE_ACCEPT,
+  type ImagePreview,
+  isPreviewableImage,
+  RASTER_IMAGE_TYPES,
+  revokeImagePreviews,
+} from './components/image-input/preview.ts';
 export { default as Input } from './components/input/Input.svelte';
 export { default as Kanban } from './components/kanban/Kanban.svelte';
 export type { KanbanColumn } from './components/kanban/types.ts';
@@ -111,6 +143,41 @@ export { default as Label } from './components/label/Label.svelte';
 export { default as LoadingState } from './components/loading-state/LoadingState.svelte';
 export { default as MobileAppShell } from './components/mobile-app-shell/MobileAppShell.svelte';
 export { default as MobileHeader } from './components/mobile-header/MobileHeader.svelte';
+export { default as NumberStepper } from './components/NumberStepper.svelte';
+export { default as Notice } from './components/notice/Notice.svelte';
+export {
+  NOTICE_DEFAULT_ICONS,
+  NOTICE_TONE_CLASSES,
+  NOTICE_TONES,
+  type NoticeTone,
+} from './components/notice/tones.ts';
+export { default as OtpInput } from './components/otp-input/OtpInput.svelte';
+export { default as Drawer } from './components/overlay/Drawer.svelte';
+export {
+  DEFAULT_DRAWER_SIZE,
+  DRAWER_PLACEMENTS,
+  type DrawerPlacement,
+  resolveDrawerSize,
+} from './components/overlay/drawer.ts';
+export {
+  installUndoToasterFocusExemption,
+  isUndoToasterTarget,
+  UNDO_TOASTER_ATTR,
+} from './components/overlay/focus-exempt.ts';
+export {
+  OVERLAY_Z_BASE,
+  type OverlayEntry,
+  OverlayStack,
+  overlayStack,
+  type PushOverlayOptions,
+  type RestoreFocusOptions,
+} from './components/overlay/overlay-stack.ts';
+export {
+  type OverlayLayer,
+  type OverlayLayerOptions,
+  useOverlayLayer,
+  useOverlayTopZIndex,
+} from './components/overlay/use-overlay-layer.svelte.ts';
 export { default as Pagination } from './components/pagination/Pagination.svelte';
 export { getPageTokens, type PageToken } from './components/pagination/pages.ts';
 export { default as Popover } from './components/popover/Popover.svelte';
@@ -118,6 +185,8 @@ export { default as Progress } from './components/progress/Progress.svelte';
 export { default as RadioGroup } from './components/radio-group/RadioGroup.svelte';
 export { default as RadioGroupItem } from './components/radio-group/RadioGroupItem.svelte';
 export type { RadioOption } from './components/radio-group/types.ts';
+export { default as ScenarioSwitcher } from './components/ScenarioSwitcher.svelte';
+export { default as StarRating } from './components/StarRating.svelte';
 export { default as SafeArea } from './components/safe-area/SafeArea.svelte';
 export { default as Select } from './components/select/Select.svelte';
 export type { SelectOption } from './components/select/types.ts';
@@ -134,6 +203,12 @@ export {
   trendTone,
   trendWord,
 } from './components/stat-card/trend.ts';
+export { default as StatusChip } from './components/status-chip/StatusChip.svelte';
+export {
+  STATUS_CHIP_TONE_CLASSES,
+  STATUS_CHIP_TONES,
+  type StatusChipTone,
+} from './components/status-chip/tones.ts';
 // Flows
 export { default as Stepper } from './components/stepper/Stepper.svelte';
 export type { StepperStep } from './components/stepper/types.ts';
@@ -154,6 +229,20 @@ export {
   type ToastStore,
   toast,
 } from './components/toast/toast.svelte.ts';
+export { default as UndoToaster } from './components/toast/UndoToaster.svelte';
+export {
+  DEFAULT_UNDO_DURATION,
+  MAX_UNDO_DURATION,
+  MAX_UNDO_TOASTS,
+  MIN_UNDO_DURATION,
+  type UndoAnnouncement,
+  type UndoSettleReason,
+  type UndoToastItem,
+  type UndoToastOptions,
+  type UndoToastStatus,
+  type UndoToastStore,
+  undoToast,
+} from './components/toast/undo.svelte.ts';
 export { default as Tooltip } from './components/tooltip/Tooltip.svelte';
 export { default as TypingIndicator } from './components/typing-indicator/TypingIndicator.svelte';
 export type { PickerUser } from './components/user-picker/types.ts';
@@ -166,7 +255,7 @@ export type {
 export { default as WindowChrome } from './components/window-chrome/WindowChrome.svelte';
 export { default as Wizard } from './components/wizard/Wizard.svelte';
 export { default as LayoutHost } from './layouts/LayoutHost.svelte';
-// Navigation as data for every layout; NavIcon and the layouts stay lazy (never in this barrel).
+// Navigation is data; navigation layout modules stay lazy. Content primitives are separate exports.
 export {
   isNavPathActive,
   type NavAction,
@@ -184,6 +273,8 @@ export {
   type ResolvedNavSection,
   resolveNav,
 } from './layouts/nav-model.ts';
+export { default as PageGrid } from './layouts/PageGrid.svelte';
+export { default as SplitView } from './layouts/SplitView.svelte';
 export { cn } from './lib/cn.ts';
 export { type DateInput, formatDay, formatTime } from './lib/date.ts';
 export { hashString, initials } from './lib/hash.ts';
@@ -192,4 +283,11 @@ export {
   setOverlayPortalTarget,
   subscribeOverlayPortalTarget,
 } from './lib/overlay-portal.ts';
+export {
+  escapeSelectorValue,
+  findOption,
+  type RovingEntry,
+  rovingKeydown,
+  rovingTabIndex,
+} from './lib/roving.ts';
 export type { IconComponent, NavItem, TriggerSnippet, WithElementRef } from './lib/types.ts';

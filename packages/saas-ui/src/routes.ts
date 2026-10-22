@@ -38,6 +38,8 @@ type ScreenLoader = () => Promise<{ default: NonNullable<RouteDefinition['compon
 const LOADERS = {
   signIn: () => import('./screens/auth/SignIn.svelte'),
   signUp: () => import('./screens/auth/SignUp.svelte'),
+  phoneSignIn: () => import('./screens/PhoneSignIn.svelte'),
+  phoneCode: () => import('./screens/PhoneCode.svelte'),
   magicLink: () => import('./screens/auth/MagicLink.svelte'),
   mfa: () => import('./screens/auth/Mfa.svelte'),
   resetPassword: () => import('./screens/auth/ResetPassword.svelte'),
@@ -107,6 +109,8 @@ export function saasRoutes(options: SaasRoutesOptions): RouteDefinition[] {
     routes.push(
       route(config.signInPath, 'Sign in', LOADERS.signIn, requireGuest(session, guardOpts)),
       route(config.signUpPath, 'Sign up', LOADERS.signUp, requireGuest(session, guardOpts)),
+      route('/auth/phone', 'Phone sign in', LOADERS.phoneSignIn),
+      route('/auth/phone/code', 'Verify phone code', LOADERS.phoneCode),
       route('/auth/magic', 'Magic link', LOADERS.magicLink),
       // MFA challenge must remain available before the session opens.
       route('/auth/mfa', 'Multi-factor', LOADERS.mfa),

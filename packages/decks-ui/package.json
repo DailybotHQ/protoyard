@@ -1,0 +1,144 @@
+{
+  "name": "@protoyard/decks-ui",
+  "version": "1.0.0",
+  "description": "Svelte 5 slide deck renderer for Protoyard: DeckApp, presenter view, print and Deck Studio, each on its own lazy subpath.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "**/*.svelte",
+    "dist/**/*.css",
+    "dist/**/*.svelte"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./app": {
+      "types": "./src/app/index.ts",
+      "svelte": "./src/app/index.ts",
+      "default": "./src/app/index.ts"
+    },
+    "./layouts": {
+      "types": "./src/layouts/index.ts",
+      "svelte": "./src/layouts/index.ts",
+      "default": "./src/layouts/index.ts"
+    },
+    "./studio": {
+      "types": "./src/studio/index.ts",
+      "svelte": "./src/studio/index.ts",
+      "default": "./src/studio/index.ts"
+    },
+    "./presenter": {
+      "types": "./src/presenter/index.ts",
+      "svelte": "./src/presenter/index.ts",
+      "default": "./src/presenter/index.ts"
+    },
+    "./print": {
+      "types": "./src/print/index.ts",
+      "svelte": "./src/print/index.ts",
+      "default": "./src/print/index.ts"
+    },
+    "./styles.css": "./src/styles.css",
+    "./player.css": "./src/player.css"
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@protoyard/blocks": "workspace:*",
+    "@protoyard/blocks-ui": "workspace:*",
+    "@protoyard/decks": "workspace:*"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.2"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "protoyard": {
+    "build": {
+      "assets": [
+        "src/player.css"
+      ]
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./app": {
+        "types": "./dist/app/index.d.ts",
+        "svelte": "./dist/app/index.js",
+        "default": "./dist/app/index.js"
+      },
+      "./layouts": {
+        "types": "./dist/layouts/index.d.ts",
+        "svelte": "./dist/layouts/index.js",
+        "default": "./dist/layouts/index.js"
+      },
+      "./studio": {
+        "types": "./dist/studio/index.d.ts",
+        "svelte": "./dist/studio/index.js",
+        "default": "./dist/studio/index.js"
+      },
+      "./presenter": {
+        "types": "./dist/presenter/index.d.ts",
+        "svelte": "./dist/presenter/index.js",
+        "default": "./dist/presenter/index.js"
+      },
+      "./print": {
+        "types": "./dist/print/index.d.ts",
+        "svelte": "./dist/print/index.js",
+        "default": "./dist/print/index.js"
+      },
+      "./styles.css": {
+        "types": "./dist/styles.css.d.ts",
+        "svelte": "./dist/styles.css",
+        "default": "./dist/styles.css"
+      },
+      "./player.css": {
+        "types": "./dist/player.css.d.ts",
+        "svelte": "./dist/player.css",
+        "default": "./dist/player.css"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/decks-ui"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "slides",
+    "deck",
+    "presentation"
+  ]
+}

@@ -15,6 +15,11 @@ import {
 
 const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
+function isAppKind(raw: unknown): boolean {
+  const kind = (raw as { kind?: unknown }).kind;
+  return kind === undefined || kind === 'app';
+}
+
 function readJson(path: string): unknown {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
@@ -40,7 +45,9 @@ const generatedPrototypes = readdirSync(join(ROOT, 'prototypes'))
   .map((slug) => ({
     label: `prototypes/${slug}`,
     raw: readJson(join(ROOT, 'prototypes', slug, 'blueprint.json')),
-  }));
+  }))
+  // The app model covers apps; deck, page and doc prototypes are covered by the kind tests.
+  .filter(({ raw }) => isAppKind(raw));
 
 // --- The pinned model ---------------------------------------------------------
 // Generated apps and the player both render deriveAppModel(blueprint) through

@@ -11,10 +11,12 @@ import { generateTeam } from '@protoyard/scenarios';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness } from '../../../tests/support/runtime.ts';
 import {
+  type CreateInvitationOptions,
   createInvitationServices,
   createPasswordResetServices,
   mergeIntegrity,
   type SaasAccount,
+  type SaasInboxMessage,
   type SaasInvitation,
   type SaasToken,
   saasIntegrity,
@@ -37,7 +39,10 @@ const definition: PrototypeDefinition = definePrototype({
     scenarios: ['active'],
   }),
   auth: { signedOutByDefault: true },
-  database: { versions: [{ version: 1, stores: saasStores() }] },
+  database: {
+    // `invite_notes` is a domain table that invitation side effects write.
+    versions: [{ version: 1, stores: { ...saasStores(), invite_notes: 'id, invitationId' } }],
+  },
   scenarios: [
     {
       id: 'active',
@@ -400,5 +405,166 @@ describe('workspace invitations', () => {
       harness.closeAll();
       harness = createHarness<Db>(definition);
     }
+  });
+});
+
+type InviteNote = {
+  id: string;
+  invitationId: string;
+  tokenId: string;
+  messageId: string;
+  note: string;
+};
+
+async function inviteCounts(runtime: ProtoyardRuntime) {
+  return {
+    invitations: await runtime.db.rows<SaasInvitation>('saas_invitations').count(),
+    tokens: await runtime.db.rows<SaasToken>('saas_tokens').count(),
+    inbox: await runtime.db.rows<SaasInboxMessage>('saas_inbox').count(),
+    notes: await runtime.db.rows<InviteNote>('invite_notes').count(),
+  };
+}
+
+describe('invitation side effects', () => {
+  it('commits the side effect with the invitation, token and inbox message', async () => {
+    const runtime = await signedInRuntime();
+    const invites = createInvitationServices(runtime);
+    const created = await invites.create(
+      { email: 'grace@example.com', role: 'member' },
+      {
+        tables: ['invite_notes'],
+        async sideEffect(invitation, { token, message, table }) {
+          const note: InviteNote = {
+            id: `note_${invitation.id}`,
+            invitationId: invitation.id,
+            tokenId: token.id,
+            messageId: message.id,
+            note: 'Pair with the onboarding buddy.',
+          };
+          await table<InviteNote>('invite_notes').add(note);
+          return note.id;
+        },
+      }
+    );
+    expect(created.effect).toBe(`note_${created.invitation.id}`);
+    const note = await runtime.db.rows<InviteNote>('invite_notes').get(created.effect ?? '');
+    expect(note).toMatchObject({
+      invitationId: created.invitation.id,
+      tokenId: created.token.id,
+      messageId: created.message.id,
+    });
+    expect(
+      await runtime.db.rows<SaasInvitation>('saas_invitations').get(created.invitation.id)
+    ).toMatchObject({ status: 'pending', tokenId: created.token.id });
+    expect(
+      await runtime.db.rows<SaasInboxMessage>('saas_inbox').get(created.message.id)
+    ).toBeTruthy();
+    // The invitation stays usable after a side effect.
+    const accepted = await invites.accept({ tokenId: created.token.id, name: 'Grace Hopper' });
+    expect(accepted.invitation.status).toBe('accepted');
+  });
+
+  it('rolls back the invitation, token, inbox message and side-effect writes when it rejects', async () => {
+    const runtime = await signedInRuntime();
+    const invites = createInvitationServices(runtime, { tables: ['invite_notes'] });
+    const before = await inviteCounts(runtime);
+    let seen: { invitationId: string; tokenId: string } | null = null;
+    const failure = new Error('Seat limit reached (simulated).');
+    await expect(
+      invites.create(
+        { email: 'katherine@example.com', role: 'member' },
+        async (invitation, ctx) => {
+          seen = { invitationId: invitation.id, tokenId: ctx.token.id };
+          await ctx.table<InviteNote>('invite_notes').add({
+            id: 'note_rolled_back',
+            invitationId: invitation.id,
+            tokenId: ctx.token.id,
+            messageId: ctx.message.id,
+            note: 'Written, then rolled back.',
+          });
+          throw failure;
+        }
+      )
+    ).rejects.toBe(failure);
+    expect(await inviteCounts(runtime)).toEqual(before);
+    expect(seen).not.toBeNull();
+    const { invitationId, tokenId } = seen as unknown as { invitationId: string; tokenId: string };
+    expect(
+      await runtime.db.rows<SaasInvitation>('saas_invitations').get(invitationId)
+    ).toBeUndefined();
+    expect(await runtime.db.rows<SaasToken>('saas_tokens').get(tokenId)).toBeUndefined();
+    expect(
+      await runtime.db.rows<InviteNote>('invite_notes').get('note_rolled_back')
+    ).toBeUndefined();
+    expect((await invites.preview(tokenId)).status).toBe('unknown');
+    // The same email can be invited again once the failed attempt is gone.
+    const retry = await invites.create({ email: 'katherine@example.com', role: 'member' });
+    expect(retry.effect).toBeUndefined();
+    expect((await inviteCounts(runtime)).invitations).toBe(before.invitations + 1);
+  });
+
+  it('rolls back on a synchronous throw and on a validation error from the side effect', async () => {
+    const runtime = await signedInRuntime();
+    const invites = createInvitationServices(runtime);
+    const before = await inviteCounts(runtime);
+    await expect(
+      invites.create({ email: 'alan@example.com', role: 'member' }, () => {
+        throw new ValidationError({ form: 'Rejected by the side effect.' });
+      })
+    ).rejects.toMatchObject({ issues: { form: 'Rejected by the side effect.' } });
+    expect(await inviteCounts(runtime)).toEqual(before);
+  });
+
+  it('only exposes declared domain tables, and refuses its own or unknown tables before writing', async () => {
+    const runtime = await signedInRuntime();
+    const invites = createInvitationServices(runtime);
+    const before = await inviteCounts(runtime);
+    await expect(
+      invites.create({ email: 'edsger@example.com', role: 'member' }, (_invitation, ctx) => {
+        ctx.table('invite_notes');
+      })
+    ).rejects.toThrow(/not declared for this invitation side effect/);
+    for (const tables of [['saas_invitations'], ['saas_inbox'], ['py_memberships']]) {
+      await expect(
+        invites.create({ email: 'edsger@example.com', role: 'member' }, {
+          tables,
+          sideEffect: () => undefined,
+        } satisfies CreateInvitationOptions)
+      ).rejects.toThrow(/cannot write it directly/);
+    }
+    await expect(
+      invites.create(
+        { email: 'edsger@example.com', role: 'member' },
+        {
+          tables: ['no_such_table'],
+          sideEffect: () => undefined,
+        }
+      )
+    ).rejects.toThrow(/Unknown table "no_such_table"/);
+    expect(await inviteCounts(runtime)).toEqual(before);
+  });
+
+  it('never runs the side effect when the invitation itself is refused', async () => {
+    const runtime = await signedInRuntime();
+    const invites = createInvitationServices(runtime, { tables: ['invite_notes'] });
+    let calls = 0;
+    const sideEffect = () => {
+      calls += 1;
+    };
+    // Already a member: refused inside the transaction, before the side effect.
+    await expect(
+      invites.create({ email: OWNER_EMAIL, role: 'member' }, sideEffect)
+    ).rejects.toBeInstanceOf(ValidationError);
+    // Invalid input and missing capability: refused before the transaction.
+    await expect(
+      invites.create({ email: 'someone@outside.test', role: 'member' }, sideEffect)
+    ).rejects.toBeInstanceOf(ValidationError);
+    const own = runtime.session.principal()?.membership;
+    if (!own) throw new Error('The fixture owner has no membership');
+    await runtime.identity.write((ops) => ops.putMembership({ ...own, role: 'viewer' }));
+    await expect(
+      invites.create({ email: 'barbara@example.com', role: 'member' }, sideEffect)
+    ).rejects.toBeInstanceOf(PermissionDeniedError);
+    expect(calls).toBe(0);
   });
 });

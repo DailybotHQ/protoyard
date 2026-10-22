@@ -3,16 +3,30 @@ import { createGenerateContext, validateWorld } from '@protoyard/scenarios';
 import { describe, expect, it } from 'vitest';
 import { createBlueprintGenerator } from '../src/generator.ts';
 import {
+  type AppBriefResult,
   ARCHETYPE_IDS,
   ARCHETYPES,
   blueprintFromBrief,
   deriveIntegrity,
   fieldFromPhrase,
+  isAppBriefResult,
+  isContentBriefResult,
   MAX_BRIEF_LENGTH,
   parseBlueprint,
   resolveBlueprintBrand,
 } from '../src/index.ts';
 import cases from './fixtures/briefs/briefs.json' with { type: 'json' };
+
+/** Fixture briefs are all apps; narrow so entity/screen assertions type-check. */
+function appFrom(
+  brief: string,
+  options?: Parameters<typeof blueprintFromBrief>[1]
+): AppBriefResult {
+  const result = blueprintFromBrief(brief, options);
+  expect(result.kind).toBe('app');
+  if (!isAppBriefResult(result)) throw new Error('expected app brief result');
+  return result;
+}
 
 describe('blueprintFromBrief fixtures', () => {
   it('has 20 briefs that cover every archetype at least once', () => {
@@ -29,7 +43,9 @@ describe('blueprintFromBrief fixtures', () => {
   it.each(cases.map((c) => [c.id, c] as const))(
     '%s: valid blueprint with the expected archetype, entities, screens and layout',
     (_id, expected) => {
-      const result = blueprintFromBrief(expected.brief);
+      const result = appFrom(expected.brief);
+      expect(result.kind).toBe('app');
+      expect(result.kindDetection.kind).toBe('app');
       expect(result.archetype).toBe(expected.archetype);
       expect(result.layout).toBe(expected.layout);
       expect(result.blueprint.entities.map((e) => e.name)).toEqual(expected.entities);
@@ -50,16 +66,17 @@ describe('blueprintFromBrief fixtures', () => {
 
   it('is byte-identical across runs', () => {
     for (const c of cases) {
-      const a = blueprintFromBrief(c.brief);
-      const b = blueprintFromBrief(c.brief);
+      const a = appFrom(c.brief);
+      const b = appFrom(c.brief);
       expect(JSON.stringify(a.json), c.id).toBe(JSON.stringify(b.json));
       expect(a.rationale).toEqual(b.rationale);
+      expect(a.kindDetection).toEqual(b.kindDetection);
     }
   });
 
   it('always emits the four standard roles and an AA brand theme', () => {
     for (const c of cases) {
-      const { blueprint } = blueprintFromBrief(c.brief);
+      const { blueprint } = appFrom(c.brief);
       expect(blueprint.roles.map((r) => r.name)).toEqual(['owner', 'admin', 'member', 'viewer']);
       expect(blueprint.brand?.seed).toMatch(/^#[0-9a-f]{6}$/);
       // Throws BrandThemeError when the palette fails WCAG AA.
@@ -71,7 +88,7 @@ describe('blueprintFromBrief fixtures', () => {
 
   it('generates a valid world for every brief', () => {
     for (const c of cases) {
-      const { blueprint } = blueprintFromBrief(c.brief);
+      const { blueprint } = appFrom(c.brief);
       const scenario = parseScenario({
         id: 'brief',
         name: 'Brief',
@@ -102,7 +119,7 @@ describe('blueprintFromBrief fixtures', () => {
 
 describe('blueprintFromBrief behavior', () => {
   it('renames a tracked noun whose list route is reserved (/members) instead of failing', () => {
-    const { blueprint } = blueprintFromBrief(
+    const { blueprint } = appFrom(
       'A fictional climbing gym books classes, tracks members and their passes.'
     );
     const names = blueprint.entities.map((e) => e.name);
@@ -115,7 +132,7 @@ describe('blueprintFromBrief behavior', () => {
   });
 
   it('explains the archetype, added entities and inferred fields', () => {
-    const { rationale } = blueprintFromBrief(
+    const { rationale } = appFrom(
       'A dog grooming salon that books appointments, tracks groomers and invoices with amount and due date.'
     );
     expect(rationale[0]).toBe('Archetype booking: matched appointments, salon.');
@@ -125,7 +142,7 @@ describe('blueprintFromBrief behavior', () => {
   });
 
   it('adds a photo to people-like entities, with a free field name', () => {
-    const { blueprint, rationale } = blueprintFromBrief(
+    const { blueprint, rationale } = appFrom(
       'A dog grooming salon that books appointments, tracks groomers and invoices with amount and due date.'
     );
     const groomer = blueprint.entities.find((e) => e.name === 'groomer');
@@ -141,7 +158,7 @@ describe('blueprintFromBrief behavior', () => {
       blueprint.entities.find((e) => e.name === 'invoice')?.fields.map((f) => f.kind)
     ).not.toContain('avatar');
     // A brief that already names an "avatar" field keeps it and the photo goes to `photo`.
-    const taken = blueprintFromBrief('A volunteer roster: track volunteers with avatar and phone.');
+    const taken = appFrom('A volunteer roster: track volunteers with avatar and phone.');
     const volunteer = taken.blueprint.entities.find((e) => e.name === 'volunteer');
     expect(volunteer?.fields.filter((f) => f.kind === 'avatar').map((f) => f.name)).toEqual([
       'photo',
@@ -150,7 +167,7 @@ describe('blueprintFromBrief behavior', () => {
   });
 
   it('turns the main noun of a generic brief into the focus entity with inferred fields', () => {
-    const { blueprint } = blueprintFromBrief(
+    const { blueprint } = appFrom(
       'A tool to keep track of plants with watering date, location and health status.'
     );
     const plant = blueprint.entities[0];
@@ -163,7 +180,7 @@ describe('blueprintFromBrief behavior', () => {
   });
 
   it('honors a forced archetype and name, and rejects unknown archetypes', () => {
-    const result = blueprintFromBrief('Anything at all.', {
+    const result = appFrom('Anything at all.', {
       archetype: 'iot',
       name: 'Fern Example',
     });
@@ -171,7 +188,7 @@ describe('blueprintFromBrief behavior', () => {
     expect(result.blueprint.name).toBe('Fern Example');
     expect(result.rationale[0]).toBe('Archetype iot (chosen explicitly).');
     expect(ARCHETYPE_IDS).toContain('iot');
-    const forcedKit = blueprintFromBrief('An AI assistant for analytics dashboards.', {
+    const forcedKit = appFrom('An AI assistant for analytics dashboards.', {
       archetype: 'team-chat',
     });
     expect(forcedKit.archetype).toBe('team-chat');
@@ -181,8 +198,8 @@ describe('blueprintFromBrief behavior', () => {
   });
 
   it('needs more than one stray keyword to pick an archetype', () => {
-    expect(blueprintFromBrief('Health tips for runners.').archetype).toBe('tracker');
-    expect(blueprintFromBrief('Answer tickets fast.').archetype).toBe('helpdesk');
+    expect(appFrom('Health tips for runners.').archetype).toBe('tracker');
+    expect(appFrom('Answer tickets fast.').archetype).toBe('helpdesk');
   });
 
   it.each([
@@ -207,8 +224,8 @@ describe('blueprintFromBrief behavior', () => {
       'matched analytics',
     ],
   ])('selects %s from strong cues with deterministic rationale', (expected, brief, cue) => {
-    const first = blueprintFromBrief(brief);
-    const second = blueprintFromBrief(brief);
+    const first = appFrom(brief);
+    const second = appFrom(brief);
 
     expect(first.archetype).toBe(expected);
     expect(first.blueprint.archetype?.id).toBe(expected);
@@ -240,7 +257,7 @@ describe('blueprintFromBrief behavior', () => {
   });
 
   it('avoids choosing between equally strong new kit archetypes', () => {
-    const result = blueprintFromBrief('An assistant for analytics.');
+    const result = appFrom('An assistant for analytics.');
     expect(result.archetype).toBe('tracker');
     expect(result.rationale[0]).toBe(
       'Archetype tracker: no archetype keyword matched, so a plain tracker.'
@@ -248,17 +265,112 @@ describe('blueprintFromBrief behavior', () => {
   });
 
   it('handles empty and very long briefs', () => {
-    const empty = blueprintFromBrief('');
+    const empty = appFrom('');
     expect(empty.archetype).toBe('tracker');
     expect(empty.blueprint.description).toBe('Tracker prototype.');
-    const long = blueprintFromBrief(`Track tickets. ${'word '.repeat(5_000)}`);
+    const long = appFrom(`Track tickets. ${'word '.repeat(5_000)}`);
     expect(long.archetype).toBe('helpdesk');
     expect(MAX_BRIEF_LENGTH).toBe(5_000);
   });
 
   it('suggests a phone layout for mobile briefs', () => {
-    expect(blueprintFromBrief('An iOS and Android app to log runs.').layout).toBe('mobile-tabs');
-    expect(blueprintFromBrief('A web tool to log runs.').layout).toBe('sidebar');
+    expect(appFrom('An iOS and Android app to log runs.').layout).toBe('mobile-tabs');
+    expect(appFrom('A web tool to log runs.').layout).toBe('sidebar');
+  });
+});
+
+describe('blueprintFromBrief kind dispatch', () => {
+  it('routes strong deck cues to the deck synthesizer before app archetypes', () => {
+    const result = blueprintFromBrief(
+      'A pitch deck of twelve slides about our fictional launch plan for Example Harbor.'
+    );
+    expect(isContentBriefResult(result)).toBe(true);
+    if (!isContentBriefResult(result)) return;
+    expect(result.kind).toBe('deck');
+    expect(result.kindDetection.confidence).toMatch(/high|medium/);
+    expect(result.json.kind).toBe('deck');
+    expect(result.outline).toBe('pitch');
+    const deck = result.json.deck as { slides: { id: string; layout: string }[] };
+    expect(deck.slides.length).toBeGreaterThanOrEqual(7);
+    expect(deck.slides[0]?.id).toBe('slide-title');
+    expect(deck.slides[0]?.layout).toBe('title-hero');
+    expect(deck.slides.map((s) => s.id).at(-1)).toMatch(/^slide-/);
+    expect(result.rationale[0]).toBe(result.kindDetection.reason);
+    expect(result.rationale.some((line) => /Outline: Pitch/i.test(line))).toBe(true);
+    // No app entities / roles on a content draft.
+    expect(result.json).not.toHaveProperty('entities');
+    expect(result.json).not.toHaveProperty('roles');
+  });
+
+  it('lets an explicit kind override conflicting cues', () => {
+    const asDeck = blueprintFromBrief('A CRM app that tracks deals and contacts.', {
+      kind: 'deck',
+    });
+    expect(asDeck.kind).toBe('deck');
+    expect(asDeck.kindDetection.confidence).toBe('explicit');
+    expect(asDeck.kindDetection.reason).toMatch(/chosen explicitly/);
+
+    const asApp = appFrom('A pitch deck of slides about our roadmap.', { kind: 'app' });
+    expect(asApp.kind).toBe('app');
+    expect(asApp.kindDetection.confidence).toBe('explicit');
+    expect(asApp.archetype).toBeTruthy();
+    expect(asApp.blueprint.entities.length).toBeGreaterThan(0);
+  });
+
+  it('routes landing-page and report briefs to page and doc synthesizers', () => {
+    const page = blueprintFromBrief(
+      'A marketing landing page for Example Harbor with a hero section and pricing.'
+    );
+    expect(page.kind).toBe('page');
+    if (!isContentBriefResult(page)) return;
+    expect(page.outline).toBe('landing');
+    const pageSections = (page.json.page as { sections: { id: string; blocks: unknown[] }[] })
+      .sections;
+    expect(pageSections.length).toBeGreaterThanOrEqual(4);
+    expect(pageSections[0]?.id).toBe('section-hero');
+    expect(pageSections[0]?.blocks?.length).toBeGreaterThan(0);
+
+    const doc = blueprintFromBrief(
+      'Write the quarterly report for Example Harbor covering status and next steps.'
+    );
+    expect(doc.kind).toBe('doc');
+    if (!isContentBriefResult(doc)) return;
+    expect(doc.outline).toBe('report');
+    const docBody = doc.json.doc as {
+      id: string;
+      title: string;
+      blocks: { id?: string; type: string }[];
+    };
+    expect(docBody.id).toMatch(/^[a-z]/);
+    expect(docBody.title.length).toBeGreaterThan(0);
+    const headingIds = docBody.blocks
+      .filter((block) => block.type === 'heading' && block.id)
+      .map((block) => block.id);
+    expect(headingIds).toEqual(
+      expect.arrayContaining([
+        'section-title',
+        'section-summary',
+        'section-status',
+        'section-findings',
+        'section-next',
+      ])
+    );
+  });
+
+  it('rejects unknown explicit kinds with a stable actionable error', () => {
+    expect(() => blueprintFromBrief('Anything', { kind: 'quiz' })).toThrow(
+      /kind "quiz" needs a newer Protoyard/
+    );
+    expect(() => blueprintFromBrief('Anything', { kind: 'quiz' })).toThrow(
+      /supports app, deck, page, doc/
+    );
+  });
+
+  it('keeps content synthesis deterministic', () => {
+    const brief = 'Keynote presentation slides for the Example Harbor all-hands.';
+    const a = blueprintFromBrief(brief);
+    const b = blueprintFromBrief(brief);
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 });
 

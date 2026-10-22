@@ -45,10 +45,44 @@ sha256 in `quick.json`. `--standalone` copies the player into the folder
 instead of sharing it, and `--out <dir>` writes elsewhere (standalone);
 `--force` replaces an exploration with the same slug.
 
+**Decks, pages and docs.** An exploration can hold any blueprint kind
+(`kind: "app"` by default, or `kind: "deck"`, `kind: "page"`, `kind: "doc"`):
+
+```bash
+protoyard quick --blueprint blueprints/decks/lumen-launch.json --slug launch --variants 3
+protoyard quick "A ten-slide talk introducing a fictional climbing gym" --kind deck --slug gym-talk
+```
+
+- `--blueprint` reads a deck, page or doc through the untrusted document loader
+  (the kind's limits and body schema). Apps keep the ordinary app loader.
+- A brief makes whatever the synthesizer detects, or what `--kind app|deck|page|doc`
+  asks for. A drafted deck, page or doc is validated like any untrusted
+  document and refused with its issues when it does not pass. `--kind` is
+  refused together with `--blueprint` (the file already declares its kind).
+- The launcher opens the player's page for that kind (`deck.html`,
+  `page.html` or `doc.html`). A shared player built before those pages
+  existed opens `index.html`, which runs every kind.
+- Every JSON result (`quick`, `quick iterate`, `quick undo`, `quick export`,
+  `quick list`) carries `kind`, and `quick index` labels deck, page and doc
+  cards.
+- **Variants** for a deck kind change only `deck.style` (theme, transition,
+  density, font pair). A page or doc varies brand theme and density. Blocks
+  and copy stay fixed; the same seed always yields the same variants
+  (`deriveKindVariants` in `@protoyard/blueprint`).
+- **Iterate** uses `applyContentPatch`: JSON Patch, then the untrusted
+  document loader. A patch that changes `kind` is refused and writes nothing.
+  There is no entity migration; `world` stays schema v1.
+- **Promote** is app-only. For a deck, page or doc, `quick promote` refuses
+  with the hint to run `protoyard generate <slug> --blueprint <file>`
+  ([Generator](GENERATOR.md#generated-decks-pages-and-docs)).
+
 ### 2. Variants
 
 `--variants <n>` (1 to 8) writes `v1/`…`vN/` and `compare.html`. The same
-blueprint and seed always give the same variants. See
+blueprint and seed always give the same variants. A deck varies only its
+style (theme, transition, density and font pair in `deck.style`); a page or
+doc varies its brand theme and density. Slides, sections, blocks and text
+never change. See
 [Variants and serving](#variants-and-serving).
 
 ### 3. Screenshots
@@ -82,8 +116,13 @@ protoyard quick export gym --single-file
   compare page and its `REVIEW.md`.
 - **One file:** `quick export <slug> --single-file` writes one HTML file
   (player and blueprint inlined) that opens from `file://` with no server, no
-  network and no service worker. `--target artifact` packs it as a Claude
-  artifact page and never publishes ([Publishing](PUBLISHING.md)).
+  network and no service worker. It embeds only the chunks its player page
+  can reach: a deck, page or doc starts from `deck.html`, `page.html` or
+  `doc.html` and carries no CRUD shell, Faker or app kits. `--target artifact`
+  packs it as a Claude artifact page, titled from the blueprint name, with
+  the kind's icon (`slides`, `page` or `document`; an app's comes from its
+  category). It never publishes
+  ([Publishing](PUBLISHING.md)).
 
 ### 5. Iterate and undo
 
@@ -139,9 +178,36 @@ protoyard quick promote gym gym-desk --variant v2 --no-install
 
 Runs `generate` on the exploration's (or one variant's) blueprint into
 `prototypes/<new-slug>`, checks it is the same app, and records `promotedTo`.
+It promotes apps only. For a deck, page or doc it refuses and prints the
+`protoyard generate <slug> --blueprint <file>` command to run instead.
 It needs a workspace and never replaces a prototype. From there, follow
 [Generator](GENERATOR.md#promoting-a-quick-exploration) and
 [Brief to prototype](BRIEF_TO_PROTOTYPE.md).
+
+**Workspace listing.** A workspace can limit its default listings to some
+catalog categories with an optional `protoyard.workspace.json` at the root:
+
+```json
+{ "listing": { "include": { "category": ["sales"] }, "appliesTo": ["prototype"] } }
+```
+
+- **What it filters:** `protoyard list`, the gallery and marketplace, the
+  showcase and the review index show only entries whose `protoyard.json`
+  `category` is listed. With `appliesTo`, only the named kinds (`prototype`,
+  `template`, `blueprint`) are filtered and the others are all shown.
+- **What it leaves alone:** the registry file keeps every entry, and commands
+  that name a slug (`dev`, `build`, `export`, `validate`, `showcase --slugs`)
+  are never filtered.
+- **A promoted exploration** is filtered like any prototype, by the
+  `category` in its `protoyard.json`. If that category is not included, the
+  new prototype exists and builds, but the listings above do not show it.
+- **Seeing everything:** `protoyard list --all`, or `PROTOYARD_LISTING=all`
+  for any command and for the gallery build. `list` reports how many entries
+  were hidden.
+- **No file:** with no file, or no `listing.include.category`, everything is
+  listed. An invalid file is reported and lists everything.
+- **Quick explorations are not filtered:** they are not registry entries, so
+  `quick list` and `quick index` always show them all.
 
 ### 10. Prune
 
@@ -166,6 +232,7 @@ builds (numbers move with the load):
 | Second exploration (shared player reused) | 987 ms |
 | Player initial JS | 178.8 KB gzip in 27 files |
 | `quick export --single-file` over the 40 catalog blueprints | 3.25 MB (about 1.05 MB gzip), refused over 4 MiB |
+| `quick export --single-file`, catalog deck, page and doc (2026-10-22) | 1.61 MB each, refused over 2 MiB |
 | `quick shot` PNG, quick blueprints | 38–97 KB each (150 KB budget) |
 
 
@@ -239,6 +306,10 @@ The review-comment controls are in the player's DevTools. Passing
   and two captures can differ by anti-aliasing at rounded corners.
 - **Iterate changes the base only.** Variants and `compare.html` keep the
   blueprint they were derived from.
+- **Content-kind patches.** `quick iterate` on a deck, page or doc validates
+  the result as an untrusted document and refuses a patch that changes
+  `kind`. There is no migration, because content kinds share one store
+  layout: `world` always reports schema v1, preserved.
 - **`quick serve` is a local convenience.** It binds to `127.0.0.1` and is not
   authentication; do not expose it.
 

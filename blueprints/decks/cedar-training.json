@@ -1,0 +1,179 @@
+{
+  "formatVersion": 1,
+  "name": "Cedar onboarding training",
+  "description": "Fictional internal training deck for Cedar Desk. Teaches a simulated support workflow with process, timeline, and interactive practice blocks.",
+  "tags": ["deck", "training", "example"],
+  "icon": "book",
+  "category": "demos",
+  "kind": "deck",
+  "brand": {
+    "name": "Cedar Desk",
+    "seed": "#b45309",
+    "styleProfile": "soft",
+    "font": "humanist"
+  },
+  "deck": {
+    "style": {
+      "aspect": "16:9",
+      "density": "comfortable",
+      "transition": "fade",
+      "slideNumbers": true
+    },
+    "slides": [
+      {
+        "id": "welcome",
+        "layout": "title-hero",
+        "props": {
+          "title": "Cedar Desk training",
+          "subtitle": "Simulated support shifts",
+          "meta": "Example Co · Learning · 2026"
+        }
+      },
+      {
+        "id": "agenda",
+        "layout": "process-steps",
+        "props": {
+          "title": "Today's path",
+          "steps": [
+            {
+              "title": "Triage",
+              "body": "Read the queue and pick a severity."
+            },
+            {
+              "title": "Respond",
+              "body": "Use the canned reply library."
+            },
+            {
+              "title": "Hand off",
+              "body": "Escalate with a clean summary."
+            },
+            {
+              "title": "Close",
+              "body": "Mark resolved and log the reason."
+            }
+          ]
+        }
+      },
+      {
+        "id": "history",
+        "layout": "timeline",
+        "props": {
+          "title": "A sample ticket story",
+          "events": [
+            {
+              "time": "09:00",
+              "text": "Customer opens a chat (fictional)."
+            },
+            {
+              "time": "09:04",
+              "text": "Bot tags severity medium."
+            },
+            {
+              "time": "09:12",
+              "text": "Agent replies with a checklist."
+            },
+            {
+              "time": "09:40",
+              "text": "Issue marked resolved in the prototype."
+            }
+          ]
+        },
+        "notes": "Times are illustrative for the training narrative."
+      },
+      {
+        "id": "practice",
+        "layout": "free",
+        "blocks": [
+          {
+            "type": "heading",
+            "text": "Practice desk",
+            "level": 2
+          },
+          {
+            "type": "text",
+            "markdown": "Use the counter and poll as **local practice controls**. They do not open real tickets."
+          },
+          {
+            "type": "counter",
+            "id": "practice-replies",
+            "label": "Practice replies sent",
+            "start": 0,
+            "min": 0,
+            "max": 20,
+            "step": 1
+          },
+          {
+            "type": "poll",
+            "id": "personnel-ready",
+            "question": "Ready to take a live queue in the prototype?",
+            "options": [
+              {
+                "id": "yes",
+                "label": "Yes — open the demo"
+              },
+              {
+                "id": "review",
+                "label": "Review notes once more"
+              }
+            ]
+          },
+          {
+            "type": "callout",
+            "title": "Honesty",
+            "body": "Cedar Desk is a simulated product. No customer PII leaves the browser."
+          }
+        ]
+      },
+      {
+        "id": "snippet",
+        "layout": "code-with-callout",
+        "props": {
+          "title": "Status enum (sample)",
+          "code": {
+            "lang": "ts",
+            "source": "type TicketStatus =\n  | 'new'\n  | 'waiting'\n  | 'resolved';\n"
+          },
+          "heading": "Schema note",
+          "bullets": ["Matches the prototype schema", "Not a production API surface"]
+        }
+      },
+      {
+        "id": "close",
+        "layout": "closing-cta",
+        "props": {
+          "title": "Open the practice queue",
+          "text": "Load the Cedar Desk prototype and resolve one fictional ticket.",
+          "cta": {
+            "label": "example.com/cedar-training",
+            "href": "https://example.com/cedar-training"
+          },
+          "footnote": "Training only. No real customers."
+        }
+      }
+    ],
+    "outline": {
+      "sections": [
+        {
+          "id": "start",
+          "slideIds": ["welcome", "agenda"]
+        },
+        {
+          "id": "story",
+          "slideIds": ["history", "practice", "snippet"]
+        },
+        {
+          "id": "end",
+          "slideIds": ["close"]
+        }
+      ]
+    }
+  },
+  "catalog": {
+    "category": "education",
+    "productType": "Training deck",
+    "platforms": ["web"],
+    "features": ["deck", "timeline", "poll", "counter", "code"],
+    "highlights": ["Timeline of the rollout", "Live counter and poll", "Code callout"],
+    "difficulty": "beginner"
+  }
+}

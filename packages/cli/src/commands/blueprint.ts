@@ -5,12 +5,17 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 import {
+  type AnyBlueprint,
+  type AppBriefResult,
   ARCHETYPE_IDS,
-  type BriefResult,
   blueprintFromBrief,
+  blueprintKind,
   brandLibraryThemeId,
+  isAppBlueprint,
+  isAppBriefResult,
   latestSchemaVersion,
   MAX_BRIEF_LENGTH,
+  safeParseAnyBlueprint,
   safeParseBlueprint,
 } from '@protoyard/blueprint';
 import { type CommandResult, flag, type Handler, opt } from '../lib/command.ts';
@@ -45,7 +50,7 @@ export const blueprintValidateCommand: Handler = async (_ctx, args): Promise<Com
       data: { file, valid: false, issues: [{ path: '(root)', message: (error as Error).message }] },
     });
   }
-  const parsed = safeParseBlueprint(raw);
+  const parsed = await safeParseAnyBlueprint(raw);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((issue) => ({
       path: issue.path.map(String).join('.') || '(root)',
@@ -60,9 +65,10 @@ export const blueprintValidateCommand: Handler = async (_ctx, args): Promise<Com
     );
   }
   const blueprint = parsed.data;
+  const kind = blueprintKind(blueprint);
   let schemaVersion: number;
   try {
-    schemaVersion = latestSchemaVersion(blueprint);
+    schemaVersion = isAppBlueprint(blueprint) ? latestSchemaVersion(blueprint) : 1;
   } catch (error) {
     throw new CliError(
       'validation',
@@ -86,30 +92,133 @@ export const blueprintValidateCommand: Handler = async (_ctx, args): Promise<Com
       });
     }
   }
-  const entities = blueprint.entities.map((e) => ({
-    name: e.name,
-    fields: e.fields.length,
-  }));
+  const summary = blueprintSummary(blueprint);
   return {
     data: {
       file,
       valid: true,
+      kind,
       name: blueprint.name,
-      entities,
-      roles: blueprint.roles.map((r) => r.name),
-      screens: blueprint.screens.length,
+      ...summary,
       schemaVersion,
       issues: [],
     },
     render(out) {
       const { c } = out;
       out.always(
-        `${mark(c, 'pass')} ${c.bold(blueprint.name)} is a valid blueprint: ${entities.length} entities, ${blueprint.roles.length} roles, schema v${schemaVersion}`
+        `${mark(c, 'pass')} ${c.bold(blueprint.name)} is a valid ${kind} blueprint: ${summaryText(kind, summary)}, schema v${schemaVersion}`
       );
-      for (const e of entities) out.info(`  ${e.name} ${c.dim(`(${e.fields} fields)`)}`);
+      if (kind === 'app' && 'entities' in summary) {
+        for (const e of summary.entities) out.info(`  ${e.name} ${c.dim(`(${e.fields} fields)`)}`);
+      }
     },
   };
 };
+
+type BlueprintSummary =
+  | { entities: { name: string; fields: number }[]; roles: string[]; screens: number }
+  | { slides: number; blocks: number; interactiveBlocks: number }
+  | { sections: number; forms: number }
+  | { sections: number; headings: number };
+
+const INTERACTIVE_BLOCKS = new Set([
+  'tabs',
+  'reveal',
+  'poll',
+  'quiz',
+  'calculator',
+  'counter',
+  'chart-controls',
+  'map',
+  'embed-app',
+  'form',
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function forEachBlueprintBlock(
+  value: unknown,
+  visit: (block: Record<string, unknown>) => void
+): void {
+  if (Array.isArray(value)) {
+    for (const child of value) forEachBlueprintBlock(child, visit);
+    return;
+  }
+  if (!isRecord(value)) return;
+  if (typeof value.type === 'string') visit(value);
+  forEachBlueprintBlock(value.blocks, visit);
+  forEachBlueprintBlock(value.columns, visit);
+  forEachBlueprintBlock(value.panels, visit);
+}
+
+function countBlockStats(lists: readonly unknown[]): {
+  blocks: number;
+  interactiveBlocks: number;
+} {
+  let blocks = 0;
+  let interactiveBlocks = 0;
+  for (const list of lists)
+    forEachBlueprintBlock(list, (block) => {
+      blocks += 1;
+      if (INTERACTIVE_BLOCKS.has(block.type as string)) interactiveBlocks += 1;
+    });
+  return { blocks, interactiveBlocks };
+}
+
+function countBlocksOfType(value: unknown, target: string): number {
+  let count = 0;
+  forEachBlueprintBlock(value, (block) => {
+    if (block.type === target) count += 1;
+  });
+  return count;
+}
+
+function blueprintSummary(blueprint: AnyBlueprint): BlueprintSummary {
+  if (isAppBlueprint(blueprint)) {
+    return {
+      entities: blueprint.entities.map((entity) => ({
+        name: entity.name,
+        fields: entity.fields.length,
+      })),
+      roles: blueprint.roles.map((role) => role.name),
+      screens: blueprint.screens.length,
+    };
+  }
+  if (blueprint.kind === 'deck') {
+    const { blocks, interactiveBlocks } = countBlockStats(
+      blueprint.deck.slides.flatMap((slide) => ('blocks' in slide ? [slide.blocks] : []))
+    );
+    return { slides: blueprint.deck.slides.length, blocks, interactiveBlocks };
+  }
+  if (blueprint.kind === 'page') {
+    let forms = 0;
+    for (const section of blueprint.page.sections) {
+      forms += countBlocksOfType(section.blocks, 'form');
+    }
+    return { sections: blueprint.page.sections.length, forms };
+  }
+  let headings = 0;
+  let sections = 0;
+  forEachBlueprintBlock(blueprint.doc.blocks, (block) => {
+    if (block.type !== 'heading') return;
+    headings += 1;
+    if ((block.level ?? 2) === 2) sections += 1;
+  });
+  return { sections, headings };
+}
+
+function summaryText(kind: ReturnType<typeof blueprintKind>, summary: BlueprintSummary): string {
+  if (kind === 'app' && 'entities' in summary)
+    return `${summary.entities.length} entities, ${summary.roles.length} roles, ${summary.screens} screens`;
+  if (kind === 'deck' && 'slides' in summary)
+    return `${summary.slides} slides, ${summary.blocks} blocks, ${summary.interactiveBlocks} interactive`;
+  if (kind === 'page' && 'forms' in summary)
+    return `${summary.sections} sections, ${summary.forms} forms`;
+  if ('headings' in summary) return `${summary.sections} sections, ${summary.headings} headings`;
+  return '';
+}
 
 /** Where `blueprint new` reads a piped brief and asks interactive questions. Tests swap it. */
 export interface BriefIo {
@@ -332,13 +441,24 @@ export const blueprintNewCommand: Handler = async (ctx, args, options): Promise<
   }
   if (brief.trim() === '') throw new CliError('usage', 'The brief is empty.');
 
-  let result: BriefResult;
+  let result: AppBriefResult;
   try {
-    result = blueprintFromBrief(brief, {
+    const synthesized = blueprintFromBrief(brief, {
       ...(archetype ? { archetype } : {}),
       ...(name ? { name } : {}),
     });
+    if (!isAppBriefResult(synthesized)) {
+      throw new CliError(
+        'validation',
+        `This brief looks like a ${synthesized.kind}, and generate still expects an app blueprint.`,
+        {
+          hint: `Pass an app brief, or force an app with kind "app" once the CLI accepts --kind. Detector: ${synthesized.kindDetection.reason}`,
+        }
+      );
+    }
+    result = synthesized;
   } catch (error) {
+    if (error instanceof CliError) throw error;
     throw new CliError('validation', `Could not build a blueprint: ${(error as Error).message}`);
   }
   const ref = schemaRef(ctx.root, target);

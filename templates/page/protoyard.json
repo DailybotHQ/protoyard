@@ -1,0 +1,36 @@
+{
+  "$schema": "https://github.com/DailybotHQ/protoyard/schema/manifest/v1",
+  "id": "template.page",
+  "slug": "page",
+  "kind": "template",
+  "blueprintKind": "page",
+  "name": "Page",
+  "description": "A landing-page kind template: shared PageApp from blueprint.json, kind runtime personas, and a waitlist form that persists responses in IndexedDB.",
+  "version": "0.1.0",
+  "renderer": "svelte-vite",
+  "platform": "responsive",
+  "category": "starter",
+  "tags": ["page", "landing", "form", "kind"],
+  "catalog": {
+    "category": "starter",
+    "productType": "Landing page",
+    "platforms": ["web"],
+    "features": ["landing", "form", "kind-runtime"],
+    "highlights": [
+      "PageApp from @protoyard/pages-ui",
+      "defineKindRuntime with presenter / audience / viewer",
+      "Persisted waitlist form responses"
+    ],
+    "difficulty": "beginner"
+  },
+  "status": "ready",
+  "icon": "📄",
+  "defaultScenario": "default",
+  "defaultTheme": "violet",
+  "defaultMode": "system",
+  "preview": { "viewport": "desktop" },
+  "storage": { "namespace": "template-page", "schemaVersion": 1 },
+  "build": { "includeDevtools": false, "demoBadge": true, "base": "./" },
+  "scenarios": ["default"],
+  "thumbnail": "public/thumbnail.png"
+}

@@ -1,0 +1,12 @@
+/* Tailwind, the theme tokens and @protoyard/ui (the same base as the player). */
+@import "@protoyard/renderer-svelte/app.css";
+/* The kits this kind renders: the shared blocks, the chart and view kits that
+ * chart, map and timeline blocks load, and the page and doc hosts. Each kit
+ * stylesheet registers its own Tailwind sources. */
+@import "@protoyard/blocks-ui/styles.css";
+@import "@protoyard/charts-ui/styles.css";
+@import "@protoyard/views-ui/styles.css";
+@import "@protoyard/pages-ui/styles.css";
+
+/* Let Tailwind see this prototype's own markup. */
+@source "./";

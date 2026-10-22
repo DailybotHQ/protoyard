@@ -1,0 +1,104 @@
+{
+  "name": "@protoyard/decks",
+  "version": "1.0.0",
+  "description": "Framework-agnostic slide deck engine for Protoyard: deck schema, layout catalog, navigation, steps and style resolution (no Svelte, no Reveal.js).",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./layouts": "./src/layouts/index.ts",
+    "./style": "./src/style/index.ts",
+    "./quality": "./src/quality/index.ts",
+    "./text": "./src/text/index.ts",
+    "./presenter": "./src/presenter/index.ts",
+    "./patch": "./src/patch/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@protoyard/blocks": "workspace:*",
+    "zod": "^4.6.7",
+    "@protoyard/themes": "workspace:*",
+    "@protoyard/ai": "workspace:*"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./schema": {
+        "types": "./dist/schema/index.d.ts",
+        "import": "./dist/schema/index.js",
+        "default": "./dist/schema/index.js"
+      },
+      "./layouts": {
+        "types": "./dist/layouts/index.d.ts",
+        "import": "./dist/layouts/index.js",
+        "default": "./dist/layouts/index.js"
+      },
+      "./style": {
+        "types": "./dist/style/index.d.ts",
+        "import": "./dist/style/index.js",
+        "default": "./dist/style/index.js"
+      },
+      "./quality": {
+        "types": "./dist/quality/index.d.ts",
+        "import": "./dist/quality/index.js",
+        "default": "./dist/quality/index.js"
+      },
+      "./text": {
+        "types": "./dist/text/index.d.ts",
+        "import": "./dist/text/index.js",
+        "default": "./dist/text/index.js"
+      },
+      "./patch": {
+        "types": "./dist/patch/index.d.ts",
+        "import": "./dist/patch/index.js",
+        "default": "./dist/patch/index.js"
+      },
+      "./presenter": {
+        "types": "./dist/presenter/index.d.ts",
+        "import": "./dist/presenter/index.js",
+        "default": "./dist/presenter/index.js"
+      }
+    },
+    "types": "./dist/index.d.ts"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/decks"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "slides",
+    "deck",
+    "presentation",
+    "typescript"
+  ]
+}

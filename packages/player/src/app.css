@@ -1,12 +1,12 @@
 @import "@protoyard/renderer-svelte/app.css";
+@import "@protoyard/ui/player.css";
 @import "@protoyard/crud/styles.css";
-@import "@protoyard/views-ui/styles.css";
-@import "@protoyard/charts-ui/styles.css";
-@import "@protoyard/analytics-ui/styles.css";
+@import "./charts.css";
+@import "./views.css";
+@import "./analytics.css";
 
-/* Let Tailwind see the player's own markup; each kit stylesheet above registers its own. */
+/* Tailwind emits shared utilities once for every player renderer. */
 @source "./";
-
 html,
 body,
 #app {
@@ -15,6 +15,7 @@ body,
 
 body {
   margin: 0;
-  background: var(--background);
-  color: var(--foreground);
+  /* Theme tokens (@protoyard/themes): a deck, page or doc sits on the body itself. */
+  background: var(--py-background);
+  color: var(--py-foreground);
 }

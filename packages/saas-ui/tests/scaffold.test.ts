@@ -182,6 +182,8 @@ describe('saasRoutes', () => {
         'oauthConsent',
         'oauthLink',
         'onboarding',
+        'phoneCode',
+        'phoneSignIn',
         'resetPassword',
         'settings',
         'signIn',

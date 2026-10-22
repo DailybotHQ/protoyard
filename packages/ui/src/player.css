@@ -1,0 +1,18 @@
+/* UI utilities excluded by the prebuilt player because it does not mount these families. */
+/* The shared app layouts still need their responsive utilities in the player. */
+@source "./layouts";
+@source not "./components/carousel";
+@source not "./components/chat";
+@source not "./components/user-picker";
+@source not "./components/image-input";
+@source not "./components/kanban";
+@source not "./components/typing-indicator";
+@source not "./components/stat-card";
+@source not "./components/StarRating.svelte";
+@source not "./components/card-grid";
+@source not "./components/accordion";
+@source not "./components/toast/UndoToaster.svelte";
+@source not "./components/NumberStepper.svelte";
+@source not "./components/ChipGroup.svelte";
+@source not "./components/actors";
+@source not "./components/form/utilities/TagEmailInput.svelte";

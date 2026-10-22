@@ -1,6 +1,6 @@
 <script lang="ts">
-import type { Blueprint } from '@protoyard/blueprint';
-import { DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS } from '@protoyard/blueprint';
+import type { AnyBlueprint, Blueprint } from '@protoyard/blueprint';
+import { DEFAULT_UNTRUSTED_DOCUMENT_LIMITS } from '@protoyard/blueprint';
 import { Button, type DropzoneFile, FileDropzone } from '@protoyard/ui';
 import { loadBlueprintFromFile, type SourceIssue } from './resolve.ts';
 
@@ -14,7 +14,7 @@ let {
   onBlueprint,
   loadDemo,
 }: {
-  onBlueprint: (blueprint: Blueprint, label: string) => void | Promise<void>;
+  onBlueprint: (blueprint: AnyBlueprint, label: string) => void | Promise<void>;
   loadDemo: () => Promise<Blueprint>;
 } = $props();
 
@@ -58,7 +58,7 @@ async function demo() {
     <FileDropzone
       class="mt-4"
       accept=".json,application/json"
-      maxSize={DEFAULT_UNTRUSTED_BLUEPRINT_LIMITS.maxBytes}
+      maxSize={DEFAULT_UNTRUSTED_DOCUMENT_LIMITS.maxBytes}
       multiple={false}
       bind:files={picked}
       disabled={busy}

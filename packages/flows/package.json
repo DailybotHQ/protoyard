@@ -1,0 +1,70 @@
+{
+  "name": "@protoyard/flows",
+  "version": "1.0.0",
+  "description": "Framework-agnostic workflow engine for Protoyard: a serializable flow model with triggers, steps, data-only conditions, edit operations, recipes and validation (no Svelte, no executable expressions).",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./model": "./src/model/index.ts",
+    "./runtime": "./src/runtime/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "protoyard": {
+    "build": {
+      "group": "engine",
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./model": {
+        "types": "./dist/model/index.d.ts",
+        "import": "./dist/model/index.js",
+        "default": "./dist/model/index.js"
+      },
+      "./runtime": {
+        "types": "./dist/runtime/index.d.ts",
+        "import": "./dist/runtime/index.js",
+        "default": "./dist/runtime/index.js"
+      }
+    },
+    "types": "./dist/index.d.ts"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/flows"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "keywords": [
+    "protoyard",
+    "workflow",
+    "automation",
+    "typescript"
+  ]
+}

@@ -1,13 +1,25 @@
 <script lang="ts">
 import { ErrorState, LoadingState } from '@protoyard/ui';
+import { chromeMessages } from '../messages.ts';
 // Aliased: the emitted Router.svelte.d.ts declares the component as `Router`.
 import type { Router as HashRouter } from './hash-router.svelte.ts';
 import NotFound from './NotFound.svelte';
 
-/** Renders the component matching the current hash; extra props are forwarded. */
+const messages = chromeMessages().router;
+
+/**
+ * Renders the component matching the current hash; extra props are forwarded.
+ * An overlay route (`overlay: true`) renders over the last full-screen route,
+ * which stays mounted underneath (its state and scroll survive), and the
+ * overlay outlet loads only when one opens.
+ */
 let { router, ...rest }: { router: HashRouter; [key: string]: unknown } = $props();
 
-const match = $derived(router.current);
+const match = $derived(router.background);
+const overlay = $derived(router.overlay);
+const overlayKey = $derived(
+  overlay ? `${overlay.route?.path ?? ''}:${overlay.path}?${overlay.query.toString()}` : null
+);
 
 /**
  * Bumped on retry so `{#await}` re-subscribes after `invalidate` clears a
@@ -62,7 +74,7 @@ function focusOutlet(node: HTMLElement): void {
 {#key `${routeKey}:${loadAttempt}`}
   {#if page instanceof Promise}
     {#await page}
-      <LoadingState label="Loading screen" class="py-16" />
+      <LoadingState label={messages.loadingScreen} class="py-16" />
     {:then Page}
       <div
         class={OUTLET_CLASS}
@@ -74,10 +86,10 @@ function focusOutlet(node: HTMLElement): void {
       </div>
     {:catch error}
       <ErrorState
-        title="This screen could not be loaded"
+        title={messages.loadFailedTitle}
         message={error instanceof Error ? error.message : String(error)}
         onRetry={retryLoad}
-        retryLabel="Try again"
+        retryLabel={messages.retry}
       />
     {/await}
   {:else}
@@ -98,3 +110,18 @@ function focusOutlet(node: HTMLElement): void {
     </div>
   {/if}
 {/key}
+
+{#if overlay && overlayKey}
+  {#key overlayKey}
+    {#await import('./OverlayOutlet.svelte') then { default: OverlayOutlet }}
+      <OverlayOutlet {router} match={overlay} {rest} />
+    {:catch error}
+      <ErrorState
+        title={messages.openFailedTitle}
+        message={error instanceof Error ? error.message : String(error)}
+        onRetry={() => router.closeOverlay()}
+        retryLabel={messages.close}
+      />
+    {/await}
+  {/key}
+{/if}

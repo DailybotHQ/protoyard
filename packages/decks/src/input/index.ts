@@ -1,0 +1,15 @@
+export {
+  DECK_CHROME_ATTRIBUTE,
+  DECK_INPUT_ACTIONS,
+  DECK_INTERACTIVE_ATTRIBUTE,
+  DECK_KEY_BINDINGS,
+  DECK_SWIPE_AXIS_RATIO,
+  DECK_SWIPE_MAX_DURATION_MS,
+  DECK_SWIPE_MIN_DISTANCE,
+  type DeckInputAction,
+  type DeckInputEvent,
+  type DeckInputState,
+  type DeckInputTarget,
+  decideDeckInput,
+  inputPathFrom,
+} from './decide.ts';

@@ -311,6 +311,31 @@ with the showcase and player suites (201 passed), `budget --all` (15/15),
 - **`quick report` and `quick feedback`** cover only the current blueprint and the recorded variants. Metrics and comments from earlier `quick iterate` history entries or `keep` namespaces are not included ([QUICK.md](QUICK.md#reports-and-review-feedback)).
 - The plan's Final Review, its stage checkpoints and a few documentation and E2E tasks were still open when this section was written.
 
+## PLAN_005: create anything — decks, pages, docs and fork kits
+
+The execution record is the Deep Work Plan
+`PLAN_005_create_anything_decks_and_kits` (git-ignored `.dwp/plans/`), built
+by a lead and up to fourteen lanes in git worktrees and integrated on `dev`.
+Decisions are ADR-036 to ADR-043 in [DECISIONS.md](DECISIONS.md). Evidence is
+the test or command named on each item.
+
+**Verified on `dev`:**
+
+- [x] One blueprint format with a `kind` (`app`, `deck`, `page`, `doc`); a missing kind means `app`, and every existing blueprint keeps its identity [`packages/blueprint/tests/identity-golden.test.ts`, `packages/blueprint/tests/kinds`]
+- [x] Shared content blocks with bounded schemas, an untrusted-input guard, a closed formula grammar and lazy renderer families [`pnpm vitest run packages/blocks packages/blocks-ui`, [BLOCKS.md](BLOCKS.md)]
+- [x] Slide decks: 21 designed layouts with a display type scale, deck styles (theme, fonts, backgrounds), presenter, overview, print and Deck Studio [`pnpm vitest run packages/decks packages/decks-ui`, [DECKS.md](DECKS.md)]
+- [x] Landing pages and documents with designed sections, working forms and one table of contents [`pnpm vitest run packages/pages packages/pages-ui`, [PAGES.md](PAGES.md)]
+- [x] Two levels: the player runs deck, page and doc JSON from its own per-kind entries, and `protoyard generate` turns the same file into a full prototype on the same renderer [`packages/player/tests/kinds-parity.test.ts`, `packages/cli/tests/generate-kinds.test.ts`]
+- [x] `protoyard quick --kind deck|page|doc`, share links, single-file and Claude artifact exports for every kind [`packages/cli/tests/quick`, `packages/blueprint/tests/kinds/share-kinds.test.ts`, `tests/e2e/deck-artifact.spec.ts`]
+- [x] Generic kits promoted from two product forks: workflows, gamification, rich text editor, command palette, overlays, simulated phone sign-up, account gate and more, with no product names upstream [`pnpm vitest run packages/flows packages/gamification`, the public-hygiene check]
+- [x] The flagship deck `blueprints/decks/protoyard-create-anything.json` and its generated prototype `prototypes/create-anything-deck` [`pnpm protoyard validate create-anything-deck --build`]
+
+**Not verified or still open when this section was written:**
+
+- The deck stage fit, step reveals, the deck and page browser design gates and the Final Review were still in progress.
+- The deck single-file export measures about 1.61 MB, over the provisional 1.5 MiB target; the cap is 2 MiB so a shared deck keeps DevTools and Deck Studio ([PERFORMANCE.md](PERFORMANCE.md)).
+- Artifact checks run in a local harness that imitates the viewer, not on claude.ai.
+
 ## Deferred and known gaps
 
 - **Live provider deploys** were not run: there are no credentials, and real publishing needs the owner's explicit authorization.

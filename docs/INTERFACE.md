@@ -38,7 +38,7 @@ protoyard doctor --json --offline
   "command": "doctor",
   "data": { "ok": true, "checks": [ … ] },
   "interface": 1,
-  "capabilities": ["blueprint-schema", "generate", "mcp", "player", "quick"]
+  "capabilities": ["blueprint-schema", "generate", "kind-deck", "kind-doc", "kind-page", "mcp", "player", "quick"]
 }
 ```
 
@@ -78,12 +78,15 @@ needs and treats a missing id as "not available in this CLI".
 
 | Id | Means | In this CLI |
 | --- | --- | --- |
-| `quick` | `protoyard quick`: disposable explorations from a brief or blueprint, with no build | yes |
-| `player` | The prebuilt player that `quick` uses, matching the CLI version | yes |
+| `blueprint-schema` | `protoyard blueprint validate` and the published blueprint JSON Schema (`@protoyard/blueprint/schema.json`), including the kind union | yes |
 | `generate` | `protoyard generate` and `blueprint new --generate`: full prototypes from a blueprint | yes |
-| `blueprint-schema` | `protoyard blueprint validate` and the published blueprint JSON Schema (`@protoyard/blueprint/schema.json`) | yes |
 | `import` | Importing a data shape (CSV, JSON, a SQLite schema) into a blueprint from the CLI | not yet |
+| `kind-deck` | Deck blueprints: `kind: "deck"`, `quick --kind deck`, generate/player deck entry, and the deck branch of the published schema | yes |
+| `kind-doc` | Doc blueprints: `kind: "doc"`, `quick --kind doc`, generate/player doc entry, and the doc branch of the published schema | yes |
+| `kind-page` | Page blueprints: `kind: "page"`, `quick --kind page`, generate/player page entry, and the page branch of the published schema | yes |
 | `mcp` | `protoyard mcp`, the stdio MCP JSON-RPC transport ([MCP](MCP.md)) | yes |
+| `player` | The prebuilt player that `quick` uses, matching the CLI version | yes |
+| `quick` | `protoyard quick`: disposable explorations from a brief or blueprint, with no build | yes |
 
 A capability is listed only once its command or contract ships, and a test
 keeps the list honest (`packages/cli/tests/interface.test.ts`).
@@ -321,7 +324,10 @@ The interface is a compatibility contract, not a security mechanism:
   was installed.
 - **Simulated features stay simulated.** Roles, sign-in and other simulated
   behavior inside prototypes are never security, whatever the interface
-  reports.
+  reports. UI helpers such as `@protoyard/ui` `OtpInput` are presentation
+  only: they collect a fixed-length code string and fire a completion
+  callback. They are not a capability id, do not send SMS, and do not
+  authenticate anyone.
 
 ## Recipes stay runnable
 

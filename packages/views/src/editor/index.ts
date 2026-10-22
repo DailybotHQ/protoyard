@@ -1,9 +1,9 @@
 /**
- * `@protoyard/views/editor` — markdown text commands for the textarea editor
- * in `@protoyard/views-ui/editor`: bold/italic/code/strike, links, headings,
- * lists and quotes, code blocks, list continuation and `@`/`#` completion.
- * Pure functions over `{ text, start, end }`.
+ * `@protoyard/views/editor` — bounded safe editor documents and markdown text
+ * commands for `@protoyard/views-ui/editor`. Documents are plain data; HTML is
+ * never parsed, stored or rendered.
  */
+
 export {
   applyCompletion,
   continueList,
@@ -19,3 +19,16 @@ export {
   toggleLines,
   triggerAt,
 } from './commands.ts';
+export {
+  EDITOR_DOCUMENT_MAX_BLOCKS,
+  EDITOR_DOCUMENT_MAX_LENGTH,
+  EDITOR_DOCUMENT_MAX_LIST_ITEMS,
+  type EditorBlock,
+  type EditorDocument,
+  EditorDocumentSchema,
+  type EditorInline,
+  type EditorMark,
+  parseEditorDocument,
+  safeHref,
+  serializeEditorDocument,
+} from './document.ts';

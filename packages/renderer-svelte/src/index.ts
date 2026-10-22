@@ -1,3 +1,13 @@
+export {
+  type AdaptivePresentationOptions,
+  type AdaptivePresentationStore,
+  createAdaptivePresentation,
+  type PresentationPreference,
+  type PresentationView,
+  parsePresentationView,
+  presentationUrlWithoutOverride,
+  resolvePresentationView,
+} from './adaptive/presentation.svelte.ts';
 export { bindAppearance } from './appearance.ts';
 export {
   AVATAR_BASE,
@@ -28,8 +38,21 @@ export {
   usePrincipal,
   useScenario,
 } from './bindings.svelte.ts';
+export { type ClockTickHandler, type ClockTickOptions, onClockTick } from './clock-tick.ts';
 export { getRuntime, provideRuntime, setMountedRuntime } from './context.ts';
 export { BUILD_INFO, DEMO_BADGE_ENABLED, DEVTOOLS_ENABLED, REVIEW_ENABLED } from './flags.ts';
+export {
+  CHROME_MESSAGE_MAX_LENGTH,
+  type ChromeMessages,
+  type ChromeMessagesInput,
+  chromeMessages,
+  DEFAULT_CHROME_MESSAGES,
+  formatMessage,
+  type MessagePart,
+  messageParts,
+  resolveChromeMessages,
+  setChromeMessages,
+} from './messages.ts';
 export {
   applyBuildOptions,
   type MountBuildOptions,
@@ -51,10 +74,12 @@ export {
   type RouteGuard,
   type RouteMatch,
   type RouteMeta,
+  type RouteOverlayOptions,
   type RouteProps,
   type Router as HashRouter,
   type RouterOptions,
   redirectWithNext,
+  routeOverlay,
 } from './router/hash-router.svelte.ts';
 export { default as Link } from './router/Link.svelte';
 export {
@@ -67,6 +92,21 @@ export {
 } from './router/match.ts';
 export { default as NotFound } from './router/NotFound.svelte';
 export { default as Router } from './router/Router.svelte';
+export {
+  activePersonaId,
+  activeScenarioId,
+  createScenarioSwitcherActions,
+  groupScenarios,
+  listScenarioSwitcherItems,
+  listScenarioSwitcherPersonas,
+  type ScenarioSwitcherGroup,
+  type ScenarioSwitcherLoadOptions,
+  type ScenarioSwitcherPersona,
+  type ScenarioSwitcherScenario,
+  scenarioSwitcherProps,
+  toScenarioSwitcherItem,
+  toScenarioSwitcherPersona,
+} from './scenario-switcher.ts';
 export {
   isValidationError,
   type RunServiceOptions,

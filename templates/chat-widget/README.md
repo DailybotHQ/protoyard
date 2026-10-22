@@ -23,4 +23,5 @@ pnpm protoyard dev my-widget
 Mutations go UI → service → `session.assert` → validate → `environment.run` →
 `db.transaction`. The assistant is scripted (`domain/assistant.ts`); no model
 API. Unread badges drive `getWidgetHost().setUnread` when the widget-host frame
-is present.
+is present. Message times use `nextMonotonicIso` so a paused simulated clock
+never shuffles thread order.

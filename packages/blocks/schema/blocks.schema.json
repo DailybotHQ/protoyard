@@ -1,0 +1,4326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/DailybotHQ/protoyard/schema/blocks/v1",
+  "title": "Protoyard content blocks",
+  "description": "A bounded list item used to compose decks, pages and documents. Blocks are data only; scripts, HTML, raw styles and remote media are not accepted.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/heading"
+    },
+    {
+      "$ref": "#/$defs/text"
+    },
+    {
+      "$ref": "#/$defs/list"
+    },
+    {
+      "$ref": "#/$defs/quote"
+    },
+    {
+      "$ref": "#/$defs/callout"
+    },
+    {
+      "$ref": "#/$defs/divider"
+    },
+    {
+      "$ref": "#/$defs/image"
+    },
+    {
+      "$ref": "#/$defs/video"
+    },
+    {
+      "$ref": "#/$defs/people"
+    },
+    {
+      "$ref": "#/$defs/stat"
+    },
+    {
+      "$ref": "#/$defs/table"
+    },
+    {
+      "$ref": "#/$defs/chart"
+    },
+    {
+      "$ref": "#/$defs/code"
+    },
+    {
+      "$ref": "#/$defs/timeline"
+    },
+    {
+      "$ref": "#/$defs/steps"
+    },
+    {
+      "$ref": "#/$defs/comparison"
+    },
+    {
+      "$ref": "#/$defs/cards"
+    },
+    {
+      "$ref": "#/$defs/icon"
+    },
+    {
+      "$ref": "#/$defs/cta"
+    },
+    {
+      "$ref": "#/$defs/columns"
+    },
+    {
+      "$ref": "#/$defs/tabs"
+    },
+    {
+      "$ref": "#/$defs/reveal"
+    },
+    {
+      "$ref": "#/$defs/poll"
+    },
+    {
+      "$ref": "#/$defs/quiz"
+    },
+    {
+      "$ref": "#/$defs/calculator"
+    },
+    {
+      "$ref": "#/$defs/counter"
+    },
+    {
+      "$ref": "#/$defs/chart-controls"
+    },
+    {
+      "$ref": "#/$defs/map"
+    },
+    {
+      "$ref": "#/$defs/embed-app"
+    },
+    {
+      "$ref": "#/$defs/form"
+    },
+    {
+      "$ref": "#/$defs/flow"
+    },
+    {
+      "$ref": "#/$defs/tree"
+    },
+    {
+      "$ref": "#/$defs/board"
+    },
+    {
+      "$ref": "#/$defs/terminal"
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "num",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "value": {
+              "type": "number",
+              "minimum": -1000000000000000,
+              "maximum": 1000000000000000,
+              "description": "Value displayed or supplied to this operation."
+            }
+          },
+          "required": ["op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "var",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z][a-zA-Z0-9]{0,31}$",
+              "description": "Stable field or variable name used by the data model."
+            }
+          },
+          "required": ["op", "name"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "add",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "sub",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "mul",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "div",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "pow",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "base": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Base value used by this operation."
+            },
+            "exponent": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Exponent applied by this expression."
+            }
+          },
+          "required": ["op", "base", "exponent"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "min",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "args": {
+              "minItems": 2,
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "description": "Operands for this closed expression operator."
+            }
+          },
+          "required": ["op", "args"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "max",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "args": {
+              "minItems": 2,
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "description": "Operands for this closed expression operator."
+            }
+          },
+          "required": ["op", "args"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "round",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "value": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Value displayed or supplied to this operation."
+            },
+            "digits": {
+              "type": "integer",
+              "minimum": -6,
+              "maximum": 6,
+              "description": "Number of decimal places used by this rounding operation."
+            }
+          },
+          "required": ["op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "clamp",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "value": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Value displayed or supplied to this operation."
+            },
+            "min": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Minimum permitted numeric value."
+            },
+            "max": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Maximum permitted numeric value."
+            }
+          },
+          "required": ["op", "value", "min", "max"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "if",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "test": {
+              "$ref": "#/$defs/__schema1",
+              "description": "Closed condition expression evaluated against the declared data."
+            },
+            "ifTrue": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Expression result when the condition is true."
+            },
+            "ifFalse": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Expression result when the condition is false."
+            }
+          },
+          "required": ["op", "test", "ifTrue", "ifFalse"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema1": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "not",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "value": {
+              "$ref": "#/$defs/__schema1",
+              "description": "Value displayed or supplied to this operation."
+            }
+          },
+          "required": ["op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "lt",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "lte",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "gt",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "gte",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "eq",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "neq",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "left": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Left operand or left-side content, depending on the block."
+            },
+            "right": {
+              "$ref": "#/$defs/__schema0",
+              "description": "Right operand for this expression."
+            }
+          },
+          "required": ["op", "left", "right"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "and",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "args": {
+              "minItems": 2,
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "description": "Operands for this closed expression operator."
+            }
+          },
+          "required": ["op", "args"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string",
+              "const": "or",
+              "description": "Closed expression operator; its value selects a data-only operation."
+            },
+            "args": {
+              "minItems": 2,
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "description": "Operands for this closed expression operator."
+            }
+          },
+          "required": ["op", "args"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "heading": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "heading",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Plain text or short markdown content, according to the block field."
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "description": "Heading level or bounded content level."
+        },
+        "eyebrow": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Short secondary label shown above the main heading."
+        },
+        "subtitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280,
+          "description": "Supporting line shown beneath the main heading."
+        },
+        "align": {
+          "type": "string",
+          "enum": ["start", "center"],
+          "description": "Horizontal alignment for this content."
+        }
+      },
+      "required": ["type", "text"],
+      "additionalProperties": false,
+      "title": "Heading",
+      "description": "Open a section or slide with a clear title. text ≤ 200 characters; level 1–4; optional eyebrow and subtitle."
+    },
+    "text": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "text",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "markdown": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000,
+          "description": "Bounded markdown source rendered through the safe markdown parser."
+        },
+        "size": {
+          "type": "string",
+          "enum": ["sm", "md", "lg"],
+          "description": "Display size or bounded text size."
+        },
+        "align": {
+          "type": "string",
+          "enum": ["start", "center"],
+          "description": "Horizontal alignment for this content."
+        }
+      },
+      "required": ["type", "markdown"],
+      "additionalProperties": false,
+      "title": "Rich text",
+      "description": "Paragraphs, short lists and inline emphasis in markdown. markdown ≤ 4000 characters; parsed by safe markdown (no raw HTML)."
+    },
+    "list": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "list",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "style": {
+          "type": "string",
+          "enum": ["bullet", "number", "check", "icon"],
+          "description": "Allow-listed visual style for this block."
+        },
+        "items": {
+          "minItems": 1,
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "description": "Plain text or short markdown content, according to the block field."
+              },
+              "icon": {
+                "type": "string",
+                "enum": [
+                  "activity",
+                  "arrow-right",
+                  "award",
+                  "badge-check",
+                  "bell",
+                  "book-open",
+                  "bot",
+                  "brain",
+                  "briefcase",
+                  "building",
+                  "calendar",
+                  "calendar-days",
+                  "chart-bar",
+                  "chart-column",
+                  "chart-gantt",
+                  "chart-line",
+                  "chart-pie",
+                  "check",
+                  "circle-alert",
+                  "circle-check",
+                  "circle-x",
+                  "clipboard-list",
+                  "clock",
+                  "code",
+                  "compass",
+                  "cpu",
+                  "credit-card",
+                  "database",
+                  "dollar-sign",
+                  "eye",
+                  "file-text",
+                  "flag",
+                  "folder",
+                  "gauge",
+                  "git-branch",
+                  "globe",
+                  "graduation-cap",
+                  "handshake",
+                  "heart",
+                  "heart-pulse",
+                  "house",
+                  "inbox",
+                  "info",
+                  "kanban",
+                  "layers",
+                  "layout-dashboard",
+                  "lightbulb",
+                  "link",
+                  "list",
+                  "lock",
+                  "mail",
+                  "map",
+                  "map-pin",
+                  "megaphone",
+                  "message-square",
+                  "monitor",
+                  "mouse-pointer-click",
+                  "package",
+                  "palette",
+                  "pen-tool",
+                  "phone",
+                  "presentation",
+                  "puzzle",
+                  "quote",
+                  "receipt",
+                  "rocket",
+                  "search",
+                  "send",
+                  "settings",
+                  "share-2",
+                  "shield",
+                  "shield-check",
+                  "shopping-cart",
+                  "smartphone",
+                  "sparkles",
+                  "star",
+                  "table",
+                  "tag",
+                  "target",
+                  "terminal",
+                  "thumbs-up",
+                  "ticket",
+                  "timer",
+                  "trending-down",
+                  "trending-up",
+                  "triangle-alert",
+                  "trophy",
+                  "truck",
+                  "user",
+                  "users",
+                  "video",
+                  "wallet",
+                  "workflow",
+                  "wrench",
+                  "x",
+                  "zap"
+                ],
+                "description": "Icon name from the package allow-list."
+              },
+              "done": {
+                "type": "boolean",
+                "description": "Whether this list item is complete."
+              }
+            },
+            "required": ["text"],
+            "additionalProperties": false
+          },
+          "description": "Ordered content items shown by this block."
+        }
+      },
+      "required": ["type", "items"],
+      "additionalProperties": false,
+      "title": "List",
+      "description": "Bullets, numbers, checks or icon rows with short items. 12 items; item text ≤ 600 markdown."
+    },
+    "quote": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "quote",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "quote": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600,
+          "description": "Quoted text, rendered as text and never as HTML."
+        },
+        "cite": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Attribution shown with the quoted text."
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short role or attribution associated with this item."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "An allow-listed fictional avatar id."
+        }
+      },
+      "required": ["type", "quote"],
+      "additionalProperties": false,
+      "title": "Quote",
+      "description": "A short testimonial or pull quote with optional cite and avatar. quote ≤ 600 characters; optional avatar id av-001…175."
+    },
+    "callout": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "callout",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Short markdown body content, parsed as safe text rather than HTML."
+        },
+        "icon": {
+          "type": "string",
+          "enum": [
+            "activity",
+            "arrow-right",
+            "award",
+            "badge-check",
+            "bell",
+            "book-open",
+            "bot",
+            "brain",
+            "briefcase",
+            "building",
+            "calendar",
+            "calendar-days",
+            "chart-bar",
+            "chart-column",
+            "chart-gantt",
+            "chart-line",
+            "chart-pie",
+            "check",
+            "circle-alert",
+            "circle-check",
+            "circle-x",
+            "clipboard-list",
+            "clock",
+            "code",
+            "compass",
+            "cpu",
+            "credit-card",
+            "database",
+            "dollar-sign",
+            "eye",
+            "file-text",
+            "flag",
+            "folder",
+            "gauge",
+            "git-branch",
+            "globe",
+            "graduation-cap",
+            "handshake",
+            "heart",
+            "heart-pulse",
+            "house",
+            "inbox",
+            "info",
+            "kanban",
+            "layers",
+            "layout-dashboard",
+            "lightbulb",
+            "link",
+            "list",
+            "lock",
+            "mail",
+            "map",
+            "map-pin",
+            "megaphone",
+            "message-square",
+            "monitor",
+            "mouse-pointer-click",
+            "package",
+            "palette",
+            "pen-tool",
+            "phone",
+            "presentation",
+            "puzzle",
+            "quote",
+            "receipt",
+            "rocket",
+            "search",
+            "send",
+            "settings",
+            "share-2",
+            "shield",
+            "shield-check",
+            "shopping-cart",
+            "smartphone",
+            "sparkles",
+            "star",
+            "table",
+            "tag",
+            "target",
+            "terminal",
+            "thumbs-up",
+            "ticket",
+            "timer",
+            "trending-down",
+            "trending-up",
+            "triangle-alert",
+            "trophy",
+            "truck",
+            "user",
+            "users",
+            "video",
+            "wallet",
+            "workflow",
+            "wrench",
+            "x",
+            "zap"
+          ],
+          "description": "Icon name from the package allow-list."
+        }
+      },
+      "required": ["type", "body"],
+      "additionalProperties": false,
+      "title": "Callout",
+      "description": "Highlight a warning, tip or note beside the main story. body ≤ 1,000 markdown; tone from the closed palette."
+    },
+    "divider": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "divider",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60,
+          "description": "Short visible label and accessible name for this item."
+        },
+        "variant": {
+          "type": "string",
+          "enum": ["line", "space"],
+          "description": "Allow-listed visual variant for this block."
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false,
+      "title": "Divider",
+      "description": "Separate sections visually with an optional label. optional label; variant line or space."
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "image",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "src": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Safe media source: avatar id, bounded raster data URI or relative asset path."
+        },
+        "alt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280,
+          "description": "Alternative text describing the image for people who cannot see it."
+        },
+        "decorative": {
+          "type": "boolean",
+          "description": "Marks the icon or image as decorative so assistive technology can ignore it."
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096,
+          "description": "Width in CSS pixels or a bounded media dimension."
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096,
+          "description": "Height in CSS pixels or the bounded media aspect dimension."
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280,
+          "description": "Visible caption that names this table or media item."
+        },
+        "credit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Attribution for the media source."
+        },
+        "fit": {
+          "type": "string",
+          "enum": ["contain", "cover"],
+          "description": "How the image fits inside its declared dimensions."
+        }
+      },
+      "required": ["type", "src", "width", "height"],
+      "additionalProperties": false,
+      "title": "Image",
+      "description": "Show a local or embedded raster image with alt text. avatar:av-001…175, data: raster, or relative path; width/height 1–4096; no remote URLs."
+    },
+    "video": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "video",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "src": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Safe media source: avatar id, bounded raster data URI or relative asset path."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Short visible label and accessible name for this item."
+        },
+        "poster": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Safe image source shown before video playback."
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096,
+          "description": "Width in CSS pixels or a bounded media dimension."
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096,
+          "description": "Height in CSS pixels or the bounded media aspect dimension."
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280,
+          "description": "Visible caption that names this table or media item."
+        },
+        "autoplay": {
+          "type": "boolean",
+          "description": "Whether video playback starts automatically; autoplay requires muted audio."
+        },
+        "loop": {
+          "type": "boolean",
+          "description": "Whether this line or node participates in a loop."
+        },
+        "muted": {
+          "type": "boolean",
+          "description": "Whether audio is muted; required when autoplay is enabled."
+        },
+        "controls": {
+          "type": "boolean",
+          "description": "Viewer controls declared by this interactive block."
+        }
+      },
+      "required": ["type", "src", "label", "width", "height"],
+      "additionalProperties": false,
+      "title": "Video",
+      "description": "Local or embedded short product clips. mp4/webm data or relative path; autoplay requires muted; label required."
+    },
+    "people": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "people",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "layout": {
+          "type": "string",
+          "enum": ["grid", "row"],
+          "description": "Allow-listed diagram or content layout."
+        },
+        "people": {
+          "minItems": 1,
+          "maxItems": 24,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Stable field or variable name used by the data model."
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short role or attribution associated with this item."
+              },
+              "avatar": {
+                "type": "string",
+                "description": "An allow-listed fictional avatar id."
+              },
+              "bio": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Short fictional biography for this person."
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          },
+          "description": "Fictional people shown in this block."
+        }
+      },
+      "required": ["type", "people"],
+      "additionalProperties": false,
+      "title": "People",
+      "description": "Team grids or speaker lists with fictional portraits. 1–24 people; avatar ids only."
+    },
+    "stat": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "stat",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "items": {
+          "minItems": 1,
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "description": "Value displayed or supplied to this operation."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "delta": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 24,
+                "description": "Change compared with the stated reference period or value."
+              },
+              "deltaTone": {
+                "type": "string",
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+                "description": "Theme tone describing the direction or meaning of the change."
+              },
+              "context": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "description": "Brief source or context note for this value."
+              },
+              "trend": {
+                "minItems": 2,
+                "maxItems": 60,
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "description": "Bounded numeric sparkline values shown with this statistic."
+              }
+            },
+            "required": ["value", "label"],
+            "additionalProperties": false
+          },
+          "description": "Ordered content items shown by this block."
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Declared source or attribution; it does not trigger a network request."
+        }
+      },
+      "required": ["type", "items"],
+      "additionalProperties": false,
+      "title": "Stats",
+      "description": "KPI row with values, deltas and optional spark trends. 1–6 items; trend ≤ 60 points."
+    },
+    "table": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "table",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Visible caption that names this table or media item."
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "Currency code used when formatting integer cents."
+        },
+        "columns": {
+          "minItems": 1,
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "align": {
+                "type": "string",
+                "enum": ["start", "center", "end"],
+                "description": "Horizontal alignment for this content."
+              },
+              "format": {
+                "type": "string",
+                "enum": ["text", "number", "percent", "cents"],
+                "description": "How values in this column are interpreted and formatted."
+              }
+            },
+            "required": ["label"],
+            "additionalProperties": false
+          },
+          "description": "Column groups or headers, depending on the enclosing block."
+        },
+        "rows": {
+          "minItems": 1,
+          "maxItems": 50,
+          "type": "array",
+          "items": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "description": "Bounded table rows or comparison rows."
+        },
+        "highlightRow": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 49,
+          "description": "Zero-based table row index to highlight."
+        }
+      },
+      "required": ["type", "caption", "columns", "rows"],
+      "additionalProperties": false,
+      "title": "Table",
+      "description": "Small comparison tables with typed cells. caption required; ≤ 8 columns; ≤ 50 rows; formats text/number/percent/cents."
+    },
+    "chart": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "chart",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["line", "area", "bar", "donut", "pie", "funnel"],
+              "description": "Chart kind or item category selected from a closed set."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "Short title naming this content or action."
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 280,
+              "description": "Plain-text description of this item."
+            },
+            "unit": {
+              "type": "string",
+              "enum": ["number", "compact", "cents", "percent"],
+              "description": "Visible unit appended to this numeric value."
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$",
+              "description": "Currency code used when formatting integer cents."
+            },
+            "labels": {
+              "minItems": 1,
+              "maxItems": 366,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "description": "Category labels associated with chart values."
+            },
+            "series": {
+              "minItems": 1,
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "Short visible label and accessible name for this item."
+                  },
+                  "values": {
+                    "maxItems": 366,
+                    "type": "array",
+                    "items": {
+                      "type": ["number", "null"]
+                    },
+                    "description": "Typed values corresponding to the declared columns or series."
+                  }
+                },
+                "required": ["label", "values"],
+                "additionalProperties": false
+              },
+              "description": "Named chart series and their numeric values."
+            }
+          },
+          "required": ["kind", "title", "labels", "series"],
+          "additionalProperties": false,
+          "description": "Chart specification validated by the shared ChartSpec schema."
+        },
+        "height": {
+          "type": "string",
+          "enum": ["sm", "md", "lg"],
+          "description": "Height in CSS pixels or the bounded media aspect dimension."
+        },
+        "showTable": {
+          "type": "boolean",
+          "description": "Whether an accessible data table accompanies the chart."
+        }
+      },
+      "required": ["type", "spec"],
+      "additionalProperties": false,
+      "title": "Chart",
+      "description": "Bounded ChartSpec (line, area, bar, donut, pie, funnel). ChartSpecSchema caps; optional accessible data table."
+    },
+    "code": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "code",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000,
+          "description": "Source text shown as inert, syntax-tokenized code."
+        },
+        "lang": {
+          "type": "string",
+          "enum": ["ts", "js", "json", "bash", "python", "html", "css", "sql", "yaml", "text"],
+          "description": "Language from the supported code-tokenizer list."
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Fictional file name displayed in this terminal line."
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Visible caption that names this table or media item."
+        },
+        "lineNumbers": {
+          "type": "boolean",
+          "description": "Whether line numbers are included in the display."
+        },
+        "highlights": {
+          "minItems": 1,
+          "maxItems": 16,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "description": "Line ranges highlighted at each presentation step."
+        }
+      },
+      "required": ["type", "code", "lang"],
+      "additionalProperties": false,
+      "title": "Code",
+      "description": "Short code samples with a closed language list. ≤ 20000 characters; ≤ 400 lines; ≤ 16 highlight steps."
+    },
+    "timeline": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "timeline",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "orientation": {
+          "type": "string",
+          "enum": ["horizontal", "vertical"],
+          "description": "Direction in which the content is laid out."
+        },
+        "events": {
+          "minItems": 2,
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "time": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Time label displayed for this schedule or timeline item."
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short title naming this content or action."
+              },
+              "body": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 280,
+                "description": "Short markdown body content, parsed as safe text rather than HTML."
+              },
+              "icon": {
+                "type": "string",
+                "enum": [
+                  "activity",
+                  "arrow-right",
+                  "award",
+                  "badge-check",
+                  "bell",
+                  "book-open",
+                  "bot",
+                  "brain",
+                  "briefcase",
+                  "building",
+                  "calendar",
+                  "calendar-days",
+                  "chart-bar",
+                  "chart-column",
+                  "chart-gantt",
+                  "chart-line",
+                  "chart-pie",
+                  "check",
+                  "circle-alert",
+                  "circle-check",
+                  "circle-x",
+                  "clipboard-list",
+                  "clock",
+                  "code",
+                  "compass",
+                  "cpu",
+                  "credit-card",
+                  "database",
+                  "dollar-sign",
+                  "eye",
+                  "file-text",
+                  "flag",
+                  "folder",
+                  "gauge",
+                  "git-branch",
+                  "globe",
+                  "graduation-cap",
+                  "handshake",
+                  "heart",
+                  "heart-pulse",
+                  "house",
+                  "inbox",
+                  "info",
+                  "kanban",
+                  "layers",
+                  "layout-dashboard",
+                  "lightbulb",
+                  "link",
+                  "list",
+                  "lock",
+                  "mail",
+                  "map",
+                  "map-pin",
+                  "megaphone",
+                  "message-square",
+                  "monitor",
+                  "mouse-pointer-click",
+                  "package",
+                  "palette",
+                  "pen-tool",
+                  "phone",
+                  "presentation",
+                  "puzzle",
+                  "quote",
+                  "receipt",
+                  "rocket",
+                  "search",
+                  "send",
+                  "settings",
+                  "share-2",
+                  "shield",
+                  "shield-check",
+                  "shopping-cart",
+                  "smartphone",
+                  "sparkles",
+                  "star",
+                  "table",
+                  "tag",
+                  "target",
+                  "terminal",
+                  "thumbs-up",
+                  "ticket",
+                  "timer",
+                  "trending-down",
+                  "trending-up",
+                  "triangle-alert",
+                  "trophy",
+                  "truck",
+                  "user",
+                  "users",
+                  "video",
+                  "wallet",
+                  "workflow",
+                  "wrench",
+                  "x",
+                  "zap"
+                ],
+                "description": "Icon name from the package allow-list."
+              },
+              "tone": {
+                "type": "string",
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+                "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+              }
+            },
+            "required": ["time", "title"],
+            "additionalProperties": false
+          },
+          "description": "Ordered milestones shown on the timeline."
+        }
+      },
+      "required": ["type", "events"],
+      "additionalProperties": false,
+      "title": "Timeline",
+      "description": "2–12 ordered events along a path. 2–12 events."
+    },
+    "steps": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "steps",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "numbered": {
+          "type": "boolean",
+          "description": "Whether ordered items display their step numbers."
+        },
+        "items": {
+          "minItems": 2,
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short title naming this content or action."
+              },
+              "body": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "description": "Short markdown body content, parsed as safe text rather than HTML."
+              },
+              "icon": {
+                "type": "string",
+                "enum": [
+                  "activity",
+                  "arrow-right",
+                  "award",
+                  "badge-check",
+                  "bell",
+                  "book-open",
+                  "bot",
+                  "brain",
+                  "briefcase",
+                  "building",
+                  "calendar",
+                  "calendar-days",
+                  "chart-bar",
+                  "chart-column",
+                  "chart-gantt",
+                  "chart-line",
+                  "chart-pie",
+                  "check",
+                  "circle-alert",
+                  "circle-check",
+                  "circle-x",
+                  "clipboard-list",
+                  "clock",
+                  "code",
+                  "compass",
+                  "cpu",
+                  "credit-card",
+                  "database",
+                  "dollar-sign",
+                  "eye",
+                  "file-text",
+                  "flag",
+                  "folder",
+                  "gauge",
+                  "git-branch",
+                  "globe",
+                  "graduation-cap",
+                  "handshake",
+                  "heart",
+                  "heart-pulse",
+                  "house",
+                  "inbox",
+                  "info",
+                  "kanban",
+                  "layers",
+                  "layout-dashboard",
+                  "lightbulb",
+                  "link",
+                  "list",
+                  "lock",
+                  "mail",
+                  "map",
+                  "map-pin",
+                  "megaphone",
+                  "message-square",
+                  "monitor",
+                  "mouse-pointer-click",
+                  "package",
+                  "palette",
+                  "pen-tool",
+                  "phone",
+                  "presentation",
+                  "puzzle",
+                  "quote",
+                  "receipt",
+                  "rocket",
+                  "search",
+                  "send",
+                  "settings",
+                  "share-2",
+                  "shield",
+                  "shield-check",
+                  "shopping-cart",
+                  "smartphone",
+                  "sparkles",
+                  "star",
+                  "table",
+                  "tag",
+                  "target",
+                  "terminal",
+                  "thumbs-up",
+                  "ticket",
+                  "timer",
+                  "trending-down",
+                  "trending-up",
+                  "triangle-alert",
+                  "trophy",
+                  "truck",
+                  "user",
+                  "users",
+                  "video",
+                  "wallet",
+                  "workflow",
+                  "wrench",
+                  "x",
+                  "zap"
+                ],
+                "description": "Icon name from the package allow-list."
+              }
+            },
+            "required": ["title"],
+            "additionalProperties": false
+          },
+          "description": "Ordered content items shown by this block."
+        }
+      },
+      "required": ["type", "items"],
+      "additionalProperties": false,
+      "title": "Steps",
+      "description": "Short how-to sequences (2–8 steps). 2–8 items."
+    },
+    "comparison": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "comparison",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "columns": {
+          "minItems": 2,
+          "maxItems": 4,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "highlight": {
+                "type": "boolean",
+                "description": "Optional row or text range receiving a visual highlight."
+              }
+            },
+            "required": ["label"],
+            "additionalProperties": false
+          },
+          "description": "Column groups or headers, depending on the enclosing block."
+        },
+        "rows": {
+          "minItems": 1,
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                },
+                "description": "Typed values corresponding to the declared columns or series."
+              }
+            },
+            "required": ["label", "values"],
+            "additionalProperties": false
+          },
+          "description": "Bounded table rows or comparison rows."
+        }
+      },
+      "required": ["type", "columns", "rows"],
+      "additionalProperties": false,
+      "title": "Comparison",
+      "description": "Side-by-side plan or feature matrices. 2–4 columns; ≤ 8 rows."
+    },
+    "cards": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "cards",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "columns": {
+          "anyOf": [
+            {
+              "type": "number",
+              "const": 2
+            },
+            {
+              "type": "number",
+              "const": 3
+            },
+            {
+              "type": "number",
+              "const": 4
+            }
+          ],
+          "description": "Column groups or headers, depending on the enclosing block."
+        },
+        "items": {
+          "minItems": 1,
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short title naming this content or action."
+              },
+              "eyebrow": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Short secondary label shown above the main heading."
+              },
+              "body": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "description": "Short markdown body content, parsed as safe text rather than HTML."
+              },
+              "icon": {
+                "type": "string",
+                "enum": [
+                  "activity",
+                  "arrow-right",
+                  "award",
+                  "badge-check",
+                  "bell",
+                  "book-open",
+                  "bot",
+                  "brain",
+                  "briefcase",
+                  "building",
+                  "calendar",
+                  "calendar-days",
+                  "chart-bar",
+                  "chart-column",
+                  "chart-gantt",
+                  "chart-line",
+                  "chart-pie",
+                  "check",
+                  "circle-alert",
+                  "circle-check",
+                  "circle-x",
+                  "clipboard-list",
+                  "clock",
+                  "code",
+                  "compass",
+                  "cpu",
+                  "credit-card",
+                  "database",
+                  "dollar-sign",
+                  "eye",
+                  "file-text",
+                  "flag",
+                  "folder",
+                  "gauge",
+                  "git-branch",
+                  "globe",
+                  "graduation-cap",
+                  "handshake",
+                  "heart",
+                  "heart-pulse",
+                  "house",
+                  "inbox",
+                  "info",
+                  "kanban",
+                  "layers",
+                  "layout-dashboard",
+                  "lightbulb",
+                  "link",
+                  "list",
+                  "lock",
+                  "mail",
+                  "map",
+                  "map-pin",
+                  "megaphone",
+                  "message-square",
+                  "monitor",
+                  "mouse-pointer-click",
+                  "package",
+                  "palette",
+                  "pen-tool",
+                  "phone",
+                  "presentation",
+                  "puzzle",
+                  "quote",
+                  "receipt",
+                  "rocket",
+                  "search",
+                  "send",
+                  "settings",
+                  "share-2",
+                  "shield",
+                  "shield-check",
+                  "shopping-cart",
+                  "smartphone",
+                  "sparkles",
+                  "star",
+                  "table",
+                  "tag",
+                  "target",
+                  "terminal",
+                  "thumbs-up",
+                  "ticket",
+                  "timer",
+                  "trending-down",
+                  "trending-up",
+                  "triangle-alert",
+                  "trophy",
+                  "truck",
+                  "user",
+                  "users",
+                  "video",
+                  "wallet",
+                  "workflow",
+                  "wrench",
+                  "x",
+                  "zap"
+                ],
+                "description": "Icon name from the package allow-list."
+              },
+              "image": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Image source or image configuration for this card."
+              },
+              "imageAlt": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 280,
+                "description": "Alternative text for the card image."
+              },
+              "href": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048,
+                "description": "Safe navigation target: https or mailto only."
+              },
+              "tone": {
+                "type": "string",
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+                "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+              }
+            },
+            "required": ["title"],
+            "additionalProperties": false
+          },
+          "description": "Ordered content items shown by this block."
+        }
+      },
+      "required": ["type", "items"],
+      "additionalProperties": false,
+      "title": "Cards",
+      "description": "Feature grids with title, body, icon or image. 1–12 cards; 2–4 columns."
+    },
+    "icon": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "icon",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "icon": {
+          "type": "string",
+          "enum": [
+            "activity",
+            "arrow-right",
+            "award",
+            "badge-check",
+            "bell",
+            "book-open",
+            "bot",
+            "brain",
+            "briefcase",
+            "building",
+            "calendar",
+            "calendar-days",
+            "chart-bar",
+            "chart-column",
+            "chart-gantt",
+            "chart-line",
+            "chart-pie",
+            "check",
+            "circle-alert",
+            "circle-check",
+            "circle-x",
+            "clipboard-list",
+            "clock",
+            "code",
+            "compass",
+            "cpu",
+            "credit-card",
+            "database",
+            "dollar-sign",
+            "eye",
+            "file-text",
+            "flag",
+            "folder",
+            "gauge",
+            "git-branch",
+            "globe",
+            "graduation-cap",
+            "handshake",
+            "heart",
+            "heart-pulse",
+            "house",
+            "inbox",
+            "info",
+            "kanban",
+            "layers",
+            "layout-dashboard",
+            "lightbulb",
+            "link",
+            "list",
+            "lock",
+            "mail",
+            "map",
+            "map-pin",
+            "megaphone",
+            "message-square",
+            "monitor",
+            "mouse-pointer-click",
+            "package",
+            "palette",
+            "pen-tool",
+            "phone",
+            "presentation",
+            "puzzle",
+            "quote",
+            "receipt",
+            "rocket",
+            "search",
+            "send",
+            "settings",
+            "share-2",
+            "shield",
+            "shield-check",
+            "shopping-cart",
+            "smartphone",
+            "sparkles",
+            "star",
+            "table",
+            "tag",
+            "target",
+            "terminal",
+            "thumbs-up",
+            "ticket",
+            "timer",
+            "trending-down",
+            "trending-up",
+            "triangle-alert",
+            "trophy",
+            "truck",
+            "user",
+            "users",
+            "video",
+            "wallet",
+            "workflow",
+            "wrench",
+            "x",
+            "zap"
+          ],
+          "description": "Icon name from the package allow-list."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Short visible label and accessible name for this item."
+        },
+        "decorative": {
+          "type": "boolean",
+          "description": "Marks the icon or image as decorative so assistive technology can ignore it."
+        },
+        "size": {
+          "type": "string",
+          "enum": ["sm", "md", "lg", "xl"],
+          "description": "Display size or bounded text size."
+        }
+      },
+      "required": ["type", "icon"],
+      "additionalProperties": false,
+      "title": "Icon",
+      "description": "A single allow-listed icon with a label or decorative mark. allow-listed icon names; label or decorative: true."
+    },
+    "cta": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "cta",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600,
+          "description": "Short markdown body content, parsed as safe text rather than HTML."
+        },
+        "actions": {
+          "minItems": 1,
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "href": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048,
+                "description": "Safe navigation target: https or mailto only."
+              },
+              "variant": {
+                "type": "string",
+                "enum": ["primary", "secondary", "link"],
+                "description": "Allow-listed visual variant for this block."
+              },
+              "icon": {
+                "type": "string",
+                "enum": [
+                  "activity",
+                  "arrow-right",
+                  "award",
+                  "badge-check",
+                  "bell",
+                  "book-open",
+                  "bot",
+                  "brain",
+                  "briefcase",
+                  "building",
+                  "calendar",
+                  "calendar-days",
+                  "chart-bar",
+                  "chart-column",
+                  "chart-gantt",
+                  "chart-line",
+                  "chart-pie",
+                  "check",
+                  "circle-alert",
+                  "circle-check",
+                  "circle-x",
+                  "clipboard-list",
+                  "clock",
+                  "code",
+                  "compass",
+                  "cpu",
+                  "credit-card",
+                  "database",
+                  "dollar-sign",
+                  "eye",
+                  "file-text",
+                  "flag",
+                  "folder",
+                  "gauge",
+                  "git-branch",
+                  "globe",
+                  "graduation-cap",
+                  "handshake",
+                  "heart",
+                  "heart-pulse",
+                  "house",
+                  "inbox",
+                  "info",
+                  "kanban",
+                  "layers",
+                  "layout-dashboard",
+                  "lightbulb",
+                  "link",
+                  "list",
+                  "lock",
+                  "mail",
+                  "map",
+                  "map-pin",
+                  "megaphone",
+                  "message-square",
+                  "monitor",
+                  "mouse-pointer-click",
+                  "package",
+                  "palette",
+                  "pen-tool",
+                  "phone",
+                  "presentation",
+                  "puzzle",
+                  "quote",
+                  "receipt",
+                  "rocket",
+                  "search",
+                  "send",
+                  "settings",
+                  "share-2",
+                  "shield",
+                  "shield-check",
+                  "shopping-cart",
+                  "smartphone",
+                  "sparkles",
+                  "star",
+                  "table",
+                  "tag",
+                  "target",
+                  "terminal",
+                  "thumbs-up",
+                  "ticket",
+                  "timer",
+                  "trending-down",
+                  "trending-up",
+                  "triangle-alert",
+                  "trophy",
+                  "truck",
+                  "user",
+                  "users",
+                  "video",
+                  "wallet",
+                  "workflow",
+                  "wrench",
+                  "x",
+                  "zap"
+                ],
+                "description": "Icon name from the package allow-list."
+              }
+            },
+            "required": ["label", "href"],
+            "additionalProperties": false
+          },
+          "description": "Safe, visibly labelled actions available from this block."
+        },
+        "footnote": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Small supporting note shown below the main content."
+        }
+      },
+      "required": ["type", "actions"],
+      "additionalProperties": false,
+      "title": "Call to action",
+      "description": "One to three safe links as primary actions. 1–3 actions; https, mailto or #section href only."
+    },
+    "columns": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "columns",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "widths": {
+          "type": "string",
+          "enum": ["equal", "wide-start", "wide-end"],
+          "description": "Allow-listed relative widths for the column groups."
+        },
+        "align": {
+          "type": "string",
+          "enum": ["start", "center"],
+          "description": "Horizontal alignment for this content."
+        },
+        "columns": {
+          "minItems": 2,
+          "maxItems": 4,
+          "type": "array",
+          "items": {
+            "minItems": 1,
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "$ref": "#"
+            }
+          },
+          "description": "Column groups or headers, depending on the enclosing block."
+        }
+      },
+      "required": ["type", "columns"],
+      "additionalProperties": false,
+      "title": "Columns",
+      "description": "Side-by-side block groups on wide layouts. 2–4 columns; ≤ 12 blocks each; nest ≤ 3 deep."
+    },
+    "tabs": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "tabs",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Short visible label and accessible name for this item."
+        },
+        "panels": {
+          "minItems": 2,
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "icon": {
+                "type": "string",
+                "enum": [
+                  "activity",
+                  "arrow-right",
+                  "award",
+                  "badge-check",
+                  "bell",
+                  "book-open",
+                  "bot",
+                  "brain",
+                  "briefcase",
+                  "building",
+                  "calendar",
+                  "calendar-days",
+                  "chart-bar",
+                  "chart-column",
+                  "chart-gantt",
+                  "chart-line",
+                  "chart-pie",
+                  "check",
+                  "circle-alert",
+                  "circle-check",
+                  "circle-x",
+                  "clipboard-list",
+                  "clock",
+                  "code",
+                  "compass",
+                  "cpu",
+                  "credit-card",
+                  "database",
+                  "dollar-sign",
+                  "eye",
+                  "file-text",
+                  "flag",
+                  "folder",
+                  "gauge",
+                  "git-branch",
+                  "globe",
+                  "graduation-cap",
+                  "handshake",
+                  "heart",
+                  "heart-pulse",
+                  "house",
+                  "inbox",
+                  "info",
+                  "kanban",
+                  "layers",
+                  "layout-dashboard",
+                  "lightbulb",
+                  "link",
+                  "list",
+                  "lock",
+                  "mail",
+                  "map",
+                  "map-pin",
+                  "megaphone",
+                  "message-square",
+                  "monitor",
+                  "mouse-pointer-click",
+                  "package",
+                  "palette",
+                  "pen-tool",
+                  "phone",
+                  "presentation",
+                  "puzzle",
+                  "quote",
+                  "receipt",
+                  "rocket",
+                  "search",
+                  "send",
+                  "settings",
+                  "share-2",
+                  "shield",
+                  "shield-check",
+                  "shopping-cart",
+                  "smartphone",
+                  "sparkles",
+                  "star",
+                  "table",
+                  "tag",
+                  "target",
+                  "terminal",
+                  "thumbs-up",
+                  "ticket",
+                  "timer",
+                  "trending-down",
+                  "trending-up",
+                  "triangle-alert",
+                  "trophy",
+                  "truck",
+                  "user",
+                  "users",
+                  "video",
+                  "wallet",
+                  "workflow",
+                  "wrench",
+                  "x",
+                  "zap"
+                ],
+                "description": "Icon name from the package allow-list."
+              },
+              "blocks": {
+                "minItems": 1,
+                "maxItems": 12,
+                "type": "array",
+                "items": {
+                  "$ref": "#"
+                },
+                "description": "Nested blocks rendered inside this container."
+              }
+            },
+            "required": ["id", "label", "blocks"],
+            "additionalProperties": false
+          },
+          "description": "Named tab panels, each containing a bounded block list."
+        },
+        "defaultPanel": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Id of the panel selected when the tabs first open."
+        }
+      },
+      "required": ["type", "id", "label", "panels"],
+      "additionalProperties": false,
+      "title": "Tabs",
+      "description": "2–6 alternative panels the viewer can switch. id required; 2–6 panels; ≤ 12 blocks each."
+    },
+    "reveal": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "reveal",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Short visible label and accessible name for this item."
+        },
+        "openLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Button label shown while the reveal content is open."
+        },
+        "blocks": {
+          "minItems": 1,
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "$ref": "#"
+          },
+          "description": "Nested blocks rendered inside this container."
+        },
+        "open": {
+          "type": "boolean",
+          "description": "Whether this reveal container starts open."
+        }
+      },
+      "required": ["type", "id", "label", "blocks"],
+      "additionalProperties": false,
+      "title": "Reveal",
+      "description": "Answers or details behind a button. id required; ≤ 12 nested blocks."
+    },
+    "poll": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "poll",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Question text shown to the viewer."
+        },
+        "options": {
+          "minItems": 2,
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short visible label and accessible name for this item."
+              }
+            },
+            "required": ["id", "label"],
+            "additionalProperties": false
+          },
+          "description": "Allow-listed options presented to the viewer."
+        },
+        "maxChoices": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "description": "Maximum number of choices a viewer may select."
+        },
+        "results": {
+          "type": "string",
+          "enum": ["after-vote", "always", "hidden"],
+          "description": "When poll results are made visible."
+        }
+      },
+      "required": ["type", "id", "question", "options"],
+      "additionalProperties": false,
+      "title": "Poll",
+      "description": "Live audience choices with local tallies. id required; 2–8 options; results after-vote/always/hidden."
+    },
+    "quiz": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "quiz",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "questions": {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+              },
+              "prompt": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "description": "Question or instruction presented to the viewer."
+              },
+              "choices": {
+                "minItems": 2,
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                      "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200,
+                      "description": "Short visible label and accessible name for this item."
+                    }
+                  },
+                  "required": ["id", "label"],
+                  "additionalProperties": false
+                },
+                "description": "Available answer choices, each with a stable id and visible label."
+              },
+              "answers": {
+                "minItems": 1,
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,47}$"
+                },
+                "description": "Ids of the correct choices for this question."
+              },
+              "explanation": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "description": "Feedback shown after the answer is checked."
+              }
+            },
+            "required": ["id", "prompt", "choices", "answers"],
+            "additionalProperties": false
+          },
+          "description": "Ordered quiz questions and their declared answer choices."
+        },
+        "feedback": {
+          "type": "string",
+          "enum": ["immediate", "end"],
+          "description": "When quiz feedback is revealed to the viewer."
+        },
+        "passScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of correct answers required to pass, from zero to one."
+        },
+        "shuffle": {
+          "type": "boolean",
+          "description": "Whether choices are shuffled deterministically from the block id."
+        }
+      },
+      "required": ["type", "id", "questions"],
+      "additionalProperties": false,
+      "title": "Quiz",
+      "description": "Short self-checks with known answers. id required; 1–20 questions; 2–6 choices; seeded shuffle."
+    },
+    "calculator": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "calculator",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600,
+          "description": "Plain-text description of this item."
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "description": "Currency code used when formatting integer cents."
+        },
+        "inputs": {
+          "minItems": 1,
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]{0,31}$",
+                "description": "Stable field or variable name used by the data model."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "control": {
+                "type": "string",
+                "enum": ["slider", "number"],
+                "description": "The allow-listed control that a viewer may use."
+              },
+              "min": {
+                "type": "number",
+                "minimum": -1000000000000,
+                "maximum": 1000000000000,
+                "description": "Minimum permitted numeric value."
+              },
+              "max": {
+                "type": "number",
+                "minimum": -1000000000000,
+                "maximum": 1000000000000,
+                "description": "Maximum permitted numeric value."
+              },
+              "step": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "Presentation reveal step, from zero to thirty-two."
+              },
+              "default": {
+                "type": "number",
+                "minimum": -1000000000000,
+                "maximum": 1000000000000,
+                "description": "Initial value used before the viewer changes this input."
+              },
+              "unit": {
+                "type": "string",
+                "enum": ["number", "compact", "cents", "percent"],
+                "description": "Visible unit appended to this numeric value."
+              },
+              "help": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Supporting instructions associated with this input."
+              }
+            },
+            "required": ["name", "label", "min", "max", "default"],
+            "additionalProperties": false
+          },
+          "description": "Bounded viewer inputs declared for this calculator."
+        },
+        "outputs": {
+          "minItems": 1,
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "formula": {
+                "$ref": "#/$defs/__schema0",
+                "description": "Closed, data-only formula AST; it is never executed as code."
+              },
+              "unit": {
+                "type": "string",
+                "enum": ["number", "compact", "cents", "percent"],
+                "description": "Visible unit appended to this numeric value."
+              },
+              "emphasis": {
+                "type": "boolean",
+                "description": "The bounded emphasis style applied to this text."
+              },
+              "tone": {
+                "type": "string",
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+                "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+              }
+            },
+            "required": ["id", "label", "formula"],
+            "additionalProperties": false
+          },
+          "description": "Calculated outputs and their closed formulas."
+        },
+        "chart": {
+          "type": "object",
+          "properties": {
+            "output": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,47}$",
+              "description": "Output value or destination defined by this operation."
+            },
+            "input": {
+              "type": "string",
+              "pattern": "^[a-z][a-zA-Z0-9]{0,31}$",
+              "description": "Declared input name read by this expression."
+            },
+            "kind": {
+              "type": "string",
+              "enum": ["line", "area", "bar"],
+              "description": "Chart kind or item category selected from a closed set."
+            },
+            "points": {
+              "type": "integer",
+              "minimum": 2,
+              "maximum": 50,
+              "description": "Bounded simulated map points; these do not request remote map data."
+            }
+          },
+          "required": ["output", "input"],
+          "additionalProperties": false,
+          "description": "Optional bounded chart configuration for the selected output."
+        }
+      },
+      "required": ["type", "id", "inputs", "outputs"],
+      "additionalProperties": false,
+      "title": "Calculator",
+      "description": "Interactive what-if math with a closed formula AST. id required; 1–8 inputs; 1–6 outputs; formula caps in ./formula."
+    },
+    "counter": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "counter",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Short visible label and accessible name for this item."
+        },
+        "start": {
+          "type": "integer",
+          "minimum": -1000000000,
+          "maximum": 1000000000,
+          "description": "Starting value or label for this operation."
+        },
+        "min": {
+          "type": "integer",
+          "minimum": -1000000000,
+          "maximum": 1000000000,
+          "description": "Minimum permitted numeric value."
+        },
+        "max": {
+          "type": "integer",
+          "minimum": -1000000000,
+          "maximum": 1000000000,
+          "description": "Maximum permitted numeric value."
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24,
+          "description": "Visible unit appended to this numeric value."
+        }
+      },
+      "required": ["type", "id", "label"],
+      "additionalProperties": false,
+      "title": "Counter",
+      "description": "Simple +/- tallies within min/max. id required; start/step/min/max bounds."
+    },
+    "chart-controls": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "chart-controls",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["line", "area", "bar", "donut", "pie", "funnel"],
+              "description": "Chart kind or item category selected from a closed set."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "description": "Short title naming this content or action."
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 280,
+              "description": "Plain-text description of this item."
+            },
+            "unit": {
+              "type": "string",
+              "enum": ["number", "compact", "cents", "percent"],
+              "description": "Visible unit appended to this numeric value."
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$",
+              "description": "Currency code used when formatting integer cents."
+            },
+            "labels": {
+              "minItems": 1,
+              "maxItems": 366,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "description": "Category labels associated with chart values."
+            },
+            "series": {
+              "minItems": 1,
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "description": "Short visible label and accessible name for this item."
+                  },
+                  "values": {
+                    "maxItems": 366,
+                    "type": "array",
+                    "items": {
+                      "type": ["number", "null"]
+                    },
+                    "description": "Typed values corresponding to the declared columns or series."
+                  }
+                },
+                "required": ["label", "values"],
+                "additionalProperties": false
+              },
+              "description": "Named chart series and their numeric values."
+            }
+          },
+          "required": ["kind", "title", "labels", "series"],
+          "additionalProperties": false,
+          "description": "Chart specification validated by the shared ChartSpec schema."
+        },
+        "kinds": {
+          "minItems": 2,
+          "maxItems": 4,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["line", "area", "bar", "donut", "pie", "funnel"]
+          },
+          "description": "Chart kinds the viewer may select."
+        },
+        "seriesToggle": {
+          "type": "boolean",
+          "description": "Whether viewers may show or hide individual series."
+        },
+        "range": {
+          "type": "boolean",
+          "description": "Allow-listed range labels available to the viewer."
+        },
+        "height": {
+          "type": "string",
+          "enum": ["sm", "md", "lg"],
+          "description": "Height in CSS pixels or the bounded media aspect dimension."
+        }
+      },
+      "required": ["type", "id", "spec"],
+      "additionalProperties": false,
+      "title": "Chart controls",
+      "description": "Let viewers switch kind, series or range on one ChartSpec. id required; kinds 2–4; needs seriesToggle or range or kinds."
+    },
+    "map": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "map",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short visible label and accessible name for this item."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "basemap": {
+          "type": "string",
+          "enum": ["port-meridian"],
+          "description": "The allow-listed simulated map style; no map tiles are fetched."
+        },
+        "points": {
+          "minItems": 1,
+          "maxItems": 200,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "lng": {
+                "type": "number",
+                "minimum": -180,
+                "maximum": 180,
+                "description": "Longitude in decimal degrees for this simulated map point."
+              },
+              "lat": {
+                "type": "number",
+                "minimum": -85.06,
+                "maximum": 85.06,
+                "description": "Latitude in decimal degrees for this simulated map point."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Plain-text description of this item."
+              },
+              "icon": {
+                "type": "string",
+                "enum": [
+                  "activity",
+                  "arrow-right",
+                  "award",
+                  "badge-check",
+                  "bell",
+                  "book-open",
+                  "bot",
+                  "brain",
+                  "briefcase",
+                  "building",
+                  "calendar",
+                  "calendar-days",
+                  "chart-bar",
+                  "chart-column",
+                  "chart-gantt",
+                  "chart-line",
+                  "chart-pie",
+                  "check",
+                  "circle-alert",
+                  "circle-check",
+                  "circle-x",
+                  "clipboard-list",
+                  "clock",
+                  "code",
+                  "compass",
+                  "cpu",
+                  "credit-card",
+                  "database",
+                  "dollar-sign",
+                  "eye",
+                  "file-text",
+                  "flag",
+                  "folder",
+                  "gauge",
+                  "git-branch",
+                  "globe",
+                  "graduation-cap",
+                  "handshake",
+                  "heart",
+                  "heart-pulse",
+                  "house",
+                  "inbox",
+                  "info",
+                  "kanban",
+                  "layers",
+                  "layout-dashboard",
+                  "lightbulb",
+                  "link",
+                  "list",
+                  "lock",
+                  "mail",
+                  "map",
+                  "map-pin",
+                  "megaphone",
+                  "message-square",
+                  "monitor",
+                  "mouse-pointer-click",
+                  "package",
+                  "palette",
+                  "pen-tool",
+                  "phone",
+                  "presentation",
+                  "puzzle",
+                  "quote",
+                  "receipt",
+                  "rocket",
+                  "search",
+                  "send",
+                  "settings",
+                  "share-2",
+                  "shield",
+                  "shield-check",
+                  "shopping-cart",
+                  "smartphone",
+                  "sparkles",
+                  "star",
+                  "table",
+                  "tag",
+                  "target",
+                  "terminal",
+                  "thumbs-up",
+                  "ticket",
+                  "timer",
+                  "trending-down",
+                  "trending-up",
+                  "triangle-alert",
+                  "trophy",
+                  "truck",
+                  "user",
+                  "users",
+                  "video",
+                  "wallet",
+                  "workflow",
+                  "wrench",
+                  "x",
+                  "zap"
+                ],
+                "description": "Icon name from the package allow-list."
+              },
+              "tone": {
+                "type": "string",
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+                "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+              }
+            },
+            "required": ["id", "label", "lng", "lat"],
+            "additionalProperties": false
+          },
+          "description": "Bounded simulated map points; these do not request remote map data."
+        },
+        "route": {
+          "minItems": 2,
+          "maxItems": 50,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,47}$"
+          },
+          "description": "Ordered point ids describing a simulated route."
+        }
+      },
+      "required": ["type", "id", "label", "points"],
+      "additionalProperties": false,
+      "title": "Map",
+      "description": "Points and routes on the simulated basemap. id required; basemap port-meridian only; 1–200 points; route ≤ 50."
+    },
+    "embed-app": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "embed-app",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "Short title naming this content or action."
+        },
+        "startLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Visible label for the action that starts the embedded app."
+        },
+        "height": {
+          "type": "string",
+          "enum": ["sm", "md", "lg"],
+          "description": "Height in CSS pixels or the bounded media aspect dimension."
+        },
+        "app": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {},
+          "description": "A bounded app blueprint mounted in an isolated namespace by the host."
+        }
+      },
+      "required": ["type", "id", "title", "app"],
+      "additionalProperties": false,
+      "title": "Embedded app",
+      "description": "Mount a small opaque app blueprint inside a deck or page. id required; app ≤ 64 KB; depth ≤ 24; host validates with blueprint loader."
+    },
+    "form": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "form",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short title naming this content or action."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600,
+          "description": "Plain-text description of this item."
+        },
+        "fields": {
+          "minItems": 1,
+          "maxItems": 20,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9]{0,31}$",
+                "description": "Stable field or variable name used by the data model."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "text",
+                  "longText",
+                  "email",
+                  "url",
+                  "phone",
+                  "number",
+                  "boolean",
+                  "enum",
+                  "tags"
+                ],
+                "description": "Discriminator selecting a block or nested data shape."
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Whether a viewer must provide this value."
+              },
+              "help": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "description": "Supporting instructions associated with this input."
+              },
+              "placeholder": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Example value shown before a viewer enters input."
+              },
+              "options": {
+                "minItems": 2,
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^[\\w-]{1,64}$",
+                      "description": "Value displayed or supplied to this operation."
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80,
+                      "description": "Short visible label and accessible name for this item."
+                    }
+                  },
+                  "required": ["value", "label"],
+                  "additionalProperties": false
+                },
+                "description": "Allow-listed options presented to the viewer."
+              },
+              "min": {
+                "type": "number",
+                "minimum": -1000000000000,
+                "maximum": 1000000000000,
+                "description": "Minimum permitted numeric value."
+              },
+              "max": {
+                "type": "number",
+                "minimum": -1000000000000,
+                "maximum": 1000000000000,
+                "description": "Maximum permitted numeric value."
+              },
+              "maxLength": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4000,
+                "description": "Maximum number of characters accepted for this value."
+              },
+              "maxTags": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20,
+                "description": "Maximum number of tags accepted."
+              }
+            },
+            "required": ["name", "label", "type"],
+            "additionalProperties": false
+          },
+          "description": "Declared fields or inputs for this form or interactive block."
+        },
+        "submitLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Visible label on the form submit action."
+        },
+        "successMessage": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Confirmation text shown after a simulated form submission."
+        }
+      },
+      "required": ["type", "id", "fields", "submitLabel", "successMessage"],
+      "additionalProperties": false,
+      "title": "Form",
+      "description": "Collect structured fields; pages own responses. id required; 1–20 fields; closed field types; responses via @protoyard/pages."
+    },
+    "flow": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "flow",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "nodes": {
+          "minItems": 1,
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "tone": {
+                "type": "string",
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+                "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+              }
+            },
+            "required": ["id", "label"],
+            "additionalProperties": false
+          },
+          "description": "Nodes in the diagram, with stable ids and visible labels."
+        },
+        "loopBack": {
+          "type": "boolean",
+          "description": "Id of the node reached by the optional loop-back edge."
+        }
+      },
+      "required": ["type", "nodes"],
+      "additionalProperties": false,
+      "title": "Flow diagram",
+      "description": "Show a short process or chain of steps as connected nodes. 1–12 nodes; labels ≤ 120 characters; unique node ids."
+    },
+    "tree": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "tree",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "style": {
+          "type": "string",
+          "enum": ["file-tree", "org"],
+          "description": "Allow-listed visual style for this block."
+        },
+        "nodes": {
+          "minItems": 1,
+          "maxItems": 64,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+              },
+              "parentId": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]{0,47}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Id of the parent node, or null for a root node."
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Short visible label and accessible name for this item."
+              },
+              "tone": {
+                "type": "string",
+                "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+                "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+              }
+            },
+            "required": ["id", "parentId", "label"],
+            "additionalProperties": false
+          },
+          "description": "Nodes in the diagram, with stable ids and visible labels."
+        }
+      },
+      "required": ["type", "style", "nodes"],
+      "additionalProperties": false,
+      "title": "Tree diagram",
+      "description": "A file tree or an org chart. 1–64 nodes; depth ≤ 6; every parentId must exist; no cycles."
+    },
+    "board": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "board",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "columns": {
+          "minItems": 1,
+          "maxItems": 6,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "description": "Short title naming this content or action."
+              },
+              "cards": {
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9-]{0,47}$",
+                      "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+                    },
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120,
+                      "description": "Short title naming this content or action."
+                    },
+                    "tone": {
+                      "type": "string",
+                      "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+                      "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+                    }
+                  },
+                  "required": ["id", "title"],
+                  "additionalProperties": false
+                },
+                "description": "Cards grouped under this board column."
+              }
+            },
+            "required": ["id", "title", "cards"],
+            "additionalProperties": false
+          },
+          "description": "Column groups or headers, depending on the enclosing block."
+        }
+      },
+      "required": ["type", "columns"],
+      "additionalProperties": false,
+      "title": "Board diagram",
+      "description": "A static kanban-style snapshot of work by column. 1–6 columns; ≤ 8 cards per column; unique column and card ids."
+    },
+    "terminal": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "terminal",
+          "description": "Discriminator selecting a block or nested data shape."
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,47}$",
+          "description": "Stable lowercase identifier used to target this item and preserve viewer state."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32,
+          "description": "Presentation reveal step, from zero to thirty-two."
+        },
+        "reveal": {
+          "type": "string",
+          "enum": ["fade", "fade-up", "grow", "highlight", "strike"],
+          "description": "Presentation effect used when this block is revealed."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["neutral", "accent", "info", "success", "warning", "danger"],
+          "description": "Theme tone from the closed palette; raw colors and CSS are not accepted."
+        },
+        "lines": {
+          "minItems": 1,
+          "maxItems": 40,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["prompt", "output", "comment"],
+                "description": "Chart kind or item category selected from a closed set."
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 240,
+                "description": "Plain text or short markdown content, according to the block field."
+              }
+            },
+            "required": ["kind", "text"],
+            "additionalProperties": false
+          },
+          "description": "Ordered terminal lines or source lines shown by this block."
+        }
+      },
+      "required": ["type", "lines"],
+      "additionalProperties": false,
+      "title": "Terminal",
+      "description": "Show a command-line session: prompts, output and comments. 1–40 lines; line text ≤ 240 characters; kinds: prompt, output, comment."
+    }
+  }
+}

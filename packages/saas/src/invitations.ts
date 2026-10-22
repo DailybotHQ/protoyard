@@ -84,6 +84,67 @@ export interface InvitationOptions {
   ttlDays?: number;
   href?: (tokenId: string) => string;
   productName?: string;
+  /**
+   * Domain tables every `create` side effect may write. They join the
+   * invitation transaction, so a failed side effect rolls the invitation back.
+   */
+  tables?: readonly string[];
+}
+
+/** Typed access to one table a side effect declared; every call joins the invitation transaction. */
+export interface InvitationTable<T> {
+  get(id: string): Promise<T | undefined>;
+  add(row: T): Promise<unknown>;
+  put(row: T): Promise<unknown>;
+  bulkAdd(rows: readonly T[]): Promise<unknown>;
+  bulkPut(rows: readonly T[]): Promise<unknown>;
+  update(id: string, changes: Partial<T>): Promise<number>;
+  delete(id: string): Promise<void>;
+  toArray(): Promise<T[]>;
+  where(index: string): {
+    equals(value: string | number): {
+      first(): Promise<T | undefined>;
+      toArray(): Promise<T[]>;
+      count(): Promise<number>;
+    };
+  };
+}
+
+/** What a `create` side effect receives, after the invitation, token and inbox message exist. */
+export interface InvitationSideEffectContext {
+  invitation: SaasInvitation;
+  token: SaasToken;
+  message: SaasInboxMessage;
+  /**
+   * A table declared in `tables` (the service's or this call's). Any other
+   * name throws, so the side effect cannot reach the invitation's own tables.
+   */
+  table<T extends { id: string }>(name: string): InvitationTable<T>;
+}
+
+/**
+ * Extra domain writes made in the same transaction as the invitation. Await
+ * only table operations inside it (a timer or a fetch would commit the
+ * transaction early). A throw or rejection rolls back the invitation, its
+ * token, its inbox message and every write the side effect made.
+ */
+export type InvitationSideEffect<R = void> = (
+  invitation: SaasInvitation,
+  context: InvitationSideEffectContext
+) => R | Promise<R>;
+
+export interface CreateInvitationOptions<R = void> {
+  sideEffect?: InvitationSideEffect<R>;
+  /** Extra tables for this call, added to `InvitationOptions.tables`. */
+  tables?: readonly string[];
+}
+
+export interface CreatedInvitation<R = void> {
+  invitation: SaasInvitation;
+  token: SaasToken;
+  message: SaasInboxMessage;
+  /** What the side effect returned; `undefined` without one. */
+  effect: R | undefined;
 }
 
 function requirePrincipal(runtime: ProtoyardRuntime) {
@@ -107,6 +168,21 @@ export function createInvitationServices(
   const accounts = () => db.table<SaasAccount>(ACCOUNTS);
   const tokens = () => db.table<SaasToken>(TOKENS);
   const invitations = () => db.table<SaasInvitation>(INVITATIONS);
+  const ownTables: readonly string[] = [ACCOUNTS, TOKENS, INVITATIONS, INBOX];
+
+  /** Validates side-effect table names before anything is written. */
+  function sideEffectTables(extra: readonly string[] = []): string[] {
+    const names = [...new Set([...(options.tables ?? []), ...extra])];
+    for (const name of names) {
+      if (ownTables.includes(name) || name.startsWith('py_')) {
+        throw new Error(
+          `"${name}" belongs to invitations or identity; a side effect cannot write it directly.`
+        );
+      }
+      if (db.hasTable && !db.hasTable(name)) throw new Error(`Unknown table "${name}".`);
+    }
+    return names;
+  }
 
   /**
    * `members:invite` with the actor's role in the invitation's organization
@@ -116,12 +192,19 @@ export function createInvitationServices(
     assertInOrg(runtime, INVITE_CAPABILITY, organizationId);
   }
 
-  async function create(input: CreateInvitationInput): Promise<{
-    invitation: SaasInvitation;
-    token: SaasToken;
-    message: SaasInboxMessage;
-  }> {
+  /**
+   * Creates a pending invitation, its single-use token and the inbox message.
+   * An optional side effect (a function, or `{ sideEffect, tables }`) runs in
+   * the same transaction; if it fails, nothing is written.
+   */
+  async function create<R = void>(
+    input: CreateInvitationInput,
+    createOptions?: InvitationSideEffect<R> | CreateInvitationOptions<R>
+  ): Promise<CreatedInvitation<R>> {
     const principal = requirePrincipal(runtime);
+    const call: CreateInvitationOptions<R> =
+      typeof createOptions === 'function' ? { sideEffect: createOptions } : (createOptions ?? {});
+    const extraTables = call.sideEffect ? sideEffectTables(call.tables) : [];
     const organizationId = principal.organization?.id;
     if (!organizationId) throw new ValidationError({ organizationId: 'Choose a workspace first.' });
     assertInviteCapability(organizationId);
@@ -180,9 +263,26 @@ export function createInvitationServices(
             body: `You have been invited to join a workspace in ${product}. This is a simulated message: nothing was emailed.`,
             action: { label: 'Accept invitation', href: href(token.id) },
           });
-          return { invitation, token, message };
+          let effect: R | undefined;
+          if (call.sideEffect) {
+            const allowed = new Set(extraTables);
+            effect = await call.sideEffect(invitation, {
+              invitation,
+              token,
+              message,
+              table<T extends { id: string }>(name: string) {
+                if (!allowed.has(name)) {
+                  throw new Error(
+                    `Table "${name}" is not declared for this invitation side effect. Declared: ${[...allowed].join(', ') || 'none'}.`
+                  );
+                }
+                return db.table(name) as unknown as InvitationTable<T>;
+              },
+            });
+          }
+          return { invitation, token, message, effect };
         },
-        { tables: [ACCOUNTS, TOKENS, INVITATIONS, INBOX] }
+        { tables: [...ownTables, ...extraTables] }
       )
     );
   }

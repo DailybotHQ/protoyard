@@ -75,7 +75,7 @@ deploy.
 | Command | Options | What it does | Status |
 | --- | --- | --- | --- |
 | `protoyard doctor` | `--offline` | check Node, pnpm, dependencies, layout, templates, git, Playwright and provider CLIs. With `--json`, the envelope also has top-level `interface` and `capabilities` (new since 1.0.0) | Released; new output (`interface`, `capabilities`) |
-| `protoyard list` | `--kind <kind>`, `--tag <tag>`, `--category <category>`, `--platform <platform>`, `--search <text>`, `--sort <field>` | list prototypes and templates from the registry | Released (1.0.0) |
+| `protoyard list` | `--kind <kind>`, `--tag <tag>`, `--category <category>`, `--platform <platform>`, `--search <text>`, `--sort <field>`, `--all` (new) | list prototypes and templates from the registry. An optional `protoyard.workspace.json` `listing.include.category` limits the default listing; `--all` (or `PROTOYARD_LISTING=all`) shows every entry | Released; new options marked |
 | `protoyard index` | `--force` | scan protoyard.json manifests (no code runs) and write .protoyard/registry.json | Released (1.0.0) |
 | `protoyard affected` | `--since <ref>`, `--format <fmt>` | list prototype slugs affected by changes since a git ref (for selective CI builds) | Released (1.0.0) |
 | `protoyard gallery` | `-p, --port <port>`, `--control-port <port>`, `--allow-origin <origins>`, `--allow-create` | index, start the control server and run the gallery (what `pnpm dev` runs) | Released (1.0.0) |
@@ -88,7 +88,7 @@ deploy.
 | --- | --- | --- | --- |
 | `protoyard new <slug>` | `-t, --template <name>`, `--from <slug>`, `--name <name>`, `--description <text>`, `--force`, `--no-install` | create prototypes/<slug> from a template or by remixing an existing prototype | Released (1.0.0) |
 | `protoyard generate <slug>` | `-b, --blueprint <file>`, `-t, --template <name>`, `--name <name>`, `--description <text>`, `--dry-run`, `--force`, `--allow-drop`, `--no-install` | create prototypes/<slug> from a data-only blueprint, or regenerate it after the blueprint changes | Released (1.0.0) |
-| `protoyard quick [brief]` | `--blueprint <file>`, `--slug <slug>`, `--name <name>`, `--out <dir>`, `--allow-external-out`, `--seed <n>`, `--variants <n>`, `--standalone`, `--no-store-brief`, `--force`, `--screenshot`, `--phone` | a disposable, playable exploration from a brief or a blueprint, with no build | New since 1.0.0 |
+| `protoyard quick [brief]` | `--blueprint <file>`, `--slug <slug>`, `--name <name>`, `--kind <kind>`, `--out <dir>`, `--allow-external-out`, `--seed <n>`, `--variants <n>`, `--standalone`, `--no-store-brief`, `--force`, `--screenshot`, `--phone` | a disposable, playable exploration from a brief or a blueprint, with no build | New since 1.0.0 |
 | `protoyard quick serve <slug\|dir>` | `--port <port>`, `--strict-port`, `--open` | serve an exploration on 127.0.0.1 until Ctrl+C (marked explorations only); open players follow blueprint changes live and post review comments to the server | New since 1.0.0 |
 | `protoyard quick shot <slug\|dir>` | `--phone` | capture a PNG of the exploration and each variant at 1280x800 (plus 390x844 with `--phone`) after the ready mark, into `screenshots/`, recorded in quick.json; without Playwright or its Chromium it records a skip and exits 0 (`quick … --screenshot` does the same after creating) | New since 1.0.0 |
 | `protoyard quick promote <slug\|dir> <slug>` | `--variant <id>`, `--no-install` | turn an exploration (or one variant) into a full prototype in prototypes/<slug> through `generate`; checks the result is the same app and records `promotedTo` in quick.json; never replaces an existing prototype; needs a workspace | New since 1.0.0 |
@@ -122,7 +122,7 @@ deploy.
 | `protoyard theme use <slug> <theme-id>` | `--dry-run` | set a prototype manifest’s default theme to a built-in or library theme | Released (1.0.0) |
 | `protoyard theme create <slug>` | `--id <id>`, `--name <name>`, `--seed <hex>`, `--secondary <hex>`, `--from <file>`, `--force`, `--dry-run` | write a typed theme into a prototype from a seed or JSON file | Released (1.0.0) |
 | `protoyard theme export [id]` | `--from <file>`, `--format <format>` | export a theme as CSS variables, Tailwind tokens or W3C design tokens | Released (1.0.0) |
-| `protoyard theme import <slug> <file>` | `--force`, `--dry-run` | write a validated JSON theme into a prototype | Released (1.0.0) |
+| `protoyard theme import <slug-or-file> [file]` | `--name`, `--force`, `--dry-run` | write a validated JSON theme into a prototype; or, with a design-token file and `--name`, build a validated theme with a contrast report (`--json` prints the theme, CSS and Tailwind tokens) | Released (1.0.0); token import unreleased |
 | `protoyard snapshot` | — | snapshot files committed with a prototype | Released (1.0.0) |
 | `protoyard snapshot list <slug>` | — |  | Released (1.0.0) |
 | `protoyard spec [slug]` | `--all`, `--write`, `--check`, `--init`, `--bundle` | keep a prototype's AGENTS.md and docs/ generated regions in sync with its definition (runs local code) | Released (1.0.0) |
@@ -131,6 +131,8 @@ deploy.
 
 | Command | Options | What it does | Status |
 | --- | --- | --- | --- |
+| `protoyard kit` | — | share a design kit's components between prototypes without breaking export isolation | Unreleased |
+| `protoyard kit sync <kit> <prototype>` | `--check`, `--force` | copy a kit's component tree into a prototype-owned folder, record SHA-256 hashes, and with `--check` fail on drift; local edits in the synced folder are refused unless `--force` replaces them | Unreleased |
 | `protoyard comments` | — | pull, export and import prototype review comments | Released (1.0.0) |
 | `protoyard comments pull <slug>` | `--from <url>`, `--file <json>`, `--format <format>`, `--out <file>` | pull review comments from an endpoint or local adapter export | Released (1.0.0) |
 | `protoyard comments export <slug>` | `--out <file>` | write the local adapter JSON format from the last pulled comments | Released (1.0.0) |

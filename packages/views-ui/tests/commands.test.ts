@@ -3,10 +3,12 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   AppCommandPalette,
+  type CommandEntry,
   createCommands,
   isMacPlatform,
   normalizeShortcut,
   type RouteLike,
+  ShortcutSheet,
   shortcutKeys,
 } from '../src/commands/index.ts';
 
@@ -244,5 +246,152 @@ describe('AppCommandPalette', () => {
     expect(button.textContent).toContain(isMacPlatform() ? '⌘K' : 'CtrlK');
     await fireEvent.click(button);
     expect(await screen.findByRole('dialog')).toBeTruthy();
+  });
+
+  it('searches async providers with pending feedback and ignores stale query results', async () => {
+    const commands = createCommands({ session: fakeSession([]) }, []);
+    let resolveSearch: (entries: CommandEntry[]) => void = () => {};
+    commands.registerSearchSource((query) => {
+      if (query === 'late') {
+        return new Promise((resolve) => {
+          resolveSearch = resolve;
+        });
+      }
+      return Promise.resolve([
+        {
+          id: 'search:latest',
+          kind: 'page',
+          label: 'Latest result',
+          group: 'Search',
+          keywords: [],
+        },
+      ]);
+    });
+    render(AppCommandPalette, { registry: commands });
+    await fireEvent.keyDown(window, { key: 'k', ...mod() });
+    const dialog = await screen.findByRole('dialog');
+    const input = within(dialog).getByRole('combobox');
+    await fireEvent.input(input, { target: { value: 'late' } });
+    expect(within(dialog).getByText('Searching…')).toBeTruthy();
+    await fireEvent.input(input, { target: { value: 'latest' } });
+    expect(await within(dialog).findByText('Latest result')).toBeTruthy();
+    resolveSearch([
+      { id: 'search:stale', kind: 'page', label: 'Stale result', group: 'Search', keywords: [] },
+    ]);
+    await waitFor(() => expect(within(dialog).queryByText('Stale result')).toBeNull());
+    commands.destroy();
+  });
+
+  it('drills into nested command steps and returns to the parent list', async () => {
+    const commands = createCommands({ session: fakeSession([]) }, []);
+    commands.register({
+      id: 'manage',
+      label: 'Manage project',
+      children: [
+        {
+          id: 'action:rename',
+          kind: 'action',
+          label: 'Rename project',
+          group: 'Project',
+          keywords: [],
+          run: vi.fn(),
+        },
+      ],
+    });
+    render(AppCommandPalette, { registry: commands });
+    await fireEvent.keyDown(window, { key: 'k', ...mod() });
+    const dialog = await screen.findByRole('dialog');
+    await fireEvent.click(within(dialog).getByText('Manage project'));
+    expect(await within(dialog).findByText('Rename project')).toBeTruthy();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Back' }));
+    expect(await within(dialog).findByText('Manage project')).toBeTruthy();
+    expect(within(dialog).queryByText('Rename project')).toBeNull();
+    commands.destroy();
+  });
+
+  it('offers a create fallback for typed text and runs it through pending feedback', async () => {
+    let finish: () => void = () => {};
+    const run = vi.fn(() => new Promise<void>((resolve) => (finish = resolve)));
+    const commands = createCommands({ session: fakeSession([]) }, [], {
+      createFallback: (query) => ({ id: 'create-item', label: `Create “${query}”`, run }),
+    });
+    render(AppCommandPalette, { registry: commands });
+    await fireEvent.keyDown(window, { key: 'k', ...mod() });
+    const dialog = await screen.findByRole('dialog');
+    const input = within(dialog).getByRole('combobox');
+    await fireEvent.input(input, { target: { value: 'Draft a launch plan' } });
+    const create = await within(dialog).findByText('Create “Draft a launch plan”');
+    await fireEvent.click(create);
+    await waitFor(() => expect(run).toHaveBeenCalledTimes(1));
+    const item = create.closest('[data-command-item]') as HTMLElement;
+    expect(item.getAttribute('aria-busy')).toBe('true');
+    finish();
+    commands.destroy();
+  });
+
+  it('keeps the dialog usable and shows an error when an async provider fails', async () => {
+    const commands = createCommands({ session: fakeSession([]) }, []);
+    commands.registerSearchSource(async () => {
+      throw new Error('provider unavailable');
+    });
+    render(AppCommandPalette, { registry: commands });
+    await fireEvent.keyDown(window, { key: 'k', ...mod() });
+    const dialog = await screen.findByRole('dialog');
+    await fireEvent.input(within(dialog).getByRole('combobox'), { target: { value: 'unknown' } });
+    expect(await within(dialog).findByText('Search failed.')).toBeTruthy();
+    expect(dialog.getAttribute('data-state')).toBe('open');
+    commands.destroy();
+  });
+});
+
+describe('ShortcutSheet', () => {
+  it('groups accessible labels, formats chords for the platform, and filters inactive scopes', () => {
+    render(ShortcutSheet, {
+      props: {
+        platform: 'mac',
+        activeScopes: ['editor'],
+        groupOrder: ['Editing', 'General'],
+        bindings: [
+          {
+            id: 'save',
+            label: 'Save changes',
+            group: 'Editing',
+            keys: ['mod+s'],
+            scopes: ['editor'],
+          },
+          { id: 'help', label: 'Show help', group: 'General', keys: ['?'], scopes: ['global'] },
+          { id: 'hidden', label: 'Canvas only', group: 'Canvas', keys: ['e'], scopes: ['canvas'] },
+        ],
+      },
+    });
+
+    const region = screen.getByRole('region', { name: 'Keyboard shortcuts' });
+    expect(within(region).getByRole('heading', { name: 'Editing' })).toBeTruthy();
+    expect(within(region).getByRole('heading', { name: 'General' })).toBeTruthy();
+    expect(within(region).getByText('Save changes')).toBeTruthy();
+    expect(within(region).getByText('⌘S')).toBeTruthy();
+    expect(within(region).getByText('Show help')).toBeTruthy();
+    expect(within(region).queryByText('Canvas only')).toBeNull();
+  });
+
+  it('filters visible shortcuts by label and chord with an announced empty state', async () => {
+    render(ShortcutSheet, {
+      props: {
+        platform: 'other',
+        bindings: [
+          { id: 'save', label: 'Save changes', group: 'Editing', keys: ['mod+s'] },
+          { id: 'help', label: 'Show help', group: 'General', keys: ['?'] },
+        ],
+      },
+    });
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search shortcuts' }), {
+      target: { value: 'ctrl+s' },
+    });
+    expect(screen.getByText('Save changes')).toBeTruthy();
+    expect(screen.queryByText('Show help')).toBeNull();
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search shortcuts' }), {
+      target: { value: 'not here' },
+    });
+    expect(screen.getByRole('status').textContent).toBe('No shortcuts found');
   });
 });

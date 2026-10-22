@@ -42,14 +42,43 @@ to the prototype, then import the styles after Tailwind and the theme tokens:
 <Toaster />
 ```
 
+## Class names (`cn`)
+
+`cn(...inputs)` (re-exported from `@protoyard/ui`) is `clsx` plus an extended
+`tailwind-merge`. It knows Protoyard utilities from `@protoyard/themes/base.css`
+so a consumer class reliably overrides a component default:
+
+| Group | Examples that merge correctly |
+| --- | --- |
+| Shadows | `shadow-soft`, `shadow-float`, `shadow-none`, `shadow-md` |
+| Heights | `min-h-touch`, `min-h-app`, `h-app`, `max-h-app` |
+| Surfaces | `bg-surface`, `bg-elevated`, `bg-muted`, … |
+| Text | `text-muted-foreground`, `text-sm` / `text-lg`, … |
+| Safe area | `pt-safe`, `px-safe`, … |
+
+```ts
+import { cn } from '@protoyard/ui';
+cn('shadow-soft', 'shadow-none'); // → "shadow-none"
+```
+
 ## Components
 
 | Group | Components |
 | --- | --- |
-| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone` |
+| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `OtpInput` |
+| Form utilities | `TagEmailInput`, `EmojiPicker`, `PasswordStrengthMeter`, `TextCounter` (+ email and password-score helpers) |
+| Scheduling | `TimeZoneSelect`, `WeekdayPicker`, `TimeInput`, `DatePicker`, `DateRangePicker`, `Calendar` (+ pure date, time, weekday and zone helpers) |
+| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput`, `OtpInput` |
+| Forms | `Button` (+ `buttonVariants`), `Input`, `Textarea`, `Label`, `FormField`, `Checkbox`, `RadioGroup` / `RadioGroupItem` (`variant="card"`), `StarRating`, `NumberStepper`, `ChipGroup`, `Switch`, `Select`, `Combobox`, `UserPicker`, `FileDropzone`, `ImageInput` |
 | Overlays | `Dialog`, `AlertDialog`, `DetailPanel`, `BottomSheet`, `DropdownMenu`, `Popover`, `Tooltip` |
-| Disclosure | `Tabs`, `Accordion` |
+| Disclosure | `Tabs`, `Accordion`, `Carousel` |
+| Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState`, `Notice`, `SimulatedTag`, `ProposalTag`, `StatusChip` |
 | Feedback | `Toaster` + `toast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
+| Demo | `ScenarioSwitcher` (in-app scenario load + view-as persona; labelled Simulated) |
+| Display | `Badge` (+ `badgeVariants`), `Avatar`, `ActorRow`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
+| Overlays | `Dialog`, `AlertDialog`, `Drawer`, `DetailPanel`, `BottomSheet`, `AdaptiveOverlay`, `DropdownMenu`, `Popover`, `Tooltip`, `overlayStack` / `useOverlayLayer` |
+| Disclosure | `Tabs`, `Accordion` |
+| Feedback | `Toaster` + `toast`, `UndoToaster` + `undoToast`, `Progress`, `Spinner`, `Skeleton`, `EmptyState`, `ErrorState`, `LoadingState` |
 | Display | `Badge` (+ `badgeVariants`), `Avatar`, `Card` / `CardHeader` / `CardTitle` / `CardDescription` / `CardContent` / `CardFooter`, `Separator`, `Kbd`, `StatCard` |
 | Data | `DataTable`, `FilterBar` (+ `applyFilters`), `Pagination`, `Kanban` |
 | Layout | `LayoutHost`, `AppShell`, `Sidebar`, `Header`, `Breadcrumb`, `CardGrid` |
@@ -69,11 +98,21 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | --- | --- |
 | `Button` | `variant` default·secondary·outline·ghost·destructive·link, `size` sm·md·lg·icon (the icon button), `loading` (+`loadingLabel`): spinner over the kept, invisible label so the width never changes, `aria-busy`, disabled. An `onclick` that returns a promise sets `loading` until it settles (`autoLoading={false}` opts out). `href` → `<a>`, `bind:ref` |
 | `Input` / `Textarea` | native attributes, `bind:value`, `aria-invalid` styling |
+| `OtpInput` | fixed-length one-time-code cells (`length` 2–12, default 6); paste, arrows, backspace; `onComplete` exact-once; **simulated UX only** — never SMS or auth |
 | `Label` | `for` |
 | `FileDropzone` | `accept`, `maxSize`, `maxFiles`, `multiple`, `bind:files` (`DropzoneFile[]` with real `File`s), `bind:rejects`, drag-and-drop + keyboard file input, image previews via `URL.createObjectURL` (revoked on remove/destroy), per-file `Progress`, inline limit errors. Never reads file contents as HTML. |
+| `ImageInput` | Labeled local image picker (`label`, `hint`, `accept`, `multiple`, `required`, `onFilesSelected`). Raster previews only via object URLs (`image/jpeg|png|gif|webp|avif`); SVG/HTML never become markup. Every object URL is revoked on replace, clear and unmount. Persistence and upload stay in the caller service. |
+| `ScenarioSwitcher` | In-app demo control: scenarios grouped by `group`, Load with pending feedback, View as… persona chips on the active world. Always labelled **Simulated**. Props: `scenarios`/`groups`, `activeScenarioId`, `personas`, `activePersonaId`, `onLoadScenario`, `onViewAs`, optional loading ids. Wire via `@protoyard/renderer-svelte` `scenarioSwitcherProps` / `createScenarioSwitcherActions`. |
 | `FormField` | `label`, `description`, `error`, `required`, `hideLabel`, `id`; `children({ id, describedBy, invalid, required, props })` |
+| `TagEmailInput` | `bind:value` (`string[]`), Enter/Space/comma/semicolon commit, paste split, Backspace removes last; format-only email check (`ignoreValidation` for free tags) |
+| `EmojiPicker` | `bind:value` (one emoji), searchable grouped grid, arrow keys + Home/End, Enter picks, Escape closes |
+| `PasswordStrengthMeter` | `value` (display-only score 0–5), never stores or sends the password; optional `onScore` / `onFeedback` |
+| `TextCounter` | `bind:value`, `maxlength`, countdown while focused once `showAfter` chars remain; `tag="input"\|"textarea"` |
 | `Checkbox` | `bind:checked`, `bind:indeterminate`, `label`, `description` |
-| `RadioGroup` / `RadioGroupItem` | `items: { value, label, description?, disabled? }[]`, `bind:value` (Bits props pass through) |
+| `RadioGroup` / `RadioGroupItem` | `items: { value, label, description?, disabled? }[]`, `bind:value`, `variant` `default`·`card` (Bits props pass through) |
+| `StarRating` | `bind:value` (0…maxStars), `label`, `maxStars` (2–10, default 5), `disabled`, `onchange`; radiogroup with roving arrows |
+| `NumberStepper` | `label` (required), `bind:value`, `min`·`max`·`step`, `unit`, `disabled`, `onchange`; spinbutton + ± buttons |
+| `ChipGroup` | `label`, `items`, `mode` `single`·`multi`, `bind:value` (`string[]`), `size` sm·md, `disabled`, `onchange` |
 | `Switch` | `bind:checked`, `label`, `description` |
 | `Select` | `items: { value, label, disabled? }[]`, `bind:value`, `bind:open`, `placeholder`, `name` (hidden input). Name comes from your label/`aria-label`; the selected value is exposed via `aria-describedby` |
 | `Combobox` | like `Select` + `filter`, `emptyText`; external `value` changes are mirrored into the input (unless a search is open) |
@@ -86,13 +125,18 @@ interactive version of this catalog is the `prototypes/ui-kit` prototype
 | `Popover` | `bind:open`, `trigger`, `side`, `align`, children |
 | `Tooltip` | `content` (string or snippet), `children` is the trigger, `side`, `delayDuration` |
 | `Tabs` | `items: { value, label, icon?, badge?, disabled? }[]`, `bind:value`, `content(item)` snippet, `variant`, `label` |
+| `Carousel` | `items: { id, label }[]`, `bind:index`, `label`, `children(item, index)` snippet, `showControls`, `showDots`, `loop`, `swipeThreshold`; region with `aria-roledescription="carousel"`, arrow keys, swipe, reduced motion |
 | `Accordion` | `items: { value, title, content?, disabled? }[]`, `type` single·multiple, `bind:value`, `content(item)` snippet, `headingLevel` |
 | `Toaster` / `toast` | see *Toasts* below |
 | `Progress` | `value` (`null` = indeterminate), `max`, `label` or `ariaLabel`, `showValue`, `tone`, `size` |
 | `Spinner` / `Skeleton` | size / `class` for shape |
 | `EmptyState` / `ErrorState` / `LoadingState` | `title`, `description`, `icon`, `action` snippet; `ErrorState.onRetry`; `LoadingState.label` |
+| `Notice` | `tone` info·success·warning·error·brand, `title`, `text`, `children`, optional `actionLabel` + `onAction` (promise → pending) or `actionHref`; error → role=alert |
+| `SimulatedTag` / `ProposalTag` | Honesty labels (default "Simulated" / "Proposal under review"); always a word, never color alone; optional `title` |
+| `StatusChip` | Required `label` word, `tone` neutral·success·warning·error·info·brand, optional `icon` |
 | `Badge` | `variant` default·secondary·outline·success·warning·destructive·info |
 | `Avatar` | `name` (initials + deterministic color), `src?`, `srcset?`, `size` xs·sm·md·lg, `decorative`. The image is lazy, async-decoded and fixed-size; an unsafe `src` (any scheme but https, `//host`) or a load error shows the initials. Persona faces: `<Avatar name={p.name} {...avatarImage(p.avatar)} />` (`avatarImage` from `@protoyard/renderer-svelte`) |
+| `ActorRow` | `actor: { name, kind: 'person'·'agent', role?, avatarUrl?, avatarSrcset? }`, optional `handledBy` with the same shape, `class`. Displays an accessible identity, a visible Person or Agent · simulated label, and an optional “Handled by …” badge. Resolve fictional avatar ids with `avatarImage()` from `@protoyard/renderer-svelte` before passing the image fields. |
 | `Card` + parts | `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter` |
 | `Separator` / `Kbd` | `orientation` / children |
 | `StatCard` | `label`, `value`, `delta`, `trend` up·down·neutral, `positive`, `hint`, `icon` |
@@ -269,6 +313,50 @@ tinted (`data-trail`), and in a collapsed or one-level list the visible
 parent carries the mark. `Sidebar` shows one level, so `sidebar` and `rail`
 mark the parent of a current child page.
 
+## Form utilities
+
+Tag, emoji, password-strength and character-count controls
+(`src/components/form/utilities/`). Theme tokens only, with no product branding.
+
+| Component | Behavior |
+| --- | --- |
+| `TagEmailInput` | Invite-style tags. Commit with Enter, Space, comma or semicolon; paste splits on the same separators; Backspace on an empty draft removes the last tag. Email checks are format-only (`local@domain`) via `isEmailAddress` — not deliverability. Use `ignoreValidation` for free-form tags. |
+| `EmojiPicker` | One emoji from a built-in grouped catalog (`EMOJI_GROUPS`). Search filters by name; the grid is keyboard-roving (arrows, Home/End, Enter). |
+| `PasswordStrengthMeter` | Five-segment `role="meter"` under a password field. Rates the string in memory with `passwordScore` (length, case, digit, symbol, tiny fictional common list). **Simulation only:** it never stores, hashes or transmits the value. Pair with `Input type="password"`. |
+| `TextCounter` | Input or textarea with `maxlength` and a remaining-character countdown shown while focused once `showAfter` (default 20) characters remain. |
+
+- **Honesty.** Password strength is UX feedback for prototypes, not security. Email validation is shape-only.
+- **FormField.** Pass `id`, `aria-describedby` and `aria-invalid` from `control.props` onto these controls the same way as other inputs.
+
+## Scheduling inputs
+
+Typed, keyboard-first controls for schedules (`src/components/form/scheduling/`). Every
+value is plain JSON with no `Date` objects, so it validates with zod and persists as is:
+
+| Component | Value | Behavior |
+| --- | --- | --- |
+| `TimeZoneSelect` | IANA zone (`'America/Bogota'`) | A searchable `Combobox` labelled `(GMT-05:00) America/Bogota`, sorted west to east. A search matches any part of the label or the zone name, and `_` matches a space. Offsets are those in force at `referenceDate`, so pass the scenario clock. `zones` narrows the list. |
+| `WeekdayPicker` | `IsoWeekday[]` (1 = Monday … 7 = Sunday, sorted) | Toggle buttons (`aria-pressed`) in one labelled group with a single tab stop. Arrows and Home/End move between days; Space or Enter toggles one. `weekStartsOn`, `locale`, `labelStyle`, and `name` (one hidden input per day). For a single day, use `Select` with `weekdayOptions()`. |
+| `TimeInput` | `'HH:mm'` (24-hour) or `null` | Native hour and minute selects, plus AM/PM in `format={12}`. `intervalMinutes` must divide 60, otherwise it falls back to 15. A minute that is off the step stays available as an option. The value is emitted only once both hour and minute are set. |
+| `DatePicker` | `'YYYY-MM-DD'` or `null` | A text field plus a `Calendar` popover; Alt+ArrowDown also opens it. Typed text is checked on change. An impossible date (`2026-02-30`), a date outside `min`/`max`, or one that `isDateDisabled` rejects shows an inline message linked through `aria-describedby`, calls `onInvalid(issue, text)`, and leaves the value unchanged. Clearing the field sets `null`. |
+| `DateRangePicker` | `{ start, end }` of `'YYYY-MM-DD' \| null` | Start and end fields plus a calendar that picks the range in two clicks; reversed ends are swapped. The value changes only to an empty range or to a complete, valid one. `maxDays`, `min`, `max` and `required` are enforced through `validateDateRange()`. |
+| `Calendar` | — | An ARIA grid with a single tab stop. Arrows move a day or a week, Home/End go to the start or end of the week, PageUp/PageDown change the month (with Shift, the year), and Enter or Space picks. Unavailable dates stay focusable with `aria-disabled`; today is marked `aria-current="date"`. The grid always shows six weeks, so its height never jumps. |
+
+- **Deterministic dates.** Pass `today` (`isoDateFromInstant(runtime.clock.now(), zone)`) and
+  `referenceDate` from the scenario clock. All arithmetic (`addDays`, `addMonths`, `monthGrid`, …)
+  runs on UTC midnights, so the host time zone and DST never move a date. The calendar falls
+  back to the real clock only when it is given no date at all.
+- **FormField.** Spread `control.props` onto any of them. The label targets the first segment
+  (the hour, or the start date), and `aria-required` is treated like `required`.
+- **Helpers:** `parseIsoDate`, `checkDateText`, `validateDateRange`, `parseTimeOfDay`,
+  `timeOfDayLabel`, `minuteSteps`, `normalizeWeekdays`, `describeWeekdays`, `timeZoneOptions`,
+  `timeZoneOffsetMinutes` and `isValidTimeZone`. They are pure functions, so a service can reuse
+  them (for example in a zod `refine`) to check the same values before it writes.
+- **Limits.** Typed dates accept only `YYYY-MM-DD`; there is no locale-specific parsing. Zone names
+  come from the browser's `Intl.supportedValuesOf('timeZone')`, with a fixed fallback list of
+  23 zones. Pickers do not convert between zones: a `TimeInput` value is wall-clock time that
+  you pair with a `TimeZoneSelect` value.
+
 ## Toasts
 
 ```ts
@@ -283,7 +371,83 @@ toast.dismiss(id); // or toast.dismiss() for all
 Toasts auto-dismiss (4–8 s depending on kind, configurable with `duration`). The countdown pauses
 while the stack is hovered or focused. Messages are announced politely, and errors assertively.
 Render one `<Toaster />` near the app root. It sits bottom-right, or bottom-center above the safe
-area on phones.
+area on phones. Only the toasts take pointer events: taps around them and in the gaps between them
+reach the page. To keep toasts above a bottom nav or a sticky composer, pass `offset` (px or any CSS
+length, `<Toaster offset={64} />`) or set `--py-toast-offset` on the page. Inside a prototype, the
+toasts also stay inside the visible right edge (`--py-fixed-right-edge`, kept current by the
+renderer).
+
+## Drawers and the overlay stack
+
+```svelte
+<script lang="ts">
+  import { Button, Drawer } from '@protoyard/ui';
+  let open = $state(false);
+</script>
+
+<Button onclick={() => (open = true)}>Filters</Button>
+<Drawer bind:open title="Filters" placement="right" size="22rem">
+  …
+  {#snippet footer()}<Button onclick={() => (open = false)}>Apply</Button>{/snippet}
+</Drawer>
+```
+
+`Drawer` slides in from `right` (default), `left`, `top` or `bottom`. `size` is the width for a
+side drawer and the height for a top or bottom one. It accepts a plain CSS length (`22rem`, `40%`,
+`320px`, `auto`) or a number of pixels. Anything else falls back to the default (`24rem` for side
+drawers, `auto` up to 85% for top and bottom ones), so a size can never inject other styles. It
+is **non-modal by default**: the page behind stays usable, outside clicks do not close it, and it
+only owns Escape. With `modal`, it dims the page, traps focus and locks scroll, and outside clicks
+close it (`closeOnOutsideClick` overrides either default). Like `Dialog`, it portals into the device
+screen when a shell frames the prototype. If that screen is detached, the portal target is cleared
+and Bits UI falls back to `document.body`. The shared Vitest setup resets portal and toast state,
+plus local and session storage, after each test.
+
+Every `Drawer` registers with the shared `overlayStack`:
+
+- Nested drawers paint in open order, each above the one before (z-index from 51 upward).
+- Escape closes only the top drawer.
+- On close, focus returns to the element that opened the drawer. Focus only moves when it was lost
+  with the drawer or was still inside it, so it never steals focus from the page behind a non-modal
+  drawer.
+- A menu or picker inside an overlay can call `overlayStack.registerDismissibleLayer(el, close)`.
+  Escape then closes that layer first, never the drawer and its draft.
+
+A custom overlay joins the same stack with `useOverlayLayer(() => open, { modal: () => modal })`.
+It gets its `zIndex` and `restoreFocus(container)`. `Dialog`, `AlertDialog`, `BottomSheet` and
+`DetailPanel` also register as modal layers, so a dialog opened inside a drawer paints above it
+and Escape closes only the top layer. `UndoToaster` stays above the stack (`useOverlayTopZIndex`)
+and remains keyboard-reachable outside a modal drawer's focus trap.
+
+### AdaptiveOverlay
+
+`AdaptiveOverlay` picks a presentation from host/container width (default breakpoint 768 CSS px):
+bottom sheet when narrow, centered `Dialog` or `DetailPanel` side panel when wide (`kind`). Pass
+`force="sheet" | "dialog" | "side-panel"` to lock a presentation (for example with an in-app
+phone/desktop toggle). See [docs/SHELLS.md](../../docs/SHELLS.md#adaptive-overlay-sheet--dialog--side-panel).
+
+## Undo toasts
+
+```ts
+import { undoToast } from '@protoyard/ui';
+
+await services.tasks.archive(ids); // the action happens first
+undoToast.show({
+  message: `Archived ${ids.length} tasks`,
+  onUndo: () => services.tasks.restore(ids), // the explicit undo; may return a promise
+  onSettle: (reason) => {}, // optional: closed without an undo (expired, dismissed, replaced, evicted)
+});
+```
+
+Render one `<UndoToaster />` near the app root, next to `<Toaster />`. It sits bottom-left
+(bottom-center on phones), above every open drawer, and inside the device frame when a shell sets
+one. The undo window is 10 s by default (`duration`, clamped to 1–60 s), shown by a countdown bar
+that is hidden when motion is reduced. Hovering or focusing the stack pauses it. While a returned
+promise is pending, the Undo button shows the `Button` loading state and the countdown is frozen.
+If the undo rejects, the toast stays open with the error text and offers **Retry undo**. Escape
+or the close control dismisses a toast. At most three are pending at a time, and the oldest settles
+as `evicted`. `onSettle` runs exactly once, and only when the toast closes without a successful
+undo. A failed undo can be retried, so `onUndo` must be safe to call again.
 
 ## Tokens and accessibility
 

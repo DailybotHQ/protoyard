@@ -7,7 +7,7 @@
  * Supported: paragraphs, headings, emphasis, strong, strikethrough, inline
  * code, fenced code blocks (an unterminated fence while streaming becomes a
  * code block with `closed: false`), ordered/unordered/task lists, block
- * quotes, tables, thematic breaks, links and bare URLs, images from the
+ * quotes, tables, thematic breaks, HTTPS/mailto links and bare HTTPS URLs, images from the
  * prototype (relative paths or `attachment:<id>`), attachment links and
  * footnote-style citations (`[^1]` with `[^1]: Title https://…`).
  *
@@ -69,15 +69,16 @@ export interface MdDocument {
 export const MARKDOWN_MAX_LENGTH = 100_000;
 const MAX_DEPTH = 8;
 
-const SAFE_SCHEME = /^(?:https?|mailto):/i;
+const SAFE_SCHEME = /^(?:https|mailto):/i;
+const SAME_DOCUMENT = /^#[\w\-/.~%]*$/;
 const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 const ID = /^[\w-]{1,64}$/;
 
 /**
- * A link target the UI may put in `href`, or `null`. Allows http(s), mailto
- * and same-document/relative URLs; rejects every other scheme (`javascript:`,
- * `data:`, `vbscript:`…) after stripping the control characters and
- * whitespace browsers ignore, and rejects protocol-relative `//host`.
+ * A link target the UI may put in `href`, or `null`. Allows HTTPS, mailto and
+ * same-document fragments (`#section`, `#/route`); rejects relative paths and
+ * every other scheme after stripping the control characters and whitespace
+ * browsers ignore.
  */
 export function safeHref(raw: string): string | null {
   // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point.
@@ -86,14 +87,18 @@ export function safeHref(raw: string): string | null {
   // Reject protocol-relative forms browsers normalize, including `/\host` and `\/host`.
   const normalizedSlashes = url.replace(/\\/g, '/');
   if (/^\/{2}/.test(normalizedSlashes) || normalizedSlashes.startsWith('\\')) return null;
-  if (SAFE_SCHEME.test(url)) return url;
-  return HAS_SCHEME.test(url) ? null : url;
+  // Same-document fragments (`#plans`, `#/tasks/42`) never leave the page.
+  if (SAME_DOCUMENT.test(url)) return url;
+  return SAFE_SCHEME.test(url) ? url : null;
 }
 
 /** Images come only from the prototype: relative paths, never remote or `data:` URLs. */
 export function safeImageSrc(raw: string): string | null {
-  const url = safeHref(raw);
-  if (!url || SAFE_SCHEME.test(url) || url.startsWith('#')) return null;
+  // Images are local prototype assets; this policy is separate from the
+  // stricter link policy above.
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point.
+  const url = raw.replace(/[\u0000- \u007f-\u009f]/g, '');
+  if (!url || SAFE_SCHEME.test(url) || HAS_SCHEME.test(url) || url.startsWith('#')) return null;
   // Extra guard: `/\host` must never become a remote image.
   if (/^[/\\]{2}/.test(url.replace(/\\/g, '/'))) return null;
   return url;

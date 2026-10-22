@@ -1,0 +1,753 @@
+{
+  "schemaVersion": 1,
+  "blueprint": {
+    "formatVersion": 1,
+    "kind": "deck",
+    "name": "Protoyard: create anything",
+    "description": "The flagship deck: what Protoyard builds from a single JSON file, shown with every layout family, live charts, interactive blocks and an app embedded in a slide.",
+    "tags": ["deck", "flagship", "example"],
+    "icon": "🎞️",
+    "category": "demos",
+    "catalog": {
+      "category": "design",
+      "productType": "Presentation deck",
+      "platforms": ["web"],
+      "features": ["deck", "charts", "poll", "quiz", "calculator", "embed-app", "presenter"],
+      "highlights": [
+        "Every layout family",
+        "Charts with data tables",
+        "Poll, quiz and what-if calculator",
+        "A live app inside a slide"
+      ],
+      "difficulty": "beginner"
+    },
+    "deck": {
+      "style": {
+        "theme": "aurora-analytics",
+        "fontPair": "geometric",
+        "aspect": "16:9",
+        "density": "comfortable",
+        "radius": "large",
+        "motion": "full",
+        "transition": "fade",
+        "background": "solid-surface",
+        "footer": "Protoyard · create anything · fictional figures",
+        "slideNumbers": true,
+        "progress": "bottom"
+      },
+      "outline": {
+        "sections": [
+          {
+            "id": "s-why",
+            "title": "Why",
+            "slideIds": ["cover", "promise", "problem", "quote"]
+          },
+          {
+            "id": "s-how",
+            "title": "How it works",
+            "slideIds": ["how-divider", "levels", "loop", "blocks", "terminal", "code"]
+          },
+          {
+            "id": "s-what",
+            "title": "What you can make",
+            "slideIds": ["what-divider", "kinds", "compare", "stat", "chart", "explore"]
+          },
+          {
+            "id": "s-try",
+            "title": "Try it here",
+            "slideIds": ["try-divider", "poll", "calculator", "local", "quiz", "embed"]
+          },
+          {
+            "id": "s-next",
+            "title": "What's next",
+            "slideIds": ["timeline", "team", "close"]
+          }
+        ]
+      },
+      "slides": [
+        {
+          "id": "cover",
+          "layout": "title-hero",
+          "background": "gradient-dusk",
+          "props": {
+            "title": "Protoyard: create anything",
+            "subtitle": "Real behavior. Fake infrastructure. From one JSON file.",
+            "meta": "Flagship deck · built with Protoyard"
+          },
+          "notes": "Open with the promise: everything on these slides, including the poll and the embedded app, comes from a single data-only blueprint. Nothing here talks to a server."
+        },
+        {
+          "id": "promise",
+          "layout": "big-stat",
+          "background": "gradient-brand",
+          "props": {
+            "number": "1 file",
+            "label": "starts a deck, page, doc or app",
+            "context": "No build, no install",
+            "source": "Level 1"
+          },
+          "notes": "Land the single most important idea: one JSON file is enough. Level 1 runs it instantly; level 2 turns the same file into a full prototype you can extend."
+        },
+        {
+          "id": "problem",
+          "layout": "two-column-split",
+          "props": {
+            "title": "Ideas wait too long to feel real",
+            "left": {
+              "heading": "Today",
+              "body": "Mockups do not click, demo apps need a backend, and slides about a product never show the product itself."
+            },
+            "right": {
+              "heading": "With Protoyard",
+              "body": "Describe the idea once as data. Get something you can click, present, share and keep iterating on in minutes."
+            }
+          },
+          "notes": "Contrast the slow path with the data-first path. Keep it about speed to a believable artifact, not about replacing design or engineering."
+        },
+        {
+          "id": "quote",
+          "layout": "quote",
+          "background": "pattern-dots",
+          "props": {
+            "quote": "Show the thing, not a picture of the thing.",
+            "cite": "Prototyping principle"
+          },
+          "notes": "A short pause slide. The principle explains why the deck itself contains live charts and a running app."
+        },
+        {
+          "id": "how-divider",
+          "layout": "section-divider",
+          "background": "gradient-forest",
+          "props": {
+            "eyebrow": "Chapter 01",
+            "title": "How it works"
+          },
+          "notes": "Transition into the mechanics: two levels, one renderer, a safe content vocabulary."
+        },
+        {
+          "id": "levels",
+          "layout": "three-column-cards",
+          "props": {
+            "title": "Two levels, one renderer",
+            "cards": [
+              {
+                "icon": "zap",
+                "heading": "Level 1: JSON",
+                "body": "The prebuilt player runs a blueprint in seconds. Nothing to build or install."
+              },
+              {
+                "icon": "layers",
+                "heading": "Level 2: prototype",
+                "body": "One generate command turns the same file into a full Vite and Svelte project."
+              },
+              {
+                "icon": "check",
+                "heading": "Same pixels",
+                "body": "Both levels mount the same deck, page and doc renderers, and a parity test proves it."
+              }
+            ]
+          },
+          "notes": "Stress that level 2 is not a rewrite. The generated project imports the exact same renderer, so what you presented is what you extend."
+        },
+        {
+          "id": "loop",
+          "layout": "free",
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "From brief to shared artifact",
+              "level": 2
+            },
+            {
+              "type": "flow",
+              "id": "build-loop",
+              "loopBack": true,
+              "nodes": [
+                {
+                  "id": "brief",
+                  "label": "Brief"
+                },
+                {
+                  "id": "blueprint",
+                  "label": "Blueprint",
+                  "tone": "accent"
+                },
+                {
+                  "id": "player",
+                  "label": "Player"
+                },
+                {
+                  "id": "share",
+                  "label": "Share link or artifact"
+                },
+                {
+                  "id": "feedback",
+                  "label": "Feedback",
+                  "tone": "success"
+                }
+              ],
+              "step": 1,
+              "reveal": "fade-up"
+            },
+            {
+              "type": "text",
+              "markdown": "Agents write the JSON against a schema and a catalog, then **lint** it before anyone sees it.",
+              "step": 2,
+              "reveal": "fade"
+            }
+          ],
+          "notes": "Walk the loop left to right, then point at the arrow back: feedback becomes a JSON patch, and the next version is one command away."
+        },
+        {
+          "id": "blocks",
+          "layout": "process-steps",
+          "props": {
+            "title": "A safe vocabulary of blocks",
+            "steps": [
+              {
+                "title": "Validate",
+                "body": "Every block has a bounded schema with limits."
+              },
+              {
+                "title": "Sanitize",
+                "body": "Untrusted input is cleaned; nothing is executed."
+              },
+              {
+                "title": "Render",
+                "body": "Lazy families load only what a slide uses."
+              },
+              {
+                "title": "Persist",
+                "body": "Interactive state goes through services to IndexedDB."
+              }
+            ]
+          },
+          "notes": "This is the security story in one slide: tones instead of CSS, a closed formula grammar instead of code, markdown parsed without raw HTML."
+        },
+        {
+          "id": "terminal",
+          "layout": "free",
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "Ask for a deck",
+              "level": 2
+            },
+            {
+              "type": "terminal",
+              "id": "quick-deck",
+              "lines": [
+                {
+                  "kind": "comment",
+                  "text": "# a fictional example session"
+                },
+                {
+                  "kind": "prompt",
+                  "text": "pnpm protoyard quick \"a 10-slide pitch about our launch\""
+                },
+                {
+                  "kind": "output",
+                  "text": "kind: deck · outline: pitch · 10 slides"
+                },
+                {
+                  "kind": "output",
+                  "text": "ready: open the player link to present"
+                }
+              ]
+            }
+          ],
+          "notes": "Offline synthesis gives honest scaffolding: an outline, a layout per slide and placeholder figures marked as drafts. An agent fills in the real story."
+        },
+        {
+          "id": "code",
+          "layout": "code-with-callout",
+          "props": {
+            "title": "A slide is just data",
+            "code": {
+              "lang": "json",
+              "source": "{\n  \"id\": \"stat\",\n  \"layout\": \"big-stat\",\n  \"props\": {\n    \"number\": \"3x\",\n    \"label\": \"faster to a clickable idea\"\n  }\n}",
+              "highlights": ["3", "4-7"]
+            },
+            "heading": "What the renderer reads",
+            "bullets": [
+              "A stable id for deep links like #/stat/0",
+              "A layout from a catalog of 21",
+              "Props checked against that layout"
+            ]
+          },
+          "notes": "Highlight the layout line, then the props. The catalog explains when to use each layout, so agents choose well instead of guessing."
+        },
+        {
+          "id": "what-divider",
+          "layout": "section-divider",
+          "background": "gradient-dawn",
+          "props": {
+            "eyebrow": "Chapter 02",
+            "title": "What you can make"
+          },
+          "notes": "Move from mechanics to outcomes: the kinds, and how they compare."
+        },
+        {
+          "id": "kinds",
+          "layout": "free",
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "Four kinds from one format",
+              "level": 2
+            },
+            {
+              "type": "cards",
+              "columns": 2,
+              "items": [
+                {
+                  "icon": "layout-dashboard",
+                  "title": "App",
+                  "body": "Entities, roles, scenarios and screens."
+                },
+                {
+                  "icon": "presentation",
+                  "title": "Deck",
+                  "body": "Slides with steps, notes and a presenter view."
+                },
+                {
+                  "icon": "globe",
+                  "title": "Page",
+                  "body": "Landing pages with forms that keep responses."
+                },
+                {
+                  "icon": "file-text",
+                  "title": "Doc",
+                  "body": "Reports and one-pagers with a table of contents."
+                }
+              ]
+            }
+          ],
+          "notes": "One format, four kinds. A missing kind means app, so every existing blueprint kept working."
+        },
+        {
+          "id": "compare",
+          "layout": "comparison-table",
+          "props": {
+            "title": "Where each level fits",
+            "columns": ["Level 1 · JSON", "Level 2 · prototype"],
+            "rows": [
+              {
+                "label": "Time to first click",
+                "values": ["Seconds", "Minutes"]
+              },
+              {
+                "label": "Needs a build",
+                "values": [false, true]
+              },
+              {
+                "label": "Custom Svelte code",
+                "values": [false, true]
+              },
+              {
+                "label": "Best for",
+                "values": ["Exploring ideas", "Polished demos"]
+              }
+            ]
+          },
+          "notes": "Neither level is better; they serve different moments. Start at level 1, promote when the idea earns it."
+        },
+        {
+          "id": "stat",
+          "layout": "free",
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "What a deck costs to load",
+              "level": 2
+            },
+            {
+              "type": "stat",
+              "items": [
+                {
+                  "value": "75 KB",
+                  "label": "Deck app initial JS, gzip"
+                },
+                {
+                  "value": "1 KB",
+                  "label": "Deck app CSS, gzip"
+                },
+                {
+                  "value": "200",
+                  "label": "Slides navigated at under 5 ms p95"
+                }
+              ],
+              "source": "Measured in this repository's bundle and performance tests"
+            }
+          ],
+          "notes": "These numbers come from the repository's own gates, not marketing. Layouts, charts, the presenter and Deck Studio all load lazily."
+        },
+        {
+          "id": "chart",
+          "layout": "chart",
+          "props": {
+            "title": "A fictional adoption curve",
+            "spec": {
+              "kind": "area",
+              "title": "Prototypes created per week (fictional)",
+              "labels": ["W1", "W2", "W3", "W4", "W5", "W6"],
+              "series": [
+                {
+                  "label": "Decks",
+                  "values": [4, 9, 15, 22, 31, 40]
+                },
+                {
+                  "label": "Apps",
+                  "values": [12, 14, 17, 19, 22, 24]
+                }
+              ],
+              "description": "Fictional data: weekly decks grow tenfold over six weeks while apps grow steadily."
+            },
+            "height": "md",
+            "showTable": true
+          },
+          "notes": "Every chart ships with an accessible data table. The figures are fictional and labelled so."
+        },
+        {
+          "id": "explore",
+          "layout": "free",
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "Explore the same data",
+              "level": 2
+            },
+            {
+              "type": "chart-controls",
+              "id": "explore-growth",
+              "spec": {
+                "kind": "line",
+                "title": "Weekly prototypes by kind (fictional)",
+                "labels": ["W1", "W2", "W3", "W4", "W5", "W6"],
+                "series": [
+                  {
+                    "label": "Decks",
+                    "values": [4, 9, 15, 22, 31, 40]
+                  },
+                  {
+                    "label": "Pages",
+                    "values": [2, 4, 7, 9, 12, 16]
+                  },
+                  {
+                    "label": "Apps",
+                    "values": [12, 14, 17, 19, 22, 24]
+                  }
+                ],
+                "description": "Fictional data: decks overtake apps by week five; pages grow steadily."
+              },
+              "kinds": ["line", "bar", "area"],
+              "seriesToggle": true,
+              "range": true
+            }
+          ],
+          "notes": "Invite someone to switch the chart type and toggle series. The audience can interact without the slide advancing."
+        },
+        {
+          "id": "try-divider",
+          "layout": "section-divider",
+          "background": "gradient-mist",
+          "props": {
+            "eyebrow": "Chapter 03",
+            "title": "Try it here"
+          },
+          "notes": "Everything in this chapter is interactive and stays in this browser."
+        },
+        {
+          "id": "poll",
+          "layout": "free",
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "Quick poll",
+              "level": 2
+            },
+            {
+              "type": "poll",
+              "id": "first-build",
+              "question": "What would you build first?",
+              "options": [
+                {
+                  "id": "deck",
+                  "label": "A pitch deck"
+                },
+                {
+                  "id": "page",
+                  "label": "A landing page"
+                },
+                {
+                  "id": "doc",
+                  "label": "A one-page report"
+                },
+                {
+                  "id": "app",
+                  "label": "A working app"
+                }
+              ],
+              "maxChoices": 1,
+              "results": "after-vote"
+            }
+          ],
+          "notes": "Votes are stored locally in IndexedDB through the deck's runtime, per persona. Switch personas in DevTools to simulate a room."
+        },
+        {
+          "id": "calculator",
+          "layout": "free",
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "What-if: hours saved",
+              "level": 2
+            },
+            {
+              "type": "calculator",
+              "id": "hours-saved",
+              "title": "Time to a clickable idea (fictional model)",
+              "inputs": [
+                {
+                  "name": "ideas",
+                  "label": "Ideas explored per month",
+                  "control": "slider",
+                  "min": 1,
+                  "max": 40,
+                  "step": 1,
+                  "default": 8
+                },
+                {
+                  "name": "hours",
+                  "label": "Hours saved per idea",
+                  "control": "slider",
+                  "min": 1,
+                  "max": 20,
+                  "step": 1,
+                  "default": 6
+                }
+              ],
+              "outputs": [
+                {
+                  "id": "monthly",
+                  "label": "Hours saved per month",
+                  "formula": {
+                    "op": "mul",
+                    "left": {
+                      "op": "var",
+                      "name": "ideas"
+                    },
+                    "right": {
+                      "op": "var",
+                      "name": "hours"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "notes": "The formula is a closed data grammar, never code. Move the sliders and the result updates instantly."
+        },
+        {
+          "id": "local",
+          "layout": "big-stat",
+          "background": "gradient-brand",
+          "props": {
+            "number": "0 servers",
+            "label": "your votes and answers never leave this browser",
+            "context": "Stored locally in IndexedDB",
+            "source": "Simulated, by design"
+          },
+          "notes": "A breath between interactions: everything you just touched is stored only in this browser, through the deck's runtime services."
+        },
+        {
+          "id": "quiz",
+          "layout": "free",
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "Check your understanding",
+              "level": 2
+            },
+            {
+              "type": "quiz",
+              "id": "deck-quiz",
+              "title": "Two questions",
+              "questions": [
+                {
+                  "id": "q1",
+                  "prompt": "What runs a blueprint with no build?",
+                  "choices": [
+                    {
+                      "id": "a",
+                      "label": "The player"
+                    },
+                    {
+                      "id": "b",
+                      "label": "A backend server"
+                    },
+                    {
+                      "id": "c",
+                      "label": "A browser extension"
+                    }
+                  ],
+                  "answers": ["a"]
+                },
+                {
+                  "id": "q2",
+                  "prompt": "What does generate produce from a deck blueprint?",
+                  "choices": [
+                    {
+                      "id": "a",
+                      "label": "A PDF only"
+                    },
+                    {
+                      "id": "b",
+                      "label": "A full deck prototype on the same renderer"
+                    },
+                    {
+                      "id": "c",
+                      "label": "Nothing; decks cannot be generated"
+                    }
+                  ],
+                  "answers": ["b"]
+                }
+              ]
+            }
+          ],
+          "notes": "Answers are checked locally. The quiz shows how a lesson or training deck can include self-checks."
+        },
+        {
+          "id": "embed",
+          "layout": "free",
+          "blocks": [
+            {
+              "type": "heading",
+              "text": "An app inside a slide",
+              "level": 2
+            },
+            {
+              "type": "embed-app",
+              "id": "mini-tracker",
+              "title": "Idea tracker",
+              "height": "md",
+              "startLabel": "Open the live demo",
+              "app": {
+                "formatVersion": 1,
+                "name": "Idea tracker",
+                "entities": [
+                  {
+                    "name": "idea",
+                    "plural": "ideas",
+                    "titleField": "title",
+                    "fields": [
+                      {
+                        "name": "title",
+                        "kind": "text",
+                        "required": true
+                      },
+                      {
+                        "name": "status",
+                        "kind": "enum",
+                        "values": ["new", "exploring", "shipped"],
+                        "default": "new",
+                        "required": true,
+                        "weights": [3, 2, 1]
+                      }
+                    ],
+                    "searchable": ["title"]
+                  }
+                ],
+                "roles": [
+                  {
+                    "name": "member",
+                    "permissions": {
+                      "*": ["read", "create", "update", "delete"]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "notes": "Press the button to start a real level-1 app inside this slide, with its own fictional data and storage. It loads only on click."
+        },
+        {
+          "id": "timeline",
+          "layout": "timeline",
+          "props": {
+            "title": "How Protoyard grew",
+            "events": [
+              {
+                "time": "Plan 1",
+                "text": "Prototypes with fake databases"
+              },
+              {
+                "time": "Plan 2",
+                "text": "Scenarios, personas and time"
+              },
+              {
+                "time": "Plan 3",
+                "text": "Kits, themes and layouts"
+              },
+              {
+                "time": "Plan 4",
+                "text": "The player and quick"
+              },
+              {
+                "time": "Plan 5",
+                "text": "Decks, pages, docs and blocks"
+              }
+            ]
+          },
+          "notes": "Each plan built on the last. This deck is a product of the fifth."
+        },
+        {
+          "id": "team",
+          "layout": "team-avatars",
+          "props": {
+            "title": "Who builds with it",
+            "people": [
+              {
+                "name": "Ada Example",
+                "role": "Product",
+                "avatar": "av-001"
+              },
+              {
+                "name": "Marco Example",
+                "role": "Design",
+                "avatar": "av-002"
+              },
+              {
+                "name": "Lena Example",
+                "role": "Engineering",
+                "avatar": "av-003"
+              },
+              {
+                "name": "Kai Example",
+                "role": "Agents",
+                "avatar": "av-004"
+              }
+            ]
+          },
+          "notes": "Fictional people with fictional portraits. The point: product, design, engineering and agents all work from the same file."
+        },
+        {
+          "id": "close",
+          "layout": "closing-cta",
+          "background": "gradient-dusk",
+          "props": {
+            "title": "Describe it. Click it. Share it.",
+            "text": "Open the player, paste a blueprint, and present it in minutes.",
+            "cta": {
+              "label": "protoyard.app/play",
+              "href": "https://protoyard.app/play/"
+            },
+            "footnote": "All figures in this deck are fictional unless marked as measured."
+          },
+          "notes": "End with the call to action. Press P for the presenter view, O for the overview, and Ctrl+P to print every slide."
+        }
+      ]
+    }
+  },
+  "codegenFormat": 3
+}

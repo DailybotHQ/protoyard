@@ -15,6 +15,7 @@ import { doctorCommand } from './commands/doctor.ts';
 import { exportCommand } from './commands/export.ts';
 import { generateCommand } from './commands/generate.ts';
 import { indexCommand } from './commands/index-cmd.ts';
+import { kitSyncCommand } from './commands/kit.ts';
 import { listCommand } from './commands/list.ts';
 import { mcpCommand } from './commands/mcp.ts';
 import { newCommand } from './commands/new.ts';
@@ -110,6 +111,7 @@ export function createProgram(env: RunnerEnv): Command {
     .addOption(
       new Option('--sort <field>', 'name or modified').choices(['name', 'modified']).default('name')
     )
+    .option('--all', 'ignore the protoyard.workspace.json listing filter')
     .action(def('list', listCommand));
 
   program
@@ -156,7 +158,7 @@ export function createProgram(env: RunnerEnv): Command {
     )
     .argument('<slug>', 'lowercase kebab-case folder name')
     .requiredOption('-b, --blueprint <file>', 'blueprint JSON file (see packages/blueprint)')
-    .option('-t, --template <name>', 'base template', 'crud-app')
+    .option('-t, --template <name>', 'base template (defaults from blueprint kind)')
     .option('--name <name>', 'display name (default: the blueprint name)')
     .option('--description <text>', 'one-line description (default: the blueprint description)')
     .option('--dry-run', 'validate and list (or plan) the files without writing anything')
@@ -462,12 +464,25 @@ export function createProgram(env: RunnerEnv): Command {
     .action(def('theme export', themeExportCommand));
   theme
     .command('import')
-    .description('write a validated JSON theme into a prototype')
-    .argument('<slug>', 'prototype slug')
-    .argument('<file>', 'path to a theme JSON file')
+    .description('import design tokens, or write a validated JSON theme into a prototype')
+    .argument('[slug-or-file]', 'prototype slug, or design token JSON file')
+    .argument('[file]', 'path to a Protoyard theme JSON file')
+    .option('--name <id>', 'theme id when importing design tokens')
     .option('--force', 'overwrite src/theme.ts')
     .option('--dry-run', 'show the generated file without writing')
     .action(def('theme import', themeImportCommand));
+
+  const kit = program
+    .command('kit')
+    .description('sync a design kit into an isolated prototype copy');
+  kit
+    .command('sync')
+    .description('copy a kit component tree into a prototype and record hashes')
+    .argument('<kit>', 'kit prototype or template slug')
+    .argument('<prototype>', 'destination prototype slug')
+    .option('--check', 'fail when the source, copied files or manifest have drifted')
+    .option('--force', 'replace local changes in the synced folder')
+    .action(def('kit sync', kitSyncCommand));
 
   const snapshot = program
     .command('snapshot')

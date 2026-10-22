@@ -1,0 +1,136 @@
+{
+  "name": "@protoyard/pages-ui",
+  "version": "1.0.0",
+  "description": "Svelte 5 page and doc hosts for Protoyard: PageApp, DocApp, form responses UI and print CSS, one lazy subpath per family.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "dist/**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./block-host": {
+      "types": "./src/block-host/index.ts",
+      "svelte": "./src/block-host/index.ts",
+      "default": "./src/block-host/index.ts"
+    },
+    "./page": {
+      "types": "./src/page/index.ts",
+      "svelte": "./src/page/index.ts",
+      "default": "./src/page/index.ts"
+    },
+    "./doc": {
+      "types": "./src/doc/index.ts",
+      "svelte": "./src/doc/index.ts",
+      "default": "./src/doc/index.ts"
+    },
+    "./form": {
+      "types": "./src/form/index.ts",
+      "svelte": "./src/form/index.ts",
+      "default": "./src/form/index.ts"
+    },
+    "./print": {
+      "types": "./src/print/index.ts",
+      "svelte": "./src/print/index.ts",
+      "default": "./src/print/index.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --threshold error"
+  },
+  "dependencies": {
+    "@protoyard/blocks": "workspace:*",
+    "@protoyard/blocks-ui": "workspace:*",
+    "@protoyard/pages": "workspace:*",
+    "@protoyard/renderer-svelte": "workspace:*",
+    "@protoyard/ui": "workspace:*",
+    "@protoyard/blueprint": "workspace:*"
+  },
+  "devDependencies": {
+    "svelte": "^5.57.2"
+  },
+  "peerDependencies": {
+    "svelte": "^5.57.0"
+  },
+  "protoyard": {
+    "build": {
+      "assets": []
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./block-host": {
+        "types": "./dist/block-host/index.d.ts",
+        "svelte": "./dist/block-host/index.js",
+        "default": "./dist/block-host/index.js"
+      },
+      "./page": {
+        "types": "./dist/page/index.d.ts",
+        "svelte": "./dist/page/index.js",
+        "default": "./dist/page/index.js"
+      },
+      "./doc": {
+        "types": "./dist/doc/index.d.ts",
+        "svelte": "./dist/doc/index.js",
+        "default": "./dist/doc/index.js"
+      },
+      "./form": {
+        "types": "./dist/form/index.d.ts",
+        "svelte": "./dist/form/index.js",
+        "default": "./dist/form/index.js"
+      },
+      "./print": {
+        "types": "./dist/print/index.d.ts",
+        "svelte": "./dist/print/index.js",
+        "default": "./dist/print/index.js"
+      },
+      "./styles.css": {
+        "types": "./dist/styles.css.d.ts",
+        "svelte": "./dist/styles.css",
+        "default": "./dist/styles.css"
+      }
+    },
+    "files": [
+      "dist",
+      "README.md",
+      "LICENSE"
+    ],
+    "types": "./dist/index.d.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DailybotHQ/protoyard",
+    "directory": "packages/pages-ui"
+  },
+  "homepage": "https://protoyard.app",
+  "bugs": {
+    "url": "https://github.com/DailybotHQ/protoyard/issues"
+  },
+  "engines": {
+    "node": ">=24.20.0"
+  },
+  "keywords": [
+    "protoyard",
+    "svelte",
+    "pages",
+    "docs"
+  ]
+}

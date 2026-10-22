@@ -1,3 +1,18 @@
+import {
+  classifyMediaSource,
+  isUnsafeTextCharacter,
+  normalizeLineSeparators,
+} from '@protoyard/blocks/safety';
+import { type AnyBlueprint, safeParseAnyBlueprint } from './kinds/envelope.ts';
+import { detectBlueprintKind } from './kinds/kind.ts';
+import {
+  checkContentLimits,
+  containsEmbeddedApp,
+  DEFAULT_UNTRUSTED_DOCUMENT_LIMITS,
+  type TextContext,
+  textContextFor,
+  type UntrustedDocumentLimits,
+} from './kinds/limits.ts';
 import { type Blueprint, safeParseBlueprint } from './schema.ts';
 
 /** Limits for data entering a player from a link, paste, file, or message. */
@@ -45,20 +60,17 @@ export type UntrustedBlueprintResult =
   | { success: true; blueprint: Blueprint; issues: [] }
   | { success: false; blueprint: null; issues: UntrustedBlueprintIssue[] };
 
-function stripControlAndBidi(value: string): string {
-  return [...value]
+/**
+ * Removes C0/C1 controls, bidi overrides, BOMs and invisible characters, and
+ * turns U+2028/U+2029 into line breaks or spaces. `multiline` text keeps
+ * `\n` (after normalizing `\r\n`), and `code` keeps `\t` as well.
+ */
+function stripControlAndBidi(value: string, context: TextContext = 'plain'): string {
+  const keepNewlines = context !== 'plain';
+  const lines = normalizeLineSeparators(value, keepNewlines);
+  return [...(keepNewlines ? lines.replace(/\r\n?/g, '\n') : lines)]
     .filter((char) => {
-      const code = char.codePointAt(0) ?? 0;
-      return !(
-        code <= 0x1f ||
-        (code >= 0x7f && code <= 0x9f) ||
-        code === 0x061c ||
-        code === 0x200e ||
-        code === 0x200f ||
-        (code >= 0x202a && code <= 0x202e) ||
-        (code >= 0x2066 && code <= 0x2069) ||
-        code === 0xfeff
-      );
+      return !isUnsafeTextCharacter(char, keepNewlines, context === 'code');
     })
     .join('');
 }
@@ -93,9 +105,20 @@ function checkJsonDepth(text: string, maxDepth: number): boolean {
 
 type CloneResult = { ok: true; value: unknown } | { ok: false; issue: UntrustedBlueprintIssue };
 
-function sanitizeJson(value: unknown, maxDepth: number): CloneResult {
+/**
+ * A plain, acyclic, prototype-free copy with every string cleaned. With
+ * `textContexts` (content kinds), strings in schema-declared multiline fields
+ * keep their newlines; without it (apps), every string is one line.
+ */
+function sanitizeJson(value: unknown, maxDepth: number, textContexts = false): CloneResult {
   const ancestors = new WeakSet<object>();
-  const visit = (current: unknown, path: (string | number)[], depth: number): CloneResult => {
+  const visit = (
+    current: unknown,
+    path: (string | number)[],
+    depth: number,
+    context: TextContext = 'plain',
+    inListItems = false
+  ): CloneResult => {
     if (depth > maxDepth) {
       return {
         ok: false,
@@ -107,7 +130,9 @@ function sanitizeJson(value: unknown, maxDepth: number): CloneResult {
         },
       };
     }
-    if (typeof current === 'string') return { ok: true, value: stripControlAndBidi(current) };
+    if (typeof current === 'string') {
+      return { ok: true, value: stripControlAndBidi(current, context) };
+    }
     if (current === null || typeof current === 'boolean' || typeof current === 'number') {
       return { ok: true, value: current };
     }
@@ -139,7 +164,7 @@ function sanitizeJson(value: unknown, maxDepth: number): CloneResult {
             },
           };
         }
-        const item = visit(descriptor.value, [...path, i], depth + 1);
+        const item = visit(descriptor.value, [...path, i], depth + 1, context, inListItems);
         if (!item.ok) return item;
         output.push(item.value);
       }
@@ -230,7 +255,16 @@ function sanitizeJson(value: unknown, maxDepth: number): CloneResult {
           },
         };
       }
-      const item = visit(descriptor.value, [...path, safeKey], depth + 1);
+      const record = current as Record<string, unknown>;
+      const item = textContexts
+        ? visit(
+            descriptor.value,
+            [...path, safeKey],
+            depth + 1,
+            textContextFor(key, record, inListItems),
+            key === 'items' && record.type === 'list'
+          )
+        : visit(descriptor.value, [...path, safeKey], depth + 1);
       if (!item.ok) return item;
       output[safeKey] = item.value;
     }
@@ -420,5 +454,202 @@ export function loadUntrustedBlueprint(
         ),
       ],
     };
+  }
+}
+
+export type UntrustedDocumentResult =
+  | { success: true; blueprint: AnyBlueprint; issues: [] }
+  | { success: false; blueprint: null; issues: UntrustedBlueprintIssue[] };
+
+const failed = (...issues: UntrustedBlueprintIssue[]): UntrustedDocumentResult => ({
+  success: false,
+  blueprint: null,
+  issues,
+});
+
+function relativeMediaIssue(
+  value: unknown,
+  path: (string | number)[] = []
+): UntrustedBlueprintIssue | null {
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      const found = relativeMediaIssue(value[index], [...path, index]);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== 'object' || value === null) return null;
+  for (const [key, child] of Object.entries(value)) {
+    const childPath = [...path, key];
+    if ((key === 'src' || key === 'poster' || key === 'image') && typeof child === 'string') {
+      const kinds =
+        key === 'image' || key === 'poster' ? (['image'] as const) : (['image', 'video'] as const);
+      for (const kind of kinds) {
+        const result = classifyMediaSource(child, kind);
+        if (result.ok && result.kind === 'relative') {
+          return {
+            code: 'invalid-blueprint',
+            path: childPath,
+            message: 'Level-1 documents cannot load relative media paths.',
+            fix: 'Use an avatar id or an allowed raster data URI; relative assets require a level-2 prototype.',
+          };
+        }
+      }
+    }
+    const nested = relativeMediaIssue(child, childPath);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function capsOf(limits: Partial<UntrustedDocumentLimits>): UntrustedDocumentLimits {
+  return Object.fromEntries(
+    Object.entries(DEFAULT_UNTRUSTED_DOCUMENT_LIMITS).map(([key, defaultValue]) => {
+      const requested = limits[key as keyof UntrustedDocumentLimits];
+      return [
+        key,
+        requested === undefined || !Number.isFinite(requested)
+          ? defaultValue
+          : Math.min(defaultValue, requested),
+      ];
+    })
+  ) as unknown as UntrustedDocumentLimits;
+}
+
+/**
+ * Validates and sanitizes a blueprint of any kind before a player derives or
+ * renders it (ADR-036). Apps keep their exact `loadUntrustedBlueprint`
+ * contract and limits. Content kinds (deck, page, doc):
+ *
+ * - size and depth are checked before parsing (`maxBytes`, `maxDepth`);
+ * - relative block media is refused at level 1 (generated level-2 schemas
+ *   continue to accept deck-local paths);
+ * - strings lose C0/C1 controls and bidi overrides, except `\n` in the
+ *   schema-declared multiline fields (markdown, speaker notes, quotes, list
+ *   items) and `\t` in code; `\r\n` becomes `\n`;
+ * - slides, blocks per slide, blocks in total (nested blocks count), chart
+ *   points and embedded apps are capped (`too-many`);
+ * - each embedded app must be an app (no kind or `"app"`), may not embed
+ *   another app (`too-deep`), and passes `loadUntrustedBlueprint` with the
+ *   app caps;
+ * - then the kind's body schema (loaded on demand) validates the document.
+ *
+ * Never throws.
+ */
+export async function loadUntrustedDocument(
+  input: unknown,
+  limits: Partial<UntrustedDocumentLimits & UntrustedBlueprintLimits> = {}
+): Promise<UntrustedDocumentResult> {
+  const caps = capsOf(limits);
+  try {
+    let parsed: unknown;
+    if (typeof input === 'string') {
+      if (utf8Length(input) > caps.maxBytes) {
+        return failed(
+          FATAL(
+            'too-large',
+            'Document input exceeds the byte limit.',
+            `Keep the input at or below ${caps.maxBytes} UTF-8 bytes.`
+          )
+        );
+      }
+      try {
+        parsed = JSON.parse(input) as unknown;
+      } catch {
+        // Not JSON at all: the app loader's contract (size, depth, then JSON) answers.
+        return loadUntrustedBlueprint(input, limits);
+      }
+    } else {
+      parsed = input;
+    }
+
+    const detected = detectBlueprintKind(parsed);
+    if (!detected.ok) {
+      return failed({
+        code: 'invalid-blueprint',
+        path: ['kind'],
+        message: detected.message,
+        fix: detected.fix,
+      });
+    }
+    // Apps: the app loader, its limits and its result, unchanged, on the original input.
+    if (detected.kind === 'app') return loadUntrustedBlueprint(input, limits);
+
+    if (typeof input === 'string' && !checkJsonDepth(input, caps.maxDepth)) {
+      return failed(
+        FATAL(
+          'too-deep',
+          'Document JSON exceeds the maximum nesting depth.',
+          `Flatten the document so it is at most ${caps.maxDepth} levels deep.`
+        )
+      );
+    }
+    const safe = sanitizeJson(parsed, caps.maxDepth, true);
+    if (!safe.ok) return failed(safe.issue);
+    const disallowedMedia = relativeMediaIssue(safe.value);
+    if (disallowedMedia) return failed(disallowedMedia);
+    const serialized = JSON.stringify(safe.value);
+    if (serialized === undefined || utf8Length(serialized) > caps.maxBytes) {
+      return failed(
+        FATAL(
+          'too-large',
+          'Document input exceeds the byte limit.',
+          `Keep the input at or below ${caps.maxBytes} UTF-8 bytes.`
+        )
+      );
+    }
+
+    const root = safe.value as Record<string, unknown>;
+    const counted = checkContentLimits(root, detected.kind, caps);
+    if (counted.issue) return failed({ code: 'too-many', ...counted.issue });
+
+    for (const { path, app } of counted.embeddedApps) {
+      const nestedKind = detectBlueprintKind(app);
+      if (!nestedKind.ok || nestedKind.kind !== 'app') {
+        return failed({
+          code: 'invalid-blueprint',
+          path: [...path, 'kind'],
+          message: 'An embedded app must be an app blueprint (no kind, or kind "app").',
+          fix: 'Embed an app blueprint, or link to the deck, page or doc instead.',
+        });
+      }
+      if (containsEmbeddedApp(app)) {
+        return failed({
+          code: 'too-deep',
+          path,
+          message: 'An embedded app cannot embed another app (one level only).',
+          fix: 'Remove the nested embed-app block.',
+        });
+      }
+      const nested = loadUntrustedBlueprint(app, limits);
+      if (!nested.success) {
+        return failed(
+          ...nested.issues.map((issue) => ({ ...issue, path: [...path, ...issue.path] }))
+        );
+      }
+    }
+
+    const result = await safeParseAnyBlueprint(root);
+    if (!result.success) {
+      return failed(
+        ...result.error.issues.map((issue) => ({
+          code: 'invalid-blueprint' as const,
+          path: issue.path.filter(
+            (part): part is string | number => typeof part === 'string' || typeof part === 'number'
+          ),
+          message: issue.message,
+          fix: 'Correct this value to match the schema for this kind, then try again.',
+        }))
+      );
+    }
+    return { success: true, blueprint: result.data, issues: [] };
+  } catch {
+    return failed(
+      FATAL(
+        'invalid-input',
+        'Document could not be safely loaded.',
+        'Provide plain JSON data that matches the blueprint schema.'
+      )
+    );
   }
 }

@@ -86,6 +86,20 @@ override both. Fragments (`fragments.density`, `.activity`, `.role`, `.tenure`,
 `.organizationAge`, `.organizationSize`, `.accountAge`, `.onboarding`, `.subscription`,
 `.network`, `.featureFlags`, `.appearance`, `.tags`) each describe one axis.
 
+**Life-stage journeys** (`journeys.ts`) add four presets in the group `Journeys`:
+`journey-signup`, `journey-invited`, `journey-first-week` and `journey-established`.
+
+- **Shared ids:** all four share the seed, reference time, organization id and actor id.
+- **Declared promises:** `LIFE_STAGE_JOURNEYS` gives each stage its persona, simulated time
+  and expected world.
+- **API:**
+  - `journeyScenario(stage, ...fragments)` returns a stage as a validated scenario;
+  - `checkJourneyWorld(stage, seed, options?)` returns a generated world's problems, an
+    empty list when it passes;
+  - `lifeStageOf(view)` and `lifeStageView(seed, actorId, referenceTime)` derive the stage
+    from data.
+- **More:** see [SCENARIOS.md](../../docs/SCENARIOS.md#life-stage-journeys).
+
 `composeScenario` deep-merges (objects merge, arrays and scalars are replaced, `undefined`
 never overwrites) and validates with `ScenarioSchema`. `resolveScenarios(inputs, PRESETS)`
 resolves `extends` against the prototype's other scenarios first, then presets. A scenario
@@ -107,7 +121,22 @@ personas/organizations, nobody joining before their organization existed, and no
 dated after the reference time. The runtime runs this on every load using
 `definition.integrity` and throws `WorldIntegrityError` on violations.
 
-## Timeline: `dailyEvents(ctx, { perDay, make, hours? })`
+## Fixture hygiene: `scanFixtureWorld` / `scanFixtureText`
+
+```ts
+import { scanFixtureWorld } from '@protoyard/scenarios';
+
+const findings = scanFixtureWorld(world);
+// findings: { kind, path, rule, message, detail }[] — never echoes secret text
+```
+
+Flags real-looking email domains (outside `example.com` / `*.example` / …) and
+common secret shapes. Read-only; optional `$fixtureAllow: true` on a structured
+subtree. `protoyard validate` runs the same scan on scenario sources.
+Full reference: [docs/SCENARIOS.md](../../docs/SCENARIOS.md#fixture-hygiene-emails-and-secrets)
+and [docs/SECURITY.md](../../docs/SECURITY.md#fixture-hygiene-generated-worlds-and-scenario-sources).
+
+## Timeline: `dailyEvents`, named sources and local zones
 
 ```ts
 timeline: (ctx) =>
@@ -122,6 +151,60 @@ the count, the instants (inside `hours`, default 8–18 UTC) and the per-slot rn
 days at once or 1 day seven times yields the same events with the same
 `evt:<scenario>:<YYYY-MM-DD>:<n>` ids. Window bounds are `(from, to]`. Return `null` from
 `make` to leave a slot empty.
+
+### Named sources
+
+Kits register collectors under a stable id so several packages can feed
+`scenarios.advance()` without one shared timeline function:
+
+```ts
+import {
+  localTimeToUtc,
+  registerTimelineSource,
+  timelineFromSources,
+} from '@protoyard/scenarios';
+
+registerTimelineSource({
+  id: 'billing',
+  collect: async (ctx) => {
+    const at = localTimeToUtc('2026-10-14', '09:00', 'America/New_York');
+    if (at <= ctx.from || at > ctx.to) return [];
+    return [
+      {
+        id: 'evt:invoice-due:2026-10-14',
+        type: 'billing.invoice.due',
+        at: at.toISOString(),
+        payload: { invoiceId: 'inv_1' },
+        source: 'timeline',
+      },
+    ];
+  },
+  apply: {
+    'billing.invoice.due': async (event, ctx) => {
+      /* idempotent puts */
+      void event;
+      void ctx;
+    },
+  },
+});
+
+const { timeline, applyEvent } = timelineFromSources();
+```
+
+`collectTimelineEvents` merges every source, sorts by `at` then `id`, rejects
+duplicate ids, and caps output (10,000 events per source and 50,000 total by
+default). Event types in `apply` are exclusive across sources.
+`clearTimelineSources()` is for tests.
+
+### Local time zones
+
+Always pass an explicit IANA zone (`UTC`, `Europe/Madrid`, …). Helpers never
+read the host zone. `localTimeToUtc(day, hhmm, timeZone)` maps a civil day and
+wall time to a UTC `Date` (DST gaps move forward; folds take the earlier
+instant). `localDayOf(at, timeZone)` returns the civil `YYYY-MM-DD`.
+`localDayBounds(day, timeZone)` yields a 23-, 24- or 25-hour day on DST edges.
+
+Full reference: [docs/SCENARIOS.md](../../docs/SCENARIOS.md#named-timeline-sources).
 
 ## Series, schedules, events and geo
 
