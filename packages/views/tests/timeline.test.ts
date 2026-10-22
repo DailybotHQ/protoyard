@@ -10,6 +10,7 @@ import {
   DependencyListSchema,
   durationDays,
   type ScheduleTask,
+  timelineModel,
   topoOrder,
   workDays,
 } from '../src/timeline/index.ts';
@@ -89,6 +90,38 @@ describe('dependency graph', () => {
     expect(DependencyListSchema.safeParse([{ from: 'a', to: 'b', type: 'XX' }]).success).toBe(
       false
     );
+  });
+});
+
+describe('timeline display model', () => {
+  it('keeps stable group and task order, separates undated work and reports capped rows', () => {
+    const rows = [
+      { id: 'b1', start: MON, end: MON, group: 'B' },
+      { id: 'undated', group: 'A' },
+      { id: 'a1', start: MON, end: MON, group: 'A' },
+      { id: 'b2', start: MON, end: MON, group: 'B' },
+      { id: 'a2', start: MON, end: MON, group: 'A' },
+    ];
+    const model = timelineModel(rows, {
+      getGroup: (row) => ({ id: row.group ?? 'unknown', label: row.group ?? 'Unknown' }),
+      maxRows: 3,
+    });
+    expect(model.unscheduled.map((row) => row.id)).toEqual(['undated']);
+    expect(model.visible.map((row) => row.id)).toEqual(['b1', 'b2', 'a1']);
+    expect(model).toMatchObject({ totalScheduled: 4, truncatedCount: 1 });
+  });
+
+  it('filters milestones without changing the unscheduled collection', () => {
+    const model = timelineModel(
+      [
+        { id: 'task', start: MON, end: MON },
+        { id: 'milestone', start: MON, end: MON, milestone: true },
+        { id: 'later' },
+      ],
+      { milestonesOnly: true }
+    );
+    expect(model.visible.map((row) => row.id)).toEqual(['milestone']);
+    expect(model.unscheduled.map((row) => row.id)).toEqual(['later']);
   });
 });
 

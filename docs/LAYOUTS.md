@@ -133,6 +133,10 @@ navigation; these primitives add no navigation catalog entries.
   {#snippet detail()}<ProjectDetails />{/snippet}
 </SplitView>
 ```
+Rich views remain screen content inside these page structures. For example,
+`TimelineView` keeps its grouped schedule, milestone focus, unscheduled tray
+and truncation notice inside the active route; the shared layout owns page
+navigation and responsive chrome, while the timeline owns its task controls.
 
 ## Responsive rules and shells
 
