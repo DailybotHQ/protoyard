@@ -2,7 +2,7 @@ import { DECK_TEXT_MINIMUMS } from '@protoyard/decks';
 import { DECK_LAYOUTS } from '@protoyard/decks/layouts';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/svelte';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { fitFontSize, fitScale, textOverflows } from '../src/layouts/design/fit.ts';
+import { fitFontSize, fitScale, keepsZoom, textOverflows } from '../src/layouts/design/fit.ts';
 import { DECK_TYPE, DECK_TYPE_STEPS, typeSize } from '../src/layouts/design/scale.ts';
 import { loadLayoutRenderer } from '../src/layouts/registry.ts';
 
@@ -289,6 +289,24 @@ describe('content fits the stage', () => {
     expect(fitScale(2000, 600, 0.72)).toBe(0.72);
     expect(fitScale(0, 600, 0.72)).toBe(1); // not laid out yet
     expect(fitScale(800, 0, 0.72)).toBe(1);
+  });
+
+  it('keeps a zoom that still fits on a resize, so a slide never flips between two fits', () => {
+    // Regression (deck design gate, flagship quiz slide under reduced motion):
+    // re-measuring with the zoom reset read a layout sized for the zoomed width,
+    // dropped the zoom, and flipped back a frame later, every two frames.
+    const base = {
+      applied: 0.843,
+      reason: 'resize' as const,
+      spaceChanged: false,
+      fitsAtApplied: true,
+    };
+    expect(keepsZoom(base)).toBe(true);
+    // Nothing applied yet, new content, a changed stage, or an overflow: measure again.
+    expect(keepsZoom({ ...base, applied: 1 })).toBe(false);
+    expect(keepsZoom({ ...base, reason: 'content' })).toBe(false);
+    expect(keepsZoom({ ...base, spaceChanged: true })).toBe(false);
+    expect(keepsZoom({ ...base, fitsAtApplied: false })).toBe(false);
   });
 
   it('fitFontSize steps down until the text fits, never below its minimum', () => {

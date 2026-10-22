@@ -18,8 +18,13 @@ const showResults = $derived(
   resultsMode === 'always' || (resultsMode === 'after-vote' && hasVoted)
 );
 
+/** The viewer's stored vote, as a value that only changes when the vote does. */
+const mine = $derived(results.mine ? results.mine.join('\u0000') : null);
+
+// Follow the stored vote, not every state update: a host attaching or another
+// viewer voting must not wipe a choice the viewer has not submitted yet.
 $effect(() => {
-  draft = results.mine ? [...results.mine] : [];
+  draft = mine === null ? [] : mine.split('\u0000');
 });
 
 function toggle(optionId: string) {

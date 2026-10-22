@@ -458,6 +458,51 @@ pnpm exec tsx scripts/sweep-deck.ts --dry-run --out tmp/deck-sweep
 Authoring lint remains the source of truth for layout props, outline integrity
 and asset policy. The sweep does not replace `lintDeckStructure`.
 
+### Design gate
+
+The visual sweep passed while the flagship deck rendered a 24 px cover title,
+the default theme, no backgrounds and blank charts. The design gate
+([`tests/e2e/deck-design.spec.ts`](../tests/e2e/deck-design.spec.ts), rules
+in [`scripts/lib/deck-design.ts`](../scripts/lib/deck-design.ts)) measures
+what a well-designed slide must show. It runs the flagship deck
+(`blueprints/decks/protoyard-create-anything.json`) at level 1 (the built
+player's `deck.html`) and level 2 (the built `create-anything-deck`
+prototype), on the desktop and Pixel 7 projects, with reduced motion.
+
+On every slide, once its lazy layout, blocks and charts have loaded and its
+measurements have settled:
+
+| Check | Fails when |
+| --- | --- |
+| Overflow | A text line, image, SVG, canvas or frame sticks out of the stage by more than 2 px |
+| Text overlap | Two text lines share at least 20 % of the smaller one's line box (3 px or more each way) |
+| Theme | The deck root's theme is not `deck.style.theme` |
+| Background | The slide frame's background preset is not the slide's own, or else the deck's |
+| Display title | The largest text on a cover, divider or big-stat slide is under 8 %, 7 % or 10 % of the stage height |
+| Charts | A chart slide draws no chart, or a series has no geometry (an empty or invalid path, a zero area) |
+
+Every threshold is a share of the stage, so the phone (a scaled canvas) is
+held to the same design as the desktop. Font sizes and line heights are
+scaled to screen pixels before they are compared.
+
+The interactive blocks must respond: a poll vote shows the viewer's own
+result, a quiz answers and scores, a calculator recomputes when a slider
+moves, a chart-kind switch redraws real series, and the embedded app starts
+only when asked, then loads in its frame.
+
+```bash
+pnpm vitest run scripts/tests/deck-design.test.ts      # the rules, no browser
+PROTOYARD_E2E_DECK=1 pnpm exec playwright test deck-design
+```
+
+The browser run needs the built player and the built `create-anything-deck`
+servers (`PROTOYARD_E2E_PLAYER_PORT`, default 4861, and
+`PROTOYARD_E2E_DECK_PROTOTYPE_PORT`, default 4892). Each slide's screenshot
+lands in `tmp/deck-design/<level>-<project>/` for a person to review. A
+finding attaches the slide's measurements to the report. Taste is still a
+person's call: the gate rules out the measurable failures, and the
+screenshots are for the rest.
+
 ## Share and export
 
 | Where the deck is | How to share it | What you get |

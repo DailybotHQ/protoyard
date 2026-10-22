@@ -374,6 +374,8 @@ describe('mountEmbed frames only a valid app from this origin', () => {
     const frame = target.querySelector('iframe');
     expect(frame?.getAttribute('src')).toBe(sameOrigin().href);
     expect(frame?.hasAttribute('srcdoc')).toBe(false);
+    // Regression (deck design gate): a lazy frame in the still-hidden mount area never loaded.
+    expect(frame?.getAttribute('loading')).not.toBe('lazy');
     expect((load.mock.calls[0] as unknown[] | undefined)?.[0]).toMatchObject({ name: 'Demo app' });
     expect(typeof unmount).toBe('function');
     if (typeof unmount === 'function') unmount();

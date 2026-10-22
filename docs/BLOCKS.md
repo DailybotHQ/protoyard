@@ -1569,6 +1569,20 @@ Interactive actions should expose their state and result in text, and host
 buttons should provide pending feedback while an asynchronous dispatch is in
 flight. Check both color themes and reduced-motion preferences in the host.
 
+A poll keeps the viewer's unsubmitted choice when the shared state changes
+under it (the persistent host attaching, another viewer voting). It follows
+only the viewer's own stored vote. The host must name that viewer: set
+`viewerId` to the same id the services record votes and answers under (the
+player passes the active persona).
+
+## Blocks on a slide
+
+A deck renders blocks with `canvasMode: 'slide'`, and every deck slide sets
+it, whatever the surrounding host says. A slide is a fixed-size canvas scaled
+to the screen, so viewport breakpoints (`sm:`, `lg:`) would follow the phone,
+not the slide. On a slide, cards, columns and steps use fixed column counts.
+Pages and docs (`flow`) stay responsive.
+
 ## Contract checks
 
 Run the package tests and documentation link check after changing authoring
