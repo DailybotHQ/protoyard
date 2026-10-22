@@ -6,8 +6,9 @@ Svelte 5 renderers for Protoyard's shared content blocks
 levels (the player and generated prototypes), render blocks with these same
 components.
 
-> **Status:** the root dispatcher and host context are implemented. Family
-> subpaths are filled by the PLAN_005 tasks named in the table.
+> **Status:** the root dispatcher, host context, and the **interactive** +
+> **map** family subpaths are implemented. Other family subpaths are filled by
+> the PLAN_005 tasks named in the table.
 
 ## Shape
 
@@ -61,10 +62,43 @@ and are rendered through `@protoyard/blocks-ui/diagram`; they are not a
 | `./structure` | Timeline, steps, comparison, cards, icon, CTA, columns | T-blocks-ui-structure |
 | `./code` | Code with stepped highlights | T-blocks-ui-code-diagram |
 | `./diagram` | Flow, tree, board, terminal | T-blocks-ui-code-diagram |
-| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart controls | T-blocks-ui-interactive |
-| `./map` | Map on the offline simulated map (views-ui/map) | T-blocks-ui-interactive |
+| `./interactive` | Poll, quiz, calculator, tabs/reveal, counter, chart-controls, form | **done** (T-blocks-ui-interactive) |
+| `./map` | Map on the offline simulated map (views-ui/map, lazy) | **done** (T-blocks-ui-interactive) |
 | `./embed` | embed-app, mounted through the host's `mountEmbed` | T-blocks-ui-embed-app |
 | `./styles.css` | Registers the kit's markup with Tailwind (`@source`) | this scaffold |
+
+## Interactive family (`./interactive`)
+
+Every change goes through `stateHost.dispatch` (a promise so `Button` can show
+pending). blocks-ui never imports `@protoyard/database` or Dexie.
+
+```svelte
+<script lang="ts">
+import { BlockRenderer, setBlockHost } from '@protoyard/blocks-ui';
+import { createMemoryBlockStateHost } from '@protoyard/blocks/interactive';
+
+setBlockHost({
+  stateHost: createMemoryBlockStateHost(),
+  documentId: 'quarterly-review',
+  viewerId: 'persona-ada',
+});
+</script>
+
+<BlockRenderer blocks={slide.blocks} />
+```
+
+| Block | Notes |
+| --- | --- |
+| `poll` | Vote / clear; Progress bars for shares; live region announces results |
+| `quiz` | Deterministic shuffle; Correct/Not quite text (not color alone) |
+| `calculator` | Sliders with `aria-valuetext` (units); formula outputs; optional chart |
+| `counter` | Increment / decrement / reset |
+| `tabs` / `reveal` | Dispatch select/toggle; nested blocks via the family dispatcher |
+| `chart-controls` | Kind switch, series toggle, label range; charts-ui lazy |
+| `form` | Honest placeholder — responses belong to the pages form runtime |
+
+Map blocks load `@protoyard/views-ui/map` only from `./map` (not from the
+interactive chunk).
 
 ## Icons
 

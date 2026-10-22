@@ -18,6 +18,11 @@ export interface BlockHostOptions {
   step?: number;
   /** Stable document namespace used when family renderers address block state. */
   documentId?: string;
+  /**
+   * Viewer (persona) id for poll and quiz votes. Supplied by the host from the
+   * session, never by block content. Defaults to `viewer` in previews.
+   */
+  viewerId?: string;
 }
 
 export interface BlockHost extends BlockHostOptions {
