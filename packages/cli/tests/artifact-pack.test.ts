@@ -174,12 +174,22 @@ describe('asset checks', () => {
   it('allows standard web media types and refuses source maps and unknown files', () => {
     expect(contentTypeFor('assets/a.js')).toEqual({ type: 'text/javascript', text: true });
     expect(contentTypeFor('fonts/a.WOFF2')).toEqual({ type: 'font/woff2', text: false });
+    expect(contentTypeFor('fonts/Inter.ttf')).toEqual({ type: 'font/ttf', text: false });
+    expect(contentTypeFor('fonts/icons.otf')).toEqual({ type: 'font/otf', text: false });
+    expect(contentTypeFor('fonts/Brand.TTF')).toEqual({ type: 'font/ttf', text: false });
+    expect(contentTypeFor('fonts/Brand.OTF')).toEqual({ type: 'font/otf', text: false });
     expect(contentTypeFor('assets/a.js.map')).toBeNull();
     expect(contentTypeFor('assets/a.js.map', { allowSourceMaps: true })?.type).toBe(
       'application/json'
     );
     expect(contentTypeFor('app.webmanifest')).toBeNull();
     expect(contentTypeFor('README')).toBeNull();
+  });
+
+  it('classifies TrueType and OpenType fonts as binary', () => {
+    expect(contentTypeFor('fonts/a.ttf')?.text).toBe(false);
+    expect(contentTypeFor('fonts/a.otf')?.text).toBe(false);
+    expect(contentTypeFor('fonts/a.woff')?.text).toBe(false);
   });
 
   it('refuses external and root-absolute CSS references but keeps relative ones', () => {
@@ -368,6 +378,32 @@ describe('packArtifact', () => {
       { index: 1, files: manifest.files.map((file) => file.path), bytes: manifest.totalBytes },
     ]);
     expect(existsSync(join(out, '.protoyard-out'))).toBe(false);
+  });
+
+  it('packs TrueType and OpenType fonts as binary with registered MIME types', async () => {
+    write('fonts/Inter.TTF', Buffer.from([0x00, 0x01, 0x00, 0x00]));
+    write('fonts/Icons.otf', Buffer.from([0x4f, 0x54, 0x54, 0x4f]));
+    const result = await pack();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const byPath = Object.fromEntries(
+      result.manifest.files.map((file) => [file.path, file.contentType])
+    );
+    expect(byPath['fonts/Inter.TTF']).toBe('font/ttf');
+    expect(byPath['fonts/Icons.otf']).toBe('font/otf');
+    expect(readFileSync(join(out, 'fonts/Inter.TTF'))).toEqual(
+      Buffer.from([0x00, 0x01, 0x00, 0x00])
+    );
+    // Over the binary limit (15 MB), not the text limit.
+    write('fonts/huge.ttf', '');
+    truncateSync(join(dist, 'fonts/huge.ttf'), ARTIFACT_LIMITS.binaryFileBytes + 1);
+    const refused = await pack();
+    expect(refused.ok).toBe(false);
+    if (refused.ok) return;
+    expect(refused.issues).toContainEqual({
+      path: 'fonts/huge.ttf',
+      reason: '15000001 bytes exceed the 15000000-byte limit for a binary file',
+    });
   });
 
   it('builds the exact Artifact publish arguments', async () => {

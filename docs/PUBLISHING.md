@@ -319,7 +319,9 @@ with exit 4 and lists each reason:
 - external scripts outside the allowed CDNs, and stylesheets other than
   Google Fonts
 - network fetches and imports, and service workers
-- non-web file types (source maps are refused)
+- non-web file types (source maps are refused). Accepted binary fonts are
+  `.woff`, `.woff2`, `.ttf` and `.otf` (`font/woff`, `font/woff2`, `font/ttf`,
+  `font/otf`); extensions are matched case-insensitively
 - the 16 MB page and text-file limit and the 15 MB binary limit
 - 255 files and 64 MB per publish, and 511 files and 256 MB per version
 - a missing `<title>`. A title longer than four words is a warning.
