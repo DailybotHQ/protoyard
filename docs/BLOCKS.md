@@ -5,6 +5,8 @@
 
 Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and deck lint read `BLOCK_CATALOG` and `validateBlocksForAuthoring` instead of this prose. Runtime renderers never import the catalog subpath.
 
+Every block may also carry `id`, `step`, `reveal`, `tone` (optional; interactive blocks require `id`). Props below are read from the zod schemas: `name?` is optional, and `{ a; b? }` lists the keys of a nested object.
+
 | Type | Family | Label | Use when | Limits |
 | --- | --- | --- | --- | --- |
 | `heading` | text | Heading | Open a section or slide with a clear title | text ≤ 200 characters; level 1–4; optional eyebrow and subtitle |
@@ -56,12 +58,28 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Long body copy (use text)
 - A single icon callout (use icon or callout)
 
+**Props**
+- `text`: string
+- `level?`: number
+- `eyebrow?`: string
+- `subtitle?`: string
+- `align?`: "start" \| "center"
+
 **Limits**
 - text ≤ 200 characters
 - level 1–4
 - optional eyebrow and subtitle
 
 **Accessibility:** Rendered as a real heading level; keep a single H1 per slide or page when possible.
+
+**Minimal example**
+
+```json
+{
+  "type": "heading",
+  "text": "Hi"
+}
+```
 
 ### `text` — Rich text
 
@@ -74,11 +92,25 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - A structured checklist with icons (use list)
 - Executable HTML or scripts
 
+**Props**
+- `markdown`: string
+- `size?`: "sm" \| "md" \| "lg"
+- `align?`: "start" \| "center"
+
 **Limits**
 - markdown ≤ 4000 characters
 - parsed by safe markdown (no raw HTML)
 
 **Accessibility:** Markdown becomes semantic elements; links keep visible labels; never {@html}.
+
+**Minimal example**
+
+```json
+{
+  "type": "text",
+  "markdown": "Hello"
+}
+```
 
 ### `list` — List
 
@@ -91,11 +123,28 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Long narrative (use text)
 - A multi-column feature grid (use cards)
 
+**Props**
+- `style?`: "bullet" \| "number" \| "check" \| "icon"
+- `items`: { text; icon?; done? }[]
+
 **Limits**
 - 12 items
 - item text ≤ 600 markdown
 
 **Accessibility:** Uses list markup; check style exposes done state in text, not color alone.
+
+**Minimal example**
+
+```json
+{
+  "type": "list",
+  "items": [
+    {
+      "text": "One item"
+    }
+  ]
+}
+```
 
 ### `quote` — Quote
 
@@ -108,11 +157,26 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Long body copy
 - A full person bio grid (use people)
 
+**Props**
+- `quote`: string
+- `cite?`: string
+- `role?`: string
+- `avatar?`: string
+
 **Limits**
 - quote ≤ 600 characters
 - optional avatar id av-001…175
 
 **Accessibility:** Cite is associated with the quote; avatar is decorative when name is present.
+
+**Minimal example**
+
+```json
+{
+  "type": "quote",
+  "quote": "Keep it short."
+}
+```
 
 ### `callout` — Callout
 
@@ -125,11 +189,25 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Primary title (use heading)
 - Multiple competing CTAs
 
+**Props**
+- `title?`: string
+- `body`: string
+- `icon?`: enum (96 values)
+
 **Limits**
 - body ≤ 1,000 markdown
 - tone from the closed palette
 
 **Accessibility:** Tone maps to theme tokens with contrast; icon is decorative when title exists.
+
+**Minimal example**
+
+```json
+{
+  "type": "callout",
+  "body": "Note"
+}
+```
 
 ### `divider` — Divider
 
@@ -141,11 +219,23 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 **Don't use when**
 - As the only content on a slide
 
+**Props**
+- `label?`: string
+- `variant?`: "line" \| "space"
+
 **Limits**
 - optional label
 - variant line or space
 
 **Accessibility:** Decorative; label is plain text when present.
+
+**Minimal example**
+
+```json
+{
+  "type": "divider"
+}
+```
 
 ### `image` — Image
 
@@ -158,12 +248,34 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Remote https images at level 1
 - SVG or HTML markup as the source
 
+**Props**
+- `src`: string
+- `alt?`: string
+- `decorative?`: boolean
+- `width`: number
+- `height`: number
+- `caption?`: string
+- `credit?`: string
+- `fit?`: "contain" \| "cover"
+
 **Limits**
 - avatar:av-001…175, data: raster, or relative path
 - width/height 1–4096
 - no remote URLs
 
 **Accessibility:** Requires alt text unless decorative: true; caption stays as visible text.
+
+**Minimal example**
+
+```json
+{
+  "type": "image",
+  "src": "assets/cover.webp",
+  "alt": "Cover",
+  "width": 1,
+  "height": 1
+}
+```
 
 ### `video` — Video
 
@@ -176,12 +288,36 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Remote streaming URLs
 - Autoplay with sound
 
+**Props**
+- `src`: string
+- `label`: string
+- `poster?`: string
+- `width`: number
+- `height`: number
+- `caption?`: string
+- `autoplay?`: boolean
+- `loop?`: boolean
+- `muted?`: boolean
+- `controls?`: boolean
+
 **Limits**
 - mp4/webm data or relative path
 - autoplay requires muted
 - label required
 
 **Accessibility:** Accessible name from label; autoplay is muted; controls remain available when set.
+
+**Minimal example**
+
+```json
+{
+  "type": "video",
+  "src": "./clips/demo.mp4",
+  "label": "Demo",
+  "width": 16,
+  "height": 9
+}
+```
 
 ### `people` — People
 
@@ -194,11 +330,29 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - A single quote (use quote)
 - Real PII or real people photos
 
+**Props**
+- `title?`: string
+- `layout?`: "grid" \| "row"
+- `people`: { name; role?; avatar?; bio? }[]
+
 **Limits**
 - 1–24 people
 - avatar ids only
 
 **Accessibility:** Name is the primary label; avatar is supplementary.
+
+**Minimal example**
+
+```json
+{
+  "type": "people",
+  "people": [
+    {
+      "name": "Ada Example"
+    }
+  ]
+}
+```
 
 ### `stat` — Stats
 
@@ -211,11 +365,30 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Full time-series charts (use chart)
 - Editable metrics (use calculator)
 
+**Props**
+- `title?`: string
+- `items`: { value; label; delta?; deltaTone?; context?; trend? }[]
+- `source?`: string
+
 **Limits**
 - 1–6 items
 - trend ≤ 60 points
 
 **Accessibility:** Values and labels are text; delta tone is not the only signal (include words).
+
+**Minimal example**
+
+```json
+{
+  "type": "stat",
+  "items": [
+    {
+      "value": "12",
+      "label": "Items"
+    }
+  ]
+}
+```
 
 ### `table` — Table
 
@@ -228,6 +401,13 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Huge datasets (cap is small by design)
 - Charts of the same numbers alone
 
+**Props**
+- `caption`: string
+- `currency?`: string
+- `columns`: { label; align?; format? }[]
+- `rows`: ((string \| number \| null)[])[]
+- `highlightRow?`: number
+
 **Limits**
 - caption required
 - ≤ 8 columns
@@ -235,6 +415,25 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - formats text/number/percent/cents
 
 **Accessibility:** Caption names the table; numeric formats stay in data for screen readers.
+
+**Minimal example**
+
+```json
+{
+  "type": "table",
+  "caption": "Plans",
+  "columns": [
+    {
+      "label": "Name"
+    }
+  ],
+  "rows": [
+    [
+      "Starter"
+    ]
+  ]
+}
+```
 
 ### `chart` — Chart
 
@@ -247,11 +446,39 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Unvalidated chart JSON
 - More than 8 series or 366 points
 
+**Props**
+- `spec`: { kind; title; description?; unit?; currency?; labels; series }
+- `height?`: "sm" \| "md" \| "lg"
+- `showTable?`: boolean
+
 **Limits**
 - ChartSpecSchema caps
 - optional accessible data table
 
 **Accessibility:** Prefer showTable for a data table; series colors come from theme tokens.
+
+**Minimal example**
+
+```json
+{
+  "type": "chart",
+  "spec": {
+    "kind": "bar",
+    "title": "Count",
+    "labels": [
+      "A"
+    ],
+    "series": [
+      {
+        "label": "n",
+        "values": [
+          1
+        ]
+      }
+    ]
+  }
+}
+```
 
 ### `code` — Code
 
@@ -264,12 +491,30 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Executable scripts
 - Huge dumps over the line/char caps
 
+**Props**
+- `code`: string
+- `lang`: enum (10 values)
+- `filename?`: string
+- `caption?`: string
+- `lineNumbers?`: boolean
+- `highlights?`: string[]
+
 **Limits**
 - ≤ 20000 characters
 - ≤ 400 lines
 - ≤ 16 highlight steps
 
 **Accessibility:** Presented as a code block with language; highlights are visual only.
+
+**Minimal example**
+
+```json
+{
+  "type": "code",
+  "code": "x",
+  "lang": "text"
+}
+```
 
 ### `timeline` — Timeline
 
@@ -282,10 +527,33 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - A single milestone (use stat or heading)
 - Gantt-style project plans
 
+**Props**
+- `title?`: string
+- `orientation?`: "horizontal" \| "vertical"
+- `events`: { time; title; body?; icon?; tone? }[]
+
 **Limits**
 - 2–12 events
 
 **Accessibility:** Events read in order; time and title are both text.
+
+**Minimal example**
+
+```json
+{
+  "type": "timeline",
+  "events": [
+    {
+      "time": "2024",
+      "title": "Start"
+    },
+    {
+      "time": "2026",
+      "title": "Now"
+    }
+  ]
+}
+```
 
 ### `steps` — Steps
 
@@ -298,10 +566,31 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Branching flows (use product flow engine)
 - Long docs
 
+**Props**
+- `title?`: string
+- `numbered?`: boolean
+- `items`: { title; body?; icon? }[]
+
 **Limits**
 - 2–8 items
 
 **Accessibility:** Numbered mode exposes order; icons are decorative beside titles.
+
+**Minimal example**
+
+```json
+{
+  "type": "steps",
+  "items": [
+    {
+      "title": "One"
+    },
+    {
+      "title": "Two"
+    }
+  ]
+}
+```
 
 ### `comparison` — Comparison
 
@@ -314,11 +603,41 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Free-form prose
 - More than four columns
 
+**Props**
+- `title?`: string
+- `columns`: { label; highlight? }[]
+- `rows`: { label; values }[]
+
 **Limits**
 - 2–4 columns
 - ≤ 8 rows
 
 **Accessibility:** Row labels and cell values are text or boolean words, not color alone.
+
+**Minimal example**
+
+```json
+{
+  "type": "comparison",
+  "columns": [
+    {
+      "label": "A"
+    },
+    {
+      "label": "B"
+    }
+  ],
+  "rows": [
+    {
+      "label": "Speed",
+      "values": [
+        "Fast",
+        "Slow"
+      ]
+    }
+  ]
+}
+```
 
 ### `cards` — Cards
 
@@ -331,11 +650,29 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - A single CTA band (use cta)
 - Dense data tables
 
+**Props**
+- `title?`: string
+- `columns?`: 2 \| 3 \| 4
+- `items`: { title; eyebrow?; body?; icon?; image?; imageAlt?; href?; tone? }[]
+
 **Limits**
 - 1–12 cards
 - 2–4 columns
 
 **Accessibility:** Each card has a text title; images need imageAlt when present.
+
+**Minimal example**
+
+```json
+{
+  "type": "cards",
+  "items": [
+    {
+      "title": "Card"
+    }
+  ]
+}
+```
 
 ### `icon` — Icon
 
@@ -348,11 +685,27 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Arbitrary SVG uploads
 - Icon-only navigation without a name
 
+**Props**
+- `icon`: enum (96 values)
+- `label?`: string
+- `decorative?`: boolean
+- `size?`: "sm" \| "md" \| "lg" \| "xl"
+
 **Limits**
 - allow-listed icon names
 - label or decorative: true
 
 **Accessibility:** Provide label unless decorative; size does not replace the name.
+
+**Minimal example**
+
+```json
+{
+  "type": "icon",
+  "icon": "star",
+  "decorative": true
+}
+```
 
 ### `cta` — Call to action
 
@@ -365,11 +718,31 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Long forms (use form)
 - Unsafe javascript: links
 
+**Props**
+- `title?`: string
+- `body?`: string
+- `actions`: { label; href; variant?; icon? }[]
+- `footnote?`: string
+
 **Limits**
 - 1–3 actions
 - http(s), mailto, # or relative href only
 
 **Accessibility:** Buttons/links use visible labels; variants are not the only cue.
+
+**Minimal example**
+
+```json
+{
+  "type": "cta",
+  "actions": [
+    {
+      "label": "Open",
+      "href": "https://example.com"
+    }
+  ]
+}
+```
 
 ### `columns` — Columns
 
@@ -382,12 +755,39 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Deep nesting beyond three container levels
 - As a substitute for tabs
 
+**Props**
+- `widths?`: "equal" \| "wide-start" \| "wide-end"
+- `align?`: "start" \| "center"
+- `columns`: block[][]
+
 **Limits**
 - 2–4 columns
 - ≤ 12 blocks each
 - nest ≤ 3 deep
 
 **Accessibility:** Reading order follows column then block order; avoid empty columns.
+
+**Minimal example**
+
+```json
+{
+  "type": "columns",
+  "columns": [
+    [
+      {
+        "type": "text",
+        "markdown": "Left"
+      }
+    ],
+    [
+      {
+        "type": "text",
+        "markdown": "Right"
+      }
+    ]
+  ]
+}
+```
 
 ### `tabs` — Tabs
 
@@ -400,12 +800,49 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Linear steps (use steps)
 - SEO-critical content only in hidden panels
 
+**Props**
+- `id`: string
+- `label`: string
+- `panels`: { id; label; icon?; blocks }[]
+- `defaultPanel?`: string
+
 **Limits**
 - id required
 - 2–6 panels
 - ≤ 12 blocks each
 
 **Accessibility:** label names the tablist; selected panel is keyboard reachable.
+
+**Minimal example**
+
+```json
+{
+  "type": "tabs",
+  "id": "tabs-min",
+  "label": "Tabs",
+  "panels": [
+    {
+      "id": "a",
+      "label": "A",
+      "blocks": [
+        {
+          "type": "text",
+          "markdown": "A"
+        }
+      ]
+    },
+    {
+      "id": "b",
+      "label": "B",
+      "blocks": [
+        {
+          "type": "divider"
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### `reveal` — Reveal
 
@@ -417,11 +854,34 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 **Don't use when**
 - Critical content that must always be visible
 
+**Props**
+- `id`: string
+- `label`: string
+- `openLabel?`: string
+- `blocks`: block[]
+- `open?`: boolean
+
 **Limits**
 - id required
 - ≤ 12 nested blocks
 
 **Accessibility:** Button label toggles open/closed; content stays in the accessibility tree when open.
+
+**Minimal example**
+
+```json
+{
+  "type": "reveal",
+  "id": "reveal-min",
+  "label": "Show",
+  "blocks": [
+    {
+      "type": "text",
+      "markdown": "Hidden"
+    }
+  ]
+}
+```
 
 ### `poll` — Poll
 
@@ -434,12 +894,39 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Real multiplayer voting backends
 - Quizzes with right answers (use quiz)
 
+**Props**
+- `id`: string
+- `question`: string
+- `options`: { id; label }[]
+- `maxChoices?`: number
+- `results?`: "after-vote" \| "always" \| "hidden"
+
 **Limits**
 - id required
 - 2–8 options
 - results after-vote/always/hidden
 
 **Accessibility:** Question is the group label; selected options are announced; results not color-only.
+
+**Minimal example**
+
+```json
+{
+  "type": "poll",
+  "id": "poll-min",
+  "question": "Pick one",
+  "options": [
+    {
+      "id": "yes",
+      "label": "Yes"
+    },
+    {
+      "id": "no",
+      "label": "No"
+    }
+  ]
+}
+```
 
 ### `quiz` — Quiz
 
@@ -452,6 +939,14 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Graded certification
 - Open-ended essays
 
+**Props**
+- `id`: string
+- `title?`: string
+- `questions`: { id; prompt; choices; answers; explanation? }[]
+- `feedback?`: "immediate" \| "end"
+- `passScore?`: number
+- `shuffle?`: boolean
+
 **Limits**
 - id required
 - 1–20 questions
@@ -459,6 +954,34 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - seeded shuffle
 
 **Accessibility:** Feedback text explains correctness; passScore is numeric, not color alone.
+
+**Minimal example**
+
+```json
+{
+  "type": "quiz",
+  "id": "quiz-min",
+  "questions": [
+    {
+      "id": "q1",
+      "prompt": "One?",
+      "choices": [
+        {
+          "id": "a",
+          "label": "A"
+        },
+        {
+          "id": "b",
+          "label": "B"
+        }
+      ],
+      "answers": [
+        "a"
+      ]
+    }
+  ]
+}
+```
 
 ### `calculator` — Calculator
 
@@ -471,6 +994,15 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Executable JavaScript formulas
 - Unbounded sliders
 
+**Props**
+- `id`: string
+- `title?`: string
+- `description?`: string
+- `currency?`: string
+- `inputs`: { name; label; control?; min; max; step?; default; unit?; help? }[]
+- `outputs`: { id; label; formula; unit?; emphasis?; tone? }[]
+- `chart?`: { output; input; kind?; points? }
+
 **Limits**
 - id required
 - 1–8 inputs
@@ -478,6 +1010,35 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - formula caps in ./formula
 
 **Accessibility:** Inputs have labels and units; outputs update as text values.
+
+**Minimal example**
+
+```json
+{
+  "type": "calculator",
+  "id": "calc-min",
+  "inputs": [
+    {
+      "name": "x",
+      "label": "X",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "default": 1
+    }
+  ],
+  "outputs": [
+    {
+      "id": "y",
+      "label": "Y",
+      "formula": {
+        "op": "var",
+        "name": "x"
+      }
+    }
+  ]
+}
+```
 
 ### `counter` — Counter
 
@@ -490,11 +1051,30 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Analytics metrics (use stat)
 - Multi-input math (use calculator)
 
+**Props**
+- `id`: string
+- `step?`: number
+- `label`: string
+- `start?`: number
+- `min?`: number
+- `max?`: number
+- `unit?`: string
+
 **Limits**
 - id required
 - start/step/min/max bounds
 
 **Accessibility:** Value is a live text readout; controls are real buttons with names.
+
+**Minimal example**
+
+```json
+{
+  "type": "counter",
+  "id": "counter-min",
+  "label": "Count"
+}
+```
 
 ### `chart-controls` — Chart controls
 
@@ -507,12 +1087,57 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Static charts (use chart)
 - Incompatible kind lists
 
+**Props**
+- `id`: string
+- `spec`: { kind; title; description?; unit?; currency?; labels; series }
+- `kinds?`: ("line" \| "area" \| "bar" \| "donut" \| "pie" \| "funnel")[]
+- `seriesToggle?`: boolean
+- `range?`: boolean
+- `height?`: "sm" \| "md" \| "lg"
+
 **Limits**
 - id required
 - kinds 2–4
 - needs seriesToggle or range or kinds
 
 **Accessibility:** Controls are labeled; chart updates keep an optional data table.
+
+**Minimal example**
+
+```json
+{
+  "type": "chart-controls",
+  "id": "cc-min",
+  "spec": {
+    "kind": "line",
+    "title": "Trend",
+    "labels": [
+      "a",
+      "b",
+      "c"
+    ],
+    "series": [
+      {
+        "label": "One",
+        "values": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "label": "Two",
+        "values": [
+          2,
+          2,
+          4
+        ]
+      }
+    ]
+  },
+  "seriesToggle": true
+}
+```
 
 ### `form` — Form
 
@@ -525,6 +1150,14 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Auth or real PII pipelines
 - More than 20 fields
 
+**Props**
+- `id`: string
+- `title?`: string
+- `description?`: string
+- `fields`: object[]
+- `submitLabel`: string
+- `successMessage`: string
+
 **Limits**
 - id required
 - 1–20 fields
@@ -532,6 +1165,24 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - responses via @protoyard/pages
 
 **Accessibility:** Each field has a label; errors map to fields; success message is text.
+
+**Minimal example**
+
+```json
+{
+  "type": "form",
+  "id": "form-min",
+  "fields": [
+    {
+      "name": "email",
+      "label": "Email",
+      "type": "email"
+    }
+  ],
+  "submitLabel": "Submit",
+  "successMessage": "Thanks."
+}
+```
 
 ### `map` — Map
 
@@ -544,6 +1195,14 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Real tile servers or GPS tracking
 - More than 200 points
 
+**Props**
+- `id`: string
+- `label`: string
+- `title?`: string
+- `basemap?`: "port-meridian"
+- `points`: { id; label; lng; lat; description?; icon?; tone? }[]
+- `route?`: string[]
+
 **Limits**
 - id required
 - basemap port-meridian only
@@ -551,6 +1210,25 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - route ≤ 50
 
 **Accessibility:** label names the map; points expose text labels (not color alone).
+
+**Minimal example**
+
+```json
+{
+  "type": "map",
+  "id": "map-min",
+  "label": "Map",
+  "basemap": "port-meridian",
+  "points": [
+    {
+      "id": "p1",
+      "label": "Pier",
+      "lng": 0,
+      "lat": 0
+    }
+  ]
+}
+```
 
 ### `embed-app` — Embedded app
 
@@ -563,6 +1241,13 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Unvalidated remote iframes
 - Full product shells as embeds
 
+**Props**
+- `id`: string
+- `title`: string
+- `startLabel?`: string
+- `height?`: "sm" \| "md" \| "lg"
+- `app`: object
+
 **Limits**
 - id required
 - app ≤ 64 KB
@@ -570,6 +1255,38 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - host validates with blueprint loader
 
 **Accessibility:** title names the embed; start control is a real button; nested app keeps its own a11y.
+
+**Minimal example**
+
+```json
+{
+  "type": "embed-app",
+  "id": "embed-min",
+  "title": "Try it",
+  "app": {
+    "formatVersion": 1,
+    "name": "Mini tracker",
+    "entities": [
+      {
+        "name": "task",
+        "fields": [
+          {
+            "name": "title",
+            "kind": "text",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "roles": [
+      {
+        "id": "member",
+        "label": "Member"
+      }
+    ]
+  }
+}
+```
 
 ### `flow` — Flow diagram
 
@@ -583,12 +1300,34 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - More than 12 steps (split it)
 - Numbered prose steps (use steps)
 
+**Props**
+- `nodes`: { id; label; tone? }[]
+- `loopBack?`: boolean
+
 **Limits**
 - 1–12 nodes
 - labels ≤ 120 characters
 - unique node ids
 
 **Accessibility:** Rendered as an ordered list of nodes with arrows as decoration; order carries the meaning.
+
+**Minimal example**
+
+```json
+{
+  "type": "flow",
+  "nodes": [
+    {
+      "id": "idea",
+      "label": "Idea"
+    },
+    {
+      "id": "ship",
+      "label": "Ship"
+    }
+  ]
+}
+```
 
 ### `tree` — Tree diagram
 
@@ -602,12 +1341,32 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Flat lists (use list)
 - Graphs with cycles (not supported)
 
+**Props**
+- `style`: "file-tree" \| "org"
+- `nodes`: { id; parentId; label; tone? }[]
+
 **Limits**
 - 1–64 nodes
 - depth ≤ 6
 - every parentId must exist; no cycles
 
 **Accessibility:** Rendered as nested lists so the hierarchy is announced; tone never carries meaning alone.
+
+**Minimal example**
+
+```json
+{
+  "type": "tree",
+  "style": "file-tree",
+  "nodes": [
+    {
+      "id": "root",
+      "parentId": null,
+      "label": "src"
+    }
+  ]
+}
+```
 
 ### `board` — Board diagram
 
@@ -620,12 +1379,30 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - A live, editable board (use a level-2 board view)
 - More than 6 columns
 
+**Props**
+- `columns`: { id; title; cards }[]
+
 **Limits**
 - 1–6 columns
 - ≤ 8 cards per column
 - unique column and card ids
 
 **Accessibility:** Each column is a labelled list; card tone is decorative and backed by text.
+
+**Minimal example**
+
+```json
+{
+  "type": "board",
+  "columns": [
+    {
+      "id": "todo",
+      "title": "To do",
+      "cards": []
+    }
+  ]
+}
+```
 
 ### `terminal` — Terminal
 
@@ -638,12 +1415,29 @@ Authoring metadata for every block type in `@protoyard/blocks`. Agents, MCP and 
 - Source code with highlighting (use code)
 - Real secrets or real hosts
 
+**Props**
+- `lines`: { kind; text }[]
+
 **Limits**
 - 1–40 lines
 - line text ≤ 240 characters
 - kinds: prompt, output, comment
 
 **Accessibility:** Rendered as preformatted text in a focusable, labelled region; prompts are marked in text.
+
+**Minimal example**
+
+```json
+{
+  "type": "terminal",
+  "lines": [
+    {
+      "kind": "prompt",
+      "text": "pnpm test"
+    }
+  ]
+}
+```
 
 <!-- END GENERATED BLOCK CATALOG -->
 

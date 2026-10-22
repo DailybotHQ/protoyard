@@ -213,6 +213,17 @@ pnpm vitest run packages/pages-ui/tests/security.test.ts
 rg -n '\{@html\}' packages/pages-ui/src && exit 1 || true
 ```
 
+
+## Accessibility
+
+Unit coverage in `tests/a11y.test.ts` checks page and doc hosts for:
+
+- a `main` landmark (page) and named `main` / TOC / section navigation (doc)
+- form field labels associated with controls (`FormBlock`)
+- keyboard focus can land on the first heading
+
+Full axe e2e and visual sweep belong to SITE_QA.
+
 ## Development
 
 ```bash
