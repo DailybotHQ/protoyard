@@ -180,7 +180,7 @@ block list, including inside containers.
 | Subpath | Engine | Filled by |
 | --- | --- | --- |
 | `./formula` | Closed JSON-AST formulas for calculator blocks; see [Formulas](#formulas-protoyardblocksformula) | done |
-| `./interactive` | Pure reducers and the `BlockStateHost` contract | T-blocks-interactive-reducers |
+| `./interactive` | Pure reducers and the `BlockStateHost` contract; see [Interactive state](#interactive-state-protoyardblocksinteractive) | done |
 | `./code` | Tiny code tokenizer with stepped line highlights; see [Code](#code-protoyardblockscode) | done |
 | `./diagram` | Flow, tree, board and terminal layout math | T-blocks-diagram-models |
 | `./catalog` | `BLOCK_CATALOG` authoring metadata (use-when, limits, examples) | T-blocks-catalog |
@@ -274,6 +274,65 @@ if (parsed.success) {
   node is never mistaken for a promise.
 - **Size:** 3.1 KB gzip minified for the whole subpath with zod external. The
   evaluator and formatter alone are 1.4 KB.
+
+## Interactive state (`@protoyard/blocks/interactive`)
+
+Interactive blocks keep viewer state through a `BlockStateHost`. blocks-ui
+reads with `readBlockState(host, key, block)` and changes state only with
+`host.dispatch(key, block, action)`, which returns a promise so a button can
+show pending feedback. The kind runtime implements the host as a service
+(`session.assert` → zod → `environment.run` → `db.transaction`).
+`createMemoryBlockStateHost()` is the in-memory host for previews and tests.
+
+```ts
+import {
+  createMemoryBlockStateHost,
+  pollResults,
+  readBlockState,
+  stateKey,
+} from '@protoyard/blocks/interactive';
+
+const host = createMemoryBlockStateHost();
+const key = stateKey('launch-deck', poll.id); // "launch-deck/favorite"
+await host.dispatch(key, poll, { type: 'vote', viewer: 'ada', options: ['decks'] });
+pollResults(poll, readBlockState(host, key, poll), 'ada'); // counts, shares, voters, mine
+```
+
+| Block | State | Actions | Derived |
+| --- | --- | --- | --- |
+| `poll` | votes per viewer | `vote` (also changes a vote), `clear-vote` | `pollResults`: counts, shares, voters, the viewer's own vote |
+| `quiz` | answers and submissions per viewer | `answer`, `submit`, `reset` | `quizScore` (exact-set matching for multiple answers, `passed`), `quizChoiceOrder` (a seeded shuffle, the same on every reload) |
+| `calculator` | input values (defaults until set) | `set` (snapped to the step grid), `reset` | `calculatorValues`, `calculatorOutputs`, `calculatorChart` |
+| `counter` | value | `increment`, `decrement` (by `step`, within bounds), `reset` | — |
+| `tabs` | open panel | `select` | — |
+| `reveal` | open | `toggle`, `set-open` | — |
+| `chart-controls` | kind, hidden series, label range | `set-kind`, `toggle-series`, `set-range`, `reset` | `chartControlsSpec`: the `ChartSpec` to draw |
+
+- **Pure reducers.** `reduceBlockState(block, state, action)` returns
+  `{ ok: true, state }` or `{ ok: false, error }`. It never mutates its
+  inputs, never throws, and never reads the clock or a random source (tests
+  stub both to throw). It refuses any action that does not fit the block: an
+  unknown option, question, input or panel; too many choices; a value out of
+  range; a control the block does not offer; or hiding the last series.
+- **Viewers.** Polls and quizzes keep state per viewer (persona), so personas
+  can vote differently and the aggregate stays visible. The host supplies
+  `viewer` from the session. Viewer ids exclude `__proto__`, `constructor`
+  and `prototype`, and at most 500 viewers are recorded.
+- **Quiz feedback.** With `feedback: "immediate"` (the default) a question
+  locks once answered. With `"end"` answers can change until `submit`.
+- **Untrusted state.** Stored state and snapshots are untrusted.
+  `restoreBlockState(block, raw)` (used by `readBlockState`) validates the
+  shape with zod. It returns the initial state when the shape is wrong, and
+  drops entries the definition no longer has: removed options, questions,
+  choices, inputs, panels and series. Every action is zod-validated too.
+- **Keys.** `stateKey(documentId, blockId)` gives `<documentId>/<blockId>`
+  and throws on malformed ids. `parseStateKey` reverses it.
+- **Scope.** Map, embed-app and form blocks keep state elsewhere: the map
+  view, the embedded app's own namespace, and `@protoyard/pages` form
+  responses.
+- **Size:** 5.5 KB gzip minified for the whole subpath with zod external
+  (state and action schemas, reducers, derived views and the formula
+  evaluator). The reducer and host path alone is 3.4 KB.
 
 ## Code (`@protoyard/blocks/code`)
 
