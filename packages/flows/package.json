@@ -7,7 +7,8 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
-    "./model": "./src/model/index.ts"
+    "./model": "./src/model/index.ts",
+    "./runtime": "./src/runtime/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
@@ -39,6 +40,11 @@
         "types": "./dist/model/index.d.ts",
         "import": "./dist/model/index.js",
         "default": "./dist/model/index.js"
+      },
+      "./runtime": {
+        "types": "./dist/runtime/index.d.ts",
+        "import": "./dist/runtime/index.js",
+        "default": "./dist/runtime/index.js"
       }
     },
     "types": "./dist/index.d.ts"
